@@ -40,12 +40,20 @@ u"""
   `noepdl`/`oldlike` были тождественны `full`/`nottb` и убраны. Хотите
   GLECS — гоняйте через json (`--engine=json`, `--glecs`), для чего рядом
   лежит [`in2json.py`](in2json.py);
-* **подлог «Scale» (A = 290) молча выключает** `xrays`, `annihilation`,
-  `angular` и `calc_coincidence` и включает `angle_optimize` — что бы ни
-  стояло в файле. Для моноэнергетической кривой это безразлично (рентгена и
-  аннигиляции в поддельной схеме нет), но шапка отчёта показывает итог, а не
-  файл, и об этом надо помнить;
-* **отчёт врёт про `calc_scattered`**: `true` в файле даёт `false` в шапке;
+* **подлог «Scale» (A = 290) молча выключает ЧЕТЫРЕ ключа** — `xrays`,
+  `annihilation`, `angular`, `calc_coincidence` — и включает
+  `angle_optimize`, что бы ни стояло в файле. Шапка отчёта показывает итог, а
+  не файл. ⛔ **Через json обойти это НЕЛЬЗЯ** (мерено 24.08.2026, `T21`):
+  json разбирает другая функция, ключи она читает честно (контроль на Co-60 —
+  все четыре проходят), но подлог глушит их позже разбора и по A. Для
+  моноэнергетической кривой зануление БЕЗРАЗЛИЧНО, и это теперь измерено, а не
+  предположено: на Be-7 (одна гамма на распад, рентген ниже порога — ближайший
+  аналог поддельной схемы) четвёрка вкл/выкл даёт 1.0033 при погрешности
+  прогона 0.51 %, `CF` = 1 ± 0.7 %;
+* **отчёт врёт про `calc_scattered`** — ловушка ЖИВА. Снятие 24.08.2026 (`T21`)
+  **отменено 25.08.2026 встречной проверкой**: контрольный прогон Co-60 (A = 60,
+  без подлога) с `"calc_scattered": true` в json напечатал в шапке `false`.
+  Цена зануления НЕ измерена — тот опыт ключ не занулял (обе ветви шли с `true`);
 * **строки ниже `low_energy_threshold` = 10 кэВ отбрасываются** при разборе
   отчёта: у настоящих нуклидов DLL печатает там `Eff` в тысячи и `CF`,
   прижатый к 0/2/5.
@@ -128,25 +136,62 @@ BASE_PARAMS = [
     ("calc_electron_ttb", True),
 ]
 
+# Блок АНАЛИЗАТОРА (`AN_*`). До 24.08.2026 его не писал ни один инструмент
+# дерева, а геометрии из `LSRM Geometries/Models` этих ключей не несут вовсе —
+# и без него расчёт спектра выходит из нулей (T5, README §13.7).
+#
+# Умолчания самой DLL прочитаны в `Analyzer::parseFromFile`: ПШПВ 0.77 / 1.26 /
+# 1.73 кэВ на 122 / 662 / 1332 кэВ (германий) и 8192 канала. ⛔ А вот у
+# `AN_kev_per_ch` умолчания НЕТ: ключа в файле нет — ширина канала остаётся
+# нулём, и `Analyzer::checkAnalyzer` бракует анализатор целиком (он требует
+# строго положительных всех трёх ПШПВ, ширины канала и числа каналов).
+# Поэтому блок пишется ЦЕЛИКОМ и всегда, как и булев блок выше.
+ANALYZER_KEYS = ("AN_N_ch", "AN_kev_per_ch",
+                 "AN_FWHM_122", "AN_FWHM_662", "AN_FWHM_1332")
 
-def params_block(variant, threads, extra=None):
+# Умолчание харнесса — сцинтилляционное, а не германиевое: мерим мы на CsI/NaI.
+# 1024 канала по 3 кэВ = шкала до 3 МэВ; ПШПВ 7.5 % на 662 кэВ, разнесённая по
+# корню (21.3 / 49.6 / 70.4 кэВ). Все числа в кэВ, кроме числа каналов.
+DEFAULT_ANALYZER = {"AN_N_ch": 1024, "AN_kev_per_ch": 3.0,
+                    "AN_FWHM_122": 21.3, "AN_FWHM_662": 49.6,
+                    "AN_FWHM_1332": 70.4}
+
+
+def params_block(variant, threads, extra=None, analyzer=None):
     over = dict(VARIANTS[variant])
     if extra:
         over.update(extra)
     # Комментарий уходит в файл, который DLL читает как latin-1, — поэтому он
     # по-английски: кириллица тут не пишется.
     lines = [u"", u"// --- calculation parameters: the block is always written IN FULL ---",
+             # Каждая строка примечания начинается с `// NB:` — по этому
+             # признаку `upgrade_in` вычищает их при повторном входе. Без
+             # общего признака вычищалась только первая, и примечание
+             # накапливалось в файле с каждым прогоном.
              u"// NB: in Scale mode (A = 290) the DLL forces xrays, annihilation,",
-             u"// angular and calc_coincidence to false and angle_optimize to true."]
+             u"// NB: angular and calc_coincidence to false and",
+             u"// NB: angle_optimize to true. The json entry point does not help:",
+             u"// NB: the override happens after parsing, keyed on A (T21)."]
     for name, default in BASE_PARAMS:
         value = over.get(name, default)
         lines.append(u"%s = %s" % (name, "true" if value else "false"))
     lines.append(u"threads_number = %d" % threads)
+    # Анализатор идёт ВНУТРИ того же блока: одиночный ключ в .in — известная
+    # ловушка формата, а так весь блок и пишется, и вычищается одним куском.
+    an = dict(DEFAULT_ANALYZER)
+    if analyzer:
+        an.update(analyzer)
+    lines.append(u"")
+    lines.append(u"// --- analyzer: channels, channel width and FWHM, all in keV ---")
+    lines.append(u"AN_N_ch = %d" % int(an["AN_N_ch"]))
+    for _an_name in ("AN_kev_per_ch", "AN_FWHM_122", "AN_FWHM_662",
+                     "AN_FWHM_1332"):
+        lines.append(u"%s = %g" % (_an_name, float(an[_an_name])))
     return u"\n".join(lines) + u"\n"
 
 
 def upgrade_in(src_path, dst_path, variant="full", threads=1, overrides=None,
-               drop_box=True, extra_params=None):
+               drop_box=True, extra_params=None, analyzer=None):
     u"""Переписать .in старого образца под новую DLL.
 
     Ключи коробки (`DS_CrystalBox*`) выбрасываются: это НАШЕ расширение
@@ -160,12 +205,17 @@ def upgrade_in(src_path, dst_path, variant="full", threads=1, overrides=None,
     # ниже всегда целиком (см. ЛОВУШКУ в шапке).
     param_names = set(name for name, _ in BASE_PARAMS)
     param_names.add(u"threads_number")
+    param_names.update(ANALYZER_KEYS)
     with io.open(src_path, encoding="latin-1") as f:
         for line in f:
             stripped = line.strip()
             if drop_box and stripped.startswith("DS_CrystalBox"):
                 continue
             if stripped.startswith(u"// --- calculation parameters"):
+                continue
+            if stripped.startswith(u"// NB:"):
+                continue
+            if stripped.startswith(u"// --- analyzer:"):
                 continue
             m = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_\[\].]*)\s*=\s*(\S+)(.*)$", line)
             if m:
@@ -185,7 +235,7 @@ def upgrade_in(src_path, dst_path, variant="full", threads=1, overrides=None,
     # Хвостовые пустые строки срезаются, иначе каждый повторный вход
     # добавлял бы по одной перед блоком параметров.
     text = text.rstrip(u"\r\n \t") + u"\n"
-    text += params_block(variant, threads, extra_params)
+    text += params_block(variant, threads, extra_params, analyzer)
     with io.open(dst_path, "w", encoding="latin-1", newline="") as f:
         f.write(text)
 

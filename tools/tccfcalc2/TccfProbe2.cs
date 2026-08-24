@@ -20,10 +20,45 @@
 //   TCCFCALC_Calculate@4           Calculate(int числоРаспадов)
 //   TCCFCALC_Calculate_n_sec@12    Calculate_n_sec(int распадов, double секунд)
 //   TCCFCALC_Reset@0               Reset()
-//   TCCFCALC_CalculateSpectrum@8   CalculateSpectrum(double секунд)
-//   TCCFCALC_CalcSpectrum@12       CalcSpectrum(char*, double)
-//   TCCFCALC_CalcSpectrumFile@12   CalcSpectrumFile(char* путь, double секунд)
-//   TCCFCALC_Reset_Spectrum@0      Reset_Spectrum()
+//   TCCFCALC_CalculateSpectrum@8   CalculateSpectrum(double активность, Бк)
+//   TCCFCALC_CalcSpectrum@12       CalcSpectrum(const Analyzer*, double активность)
+//   TCCFCALC_CalcSpectrumFile@12   CalcSpectrumFile(char* конфиг, double активность)
+//   TCCFCALC_Reset_Spectrum@0      Reset_Spectrum() — СТИРАЕТ набранное
+//
+// ТРИ СЛОВА ПРО СПЕКТР, разобраны 24.08.2026 (T5, README §13.7):
+//
+//   * аргумент `CalculateSpectrum` — АКТИВНОСТЬ в Бк, не секунды: она уходит
+//     в строку `COMMENT= A= N Bq` шапки `.spe`, а время из неё ВЫВОДИТСЯ —
+//     `saveAppSpecToSpe` пишет `TLIVE = TREAL = N_распадов / A`. При
+//     A ≤ 1e-14 вызов сразу отвечает 1 и ничего не пишет;
+//   * ⛔ `Reset_Spectrum` — НЕ «подготовка к набору», а `CalculationArrays::
+//     reset` плюс `init_set` на глобальном накопителе и на всех поточных
+//     копиях. Вызванный ПОСЛЕ `Calculate`, он вытирает весь прогон, и спектр
+//     выходит из нулей с `TLIVE = TREAL = 0`. Значения он не возвращает вовсе
+//     (в eax остаётся мусор), поэтому ключ `--reset-spectrum` выключен по
+//     умолчанию и оставлен только чтобы это можно было повторить. ПЕРЕД
+//     набором (`--reset-first`) он безвреден и мерян: спектр выходит
+//     побитово тот же, что и без него;
+//   * `CalcSpectrumFile(путь, A)` ждёт конфиг АНАЛИЗАТОРА — текстовый файл
+//     формата `.in` с ключами `AN_*` (годится сам `tccfcalc.in`), а не путь,
+//     куда писать спектр. Он читает анализатор, подменяет текущий и зовёт
+//     `CalculateSpectrum`. Пишет всё равно в `test_spectr.spe` и
+//     `test_spectr_coi.spe` — ИМЕНА ЗАШИТЫ в DLL, выбрать их нельзя.
+//
+// КОДЫ СПЕКТРАЛЬНЫХ ВЫЗОВОВ — ИЗМЕРЕНЫ 24.08.2026 (Cs-137, Nano16Pro_tube):
+//
+//   CalculateSpectrum: 0 — записан; 1 — A ≤ 1e-14; 4 — в файле
+//     `calc_spectrum = false` (набирать было нечего); 5 — годного анализатора
+//     нет (блока `AN_*` в `tccfcalc.in` не было вовсе).
+//   CalcSpectrumFile: 0 — записан; 1 — A ≤ 1e-14; 7 — анализатор из файла НЕ
+//     ВЗЯТ, и это ОДИН код на три случая: файла нет, ключей `AN_*` в нём нет,
+//     ключи есть, но негодные (все ПШПВ нули). ⛔ Прежняя запись «код 8 —
+//     не прошёл `checkAnalyzer`» НЕ подтвердилась: восьмёрки не бывает,
+//     во всех трёх случаях 7. Историческая семёрка старой пробы — отсюда же:
+//     ей подавали путь ВЫХОДНОГО файла, ключей `AN_*` там нет.
+//   ⛔ А вот НЕПОЛНЫЙ или негодный блок `AN_*` в самом `tccfcalc.in` роняет
+//     не спектр, а `Prepare` — кодом 6 «Incorrect input geometry or material
+//     data». Ни слова про анализатор в этом сообщении нет.
 //   DllMain@12                     ­
 //
 // Смысл параметров `Prepare` вычитан из самой DLL (документации нет) и
@@ -122,7 +157,9 @@ static class TccfProbe2
         {
             Console.Error.WriteLine(
                 "TccfProbe2 <каталог> <A> <Z> <M> [распадов] [--lib=путь]"
-                + " [--seed=N] [--json=файл] [--sec=S] [--spectrum=активность[:файл]]");
+                + " [--seed=N] [--json=файл] [--sec=S]"
+                + " [--spectrum=активностьБк[:конфигАнализатора]]"
+                + " [--reset-spectrum] [--reset-first]");
             return 2;
         }
 
@@ -133,8 +170,14 @@ static class TccfProbe2
         int seed = 0;
         string json = null;
         double seconds = -1.0;
-        double spectrumSeconds = -1.0;
-        string spectrumPath = "spectrum.spe";
+        double activityBq = -1.0;
+        // Конфиг анализатора для `CalcSpectrumFile`: по умолчанию сам входной
+        // файл — блок `AN_*` теперь лежит именно там (run_tccf2.py).
+        string analyzerCfg = "tccfcalc.in";
+        bool resetSpectrum = false;
+        // `Reset_Spectrum` ДО набора — вторая половина лестницы T5. Безвреден
+        // (мерено), в отличие от того же вызова после `Calculate`.
+        bool resetFirst = false;
 
         for (int i = 4; i < args.Length; i++)
         {
@@ -145,16 +188,18 @@ static class TccfProbe2
             else if (s.StartsWith("--p6=")) seed = int.Parse(s.Substring(5));
             else if (s.StartsWith("--sec=")) seconds = double.Parse(s.Substring(6),
                 System.Globalization.CultureInfo.InvariantCulture);
+            else if (s == "--reset-spectrum") resetSpectrum = true;
+            else if (s == "--reset-first") resetFirst = true;
             else if (s.StartsWith("--spectrum="))
             {
                 string v = s.Substring(11);
                 int colon = v.IndexOf(':');
-                if (colon > 0)
+                if (colon > 0 && v.Length > colon + 1)
                 {
-                    spectrumPath = v.Substring(colon + 1);
+                    analyzerCfg = v.Substring(colon + 1);
                     v = v.Substring(0, colon);
                 }
-                spectrumSeconds = double.Parse(v,
+                activityBq = double.Parse(v,
                     System.Globalization.CultureInfo.InvariantCulture);
             }
             else decays = int.Parse(s);
@@ -198,6 +243,14 @@ static class TccfProbe2
                 rc = Prepare(a, z, m, baseDir, libDir, seed);
                 Console.WriteLine("Prepare -> " + rc);
             }
+            if (rc == 0 && resetFirst)
+            {
+                // ДО набора: накопитель и так пуст после `Prepare`, вызов
+                // ничего не портит — но проверять это надо прогоном, а не
+                // рассуждением, ключ для того и заведён.
+                ResetSpectrum();
+                Console.WriteLine("Reset_Spectrum (ДО набора) -> вызван");
+            }
             if (rc != 0)
             {
                 Console.WriteLine("Prepare отказал, считать нечего");
@@ -213,22 +266,27 @@ static class TccfProbe2
                 Console.WriteLine("Calculate -> " + rc);
             }
 
-            if (rc == 0 && spectrumSeconds >= 0)
+            if (rc == 0 && activityBq > 0)
             {
                 // Спектр складывается отдельным вызовом: `calc_spectrum = true`
                 // в файле сам по себе ничего не пишет. Коды спектральных
-                // вызовов в rc НЕ попадают: CalcSpectrumFile заведомо отвечает
-                // 7 (TODO T5), и он затирал бы успешный код самого расчёта.
-                int src = ResetSpectrum();
-                Console.WriteLine("Reset_Spectrum -> " + src);
-                src = CalculateSpectrum(spectrumSeconds);
-                Console.WriteLine("CalculateSpectrum -> " + src);
-                // `CalcSpectrumFile` отвечает 7 и ничего не пишет — что она
-                // ждёт первым словом, не разобрано (TODO T5). Вызов оставлен,
-                // чтобы это было видно, а не забыто.
-                src = CalcSpectrumFile(Path.Combine(dir, spectrumPath), spectrumSeconds);
+                // вызовов в rc НЕ попадают, чтобы не затереть код расчёта.
+                if (resetSpectrum)
+                {
+                    // ⛔ Стирает набранное. Значения не возвращает — что бы ни
+                    // печаталось раньше как «Reset_Spectrum -> N», это мусор.
+                    ResetSpectrum();
+                    Console.WriteLine("Reset_Spectrum -> вызван"
+                                      + " (значения не возвращает, набранное СТЁРТО)");
+                }
+                int src = CalculateSpectrum(activityBq);
+                Console.WriteLine("CalculateSpectrum -> " + src
+                                  + " (A = " + activityBq + " Бк)");
+                string cfg = Path.IsPathRooted(analyzerCfg)
+                    ? analyzerCfg : Path.Combine(dir, analyzerCfg);
+                src = CalcSpectrumFile(cfg, activityBq);
                 Console.WriteLine("CalcSpectrumFile -> " + src
-                                  + " (спектр пишет CalculateSpectrum: test_spectr.spe)");
+                                  + " (конфиг анализатора: " + cfg + ")");
             }
         }
         catch (Exception e)
