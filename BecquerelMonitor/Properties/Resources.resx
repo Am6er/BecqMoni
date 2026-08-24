@@ -8485,6 +8485,10 @@ http://xptable.sourceforge.net/</value>
   <data name="FSAModelResidualValue" xml:space="preserve">
     <value>{0} %</value>
   </data>
+  <data name="FSAPresentNoShare" xml:space="preserve">
+    <value>present</value>
+    <comment>S85: backscatter has no reliable share — presence only</comment>
+  </data>
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} %</value>
   </data>

@@ -2999,6 +2999,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to present.
+        /// </summary>
+        public static string FSAPresentNoShare {
+            get {
+                return ResourceManager.GetString("FSAPresentNoShare", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &lt; {0} %.
         /// </summary>
         public static string FSAMdaValue {

@@ -362,6 +362,7 @@
     <Compile Include="FullSpectrumAnalysis\FsaResult.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaLineAudit.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaSampleLibrary.cs" />
+    <Compile Include="FullSpectrumAnalysis\DecayParentRule.cs" />
     <Compile Include="FullSpectrumAnalysis\KSeriesRule.cs" />
     <Compile Include="EnergySpectrumView.cs">
       <SubType>UserControl</SubType>
