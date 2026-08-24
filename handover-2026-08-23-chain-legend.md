@@ -598,10 +598,126 @@ ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 потребовал бы, а он сегодня обратный, и писать в `DetectedPeaks` из фонового
 счёта нельзя.
 
-⚠ **Остаток назван и остаётся:** кривая эффективности строится по площади
-ПОДПИСАННОГО пика (`EfficiencyModel`), то есть подписи — не украшение. Пока
-галка включена, подпись и состав могут говорить разное, и кривая, построенная в
-этот момент, наследует первое.
+⚠ **Остаток, названный в строке, ОПРОВЕРГНУТ ЧТЕНИЕМ КОДА 24.08.2026.** В строке
+(и в первой редакции этого параграфа) сказано, что кривая эффективности строится
+по площади ПОДПИСАННОГО пика (`EfficiencyModel`), то есть подписи — не украшение.
+Кода за этим утверждением нет, и покрытие посчитано МЕХАНИЧЕСКИ, а не на глаз
+(пересчёт 24.08.2026 после приёмки — первые числа были неверны).
+
+**Проверка первая, откуда таблица пиков вообще видна.** `grep -rn "DetectedPeaks"
+--include=*.cs .` даёт **37 строк в 7 файлах**: `DocEnergySpectrum.cs` (19),
+`EnergySpectrumView.cs` (6), `FsaOverlay.cs` (4), `DCPeakDetectionView.cs` (3),
+`MainForm.cs` (3), `ResultData.cs:320` (1, само объявление) и
+**`ResultData_097b.cs:262`** (1, объявление в версионном двойнике для чтения старых
+файлов). Седьмой файл в первой редакции был потерян. Ни одного файла кривой
+эффективности среди семи нет: в `BecquerelMonitor/EfficiencyMaker/` слова
+`DetectedPeaks` и `MatchNuclide` не встречаются ни разу, и в лежащем ВНЕ этого
+каталога `BecquerelMonitor/EfficiencyMakerForm.cs` — тоже ни разу. ⚠ Слово `Peak`
+там всё-таки есть — ровно две строки, `EfficiencyMakerForm.cs:571–572`, и обе про
+НАСТРОЙКУ прибора, а не про найденные пики: `device.PeakDetectionMethodConfig as
+FWHMPeakDetectionMethodConfig` внутри `FwhmPercentAt662`
+(`BecquerelMonitor/EfficiencyMakerForm.cs:569`), откуда берётся подсказка разрешения
+на 662 кэВ — ПШПВ-калибровка конфигурации; объекта `Peak` и таблицы пиков
+документа там нет. Формулировка «нет и самого слова `Peak`» была неверна и
+исправлена встречным счётом 24.08.2026; вывода она не меняет.
+Единственное обращение к нуклидам во всём тракте —
+`BecquerelMonitor/EfficiencyMaker/EfficiencyModel.cs:263`,
+`NuclideDefinitionManager.GetInstance()`, то есть НАБОРЫ общей библиотеки, а не
+таблица пиков документа.
+
+**Проверка вторая, откуда точка кривой рождается.** `grep -rn "new ROIEfficiencyData"
+--include=*.cs .` даёт в ПРИЛОЖЕНИИ **четыре** места (остальные — пробы
+`tools/effmaker/probes/`): `BecquerelMonitor/DeviceConfigForm.cs:2394`,
+`BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs:586`,
+`BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:1144` и
+`BecquerelMonitor/ROIEfficiencyData.cs:17` (внутри `Clone()`). В первой редакции их
+было названо три — пропущен `Clone()`. **Ни одно из ЧЕТЫРЁХ не читает `Peak`**:
+первое собирает точку из трёх колонок текстового файла, второе — из массивов
+`energies/values/errors` расчёта по геометрии, третье — из значения подгонки
+`Evaluate(result, e)`, четвёртое копирует три числа самого себя.
+
+Путей к кривой три, и подпись не входит ни в один:
+
+1. **По измерениям.** `BecquerelMonitor/EfficiencyMakerForm.cs:1142`
+   (`runButton_Click`) → `EfficiencyFitter.Run`. Линии — из наборов нуклидов
+   (`BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:72` →
+   `EfficiencyLibrary.BuildChains`,
+   `BecquerelMonitor/EfficiencyMaker/EfficiencyModel.cs:258`, менеджер наборов на
+   `:263`); какая цепочка какому спектру — из ИМЕНИ ФАЙЛА и ячейки таблицы
+   (`BecquerelMonitor/EfficiencyMakerForm.cs:1048` `GuessChain`,
+   `BecquerelMonitor/EfficiencyMakerForm.cs:1333` `ChainsBySpectrum`). Площадь фиттер
+   меряет САМ, в окне вокруг ОЖИДАЕМОГО канала библиотечной линии:
+   `BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:317`
+   `center = EnergyToChannel(calibration, line.Energy, channels)`, уточнение центра не
+   более 0.3 ПШПВ (`EfficiencyFitter.cs:416`, умолчание
+   `EfficiencyModel.cs:167` `CenterSearchFwhm = 0.3`), профиль плюс подложка
+   взвешенным МНК (`FitPeak`, `EfficiencyFitter.cs:473`). Объект `Peak` в этот путь не
+   входит вовсе; `LoadResultData`
+   (**`BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:1245`** — голая `:1245`
+   в первой редакции привязывалась к предыдущему названному файлу и вела не туда)
+   читает из файла спектр, калибровки и фон, а лежащие там же `DetectedPeaks` не
+   трогает.
+2. **Из геометрии.** `BecquerelMonitor/EfficiencyMakerForm.cs:1171`
+   (`calculateButton_Click`) →
+   `BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs:586`. Нуклидов
+   в этом пути нет ни в каком виде.
+3. **Ввозом готовой кривой.** Табличный экспорт
+   (`BecquerelMonitor/DeviceConfigForm.cs:2394`) и родная кривая самого спектра из его
+   файла (`ResultData.FileEfficiency`, `BecquerelMonitor/DocumentManager.cs:1402`,
+   `PrepareEfficiency`); выбор кривой на спектр —
+   `BecquerelMonitor/DCControlPanel.cs:594` (`EfficiencyFromItem`), из конфигурации
+   прибора, не из таблицы пиков.
+
+Значит, галка `S57` кривой не касается ни на одном пути, и «кривая, построенная в этот
+момент, наследует подпись» — утверждение, которого код не подтверждает. Остаток снят.
+
+⚠ **Но подпись всё-таки покупает ЧИСЛО — обратным ходом, и не кривую.** Ссылки
+перепроверены поимённо 24.08.2026 после приёмки. Условие входа —
+`BecquerelMonitor/EnergySpectrumView.cs:719`: `peakMode == PeakMode.Visible`, спектр
+видим и у него есть своя кривая (`activeResultData.Efficiency != null`). Дальше
+`:725` перебирает `activeResultData.DetectedPeaks`, и если внутри выделения оказался
+РОВНО ОДИН пик с подписью (`:733`, `detectedPeak.Nuclide.Intencity > 0`), то `:736`
+зовёт `BecquerelCoefficient.TryForLine(detectedPeak.Energy,
+detectedPeak.Nuclide.Intencity, activeResultData.Efficiency, …)`
+(`BecquerelMonitor/Utils/BecquerelCoefficient.cs:67`, формула на `:85–86`:
+`K = 100/(ε(E)·I%)`, `dK = K·δ/100`, конец метода на `:88`), и полученный `K` идёт в
+`ROIAriphmetics.CalculateActivity` на `BecquerelMonitor/EnergySpectrumView.cs:741` — то есть
+`A = N·100/(ε(E)·I%)`.
+
+`I%` здесь — выход того нуклида, которого поставил `MatchNuclide`
+(`BecquerelMonitor/PeakDetector.cs:136` — вызов, `BecquerelMonitor/PeakDetector.cs:205`
+— сама подпись «ближайшая ВИДИМАЯ линия ОБЩЕЙ библиотеки в пределах допуска»). Значит
+число в беккерелях наследует ровно те два дефекта, что уже описаны строками:
+общая библиотека знает **43 различимых имени** (`S63`), а близкая линия чужого
+родителя забирает подпись (`S64`) — и там это считается косметикой, а здесь
+превращается в другой `I%` и другую активность. Это не следствие `S57` (подписей он
+не трогает) и не покрыто `V9` (там путь ЗОНЫ, `roi.PeakEnergy` и
+`BecquerelCoefficient.Resolve`), поэтому вынесено в реестр ОТДЕЛЬНОЙ строкой;
+родня — `S64`, `S63`, `V9`.
+
+**Мерка для этой строки названа сразу:** взять спектр `G1S16_Am241_P25` из случая (а)
+`S64` — единственный найденный пик 58.57 кэВ подписан `Xray-W` (59.318) вместо
+Am-241 (59.541); выделить область вокруг него при живой кривой и сравнить показанные
+беккерели с расчётом по паспортному выходу Am-241. Расхождение обязано быть
+БОЛЬШЕ погрешности кривой — иначе находка действительно косметическая и строка
+закрывается измерением.
+
+**Цена подстановки СЧИТАЕТСЯ ЗАРАНЕЕ, и она не малая.** В ПОСТАВОЧНОЙ
+библиотеке самого приложения (`BecquerelMonitor/config/NuclideDefinition.xml`, проверено
+24.08.2026) вокруг 58.57 кэВ стоят ТРИ видимых кандидата, и выходы у них разные:
+`W x-ray` 57.981 с `Intencity` **57.6** (строки 954–961, относительный промах 1.016 %),
+`W x-ray` 59.318 с `Intencity` **100** (строки 945–952, 1.261 %) и `Am-241` 59.541 с `Intencity`
+**35.9** (строки 86–94, 1.631 %); у всех трёх `Visible = true`. `MatchNuclide` берёт
+МИНИМАЛЬНЫЙ ОТНОСИТЕЛЬНЫЙ промах в пределах `tol` (`PeakDetector.cs:215`), то есть при
+обычном допуске выигрывает вольфрам, а какой именно из двух — решает `tol` и
+активный набор. Показанные беккерели идут как `1/I%`, поэтому подмена стоит
+**57.6/35.9 = 1.60×** или **100/35.9 = 2.79×** занижения — оба много больше любой
+погрешности кривой. ⚠ В `S64` этот случай измерен ПРОБОЙ, чья библиотека собрана
+иначе (оттуда имя `Xray-W` и ровно одна линия 59.318); в корневом
+`config/NuclideDefinition.xml` репозитория вольфрама нет вовсе, а 59.541 там приписана
+U-237 с `Visible = false` — то есть подпись, а за ней и число в беккерелях, зависят ещё
+и от того, КАКОЙ файл библиотеки взят. Поэтому мерка обязана назвать и файл
+библиотеки, и `tol`, иначе она не повторяется.
 
 ---
 
