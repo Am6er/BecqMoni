@@ -23,7 +23,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-1.7640251205435464</Coefficient><Coefficient>0.36073651000248014</Coefficient><Coefficient>2.574625517986052e-08</Coefficient></Coefficients>
+            <Coefficient>-1.7640251205432222</Coefficient><Coefficient>0.36073651000241386</Coefficient><Coefficient>2.574625517985579e-08</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>70809</ValidPulseCount>
         <TotalPulseCount>70809</TotalPulseCount>
@@ -8231,7 +8231,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-1.6886398844793293</Coefficient><Coefficient>0.36051915452663086</Coefficient><Coefficient>3.490364235195476e-08</Coefficient></Coefficients>
+            <Coefficient>-1.6717428522567102</Coefficient><Coefficient>0.36052651913256883</Coefficient><Coefficient>3.4904355355878395e-08</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>35415</ValidPulseCount>
         <TotalPulseCount>35415</TotalPulseCount>
@@ -16434,6 +16434,6 @@
         </Spectrum>
       </BackgroundEnergySpectrum>
       <Visible>true</Visible>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.03518330310114309</Coefficient><Coefficient>0.007197140556035365</Coefficient><Coefficient>-5.0099887736119607e-08</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.03303955591151507</Coefficient><Coefficient>0.0067520936531192755</Coefficient><Coefficient>1.0412420682099153e-07</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

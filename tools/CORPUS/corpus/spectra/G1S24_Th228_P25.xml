@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -20,9 +20,9 @@
         <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>1</PolynomialOrder>
+          <PolynomialOrder>4</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.249087537753983</Coefficient><Coefficient>3.0095859528973916</Coefficient></Coefficients>
+            <Coefficient>-8.565391514663892</Coefficient><Coefficient>2.7681725657756875</Coefficient><Coefficient>0.0009406118745767547</Coefficient><Coefficient>-1.3473849211705825e-06</Coefficient><Coefficient>6.66763971812349e-10</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1908325</ValidPulseCount>
         <TotalPulseCount>1908325</TotalPulseCount>
@@ -1060,9 +1060,9 @@
         <NumberOfChannels>1024</NumberOfChannels>
         <ChannelPitch>1</ChannelPitch>
         <EnergyCalibration>
-          <PolynomialOrder>1</PolynomialOrder>
+          <PolynomialOrder>4</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-24.249087537753983</Coefficient><Coefficient>3.0095859528973916</Coefficient></Coefficients>
+            <Coefficient>-8.565391514663892</Coefficient><Coefficient>2.7681725657756875</Coefficient><Coefficient>0.0009406118745767547</Coefficient><Coefficient>-1.3473849211705825e-06</Coefficient><Coefficient>6.66763971812349e-10</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>2384034</ValidPulseCount>
         <TotalPulseCount>2384034</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>9</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.41658756995890195</Coefficient><Coefficient>0.6604508905652323</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.5226247905471887</Coefficient><Coefficient>0.6214054098389485</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

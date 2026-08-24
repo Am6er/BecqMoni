@@ -31,9 +31,9 @@
   </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR>
-    <FWHM_AT_0>43.1175</FWHM_AT_0>
+    <FWHM_AT_0>0.001</FWHM_AT_0>
     <Ch_Fwhm>2000</Ch_Fwhm>
-    <Width_Fwhm>66</Width_Fwhm>
+    <Width_Fwhm>101</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>20.0</Min_Range>
