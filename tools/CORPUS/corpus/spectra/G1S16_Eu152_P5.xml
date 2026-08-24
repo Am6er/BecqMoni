@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-10.014420349395651</Coefficient><Coefficient>2.8588427010390873</Coefficient><Coefficient>0.0003765426552451712</Coefficient><Coefficient>-2.5754851187562494e-07</Coefficient></Coefficients>
+            <Coefficient>-10.162281286934494</Coefficient><Coefficient>2.859219673323083</Coefficient><Coefficient>0.00037659230685584496</Coefficient><Coefficient>-2.5758247269855726e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>5029781</ValidPulseCount>
         <TotalPulseCount>5029781</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-10.014420349395651</Coefficient><Coefficient>2.8588427010390873</Coefficient><Coefficient>0.0003765426552451712</Coefficient><Coefficient>-2.5754851187562494e-07</Coefficient></Coefficients>
+            <Coefficient>-10.162281286934494</Coefficient><Coefficient>2.859219673323083</Coefficient><Coefficient>0.00037659230685584496</Coefficient><Coefficient>-2.5758247269855726e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.44718614206200474</Coefficient><Coefficient>0.638764740014585</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.3875189758886599</Coefficient><Coefficient>0.6636358981348441</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

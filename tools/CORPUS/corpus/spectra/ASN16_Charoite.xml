@@ -16444,6 +16444,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-191.8767287622007</Coefficient><Coefficient>4.588772880705447</Coefficient><Coefficient>0.0003676761276755056</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-183.74068882397412</Coefficient><Coefficient>4.345438769570131</Coefficient><Coefficient>0.0005221103451181769</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

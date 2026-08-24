@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -2096,6 +2096,6 @@
           <DataPoint>9</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.563785488033974</Coefficient><Coefficient>0.6104895173521114</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон отк кр_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.5607702246394753</Coefficient><Coefficient>0.6109337258940999</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.606615592578049</Coefficient><Coefficient>2.8370694027619754</Coefficient><Coefficient>0.000430650019425915</Coefficient><Coefficient>-3.0256977322674745e-07</Coefficient></Coefficients>
+            <Coefficient>-8.918363319002253</Coefficient><Coefficient>2.839318550271125</Coefficient><Coefficient>0.0004309914264487972</Coefficient><Coefficient>-3.0280964189232694e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>191626</ValidPulseCount>
         <TotalPulseCount>191626</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.606615592578049</Coefficient><Coefficient>2.8370694027619754</Coefficient><Coefficient>0.000430650019425915</Coefficient><Coefficient>-3.0256977322674745e-07</Coefficient></Coefficients>
+            <Coefficient>-8.918363319002253</Coefficient><Coefficient>2.839318550271125</Coefficient><Coefficient>0.0004309914264487972</Coefficient><Coefficient>-3.0280964189232694e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1968141</ValidPulseCount>
         <TotalPulseCount>1968141</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>7</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.4487766365650711</Coefficient><Coefficient>0.6388452165430952</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон открытый_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.3879587975318544</Coefficient><Coefficient>0.664045368643586</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>
