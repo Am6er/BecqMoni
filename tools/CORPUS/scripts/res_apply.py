@@ -322,6 +322,117 @@ def rewrite(src, dest, kind, coef):
     return None
 
 
+#: Виды узла кривой ПШПВ. Их ТРИ, а поле в модели одно (`B18`), поэтому и
+#: читать надо все три: спектр, у которого рядом со своим лежит чужой,
+#: разбирается ЧУЖИМ, и это уже стоило одного разъехавшегося ядра поиска.
+FWHM_NODES = ('SimpleSqrtFwhmCalibration', 'SqrtFwhmCalibration',
+              'PowerFwhmCalibration')
+
+#: Какому тегу отвечает какой вид кривой в плане.
+NODE_KIND = {'SqrtFwhmCalibration': 'quad', 'PowerFwhmCalibration': 'power'}
+
+
+def stored_nodes(path):
+    u"""Какие узлы кривой ПШПВ лежат В ФАЙЛЕ: [(тег, [коэффициенты]), …].
+
+    Разбором XML, а не подстрокой: тег `<Efficiency>` уже показал, чем кончается
+    поиск подстрокой в этих файлах (35 совпадений на один узел).
+    """
+    rd = ET.parse(path).getroot().find('ResultDataList/ResultData')
+    if rd is None:
+        return []
+    out = []
+    for name in FWHM_NODES:
+        for node in rd.findall(name):
+            out.append((name, [float(x.text) for x in
+                               node.findall('Coefficients/Coefficient')]))
+    return out
+
+
+def plan(mode='power-node', only=None, split=200.0, min_points=6, min_low=2,
+         tol=0.35, points=None):
+    u"""Что и КАКИМ узлом получит каждый спектр — не написав ни байта.
+
+    Возвращает `(строки, switched, verdict)`; строка — словарь с `key`, `det`,
+    `kind` (`'power'` / `'quad'` / `None`, если спектр остаётся как был),
+    `coef`, `dev`, `kept` (почему оставлен) и `note` (почему записан вопреки
+    пределу).
+
+    ⛔ Вынесено из `main` НАРОЧНО, и не ради красоты: этим же планом сторож
+    приёмки (`check_corpus.check_fwhm_node`) проверяет, что третий шаг
+    пересборки не пропущен (`T61`). Отдельно написанный «список, кому положен
+    степенной узел» разошёлся бы с настоящей записью на первом же особом
+    случае — а их здесь три: вырожденная шкала, нефизичная степень в каналах и
+    приёмка «вне предела, но прежняя хуже». Сторож, который сверяет не с тем,
+    что пишется, — тот же `D27`: поверка, не смотрящая на изменяемое.
+    """
+    stored = stored_models()
+    switched, verdict = {}, {}
+    if mode != 'proj':
+        pts = measured_points() if points is None else points
+        pts = [p for p in pts if only is None or p['det'] in only]
+        verdict = decide(pts, split, min_points, min_low)
+        for det, (a, p, _rep) in verdict.items():
+            if a is not None:
+                switched[det] = (a, p)
+
+    rows = []
+    for row in manifest_rows():
+        det, key = row['det'], row['key']
+        src = os.path.join(CORPUS, 'spectra', key + '.xml')
+        if det not in stored or not os.path.isfile(src):
+            continue
+        if only is not None and det not in only:
+            continue
+        sp = Spectrum(src)
+        ecal = corpus_calib.Ecal(sp.ecal, sp.n)
+
+        if det in switched:
+            a, p = switched[det]
+            res_fn = lambda e, a=a, p=p: a * max(float(e), 1e-9) ** p
+        else:
+            res_fn = corpus_calib.resolution_fn(stored[det])
+
+        if mode == 'power-node' and det in switched:
+            coef, why = power_channel_coef(ecal, res_fn, sp.n)
+            kind = 'power'
+        else:
+            coef, why = quad_channel_coef(ecal, res_fn, sp.n)
+            kind = 'quad'
+
+        rec = dict(key=key, det=det, src=src, kind=kind, coef=coef,
+                   dev=None, e_worst=None, kept=None, note=None)
+        if coef is None:
+            rec.update(kind=None, kept=why)
+            rows.append(rec)
+            continue
+
+        dev, e_worst = fidelity(ecal, res_fn, kind, coef, sp.n)
+        rec.update(dev=dev, e_worst=e_worst)
+
+        # Приёмка — «в предел ИЛИ не хуже той, что стоит», а не голый предел.
+        # Голый предел завернул `OBS_UGlass` и `AS80_K40` расхождением 35 % на
+        # 2690 кэВ — и оставил в них ПРЕЖНЮЮ кривую, которая на 60 кэВ врёт на
+        # 186 % и 92 %. Кривую надо мерить против кривой, а не против числа:
+        # прежняя считается тем же прежним правилом от той же модели группы,
+        # то есть это ровно то, что лежит в файле.
+        if dev > tol:
+            old_fn = corpus_calib.resolution_fn(stored[det])
+            old_coef = corpus_calib.fwhm_channel_coef(ecal, old_fn, sp.n)
+            old_dev, old_e = fidelity(ecal, old_fn, 'quad', old_coef, sp.n)
+            if dev > old_dev:
+                rec.update(kind=None,
+                           kept=u'отклонение %.0f %% на %.0f кэВ, у прежней %.0f %% на %.0f кэВ'
+                                % (100 * dev, e_worst, 100 * old_dev, old_e))
+                rows.append(rec)
+                continue
+            rec['note'] = (u'вне предела (%.0f %% на %.0f кэВ), но прежняя хуже'
+                           u' (%.0f %% на %.0f кэВ) — пишем'
+                           % (100 * dev, e_worst, 100 * old_dev, old_e))
+        rows.append(rec)
+    return rows, switched, verdict
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--mode', default='proj', choices=('proj', 'power', 'power-node'))
@@ -346,21 +457,17 @@ def main():
         # стоит. Замер делается копией (`--out`), и только принятое пишется.
         args.out = CORPUS
 
-    stored = stored_models()
     print(u'модель разрешения в спектрах корпуса, режим %s (V2)' % args.mode)
 
-    switched = {}
+    rows, switched, verdict = plan(args.mode, only, args.split,
+                                   args.min_points, args.min_low, args.tol)
     if args.mode != 'proj':
-        pts = [p for p in measured_points() if only is None or p['det'] in only]
-        print(u'измерено точек: %d в %d группах'
-              % (len(pts), len({p['det'] for p in pts})))
-        verdict = decide(pts, args.split, args.min_points, args.min_low)
         print()
         print(u'%-10s %5s %4s %8s %6s %8s %8s %8s %8s  %s'
               % (u'группа', u'точек', u'низ', u'a', u'p', u'СКО низ', u'→ низ',
                  u'СКО верх', u'→ верх', u'решение'))
         for det in sorted(verdict):
-            a, p, rep = verdict[det]
+            _a, _p, rep = verdict[det]
             if 'a' not in rep:
                 print(u'%-10s %5d %4d %8s %6s %8s %8s %8s %8s  %s'
                       % (det, rep['n'], rep['n_low'], u'—', u'—', u'—', u'—',
@@ -370,8 +477,6 @@ def main():
                       % (det, rep['n'], rep['n_low'], rep['a'], rep['p'],
                          rep['old_low'], rep['new_low'], rep['old_high'],
                          rep['new_high'], rep['why']))
-            if a is not None:
-                switched[det] = (a, p)
         print()
         print(u'форму меняем у групп: %d' % len(switched))
 
@@ -393,54 +498,18 @@ def main():
         shutil.copytree(CORPUS, out)
 
     done, kept, worst = 0, [], (0.0, '', 0.0)
-    for row in manifest_rows():
-        det, key = row['det'], row['key']
-        src = os.path.join(CORPUS, 'spectra', key + '.xml')
-        if det not in stored or not os.path.isfile(src):
+    for rec in rows:
+        key = rec['key']
+        if rec['kept']:
+            kept.append((key, rec['kept']))
             continue
-        if only is not None and det not in only:
-            continue
-        sp = Spectrum(src)
-        ecal = corpus_calib.Ecal(sp.ecal, sp.n)
+        if rec['note']:
+            print(u'   %-24s %s' % (key, rec['note']))
+        if rec['dev'] > worst[0]:
+            worst = (rec['dev'], key, rec['e_worst'])
 
-        if det in switched:
-            a, p = switched[det]
-            res_fn = lambda e, a=a, p=p: a * max(float(e), 1e-9) ** p
-        else:
-            res_fn = corpus_calib.resolution_fn(stored[det])
-
-        if args.mode == 'power-node' and det in switched:
-            coef, why = power_channel_coef(ecal, res_fn, sp.n)
-            kind = 'power'
-        else:
-            coef, why = quad_channel_coef(ecal, res_fn, sp.n)
-            kind = 'quad'
-        if coef is None:
-            kept.append((key, why))
-            continue
-
-        dev, e_worst = fidelity(ecal, res_fn, kind, coef, sp.n)
-
-        # Приёмка — «в предел ИЛИ не хуже той, что стоит», а не голый предел.
-        # Голый предел завернул `OBS_UGlass` и `AS80_K40` расхождением 35 % на
-        # 2690 кэВ — и оставил в них ПРЕЖНЮЮ кривую, которая на 60 кэВ врёт на
-        # 186 % и 92 %. Кривую надо мерить против кривой, а не против числа:
-        # прежняя считается тем же прежним правилом от той же модели группы,
-        # то есть это ровно то, что лежит в файле.
-        if dev > args.tol:
-            old_fn = corpus_calib.resolution_fn(stored[det])
-            old_coef = corpus_calib.fwhm_channel_coef(ecal, old_fn, sp.n)
-            old_dev, old_e = fidelity(ecal, old_fn, 'quad', old_coef, sp.n)
-            if dev > old_dev:
-                kept.append((key, u'отклонение %.0f %% на %.0f кэВ, у прежней %.0f %% на %.0f кэВ'
-                             % (100 * dev, e_worst, 100 * old_dev, old_e)))
-                continue
-            print(u'   %-24s вне предела (%.0f %% на %.0f кэВ), но прежняя хуже (%.0f %% на %.0f кэВ) — пишем'
-                  % (key, 100 * dev, e_worst, 100 * old_dev, old_e))
-        if dev > worst[0]:
-            worst = (dev, key, e_worst)
-
-        err = rewrite(src, os.path.join(out, 'spectra', key + '.xml'), kind, coef)
+        err = rewrite(rec['src'], os.path.join(out, 'spectra', key + '.xml'),
+                      rec['kind'], rec['coef'])
         if err:
             kept.append((key, err))
             continue

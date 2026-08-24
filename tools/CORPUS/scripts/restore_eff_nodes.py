@@ -53,14 +53,45 @@ def node_name(text):
     return m.group(1).strip() if m else None
 
 
-def wanted_geometry():
-    u"""Спектр -> геометрия, которую он обязан нести (`corpus/parts.csv`)."""
+def wanted_geometry(scope='geometry'):
+    u"""Спектр -> геометрия, которую он обязан нести (`corpus/parts.csv`).
+
+    ⛔ КОМУ ПОЛОЖЕНА КРИВАЯ — решение Amber 24.08.2026: **всем, у кого есть
+    геометрия**, а не только понятной части (`W29`). До этого правило нигде не
+    было записано, и раздача шла побочным действием: инструмент берёт всякую
+    непустую клетку `geometry`, а она есть и у трёх спектров НЕПОНЯТНОЙ части
+    (`ASN16_Lu176_P0`, `ASN16_Cs137`, `AS80_Th232WT20`). Заметили это только
+    когда узлов стало три вместо одного — то есть по изменению, а не по
+    правилу.
+
+    ⚠ Цена правила названа и принята: непонятная часть перестаёт быть
+    однородной по модели — у трёх спектров из 40 образ строится С кривой, у
+    остальных из одних пиков. Числа непонятной части читать с этой оговоркой.
+
+    `scope='known'` — прежнее поведение (только понятная часть). Оставлено
+    ключом, чтобы разницу можно было ЗАМЕРИТЬ, а не обсуждать; ⚠ снять узлы у
+    двух из трёх в лоб нельзя — проверено 24.08.2026, удаление всех
+    `<Efficiency>` ломает разбор двух спектров (ошибок 0 → 2).
+    """
     import csv
     path = os.path.join(SPECTRA, os.pardir, 'parts.csv')
     if not os.path.isfile(path):
         return {}
     with io.open(path, encoding='utf-8-sig', newline='') as fh:
-        return {r['spectrum']: r['geometry'] for r in csv.DictReader(fh) if r.get('geometry')}
+        rows = [r for r in csv.DictReader(fh) if r.get('geometry')]
+    if scope == 'known':
+        rows = [r for r in rows if r.get('part') == 'known']
+    return {r['spectrum']: r['geometry'] for r in rows}
+
+
+def parts_of():
+    u"""Спектр -> часть корпуса; нужна, чтобы раздача НАЗЫВАЛА себя (`W29`)."""
+    import csv
+    path = os.path.join(SPECTRA, os.pardir, 'parts.csv')
+    if not os.path.isfile(path):
+        return {}
+    with io.open(path, encoding='utf-8-sig', newline='') as fh:
+        return {r['spectrum']: r.get('part', '') for r in csv.DictReader(fh)}
 
 # B6 (решение Amber 15.08.2026): двенадцать ключей `G1S_*` сняты как побайтные
 # дубликаты эталонов, а геометрии и матрицы перевешены на эталоны-оригиналы.
@@ -97,9 +128,13 @@ def main():
     ap.add_argument('--rev', default='HEAD')
     ap.add_argument('--spectra', default=SPECTRA)
     ap.add_argument('--apply', action='store_true')
+    ap.add_argument('--scope', default='geometry', choices=('geometry', 'known'),
+                    help=u'кому положена кривая: всем с геометрией (решение Amber '
+                         u'24.08.2026, W29) или только понятной части')
     args = ap.parse_args()
 
-    want = wanted_geometry()
+    want = wanted_geometry(args.scope)
+    parts = parts_of()
 
     # Готовые узлы по ГЕОМЕТРИИ — донорский запас для спектров, которым
     # геометрию назначили только что и в git их узла нет (см. ниже).
@@ -115,9 +150,42 @@ def main():
             donors[need] = m.group(0)
 
     restored, already, missing, foreign = 0, 0, 0, 0
+    declined, undue = [], []
     for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
         key = os.path.splitext(os.path.basename(path))[0]
         text = io.open(path, encoding='utf-8-sig').read()
+
+        # ⛔ Возвращать узел ТОЛЬКО тому, кому он положен (`W29`, решение Amber
+        # 24.08.2026). До 24.08.2026 это условие проверялось лишь у УЖЕ
+        # СТОЯЩЕГО узла — чей он, — а решение ВОЗВРАЩАТЬ принималось по одному
+        # признаку «в git узел был». Поэтому `ASN16_Lu176_P0` получал его
+        # обратно на каждой пересборке, хотя его геометрия `ASN16_lu_front`
+        # снята решением Amber 17.08.2026 (`B19`): ни `.in`, ни `.rmx`, ни
+        # строки в `index.csv` нет, матрица по guid не находится — и спектр
+        # разбирается с КРИВОЙ съёмки, которую сама Amber назвала ошибочной.
+        if key not in want:
+            if HEAD.search(text) is not None:
+                # Узел уже стоит, а положен не был. Снять его ЗДЕСЬ нельзя: это
+                # смена базы корпуса, решение Amber, — да и в лоб не выходит
+                # (проверено 24.08.2026: удаление всех `<Efficiency>` ломает
+                # разбор двух спектров, ошибок 0 → 2). Дело сторожа — назвать.
+                name = node_name(text)
+                guid = re.search(r'<Efficiency>\s*<Guid>([^<]+)', text)
+                geom = os.path.join(args.spectra, os.pardir, 'geometries')
+                dead = not os.path.isfile(os.path.join(geom, (name or '') + '.in'))
+                nomx = guid is None or not os.path.isfile(
+                    os.path.join(geom, 'response', guid.group(1) + '.rmx'))
+                undue.append('%s (кривая «%s»%s)'
+                             % (key, name,
+                                u'; ГЕОМЕТРИИ НЕТ на диске' if dead else '')
+                             + (u' [матрицы по guid нет]' if nomx else ''))
+            else:
+                rel = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
+                old = from_git(args.rev, rel)
+                if old is not None and NODE.search(old) is not None:
+                    declined.append(key)
+            continue
+
         if HEAD.search(text) is not None:
             # ⚠ «Узел есть» и «узел ТОТ» — разные вещи, и 16.08.2026 разница
             # стоила прогона. Пересборка строит копию из ИСХОДНОГО файла
@@ -201,6 +269,33 @@ def main():
     print('вернуть узлов: %d (из них взамен ЧУЖИХ: %d); уже на месте: %d; без места: %d%s'
           % (restored, foreign, already, missing,
              '' if args.apply else '  (--apply не задан, файлы не тронуты)'))
+
+    # `W29`: раздача обязана НАЗЫВАТЬ себя. Прежде она молчала, и то, что кривая
+    # досталась трём спектрам непонятной части вместо одного, увидели по
+    # изменению числа, а не по правилу.
+    by_part = {}
+    for key in sorted(want):
+        by_part.setdefault(parts.get(key, '?'), []).append(key)
+    print(u'кому кривая положена (--scope=%s): %s'
+          % (args.scope,
+             ', '.join('%s %d' % (p, len(v)) for p, v in sorted(by_part.items()))))
+    others = [k for p, v in by_part.items() if p != 'known' for k in v]
+    if others:
+        print(u'   ⚠ из них ВНЕ понятной части: %s' % ', '.join(sorted(others)))
+        print(u'      это правило, а не оплошность (решение Amber 24.08.2026, W29);')
+        print(u'      цена — непонятная часть не однородна по модели, числа с оговоркой')
+    if declined:
+        print(u'   НЕ ВОЗВРАЩЁН, хотя в git узел есть: %s' % ', '.join(sorted(declined)))
+        print(u'      геометрии у них нет — узел не положен (W29)')
+    if undue:
+        print(u'   УЗЕЛ СТОИТ, А НЕ ПОЛОЖЕН:')
+        for line in sorted(undue):
+            print(u'      %s' % line)
+        print(u'      Этот инструмент их туда не клал: узел приезжает С КОПИЕЙ —')
+        print(u'      либо из исходного файла библиотеки (пересборка копирует')
+        print(u'      ResultData целиком, а спектр там сохранён с прикреплённой')
+        print(u'      кривой), либо из прошлого коммита. Снять — решение Amber:')
+        print(u'      это меняет числа непонятной части, то есть базу корпуса.')
 
 
 if __name__ == '__main__':
