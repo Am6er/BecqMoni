@@ -442,6 +442,77 @@ def extract(entry):
 # ---------------------------------------------------------------------------
 # Стадия 2: энергетическая калибровка
 # ---------------------------------------------------------------------------
+#: Правило приёмки второго прохода (`V12`). Умолчание — ПРЕЖНЕЕ поведение:
+#: смена правила двигает калибровки корпуса, то есть базу, а это решение Amber.
+#:
+#:   * `legacy` — как было до 24.08.2026: каждая калибровка мерится СВОИМ
+#:     набором линий и СВОИМ разрешением;
+#:   * `union`  — обе мерятся ОБЪЕДИНЕНИЕМ наборов и одним разрешением;
+#:   * `old`    — обе мерятся СТАРЫМ набором и одним разрешением.
+ECAL_ACCEPT = 'legacy'
+
+
+def _fixed_set(old_lines, new_lines, mode):
+    u"""Неподвижный набор (энергия -> канал), на котором мерятся ОБЕ калибровки.
+
+    Канал — свойство ДАННЫХ, а не калибровки: обе подгонки фитили один и тот же
+    пик в одном и том же спектре. Поэтому если линию нашли оба прохода, берётся
+    среднее их каналов (они расходятся на доли полуширины), а если один — его.
+    Ровно этим правилом живёт `ecal_compare.py`, единственная мерка `B24`,
+    которая не слепнет на ненайденной линии.
+    """
+    src = old_lines if mode == 'old' else list(old_lines) + list(new_lines)
+    by = {}
+    for a in src:
+        by.setdefault(round(float(a['e_ref']), 2), []).append(float(a['ch']))
+    return [dict(e_ref=e, ch=sum(v) / len(v)) for e, v in sorted(by.items())]
+
+
+def accept_recalibration(old_cal, old_lines, old_r662,
+                         new_cal, new_lines, new_r662, mode=None):
+    u"""Брать ли калибровку второго прохода. -> (брать, before, after, набор).
+
+    ⛔ **`V12`: прежнее сравнение было НЕЧЕСТНЫМ и премировало выброс линий.**
+    `before` считался старой калибровкой по СТАРЫМ линиям, `after` — новой по
+    НОВЫМ, и разрешение у каждой своё. Выбросив самую трудную линию (а трудная
+    всегда нижняя), подгонка улучшала мерило САМИМ выбрасыванием и побеждала.
+    Так `G1S16_Ba133_P5` лишился опоры 81 кэВ: первый проход её НАХОДИТ (poly2
+    по четырём опорам), второй с моделью группы теряет — и выигрывает. Это и
+    есть причина `B24`; запрет экстраполяции убрал ПОСЛЕДСТВИЕ, а сравнение
+    осталось прежним.
+
+    ⚠ Одно правило сохранено при ЛЮБОМ режиме: если второй проход не нашёл
+    линий ВОВСЕ, он отвергается. Это не калибровка, а отказ калиброваться, и
+    принять его значило бы выбросить рабочую — 16.08.2026 так потеряли
+    проверенную энергокалибровку три спектра.
+
+    ⛔ Функция ОДНА на двоих: её же зовёт `ecal_extrapolation.build_state`.
+    До 24.08.2026 правило лежало ДВУМЯ копиями, и мерка `B24` меряла бы свою.
+    """
+    mode = mode or ECAL_ACCEPT
+
+    def residual(cal, lines, r):
+        if not lines:
+            return float('inf')
+        return corpus_calib.residual_fwhm(cal, lines, r * np.sqrt(662.0))
+
+    if not new_lines:
+        return False, residual(old_cal, old_lines, old_r662), float('inf'), []
+
+    if mode == 'legacy':
+        before = residual(old_cal, old_lines, old_r662)
+        after = residual(new_cal, new_lines, new_r662)
+        return (np.isfinite(after) and after <= before + 1e-9), before, after, []
+
+    fixed = _fixed_set(old_lines, new_lines, mode)
+    # Одно разрешение на обе: иначе проход, у которого оценка ширины вышла
+    # больше, получает меньшую невязку В ДОЛЯХ ПШПВ ни за что. Берётся
+    # разрешение ВТОРОГО прохода — оно из модели группы, а не из одного спектра.
+    before = residual(old_cal, fixed, new_r662)
+    after = residual(new_cal, fixed, new_r662)
+    return (np.isfinite(after) and after <= before + 1e-9), before, after, fixed
+
+
 def calibrate_one(sp, entry, res_a_hint=None):
     """Калибровка одного спектра: см. corpus_calib.calibrate."""
     ent = dict(entry)
@@ -1133,6 +1204,12 @@ def main():
     for a in sys.argv[1:]:
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
+        elif a.startswith('--ecal-accept='):
+            # (`V12`) Правило приёмки второго прохода. Умолчание НЕ тронуто:
+            # смена правила двигает калибровки, то есть базу корпуса.
+            global ECAL_ACCEPT
+            ECAL_ACCEPT = a.split('=', 1)[1]
+            print('приёмка второго прохода: %s' % ECAL_ACCEPT)
         elif a.startswith('--res-form='):
             # (`V2`) Форма модели разрешения группы. Умолчание не тронуто:
             # смена формы двигает ПШПВ-калибровку КАЖДОГО спектра, то есть базу.
@@ -1242,15 +1319,12 @@ def main():
             #     подгонка, севшая на большее число хуже, побеждала.
             #
             # Невязка берётся в долях ПШПВ (`residual_fwhm`), а не в кэВ: у
-            # спектров разное разрешение, и кэВ между ними несравнимы.
-            def _residual(cal, lines, r):
-                if not lines:
-                    return float('inf')
-                return corpus_calib.residual_fwhm(cal, lines, r * np.sqrt(662.0))
-
-            before = _residual(st['ecal'], st['accepted'], st['r662'])
-            after = _residual(ecal, acc, r662)
-            if not np.isfinite(after) or after > before + 1e-9:
+            # спектров разное разрешение, и кэВ между ними несравнимы. Само
+            # правило сравнения — в `accept_recalibration` (`V12`), одно на
+            # двоих с `ecal_extrapolation.build_state`.
+            take, before, after, _fixed = accept_recalibration(
+                st['ecal'], st['accepted'], st['r662'], ecal, acc, r662)
+            if not take:
                 kept.append('%s (%.3f -> %.3f FWHM, %d -> %d линий)'
                             % (key, before, after, len(st['accepted']), len(acc)))
                 continue

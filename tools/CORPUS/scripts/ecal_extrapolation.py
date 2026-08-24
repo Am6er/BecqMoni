@@ -105,14 +105,12 @@ def build_state(entries, two_pass=True):
             except Exception:
                 continue
 
-            def _residual(cal, lines, r):
-                if not lines:
-                    return float('inf')
-                return corpus_calib.residual_fwhm(cal, lines, r * np.sqrt(662.0))
-
-            before = _residual(st['ecal'], st['accepted'], st['r662'])
-            after = _residual(ecal, acc, r662)
-            if not np.isfinite(after) or after > before + 1e-9:
+            # ⛔ Правило приёмки ОДНО на двоих с конвейером (`V12`): до
+            # 24.08.2026 здесь лежала его вторая копия, и мерка `B24` мерила бы
+            # своё правило, а не то, по которому собирается корпус.
+            take, _before, _after, _fixed = build_corpus.accept_recalibration(
+                st['ecal'], st['accepted'], st['r662'], ecal, acc, r662)
+            if not take:
                 continue
             st.update(ecal=ecal, accepted=acc, r662=r662, mode=mode + '/grp')
             moved += 1
@@ -242,10 +240,13 @@ def main():
             corpus_calib.EXTRAP_SCOPE = a.split('=', 1)[1]
         elif a.startswith('--dump='):
             dump = a.split('=', 1)[1]
+        elif a.startswith('--ecal-accept='):
+            build_corpus.ECAL_ACCEPT = a.split('=', 1)[1]
     print('запрет экстраполяции (`B24`): %s, на кого: %s'
           % ('выключен' if corpus_calib.EXTRAP_EXCESS_FWHM is None
              else '%.2f ПШПВ избытка' % corpus_calib.EXTRAP_EXCESS_FWHM,
              corpus_calib.EXTRAP_SCOPE))
+    print('приёмка второго прохода (`V12`): %s' % build_corpus.ECAL_ACCEPT)
 
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
