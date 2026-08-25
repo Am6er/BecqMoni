@@ -39,6 +39,7 @@ namespace CorpusFsaProbe
     ///
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
     ///                  [--lib=sample|peaks|infer] [--infer-theta=D] [--no-infer-anchor]
+    ///                  [--infer-head] [--infer-head-only]
     ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
@@ -105,6 +106,12 @@ namespace CorpusFsaProbe
                 if (a == "--lib=infer") { o.Library = "infer"; continue; }
                 if (a == "--no-infer-anchor") { o.InferAnchors = false; continue; }
                 if (a == "--no-infer-novel") { o.InferNovelty = false; continue; }
+                // S65: ОБОРВАННЫЙ ряд. Два ключа, а не один, потому что это два
+                // РАЗНЫХ утверждения: `--infer-head` меняет один знаменатель
+                // доли (в состав, как велит правило Amber, идёт весь ряд),
+                // `--infer-head-only` предъявляет фиту ОДНУ голову.
+                if (a == "--infer-head") { o.InferCut = FsaChainCut.Criterion; continue; }
+                if (a == "--infer-head-only") { o.InferCut = FsaChainCut.Only; continue; }
                 if (a.StartsWith("--infer-theta=", StringComparison.Ordinal))
                 {
                     o.InferTheta = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
@@ -336,6 +343,11 @@ namespace CorpusFsaProbe
                                         + InferTheta(o).ToString("P0", CultureInfo.InvariantCulture)
                                         + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
                                         + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
+                                        + ", оборванный ряд: "
+                                        + (o.InferCut == FsaChainCut.Whole ? "не ищется"
+                                           : o.InferCut == FsaChainCut.Criterion
+                                               ? "ГОЛОВА СУДИТ, состав весь"
+                                               : "ГОЛОВА СУДИТ И ИДЁТ В СОСТАВ")
                                       : "по подписям поиска пиков (как до 18.08.2026)",
                               o.Library != "peaks"
                                   ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
@@ -492,7 +504,7 @@ namespace CorpusFsaProbe
                         FsaCompositionInference.Report inferred;
                         FsaSampleSpec spec = FsaCompositionInference.Infer(
                             peaks, rd, InferTheta(o), o.InferAnchors, o.InferNovelty,
-                            out inferred);
+                            o.InferCut, out inferred);
                         SpecMatter(spec, rd, sample);
                         spec.Equilibrium = o.Equilibrium;
                         library = FsaSampleLibrary.Build(spec);
@@ -2179,6 +2191,12 @@ namespace CorpusFsaProbe
             /// структуру, а не сесть на чужую. A/B-сторона <c>--no-infer-novel</c>.
             /// </summary>
             public bool InferNovelty = true;
+
+            /// <summary>
+            /// (S65) Что делать с ОБОРВАННЫМ рядом: `--infer-head` /
+            /// `--infer-head-only`. Умолчание — как было до 25.08.2026.
+            /// </summary>
+            public FsaChainCut InferCut = FsaChainCut.Whole;
 
             /// <summary>(S56) Атомные образы: рентген и пики вылета. A/B — `--no-atomic`.</summary>
             public bool Atomic = true;

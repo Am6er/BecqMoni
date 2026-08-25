@@ -255,7 +255,7 @@ def load_truth():
 
 def load_results(mode, out_dir):
     """(spectrum -> строки components.csv, группы из имён файлов,
-    спектры с ERROR в парном *_runs.csv)."""
+    спектры с ERROR в парном *_runs.csv, chi2/ndf, невязка, ОТКАЗЫ ФОНА)."""
     suffix = '_%s_components.csv' % mode
     results = defaultdict(list)
     source = {}
@@ -263,6 +263,7 @@ def load_results(mode, out_dir):
     errors = set()
     chi2 = {}
     eps = {}
+    bg_rej = {}
     for name in sorted(os.listdir(out_dir)):
         if not name.endswith(suffix):
             continue
@@ -294,7 +295,18 @@ def load_results(mode, out_dir):
                         eps[row['spectrum']] = float(row['model_residual_pct'])
                     except (TypeError, ValueError, KeyError):
                         pass
-    return results, groups, errors, chi2, eps
+                    # S44: ФОН ПОДАН И НЕ ВЗЯТ. Колонка `bg_rejected`
+                    # заведена 15.08.2026, читателя у неё до сих пор не
+                    # было НИ ОДНОГО: `CorpusFsaProbe` печатает строку в
+                    # свой лог, а сводка — то, по чему судят о прогоне, —
+                    # молчала. Двенадцать спектров G1S разобрались без
+                    # вычитания фона именно так: числа вышли ровные, и
+                    # никто не спросил. Колонка молодая — у прежних
+                    # прогонов её нет, и это не повод падать.
+                    note = (row.get('bg_rejected') or '').strip()
+                    if note:
+                        bg_rej[row['spectrum']] = note
+    return results, groups, errors, chi2, eps, bg_rej
 
 
 def warn_members(results, members_on):
@@ -383,7 +395,7 @@ def main():
                  and (args.part == 'all' or parts.get(k, 'unknown') == args.part)}
     elif args.part != 'all':
         sys.exit('нет %s — часть корпуса выбрать нечем' % PARTS)
-    results, groups, errors, chi2, eps = load_results(args.mode, args.out_dir)
+    results, groups, errors, chi2, eps, bg_rej = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
 
@@ -511,6 +523,22 @@ def main():
     print('%-10s %8d %9.0f%% %10d %10d  (+%d комнатных)  часть: %s' % (
         'итого', ts, 100.0 * th / tt if tt else 0, tp, tsup, total_soft,
         args.part))
+    # S44: ОТКАЗ ВЫЧИТАНИЯ ФОНА — отдельной строкой и ПОИМЁННО, сразу
+    # под итогом. Спектр, чей фон подан и не взят, разобран по
+    # неочищенному счёту: recall его не замечает (нуклид назван), chi2/ndf
+    # почти не шевелится, а в состав приходит комната. Измерено впрыском
+    # 25.08.2026: обрезанный до 1004 каналов фон `G1S24_K40_Mar` добавил
+    # ШЕСТЬ комнатных нуклидов ряда Th-232 (31 -> 37 по части) при
+    # chi2/ndf 1.475 -> 1.549 — и невязка модели при этом УЛУЧШИЛАСЬ
+    # (9.1 -> 6.0 %), то есть все заглавные числа говорят «стало не хуже».
+    # Считать сюда только спектры своей части: числа частей не складывают.
+    rejected = sorted(k for k in bg_rej if k in truth)
+    if rejected:
+        print('       ФОН НЕ ВЗЯТ у %d из %d: разбор идёт по НЕВЫЧТЕННОМУ'
+              ' счёту (S44)' % (len(rejected), ts))
+        for k in rejected:
+            print('         %-24s %s' % (k, bg_rej[k]))
+
     if tsup:
         # `S95`: не тонуть в подвале. Спектр, чей объявленный состав пересилен
         # приборным образом, разобран НЕВЕРНО, даже если recall его засчитал.

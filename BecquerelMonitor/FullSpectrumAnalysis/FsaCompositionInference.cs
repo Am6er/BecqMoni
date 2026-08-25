@@ -40,6 +40,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Энергия неспутываемой линии, подтвердившей родителя; NaN — такой нет.</summary>
         public double AnchorKev = double.NaN;
 
+        /// <summary>
+        /// (`S65`) ГОЛОВА ряда — члены от корня до первого несостоявшегося,
+        /// и её собственная доля. Пусто и NaN — ряд не обрывался (или обрыв
+        /// не искали вовсе).
+        /// </summary>
+        public readonly List<string> Head = new List<string>();
+
+        /// <summary>Доля по одной голове: <see cref="HeadMatched"/> / <see cref="HeadExpected"/>.</summary>
+        public double HeadCoverage = double.NaN;
+
+        /// <summary>Подтверждено и ожидалось В ГОЛОВЕ.</summary>
+        public int HeadMatched, HeadExpected;
+
+        /// <summary>`nucid` первого несостоявшегося члена — там ряд и оборван.</summary>
+        public string Cut = "";
+
         /// <summary>Родитель взят в состав.</summary>
         public bool Accepted;
 
@@ -58,6 +74,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (!double.IsNaN(this.AnchorKev))
             {
                 text.AppendFormat(CultureInfo.InvariantCulture, ", якорь {0:F1} кэВ", this.AnchorKev);
+            }
+
+            if (!double.IsNaN(this.HeadCoverage))
+            {
+                text.AppendFormat(CultureInfo.InvariantCulture,
+                                  ", голова {0:P0} ({1}/{2}, обрыв на {3})",
+                                  this.HeadCoverage, this.HeadMatched, this.HeadExpected,
+                                  this.Cut.Length > 0 ? this.Cut : "—");
             }
 
             if (this.Why.Length > 0)
@@ -123,6 +147,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// физика 12). Увидев остаток на 20…65 кэВ, надо смотреть, есть ли матрица
     /// и свежа ли она, а не дописывать выдуманные линии.
     /// </summary>
+    /// <summary>
+    /// (`S65`) Что делать с ОБОРВАННЫМ рядом — рядом, у которого в пробе есть
+    /// не весь ряд, а его кусок.
+    ///
+    /// ⛔ РЕШЕНИЕ ЗА AMBER, И ПОЭТОМУ ЭТО КЛЮЧ, А НЕ ПРАВКА УМОЛЧАНИЯ.
+    /// <see cref="Whole"/> — то, что было до 25.08.2026, и умолчание;
+    /// <see cref="Criterion"/> не выходит за букву правила Amber «набрал
+    /// родитель — берём ВЕСЬ его состав» (меняется только ЗНАМЕНАТЕЛЬ доли,
+    /// а в библиотеку по-прежнему идёт весь ряд); <see cref="Only"/> выходит,
+    /// потому что предъявляет фиту ОГРАНИЧЕННЫЙ ряд.
+    /// </summary>
+    public enum FsaChainCut
+    {
+        /// <summary>Ряд целиком: доля считается по всем его членам.</summary>
+        Whole = 0,
+
+        /// <summary>Доля считается ещё и по голове; в состав идёт весь ряд.</summary>
+        Criterion = 1,
+
+        /// <summary>Доля по голове, и в состав идёт ОДНА голова (`FsaSampleChain.Only`).</summary>
+        Only = 2
+    }
+
     public static class FsaCompositionInference
     {
         /// <summary>
@@ -200,6 +247,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// <summary>Порог доли, с которым шёл этот вывод.</summary>
             public double Coverage;
 
+            /// <summary>(`S65`) Как этот вывод обходился с оборванным рядом.</summary>
+            public FsaChainCut Cut = FsaChainCut.Whole;
+
             /// <summary>Принято родителей.</summary>
             public int Accepted;
 
@@ -210,9 +260,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 var text = new StringBuilder();
                 text.AppendFormat(CultureInfo.InvariantCulture,
-                                  "выведено из пиков: {0} из {1} подписаны, родителей {2} из {3}, порог доли {4:P0}",
+                                  "выведено из пиков: {0} из {1} подписаны, родителей {2} из {3}, порог доли {4:P0}, оборванный ряд: {5}",
                                   this.Labelled, this.Peaks, this.Accepted,
-                                  this.Candidates.Count, this.Coverage);
+                                  this.Candidates.Count, this.Coverage,
+                                  this.Cut == FsaChainCut.Whole ? "не ищется"
+                                  : this.Cut == FsaChainCut.Criterion ? "голова судит, состав весь"
+                                  : "голова судит и идёт в состав");
                 foreach (FsaParentEvidence candidate in this.Candidates)
                 {
                     text.Append("; ").Append(candidate);
@@ -244,7 +297,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                           bool novelty,
                                           out Report report)
         {
-            report = new Report { Coverage = coverage };
+            return Infer(peaks, resultData, coverage, anchors, novelty, FsaChainCut.Whole,
+                         out report);
+        }
+
+        /// <summary>То же с разбором ОБОРВАННОГО ряда (`S65`).</summary>
+        public static FsaSampleSpec Infer(IEnumerable<Peak> peaks,
+                                          ResultData resultData,
+                                          double coverage,
+                                          bool anchors,
+                                          bool novelty,
+                                          FsaChainCut cut,
+                                          out Report report)
+        {
+            report = new Report { Coverage = coverage, Cut = cut };
             var spec = new FsaSampleSpec();
             if (resultData == null)
             {
@@ -311,11 +377,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             Score(models, minSnr, anchors);
+            if (cut != FsaChainCut.Whole)
+            {
+                Head(models, report);
+            }
 
             // Порядок РЕШАЕТ, а не украшает: приём идёт жадно, по убыванию
             // доли, и «новизна» кандидата проверяется против уже принятых
             // (см. Accept). Первым читается то, на чём состав держится.
-            models.Sort((a, b) => b.Evidence.Coverage.CompareTo(a.Evidence.Coverage));
+            models.Sort((a, b) => Judged(b.Evidence).CompareTo(Judged(a.Evidence)));
             Accept(models, coverage, novelty);
             Collapse(models);
 
@@ -330,7 +400,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 report.Accepted++;
                 if (model.Evidence.IsChain)
                 {
-                    spec.Chains.Add(new FsaSampleChain(model.Evidence.Nucid));
+                    // ⛔ Ограничивать ряд головой — ВЫХОД за букву правила
+                    // Amber, и делается это только по прямому ключу
+                    // (`FsaChainCut.Only`). При `Criterion` голова решает,
+                    // брать ли родителя, а в состав, как и велено, идёт весь
+                    // его ряд.
+                    spec.Chains.Add(cut == FsaChainCut.Only && model.Evidence.Head.Count > 0
+                                        && model.Evidence.Head.Count < model.Members.Count
+                                    ? new FsaSampleChain(model.Evidence.Nucid,
+                                                         model.Evidence.Head.ToArray())
+                                    : new FsaSampleChain(model.Evidence.Nucid));
                 }
                 else
                 {
@@ -453,6 +532,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double Snr = double.NaN;
             public bool Expected;
 
+            /// <summary>
+            /// (`S65`) Член ряда, чья линия в группе сильнейшая, — тот же, чья
+            /// энергия стала <see cref="Energy"/>. Группу «чью» спрашивают
+            /// только при разборе обрыва, и спрашивают именно про сильнейшую:
+            /// слабый подмешавшийся сосед наблюдаемого пика не даёт.
+            /// </summary>
+            public string Owner = "";
+
             public bool Matched
             {
                 get { return !double.IsNaN(this.Snr); }
@@ -465,6 +552,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public readonly List<Group> Groups = new List<Group>();
             public readonly HashSet<string> Members =
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>(`S65`) Глубина члена ряда от корня; пусто — не ряд.</summary>
+            public Dictionary<string, int> Depths;
         }
 
         static Model Build(string nucid, FsaSampleSpec spec, ResultData resultData,
@@ -498,7 +588,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Ряд — если у родителя есть кто-то ещё, кроме него самого.
             model.Evidence.IsChain = branch.Count > 1;
 
-            var lines = new List<double[]>();
+            // (`S65`) Порядок членов ряда — отдельным обходом и только он.
+            // Доли ветвления обходом в ширину считать нельзя (`S62`), а
+            // порядок — можно и нужно: без него «голова ряда» не определена.
+            if (model.Evidence.IsChain)
+            {
+                model.Depths = FsaSampleLibrary.ChainDepths(nucid, sample);
+            }
+
+            var lines = new List<Line>();
             foreach (KeyValuePair<string, double> member in branch)
             {
                 foreach (double[] line in FsaSampleLibrary.DecayLines(member.Key, sample))
@@ -508,7 +606,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    lines.Add(new[] { line[0], line[1] * member.Value });
+                    lines.Add(new Line
+                    {
+                        Energy = line[0],
+                        Weight = line[1] * member.Value,
+                        Member = member.Key
+                    });
                 }
             }
 
@@ -531,9 +634,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            lines.Sort((a, b) => a[0].CompareTo(b[0]));
+            lines.Sort((a, b) => a.Energy.CompareTo(b.Energy));
             Collect(model, lines, resultData, peaks);
             return model;
+        }
+
+        /// <summary>Линия ряда с указанием, ЧЬЯ она (`S65`).</summary>
+        sealed class Line
+        {
+            public double Energy;
+            public double Weight;
+            public string Member = "";
         }
 
         /// <summary>
@@ -545,7 +656,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// — тогда эффективность единица для всех, и вес вырождается в выход;
         /// это допущение, а не умолчание, и оно названо здесь.
         /// </summary>
-        static void Collect(Model model, List<double[]> lines, ResultData resultData,
+        static void Collect(Model model, List<Line> lines, ResultData resultData,
                             List<Peak> peaks)
         {
             FsaEfficiency efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
@@ -556,12 +667,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             Group current = null;
             double currentTop = 0.0;
-            foreach (double[] line in lines)
+            foreach (Line line in lines)
             {
-                double weight = line[1];
+                double weight = line.Weight;
                 if (efficiency != null)
                 {
-                    weight *= efficiency.Eval(line[0]);
+                    weight *= efficiency.Eval(line.Energy);
                 }
 
                 if (!(weight > 0.0))
@@ -569,8 +680,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double width = Resolution(line[0], energyCalibration, fwhmCalibration, channels);
-                if (current != null && line[0] - current.Energy <= width)
+                double width = Resolution(line.Energy, energyCalibration, fwhmCalibration, channels);
+                if (current != null && line.Energy - current.Energy <= width)
                 {
                     // Центр группы держится на сильнейшей линии: она и даёт
                     // наблюдаемый пик, а слабые соседи лишь подмешиваются.
@@ -578,13 +689,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (weight > currentTop)
                     {
                         currentTop = weight;
-                        current.Energy = line[0];
+                        current.Energy = line.Energy;
+                        current.Owner = line.Member;
                     }
 
                     continue;
                 }
 
-                current = new Group { Energy = line[0], Weight = weight };
+                current = new Group { Energy = line.Energy, Weight = weight, Owner = line.Member };
                 currentTop = weight;
                 model.Groups.Add(current);
             }
@@ -790,6 +902,161 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        // ------------------------------------------------------------------
+        // S65: ОБОРВАННЫЙ ряд
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ГОЛОВА ряда: члены от корня до первого НЕСОСТОЯВШЕГОСЯ — и её
+        /// собственная доля.
+        ///
+        /// ⛔ ЗАЧЕМ ЭТО ВООБЩЕ НУЖНО. Доля <see cref="Score"/> спрашивает «виден
+        /// ли ряд целиком, в равновесии». У пробы, где ряда целиком нет,
+        /// правильный ответ на этот вопрос — «нет», и он же неверный ответ на
+        /// вопрос, который на самом деле задан: «есть ли в пробе родитель».
+        /// Измерено на урановом стекле (`S65`): уран попал в стекло химически
+        /// очищенным, равновесия ниже радия нет, и `U-238` набирает единицы
+        /// процентов при пороге 30 — при том что `Th-234` и `Pa-234m` видны
+        /// прекрасно и подписаны верно.
+        ///
+        /// ЧТО СЧИТАЕТСЯ ОБРЫВОМ. Член ряда РАЗБИТ, если у него есть хоть одна
+        /// ожидаемая группа и НИ ОДНОЙ подтверждённой: модель обещала его
+        /// увидеть при этой статистике и не увидела. Голова — все члены строго
+        /// выше первого разбитого по глубине от корня
+        /// (<see cref="FsaSampleLibrary.ChainDepths"/>). Глубина, а не порядок
+        /// в словаре: ряд ветвится (212BI даёт и 208TL, и 212PO), и «выше» у
+        /// него определено только расстоянием от корня.
+        ///
+        /// ⚠ Члены, у которых ожидаемых групп нет вовсе (слишком слабы для
+        /// этого спектра), обрыва НЕ образуют — сказать про них нечего, и
+        /// молчание уликой против родителя не является. Иначе первый же
+        /// невидимый член (у 238U это 234PA с выходом в сотые доли) обрывал бы
+        /// всякий ряд, и голова выродилась бы в один корень.
+        /// </summary>
+        static void Head(List<Model> models, Report report)
+        {
+            foreach (Model model in models)
+            {
+                FsaParentEvidence evidence = model.Evidence;
+                if (model.Depths == null || model.Depths.Count == 0
+                    || evidence.Expected == 0)
+                {
+                    continue;
+                }
+
+                // Что известно про каждого члена: ожидалось / подтвердилось.
+                var expected = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                var matched = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (Group group in model.Groups)
+                {
+                    if (!group.Expected || group.Owner.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    int have;
+                    expected[group.Owner] = (expected.TryGetValue(group.Owner, out have) ? have : 0) + 1;
+                    if (group.Matched)
+                    {
+                        matched[group.Owner] = (matched.TryGetValue(group.Owner, out have) ? have : 0) + 1;
+                    }
+                }
+
+                // Первый разбитый — по глубине; при равной глубине берётся
+                // любой, они на одном уровне и голову режут одинаково.
+                int cut = int.MaxValue;
+                string cutAt = "";
+                foreach (KeyValuePair<string, int> member in expected)
+                {
+                    int hit;
+                    if (matched.TryGetValue(member.Key, out hit) && hit > 0)
+                    {
+                        continue;
+                    }
+
+                    int depth;
+                    if (!model.Depths.TryGetValue(member.Key, out depth) || depth >= cut)
+                    {
+                        continue;
+                    }
+
+                    cut = depth;
+                    cutAt = member.Key;
+                }
+
+                if (cut == int.MaxValue || cut == 0)
+                {
+                    // Ряд не оборван вовсе — или разбит сам корень, и тогда
+                    // головы нет: судить по ней было бы судить по пустому.
+                    continue;
+                }
+
+                foreach (string member in model.Members)
+                {
+                    int depth;
+                    if (model.Depths.TryGetValue(member, out depth) && depth < cut)
+                    {
+                        evidence.Head.Add(member);
+                    }
+                }
+
+                if (evidence.Head.Count == 0 || evidence.Head.Count == model.Members.Count)
+                {
+                    evidence.Head.Clear();
+                    continue;
+                }
+
+                var head = new HashSet<string>(evidence.Head, StringComparer.OrdinalIgnoreCase);
+                foreach (Group group in model.Groups)
+                {
+                    if (!group.Expected || !head.Contains(group.Owner))
+                    {
+                        continue;
+                    }
+
+                    evidence.HeadExpected++;
+                    if (group.Matched)
+                    {
+                        evidence.HeadMatched++;
+                    }
+                }
+
+                evidence.Cut = cutAt;
+                evidence.HeadCoverage = evidence.HeadExpected > 0
+                    ? (double)evidence.HeadMatched / evidence.HeadExpected : 0.0;
+            }
+
+            report.Notes.Add("оборванный ряд: голова разобрана у "
+                             + CountHeads(models) + " кандидатов");
+        }
+
+        static int CountHeads(List<Model> models)
+        {
+            int count = 0;
+            foreach (Model model in models)
+            {
+                if (model.Evidence.Head.Count > 0)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Доля, по которой кандидата СУДЯТ: своя у ряда целого, головная у
+        /// оборванного. Одна функция на приём и на порядок приёма — иначе
+        /// жадность разбирала бы кандидатов в одном порядке, а принимала по
+        /// другому числу.
+        /// </summary>
+        static double Judged(FsaParentEvidence evidence)
+        {
+            return double.IsNaN(evidence.HeadCoverage)
+                ? evidence.Coverage
+                : Math.Max(evidence.Coverage, evidence.HeadCoverage);
+        }
+
         /// <summary>
         /// Жадный приём по убыванию доли — и проверка НОВИЗНЫ против уже
         /// принятых.
@@ -826,7 +1093,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 bool anchored = !double.IsNaN(evidence.AnchorKev);
-                if (!anchored && evidence.Coverage < coverage)
+                if (!anchored && Judged(evidence) < coverage)
                 {
                     evidence.Why = "доля ниже порога";
                     continue;
@@ -839,7 +1106,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 evidence.Accepted = true;
-                evidence.Why = anchored ? "неспутываемая линия на месте" : "доля выше порога";
+                evidence.Why = anchored
+                    ? "неспутываемая линия на месте"
+                    : (!double.IsNaN(evidence.HeadCoverage)
+                       && evidence.HeadCoverage > evidence.Coverage
+                       && evidence.Coverage < coverage)
+                        ? "доля выше порога У ГОЛОВЫ ряда (ряд оборван)"
+                        : "доля выше порога";
                 accepted.Add(model);
             }
         }

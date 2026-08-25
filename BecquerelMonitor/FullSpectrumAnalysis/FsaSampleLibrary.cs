@@ -292,6 +292,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly Dictionary<string, Dictionary<string, double>> ChainCache =
             new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>Кэш глубин членов ряда по корню (`S65`).</summary>
+        static readonly Dictionary<string, Dictionary<string, int>> DepthCache =
+            new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Библиотека образов по объявленному составу. Никогда не null; пустой
         /// список означает «состав не дал ни одной линии в рабочем диапазоне» —
@@ -759,6 +763,93 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return branch;
+        }
+
+        /// <summary>
+        /// {nucid → ГЛУБИНА от корня по `decay_chain`}: сам корень 0, его
+        /// дочерние 1, их дочерние 2 и так далее. Кратчайший путь, потому что
+        /// обход в ширину, — а у ветвящегося ряда (212BI даёт и 208TL, и
+        /// 212PO) путей до одного члена несколько.
+        ///
+        /// ⚠ Заведено ради `S65` и ТОЛЬКО ради порядка: доли ветвления обходом
+        /// в ширину считать нельзя (`S62`, ответ выходил на порядки неверным),
+        /// и здесь они не считаются вовсе. Здесь нужен ПОРЯДОК членов —
+        /// «кто выше по ряду», — а он у обхода в ширину как раз верен.
+        ///
+        /// Рёбра берутся тем же запросом и тем же правилом `l_seqno`, что у
+        /// <see cref="ChainBranches"/>: второе соглашение о том, что считать
+        /// ребром ряда, развело бы порядок с составом.
+        /// </summary>
+        internal static Dictionary<string, int> ChainDepths(string root, Report report)
+        {
+            lock (Gate)
+            {
+                Dictionary<string, int> cached;
+                if (DepthCache.TryGetValue(root, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var depth = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var order = new List<string> { root };
+                depth[root] = 0;
+                using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select daughter_nucid, perc from decay_chain d"
+                        + " where nucid = $n and perc not null"
+                        + " and l_seqno = (select min(l_seqno) from decay_chain x"
+                        + "                where x.nucid = d.nucid"
+                        + "                  and x.daughter_nucid = d.daughter_nucid"
+                        + "                  and x.dec_type = d.dec_type)";
+                    command.Parameters.AddWithValue("$n", root);
+                    for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
+                    {
+                        string current = order[i];
+                        command.Parameters["$n"].Value = current;
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string daughter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                if (string.IsNullOrEmpty(daughter)
+                                    || string.Equals(daughter, current, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // 238U несёт самопетлю на l_seqno-119.
+                                    continue;
+                                }
+
+                                double percent;
+                                if (!TryNumber(reader, 1, out percent) || !(percent > 0.0))
+                                {
+                                    continue;
+                                }
+
+                                if (!depth.ContainsKey(daughter))
+                                {
+                                    depth[daughter] = depth[current] + 1;
+                                    order.Add(daughter);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                report.Notes.Add("ряд " + root + ": отказ базы при обходе глубин — " + error.Message);
+            }
+
+            lock (Gate)
+            {
+                DepthCache[root] = depth;
+            }
+
+            return depth;
         }
 
         /// <summary>Сколько членов ряда открывать, зажим против поставки-кольца.</summary>
