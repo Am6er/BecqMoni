@@ -13,6 +13,9 @@ tools/effmaker/probes/build/
 # идут отсюда. Отдельным каталогом обязательно — `build_all.ps1` затирает exe.
 tools/effmaker/probes/build_rel/
 tools/effmaker/probes/prof/
+# Приёмка `N9` (`tools/estar/build_check.ps1`) — тот же случай, что и пробы:
+# рядом с exe лежат копии приложения, всех dll и трёх баз.
+tools/estar/build/
 # Матрицы отклика корпуса (B1): двоичные, полмегабайта на геометрию,
 # устаревают при каждой смене версии физики. Источники (`.in` и `index.csv`)
 # в репозитории лежат, матрица строится из них `corpusmatrixprobe` за ~3 минуты

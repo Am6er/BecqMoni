@@ -3,7 +3,8 @@
 import sqlite3, sys, estar
 
 NAMES = {"CeBr3": "CeBr3", "SrI2": "SrI2", "CdTe": "CdTe",
-         "CZT": "Czt", "GSO": "Gso", "Ge": "Ge"}
+         "CZT": "Czt", "GSO": "Gso", "Ge": "Ge",
+         "Al": "Al", "PTFE": "Ptfe", "Water": "Water"}
 
 def rows(values, per=6, indent=16):
     out = []
