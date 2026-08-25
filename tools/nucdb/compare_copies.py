@@ -63,8 +63,9 @@ EADL идут 153.04, 147.81, 152.83), и списки идут парами с�
 ⚠ δ² ложится на СТАРШУЮ мультипольность, а не на второй компонент кода.
 Порядок в коде не постоянен: 304 = M1+E2 и 403 = E2+M1 — одна и та же смесь,
 записанная в обе стороны. Взяв «второй компонент», на коде 403 намеряешь
-медиану 35 %, а на 502 — 791 %; с сортировкой по порядку мультипольности они
-падают до 4.1 % и 0.8 %. Это измерено, а не выведено.
+медиану 49.65 % (238 переходов), а на 502 — 791 % (3 перехода); с сортировкой
+по порядку мультипольности они падают до 2.448 % и 0.783 %. Это измерено, а не
+выведено (перемерено 25.08.2026 тем же кодом; прежние «35 % → 4.1 %» неверны).
 
 ⛔ СМЕСЬ С δ = 0 НЕСОПОСТАВИМА и выбрасывается. Ноль в `mixing_ratio` у
 Geant4 означает и «чистый переход», и «данных нет», а код смеси прямо говорит,
@@ -157,7 +158,23 @@ Geant4 энергии целыми эВ, у ENSDF — с точностью со
 ENSDF, у которой оба конца попали в соответствие, ищется переход Geant4 с той
 же парой (from, to). Печатается, у скольких пара совпала, у скольких Geant4
 кладёт переход той же энергии между ДРУГИМИ уровнями (это и есть расхождение
-привязки), и у скольких перехода такой энергии нет вовсе.
+привязки), и у скольких перехода такой энергии не нашлось.
+
+⛔ ФИЛЬТР ПО ИНТЕНСИВНОСТИ ОБЪЯВЛЕН И СЧИТАЕТСЯ В ОБЕ СТОРОНЫ. Отбор
+`g4_gamma.intensity_ppm > 0` выбрасывает 32 221 переход из 297 055 (10.8 %) —
+у Geant4 это переходы схемы уровней без заселённости, а не отсутствующие
+переходы. Заглавное число от такого отбора меняется впятеро, поэтому сверка
+идёт ДВАЖДЫ и печатаются ОБА столбца:
+
+    все 297 055 переходов        совпало 70 175 (98.8 %), между другими 582,
+                                 не нашлось 271;
+    только intensity_ppm > 0     совпало 68 914 (97.0 %), между другими 788,
+                                 не нашлось 1326.
+
+Разница — 1055 гамма, у которых переход в `g4_gamma` ЕСТЬ, но с нулевой
+интенсивностью. Поэтому строка отчёта про них читается «нет СРЕДИ ПЕРЕХОДОВ С
+НЕНУЛЕВОЙ ИНТЕНСИВНОСТЬЮ», а «нет вовсе» верно только для столбца по всем
+переходам. Измерено 25.08.2026.
 
 ────────────────────────────────────────────────────────────────────────────
 В базы ничего не пишется: все три открываются `file:…?mode=ro`.
@@ -782,11 +799,20 @@ def pair5(nuc, scheme, sym, tol_kev, worst_n):
     for v in g4_levels.values():
         v.sort()
 
-    g4_trans = collections.defaultdict(list)
-    for z, a, f, t, e in scheme.execute(
-            "select z, a, from_seq, to_seq, energy_ev from g4_gamma"
-            " where intensity_ppm > 0"):
-        g4_trans[(z, a)].append((f, t, e / 1000.0))
+    # ⛔ Отбор по интенсивности ОБЪЯВЛЕН и считается в обе стороны: он
+    # выбрасывает 10.8 % переходов Geant4 и меняет заглавное число впятеро
+    # (см. шапку, ПАРА 5). Ниже сверка идёт двумя наборами.
+    g4_all = collections.defaultdict(list)
+    g4_pos = collections.defaultdict(list)
+    n_all = n_pos = 0
+    for z, a, f, t, e, ipm in scheme.execute(
+            "select z, a, from_seq, to_seq, energy_ev, intensity_ppm"
+            " from g4_gamma"):
+        g4_all[(z, a)].append((f, t, e / 1000.0))
+        n_all += 1
+        if ipm is not None and ipm > 0:
+            g4_pos[(z, a)].append((f, t, e / 1000.0))
+            n_pos += 1
 
     ds_levels = collections.defaultdict(list)
     for did, seq, e in scheme.execute(
@@ -836,50 +862,71 @@ def pair5(nuc, scheme, sym, tol_kev, worst_n):
     w(u"уровней ENSDF с энергией: %d, СОПОСТАВЛЕНО %d — %.1f %%",
       lv_total, lv_matched, 100.0 * lv_matched / max(1, lv_total))
 
-    same = other_pair = no_energy = 0
-    unmapped = noseq = 0
-    worst = []
-    for did, (za, mp) in maps.items():
-        trans = g4_trans.get(za, ())
-        for f, t, e in scheme.execute(
-                "select from_level_seq, to_level_seq, energy_kev"
-                " from ensdf_gammas where dataset_id = ? and energy_kev"
-                " is not null", (did,)):
-            if f is None or t is None:
-                noseq += 1
-                continue
-            if f not in mp or t not in mp:
-                unmapped += 1
-                continue
-            gf, gt = mp[f], mp[t]
-            hit = [x for x in trans if x[0] == gf and x[1] == gt]
-            if hit:
-                same += 1
-                continue
-            near = [x for x in trans if abs(x[2] - e) <= tol(e)]
-            if near:
-                other_pair += 1
-                if len(worst) < 4 * worst_n:
-                    worst.append((ds_nucid[did], e, (gf, gt),
-                                  [(x[0], x[1]) for x in near[:3]]))
-            else:
-                no_energy += 1
+    # Сверка идёт ДВАЖДЫ — по всем переходам Geant4 и только по переходам с
+    # ненулевой интенсивностью. Отбор выбрасывает 10.8 % и меняет заглавное
+    # число впятеро, поэтому печатаются ОБА столбца, а не выбранный.
+    def compare(trans_by_za):
+        same = other_pair = no_energy = 0
+        unmapped = noseq = 0
+        worst = []
+        for did, (za, mp) in maps.items():
+            trans = trans_by_za.get(za, ())
+            for f, t, e in scheme.execute(
+                    "select from_level_seq, to_level_seq, energy_kev"
+                    " from ensdf_gammas where dataset_id = ? and energy_kev"
+                    " is not null", (did,)):
+                if f is None or t is None:
+                    noseq += 1
+                    continue
+                if f not in mp or t not in mp:
+                    unmapped += 1
+                    continue
+                gf, gt = mp[f], mp[t]
+                hit = [x for x in trans if x[0] == gf and x[1] == gt]
+                if hit:
+                    same += 1
+                    continue
+                near = [x for x in trans if abs(x[2] - e) <= tol(e)]
+                if near:
+                    other_pair += 1
+                    if len(worst) < 4 * worst_n:
+                        worst.append((ds_nucid[did], e, (gf, gt),
+                                      [(x[0], x[1]) for x in near[:3]]))
+                else:
+                    no_energy += 1
+        return same, other_pair, no_energy, noseq, unmapped, worst
 
-    tot = same + other_pair + no_energy
+    a_same, a_other, a_none, noseq, unmapped, worst = compare(g4_all)
+    p_same, p_other, p_none, _, _, _ = compare(g4_pos)
+    a_tot = a_same + a_other + a_none
+    p_tot = p_same + p_other + p_none
+
     w(u"")
-    w(u"гамма ENSDF с обоими концами в соответствии: %d", tot)
+    w(u"переходов Geant4 всего %d, из них с ненулевой интенсивностью %d"
+      u" (отбор выбрасывает %d, %.1f %%)",
+      n_all, n_pos, n_all - n_pos, 100.0 * (n_all - n_pos) / max(1, n_all))
+    w(u"гамма ENSDF с обоими концами в соответствии: %d", a_tot)
     w(u"    у ENSDF нет номера уровня (from/to NULL):        %7d", noseq)
     w(u"    конец не попал в соответствие уровней:           %7d", unmapped)
-    if tot:
-        w(u"    привязка СОВПАЛА (та же пара уровней Geant4):    %7d  %5.1f %%",
-          same, 100.0 * same / tot)
-        w(u"    Geant4 кладёт ту же энергию МЕЖДУ ДРУГИМИ:       %7d  %5.1f %%",
-          other_pair, 100.0 * other_pair / tot)
-        w(u"    перехода такой энергии у Geant4 нет вовсе:       %7d  %5.1f %%",
-          no_energy, 100.0 * no_energy / tot)
+    w(u"")
+    w(u"                                                  ВСЕ переходы    "
+      u"только intensity_ppm > 0")
+    if a_tot and p_tot:
+        w(u"    привязка СОВПАЛА:                       %7d %5.1f %%   %7d %5.1f %%",
+          a_same, 100.0 * a_same / a_tot, p_same, 100.0 * p_same / p_tot)
+        w(u"    Geant4 кладёт ту же энергию МЕЖДУ ДРУГИМИ:%7d %5.1f %%   %7d %5.1f %%",
+          a_other, 100.0 * a_other / a_tot, p_other, 100.0 * p_other / p_tot)
+        w(u"    перехода такой энергии НЕ НАШЛОСЬ:      %7d %5.1f %%   %7d %5.1f %%",
+          a_none, 100.0 * a_none / a_tot, p_none, 100.0 * p_none / p_tot)
+    w(u"")
+    w(u"⛔ Разница столбцов — %d гамма, у которых переход в `g4_gamma` ЕСТЬ,"
+      u" но с нулевой", p_none - a_none)
+    w(u"   интенсивностью. Поэтому «нет вовсе» верно ТОЛЬКО для левого"
+      u" столбца; для правого")
+    w(u"   читается «нет среди переходов с ненулевой интенсивностью».")
     w(u"")
     w(u"примеры расхождения привязки (нуклид, энергия, пара Geant4 по"
-      u" соответствию, что нашлось по энергии):")
+      u" соответствию, что нашлось по энергии; столбец ВСЕ переходы):")
     for nucid, e, pr, near in worst[:worst_n]:
         w(u"    %-8s %9.3f кэВ  ожидалось %s, по энергии %s",
           nucid, e, pr, near)

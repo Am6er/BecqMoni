@@ -43,6 +43,27 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// Кроме кристаллов — три конструкционных вещества (Al, PTFE, вода), той
     /// же estar.py: нужны заносу электронов из окна/оправы/пробы в кристалл
     /// (полная эффективность, F1). I у них табличные из star_materials.
+    ///
+    /// ⚠ С 25.08.2026 (`N9`) РАБОЧИЕ ЧИСЛА СЧИТАЮТСЯ ИЗ БАЗЫ. Тот же алгоритм
+    /// ESTAR перенесён в <see cref="EstarCalculator"/> и берёт входы из
+    /// `matdb.sqlite` (`estar_shells`, `estar_radiative_stopping`,
+    /// `estar_element_potential`, `star_materials`); таблицы ниже оставлены
+    /// ЭТАЛОНОМ СВЕРКИ и доступны через <see cref="BuiltinByName"/>. Расхождение
+    /// счёта со вшитым не хуже 0.0486 % по пробегу (вода) и 0.0485 % по выходу
+    /// (CsI) на всех тринадцати веществах и всех 55 узлах — это округление самой
+    /// таблицы до трёх значащих цифр, ниже него такая сверка не разрешает
+    /// (`tools/estar/build_check.ps1`, `EstarCheck.exe`, 25.08.2026).
+    ///
+    /// ⚠ Сверка со вшитой таблицей — САМОСОГЛАСОВАННОСТЬ, а не поверка по NIST:
+    /// вшитые числа получены тем же алгоритмом. Внешний эталон — таблица
+    /// `estar_collision_stopping`, выход настоящего ESTAR на CsI и NaI, 82 точки
+    /// ОТ 1 кэВ; тормозная способность сходится с ним до 0.0404 % и 0.0474 %.
+    /// Пробег и выход — интегралы ровно этих кривых, так что низ шкалы поверен
+    /// по интегранду; у самих пробега и выхода эталона ниже 10 кэВ нет вовсе
+    /// (`tools/estar/reference.py` — 39 точек со старой сетки от 10 кэВ).
+    ///
+    /// ⛔ Список веществ от этого НЕ расширился и расшириться здесь не должен:
+    /// произвольный состав — это `N4`.
     /// </summary>
     public static class ElectronData
     {
@@ -489,10 +510,150 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         };
 
-        static readonly Material[] All =
+        /// <summary>
+        /// ВШИТАЯ таблица — эталон сверки, а не рабочие числа. Порядок тот же,
+        /// что у <see cref="Signatures"/> и <see cref="Compositions"/>.
+        /// </summary>
+        static readonly Material[] Builtin =
         {
             CsI, NaI, Bgo, LaBr3, CeBr3, SrI2, CdTe, Czt, Gso, Ge, Al, Ptfe, Water
         };
+
+        /// <summary>
+        /// Составы и плотности тех же тринадцати веществ — по ним
+        /// <see cref="EstarCalculator"/> считает пробег и выход ИЗ БАЗЫ.
+        ///
+        /// ⛔ Список закрыт намеренно (`N9`). Считать умеет любой состав, но
+        /// пустить сюда произвольную оправу, стенку и пробу — это `N4`: физика
+        /// поменяется, и все посчитанные матрицы отклика придётся пересчитать.
+        ///
+        /// Плотности — те же, с которыми считались вшитые числа: у десяти
+        /// кристаллов они записаны в `tools/estar/estar.py`, у Al, PTFE и воды
+        /// восстановлены сверкой со вшитой таблицей (2.699 / 2.2 / 1.0 — с ними
+        /// расхождение укладывается в округление таблицы до трёх значащих, с
+        /// PTFE 2.25 вдвое хуже).
+        ///
+        /// I нигде не задаётся руками: у CsI, NaI, BGO, Ge, Al, PTFE и воды
+        /// состав совпадает с готовым веществом `star_materials` и I берётся
+        /// табличное, у остальных считается по Брэггу. У LaBr₃ Брэгг даёт
+        /// 454.49 эВ против 454.5, которые ESTAR вывел сам, — то же число.
+        /// </summary>
+        static readonly EstarCalculator.Compound[] Compositions =
+        {
+            Compound("CsI",   4.51,  new[] { 55, 53 },      new[] { 1.0, 1.0 }),
+            Compound("NaI",   3.667, new[] { 11, 53 },      new[] { 1.0, 1.0 }),
+            Compound("BGO",   7.13,  new[] { 83, 32, 8 },   new[] { 4.0, 3.0, 12.0 }),
+            Compound("LaBr3", 5.08,  new[] { 57, 35 },      new[] { 1.0, 3.0 }),
+            Compound("CeBr3", 5.1,   new[] { 58, 35 },      new[] { 1.0, 3.0 }),
+            Compound("SrI2",  4.55,  new[] { 38, 53 },      new[] { 1.0, 2.0 }),
+            Compound("CdTe",  5.85,  new[] { 48, 52 },      new[] { 1.0, 1.0 }),
+            Compound("CZT",   5.78,  new[] { 48, 30, 52 },  new[] { 9.0, 1.0, 10.0 }),
+            Compound("GSO",   6.71,  new[] { 64, 14, 8 },   new[] { 2.0, 1.0, 5.0 }),
+            Compound("Ge",    5.323, new[] { 32 },          new[] { 1.0 }),
+            Compound("Al",    2.699, new[] { 13 },          new[] { 1.0 }),
+            Compound("PTFE",  2.2,   new[] { 6, 9 },        new[] { 2.0, 4.0 }),
+            Compound("Water", 1.0,   new[] { 1, 8 },        new[] { 2.0, 1.0 }),
+        };
+
+        static EstarCalculator.Compound Compound(string name, double density,
+                                                 int[] z, double[] atoms)
+        {
+            return new EstarCalculator.Compound
+            {
+                Name = name,
+                Z = z,
+                Atoms = atoms,
+                DensityGCm3 = density,
+            };
+        }
+
+        static readonly object Gate = new object();
+
+        // volatile: быстрый путь Computed() читает поле БЕЗ замка, а зовут его
+        // и из потоков розыгрыша историй.
+        static volatile Material[] computed;
+
+        /// <summary>
+        /// Рабочие таблицы: посчитаны из `matdb.sqlite` при первом обращении и
+        /// живут до конца работы. Считать по вызову нельзя — <see cref="RangeOf"/>
+        /// зовётся на каждую историю, а один состав считается ощутимо дольше
+        /// одной интерполяции.
+        /// </summary>
+        static Material[] Computed()
+        {
+            if (computed != null)
+            {
+                return computed;
+            }
+
+            lock (Gate)
+            {
+                if (computed != null)
+                {
+                    return computed;
+                }
+
+                Material[] built = new Material[Compositions.Length];
+                for (int i = 0; i < Compositions.Length; i++)
+                {
+                    EstarCalculator.Result result =
+                        EstarCalculator.Compute(Compositions[i], Grid);
+                    built[i] = new Material
+                    {
+                        Name = Compositions[i].Name,
+                        Energy = Grid,
+                        Range = result.RangeGCm2,
+                        Yield = result.Yield,
+                    };
+                }
+
+                computed = built;
+                return computed;
+            }
+        }
+
+        /// <summary>
+        /// Вшитое вещество по имени — ЭТАЛОН СВЕРКИ. Рабочие числа берутся
+        /// у <see cref="ByName"/>, эти нужны поверке, чтобы было с чем сверять.
+        /// </summary>
+        public static Material BuiltinByName(string name)
+        {
+            foreach (Material m in Builtin)
+            {
+                if (string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return m;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Состав вещества по имени — нужен поверке и счёту из базы.</summary>
+        public static EstarCalculator.Compound CompoundByName(string name)
+        {
+            foreach (EstarCalculator.Compound c in Compositions)
+            {
+                if (string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return c;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Имена всех тринадцати веществ, в порядке таблицы.</summary>
+        public static string[] Names()
+        {
+            string[] names = new string[Compositions.Length];
+            for (int i = 0; i < Compositions.Length; i++)
+            {
+                names[i] = Compositions[i].Name;
+            }
+
+            return names;
+        }
 
         // Набор Z, по которому вещество опознаётся: йод + цезий -> CsI и так далее.
         static readonly int[][] Signatures =
@@ -554,7 +715,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (same)
                 {
-                    return All[i];
+                    return Computed()[i];
                 }
             }
 
@@ -563,11 +724,12 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public static Material ByName(string name)
         {
-            foreach (Material m in All)
+            for (int i = 0; i < Compositions.Length; i++)
             {
-                if (string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Compositions[i].Name, name,
+                                  StringComparison.OrdinalIgnoreCase))
                 {
-                    return m;
+                    return Computed()[i];
                 }
             }
 
@@ -594,7 +756,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static double EnergyOfRange(Material m, double range)
         {
             // Нулевой остаточный пробег — нулевая энергия. Общий LogLog при
-            // v <= 0 возвращает ПЕРВЫЙ УЗЕЛ (для таблиц пробегов это ~10 кэВ),
+            // v <= 0 возвращает ПЕРВЫЙ УЗЕЛ (для таблиц пробегов это 1 кэВ —
+            // в комментарии стояло «~10 кэВ», отставшее от продления сетки
+            // 09.08.2026; на сам расчёт это не влияло, ветка тут же и выходит),
             // и полагаться на него здесь значило бы выдумать электрону энергию.
             if (!(range > 0.0))
             {
