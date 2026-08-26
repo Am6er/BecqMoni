@@ -81,6 +81,16 @@ namespace CorpusFsaProbe
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            // ⛔ ПОСТАВОЧНУЮ ПОЛОСУ ЗАПОМИНАЕМ ДО РАЗБОРА КЛЮЧЕЙ. Ключ `--band=`
+            // двигает СТАТИКУ (иначе он двигает один конец из двух, `S101`), а
+            // эталон для строки «ключами изменено» строится позже — и, читая уже
+            // сдвинутую статику, показал бы «НИЧЕГО» на абляционном прогоне.
+            // Это ровно дефект, который чинила `T65`: абляция, неотличимая в
+            // журнале от умолчания. Поймано на себе 26.08.2026, первым же
+            // прогоном `--band=whole`.
+            StockBandMode = FsaBand.DefaultMode;
+            StockBandFloor = FsaBand.DefaultFloor;
+
             var o = new Options();
             foreach (string a in args)
             {
@@ -179,11 +189,20 @@ namespace CorpusFsaProbe
                 // 26.08.2026 по `B26` требует ровно обратного: одна причина на
                 // один сдвиг базы. Ключ не заводит ВТОРУЮ копию умолчания — он
                 // ничего не подставляет, когда не задан, и печатается шапкой.
+                // ⛔ ДВИГАТЬ НАДО СТАТИКУ, А НЕ ПОЛЕ АНАЛИЗАТОРА. Измерено
+                // 26.08.2026: `FsaSampleLibrary` держит СВОИ `Band` и
+                // `LibraryFloorKev` и берёт их у `FsaBand.DefaultMode` /
+                // `DefaultFloor` В МОМЕНТ СОЗДАНИЯ — то есть присваивание
+                // `analyzer.Band` двигает ОДИН конец из двух, и корпусный
+                // прогон (библиотека по объявленной пробе, `S56`) остаётся
+                // на поставочной полосе. Первый заход так и вышел: плечи
+                // `whole` и `library-to-fit` дали ПОБИТОВО одинаковые
+                // `components` и `limits`, разошлись только `ms`/`cpu_ms`.
                 if (a.StartsWith("--band=", StringComparison.Ordinal))
                 {
                     o.BandName = a.Substring(7);
-                    FsaBandMode probe;
-                    if (!FsaBand.TryParse(o.BandName, out probe))
+                    FsaBandMode band;
+                    if (!FsaBand.TryParse(o.BandName, out band))
                     {
                         Console.Error.WriteLine(
                             "неизвестная полоса: {0} (whole | fit-to-library | library-to-fit)",
@@ -191,12 +210,14 @@ namespace CorpusFsaProbe
                         Environment.Exit(64);
                     }
 
+                    FsaBand.DefaultMode = band;
                     continue;
                 }
 
                 if (a.StartsWith("--band-floor=", StringComparison.Ordinal))
                 {
                     o.BandFloor = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    FsaBand.DefaultFloor = o.BandFloor;
                     continue;
                 }
 
@@ -547,21 +568,10 @@ namespace CorpusFsaProbe
                 analyzer.HuberM = o.HuberM;
             }
 
-            // (`S98`) Полоса — до всего прочего: её читают оба конца разбора.
-            if (!string.IsNullOrEmpty(o.BandName))
-            {
-                FsaBandMode band;
-                if (FsaBand.TryParse(o.BandName, out band))
-                {
-                    analyzer.Band = band;
-                }
-            }
-
-            if (o.BandFloor >= 0.0)
-            {
-                analyzer.LibraryFloorKev = o.BandFloor;
-            }
-
+            // (`S98`) Полосу здесь НЕ трогаем: она уже выставлена статикой при
+            // разборе ключей, и конструктор `FsaAnalyzer` её оттуда взял — как
+            // и `FsaSampleLibrary`. Двигать поле анализатора отдельно значило бы
+            // развести два конца, а именно это и было дефектом.
             analyzer.NoiseGamma = o.NoiseGamma;
             analyzer.NoiseBeta = o.NoiseBeta;
             analyzer.PartialResiduals = o.Partial;
@@ -659,9 +669,31 @@ namespace CorpusFsaProbe
         /// и здесь их ещё нет. Матрицы и материала сцинтиллятора тоже нет —
         /// они свои у каждого спектра.
         /// </summary>
+        /// <summary>Поставочная полоса, снятая ДО разбора ключей (`S101`).</summary>
+        static FsaBandMode StockBandMode;
+
+        /// <summary>Поставочный пол полосы, снятый ДО разбора ключей (`S101`).</summary>
+        static double StockBandFloor;
+
         static void PrintTuning(FsaAnalyzer tuned)
         {
-            var stock = new FsaAnalyzer();
+            // Эталон обязан родиться с ПОСТАВОЧНОЙ полосой, а не с той, что уже
+            // выставил ключ, — иначе `--band=` в журнале не виден вовсе.
+            FsaBandMode liveMode = FsaBand.DefaultMode;
+            double liveFloor = FsaBand.DefaultFloor;
+            FsaAnalyzer stock;
+            FsaBand.DefaultMode = StockBandMode;
+            FsaBand.DefaultFloor = StockBandFloor;
+            try
+            {
+                stock = new FsaAnalyzer();
+            }
+            finally
+            {
+                FsaBand.DefaultMode = liveMode;
+                FsaBand.DefaultFloor = liveFloor;
+            }
+
             var changed = new List<string>();
             Type t = typeof(FsaAnalyzer);
             foreach (System.Reflection.PropertyInfo p in t.GetProperties(
