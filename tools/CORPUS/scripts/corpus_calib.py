@@ -18,7 +18,24 @@
 """
 import numpy as np
 
-from gaussfit import fit_peak, FWHM_SIGMA
+import gaussfit
+from gaussfit import fit_peak, fit_peak_ex, FWHM_SIGMA
+
+#: `V13`: линии, на которых фит ОТКАЗАЛ при последнем `match_lines` —
+#: РАЗБЕГ, а не отсутствие линии: ни один шаг не принят либо `lstsq` отказал.
+#: ⛔ До 25.08.2026 «фит не сошёлся» и «линии нет» были неразличимы: `gaussfit`
+#: возвращал `None` в обоих случаях, а `match_lines` молча пропускал линию —
+#: так корпус терял свои сильнейшие опоры. После починки демпфера этот список
+#: пуст по всему корпусу (5936 фитов), и вот это и есть сторож: наполнился —
+#: значит фит опять разбегается. Читатели: `check_corpus.check`,
+#: `gaussfit_check.py`.
+LAST_NOCONV = []
+
+#: `V13`: линии, где минимум лежит ЗА пределом σ. Это НЕ разбег: чаще всего
+#: линии в окне просто нет, гауссиана расползается по континууму и упирается в
+#: предел. Держится отдельно от `LAST_NOCONV` именно поэтому — смешав их,
+#: сторож разбега тонет в восьми «отказах» на спектр.
+LAST_BOUND = []
 
 
 class Ecal(object):
@@ -122,8 +139,11 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
     lines — результат calibrate.curate: (энергия группы, метка, чистота,
     табличная энергия).
     """
+    global LAST_NOCONV, LAST_BOUND
     n = len(counts)
     out = []
+    noconv = []
+    bound = []
     for e_ref, label, purity, e_table in lines:
         ch0 = ecal.channel(e_ref)
         if ch0 < 4 or ch0 > n - 5:
@@ -134,7 +154,12 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
         fwhm_ch = res_a * np.sqrt(max(e_ref, 5.0)) / dedch
         if fwhm_ch < 1.2:
             fwhm_ch = 1.2
-        r = fit_peak(counts, ch0, fwhm_ch / FWHM_SIGMA, window=2.2)
+        r, status = fit_peak_ex(counts, ch0, fwhm_ch / FWHM_SIGMA, window=2.2)
+        if status in (gaussfit.NOCONV, gaussfit.SINGULAR):
+            # `V13`: не «линии нет», а фит разбежался — это надо видеть отдельно.
+            noconv.append(dict(e_ref=e_ref, label=label, ch=ch0, status=status))
+        elif status == gaussfit.BOUND:
+            bound.append(dict(e_ref=e_ref, label=label, ch=ch0, status=status))
         if r is None or r['sig'] < min_sig:
             continue
         if abs(r['mu'] - ch0) > tol_fwhm * fwhm_ch:
@@ -143,7 +168,10 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
         if ratio < width_lo or ratio > width_hi:
             continue
         out.append(dict(ch=r['mu'], e_ref=e_ref, label=label, purity=purity,
-                        fwhm=r['fwhm'], sig=r['sig'], area=r['area']))
+                        fwhm=r['fwhm'], sig=r['sig'], area=r['area'],
+                        # `V13`: значимость амплитуды ПО КОВАРИАЦИИ — читает
+                        # её пока только мерка `gaussfit_check.py`
+                        sig_fit=float(r.get('sig_fit', 0.0))))
     out.sort(key=lambda a: a['ch'])
     dedup = []
     for a in out:
@@ -152,6 +180,8 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
                 dedup[-1] = a
             continue
         dedup.append(a)
+    LAST_NOCONV = noconv
+    LAST_BOUND = bound
     return dedup
 
 

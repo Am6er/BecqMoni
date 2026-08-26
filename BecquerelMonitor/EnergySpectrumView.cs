@@ -732,8 +732,49 @@ namespace BecquerelMonitor
                             }
                             if (numberOfPeaks == 1 && detectedPeak != null && detectedPeak.Nuclide != null && detectedPeak.Nuclide.Intencity > 0)
                             {
+                                // ⛔ S96. Отсюда и до конца ветки число ПОКУПАЕТСЯ
+                                // ПОДПИСЬЮ: I% ниже — выход того нуклида, которого
+                                // поставил `PeakDetector.MatchNuclide` по одной лишь
+                                // близости энергии. Кто это был и по какой линии —
+                                // обязано быть видно, а заведомо бессмысленный случай
+                                // обязан быть ОТКАЗОМ, а не числом.
+                                analytics.ActivityLabel = detectedPeak.Nuclide.Name;
+                                analytics.ActivityLineKev = detectedPeak.Nuclide.Energy;
+                                analytics.ActivityIntensity = detectedPeak.Nuclide.Intencity;
+                                this.ScanActivityRivals(detectedPeak, analytics);
+
+                                // ⛔ ОТКАЗ, а не предупреждение: у характеристического
+                                // рентгена выхода НА РАСПАД не существует вовсе (см.
+                                // `NuclideDefinition.IsElementXrayName`) — число в поле
+                                // `Intencity` у него значит долю внутри K-серии, и
+                                // A = N·100/(ε·I) по нему физического смысла не имеет.
+                                // Тем же правилом такие линии уже исключены из
+                                // построения кривой эффективности. Мера цены по корпусу
+                                // (понятная часть): 59 из 678 пиков с показанными
+                                // беккерелями подписаны «W x-ray» или «Pb x-ray» на 53
+                                // спектрах из 81, и панель показывала за них до
+                                // 2.3·10^5 Бк.
+                                if (NuclideDefinition.IsElementXrayName(detectedPeak.Nuclide.Name))
+                                {
+                                    analytics.ActivityRefusal = Resources.ActivityXrayRefused;
+                                }
+
+                                // ⚠ ЧЕГО ЭТИ ТРИ ПРИЗНАКА НЕ ЛОВЯТ — измерено тем же
+                                // прогоном (понятная часть, 81 спектр, поставочная
+                                // `config/NuclideDefinition.xml`): из 678 пиков с
+                                // показанными беккерелями отказ накрывает 59, ещё 282
+                                // получают предупреждение о споре, а 337 (49.7 %)
+                                // показываются ГОЛЫМ ЧИСЛОМ. Среди них 9 стоят на линии
+                                // с выходом МЕНЬШЕ 0.01 % (Pu-238 0.0009 %, Pu-239
+                                // 0.0016 % — соседей в пике у них нет, и спор молчит),
+                                // и панель показывает за них до 1.5·10^9 Бк. Порог по
+                                // выходу здесь НЕ ЗАВЕДЁН нарочно: число, ниже которого
+                                // подпись считается недостоверной, — решение Amber, а
+                                // не догадка правки. Отдельной строкой TODO.
+
                                 double bqCoeff, bqCoeffError;
-                                if (BecquerelCoefficient.TryForLine(detectedPeak.Energy,
+                                if (analytics.ActivityRefusal == null &&
+                                    BecquerelCoefficient.TryForLine(detectedPeak.Energy,
                                                                    detectedPeak.Nuclide.Intencity,
                                                                    this.activeResultData.Efficiency,
                                                                    out bqCoeff, out bqCoeffError))
@@ -770,6 +811,92 @@ namespace BecquerelMonitor
             }
 
             this.selectionAnalyticsDirty = false;
+        }
+
+        /// <summary>
+        /// (S96) Кто ЕЩЁ мог получить эту подпись и во сколько раз тогда
+        /// разъедутся беккерели.
+        ///
+        /// Отбор соперников — тот же, что у <c>PeakDetector.MatchNuclide</c>
+        /// (видимая линия с энергией, из того же набора), но окно берётся не
+        /// допуском поиска, а РАЗРЕШЕНИЕМ: линия считается соперником, если она
+        /// попадает в тот же пик, то есть отстоит от него не дальше половины
+        /// ПШПВ выделения. Так и надо: допуск поиска задан в ПРОЦЕНТАХ
+        /// (у корпусных приборов 10 %, то есть ±146 кэВ на калии), и по нему
+        /// «соперником» оказывается пол-библиотеки, а различает подписи именно
+        /// разрешение прибора — линии внутри одного пика неразличимы по
+        /// положению в принципе (`S64`), и выбор между ними стоит числа.
+        ///
+        /// Цена считается по выходам: ε берётся по ЭНЕРГИИ ПИКА, а не линии
+        /// (см. вызов <c>BecquerelCoefficient.TryForLine</c> выше), поэтому
+        /// подмена подписи меняет ровно множитель 1/I%. Проверено счётом на
+        /// корпусе: у всех 2138 пар с живой кривой ε обоих вариантов совпала.
+        /// </summary>
+        void ScanActivityRivals(Peak peak, SelectionAnalytics analytics)
+        {
+            analytics.ActivityRivals = 0;
+            analytics.ActivityRivalFactor = 1.0;
+            if (peak == null || peak.Nuclide == null || !(peak.Nuclide.Intencity > 0.0))
+            {
+                return;
+            }
+
+            double window = 0.5 * analytics.SelectionFWHMinkev;
+            if (!(window > 0.0) || this.nuclideManager == null)
+            {
+                return;
+            }
+
+            List<NuclideDefinition> definitions = this.nuclideManager.NuclideDefinitions;
+            if (definitions == null)
+            {
+                return;
+            }
+
+            NuclideSet set = this.nuclideManager.ActiveSet;
+            foreach (NuclideDefinition definition in definitions)
+            {
+                if (definition == null || !definition.Visible || definition.Energy == 0.0)
+                {
+                    continue;
+                }
+
+                if (set != null && (definition.Sets == null || !definition.Sets.Contains(set.Id)))
+                {
+                    continue;
+                }
+
+                if (!(definition.Intencity > 0.0))
+                {
+                    continue;
+                }
+
+                // Сама подпись соперником себе не бывает. Сравнение по имени И
+                // энергии, а не по ссылке: список нуклидов панель поиска пиков
+                // пересобирает, и ссылка у подписи может быть уже не из него.
+                if (definition.Name == peak.Nuclide.Name
+                    && Math.Abs(definition.Energy - peak.Nuclide.Energy) < 1E-09)
+                {
+                    continue;
+                }
+
+                if (Math.Abs(definition.Energy - peak.Energy) > window)
+                {
+                    continue;
+                }
+
+                analytics.ActivityRivals++;
+                double factor = peak.Nuclide.Intencity / definition.Intencity;
+                if (factor < 1.0)
+                {
+                    factor = 1.0 / factor;
+                }
+
+                if (factor > analytics.ActivityRivalFactor)
+                {
+                    analytics.ActivityRivalFactor = factor;
+                }
+            }
         }
 
         int VisibleLeftPixel
@@ -4019,6 +4146,23 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 54;
                 }
+                // S96: строка «по какой подписи», предупреждение о споре под ней
+                // и отказ вместо числа. Отказ занимает место активности, поэтому
+                // подпись называется и тогда, когда числа нет вовсе.
+                bool activityLabelShown = !string.IsNullOrEmpty(selection.ActivityLabel)
+                                          && (activity > 0.0 || !string.IsNullOrEmpty(selection.ActivityRefusal));
+                if (Lc > 0 && activityLabelShown)
+                {
+                    infopanel_height += 16;
+                    if (selection.ActivityRivals > 0)
+                    {
+                        infopanel_height += 16;
+                    }
+                }
+                if (Lc > 0 && !string.IsNullOrEmpty(selection.ActivityRefusal))
+                {
+                    infopanel_height += 32;
+                }
                 g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
                 g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
@@ -4142,6 +4286,51 @@ namespace BecquerelMonitor
                             r2.Y += 16;
                         }
                     }
+
+                    // ⛔ S96. Беккерели посчитаны по ВЫХОДУ ОДНОЙ ЛИНИИ, и
+                    // выбрал эту линию поиск пиков по одной близости энергии.
+                    // Без этих двух строк человек видит число и не видит
+                    // допущения, на котором оно стоит.
+                    if (activityLabelShown)
+                    {
+                        g.DrawString(Resources.ActivityFromLine, this.Font, Brushes.Black, r2);
+                        g.DrawString(selection.ActivityLabel + " " +
+                                     selection.ActivityLineKev.ToString(floatFormat) + " " +
+                                     Resources.kev + ", " +
+                                     // Не "n2": у подписи вроде «Pu-238» выход
+                                     // 0.0009 %, и округление до сотых показало
+                                     // бы «0.00 %» — то есть спрятало бы ровно
+                                     // тот случай, ради которого строка и
+                                     // заведена (S96: такая подпись даёт
+                                     // показанные 1.5·10^9 Бк).
+                                     selection.ActivityIntensity.ToString("g4") +
+                                     Resources.PercentCharacter,
+                                     this.Font, Brushes.Black, r2, this.farFormat);
+                        r2.Y += 16;
+
+                        if (selection.ActivityRivals > 0)
+                        {
+                            g.DrawString(string.Format(CultureInfo.CurrentCulture,
+                                                       Resources.ActivityLabelDisputed,
+                                                       selection.ActivityRivals,
+                                                       selection.ActivityRivalFactor),
+                                         this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                            r2.Y += 16;
+                        }
+                    }
+
+                    // ⛔ S96. Отказ вместо числа: подпись есть, кривая есть, а
+                    // считать по ней беккерели нельзя. Раньше активности просто
+                    // не появлялось, и это было неотличимо от «нет кривой».
+                    if (!string.IsNullOrEmpty(selection.ActivityRefusal))
+                    {
+                        g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
+                        g.DrawString(Resources.ResultNoCoefficient, this.Font, Brushes.DarkRed, r2, this.farFormat);
+                        r2.Y += 16;
+                        g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed, r2, this.centerFormat);
+                        r2.Y += 16;
+                    }
+
                     r2.Y += 6;
                 }
                 if (this.selectionFWHM > 0.0)
@@ -4813,6 +5002,44 @@ namespace BecquerelMonitor
             public double ActivityByVolumeError { get; set; }
 
             public double ActivityByVolumeUpperLimit { get; set; }
+
+            /// <summary>
+            /// (S96) ПО КАКОЙ ПОДПИСИ посчитаны беккерели: имя линии, её
+            /// энергия и выход. Активность выделения считается как
+            /// A = N·100/(ε(E)·I%), где I% — выход ТОГО нуклида, которого
+            /// поставил <see cref="PeakDetector"/>; неверная подпись даёт не
+            /// отказ, а ДРУГОЕ ЧИСЛО, и до 25.08.2026 сказать об этом было
+            /// некому — панель показывала беккерели, не называя ни имени, ни
+            /// линии. Измерено по корпусу (понятная часть, 81 спектр): у 336
+            /// из 678 пиков, по которым панель показала бы число, в тот же пик
+            /// попадает ЕЩЁ ОДНА видимая линия библиотеки, и подмена подписи на
+            /// ближайшую из них двигает беккерели медианно в 3.7 раза (в 2 и
+            /// более раз у 71 % таких пиков).
+            /// </summary>
+            public string ActivityLabel { get; set; }
+
+            public double ActivityLineKev { get; set; }
+
+            public double ActivityIntensity { get; set; }
+
+            /// <summary>
+            /// (S96) Соперники подписи — видимые линии той же библиотеки,
+            /// попадающие в тот же пик (в пределах половины ПШПВ выделения).
+            /// Ноль — соперников нет.
+            /// </summary>
+            public int ActivityRivals { get; set; }
+
+            /// <summary>
+            /// (S96) Во сколько раз разъедутся беккерели, если подпись
+            /// достанется худшему из соперников: max(I/I', I'/I).
+            /// </summary>
+            public double ActivityRivalFactor { get; set; }
+
+            /// <summary>
+            /// (S96) Почему беккерели НЕ посчитаны, хотя пик подписан и кривая
+            /// есть. Пусто — считались либо не запрашивались.
+            /// </summary>
+            public string ActivityRefusal { get; set; }
         }
 
         // Token: 0x0400021A RID: 538

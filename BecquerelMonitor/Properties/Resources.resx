@@ -42765,6 +42765,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="BqCoeffFromCurve" xml:space="preserve">
     <value>K = {0:G6} +/- {1:G3} from the curve</value>
   </data>
+  <data name="ActivityFromLine" xml:space="preserve">
+    <value>from line:</value>
+  </data>
+  <data name="ActivityLabelDisputed" xml:space="preserve">
+    <value>label disputed: {0} more line(s), up to x{1:0.#}</value>
+  </data>
+  <data name="ActivityXrayRefused" xml:space="preserve">
+    <value>element X-ray: no yield per decay</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
   </data>

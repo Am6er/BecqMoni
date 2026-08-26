@@ -4170,6 +4170,24 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ActivityFromLine {
+            get {
+                return ResourceManager.GetString("ActivityFromLine", resourceCulture);
+            }
+        }
+
+        public static string ActivityLabelDisputed {
+            get {
+                return ResourceManager.GetString("ActivityLabelDisputed", resourceCulture);
+            }
+        }
+
+        public static string ActivityXrayRefused {
+            get {
+                return ResourceManager.GetString("ActivityXrayRefused", resourceCulture);
+            }
+        }
+
         public static string BqCoeffTipAuto {
             get {
                 return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
