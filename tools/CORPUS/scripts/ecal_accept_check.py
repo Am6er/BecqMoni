@@ -24,11 +24,26 @@ u"""`V12`: НЕЗАВИСИМАЯ перепроверка приёмки вто
 
 ⛔ Ничего не пишет ни в корпус, ни в базы. Читает свои копии из `_corpus_raw`.
 
+**ОХВАТ (`T76`).** Мерка живёт на `scripts/_corpus_raw`, а своей копии там нет у
+семи спектров непонятной части — семёрки `corpus_def.LEGACY`, которая попадает в
+корпус готовой из `scripts/spectra` и стадий 1 и 2 не проходит вовсе. До
+26.08.2026 это не было видно НИГДЕ: `entries` строились как
+`NEW + VIBE + ETALON`, то есть семёрка отсеивалась молча, а части корпуса мерка
+не называла ни разу — печаталось «спектров в мерке: N» без единого слова о том,
+из скольких. Правило проекта требует обратного: каждое число обязано называть
+свою часть (known 81 / unknown 40 / excluded 8). Теперь у каждого итогового
+числа стоит тег охвата, неполные части печатаются строкой ⚠ рядом с числом, а в
+конце идёт таблица «посчитано / объявлено» и код возврата 3, если пропало то,
+что пропасть не должно. Механика — общая с `gaussfit_check.Coverage`, второй
+копии правила нет.
+
 Запуск:
 
     python tools/CORPUS/scripts/ecal_accept_check.py [--only=KEY,KEY]
                                                      [--band=200] [--sig=8]
                                                      [--csv=файл]
+
+Код возврата: 0 — охват объяснён; 3 — охват сломан (см. таблицу в конце).
 """
 import os
 import sys
@@ -79,6 +94,13 @@ import corpus_calib                                   # noqa: E402
 import build_corpus                                   # noqa: E402
 from spectrum import Spectrum                         # noqa: E402
 
+# `T76`: охват — механика ОДНА на обе мерки, живущие на `_corpus_raw`. Копия
+# правила «сколько объявлено в части» и «что тут заморожено» разошлась бы молча,
+# поэтому берётся у соседа, а не переписывается. Импорт стоит ПОСЛЕ `--base=head`
+# (см. `_load_from_head`): `gaussfit_check` тянет `gaussfit` и `corpus_calib`, и
+# к этому моменту в `sys.modules` уже лежат нужные их версии.
+from gaussfit_check import Coverage                   # noqa: E402
+
 RAW = os.path.join(HERE, '_corpus_raw')
 BAND_KEV = 200.0
 MIN_SIG = 8.0
@@ -103,6 +125,10 @@ def stage12(entries, mode, log):
     for e in entries:
         raw = os.path.join(RAW, e['key'] + '.xml')
         if not os.path.isfile(raw):
+            # Молча — и это НЕ дыра: `stage12` зовётся по разу на траекторию,
+            # поимённая жалоба напечаталась бы трижды на один и тот же спектр.
+            # Пропуск здесь ловит охват (`T76`, стадия «обе траектории»), а
+            # назвал его уже `pairs_stage12` — до всех траекторий и один раз.
             continue
         try:
             sp = Spectrum(raw)
@@ -354,17 +380,25 @@ def pairs_stage12(entries):
     Стадия 1 у всех, по её опорам строится модель разрешения группы (как в
     конвейере), затем второй проход. Приёмка НЕ применяется: пары нужны сырыми,
     чтобы одно и то же решение можно было предъявить всем правилам сразу.
+
+    Возвращает `(пары, ключи, прочитанные из _corpus_raw)`. Второе — вход
+    охвата (`T76`): прежде спектр, у которого своей копии нет, пропадал здесь
+    молча, и «спектров: 122» никто не отличал от «спектров: 129».
     """
     state = {}
+    read_ok = []
     for e in entries:
         raw = os.path.join(RAW, e['key'] + '.xml')
         if not os.path.isfile(raw):
+            print(u'%-24s НЕТ своей копии в _corpus_raw' % e['key'])
             continue
         try:
             sp = Spectrum(raw)
             cal, acc, r662, tag = build_corpus.calibrate_one(sp, e)
-        except Exception:
+        except Exception as ex:
+            print(u'%-24s ОШИБКА стадии 1: %s' % (e['key'], ex))
             continue
+        read_ok.append(e['key'])
         state[e['key']] = dict(entry=e, det=e['det'], sp=sp, ecal=cal,
                                accepted=acc, r662=r662)
     res_a = {}
@@ -383,10 +417,10 @@ def pairs_stage12(entries):
         except Exception:
             continue
         out.append((key, st, cal, acc, r662))
-    return out
+    return out, read_ok
 
 
-def experiment(pairs, rules=('legacy', 'union', 'union1', 'old')):
+def experiment(pairs, cov_tag=u'', rules=('legacy', 'union', 'union1', 'old')):
     u"""⚖ ГЛАВНОЕ ДОКАЗАТЕЛЬСТВО `V12`, и оно управляемое, а не наблюдательное.
 
     Кандидату второго прохода НЕ меняют кривую — у него лишь отнимают самую
@@ -399,6 +433,7 @@ def experiment(pairs, rules=('legacy', 'union', 'union1', 'old')):
     """
     print()
     print(u'=== C. УПРАВЛЯЕМЫЙ ОПЫТ: КРИВАЯ ТА ЖЕ, НИЖНЯЯ ЛИНИЯ СПРЯТАНА ===')
+    print(u'    %s' % cov_tag)
     for rule in rules:
         n = better = flip = 0
         ds = 0.0
@@ -430,7 +465,7 @@ def experiment(pairs, rules=('legacy', 'union', 'union1', 'old')):
                   u'при before %.4f' % (key, e, a0, a1, b0))
 
 
-def observe(pairs, rules=('legacy', 'union', 'union1', 'old')):
+def observe(pairs, cov_tag=u'', rules=('legacy', 'union', 'union1', 'old')):
     u"""Наблюдение В ТОЧКЕ ВЫЗОВА `residual_fwhm`, а не по коду построения.
 
     Раздел A смотрит на набор, который приёмка ВЕРНУЛА; здесь перехватывается
@@ -451,6 +486,7 @@ def observe(pairs, rules=('legacy', 'union', 'union1', 'old')):
     try:
         print()
         print(u'=== D. ЧТО ПРИЁМКА РЕАЛЬНО СКОРМИЛА residual_fwhm ===')
+        print(u'    %s' % cov_tag)
         for rule in rules:
             ss = sr = both = 0
             for key, st, cal, acc, r662 in pairs:
@@ -490,10 +526,20 @@ def main():
         elif a.startswith('--csv='):
             out_csv = a.split('=', 1)[1]
 
+    # ⛔ `T76`: семёрка `corpus_def.LEGACY` не отсеивается «сама собой» — она
+    # ЗАМОРОЖЕНА по построению корпуса (`gaussfit_check.frozen_keys`: в корпус
+    # попадает готовой копией, стадий 1 и 2 не проходит), и охват обязан назвать
+    # её вслух, а не потерять в разнице между `ALL` и `NEW+VIBE+ETALON`. Именно
+    # эту разницу и ловит `hard=True` на входной стадии: всё, чего в `entries`
+    # нет и что не заморожено, — сломанный охват и код возврата 3.
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
+    cov = Coverage(requested=only)
+    cov.add(u'вход мерки (NEW+VIBE+ETALON)', [e['key'] for e in entries],
+            hard=True)
     print('спектров: %d, полоса: %.0f кэВ, порог значимости мерки: %.0f sigma'
           % (len(entries), band, min_sig))
+    print('  %s' % cov.tag(u'вход мерки (NEW+VIBE+ETALON)'))
     print('база кода фита: %s (%s)'
           % (BASE, 'HEAD, до правки V13' if BASE == 'head' else 'рабочее дерево'))
 
@@ -501,10 +547,15 @@ def main():
 
     # C и D идут ПЕРВЫМИ: они не зависят от траектории и потому не могут быть
     # испорчены её выбором.
-    prs = pairs_stage12(entries)
+    prs, read_ok = pairs_stage12(entries)
+    cov.add(u'стадия 1 прочитана из _corpus_raw', read_ok, hard=True)
+    cov.add(u'пары (старая, кандидат): разделы C и D',
+            [k for k, _st, _c, _a, _r in prs])
     print(u'пар (старая, кандидат): %d' % len(prs))
-    observe(prs)
-    experiment(prs)
+    pair_tag = cov.tag(u'пары (старая, кандидат): разделы C и D')
+    print(u'  %s' % pair_tag)
+    observe(prs, cov_tag=pair_tag)
+    experiment(prs, cov_tag=pair_tag)
 
     log = []
     states = {}
@@ -514,10 +565,14 @@ def main():
               % (mode, sum(1 for s in states[mode].values() if s['accepted']),
                  len(states[mode])))
 
+    cov.add(u'обе траектории: legacy и union',
+            set(states['legacy']) & set(states['union']))
+
     # --- A. по каким наборам сравнивались невязки ---
     print()
     print('=== A. НАБОРЫ, ПО КОТОРЫМ СЧИТАЛИСЬ before И after ===')
-    print('решений стадии 2а записано: %d' % len(log))
+    traj_tag = cov.tag(u'обе траектории: legacy и union')
+    print('решений стадии 2а записано: %d (%s)' % (len(log), traj_tag))
     for rule in ('legacy', 'union', 'old'):
         same = sum(r['%s_same' % rule] for r in log)
         print('  %-7s: наборы before и after СОВПАЛИ у %d решений из %d'
@@ -618,11 +673,18 @@ def main():
             if e_ref not in seen:
                 blind.append((d['sig'], key, e_ref, d['label']))
 
+    cov.add(u'в мерке B (неподвижный набор не пуст)', [r['key'] for r in rows])
+    b_tag = cov.tag(u'в мерке B (неподвижный набор не пуст)')
     print('спектров в мерке: %d, линий в неподвижном наборе: %d'
           % (len(rows), n_lines))
+    print('  %s' % b_tag)
     for mode in ('legacy', 'union'):
         print('  %-7s: сумма |промаха| %8.2f ПШПВ, худший %6.3f (%s)'
               % (mode, tot[mode], abs(worst[mode][0]), worst[mode][1]))
+    # ⚠ Признак без читателя признаком не является: сумма |промаха| — то самое
+    # число, которое цитируют, поэтому оговорка про неполную часть стоит
+    # ВПЛОТНУЮ к нему, а не в таблице охвата двадцатью строками ниже.
+    cov.warn(u'в мерке B (неподвижный набор не пуст)', what=u'сумма по части')
     better = [r for r in rows if r['sum_union'] < r['sum_legacy'] - 1e-3]
     worse = [r for r in rows if r['sum_union'] > r['sum_legacy'] + 1e-3]
     print('  union лучше на %d спектрах, хуже на %d, поровну на %d'
@@ -673,6 +735,11 @@ def main():
             w.writerows(log)
         print('таблица решений: %s' % p)
 
+    # `T76`: таблица охвата идёт ПОСЛЕДНЕЙ, когда известны все стадии — включая
+    # отсев самой мерки в разделе B. Читателей у неё два: глаз (у каждого числа
+    # выше уже стоит свой тег, здесь — вся картина разом) и код возврата.
+    return 3 if cov.report(u'ОХВАТ МЕРКИ V12') else 0
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

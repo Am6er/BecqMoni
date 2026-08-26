@@ -33,7 +33,7 @@
     <Min_SNR>4</Min_SNR>
     <FWHM_AT_0>0.001</FWHM_AT_0>
     <Ch_Fwhm>2048</Ch_Fwhm>
-    <Width_Fwhm>84</Width_Fwhm>
+    <Width_Fwhm>91</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>30.0</Min_Range>
@@ -41,7 +41,7 @@
     <Min_FWHM_Tol>1</Min_FWHM_Tol>
     <Max_FWHM_Tol>199</Max_FWHM_Tol>
     <Enabled>true</Enabled>
-    <Ch_Concat>1365</Ch_Concat>
+    <Ch_Concat>1024</Ch_Concat>
     <PeakType>0</PeakType>
     <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>

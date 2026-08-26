@@ -29,7 +29,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.874490637918642</Coefficient><Coefficient>2.411034462334139</Coefficient><Coefficient>0.0002821093907893357</Coefficient></Coefficients>
+            <Coefficient>0.08050150348161633</Coefficient><Coefficient>2.363284741218961</Coefficient><Coefficient>0.0002765223098310974</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>65791</ValidPulseCount>
         <TotalPulseCount>65791</TotalPulseCount>
@@ -1069,7 +1069,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.874490637918642</Coefficient><Coefficient>2.411034462334139</Coefficient><Coefficient>0.0002821093907893357</Coefficient></Coefficients>
+            <Coefficient>0.08050150348161633</Coefficient><Coefficient>2.363284741218961</Coefficient><Coefficient>0.0002765223098310974</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>2144537</ValidPulseCount>
         <TotalPulseCount>2144537</TotalPulseCount>
@@ -2107,6 +2107,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.9152466065550546</Coefficient><Coefficient>0.550817886858214</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+      <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.6808657472714083</Coefficient><Coefficient>1.0331539358609065</Coefficient><Coefficient>0.0017858950009038848</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

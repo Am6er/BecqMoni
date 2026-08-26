@@ -9,8 +9,16 @@
 #                                            [-Out <куда класть exe>]
 #
 # Умолчания: -Bin BecquerelMonitor\bin\Debug_Codex (агентская сборка),
-# -Out tools\effmaker\probes\build (в .gitignore). Выход 1 — есть сломанные,
-# с перечнем поимённо. Каждой собранной пробе кладётся рядом её
+# -Out tools\effmaker\probes\build (в .gitignore).
+#
+# Коды возврата: 0 — собрались все, приложение рядом с пробами сошлось со
+# сборкой по sha256, поставочная библиотека нуклидов на месте; 1 — есть
+# сломанные или занятые пробы (перечень поимённо), либо приложение в `-Out` не
+# то, против которого собирали (`T69`); 2 — нечем собирать (нет сборки
+# приложения) или нечего класть (нет поставочного конфига, `T73`); 3 — сторож
+# `appwd_plan.ps1` недоступен, и сверить приложение не с чем.
+#
+# Каждой собранной пробе кладётся рядом её
 # <имя>.exe.config — копия BecquerelMonitor.exe.config (T32, закрыт 16.08.2026):
 # без него инициализатор Microsoft.Data.Sqlite.SqliteConnection валит пробу
 # TypeInitializationException на первом обращении к базе, потому что редирект
@@ -33,6 +41,52 @@ if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
     exit 2
 }
 New-Item -ItemType Directory -Force $Out | Out-Null
+
+# ⛔ СТОРОЖ БЕРЁТСЯ ГОТОВЫМ И ПОДКЛЮЧАЕТСЯ ЗДЕСЬ, ДО ВСЯКОЙ РАБОТЫ (`T69`).
+# Всё, чем этот скрипт себя проверяет, живёт в `tools\CORPUS\scripts\appwd_plan.ps1`
+# (`T63`): там же лежит и план оснастки корпуса, и сверки. Своих таких же здесь
+# нет нарочно — второй список «что чему обязано соответствовать» в этом дереве
+# уже дважды устаревал молча (`T61`, `T57`).
+# Спрашивается в начале, чтобы не собирать семь десятков проб и только потом
+# узнать, что проверить их нечем.
+$planFile = Join-Path $repo 'tools\CORPUS\scripts\appwd_plan.ps1'
+if (-not (Test-Path -LiteralPath $planFile)) {
+    Write-Host "НЕТ СТОРОЖА: $planFile" -ForegroundColor Red
+    Write-Host "  Сверить приложение и библиотеку рядом с пробами нечем — каталог недоверенный (T69)." -ForegroundColor Red
+    exit 3
+}
+. $planFile
+$need = @('Get-AppWdPlan', 'Test-AppWdBuild', 'Test-AppWdLibrary')
+$lost = @($need | Where-Object { -not (Get-Command $_ -ErrorAction SilentlyContinue) })
+if ($lost.Count) {
+    Write-Host ("в $planFile нет: {0}" -f ($lost -join ', ')) -ForegroundColor Red
+    Write-Host "  Сторож переехал — проверять нечем, а молча собирать нельзя (T69)." -ForegroundColor Red
+    exit 3
+}
+
+# ⛔ СТОРОЖ, КОТОРЫЙ НЕ ОТРАБОТАЛ, — ЭТО ОТКАЗ, А НЕ «ПРОВЕРЕНО».
+# Мерено 26.08.2026 на себе: `appwd_plan.ps1` правили в соседней сессии и убрали
+# ключ `-SkipWdChecks`. Вызов свалился ошибкой привязки параметра — НЕ
+# останавливающей скрипт, — сторож вернул `$null`, а `$null.Bad.Count` в
+# PowerShell это 0. Проверка «находок нет» прошла, и сборка отчиталась «сошлось»,
+# НИЧЕГО НЕ СВЕРИВ. Ровно тот класс ошибки, который она и должна ловить.
+# Поэтому: ошибку ловим, ответ проверяем на форму, и любое «не отработал» —
+# код возврата 3, а не тишина.
+function Invoke-AppWdCheck {
+    param([Parameter(Mandatory)][string]$What, [Parameter(Mandatory)][scriptblock]$Body)
+    $ErrorActionPreference = 'Stop'
+    try { $r = & $Body } catch {
+        Write-Host ("СТОРОЖ НЕ ОТРАБОТАЛ ($What): {0}" -f $_.Exception.Message) -ForegroundColor Red
+        Write-Host "  Ничего не сверено. Числа с этого каталога недоверенные (T69)." -ForegroundColor Red
+        exit 3
+    }
+    if ($null -eq $r -or $null -eq $r.PSObject.Properties['Bad']) {
+        Write-Host "СТОРОЖ НЕ ОТРАБОТАЛ ($What): ответ без поля Bad" -ForegroundColor Red
+        Write-Host "  Ничего не сверено. Числа с этого каталога недоверенные (T69)." -ForegroundColor Red
+        exit 3
+    }
+    $r
+}
 
 # Свежий BecquerelMonitor.exe — В КАТАЛОГ ПРОБ, каждый прогон. Пробы компилируются
 # против $Bin, но ГРУЗЯТ сборку из своего каталога — и 14.08.2026 там пролежал
@@ -81,6 +135,50 @@ if (Test-Path $ruSrc) {
     $ruDst = Join-Path $Out 'ru'
     New-Item -ItemType Directory -Force $ruDst | Out-Null
     Copy-Item (Join-Path $ruSrc '*') $ruDst -Recurse -Force
+}
+
+# ⛔ ПОСТАВОЧНАЯ БИБЛИОТЕКА НУКЛИДОВ — ТЕМ ЖЕ ДВИЖЕНИЕМ (`T73`, 26.08.2026).
+# Без неё проба, запущенная отсюда, не падает и не молчит — она ЗАВОДИТ СЕБЕ
+# БИБЛИОТЕКУ САМА. `NuclideDefinitionManager.GetInstance()` не находит
+# `config\NuclideDefinition.xml` (`Package.NuclideDefinition` при `IsStandAlone`
+# — а это всё, кроме ClickOnce, — отдаёт путь ОТНОСИТЕЛЬНЫЙ, то есть считает его
+# от каталога ЗАПУСКА, а он тут ровно `$Out`),
+# зовёт `InitializeNuclideDefinitionFile()` и СОХРАНЯЕТ заготовку на диск:
+# Cs134 605, Cs137 662, Cs134 798, K40 1460 — четыре линии, `Intencity` 0,
+# пустой `Chain`, ни одного сета. Против 152 нуклидов и 5 сетов в поставке.
+# Состав библиотеки задаёт и поиск пиков, и разбор FSA, поэтому проба отсюда
+# разбирает спектр по четырём линиям и печатает правдоподобные числа не про то.
+# Измерено в день заведения строки: здесь лежала ровно такая заготовка от
+# 18.08.2026 10:54, md5 c5254a6f — руками её никто не клал, её написала проба,
+# запущенная из этого каталога, и с тех пор её же и читали.
+# Записав заготовку, та же ветка показывает `MessageBox` — безусловно, без
+# оглядки на наличие окон (`NuclideDefinitionManager.cs:153`): безоконная проба
+# виснет на нём насмерть, и со стороны это выглядит как «долго считает».
+# Конфиг берётся ПОСТАВОЧНЫЙ, из `BecquerelMonitor\config`, а не сгенерированный:
+# в рабочих каталогах корпуса лежат сеты-обманки `[decoy]` под изучение гейта.
+$cfgDir = Join-Path $Out 'config'
+$nucSrc = Join-Path $repo 'BecquerelMonitor\config\NuclideDefinition.xml'
+$nucDst = Join-Path $cfgDir 'NuclideDefinition.xml'
+if (-not (Test-Path -LiteralPath $nucSrc)) {
+    Write-Host "нет $nucSrc — поставочной библиотеки нуклидов в дереве не осталось" -ForegroundColor Red
+    exit 2
+}
+New-Item -ItemType Directory -Force $cfgDir | Out-Null
+Copy-Item -LiteralPath $nucSrc -Destination $nucDst -Force
+
+# Копия обязана СОВПАСТЬ с поставкой, и спрашивается это ТУТ ЖЕ, за 0.6 с: при
+# `$ErrorActionPreference='Continue'` неудачная `Copy-Item` ругается в консоль и
+# идёт дальше, а заготовка на месте библиотеки от неё ничем не отличается, кроме
+# содержимого. Мерено: заготовку, открытую на чтение (так её держит запущенная
+# проба), копия не перебивает — и без этой сверки прогон пошёл бы дальше.
+# ЧТО В ФАЙЛЕ ЛЕЖИТ, спрашивает не эта сверка, а `Test-AppWdLibrary` в конце:
+# порог вырожденности — её число, не наше.
+if (-not (Test-Path -LiteralPath $nucDst) -or
+    (Get-FileHash -LiteralPath $nucSrc -Algorithm SHA256).Hash -ne
+    (Get-FileHash -LiteralPath $nucDst -Algorithm SHA256).Hash) {
+    Write-Host "БИБЛИОТЕКА НЕ ДОЕХАЛА: $nucDst не совпал с поставкой" -ForegroundColor Red
+    Write-Host "  Проба, запущенная отсюда, заведёт себе заготовку из четырёх линий (T73)." -ForegroundColor Red
+    exit 2
 }
 
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
@@ -172,6 +270,56 @@ Write-Host "----"
 if ($locked.Count) { Write-Host "ЗАНЯТЫ (старая сборка на месте): $($locked -join ', ')" }
 if ($fail.Count) { Write-Host "СЛОМАНО: $($fail -join ', ')"; exit 1 }
 if ($locked.Count) { exit 1 }
-# Считаем СОБРАННОЕ, а не «всего минус один»: довесков без `Main` стало два, и
-# прежняя формула начала врать ровно в тот день, когда появился второй.
+
+# ⛔ ПРИЛОЖЕНИЕ РЯДОМ С ПРОБАМИ ОБЯЗАНО БЫТЬ ТЕМ ЖЕ, ПРОТИВ КОТОРОГО СОБИРАЛИ
+# (`T69`, 26.08.2026). Пробы компилируются против `$Bin`, а ГРУЗЯТ приложение из
+# СВОЕГО каталога — и это разные файлы. Копия кладётся выше тем же движением,
+# что и всё остальное, но доехать она может НЕ ВСЕГДА и молча:
+#   * запущенная отсюда проба держит `BecquerelMonitor.exe` открытым на чтение,
+#     `Copy-Item` при `$ErrorActionPreference='Continue'` ругается в консоль и
+#     идёт дальше — рядом с пробами остаётся ЧУЖОЕ приложение;
+#   * приложение пересобрали, ПОКА здесь компилировались семь десятков проб.
+# Измерено 25.08.2026: в `probes\build` лежал exe от 12:56:08 sha EBC3C48A0479,
+# а в `bin\Debug_Codex` уже от 13:10:30 sha 14418B5AEBEF. Ни ошибки, ни
+# предупреждения — проба считает СТАРЫМ приложением и выдаёт правдоподобные
+# чужие числа. Это класс `B20`/`B21`, каждый из которых стоил корпусу недель.
+#
+# Сверка ЧУЖАЯ и берётся готовой: `Test-AppWdBuild` из
+# `tools\CORPUS\scripts\appwd_plan.ps1` (`T63`) уже сравнивает
+# `<ProbeBuild>\BecquerelMonitor.exe` со сборкой по sha256 — и заодно ловит
+# сборку старше исходников (`T41`) и пробы старше своих `.cs`. Рядом с ней
+# спрашивается `Test-AppWdLibrary`: она смотрит, ЧТО лежит в
+# `<Wd>\config\NuclideDefinition.xml`, и порог вырожденности библиотеки — её
+# число (`$AppWdNuclideMin`), не наше. Своих таких же сверок здесь нет нарочно.
+#
+# `-Wd $Out` и `-ProbeBuild $Out` — это не подмена: для проб, запускаемых отсюда,
+# каталог `$Out` и есть их рабочий каталог, приложение они грузят из него же, и
+# конфиг приложение считает ОТ НЕГО. Ни одна из двух сверок ничего про оснастку
+# корпуса при этом не спрашивает.
+#
+# Спрашивается ПОСЛЕ сборки, а не до: до неё пробы законно старше своих
+# исходников — это и есть то, что этот скрипт только что починил.
+$plan = Invoke-AppWdCheck 'план' {
+    $p = Get-AppWdPlan -Repo $repo -Bin $Bin -Wd $Out -ProbeBuild $Out
+    [pscustomobject]@{ Bad = @(); Plan = $p }
+}
+$guard = Invoke-AppWdCheck 'сборка' { Test-AppWdBuild   -Plan $plan.Plan }
+$lib   = Invoke-AppWdCheck 'библиотека' { Test-AppWdLibrary -Plan $plan.Plan }
+$bad   = @($guard.Bad) + @($lib.Bad)
+if ($bad.Count) {
+    Write-Host ""
+    Write-Host "⛔⛔ ОТКАЗ: КАТАЛОГ ПРОБ НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ (T69/T73)" -ForegroundColor Red
+    $i = 0
+    foreach ($x in $bad) { $i++; Write-Host ("  {0,2}. {1}" -f $i, $x) -ForegroundColor Red }
+    Write-Host ""
+    Write-Host "  Пробы ЗАПУСКАЮТСЯ из $Out и грузят приложение и конфиг ОТТУДА." -ForegroundColor Red
+    Write-Host "  Числа с такого каталога недействительны (B20/B21)." -ForegroundColor Red
+    Write-Host "  Порядок: закрыть пробы, собрать приложение, перегнать build_all.ps1." -ForegroundColor Red
+    exit 1
+}
+Write-Host ("приложение рядом с пробами сошлось со сборкой по sha256: {0}" -f $Bin)
+Write-Host ("библиотека нуклидов: {0} записей, sha {1} (поставочная)" -f $lib.Count, $lib.Sha)
+# Считаем СОБРАННОЕ, а не «всего минус один»: довески без `Main` не единственны,
+# и прежняя формула начала врать ровно в тот день, когда появился второй. Их
+# число здесь НЕ ПИШЕТСЯ — оно выводится из дерева и печатается строкой выше.
 Write-Host "все собрались: $built файлов (плюс $($sources.Count - $built) без Main, идут довеском)"

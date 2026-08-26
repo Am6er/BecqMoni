@@ -4,18 +4,23 @@
 Same tables NucBaseFramework uses (decay_chain / decay_radiations / nuclides),
 but with two corrections that matter for a library fit:
 
-  * only ground-level parents (l_seqno = 0) are followed - rows with l_seqno > 0
-    describe decays of excited/isomeric levels and duplicate the transition with
-    different branching (212BI has 35.94% and 67% rows for 208TL);
+  * of each (nucid, daughter_nucid, dec_type) triple only the row at the LOWEST
+    l_seqno present is followed - the higher ones describe decays of excited
+    levels and duplicate the transition with different branching (212BI has
+    35.94% and 67% rows for 208TL). ⚠ NOT the same as "l_seqno = 0", and the
+    difference is not academic: pinning to zero would drop 576 rows of 4101 and
+    109 parents outright, 238U among them (2 branches against 1);
   * cumulative branching from the chain root is accumulated, so intensities are
     per decay of the CHAIN PARENT (secular equilibrium). That is what the BR
     coupling in LibraryPeakFitter needs: 208TL lines must carry the 0.3594
     factor of the 212BI branch, otherwise a bound group mixing 208TL and 212BI
     lines gets wrong weights.
 """
+import io
 import sqlite3
 import re
 import os
+import sys
 
 # База ищется относительно дерева решения, а не по абсолютному пути: раньше
 # здесь стоял путь на машине автора, и у постороннего падало всё, что строит
@@ -38,6 +43,105 @@ def _find_db():
 
 
 DB = _find_db()
+
+
+# ---------------------------------------------------------------------------
+# Правило родителя: ОДНО на проект, и живёт оно НЕ ЗДЕСЬ
+# ---------------------------------------------------------------------------
+# Какие строки `decay_radiations` принадлежат запрошенному родителю, решает
+# `DecayParentRule.LevelClause` приложения (`S89`, уточнено `S94`). Здесь это
+# выражение не переписывается, а ЧИТАЕТСЯ из его исходника: переписанная от
+# руки копия уже разошлась с приложением однажды (`T74`) — после `S94`
+# приложение стало зажимать по СВОЕМУ уровню родителя (`nuclides.l_seqno`), а
+# в этих скриптах остался `min(...)`, то есть на четырёх изомерах с двумя
+# уровнями (`118INm2`, `190Wm2`, `116AGm2`, `70CUm2`) выдавался набор
+# СОСЕДНЕГО состояния `m1`.
+#
+# Читается, а не копируется, ровно потому, что второй копии правила быть не
+# должно: следующая правка `DecayParentRule` доедет сюда сама, а если файл
+# переедет или разметку сменят — импорт упадёт ВСЛУХ, а не тихо разойдётся.
+# Путь переопределяется переменной окружения `LFL_DECAY_RULE_CS`.
+_RULE_CS = os.path.join(_SOLUTION, 'BecquerelMonitor', 'FullSpectrumAnalysis',
+                        'DecayParentRule.cs')
+
+#: Имя параметра родителя в `LEVEL_CLAUSE`. Приложение требует `$n`, и
+#: `sqlite3` питона такой параметр связывает словарём — переименовывать
+#: (а значит и трогать текст правила) не пришлось.
+LEVEL_PARAM = 'n'
+
+
+def _level_clause(path=None):
+    """Вынуть `DecayParentRule.LevelClause` из исходника приложения."""
+    path = path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    if not os.path.isfile(path):
+        raise RuntimeError(
+            'не найден источник правила родителя: %s. Правило одно на проект и '
+            'живёт в DecayParentRule.LevelClause; переписывать его здесь нельзя '
+            '(T74). Путь переопределяется переменной LFL_DECAY_RULE_CS.' % path)
+    with io.open(path, encoding='utf-8-sig') as handle:
+        text = handle.read()
+    body = re.search(r'const\s+string\s+LevelClause\s*=(.*?);', text, re.S)
+    if not body:
+        raise RuntimeError('в %s не найдено объявление const string LevelClause '
+                           '— разметка сменилась, правило читать нечем (T74).' % path)
+    body = body.group(1)
+    # ⛔ Комментарий ВНУТРИ объявления ломает разбор, и это не выдумка: встречная
+    # проверка 26.08.2026 показала опытом, что строка вида
+    #     // тут уровень "родителя", а не дочернего
+    # перед первым литералом даёт `LEVEL_CLAUSE`, начинающийся словом `родителя` —
+    # то есть закавыченное слово из КОММЕНТАРИЯ попадает в SQL. Поэтому комментарии
+    # снимаются ДО поиска литералов, а не после (T74).
+    body = re.sub(r'//[^\n]*', '', body)
+    body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+    if '\\' in body:
+        raise RuntimeError('в LevelClause появились escape-последовательности C#; '
+                           'простое склеивание литералов их не разберёт (T74).')
+    clause = ''.join(re.findall(r'"([^"]*)"', body))
+    for must in ('parent_l_seqno', 'coalesce', 'nuclides', '$' + LEVEL_PARAM):
+        if must not in clause:
+            raise RuntimeError('LevelClause разобран неправдоподобно (нет %r): %r' %
+                               (must, clause))
+    return clause
+
+
+#: Довесок к `where` для запроса к `decay_radiations`. Параметр родителя —
+#: `$n`, связывать словарём: ``{'n': nucid}``.
+LEVEL_CLAUSE = _level_clause()
+
+_FALLBACK_CACHE = []
+_FALLBACK_SAID = set()
+
+
+def level_fallback_nucids(c):
+    """Родители, у которых сработает ЗАПАСНАЯ ветвь правила: их
+    `nuclides.l_seqno` в `decay_radiations` не встречается, и им достаются
+    строки самого нижнего уровня — то есть СОСЕДНЕГО состояния.
+
+    Считается одним запросом на всю таблицу и по ИМЕНИ целиком, а не по строке
+    `nuclides`: имя там не уникально (`144TBm` — три строки). Так же считает
+    `DecayReadersProbe.Fallbacks`.
+    """
+    if not _FALLBACK_CACHE:
+        _FALLBACK_CACHE.extend(row[0] for row in c.execute(
+            "select distinct n.nucid from nuclides n"
+            " where exists (select 1 from decay_radiations d where d.parent_nucid = n.nucid)"
+            "   and not exists (select 1 from nuclides w, decay_radiations d"
+            "                   where w.nucid = n.nucid and d.parent_nucid = w.nucid"
+            "                     and d.parent_l_seqno = w.l_seqno)"
+            " order by n.nucid").fetchall())
+    return list(_FALLBACK_CACHE)
+
+
+def warn_level_fallback(nucid, c):
+    """Сказать ВСЛУХ, что родителю достался чужой уровень — как это делает
+    `DecayReadersProbe`. Молчать нельзя: подмена набора иначе невидима."""
+    if nucid in _FALLBACK_SAID or nucid not in level_fallback_nucids(c):
+        return
+    _FALLBACK_SAID.add(nucid)
+    sys.stderr.write(
+        '  ⚠ ЗАПАСНАЯ ВЕТВЬ %s: nuclides.l_seqno в decay_radiations не '
+        'встречается, взят самый нижний уровень — строки СОСЕДНЕГО состояния\n'
+        % nucid)
 
 
 def conn():
@@ -103,19 +207,21 @@ def half_life_years(nucid, c):
 def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
     c = conn()
     frac = chain_branches(root, c)
-    placeholders = ','.join('?' * len(kinds))
+    kind_keys = ['k%d' % i for i in range(len(kinds))]
+    placeholders = ','.join(':' + key for key in kind_keys)
     out = []
     for nucid, br in frac.items():
-        # Same story for the radiations table: Pa-234m1 carries its 1001.03 keV
-        # line at parent_l_seqno = 2, so pin to the lowest level present rather
-        # than to 0.
+        # Зажим по уровню родителя обязателен и на обычных нуклидах: Pa-234m1
+        # несёт линию 1001.03 кэВ на parent_l_seqno = 2, поэтому «= 0» потеряло
+        # бы её целиком. Само правило — общее, из DecayParentRule (см. выше).
+        warn_level_fallback(nucid, c)
+        params = dict(zip(kind_keys, kinds))
+        params[LEVEL_PARAM] = nucid
         rows = c.execute(
             "select energy_num, intensity_num, type_a, type_c from decay_radiations "
-            "where parent_nucid = ? and type_a in (%s) "
-            "and energy_num not null and intensity_num not null "
-            "and parent_l_seqno = (select min(parent_l_seqno) from decay_radiations y "
-            "                      where y.parent_nucid = ?)" % placeholders,
-            (nucid,) + tuple(kinds) + (nucid,)).fetchall()
+            "where parent_nucid = $n and type_a in (%s) "
+            "and energy_num not null and intensity_num not null" % placeholders
+            + LEVEL_CLAUSE, params).fetchall()
         hl = half_life_years(nucid, c)
         for energy, inum, ta, tc in rows:
             if energy is None or inum is None or inum <= 0:
@@ -157,6 +263,13 @@ ANCHORS = {
 }
 
 if __name__ == '__main__':
+    _c = conn()
+    _fb = level_fallback_nucids(_c)
+    _c.close()
+    print('правило родителя прочитано из %s' % _RULE_CS)
+    print('запасная ветвь сработает у %d родителей: %s' %
+          (len(_fb), ', '.join(_fb) if _fb else '—'))
+    print()
     for label, root in CHAINS.items():
         lines = chain_lines(root)
         c = conn()

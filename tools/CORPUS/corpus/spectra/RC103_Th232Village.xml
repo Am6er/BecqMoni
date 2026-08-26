@@ -29,7 +29,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.344736749671819</Coefficient><Coefficient>2.4641235187387203</Coefficient><Coefficient>0.0003403592339346266</Coefficient></Coefficients>
+            <Coefficient>-6.740869103419179</Coefficient><Coefficient>2.4834188576083513</Coefficient><Coefficient>0.0003206966082393927</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>984145</ValidPulseCount>
         <TotalPulseCount>984145</TotalPulseCount>
@@ -1068,7 +1068,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-6.344736749671819</Coefficient><Coefficient>2.4641235187387203</Coefficient><Coefficient>0.0003403592339346266</Coefficient></Coefficients>
+            <Coefficient>-6.740869103419179</Coefficient><Coefficient>2.4834188576083513</Coefficient><Coefficient>0.0003206966082393927</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>760670</ValidPulseCount>
         <TotalPulseCount>760670</TotalPulseCount>
@@ -2106,6 +2106,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-    <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.9373173849986465</Coefficient><Coefficient>0.5432549355222003</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-3.392751812389105</Coefficient><Coefficient>0.978021660174474</Coefficient><Coefficient>0.001746209202375668</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

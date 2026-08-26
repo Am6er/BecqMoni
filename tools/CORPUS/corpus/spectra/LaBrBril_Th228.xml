@@ -23,7 +23,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-1.344622604145937</Coefficient><Coefficient>2.808067798947543</Coefficient><Coefficient>4.4990509802940105e-05</Coefficient></Coefficients>
+            <Coefficient>-0.5423215298430848</Coefficient><Coefficient>2.796101601260067</Coefficient><Coefficient>7.623904307143893e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>648015</ValidPulseCount>
         <TotalPulseCount>648015</TotalPulseCount>
@@ -1063,7 +1063,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-1.344622604145937</Coefficient><Coefficient>2.808067798947543</Coefficient><Coefficient>4.4990509802940105e-05</Coefficient></Coefficients>
+            <Coefficient>-0.5423215298430848</Coefficient><Coefficient>2.796101601260067</Coefficient><Coefficient>7.623904307143893e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>416667</ValidPulseCount>
         <TotalPulseCount>416667</TotalPulseCount>
@@ -2098,6 +2098,6 @@
         </Spectrum>
       </BackgroundEnergySpectrum>
       <Visible>true</Visible>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.07053699689589936</Coefficient><Coefficient>0.11361114479310358</Coefficient><Coefficient>0.0003802247883722349</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.03562606591138079</Coefficient><Coefficient>0.19628800319459683</Coefficient><Coefficient>-9.861469634791253e-06</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

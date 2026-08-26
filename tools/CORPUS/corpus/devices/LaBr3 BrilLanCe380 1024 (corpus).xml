@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-0.8806110755329033</Coefficient>
-      <Coefficient>2.794482291967714</Coefficient>
-      <Coefficient>7.619489067338942e-05</Coefficient>
+      <Coefficient>-0.8806112608754131</Coefficient>
+      <Coefficient>2.7944822920398513</Coefficient>
+      <Coefficient>7.619489067535634e-05</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -33,7 +33,7 @@
     <Min_SNR>4</Min_SNR>
     <FWHM_AT_0>0.001</FWHM_AT_0>
     <Ch_Fwhm>512</Ch_Fwhm>
-    <Width_Fwhm>13</Width_Fwhm>
+    <Width_Fwhm>10</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>30.0</Min_Range>

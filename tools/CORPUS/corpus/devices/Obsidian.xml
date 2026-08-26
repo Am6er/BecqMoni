@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-31.631422866926176</Coefficient>
-      <Coefficient>2.483107410789141</Coefficient>
-      <Coefficient>-0.0006372775204567414</Coefficient>
+      <Coefficient>-26.78807539588287</Coefficient>
+      <Coefficient>2.4688913894666036</Coefficient>
+      <Coefficient>-0.0006336290472655204</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -31,9 +31,9 @@
   </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR>
-    <FWHM_AT_0>29.9153</FWHM_AT_0>
+    <FWHM_AT_0>11.4719</FWHM_AT_0>
     <Ch_Fwhm>512</Ch_Fwhm>
-    <Width_Fwhm>41</Width_Fwhm>
+    <Width_Fwhm>16</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>30.0</Min_Range>
@@ -41,7 +41,7 @@
     <Min_FWHM_Tol>1</Min_FWHM_Tol>
     <Max_FWHM_Tol>199</Max_FWHM_Tol>
     <Enabled>true</Enabled>
-    <Ch_Concat>512</Ch_Concat>
+    <Ch_Concat>1024</Ch_Concat>
     <PeakType>0</PeakType>
     <ExpGaussExpLeftTail>1</ExpGaussExpLeftTail>
     <ExpGaussExpRightTail>1</ExpGaussExpRightTail>
