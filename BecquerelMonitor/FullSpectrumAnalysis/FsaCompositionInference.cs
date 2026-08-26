@@ -317,6 +317,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return spec;
             }
 
+            // ⛔ Кривая спектра нужна библиотеке ровно за одним — назначить пол
+            // полосы (`FsaBandMode.LibraryToFitByCurve`, решение Amber
+            // 27.08.2026). Сам расчёт живёт в `FsaEfficiency.FloorAtFraction` и
+            // больше нигде; здесь только присваивание, чтобы у решения «где пол»
+            // не завелась вторая копия.
+            spec.Efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
+
             // Окно — рабочий диапазон САМОГО поиска пиков. Иначе знаменатель
             // доли считался бы по линиям, которых прибор не искал: у ASN16 низ
             // стоит на 28.6 кэВ, и весь L-рентген ниже него в «ожидаемое»

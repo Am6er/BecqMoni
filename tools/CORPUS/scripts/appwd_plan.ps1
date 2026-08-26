@@ -44,7 +44,7 @@
 #       сборки одной пробы — это две копии правила «чем её собирать».
 #    2. ПРОМАХ ПО `-ProbeBuild` — ОТКАЗ, а не тишина. Прежде шаг 3 был обёрнут
 #       в `if (Test-Path …)` без единого слова: план ужимался, и `mk_appwd.ps1`
-#       сносил `Remove-AppWdOrphans`-ом пробы из оснастки как сирот, после чего
+#       сносил выносом сирот (ныне `Remove-AppWdExtra`) пробы из оснастки, после чего
 #       сторож печатал «свежая», код 0. На стенде — 2 пробы из 3 удалены молча
 #       с зелёным вердиктом; на настоящей оснастке это 74 пробы.
 #    3. `Get-ChildItem` ВЕЗДЕ С `-Force`. Без него сторож не видит СКРЫТЫХ
@@ -61,12 +61,51 @@
 # ⛔ Пятая щель того же захода — в `tools/check_registry.py` (храповик двух
 #    копий `config/` был слеп к УДАЛЕНИЮ файла с диска). Она чинится там же.
 #
+# ⛔ ТРИ ЩЕЛИ, ЗАКРЫТЫЕ 27.08.2026 ПО ВСТРЕЧНОЙ ПРОВЕРКЕ (`T80`). Каждая была
+#    измерена на синтетическом стенде в `%TEMP%` (своя сборка, свои пробы, своя
+#    оснастка; настоящая `wd_app` только читалась), опыт ДО и опыт ПОСЛЕ:
+#    1. ОТМЕТКА `.appwd.json` СТАЛА ОБЯЗАТЕЛЬНОЙ (`Test-AppWdStamp`). До этого
+#       `mk_appwd.ps1` обещал в шапке, что без отметки оснастку не примут, —
+#       и обещание было ЛОЖНЫМ: опыт «собрать оснастку (код 0) -> удалить
+#       `.appwd.json`» давал `check_appwd.ps1` код 0 со словами «ОСНАСТКА
+#       СВЕЖАЯ», а `run_appwd.ps1` ЗАПУСКАЛ ПРОБУ. Второй половиной той же щели
+#       была отметка от УДАЧНОЙ прошлой сборки, переживавшая неудачную
+#       пересборку: теперь `mk_appwd.ps1` снимает её ДО первого копирования.
+#       Сторож при сборке зовётся с `-Building` — там отметки ещё нет по замыслу.
+#    2. ЛИШНЕЕ ИЩЕТСЯ ПО ВСЕЙ ОСНАСТКЕ, а не в двух каталогах. Прежде посторонний
+#       файл ловился только среди `config\device\*.xml`, `…\response\*.rmx` и
+#       `*.exe` в корне. Опыт, каждый раз с чистой оснастки (код 0): чужая
+#       `Ghost.dll` в корне — код 0, находок 0; чужая `ghostdb.sqlite` — 0/0;
+#       `ru\Ghost.resources.dll` — 0/0; `config\NuclideDefinition.OLD.xml` —
+#       0/0. Теперь обход один (`Get-AppWdExtra`) и разметка одна на двоих:
+#       сторож по ней отказывает, `mk_appwd.ps1` по ней же выносит.
+#    3. СИРОТА-exe — ОТКАЗ, А НЕ ЖЁЛТАЯ СТРОЧКА. `Test-AppWdPlan` клал их в
+#       отдельный список, `Invoke-AppWdGuard` печатал и в находки НЕ ДОБАВЛЯЛ:
+#       опыт — `PeakFinderProbe.exe` в корне оснастки, вердикт «свежая», код 0.
+#       Это ровно «признак отказа без читателя»; в настоящей оснастке такой
+#       `PeakFinderProbe.exe` от 17.08 пролежал восемь дней.
+#    ⚠ Отказ вызывает не всякий файл вне плана, а только ЗАГРУЖАЕМЫЙ
+#      (`$script:AppWdLoadableExt`). Продукты прогонов — `.png`, `.csv` и прочее,
+#      что проба пишет себе под ноги, — перечисляются строкой и счёт не портят:
+#      в настоящей оснастке такие лежат (`fsa_app.png`, `stack_s9ui.png`), и
+#      отказ на них означал бы сторожа, который всегда отказывает.
+#
 # Пользуются этим файлом: `mk_appwd.ps1` (собирает), `check_appwd.ps1` (сторож
 # отдельной командой), `run_appwd.ps1` (сторож + запуск пробы — ЧИТАТЕЛЬ отказа).
 
 $script:AppWdFlatMasks = @('BecquerelMonitor.exe', 'BecquerelMonitor.exe.config',
                            'BecquerelMonitor.pdb', '*.dll', '*.sqlite')
 $script:AppWdDirs      = @('runtimes', 'ru')
+
+# Расширения, которые в оснастке ЗАГРУЖАЮТСЯ — приложением, пробой или их
+# зависимостями. Посторонний файл такого рода меняет то, что считает прогон:
+# лишняя `.dll` рядом с exe перебивает поставочную сборку, лишняя `.sqlite` —
+# справочные данные, лишний `.xml` в `config\` — библиотеку и приборы, лишний
+# `.rmx` — матрицу отклика. Потому ОТКАЗ, а не заметка.
+# Всё остальное — то, что проба пишет себе под ноги (`.png`, `.csv`, …):
+# на счёт не влияет и перечисляется строкой.
+$script:AppWdLoadableExt = @('.exe', '.dll', '.config', '.sqlite', '.xml', '.rmx')
+$script:AppWdStampName   = '.appwd.json'
 
 # Ниже этого числа записей `config\NuclideDefinition.xml` — не библиотека.
 # 4 записи пишет САМО приложение, когда файла нет
@@ -125,7 +164,7 @@ function Get-AppWdPlan {
     #    применяется и первое же чтение базы падает.
     #
     # ⛔ Промах по каталогу — ОТКАЗ, а не тишина (щель 2 выше). План строится
-    #    ДО единого копирования и ДО `Remove-AppWdOrphans`, поэтому отказ здесь
+    #    ДО единого копирования и ДО `Remove-AppWdExtra`, поэтому отказ здесь
     #    оставляет оснастку нетронутой.
     if (-not (Test-Path -LiteralPath $probeBuild)) {
         throw ("НЕТ КАТАЛОГА ПРОБ: $probeBuild`n" +
@@ -148,7 +187,7 @@ function Get-AppWdPlan {
                 Where-Object { $_.Name -ne 'BecquerelMonitor.exe' })
     # exe, у которого в дереве нет `.cs`, — не проба, а мусор прошлых заходов
     # (в `probes\build` такие лежат: `<guid>_CorpusMatrixProbe.exe` от 09–17.08).
-    # В оснастку он не едет по той же причине, по какой `Remove-AppWdOrphans`
+    # В оснастку он не едет по той же причине, по какой `Remove-AppWdExtra`
     # выносит его ИЗ оснастки: запустить его можно, и он покажет разбор,
     # которого в коде нет.
     $probeExe = @($allExe | Where-Object { $srcNames.ContainsKey($_.BaseName.ToLowerInvariant()) })
@@ -209,7 +248,7 @@ function Get-AppWdPlan {
 # громко, кодом 6. `Get-AppWdPlan` бросает, когда строить план не из чего
 # (нет каталога проб, нет `CorpusFsaProbe.exe`, нет `BecquerelMonitor.exe.config`),
 # и это НАРОЧНО отказ, а не «план поменьше»: именно ужавшийся план дал
-# `Remove-AppWdOrphans`-у снести пробы из оснастки при зелёном вердикте сверху.
+# `Remove-AppWdExtra`-у снести пробы из оснастки при зелёном вердикте сверху.
 # `exit` внутри функции завершает вызвавший скрипт — здесь это и требуется.
 function New-AppWdPlanOrDie {
     param(
@@ -244,20 +283,64 @@ function Invoke-AppWdPlan {
     $Plan.Pairs.Count
 }
 
-# Убрать из оснастки exe, у которого больше нет источника в каталоге проб.
-# Так там восемь дней лежал `PeakFinderProbe.exe` от 17.08, чей `.cs` уже удалён:
-# запустить его можно, и он покажет разбор, которого в коде нет.
-function Remove-AppWdOrphans {
+# ЧТО ЛЕЖИТ В ОСНАСТКЕ НЕ ПО ПЛАНУ — один обход всего дерева и одна разметка
+# на двоих: сторож по ней ОТКАЗЫВАЕТ (`Test-AppWdPlan`), сборщик по ней же
+# ВЫНОСИТ (`Remove-AppWdExtra`). Двух списков «что здесь чужое» не бывает —
+# ровно на втором списке стояла щель 2: лишнее искалось в двух каталогах и
+# среди `*.exe` в корне, а `Ghost.dll`, `ghostdb.sqlite`, `ru\*.resources.dll`
+# и `config\*.OLD.xml` проходили насквозь с зелёным вердиктом.
+#
+# Отметка `.appwd.json` посторонним файлом не считается: её пишет сюда сам
+# сборщик, и спрашивает её `Test-AppWdStamp`.
+function Get-AppWdExtra {
     param([Parameter(Mandatory)]$Plan)
-    $dst = @{}
-    foreach ($p in $Plan.Pairs) { $dst[$p.Dst.ToLowerInvariant()] = $true }
-    $killed = [System.Collections.Generic.List[string]]::new()
-    Get-ChildItem (Join-Path $Plan.Wd '*.exe') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-        if (-not $dst.ContainsKey($_.FullName.ToLowerInvariant())) {
-            Remove-Item -LiteralPath $_.FullName -Force
-            Remove-Item -LiteralPath ($_.FullName + '.config') -Force -ErrorAction SilentlyContinue
-            $killed.Add($_.Name)
+
+    $res = [System.Collections.Generic.List[object]]::new()
+    if (-not (Test-Path -LiteralPath $Plan.Wd)) { return @($res) }
+    $wd = (Resolve-Path -LiteralPath $Plan.Wd).Path.TrimEnd('\')
+
+    $dstSet = @{}
+    foreach ($p in $Plan.Pairs) { $dstSet[$p.Dst.ToLowerInvariant()] = $true }
+    # Каталоги, которые строятся из корпуса ЦЕЛИКОМ, названы планом; здесь они
+    # нужны только затем, чтобы отказ называл ЦЕНУ лишнего файла именно там.
+    $excl = @{}
+    foreach ($ex in $Plan.Exclusive) {
+        $excl[$ex.Dir.Substring($Plan.Wd.Length).TrimStart('\').ToLowerInvariant()] = $ex.What
+    }
+    $stampRel = $script:AppWdStampName.ToLowerInvariant()
+
+    Get-ChildItem -LiteralPath $wd -Recurse -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($dstSet.ContainsKey($_.FullName.ToLowerInvariant())) { return }
+        $rel = $_.FullName.Substring($wd.Length).TrimStart('\')
+        if ($rel.ToLowerInvariant() -eq $stampRel) { return }
+        $ext    = $_.Extension.ToLowerInvariant()
+        $relDir = (Split-Path -Parent $rel).ToLowerInvariant()
+        if ($ext -eq '.exe') {
+            $why = 'exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)'
+        } elseif ($excl.ContainsKey($relDir)) {
+            $why = ("{0} строятся из корпуса ЦЕЛИКОМ, в корпусе такого файла нет (B6: два GUID = модальное окно = зависание безоконного прогона)" -f $excl[$relDir])
+        } else {
+            $why = 'файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот'
         }
+        $res.Add([pscustomobject]@{
+            File = $_
+            Rel  = $rel
+            Load = ($script:AppWdLoadableExt -contains $ext)
+            Why  = $why
+        })
+    }
+    @($res)
+}
+
+# Вынести из оснастки посторонние ЗАГРУЖАЕМЫЕ файлы. Продукты прогонов
+# (`.png`, `.csv`, …) не трогаются: их пишет проба, и на счёт они не влияют.
+function Remove-AppWdExtra {
+    param([Parameter(Mandatory)]$Plan)
+    $killed = [System.Collections.Generic.List[string]]::new()
+    foreach ($x in (Get-AppWdExtra -Plan $Plan)) {
+        if (-not $x.Load) { continue }
+        Remove-Item -LiteralPath $x.File.FullName -Force
+        $killed.Add($x.Rel)
     }
     @($killed)
 }
@@ -266,13 +349,13 @@ function Remove-AppWdOrphans {
 function Test-AppWdPlan {
     param([Parameter(Mandatory)]$Plan)
 
-    $bad  = [System.Collections.Generic.List[string]]::new()
-    $orph = [System.Collections.Generic.List[string]]::new()
-    $ok   = 0
+    $bad   = [System.Collections.Generic.List[string]]::new()
+    $other = [System.Collections.Generic.List[string]]::new()
+    $ok    = 0
 
     if (-not (Test-Path -LiteralPath $Plan.Wd)) {
         $bad.Add("ОСНАСТКИ НЕТ ВОВСЕ: $($Plan.Wd) — сначала pwsh mk_appwd.ps1")
-        return [pscustomobject]@{ Bad = @($bad); Orphans = @(); Ok = 0 }
+        return [pscustomobject]@{ Bad = @($bad); Other = @(); Ok = 0 }
     }
 
     foreach ($p in $Plan.Pairs) {
@@ -298,25 +381,42 @@ function Test-AppWdPlan {
         } else { $ok++ }
     }
 
-    $dstSet = @{}
-    foreach ($p in $Plan.Pairs) { $dstSet[$p.Dst.ToLowerInvariant()] = $true }
-
-    foreach ($ex in $Plan.Exclusive) {
-        if (-not (Test-Path -LiteralPath $ex.Dir)) { continue }
-        Get-ChildItem (Join-Path $ex.Dir $ex.Mask) -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-            if (-not $dstSet.ContainsKey($_.FullName.ToLowerInvariant())) {
-                $bad.Add(("ЛИШНЕЕ [{0}]: {1} — в корпусе такого файла нет (B6: два GUID = модальное окно)" -f $ex.What, $_.Name))
-            }
+    # Посторонние файлы — ОДНИМ обходом всей оснастки (щели 2 и 3, 27.08.2026).
+    # Загружаемое — отказ; прочее — продукты прогонов, их только перечисляем.
+    foreach ($x in (Get-AppWdExtra -Plan $Plan)) {
+        if ($x.Load) {
+            $bad.Add(("ЛИШНЕЕ В ОСНАСТКЕ: {0}  {1}`n           {2}" -f $x.Rel,
+                      $x.File.LastWriteTime.ToString('dd.MM HH:mm'), $x.Why))
+        } else {
+            $other.Add($x.Rel)
         }
     }
 
-    Get-ChildItem (Join-Path $Plan.Wd '*.exe') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-        if (-not $dstSet.ContainsKey($_.FullName.ToLowerInvariant())) {
-            $orph.Add(("{0}  {1} — источника в каталоге проб нет" -f $_.Name, $_.LastWriteTime.ToString('dd.MM HH:mm')))
-        }
-    }
+    [pscustomobject]@{ Bad = @($bad); Other = @($other); Ok = $ok }
+}
 
-    [pscustomobject]@{ Bad = @($bad); Orphans = @($orph); Ok = $ok }
+# ОТМЕТКА О СБОРКЕ (`T80`). Оснастка без отметки — это либо «никогда не
+# собиралась», либо «пересборка не прошла самопроверку»: `mk_appwd.ps1` пишет
+# отметку последним действием и снимает её ПЕРЕД первым копированием.
+# Прежде эта обязательность была только ОБЕЩАНА в шапке `mk_appwd.ps1`; опыт
+# 26.08.2026: удалили `.appwd.json` — `check_appwd.ps1` дал код 0 «ОСНАСТКА
+# СВЕЖАЯ», `run_appwd.ps1` запустил пробу.
+function Test-AppWdStamp {
+    param([Parameter(Mandatory)]$Plan)
+
+    $bad = [System.Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $Plan.Wd)) {
+        # Про отсутствие оснастки целиком кричит `Test-AppWdPlan`.
+        return [pscustomobject]@{ Bad = @() }
+    }
+    $f = Join-Path $Plan.Wd $script:AppWdStampName
+    if (-not (Test-Path -LiteralPath $f)) {
+        $bad.Add("НЕТ ОТМЕТКИ $($script:AppWdStampName) — оснастку либо не собирали, либо её сборка не прошла самопроверку" +
+                 "`n           Соберите: pwsh mk_appwd.ps1")
+    } elseif (-not (Read-AppWdStamp -Wd $Plan.Wd)) {
+        $bad.Add("ОТМЕТКА $($script:AppWdStampName) НЕ РАЗБИРАЕТСЯ КАК JSON — чем и из чего собрана оснастка, проверить нечем")
+    }
+    [pscustomobject]@{ Bad = @($bad) }
 }
 
 # Библиотека нуклидов ОСНАСТКИ: сколько записей и какая именно (`T66`).
@@ -437,26 +537,45 @@ function Write-AppWdStamp {
         repo   = $Plan.Repo
         files  = $Files
     }
-    $stamp | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Plan.Wd '.appwd.json') -Encoding utf8
+    $stamp | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Plan.Wd $script:AppWdStampName) -Encoding utf8
+}
+
+# Снять отметку. Зовётся ПЕРЕД первым копированием (`mk_appwd.ps1`): иначе
+# неудачная пересборка оставляет отметку от удачной прошлой, и следующий
+# `run_appwd.ps1` принимает оснастку за собранную.
+function Remove-AppWdStamp {
+    param([Parameter(Mandatory)][string]$Wd)
+    $f = Join-Path $Wd $script:AppWdStampName
+    if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force }
 }
 
 function Read-AppWdStamp {
     param([Parameter(Mandatory)][string]$Wd)
-    $f = Join-Path $Wd '.appwd.json'
+    $f = Join-Path $Wd $script:AppWdStampName
     if (Test-Path -LiteralPath $f) { try { Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch { $null } }
 }
 
 # Сторож целиком. Печатает вердикт, ВОЗВРАЩАЕТ число отказных находок.
 # Ноль — оснастка свежая; всё остальное обязано останавливать прогон.
+#
+# `-Building` — сторожа зовёт САМ СБОРЩИК, самопроверкой сразу после
+# копирования. Отметки о сборке в этот момент ещё нет по замыслу (её пишут
+# последним действием и только после удачной самопроверки), поэтому и только
+# поэтому её отсутствие в этом режиме не считается находкой.
 function Invoke-AppWdGuard {
-    param([Parameter(Mandatory)]$Plan)
+    param([Parameter(Mandatory)]$Plan, [switch]$Building)
 
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $b = Test-AppWdBuild   -Plan $Plan
     $p = Test-AppWdPlan    -Plan $Plan
     $l = Test-AppWdLibrary -Plan $Plan
+    $s = if ($Building) { [pscustomobject]@{ Bad = @() } } else { Test-AppWdStamp -Plan $Plan }
     $sw.Stop()
-    $bad = @($b.Bad) + @($p.Bad) + @($l.Bad)
+    # Порядок нарочный: печатаются только первые 20 находок, а расхождений по
+    # файлам бывают десятки (опыт 27.08.2026: занятая соседом база — 69 находок).
+    # Поэтому впереди то, что решает судьбу прогона целиком — отметка, сборка,
+    # библиотека, — а пофайловая сверка последней.
+    $bad = @($s.Bad) + @($b.Bad) + @($l.Bad) + @($p.Bad)
 
     Write-Host ""
     Write-Host "=== СТОРОЖ ОСНАСТКИ (T63) ===" -ForegroundColor Cyan
@@ -468,11 +587,16 @@ function Invoke-AppWdGuard {
     Write-Host ("  сверено  : {0} файлов по sha256 за {1} с" -f $Plan.Pairs.Count, $sw.Elapsed.TotalSeconds.ToString('F2'))
     if ($l.Sha) { Write-Host ("  библиотека: {0} записей, sha {1}" -f $l.Count, $l.Sha) }
 
-    foreach ($s in $Plan.Strays) {
-        Write-Host ("  ⚠ в каталоге проб exe без исходника, в оснастку не едет: {0}  {1}" -f $s.Name, $s.LastWriteTime.ToString('dd.MM HH:mm')) -ForegroundColor Yellow
+    foreach ($x in $Plan.Strays) {
+        Write-Host ("  ⚠ в каталоге проб exe без исходника, в оснастку не едет: {0}  {1}" -f $x.Name, $x.LastWriteTime.ToString('dd.MM HH:mm')) -ForegroundColor Yellow
     }
-    foreach ($o in $p.Orphans) {
-        Write-Host ("  ⚠ лишний exe: {0}" -f $o) -ForegroundColor Yellow
+    # Не по плану, но и не загружается: продукты прогонов. Перечисляются, чтобы
+    # видно было, ЧТО именно сторож пропустил, — но не отказ: иначе сторож
+    # отказывал бы после каждого прогона, а такой сторож бесполезен.
+    if ($p.Other.Count -gt 0) {
+        $head = @($p.Other | Select-Object -First 6) -join ', '
+        if ($p.Other.Count -gt 6) { $head += (", … и ещё {0}" -f ($p.Other.Count - 6)) }
+        Write-Host ("  продукты прогонов (не по плану, не загружаются): {0} — {1}" -f $p.Other.Count, $head)
     }
 
     if ($bad.Count -eq 0) {

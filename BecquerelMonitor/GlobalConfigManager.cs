@@ -2,11 +2,133 @@
 using System;
 using System.Deployment.Application;
 using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
 {
+    /// <summary>
+    /// ЕДИНСТВЕННЫЙ ответ на вопрос «есть ли кому закрыть модальное окно», и
+    /// единственная дверь, через которую менеджеры-одиночки сообщают о беде.
+    /// Второго способа заводить нельзя: «молчащая проба = <c>MessageBox</c>» —
+    /// это известная грабля, и стоила она уже нескольких прогонов подряд.
+    ///
+    /// ⛔ <c>Environment.UserInteractive</c> САМ ПО СЕБЕ НЕ ГОДИТСЯ, и это
+    /// измерено, а не выведено: 27.08.2026 безоконная проба
+    /// (<c>Start-Process -NoNewWindow</c>, вывод в файл) напечатала
+    /// <c>UserInteractive = True</c>. Он отличает службу от сеанса пользователя,
+    /// а не «приложение с окнами» от консольной пробы. Признак, по которому
+    /// действительно можно судить, — ВХОДНАЯ СБОРКА: у приложения это
+    /// <c>BecquerelMonitor.exe</c>, у всякой пробы и у харнесса — их
+    /// собственный <c>*.exe</c>, приложение им лишь библиотека. Проверка точная,
+    /// без догадок по консоли, и не зависит ни от перенаправления вывода, ни от
+    /// того, из какого каталога пробу запустили.
+    ///
+    /// <c>UserInteractive</c> оставлен вторым условием ради случая «служба»:
+    /// он не заменяет первое, но и не мешает.
+    ///
+    /// Правило пользования: менеджер НЕ зовёт <c>MessageBox.Show</c> напрямую.
+    /// Беда, после которой можно продолжать, идёт в <see cref="Report"/>;
+    /// беда, после которой продолжать НЕЛЬЗЯ (нет поставочного конфига —
+    /// значит, числа будут ЧУЖИЕ), в безоконном запуске бросает исключение:
+    /// у отказа обязан быть читатель, и читатель здесь — код возврата пробы.
+    /// </summary>
+    public static class AppUi
+    {
+        /// <summary>
+        /// true — приложение с окнами: окно поднимать можно, есть кому нажать
+        /// «ОК». false — проба, харнесс, служба: окно повесит запуск намертво.
+        /// </summary>
+        public static bool HasWindows
+        {
+            get
+            {
+                return AppUi.hasWindows;
+            }
+        }
+
+        /// <summary>
+        /// Сообщить о беде, после которой работа продолжается. В окнах —
+        /// модальное окно, как было; без окон — одна строка в поток ошибок
+        /// (её видно в перехваченном выводе пробы), и запуск идёт дальше.
+        /// </summary>
+        public static void Report(string text, string caption, MessageBoxIcon icon)
+        {
+            if (AppUi.hasWindows)
+            {
+                MessageBox.Show(text, caption, MessageBoxButtons.OK, icon);
+                return;
+            }
+            try
+            {
+                Console.Error.WriteLine("BecqMoni: " + caption + ": " + AppUi.OneLine(text));
+                Console.Error.Flush();
+            }
+            catch (IOException)
+            {
+                // Потока ошибок может не быть вовсе (WinExe без консоли) —
+                // это не повод падать: сообщение здесь не единственный итог.
+            }
+        }
+
+        /// <summary>
+        /// Путь для сообщения об отказе — ПОЛНЫЙ. Пути менеджеров относительны
+        /// (<c>Package.IsStandAlone</c>), то есть считаются от РАБОЧЕГО каталога
+        /// запуска, а не от каталога сборки; «config\… не найден» без корня не
+        /// говорит ничего о том, где именно искали.
+        /// </summary>
+        public static string Where(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return "<no path>";
+            }
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch (Exception)
+            {
+                return path;
+            }
+        }
+
+        static string OneLine(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return "";
+            }
+            return text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');
+        }
+
+        static bool DetectWindows()
+        {
+            try
+            {
+                if (!Environment.UserInteractive)
+                {
+                    return false;
+                }
+                Assembly entry = Assembly.GetEntryAssembly();
+                if (entry == null)
+                {
+                    // Неуправляемый хозяин процесса: окон у него может и не
+                    // быть, а вешать его нам нечем — считаем безоконным.
+                    return false;
+                }
+                return entry.FullName == typeof(AppUi).Assembly.FullName;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        static readonly bool hasWindows = AppUi.DetectWindows();
+    }
+
     // Token: 0x02000078 RID: 120
     public class GlobalConfigManager
     {
@@ -51,9 +173,26 @@ namespace BecquerelMonitor
                     this.globalConfig.ColorConfig.InitializeSpectrumColor();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                MessageBox.Show(Resources.ERRLoadingGlobalConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                // ⛔ Встроенные умолчания — НЕ замена поставочному конфигу, и это
+                //    измерено 27.08.2026, а не выведено: в поставочном
+                //    `config\BecquerelMonitor.xml` окно сглаживания SMA/WMA
+                //    равно 6, а в самих классах (`ChartViewConfig`) — 11.
+                //    Значит безоконный прогон «на умолчаниях» считает ДРУГИМ
+                //    сглаживанием и выдаёт правдоподобные, но чужие числа —
+                //    ровно тот же класс беды, что четырёхзаписная библиотека.
+                //    Поэтому без окон — ОТКАЗ с кодом возврата, а не тишина.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: global configuration could not be loaded and there is no UI to report it to: "
+                        + AppUi.Where(this.becqMoniMainConfig)
+                        + ". Built-in defaults are NOT the shipped configuration - they differ, so a headless run "
+                        + "on defaults would be quietly wrong. Run from a directory that has config\\BecquerelMonitor.xml.",
+                        ex);
+                }
+                AppUi.Report(Resources.ERRLoadingGlobalConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.globalConfig = new GlobalConfigInfo();
                 this.globalConfig.ColorConfig.InitializeSpectrumColor();
             }
@@ -83,7 +222,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingGlobalConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingGlobalConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
         }
 

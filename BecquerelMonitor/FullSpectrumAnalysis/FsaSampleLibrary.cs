@@ -122,6 +122,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double LibraryFloorKev = FsaBand.DefaultFloor;
 
         /// <summary>
+        /// ⛔ КРИВАЯ ЭФФЕКТИВНОСТИ СПЕКТРА — нужна ТОЛЬКО чтобы назначить пол
+        /// полосы при <see cref="FsaBandMode.LibraryToFitByCurve"/>. Ставится
+        /// ОДНИМ присваиванием у каждого, кто строит спецификацию; сам расчёт
+        /// живёт в <see cref="FsaEfficiency.FloorAtFraction"/> и больше нигде —
+        /// иначе у решения «где пол» завелась бы третья копия, а две у полосы
+        /// уже стоили дня разбора (`S101`).
+        ///
+        /// `null` — законное значение: у 38 спектров корпуса из 121 кривой нет,
+        /// и пол по кривой им назначить нечем.
+        /// </summary>
+        public FsaEfficiency Efficiency;
+
+        /// <summary>
+        /// Доля от максимума кривой для пола по кривой; ноль или отрицательное —
+        /// брать <see cref="FsaBand.DefaultFloorFraction"/>.
+        /// </summary>
+        public double FloorFraction = -1.0;
+
+        /// <summary>
         /// ⛔ ГРАНИЦА, КОТОРАЯ РЕАЛЬНО РЕЖЕТ ЛИНИИ. Одна на все образы —
         /// распадные, рентген пробы и кристалла, пики вылета: разойдясь в ней,
         /// они разошлись бы в том, что вообще существует ниже `Min_Range`.
@@ -138,12 +157,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             get
             {
+                // ⛔ Пол ПО КРИВОЙ (решение Amber 27.08.2026, `S98`): его знает
+                // сама кривая спектра, а не число в коде. Кривой нет — падаем
+                // на `Min_Range`, и это запасная ветвь, а не отказ.
+                if (this.Band == FsaBandMode.LibraryToFitByCurve)
+                {
+                    double byCurve = this.CurveFloorKev;
+                    return byCurve > 0.0 ? Math.Min(this.MinEnergyKev, byCurve) : this.MinEnergyKev;
+                }
+
                 if (this.Band != FsaBandMode.LibraryToFit || !(this.LibraryFloorKev > 0.0))
                 {
                     return this.MinEnergyKev;
                 }
 
                 return Math.Min(this.MinEnergyKev, this.LibraryFloorKev);
+            }
+        }
+
+        /// <summary>
+        /// Пол, который назначает САМА кривая, кэВ; 0 — назначить нечем (кривой
+        /// нет либо доля недостижима). Отдельным свойством, чтобы его можно было
+        /// НАПЕЧАТАТЬ: заверение обязано называть то, что случилось, а не то,
+        /// что заказывали.
+        /// </summary>
+        public double CurveFloorKev
+        {
+            get
+            {
+                if (this.Efficiency == null)
+                {
+                    return 0.0;
+                }
+
+                double frac = this.FloorFraction > 0.0
+                    ? this.FloorFraction
+                    : FsaBand.DefaultFloorFraction;
+                return this.Efficiency.FloorAtFraction(frac);
             }
         }
 
@@ -598,7 +648,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ЗДЕСЬ, по готовым образам, а не по трём местам отсева: так число
             // «линий ниже Min_Range» не зависит от того, сколько мест эту
             // границу читают, и не разъедется, если появится четвёртое.
-            report.Band = FsaBand.Describe(spec.Band, spec.LibraryFloorKev,
+            // ⛔ Печатается ФАКТИЧЕСКИЙ пол, а не заказанный: при поле по кривой
+            // у спектра без кривой его назначить нечем, и молчать об этом нельзя.
+            report.Band = FsaBand.Describe(spec.Band,
+                                           spec.Band == FsaBandMode.LibraryToFitByCurve
+                                               ? spec.CurveFloorKev
+                                               : spec.LibraryFloorKev,
                                            spec.MinEnergyKev, spec.MaxEnergyKev);
             foreach (FsaComponent component in result)
             {
