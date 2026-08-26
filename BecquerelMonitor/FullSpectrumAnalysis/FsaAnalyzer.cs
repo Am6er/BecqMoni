@@ -133,7 +133,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// самим всегда истинно. Поймано на себе 27.08.2026, второй раз за
         /// сутки (первый — эталон `PrintTuning` в пробе).
         /// </summary>
-        public const FsaBandMode ShippedMode = FsaBandMode.LibraryToFit;
+        /// ⛔ Значение — решение Amber 27.08.2026 по `S98`, и оно ИЗМЕРЕНО, а не
+        /// выбрано: пол по кривой даёт понятной части recall 100 %, подавленных
+        /// 0, медиану 2.86 и матрицу у 81 из 81, а непонятную оставляет ровно
+        /// там, где она была до всей затеи (Σχ² 466.6 против 466.7, медиана
+        /// 6.05). Прежнее умолчание `LibraryToFit` с полом 10 кэВ стоило
+        /// понятной части +49 % Σχ², а на трёх поверочных маринелли теряло ряд
+        /// ЦЕЛИКОМ (`B27`) — при поле по кривой состав у них восстановлен
+        /// полностью, 7 и 16 нуклидных образов.
+        public const FsaBandMode ShippedMode = FsaBandMode.LibraryToFitByCurve;
 
         public static FsaBandMode DefaultMode = ShippedMode;
 
