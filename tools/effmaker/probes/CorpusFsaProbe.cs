@@ -53,6 +53,19 @@ namespace CorpusFsaProbe
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///                  [--bg-rebin]
     ///
+    /// ⛔ **«НАЙДЕНА» и «ПРИМЕНЕНА» — РАЗНЫЕ слова с 27.08.2026** (`T85`).
+    /// `matrix_found` = матрица прочитана и отпечаток сошёлся с геометрией;
+    /// `matrix_applied` (прежняя `matrix`, на своём месте) = хоть один образ
+    /// ОТЧЁТНОГО фита построен ею. Второе слабее первого: образ строит матрицей
+    /// только компонент со своими линиями, а производные (обратное рассеяние) и
+    /// готовые (наложения) — нет; фит, из которого отсев по значимости и гейт
+    /// ΔD выбросили всех нуклидных кандидатов, вернёт `matrix_applied = 0` при
+    /// живой матрице. Измерено на снятых файлах: `out_v6` найдена 81 / применена
+    /// 80 (`G1S16_Cd109_P25`), `out_fz_lib` 81 / 78 (все три кадмия), причём
+    /// `out_fz_whole` с ТОЙ ЖЕ полосой и той же библиотекой даёт 81 / 81 —
+    /// значит дело не в полосе, а в том, кто дожил до отчёта. Итог по частям
+    /// печатает ОБА числа и называет разошедшиеся спектры поимённо.
+    ///
     /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
     /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
@@ -750,6 +763,98 @@ namespace CorpusFsaProbe
             }
         }
 
+        /// <summary>
+        /// (`T85`) Что стало с матрицей отклика у ОДНОГО спектра — до разбора.
+        ///
+        /// ⛔ Это ПОЛОВИНА ответа, и вторая половина —
+        /// <see cref="Row.MatrixApplied"/>. «Матрица НАЙДЕНА» и «матрица
+        /// ПРИМЕНЕНА» суть разные утверждения, и до 27.08.2026 отчёт называл их
+        /// одним словом: колонка `matrix` печатала ПРИМЕНЕНИЕ, а колонка
+        /// `matrix_note` рядом писала «есть» про НАХОДКУ, и человек читал одно,
+        /// а итог по частям считал другое. Расхождение измерено на снятых
+        /// файлах: `G1S16_Cd109_P25` в `out_v6`, три спектра кадмия в
+        /// `out_fz_lib` — всюду «есть» при нуле.
+        /// </summary>
+        enum MatrixState
+        {
+            /// <summary>До выбора матрицы не дошло: спектр не прочитан.</summary>
+            Unknown,
+
+            /// <summary>`--no-matrix`.</summary>
+            OffByKey,
+
+            /// <summary>У спектра нет кривой эффективности вовсе.</summary>
+            NoCurve,
+
+            /// <summary>У кривой нет геометрии — норма непонятной части.</summary>
+            NoGeometry,
+
+            /// <summary>Геометрия есть, матрица выключена в самой кривой.</summary>
+            OffInCurve,
+
+            /// <summary>⛔ ОТКАЗ: узел кривой есть, файла матрицы под него нет.</summary>
+            NoFile,
+
+            /// <summary>⛔ ОТКАЗ: файл есть, отпечаток не сошёлся с геометрией (`B20`).</summary>
+            StampMismatch,
+
+            /// <summary>Найдена, проверена и подана анализатору.</summary>
+            Found
+        }
+
+        /// <summary>Матрица НАЙДЕНА и подана анализатору.</summary>
+        static bool MatrixFound(Row row)
+        {
+            return row.Matrix == MatrixState.Found;
+        }
+
+        /// <summary>
+        /// ⛔ ОТКАЗ, а не норма: узел кривой у спектра есть, а матрицы под него
+        /// нет. Судится ПРИЗНАКОМ, а не сличением печатной строки — прежде итог
+        /// сравнивал <c>MatrixNote</c> с двумя строковыми литералами, то есть
+        /// держал вторую копию словаря состояний и молча разошёлся бы с ним от
+        /// любой правки текста.
+        /// </summary>
+        static bool MatrixFailed(Row row)
+        {
+            return row.Matrix == MatrixState.NoFile || row.Matrix == MatrixState.StampMismatch;
+        }
+
+        /// <summary>
+        /// Состояние матрицы словами — ЕДИНСТВЕННОЕ место, где оно называется.
+        /// Читают его и экран, и `runs.csv`, и итог по частям.
+        ///
+        /// ⚠ «НАЙДЕНА» и «применена» стоят в строке порознь нарочно: находка
+        /// матрицы применения не обещает. Образ строится матрицей только у
+        /// компонента, у которого есть свои линии и не выставлен
+        /// `WeightsAreFinal`; если отсев по значимости и гейт ΔD оставили в
+        /// отчётном фите одни производные образы (обратное рассеяние,
+        /// наложения), <c>FsaAnalyzer</c> вернёт `ResponseMatrixUsed = false`
+        /// при живой и совершенно исправной матрице.
+        /// </summary>
+        static string MatrixNote(Row row)
+        {
+            switch (row.Matrix)
+            {
+                case MatrixState.OffByKey: return "выключена ключом";
+                case MatrixState.NoCurve: return "кривой нет";
+                case MatrixState.NoGeometry: return "геометрии нет";
+                case MatrixState.OffInCurve: return "выключена в кривой";
+                case MatrixState.NoFile: return "файла нет";
+                case MatrixState.StampMismatch: return "отпечаток НЕ сошёлся";
+                case MatrixState.Found:
+                    // ⚠ Упавший спектр про ПРИМЕНЕНИЕ не говорит ничего: до
+                    // результата разбор не дошёл, и «не применена» тут было бы
+                    // утверждением, которого никто не проверял.
+                    return row.Error != null
+                        ? "НАЙДЕНА (разбор не дошёл)"
+                        : row.MatrixApplied
+                            ? "НАЙДЕНА, применена"
+                            : "НАЙДЕНА, НЕ ПРИМЕНЕНА (в отчёте одни производные образы)";
+                default: return "";
+            }
+        }
+
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
         static Row RunOne(Sample sample, Options o, NuclideDefinitionManager nuclides)
         {
@@ -911,34 +1016,39 @@ namespace CorpusFsaProbe
                 // молча работает без матрицы, а здесь причина запоминается —
                 // «понятный» спектр, посчитанный без матрицы, обязан быть виден,
                 // иначе он смешает две модели внутри одной части.
+                //
+                // ⛔ ЗДЕСЬ РЕШАЕТСЯ ТОЛЬКО «НАЙДЕНА» (`T85`). Применена она или
+                // нет, скажет уже результат разбора (<c>MatrixApplied</c>): образ
+                // строит матрицей лишь компонент со своими линиями, и отчётный
+                // фит может не сохранить ни одного такого.
                 if (o.Matrix && rd.Efficiency != null && rd.Efficiency.HasGeometry
                     && rd.Efficiency.UseResponseMatrix)
                 {
                     ResponseMatrix matrix = ResponseMatrixStore.Load(rd.Efficiency.Guid);
                     if (matrix == null)
                     {
-                        row.MatrixNote = "файла нет";
+                        row.Matrix = MatrixState.NoFile;
                     }
                     else if (!matrix.IsValidFor(rd.Efficiency.Geometry))
                     {
-                        row.MatrixNote = "отпечаток НЕ сошёлся";
+                        row.Matrix = MatrixState.StampMismatch;
                     }
                     else
                     {
                         analyzer.ResponseMatrix = matrix;
                         analyzer.ScintillatorMaterial = EfficiencySimulator.ScintillatorNameOf(
                             rd.Efficiency.Geometry);
-                        row.MatrixNote = "есть";
+                        row.Matrix = MatrixState.Found;
                     }
                 }
                 else if (o.Matrix)
                 {
-                    row.MatrixNote = rd.Efficiency == null ? "кривой нет"
-                        : (rd.Efficiency.HasGeometry ? "выключена в кривой" : "геометрии нет");
+                    row.Matrix = rd.Efficiency == null ? MatrixState.NoCurve
+                        : (rd.Efficiency.HasGeometry ? MatrixState.OffInCurve : MatrixState.NoGeometry);
                 }
                 else
                 {
-                    row.MatrixNote = "выключена ключом";
+                    row.Matrix = MatrixState.OffByKey;
                 }
 
                 FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
@@ -999,7 +1109,14 @@ namespace CorpusFsaProbe
                 row.OffsetChannels = result.OffsetChannels;
                 row.GainOnGridEdge = result.GainOnGridEdge;
                 row.OffsetOnGridEdge = result.OffsetOnGridEdge;
-                row.MatrixUsed = result.ResponseMatrixUsed;
+                // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
+                // поднимается тогда и только тогда, когда хоть один образ
+                // ОТЧЁТНОГО фита построен матрицей (`FitOnce`,
+                // `fromMatrix |= template != null`). Производные образы
+                // (обратное рассеяние) и готовые (наложения) её не трогают по
+                // построению, поэтому фит, где уцелели только они, вернёт здесь
+                // ложь при живой матрице.
+                row.MatrixApplied = result.ResponseMatrixUsed;
                 row.CascadeUsed = result.CascadeSummingUsed;
                 row.EfficiencyUsed = result.EfficiencyUsed;
 
@@ -1094,7 +1211,12 @@ namespace CorpusFsaProbe
             {
                 Room = o.Room,
                 AtomicXray = o.Atomic,
-                Equilibrium = o.Equilibrium
+                Equilibrium = o.Equilibrium,
+
+                // ⛔ Кривая — только ради пола полосы по ней самой (`S98`,
+                // решение Amber 27.08.2026). Расчёт живёт в
+                // `FsaEfficiency.FloorAtFraction`, здесь одно присваивание.
+                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency)
             };
             foreach (string label in sample.Chains)
             {
@@ -1700,9 +1822,9 @@ namespace CorpusFsaProbe
             }
 
             Console.WriteLine("{0,-22} {1,-10} {2,-8} chi2/ndf {3,8:F3}  пиков {4,3}  комп. {5,2}"
-                              + "  матрица: {6,-18} {7,6:F0} мс{8}",
+                              + "  матрица: {6,-52} {7,6:F0} мс{8}",
                               row.Key, row.Det, row.Part, row.Chi2Ndf, row.Peaks, row.LibrarySize,
-                              row.MatrixNote, row.Ms,
+                              MatrixNote(row), row.Ms,
                               row.GainOnGridEdge && row.OffsetOnGridEdge ? "  КРАЙ: усиление И ноль"
                               : row.GainOnGridEdge ? "  КРАЙ: усиление"
                               : row.OffsetOnGridEdge ? "  КРАЙ: ноль шкалы" : "");
@@ -1730,9 +1852,13 @@ namespace CorpusFsaProbe
 
             Console.WriteLine("=== итог по частям корпуса ({0:n0} с на часах, {1:n0} с ЦП) ===",
                               seconds, cpuSeconds);
-            Console.WriteLine("{0,-10} {1,8} {2,8} {3,10} {4,10} {5,8} {6,8} {7,8}",
-                              "часть", "спектров", "с матр.", "sum chi2", "медиана", "ошибок",
-                              "кр.усил", "кр.ноль");
+            // (`T85`) ДВЕ колонки вместо одной «с матр.»: она называлась так,
+            // будто считает найденные матрицы, а считала ПРИМЕНЁННЫЕ. Числа
+            // расходятся: `out_v6` — найдена 81, применена 80; `out_fz_lib` —
+            // 81 и 78.
+            Console.WriteLine("{0,-10} {1,8} {2,8} {3,9} {4,10} {5,10} {6,8} {7,8} {8,8}",
+                              "часть", "спектров", "найдена", "примен.", "sum chi2", "медиана",
+                              "ошибок", "кр.усил", "кр.ноль");
             foreach (string part in new[] { "known", "unknown" })
             {
                 var of = new List<Row>();
@@ -1749,7 +1875,7 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
-                int errors = 0, matrix = 0, gainEdge = 0, offsetEdge = 0;
+                int errors = 0, found = 0, applied = 0, gainEdge = 0, offsetEdge = 0;
                 // `T38`: «нет матрицы» и «матрица есть, но образа ею не
                 // построено» — РАЗНЫЕ состояния, и одно число их складывало.
                 // Первое — тяжёлый отказ (`B14`: 37 спектров понятной части
@@ -1758,7 +1884,15 @@ namespace CorpusFsaProbe
                 // матрицу они не трогают по построению). Пока их печатали
                 // вместе, отказ можно было принять за норму — так `B14` и
                 // прожила.
+                //
+                // ⛔ `T85`: половины `T38` было мало. Разведены были ОТКАЗ и
+                // «недостача», а два состояния под колонкой так и остались
+                // одним числом — колонка «с матр.» считала ПРИМЕНЕНИЕ, а
+                // соседняя `matrix_note` писала про НАХОДКУ. Теперь каждая
+                // колонка считает ровно то, чем подписана, и третья строка
+                // называет спектры, у которых они разошлись.
                 int noFile = 0;
+                var foundNotApplied = new List<string>();
                 var chi = new List<double>();
                 foreach (Row r in of)
                 {
@@ -1768,11 +1902,19 @@ namespace CorpusFsaProbe
                         continue;
                     }
 
-                    if (r.MatrixUsed)
+                    if (MatrixFound(r))
                     {
-                        matrix++;
+                        found++;
+                        if (r.MatrixApplied)
+                        {
+                            applied++;
+                        }
+                        else
+                        {
+                            foundNotApplied.Add(r.Key);
+                        }
                     }
-                    else if (r.MatrixNote == "файла нет" || r.MatrixNote == "отпечаток НЕ сошёлся")
+                    else if (MatrixFailed(r))
                     {
                         // Только эти два — отказ. «Кривой нет» и «геометрии
                         // нет» — НОРМАЛЬНОЕ состояние непонятной части, и
@@ -1780,6 +1922,14 @@ namespace CorpusFsaProbe
                         // спектров каждый прогон. Признак, который кричит
                         // всегда, читать перестают на второй день.
                         noFile++;
+                    }
+                    else if (r.MatrixApplied)
+                    {
+                        // ⛔ НЕВОЗМОЖНОЕ состояние: применить можно только
+                        // найденное. Молчать о нём нельзя — это значило бы, что
+                        // один из двух признаков считается не там, где кажется.
+                        Console.WriteLine("{0,-10} ⛔ {1}: применена НЕНАЙДЕННАЯ матрица ({2})",
+                                          "", r.Key, MatrixNote(r));
                     }
 
                     if (r.GainOnGridEdge)
@@ -1805,16 +1955,33 @@ namespace CorpusFsaProbe
                 double median = chi.Count == 0 ? 0.0
                     : (chi.Count % 2 == 1 ? chi[chi.Count / 2]
                        : 0.5 * (chi[chi.Count / 2 - 1] + chi[chi.Count / 2]));
-                Console.WriteLine("{0,-10} {1,8} {2,8} {3,10:F1} {4,10:F2} {5,8} {6,8} {7,8}",
-                                  part, of.Count, matrix, sum, median, errors, gainEdge, offsetEdge);
+                Console.WriteLine("{0,-10} {1,8} {2,8} {3,9} {4,10:F1} {5,10:F2} {6,8} {7,8} {8,8}",
+                                  part, of.Count, found, applied, sum, median, errors,
+                                  gainEdge, offsetEdge);
                 if (noFile > 0)
                 {
                     // ⛔ Печатается ОТДЕЛЬНОЙ строкой и только когда есть что
                     // печатать: это отказ, а не статистика. Разница с колонкой
-                    // «с матр.» в том, что там недостача может быть нормой.
+                    // «найдена» в том, что там недостача может быть нормой.
                     Console.WriteLine("{0,-10} ⛔ БЕЗ МАТРИЦЫ (файла нет либо отпечаток не"
                                       + " сошёлся): {1} — узел кривой у них ЕСТЬ, а матрицы под"
                                       + " него нет, и считались они из одних пиков", "", noFile);
+                }
+
+                if (foundNotApplied.Count > 0)
+                {
+                    // (`T85`) ЧИТАТЕЛЬ расхождения двух колонок. Без него разница
+                    // «найдена 81, применена 80» не объяснена в отчёте ни словом,
+                    // и читающий волен принять её за отказ вроде `B20` — а это
+                    // законное состояние разбора. Спектры называются поимённо:
+                    // расхождение всегда касалось единиц, и список короток.
+                    foundNotApplied.Sort(StringComparer.Ordinal);
+                    Console.WriteLine("{0,-10} ⚠ НАЙДЕНА, НО НЕ ПРИМЕНЕНА: {1} — {2}", "",
+                                      foundNotApplied.Count,
+                                      string.Join(", ", foundNotApplied.ToArray()));
+                    Console.WriteLine("{0,-10}   в отчётном фите уцелели только производные образы"
+                                      + " (обратное рассеяние, наложения); матрица исправна и"
+                                      + " работала на проходах до отсева", "");
                 }
             }
 
@@ -1848,11 +2015,18 @@ namespace CorpusFsaProbe
                     // Новые колонки — только В КОНЕЦ строки: score.py читает
                     // по именам (DictReader), но чужой разбор по номерам колонок
                     // вставка в середину сломала бы молча.
+                    //
+                    // ⛔ `T85`: колонка на десятом месте ПЕРЕИМЕНОВАНА, `matrix`
+                    // -> `matrix_applied`. Место её не сдвинулось (разбор по
+                    // номерам цел), а называть она стала то, что и считала
+                    // всегда: применение матрицы, а не её наличие. Наличие —
+                    // новая `matrix_found` В КОНЦЕ строки. Разошлись они на
+                    // снятых файлах: `out_v6` 81/80, `out_fz_lib` 81/78.
                     runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
-                                   + "offset_edge,matrix,"
+                                   + "offset_edge,matrix_applied,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
-                                   + "model_residual_pct,library,library_note");
+                                   + "model_residual_pct,library,library_note,matrix_found");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -1907,7 +2081,7 @@ namespace CorpusFsaProbe
                             F(r.Gain, "F6"), F(r.OffsetChannels, "F3"),
                             r.DriftOnGridEdge ? "1" : "0",
                             r.GainOnGridEdge ? "1" : "0", r.OffsetOnGridEdge ? "1" : "0",
-                            r.MatrixUsed ? "1" : "0", Csv(r.MatrixNote),
+                            r.MatrixApplied ? "1" : "0", Csv(MatrixNote(r)),
                             r.CascadeUsed ? "1" : "0", r.EfficiencyUsed ? "1" : "0",
                             r.HasBackground ? "1" : "0",
                             r.Peaks.ToString(CultureInfo.InvariantCulture),
@@ -1918,7 +2092,8 @@ namespace CorpusFsaProbe
                             r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4"),
                             Csv(r.BackgroundNote),
                             r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3"),
-                            Csv(o.Library), Csv(r.LibraryNote)));
+                            Csv(o.Library), Csv(r.LibraryNote),
+                            MatrixFound(r) ? "1" : "0"));
 
                         if (r.Result == null)
                         {
@@ -1997,7 +2172,11 @@ namespace CorpusFsaProbe
             int total = 0, obligatory = 0, agreed = 0, missing = 0;
             using (var file = new StreamWriter(path, false, new UTF8Encoding(true)))
             {
-                file.WriteLine("spectrum,det,part,matrix,component,energy_kev,lines,intensity_pct,"
+                // (`T85`) Колонка называет ПРИМЕНЕНИЕ: сверка ниже делит линии
+                // на «с матрицей» и «без неё» по тому, чем построен образ, а не
+                // по тому, лежала ли матрица на диске.
+                file.WriteLine("spectrum,det,part,matrix_applied,component,energy_kev,lines,"
+                               + "intensity_pct,"
                                + "expected,measured,sigma,z,ratio,purity,decision,obligatory");
                 foreach (Row r in rows)
                 {
@@ -2010,7 +2189,7 @@ namespace CorpusFsaProbe
                     {
                         total++;
                         file.WriteLine(string.Join(",",
-                            Csv(r.Key), Csv(r.Det), Csv(r.Part), r.MatrixUsed ? "1" : "0",
+                            Csv(r.Key), Csv(r.Det), Csv(r.Part), r.MatrixApplied ? "1" : "0",
                             Csv(c.Component), F(c.EnergyKev, "F2"),
                             c.Lines.ToString(CultureInfo.InvariantCulture),
                             F(c.IntensityPct, "F4"),
@@ -2045,7 +2224,7 @@ namespace CorpusFsaProbe
 
                         ratioAll[band].Add(c.Ratio);
                         absZ[band].Add(Math.Abs(c.Z));
-                        if (r.MatrixUsed)
+                        if (r.MatrixApplied)
                         {
                             ratioMatrix[band].Add(c.Ratio);
                         }
@@ -2547,7 +2726,15 @@ namespace CorpusFsaProbe
             public string Det;
             public string Part;
             public string Error;
-            public string MatrixNote = "";
+
+            /// <summary>
+            /// (`T85`) Что стало с матрицей ДО разбора: найдена или почему нет.
+            /// Печатной строки здесь не лежит нарочно — её собирает
+            /// <see cref="Program.MatrixNote"/> из этого признака И из
+            /// <see cref="MatrixApplied"/>, чтобы «найдена» и «применена» не
+            /// могли снова разъехаться по двум разным словам.
+            /// </summary>
+            public MatrixState Matrix = MatrixState.Unknown;
             public string EfficiencyName = "";
 
             /// <summary>(S56) Чем задана библиотека и что в неё вошло.</summary>
@@ -2587,7 +2774,12 @@ namespace CorpusFsaProbe
             {
                 get { return this.GainOnGridEdge || this.OffsetOnGridEdge; }
             }
-            public bool MatrixUsed;
+            /// <summary>
+            /// (`T85`) Матрица ПРИМЕНЕНА: хоть один образ отчётного фита
+            /// построен ею. Ложь при <see cref="MatrixState.Found"/> — законное
+            /// состояние, а не отказ: см. <see cref="Program.MatrixNote"/>.
+            /// </summary>
+            public bool MatrixApplied;
             public bool CascadeUsed;
             public bool EfficiencyUsed;
             public bool HasBackground;

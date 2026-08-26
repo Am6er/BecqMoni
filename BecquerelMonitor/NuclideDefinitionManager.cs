@@ -136,21 +136,54 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000932 RID: 2354 RVA: 0x00035750 File Offset: 0x00033950
+        /// <summary>
+        /// ⛔ Заготовка из четырёх записей допустима ТОЛЬКО в оконном режиме, и
+        /// это решение, а не недосмотр (<c>S100</c>, 27.08.2026).
+        ///
+        /// Живой человек, у которого библиотеки и правда нет (первый запуск,
+        /// снесённый <c>%AppData%\BecqMoni</c>), не должен упереться в тупик:
+        /// без библиотеки панель поиска пиков нерабочая, а завести её руками
+        /// негде — редактор нуклидов открывается ИЗ приложения. Поэтому в окнах
+        /// поведение прежнее: заготовка пишется на диск и о ней СООБЩАЮТ, а
+        /// дальше человек дополняет её из базы (<c>NucBase</c>) или подкладывает
+        /// поставочный файл.
+        ///
+        /// Безоконный запуск (проба, харнесс) ОТКАЗЫВАЕТ. Причина в цене:
+        /// состав библиотеки задаёт и поиск пиков, и разбор FSA, поэтому проба,
+        /// молча получившая четыре линии вместо поставочных полутора сотен,
+        /// печатает правдоподобные, но бессмысленные числа — а человека, который
+        /// заметил бы окно, там нет. Отказ читает код возврата пробы; молчаливый
+        /// признак вместо исключения был бы признаком без читателя.
+        ///
+        /// ⛔ И заготовка в безоконном запуске НЕ ПИШЕТСЯ НА ДИСК: именно так
+        /// в <c>tools/effmaker/probes/build/config/</c> завёлся четырёхзаписный
+        /// файл, неотличимый на вид от настоящего конфига (<c>T73</c>).
+        /// </summary>
         public static NuclideDefinitionManager GetInstance()
         {
             if (!NuclideDefinitionManager.instance.LoadDefinitionFile())
             {
+                string filename = NuclideDefinitionManager.instance.nuclideDefinitionFilename;
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: nuclide library could not be loaded and there is no UI to report it to: "
+                        + AppUi.Where(filename)
+                        + ". The 4-nuclide starter library is a windowed-first-run fallback only: it drives both "
+                        + "peak search and FSA, so a headless run on it would print plausible nonsense. "
+                        + "Run from a directory that has config\\NuclideDefinition.xml.");
+                }
                 NuclideDefinitionManager.instance.NuclideDefinitionFile = new NuclideDefinitionFile();
                 NuclideDefinitionManager.instance.InitializeNuclideDefinitionFile();
                 // Only CREATE a default file when none exists. A transient read error
                 // (file locked by antivirus/cloud sync) used to trigger an immediate
                 // overwrite of the user's NuclideDefinition.xml with the 4-nuclide default.
-                if (!File.Exists(NuclideDefinitionManager.instance.nuclideDefinitionFilename))
+                if (!File.Exists(filename))
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(NuclideDefinitionManager.instance.nuclideDefinitionFilename));
+                    Directory.CreateDirectory(Path.GetDirectoryName(filename));
                     if (NuclideDefinitionManager.instance.SaveDefinitionFile())
                     {
-                        MessageBox.Show(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                        AppUi.Report(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxIcon.Asterisk);
                     }
                 }
             }
@@ -174,7 +207,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.nuclideDefinitionFile = null;
                 return false;
             }
@@ -224,7 +257,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             return true;

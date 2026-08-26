@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using System.Linq;
@@ -27,8 +28,15 @@ namespace BecquerelMonitor.NucBase
                 SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = '" + nucname + "' and half_life not null");
                 if (!reader.Read())
                 {
-                    // Stable isotopes have no half_life row: not an error, just no data.
-                    // Reading without this check used to throw and pop an error dialog.
+                    // Пусто — не ошибка: такого имени в таблице нет, либо период
+                    // полураспада у него НЕ ИЗМЕРЕН (`half_life` = NULL, 181
+                    // нуклид из 4429 — меряно 27.08.2026), и отбор его снял.
+                    // Чтение без этой проверки бросало и показывало окно ошибки.
+                    //
+                    // ⚠ Стабильные сюда НЕ попадают: у них период есть строкой
+                    // `STABLE` (244 нуклида), отбор их пропускает, и карточка у
+                    // них показывается. Прежде здесь стояло обратное — снято
+                    // чтением базы 27.08.2026 (`D42`).
                     db.Close();
                     return null;
                 }
@@ -95,6 +103,29 @@ namespace BecquerelMonitor.NucBase
         /// ⚠ Имя подставляется в текст запроса, а не параметром, потому что
         /// <see cref="DataBase.ReadData"/> параметров не принимает вовсе; вся
         /// строка собирается конкатенацией по той же причине. Отдельная строка.
+        ///
+        /// ⚠ ПЕРИОД ПОЛУРАСПАДА РОДИТЕЛЯ БЫВАЕТ НЕ ИЗМЕРЕН, и это законно
+        /// (`D42`): в `nuclides` тогда NULL сразу в трёх колонках —
+        /// `half_life`, `half_life_unit`, `half_life_sec`. Меряно чтением базы
+        /// 27.08.2026: среди строк типа `G` и `X` таких родителей СЕМЬ —
+        /// `126INm`, `148EUm1`, `154TBm`, `156HOm`, `160TMm1`, `200BIm`,
+        /// `216FRm`, всего 145 строк. `GetString` на NULL не отдаёт пустую
+        /// строку, а бросает, и одна такая строка роняла ВСЮ выборку: поиск по
+        /// этим семи именам не возвращал ничего, а выгрузка без имени умирала
+        /// на середине таблицы.
+        ///
+        /// Столбцы поэтому читаются с проверкой на NULL, а неизвестный период
+        /// уезжает НУЛЁМ — тем же, каким уходит период у характеристического
+        /// рентгена элемента (<see cref="GetFluorescence"/>) и который
+        /// потребители уже отличают от настоящего: поправка на распад ставится
+        /// только при `HalfLife &gt; 0` (`MeasurementResultManager`).
+        ///
+        /// ⛔ Отсечь таких родителей условием `nuc.half_life not null`, как в
+        /// <see cref="getNuclude"/>, — НЕ то же самое. Там период и ЕСТЬ ответ
+        /// метода (карточка нуклида), без него показывать нечего; здесь он
+        /// один столбец из восьми, а ответ — ЛИНИИ родителя, и они на месте.
+        /// С отсечкой поиск по этим семи именам остался бы мёртвым, только
+        /// молча — исключение сменилось бы пустым списком.
         /// </summary>
         public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 3000.0, double half_life_sec = 0)
         {
@@ -147,26 +178,40 @@ namespace BecquerelMonitor.NucBase
                 SqliteDataReader reader = db.ReadData(sql);
                 while (reader.Read())
                 {
+                    // Столбцы читаются с проверкой на NULL — все восемь, а не
+                    // только те, где NULL нашёлся сегодня (`D42`). Так же
+                    // читают `decay_radiations` оба других читателя проекта,
+                    // `CascadeAtomicData` и `FsaSampleLibrary`; третьего
+                    // соглашения о чтении здесь быть не должно.
                     DecayRad decrad = new DecayRad();
-                    decrad.Name = reader.GetString(0);
-                    decrad.Energy = Convert.ToDouble(reader.GetDouble(1));
-                    string intensitystr = reader.GetString(2);
+                    decrad.Name = Text(reader, 0);
+                    decrad.Energy = reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                    string intensitystr = Text(reader, 2);
                     if (intensitystr.IndexOf("(") != -1)
                     {
                         intensitystr = intensitystr.Replace("(", "").Replace(")", "").Trim();
                     }
-                    decrad.Intensity = Convert.ToDouble(intensitystr);
-                    decrad.DecayLine = reader.GetString(3);
-                    decrad.XrayType = reader.GetString(4);
-                    decrad.DecayType = Convert.ToInt32(reader.GetString(5));
-                    decrad.HalfLife = Convert.ToDouble(reader.GetString(6));
-                    decrad.HalfLifeUnit = Convert.ToString(reader.GetString(7));
+                    decrad.Intensity = Number(intensitystr);
+                    decrad.DecayLine = Text(reader, 3);
+                    decrad.XrayType = Text(reader, 4);
+                    decrad.DecayType = Integer(Text(reader, 5));
+                    decrad.HalfLife = Number(Text(reader, 6));
+                    decrad.HalfLifeUnit = Text(reader, 7);
                     decayRads.Add(decrad);
                 }
             } catch (Exception ex)
             {
-                MessageBox.Show(String.Format(Resources.NucBase_DecayRadsFetchError, sql, ex.Message),
-                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // ⛔ ОТКАЗ — ЗНАЧЕНИЕ, А НЕ ДИАЛОГ (`D42`). Здесь стояло
+                // модальное окно, и на нём насмерть вставал любой безоконный
+                // запуск: проба ждала кнопки, которую некому нажать — меряно
+                // 27.08.2026, процесс с окном «Ошибка!» пришлось убивать.
+                // Признак отказа у метода прежний и единственный — `null`, и
+                // читают его оба вызывающих (`NucBase.DoSearch`,
+                // `ChainProbe`). ⚠ Что редактор при отказе теперь молчит —
+                // отдельная строка: читателя, показывающего человеку причину,
+                // на форме пока нет.
+                Trace.WriteLine("getDecayRad: " + ex.GetType().Name + ": " + ex.Message
+                                + Environment.NewLine + sql);
                 decayRads = null;
             }
             
@@ -185,6 +230,42 @@ namespace BecquerelMonitor.NucBase
         static string SqlText(string value)
         {
             return "'" + value.Replace("'", "''") + "'";
+        }
+
+        /// <summary>
+        /// Текст столбца, в котором NULL законен (`D42`).
+        ///
+        /// ⚠ <c>SqliteDataReader.GetString</c> на NULL не отдаёт ни пустой
+        /// строки, ни <c>null</c>, а бросает
+        /// <c>InvalidOperationException: The data is NULL at ordinal N</c>, —
+        /// и одна такая строка роняет всю выборку целиком, а не только себя.
+        /// </summary>
+        static string Text(SqliteDataReader reader, int column)
+        {
+            return reader.IsDBNull(column) ? "" : reader.GetString(column);
+        }
+
+        /// <summary>
+        /// Число из текста столбца; пусто и нечисло дают 0, а не исключение.
+        ///
+        /// ⚠ Культура — ТЕКУЩАЯ, ровно как у прежнего <c>Convert.ToDouble</c>:
+        /// числа базы приходят с точкой, и приложение подменяет разделитель
+        /// при запуске (<c>MainForm</c>). Инвариантная культура здесь была бы
+        /// не «правильнее», а расхождением с остальными разборами этой базы.
+        /// </summary>
+        static double Number(string text)
+        {
+            double value;
+            double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+            return value;
+        }
+
+        /// <summary>Целое из текста столбца; пусто и нечисло дают 0.</summary>
+        static int Integer(string text)
+        {
+            int value;
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value);
+            return value;
         }
 
         /// <summary>
