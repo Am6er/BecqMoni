@@ -95,11 +95,57 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Z элементов ЗАЩИТЫ И ОБВЯЗКИ — свинец домика, железо корпуса.</summary>
         public readonly List<int> ShieldElements = new List<int>();
 
-        /// <summary>Нижняя граница рабочего диапазона, кэВ.</summary>
+        /// <summary>
+        /// Нижняя граница рабочего диапазона, кэВ. Ставится вызывающим из
+        /// `Min_Range` прибора — то есть из настройки ПОИСКА ПИКОВ.
+        ///
+        /// ⚠ С 25.08.2026 линии режет НЕ она, а <see cref="LineFloorKev"/>:
+        /// диапазон поиска пиков и полоса, в которой модель имеет право
+        /// говорить, — разные вещи (`S98`).
+        /// </summary>
         public double MinEnergyKev = 10.0;
 
         /// <summary>Верхняя граница рабочего диапазона, кэВ.</summary>
         public double MaxEnergyKev = 3200.0;
+
+        /// <summary>
+        /// ⛔ КЛЮЧ A/B `S98`: как сводятся полоса фита и полоса библиотеки.
+        /// Умолчание — <see cref="FsaBand.DefaultMode"/>; разбор веток и цена
+        /// каждой — в шапке <see cref="FsaBand"/>.
+        /// </summary>
+        public FsaBandMode Band = FsaBand.DefaultMode;
+
+        /// <summary>
+        /// Пол полосы библиотеки, кэВ, при <see cref="FsaBandMode.LibraryToFit"/>.
+        /// Ноль или отрицательное — пола нет, режет <see cref="MinEnergyKev"/>.
+        /// </summary>
+        public double LibraryFloorKev = FsaBand.DefaultFloor;
+
+        /// <summary>
+        /// ⛔ ГРАНИЦА, КОТОРАЯ РЕАЛЬНО РЕЖЕТ ЛИНИИ. Одна на все образы —
+        /// распадные, рентген пробы и кристалла, пики вылета: разойдясь в ней,
+        /// они разошлись бы в том, что вообще существует ниже `Min_Range`.
+        ///
+        /// При <see cref="FsaBandMode.LibraryToFit"/> — пол
+        /// <see cref="LibraryFloorKev"/>, но НЕ выше `Min_Range` (поднимать
+        /// границу этот режим не должен); иначе — `Min_Range`, как было.
+        ///
+        /// Измерено 25.08.2026 (понятная часть корпуса, 81 спектр): при поле
+        /// 10 кэВ линии распада возвращаются у 15 спектров, а иодная Kα
+        /// кристалла (28.32/28.61 кэВ, 81.3 % веса K-серии) — у ВСЕХ 81.
+        /// </summary>
+        public double LineFloorKev
+        {
+            get
+            {
+                if (this.Band != FsaBandMode.LibraryToFit || !(this.LibraryFloorKev > 0.0))
+                {
+                    return this.MinEnergyKev;
+                }
+
+                return Math.Min(this.MinEnergyKev, this.LibraryFloorKev);
+            }
+        }
 
         /// <summary>
         /// Добавлять вездесущие K-40 / Th-232 / Ra-226 — NORM.
@@ -260,12 +306,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// <summary>Линий во всех образах вместе.</summary>
             public int Lines;
 
+            /// <summary>
+            /// Полоса, в которой собиралась библиотека, готовой строкой
+            /// (`S98`). Печатается всегда: умолчание, которого не видно в
+            /// выводе прогона, ничем не отличается от случайного, а это
+            /// умолчание меняет базу корпуса.
+            /// </summary>
+            public string Band = "";
+
+            /// <summary>
+            /// Сколько линий легло в образы НИЖЕ `Min_Range` — то есть ровно
+            /// то, что добавил пол полосы (`S98`). Ноль при
+            /// <see cref="FsaBandMode.Whole"/> и <see cref="FsaBandMode.FitToLibrary"/>
+            /// по построению: там пол и есть `Min_Range`.
+            /// </summary>
+            public int LinesBelowMinRange;
+
             public override string ToString()
             {
                 var text = new StringBuilder();
                 text.AppendFormat(CultureInfo.InvariantCulture,
                                   "распад {0}, атомных {1}, линий {2}",
                                   this.DecayComponents, this.AtomicComponents, this.Lines);
+                if (!string.IsNullOrEmpty(this.Band))
+                {
+                    text.Append("; ").Append(this.Band);
+                }
+
+                if (this.LinesBelowMinRange > 0)
+                {
+                    text.AppendFormat(CultureInfo.InvariantCulture,
+                                      ", из них ниже Min_Range {0}", this.LinesBelowMinRange);
+                }
                 if (this.ChainMembersDropped > 0)
                 {
                     text.AppendFormat(CultureInfo.InvariantCulture,
@@ -468,9 +540,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     component.TotalYieldPercent = yield;
                 }
 
+                // S98: снизу режет ПОЛ БИБЛИОТЕКИ, а не диапазон поиска пиков.
+                // У Cd-109 разница видна целиком: ниже `Min_Range` = 30 кэВ
+                // лежит K-серия серебра 21.99/22.163/25.03/25.454 с суммарным
+                // выходом 102.3 % на распад, а в полосе остаётся одна гамма
+                // 88.03 с выходом 3.64 % — то есть 97 % излучения нуклида
+                // отбрасывалось до того, как фит его увидит.
+                double floor = spec.LineFloorKev;
                 foreach (double[] line in lines)
                 {
-                    if (line[0] < spec.MinEnergyKev || line[0] > spec.MaxEnergyKev)
+                    if (line[0] < floor || line[0] > spec.MaxEnergyKev)
                     {
                         continue;
                     }
@@ -514,6 +593,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             AddAnnihilation(result, report);
+
+            // S98: полоса библиотеки — в отчёт, и он её печатает. Считается
+            // ЗДЕСЬ, по готовым образам, а не по трём местам отсева: так число
+            // «линий ниже Min_Range» не зависит от того, сколько мест эту
+            // границу читают, и не разъедется, если появится четвёртое.
+            report.Band = FsaBand.Describe(spec.Band, spec.LibraryFloorKev,
+                                           spec.MinEnergyKev, spec.MaxEnergyKev);
+            foreach (FsaComponent component in result)
+            {
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy < spec.MinEnergyKev)
+                    {
+                        report.LinesBelowMinRange++;
+                    }
+                }
+            }
+
             return result;
         }
 
@@ -1040,10 +1137,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                  FsaComponentKind.Nuisance);
                 for (int i = 0; i < fluorescence.LineKev.Length; i++)
                 {
+                    // S98: и здесь снизу режет пол библиотеки. Это НЕ мелочь:
+                    // при `Min_Range` = 30 кэВ у иода кристалла выбрасывались
+                    // ОБЕ линии Kα (28.317 и 28.612 кэВ, вместе 81.3 % веса
+                    // K-серии), и образ `Xray-I` состоял из одной Kβ 32.68.
+                    // Мерено 25.08.2026: так было во ВСЕХ 81 спектре понятной
+                    // части корпуса. Образ, у которого выброшена главная линия,
+                    // не «неполный» — он стоит не там, и амплитуду забирает
+                    // чужую.
                     double energy = fluorescence.LineKev[i];
                     double weight = fluorescence.LineWeight[i];
                     if (!(energy > 0.0) || !(weight > 0.0)
-                        || energy < spec.MinEnergyKev || energy > spec.MaxEnergyKev)
+                        || energy < spec.LineFloorKev || energy > spec.MaxEnergyKev)
                     {
                         continue;
                     }
@@ -1164,8 +1269,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
+                    // S98: пол тот же, что у остальных образов. Одна граница на
+                    // все — иначе вылет существовал бы там, где родительская
+                    // линия уже нет, и наоборот.
                     double energy = parent[0] - kAlpha;
-                    if (energy < spec.MinEnergyKev || energy > spec.MaxEnergyKev)
+                    if (energy < spec.LineFloorKev || energy > spec.MaxEnergyKev)
                     {
                         continue;
                     }
@@ -1540,14 +1648,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Оба отбора нужны, и оба дешёвые. Без порога по доле в состав пробы
         /// попадает всё, включая примеси; без порога по энергии — кальций
         /// оникса (Kα 3.69 кэВ) и калий KCl (3.31), которых ни один прибор
-        /// корпуса не видит: нижняя граница у них 20…40 кэВ. Образ из линий,
-        /// лежащих вне окна фита, — вырожденный столбец в NNLS.
+        /// корпуса не видит.
+        ///
+        /// ⛔ **Прежнее обоснование нижней границы было неверным и снято
+        /// 25.08.2026 (`S98`):** «образ из линий вне окна ФИТА — вырожденный
+        /// столбец в NNLS». Окна фита нет — фит идёт с нулевого канала
+        /// (<see cref="FsaBandMode"/>), и линия ниже `Min_Range` вырожденной не
+        /// была бы. Отбор остаётся нужным по другой причине — прибор таких
+        /// энергий не регистрирует, — и границей ему служит
+        /// <see cref="FsaSampleSpec.LineFloorKev"/>, а не диапазон поиска пиков.
         ///
         /// ⚠ Вещество из файла спектра приходит ОДНИМ ИМЕНЕМ, без состава:
         /// `GeometryMaterial.Fractions` в XML пуст, а «Cesium iodide» лежит
         /// строкой. Поэтому состав добирается из библиотеки веществ по имени, и
         /// молчаливого отказа здесь быть не должно — вещество, которого в
         /// библиотеке нет, возвращает пустой список, а не «ничего страшного».
+        ///
+        /// ⛔ **Звать надо ЭТУ перегрузку, со спеком.** Окно она берёт у полосы
+        /// БИБЛИОТЕКИ, и разница считается: у кадмиевой пробы Kα 23.17 кэВ
+        /// ниже `Min_Range` = 30, и вызов с диапазоном поиска пиков выбрасывал
+        /// элемент ЦЕЛИКОМ — вместе с образом, который новый пол разрешает.
+        /// </summary>
+        public static List<int> HeavyElementsOf(GeometryMaterial material,
+                                                double minFraction,
+                                                FsaSampleSpec spec)
+        {
+            return spec == null
+                ? new List<int>()
+                : HeavyElementsOf(material, minFraction, spec.LineFloorKev, spec.MaxEnergyKev);
+        }
+
+        /// <summary>
+        /// То же, границами явно. Оставлено ради вызывающих, у которых спека
+        /// нет; у кого он есть — перегрузка выше.
         /// </summary>
         public static List<int> HeavyElementsOf(GeometryMaterial material,
                                                 double minFraction,

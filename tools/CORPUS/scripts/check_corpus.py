@@ -29,7 +29,8 @@ import corpus_calib                                   # noqa: E402
 import corpus_def                                     # noqa: E402
 import build_corpus                                   # noqa: E402
 import spectrum                                       # noqa: E402
-from gaussfit import fit_peak, FWHM_SIGMA             # noqa: E402
+import gaussfit                                      # noqa: E402
+from gaussfit import fit_peak, fit_peak_ex, FWHM_SIGMA  # noqa: E402
 
 calibrate.sample_lines = build_corpus.sample_lines
 
@@ -98,15 +99,25 @@ def check(entry, verbose=False):
     # приборе с полушириной 12 % чистых линий нет вообще, и фиксированный порог
     # оставлял фон и Obsidian вовсе без проверки.
     rows = []
+    # `V13`: фит, который РАЗБЕЖАЛСЯ, и линия, которой НЕТ, — разные вещи, и до
+    # 25.08.2026 приёмка не различала их вовсе (`gaussfit` отдавал `None` в
+    # обоих случаях). Разбег считаем отдельно и печатаем: спектр, у которого
+    # приёмка молчит из-за расходимости фита, выглядел «чистым».
+    # ⚠ Упор в предел σ (`gaussfit.BOUND`) сюда НЕ входит: у спектра, где линии
+    # из списка просто нет, он срабатывает по восемь раз, и сторож утонул бы.
+    noconv = []
     for purity_bar in (0.85, 0.75, 0.60, 0.45):
         rows = []
+        noconv = []
         for e_ref, label, purity, e_table in calibrate.curate(
                 ent, res_fn, min_purity=purity_bar):
             ch0 = cal.channel(e_ref)
             if ch0 < 5 or ch0 > len(counts) - 6:
                 continue
             fw_ch = fwhm_ch_at(fwhm_coef, ch0)
-            r = fit_peak(counts, ch0, fw_ch / FWHM_SIGMA, window=2.4)
+            r, status = fit_peak_ex(counts, ch0, fw_ch / FWHM_SIGMA, window=2.4)
+            if status in (gaussfit.NOCONV, gaussfit.SINGULAR):
+                noconv.append((e_ref, label, status))
             if r is None or r['sig'] < 8.0:
                 continue
             if abs(r['mu'] - ch0) > 1.5 * fw_ch:
@@ -121,14 +132,23 @@ def check(entry, verbose=False):
         if len(rows) >= 3:
             break
     if not rows:
-        return dict(key=entry['key'], det=entry['det'], n=0, err='ни одной линии')
+        err = 'ни одной линии'
+        if noconv:
+            err += ' (фит НЕ СОШЁЛСЯ на %d: %s)' % (
+                len(noconv), ', '.join('%.1f' % e for e, _l, _s in noconv[:5]))
+        return dict(key=entry['key'], det=entry['det'], n=0, err=err,
+                    noconv=len(noconv))
     d = np.array([abs(r['d_fwhm']) for r in rows])
     wr = np.array([r['width_ratio'] for r in rows])
     out = dict(key=entry['key'], det=entry['det'], n=len(rows),
                med=float(np.median(d)), p90=float(np.percentile(d, 90)),
                worst=float(d.max()),
                med_kev=float(np.median([abs(r['d_kev']) for r in rows])),
-               width_med=float(np.median(wr)), rows=rows)
+               width_med=float(np.median(wr)), rows=rows,
+               noconv=len(noconv))
+    if verbose and noconv:
+        print('  фит НЕ СОШЁЛСЯ на %d линиях: %s' % (
+            len(noconv), ', '.join('%.1f (%s)' % (e, st) for e, _l, st in noconv)))
     if verbose:
         print('  %-24s %8s %9s %8s %7s' % ('линия', 'E, кэВ', 'd, кэВ', 'd/FWHM', 'ширина'))
         for r in sorted(rows, key=lambda x: x['e']):
@@ -544,13 +564,15 @@ def main():
 
     print('%-20s %-9s %4s %8s %8s %8s %8s  %s' % (
         'спектр', 'детектор', 'лин', 'медиана', 'p90', 'макс', 'ширина', 'вердикт'))
-    bad, warn = [], []
+    bad, warn, nc = [], [], []
     for e in corpus_def.ALL:
         if only and e['key'] not in only:
             continue
         if verbose:
             print('== %s' % e['key'])
         r = check(e, verbose)
+        if r.get('noconv'):
+            nc.append('%s:%d' % (r['key'], r['noconv']))
         if r.get('err'):
             print('%-20s %-9s  --  %s' % (r['key'], e['det'], r['err']))
             warn.append(r['key'])
@@ -568,6 +590,12 @@ def main():
             r['width_med'], verdict))
     print('\nплохих: %d %s' % (len(bad), ', '.join(bad)))
     print('спорных/непроверенных: %d %s' % (len(warn), ', '.join(warn)))
+    # `V13`: отдельная строка, потому что отказ фита раньше выглядел как
+    # «линии нет» и не показывался нигде.
+    print('спектров, где фит РАЗБЕЖАЛСЯ хотя бы на одной линии: %d %s'
+          % (len(nc), ', '.join(nc)))
+    if nc:
+        print('     ⛔ это регресс демпфера `gaussfit` — по корпусу должно быть 0')
     if only:
         return 0
 

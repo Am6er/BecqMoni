@@ -322,13 +322,24 @@ namespace CorpusFsaProbe
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
 
+            // (`T65`) Настройки прогона печатаются У АНАЛИЗАТОРА — у того
+            // самого объекта, каким потом считается каждый спектр. Шапка,
+            // собранная из второго списка констант, однажды уже разошлась
+            // со счётом и врала молча.
+            FsaAnalyzer head = NewAnalyzer(o);
+
             Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
             Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
                               samples.Count, o.Part, o.Mode);
+            // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
+            // подбирает и подаёт сама проба, фон она подаёт или не подаёт
+            // отдельным доводом. Их и печатаем у себя; всё остальное —
+            // у того объекта, который считает.
             Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, фон {4}",
                               o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
-                              o.Cascade ? "вкл" : "выкл", o.PileUp ? "вкл" : "выкл",
-                              o.Backscatter ? "вкл" : "выкл",
+                              head.CascadeSumming ? "вкл" : "выкл",
+                              head.PileUp ? "вкл" : "выкл",
+                              head.Backscatter ? "вкл" : "выкл",
                               o.Background ? "вычитается, если есть" : "НЕ вычитается");
             // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
             // это единица измерения всего прогона: recall и число фантомов
@@ -352,6 +363,14 @@ namespace CorpusFsaProbe
                               o.Library != "peaks"
                                   ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
                                     + ", вездесущие ряды " + (o.Room ? "вкл" : "ВЫКЛ")
+                                    // (`T65`) Равновесие ряда МЕНЯЕТ ЧИСЛО СВОБОДНЫХ
+                                    // АМПЛИТУД, а не список компонентов, и до
+                                    // 25.08.2026 не печаталось вовсе: прогон
+                                    // `--no-equilibrium` выглядел в журнале в точности
+                                    // как умолчательный. Печатается ТА ЖЕ переменная,
+                                    // которая уходит в `FsaSampleSpec.Equilibrium`
+                                    // (см. <c>SpecOf</c> и ветку `infer`).
+                                    + ", равновесие ряда " + (o.Equilibrium ? "вкл" : "ВЫКЛ")
                                   : "");
             if (o.Library != "peaks")
             {
@@ -359,22 +378,29 @@ namespace CorpusFsaProbe
                                   + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
             }
 
-            Console.WriteLine("изомеры по sandia_symbol: {0}", o.Isomers ? "вкл" : "ВЫКЛ");
+            Console.WriteLine("изомеры по sandia_symbol: {0}",
+                              head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
             Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
                               + " окно совпадения {2:E3} с{3}",
-                              o.Xray ? "вкл" : "ВЫКЛ", o.Annihilation ? "вкл" : "ВЫКЛ",
-                              o.WindowSec > 0.0
-                                  ? o.WindowSec
+                              head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
+                              head.CascadeAnnihilationPartners ? "вкл" : "ВЫКЛ",
+                              head.CoincidenceWindowSec > 0.0
+                                  ? head.CoincidenceWindowSec
                                   : FsaCascadeSummer.DefaultCoincidenceWindowSec,
-                              o.WindowSec > 0.0 ? "" : " (умолчание)");
-            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} (шаг {2:F3} кэВ);"
-                              + " усиление ±{3:P2}, узлов {4}",
-                              o.OffsetRangeKev > 0.0 ? o.OffsetRangeKev : 3.0,
-                              o.OffsetSteps > 0 ? o.OffsetSteps : 9,
-                              2.0 * (o.OffsetRangeKev > 0.0 ? o.OffsetRangeKev : 3.0)
-                              / ((o.OffsetSteps > 0 ? o.OffsetSteps : 9) - 1),
-                              o.GainRange > 0.0 ? o.GainRange : 0.008,
-                              o.GainSteps > 0 ? o.GainSteps : 9);
+                              head.CoincidenceWindowSec > 0.0 ? "" : " (умолчание)");
+            // (`T65`) Сетка дрейфа — У АНАЛИЗАТОРА. Здесь стояла ВТОРАЯ
+            // копия её умолчаний, и 24.08.2026 она разошлась со счётом
+            // молча: печаталось «±3.00 кэВ, 9 узлов», считалось ±8.00 кэВ по
+            // 17 (`S93`). Поймано на `G1S16_Cd109_P5`, который возвращал
+            // усиление 0.980000 с пометкой «КРАЙ» — за объявленными шапкой
+            // ±0.80 %. См. <c>NewAnalyzer</c>.
+            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} ({2});"
+                              + " усиление ±{3:P2}, узлов {4} ({5})",
+                              head.OffsetRangeKev, head.OffsetSteps,
+                              GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
+                              head.GainRange, head.GainSteps,
+                              GridStep(head.GainRange, head.GainSteps, "P3", ""));
+            PrintTuning(head);
             Console.WriteLine();
 
             var rows = new List<Row>();
@@ -437,6 +463,214 @@ namespace CorpusFsaProbe
         {
             double v = a != null && i < a.Length ? a[i] : 0.0;
             return v.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Анализатор, настроенный КЛЮЧАМИ ПРОГОНА и только ими; всё, что
+        /// зависит от конкретного спектра (окно фита, матрица отклика),
+        /// добавляет <c>RunOne</c>.
+        ///
+        /// (`T65`) Отдельный метод заведён ради ОДНОГО источника истины:
+        /// шапка прогона печатает настройки У ЭТОГО ЖЕ объекта, а не по
+        /// второму списку констант рядом. Прежде запасные умолчания сетки
+        /// дрейфа лежали в печати СВОЕЙ копией (±3.00 кэВ / 9 узлов);
+        /// 24.08.2026 анализатор сменил их на ±8.00 кэВ / 17 узлов (`S93`) —
+        /// и шапка стала врать ВСЯКИЙ раз, когда ключ не задан руками, а по
+        /// ней читали абляции дрейфа (`B17`).
+        ///
+        /// ⚠ Правило, чтобы это не вернулось: ключ, не заданный в командной
+        /// строке, СЮДА НЕ ДОХОДИТ вовсе — поле остаётся с умолчанием
+        /// <see cref="FsaAnalyzer"/>. Своих умолчаний у пробы нет, кроме тех,
+        /// что названы в <c>Options</c> поимённо и с доводом, почему они
+        /// держатся здесь (таков <c>RebinBackground</c>).
+        ///
+        /// ⚠ Двоичные ключи (каскад, наложения, рассеяние, рентген,
+        /// аннигиляция, изомеры, гейт вылета, гейт ΔD) выставляются
+        /// БЕЗУСЛОВНО — у них есть только сторона «A» и сторона «B», и
+        /// умолчание поля <c>Options</c> повторяет умолчание анализатора.
+        /// Сегодня все восемь совпадают (сверено 25.08.2026), но это та же
+        /// вторая копия, только пока верная.
+        /// </summary>
+        static FsaAnalyzer NewAnalyzer(Options o)
+        {
+            var analyzer = new FsaAnalyzer();
+            analyzer.Mode = o.Mode == "snip"
+                ? FsaAnalyzer.ContinuumMode.Snip
+                : FsaAnalyzer.ContinuumMode.Spline;
+            analyzer.CascadeSumming = o.Cascade;
+            analyzer.CascadeSumPeaks = o.Cascade;
+            analyzer.CascadeXrayPartners = o.Xray;
+            analyzer.CascadeAnnihilationPartners = o.Annihilation;
+            analyzer.CascadeIsomerPartners = o.Isomers;
+            analyzer.CoincidenceWindowSec = o.WindowSec;
+            analyzer.PileUp = o.PileUp;
+            analyzer.Backscatter = o.Backscatter;
+            if (o.RefitZ >= 0.0)
+            {
+                analyzer.RefitZ = o.RefitZ;
+            }
+
+            analyzer.EscapeGate = o.EscapeGate;
+
+            if (o.HuberM >= 0.0)
+            {
+                analyzer.HuberM = o.HuberM;
+            }
+
+            analyzer.NoiseGamma = o.NoiseGamma;
+            analyzer.NoiseBeta = o.NoiseBeta;
+            analyzer.PartialResiduals = o.Partial;
+            if (o.Knots > 0)
+            {
+                analyzer.ContinuumKnotDivisor = o.Knots;
+            }
+
+            // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
+            // 4·ПШПВ волну 50…130 кэВ повторить не может, и надо знать —
+            // это потому, что волны там нет, или потому, что её нечем
+            // взять. ⚠ Значение меньше 4 ломает состав, читать после него
+            // можно форму невязки, а не разложение.
+            if (o.KnotFwhm > 0.0)
+            {
+                analyzer.ContinuumKnotFwhm = o.KnotFwhm;
+            }
+
+            // (`S85`) Ноль — ЗНАЧАЩЕЕ значение («штрафа нет»), поэтому
+            // ключ отличается от умолчания отрицательным, а не нулём.
+            if (o.Roughness >= 0.0)
+            {
+                analyzer.ContinuumRoughness = o.Roughness;
+            }
+            analyzer.PartialResidualGate = o.PartialGate;
+            analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
+
+            // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
+            // вслепую нельзя, потому что при том же числе узлов вдвое более
+            // широкая сетка вдвое грубее, и цену обеих половин надо мерить
+            // вместе.
+            if (o.OffsetRangeKev > 0.0)
+            {
+                analyzer.OffsetRangeKev = o.OffsetRangeKev;
+            }
+
+            if (o.OffsetSteps > 0)
+            {
+                analyzer.OffsetSteps = o.OffsetSteps;
+            }
+
+            if (o.GainRange > 0.0)
+            {
+                analyzer.GainRange = o.GainRange;
+            }
+
+            if (o.GainSteps > 0)
+            {
+                analyzer.GainSteps = o.GainSteps;
+            }
+
+            return analyzer;
+        }
+
+        /// <summary>
+        /// Шаг сетки дрейфа словами. ОДИН УЗЕЛ — шага нет вовсе:
+        /// <c>FsaAnalyzer</c> берёт <c>Math.Max(1, …)</c> и считает без
+        /// дрейфа, а деление на <c>steps - 1</c> дало бы в шапке «∞», то
+        /// есть опять не то, что происходит.
+        /// </summary>
+        static string GridStep(double range, int steps, string format, string unit)
+        {
+            return steps > 1
+                ? "шаг " + (2.0 * range / (steps - 1)).ToString(format, CultureInfo.InvariantCulture) + unit
+                : "один узел, дрейф не ищется";
+        }
+
+        /// <summary>
+        /// (`T65`) Чем ЭТОТ прогон отличается от поставочного разбора —
+        /// сличением настроенного анализатора с нетронутым
+        /// <c>new FsaAnalyzer()</c>, поле за полем, отражением.
+        ///
+        /// ⛔ Затем, что первой половины `T65` мало. Печатать поля у
+        /// анализатора вместо своих констант — это перестать ВРАТЬ; но
+        /// шапка молчала и о том, что ключ вообще был задан: `--huber=0`,
+        /// `--knots=`, `--no-escape-gate`, `--refit-z=`, `--roughness=`,
+        /// `--knot-fwhm=`, `--gamma=`, `--beta=`, `--partial`, `--no-pr-gate`,
+        /// `--no-bg-rebin` не печатались ВОВСЕ, и прогон-абляция выглядел в
+        /// журнале в точности как прогон умолчанием. Это тот же отказ,
+        /// другой стороной: по шапке нельзя было сказать, что считали.
+        /// (Ключи, не доходящие до анализатора, — `--no-equilibrium`,
+        /// `--no-atomic`, `--no-room`, `--no-matrix`, `--no-background` —
+        /// печатает шапка своими строками, каждая ТОЙ ЖЕ переменной, что
+        /// уходит в дело.)
+        ///
+        /// Отражение здесь НЕ ради краткости, а ради того, чтобы список не
+        /// пришлось вести руками: ровно ведение второго списка и есть
+        /// болезнь, от которой лечится строка. Новое поле, выставленное в
+        /// <c>NewAnalyzer</c>, попадает сюда само; ошибиться местом можно
+        /// только удалив вызов.
+        ///
+        /// ⚠ Читается это как «ключами изменено», а не «отличается от
+        /// приложения»: <see cref="FsaAnalyzer.MinEnergy"/> и
+        /// <c>MaxEnergy</c> ставит <c>RunOne</c> по рабочей полосе ПРИБОРА,
+        /// и здесь их ещё нет. Матрицы и материала сцинтиллятора тоже нет —
+        /// они свои у каждого спектра.
+        /// </summary>
+        static void PrintTuning(FsaAnalyzer tuned)
+        {
+            var stock = new FsaAnalyzer();
+            var changed = new List<string>();
+            Type t = typeof(FsaAnalyzer);
+            foreach (System.Reflection.PropertyInfo p in t.GetProperties(
+                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                if (!p.CanRead || p.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                Differs(changed, p.Name, Read(p.GetValue, tuned), Read(p.GetValue, stock));
+            }
+
+            foreach (System.Reflection.FieldInfo f in t.GetFields(
+                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                Differs(changed, f.Name, Read(f.GetValue, tuned), Read(f.GetValue, stock));
+            }
+
+            changed.Sort(StringComparer.Ordinal);
+            Console.WriteLine("ключами изменено против поставочного разбора: {0}",
+                              changed.Count == 0
+                                  ? "НИЧЕГО (все настройки анализатора — умолчания приложения)"
+                                  : string.Join("; ", changed.ToArray()));
+        }
+
+        /// <summary>
+        /// Значение поля словами. Отказ геттера — тоже ЗНАЧЕНИЕ, а не повод
+        /// пропустить поле: свойство, кидающее у настроенного и молчащее у
+        /// нетронутого (или наоборот), попадёт в строку различий и будет
+        /// видно. ⚠ Отказ ОДИНАКОВЫЙ у обоих различием не является и не
+        /// печатается — ключами такое поле и правда не тронуто.
+        /// </summary>
+        static string Read(Func<object, object> getter, FsaAnalyzer a)
+        {
+            try
+            {
+                object v = getter(a);
+                return v == null
+                    ? "нет"
+                    : Convert.ToString(v, CultureInfo.InvariantCulture);
+            }
+            catch (Exception e)
+            {
+                return "ЧИТАТЕЛЬ ОТКАЗАЛ: " + e.GetType().Name;
+            }
+        }
+
+        static void Differs(List<string> to, string name, string tuned, string stock)
+        {
+            if (!string.Equals(tuned, stock, StringComparison.Ordinal))
+            {
+                to.Add(name + " " + stock + " → " + tuned);
+            }
         }
 
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
@@ -585,77 +819,9 @@ namespace CorpusFsaProbe
                     return row;
                 }
 
-                var analyzer = new FsaAnalyzer();
-                analyzer.Mode = o.Mode == "snip"
-                    ? FsaAnalyzer.ContinuumMode.Snip
-                    : FsaAnalyzer.ContinuumMode.Spline;
-                analyzer.CascadeSumming = o.Cascade;
-                analyzer.CascadeSumPeaks = o.Cascade;
-                analyzer.CascadeXrayPartners = o.Xray;
-                analyzer.CascadeAnnihilationPartners = o.Annihilation;
-                analyzer.CascadeIsomerPartners = o.Isomers;
-                analyzer.CoincidenceWindowSec = o.WindowSec;
-                analyzer.PileUp = o.PileUp;
-                analyzer.Backscatter = o.Backscatter;
-                if (o.RefitZ >= 0.0)
-                {
-                    analyzer.RefitZ = o.RefitZ;
-                }
-
-                analyzer.EscapeGate = o.EscapeGate;
-
-                if (o.HuberM >= 0.0)
-                {
-                    analyzer.HuberM = o.HuberM;
-                }
-
-                analyzer.NoiseGamma = o.NoiseGamma;
-                analyzer.NoiseBeta = o.NoiseBeta;
-                analyzer.PartialResiduals = o.Partial;
-                analyzer.ContinuumKnotDivisor = o.Knots;
-
-                // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
-                // 4·ПШПВ волну 50…130 кэВ повторить не может, и надо знать —
-                // это потому, что волны там нет, или потому, что её нечем
-                // взять. ⚠ Значение меньше 4 ломает состав, читать после него
-                // можно форму невязки, а не разложение.
-                if (o.KnotFwhm > 0.0)
-                {
-                    analyzer.ContinuumKnotFwhm = o.KnotFwhm;
-                }
-
-                // (`S85`) Ноль — ЗНАЧАЩЕЕ значение («штрафа нет»), поэтому
-                // ключ отличается от умолчания отрицательным, а не нулём.
-                if (o.Roughness >= 0.0)
-                {
-                    analyzer.ContinuumRoughness = o.Roughness;
-                }
-                analyzer.PartialResidualGate = o.PartialGate;
-                analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
-
-                // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
-                // вслепую нельзя, потому что при том же числе узлов вдвое более
-                // широкая сетка вдвое грубее, и цену обеих половин надо мерить
-                // вместе.
-                if (o.OffsetRangeKev > 0.0)
-                {
-                    analyzer.OffsetRangeKev = o.OffsetRangeKev;
-                }
-
-                if (o.OffsetSteps > 0)
-                {
-                    analyzer.OffsetSteps = o.OffsetSteps;
-                }
-
-                if (o.GainRange > 0.0)
-                {
-                    analyzer.GainRange = o.GainRange;
-                }
-
-                if (o.GainSteps > 0)
-                {
-                    analyzer.GainSteps = o.GainSteps;
-                }
+                // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
+                // которого их берёт на печать шапка.
+                FsaAnalyzer analyzer = NewAnalyzer(o);
                 if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
                 {
                     analyzer.MinEnergy = peakConfig.Min_Range;
@@ -2090,7 +2256,15 @@ namespace CorpusFsaProbe
 
             /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
             public int Residuals;
-            public int Knots = 128;   // B17: умолчание приложения, см. FsaAnalyzer
+
+            /// <summary>
+            /// (`B17`) Делитель диапазона, задающий самый редкий шаг узлов
+            /// континуума; 0 — ключ не задан, умолчание у анализатора.
+            /// ⚠ (`T65`) Здесь СТОЯЛО 128 — вторая копия
+            /// <c>FsaAnalyzer.ContinuumKnotDivisor</c>, то есть тот же заряд,
+            /// что рванул у сетки дрейфа: числа совпадали, пока не разошлись.
+            /// </summary>
+            public int Knots;
 
             /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
             public int LimitsMc;
@@ -2101,14 +2275,19 @@ namespace CorpusFsaProbe
             /// <summary>Окно энергий, про которое спрашивают отдельно (V4: ~460 кэВ).</summary>
             public double NearFrom, NearTo;
             public int Limit;
-            public double OffsetRangeKev;   // 0 — умолчание анализатора (3.0)
-            public int OffsetSteps;         // 0 — умолчание анализатора (9)
-            public double GainRange;        // 0 — умолчание анализатора (0.008)
-            public int GainSteps;           // 0 — умолчание анализатора (9)
+            public double OffsetRangeKev;   // 0 — ключ не задан, умолчание у анализатора
+            public int OffsetSteps;         // 0 — ключ не задан, умолчание у анализатора
+            public double GainRange;        // 0 — ключ не задан, умолчание у анализатора
+            public int GainSteps;           // 0 — ключ не задан, умолчание у анализатора
+
+            // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
+            // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
+            // расширил сетку до ±8 кэВ / ±2 % по 17 узлов.
 
             /// <summary>
-            /// Порог Хубера в сигмах; отрицательный — умолчание анализатора
-            /// (3.0). Ноль ВЫКЛЮЧАЕТ перевзвешивание — это A-сторона S41:
+            /// Порог Хубера в сигмах; отрицательный — умолчание
+            /// анализатора (`T65`: число здесь не повторяется). Ноль
+            /// ВЫКЛЮЧАЕТ перевзвешивание — это A-сторона S41:
             /// Хубер в решателе живёт с переноса из pie и входит в базу
             /// корпуса, так что мерится его ОТКЛЮЧЕНИЕ, а не включение.
             /// </summary>
@@ -2116,8 +2295,9 @@ namespace CorpusFsaProbe
 
             /// <summary>
             /// (S9 «б») Порог значимости отсева перед вторым проходом;
-            /// отрицательный — умолчание анализатора (3.0), ноль ВЫКЛЮЧАЕТ
-            /// отсев целиком. Заведён, чтобы развести две ступени, каждая из
+            /// отрицательный — умолчание анализатора (`T65`: число здесь
+            /// не повторяется), ноль ВЫКЛЮЧАЕТ отсев целиком. Заведён,
+            /// чтобы развести две ступени, каждая из
             /// которых могла занизить МДА слабого компонента: первый NNLS
             /// (сигнал уходит соседям) или «предварительный анализ состава»
             /// (компонент выброшен и второй проход считается без него).

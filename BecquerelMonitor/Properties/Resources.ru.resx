@@ -1371,6 +1371,15 @@
   <data name="BqCoeffFromCurve" xml:space="preserve">
     <value>K = {0:G6} ± {1:G3} по кривой</value>
   </data>
+  <data name="ActivityFromLine" xml:space="preserve">
+    <value>по линии:</value>
+  </data>
+  <data name="ActivityLabelDisputed" xml:space="preserve">
+    <value>подпись спорна: ещё {0}, до ×{1:0.#}</value>
+  </data>
+  <data name="ActivityXrayRefused" xml:space="preserve">
+    <value>рентген элемента: выхода на распад нет</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и Intensity этой зоны: K = 100 / (эффективность · Intensity). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>

@@ -7,6 +7,165 @@ using BecquerelMonitor.Utils;
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
     /// <summary>
+    /// Как сводятся ПОЛОСА ФИТА и ПОЛОСА БИБЛИОТЕКИ (`S98`).
+    ///
+    /// До 25.08.2026 они были РАЗНЫМИ, и разница ничем не была названа: фит шёл
+    /// от нулевого канала до предпоследнего, а библиотека выбрасывала всякую
+    /// линию ниже `Min_Range` прибора. Полоса ниже `Min_Range` входила и в χ², и
+    /// в невязку, а описывать её было нечем — образы там запрещены, и всё
+    /// брал на себя континуум-сплайн.
+    /// </summary>
+    public enum FsaBandMode
+    {
+        /// <summary>
+        /// Как было до 25.08.2026: фит целиком, библиотека от `Min_Range`.
+        /// Оставлено ТОЛЬКО ради A/B — это и есть измеренный дефект.
+        /// </summary>
+        Whole,
+
+        /// <summary>
+        /// Свести, сузив ФИТ: считать в полосе `MinEnergy…MaxEnergy`
+        /// (у корпусных вызовов — `Min_Range…Max_Range` прибора).
+        /// </summary>
+        FitToLibrary,
+
+        /// <summary>
+        /// Свести, опустив пол БИБЛИОТЕКИ до <see cref="FsaBand.DefaultFloorKev"/>:
+        /// фит остаётся на всём спектре, образам разрешены линии ниже
+        /// `Min_Range`.
+        /// </summary>
+        LibraryToFit
+    }
+
+    /// <summary>
+    /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
+    ///
+    /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
+    /// части корпуса (81 спектр), чтением файлов, без прогона.
+    ///
+    /// **Против <see cref="FsaBandMode.FitToLibrary"/> (сузить фит):**
+    ///
+    /// * ниже `Min_Range` лежит 4.07 % всех отсчётов части (медиана по спектру
+    ///   1.80 %, среднее 5.40 %; выше 10 % у десяти спектров) — но **72 % из
+    ///   них (2.93 из 4.07 пп) стоят В ПРЕДЕЛАХ ОДНОЙ ПШПВ от границы**, то есть
+    ///   это нижняя половина пиков, чьи центры лежат В ПОЛОСЕ. У G1S ПШПВ(30
+    ///   кэВ) = 9.08 кэВ, и рез на 30 кэВ проходит прямо сквозь K-серию цезия
+    ///   Ba-133 (30.6…35.8) и сквозь иодную флуоресценцию кристалла;
+    /// * верхняя граница не стоит ничего вовсе: выше `Max_Range` медиана
+    ///   0.026 %, худший спектр 0.30 %;
+    /// * и обрыв стека на границе — та самая причина, по которой фит когда-то
+    ///   и распустили на весь спектр.
+    ///
+    /// **За <see cref="FsaBandMode.LibraryToFit"/> (опустить пол библиотеки):**
+    ///
+    /// * физика внизу ЕСТЬ: матрица отклика считана на 5…3000 кэВ (140 узлов,
+    ///   прочитано в заголовках `*.rmx` корпусных геометрий), кривая
+    ///   эффективности спектра доходит до `Min_Range` и ниже у 79 из 81
+    ///   (исключения — `AS80_Lu176` и `ASN16_Lu176`, у них кривая с 40 кэВ);
+    /// * **приборный образ калечится границей во ВСЕХ 81 спектрах**: иод
+    ///   кристалла светит Kα 28.32/28.61 кэВ (81.3 % веса K-серии) и Kβ 32.68
+    ///   (18.7 %); при `Min_Range` = 30 кэВ у образа `Xray-I` остаётся ОДНА
+    ///   линия Kβ. Образ, у которого выброшена главная линия, — не «неполный»,
+    ///   а стоящий не там, и амплитуду он забирает чужую;
+    /// * у распадов пол 10 кэВ трогает мало и точно: линии возвращаются лишь
+    ///   у 15 спектров части, зато там, где они и есть, — Cd-109 (K-рентген
+    ///   серебра 21.99/22.163/25.03/25.454, ΣI = 102.3 % на распад против
+    ///   3.64 % у единственной гаммы 88.03), Am-241 (38.9 % против 35.9 %),
+    ///   Y-88 (60.6 %), Bi-207 (33.2 %). Ниже 10 кэВ не пускается ничего: там
+    ///   лежат Cs 4.97, Ba 4.75, Ce 5.18, Lu 9.11 кэВ — их прибор не видит, а
+    ///   столбец у нулевого канала вырожден.
+    ///
+    /// ⚠ **ЦЕНА НАЗВАНА, и она в шкале, а не в физике.** У трёх спектров кадмия
+    /// наблюдаемая нижняя структура стоит НЕ там, куда её поставит библиотека:
+    /// по собственной калибровке спектра её центр 15.3 / 14.2 / 18.9 кэВ, а
+    /// центр K-серии серебра 22.63 кэВ — это −0.93 / −1.07 / −0.48 ПШПВ. Это
+    /// именно те спектры, чья калибровка `ref-cal` с одной опорной линией
+    /// (`manifest.csv`), то есть внизу шкалы она экстраполирована. Для Am-241 и
+    /// Co-57 та же сверка даёт −0.20 / −0.22 / +0.08 / +0.15 ПШПВ, то есть
+    /// расхождение — свойство ТЕХ калибровок, а не затеи. ⛔ Опасность прямая:
+    /// у `G1S16_Cd109_P5` нижняя структура несёт 182 539 отсчётов против 50 447
+    /// в пике 88 кэВ (в 3.6 раза больше), и сетка дрейфа (ноль ±8 кэВ, 17 узлов)
+    /// в состоянии купить совпадение с ней, утащив линию 88.03 с её нынешних
+    /// −0.06 ПШПВ. Это ровно та ловушка, которую назвала `S95` и ловит признак
+    /// `ПОДАВЛЕН` в `score.py`. Прогон ОБЯЗАН смотреть на состав, а не только на
+    /// χ².
+    /// </summary>
+    public static class FsaBand
+    {
+        /// <summary>
+        /// Пол полосы библиотеки, кэВ. 10 кэВ — не круглое число «на глаз»:
+        /// это собственное умолчание <c>FsaSampleSpec.MinEnergyKev</c>, которое
+        /// и означало «ниже этого прибор не говорит», пока его не начал
+        /// затирать `Min_Range` поиска пиков.
+        /// </summary>
+        public const double DefaultFloorKev = 10.0;
+
+        /// <summary>
+        /// ⛔ УМОЛЧАНИЕ РАЗБОРА. Меняется здесь и только здесь; всё, что его
+        /// читает, обязано его же и печатать (<see cref="Describe"/>).
+        /// Решение Amber 25.08.2026 по строке `S98`.
+        /// </summary>
+        public static FsaBandMode DefaultMode = FsaBandMode.LibraryToFit;
+
+        /// <summary>Пол по умолчанию — отдельным полем, чтобы A/B двигал и его.</summary>
+        public static double DefaultFloor = DefaultFloorKev;
+
+        /// <summary>Разобрать имя режима: `whole` / `fit` / `library`.</summary>
+        public static bool TryParse(string name, out FsaBandMode mode)
+        {
+            mode = DefaultMode;
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            switch (name.Trim().ToLowerInvariant())
+            {
+                case "whole":
+                case "as-was":
+                    mode = FsaBandMode.Whole;
+                    return true;
+                case "fit":
+                case "fit-to-library":
+                    mode = FsaBandMode.FitToLibrary;
+                    return true;
+                case "library":
+                case "library-to-fit":
+                case "floor":
+                    mode = FsaBandMode.LibraryToFit;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Строка для печати: что за режим, каков пол и совпадает ли он с
+        /// умолчанием. Умолчание, которое нигде не печатается, — это не
+        /// умолчание, а тайна.
+        /// </summary>
+        public static string Describe(FsaBandMode mode, double floorKev, double minKev, double maxKev)
+        {
+            string tail = mode == DefaultMode ? " (умолчание)" : " (НЕ умолчание, A/B)";
+            switch (mode)
+            {
+                case FsaBandMode.FitToLibrary:
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "полоса сведена СУЖЕНИЕМ ФИТА до {0:F1}…{1:F1} кэВ{2}",
+                        minKev, maxKev, tail);
+                case FsaBandMode.LibraryToFit:
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "полоса сведена ПОЛОМ БИБЛИОТЕКИ {0:F1} кэВ (Min_Range {1:F1}), фит на всём спектре{2}",
+                        floorKev > 0.0 ? floorKev : minKev, minKev, tail);
+                default:
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "полосы РАЗНЫЕ, как до 25.08.2026: фит на всём спектре, библиотека от {0:F1} кэВ{1}",
+                        minKev, tail);
+            }
+        }
+    }
+
+    /// <summary>
     /// Полноспектральная декомпозиция (full-spectrum analysis).
     ///
     /// В отличие от поиска пиков вопрос ставится не «есть ли пик на 583 кэВ», а
@@ -42,6 +201,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// ⛔ КЛЮЧ A/B для `S98`: как сводятся полоса фита и полоса библиотеки.
+        /// Умолчание берётся из <see cref="FsaBand.DefaultMode"/> — одно на весь
+        /// разбор, и его же печатает <see cref="FsaBand.Describe"/>.
+        /// Разбор выбора и цена каждой ветки — в шапке <see cref="FsaBand"/>.
+        /// </summary>
+        public FsaBandMode Band { get; set; }
+
+        /// <summary>
+        /// Пол полосы БИБЛИОТЕКИ, кэВ, при <see cref="FsaBandMode.LibraryToFit"/>.
+        ///
+        /// ⚠ Анализатор библиотеку НЕ собирает и этим числом ничего не режет —
+        /// оно здесь только для того, чтобы <see cref="BandNote"/> называл
+        /// полосу целиком. Режет <c>FsaSampleSpec.LineFloorKev</c> при сборке.
+        /// ⛔ Отсюда правило A/B: рычаг ОДИН — <see cref="FsaBand.DefaultMode"/>
+        /// и <see cref="FsaBand.DefaultFloor"/>, их читают оба конца. Ставить
+        /// режим только анализатору — значит развести фит и библиотеку ещё раз,
+        /// то есть повторить сам дефект `S98`.
+        /// </summary>
+        public double LibraryFloorKev { get; set; }
+
+        /// <summary>
+        /// Полоса фита ПОСЛЕДНЕГО разбора, готовой строкой: что за режим, какие
+        /// каналы и какие кэВ вышли. Заполняется в <c>Analyze</c>; читателю
+        /// (пробе, форме) остаётся напечатать. Пусто — разбора ещё не было.
+        ///
+        /// ⚠ Заведено ради правила `failure-signals-need-readers`: умолчание,
+        /// которое нельзя увидеть в выводе прогона, ничем не отличается от
+        /// случайного.
+        /// </summary>
+        public string BandNote { get; private set; }
+
+        /// <summary>
         /// Считать по всему спектру, не обрезая по MinEnergy/MaxEnergy: от
         /// первого канала до предпоследнего (последний — канал переполнения).
         /// Разложение должно быть нарисовано на всём спектре: обрыв стека на
@@ -50,8 +241,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// начала шкалы χ²/ndf 20.7 (от 40 кэВ) против 28.0 (от нулевого
         /// канала) — шум порога модели описывать нечем, и его берёт на себя
         /// континуум.
+        ///
+        /// ⚠ С 25.08.2026 это НЕ отдельный выключатель, а вид на
+        /// <see cref="Band"/>: «фит целиком» — это и `Whole`, и `LibraryToFit`,
+        /// а `false` означает ровно `FitToLibrary`. Двух рычагов на одно
+        /// решение здесь быть не должно — с них и началась `S98`. Присвоение
+        /// `true` возвращает умолчание разбора, если оно не сужает фит.
         /// </summary>
-        public bool FitWholeSpectrum { get; set; }
+        public bool FitWholeSpectrum
+        {
+            get { return this.Band != FsaBandMode.FitToLibrary; }
+            set
+            {
+                if (!value)
+                {
+                    this.Band = FsaBandMode.FitToLibrary;
+                }
+                else if (this.Band == FsaBandMode.FitToLibrary)
+                {
+                    this.Band = FsaBand.DefaultMode != FsaBandMode.FitToLibrary
+                        ? FsaBand.DefaultMode
+                        : FsaBandMode.Whole;
+                }
+            }
+        }
 
         public ContinuumMode Mode { get; set; }
 
@@ -400,7 +613,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public FsaAnalyzer()
         {
             this.Mode = ContinuumMode.Spline;
-            this.FitWholeSpectrum = true;
+            // S98: одно решение вместо двух рычагов. Умолчание — в `FsaBand`,
+            // там же разбор обеих веток и цена каждой; ключ A/B — `Band`
+            // (или `FitWholeSpectrum = false` для ветки «сузить фит»).
+            this.Band = FsaBand.DefaultMode;
+            this.LibraryFloorKev = FsaBand.DefaultFloor;
             this.MinEnergy = 40.0;
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
@@ -536,12 +753,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.cascadeApplied = false;
 
             EnergyCalibration calibration = spectrum.EnergyCalibration;
-            int chLo = this.FitWholeSpectrum
-                ? 0
-                : ClampChannel(EnergyToChannelSafe(calibration, this.MinEnergy, channels), channels);
-            int chHi = this.FitWholeSpectrum
-                ? channels - 1
-                : ClampChannel(EnergyToChannelSafe(calibration, this.MaxEnergy, channels), channels);
+
+            // S98: сужает фит РОВНО один режим. `Whole` и `LibraryToFit`
+            // считают весь спектр — разница между ними в полосе БИБЛИОТЕКИ, а
+            // не здесь.
+            bool narrowFit = this.Band == FsaBandMode.FitToLibrary;
+            int chLo = narrowFit
+                ? ClampChannel(EnergyToChannelSafe(calibration, this.MinEnergy, channels), channels)
+                : 0;
+            int chHi = narrowFit
+                ? ClampChannel(EnergyToChannelSafe(calibration, this.MaxEnergy, channels), channels)
+                : channels - 1;
             if (chHi < chLo)
             {
                 int swap = chLo;
@@ -561,6 +783,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 return null;
             }
+
+            // S98: полоса фита названа вслух и уносится читателю. Печатать её
+            // обязан тот, кто разбор заказал: строка «фит 0…1022 (−10.2…2913.6
+            // кэВ)» вместе с режимом — единственный способ отличить прогон с
+            // новым умолчанием от прогона со старым, когда числа уже сведены в
+            // таблицу.
+            this.BandNote = string.Format(CultureInfo.InvariantCulture,
+                "{0}; фит {1}…{2} ({3:F1}…{4:F1} кэВ)",
+                FsaBand.Describe(this.Band, this.LibraryFloorKev, this.MinEnergy, this.MaxEnergy),
+                chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
