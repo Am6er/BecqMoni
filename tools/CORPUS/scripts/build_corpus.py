@@ -62,7 +62,9 @@ import corpus_calib                                  # noqa: E402
 import corpus_def                                    # noqa: E402
 from corpus_paths import resolve                     # noqa: E402
 from spectrum import Spectrum                        # noqa: E402
-from chains import chain_lines, CHAINS               # noqa: E402
+from chains import (chain_lines, CHAINS,             # noqa: E402
+                    LEVEL_CLAUSE, LEVEL_PARAM,
+                    warn_level_fallback as chains_warn_level_fallback)
 import sqlite3                                       # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -198,16 +200,22 @@ ROOM_SCALE = 0.05
 
 
 def nuclide_lines(nucid):
-    """Гамма-линии одиночного нуклида из nucdb — тем же запросом, что chains.py."""
+    """Гамма-линии одиночного нуклида из nucdb — тем же запросом, что chains.py.
+
+    Зажим по уровню родителя берётся из `chains.LEVEL_CLAUSE`, а тот читает
+    его у приложения (`DecayParentRule.LevelClause`). Своей копии выражения
+    здесь нет и быть не должно: она уже разошлась с приложением однажды
+    (`T74`).
+    """
     if nucid in _NUC_CACHE:
         return _NUC_CACHE[nucid]
     c = sqlite3.connect(chains_db())
+    chains_warn_level_fallback(nucid, c)
     rows = c.execute(
         "select energy_num, intensity_num from decay_radiations "
-        "where parent_nucid = ? and type_a = 'G' and energy_num not null "
-        "and intensity_num not null and intensity_num > 0.5 "
-        "and parent_l_seqno = (select min(parent_l_seqno) from decay_radiations y "
-        "                      where y.parent_nucid = ?)", (nucid, nucid)).fetchall()
+        "where parent_nucid = $n and type_a = 'G' and energy_num not null "
+        "and intensity_num not null and intensity_num > 0.5"
+        + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
     from chains import pretty
     out = [(float(e), float(i), pretty(nucid)) for e, i in rows]

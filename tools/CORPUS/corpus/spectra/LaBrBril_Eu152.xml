@@ -23,7 +23,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-0.8806110755329033</Coefficient><Coefficient>2.794482291967714</Coefficient><Coefficient>7.619489067338942e-05</Coefficient></Coefficients>
+            <Coefficient>-0.8806112608754131</Coefficient><Coefficient>2.7944822920398513</Coefficient><Coefficient>7.619489067535634e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>1024978</ValidPulseCount>
         <TotalPulseCount>1024978</TotalPulseCount>
@@ -1063,7 +1063,7 @@
         <EnergyCalibration>
           <PolynomialOrder>2</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-0.8806110755329033</Coefficient><Coefficient>2.794482291967714</Coefficient><Coefficient>7.619489067338942e-05</Coefficient></Coefficients>
+            <Coefficient>-0.8806112608754131</Coefficient><Coefficient>2.7944822920398513</Coefficient><Coefficient>7.619489067535634e-05</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>416667</ValidPulseCount>
         <TotalPulseCount>416667</TotalPulseCount>
@@ -2098,6 +2098,6 @@
         </Spectrum>
       </BackgroundEnergySpectrum>
       <Visible>true</Visible>
-    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.06370928998543417</Coefficient><Coefficient>0.11528973941744376</Coefficient><Coefficient>0.0003693240334391905</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
+    <SqrtFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>-0.05949621104491463</Coefficient><Coefficient>0.19640348416731612</Coefficient><Coefficient>-9.870771657149146e-06</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></SqrtFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

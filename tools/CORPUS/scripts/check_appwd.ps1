@@ -1,10 +1,12 @@
 # Сторож оснастки корпусного прогона отдельной командой (`T63`).
 #
-#   pwsh tools/CORPUS/scripts/check_appwd.ps1 [-Bin <сборка>] [-Wd <оснастка>]
+#   pwsh tools/CORPUS/scripts/check_appwd.ps1 [-Bin <сборка>] [-Wd <оснастка>] [-ProbeBuild <пробы>]
 #
-# Код возврата 0 — оснастка сошлась с источниками по sha256 и по временам сборок;
-# любое другое число — сколько нашлось отказных расхождений. Ничего не чинит:
-# чинит `mk_appwd.ps1`, а запуск прогона держит `run_appwd.ps1`.
+# Коды возврата: 0 — оснастка сошлась с источниками по sha256, по временам
+# сборок и по числу записей библиотеки нуклидов; 6 — план оснастки не строится
+# вовсе (нет каталога проб, нет `CorpusFsaProbe.exe`); любое другое число —
+# сколько нашлось отказных расхождений. Ничего не чинит: чинит `mk_appwd.ps1`,
+# а запуск прогона держит `run_appwd.ps1`.
 #
 # Весь разбор — в `appwd_plan.ps1`: там же лежит и список «что откуда кладётся»,
 # по которому оснастку СОБИРАЮТ. Двух списков нет нарочно (урок `T61`).
@@ -20,7 +22,8 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 if (-not $Wd) { $Wd = Join-Path $PSScriptRoot 'wd_app' }
 # Из какой сборки оснастку собирали, знает её собственная отметка: иначе
 # оснастку из `bin\Release_Codex` сторож сверял бы с `bin\Debug_Codex`
-# и отказывал бы на ровном месте.
+# и отказывал бы на ровном месте. Отметки нет — оснастка либо не собиралась,
+# либо самопроверка при сборке не прошла: тогда умолчания, и сторож откажет.
 $st = Read-AppWdStamp -Wd $Wd
 if (-not $Bin) {
     if ($st -and $st.bin) { $Bin = [string]$st.bin }
@@ -28,5 +31,5 @@ if (-not $Bin) {
 }
 if (-not $ProbeBuild -and $st -and $st.probes) { $ProbeBuild = [string]$st.probes }
 
-$plan = Get-AppWdPlan -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
+$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
 exit (Invoke-AppWdGuard -Plan $plan)

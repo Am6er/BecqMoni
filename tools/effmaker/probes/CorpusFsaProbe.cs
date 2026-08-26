@@ -170,6 +170,36 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
+                // (`S98`) Полоса разбора: `whole` — как было до 25.08.2026,
+                // `fit-to-library` — сузить фит, `library-to-fit` — опустить пол
+                // библиотеки (поставочное умолчание).
+                // ⛔ ЗАЧЕМ КЛЮЧ, если умолчание «меняется здесь и только здесь»:
+                // без него развести вклад `V13` и вклад `S98` НЕЧЕМ — обе правки
+                // лежат в дереве разом, и прогон меряет их сумму. Решение Amber
+                // 26.08.2026 по `B26` требует ровно обратного: одна причина на
+                // один сдвиг базы. Ключ не заводит ВТОРУЮ копию умолчания — он
+                // ничего не подставляет, когда не задан, и печатается шапкой.
+                if (a.StartsWith("--band=", StringComparison.Ordinal))
+                {
+                    o.BandName = a.Substring(7);
+                    FsaBandMode probe;
+                    if (!FsaBand.TryParse(o.BandName, out probe))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестная полоса: {0} (whole | fit-to-library | library-to-fit)",
+                            o.BandName);
+                        Environment.Exit(64);
+                    }
+
+                    continue;
+                }
+
+                if (a.StartsWith("--band-floor=", StringComparison.Ordinal))
+                {
+                    o.BandFloor = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
                 if (a.StartsWith("--knot-fwhm=", StringComparison.Ordinal))
                 {
                     // (`S88`) Густой край шага узлов в ПШПВ; умолчание 4.
@@ -515,6 +545,21 @@ namespace CorpusFsaProbe
             if (o.HuberM >= 0.0)
             {
                 analyzer.HuberM = o.HuberM;
+            }
+
+            // (`S98`) Полоса — до всего прочего: её читают оба конца разбора.
+            if (!string.IsNullOrEmpty(o.BandName))
+            {
+                FsaBandMode band;
+                if (FsaBand.TryParse(o.BandName, out band))
+                {
+                    analyzer.Band = band;
+                }
+            }
+
+            if (o.BandFloor >= 0.0)
+            {
+                analyzer.LibraryFloorKev = o.BandFloor;
             }
 
             analyzer.NoiseGamma = o.NoiseGamma;
@@ -2423,6 +2468,18 @@ namespace CorpusFsaProbe
             /// трогать умолчание анализатора.
             /// </summary>
             public double Roughness = -1.0;
+
+            /// <summary>
+            /// (`S98`) Полоса разбора, ключ `--band=`; `null` — не трогать
+            /// умолчание анализатора (`FsaBand.DefaultMode`).
+            /// </summary>
+            public string BandName;
+
+            /// <summary>
+            /// (`S98`) Пол полосы библиотеки, кэВ, ключ `--band-floor=`;
+            /// отрицательный — не трогать умолчание.
+            /// </summary>
+            public double BandFloor = -1.0;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;

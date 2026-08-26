@@ -297,7 +297,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.443246080545725</Coefficient><Coefficient>0.37056121873410885</Coefficient><Coefficient>2.1004698574703306e-06</Coefficient><Coefficient>-6.197887003019131e-11</Coefficient></Coefficients>
+            <Coefficient>-6.500987228977608</Coefficient><Coefficient>0.36859219361625273</Coefficient><Coefficient>2.0893087383365272e-06</Coefficient><Coefficient>-6.16495372622274e-11</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>61396823</ValidPulseCount>
         <TotalPulseCount>61465417</TotalPulseCount>
@@ -8505,7 +8505,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.443246080545725</Coefficient><Coefficient>0.37056121873410885</Coefficient><Coefficient>2.1004698574703306e-06</Coefficient><Coefficient>-6.197887003019131e-11</Coefficient></Coefficients>
+            <Coefficient>-6.500987228977608</Coefficient><Coefficient>0.36859219361625273</Coefficient><Coefficient>2.0893087383365272e-06</Coefficient><Coefficient>-6.16495372622274e-11</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>41057941</ValidPulseCount>
         <TotalPulseCount>41102282</TotalPulseCount>
@@ -16712,6 +16712,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.8022559090397234</Coefficient><Coefficient>0.6635186120776678</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+      <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.8746284811376916</Coefficient><Coefficient>0.6534761453953125</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

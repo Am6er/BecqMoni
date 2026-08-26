@@ -17,9 +17,10 @@ u"""`V13`: чего стоит починка демпфера в `gaussfit` —
    поднятая на 3√N и над прямой по краям окна, и над соседями по ОБЕ стороны.
    Гаусс тут не участвует вовсе, поэтому проверка не может «подтвердить» саму
    себя. ⚖ Мерка откалибрована по ШТАТНОМУ набору: из 473 линий, которые
-   находит и прежний фит (понятная часть, 81 спектр), вершину имеют 337 —
-   71.2 %; у непонятной части 69.9 %. Это и есть уровень, с которым сравнивают
-   долю у вернувшихся.
+   находит и прежний фит (понятная часть, 81 спектр из 81), вершину имеют
+   337 — 71.2 %; у непонятной 69.9 %, и это доля по 33 спектрам ИЗ 40:
+   семёрки `corpus_def.LEGACY` в мерке нет и не будет (см. `frozen_keys`).
+   Это и есть уровень, с которым сравнивают долю у вернувшихся.
 3. **Не выросли ли фантомы** — отрицательный контроль: тем же кодом ищутся
    линии, СДВИНУТЫЕ на ±5 ПШПВ от настоящих, то есть заведомо стоящие не там.
    Всё найденное там — ложь по построению, и сравнение старого фита с новым
@@ -37,6 +38,14 @@ import io
 import importlib.util
 
 import numpy as np
+
+# Мерка печатает ⛔ и ⚠, а консоль сопровождающего бывает не в UTF-8: на cp1251
+# прогон падал `UnicodeEncodeError` в самом конце, ПОСЛЕ всех вычислений и до
+# сводки. Признак, который не доехал до бумаги, признаком не является.
+try:
+    sys.stdout.reconfigure(errors='backslashreplace')
+except Exception:
+    pass
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -83,6 +92,206 @@ def parts_of():
             for row in csv.DictReader(f):
                 out[row['spectrum']] = row['part']
     return out
+
+
+# ---------------------------------------------------------------------------
+# `T76`: ОХВАТ — сколько спектров каждой части мерка посчитала из скольких
+# ---------------------------------------------------------------------------
+#: Части корпуса в порядке печати; '?' — спектр, которого нет в `parts.csv`.
+PARTS_ORDER = ('known', 'unknown', 'excluded', '?')
+
+
+def frozen_keys():
+    u"""Ключи, у которых своей копии в `_corpus_raw` НЕТ И НЕ БУДЕТ.
+
+    Это семёрка `corpus_def.LEGACY` — побайтные копии исходного исследования.
+    ⚠ Это СЕМЬ спектров, а не девять: в `data/calibration.json` записей 9, но
+    два из них — `AS80_Th232WT20` и `RC103_Th232WT20` — идут обычным
+    конвейером, своя копия в `_corpus_raw` у них есть, и заморожёнными они не
+    являются. Сверено 26.08.2026: `set(calibration.json) - set(LEGACY)` —
+    ровно эти два ключа, и оба лежат в `_corpus_raw`.
+    В корпус они попадают готовыми из `scripts/spectra`
+    (`build_corpus.main`: `shutil.copyfile`, без `extract`), а их калибровка
+    берётся ГОТОВОЙ из `data/calibration.json`
+    (`build_corpus.legacy_manifest`). То есть стадий 1 и 2 у них не происходит
+    вовсе — и это видно в самом корпусе: в `corpus/manifest.csv` у всех семи
+    пусто поле `ecal_rms_fwhm`, ровно то число, которое считают эти мерки.
+
+    ⛔ **Поэтому «положить их в `_corpus_raw`» дефект не чинит, а прячет.**
+    Файлы в `scripts/spectra` — не сырьё, а РЕЗУЛЬТАТ: их пишет
+    `apply_calibration.py`, применяя готовые коэффициенты из
+    `data/calibration.json`. Сверено 26.08.2026 поимённо: в
+    `scripts/spectra/ASN16_Th232.xml` стоит
+    `[-15.06405718884492, 0.4082753620881187, 3.193712135084497e-06]` — ровно
+    поле `ecal` той же записи `calibration.json`. Подсунув такой файл стадии 1,
+    мерка скормила бы ей её собственный ответ (а хранившуюся кривую
+    `corpus_calib.choose` ещё и привилегирует: кандидат должен побить её с
+    запасом, `keep_margin=0.9`), и семь спектров выглядели бы благополучнее
+    прочих ста двадцати двух по построению. Отдельный заново сделанный
+    `extract` тоже не годится: он мерил бы конвейер, которого у этих спектров
+    в корпусе нет.
+
+    Единственная честная мера — НАЗВАТЬ охват, чем `Coverage` и занимается.
+    """
+    return set(e['key'] for e in corpus_def.LEGACY)
+
+
+class Coverage(object):
+    u"""Охват мерки по частям корпуса: посчитано из объявленного.
+
+    Правило проекта — каждое число обязано называть свою часть
+    (known / unknown / excluded). Мерка, живущая на `scripts/_corpus_raw`,
+    молча теряла семь спектров непонятной части и печатала «unknown 33», где
+    читатель имел право прочесть «вся непонятная часть» (`T76`). Здесь
+    знаменатель берётся из `corpus/parts.csv`, а не из того, что удалось
+    прочитать, поэтому неполный охват виден сам, без сверки глазами.
+
+    Стадии добавляются `add()`. У стадии есть признак `hard`:
+
+      * `hard=True` — вход мерки. Всё, чего тут нет и что не объявлено
+        замороженным (`frozen_keys`), — сломанный охват: печатается ⛔ и
+        уходит в код возврата.
+      * `hard=False` — отсев самой мерки (нет линий, нет неподвижного набора).
+        Это не дефект, но и не «часть целиком», поэтому охват всё равно
+        печатается, а число рядом с ним обязано его называть.
+    """
+
+    def __init__(self, requested=None):
+        self.part = parts_of()
+        self.want = [e['key'] for e in corpus_def.ALL
+                     if requested is None or e['key'] in requested]
+        self.subset = requested is not None
+        self.unknown_keys = (sorted(set(requested) - set(self.want))
+                             if requested else [])
+        self.frozen = frozen_keys() & set(self.want)
+        self.stages = []          # [(имя, множество ключей, hard)]
+
+    # -- служебное ---------------------------------------------------------
+    def order(self):
+        seen = set(self.part.get(k, '?') for k in self.want)
+        return [p for p in PARTS_ORDER if p in seen]
+
+    def _by_part(self, keys):
+        out = {}
+        for k in keys:
+            p = self.part.get(k, '?')
+            out[p] = out.get(p, 0) + 1
+        return out
+
+    def add(self, name, keys, hard=False):
+        u"""Записать стадию; возвращает множество ключей, которые до неё дошли."""
+        ks = set(keys) & set(self.want)
+        self.stages.append((name, ks, hard))
+        return ks
+
+    def declared(self, part):
+        u"""Знаменатель охвата: сколько спектров этой части ОБЪЯВЛЕНО.
+
+        Один на всех. Считать его на месте по `parts.csv` — значит завести
+        вторую копию правила «сколько всего в части», а разойтись две копии
+        могут молча.
+        """
+        return self._by_part(self.want).get(part, 0)
+
+    def counted(self, name):
+        u"""Числитель охвата стадии по частям: {'known': 81, ...}."""
+        for nm, ks, _hard in self.stages:
+            if nm == name:
+                return self._by_part(ks)
+        return {}
+
+    def tag(self, name):
+        u"""Тег рядом с итоговым числом: 'known 81/81 · unknown 33/40 (!)'."""
+        dec = self._by_part(self.want)
+        got = self.counted(name)
+        if not got and not any(nm == name for nm, _k, _h in self.stages):
+            return u'охват ?'
+        bits = []
+        for p in self.order():
+            g, d = got.get(p, 0), dec.get(p, 0)
+            bits.append(u'%s %d/%d%s' % (p, g, d, u'' if g == d else u' (!)'))
+        return u'охват ' + u' · '.join(bits)
+
+    def warn(self, name, what=u'строка'):
+        u"""⚠ ПРЯМО РЯДОМ С ЧИСЛОМ: какие части посчитаны НЕ ЦЕЛИКОМ.
+
+        У охвата два читателя, и оба обязательны. Код возврата (`report`)
+        останавливает работу, когда пропало то, что пропасть не должно;
+        а эта строка печатается ТАМ ЖЕ, где стоит итоговое число, потому что
+        именно число цитируют — и «unknown» рядом с ним читается как вся
+        непонятная часть, пока не написано обратное.
+
+        Возвращает число неполных частей.
+        """
+        dec = self._by_part(self.want)
+        got = self.counted(name)
+        n = 0
+        for p in self.order():
+            g, d = got.get(p, 0), dec.get(p, 0)
+            if g == d:
+                continue
+            n += 1
+            print(u'⚠ ОХВАТ НЕПОЛОН: %s «%s» посчитана по %d спектрам из %d — '
+                  u'это НЕ вся часть, и цитировать её как часть нельзя'
+                  % (what, p, g, d))
+        return n
+
+    def report(self, title=u'ОХВАТ МЕРКИ'):
+        u"""Печатает таблицу охвата; возвращает число НЕОБЪЯСНЁННЫХ пропусков."""
+        print(u'')
+        print(u'=== %s: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===' % title)
+        if self.subset:
+            print(u'⚠ прогон по ключу --only: знаменатель — запрошенные %d '
+                  u'спектров, а не весь корпус' % len(self.want))
+            if self.unknown_keys:
+                print(u'⚠ в --only есть ключи, которых НЕТ в corpus_def: %s'
+                      % u', '.join(self.unknown_keys))
+        cols = self.order()
+        dec = self._by_part(self.want)
+        print(u'%-38s %s %11s' % (u'стадия',
+                                  u' '.join(u'%11s' % p for p in cols),
+                                  u'ВСЕГО'))
+        for nm, ks, _hard in self.stages:
+            got = self._by_part(ks)
+            cells = []
+            for p in cols:
+                g, d = got.get(p, 0), dec.get(p, 0)
+                cells.append(u'%11s' % (u'%d/%d%s' % (g, d,
+                                                      u'' if g == d else u' !')))
+            tot = u'%d/%d%s' % (len(ks), len(self.want),
+                                u'' if len(ks) == len(self.want) else u' !')
+            print(u'%-38s %s %11s' % (nm[:38], u' '.join(cells), tot))
+
+        bad = 0
+        shown = None            # поимённый список не повторяется у стадии,
+        for nm, ks, hard in self.stages:   # которая ничего нового не потеряла
+            miss = [k for k in self.want if k not in ks]
+            if not miss:
+                continue
+            if set(miss) == shown:
+                continue
+            shown = set(miss)
+            exp = [k for k in miss if k in self.frozen]
+            unexp = [k for k in miss if k not in self.frozen]
+            print(u'')
+            print(u'  «%s»: вне мерки %d из %d' % (nm, len(miss), len(self.want)))
+            if exp:
+                print(u'    ОЖИДАЕМО — семёрка corpus_def.LEGACY, стадий 1 и 2 у '
+                      u'неё в корпусе нет (%d): %s' % (len(exp),
+                                                       u', '.join(sorted(exp))))
+            if unexp and hard:
+                bad += len(unexp)
+                print(u'    ⛔ НЕОЖИДАННО, охват СЛОМАН (%d): %s'
+                      % (len(unexp), u', '.join(sorted(unexp)[:12])))
+            elif unexp:
+                print(u'    отсеяла сама мерка — не дефект охвата, но и не часть '
+                      u'целиком (%d): %s'
+                      % (len(unexp), u', '.join(sorted(unexp)[:12])))
+        if bad:
+            print(u'')
+            print(u'⛔ ОХВАТ СЛОМАН: %d спектров не посчитано и не объяснено. '
+                  u'Числа мерки корпус НЕ описывают — код возврата 3.' % bad)
+        return bad
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +422,8 @@ def main():
 
     res_by_det = det_res_a()
     part_of = parts_of()
+    cov = Coverage(requested=only)
+    read_ok = []                  # спектры, до которых мерка вообще дошла
     rows = []
     detail = []
     for e in corpus_def.ALL:
@@ -232,9 +443,11 @@ def main():
         except Exception as ex:
             print(u'%-24s ОШИБКА чтения: %s' % (key, ex))
             continue
+        read_ok.append(key)
         cal = corpus_calib.Ecal(sp.ecal, sp.n)
         lines = lines_of(e, sp, res_a)
         if not lines:
+            print(u'%-24s НЕТ курированных линий — в сводку не попадёт' % key)
             continue
 
         got = {}
@@ -295,6 +508,12 @@ def main():
                          fake_new_bump=fake_new_bump))
 
     # ---- сводка ----------------------------------------------------------
+    # `T76`: охват идёт ПЕРЕД числами, а не после, и знаменатель у него из
+    # `parts.csv`, а не из того, что удалось прочитать.
+    cov.add(u'прочитано из _corpus_raw', read_ok, hard=True)
+    cov.add(u'в сводке (есть курированные линии)', [r['key'] for r in rows])
+    bad = cov.report()
+
     print(u'')
     print(u'%-22s %-9s %-8s %5s %5s %6s %6s %6s %6s %7s %7s' % (
         u'спектр', u'группа', u'часть', u'стар', u'нов', u'+нов', u'-пот',
@@ -306,33 +525,45 @@ def main():
                 r['lost'], r['moved'], r['real'], r['fake_old'], r['fake_new']))
 
     print(u'')
-    print(u'%-10s %6s %6s %6s %6s %6s %6s %8s %8s %8s' % (
-        u'часть', u'спектр', u'стар', u'нов', u'+нов', u'бугор', u'-пот',
+    print(u'%-10s %9s %6s %6s %6s %6s %6s %8s %8s %8s' % (
+        u'часть', u'ОХВАТ', u'стар', u'нов', u'+нов', u'бугор', u'-пот',
         u'спектр+', u'ложь_с', u'ложь_н'))
-    for part in ('known', 'unknown', 'excluded', '?'):
+    for part in PARTS_ORDER:
         sub = [r for r in rows if r['part'] == part]
         if not sub:
             continue
-        print(u'%-10s %6d %6d %6d %6d %6d %6d %8d %8d %8d' % (
-            part, len(sub), sum(r['old'] for r in sub), sum(r['new'] for r in sub),
+        # ⛔ `T76`: в этой колонке стоял ОДИН счётчик — сколько спектров попало в
+        # сводку. Он читался как «вся часть» и молча означал 33 из 40. Теперь
+        # рядом с числами стоит дробь, и неполнота видна в той же строке.
+        # Знаменатель берётся у `Coverage`, а не считается здесь заново: второй
+        # копии правила «сколько в части всего» быть не должно.
+        d = cov.declared(part)
+        cover = u'%d/%d%s' % (len(sub), d, u'' if len(sub) == d else u' !')
+        print(u'%-10s %9s %6d %6d %6d %6d %6d %8d %8d %8d' % (
+            part, cover, sum(r['old'] for r in sub), sum(r['new'] for r in sub),
             sum(r['gain'] for r in sub), sum(r['real'] for r in sub),
             sum(r['lost'] for r in sub),
             sum(1 for r in sub if r['gain']),
             sum(r['fake_old'] for r in sub), sum(r['fake_new'] for r in sub)))
-        print(u'%-10s %6s %6s %6s %6s %6s %6s %8s %8d %8d  <- из них с бугром'
+        print(u'%-10s %9s %6s %6s %6s %6s %6s %8s %8d %8d  <- из них с бугром'
               % ('', '', '', '', '', '', '', '',
                  sum(r['fake_old_bump'] for r in sub),
                  sum(r['fake_new_bump'] for r in sub)))
     print(u'⛔ части НЕ СКЛАДЫВАЮТСЯ — числа разных моделей')
+    cov.warn(u'в сводке (есть курированные линии)')
 
     print(u'')
     print(u'предел σ: %.2f…%.2f от затравки' % (gaussfit.SIGMA_LO_FRAC,
                                                 gaussfit.SIGMA_HI_FRAC))
     print(u'исходы фита за прогон (новый): %s' % gaussfit.STATS)
     print(u'РАЗБЕГ (`LAST_NOCONV`): старый фит не различал его вовсе; новый — %d '
-          u'линий по корпусу. Упор в предел σ (`LAST_BOUND`): %d — это в основном '
+          u'линий. Упор в предел σ (`LAST_BOUND`): %d — это в основном '
           u'«линии нет», сторожем не служит.'
           % (sum(r['noconv_new'] for r in rows), sum(r['bound_new'] for r in rows)))
+    # ⛔ Прежде здесь стояло «по корпусу». Корпус — 129 спектров, а сумма взята
+    # по тем, что дошли до сводки; `T76` — ровно про эту подмену.
+    print(u'   ^ не «по корпусу», а по: %s'
+          % cov.tag(u'в сводке (есть курированные линии)'))
 
     if detail:
         print(u'')
@@ -355,7 +586,10 @@ def main():
                             '%.3f' % d['fwhm'], '%.3f' % d['fwhm_model'],
                             d['bump'], '%.1f' % d['top'], '%.1f' % d['need']])
         print(u'\nподробности: %s' % csv_out)
-    return 0
+    # `T76`: у признака есть ЧИТАТЕЛЬ — код возврата. 3 = охват сломан
+    # (пропало то, что пропасть не должно); ожидаемая семёрка сюда не входит,
+    # иначе сторож кричал бы всегда и его перестали бы слушать.
+    return 3 if bad else 0
 
 
 if __name__ == '__main__':
