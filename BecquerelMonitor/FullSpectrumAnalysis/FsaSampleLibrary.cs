@@ -109,17 +109,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double MaxEnergyKev = 3200.0;
 
         /// <summary>
-        /// ⛔ КЛЮЧ A/B `S98`: как сводятся полоса фита и полоса библиотеки.
-        /// Умолчание — <see cref="FsaBand.DefaultMode"/>; разбор веток и цена
-        /// каждой — в шапке <see cref="FsaBand"/>.
+        /// Как сводятся полоса фита и полоса библиотеки (`S98`).
+        ///
+        /// ⛔ ЧИТАЕТСЯ, А НЕ ХРАНИТСЯ (`S101`, измерено 26.08.2026). Здесь
+        /// стояло ПОЛЕ с копией <see cref="FsaBand.DefaultMode"/>, снятой в
+        /// момент создания спецификации, и такая же копия — у
+        /// <see cref="FsaAnalyzer"/>. Двигали обычно вторую (полоса объявлена
+        /// свойством анализатора), первая оставалась поставочной, и корпусный
+        /// A/B по полосе молча мерил ОДНО И ТО ЖЕ: плечо `--band=whole` дало
+        /// состав и пределы побитово те же, что поставочный прогон, — 32 файла
+        /// из 32. Теперь оба конца читают статику при обращении, присваивания
+        /// нет ни у одного, и развести их нечем.
+        /// Разбор веток и цена каждой — в шапке <see cref="FsaBand"/>.
         /// </summary>
-        public FsaBandMode Band = FsaBand.DefaultMode;
+        public FsaBandMode Band
+        {
+            get { return FsaBand.DefaultMode; }
+        }
 
         /// <summary>
         /// Пол полосы библиотеки, кэВ, при <see cref="FsaBandMode.LibraryToFit"/>.
         /// Ноль или отрицательное — пола нет, режет <see cref="MinEnergyKev"/>.
+        /// ⛔ Как и <see cref="Band"/>, читается у <see cref="FsaBand.DefaultFloor"/>
+        /// при обращении и своей копии не имеет (`S101`).
         /// </summary>
-        public double LibraryFloorKev = FsaBand.DefaultFloor;
+        public double LibraryFloorKev
+        {
+            get { return FsaBand.DefaultFloor; }
+        }
 
         /// <summary>
         /// ⛔ КРИВАЯ ЭФФЕКТИВНОСТИ СПЕКТРА — нужна ТОЛЬКО чтобы назначить пол
@@ -134,11 +151,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public FsaEfficiency Efficiency;
 
-        /// <summary>
-        /// Доля от максимума кривой для пола по кривой; ноль или отрицательное —
-        /// брать <see cref="FsaBand.DefaultFloorFraction"/>.
-        /// </summary>
-        public double FloorFraction = -1.0;
+        // ⛔ СОБСТВЕННОЙ ДОЛИ У СПЕЦИФИКАЦИИ НЕТ (`S101`). Здесь стояло поле
+        // `FloorFraction` с признаком «ноль или отрицательное — брать
+        // умолчание», и не ставил его никто. Убрано не за неиспользуемость, а
+        // за то, что это ТРЕТИЙ рычаг у одного решения: заверение анализатора
+        // (`FsaAnalyzer.BandNote`) называет пол по `FsaBand.DefaultFloorFraction`,
+        // и спецификация со своей долей заставила бы два конца печатать разные
+        // числа об одном и том же поле. Долю двигает `FsaBand.DefaultFloorFraction`,
+        // её видят оба; ключ пробы — `--floor-frac=`.
 
         /// <summary>
         /// ⛔ ГРАНИЦА, КОТОРАЯ РЕАЛЬНО РЕЖЕТ ЛИНИИ. Одна на все образы —
@@ -190,10 +210,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return 0.0;
                 }
 
-                double frac = this.FloorFraction > 0.0
-                    ? this.FloorFraction
-                    : FsaBand.DefaultFloorFraction;
-                return this.Efficiency.FloorAtFraction(frac);
+                // Доля — ОДНА на разбор и берётся у статики при обращении
+                // (`S101`): её же читает заверение анализатора, и второй копии
+                // здесь быть не должно.
+                return this.Efficiency.FloorAtFraction(FsaBand.DefaultFloorFraction);
             }
         }
 

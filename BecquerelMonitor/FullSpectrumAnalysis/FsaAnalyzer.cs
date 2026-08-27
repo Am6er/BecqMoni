@@ -149,6 +149,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static double DefaultFloor = DefaultFloorKev;
 
         /// <summary>
+        /// ⛔ ЧТО ИМЕННО ПОСТАВЛЯЕТСЯ ДОЛЕЙ — отдельно от того, что стоит
+        /// СЕЙЧАС, по той же причине, что и <see cref="ShippedMode"/>: без
+        /// разделения строка «(умолчание)» врёт на всяком прогоне, где долю
+        /// сдвинул ключ.
+        /// </summary>
+        public const double ShippedFloorFraction = 0.01;
+
+        /// <summary>
         /// Доля от максимума кривой, ниже которой линии не впускаются при
         /// <see cref="FsaBandMode.LibraryToFitByCurve"/>. ⛔ Это ТОЖЕ подлежит
         /// A/B: доля взята из наблюдения (у 58 кривых корпуса из 83 она даёт
@@ -156,7 +164,77 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ней ставить с положительным контролем: доля, дающая пол, равный
         /// `Min_Range`, обязана воспроизвести <see cref="FsaBandMode.Whole"/>.
         /// </summary>
-        public static double DefaultFloorFraction = 0.01;
+        public static double DefaultFloorFraction = ShippedFloorFraction;
+
+        /// <summary>
+        /// ⛔ СТОРОЖ ОБОИХ КОНЦОВ ПОЛОСЫ (`S101`, измерено 26.08.2026).
+        ///
+        /// Полосу читают ДВА места — <see cref="FsaAnalyzer"/> (полоса фита и
+        /// строка заверения) и <c>FsaSampleSpec</c> (что режет линии). Пока у
+        /// каждого была СВОЯ копия, снятая в момент создания, присваивание
+        /// полосы одному из них двигало один конец, и A/B по полосе молча мерил
+        /// одно и то же: плечо `--band=whole` дало состав и пределы ПОБИТОВО те
+        /// же, что поставочный прогон, — 32 файла из 32, разошлись только `ms`
+        /// и `cpu_ms`.
+        ///
+        /// Сегодня копий нет: оба конца читают <see cref="DefaultMode"/> и
+        /// <see cref="DefaultFloor"/> В МОМЕНТ ОБРАЩЕНИЯ, а их собственные
+        /// свойства сделаны БЕЗ присваивания (`get`-только), так что развести
+        /// концы нечем — попытка не компилируется. Этот сторож остаётся
+        /// ВСТРЕЧНОЙ проверкой на случай, когда копию заведут снова: он
+        /// сличает то, что концы отдают НА САМОМ ДЕЛЕ.
+        ///
+        /// Пустая строка — сошлось. Положительный контроль самого сторожа —
+        /// `CorpusFsaProbe --band-selftest`.
+        /// </summary>
+        public static string EndsNote(FsaBandMode analyzerBand, double analyzerFloor,
+                                      FsaBandMode libraryBand, double libraryFloor)
+        {
+            if (analyzerBand == libraryBand && Math.Abs(analyzerFloor - libraryFloor) <= 1e-9)
+            {
+                return "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "⛔ РАССИНХРОН ПОЛОСЫ (`S101`): анализатор считает {0}, пол {1:F2} кэВ;"
+                + " библиотека собирается по {2}, пол {3:F2} кэВ."
+                + " A/B по полосе в таком виде мерит РАЗНОЕ у двух концов, и разница"
+                + " принадлежит не ключу, а рассинхрону.",
+                analyzerBand, analyzerFloor, libraryBand, libraryFloor);
+        }
+
+        /// <summary>
+        /// Тот же сторож на живых объектах: спрашивает у каждого конца то, что
+        /// он отдаёт читателю. ⚠ Спрашивать надо ИМЕННО свойства, а не поля
+        /// умолчаний, — сторож затем и заведён, чтобы поймать конец, у которого
+        /// снова завелась своя копия.
+        /// </summary>
+        public static string EndsNote(FsaAnalyzer analyzer, FsaSampleSpec spec)
+        {
+            if (analyzer == null || spec == null)
+            {
+                return "";
+            }
+
+            return EndsNote(analyzer.Band, analyzer.LibraryFloorKev,
+                            spec.Band, spec.LibraryFloorKev);
+        }
+
+        /// <summary>
+        /// Полоса ОБОИХ концов готовой строкой для шапки прогона: что стоит
+        /// сейчас, что поставляется и сошлись ли концы. Умолчание, которого не
+        /// видно в выводе, ничем не отличается от случайного, а два конца, чьё
+        /// согласие никто не печатает, — от одного.
+        /// </summary>
+        public static string EndsLine(FsaAnalyzer analyzer, FsaSampleSpec spec)
+        {
+            string note = EndsNote(analyzer, spec);
+            return string.Format(CultureInfo.InvariantCulture,
+                "полоса ОБОИХ концов: анализатор {0}/{1:F2} кэВ, библиотека {2}/{3:F2} кэВ — {4}",
+                analyzer.Band, analyzer.LibraryFloorKev,
+                spec.Band, spec.LibraryFloorKev,
+                note.Length == 0 ? "СОШЛИСЬ" : note);
+        }
 
         /// <summary>Разобрать имя режима: `whole` / `fit` / `library`.</summary>
         public static bool TryParse(string name, out FsaBandMode mode)
@@ -266,12 +344,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// ⛔ КЛЮЧ A/B для `S98`: как сводятся полоса фита и полоса библиотеки.
-        /// Умолчание берётся из <see cref="FsaBand.DefaultMode"/> — одно на весь
-        /// разбор, и его же печатает <see cref="FsaBand.Describe"/>.
+        /// Как сводятся полоса фита и полоса библиотеки (`S98`).
+        ///
+        /// ⛔ ЧИТАЕТСЯ, А НЕ ХРАНИТСЯ (`S101`): значение берётся у
+        /// <see cref="FsaBand.DefaultMode"/> при КАЖДОМ обращении, и своей
+        /// копии у анализатора нет. Присваивания нет НАРОЧНО — оно двигало бы
+        /// один конец из двух (второй, <c>FsaSampleSpec</c>, читает ту же
+        /// статику), а A/B по полосе тогда молча мерит одно и то же: измерено
+        /// 26.08.2026, плечо `--band=whole` дало состав и пределы побитово те
+        /// же, что поставочный прогон. Рычаг ОДИН — та самая статика; её же
+        /// печатает <see cref="FsaBand.Describe"/>, а согласие концов —
+        /// <see cref="FsaBand.EndsLine"/>.
         /// Разбор выбора и цена каждой ветки — в шапке <see cref="FsaBand"/>.
         /// </summary>
-        public FsaBandMode Band { get; set; }
+        public FsaBandMode Band
+        {
+            get { return FsaBand.DefaultMode; }
+        }
 
         /// <summary>
         /// Пол полосы БИБЛИОТЕКИ, кэВ, при <see cref="FsaBandMode.LibraryToFit"/>.
@@ -279,12 +368,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⚠ Анализатор библиотеку НЕ собирает и этим числом ничего не режет —
         /// оно здесь только для того, чтобы <see cref="BandNote"/> называл
         /// полосу целиком. Режет <c>FsaSampleSpec.LineFloorKev</c> при сборке.
-        /// ⛔ Отсюда правило A/B: рычаг ОДИН — <see cref="FsaBand.DefaultMode"/>
-        /// и <see cref="FsaBand.DefaultFloor"/>, их читают оба конца. Ставить
-        /// режим только анализатору — значит развести фит и библиотеку ещё раз,
-        /// то есть повторить сам дефект `S98`.
+        /// ⛔ Как и <see cref="Band"/>, читается у <see cref="FsaBand.DefaultFloor"/>
+        /// при обращении и своей копии не имеет (`S101`).
         /// </summary>
-        public double LibraryFloorKev { get; set; }
+        public double LibraryFloorKev
+        {
+            get { return FsaBand.DefaultFloor; }
+        }
 
         /// <summary>
         /// Полоса фита ПОСЛЕДНЕГО разбора, готовой строкой: что за режим, какие
@@ -310,25 +400,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⚠ С 25.08.2026 это НЕ отдельный выключатель, а вид на
         /// <see cref="Band"/>: «фит целиком» — это и `Whole`, и `LibraryToFit`,
         /// а `false` означает ровно `FitToLibrary`. Двух рычагов на одно
-        /// решение здесь быть не должно — с них и началась `S98`. Присвоение
-        /// `true` возвращает умолчание разбора, если оно не сужает фит.
+        /// решение здесь быть не должно — с них и началась `S98`.
+        ///
+        /// ⛔ Присваивания нет (`S101`): оно двигало бы полосу ОДНОМУ концу.
+        /// Сузить фит — значит поставить <see cref="FsaBand.DefaultMode"/> в
+        /// <see cref="FsaBandMode.FitToLibrary"/>, и тогда это увидят оба.
         /// </summary>
         public bool FitWholeSpectrum
         {
             get { return this.Band != FsaBandMode.FitToLibrary; }
-            set
-            {
-                if (!value)
-                {
-                    this.Band = FsaBandMode.FitToLibrary;
-                }
-                else if (this.Band == FsaBandMode.FitToLibrary)
-                {
-                    this.Band = FsaBand.DefaultMode != FsaBandMode.FitToLibrary
-                        ? FsaBand.DefaultMode
-                        : FsaBandMode.Whole;
-                }
-            }
         }
 
         public ContinuumMode Mode { get; set; }
@@ -702,11 +782,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public FsaAnalyzer()
         {
             this.Mode = ContinuumMode.Spline;
-            // S98: одно решение вместо двух рычагов. Умолчание — в `FsaBand`,
-            // там же разбор обеих веток и цена каждой; ключ A/B — `Band`
-            // (или `FitWholeSpectrum = false` для ветки «сузить фит»).
-            this.Band = FsaBand.DefaultMode;
-            this.LibraryFloorKev = FsaBand.DefaultFloor;
+            // S98/S101: полоса СЮДА НЕ КОПИРУЕТСЯ вовсе. `Band` и
+            // `LibraryFloorKev` — читалки `FsaBand.DefaultMode` /
+            // `FsaBand.DefaultFloor`, и рычаг у полосы поэтому ровно один: та
+            // статика. Прежние две строки копировали её в момент создания, и
+            // второй конец (`FsaSampleSpec`) делал то же самое своей копией —
+            // отсюда и рассинхрон, которым `S101` заведена.
             this.MinEnergy = 40.0;
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
@@ -878,9 +959,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // кэВ)» вместе с режимом — единственный способ отличить прогон с
             // новым умолчанием от прогона со старым, когда числа уже сведены в
             // таблицу.
+            //
+            // ⛔ Пол называется ФАКТИЧЕСКИЙ, а не числовой (`S101`): при поле по
+            // кривой линии режет `FsaEfficiency.FloorAtFraction` той же кривой,
+            // что подана сюда, а `LibraryFloorKev` — число для ветки
+            // `LibraryToFit` и к кривой отношения не имеет. До 27.08.2026 здесь
+            // печаталось именно оно, и заверение анализатора называло 10.0 кэВ
+            // там, где библиотека резала по 20 или 30, — два конца, называющие
+            // разные числа об одном и том же.
+            double noteFloor = this.Band == FsaBandMode.LibraryToFitByCurve
+                ? (efficiency != null
+                       ? efficiency.FloorAtFraction(FsaBand.DefaultFloorFraction)
+                       : 0.0)
+                : this.LibraryFloorKev;
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
                 "{0}; фит {1}…{2} ({3:F1}…{4:F1} кэВ)",
-                FsaBand.Describe(this.Band, this.LibraryFloorKev, this.MinEnergy, this.MaxEnergy),
+                FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy),
                 chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;

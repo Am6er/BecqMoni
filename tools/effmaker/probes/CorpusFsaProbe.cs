@@ -103,6 +103,7 @@ namespace CorpusFsaProbe
             // прогоном `--band=whole`.
             StockBandMode = FsaBand.DefaultMode;
             StockBandFloor = FsaBand.DefaultFloor;
+            StockBandFraction = FsaBand.DefaultFloorFraction;
 
             var o = new Options();
             foreach (string a in args)
@@ -234,6 +235,41 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
+                // (`S98`, `S101`) РАЗВЁРТКА ПО ДОЛЕ ПОЛА ПО КРИВОЙ. Пол при
+                // поставочном режиме назначает не число, а сама кривая: линии
+                // впускаются не ниже той энергии, где эффективность набирает
+                // эту долю от своего максимума. Доля взята из наблюдения
+                // (`FsaBand.DefaultFloorFraction`), а не выведена, — развёртка
+                // по ней и есть способ это исправить.
+                //
+                // ⛔ СТАВИТСЯ СТАТИКА, и только она: её читают ОБА конца — и
+                // `FsaSampleSpec.CurveFloorKev`, который режет линии, и
+                // заверение анализатора. Ставить долю одному концу значило бы
+                // повторить `S101`.
+                // ⛔ Ключ разбирается ПОСЛЕ снятия эталона (см. `StockBandFraction`
+                // выше): эталон, снятый уже сдвинутым, показал бы «НИЧЕГО»
+                // (`T65`).
+                if (a.StartsWith("--floor-frac=", StringComparison.Ordinal))
+                {
+                    o.FloorFraction = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    if (!(o.FloorFraction > 0.0) || o.FloorFraction > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "доля пола по кривой обязана лежать в (0…1]: {0}", a.Substring(13));
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultFloorFraction = o.FloorFraction;
+                    continue;
+                }
+
+                // (`S101`) Положительный контроль сторожа обоих концов полосы.
+                // Не корпусный прогон: считает три опыта над `FsaBand` и
+                // выходит. Заведён потому, что сторож, у которого нет опыта с
+                // ЗАВЕДОМЫМ рассинхроном, ничем не отличается от сторожа,
+                // который всегда молчит.
+                if (a == "--band-selftest") { o.BandSelfTest = true; continue; }
+
                 if (a.StartsWith("--knot-fwhm=", StringComparison.Ordinal))
                 {
                     // (`S88`) Густой край шага узлов в ПШПВ; умолчание 4.
@@ -332,6 +368,14 @@ namespace CorpusFsaProbe
                     Console.Error.WriteLine("неизвестный ключ: " + a);
                     return 2;
                 }
+            }
+
+            // (`S101`) Положительный контроль сторожа полосы — ДО всякого
+            // чтения корпуса: он не про спектры, а про то, один ли у полосы
+            // рычаг. Корпуса и конфигов ему не нужно.
+            if (o.BandSelfTest)
+            {
+                return BandSelfTest();
             }
 
             if (o.Mode != "spline" && o.Mode != "snip")
@@ -464,6 +508,13 @@ namespace CorpusFsaProbe
                               GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
                               head.GainRange, head.GainSteps,
                               GridStep(head.GainRange, head.GainSteps, "P3", ""));
+            // (`S101`) ПОЛОСА — ОБОИМИ КОНЦАМИ И ВСЛУХ. Печатается не «что
+            // заказано ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ:
+            // анализатор (полоса фита и заверение) и спецификация библиотеки
+            // (то, что режет линии). Пока концов было два со своими копиями,
+            // прогон `--band=whole` давал побитово поставочный результат и в
+            // журнале был неотличим от него.
+            PrintBand(head, o);
             PrintTuning(head);
             Console.WriteLine();
 
@@ -688,15 +739,137 @@ namespace CorpusFsaProbe
         /// <summary>Поставочный пол полосы, снятый ДО разбора ключей (`S101`).</summary>
         static double StockBandFloor;
 
+        /// <summary>
+        /// Поставочная ДОЛЯ пола, снятая ДО разбора ключей (`S101`). Нужна той
+        /// же цели, что <see cref="StockBandMode"/>: эталон для строки «ключами
+        /// изменено» обязан родиться с поставочной долей, иначе `--floor-frac=`
+        /// в журнале не виден и абляционный прогон неотличим от умолчательного
+        /// (`T65`).
+        /// </summary>
+        static double StockBandFraction;
+
+        /// <summary>
+        /// ⛔ ПОЛОСА ОБОИМИ КОНЦАМИ И ВСЛУХ (`S101`). Печатается не «что заказано
+        /// ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ: анализатор (полоса
+        /// фита и заверение) и спецификация библиотеки (то, что режет линии).
+        /// Пока у концов были свои копии, `--band=whole` давал побитово
+        /// поставочный результат и в журнале был от него неотличим.
+        ///
+        /// Доля печатается вместе с тем, что поставляется, — умолчание, которого
+        /// не видно в выводе, ничем не отличается от случайного.
+        /// </summary>
+        static void PrintBand(FsaAnalyzer head, Options o)
+        {
+            Console.WriteLine(FsaBand.EndsLine(head, new FsaSampleSpec()));
+
+            double frac = FsaBand.DefaultFloorFraction;
+            Console.WriteLine("доля пола по кривой: {0:P3}{1}",
+                              frac,
+                              Math.Abs(frac - FsaBand.ShippedFloorFraction) <= 1e-12
+                                  ? " (поставочная)"
+                                  : string.Format(CultureInfo.InvariantCulture,
+                                                  " — СДВИНУТА ключом --floor-frac=, поставляется {0:P3}",
+                                                  FsaBand.ShippedFloorFraction));
+        }
+
+        /// <summary>
+        /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ СТОРОЖА ПОЛОСЫ (`S101`), ключ
+        /// `--band-selftest`. Корпус при нём не читается вовсе.
+        ///
+        /// Сторож <see cref="FsaBand.EndsNote(FsaAnalyzer, FsaSampleSpec)"/>
+        /// сличает то, что концы отдают на самом деле. Сторож, который никогда
+        /// не срабатывал, ничем не отличается от сторожа, который не работает,
+        /// — поэтому здесь он проверяется В ОБЕ СТОРОНЫ:
+        ///   * на живых объектах при сдвинутой статике концы обязаны СОЙТИСЬ
+        ///     (один рычаг двигает оба);
+        ///   * на подставленном рассинхроне сторож обязан ОТКАЗАТЬ.
+        /// Код возврата 0 — сошлось, 4 — сторож слеп.
+        /// </summary>
+        static int BandSelfTest()
+        {
+            var bad = new List<string>();
+
+            FsaBandMode liveMode = FsaBand.DefaultMode;
+            double liveFloor = FsaBand.DefaultFloor;
+            double liveFrac = FsaBand.DefaultFloorFraction;
+            try
+            {
+                // 1. ОДИН РЫЧАГ ДВИГАЕТ ОБА КОНЦА. Двигаем СТАТИКУ и спрашиваем
+                //    у каждого конца, что он отдаёт читателю.
+                foreach (FsaBandMode mode in new[] { FsaBandMode.Whole,
+                                                     FsaBandMode.LibraryToFit,
+                                                     FsaBandMode.LibraryToFitByCurve })
+                {
+                    FsaBand.DefaultMode = mode;
+                    FsaBand.DefaultFloor = liveFloor + 7.0;
+
+                    var analyzer = new FsaAnalyzer();
+                    var spec = new FsaSampleSpec();
+                    string note = FsaBand.EndsNote(analyzer, spec);
+                    if (note.Length != 0)
+                    {
+                        bad.Add("рычаг НЕ ОДИН при " + mode + ": " + note);
+                    }
+
+                    if (analyzer.Band != mode || spec.Band != mode)
+                    {
+                        bad.Add(string.Format(CultureInfo.InvariantCulture,
+                            "статика {0} не доехала до концов: анализатор {1}, библиотека {2}",
+                            mode, analyzer.Band, spec.Band));
+                    }
+                }
+
+                // 2. ОТРИЦАТЕЛЬНЫЙ КОНТРОЛЬ: подставленный рассинхрон обязан
+                //    быть НАЗВАН. Без него «пусто» ничего не доказывает.
+                string caught = FsaBand.EndsNote(FsaBandMode.Whole, 0.0,
+                                                 FsaBandMode.LibraryToFit, 30.0);
+                if (caught.Length == 0)
+                {
+                    bad.Add("сторож СЛЕП: подставленный рассинхрон (Whole/0 против LibraryToFit/30) не назван");
+                }
+
+                string same = FsaBand.EndsNote(FsaBandMode.LibraryToFitByCurve, 20.0,
+                                               FsaBandMode.LibraryToFitByCurve, 20.0);
+                if (same.Length != 0)
+                {
+                    bad.Add("сторож ложно тревожит на согласных концах: " + same);
+                }
+            }
+            finally
+            {
+                FsaBand.DefaultMode = liveMode;
+                FsaBand.DefaultFloor = liveFloor;
+                FsaBand.DefaultFloorFraction = liveFrac;
+            }
+
+            if (bad.Count != 0)
+            {
+                Console.Error.WriteLine("⛔ СТОРОЖ ПОЛОСЫ НЕ ПРОШЁЛ САМОПРОВЕРКУ (`S101`):");
+                foreach (string b in bad)
+                {
+                    Console.Error.WriteLine("   " + b);
+                }
+
+                return 4;
+            }
+
+            Console.WriteLine("сторож полосы (`S101`): один рычаг двигает ОБА конца"
+                              + " на всех трёх режимах; подставленный рассинхрон НАЗВАН,"
+                              + " согласные концы не тревожат. СОШЛОСЬ.");
+            return 0;
+        }
+
         static void PrintTuning(FsaAnalyzer tuned)
         {
             // Эталон обязан родиться с ПОСТАВОЧНОЙ полосой, а не с той, что уже
             // выставил ключ, — иначе `--band=` в журнале не виден вовсе.
             FsaBandMode liveMode = FsaBand.DefaultMode;
             double liveFloor = FsaBand.DefaultFloor;
+            double liveFraction = FsaBand.DefaultFloorFraction;
             FsaAnalyzer stock;
             FsaBand.DefaultMode = StockBandMode;
             FsaBand.DefaultFloor = StockBandFloor;
+            FsaBand.DefaultFloorFraction = StockBandFraction;
             try
             {
                 stock = new FsaAnalyzer();
@@ -705,6 +878,7 @@ namespace CorpusFsaProbe
             {
                 FsaBand.DefaultMode = liveMode;
                 FsaBand.DefaultFloor = liveFloor;
+                FsaBand.DefaultFloorFraction = liveFraction;
             }
 
             var changed = new List<string>();
@@ -724,6 +898,34 @@ namespace CorpusFsaProbe
                          System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
             {
                 Differs(changed, f.Name, Read(f.GetValue, tuned), Read(f.GetValue, stock));
+            }
+
+            // ⛔ ПОЛОСУ ОТРАЖЕНИЕ НЕ ВИДИТ, И ЭТО НЕ МЕЛОЧЬ (`S101` + `T65`).
+            // После связывания рычага оба конца читают статику В МОМЕНТ
+            // ОБРАЩЕНИЯ, а не хранят копию, — значит `tuned` и `stock`
+            // отдают ОДНО И ТО ЖЕ, что бы ключ ни сделал, и цикл выше
+            // честно находит «НИЧЕГО». Поймано прогоном `--band=whole`
+            // 27.08.2026: состав разошёлся у 5 групп из 16, а шапка
+            // печатала «НИЧЕГО» — абляционный прогон был в журнале
+            // неотличим от умолчательного. Поэтому полоса сличается ЗДЕСЬ,
+            // поимённо и по СТАТИКЕ, с эталоном, снятым до разбора ключей.
+            if (FsaBand.DefaultMode != StockBandMode)
+            {
+                changed.Add(string.Format(CultureInfo.InvariantCulture,
+                    "Band: {0} (поставка {1})", FsaBand.DefaultMode, StockBandMode));
+            }
+
+            if (Math.Abs(FsaBand.DefaultFloor - StockBandFloor) > 1e-9)
+            {
+                changed.Add(string.Format(CultureInfo.InvariantCulture,
+                    "LibraryFloorKev: {0:F2} (поставка {1:F2})", FsaBand.DefaultFloor, StockBandFloor));
+            }
+
+            if (Math.Abs(FsaBand.DefaultFloorFraction - StockBandFraction) > 1e-12)
+            {
+                changed.Add(string.Format(CultureInfo.InvariantCulture,
+                    "FloorFraction: {0:P3} (поставка {1:P3})",
+                    FsaBand.DefaultFloorFraction, StockBandFraction));
             }
 
             changed.Sort(StringComparer.Ordinal);
@@ -2691,6 +2893,17 @@ namespace CorpusFsaProbe
             /// отрицательный — не трогать умолчание.
             /// </summary>
             public double BandFloor = -1.0;
+
+            /// <summary>
+            /// (`S98`/`S101`) Доля от максимума кривой, задающая пол полосы,
+            /// ключ `--floor-frac=`; отрицательная — не трогать умолчание
+            /// (<c>FsaBand.DefaultFloorFraction</c>).
+            /// </summary>
+            public double FloorFraction = -1.0;
+
+            /// <summary>(`S101`) Положительный контроль сторожа полосы,
+            /// ключ `--band-selftest`; корпус при нём не читается.</summary>
+            public bool BandSelfTest;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;
