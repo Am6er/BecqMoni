@@ -3744,6 +3744,11 @@
   <data name="ERRLoadingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to load device configuration file(s).</value>
   </data>
+  <data name="ERRNucBaseOpenDatabase" xml:space="preserve">
+    <value>Cannot open the nuclide database. Nothing was read from it, so every nuclide card and line search will come back empty.
+{0}
+{1}</value>
+  </data>
   <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
     <value>Delete nuclide definition "{0}"?</value>
   </data>
@@ -43177,5 +43182,20 @@ The matrix is stored next to the device configuration, one file per geometry, an
   </data>
   <data name="GeometryMaterialsByTable" xml:space="preserve">
     <value>Fractions from the LSRM table</value>
+  </data>
+  <data name="NucBase_SearchFound" xml:space="preserve">
+    <value>Lines found: {0}.</value>
+  </data>
+  <data name="NucBase_SearchEmpty" xml:space="preserve">
+    <value>Nothing found: the query ran, but no line matches the search conditions.</value>
+  </data>
+  <data name="NucBase_LinesFetchError" xml:space="preserve">
+    <value>SEARCH FAILED for {0}. The table is empty because the query did not run — not because there are no lines. {1}</value>
+  </data>
+  <data name="NucBase_ChainLinesRefused" xml:space="preserve">
+    <value>SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}</value>
+  </data>
+  <data name="NucBase_CardEmpty" xml:space="preserve">
+    <value>No card for {0}: the nuclide table has no such row, or its half-life is not measured.</value>
   </data>
 </root>

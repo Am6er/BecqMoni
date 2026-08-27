@@ -56,6 +56,31 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060005FB RID: 1531 RVA: 0x00025794 File Offset: 0x00023994
+        /// <summary>
+        /// ⛔ Этот менеджер ВЕШАЛ безоконный прогон, и стоял он МЕЖДУ двумя уже
+        /// починенными (<c>S100</c>): <c>CorpusFsaProbe</c> зовёт подряд
+        /// <c>GlobalConfigManager</c> → <c>DeviceConfigManager</c> →
+        /// <c>NuclideDefinitionManager</c>, и прикрыт соседями он не был.
+        /// Измерено 27.08.2026 на собранном коде, две сцены: каталога
+        /// <c>config\device</c> нет (1 прогон) и «дубль GUID» — два файла с
+        /// одним <c>Guid</c> (4 прогона). Во ВСЕХ пяти процесс убит по сроку
+        /// 15–20 с, класс окна <c>#32770</c>, заголовок «Ошибка».
+        ///
+        /// ⛔ Поправка к <c>S100</c>: наблюдение «один прогон из четырёх в сцене
+        /// „дубль GUID“ завершился с кодом 0» ЗДЕСЬ НЕ ВОСПРОИЗВЕЛОСЬ — висли
+        /// все четыре. После правки те же четыре дают код 0 все четыре.
+        ///
+        /// Теперь все сообщения этого файла идут единственной дверью
+        /// <see cref="AppUi"/>: в окнах — прежнее модальное окно, без окон —
+        /// строка в поток ошибок. А отказ, после которого продолжать НЕЛЬЗЯ —
+        /// каталога конфигураций нет вовсе, — без окон бросает: список устройств
+        /// остался бы пустым, спектр не нашёл бы своей конфигурации, и числа
+        /// были бы не «хуже», а чужими.
+        ///
+        /// ⚠ Пустой, но существующий каталог сюда НЕ попадает:
+        /// <c>Directory.GetFiles</c> отдаёт пустой список без исключения. То
+        /// есть отказ поднимается ровно там, где прежде висело окно.
+        /// </summary>
         public void LoadAllConfigFiles()
         {
             if (this.listLoaded)
@@ -92,7 +117,7 @@ namespace BecquerelMonitor
                         deviceConfigInfo.Filename = Path.GetFileName(path);
                         if (this.deviceConfigMap.ContainsKey(deviceConfigInfo.Guid))
                         {
-                            MessageBox.Show(string.Format(Resources.ERRDuplicateDeviceConfigGUID, deviceConfigInfo.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                            AppUi.Report(string.Format(Resources.ERRDuplicateDeviceConfigGUID, deviceConfigInfo.Filename), Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                         }
                         else
                         {
@@ -102,17 +127,33 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
-                        MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                        AppUi.Report(Resources.ERRLoadingDeviceConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the device configuration directory could not be read and there is no UI to report it to: "
+                        + AppUi.Where(userDirectoryConfigDeviceDir)
+                        + ". Continuing would leave the device list EMPTY, and a spectrum that cannot find its device "
+                        + "configuration is analysed with someone else's calibration and resolution. "
+                        + "Run from a directory that has config\\device.",
+                        ex);
+                }
+                // Каталог заводится ТОЛЬКО в окнах: пустая заготовка, оставленная
+                // пробой в чужом каталоге, — ровно тот случай, из-за которого
+                // завели `S100`.
                 Directory.CreateDirectory(userDirectoryConfigDeviceDir);
-                MessageBox.Show(Resources.ERRLoadingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
             this.deviceConfigList.Sort();
             this.listLoaded = true;
+            // `S102`: назвать ОТКРЫТЫЙ каталог и то, сколько из него взято.
+            AppUi.Note("device configs: " + AppUi.Where(userDirectoryConfigDeviceDir) + ": "
+                + this.deviceConfigList.Count + " loaded");
         }
 
         // Token: 0x060005FC RID: 1532 RVA: 0x00025990 File Offset: 0x00023B90
@@ -142,7 +183,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.deviceConfigList.Add(deviceConfigInfo);
@@ -175,7 +216,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.deviceConfigList.Add(deviceConfigInfo);
@@ -194,7 +235,7 @@ namespace BecquerelMonitor
             PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)devConfig.EnergyCalibration;
             if (!pe.CheckCalibration(channels: devConfig.NumberOfChannels))
             {
-                MessageBox.Show(Resources.CalibrationFunctionError);
+                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                 // Was "return true" - the caller believed the config was saved, closed
                 // the form and the user's edits silently disappeared.
                 return false;
@@ -238,7 +279,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             this.deviceConfigList.Add(deviceConfigInfo);

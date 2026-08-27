@@ -56,6 +56,22 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06001031 RID: 4145 RVA: 0x0005821C File Offset: 0x0005641C
+        /// <summary>
+        /// Сообщения этого файла переведены на единственную дверь
+        /// <see cref="AppUi"/> (<c>S100</c>): в окнах — прежнее модальное окно,
+        /// без окон — строка в поток ошибок вместо зависания.
+        ///
+        /// ⛔ А вот ОТКАЗЫВАТЬ без окон, как это делает <c>DeviceConfigManager</c>
+        /// при отсутствии своего каталога, здесь НЕЛЬЗЯ, и это не забывчивость:
+        /// в рабочем каталоге корпусных прогонов (<c>tools\CORPUS\scripts\wd_app\config</c>)
+        /// каталога <c>ROI</c> НЕТ ВОВСЕ — там лежат только
+        /// <c>BecquerelMonitor.xml</c>, <c>NuclideDefinition.xml</c> и
+        /// <c>device</c> (смотрено 27.08.2026). Отказ убил бы прогоны, которые
+        /// сегодня работают.
+        ///
+        /// ⚠ Что при этом список ROI пуст, а кривая эффективности берётся
+        /// именно из конфигурации ROI, — отдельная беда, и она НЕ закрыта здесь.
+        /// </summary>
         public void LoadAllConfigFiles()
         {
             if (this.isLoaded)
@@ -98,7 +114,7 @@ namespace BecquerelMonitor
                         roiconfigData.Filename = Path.GetFileName(path);
                         if (this.roiConfigMap.ContainsKey(roiconfigData.Guid))
                         {
-                            MessageBox.Show(string.Format(Resources.ERRDuplicateROIConfigGUID, roiconfigData.Filename), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                            AppUi.Report(string.Format(Resources.ERRDuplicateROIConfigGUID, roiconfigData.Filename), Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                         }
                         else
                         {
@@ -108,14 +124,14 @@ namespace BecquerelMonitor
                     }
                     catch (Exception)
                     {
-                        MessageBox.Show(Resources.ERRLoadingROIConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                        AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     }
                 }
             }
             catch (Exception)
             {
                 Directory.CreateDirectory(configROIDir);
-                MessageBox.Show(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
             this.roiConfigList.Sort();
             this.isLoaded = true;
@@ -141,7 +157,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -173,7 +189,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -218,7 +234,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -259,7 +275,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             this.roiConfigList.Add(roiconfigData);

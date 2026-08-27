@@ -223,6 +223,11 @@
   <data name="ERRLoadingDeviceConfigFailed" xml:space="preserve">
     <value>Не удалось загрузить файлы конфигураций устройств.</value>
   </data>
+  <data name="ERRNucBaseOpenDatabase" xml:space="preserve">
+    <value>Не удалось открыть базу нуклидов. Из неё не прочитано ничего, поэтому карточки нуклидов и поиск линий будут пустыми.
+{0}
+{1}</value>
+  </data>
   <data name="MSGDeleteNuclideDefinition" xml:space="preserve">
     <value>Удалить изотоп "{0}"?</value>
   </data>
@@ -1883,5 +1888,26 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="GeometryMaterialsByTable" xml:space="preserve">
     <value>Доли из таблицы ЛСРМ</value>
+  </data>
+  <data name="NucBase_SearchFound" xml:space="preserve">
+    <value>Найдено линий: {0}.</value>
+  </data>
+  <data name="NucBase_SearchEmpty" xml:space="preserve">
+    <value>Ничего не найдено: запрос выполнен, но ни одна линия не подошла под условия отбора.</value>
+  </data>
+  <data name="NucBase_LinesFetchError" xml:space="preserve">
+    <value>ПОИСК ОТКАЗАЛ для {0}. Таблица пуста потому, что запрос не выполнился, — а не потому, что линий нет. {1}</value>
+  </data>
+  <data name="NucBase_ChainLinesRefused" xml:space="preserve">
+    <value>ОТКАЗ по {0} членам ряда: их линии в таблицу не попали, и показанное неполно. {1}</value>
+  </data>
+  <data name="NucBase_CardEmpty" xml:space="preserve">
+    <value>Карточки для {0} нет: такой строки в таблице нуклидов нет либо его период полураспада не измерен.</value>
+  </data>
+  <data name="NucBase.IsotopeFetchError" xml:space="preserve">
+    <value>Не удалось прочитать нуклид {0}. {1}</value>
+  </data>
+  <data name="NucBase.DaughtersFetchError" xml:space="preserve">
+    <value>Дочерние нуклиды {0} прочитаны не все. Сообщение: {1}</value>
   </data>
 </root>
