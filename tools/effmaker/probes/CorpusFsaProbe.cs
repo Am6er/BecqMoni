@@ -44,6 +44,8 @@ namespace CorpusFsaProbe
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--band-audit=&lt;файл.csv&gt;]
+    ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
+    ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
@@ -105,6 +107,7 @@ namespace CorpusFsaProbe
             StockBandMode = FsaBand.DefaultMode;
             StockBandFloor = FsaBand.DefaultFloor;
             StockBandFraction = FsaBand.DefaultFloorFraction;
+            StockShareThreshold = FsaBand.DefaultShareThreshold;
 
             var o = new Options();
             foreach (string a in args)
@@ -220,7 +223,8 @@ namespace CorpusFsaProbe
                     if (!FsaBand.TryParse(o.BandName, out band))
                     {
                         Console.Error.WriteLine(
-                            "неизвестная полоса: {0} (whole | fit-to-library | library-to-fit)",
+                            "неизвестная полоса: {0}"
+                            + " (whole | fit-to-library | library-to-fit | curve | share)",
                             o.BandName);
                         Environment.Exit(64);
                     }
@@ -261,6 +265,35 @@ namespace CorpusFsaProbe
                     }
 
                     FsaBand.DefaultFloorFraction = o.FloorFraction;
+                    continue;
+                }
+
+                // (`S103`) РАЗВЁРТКА ПО ОПОРЕ ПОЛОСЫ ПО СТОЛБЦУ. Порог доли
+                // континуума: подпороговая линия выбрасывается, если сплайн и
+                // так представляет её столбец лучше, чем на эту долю, — и
+                // разбор идёт ВТОРЫМ проходом по сужённой библиотеке.
+                //
+                // ⛔ Оба крайних значения — контроли, и они даровые:
+                //   * 1.0 не выбрасывает НИЧЕГО (условие строгое, доля ≤ 1) и
+                //     обязано воспроизвести поставочный прогон ПОБИТОВО;
+                //   * 0.0 выбрасывает всякую подпороговую линию, у которой
+                //     континуум забирает хоть что-то, — это плечо `--band=whole`.
+                // Плечо, которое не воспроизводит свой контроль, означает, что
+                // режим сделан неверно, и числа развёртки недействительны.
+                //
+                // ⛔ СТАВИТСЯ СТАТИКА, как и у доли пола: её читают разбор и
+                // заверение, а вторая копия — это `S101` заново.
+                if (a.StartsWith("--share-thr=", StringComparison.Ordinal))
+                {
+                    o.ShareThreshold = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    if (o.ShareThreshold < 0.0 || o.ShareThreshold > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "порог доли континуума обязан лежать в [0…1]: {0}", a.Substring(12));
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultShareThreshold = o.ShareThreshold;
                     continue;
                 }
 
@@ -854,6 +887,12 @@ namespace CorpusFsaProbe
         static double StockBandFraction;
 
         /// <summary>
+        /// (`S103`) Поставочный порог доли континуума, снятый ДО разбора
+        /// ключей, — той же цели, что <see cref="StockBandFraction"/>.
+        /// </summary>
+        static double StockShareThreshold;
+
+        /// <summary>
         /// ⛔ ПОЛОСА ОБОИМИ КОНЦАМИ И ВСЛУХ (`S101`). Печатается не «что заказано
         /// ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ: анализатор (полоса
         /// фита и заверение) и спецификация библиотеки (то, что режет линии).
@@ -875,6 +914,20 @@ namespace CorpusFsaProbe
                                   : string.Format(CultureInfo.InvariantCulture,
                                                   " — СДВИНУТА ключом --floor-frac=, поставляется {0:P3}",
                                                   FsaBand.ShippedFloorFraction));
+
+            // (`S103`) Порог опоры по столбцу печатается ВСЕГДА, когда режим
+            // включён, — в том числе нейтральный 1.0: контрольное плечо обязано
+            // быть узнаваемым в журнале, иначе его не отличить от поставки.
+            if (FsaBand.DefaultMode == FsaBandMode.LibraryToFitByShare)
+            {
+                double thr = FsaBand.DefaultShareThreshold;
+                Console.WriteLine("порог доли континуума (опора по столбцу): {0:F3}{1}",
+                                  thr,
+                                  Math.Abs(thr - FsaBand.ShippedShareThreshold) <= 1e-12
+                                      ? " — НЕЙТРАЛЬНЫЙ: не выбрасывает ничего,"
+                                        + " плечо обязано совпасть с поставкой побитово"
+                                      : "");
+            }
         }
 
         /// <summary>
@@ -897,13 +950,15 @@ namespace CorpusFsaProbe
             FsaBandMode liveMode = FsaBand.DefaultMode;
             double liveFloor = FsaBand.DefaultFloor;
             double liveFrac = FsaBand.DefaultFloorFraction;
+            double liveThr = FsaBand.DefaultShareThreshold;
             try
             {
                 // 1. ОДИН РЫЧАГ ДВИГАЕТ ОБА КОНЦА. Двигаем СТАТИКУ и спрашиваем
                 //    у каждого конца, что он отдаёт читателю.
                 foreach (FsaBandMode mode in new[] { FsaBandMode.Whole,
                                                      FsaBandMode.LibraryToFit,
-                                                     FsaBandMode.LibraryToFitByCurve })
+                                                     FsaBandMode.LibraryToFitByCurve,
+                                                     FsaBandMode.LibraryToFitByShare })
                 {
                     FsaBand.DefaultMode = mode;
                     FsaBand.DefaultFloor = liveFloor + 7.0;
@@ -945,6 +1000,7 @@ namespace CorpusFsaProbe
                 FsaBand.DefaultMode = liveMode;
                 FsaBand.DefaultFloor = liveFloor;
                 FsaBand.DefaultFloorFraction = liveFrac;
+                FsaBand.DefaultShareThreshold = liveThr;
             }
 
             if (bad.Count != 0)
@@ -959,7 +1015,7 @@ namespace CorpusFsaProbe
             }
 
             Console.WriteLine("сторож полосы (`S101`): один рычаг двигает ОБА конца"
-                              + " на всех трёх режимах; подставленный рассинхрон НАЗВАН,"
+                              + " на всех ЧЕТЫРЁХ режимах; подставленный рассинхрон НАЗВАН,"
                               + " согласные концы не тревожат. СОШЛОСЬ.");
             return 0;
         }
@@ -971,10 +1027,12 @@ namespace CorpusFsaProbe
             FsaBandMode liveMode = FsaBand.DefaultMode;
             double liveFloor = FsaBand.DefaultFloor;
             double liveFraction = FsaBand.DefaultFloorFraction;
+            double liveThreshold = FsaBand.DefaultShareThreshold;
             FsaAnalyzer stock;
             FsaBand.DefaultMode = StockBandMode;
             FsaBand.DefaultFloor = StockBandFloor;
             FsaBand.DefaultFloorFraction = StockBandFraction;
+            FsaBand.DefaultShareThreshold = StockShareThreshold;
             try
             {
                 stock = new FsaAnalyzer();
@@ -984,6 +1042,7 @@ namespace CorpusFsaProbe
                 FsaBand.DefaultMode = liveMode;
                 FsaBand.DefaultFloor = liveFloor;
                 FsaBand.DefaultFloorFraction = liveFraction;
+                FsaBand.DefaultShareThreshold = liveThreshold;
             }
 
             var changed = new List<string>();
@@ -1031,6 +1090,15 @@ namespace CorpusFsaProbe
                 changed.Add(string.Format(CultureInfo.InvariantCulture,
                     "FloorFraction: {0:P3} (поставка {1:P3})",
                     FsaBand.DefaultFloorFraction, StockBandFraction));
+            }
+
+            // (`S103`) Порог опоры по столбцу — та же статика и та же слепота
+            // отражения, что у полосы и доли: сличается поимённо.
+            if (Math.Abs(FsaBand.DefaultShareThreshold - StockShareThreshold) > 1e-12)
+            {
+                changed.Add(string.Format(CultureInfo.InvariantCulture,
+                    "ShareThreshold: {0:F3} (поставка {1:F3})",
+                    FsaBand.DefaultShareThreshold, StockShareThreshold));
             }
 
             changed.Sort(StringComparer.Ordinal);
@@ -1394,6 +1462,12 @@ namespace CorpusFsaProbe
                 }
 
                 row.Result = result;
+
+                // (`S103`) Что сдвинул рычаг опоры по столбцу — берётся у
+                // результата, а не пересчитывается здесь: считает выброс
+                // анализатор, и вторая копия правила разошлась бы с первой.
+                row.ShareDropped = result.ShareDroppedLines;
+                row.ShareOffered = result.ShareOfferedLines;
 
                 // (`S88`) Кривые по каналам — до всех сводок: спор о форме
                 // модели решается ими, а не числом в таблице.
@@ -2377,7 +2451,8 @@ namespace CorpusFsaProbe
                                    + "offset_edge,matrix_applied,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
-                                   + "model_residual_pct,library,library_note,matrix_found");
+                                   + "model_residual_pct,library,library_note,matrix_found,"
+                                   + "share_dropped_lines,share_offered_lines");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -2444,7 +2519,9 @@ namespace CorpusFsaProbe
                             Csv(r.BackgroundNote),
                             r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3"),
                             Csv(o.Library), Csv(r.LibraryNote),
-                            MatrixFound(r) ? "1" : "0"));
+                            MatrixFound(r) ? "1" : "0",
+                            r.ShareDropped.ToString(CultureInfo.InvariantCulture),
+                            r.ShareOffered.ToString(CultureInfo.InvariantCulture)));
 
                         if (r.Result == null)
                         {
@@ -2487,6 +2564,37 @@ namespace CorpusFsaProbe
 
             Console.WriteLine();
             Console.WriteLine("записано групп: {0} -> {1}", groups.Count, Path.GetFullPath(o.Out));
+
+            // ⛔ (`S103`) ЧИТАТЕЛЬ РЫЧАГА. Развёртка, чьи корпусные числа не
+            // шелохнулись, обязана уметь сказать, ЧТО при этом двигалось, —
+            // иначе «рычаг не важен» и «рычаг не доехал» неразличимы, а на этом
+            // дереве уже дважды ловили второе (`S101`, `T65`). Печатается
+            // всегда, когда режим включён, в том числе на контрольном плече с
+            // нулём выброшенных: ноль при ненулевом знаменателе — это результат.
+            if (FsaBand.DefaultMode == FsaBandMode.LibraryToFitByShare)
+            {
+                int dropped = 0, offered = 0, touched = 0, seen = 0;
+                foreach (Row r in rows)
+                {
+                    if (r.Error != null)
+                    {
+                        continue;
+                    }
+
+                    seen++;
+                    dropped += r.ShareDropped;
+                    offered += r.ShareOffered;
+                    if (r.ShareDropped > 0)
+                    {
+                        touched++;
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("опора по столбцу (`S103`), порог {0:F3}: выброшено {1} линий"
+                                  + " из {2} подпороговых, тронуто {3} спектров из {4}",
+                                  FsaBand.DefaultShareThreshold, dropped, offered, touched, seen);
+            }
         }
 
         /// <summary>
@@ -3065,6 +3173,13 @@ namespace CorpusFsaProbe
             /// </summary>
             public double FloorFraction = -1.0;
 
+            /// <summary>
+            /// (`S103`) Порог доли континуума у опоры полосы по столбцу, ключ
+            /// `--share-thr=`; отрицательный — не трогать умолчание
+            /// (<c>FsaBand.DefaultShareThreshold</c> = 1.0, нейтральное).
+            /// </summary>
+            public double ShareThreshold = -1.0;
+
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
             public bool BandSelfTest;
@@ -3127,6 +3242,19 @@ namespace CorpusFsaProbe
             /// на «а кто же тогда держит отсчёты».
             /// </summary>
             public List<FsaLineColumn> LineColumns;
+
+            /// <summary>
+            /// (`S103`) ЧТО СДВИНУЛ РЫЧАГ ОПОРЫ ПО СТОЛБЦУ на этом спектре:
+            /// выброшено линий и сколько их было подпороговых. Идёт в
+            /// `runs.csv` отдельными колонками, а не в шапку прогона, потому
+            /// что развёртка, вышедшая плоской по корпусным числам, обязана
+            /// уметь ответить, сколько линий она при этом выбросила и у
+            /// скольких спектров, — иначе «рычаг не важен» неотличимо от
+            /// «рычаг не работал».
+            /// </summary>
+            public int ShareDropped;
+
+            public int ShareOffered;
             public double MinRangeKev = double.NaN;
             public double CurveFloorKev = double.NaN;
             public int LinesBelowMinRange = -1;

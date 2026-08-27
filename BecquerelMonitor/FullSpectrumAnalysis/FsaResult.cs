@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -344,6 +344,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// заказывали. В разборе не участвует и на него не влияет.
         /// </summary>
         public List<FsaLineColumn> LineColumns { get; set; }
+
+        /// <summary>
+        /// (`S103`) Сколько подпороговых линий выброшено опорой полосы по
+        /// столбцу, и сколько их вообще было предъявлено. Ноль в первом при
+        /// ненулевом втором — «рычаг был, но не тронул»; ноль в обоих —
+        /// «трогать было нечего». Различать это обязательно: без знаменателя
+        /// плоская развёртка неотличима от развёртки, где ключ не доехал.
+        /// Заполняются ТОЛЬКО в режиме
+        /// <see cref="FsaBandMode.LibraryToFitByShare"/>.
+        /// </summary>
+        public int ShareDroppedLines { get; set; }
+
+        /// <summary>Подпороговых линий было предъявлено (знаменатель).</summary>
+        public int ShareOfferedLines { get; set; }
+
+        /// <summary>Образов исчезло целиком — у них выбросили все линии.</summary>
+        public int ShareDroppedComponents { get; set; }
 
         /// <summary>
         /// Характеристические пределы ВСЕХ нуклидных кандидатов библиотеки —
