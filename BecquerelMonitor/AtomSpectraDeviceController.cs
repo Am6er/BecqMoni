@@ -150,7 +150,20 @@ namespace BecquerelMonitor
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted) return true;
             }
-            MessageBox.Show(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // СТАРТ измерения: порт не ответил, либо конфигурация не та вовсе.
+            // Данных ещё нет; без окон — ОТКАЗ, а не `false` (см. разбор у
+            // `MeasurementController.StartRecording`: `false` тут никто не читает).
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: AtomSpectra did not start the measurement on \""
+                    + (resultData.DeviceConfig == null ? "<none>" : resultData.DeviceConfig.Name)
+                    + "\": the port gave no expected answer, or the configuration is a "
+                    + (resultData.DeviceConfig == null || resultData.DeviceConfig.InputDeviceConfig == null
+                        ? "<none>" : resultData.DeviceConfig.InputDeviceConfig.GetType().Name)
+                    + " and not an AtomSpectraDeviceConfig. A headless run must not continue with an empty spectrum.");
+            }
+            AppUi.Report(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxIcon.Error);
             return false;
         }
 
@@ -224,7 +237,18 @@ namespace BecquerelMonitor
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted) return true;
             }
-            MessageBox.Show(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // То же, что в `StartMeasurement`: подключение к прибору — это старт.
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: AtomSpectra did not attach on \""
+                    + (resultData.DeviceConfig == null ? "<none>" : resultData.DeviceConfig.Name)
+                    + "\": the port gave no expected answer, or the configuration is a "
+                    + (resultData.DeviceConfig == null || resultData.DeviceConfig.InputDeviceConfig == null
+                        ? "<none>" : resultData.DeviceConfig.InputDeviceConfig.GetType().Name)
+                    + " and not an AtomSpectraDeviceConfig. A headless run must not continue with an empty spectrum.");
+            }
+            AppUi.Report(Resources.ERRReadDataFromPort_Empty, Resources.ErrorString, MessageBoxIcon.Error);
             return false;
         }
 
@@ -259,7 +283,16 @@ namespace BecquerelMonitor
             {
                 if (e.Hystogram.Length != this.pulseDetector.EnergySpectrum.Spectrum.Length)
                 {
-                    MessageBox.Show(Resources.ERRIncompatibleChannelParameters);
+                    // ⛔ ПОСРЕДИ НАБОРА, и потому НЕ бросок (остаток `S100`).
+                    //    Три довода, каждый сам по себе достаточный:
+                    //    1. отсчёты уже набраны — бросок их теряет;
+                    //    2. метод исполняется на потоке ОКОН, через
+                    //       `MainForm.originalContext.Post` из `DataIn_DataReady`;
+                    //       обработчика над ним нет, и исключение свалило бы
+                    //       приложение вместе с несохранённым спектром;
+                    //    3. читатель у беды уже есть и остаётся прежним — набор
+                    //       тут же останавливается двумя строками ниже.
+                    AppUi.Report(Resources.ERRIncompatibleChannelParameters, "", MessageBoxIcon.None);
                     resultData.MeasurementController.StopRecording();
                     resultData.ResultDataStatus.Recording = false;
                     return;

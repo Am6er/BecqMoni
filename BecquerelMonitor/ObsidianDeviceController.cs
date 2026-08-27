@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows.Forms;
 
@@ -64,7 +64,18 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    MessageBox.Show($"Device is {status}, connect device first!");
+                    // Сброс накопителя ПРИБОРА не состоялся. Без окон — отказ:
+                    // не обнулённые отсчёты прибора приедут целиком со следующим
+                    // же обновлением (`update_hystogram` копирует НАКОПЛЕННУЮ
+                    // гистограмму) и будут посчитаны как свежие.
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: Obsidian is " + status + ", so its accumulated result was NOT cleared. "
+                            + "A headless run must not continue: the old counts come back with the next update "
+                            + "and look like a fresh measurement.");
+                    }
+                    AppUi.Report($"Device is {status}, connect device first!", "", MessageBoxIcon.None);
                 }
             }
         }
@@ -171,7 +182,14 @@ namespace BecquerelMonitor
             {
                 resultData.MeasurementController.StopRecording();
                 resultData.ResultDataStatus.Recording = false;
-                MessageBox.Show(Properties.Resources.ERRDetectedErrorWhileCommunication, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⛔ ПОСРЕДИ НАБОРА, и потому НЕ бросок (остаток `S100`). Связь с
+                //    прибором оборвалась, но набранное УЖЕ сохранено строкой выше
+                //    (`StopRecording` доводит время и счёт до `ResultData`), и
+                //    терять его нельзя. К тому же метод исполняется на потоке
+                //    окон — через `MainForm.originalContext.Post` из обработчика
+                //    `PortFailure`, — где обработчика исключений над ним нет.
+                AppUi.Report(Properties.Resources.ERRDetectedErrorWhileCommunication,
+                             Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
             }
         }
 

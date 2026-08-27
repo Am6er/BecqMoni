@@ -147,4 +147,16 @@
   <data name="textColumn4.Text" xml:space="preserve">
     <value>МДА</value>
   </data>
+  <data name="comboBox1.Items1" xml:space="preserve">
+    <value>cps</value>
+  </data>
+  <data name="comboBox1.Items2" xml:space="preserve">
+    <value>Бк</value>
+  </data>
+  <data name="comboBox1.Items3" xml:space="preserve">
+    <value>Бк/кг</value>
+  </data>
+  <data name="comboBox1.Items4" xml:space="preserve">
+    <value>Бк/л</value>
+  </data>
 </root>

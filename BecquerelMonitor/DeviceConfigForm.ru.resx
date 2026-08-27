@@ -4747,4 +4747,13 @@
   <data name="textColumn3.Text" xml:space="preserve">
     <value>#</value>
   </data>
+  <data name="peakTypecomboBox.Items" xml:space="preserve">
+    <value>Gaussian</value>
+  </data>
+  <data name="peakTypecomboBox.Items1" xml:space="preserve">
+    <value>Exp-Gaussian-Exp</value>
+  </data>
+  <data name="peakTypecomboBox.Items2" xml:space="preserve">
+    <value>Voigt</value>
+  </data>
 </root>

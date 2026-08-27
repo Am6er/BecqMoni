@@ -4655,4 +4655,37 @@
   <data name="label4.Text" xml:space="preserve">
     <value>N:</value>
   </data>
+  <data name="HalfLifeUOMComboBox.Items" xml:space="preserve">
+    <value>ns</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items1" xml:space="preserve">
+    <value>us</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items2" xml:space="preserve">
+    <value>ms</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items3" xml:space="preserve">
+    <value>s</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items4" xml:space="preserve">
+    <value>m</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items5" xml:space="preserve">
+    <value>h</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items6" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="HalfLifeUOMComboBox.Items7" xml:space="preserve">
+    <value>Y</value>
+  </data>
+  <data name="comboBoxNameFormat.Items" xml:space="preserve">
+    <value>137CS, 234PAm1</value>
+  </data>
+  <data name="comboBoxNameFormat.Items1" xml:space="preserve">
+    <value>Cs137, Pa234m1</value>
+  </data>
+  <data name="comboBoxNameFormat.Items2" xml:space="preserve">
+    <value>Cs-137, Pa-234m1</value>
+  </data>
 </root>

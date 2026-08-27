@@ -48,9 +48,17 @@ namespace BecquerelMonitor.NucBase
             // открытия файла, после чего база просто не находится. Все
             // остальные читатели баз берут путь так же (T23).
             this.dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
-            sqlite_conn = new SqliteConnection("Data Source=" + this.dbPath + ";Mode=ReadOnly;Cache=Shared;");
             try
             {
+                // ⛔ САМО СОЗДАНИЕ СОЕДИНЕНИЯ ТОЖЕ ВНУТРИ `try` (`D46`). Стояло
+                // оно выше, и первый же `new SqliteConnection` тянет ИНИЦИАЛИЗАТОР
+                // ТИПА поставщика: без перенаправления версий `SQLitePCLRaw.core`
+                // (файл `<приложение>.exe.config` рядом) он бросает
+                // `TypeInitializationException` — измерено 28.08.2026, процесс
+                // умирал кодом −532462766 молча. Причина у такого отказа ровно та
+                // же, что у неоткрывшегося файла, и назвать её надо так же —
+                // вместе с путём.
+                sqlite_conn = new SqliteConnection("Data Source=" + this.dbPath + ";Mode=ReadOnly;Cache=Shared;");
                 sqlite_conn.Open();
             }
             catch (Exception ex)

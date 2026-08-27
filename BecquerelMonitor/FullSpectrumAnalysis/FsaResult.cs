@@ -339,6 +339,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaComponentResult> Components { get; set; }
 
         /// <summary>
+        /// (`S104`) ВЕРДИКТ: имя приборного образа, который в одиночку взял
+        /// больше, чем ВЕСЬ нуклидный состав вместе; null — не взял, состав
+        /// объясняет спектр сам.
+        ///
+        /// ⛔ ЭТО ВТОРОЙ ЭКЗЕМПЛЯР ОДНОГО ПРАВИЛА, И ЭТО ИЗВЕСТНО. Первый —
+        /// корпусная мерка `tools/pie/score.py:455-464, 494` (признак
+        /// `ПОДАВЛЕН`, заведён `S95`). Двойник существует потому, что мерка
+        /// читает csv давно посчитанных прогонов и питоном, а экран обязан
+        /// сказать то же самое человеку в тот же миг, когда разбор кончился;
+        /// общего кода у питона и WinForms здесь нет. Правило переписано
+        /// ОДИН-В-ОДИН и обязано таким остаться: строки csv, которые читает
+        /// мерка, пишет `CorpusFsaProbe` из ЭТОГО ЖЕ списка
+        /// <see cref="Components"/> (`component` = <see cref="FsaComponentResult.Name"/>,
+        /// `kind` = <see cref="FsaComponentResult.Kind"/> в нижнем регистре,
+        /// `share_pct` = <see cref="FsaComponentResult.SharePercent"/>), так что
+        /// расхождение экрана с меркой означало бы расхождение правил, а не
+        /// данных. Меняешь одно — меняй оба, иначе повторится болезнь полосы
+        /// (`S101`) и родителя распада (`D39`), где двойники разъехались молча.
+        ///
+        /// Само правило: НАИБОЛЬШАЯ доля ОДНОГО образа рода
+        /// <see cref="FsaComponentKind.Nuisance"/> против СУММЫ долей всех
+        /// нуклидных компонентов. Сравнивается с суммой, а не с крупнейшей
+        /// нуклидной строкой, нарочно: у ряда Th-232 доля разложена по десятку
+        /// дочерних, и обратное рассеяние 33 % больше любой одной из них, не
+        /// будучи больше их суммы.
+        ///
+        /// ⚠ `Ann-511` из образов исключена ВСЕГДА (`SUPPRESS_EXEMPT` мерки):
+        /// у β⁺-излучателя 511 кэВ законно держит две трети счёта, а отличить
+        /// такую аннигиляцию от рождённой парами в защите по одной доле нечем.
+        /// Это ограничение признака, а не его настройка.
+        /// </summary>
+        public string SuppressorName { get; private set; }
+
+        /// <summary>
+        /// (`S104`) Доля того самого образа, % — левое число вердикта. При
+        /// <see cref="SuppressorName"/> = null не значит ничего.
+        /// </summary>
+        public double SuppressorSharePercent { get; private set; }
+
+        /// <summary>
+        /// (`S104`) Сумма долей всех нуклидных компонентов, % — правое число
+        /// вердикта. Считается всегда, даже когда вердикта нет.
+        /// </summary>
+        public double NuclideSharePercent { get; private set; }
+
+        /// <summary>(`S104`) Состав пересилен приборным образом.</summary>
+        public bool CompositionSuppressed
+        {
+            get { return this.SuppressorName != null; }
+        }
+
+        /// <summary>
         /// (`S103`) Поверка столбцов отдельных линий ниже порога
         /// <c>FsaAnalyzer.LineColumnAuditBelowKev</c>; null — поверку не
         /// заказывали. В разборе не участвует и на него не влияет.
@@ -632,6 +684,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaStackLayer> full = this.SpreadContinuum(out leftover, out weight,
                                                             out total, out ordered);
             this.StackTotal = total;
+            this.SuppressorName = null;
+            this.SuppressorSharePercent = 0.0;
+            this.NuclideSharePercent = 0.0;
             if (this.Components != null)
             {
                 foreach (FsaComponentResult component in this.Components)
@@ -648,6 +703,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             for (int k = 0; k < ordered.Count; k++)
             {
                 ordered[k].SharePercent = 100.0 * weight[k] / total;
+            }
+
+            this.ComputeSuppression();
+        }
+
+        /// <summary>
+        /// (`S104`) Посчитать вердикт «состав пересилен приборным образом» —
+        /// см. <see cref="SuppressorName"/>, там же и про двойника правила в
+        /// корпусной мерке. Зовётся сразу по простановке долей: числа обязаны
+        /// быть готовы у всякого, кто держит результат, — и у экрана, и у пробы.
+        ///
+        /// ⚠ ЧТО СЧИТАЕТСЯ, А ЧТО НЕТ — РАЗВЕДЕНО ЯВНО. Считаются КОМПОНЕНТЫ
+        /// разложения, то есть колонки фита из <see cref="Components"/>.
+        /// Подложка континуума в них НЕ входит и входить не может: колонкой
+        /// она не является. В стеке у неё есть своя лента с
+        /// <c>Kind = Nuisance</c> и своей долей
+        /// (<see cref="ContinuumLayerName"/>), и глаз, складывающий «приборное»
+        /// по легенде, приписал бы её сюда — а мерка её не считает. Считать её
+        /// было бы к тому же двойным счётом: подложка РАЗНЕСЕНА по компонентам
+        /// (<see cref="DistributeContinuum"/>), и в долях обеих сторон
+        /// сравнения она уже сидит; отдельной лентой остаётся лишь хвост выше
+        /// последней линии, приписать который некому.
+        ///
+        /// ⚠ ЦЕНА ЭТОГО ВЫБОРА ИЗМЕРЕНА, а не объявлена. 30 спектров корпуса,
+        /// 28.08.2026: лента подложки есть у 8 из 30, и добавь её в число
+        /// кандидатов на подавителя — вердикт поменялся бы у ОДНОГО,
+        /// `G1S24_Zn65_P5` (подложка 24.3 % против нуклидных 0.0 %). Сказал бы
+        /// он при этом не «состав пересилен приборным образом», а «пересилен
+        /// континуумом модели» — утверждение про сплайн подложки, а не про
+        /// прибор, и на него уже отвечает строка невязки модели.
+        /// </summary>
+        void ComputeSuppression()
+        {
+            // Начальное 0.0 и строгое «больше» — как у мерки: образ с нулевой
+            // долей вершиной не становится, и при нулевом составе вердикта не
+            // будет (0.0 > 0.0 ложно).
+            string topName = null;
+            double topShare = 0.0;
+            double nuclideSum = 0.0;
+            foreach (FsaComponentResult component in this.Components)
+            {
+                if (component.Kind == FsaComponentKind.Nuisance)
+                {
+                    if (!string.Equals(component.Name, AnnihilationComponentName,
+                                       StringComparison.Ordinal)
+                        && component.SharePercent > topShare)
+                    {
+                        topName = component.Name;
+                        topShare = component.SharePercent;
+                    }
+
+                    continue;
+                }
+
+                nuclideSum += component.SharePercent;
+            }
+
+            this.NuclideSharePercent = nuclideSum;
+            if (topName != null && topShare > nuclideSum)
+            {
+                this.SuppressorName = topName;
+                this.SuppressorSharePercent = topShare;
             }
         }
 
@@ -907,6 +1024,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// точностью, которой нет: слой рисуется и называется, а число — нет.
         /// </summary>
         public const string BackscatterLayerName = "Backscatter";
+
+        /// <summary>
+        /// Имя образа аннигиляции. Служебное и НЕ переводится.
+        ///
+        /// ⚠ Единственное имя, исключённое из вердикта `S104` (см.
+        /// <see cref="SuppressorName"/>): у β⁺-излучателя 511 кэВ законно
+        /// держит две трети счёта. Та же строка стоит в `SUPPRESS_EXEMPT`
+        /// корпусной мерки `tools/pie/score.py:149`.
+        /// </summary>
+        public const string AnnihilationComponentName = "Ann-511";
 
         /// <summary>
         /// Копия кривой без отрицательной части. У ленты стека не бывает

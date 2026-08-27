@@ -63,7 +63,17 @@ namespace BecquerelMonitor
                     resultData.StartTime = DateTime.Now;
                 } else
                 {
-                    MessageBox.Show($"Device is {this.status}, connect device first!");
+                    // Тот же разбор, что у Obsidian: сброс накопителя ПРИБОРА не
+                    // состоялся, а не обнулённые отсчёты вернутся со следующим
+                    // обновлением и сойдут за свежие. Без окон — отказ.
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: RadiaCode is " + this.status + ", so its accumulated result was NOT cleared. "
+                            + "A headless run must not continue: the old counts come back with the next update "
+                            + "and look like a fresh measurement.");
+                    }
+                    AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
                 }
             }
         }
@@ -170,7 +180,12 @@ namespace BecquerelMonitor
             {
                 resultData.MeasurementController.StopRecording();
                 resultData.ResultDataStatus.Recording = false;
-                MessageBox.Show(Properties.Resources.ERRDetectedErrorWhileCommunication, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⛔ ПОСРЕДИ НАБОРА — не бросок; разбор тот же, что у Obsidian:
+                //    набранное уже сведено строкой выше, а метод исполняется на
+                //    потоке окон (`MainForm.originalContext.Post`), где исключение
+                //    некому поймать.
+                AppUi.Report(Properties.Resources.ERRDetectedErrorWhileCommunication,
+                             Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
             }
         }
 

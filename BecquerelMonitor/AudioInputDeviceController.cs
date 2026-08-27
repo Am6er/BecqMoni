@@ -24,6 +24,20 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ Все пять бед этого метода — СТАРТ измерения, и все пять без окон
+        /// ОТКАЗЫВАЮТ броском (остаток `S100`, 28.08.2026). Данных ещё нет, терять
+        /// нечего, а <c>false</c> читателя не имеет: см. разбор у
+        /// <c>MeasurementController.StartRecording</c> — оконный вызывающий его
+        /// игнорирует. Молчаливый <c>false</c> здесь означает спектр из одних
+        /// нулей, поданный как измерение.
+        ///
+        /// ⚠ Бросок отсюда ловит <c>catch</c> в <c>MeasurementController.StartRecording</c>;
+        /// он тоже переведён и без окон ПЕРЕБРАСЫВАЕТ, а не подменяет причину
+        /// сообщением про Bluetooth.
+        ///
+        /// В окнах ничего не меняется: текст, заголовок и значок прежние.
+        /// </summary>
         // Token: 0x06000970 RID: 2416 RVA: 0x000373EC File Offset: 0x000355EC
         public override bool StartMeasurement(ResultData resultData)
         {
@@ -32,7 +46,15 @@ namespace BecquerelMonitor
 
             if (!(deviceConfig.InputDeviceConfig is AudioInputDeviceConfig))
             {
-                MessageBox.Show(Resources.ERRDeviceMismatchConfiguration, Resources.ErrorExclamation);
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: audio input device \"" + deviceConfig.Name + "\" carries a "
+                        + (deviceConfig.InputDeviceConfig == null
+                            ? "<none>" : deviceConfig.InputDeviceConfig.GetType().Name)
+                        + " instead of an AudioInputDeviceConfig - the measurement cannot start.");
+                }
+                AppUi.Report(Resources.ERRDeviceMismatchConfiguration, Resources.ErrorExclamation, MessageBoxIcon.None);
                 return false;
             }
 
@@ -46,9 +68,16 @@ namespace BecquerelMonitor
                 deviceId = audioInputDeviceConfig.AudioInputDevice.DeviceId;
                 waveIn = new WaveIn(deviceId);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                MessageBox.Show(Resources.ERRAudioDeviceNotFound);
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the audio input device could not be opened (id " + deviceId + ", "
+                        + ex.GetType().Name + "): " + ex.Message
+                        + " The measurement cannot start.", ex);
+                }
+                AppUi.Report(Resources.ERRAudioDeviceNotFound, "", MessageBoxIcon.None);
                 return false;
             }
             resultDataStatus.WaveIn = waveIn;
@@ -58,14 +87,29 @@ namespace BecquerelMonitor
             {
                 if (!waveIn.SupportsFormat(waveFormat))
                 {
-                    MessageBox.Show(Resources.ERRNotSupportedWavFormat);
+                    if (!AppUi.HasWindows)
+                    {
+                        waveIn.Dispose();
+                        throw new InvalidOperationException(
+                            "BecqMoni: the audio input device does not support the requested format ("
+                            + waveFormat.SamplesPerSecond + " Hz, " + waveFormat.BitsPerSample + " bit, "
+                            + waveFormat.Channels + " ch) - the measurement cannot start.");
+                    }
+                    AppUi.Report(Resources.ERRNotSupportedWavFormat, "", MessageBoxIcon.None);
                     waveIn.Dispose();
                     return false;
                 }
             }
             catch (MMSystemException ex)
             {
-                MessageBox.Show(ex.Message);
+                if (!AppUi.HasWindows)
+                {
+                    waveIn.Dispose();
+                    throw new InvalidOperationException(
+                        "BecqMoni: the audio input device refused the format enquiry (MMSystemException): "
+                        + ex.Message + " The measurement cannot start.", ex);
+                }
+                AppUi.Report(ex.Message, "", MessageBoxIcon.None);
                 waveIn.Dispose();
                 return false;
             }
@@ -91,7 +135,14 @@ namespace BecquerelMonitor
             }
             catch (MMSystemException ex2)
             {
-                MessageBox.Show(ex2.Message);
+                if (!AppUi.HasWindows)
+                {
+                    waveIn.Dispose();
+                    throw new InvalidOperationException(
+                        "BecqMoni: the audio input device could not be opened for recording (MMSystemException): "
+                        + ex2.Message + " The measurement cannot start.", ex2);
+                }
+                AppUi.Report(ex2.Message, "", MessageBoxIcon.None);
                 waveIn.Dispose();
                 return false;
             }

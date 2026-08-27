@@ -2173,23 +2173,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to decay_rads.
-        /// </summary>
-        public static string NucBase_API_Data_Method {
-            get {
-                return ResourceManager.GetString("NucBase.API.Data.Method", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   Looks up a localized string similar to https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}.
-        /// </summary>
-        public static string NucBase_API_IAEA {
-            get {
-                return ResourceManager.GetString("NucBase.API.IAEA", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to β-.
@@ -2218,14 +2202,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to fetch decay radiation. SQL string: {0}. Message: {1}.
-        /// </summary>
-        public static string NucBase_DecayRadsFetchError {
-            get {
-                return ResourceManager.GetString("NucBase.DecayRadsFetchError", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to EC.
@@ -2236,14 +2212,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to g.
-        /// </summary>
-        public static string NucBase_Gamma {
-            get {
-                return ResourceManager.GetString("NucBase.Gamma", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to γ.
@@ -2281,23 +2249,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0.
-        /// </summary>
-        public static string NucBase_User_Agent {
-            get {
-                return ResourceManager.GetString("NucBase.User-Agent", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   Looks up a localized string similar to x.
-        /// </summary>
-        public static string NucBase_X_Ray {
-            get {
-                return ResourceManager.GetString("NucBase.X-Ray", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to Import failed - {0}.
@@ -2914,6 +2866,15 @@ namespace BecquerelMonitor.Properties {
         public static string FSACascadeMark {
             get {
                 return ResourceManager.GetString("FSACascadeMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to · suppressed.
+        /// </summary>
+        public static string FSASuppressedMark {
+            get {
+                return ResourceManager.GetString("FSASuppressedMark", resourceCulture);
             }
         }
 
@@ -4593,11 +4554,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string NucBase_FluorescenceTitle {
-            get {
-                return ResourceManager.GetString("NucBase.FluorescenceTitle", resourceCulture);
-            }
-        }
 
         public static string NucBase_NoFluorescence {
             get {

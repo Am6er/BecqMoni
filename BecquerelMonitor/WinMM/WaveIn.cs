@@ -309,7 +309,15 @@ namespace WinMM
             catch (Exception)
             {
                 DCControlPanel.exept_flag = true;
-                MessageBox.Show("Device disconnected from audio port!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                // ⛔ ПОСРЕДИ НАБОРА, и бросок тут запрещён дважды (остаток `S100`).
+                //    Во-первых, это ТЕЛО ОТДЕЛЬНОГО ПОТОКА (`bufferMaintainerThread`,
+                //    заводится на :167): непойманное исключение на нём кладёт ВЕСЬ
+                //    процесс вместе с несохранённым спектром, а не возвращает код.
+                //    Во-вторых, отсчёты уже набраны, и признак беды с читателем тут
+                //    как раз есть — `DCControlPanel.exept_flag` строкой выше.
+                //    Значит без окон — строка в поток ошибок, и поток буферов
+                //    доходит до конца сам.
+                AppUi.Report("Device disconnected from audio port!", "Error", MessageBoxIcon.Hand);
                 Thread.Sleep(500);
             }
         }
