@@ -163,6 +163,29 @@ namespace BecquerelMonitor.Utils
             }
         }
 
+        /// <summary>
+        /// ⛔ Оба сообщения этого метода ВЕШАЛИ БЕЗОКОННЫЙ ПРОГОН (`S100`).
+        /// Измерено 27.08.2026 на собранном коде: плечи `combine-badcal` и
+        /// `combine-channels` — процесс убит по сроку 20 с, класс окна
+        /// <c>#32770</c>, заголовок пуст (это <c>MessageBox.Show(text)</c> об
+        /// одном доводе). Оба идут теперь единственной дверью
+        /// <see cref="AppUi"/>, но РАЗНЫМИ путями, и разница здесь смысловая.
+        ///
+        /// ⚠ Испорченная калибровка прибавляемого спектра — УВЕДОМЛЕНИЕ, не
+        /// отказ: строкой ниже стоит <c>|| !checkCalibration</c>, то есть
+        /// поканальное сложение — заранее объявленный запасной путь, и сам
+        /// текст ресурса обещает именно его («channel by channel combine method
+        /// will be used»). Результат определён и полон, считать дальше можно,
+        /// поэтому без окон довольно строки в поток ошибок.
+        ///
+        /// ⛔ Разное число каналов — ОТКАЗ: сложения не было вовсе, метод
+        /// возвращает главный спектр НЕТРОНУТЫМ, а единственный вызывающий
+        /// (<c>MainForm.CombineSpectrums</c>) сразу ставит <c>Dirty</c> и
+        /// перерисовывает виды. В окнах человек читает «выберите подходящий
+        /// файл» и понимает, что ничего не произошло; без окон это молчаливое
+        /// «сложил» с прежними числами — ровно тот случай, где продолжение
+        /// хуже зависания, потому что даёт ЧИСЛА.
+        /// </summary>
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
             EnergySpectrum mainSpectrum = this.MainSpectrum.ActiveResultData.EnergySpectrum;
@@ -174,7 +197,8 @@ namespace BecquerelMonitor.Utils
                 bool checkCalibration = CombinedSpectrumEnergyCalibration.CheckCalibration(addedSpectrum.NumberOfChannels);
                 if (!checkCalibration)
                 {
-                    MessageBox.Show(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename));
+                    AppUi.Report(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename),
+                        Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                 }
                 // Count what is ACTUALLY added to the array so that the totals stay
                 // consistent with it. The old code zeroed the last channel of the SOURCE
@@ -249,7 +273,18 @@ namespace BecquerelMonitor.Utils
                 this.MainSpectrum.ActiveResultData.ResultDataStatus.TotalTime += docenergySpectrum.ActiveResultData.ResultDataStatus.TotalTime;
             } else
             {
-               MessageBox.Show(Resources.CombineIncorrectChannels);
+                // Отказ, а не уведомление: см. примечание к методу. Без окон
+                // читатель у отказа — код возврата пробы; с окнами всё как
+                // было, и человеку есть что нажать.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: spectra cannot be combined and there is no UI to report it to: the main spectrum has "
+                        + mainSpectrum.NumberOfChannels + " channels, the added one " + addedSpectrum.NumberOfChannels
+                        + ". Nothing was added; continuing would return the UNCHANGED main spectrum, and the caller "
+                        + "cannot tell that from a successful combine. " + Resources.CombineIncorrectChannels);
+                }
+                AppUi.Report(Resources.CombineIncorrectChannels, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
 
             return this.MainSpectrum;

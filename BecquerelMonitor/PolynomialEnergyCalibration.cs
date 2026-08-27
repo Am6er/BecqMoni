@@ -234,6 +234,45 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ Калибровка непригодна: обратного отображения энергии в канал у
+        /// неё НЕТ. Здесь стояли два голых <c>MessageBox.Show</c>, и они
+        /// ВЕШАЛИ БЕЗОКОННЫЙ ПРОГОН (`S100`) — измерено 27.08.2026 на
+        /// собранном коде, плечи <c>poly-degenerate</c> и
+        /// <c>poly-discriminant</c>: процесс убит по сроку 20 с, класс окна
+        /// <c>#32770</c>, заголовок пуст.
+        ///
+        /// ⛔ Без окон это ОТКАЗ, а не строка в поток ошибок, и вот почему.
+        /// Оба места кончаются <c>return 0</c>, то есть «канал ноль» — и
+        /// вызывающий не отличает его от честного нуля: сюда ходят и разметка
+        /// линий библиотеки, и поиск пиков, и полноспектральное разложение.
+        /// Молча продолжив, прогон сложит всю библиотеку в нулевой канал и
+        /// выдаст ЧИСЛА, а числа с непригодной калибровкой — не «хуже», а
+        /// чужие. Читатель у отказа — код возврата пробы.
+        ///
+        /// ⚠ Ухудшения по сравнению с прежним поведением тут быть не может:
+        /// любой вход, который сегодня бросает, вчера ВИСЕЛ НАСМЕРТЬ. В окнах
+        /// всё как было — то же модальное окно и тот же <c>return 0</c>.
+        ///
+        /// ⚠ Заголовок окна: прежде его не было вовсе (<c>MessageBox.Show</c>
+        /// об одном доводе), теперь общий <c>ErrorDialogTitle</c> — как у
+        /// прочих сообщений, идущих через <see cref="AppUi"/>.
+        /// </summary>
+        void UnusableCalibration(string why, double enrg)
+        {
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: the energy calibration cannot be inverted and there is no UI to report it to: "
+                    + why + "; requested energy " + enrg.ToString("R") + " keV, coefficients ["
+                    + string.Join(", ", Array.ConvertAll(this.coefficients, v => v.ToString("R")))
+                    + "]. Continuing would return channel 0, which is indistinguishable from an honest zero. "
+                    + Resources.CalibrationFunctionError);
+            }
+            AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle,
+                System.Windows.Forms.MessageBoxIcon.Hand);
+        }
+
         double EnrgToChannel(double enrg, int maxCh = 8192)
         {
             if (enrg < 0 || enrg < this.coefficients[0])
@@ -258,7 +297,8 @@ namespace BecquerelMonitor
                 {
                     if (b == 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        this.UnusableCalibration("polynomial order 2 with both the quadratic and the linear "
+                            + "coefficient equal to zero: energy does not depend on the channel at all", enrg);
                         return 0;
                     }
                     return - c / b;
@@ -268,7 +308,8 @@ namespace BecquerelMonitor
                     double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
                     if (discriminant < 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        this.UnusableCalibration("polynomial order 2, negative discriminant (" + discriminant.ToString("R")
+                            + "): NO channel of this calibration carries the requested energy", enrg);
                         return 0;
                     }
                     double sqrtD = Math.Sqrt(discriminant);
