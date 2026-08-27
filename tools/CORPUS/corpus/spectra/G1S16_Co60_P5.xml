@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>10.806510187529339</Coefficient><Coefficient>2.8212947591357245</Coefficient><Coefficient>0.00037159715693631186</Coefficient><Coefficient>-2.5416587856121114e-07</Coefficient></Coefficients>
+            <Coefficient>-13.057090786805336</Coefficient><Coefficient>2.8568890235509454</Coefficient><Coefficient>0.0003762853333195506</Coefficient><Coefficient>-2.5737250823276166e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>2918346</ValidPulseCount>
         <TotalPulseCount>2918346</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>10.806510187529339</Coefficient><Coefficient>2.8212947591357245</Coefficient><Coefficient>0.00037159715693631186</Coefficient><Coefficient>-2.5416587856121114e-07</Coefficient></Coefficients>
+            <Coefficient>-13.057090786805336</Coefficient><Coefficient>2.8568890235509454</Coefficient><Coefficient>0.0003762853333195506</Coefficient><Coefficient>-2.5737250823276166e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>313777</ValidPulseCount>
         <TotalPulseCount>313777</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>8</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.5861760154568446</Coefficient><Coefficient>0.6002146740306707</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>фон пустая защита_15.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.39561349757363073</Coefficient><Coefficient>0.6583310610726031</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

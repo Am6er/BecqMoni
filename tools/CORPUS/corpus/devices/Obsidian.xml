@@ -18,9 +18,9 @@
   <PolynomialEnergyCalibration>
     <PolynomialOrder>2</PolynomialOrder>
     <Coefficients>
-      <Coefficient>-26.78807539588287</Coefficient>
-      <Coefficient>2.4688913894666036</Coefficient>
-      <Coefficient>-0.0006336290472655204</Coefficient>
+      <Coefficient>-27.010357841455225</Coefficient>
+      <Coefficient>2.4665904515956605</Coefficient>
+      <Coefficient>-0.0006330385226773578</Coefficient>
     </Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig>
@@ -31,9 +31,9 @@
   </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR>
-    <FWHM_AT_0>11.4719</FWHM_AT_0>
+    <FWHM_AT_0>11.1867</FWHM_AT_0>
     <Ch_Fwhm>512</Ch_Fwhm>
-    <Width_Fwhm>16</Width_Fwhm>
+    <Width_Fwhm>15</Width_Fwhm>
     <Max_Items>40</Max_Items>
     <Tolerance>10</Tolerance>
     <Min_Range>30.0</Min_Range>
