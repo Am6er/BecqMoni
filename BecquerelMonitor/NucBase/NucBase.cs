@@ -97,6 +97,14 @@ namespace BecquerelMonitor.NucBase
 
             NucBaseFramework fw = new NucBaseFramework();
 
+            // ⛔ ИТОГ ЗАПРОСА ГОВОРИТСЯ СЛОВАМИ, И СОБИРАЕТСЯ ОН ЗАНОВО (`T92`).
+            // Пока строки состояния не было, отказ базы выглядел ровно как
+            // «линий нет»: список молча оставался таким, каким был. Части
+            // складываются сюда и уезжают в строку одним куском в конце — так
+            // от прошлого запроса не остаётся ни одного слова.
+            List<string> status = new List<string>();
+            bool refused = false;
+
             // Символ элемента без массового числа («W», «Pb») — запрос не про
             // распад, а про характеристический рентген: чем светит вольфрам
             // электрода или свинец домика, когда в нём выбило K-электрон. Ряда
@@ -114,30 +122,52 @@ namespace BecquerelMonitor.NucBase
                 }
 
                 RestoreSorting();
-                ClearIsotopeCard();
+                // Карточка нуклида у элемента пустая: нуклида нет вовсе, есть
+                // только номер элемента — его `ShowIsotopeCard` и оставит.
+                ShowIsotopeCard(element, null);
                 if (fluorescence.Count == 0)
                 {
+                    status.Add(Resources.NucBase_SearchEmpty);
+                    // Почему пусто — длинное объяснение про Z = 30, ему место в
+                    // окне, а не в строке состояния.
                     MessageBox.Show(this,
                         string.Format(Resources.NucBase_NoFluorescence, element),
                         Resources.NucBase_FluorescenceTitle,
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+                else
+                {
+                    status.Add(string.Format(Resources.NucBase_SearchFound, fluorescence.Count));
+                }
 
+                SetSearchStatus(string.Join(Environment.NewLine, status), false);
                 UpdateNuclideDefinitionControlsState();
                 return;
             }
 
+            // ⛔ Таблица чистится ДО запроса, а не после удачного (`T92`). При
+            // отказе очистка не выполнялась вовсе, и на экране оставались
+            // строки ПРОШЛОГО нуклида — читались они как строки нового.
+            this.ResultDataGridView.Rows.Clear();
+
             if (!incDecayChain)
             {
                 List<DecayRad> decayRads = fw.getDecayRad(isotope, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
-                if (decayRads != null)
+                if (decayRads == null)
                 {
-                    this.ResultDataGridView.Rows.Clear();
+                    refused = true;
+                    status.Add(string.Format(Resources.NucBase_LinesFetchError, isotope, fw.LastError));
+                }
+                else
+                {
                     foreach (DecayRad decrad in decayRads)
                     {
                         AddRow(decrad);
                     }
                     RestoreSorting();
+                    status.Add(decayRads.Count == 0
+                        ? Resources.NucBase_SearchEmpty
+                        : string.Format(Resources.NucBase_SearchFound, decayRads.Count));
                 }
             }
             else
@@ -148,61 +178,89 @@ namespace BecquerelMonitor.NucBase
                 // ровно их ждёт всё, что стоит на вековом равновесии, —
                 // конструктор кривой и разложение спектра.
                 Dictionary<string, double> branches = fw.GetChainBranches(isotope);
-                if (branches.Count > 0)
+                if (fw.LastError != null)
                 {
-                    this.ResultDataGridView.Rows.Clear();
-                    foreach (KeyValuePair<string, double> member in branches.OrderByDescending(m => m.Value))
+                    // Обход ряда оборвался на полпути: часть членов до списка
+                    // не доехала, и без этих слов их отсутствие выглядит как
+                    // «их в ряду нет».
+                    refused = true;
+                    status.Add(string.Format(Resources.NucBase_DaughtersFetchError, isotope, fw.LastError));
+                }
+
+                int shown = 0;
+                int refusedMembers = 0;
+                string firstReason = null;
+                foreach (KeyValuePair<string, double> member in branches.OrderByDescending(m => m.Value))
+                {
+                    // Порог выхода прикладывается к ПОКАЗАННОМУ числу, а не
+                    // к базовому: иначе «не ниже 1 %» отсеивало бы по
+                    // величине, которой на экране нет.
+                    List<DecayRad> decayRads = fw.getDecayRad(member.Key, intensity: 0.0, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
+                    if (decayRads == null)
                     {
-                        // Порог выхода прикладывается к ПОКАЗАННОМУ числу, а не
-                        // к базовому: иначе «не ниже 1 %» отсеивало бы по
-                        // величине, которой на экране нет.
-                        List<DecayRad> decayRads = fw.getDecayRad(member.Key, intensity: 0.0, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
-                        if (decayRads != null)
+                        // Отказ по одному члену ряда не отменяет остальных, но
+                        // и потеряться молча не должен: он считается и будет
+                        // назван вместе с причиной.
+                        refusedMembers++;
+                        if (firstReason == null)
                         {
-                            foreach (DecayRad decrad in decayRads)
-                            {
-                                decrad.Intensity *= member.Value;
-                                if (decrad.Intensity < intensity)
-                                {
-                                    continue;
-                                }
-
-                                AddRow(decrad);
-                                Trace.WriteLine($"{this.ResultDataGridView.Rows.Count} rows added");
-                            }
+                            firstReason = fw.LastError;
                         }
+
+                        continue;
                     }
-                    RestoreSorting();
+
+                    foreach (DecayRad decrad in decayRads)
+                    {
+                        decrad.Intensity *= member.Value;
+                        if (decrad.Intensity < intensity)
+                        {
+                            continue;
+                        }
+
+                        AddRow(decrad);
+                        shown++;
+                    }
                 }
-            }
 
-            if (this.IsotopeTextBox.Text.Length == 0)
-            {
-                return;
-            }
-            Nuclide nuc = fw.getNuclude(isotope);
-            if (nuc != null)
-            {
-                this.IsotopeNameLabel.Text = isotope;
-                this.IsotopeZLabel.Text = nuc.Z.ToString();
-                this.IsotopeNLabel.Text = nuc.N.ToString();
-                this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-                this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
-                this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
-
-                this.ParentsDataGridView.Rows.Clear();
-                foreach (Decay parent in nuc.Parents)
+                RestoreSorting();
+                if (refusedMembers > 0)
                 {
-                    this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
+                    refused = true;
+                    status.Add(string.Format(Resources.NucBase_ChainLinesRefused, refusedMembers, firstReason));
                 }
 
-                this.DaughtersDataGridView.Rows.Clear();
-                foreach (Decay daughter in nuc.Daughters)
+                if (shown > 0)
                 {
-                    this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                    status.Add(string.Format(Resources.NucBase_SearchFound, shown));
+                }
+                else if (refusedMembers == 0)
+                {
+                    // ⛔ «Ничего не найдено» говорится только когда запросы и
+                    // правда прошли. Рядом с отказом эти слова противоречат
+                    // ему же — а разводить отказ и пустоту разными словами и
+                    // есть смысл строки (`T92`).
+                    status.Add(Resources.NucBase_SearchEmpty);
                 }
             }
 
+            if (isotope.Length == 0)
+            {
+                // Имени нет — карточке взяться неоткуда, и прошлая на экране
+                // остаться не должна.
+                ShowIsotopeCard("", null);
+            }
+            else
+            {
+                string cardNote = ShowCardFor(isotope);
+                if (cardNote != null)
+                {
+                    status.Add(cardNote);
+                    refused |= this.lastCardFailed;
+                }
+            }
+
+            SetSearchStatus(string.Join(Environment.NewLine, status), refused);
             UpdateNuclideDefinitionControlsState();
         }
 
@@ -228,20 +286,102 @@ namespace BecquerelMonitor.NucBase
         }
 
         /// <summary>
-        /// Карточка нуклида — про распад, а у элемента распада нет. Оставленная
-        /// от прошлого поиска, она подписала бы рентген вольфрама периодом
-        /// полураспада того, кого искали до него.
+        /// Карточка нуклида: заполнить прочитанным или ОЧИСТИТЬ (nuc = null).
+        ///
+        /// ⛔ Метод один на все три места, где карточку показывают (`T92`).
+        /// Раньше карточку ЗАПОЛНЯЛИ в трёх местах, и ни одно из этих трёх её
+        /// не очищало: когда нуклид не читался, каждое просто выходило — и на
+        /// экране оставался ПРЕДЫДУЩИЙ нуклид, чьи Z, N, период, родители и
+        /// дочки выглядели принадлежащими выбранному. Пустой список хотя бы
+        /// виден; чужая карточка выглядит настоящей.
+        ///
+        /// ⚠ Очистка в дереве БЫЛА — отдельным методом `ClearIsotopeCard`, но
+        /// звали его только из ветки запроса про элемент, а не с путей отказа.
+        /// Он снят, и его довод переехал сюда: карточка — про распад, а у
+        /// элемента распада нет; оставленная от прошлого поиска, она подписала
+        /// бы рентген вольфрама периодом полураспада того, кого искали до него.
         /// </summary>
-        private void ClearIsotopeCard()
+        private void ShowIsotopeCard(string isotope, Nuclide nuc)
         {
-            this.IsotopeNameLabel.Text = this.SearchedIsotope;
-            this.IsotopeZLabel.Text = MaterialDatabase.ZOf(this.SearchedIsotope).ToString();
-            this.IsotopeNLabel.Text = "";
-            this.IsotopeHLLabel.Text = "";
-            this.IsotopeSpecActivity.Text = "";
-            this.IsotopeAbundance.Text = "";
+            this.IsotopeNameLabel.Text = isotope ?? "";
             this.ParentsDataGridView.Rows.Clear();
             this.DaughtersDataGridView.Rows.Clear();
+            if (nuc == null)
+            {
+                // Номер элемента остаётся и у пустой карточки — ради запроса о
+                // характеристическом рентгене («W»): нуклида там нет вовсе, а
+                // Z есть. У ненайденного нуклида (`232TH`) `ZOf` даёт 0, и
+                // тогда в поле пусто: ноль в графе «Z» — неправда, а не пробел.
+                int z = MaterialDatabase.ZOf(isotope ?? "");
+                this.IsotopeZLabel.Text = z > 0 ? z.ToString(CultureInfo.InvariantCulture) : "";
+                this.IsotopeNLabel.Text = "";
+                this.IsotopeHLLabel.Text = "";
+                this.IsotopeSpecActivity.Text = "";
+                this.IsotopeAbundance.Text = "";
+                return;
+            }
+
+            this.IsotopeZLabel.Text = nuc.Z.ToString();
+            this.IsotopeNLabel.Text = nuc.N.ToString();
+            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
+            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
+            this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
+
+            foreach (Decay parent in nuc.Parents)
+            {
+                this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
+            }
+
+            foreach (Decay daughter in nuc.Daughters)
+            {
+                this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+            }
+        }
+
+        /// <summary>
+        /// Прочитать нуклид и показать его карточку — или очистить её, если
+        /// показывать нечего.
+        ///
+        /// Возвращает текст, который надо СКАЗАТЬ человеку, когда карточки не
+        /// будет, и <c>null</c>, когда она показана. Слова у двух причин
+        /// РАЗНЫЕ (`T92`): «в таблице такой строки нет либо период не измерен»
+        /// — это законный ответ базы, а «прочитать не удалось» — отказ, и
+        /// <see cref="lastCardFailed"/> взводится только у второго.
+        /// </summary>
+        private string ShowCardFor(string isotope)
+        {
+            NucBaseFramework fw = new NucBaseFramework();
+            Nuclide nuc = fw.getNuclude(isotope);
+            ShowIsotopeCard(isotope, nuc);
+            this.lastCardFailed = nuc == null && fw.LastError != null;
+            if (nuc != null)
+            {
+                return null;
+            }
+
+            return this.lastCardFailed
+                ? string.Format(Resources.NucBase_IsotopeFetchError, isotope, fw.LastError)
+                : string.Format(Resources.NucBase_CardEmpty, isotope);
+        }
+
+        /// <summary>
+        /// Строка состояния под таблицами — ЕДИНСТВЕННОЕ место, где редактор
+        /// говорит человеку, чем кончился запрос (`T92`).
+        ///
+        /// ⛔ Диалогом отказ здесь не показывают: `DoSearch` гоняет безоконная
+        /// проба (`ChainProbe.CheckSearch`), и модальное окно вставало бы в ней
+        /// насмерть — этим уже заплачено (`D42`). Метка видна всегда, ждать
+        /// кнопки не заставляет и читается прогоном так же, как глазами.
+        ///
+        /// Цвет — вторая подсказка, не первая: отказ отличается СЛОВАМИ, а
+        /// краснота только помогает его заметить.
+        /// </summary>
+        private void SetSearchStatus(string text, bool failed)
+        {
+            this.SearchStatusLabel.Text = text ?? "";
+            this.SearchStatusLabel.ForeColor = failed
+                ? System.Drawing.Color.Firebrick
+                : System.Drawing.SystemColors.ControlText;
         }
 
         private void UpdateNuclideDefinitionControlsState()
@@ -379,32 +519,44 @@ namespace BecquerelMonitor.NucBase
                 return;
             }
             string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
-            NucBaseFramework fw = new NucBaseFramework();
-            Nuclide nuc = fw.getNuclude(isotope);
-            if (nuc == null)
-            {
-                // Stable isotope (no half-life row) - nothing to display.
-                return;
-            }
-            this.IsotopeNameLabel.Text = isotope;
-            this.IsotopeZLabel.Text = nuc.Z.ToString();
-            this.IsotopeNLabel.Text = nuc.N.ToString();
-            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
-            this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
+            // ⛔ Карточка чистится в любом случае — и прежде всего когда
+            // нуклида не нашлось (`T92`). Здесь стоял выход с примечанием
+            // «Stable isotope (no half-life row) — nothing to display», и оно
+            // было неверно дважды: у стабильных период есть строкой `STABLE`,
+            // отбор их пропускает и карточка у них показывается (`D42`), а
+            // «нечего показывать» на деле означало «остаётся карточка
+            // предыдущего нуклида».
+            ShowCardNote(ShowCardFor(isotope));
+        }
 
-            this.ParentsDataGridView.Rows.Clear();
-            foreach (Decay parent in nuc.Parents)
+        /// <summary>
+        /// Сказать о карточке то, что вернул <see cref="ShowCardFor"/>, — и
+        /// промолчать, когда сказать нечего.
+        ///
+        /// ⚠ Молчание тут и есть всё, что бережёт итог поиска: когда сказать
+        /// ЕСТЬ что, <see cref="SetSearchStatus"/> присваивает текст ЦЕЛИКОМ, и
+        /// итог поиска затирается. Измерено 27.08.2026: после «Найдено линий: 1.»
+        /// щелчок по строке с нечитаемым нуклидом оставляет в метке ТОЛЬКО
+        /// «Карточки для 999ZZ нет: …». Обратно итог не возвращается — только
+        /// следующим поиском. Одно место на два разных сообщения; чтобы
+        /// сообщения не вытесняли друг друга, нужен второй слот, и это
+        /// отдельная строка (`T96`).
+        /// </summary>
+        private void ShowCardNote(string note)
+        {
+            if (note != null)
             {
-                this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
-            }
-
-            this.DaughtersDataGridView.Rows.Clear();
-            foreach (Decay daughter in nuc.Daughters)
-            {
-                this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
+                SetSearchStatus(note, this.lastCardFailed);
             }
         }
+
+        /// <summary>
+        /// Был ли последний отказ карточки отказом БАЗЫ, а не отсутствием
+        /// строки. Пишет <see cref="ShowCardFor"/>, читают
+        /// <see cref="ShowCardNote"/> и <see cref="DoSearch"/> — от этого
+        /// зависит только цвет строки состояния, слова у двух причин свои.
+        /// </summary>
+        private bool lastCardFailed;
 
         private void ToggleSelection()
         {
@@ -494,34 +646,9 @@ namespace BecquerelMonitor.NucBase
                 return;
             }
             string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
-            if (isotope != null)
-            {
-                NucBaseFramework fw = new NucBaseFramework();
-                Nuclide nuc = fw.getNuclude(isotope);
-                if (nuc == null)
-                {
-                    // Stable isotope (no half-life row) - nothing to display.
-                    return;
-                }
-                this.IsotopeNameLabel.Text = isotope;
-                this.IsotopeZLabel.Text = nuc.Z.ToString();
-                this.IsotopeNLabel.Text = nuc.N.ToString();
-                this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-                this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
-                this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
-
-                this.ParentsDataGridView.Rows.Clear();
-                foreach (Decay parent in nuc.Parents)
-                {
-                    this.ParentsDataGridView.Rows.Add(parent.NucName, parent.DecayTypeString, parent.DecayPercent);
-                }
-
-                this.DaughtersDataGridView.Rows.Clear();
-                foreach (Decay daughter in nuc.Daughters)
-                {
-                    this.DaughtersDataGridView.Rows.Add(daughter.NucName, daughter.DecayTypeString, daughter.DecayPercent);
-                }
-            }
+            // Та же карточка и то же правило, что при щелчке по строке: показать
+            // или очистить, а об отказе сказать (`T92`).
+            ShowCardNote(ShowCardFor(isotope));
         }
 
         private void IsotopeTextBox_Enter(object sender, EventArgs e)

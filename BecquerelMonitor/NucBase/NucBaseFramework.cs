@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using System.Linq;
-using System.Windows.Forms;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
@@ -16,11 +15,31 @@ namespace BecquerelMonitor.NucBase
 
         public NucBaseFramework()
         {
-            
+
         }
+
+        /// <summary>
+        /// ПРИЧИНА ПОСЛЕДНЕГО ОТКАЗА, словами исключения. Пусто, когда запрос
+        /// отказом не кончился (`T92`).
+        ///
+        /// ⛔ Отказ у этого класса — ЗНАЧЕНИЕ, А НЕ ДИАЛОГ (`D42`): модальное
+        /// окно вставало насмерть в безоконном запуске, пробу приходилось
+        /// убивать. Но одного признака-значения мало: `null` от
+        /// <see cref="getDecayRad"/> и <see cref="getNuclude"/> не отличает
+        /// «запрос упал» от «в базе такого нет», и редактор молчал одинаково в
+        /// обоих случаях. Здесь лежит причина — чтобы вызывающий сказал
+        /// человеку РАЗНЫМИ словами разные вещи.
+        ///
+        /// ⚠ Свойство сбрасывается В НАЧАЛЕ каждого запроса, поэтому читать его
+        /// надо сразу после вызова, до следующего. Так и читают потребители:
+        /// <c>NucBase.DoSearch</c> (линии и ряд) и <c>NucBase.ShowCardFor</c>
+        /// (карточка нуклида).
+        /// </summary>
+        public string LastError { get; private set; }
 
         public Nuclide getNuclude(string nucname)
         {
+            this.LastError = null;
             DataBase db = new DataBase();
             Nuclide nuc = new Nuclide();
             try
@@ -69,11 +88,16 @@ namespace BecquerelMonitor.NucBase
             }
             catch (Exception ex)
             {
-                MessageBox.Show(String.Format(Resources.NucBase_IsotopeFetchError, nucname, ex.Message),
-                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // ⛔ ОТКАЗ — ЗНАЧЕНИЕ, А НЕ ДИАЛОГ (`D42`): здесь стояло
+                // модальное окно, а метод зовётся в том числе из `DoSearch`,
+                // который гоняет безоконная проба (`ChainProbe.CheckSearch`).
+                // Причина уезжает в <see cref="LastError"/>, и редактор
+                // показывает её строкой состояния (`T92`).
+                Trace.WriteLine("getNuclude(" + nucname + "): " + ex.GetType().Name + ": " + ex.Message);
+                this.LastError = ex.GetType().Name + ": " + ex.Message;
                 nuc = null;
             }
-            
+
             db.Close();
             return nuc;
         }
@@ -129,6 +153,7 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 3000.0, double half_life_sec = 0)
         {
+            this.LastError = null;
             DataBase db = new DataBase();
             string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a, dr.type_c, dr.dec_type, nuc.half_life, nuc.half_life_unit from decay_radiations as dr, nuclides nuc where dr.parent_nucid = nuc.nucid and dr.type_a in ('G', 'X') and ";
             if (nucname.Length > 0)
@@ -207,11 +232,13 @@ namespace BecquerelMonitor.NucBase
                 // 27.08.2026, процесс с окном «Ошибка!» пришлось убивать.
                 // Признак отказа у метода прежний и единственный — `null`, и
                 // читают его оба вызывающих (`NucBase.DoSearch`,
-                // `ChainProbe`). ⚠ Что редактор при отказе теперь молчит —
-                // отдельная строка: читателя, показывающего человеку причину,
-                // на форме пока нет.
+                // `ChainProbe`). Причина при этом больше не теряется: она
+                // уезжает в <see cref="LastError"/>, а редактор показывает её
+                // строкой состояния под таблицами (`T92`) — до этого отказ был
+                // неотличим от «линий нет».
                 Trace.WriteLine("getDecayRad: " + ex.GetType().Name + ": " + ex.Message
                                 + Environment.NewLine + sql);
+                this.LastError = ex.GetType().Name + ": " + ex.Message;
                 decayRads = null;
             }
             
@@ -447,6 +474,7 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public Dictionary<string, double> GetChainBranches(string rootNucid, double minFraction = 1e-6)
         {
+            this.LastError = null;
             Dictionary<string, double> fraction = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             // Обход разносит ДЕЛЬТЫ, а не посещает нуклиды по разу: пути разной
             // длины сходятся в один нуклид (234U из 234Th через 234mPa и через
@@ -515,8 +543,13 @@ namespace BecquerelMonitor.NucBase
             }
             catch (Exception ex)
             {
-                MessageBox.Show(String.Format(Resources.NucBase_DaughtersFetchError, rootNucid, ex.Message),
-                    Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // ⛔ Тот же разбор, что у соседей по классу: отказ — значение,
+                // а не диалог (`D42`). Ряд при этом возвращается ОБОРВАННЫМ, и
+                // молчать об этом нельзя: недостающие члены выглядят как
+                // «их в ряду нет». Причина уезжает в <see cref="LastError"/>,
+                // редактор говорит о ней строкой состояния (`T92`).
+                Trace.WriteLine("GetChainBranches(" + rootNucid + "): " + ex.GetType().Name + ": " + ex.Message);
+                this.LastError = ex.GetType().Name + ": " + ex.Message;
             }
 
             db.Close();

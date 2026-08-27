@@ -1189,7 +1189,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRLoadingDeviceConfigFailed", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot open the nuclide database. Nothing was read from it, so every nuclide card and line search will come back empty.
+        /// </summary>
+        public static string ERRNucBaseOpenDatabase {
+            get {
+                return ResourceManager.GetString("ERRNucBaseOpenDatabase", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to load application configuration file..
         /// </summary>
@@ -2325,7 +2334,52 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("NucBase_KSeriesRedundantSkipped", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Lines found: {0}..
+        /// </summary>
+        public static string NucBase_SearchFound {
+            get {
+                return ResourceManager.GetString("NucBase_SearchFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing found: the query ran, but no line matches the search conditions..
+        /// </summary>
+        public static string NucBase_SearchEmpty {
+            get {
+                return ResourceManager.GetString("NucBase_SearchEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SEARCH FAILED for {0}. The table is empty because the query did not run — not because there are no lines. {1}.
+        /// </summary>
+        public static string NucBase_LinesFetchError {
+            get {
+                return ResourceManager.GetString("NucBase_LinesFetchError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}.
+        /// </summary>
+        public static string NucBase_ChainLinesRefused {
+            get {
+                return ResourceManager.GetString("NucBase_ChainLinesRefused", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No card for {0}: the nuclide table has no such row, or its half-life is not measured..
+        /// </summary>
+        public static string NucBase_CardEmpty {
+            get {
+                return ResourceManager.GetString("NucBase_CardEmpty", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>

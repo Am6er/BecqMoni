@@ -213,6 +213,20 @@ namespace BecquerelMonitor
             }
             this.isLoaded = true;
             FillChainsFromNames(this.nuclideDefinitionFile);
+            // ⛔ `S102`: заверение о библиотеке обязано называть ОТКРЫТЫЙ файл.
+            // Прежде его писала оснастка — ДО запуска и про файл, который она
+            // положила («библиотека нуклидов: 152 записей»), а проба с другим
+            // рабочим каталогом открывала другой, на 143 записи, и расхождение
+            // не всплывало нигде. Строку теперь пишет тот, кто файл открыл, и
+            // пишет полный путь: сверить обещание с фактом стало возможно.
+            // Печатается только без окон и за безоконный прогон ровно один раз:
+            // повторный вызов уходит по `isLoaded` выше, а единственная
+            // перезагрузка по требованию (`forceReload`) зовётся из формы
+            // редактора — то есть в окнах, где строка молчит.
+            AppUi.Note("nuclide library: " + AppUi.Where(nuclideDefinitionFilename) + ": "
+                + (this.nuclideDefinitionFile.NuclideDefinitions == null
+                    ? 0 : this.nuclideDefinitionFile.NuclideDefinitions.Count)
+                + " entries");
             return true;
         }
 
