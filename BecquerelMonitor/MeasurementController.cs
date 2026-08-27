@@ -158,13 +158,49 @@ namespace BecquerelMonitor
             this.resultData = resultData;
         }
 
+        /// <summary>
+        /// ⛔ ЧТО ЗНАЧИТ «БЕЗ ОКОН» НА ПУТИ ИЗМЕРЕНИЯ (остаток `S100`, 28.08.2026).
+        ///
+        /// Здесь беды двух разных пород, и одной меркой их мерить нельзя:
+        ///
+        /// 1. Прибор НЕ ОТКРЫЛСЯ на СТАРТЕ (занят, конфигурации нет, тип чужой,
+        ///    порт молчит). Данных ещё нет; продолжать нельзя. Без окон —
+        ///    ОТКАЗ БРОСКОМ, а не <c>false</c>.
+        ///
+        ///    ⚠ Довод не общий, а измеренный: у <c>false</c> ЧИТАТЕЛЯ НЕТ.
+        ///    Единственный оконный вызывающий, <c>DCControlPanel.StartMeasurement</c>
+        ///    (<c>DCControlPanel.cs:144</c>), возвращаемое значение
+        ///    <c>StartRecording()</c> ПРОСТО ИГНОРИРУЕТ — и дальше метит документ
+        ///    <c>Dirty</c>, зовёт <c>UpdateSampleInfo</c> и <c>ShowDocumentStatus</c>,
+        ///    как будто набор пошёл. Безоконный прогон на «просто false» ведёт себя
+        ///    так же: пишет ПУСТОЙ спектр и выдаёт его за измерение. Читатель у
+        ///    отказа обязан быть, и здесь это код возврата прогона.
+        ///
+        /// 2. Прибор отвалился ПОСРЕДИ набора. Данные уже есть, и бросок их теряет:
+        ///    такие места живут в контроллерах приборов (обработчики
+        ///    <c>port_failure_stop</c>, <c>update_hystogram</c>, поток буферов
+        ///    <c>WaveIn.MaintainBuffers</c>) и переведены на <see cref="AppUi.Report"/>,
+        ///    а не на бросок. См. пояснения там же.
+        ///
+        /// В окнах НИЧЕГО не меняется: <see cref="AppUi.Report"/> поднимает то же
+        /// модальное окно, с тем же текстом, тем же заголовком и той же значковой
+        /// частью, что и прежний <c>MessageBox.Show</c>.
+        /// </summary>
         // Token: 0x060006AB RID: 1707 RVA: 0x00028040 File Offset: 0x00026240
         public bool StartRecording()
         {
             ResultDataStatus resultDataStatus = this.resultData.ResultDataStatus;
             if (!this.AcquireDeviceLease())
             {
-                MessageBox.Show(string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name));
+                string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the measurement cannot start - the device is already being recorded by another "
+                        + "spectrum: " + busy + " A headless run must not continue here: nothing would be acquired, "
+                        + "and the empty spectrum would be presented as a measurement.");
+                }
+                AppUi.Report(busy, "", MessageBoxIcon.None);
                 return false;
             }
             if (!this.CreateDeviceController())
@@ -180,9 +216,21 @@ namespace BecquerelMonitor
                     this.ReleaseDeviceLease();
                     return false;
                 }
-            } catch (Exception)
+            } catch (Exception ex)
             {
-                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                // ⛔ Без окон этот `catch` НЕ ГЛОТАЕТ. Он ловит всё подряд и
+                //    подменяет причину одним и тем же «Bluetooth не поддержан
+                //    операционной системой» — то есть отказ звукового входа или
+                //    последовательного порта доехал бы до человека чужим текстом,
+                //    а до безоконного прогона не доехал бы вовсе.
+                if (!AppUi.HasWindows)
+                {
+                    this.ReleaseDeviceLease();
+                    throw new InvalidOperationException(
+                        "BecqMoni: the device failed at the start of the measurement (" + ex.GetType().Name + "): "
+                        + ex.Message + " A headless run must not continue: the spectrum would stay empty.", ex);
+                }
+                AppUi.Report(Resources.ERRBTNotSupportedByOS, "", MessageBoxIcon.None);
                 this.ReleaseDeviceLease();
                 return false;
             }
@@ -195,7 +243,14 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = this.resultData.ResultDataStatus;
             if (!this.AcquireDeviceLease())
             {
-                MessageBox.Show(string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name));
+                string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: cannot attach to the device - it is already being recorded by another spectrum: "
+                        + busy + " A headless run must not continue: nothing would be acquired.");
+                }
+                AppUi.Report(busy, "", MessageBoxIcon.None);
                 return false;
             }
             if (!this.CreateDeviceController())
@@ -217,14 +272,30 @@ namespace BecquerelMonitor
             DeviceConfigInfo deviceConfig = this.resultData.DeviceConfig;
             if (deviceConfig == null || deviceConfig.Guid == null || !this.deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
             {
-                MessageBox.Show(Resources.ERRDeviceConfigNotSelected);
+                // Старт измерения: см. пояснение у `StartRecording`.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the spectrum names a device configuration that is not among the loaded ones ("
+                        + (deviceConfig == null ? "<none>" : "GUID " + (deviceConfig.Guid ?? "<none>"))
+                        + "); loaded: " + this.deviceConfigManager.DeviceConfigMap.Count
+                        + ". The measurement cannot start, and a headless run must not continue with an empty spectrum.");
+                }
+                AppUi.Report(Resources.ERRDeviceConfigNotSelected, "", MessageBoxIcon.None);
                 return false;
             }
             DeviceType deviceType = null;
             DeviceType.DeviceTypeMap.TryGetValue(this.resultData.DeviceConfig.DeviceType, out deviceType);
             if (deviceType == null)
             {
-                MessageBox.Show(Resources.ERRInvalidDeviceType);
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the device configuration names a device type that is not registered: \""
+                        + (this.resultData.DeviceConfig.DeviceType ?? "<none>") + "\". The measurement cannot start, "
+                        + "and a headless run must not continue with an empty spectrum.");
+                }
+                AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
                 return false;
             }
             if (deviceType.DeviceControllerType == typeof(AudioInputDeviceController))
@@ -259,7 +330,19 @@ namespace BecquerelMonitor
             }
             if (this.deviceController == null)
             {
-                MessageBox.Show(Resources.ERRInvalidDeviceType);
+                // Сюда попадает зарегистрированный тип прибора, у которого
+                // `DeviceControllerType` не совпал ни с одним из четырёх выше.
+                // Сегодня таких в реестре нет — но это и есть та ветка, которая
+                // молча промолчит при добавлении пятого прибора.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: device type \"" + (this.resultData.DeviceConfig.DeviceType ?? "<none>")
+                        + "\" is registered, but no controller was built for it (controller type "
+                        + (deviceType.DeviceControllerType == null ? "<none>" : deviceType.DeviceControllerType.Name)
+                        + "). The measurement cannot start.");
+                }
+                AppUi.Report(Resources.ERRInvalidDeviceType, "", MessageBoxIcon.None);
                 return false;
             }
             return true;
@@ -304,9 +387,21 @@ namespace BecquerelMonitor
             try
             {
                 this.deviceController.ClearMeasurementResult(this.resultData);
-            } catch (Exception)
+            } catch (Exception ex)
             {
-                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                // Сброс накопителя ПРИБОРА. Метод `void`, читателя у неудачи нет
+                // вовсе, а цена молчания та же, что у пустого спектра: не
+                // обнулённые отсчёты прибора приедут в следующем же обновлении
+                // (`update_hystogram` копирует НАКОПЛЕННУЮ гистограмму целиком) и
+                // будут посчитаны как свежие. Без окон — отказ.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: the device refused to clear its accumulated result (" + ex.GetType().Name + "): "
+                        + ex.Message + " A headless run must not continue: counts that were not zeroed come back "
+                        + "with the next update and look like a fresh measurement.", ex);
+                }
+                AppUi.Report(Resources.ERRBTNotSupportedByOS, "", MessageBoxIcon.None);
             }
         }
 

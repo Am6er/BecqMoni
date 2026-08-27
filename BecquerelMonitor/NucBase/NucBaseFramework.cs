@@ -40,10 +40,21 @@ namespace BecquerelMonitor.NucBase
         public Nuclide getNuclude(string nucname)
         {
             this.LastError = null;
-            DataBase db = new DataBase();
+            // ⛔ СОЕДИНЕНИЕ СОЗДАЁТСЯ ВНУТРИ `try`, И ЭТО НЕ ОПРЯТНОСТЬ (`D46`).
+            // Стояло оно строкой ВЫШЕ, и всякий бросок конструктора — а с ним и
+            // бросок ИНИЦИАЛИЗАТОРА ТИПА поставщика — уходил наружу мимо
+            // <see cref="LastError"/>, мимо строки состояния, мимо всего, что
+            // завела `T92`. Измерено 28.08.2026: прогон без `<проба>.exe.config`
+            // рядом (нет перенаправления версий `SQLitePCLRaw.core`) давал
+            // `TypeInitializationException` из `SqliteConnection`, пролетавший
+            // НАСКВОЗЬ через `getDecayRad` в `DoSearch`, — процесс умирал кодом
+            // −532462766 без единого слова человеку. Правка `T87` прикрыла
+            // только отказ `Open()`.
+            DataBase db = null;
             Nuclide nuc = new Nuclide();
             try
             {
+                db = new DataBase();
                 SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = '" + nucname + "' and half_life not null");
                 if (!reader.Read())
                 {
@@ -98,7 +109,14 @@ namespace BecquerelMonitor.NucBase
                 nuc = null;
             }
 
-            db.Close();
+            // Соединения может не быть вовсе — конструктор до него не дошёл
+            // (`D46`). Закрывать нечего, и падать на уборке нельзя: исключение
+            // уборки подменило бы причину отказа.
+            if (db != null)
+            {
+                db.Close();
+            }
+
             return nuc;
         }
 
@@ -154,7 +172,8 @@ namespace BecquerelMonitor.NucBase
         public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 3000.0, double half_life_sec = 0)
         {
             this.LastError = null;
-            DataBase db = new DataBase();
+            // Соединение создаётся ВНУТРИ `try` ниже — довод при `getNuclude` (`D46`).
+            DataBase db = null;
             string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a, dr.type_c, dr.dec_type, nuc.half_life, nuc.half_life_unit from decay_radiations as dr, nuclides nuc where dr.parent_nucid = nuc.nucid and dr.type_a in ('G', 'X') and ";
             if (nucname.Length > 0)
             {
@@ -200,6 +219,7 @@ namespace BecquerelMonitor.NucBase
             List<DecayRad> decayRads = new List<DecayRad>();
             try
             {
+                db = new DataBase();
                 SqliteDataReader reader = db.ReadData(sql);
                 while (reader.Read())
                 {
@@ -241,8 +261,13 @@ namespace BecquerelMonitor.NucBase
                 this.LastError = ex.GetType().Name + ": " + ex.Message;
                 decayRads = null;
             }
-            
-            db.Close();
+
+            // Соединения может не быть вовсе — см. `getNuclude` (`D46`).
+            if (db != null)
+            {
+                db.Close();
+            }
+
             MarkRedundantKSeries(decayRads);
             return decayRads;
         }
@@ -488,9 +513,11 @@ namespace BecquerelMonitor.NucBase
             fraction[rootNucid] = 1.0;
             queue.Add(new KeyValuePair<string, double>(rootNucid, 1.0));
 
-            DataBase db = new DataBase();
+            // Соединение создаётся ВНУТРИ `try` — довод при `getNuclude` (`D46`).
+            DataBase db = null;
             try
             {
+                db = new DataBase();
                 for (int i = 0; i < queue.Count && queue.Count <= 1000; i++)
                 {
                     string current = queue[i].Key;
@@ -552,7 +579,12 @@ namespace BecquerelMonitor.NucBase
                 this.LastError = ex.GetType().Name + ": " + ex.Message;
             }
 
-            db.Close();
+            // Соединения может не быть вовсе — см. `getNuclude` (`D46`).
+            if (db != null)
+            {
+                db.Close();
+            }
+
             return fraction;
         }
 

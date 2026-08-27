@@ -123,26 +123,11 @@
   <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
     <value>Мин. количество пиков для использования этой кривой в FWHM калибровке</value>
   </data>
-  <data name="calibrationProcessingPanel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="curveFormulaLabel.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label1.Text" xml:space="preserve">
     <value>Укажите пик для калибровки...</value>
   </data>
-  <data name="addPeakButton.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="channelColumn.Text" xml:space="preserve">
     <value>Канал</value>
-  </data>
-  <data name="CollectedPeaksTable.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label1.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="removePeakButton.Text" xml:space="preserve">
     <value>Удалить</value>
@@ -156,26 +141,14 @@
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
     <value>Сохранить в конфиг устройства</value>
   </data>
-  <data name="executeCalibrationButton.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
     <value>Сохранить калибровку в конфиг устройства</value>
-  </data>
-  <data name="$this.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
     <value>Мин. количество пиков: 3</value>
   </data>
   <data name="executeCalibrationButton.Text" xml:space="preserve">
     <value>Калибровать</value>
-  </data>
-  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="removePeakButton.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
@@ -4477,20 +4450,8 @@
   <data name="addPeakButton.Text" xml:space="preserve">
     <value>Добавить пик</value>
   </data>
-  <data name="cancelAddPeakButton.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label3.ToolTip" xml:space="preserve">
-    <value />
-  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Формула:</value>
-  </data>
-  <data name="getAllPeaksButton.ToolTip" xml:space="preserve">
-    <value />
-  </data>
-  <data name="label2.ToolTip" xml:space="preserve">
-    <value />
   </data>
   <data name="energyColumn.ToolTipText" xml:space="preserve">
     <value>Энергия в keV</value>

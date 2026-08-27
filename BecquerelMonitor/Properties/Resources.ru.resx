@@ -404,6 +404,10 @@
   <data name="FSACascadeMark" xml:space="preserve">
     <value> · суммирование</value>
   </data>
+  <data name="FSASuppressedMark" xml:space="preserve">
+    <value> · подавлен</value>
+    <comment>S104: one instrument image outweighs the whole nuclide composition</comment>
+  </data>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — сумм-пик</value>
   </data>
@@ -666,9 +670,6 @@
   </data>
   <data name="NucBase.Fluorescence" xml:space="preserve">
     <value>флуоресценция</value>
-  </data>
-  <data name="NucBase.FluorescenceTitle" xml:space="preserve">
-    <value>Характеристический рентген</value>
   </data>
   <data name="NucBase.NoFluorescence" xml:space="preserve">
     <value>Флуоресценции K-оболочки для {0} в базе нет. Таблица заполнена от Z = 30: ниже нет пары краёв L2/L3, по разности с которыми считаются энергии линий.</value>
@@ -1909,5 +1910,23 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="NucBase.DaughtersFetchError" xml:space="preserve">
     <value>Дочерние нуклиды {0} прочитаны не все. Сообщение: {1}</value>
+  </data>
+  <data name="NucBase.Alpha.Label" xml:space="preserve">
+    <value>α</value>
+  </data>
+  <data name="NucBase.BettaMinus.Label" xml:space="preserve">
+    <value>β-</value>
+  </data>
+  <data name="NucBase.BettaPlus.Label" xml:space="preserve">
+    <value>β+</value>
+  </data>
+  <data name="NucBase.Gamma.Label" xml:space="preserve">
+    <value>γ</value>
+  </data>
+  <data name="NucBase.EC" xml:space="preserve">
+    <value>EC</value>
+  </data>
+  <data name="NucBase.IT" xml:space="preserve">
+    <value>IT</value>
   </data>
 </root>

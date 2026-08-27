@@ -125,15 +125,28 @@ namespace BecquerelMonitor.NucBase
                 // Карточка нуклида у элемента пустая: нуклида нет вовсе, есть
                 // только номер элемента — его `ShowIsotopeCard` и оставит.
                 ShowIsotopeCard(element, null);
+                // Заметка о карточке от ПРОШЛОГО запроса к этому элементу не
+                // относится, и остаться на экране не должна (`T96`).
+                ShowCardNote(null);
                 if (fluorescence.Count == 0)
                 {
-                    status.Add(Resources.NucBase_SearchEmpty);
-                    // Почему пусто — длинное объяснение про Z = 30, ему место в
-                    // окне, а не в строке состояния.
-                    MessageBox.Show(this,
-                        string.Format(Resources.NucBase_NoFluorescence, element),
-                        Resources.NucBase_FluorescenceTitle,
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // ⛔ ЗДЕСЬ СТОЯЛО МОДАЛЬНОЕ ОКНО, И ОНО ВЕШАЛО БЕЗОКОННЫЙ
+                    // ПРОГОН НАСМЕРТЬ (`T98`). Измерено 27–28.08.2026:
+                    // `DoSearch("Na")` не возвращался вовсе — процесс убивали по
+                    // сроку; сторожем окон поймано и названо поимённо: класс
+                    // `#32770`, заголовок «Характеристический рентген».
+                    // Положительный контроль `DoSearch("W")` и до, и после даёт
+                    // «Найдено линий: 3» и ни одного окна.
+                    //
+                    // ⚠ «Провести через `AppUi`» было бы половиной дела: окно
+                    // осталось бы, а СЛОВА в строке состояния остались бы
+                    // короткими и неверными по существу — «ни одна линия не
+                    // подошла под условия отбора» неправда, отбор ни при чём,
+                    // в таблице нет самого элемента. Поэтому длинное объяснение
+                    // переехало В СТРОКУ СОСТОЯНИЯ, а окна не стало вовсе: метка
+                    // видна всегда, кнопки не требует и читается прогоном так же,
+                    // как глазами (`T92`).
+                    status.Add(string.Format(Resources.NucBase_NoFluorescence, element));
                 }
                 else
                 {
@@ -247,17 +260,16 @@ namespace BecquerelMonitor.NucBase
             if (isotope.Length == 0)
             {
                 // Имени нет — карточке взяться неоткуда, и прошлая на экране
-                // остаться не должна.
+                // остаться не должна. Вместе с ней уходит и заметка о ней.
                 ShowIsotopeCard("", null);
+                ShowCardNote(null);
             }
             else
             {
-                string cardNote = ShowCardFor(isotope);
-                if (cardNote != null)
-                {
-                    status.Add(cardNote);
-                    refused |= this.lastCardFailed;
-                }
+                // Заметка о карточке — ВТОРОЙ слот строки состояния, а не часть
+                // итога поиска (`T96`). Прежде она подклеивалась сюда, в `status`,
+                // и та же заметка от щелчка по строке затирала весь итог целиком.
+                ShowCardNote(ShowCardFor(isotope));
             }
 
             SetSearchStatus(string.Join(Environment.NewLine, status), refused);
@@ -370,19 +382,68 @@ namespace BecquerelMonitor.NucBase
         ///
         /// ⛔ Диалогом отказ здесь не показывают: `DoSearch` гоняет безоконная
         /// проба (`ChainProbe.CheckSearch`), и модальное окно вставало бы в ней
-        /// насмерть — этим уже заплачено (`D42`). Метка видна всегда, ждать
-        /// кнопки не заставляет и читается прогоном так же, как глазами.
+        /// насмерть — этим уже заплачено (`D42`, `T98`). Метка видна всегда,
+        /// ждать кнопки не заставляет и читается прогоном так же, как глазами.
         ///
         /// Цвет — вторая подсказка, не первая: отказ отличается СЛОВАМИ, а
         /// краснота только помогает его заметить.
+        ///
+        /// ⛔ У метки ДВА СЛОТА, И ЭТО НЕ УКРАШЕНИЕ (`T96`). Сообщения у неё два
+        /// и приходят они с разных путей: итог поиска — из <see cref="DoSearch"/>,
+        /// заметка о карточке — ещё и из <see cref="ResultDataGridView_CellClick"/>
+        /// с <see cref="ResultDataGridView_CellEnter"/>, то есть с КАЖДОЙ ячейки,
+        /// по которой прошли стрелками. Пока слот был один, второе сообщение
+        /// затирало первое целиком — измерено 27.08.2026: после «Найдено линий: 5.»
+        /// щелчок по строке `148EUm1` оставлял в метке только «Карточки для
+        /// 148EUm1 нет: …», и итог не возвращался до следующего поиска. Терялся
+        /// он ровно тогда, когда сказать было что ОБОИМ.
         /// </summary>
         private void SetSearchStatus(string text, bool failed)
         {
-            this.SearchStatusLabel.Text = text ?? "";
-            this.SearchStatusLabel.ForeColor = failed
+            this.searchStatus = text ?? "";
+            this.searchFailed = failed;
+            RenderStatus();
+        }
+
+        /// <summary>
+        /// Второй слот той же метки: заметка о карточке нуклида. Пустая строка
+        /// или <c>null</c> слот ОЧИЩАЮТ — заметка о прошлой строке таблицы к
+        /// новой не относится.
+        /// </summary>
+        private void SetCardStatus(string text, bool failed)
+        {
+            this.cardStatus = text ?? "";
+            this.cardFailed = failed;
+            RenderStatus();
+        }
+
+        /// <summary>
+        /// Собрать метку из двух слотов. Пустой слот места не занимает — иначе
+        /// у сообщения появлялась бы пустая строка сверху или снизу.
+        /// </summary>
+        private void RenderStatus()
+        {
+            string text = this.searchStatus;
+            if (this.cardStatus.Length > 0)
+            {
+                text = text.Length > 0
+                    ? text + Environment.NewLine + this.cardStatus
+                    : this.cardStatus;
+            }
+
+            this.SearchStatusLabel.Text = text;
+            this.SearchStatusLabel.ForeColor = this.searchFailed || this.cardFailed
                 ? System.Drawing.Color.Firebrick
                 : System.Drawing.SystemColors.ControlText;
         }
+
+        /// <summary>Итог последнего поиска и был ли он отказом (`T96`).</summary>
+        private string searchStatus = "";
+        private bool searchFailed;
+
+        /// <summary>Заметка о последней показанной карточке (`T96`).</summary>
+        private string cardStatus = "";
+        private bool cardFailed;
 
         private void UpdateNuclideDefinitionControlsState()
         {
@@ -530,31 +591,29 @@ namespace BecquerelMonitor.NucBase
         }
 
         /// <summary>
-        /// Сказать о карточке то, что вернул <see cref="ShowCardFor"/>, — и
-        /// промолчать, когда сказать нечего.
+        /// Сказать о карточке то, что вернул <see cref="ShowCardFor"/>, — во
+        /// ВТОРОЙ слот строки состояния (`T96`).
         ///
-        /// ⚠ Молчание тут и есть всё, что бережёт итог поиска: когда сказать
-        /// ЕСТЬ что, <see cref="SetSearchStatus"/> присваивает текст ЦЕЛИКОМ, и
-        /// итог поиска затирается. Измерено 27.08.2026: после «Найдено линий: 1.»
-        /// щелчок по строке с нечитаемым нуклидом оставляет в метке ТОЛЬКО
-        /// «Карточки для 999ZZ нет: …». Обратно итог не возвращается — только
-        /// следующим поиском. Одно место на два разных сообщения; чтобы
-        /// сообщения не вытесняли друг друга, нужен второй слот, и это
-        /// отдельная строка (`T96`).
+        /// ⛔ <c>null</c> здесь — не «промолчать», а «снять прежнюю заметку»:
+        /// карточка показалась, и старые слова про то, что её нет, ложь. Прежде
+        /// метод на <c>null</c> не делал ничего, и заметка о нечитаемой строке
+        /// оставалась висеть, пока человек листал СЛЕДУЮЩИЕ, читаемые. Молчание
+        /// же было единственным, что берегло итог поиска, — а берёг он его лишь
+        /// пока сказать было нечего.
         /// </summary>
         private void ShowCardNote(string note)
         {
-            if (note != null)
-            {
-                SetSearchStatus(note, this.lastCardFailed);
-            }
+            SetCardStatus(note, note != null && this.lastCardFailed);
         }
 
         /// <summary>
         /// Был ли последний отказ карточки отказом БАЗЫ, а не отсутствием
-        /// строки. Пишет <see cref="ShowCardFor"/>, читают
-        /// <see cref="ShowCardNote"/> и <see cref="DoSearch"/> — от этого
-        /// зависит только цвет строки состояния, слова у двух причин свои.
+        /// строки. Пишет <see cref="ShowCardFor"/>, читает
+        /// <see cref="ShowCardNote"/> — единственный, с тех пор как заметка
+        /// уехала во второй слот (`T96`); прежде читал ещё и
+        /// <see cref="DoSearch"/>, который подклеивал заметку к итогу поиска.
+        /// Зависит от него только цвет строки состояния, слова у двух причин
+        /// свои.
         /// </summary>
         private bool lastCardFailed;
 
