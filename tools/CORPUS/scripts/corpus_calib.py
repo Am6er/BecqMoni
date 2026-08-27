@@ -133,11 +133,20 @@ def measure_resolution(counts, ecal, energies, default=0.065, pct=30.0):
 # 2. сопоставление линий
 # ---------------------------------------------------------------------------
 def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
-                width_lo=0.45, width_hi=2.0):
+                width_lo=0.45, width_hi=2.0, min_sig_fit=0.0):
     """[(канал, табличная энергия, ...)] — что реально нашлось.
 
     lines — результат calibrate.curate: (энергия группы, метка, чистота,
     табличная энергия).
+
+    min_sig_fit — порог по `sig_fit` = A/σ(A) (ковариация фита, `gaussfit.
+    _amp_error`). ⛔ Умолчание 0.0 = гейт ВЫКЛЮЧЕН и ветка не исполняется
+    вовсе: `match_lines` зовут ещё семь мест в четырёх файлах (мерки
+    `gaussfit_check`, `gate_blind_check`, `ecal_accept_check`,
+    `ecal_extrapolation`), и сдвинуть их молча нельзя — мерка, у которой
+    отбор изменился под ногами, меряет уже не то. Кто хочет гейт — просит
+    его поимённо; в конвейере это делает `calibrate` и только на первом
+    проходе (см. `PASS1_MIN_SIG_FIT`).
     """
     global LAST_NOCONV, LAST_BOUND
     n = len(counts)
@@ -161,6 +170,12 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
         elif status == gaussfit.BOUND:
             bound.append(dict(e_ref=e_ref, label=label, ch=ch0, status=status))
         if r is None or r['sig'] < min_sig:
+            continue
+        # `V14`: значимость счётная (`sig`) у гауссианы, севшей на изгиб
+        # континуума во всё окно, огромна — «площадь» под ней огромна.
+        # Значимость АМПЛИТУДЫ по ковариации у такого фита обваливается:
+        # амплитуда там не определена. Гейт по ней — не строже, а ДРУГОЙ.
+        if min_sig_fit > 0.0 and float(r.get('sig_fit', 0.0)) < min_sig_fit:
             continue
         if abs(r['mu'] - ch0) > tol_fwhm * fwhm_ch:
             continue
@@ -412,6 +427,24 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
     return best_tag, best_cal, best_score
 
 
+#: `V14`, решение Amber 27.08.2026: порог гейта по A/σ(A) на ПЕРВОМ проходе.
+#:
+#: ⛔ Почему на первом проходе, а не на последнем — измерено, а не выведено.
+#: Вырожденно широкий фит (ширина фита / модельная > 1.5) на понятной части
+#: базы `out_v7`: **64 из 574** при допусках первого прохода (ширина
+#: 0.35…2.60) и **9 из 493** при штатных (0.50…1.80). Ширинный фильтр
+#: последнего прохода эту корзину уже вычистил, и гейт там покупает почти
+#: ничего; в первом же проходе из 64 широких **59** имеют A/σ(A) < 3, то есть
+#: порог 3 снимает именно их. Мерка: `gate_blind_check.py --gate=pass1|prod`.
+#:
+#: ⛔ Почему 3, а не 8: порог 8 отвергнут по цене. Понятная часть 493 → 303,
+#: линий С ВЕРШИНОЙ теряется 66 из 362 (18.2 %) против 7 (1.9 %) при пороге 3;
+#: спектров меньше чем с тремя опорами 11 → 39 из 81, а `G1S16_K40_Mar_2`
+#: остаётся без единой опоры. Избирательность при этом растёт всего
+#: 2.55 → 2.96 → 3.32.
+PASS1_MIN_SIG_FIT = 3.0
+
+
 def calibrate(counts, stored_coef, lines, res_a, max_order=2, force=False):
     """Полный цикл: грубое сопоставление -> поправка -> точное сопоставление.
 
@@ -423,9 +456,15 @@ def calibrate(counts, stored_coef, lines, res_a, max_order=2, force=False):
     cal = stored
     pairs = []
     tag = 'stored'
-    for tol, wlo, whi in ((2.5, 0.35, 2.6), (1.2, 0.45, 2.0), (0.7, 0.5, 1.8)):
+    for npass, (tol, wlo, whi) in enumerate(
+            ((2.5, 0.35, 2.6), (1.2, 0.45, 2.0), (0.7, 0.5, 1.8))):
+        # `V14`: гейт по A/σ(A) стоит ТОЛЬКО на первом проходе — там и только
+        # там живут вырожденно широкие фиты (довод при `PASS1_MIN_SIG_FIT`).
+        # Второй, третий, `final` и ветка `robust` идут БЕЗ него.
         found = match_lines(counts, cal, lines, res_a, tol_fwhm=tol,
-                            width_lo=wlo, width_hi=whi)
+                            width_lo=wlo, width_hi=whi,
+                            min_sig_fit=(PASS1_MIN_SIG_FIT if npass == 0
+                                         else 0.0))
         if len(found) < 1:
             break
         pairs = found

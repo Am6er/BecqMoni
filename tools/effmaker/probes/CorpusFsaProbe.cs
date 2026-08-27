@@ -43,6 +43,7 @@ namespace CorpusFsaProbe
     ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
+    ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
@@ -282,6 +283,11 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--residuals=", StringComparison.Ordinal))
                 {
                     o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--band-audit=", StringComparison.Ordinal))
+                {
+                    o.BandAudit = a.Substring(13);
                     continue;
                 }
                 if (a.StartsWith("--limits-mc=", StringComparison.Ordinal))
@@ -526,8 +532,107 @@ namespace CorpusFsaProbe
             }
 
             Write(rows, o);
+            DumpBandAudit(rows, o);
             Summary(rows, o, clock.Elapsed.TotalSeconds);
             return 0;
+        }
+
+        /// <summary>
+        /// (`S103`) ДВА ФАЙЛА, и порознь они не отвечают.
+        ///
+        /// `<имя>` — по строке на линию ниже `Min_Range`: норма её столбца во
+        /// взвешенной метрике фита, амплитуда компонента-владельца, площадь,
+        /// которую линия кладёт в модель, и доля столбца, представимая ОДНИМ
+        /// сплайном континуума. Отвечает на «чего стоит столбец».
+        ///
+        /// `<имя>_spectra.csv` — по строке на спектр: сколько отсчётов лежит
+        /// ниже `Min_Range` и чем они в модели описаны (континуум против
+        /// образов). Отвечает на «а кто тогда держит эти отсчёты». Без второго
+        /// файла первый читается неверно: маленькая площадь линии значит либо
+        /// «модель там ничего не предсказывает», либо «предсказывает, но всё
+        /// забрал континуум», и различает их только сравнение с данными.
+        /// </summary>
+        static void DumpBandAudit(List<Row> rows, Options o)
+        {
+            if (string.IsNullOrEmpty(o.BandAudit))
+            {
+                return;
+            }
+
+            string dir = Path.GetDirectoryName(Path.GetFullPath(o.BandAudit));
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            int lines = 0;
+            using (var w = new StreamWriter(o.BandAudit, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine("key,det,part,component,kind,keV,intensity_pct,min_range_keV,"
+                            + "curve_floor_keV,col_norm,col_sum,col_sum_below,amplitude,area,"
+                            + "area_below,continuum_share,model_share,degenerate");
+                foreach (Row r in rows)
+                {
+                    if (r.LineColumns == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLineColumn c in r.LineColumns)
+                    {
+                        lines++;
+                        w.WriteLine(string.Join(",",
+                            r.Key, r.Det, r.Part, c.Component.Replace(',', ';'), c.Kind.ToString(),
+                            F(c.EnergyKev, "F3"), F(c.IntensityPct, "G6"),
+                            F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
+                            F(c.ColumnNorm, "G6"), F(c.ColumnSum, "G6"), F(c.ColumnSumBelow, "G6"),
+                            F(c.Amplitude, "G6"), F(c.Area, "G6"), F(c.AreaBelow, "G6"),
+                            F(c.ContinuumShare, "F6"), F(c.ModelShare, "F6"),
+                            c.Degenerate ? "1" : "0"));
+                    }
+                }
+            }
+
+            string spectra = Path.Combine(dir ?? "",
+                Path.GetFileNameWithoutExtension(o.BandAudit) + "_spectra.csv");
+            int kept = 0;
+            using (var w = new StreamWriter(spectra, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine("key,det,part,min_range_keV,curve_floor_keV,lines_below,"
+                            + "audited_lines,chi2ndf,model_residual_pct,data_total,data_below,"
+                            + "model_below,continuum_below,images_below,area_lines_below");
+                foreach (Row r in rows)
+                {
+                    if (double.IsNaN(r.MinRangeKev) || r.Result == null)
+                    {
+                        continue;
+                    }
+
+                    kept++;
+                    double areaLines = 0.0;
+                    if (r.LineColumns != null)
+                    {
+                        foreach (FsaLineColumn c in r.LineColumns)
+                        {
+                            areaLines += c.AreaBelow;
+                        }
+                    }
+
+                    w.WriteLine(string.Join(",",
+                        r.Key, r.Det, r.Part, F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
+                        r.LinesBelowMinRange < 0
+                            ? ""
+                            : r.LinesBelowMinRange.ToString(CultureInfo.InvariantCulture),
+                        (r.LineColumns == null ? 0 : r.LineColumns.Count).ToString(CultureInfo.InvariantCulture),
+                        F(r.Chi2Ndf, "F4"), F(r.ModelResidual * 100.0, "F2"),
+                        F(r.DataTotal, "F1"), F(r.DataBelow, "F1"), F(r.ModelBelow, "F1"),
+                        F(r.ContinuumBelow, "F1"), F(r.ModelBelow - r.ContinuumBelow, "F1"),
+                        F(areaLines, "F1")));
+                }
+            }
+
+            Console.WriteLine("поверка столбцов (`S103`): линий {0} -> {1}; спектров {2} -> {3}",
+                              lines, o.BandAudit, kept, spectra);
         }
 
         /// <summary>
@@ -1101,8 +1206,15 @@ namespace CorpusFsaProbe
                 if (o.Library == "sample")
                 {
                     FsaSampleLibrary.Report built;
-                    library = FsaSampleLibrary.Build(SpecOf(rd, sample, o), out built);
+                    // (`S103`) Спецификация поднята в переменную: у неё же
+                    // спрашиваются `Min_Range` и ФАКТИЧЕСКИЙ пол по кривой —
+                    // второй копии этих двух чисел в пробе быть не должно.
+                    FsaSampleSpec spec = SpecOf(rd, sample, o);
+                    library = FsaSampleLibrary.Build(spec, out built);
                     row.LibraryNote = built.ToString();
+                    row.MinRangeKev = spec.MinEnergyKev;
+                    row.CurveFloorKev = spec.CurveFloorKev;
+                    row.LinesBelowMinRange = built.LinesBelowMinRange;
                     peaks = new PeakDetector().DetectPeak(
                         rd, BackgroundMode.Invisible, SmoothingMethod.None,
                         null, FsaSampleLibrary.AsDefinitions(library));
@@ -1210,6 +1322,19 @@ namespace CorpusFsaProbe
                 {
                     analyzer.MinEnergy = peakConfig.Min_Range;
                     analyzer.MaxEnergy = peakConfig.Max_Range;
+
+                    // (`S103`) Порог поверки столбцов — РОВНО `Min_Range`: это
+                    // та граница, ниже которой линии впускает пол полосы, и
+                    // спор идёт про них. Без ключа поле остаётся нулём, и
+                    // анализатор поверку не считает вовсе.
+                    if (!string.IsNullOrEmpty(o.BandAudit))
+                    {
+                        analyzer.LineColumnAuditBelowKev = peakConfig.Min_Range;
+                        if (double.IsNaN(row.MinRangeKev))
+                        {
+                            row.MinRangeKev = peakConfig.Min_Range;
+                        }
+                    }
                 }
 
                 // Матрица — ровно тем же путём, каким её берёт приложение
@@ -1275,6 +1400,30 @@ namespace CorpusFsaProbe
                 if (!string.IsNullOrEmpty(o.DumpCurves))
                 {
                     DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result);
+                }
+
+                // (`S103`) Чем описана полоса НИЖЕ `Min_Range`: сколько там
+                // отсчётов и сколько из них взял континуум. Считается по тем же
+                // кривым, что выгружает `--dump-curves=`, и той же
+                // `NetSpectrum`: второй копии правила «спектр минус фон» здесь
+                // не заводится.
+                if (!string.IsNullOrEmpty(o.BandAudit))
+                {
+                    row.LineColumns = result.LineColumns;
+                    double[] net = result.NetSpectrum(rd.EnergySpectrum.Spectrum);
+                    EnergyCalibration cal = rd.EnergySpectrum.EnergyCalibration;
+                    for (int ch = result.FirstChannel; ch <= result.LastChannel; ch++)
+                    {
+                        row.DataTotal += net[ch];
+                        if (double.IsNaN(row.MinRangeKev) || cal.ChannelToEnergy(ch) >= row.MinRangeKev)
+                        {
+                            continue;
+                        }
+
+                        row.DataBelow += net[ch];
+                        row.ContinuumBelow += result.Continuum != null ? result.Continuum[ch] : 0.0;
+                        row.ModelBelow += result.Model != null ? result.Model[ch] : 0.0;
+                    }
                 }
 
                 // (S78) Кто был построен и предъявлен фиту, но до отчёта не
@@ -2871,6 +3020,21 @@ namespace CorpusFsaProbe
             public string DumpCurves;
 
             /// <summary>
+            /// (`S103`) Файл, куда выгрузить ПОВЕРКУ СТОЛБЦОВ ЛИНИЙ ниже
+            /// `Min_Range`: по строке на линию — норма её столбца во взвешенной
+            /// метрике фита, амплитуда владельца, площадь, которую линия кладёт
+            /// в модель, и доля столбца, представимая сплайном континуума.
+            /// Рядом кладётся `<имя>_spectra.csv` — по строке на спектр: сколько
+            /// отсчётов лежит ниже `Min_Range` и чем они в модели описаны.
+            /// Пусто — не считать вовсе (умолчание анализатора — ноль).
+            ///
+            /// ⚠ Ключ НИЧЕГО НЕ МЕНЯЕТ в разборе: поверка считается после
+            /// отчётного фита по его же столбцам. Проверено сличением
+            /// `components`/`limits` с прогоном без ключа.
+            /// </summary>
+            public string BandAudit;
+
+            /// <summary>
             /// (`S88`) Густой край шага узлов континуума в ПШПВ; 0 — не трогать
             /// умолчание анализатора (4). ⚠ Абляция, а не настройка.
             /// </summary>
@@ -2955,6 +3119,21 @@ namespace CorpusFsaProbe
 
             /// <summary>(S60) Сверка по обязательным линиям; null — не считалась.</summary>
             public List<FsaLineAudit.LineCheck> Audit;
+
+            /// <summary>
+            /// (`S103`) Поверка столбцов подпороговых линий; null — не заказана.
+            /// Рядом — то, чем полоса ниже `Min_Range` описана в модели: без
+            /// этих чисел таблица линий отвечает на «чего стоит столбец», но не
+            /// на «а кто же тогда держит отсчёты».
+            /// </summary>
+            public List<FsaLineColumn> LineColumns;
+            public double MinRangeKev = double.NaN;
+            public double CurveFloorKev = double.NaN;
+            public int LinesBelowMinRange = -1;
+            public double DataBelow;
+            public double ContinuumBelow;
+            public double ModelBelow;
+            public double DataTotal;
             public int Peaks;
             public int LibrarySize;
             public double Chi2Ndf;

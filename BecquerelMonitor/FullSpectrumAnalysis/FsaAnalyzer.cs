@@ -670,6 +670,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool SumLayerIncludesContinuum;
 
         /// <summary>
+        /// (`S103`) ПОВЕРКА СТОЛБЦОВ ОТДЕЛЬНЫХ ЛИНИЙ ниже этой энергии, кэВ;
+        /// 0 (умолчание) — поверка не считается вовсе и разбор не трогается ни
+        /// одним действием. Итог ложится в <see cref="FsaResult.LineColumns"/>,
+        /// читатель — ключ `--band-audit=` пробы `CorpusFsaProbe`.
+        ///
+        /// Заведено ради ОДНОГО вопроса, который иначе решается рассуждением:
+        /// линии, впущенные ниже `Min_Range` полом полосы, — они бесполезны
+        /// потому, что модель там ничего не предсказывает, или потому, что их
+        /// вклад забирает сплайн континуума? Первое — довод за пол, второе —
+        /// дефект модели. Числа, которые их разводят, живут только внутри
+        /// фита: норма столбца во взвешенной метрике, амплитуда владельца и
+        /// доля столбца, представимая шапками континуума.
+        ///
+        /// ⚠ Поверка стоит по одному построению образа на линию и потому НЕ
+        /// поставляется включённой: на спектре с сотней подпороговых линий это
+        /// сотня лишних свёрток. В UI не выводится — как
+        /// <see cref="ResponseContinuumTrustFloorKev"/>.
+        /// </summary>
+        public double LineColumnAuditBelowKev;
+
+        /// <summary>
         /// Добавлять образ случайных наложений (pile-up) — автосвёртку самого
         /// спектра со свободной амплитудой. См.
         /// <see cref="BuildPileUpComponent"/>: это НЕ каскад, а свойство
@@ -1453,6 +1474,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
                                offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
 
+            // (`S103`) Поверка столбцов подпороговых линий — ПОСЛЕ отчётного
+            // фита и только по заказу: при нулевом пороге сюда не заходят.
+            // Библиотека берётся та же, по которой фит и строился (`library`),
+            // а не исходная: выше из неё могли уйти образы вылета (S47).
+            this.AuditLineColumns(result, best, library, calibration, fwhmCalibration,
+                                  efficiency, bestGain, bestOffset, chLo, chHi, channels);
+
             // (S78) Кто был предъявлен, но до отчёта не дожил. Считается
             // ПОСЛЕ всех проходов и по фактическому составу результата, а не по
             // одному из гейтов: убрать колонку могут двое (отсев по значимости
@@ -1823,6 +1851,298 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return sum;
+        }
+
+        /// <summary>
+        /// (`S103`) ЧЕГО СТОИТ СТОЛБЕЦ ОТДЕЛЬНОЙ ЛИНИИ и куда он смотрит —
+        /// поверка ПОСЛЕ фита, разбор не трогающая ни одним действием.
+        ///
+        /// Столбец линии строится ТЕМИ ЖЕ построителями, что и образ её
+        /// компонента, на ТОМ ЖЕ узле сетки дрейфа: матричный путь кладёт в
+        /// гистограмму поглощения ОДНУ линию (с её каскадным множителем) и
+        /// уширяет, безматричный — зовёт <see cref="BuildTemplate"/> на клоне с
+        /// единственной линией. Тот же нож подпорогового хвоста применяется и
+        /// здесь, иначе поверяемый столбец отличался бы от того, что реально
+        /// стоит в фите.
+        ///
+        /// ⛔ Складывать столбцы линий и ждать столбца компонента нельзя:
+        /// уширение линейно, а вот нож хвоста режет по окнам ВСЕХ линий
+        /// компонента сразу — на одиночной гистограмме он вынимает ровно то же,
+        /// что вынул бы на общей, но соседние линии в общей могут закрыть
+        /// окном бин, который в одиночной остался бы открытым. Для линий
+        /// НИЖЕ рабочего окна прибора разница исчезающая (их отклик — почти
+        /// один пик), но правило знать надо.
+        /// </summary>
+        void AuditLineColumns(FsaResult result, FitResult fit, List<FsaComponent> library,
+                              EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                              FsaEfficiency efficiency, double gain, double offset,
+                              int chLo, int chHi, int channels)
+        {
+            double below = this.LineColumnAuditBelowKev;
+            if (!(below > 0.0) || fit == null || fit.Columns == null || fit.Weights == null
+                || library == null)
+            {
+                return;
+            }
+
+            double[] w = fit.Weights;
+            List<FsaLineColumn> rows = new List<FsaLineColumn>();
+
+            // Активные шапки континуума — по границе блока, которую отдал сам
+            // фит, а не по второй копии смещения.
+            List<int> continuumSet = new List<int>();
+            for (int k = fit.FixedFirst; k < fit.FixedFirst + this.continuumColumns
+                                          && k < fit.Columns.Count; k++)
+            {
+                if (k >= 0 && fit.Active != null && fit.Active[k])
+                {
+                    continuumSet.Add(k);
+                }
+            }
+
+            double[,] continuumInverse = InvertGramSubset(fit.Gram, continuumSet);
+
+            foreach (FsaComponent component in library)
+            {
+                if (component == null || component.FixedTemplate != null
+                    || component.Lines == null || component.Lines.Count == 0)
+                {
+                    continue;
+                }
+
+                bool anyBelow = false;
+                foreach (FsaLine probe in component.Lines)
+                {
+                    if (probe.Energy > 0.0 && probe.Intensity > 0.0 && probe.Energy < below)
+                    {
+                        anyBelow = true;
+                        break;
+                    }
+                }
+
+                if (!anyBelow)
+                {
+                    continue;
+                }
+
+                int own = -1;
+                for (int k = 0; k < fit.Columns.Count; k++)
+                {
+                    if (ReferenceEquals(fit.Columns[k].Component, component))
+                    {
+                        own = k;
+                        break;
+                    }
+                }
+
+                double amplitude = own >= 0 ? fit.Amplitude[own] : 0.0;
+
+                // Вся активная модель, КРОМЕ столбца самого владельца: иначе
+                // доля вышла бы единицей тождественно — линия входит в свой же
+                // столбец, и «модель её представляет» было бы тавтологией.
+                List<int> othersSet = new List<int>();
+                if (fit.ActiveIndices != null)
+                {
+                    foreach (int k in fit.ActiveIndices)
+                    {
+                        if (k != own)
+                        {
+                            othersSet.Add(k);
+                        }
+                    }
+                }
+
+                double[,] othersInverse = InvertGramSubset(fit.Gram, othersSet);
+
+                for (int i = 0; i < component.Lines.Count; i++)
+                {
+                    FsaLine line = component.Lines[i];
+                    if (!(line.Energy > 0.0) || !(line.Intensity > 0.0) || line.Energy >= below)
+                    {
+                        continue;
+                    }
+
+                    double[] phi = this.BuildLineColumn(component, i, calibration, fwhmCalibration,
+                                                        efficiency, gain, offset, chLo, chHi, channels);
+                    if (phi == null)
+                    {
+                        continue;
+                    }
+
+                    double sum = 0.0;
+                    double sumBelow = 0.0;
+                    for (int ch = chLo; ch <= chHi; ch++)
+                    {
+                        sum += phi[ch];
+                        if (calibration.ChannelToEnergy(ch) < below)
+                        {
+                            sumBelow += phi[ch];
+                        }
+                    }
+
+                    bool degenerate;
+                    double gjj = DotWeighted(phi, phi, w, chLo, chHi);
+                    double contShare = SchurShare(phi, gjj, w, fit, continuumSet, continuumInverse,
+                                                  chLo, chHi, out degenerate);
+                    bool ignore;
+                    double modelShare = SchurShare(phi, gjj, w, fit, othersSet, othersInverse,
+                                                   chLo, chHi, out ignore);
+
+                    rows.Add(new FsaLineColumn
+                    {
+                        Component = component.Name,
+                        Kind = component.Kind,
+                        EnergyKev = line.Energy,
+                        IntensityPct = line.Intensity,
+                        ColumnNorm = gjj > 0.0 ? Math.Sqrt(gjj) : 0.0,
+                        ColumnSum = sum,
+                        ColumnSumBelow = sumBelow,
+                        Amplitude = amplitude,
+                        Area = amplitude * sum,
+                        AreaBelow = amplitude * sumBelow,
+                        ContinuumShare = contShare,
+                        ModelShare = modelShare,
+                        Degenerate = degenerate
+                    });
+                }
+            }
+
+            result.LineColumns = rows;
+        }
+
+        /// <summary>
+        /// Обратная подматрица Gram по набору колонок; null — набор пуст или
+        /// вырожден. Тот же <see cref="InvertSymmetric"/>, что у пределов S9.
+        /// </summary>
+        static double[,] InvertGramSubset(double[,] gram, List<int> set)
+        {
+            if (gram == null || set == null || set.Count == 0)
+            {
+                return null;
+            }
+
+            double[,] sub = new double[set.Count, set.Count];
+            for (int a = 0; a < set.Count; a++)
+            {
+                for (int b = 0; b < set.Count; b++)
+                {
+                    sub[a, b] = gram[set[a], set[b]];
+                }
+            }
+
+            return InvertSymmetric(sub, set.Count);
+        }
+
+        /// <summary>
+        /// Доля столбца <paramref name="phi"/>, представимая набором колонок
+        /// <paramref name="set"/>, по дополнению Шура во взвешенной метрике
+        /// фита: 1 − (g_jj − g_Aj·H·g_Aj) / g_jj. Ноль — набор столбец не
+        /// объясняет вовсе, единица — объясняет целиком.
+        /// </summary>
+        static double SchurShare(double[] phi, double gjj, double[] weights, FitResult fit,
+                                 List<int> set, double[,] inverse, int chLo, int chHi,
+                                 out bool degenerate)
+        {
+            degenerate = false;
+            if (!(gjj > 0.0))
+            {
+                degenerate = true;
+                return 1.0;
+            }
+
+            if (inverse == null || set == null || set.Count == 0)
+            {
+                return 0.0;
+            }
+
+            double[] g = new double[set.Count];
+            for (int a = 0; a < set.Count; a++)
+            {
+                g[a] = DotWeighted(fit.Columns[set[a]].Values, phi, weights, chLo, chHi);
+            }
+
+            double cross = 0.0;
+            for (int a = 0; a < set.Count; a++)
+            {
+                double s = 0.0;
+                for (int b = 0; b < set.Count; b++)
+                {
+                    s += inverse[a, b] * g[b];
+                }
+
+                cross += g[a] * s;
+            }
+
+            double denominator = gjj - cross;
+            if (denominator <= 1.0E-10 * gjj)
+            {
+                degenerate = true;
+                return 1.0;
+            }
+
+            double share = 1.0 - denominator / gjj;
+            return share < 0.0 ? 0.0 : (share > 1.0 ? 1.0 : share);
+        }
+
+        /// <summary>
+        /// Столбец ОДНОЙ линии компонента — теми же построителями, что и весь
+        /// образ. См. <see cref="AuditLineColumns"/>.
+        /// </summary>
+        double[] BuildLineColumn(FsaComponent component, int lineIndex,
+                                 EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                 FsaEfficiency efficiency, double gain, double offset,
+                                 int chLo, int chHi, int channels)
+        {
+            FsaLine line = component.Lines[lineIndex];
+            if (this.ResponseMatrix != null && !component.WeightsAreFinal)
+            {
+                EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+                double bin = matrix.BinKev;
+                if (!(bin > 0.0))
+                {
+                    return null;
+                }
+
+                double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1];
+                FsaCascadeSummer.Correction correction =
+                    this.cascade != null ? this.cascade.For(component) : null;
+                if (correction != null && !correction.Any)
+                {
+                    correction = null;
+                }
+
+                double weight = line.Intensity / 100.0;
+                double cf = correction != null && correction.LineFactors != null
+                            && lineIndex < correction.LineFactors.Length
+                    ? correction.LineFactors[lineIndex]
+                    : 1.0;
+                if (Math.Abs(cf - 1.0) < 1.0E-6)
+                {
+                    matrix.Accumulate(deposit, line.Energy, weight);
+                }
+                else
+                {
+                    for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                    {
+                        bool peakChannel = c == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                        matrix.AccumulateChannel(deposit, line.Energy,
+                                                 peakChannel ? weight * cf : weight, c);
+                    }
+                }
+
+                // Тот же нож, что в `DepositOf`: подпороговый континуум уезжает
+                // в соседнюю свободную колонку и в столбце образа не стоит.
+                this.SplitContinuumBelowTrustFloor(deposit, null, bin, component,
+                                                   calibration, fwhmCalibration, channels);
+                return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, bin,
+                                                   gain, offset, chLo, chHi, channels);
+            }
+
+            FsaComponent one = new FsaComponent(component.Name, component.Kind);
+            one.Lines.Add(line);
+            one.WeightsAreFinal = component.WeightsAreFinal;
+            return BuildTemplate(one, calibration, fwhmCalibration, efficiency,
+                                 gain, offset, chLo, chHi, channels);
         }
 
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
@@ -2457,6 +2777,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>Обратная активной части Gram; null — вырождена.</summary>
             public double[,] ActiveInverse;
+
+            /// <summary>
+            /// Номер ПЕРВОЙ колонки блока `fixedColumns` в <see cref="Columns"/>
+            /// (шапки континуума идут в нём первыми и подряд —
+            /// <see cref="continuumColumns"/> штук). Заведено вместо того, чтобы
+            /// вычислять смещение по второй копии длины списка: читателей у
+            /// границы блока стало двое (штраф на излом и поверка `S103`), и
+            /// расходиться им не на чем.
+            /// </summary>
+            public int FixedFirst;
         }
 
         FitResult FitHuber(List<FsaComponent> library, List<double[]> fixedColumns,
@@ -2612,6 +2942,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // Блок `fixedColumns` приписан в конец, и его начало нужно ДВОИМ:
+            // штрафу на излом континуума ниже и поверке столбцов `S103` после
+            // фита. Считается один раз и уезжает в `FitResult.FixedFirst`.
+            int fixedFirst = m - fixedColumns.Count;
+
             int n = chHi - chLo + 1;
 
             double[,] gram = new double[m, m];
@@ -2654,7 +2989,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (this.ContinuumRoughness > 0.0 && this.continuumColumns >= 3
                 && fixedColumns.Count > 0)
             {
-                int first = m - fixedColumns.Count;
+                int first = fixedFirst;
                 int last = first + this.continuumColumns - 1;
 
                 // Масштаб: средняя диагональ блока. Без него один и тот же λ
@@ -2829,7 +3164,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Gram = gram,
                 Active = active,
                 ActiveIndices = activeIndices,
-                ActiveInverse = activeInverse
+                ActiveInverse = activeInverse,
+                FixedFirst = fixedFirst
             };
         }
 
