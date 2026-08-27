@@ -180,7 +180,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // ⛔ Пол ПО КРИВОЙ (решение Amber 27.08.2026, `S98`): его знает
                 // сама кривая спектра, а не число в коде. Кривой нет — падаем
                 // на `Min_Range`, и это запасная ветвь, а не отказ.
-                if (this.Band == FsaBandMode.LibraryToFitByCurve)
+                // ⛔ ОПОРА ПО СТОЛБЦУ (`S103`) на этом конце НИЧЕГО не режет
+                // сверх пола по кривой, и это не упущение: доля континуума
+                // существует только внутри фита (нужны активный набор колонок,
+                // Gram на подобранном узле дрейфа и веса решателя), а здесь
+                // библиотека собирается ДО всякого фита. Первый проход поэтому
+                // впускает ровно то же, что поставка, а выброс делает
+                // `FsaAnalyzer` вторым проходом.
+                if (this.Band == FsaBandMode.LibraryToFitByCurve
+                    || this.Band == FsaBandMode.LibraryToFitByShare)
                 {
                     double byCurve = this.CurveFloorKev;
                     return byCurve > 0.0 ? Math.Min(this.MinEnergyKev, byCurve) : this.MinEnergyKev;
@@ -672,6 +680,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // у спектра без кривой его назначить нечем, и молчать об этом нельзя.
             report.Band = FsaBand.Describe(spec.Band,
                                            spec.Band == FsaBandMode.LibraryToFitByCurve
+                                           || spec.Band == FsaBandMode.LibraryToFitByShare
                                                ? spec.CurveFloorKev
                                                : spec.LibraryFloorKev,
                                            spec.MinEnergyKev, spec.MaxEnergyKev);

@@ -53,7 +53,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// назначить нечем, и они падают на `Min_Range`, как при
         /// <see cref="Whole"/>. Это ЗАПАСНАЯ ВЕТВЬ, а не отказ.
         /// </summary>
-        LibraryToFitByCurve
+        LibraryToFitByCurve,
+
+        /// <summary>
+        /// ⛔ ОПОРА ПОЛОСЫ ПО СТОЛБЦУ, а не по энергии (`S103`, решение Amber
+        /// 27.08.2026). Линии впускаются, как при
+        /// <see cref="LibraryToFitByCurve"/>, а затем ПОСЛЕ фита выбрасываются
+        /// поимённо те подпороговые, чей столбец сплайн континуума и так
+        /// представляет: <c>ContinuumShare</c> выше
+        /// <see cref="FsaBand.DefaultShareThreshold"/>. После выброса —
+        /// ПЕРЕФИТ.
+        ///
+        /// Довод — измерение `S103`: одна и та же линия `Xray-I` 28.612 кэВ на
+        /// одной группе приборов даёт долю континуума 0.0132 на
+        /// `G1S16_Cd109_P5` и 0.7161 на `G1S16_Mix_Mar`, а норма столбца
+        /// различается в 4.7 раза. Значит РАЗДЕЛИМОСТЬ ЕСТЬ СВОЙСТВО ФИТА, А НЕ
+        /// ЭНЕРГИИ, и никакой пол, выраженный в кэВ или в доле от максимума
+        /// кривой, этой границы поймать не может в принципе.
+        ///
+        /// ⛔⛔ ПОЧЕМУ ПРОХОДОВ ДВА, И ДЕШЕВЛЕ НЕ ВЫХОДИТ. `ContinuumShare`
+        /// считается по дополнению Шура в метрике ФИТА: ему нужны активный
+        /// набор колонок (какие шапки континуума вообще выжили), матрица Gram
+        /// на подобранном узле сетки дрейфа и веса решателя. Ни одного из этих
+        /// трёх нет ДО фита, а полосу библиотеки надо задать ДО. Поэтому:
+        /// (1) фит по полной полосе (пол по кривой) → (2) поверка столбцов →
+        /// (3) выброс линий выше порога → (4) ПЕРЕФИТ с сужённой библиотекой.
+        /// Цена — ровно один лишний разбор спектра.
+        /// </summary>
+        LibraryToFitByShare
     }
 
     /// <summary>
@@ -167,6 +194,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static double DefaultFloorFraction = ShippedFloorFraction;
 
         /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ ПОРОГОМ ДОЛИ КОНТИНУУМА — по той же причине, что
+        /// <see cref="ShippedMode"/>: без отдельной константы строка
+        /// «(умолчание)» врала бы на всяком прогоне, где порог сдвинул ключ.
+        ///
+        /// 1.0 — НЕЙТРАЛЬНОЕ значение: доля зажата в [0…1], условие выброса
+        /// строгое (<c>share &gt; порога</c>), значит при 1.0 не выбрасывается
+        /// НИ ОДНА линия и режим <see cref="FsaBandMode.LibraryToFitByShare"/>
+        /// обязан воспроизвести <see cref="FsaBandMode.LibraryToFitByCurve"/>
+        /// ПОБИТОВО. Это положительный контроль самой развёртки, и он даровой.
+        /// </summary>
+        public const double ShippedShareThreshold = 1.0;
+
+        /// <summary>
+        /// Порог доли континуума при <see cref="FsaBandMode.LibraryToFitByShare"/>:
+        /// подпороговая линия выбрасывается, если её <c>ContinuumShare</c>
+        /// СТРОГО больше этого числа. Двигается ключом пробы `--share-thr=`;
+        /// как <see cref="DefaultMode"/> и <see cref="DefaultFloorFraction"/>,
+        /// живёт ОДНОЙ статикой — читателя у неё два (сам разбор и заверение),
+        /// и вторая копия повторила бы `S101`.
+        ///
+        /// ⚠ Крайние значения — оба контроля развёртки: 1.0 не выбрасывает
+        /// ничего (поставка), 0.0 выбрасывает всякую подпороговую линию, у
+        /// которой континуум забирает хоть что-нибудь, — и это плечо
+        /// <see cref="FsaBandMode.Whole"/>.
+        /// </summary>
+        public static double DefaultShareThreshold = ShippedShareThreshold;
+
+        /// <summary>
         /// ⛔ СТОРОЖ ОБОИХ КОНЦОВ ПОЛОСЫ (`S101`, измерено 26.08.2026).
         ///
         /// Полосу читают ДВА места — <see cref="FsaAnalyzer"/> (полоса фита и
@@ -264,6 +319,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 case "library-to-curve":
                     mode = FsaBandMode.LibraryToFitByCurve;
                     return true;
+                case "share":
+                case "column":
+                case "library-to-share":
+                    mode = FsaBandMode.LibraryToFitByShare;
+                    return true;
                 default:
                     return false;
             }
@@ -298,6 +358,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         : string.Format(CultureInfo.InvariantCulture,
                             "пол по кривой НАЗНАЧИТЬ НЕЧЕМ (кривой нет), библиотека от {0:F1} кэВ — запасная ветвь{1}",
                             minKev, tail);
+                case FsaBandMode.LibraryToFitByShare:
+                    // ⛔ Называется И пол первого прохода, И порог: без первого
+                    // не видно, что вообще было впущено, без второго — что из
+                    // впущенного выброшено. Порог печатается всегда, даже
+                    // нейтральный: контрольное плечо обязано быть узнаваемым в
+                    // журнале.
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "полоса сведена ОПОРОЙ ПО СТОЛБЦУ: первый проход полом по кривой {0:F1} кэВ"
+                        + " ({1:P1} от максимума, Min_Range {2:F1}), затем выброс подпороговых линий"
+                        + " с долей континуума > {3:F3} и ПЕРЕФИТ{4}",
+                        floorKev > 0.0 ? floorKev : minKev, DefaultFloorFraction, minKev,
+                        DefaultShareThreshold, tail);
                 default:
                     return string.Format(CultureInfo.InvariantCulture,
                         "полосы РАЗНЫЕ, как до 25.08.2026: фит на всём спектре, библиотека от {0:F1} кэВ{1}",
@@ -770,6 +842,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool cascadeApplied;
 
         /// <summary>
+        /// (`S103`) ИДЁТ ВТОРОЙ ПРОХОД опоры полосы по столбцу. Сторож глубины:
+        /// перефит зовёт `Analyze` рекурсивно (чтобы плечо отличалось от
+        /// поставки РОВНО библиотекой и ничем иным), и без этого признака второй
+        /// проход завёл бы третий, третий четвёртый — выброс на каждом шаге
+        /// новый, потому что континуум пересаживается. Здесь проходов ровно два
+        /// нарочно: вопрос строки — «годится ли доля континуума опорой», а не
+        /// «сойдётся ли она к неподвижной точке».
+        /// </summary>
+        bool shareRefit;
+
+        /// <summary>
         /// Гистограммы поглощения компонентов, посчитанные ОДИН раз на разбор.
         ///
         /// От узла сетки дрейфа гистограмма не зависит вовсе: усиление и ноль
@@ -989,6 +1072,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // там, где библиотека резала по 20 или 30, — два конца, называющие
             // разные числа об одном и том же.
             double noteFloor = this.Band == FsaBandMode.LibraryToFitByCurve
+                               || this.Band == FsaBandMode.LibraryToFitByShare
                 ? (efficiency != null
                        ? efficiency.FloorAtFraction(FsaBand.DefaultFloorFraction)
                        : 0.0)
@@ -1478,8 +1562,75 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // фита и только по заказу: при нулевом пороге сюда не заходят.
             // Библиотека берётся та же, по которой фит и строился (`library`),
             // а не исходная: выше из неё могли уйти образы вылета (S47).
+            //
+            // (`S103`) Заказчиков у поверки два. Второй — опора полосы по
+            // столбцу: ей та же поверка нужна ниже `Min_Range` независимо от
+            // ключа `--band-audit=`. Порог берётся НАИБОЛЬШИЙ из двух, а не по
+            // одному разу на заказчика: поверка стоит построения образа на
+            // каждую линию, и считать её дважды значило бы платить дважды за
+            // одно и то же.
+            bool shareBand = this.Band == FsaBandMode.LibraryToFitByShare && !this.shareRefit;
+            double shareBelow = shareBand ? this.MinEnergy : 0.0;
+            HashSet<FsaLine> shareDrops = shareBand ? new HashSet<FsaLine>() : null;
             this.AuditLineColumns(result, best, library, calibration, fwhmCalibration,
-                                  efficiency, bestGain, bestOffset, chLo, chHi, channels);
+                                  efficiency, bestGain, bestOffset, chLo, chHi, channels,
+                                  Math.Max(this.LineColumnAuditBelowKev, shareBelow),
+                                  this.LineColumnAuditBelowKev > 0.0,
+                                  shareDrops, shareBelow, FsaBand.DefaultShareThreshold);
+
+            // ⛔⛔ (`S103`) ВТОРОЙ ПРОХОД, И ОН ЗДЕСЬ НЕ ОТ ЛЕНИ. Доля континуума
+            // измеряется В МЕТРИКЕ ФИТА (дополнение Шура по активным шапкам,
+            // Gram на подобранном узле сетки дрейфа, веса решателя) — ни одной
+            // из этих трёх вещей не существует до фита, а полосу библиотеки
+            // задают ДО него. Дешевле не выходит: чтобы узнать, отличима ли
+            // линия от континуума, надо сперва посадить континуум.
+            //
+            // Перефит — РЕКУРСИВНЫЙ вызов того же `Analyze`, а не отдельная
+            // ветка: так второй проход гарантированно идёт тем же кодом, что и
+            // первый (сетка дрейфа, гейты, пределы, каскад), и «плечо
+            // отличается только библиотекой» остаётся правдой, а не обещанием.
+            // Сторож `shareRefit` держит глубину ровно два.
+            if (shareBand && shareDrops.Count > 0)
+            {
+                List<FsaComponent> narrowed = NarrowLibraryByShare(originalLibrary, shareDrops);
+                if (narrowed != null && narrowed.Count > 0)
+                {
+                    this.shareRefit = true;
+                    FsaResult second;
+                    try
+                    {
+                        second = this.Analyze(spectrum, backgroundSpectrum, fwhmCalibration,
+                                              narrowed, efficiency);
+                    }
+                    finally
+                    {
+                        this.shareRefit = false;
+                    }
+
+                    if (second != null)
+                    {
+                        second.ShareDroppedLines = shareDrops.Count;
+                        second.ShareOfferedLines = CountLinesBelow(library, shareBelow);
+                        second.ShareDroppedComponents = CountEmptied(originalLibrary, narrowed);
+                        this.BandNote += string.Format(CultureInfo.InvariantCulture,
+                            "; опора по столбцу: выброшено {0} линий из {1} подпороговых,"
+                            + " образов опустело {2}",
+                            second.ShareDroppedLines, second.ShareOfferedLines,
+                            second.ShareDroppedComponents);
+                        return second;
+                    }
+                }
+            }
+
+            if (shareBand)
+            {
+                // Плечо, где не выброшено ничего, обязано БЫТЬ НАЗВАНО, иначе
+                // «рычаг не сработал» и «рычаг не важен» неразличимы.
+                result.ShareOfferedLines = CountLinesBelow(library, shareBelow);
+                this.BandNote += string.Format(CultureInfo.InvariantCulture,
+                    "; опора по столбцу: выброшено 0 линий из {0} подпороговых, перефита не было",
+                    result.ShareOfferedLines);
+            }
 
             // (S78) Кто был предъявлен, но до отчёта не дожил. Считается
             // ПОСЛЕ всех проходов и по фактическому составу результата, а не по
@@ -1873,12 +2024,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// НИЖЕ рабочего окна прибора разница исчезающая (их отклик — почти
         /// один пик), но правило знать надо.
         /// </summary>
+        /// <param name="below">
+        /// Порог поверки, кэВ: поверяются линии строго ниже него. Параметром, а
+        /// не полем, потому что заказчиков у поверки СТАЛО ДВА и пороги у них
+        /// разные: ключ `--band-audit=` (поле <see cref="LineColumnAuditBelowKev"/>)
+        /// и опора полосы по столбцу (`S103`, порог = `Min_Range`). Считать её
+        /// дважды нельзя — это второй проход по всем подпороговым линиям.
+        /// </param>
+        /// <param name="keepRows">
+        /// Класть строки в <see cref="FsaResult.LineColumns"/>. `false` —
+        /// поверка считалась ТОЛЬКО ради выброса линий, и её никто не заказывал:
+        /// список обязан остаться null, иначе «поверку не заказывали» и «поверка
+        /// пуста» станут неразличимы.
+        /// </param>
+        /// <param name="dropSink">
+        /// Куда складывать линии на выброс (`S103`); null — не выбрасывать.
+        /// Складываются САМИ ОБЪЕКТЫ линий, а не пары «имя+энергия»: библиотека
+        /// второго прохода строится из тех же <see cref="FsaLine"/>, и сличение
+        /// по ссылке не может ошибиться на двух линиях с равной энергией.
+        /// </param>
+        /// <param name="dropBelow">
+        /// Граница, ниже которой линия вообще может быть выброшена. Отдельно от
+        /// <paramref name="below"/>: поверка могла быть заказана шире выброса, и
+        /// тогда выброшенным оказалось бы то, чего опора полосы не касается.
+        /// </param>
+        /// <param name="dropAboveShare">
+        /// Выбрасывать линию, если её доля континуума СТРОГО больше этого числа.
+        /// </param>
         void AuditLineColumns(FsaResult result, FitResult fit, List<FsaComponent> library,
                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                               FsaEfficiency efficiency, double gain, double offset,
-                              int chLo, int chHi, int channels)
+                              int chLo, int chHi, int channels,
+                              double below, bool keepRows,
+                              HashSet<FsaLine> dropSink, double dropBelow, double dropAboveShare)
         {
-            double below = this.LineColumnAuditBelowKev;
             if (!(below > 0.0) || fit == null || fit.Columns == null || fit.Weights == null
                 || library == null)
             {
@@ -1988,6 +2167,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double modelShare = SchurShare(phi, gjj, w, fit, othersSet, othersInverse,
                                                    chLo, chHi, out ignore);
 
+                    // (`S103`) ВЫБРОС. Порог строгий, и это существенно: при
+                    // пороге 1.0 доля, зажатая в [0…1], его не превосходит
+                    // никогда — значит контрольное плечо не выбрасывает ничего
+                    // и обязано совпасть с поставкой побитово.
+                    if (dropSink != null && line.Energy < dropBelow && contShare > dropAboveShare)
+                    {
+                        dropSink.Add(line);
+                    }
+
                     rows.Add(new FsaLineColumn
                     {
                         Component = component.Name,
@@ -2007,7 +2195,150 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            result.LineColumns = rows;
+            if (keepRows)
+            {
+                result.LineColumns = rows;
+            }
+        }
+
+        /// <summary>
+        /// (`S103`) Библиотека ВТОРОГО ПРОХОДА: та же, минус поимённо
+        /// выброшенные линии. Компонент, у которого не осталось ни одной линии,
+        /// не «пустеет», а исчезает — пустой образ в НМНК есть вырожденный
+        /// столбец, и собиратель библиотеки поступает с ним ровно так же
+        /// (<c>FsaSampleLibrary</c>: «образы без единой линии выбрасываются»).
+        ///
+        /// ⛔ Компоненты, у которых выбрасывать нечего, кладутся ССЫЛКОЙ, а
+        /// затронутые — КОПИЕЙ. Править список вызывающего нельзя: он его
+        /// собирал и переиспользует (в пробе — на соседний спектр), а
+        /// «сужение», уехавшее в чужой объект, было бы утечкой плеча A/B в
+        /// прогон целиком.
+        /// </summary>
+        static List<FsaComponent> NarrowLibraryByShare(List<FsaComponent> library,
+                                                       HashSet<FsaLine> drops)
+        {
+            if (library == null || drops == null || drops.Count == 0)
+            {
+                return null;
+            }
+
+            List<FsaComponent> narrowed = new List<FsaComponent>(library.Count);
+            foreach (FsaComponent component in library)
+            {
+                if (component == null)
+                {
+                    continue;
+                }
+
+                if (component.FixedTemplate != null || component.Lines == null
+                    || component.Lines.Count == 0)
+                {
+                    narrowed.Add(component);
+                    continue;
+                }
+
+                int hit = 0;
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (drops.Contains(line))
+                    {
+                        hit++;
+                    }
+                }
+
+                if (hit == 0)
+                {
+                    narrowed.Add(component);
+                    continue;
+                }
+
+                if (hit >= component.Lines.Count)
+                {
+                    continue;
+                }
+
+                FsaComponent copy = new FsaComponent(component.Name, component.Kind)
+                {
+                    WeightsAreFinal = component.WeightsAreFinal,
+                    Derived = component.Derived,
+                    FixedTemplate = component.FixedTemplate,
+                    TotalYieldPercent = component.TotalYieldPercent
+                };
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (!drops.Contains(line))
+                    {
+                        copy.Lines.Add(line);
+                    }
+                }
+
+                narrowed.Add(copy);
+            }
+
+            return narrowed;
+        }
+
+        /// <summary>
+        /// (`S103`) Сколько линий вообще лежит ниже порога — знаменатель для
+        /// числа выброшенных. Без него «выброшено 0» ничем не отличается от
+        /// «выбрасывать было нечего», а это разные новости.
+        /// </summary>
+        static int CountLinesBelow(List<FsaComponent> library, double below)
+        {
+            if (library == null || !(below > 0.0))
+            {
+                return 0;
+            }
+
+            int n = 0;
+            foreach (FsaComponent component in library)
+            {
+                if (component == null || component.FixedTemplate != null
+                    || component.Lines == null)
+                {
+                    continue;
+                }
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > 0.0 && line.Intensity > 0.0 && line.Energy < below)
+                    {
+                        n++;
+                    }
+                }
+            }
+
+            return n;
+        }
+
+        /// <summary>(`S103`) Сколько образов исчезло целиком при сужении.</summary>
+        static int CountEmptied(List<FsaComponent> library, List<FsaComponent> narrowed)
+        {
+            if (library == null || narrowed == null)
+            {
+                return 0;
+            }
+
+            var kept = new HashSet<string>(StringComparer.Ordinal);
+            foreach (FsaComponent component in narrowed)
+            {
+                if (component != null)
+                {
+                    kept.Add(component.Name);
+                }
+            }
+
+            int gone = 0;
+            foreach (FsaComponent component in library)
+            {
+                if (component != null && !kept.Contains(component.Name))
+                {
+                    gone++;
+                }
+            }
+
+            return gone;
         }
 
         /// <summary>
