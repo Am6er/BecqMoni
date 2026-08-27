@@ -964,6 +964,19 @@ namespace BecquerelMonitor
             DeviceConfigInfo preselect = current == null
                 ? null
                 : devices.Find(d => string.Equals(d.Guid, current.Guid, StringComparison.OrdinalIgnoreCase));
+            // ⛔ Вопрос человеку — тоже модальное окно, и висит оно ровно так
+            //    же, как `MessageBox` (измерено 27.08.2026: безоконная проба на
+            //    этом месте стояла до убийства, `reached` есть, `returned` нет).
+            //    Отказ, а не «взять первую попавшуюся конфигурацию»: подпись
+            //    метода говорит прямо — подставленная молча чужая ширина даёт
+            //    правдоподобные и неверные площади.
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: у спектра нет калибровки ПШПВ, а выбрать конфигурацию прибора "
+                    + "вместо неё некому: разложение спрашивает об этом окном. "
+                    + "Задайте FwhmCalibration спектру до включения FSA.");
+            }
             DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
                 Properties.Resources.FsaNoFwhmTitle,
                 Properties.Resources.FsaNoFwhmQuestion,
@@ -986,10 +999,18 @@ namespace BecquerelMonitor
             {
                 // Выбранная конфигурация не помогла — сказать об этом, а не
                 // включать режим и оставлять человека гадать.
-                MessageBox.Show(this,
+                //
+                // Без окон это УВЕДОМЛЕНИЕ, а не отказ, и вот почему: у беды
+                // здесь уже ЕСТЬ читатель — `false`, который возвращается
+                // следующей строкой, и вызывающий (`ShowFsaToolStripMenuItem_Click`)
+                // по нему режим не включает. Признак с читателем менять на
+                // бросок незачем; строка в поток ошибок лишь называет причину.
+                // ⚠ Дойти сюда без окон можно только мимо `PickOneForm.Ask`
+                // выше — то есть никогда; строка написана на случай, когда
+                // выбор станет возможен без окна.
+                AppUi.Report(
                     string.Format(Properties.Resources.FsaNoFwhmSource, chosen.Name),
-                    Properties.Resources.FsaNoFwhmTitle,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Properties.Resources.FsaNoFwhmTitle, MessageBoxIcon.Information);
                 return false;
             }
 
@@ -1021,6 +1042,18 @@ namespace BecquerelMonitor
                                                    this.deviceConfigManager.DeviceConfigList),
                 out selected);
 
+            // ⛔ То же окно и тот же отказ, что у калибровки ПШПВ выше. Отказ
+            //    от кривой разрешён, но ОСОЗНАННО — отдельным пунктом списка;
+            //    без окон выбрать этот пункт некому, а молча посчитать без
+            //    кривой значит перекосить низкоэнергетическую часть и об этом
+            //    не сказать.
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: у спектра нет кривой эффективности, а выбрать её вместо "
+                    + "человека некому: разложение спрашивает об этом окном. "
+                    + "Задайте Efficiency спектру до включения FSA.");
+            }
             object chosen = PickOneForm.Ask(this,
                 Properties.Resources.FsaNoEfficiencyTitle,
                 Properties.Resources.FsaNoEfficiencyQuestion,
@@ -1647,7 +1680,13 @@ namespace BecquerelMonitor
             DocumentManager.GetInstance().LoadBackgroundSpectrum(this.ActiveResultData);
             if (this.ActiveResultData.BackgroundEnergySpectrum != null && this.ActiveResultData.EnergySpectrum.NumberOfChannels != this.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
             {
-                MessageBox.Show(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                // УВЕДОМЛЕНИЕ, а не отказ: обработчик щелчка, у него нет
+                // вызывающего, которому вернуть код, — а несовпавший фон тут
+                // же снимается СО СЛЕДОМ в самом документе (путь и имя файла
+                // очищаются, `BackgroundEnergySpectrum` обнуляется), так что
+                // «фона нет» видно и без окна. Бросок отсюда в окнах поднял бы
+                // диалог необработанного исключения — хуже прежнего.
+                AppUi.Report(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.ActiveResultData.BackgroundEnergySpectrum = null;
                 this.ActiveResultData.BackgroundSpectrumFile = "";
                 this.ActiveResultData.BackgroundSpectrumPathname = "";

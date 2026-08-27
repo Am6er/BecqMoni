@@ -87,8 +87,10 @@ namespace BecquerelMonitor
             if (!this.CheckDocument(docEnergySpectrum.ResultDataFile))
             {
                 string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (res == DialogResult.No) return null;
+                // Вопрос идёт через ЕДИНСТВЕННУЮ дверь: без окон отвечать за
+                // человека нельзя — «Да» подставляет калибровку y = x, «Нет»
+                // возвращает null. См. AppUi.AskYesNo.
+                if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                 this.CheckDocument(docEnergySpectrum.ResultDataFile, doCorrections: true);
                 docEnergySpectrum.Dirty = true;
             }
@@ -101,6 +103,38 @@ namespace BecquerelMonitor
             this.LoadBackgroundSpectrum(activeResultData);
             docEnergySpectrum.UpdateEnergySpectrum();
             return docEnergySpectrum;
+        }
+
+        /// <summary>
+        /// Подробность беды одной строкой. Внутреннее исключение говорит о
+        /// причине больше внешнего (у <c>XmlSerializer</c> внешнее — всегда
+        /// «Ошибка в XML-документе»), но бывает оно не всегда.
+        ///
+        /// Заведено при разводе окон и отказов (<c>S100</c>): одно и то же
+        /// ветвление стояло в этом файле полутора десятками копий, и правка
+        /// каждой врозь — верный способ развести их молча.
+        /// </summary>
+        static string Detail(Exception ex)
+        {
+            if (ex.InnerException != null && ex.InnerException.Message != null)
+            {
+                return ex.Message + " " + ex.InnerException.Message;
+            }
+            return ex.Message;
+        }
+
+        /// <summary>
+        /// То же, но без внутреннего исключения к сообщению добавляется след
+        /// вызовов. Так было в трёх местах разбора; сохранено дословно, чтобы
+        /// текст в окне не поехал.
+        /// </summary>
+        static string DetailWithStack(Exception ex)
+        {
+            if (ex.InnerException != null && ex.InnerException.Message != null)
+            {
+                return ex.Message + " " + ex.InnerException.Message;
+            }
+            return ex.Message + " " + ex.StackTrace;
         }
 
         bool CheckDocument(ResultDataFile resultDataFile, bool doCorrections = false)
@@ -282,7 +316,19 @@ namespace BecquerelMonitor
             {
                 if (docEnergySpectrum.IsNamed && docEnergySpectrum.Filename == filename)
                 {
-                    MessageBox.Show(Resources.ERRAlreadyOpen, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    // ОТКАЗ без окон: названный файл НЕ открыт, наружу уходит
+                    // null. В окнах это безобидно — документ уже на экране, и
+                    // человек его видит; у пробы же на руках остаётся null,
+                    // который она либо уронит далёким NullReference, либо
+                    // примет за «спектра нет».
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: " + Resources.ERRAlreadyOpen + " " + AppUi.Where(filename)
+                            + " — документ уже открыт, второй раз он не открывается, "
+                            + "и вызывающий получил бы null вместо спектра.");
+                    }
+                    AppUi.Report(Resources.ERRAlreadyOpen, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                     return null;
                 }
             }
@@ -299,22 +345,25 @@ namespace BecquerelMonitor
                 if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
                 {
                     string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (res == DialogResult.No) return null;
+                    // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
+                    if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                     this.CheckDocument(docEnergySpectrum2.ResultDataFile, doCorrections: true);
                     docEnergySpectrum2.Dirty = true;
                 }
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: файл спектра НЕ разобрался, наружу уходит
+                // null. Дальше по такому «спектру» считать нечего, а молчаливый
+                // null неотличим от «спектра в файле не было».
+                string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
-                } else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + text + " (" + AppUi.Where(filename) + ")", ex);
                 }
-                
+                AppUi.Report(text, "", MessageBoxIcon.None);
+
                 Cursor.Current = Cursors.Default;
                 return null;
             }
@@ -358,7 +407,16 @@ namespace BecquerelMonitor
             // indexing [0] here used to crash outside any try/catch.
             if (docEnergySpectrum2.ResultDataFile.ResultDataList.Count == 0)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ""));
+                // ОТКАЗ без окон: файл разобрался, но спектров в нём нет —
+                // считать нечего, и наружу опять уходит null.
+                string empty = string.Format(Resources.ERRFileOpenFailure, filename, "");
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + empty + " (" + AppUi.Where(filename)
+                        + "): в файле нет ни одного спектра (<ResultDataList/> пуст).");
+                }
+                AppUi.Report(empty, "", MessageBoxIcon.None);
                 return null;
             }
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
@@ -382,22 +440,22 @@ namespace BecquerelMonitor
                 if (!this.CheckDocument(resultDataFile))
                 {
                     string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (res == DialogResult.No) return null;
+                    // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
+                    if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                     this.CheckDocument(resultDataFile, doCorrections: true);
                     doc.Dirty = true;
                 }
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: спектр в открытый документ НЕ добавлен.
+                string text = string.Format(Resources.ERRFileOpenFailure, pathname, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + text + " (" + AppUi.Where(pathname) + ")", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, pathname, ex.Message));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
                 Cursor.Current = Cursors.Default;
                 return null;
             }
@@ -467,7 +525,15 @@ namespace BecquerelMonitor
             {
                 if (docEnergySpectrum.IsNamed && docEnergySpectrum.Filename == filename)
                 {
-                    MessageBox.Show(Resources.ERRAlreadyOpen, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    // ОТКАЗ без окон — по той же причине, что и в OpenDocument.
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: " + Resources.ERRAlreadyOpen + " " + AppUi.Where(filename)
+                            + " — документ уже открыт, второй раз он не открывается, "
+                            + "и вызывающий получил бы null вместо спектра.");
+                    }
+                    AppUi.Report(Resources.ERRAlreadyOpen, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                     return null;
                 }
             }
@@ -485,14 +551,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: файл старого формата НЕ разобрался.
+                string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + text + " (0.93b, " + AppUi.Where(filename) + ")", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
                 return null;
             }
             docEnergySpectrum2.IsNamed = true;
@@ -748,14 +814,19 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ⛔ ОТКАЗ без окон, и здесь он нужнее прочего: метод ничего не
+                //    возвращает, а на беде НЕ ПРЕРЫВАЕТСЯ — документ остаётся
+                //    ровно в том виде, в каком его застал сбой: часть спектров
+                //    прочитана, часть нет, калибровка может быть от предыдущего
+                //    измерения. Снаружи это неотличимо от удачного ввоза.
+                string text = string.Format(Resources.ERRFileOpenFailure, filepath, DetailWithStack(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filepath, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз через SpecUtils оборвался (" + AppUi.Where(filepath)
+                        + "): " + Detail(ex) + ". Документ остался разобранным наполовину.", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filepath, ex.Message + " " + ex.StackTrace));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
             }
             finally
             {
@@ -859,7 +930,18 @@ namespace BecquerelMonitor
 
                     if (!energyCalibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
                     {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
+                        // ОТКАЗ без окон: калибровка из файла GBS не годится, а
+                        // ввоз ПРОДОЛЖАЕТСЯ — спектр ложится в документ с
+                        // негодной энергетической шкалой и молчит об этом.
+                        if (!AppUi.HasWindows)
+                        {
+                            throw new InvalidOperationException(
+                                "BecqMoni: " + Resources.CalibrationFunctionError
+                                + " (GBS, " + AppUi.Where(filePath) + ", порядок "
+                                + energyCalibration.PolynomialOrder
+                                + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
+                        }
+                        AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                     }
 
                     // $COUNTS:
@@ -874,14 +956,16 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: метод пустой (void) и на беде не
+                // прерывается — документ остаётся разобранным наполовину.
+                string text = string.Format(Resources.ERRFileOpenFailure, filePath, DetailWithStack(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз GBS оборвался (" + AppUi.Where(filePath)
+                        + "): " + Detail(ex) + ". Документ остался разобранным наполовину.", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.StackTrace));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
             }
             Cursor.Current = Cursors.Default;
         }
@@ -905,9 +989,15 @@ namespace BecquerelMonitor
                     {
                         if (!importWithEmtyConfig)
                         {
-                            MessageBox.Show(String.Format(Resources.ERRImportAtomSpectra,
+                            // УВЕДОМЛЕНИЕ, а не отказ: это единственное окно на
+                            // всю прослойку, которое НИЧЕГО не отменяет. Оно
+                            // предупреждает, что число каналов в файле не то,
+                            // — и настройка спектра тут же сбрасывается под
+                            // файл следующей строкой, при любом ответе. Работа
+                            // продолжается, значит хватит строки в stderr.
+                            AppUi.Report(String.Format(Resources.ERRImportAtomSpectra,
                                 doc.ActiveResultData.EnergySpectrum.NumberOfChannels,
-                                NumOfChannels), Resources.Warning, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                NumOfChannels), Resources.Warning, MessageBoxIcon.Warning);
                         }
 
                         this.ResetSpectrumConfig(doc.ActiveResultData, Convert.ToInt32(NumOfChannels));
@@ -916,22 +1006,23 @@ namespace BecquerelMonitor
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
                     string text = String.Format(Resources.ERRFileOpenFailure, filePath, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (res == DialogResult.No) return;
+                    // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
+                    if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
                     doc.Dirty = true;
                 }
-            } 
+            }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: шапка файла Atom Spectra не прочиталась,
+                // ввоз брошен, документ остался прежним — а метод пустой.
+                string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + text + " (Atom Spectra, " + AppUi.Where(filePath) + ")", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message, ex.StackTrace));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
                 return;
             }
             
@@ -1027,7 +1118,18 @@ namespace BecquerelMonitor
 
                         if (!energyCalibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
                         {
-                            MessageBox.Show(Resources.CalibrationFunctionError);
+                            // ОТКАЗ без окон: спектр уже лёг в документ, а
+                            // шкала энергий у него негодна — считать по такому
+                            // спектру значит выдать чужие числа.
+                            if (!AppUi.HasWindows)
+                            {
+                                throw new InvalidOperationException(
+                                    "BecqMoni: " + Resources.CalibrationFunctionError
+                                    + " (Atom Spectra, " + AppUi.Where(filePath) + ", порядок "
+                                    + energyCalibration.PolynomialOrder
+                                    + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
+                            }
+                            AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                         }
 
                     }
@@ -1036,14 +1138,16 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null && ex.InnerException.Message != null)
+                // ОТКАЗ без окон: чтение отсчётов оборвалось на полпути —
+                // спектр в документе неполон, а метод пустой.
+                string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message + " " + ex.InnerException.Message));
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз Atom Spectra оборвался (" + AppUi.Where(filePath)
+                        + "): " + Detail(ex) + ". Спектр в документе неполон.", ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filePath, ex.Message, ex.StackTrace));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
                 return;
             }
         }
@@ -1148,8 +1252,8 @@ namespace BecquerelMonitor
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
                     string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                    DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (res == DialogResult.No) return;
+                    // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
+                    if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
                     doc.Dirty = true;
                 }
@@ -1158,14 +1262,16 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                if (ex.InnerException != null)
+                // ОТКАЗ без окон: разбор N42 оборвался, метод пустой, документ
+                // остался с тем, что успело прочитаться.
+                string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+                if (!AppUi.HasWindows)
                 {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message + " " + ex.InnerException.Message, ex.StackTrace));
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз N42 оборвался (" + AppUi.Where(filename)
+                        + "): " + Detail(ex), ex);
                 }
-                else
-                {
-                    MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, filename, ex.Message, ex.StackTrace));
-                }
+                AppUi.Report(text, "", MessageBoxIcon.None);
                 return;
             }
         }
@@ -1239,7 +1345,16 @@ namespace BecquerelMonitor
 
             } catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                // ОТКАЗ без окон: файла на диске НЕТ, а метод пустой — снаружи
+                // вывоз выглядит состоявшимся. Оснастка, которая потом читает
+                // этот файл, получит либо старый, либо ничего.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: вывоз Atom Spectra не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
             }
             Cursor.Current = Cursors.Default;
         }
@@ -1275,7 +1390,15 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                // ОТКАЗ без окон — та же беда, что и у вывоза Atom Spectra:
+                // файла нет, а метод пустой.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: вывоз N42 не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
             }
             Cursor.Current = Cursors.Default;
         }
@@ -1310,7 +1433,18 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message));
+                // ОТКАЗ без окон: спектр НЕ записан. `false` возвращается и
+                // сейчас, но читают его не все — `DCControlPanel` (автосохранение),
+                // `MeasurementController` и кнопка сохранения в самом документе
+                // зовут этот метод как пустой. Молчаливая потеря записи — та же
+                // беда, что и молчаливое чтение не того файла.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: спектр НЕ записан (" + AppUi.Where(doc.Filename)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message), "", MessageBoxIcon.None);
                 return false;
             }
             finally
@@ -1350,7 +1484,18 @@ namespace BecquerelMonitor
             {
                 if (docEnergySpectrum.IsNamed && docEnergySpectrum.Filename == fileName && doc.Filename != fileName)
                 {
-                    MessageBox.Show(Resources.ERRCannotOverwrite, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    // ОТКАЗ без окон: записи не было. ⚠ Досюда безоконный
+                    // запуск не доходит — выше стоит `SaveFileDialog.ShowDialog()`,
+                    // и он повиснет раньше; строка написана на тот случай, когда
+                    // имя файла станет приходить доводом.
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: " + Resources.ERRCannotOverwrite + " "
+                            + AppUi.Where(fileName) + " — под этим именем открыт другой документ, "
+                            + "запись не состоялась.");
+                    }
+                    AppUi.Report(Resources.ERRCannotOverwrite, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
                     return false;
                 }
             }
@@ -1440,22 +1585,40 @@ namespace BecquerelMonitor
                     {
                         string text = String.Format(Resources.ERRFileOpenFailure, Path.GetFileName(backgroundSpectrumPathname),
                             Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
-                        DialogResult res = MessageBox.Show(text, Resources.ResetCalibrationQuestion, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                        if (res == DialogResult.No) return;
+                        // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
+                        if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                         this.CheckDocument(resultDataFile, doCorrections: true);
                     }
                 }
                 catch (Exception ex)
                 {
+                    // ⛔ ОТКАЗ без окон, и это самое дорогое место прослойки для
+                    //    корпусного счёта: фон НЕ загружен, `BackgroundEnergySpectrum`
+                    //    остаётся null — и вычитание фона молча выключается.
+                    //    Спектр после этого считается целиком, числа получаются
+                    //    правдоподобные и другие (строка `B17`: треть невязки
+                    //    приходится на вычтенный фон). Сказать об этом некому:
+                    //    метод пустой, признака «фон не взялся» у него нет.
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: фон НЕ загружен (" + AppUi.Where(backgroundSpectrumPathname)
+                            + "): " + ex.Message
+                            + ". Вычитание фона молча выключилось бы, а числа спектра "
+                            + "изменились бы без единого слова.", ex);
+                    }
                     try
                     {
-                        MessageBox.Show(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message));
+                        AppUi.Report(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message), "", MessageBoxIcon.None);
                     }
                     catch
                     {
-                        MessageBox.Show(Resources.ERRBackgroundLoadFailure);
+                        // Строка ресурса без нужных подстановок: сообщение всё
+                        // равно должно дойти. Ловушка оставлена такой же
+                        // широкой, какой была.
+                        AppUi.Report(Resources.ERRBackgroundLoadFailure, "", MessageBoxIcon.None);
                     }
-                    
+
                     return;
                 }
                 if (resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount == 0)
@@ -1520,7 +1683,14 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                // ОТКАЗ без окон: CSV не записан, а метод пустой.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: вывоз CSV не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
             }
         }
 
@@ -1581,7 +1751,17 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                // ОТКАЗ без окон: CSV с энергиями не записан, метод пустой.
+                // ⚠ `sa.Dispose()` ниже при броске не выполнится — как и при
+                // любом другом исключении этого метода сегодня; заворачивать
+                // его в `finally` здесь значит править не то, о чём речь.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: вывоз CSV с энергиями не записан (" + AppUi.Where(fileName)
+                        + "): " + ex.Message, ex);
+                }
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
             }
             sa.Dispose();
         }
@@ -1640,18 +1820,34 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                String message = "";
-                if (ex.InnerException != null && ex.InnerException.Message != null)
-                {
-                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message);
-                }
-                else
-                {
-                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message);
-                }
+                string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
 
                 message += "\n\n---\nExpected format:\nChannel,Counts (TotalTime=3600.3s)\n0,0\n1,324\n2,376\n...\n";
-                MessageBox.Show(message);
+                // ⛔ ОТКАЗ без окон. Метод пустой (void), и на беде он БРОСАЕТ
+                //    ввоз строкой ниже — документ остаётся ровно тем, чем был.
+                //    Измерено 27.08.2026 плечом `csvstate` пробы
+                //    `HeadlessDocProbe` (отказ ловится нарочно, спектр
+                //    опрашивается после него): отсчётов 9360945 -> 9360945,
+                //    время 10205 -> 10205, каналов 8192 -> 8192. Снаружи «CSV
+                //    не разобрался» неотличимо от «CSV разобрался, файл был
+                //    такой же», а единственный вызывающий (пункт меню
+                //    `MainForm.cs:2491`) кода возврата не читает — признака
+                //    отказа у этого пути нет вовсе. В окнах его роль играет
+                //    само окно; без окон её обязан играть код возврата.
+                //
+                //    ⚠ ДО правки то же плечо (`csv`, сборка без этой правки)
+                //    висело: 20,4 с до убийства, `reached` есть, `returned`
+                //    нет, окно класса `#32770` видно в перечне окон процесса.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз CSV не состоялся (" + AppUi.Where(fileName)
+                        + "): " + Detail(ex)
+                        + ". Ожидается шапка «Channel,Counts (TotalTime=3600.3s)». "
+                        + "Документ остался с ПРЕЖНИМ спектром, и молчание здесь "
+                        + "неотличимо от удачного ввоза.", ex);
+                }
+                AppUi.Report(message, "", MessageBoxIcon.None);
                 // Abort the import: falling through used to wipe the current spectrum
                 // (Initialize below) and write partially parsed data into the document.
                 return;
@@ -1771,20 +1967,31 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                String message = "";
-
-                if (ex.InnerException != null && ex.InnerException.Message != null)
-                {
-                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message + " " + ex.InnerException.Message);
-                }
-                else
-                {
-                    message = string.Format(Resources.ERRFileOpenFailure, fileName, ex.Message);
-                }
+                string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
 
                 message += "\n\n---\nExpected format:\nEnergy,Count #0d6h13m30s\n5.65,2933\n...\n";
 
-                MessageBox.Show(message);
+                // ⛔ ОТКАЗ без окон — та же беда, что и у ввоза CSV с номерами
+                //    каналов, и она здесь ДОРОЖЕ: этот путь несёт не только
+                //    отсчёты, но и КАЛИБРОВКУ — точки «энергия — канал» из
+                //    файла ложатся в `EnergyCalibration` ниже. Ввоз брошен —
+                //    у спектра остаётся прежняя шкала энергий при прежних
+                //    отсчётах (мера на соседнем ввозе CSV — плечо `csvstate`,
+                //    9360945 -> 9360945; здесь неизменной остаётся ещё и
+                //    калибровка, потому что подстановка её стоит ниже).
+                //
+                //    ⚠ ДО правки плечо `csvenergy` висело: 20,3 с до убийства,
+                //    `reached` есть, `returned` нет, окно `#32770` видно.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: ввоз CSV с энергиями не состоялся (" + AppUi.Where(fileName)
+                        + "): " + Detail(ex)
+                        + ". Ожидается шапка «Energy,Count #0d6h13m30s». Документ остался "
+                        + "с ПРЕЖНИМ спектром и ПРЕЖНЕЙ калибровкой, и молчание здесь "
+                        + "неотличимо от удачного ввоза.", ex);
+                }
+                AppUi.Report(message, "", MessageBoxIcon.None);
                 // Abort the import: falling through used to wipe the current spectrum
                 // and write partially parsed data into the document.
                 return;

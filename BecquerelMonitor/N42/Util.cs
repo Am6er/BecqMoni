@@ -319,7 +319,19 @@ namespace BecquerelMonitor.N42
 
             if (!energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
             {
-                MessageBox.Show(Resources.CalibrationFunctionError);
+                // ОТКАЗ без окон, а не уведомление: калибровка в файле есть, но
+                // она не годится, — а документ отсюда возвращается КАК УДАЧНЫЙ,
+                // и дальше по нему считают. Шкала энергий задаёт всё: подписи
+                // пиков, состав библиотеки, разложение. Молча посчитать по
+                // негодной шкале значит выдать правдоподобные и чужие числа.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + Resources.CalibrationFunctionError
+                        + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder
+                        + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
+                }
+                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
             }
 
 
@@ -475,12 +487,43 @@ namespace BecquerelMonitor.N42
 
                     if (!energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
                     {
-                        MessageBox.Show(Resources.CalibrationFunctionError);
+                        // ОТКАЗ без окон — по той же причине, что и в разборе
+                        // 2006 года: спектр уходит в документ и считается по
+                        // негодной шкале, а сказать об этом некому.
+                        if (!AppUi.HasWindows)
+                        {
+                            throw new InvalidOperationException(
+                                "BecqMoni: " + Resources.CalibrationFunctionError
+                                + " (N42-2012, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder
+                                + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
+                        }
+                        AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    MessageBox.Show("N42 EnergyBoundaryValues not supported. Only calibration coefficients supported. Using default calibration y=x.");
+                    // ⛔ САМОЕ ОПАСНОЕ МЕСТО ВСЕГО РАЗБОРА N42, и оно же самое
+                    //    тихое: калибровка не прочиталась — и подставляется
+                    //    y = x, то есть НОМЕР КАНАЛА объявляется энергией.
+                    //    Спектр после этого выглядит целым, счёт идёт, числа
+                    //    получаются, и все они не о том. В окнах человек хотя
+                    //    бы читает предупреждение; без окон читать некому,
+                    //    поэтому здесь отказ с кодом возврата.
+                    //
+                    //    ⚠ Отказ бросается ИЗ catch: `throw` внутри `catch`
+                    //    уходит наружу, минуя остаток блока, — подстановка
+                    //    y = x при этом не выполняется вовсе.
+                    string text = "N42 EnergyBoundaryValues not supported. Only calibration "
+                        + "coefficients supported. Using default calibration y=x.";
+                    if (!AppUi.HasWindows)
+                    {
+                        throw new InvalidOperationException(
+                            "BecqMoni: калибровка N42 не прочитана (" + AppUi.Where(filename)
+                            + "): " + ex.Message
+                            + ". Подстановка y = x объявляет номер канала энергией — "
+                            + "считать по такому спектру нельзя.", ex);
+                    }
+                    AppUi.Report(text, "", MessageBoxIcon.None);
                 }
                 if (i == 0)
                 {
