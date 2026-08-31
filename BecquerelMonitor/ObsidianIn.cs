@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -402,6 +402,20 @@ namespace BecquerelMonitor
                 if (access != RadioAccessStatus.Allowed)
                 {
                     sendTroubleShoot("Error! current user isn't allowed to use radio module.");
+                    // ⛔ `A21`. Прежде этот отказ уходил только в `Trace` и в
+                    // `sendTroubleShoot`, а тот путём к человеку НЕ является:
+                    // он молчит без флага `trshoot` И без подписчика, а
+                    // подписчики — только окна настройки, отписывающиеся сразу
+                    // по окончании разбора. На пути ИЗМЕРЕНИЯ настройка
+                    // закрыта, и человек не узнавал ничего: набор шёл,
+                    // счётчик тикал, данных не было.
+                    //
+                    // Окна отсюда поднимать нельзя (`S100`), поэтому отказ
+                    // кладётся в тот же `lastFailure`, что и отказ опроса
+                    // спектра, и доезжает до хвоста строки состояния через
+                    // `MainForm.DeviceFailureTail`.
+                    setFailure(string.Format(BecquerelMonitor.Properties.Resources.ERRBTUnavailable,
+                                             BecquerelMonitor.Properties.Resources.ERRBTNotAllowed));
                     return;
                 }
                 BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
@@ -425,12 +439,17 @@ namespace BecquerelMonitor
                 else
                 {
                     sendTroubleShoot("BT adapter not found (GetDefaultAsync returned null).");
+                    // `A21`, довод — выше, у первого такого места.
+                    setFailure(string.Format(BecquerelMonitor.Properties.Resources.ERRBTUnavailable,
+                                             BecquerelMonitor.Properties.Resources.ERRBTNoAdapter));
                 }
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
                 sendTroubleShoot($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                // `A21`, довод — выше, у первого такого места.
+                setFailure(string.Format(BecquerelMonitor.Properties.Resources.ERRBTUnavailable, ex.Message));
             }
         }
 

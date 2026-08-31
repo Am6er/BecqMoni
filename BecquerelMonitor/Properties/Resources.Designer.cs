@@ -5557,5 +5557,23 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ERRBTUnavailable {
+            get {
+                return ResourceManager.GetString("ERRBTUnavailable", resourceCulture);
+            }
+        }
+
+        public static string ERRBTNotAllowed {
+            get {
+                return ResourceManager.GetString("ERRBTNotAllowed", resourceCulture);
+            }
+        }
+
+        public static string ERRBTNoAdapter {
+            get {
+                return ResourceManager.GetString("ERRBTNoAdapter", resourceCulture);
+            }
+        }
+
     }
 }
