@@ -52,7 +52,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         // 6 — в блоке параметров появились ключи BoundScattering и
         //     BremFromData (08.08.2026, физика 7 и 8): та же арифметика,
         //     файл длиннее ещё на два байта.
-        public const int FormatVersion = 6;
+        // 7 — в блоке параметров появилось ЗЕРНО (31.08.2026, `T114`): файл
+        //     длиннее на четыре байта. Зерно входило в ОТПЕЧАТОК с самого
+        //     появления ключа `--seed=`, а в файл не писалось — ровно та же
+        //     ошибка, что записана выше про формат 5 («ключ был добавлен в
+        //     Options и отпечаток, но не в Write/ReadOptions»), только поймана
+        //     не сверкой, а попыткой поставить плечо `S61`. Следствие было
+        //     тяжелее: матрица с заданным зерном после чтения с диска получала
+        //     `Seed` = 0, пересчитывала клеймо БЕЗ `seed=` и НЕ СХОДИЛАСЬ САМА
+        //     С СОБОЙ — `IsValidFor` отвечал «нет» навсегда, разбор печатал
+        //     «БЕЗ МАТРИЦЫ» у всех спектров сцены. Подъём версии решением
+        //     Amber 31.08.2026: все матрицы корпуса пересчитаны заново.
+        public const int FormatVersion = 7;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -884,6 +895,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             writer.Write(o.AnalogContinuum);
             writer.Write(o.BoundScattering);
             writer.Write(o.BremFromData);
+            // Формат 7: ЗЕРНО. Оно входит в отпечаток (`ComputeStamp`), а сюда
+            // не писалось — и матрица, посчитанная с `--seed=`, после чтения с
+            // диска получала `Seed` = 0, пересчитывала клеймо БЕЗ `seed=` и не
+            // сходилась сама с собой. `IsValidFor` отвечал «нет» навсегда,
+            // разбор печатал «БЕЗ МАТРИЦЫ». `T114`, 31.08.2026.
+            writer.Write(o.Seed);
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -902,7 +919,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 LightNonproportionality = reader.ReadBoolean(),
                 AnalogContinuum = reader.ReadBoolean(),
                 BoundScattering = reader.ReadBoolean(),
-                BremFromData = reader.ReadBoolean()
+                BremFromData = reader.ReadBoolean(),
+                Seed = reader.ReadInt32()
             };
         }
 

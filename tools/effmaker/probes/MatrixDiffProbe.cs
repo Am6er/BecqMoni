@@ -296,9 +296,11 @@ static class MatrixDiffProbe
             return "(в файле нет)";
         }
 
+        // ⚠ Зерно печатается ИЗ ФАЙЛА, и это не украшение: оно входит в клеймо,
+        // а вот пишется ли оно в файл — вопрос, который здесь и виден.
         return string.Format(CultureInfo.InvariantCulture,
-                             "узлов {0}, {1:G6}–{2:G6} кэВ, бин {3:G6} кэВ, историй {4}",
-                             o.NodeCount, o.MinEnergyKev, o.MaxEnergyKev, o.BinKev, o.Histories);
+                             "узлов {0}, {1:G6}–{2:G6} кэВ, бин {3:G6} кэВ, историй {4}, зерно {5}",
+                             o.NodeCount, o.MinEnergyKev, o.MaxEnergyKev, o.BinKev, o.Histories, o.Seed);
     }
 
     /// <summary>
