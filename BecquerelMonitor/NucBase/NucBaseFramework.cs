@@ -37,6 +37,18 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public string LastError { get; private set; }
 
+        /// <summary>
+        /// ЗАПРОС НЕ БЫЛ ЗАДАН ВОВСЕ: ни родителя, ни диапазона, ни порогов
+        /// (`D44`). Пустой ответ при этом признаке значит «не о чем
+        /// спрашивать», а не «в базе такого нет», и сказать это человеку
+        /// разными словами — единственная причина, по которой признак заведён.
+        ///
+        /// ⚠ Читатель у него один и настоящий: <c>NucBase.DoSearch</c>, строка
+        /// состояния под таблицами. Сбрасывается в начале каждого запроса, как
+        /// и <see cref="LastError"/>.
+        /// </summary>
+        public bool LastNoCriteria { get; private set; }
+
         public Nuclide getNuclude(string nucname)
         {
             this.LastError = null;
@@ -55,7 +67,12 @@ namespace BecquerelMonitor.NucBase
             try
             {
                 db = new DataBase();
-                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = '" + nucname + "' and half_life not null");
+                // Имя — ПАРАМЕТРОМ, а не склейкой (`D45`): апостроф в нём
+                // закрывал литерал и ронял запрос. Имя параметра `$n` — то же,
+                // что у `CascadeAtomicData`, `FsaSampleLibrary` и
+                // `DecayParentRule`; второго соглашения быть не должно.
+                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = $n and half_life not null",
+                                                      DataBase.Param("$n", nucname));
                 if (!reader.Read())
                 {
                     // Пусто — не ошибка: такого имени в таблице нет, либо период
@@ -77,7 +94,8 @@ namespace BecquerelMonitor.NucBase
                 nuc.HalfLife_Sec = reader.GetDouble(4);
                 nuc.Abundance = reader.GetDouble(5);
 
-                reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = '" + nucname + "'");
+                reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = $n",
+                                     DataBase.Param("$n", nucname));
                 while (reader.Read())
                 {
                     Decay dec = new Decay();
@@ -87,7 +105,8 @@ namespace BecquerelMonitor.NucBase
                     nuc.Daughters.Add(dec);
                 }
 
-                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = '" + nucname + "'");
+                reader = db.ReadData("select nucid, ifnull(perc, '?'), dec_type from decay_chain where daughter_nucid = $n",
+                                     DataBase.Param("$n", nucname));
                 while (reader.Read())
                 {
                     Decay dec = new Decay();
@@ -139,12 +158,38 @@ namespace BecquerelMonitor.NucBase
         /// запрошенного родителя у него нет вовсе; подстановка `dr.parent_nucid`
         /// вместо имени делает подзапросы правила коррелированными, а индексов
         /// у `decay_radiations` нет ни одного — меряно там же: 0.09 с на 50054
-        /// строки против 77.5 с на те же 49965. Что выгрузка всей таблицы в
-        /// таблицу редактора сама по себе бессмысленна — отдельная строка.
+        /// строки против 77.5 с на те же 49965.
         ///
-        /// ⚠ Имя подставляется в текст запроса, а не параметром, потому что
-        /// <see cref="DataBase.ReadData"/> параметров не принимает вовсе; вся
-        /// строка собирается конкатенацией по той же причине. Отдельная строка.
+        /// ⛔ ПЕРИОД БЕРЁТСЯ ОТДЕЛЬНЫМ ЗАПРОСОМ, А НЕ СОЕДИНЕНИЕМ (`D43`).
+        /// Соединение шло по `dr.parent_nucid = nuc.nucid`, а `nucid` в
+        /// `nuclides` НЕ УНИКАЛЕН: у `144TBm` там три строки (`l_seqno` 4, 6, 7
+        /// — единственный такой случай на всю таблицу, `D41`), и каждая строка
+        /// излучения множилась на три. Меряно 31.08.2026: 8 различных `dr_pk`
+        /// давали 24 строки, и у трёх копий стоял СВОЙ период — 4.25 с,
+        /// 2.8 мкс, 0.67 мкс. В редакторе и в конструкторе ROI линии изомера
+        /// троились, каждая со своим периодом. Правило
+        /// <see cref="DecayParentRule"/> этот случай переживает (зажим стоит
+        /// через `exists`), а соединение — нет: оно про `nuclides`, а зажим про
+        /// `decay_radiations.parent_l_seqno`.
+        ///
+        /// Строка периода выбирается ЯВНО: по `l_seqno`, равному
+        /// `dr.parent_l_seqno` — то есть периодом уровня, который эту линию и
+        /// испускает, — а если строки такого уровня в `nuclides` нет, берётся
+        /// строка с наименьшим `l_seqno`. Запасная ветвь нужна ровно одному
+        /// родителю: у `123CSm2` в `nuclides` только `l_seqno` 8, а излучения
+        /// стоят на уровне 5 (меряно там же; без запасной ветви его 9 линий
+        /// пропали бы целиком). На всех остальных выбор совпадает с прежним
+        /// соединением построчно — проверено полным прогоном.
+        ///
+        /// ⚠ Родитель, которого в `nuclides` нет вовсе, прежде терял линии
+        /// молча (соединение внутреннее); теперь они остаются с периодом 0 —
+        /// тем же нулём «не измерено», что ниже. Сегодня таких родителей НОЛЬ
+        /// (меряно 31.08.2026), так что на числах это не сказывается.
+        ///
+        /// ⚠ Имя и числа уходят ПАРАМЕТРАМИ (`D45`), а не склейкой: склейка
+        /// числа шла через `double.ToString()` текущей культуры, и запятая
+        /// разделителя рвала запрос (в приложении разделитель подменяет
+        /// `MainForm`, вне его — нет).
         ///
         /// ⚠ ПЕРИОД ПОЛУРАСПАДА РОДИТЕЛЯ БЫВАЕТ НЕ ИЗМЕРЕН, и это законно
         /// (`D42`): в `nuclides` тогда NULL сразу в трёх колонках —
@@ -169,61 +214,96 @@ namespace BecquerelMonitor.NucBase
         /// С отсечкой поиск по этим семи именам остался бы мёртвым, только
         /// молча — исключение сменилось бы пустым списком.
         /// </summary>
-        public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 3000.0, double half_life_sec = 0)
+        public List<DecayRad> getDecayRad(string nucname, double intensity = 0.0, double lowEnergy = 0.0, double highEnergy = 0.0, double half_life_sec = 0)
         {
             this.LastError = null;
+            this.LastNoCriteria = false;
+            nucname = nucname ?? "";
+
+            // ⛔ БЕЗ ЕДИНОГО УСЛОВИЯ ОТБОРА ЗАПРОС НЕ ИДЁТ (`D44`, решение Amber
+            // 28.08.2026). Правило родителя существует, чтобы подтянуть распады
+            // дочерних продуктов НАЗВАННОГО родителя; родителя не назвали —
+            // подтягивать нечего, расширение не применяется, и остаются только
+            // остальные условия. Если не задано ничего, то и показывать нечего:
+            // прежде такой вызов выгружал в таблицу редактора ВСЮ таблицу
+            // излучений — меряно 31.08.2026, 50054 строки, окно набивалось
+            // секундами и человеку не показывало ничего.
+            //
+            // Пустота при этом обязана читаться не как «в базе нет»: признак
+            // <see cref="LastNoCriteria"/> отделяет «не о чем спрашивать» от
+            // «спросили, не нашлось», и редактор говорит об этом строкой
+            // состояния (`T92`).
+            //
+            // ⚠ Ноль у границы означает «границу не задавали» — так её и
+            // читает сам запрос ниже (`highEnergy != 0.0`), и так её шлёт
+            // редактор при пустом поле. Поэтому ЛЮБАЯ ненулевая граница
+            // считается вопросом, даже широкая.
+            //
+            // ⛔ Прежде здесь стояло `highEnergy < 3000`, и это ЛГАЛО
+            // человеку: набравший в верхнем поле 4000 получал строку «не
+            // задано ни имени, ни диапазона», хотя диапазон он задал.
+            // Найдено встречной проверкой 28.08.2026 замером: низ 0 верх
+            // 5000 давал 0 строк и признак «не о чем спрашивать», а выше
+            // 3000 кэВ в базе лежит 1081 строка — случай не выдуманный.
+            bool named = nucname.Length > 0;
+            bool banded = lowEnergy > 0.0 || highEnergy > 0.0;
+            bool thresholded = intensity > 0.0 || half_life_sec > 0.0;
+            if (!named && !banded && !thresholded)
+            {
+                this.LastNoCriteria = true;
+                return new List<DecayRad>();
+            }
+
             // Соединение создаётся ВНУТРИ `try` ниже — довод при `getNuclude` (`D46`).
             DataBase db = null;
-            string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a, dr.type_c, dr.dec_type, nuc.half_life, nuc.half_life_unit from decay_radiations as dr, nuclides nuc where dr.parent_nucid = nuc.nucid and dr.type_a in ('G', 'X') and ";
-            if (nucname.Length > 0)
+            List<SqliteParameter> args = new List<SqliteParameter>();
+            // ⛔ Соединения с `nuclides` здесь БОЛЬШЕ НЕТ — оно троило линии
+            // изомера (`D43`, довод в примечании к методу). Период приезжает
+            // отдельным запросом, а уровень строки нужен, чтобы его выбрать.
+            string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a,"
+                       + " dr.type_c, dr.dec_type, dr.parent_l_seqno"
+                       + " from decay_radiations as dr where dr.type_a in ('G', 'X')";
+            if (named)
             {
-                sql += "dr.parent_nucid = " + SqlText(nucname) + " and ";
+                sql += " and dr.parent_nucid = $n";
+                // ОДНО правило на проект: тот же зажим по уровню родителя, что у
+                // `CascadeAtomicData` и `FsaSampleLibrary`, и из того же места.
+                // Имя правило ждёт под `$n` — и теперь получает его НАСТОЯЩИМ
+                // параметром, как у обоих соседей, а не склейкой (`D45`).
+                sql += DecayParentRule.LevelClause;
+                args.Add(DataBase.Param("$n", nucname));
             }
             if (intensity >= 0.0)
             {
-                sql += "cast(dr.intensity_num as float) >= " + intensity + " and ";
+                // Условие остаётся при нулевом пороге НАРОЧНО: `intensity_num`
+                // бывает NULL, и `cast(NULL as float) >= 0` такую строку
+                // снимает. Сегодня таких строк ноль, но правило отбора менять
+                // здесь нечем — это не про `D44`.
+                sql += " and cast(dr.intensity_num as float) >= $i";
+                args.Add(DataBase.Param("$i", intensity));
             }
-            if (highEnergy == 0.0 && lowEnergy == 0.0)
+            if (lowEnergy != 0.0)
             {
-                sql += " 1=1 and ";
-            } else
-            {
-                if (lowEnergy == 0.0)
-                {
-                    sql += "cast(dr.energy_num as float) <= " + highEnergy + " and ";
-                }
-                if (highEnergy == 0.0)
-                {
-                    sql += "cast(dr.energy_num as float) >= " + lowEnergy + " and ";
-                }
-
-                if (highEnergy > 0.0 && lowEnergy > 0.0)
-                {
-                    sql += "cast(dr.energy_num as float) >= " + lowEnergy + " and  cast(dr.energy_num as float) <= " + highEnergy + " and ";
-                }
+                sql += " and cast(dr.energy_num as float) >= $lo";
+                args.Add(DataBase.Param("$lo", lowEnergy));
             }
-            if (half_life_sec > 0)
+            if (highEnergy != 0.0)
             {
-                sql += "cast(nuc.half_life_sec as float) > " + half_life_sec + " and ";
-            }
-            sql += " 1=1";
-            if (nucname.Length > 0)
-            {
-                // ОДНО правило на проект: тот же зажим по уровню родителя, что у
-                // `CascadeAtomicData` и `FsaSampleLibrary`, и из того же места.
-                // Имя правило ждёт под `$n`; параметров у `ReadData` нет, поэтому
-                // подставляется текстом — см. примечание к методу.
-                sql += DecayParentRule.LevelClause.Replace("$n", SqlText(nucname));
+                sql += " and cast(dr.energy_num as float) <= $hi";
+                args.Add(DataBase.Param("$hi", highEnergy));
             }
 
             List<DecayRad> decayRads = new List<DecayRad>();
             try
             {
                 db = new DataBase();
-                SqliteDataReader reader = db.ReadData(sql);
+                // Период — ОТДЕЛЬНЫМ запросом, до строк излучения: читателю на
+                // одном соединении нужен один читатель зараз.
+                Dictionary<string, List<HalfLifeRow>> halfLives = ReadHalfLives(db, named ? nucname : null);
+                SqliteDataReader reader = db.ReadData(sql, args.ToArray());
                 while (reader.Read())
                 {
-                    // Столбцы читаются с проверкой на NULL — все восемь, а не
+                    // Столбцы читаются с проверкой на NULL — все, а не
                     // только те, где NULL нашёлся сегодня (`D42`). Так же
                     // читают `decay_radiations` оба других читателя проекта,
                     // `CascadeAtomicData` и `FsaSampleLibrary`; третьего
@@ -240,8 +320,20 @@ namespace BecquerelMonitor.NucBase
                     decrad.DecayLine = Text(reader, 3);
                     decrad.XrayType = Text(reader, 4);
                     decrad.DecayType = Integer(Text(reader, 5));
-                    decrad.HalfLife = Number(Text(reader, 6));
-                    decrad.HalfLifeUnit = Text(reader, 7);
+
+                    HalfLifeRow life = PickHalfLife(halfLives, decrad.Name,
+                                                    reader.IsDBNull(6) ? int.MinValue : reader.GetInt32(6));
+                    if (half_life_sec > 0 && !(life.Seconds > half_life_sec))
+                    {
+                        // Тот же отбор, что стоял в запросе условием
+                        // `cast(nuc.half_life_sec as float) > …`: неизмеренный
+                        // период (NULL, здесь ноль) его не проходит, ровно как
+                        // прежде не проходило сравнение с NULL.
+                        continue;
+                    }
+
+                    decrad.HalfLife = Number(life.Text);
+                    decrad.HalfLifeUnit = life.Unit;
                     decayRads.Add(decrad);
                 }
             } catch (Exception ex)
@@ -273,15 +365,89 @@ namespace BecquerelMonitor.NucBase
         }
 
         /// <summary>
-        /// Строковая константа для текста запроса: в кавычках, с удвоением
-        /// апострофа. В идентификаторах нуклидов апострофа не бывает, но имя
-        /// сюда приходит из поля ввода, а <see cref="DataBase.ReadData"/>
-        /// параметров не принимает вовсе — значит имя попадает прямо в текст,
-        /// и апостроф в нём закрыл бы литерал.
+        /// Строка периода полураспада из <c>nuclides</c>: уровень, период
+        /// текстом с единицей и он же в секундах.
         /// </summary>
-        static string SqlText(string value)
+        sealed class HalfLifeRow
         {
-            return "'" + value.Replace("'", "''") + "'";
+            public int Level;
+            public string Text = "";
+            public string Unit = "";
+            public double Seconds;
+        }
+
+        /// <summary>Пустой период — «не измерено» (`D42`), тем же нулём.</summary>
+        static readonly HalfLifeRow NoHalfLife = new HalfLifeRow();
+
+        /// <summary>
+        /// Периоды из <c>nuclides</c>: {nucid -&gt; строки по возрастанию
+        /// уровня}. Отдельный запрос вместо соединения — довод в примечании к
+        /// <see cref="getDecayRad"/> (`D43`).
+        ///
+        /// ⚠ Названный родитель тянет ТОЛЬКО свои строки (обычно одну); имени
+        /// нет — читается вся таблица, 4429 строк. Соединение с
+        /// `decay_radiations` вместо этого было бы коррелированным подзапросом
+        /// на таблице без единого индекса — то самое, что меряно 77.5 с
+        /// против 0.09 с (`D44`).
+        /// </summary>
+        static Dictionary<string, List<HalfLifeRow>> ReadHalfLives(DataBase db, string nucname)
+        {
+            var lives = new Dictionary<string, List<HalfLifeRow>>(StringComparer.Ordinal);
+            string sql = "select nucid, l_seqno, half_life, half_life_unit, half_life_sec from nuclides";
+            SqliteParameter[] args = new SqliteParameter[0];
+            if (nucname != null)
+            {
+                sql += " where nucid = $n";
+                args = new[] { DataBase.Param("$n", nucname) };
+            }
+
+            // Порядок — по уровню: запасной выбор берёт ПЕРВУЮ строку списка.
+            sql += " order by nucid, l_seqno";
+            SqliteDataReader reader = db.ReadData(sql, args);
+            while (reader.Read())
+            {
+                string nucid = Text(reader, 0);
+                List<HalfLifeRow> rows;
+                if (!lives.TryGetValue(nucid, out rows))
+                {
+                    rows = new List<HalfLifeRow>();
+                    lives[nucid] = rows;
+                }
+
+                rows.Add(new HalfLifeRow
+                {
+                    Level = reader.IsDBNull(1) ? int.MinValue : reader.GetInt32(1),
+                    Text = Text(reader, 2),
+                    Unit = Text(reader, 3),
+                    Seconds = reader.IsDBNull(4) ? 0.0 : reader.GetDouble(4)
+                });
+            }
+
+            reader.Close();
+            return lives;
+        }
+
+        /// <summary>
+        /// Период ТОЙ строки `nuclides`, что испускает линию: по уровню
+        /// излучения, а нет такого уровня — по наименьшему (`D43`).
+        /// </summary>
+        static HalfLifeRow PickHalfLife(Dictionary<string, List<HalfLifeRow>> lives, string nucid, int level)
+        {
+            List<HalfLifeRow> rows;
+            if (!lives.TryGetValue(nucid, out rows) || rows.Count == 0)
+            {
+                return NoHalfLife;
+            }
+
+            foreach (HalfLifeRow row in rows)
+            {
+                if (row.Level == level)
+                {
+                    return row;
+                }
+            }
+
+            return rows[0];
         }
 
         /// <summary>
@@ -528,11 +694,14 @@ namespace BecquerelMonitor.NucBase
                     // Минимальный l_seqno ищется среди строк С ЧИСЛОМ: если у
                     // самой ранней записи perc пуст, дочка бралась бы из неё и
                     // выпадала из ряда целиком, хотя число есть строкой ниже.
+                    // Имя — параметром: оно приходит из базы и из поля ввода, а
+                    // апостроф в нём закрывал литерал и ронял обход (`D45`).
                     SqliteDataReader reader = db.ReadData(
-                        "select daughter_nucid, perc from decay_chain d where nucid = '" + current +
-                        "' and perc not null and l_seqno = (select min(l_seqno) from decay_chain x " +
+                        "select daughter_nucid, perc from decay_chain d where nucid = $n" +
+                        " and perc not null and l_seqno = (select min(l_seqno) from decay_chain x " +
                         "where x.nucid = d.nucid and x.daughter_nucid = d.daughter_nucid " +
-                        "and x.dec_type = d.dec_type and x.perc not null)");
+                        "and x.dec_type = d.dec_type and x.perc not null)",
+                        DataBase.Param("$n", current));
                     while (reader.Read())
                     {
                         rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));

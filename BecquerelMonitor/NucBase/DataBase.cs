@@ -82,8 +82,19 @@ namespace BecquerelMonitor.NucBase
         ///
         /// ⚠ Текст прежней жалобы в этом примечании НЕ приводится: он
         /// принадлежит поставщику, а измерен здесь не был.
+        ///
+        /// ⛔ ПАРАМЕТРЫ ПОЯВИЛИСЬ ЗДЕСЬ, А НЕ У ВЫЗЫВАЮЩЕГО (`D45`). Перегрузки
+        /// с параметрами у этого метода не было ВОВСЕ, поэтому весь
+        /// <c>NucBaseFramework</c> собирал запрос склейкой — включая имена,
+        /// приходящие из поля ввода редактора. Апостроф в имени закрывал
+        /// литерал и ронял запрос: измерено 31.08.2026, <c>getNuclude("O'BRIEN")</c>
+        /// давало <c>SqliteException</c> вместо пустого ответа. Двух соглашений
+        /// о подстановке в проекте быть не должно: <c>CascadeAtomicData</c> и
+        /// <c>FsaSampleLibrary</c> уже давно передают имя параметром <c>$n</c>,
+        /// и ровно того же имени параметра ждёт
+        /// <c>DecayParentRule.LevelClause</c>.
         /// </summary>
-        public SqliteDataReader ReadData(string sqlcmd)
+        public SqliteDataReader ReadData(string sqlcmd, params SqliteParameter[] parameters)
         {
             if (sqlite_conn == null || sqlite_conn.State != ConnectionState.Open)
             {
@@ -96,10 +107,33 @@ namespace BecquerelMonitor.NucBase
             SqliteCommand sqlite_cmd;
             sqlite_cmd = sqlite_conn.CreateCommand();
             sqlite_cmd.CommandText = sqlcmd;
+            if (parameters != null)
+            {
+                foreach (SqliteParameter parameter in parameters)
+                {
+                    if (parameter != null)
+                    {
+                        sqlite_cmd.Parameters.Add(parameter);
+                    }
+                }
+            }
 
             sqlite_datareader = sqlite_cmd.ExecuteReader();
 
             return sqlite_datareader;
+        }
+
+        /// <summary>
+        /// Параметр запроса. Имя — с тем же знаком <c>$</c>, что стоит в тексте
+        /// запроса и в <c>DecayParentRule.LevelClause</c>.
+        ///
+        /// ⚠ <c>null</c> уезжает <see cref="DBNull"/>: поставщик на голом
+        /// <c>null</c> в значении параметра бросает, а «имени не задано» —
+        /// законный случай у читателей этой базы.
+        /// </summary>
+        public static SqliteParameter Param(string name, object value)
+        {
+            return new SqliteParameter(name, value ?? DBNull.Value);
         }
 
         /// <summary>

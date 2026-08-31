@@ -4688,4 +4688,8 @@
   <data name="comboBoxNameFormat.Items2" xml:space="preserve">
     <value>Cs-137, Pa-234m1</value>
   </data>
+  <data name="NucBase_NoCriteria" xml:space="preserve">
+    <value>Искать нечего: не задано ни имени нуклида, ни диапазона энергий, ни порога выхода или периода полураспада. Запрос не выполнялся - это не «в базе ничего нет».</value>
+    <comment>D44: строка состояния редактора, а НЕ свойство контрола. Конструктору формы этот ключ неизвестен - при перезаписи resx его легко потерять; читает его NucBase.OwnText.</comment>
+  </data>
 </root>
