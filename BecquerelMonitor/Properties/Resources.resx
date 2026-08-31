@@ -43181,4 +43181,36 @@ The matrix is stored next to the device configuration, one file per geometry, an
   <data name="NucBase_CardEmpty" xml:space="preserve">
     <value>No card for {0}: the nuclide table has no such row, or its half-life is not measured.</value>
   </data>
+  <data name="ImportSpectrumLimitTitle" xml:space="preserve">
+    <value>Importing spectra</value>
+  </data>
+  <data name="ImportSpectrumLimitReached" xml:space="preserve">
+    <value>Imported spectra: {0}.
+A document holds no more than {1} spectra, so the rest was not taken. Spectra that did not fit: {2}. Files not read at all: {3}.</value>
+  </data>
+  <data name="LayoutSaveFailedTitle" xml:space="preserve">
+    <value>Panel layout</value>
+  </data>
+  <data name="LayoutSaveFailed" xml:space="preserve">
+    <value>The panel layout could not be saved to {0}.
+Reason: {1}
+The previous arrangement will come back the next time the application starts.</value>
+  </data>
+  <data name="LayoutSaveFailedOnExit" xml:space="preserve">
+    <value>When the application was closing on {0}, the panel layout could not be saved to {1}.
+Reason: {2}
+{3}</value>
+  </data>
+  <data name="LayoutSaveRescued" xml:space="preserve">
+    <value>The arrangement was written to {0} instead. Copy that file over the one above to get it back.</value>
+  </data>
+  <data name="LayoutSaveNotRescued" xml:space="preserve">
+    <value>The arrangement could not be preserved and is lost.</value>
+  </data>
+  <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
+    <value>The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again.</value>
+  </data>
+  <data name="PeakDetectionFailed" xml:space="preserve">
+    <value>Peak detection failed - the peak list is cleared</value>
+  </data>
 </root>

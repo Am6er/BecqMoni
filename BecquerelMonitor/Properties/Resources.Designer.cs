@@ -936,6 +936,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again..
+        /// </summary>
+        public static string ERRCalibrationNotSavedToDevice {
+            get {
+                return ResourceManager.GetString("ERRCalibrationNotSavedToDevice", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Device configuration is not selected..
         /// </summary>
         public static string ERRDeviceConfigNotSelected {
@@ -2351,6 +2360,15 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Peak detection failed - the peak list is cleared.
+        /// </summary>
+        public static string PeakDetectionFailed {
+            get {
+                return ResourceManager.GetString("PeakDetectionFailed", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Best.
         /// </summary>
@@ -5266,6 +5284,69 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryMaterialsByTable {
             get {
                 return ResourceManager.GetString("GeometryMaterialsByTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Importing spectra.
+        /// </summary>
+        public static string ImportSpectrumLimitTitle {
+            get {
+                return ResourceManager.GetString("ImportSpectrumLimitTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Imported spectra: {0}.
+        /// </summary>
+        public static string ImportSpectrumLimitReached {
+            get {
+                return ResourceManager.GetString("ImportSpectrumLimitReached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Panel layout.
+        /// </summary>
+        public static string LayoutSaveFailedTitle {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The panel layout could not be saved to {0}.
+        /// </summary>
+        public static string LayoutSaveFailed {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When the application was closing on {0}, the panel layout could not be saved to {1}.
+        /// </summary>
+        public static string LayoutSaveFailedOnExit {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailedOnExit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The arrangement was written to {0} instead.
+        /// </summary>
+        public static string LayoutSaveRescued {
+            get {
+                return ResourceManager.GetString("LayoutSaveRescued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The arrangement could not be preserved and is lost.
+        /// </summary>
+        public static string LayoutSaveNotRescued {
+            get {
+                return ResourceManager.GetString("LayoutSaveNotRescued", resourceCulture);
             }
         }
         
