@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace CorpusFsaProbe
@@ -1454,6 +1455,23 @@ namespace CorpusFsaProbe
                 row.Ms = clock.Elapsed.TotalMilliseconds;
                 row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
                              - cpuBefore).TotalMilliseconds;
+                // ⛔ `T105`. `FsaAnalyzer.BandNote` — заверение анализатора о
+                // полосе, которую фит взял НА ДЕЛЕ (режим, каналы, кэВ), — до
+                // сих пор не имело во всём дереве НИ ОДНОГО читателя. Шапка
+                // прогона печатает `FsaBand.EndsLine`, то есть НАСТРОЕННЫЕ
+                // концы, а это другое: настроенное и взятое расходятся, когда
+                // пол считается по кривой спектра.
+                //
+                // Печатается ОДИН раз за прогон, с первого разобравшегося
+                // спектра, и называет его: строка про полосу без имени
+                // спектра непроверяема — у разных приборов она разная.
+                if (result != null && !string.IsNullOrEmpty(analyzer.BandNote)
+                    && Interlocked.CompareExchange(ref bandNoteShown, 1, 0) == 0)
+                {
+                    Console.WriteLine("полоса ПЕРВОГО разбора ({0}): {1}",
+                                      row.Key, analyzer.BandNote);
+                }
+
                 if (result == null)
                 {
                     row.Error = "разложение не получилось (нет калибровок или вырожденный диапазон)";
@@ -3211,6 +3229,12 @@ namespace CorpusFsaProbe
             /// <summary>(S56) Символы элементов защиты и обвязки из `materials.csv`.</summary>
             public readonly List<string> Shield = new List<string>();
         }
+
+        /// <summary>
+        /// Показана ли уже строка полосы: заверение печатается один раз за
+        /// прогон, а спектры разбираются в несколько потоков (`T105`).
+        /// </summary>
+        static int bandNoteShown;
 
         sealed class Row
         {
