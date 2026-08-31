@@ -1636,9 +1636,15 @@ namespace BecquerelMonitor
                         }
 
                         bool commands_accepted;
+                        // ⛔ `A20`. Причина отказа теперь СОХРАНЯЕТСЯ прибором
+                        // и читается здесь: прежде окно показывало одно
+                        // «не удалось записать» без единого слова о том,
+                        // что случилось.
+                        string obsFailure = "";
                         using (ObsidianCalibrationIO device = new ObsidianCalibrationIO())
                         {
                             commands_accepted = device.Connect(obs_config.AddressBLE) && device.WriteCalibration(polynomialEnergyCalibration);
+                            obsFailure = device.LastFailure;
                         }
 
                         b.ReportProgress(100);
@@ -1649,7 +1655,9 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice);
+                            ShowOwnedMessageBox(string.IsNullOrEmpty(obsFailure)
+                                ? Resources.ERRUploadCoefficeintsToDevice
+                                : Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + obsFailure);
                         }
                     }
                     catch (Exception ex)

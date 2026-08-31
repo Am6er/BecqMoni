@@ -43305,4 +43305,22 @@ Turn it on in Windows settings and search again.</value>
   <data name="ERRBTNoAdapter" xml:space="preserve">
     <value>Bluetooth adapter not found</value>
   </data>
+  <data name="ERRObsCalNoAddress" xml:space="preserve">
+    <value>device address is not set</value>
+  </data>
+  <data name="ERRObsCalNoDevice" xml:space="preserve">
+    <value>device not found at this address</value>
+  </data>
+  <data name="ERRObsCalNoService" xml:space="preserve">
+    <value>the device has no settings service</value>
+  </data>
+  <data name="ERRObsCalNoCharacteristics" xml:space="preserve">
+    <value>calibration fields are unavailable on the device</value>
+  </data>
+  <data name="ERRObsCalBadCalibration" xml:space="preserve">
+    <value>the calibration is empty or of too low an order</value>
+  </data>
+  <data name="ERRObsCalWriteRejected" xml:space="preserve">
+    <value>the device rejected the write: {0}</value>
+  </data>
 </root>
