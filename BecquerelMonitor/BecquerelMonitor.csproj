@@ -110,6 +110,7 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="AppLog.cs" />
     <Compile Include="AddSpectrumToDocumentEventArgs.cs" />
     <Compile Include="AddSpectrumToDocumentEventHandler.cs" />
     <Compile Include="AtomSpectraDeviceConfig.cs" />

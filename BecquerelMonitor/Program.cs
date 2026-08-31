@@ -32,6 +32,13 @@ namespace BecquerelMonitor
 
                 Environment.CurrentDirectory = Path.GetDirectoryName(exePath);
 
+                // ⛔ `A15`. Журнал заводится ЗДЕСЬ — до главного окна, чтобы
+                // отказы при запуске (загрузка конфигурации, баз, приборов)
+                // тоже в него попали. До этой правки все 110 следов
+                // `Trace.WriteLine` уходили в никуда. Отказ самого журнала
+                // молчалив по замыслу — см. `AppLog.Start`.
+                AppLog.Start();
+
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm(args));
