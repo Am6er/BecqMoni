@@ -77,7 +77,29 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                ReportBtEnableFailure(ex);
             }
+        }
+
+        /// <summary>
+        /// Сказать человеку, что Bluetooth включить не вышло.
+        ///
+        /// ⛔ `A15`, разряд 1. Человек нажал «поиск», отказ включения радио
+        /// уходил только в <c>Trace.WriteLine</c>, поиск продолжался при
+        /// выключенном радио и НИЧЕГО не находил: молчание было неотличимо от
+        /// «приборов рядом нет».
+        ///
+        /// ⚠ Сообщение идёт через <see cref="AppUi.Report"/> — единственную
+        /// дверь дерева: в безоконном запуске она печатает строку в поток
+        /// ошибок, а не вешает прогон на модальном окне (закрытая `S100`).
+        ///
+        /// ⚠ Метод отдельный и статический НАРОЧНО: только так его зовёт проба
+        /// приёмки, не поднимая формы.
+        /// </summary>
+        internal static void ReportBtEnableFailure(Exception ex)
+        {
+            AppUi.Report(string.Format(Resources.ERRBTEnableFailed, ex == null ? "" : ex.Message),
+                Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
         }
 
         private async void ScanBLEDevices()
@@ -250,17 +272,29 @@ namespace BecquerelMonitor
                 return;
             }
             if (!troubleShootbtn.Enabled) return;
+            // ⛔ `A17`. Разбор ЗАБИРАЕТ связь с прибором себе: ниже создаётся
+            //    свежий экземпляр, а прежний уничтожается. Идущее измерение
+            //    держит прибор не ссылкой, а достаёт заново по `guid`
+            //    (`RadiaCodeDeviceController`), поэтому после разбора оно молча
+            //    получало неподключённый экземпляр — счётчик идёт, данных нет.
+            //    Настройку прибора при этом ОТКРЫТЬ МОЖНО: окно немодальное
+            //    (`MainForm.ShowDeviceConfigForm` зовёт `Show()`), пункт меню
+            //    «Edit device configuration» не гаснет никогда, а кнопка разбора
+            //    гаснет только по пустому серийнику. Поэтому спрашиваем аренду.
+            string refusal;
+            bool wasRunning;
+            if (!RadiaCodeIn.TryClaimForTroubleshoot(deviceConfigForm.ActiveDeviceConfig.Guid,
+                    deviceConfigForm.ActiveDeviceConfig.Name, out refusal, out wasRunning))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                return;
+            }
             troubleShootbtn.Enabled = false;
             TroubleshootText.Clear();
             tshootText = "";
-            List<RadiaCodeIn> instances = RadiaCodeIn.getAllInstances();
-            foreach (RadiaCodeIn instance in instances)
+            if (wasRunning)
             {
-                if (instance.GUID == deviceConfigForm.ActiveDeviceConfig.Guid) {
-                    tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
-                    RadiaCodeIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
-                    break;
-                }
+                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
             }
             tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
             RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);

@@ -43273,4 +43273,24 @@ Reason: {2}
     <value>Link "{0}" couldn't be opened.
 ({1})</value>
   </data>
+  <data name="MenuShowLog" xml:space="preserve">
+    <value>Show log</value>
+  </data>
+  <data name="ERROpenLogFailure" xml:space="preserve">
+    <value>Log file "{0}" couldn't be shown.
+({1})</value>
+  </data>
+  <data name="ERRBTEnableFailed" xml:space="preserve">
+    <value>Bluetooth couldn't be turned on: {0}
+Turn it on in Windows settings and search again.</value>
+  </data>
+  <data name="VCPDeviceStatusReason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
+  <data name="ERRTroubleshootDeviceBusy" xml:space="preserve">
+    <value>Device "{0}" is recording a spectrum right now. Troubleshoot takes over the device connection, so the running measurement would keep counting time without receiving any data. Stop that measurement first.</value>
+  </data>
+  <data name="ERRDeviceNoData" xml:space="preserve">
+    <value>NO DATA FROM DEVICE: {0}</value>
+  </data>
 </root>

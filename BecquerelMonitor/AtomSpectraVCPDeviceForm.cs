@@ -252,9 +252,21 @@ namespace BecquerelMonitor
             }
         }
 
-        (int, string) TestSerialNumber(string comPort, int baudRate)
+        /// <summary>
+        /// Опросить прибор на этом порту. Третьим отдаётся ПРИЧИНА отказа —
+        /// пустая строка, если отказа не было.
+        ///
+        /// ⛔ `A15`, разряд 1. Прежде отказ уходил только в
+        /// <c>Trace.WriteLine</c>, у которого читателя не было, а наружу
+        /// возвращалось состояние −1 — та же самая «Unknown», что и у прибора,
+        /// ответившего невнятицей. Человек видел красную подпись без единого
+        /// слова о том, ПОЧЕМУ не вышло: «порт занят другой программой» и
+        /// «прибор не отвечает» выглядели одинаково.
+        /// </summary>
+        (int, string, string) TestSerialNumber(string comPort, int baudRate)
         {
             string returnvalue = null;
+            string failure = null;
             int returnstatus = -1;
             AtomSpectraVCPIn device = null;
             string temporaryGuid = null;
@@ -265,7 +277,7 @@ namespace BecquerelMonitor
                 {
                     returnstatus = 1;
                     returnvalue = device.BaudRate.ToString();
-                    return (returnstatus, returnvalue);
+                    return (returnstatus, returnvalue, failure);
                 }
                 if (device == null)
                 {
@@ -292,9 +304,36 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine(ex.Message + " " + ex.StackTrace);
+                // ⛔ `A15`. Причина отказа больше не остаётся в следе, у
+                //    которого нет читателя: её уносят наружу и приписывают к
+                //    красной подписи (`StatusReasonTail`).
+                failure = ex.Message;
             }
             Trace.WriteLine("Return value: " + returnvalue);
-            return (returnstatus, returnvalue);
+            return (returnstatus, returnvalue, failure);
+        }
+
+        /// <summary>
+        /// Хвост подписи о состоянии прибора: причина, по которой опрос не
+        /// удался. Пустая строка, когда причины нет, — подпись остаётся
+        /// прежней.
+        ///
+        /// ⚠ Метод отдельный и статический НАРОЧНО: только так его берёт проба
+        /// приёмки, не поднимая формы (тот же приём, что у
+        /// <c>RadiaCodeDeviceForm.ReportBtEnableFailure</c>).
+        ///
+        /// ⚠ Здесь строка, а не окно, и это не смягчение: <c>TestConnection</c>
+        /// зовётся ещё и из <see cref="LoadFormContents"/>, то есть при КАЖДОМ
+        /// открытии настройки прибора, — модальное окно вставало бы поперёк
+        /// человека, зашедшего поменять совсем другое поле.
+        /// </summary>
+        internal static string StatusReasonTail(string reason)
+        {
+            if (string.IsNullOrEmpty(reason))
+            {
+                return string.Empty;
+            }
+            return Environment.NewLine + string.Format(Resources.VCPDeviceStatusReason, reason);
         }
 
         void TestConnection(string comPort, int baudRate)
@@ -307,12 +346,13 @@ namespace BecquerelMonitor
             this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusTesting);
 
             string serialNumber = null;
+            string failure = null;
             int status = -2;
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.DoWork += new DoWorkEventHandler(delegate (object o, DoWorkEventArgs args)
             {
-                (status, serialNumber) = TestSerialNumber(comPort, baudRate);
+                (status, serialNumber, failure) = TestSerialNumber(comPort, baudRate);
             });
 
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
@@ -328,7 +368,11 @@ namespace BecquerelMonitor
                         break;
                     case -1:
                         this.label3.ForeColor = Color.Red;
-                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown);
+                        // ⛔ `A15`. К «Unknown» приписывается ПРИЧИНА, если она
+                        //    известна: без неё отказ прибора и отказ порта
+                        //    выглядели одинаково.
+                        this.label3.Text = String.Format(Resources.LabelVCPSpectraInfo, Resources.VCPDeviceStatusUnknown)
+                            + StatusReasonTail(failure);
                         this.deadTimeBtn.Enabled = false;
                         break;
                     case 1:
