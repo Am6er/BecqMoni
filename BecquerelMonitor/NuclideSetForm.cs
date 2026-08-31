@@ -209,9 +209,12 @@ namespace BecquerelMonitor
 
             if (painted == 0)
             {
-                MessageBox.Show(this, Resources.NuclideSetAssignColorEmpty,
-                                Resources.ConfirmationDialogTitle,
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // ⛔ `T106`. Обработчик зовёт отражением `SetColorProbe`
+                // (`Click(form, "buttonAssignColor_Click")`) — безоконный
+                // путь (`S100`).
+                AppUi.Report(Resources.NuclideSetAssignColorEmpty,
+                             Resources.ConfirmationDialogTitle,
+                             MessageBoxIcon.Information);
                 return;
             }
 
