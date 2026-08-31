@@ -31,6 +31,35 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         private const string XrayNameSuffix = "x-ray";
 
+        /// <summary>
+        /// Ключ строки состояния «условия отбора не заданы» (`D44`) в
+        /// СОБСТВЕННОМ <c>resx</c> этой формы.
+        ///
+        /// ⚠ Строка живёт в паре <c>NucBase.resx</c> / <c>NucBase.ru.resx</c>,
+        /// а не в общем <c>Properties/Resources</c>: она принадлежит только
+        /// этому окну и читается тем же <see cref="ComponentResourceManager"/>,
+        /// которым конструктор берёт подписи его же контролов. Пара
+        /// проверяется <c>tools/check_resx.py</c> наравне с подписями.
+        ///
+        /// ⛔ Ключ НЕ ИМЕЕТ ВИДА «контрол.свойство» и конструктору формы
+        /// неизвестен: при перезаписи <c>resx</c> конструктором WinForms его
+        /// легко потерять. Потеря видна сразу — строка состояния показывает
+        /// само имя ключа (см. <see cref="OwnText"/>), а не пустоту.
+        /// </summary>
+        private const string NoCriteriaKey = "NucBase_NoCriteria";
+
+        static readonly ComponentResourceManager OwnResources = new ComponentResourceManager(typeof(NucBase));
+
+        /// <summary>
+        /// Строка из собственного <c>resx</c> формы. Ключ вместо пропажи:
+        /// пустая строка состояния неотличима от «сказать нечего», а признак
+        /// без читателя — не работа.
+        /// </summary>
+        static string OwnText(string key)
+        {
+            return OwnResources.GetString(key) ?? key;
+        }
+
         private string SearchedIsotope;
 
         public NucBase()
@@ -178,9 +207,17 @@ namespace BecquerelMonitor.NucBase
                         AddRow(decrad);
                     }
                     RestoreSorting();
-                    status.Add(decayRads.Count == 0
-                        ? Resources.NucBase_SearchEmpty
-                        : string.Format(Resources.NucBase_SearchFound, decayRads.Count));
+                    // ⛔ «Ничего не найдено» и «не о чем спрашивать» — РАЗНЫЕ
+                    // слова (`D44`). Пустой запрос — без имени родителя, без
+                    // диапазона и без порогов — прежде выгружал в эту таблицу
+                    // всю базу излучений (50054 строки, меряно 31.08.2026), а
+                    // теперь не идёт вовсе; без отдельных слов такая пустота
+                    // читалась бы как «в базе такого нет».
+                    status.Add(fw.LastNoCriteria
+                        ? OwnText(NoCriteriaKey)
+                        : decayRads.Count == 0
+                            ? Resources.NucBase_SearchEmpty
+                            : string.Format(Resources.NucBase_SearchFound, decayRads.Count));
                 }
             }
             else
@@ -203,6 +240,9 @@ namespace BecquerelMonitor.NucBase
                 int shown = 0;
                 int refusedMembers = 0;
                 string firstReason = null;
+                // Ряд без корня — тот же пустой запрос, что и без ряда (`D44`):
+                // корня нет, членов ряда нет, и спрашивать не о чем.
+                bool noCriteria = false;
                 foreach (KeyValuePair<string, double> member in branches.OrderByDescending(m => m.Value))
                 {
                     // Порог выхода прикладывается к ПОКАЗАННОМУ числу, а не
@@ -223,6 +263,7 @@ namespace BecquerelMonitor.NucBase
                         continue;
                     }
 
+                    noCriteria |= fw.LastNoCriteria;
                     foreach (DecayRad decrad in decayRads)
                     {
                         decrad.Intensity *= member.Value;
@@ -252,8 +293,9 @@ namespace BecquerelMonitor.NucBase
                     // ⛔ «Ничего не найдено» говорится только когда запросы и
                     // правда прошли. Рядом с отказом эти слова противоречат
                     // ему же — а разводить отказ и пустоту разными словами и
-                    // есть смысл строки (`T92`).
-                    status.Add(Resources.NucBase_SearchEmpty);
+                    // есть смысл строки (`T92`). Пустой запрос (`D44`) —
+                    // третий случай, и слова у него тоже свои.
+                    status.Add(noCriteria ? OwnText(NoCriteriaKey) : Resources.NucBase_SearchEmpty);
                 }
             }
 

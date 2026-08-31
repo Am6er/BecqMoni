@@ -5787,4 +5787,8 @@
   <metadata name="IntensityColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
+  <data name="NucBase_NoCriteria" xml:space="preserve">
+    <value>Nothing to search for: no nuclide name, no energy range, no intensity or half-life threshold. The query was not run, so this is not "there is nothing in the database".</value>
+    <comment>D44: строка состояния редактора, а НЕ свойство контрола. Конструктору формы этот ключ неизвестен - при перезаписи resx его легко потерять; читает его NucBase.OwnText.</comment>
+  </data>
 </root>
