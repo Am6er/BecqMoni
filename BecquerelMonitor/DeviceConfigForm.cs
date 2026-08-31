@@ -202,11 +202,28 @@ namespace BecquerelMonitor
             this.textBox1.SelectAll();
             this.textBox1.Focus();
         }
-        private void tabControl1_Selecting(object sender, EventArgs e)
+        /// <summary>
+        /// Смена вкладки: сперва предложить сохранить набранное.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `A18`. Прежде обработчик был объявлен с `EventArgs`, а не с
+        /// `TabControlCancelEventArgs`. Это КОМПИЛИРУЕТСЯ (у делегата
+        /// параметр можно принимать базовым типом) и обработчик
+        /// вызывался — но `e.Cancel` он не видел, поэтому его `return`
+        /// при отказе не отменял НИЧЕГО и вкладка переключалась всё
+        /// равно: человек уходил со страницы, чьи правки сохранить не
+        /// удалось.
+        ///
+        /// Запереть человека на вкладке это не может: отказ наступает
+        /// только после его же ответа «да, сохранить», а ответ «нет»
+        /// возвращает конфигурацию с диска и переход пропускает — тот же
+        /// порядок, что у `*_FormClosing` в этой форме.
+        /// </remarks>
+        private void tabControl1_Selecting(object sender, TabControlCancelEventArgs e)
         {
             if (!this.ConfirmSaveDeviceConfig())
             {
-                return;
+                e.Cancel = true;
             }
         }
 
@@ -220,7 +237,15 @@ namespace BecquerelMonitor
             DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MessageRemoveDeviceConfig, this.activeDeviceConfig.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.DeleteConfig(this.activeDeviceConfig);
+                // ⛔ `A19`. Форма гасится ТОЛЬКО при удавшемся удалении.
+                // Прежде это делалось безусловно, и после отказа (файл
+                // занят, нет прав) строка возвращалась в список — но
+                // форма пустела и выбор слетал: человеку надо было
+                // заново ткнуть в строку, которую он и не терял.
+                if (!this.manager.DeleteConfig(this.activeDeviceConfig))
+                {
+                    return;
+                }
                 this.activeDeviceConfig = null;
                 this.DisableForm();
                 this.ListupConfigFiles();

@@ -348,7 +348,12 @@ namespace BecquerelMonitor
         /// Читатель отказа — сам список: <c>ROIConfigForm.button8_Click</c> сразу
         /// зовёт <c>ListupConfigFiles</c>, и строка возвращается на экран.
         /// </summary>
-        public void DeleteConfig(ROIConfigData roiConfig)
+        /// <summary>
+        /// Удалить конфигурацию ROI. Возвращает <c>false</c>, если файл
+        /// удалить не удалось: строка ОСТАЁТСЯ в списке, и вызвавший обязан
+        /// не гасить форму (`A19`).
+        /// </summary>
+        public bool DeleteConfig(ROIConfigData roiConfig)
         {
             ROIConfigData roiconfigData = this.roiConfigMap[roiConfig.Guid];
             try
@@ -360,7 +365,7 @@ namespace BecquerelMonitor
                 System.Diagnostics.Trace.WriteLine("ROI config delete failed: " + ex);
                 AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, roiconfigData.OriginalFilename),
                     Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-                return;
+                return false;
             }
             this.roiConfigList.Remove(roiconfigData);
             this.roiConfigMap.Remove(roiconfigData.Guid);
@@ -368,6 +373,7 @@ namespace BecquerelMonitor
             {
                 this.ROIConfigListChanged(this, new EventArgs());
             }
+            return true;
         }
 
 

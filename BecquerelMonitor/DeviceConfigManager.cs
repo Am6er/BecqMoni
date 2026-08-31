@@ -446,7 +446,12 @@ namespace BecquerelMonitor
         /// ⚠ Отсутствующий файл отказом НЕ считается: <c>File.Delete</c> на нём
         /// не бросает, так что убранная руками конфигурация уходит из списка.
         /// </summary>
-        public void DeleteConfig(DeviceConfigInfo devConfig)
+        /// <summary>
+        /// Удалить конфигурацию прибора. Возвращает <c>false</c>, если файл
+        /// удалить не удалось: тогда строка ОСТАЁТСЯ в списке, и вызвавший
+        /// обязан не гасить форму (`A19`).
+        /// </summary>
+        public bool DeleteConfig(DeviceConfigInfo devConfig)
         {
             DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
             try
@@ -458,7 +463,7 @@ namespace BecquerelMonitor
                 Trace.WriteLine("device config delete failed: " + ex);
                 AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, deviceConfigInfo.OriginalFilename),
                     Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-                return;
+                return false;
             }
             this.deviceConfigList.Remove(deviceConfigInfo);
             this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
@@ -466,6 +471,7 @@ namespace BecquerelMonitor
             {
                 this.DeviceConfigListChanged(this, new DeviceConfigChangedEventArgs(deviceConfigInfo.Guid));
             }
+            return true;
         }
 
         string userDirectory = BecquerelMonitor.Package.GetInstance().UserDirectory;
