@@ -240,10 +240,23 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
+            // ⛔ СНИМОК ПРЕЖНИХ ЗНАЧЕНИЙ (`A2`). Всё, что ниже, правится в
+            // конфигурации прибора ДО записи на диск, а объект конфигурации в
+            // памяти один на всех. Сорвись запись — у прибора до конца сеанса
+            // стояла бы новая калибровка, а в файле лежала бы прежняя, и
+            // расхождение это ничем не видно: следующий запуск молча вернёт
+            // старые числа. Поэтому при отказе всё возвращается на место.
+            EnergyCalibration previousEnergyCalibration = deviceConfig.EnergyCalibration;
+            RadiaCodeDeviceConfig rc_deviceConfig = deviceConfig.InputDeviceConfig as RadiaCodeDeviceConfig;
+            ObsidianDeviceConfig obs_deviceConfig = deviceConfig.InputDeviceConfig as ObsidianDeviceConfig;
+            PolynomialEnergyCalibration previousRcCalibration =
+                rc_deviceConfig != null ? rc_deviceConfig.RC_EnergyCalibration : null;
+            PolynomialEnergyCalibration previousObsCalibration =
+                obs_deviceConfig != null ? obs_deviceConfig.OBS_EnergyCalibration : null;
+
             deviceConfig.EnergyCalibration = this.energyCalibration;
-            if (deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+            if (rc_deviceConfig != null)
             {
-                RadiaCodeDeviceConfig rc_deviceConfig = (RadiaCodeDeviceConfig)deviceConfig.InputDeviceConfig;
                 if (this.energyCalibration.PolynomialOrder == 2)
                 {
                     rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
@@ -257,9 +270,8 @@ namespace BecquerelMonitor
                     rc_deviceConfig.RC_EnergyCalibration = null;
                 }
             }
-            else if (deviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+            else if (obs_deviceConfig != null)
             {
-                ObsidianDeviceConfig obs_deviceConfig = (ObsidianDeviceConfig)deviceConfig.InputDeviceConfig;
                 if (this.energyCalibration.PolynomialOrder == 2)
                 {
                     obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
@@ -273,7 +285,34 @@ namespace BecquerelMonitor
                     obs_deviceConfig.OBS_EnergyCalibration = null;
                 }
             }
-            DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
+            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
+            // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
+            // же — что калибровка встала, хотя на диск не легло ничего. Сам
+            // менеджер уже чинили ровно от этого (`DeviceConfigManager.cs:236`,
+            // «Was "return true" … the user's edits silently disappeared»).
+            //
+            // При отказе НЕ ПРИМЕНЯЕМ НИЧЕГО, и это не осторожность, а
+            // единственный объяснимый исход: кнопка называется «сохранить в
+            // конфигурацию прибора», её обещание — запись. Половинный исход
+            // (спектр пересчитан, файл прежний) и есть та самая тихая беда:
+            // после перезапуска у прибора старая калибровка, а спектр посчитан
+            // по новой. Правка человека при этом не теряется — она остаётся в
+            // полях вида, и, устранив причину, он нажимает кнопку снова.
+            if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
+            {
+                deviceConfig.EnergyCalibration = previousEnergyCalibration;
+                if (rc_deviceConfig != null)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = previousRcCalibration;
+                }
+                if (obs_deviceConfig != null)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = previousObsCalibration;
+                }
+                MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                return;
+            }
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration;
             this.mainForm.UpdateDeviceConfigForm();
         }

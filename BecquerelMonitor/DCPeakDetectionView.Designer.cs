@@ -55,6 +55,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
             this.labelSetName = new System.Windows.Forms.Label();
+            this.labelDetectionFailed = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -218,11 +219,31 @@
             resources.ApplyResources(this.labelSetName, "labelSetName");
             this.labelSetName.Name = "labelSetName";
             //
+            // labelDetectionFailed
+            //
+            // ⛔ Надпись об отказе поиска пиков (`A4`). Раскладка задана ЗДЕСЬ,
+            // а не в паре `.resx`: ширина и место у неё от культуры не зависят,
+            // а сам текст берётся из `Properties.Resources` и переводится вместе
+            // со всеми (`Resources.PeakDetectionFailed`). Стоит она в пустой
+            // полосе справа от «Detected Peaks» (label4: 7,60 и ширина 84) и
+            // тянется до правого края панели, не задевая таблицу (та ниже, с
+            // 75-й точки).
+            this.labelDetectionFailed.AutoSize = false;
+            this.labelDetectionFailed.AutoEllipsis = true;
+            this.labelDetectionFailed.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelDetectionFailed.ForeColor = System.Drawing.Color.Firebrick;
+            this.labelDetectionFailed.Location = new System.Drawing.Point(97, 60);
+            this.labelDetectionFailed.Name = "labelDetectionFailed";
+            this.labelDetectionFailed.Size = new System.Drawing.Size(332, 13);
+            this.labelDetectionFailed.Visible = false;
+            //
             // DCPeakDetectionView
             //
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ContextMenuStrip = this.contextMenuStrip1;
+            this.Controls.Add(this.labelDetectionFailed);
             this.Controls.Add(this.comboBoxNuclSet);
             this.Controls.Add(this.labelSetName);
             this.Controls.Add(this.label4);
@@ -269,5 +290,6 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ComboBox comboBoxNuclSet;
         private System.Windows.Forms.Label labelSetName;
+        private System.Windows.Forms.Label labelDetectionFailed;
     }
 }

@@ -330,15 +330,44 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
+            // ⛔ СНИМОК КАЛИБРОВКИ ДОКУМЕНТА (`A2`), и он не про запас.
+            // `PerformCalibration` ниже кладёт ответ решателя В ТОТ ЖЕ объект,
+            // на который смотрит документ: поле вида — ССЫЛКА на
+            // `ActiveResultData.FwhmCalibration` (`UpdateFwhmCalibration`, где
+            // оно присваивается без клона). То есть к моменту записи спектр уже
+            // пересчитан по новой кривой, и сорвись запись — человек остался бы
+            // с новой калибровкой в спектре при старой в приборе, ничем об этом
+            // не извещённый.
+            FwhmCalibration previousDocumentCalibration =
+                activeDocument.ActiveResultData.FwhmCalibration != null
+                    ? activeDocument.ActiveResultData.FwhmCalibration.Clone()
+                    : null;
             if (!fwhmCalibration.PerformCalibration(activeDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
-                // TODO нужно будет добавить обработку плохой калибровки
+                // Подгонка не сошлась — вернуть документу прежнюю кривую:
+                // решатель успел записать в неё свой ответ ещё до проверки.
+                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
             FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
+            FwhmCalibration previousDeviceCalibration = peakDetectionMethodConfig.FwhmCalibration;
             peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration.Clone();
-            DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
+            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
+            // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
+            // же — что калибровка встала, хотя на диск не легло ничего. При
+            // отказе не применяется НИЧЕГО: ни в приборе (ни в памяти, ни в
+            // файле), ни в спектре. Довод тот же, что и у энергетической
+            // калибровки: обещание кнопки — запись, а половинный исход
+            // (спектр пересчитан, файл прежний) переживает перезапуск молча.
+            if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
+            {
+                peakDetectionMethodConfig.FwhmCalibration = previousDeviceCalibration;
+                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
+                MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                return;
+            }
             activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
             mainForm.UpdateDeviceConfigForm();
         }

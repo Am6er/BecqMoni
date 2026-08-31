@@ -247,6 +247,18 @@ namespace BecquerelMonitor
             {
                 this.OpenExistingDocument(this.OpenFileName);
             }
+
+            // ЧИТАТЕЛЬ записки о том, что прошлое закрытие не сумело записать
+            // раскладку (`A13`). Ставится на Shown, а не зовётся здесь: во
+            // время Load окно ещё не нарисовано, и сообщение висело бы над
+            // пустым местом.
+            base.Shown += this.MainForm_ShownReportLayout;
+        }
+
+        void MainForm_ShownReportLayout(object sender, EventArgs e)
+        {
+            base.Shown -= this.MainForm_ShownReportLayout;
+            this.ReportPendingLayoutFailure();
         }
 
         void InitializeDockPanelTheme()
@@ -324,14 +336,9 @@ namespace BecquerelMonitor
                     docEnergySpectrum.Close();
                 }
             }
-            string fileName = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(fileName);
-            }
-            catch (Exception)
-            {
-            }
+            // ⛔ Окно здесь НЕ поднимается — довод в SaveLayoutXml. Отказ
+            // уходит запиской, читатель записки — следующий запуск.
+            this.SaveLayoutXml(this.LayoutConfigFile(), false);
             if (this.deviceConfigForm != null && !this.deviceConfigForm.IsDisposed)
             {
                 this.deviceConfigForm.Close();
@@ -2048,36 +2055,10 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            DocEnergySpectrum docEnergySpectrum = (DocEnergySpectrum)sender;
-            foreach (string pathname in e.Pathnames)
-            {
-                ResultDataFile resultDataFile = this.documentManager.LoadDocument(docEnergySpectrum, pathname);
-                if (resultDataFile == null)
-                {
-                    // LoadDocument returns null on a broken file or user refusal;
-                    // dereferencing it crashed drag&drop onto an open document.
-                    continue;
-                }
-                foreach (ResultData resultData in resultDataFile.ResultDataList)
-                {
-                    if (docEnergySpectrum.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
-                    {
-                        break;
-                    }
-                    docEnergySpectrum.ResultDataFile.ResultDataList.Add(resultData);
-                    // LoadDocument already created a MeasurementController for this ResultData.
-                    if (resultData.MeasurementController == null)
-                    {
-                        resultData.MeasurementController = new MeasurementController(docEnergySpectrum, resultData);
-                    }
-                    resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
-                }
-            }
-            if (docEnergySpectrum == this.activeDocument)
-            {
-                this.dcSpectrumListView.ShowSpectrumList(docEnergySpectrum);
-                docEnergySpectrum.UpdateEnergySpectrum();
-            }
+            // Ввоз — общей дверью с пунктом меню (`A5`): считает принятое и
+            // отброшенное, говорит о них вслух и не читает с диска то, чему в
+            // документ уже не попасть.
+            this.ImportSpectraIntoDocument((DocEnergySpectrum)sender, e.Pathnames);
         }
 
         // Token: 0x06000A8D RID: 2701 RVA: 0x0003ED80 File Offset: 0x0003CF80
@@ -2258,26 +2239,99 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            bool flag = false;
-            foreach (string pathname in openFileDialog.FileNames)
+            this.ImportSpectraIntoDocument(doc, openFileDialog.FileNames);
+        }
+
+        /// <summary>
+        /// Ввоз спектров в открытый документ — ОДНОЙ дверью для обеих веток:
+        /// пункт меню «Ввезти спектры из файла» (<see cref="LoadSpectrumFromFile"/>)
+        /// и перетаскивание файлов на документ
+        /// (<c>DocEnergySpectrum_AddSpectrumToDocument</c>). Строка `A5`.
+        ///
+        /// ⛔ ЧТО БЫЛО. Предел <c>GlobalConfigInfo.MaximumSpectrumPerFile</c>
+        /// (16) — ЗАМЫСЕЛ, и он честно отражён кнопками:
+        /// <c>DCSpectrumListView</c> гасит «добавить» и «загрузить», когда
+        /// документ полон. Но обе ветки ввоза резали УЖЕ НАЧАТУЮ работу
+        /// МОЛЧА: выбрал десять файлов, в документ попала часть, ни слова.
+        /// Множественный выбор (<c>Multiselect = true</c>) делает это обычным
+        /// случаем, а не краем: кнопка активна при пятнадцати спектрах, а
+        /// файлов в диалоге отмечают пять.
+        ///
+        /// У перетаскивания было хуже: <c>break</c> выходил ТОЛЬКО из
+        /// внутреннего цикла, поэтому остальные файлы всё равно читались с
+        /// диска целиком — с разбором XML, с разбором ссылок на прибор и с
+        /// вопросом «сбросить калибровку?» по дороге, — и всё прочитанное
+        /// выбрасывалось.
+        ///
+        /// ⚠ ПРЕДЕЛ НЕ ТРОГАЕТСЯ. Чинится молчание: сказано, сколько принято
+        /// и сколько отброшено, и файлы, которым в документ уже не попасть,
+        /// с диска НЕ ЧИТАЮТСЯ.
+        ///
+        /// Отброшенное считается ДВУМЯ числами, и в одно они не сливаются
+        /// нарочно: «спектров» — то, что прочитано и не поместилось,
+        /// «файлов» — то, что не открывалось вовсе. Второе число и есть
+        /// видимый признак того, что чтение остановлено; в сумме читатель
+        /// этого признака лишится.
+        ///
+        /// Сообщение идёт дверью <see cref="AppUi.Report"/>: в приложении это
+        /// окно, как и прежде, в безоконном прогоне — строка в поток ошибок
+        /// (`S100`), а не намертво поднятое окно.
+        ///
+        /// ⚠ Две мелочи, в которых ветки расходились, сведены к варианту
+        /// перетаскивания, и это НЕ косметика:
+        ///   * <c>MeasurementController</c> заводится только когда его нет.
+        ///     <c>DocumentManager.LoadDocument</c> уже завёл его каждому
+        ///     прочитанному спектру; ветка меню заводила ВТОРОЙ поверх;
+        ///   * <c>doc.Dirty</c> ставится и при перетаскивании тоже. Прежде
+        ///     ветка перетаскивания его не ставила, то есть добавленные
+        ///     мышью спектры не делали документ изменённым и при закрытии о
+        ///     сохранении не спрашивали.
+        /// </summary>
+        /// <returns>сколько спектров принято в документ</returns>
+        int ImportSpectraIntoDocument(DocEnergySpectrum doc, IList<string> pathnames)
+        {
+            if (doc == null || pathnames == null)
             {
-                ResultDataFile resultDataFile = this.documentManager.LoadDocument(doc, pathname);
-                if (resultDataFile == null) continue;
+                return 0;
+            }
+            int limit = this.globalConfigManager.MaximumSpectrumPerFile;
+            int accepted = 0;
+            int droppedSpectra = 0;
+            int unreadFiles = 0;
+            for (int i = 0; i < pathnames.Count; i++)
+            {
+                if (doc.ResultDataFile.ResultDataList.Count >= limit)
+                {
+                    // Документ полон — остальные файлы НЕ ОТКРЫВАЮТСЯ ВОВСЕ.
+                    unreadFiles = pathnames.Count - i;
+                    break;
+                }
+                ResultDataFile resultDataFile = this.documentManager.LoadDocument(doc, pathnames[i]);
+                if (resultDataFile == null)
+                {
+                    // LoadDocument returns null on a broken file or user refusal;
+                    // dereferencing it crashed drag&drop onto an open document.
+                    // О самом отказе он сказал сам.
+                    continue;
+                }
                 foreach (ResultData resultData in resultDataFile.ResultDataList)
                 {
-                    if (doc.ResultDataFile.ResultDataList.Count >= this.globalConfigManager.MaximumSpectrumPerFile)
+                    if (doc.ResultDataFile.ResultDataList.Count >= limit)
                     {
-                        flag = true;
-                        break;
+                        // Файл уже прочитан; сосчитать остаток поимённо, а не
+                        // бросить цикл, — иначе человеку нечего назвать.
+                        droppedSpectra++;
+                        continue;
                     }
                     doc.ResultDataFile.ResultDataList.Add(resultData);
                     doc.Dirty = true;
-                    resultData.MeasurementController = new MeasurementController(doc, resultData);
+                    // LoadDocument already created a MeasurementController for this ResultData.
+                    if (resultData.MeasurementController == null)
+                    {
+                        resultData.MeasurementController = new MeasurementController(doc, resultData);
+                    }
                     resultData.MeasurementController.MeasurementTerminated += this.activeDocument_MeasurementTerminated;
-                }
-                if (flag)
-                {
-                    break;
+                    accepted++;
                 }
             }
             if (doc == this.activeDocument)
@@ -2285,6 +2339,16 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.ShowSpectrumList(doc);
                 doc.UpdateEnergySpectrum();
             }
+            if (droppedSpectra > 0 || unreadFiles > 0)
+            {
+                // Список обновлён ДО сообщения: за окном должно быть видно
+                // то, о чём оно говорит.
+                AppUi.Report(
+                    string.Format(Resources.ImportSpectrumLimitReached, accepted, limit, droppedSpectra, unreadFiles),
+                    Resources.ImportSpectrumLimitTitle,
+                    MessageBoxIcon.Information);
+            }
+            return accepted;
         }
 
         public void SaveHardSubtractSpectrumToFile()
@@ -3129,13 +3193,9 @@ namespace BecquerelMonitor
                 return;
             }
             string text = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(text);
-            }
-            catch (Exception)
-            {
-            }
+            // Человек здесь на месте и смена раскладки СОТРЁТ нынешнюю с
+            // экрана — об отказе записи говорится сразу (`A13`).
+            this.SaveLayoutXml(text, true);
             this.layoutMode = LayoutMode.UserMode;
             this.UpdateLayoutCheckState();
             text = this.LayoutConfigFile();
@@ -3157,13 +3217,8 @@ namespace BecquerelMonitor
                 return;
             }
             string text = this.LayoutConfigFile();
-            try
-            {
-                this.dockPanel1.SaveAsXml(text);
-            }
-            catch (Exception)
-            {
-            }
+            // То же, что и в пользовательской раскладке (`A13`).
+            this.SaveLayoutXml(text, true);
             this.layoutMode = LayoutMode.ExpertMode;
             this.UpdateLayoutCheckState();
             text = this.LayoutConfigFile();
@@ -3181,6 +3236,158 @@ namespace BecquerelMonitor
         string LayoutConfigFile()
         {
             return userDirectoryLayout + "ExpertMode.xml";
+        }
+
+        /// <summary>
+        /// Записать раскладку панелей — и дать отказу ЧИТАТЕЛЯ. Строка `A13`.
+        ///
+        /// ⛔ ЧТО БЫЛО. Все три места записи — закрытие программы,
+        /// «Пользовательская раскладка», «Экспертная раскладка» — стояли под
+        /// <c>try { this.dockPanel1.SaveAsXml(fileName); } catch (Exception) { }</c>
+        /// с ПУСТЫМ телом. Разложил панели, закрыл программу, запустил снова —
+        /// расстановка прежняя, и узнать почему неоткуда: отказ съеден на
+        /// месте. Причины житейские: файл держит второй экземпляр приложения,
+        /// каталог профиля перенесён политикой, у файла снят доступ на запись.
+        ///
+        /// ⛔ ПОЧЕМУ ПРИ ЗАКРЫТИИ ОКНА НЕТ (<paramref name="canReportNow"/> =
+        /// false), и это не осторожность:
+        ///   * <c>MainForm_FormClosing</c> исполняется и при завершении
+        ///     сеанса Windows (<c>CloseReason.WindowsShutDown</c>). Модальное
+        ///     окно там держит выключение, а система через свой срок убивает
+        ///     приложение — то есть сообщение не прочитает НИКТО, зато
+        ///     выключение встанет;
+        ///   * человек уже нажал «выход»; окно после этого читается как
+        ///     зависание, а не как ответ;
+        ///   * ответить на него в тот миг всё равно нечем: повторять запись
+        ///     некуда, а причина отказа снаружи приложения.
+        ///
+        /// Вместо окна делается ДВА дела, и оба — не для тишины:
+        ///   1. раскладка спасается копией во временный каталог, то есть
+        ///      работа человека не теряется, а получает адрес;
+        ///   2. пишется записка, и её читает СЛЕДУЮЩИЙ ЗАПУСК
+        ///      (<see cref="ReportPendingLayoutFailure"/>) — там окно уместно,
+        ///      и там сказанное уже можно исполнить: снять запрет и вернуть
+        ///      файл на место.
+        ///
+        /// ⚠ Записка и копия ложатся в <c>Path.GetTempPath()</c>, а НЕ рядом с
+        /// файлом раскладки. Причина мерена делом: в опыте отказ вызван именно
+        /// недоступностью того самого файла, и записка рядом с ним легла бы
+        /// ровно с тем же отказом — читатель признака сгинул бы вместе с
+        /// признаком.
+        /// </summary>
+        /// <param name="fileName">куда записать раскладку</param>
+        /// <param name="canReportNow">
+        /// true — человек за экраном и об отказе говорится немедленно;
+        /// false — приложение закрывается, окна нет, отказ уходит запиской.
+        /// </param>
+        /// <returns>true, если запись состоялась</returns>
+        bool SaveLayoutXml(string fileName, bool canReportNow)
+        {
+            try
+            {
+                this.dockPanel1.SaveAsXml(fileName);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (canReportNow)
+                {
+                    AppUi.Report(
+                        string.Format(Resources.LayoutSaveFailed, AppUi.Where(fileName), ex.Message),
+                        Resources.LayoutSaveFailedTitle,
+                        MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    this.RecordLayoutSaveFailure(fileName, ex);
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Отказ записи раскладки при ЗАКРЫТИИ: спасти раскладку копией и
+        /// оставить записку следующему запуску. Довод — в
+        /// <see cref="SaveLayoutXml"/>.
+        /// </summary>
+        void RecordLayoutSaveFailure(string fileName, Exception cause)
+        {
+            string rescued = null;
+            try
+            {
+                string rescue = Path.Combine(Path.GetTempPath(), "BecqMoni.layout-rescued.xml");
+                this.dockPanel1.SaveAsXml(rescue);
+                rescued = rescue;
+            }
+            catch (Exception)
+            {
+                // Спасти не вышло — тогда записка скажет и об этом тоже.
+                rescued = null;
+            }
+            string text = string.Format(
+                Resources.LayoutSaveFailedOnExit,
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                AppUi.Where(fileName),
+                cause != null ? cause.Message : "",
+                (rescued != null)
+                    ? string.Format(Resources.LayoutSaveRescued, rescued)
+                    : Resources.LayoutSaveNotRescued);
+            try
+            {
+                File.WriteAllText(this.LayoutFailureNoteFile(), text, Encoding.UTF8);
+            }
+            catch (Exception)
+            {
+                // Не легла и записка: сказать больше нечем и НЕКОМУ — окно при
+                // закрытии не поднимается. Дальше идёт обычное завершение.
+            }
+        }
+
+        /// <summary>
+        /// Записка «раскладка не записалась» — одна на пользователя, во
+        /// временном каталоге (см. <see cref="SaveLayoutXml"/>).
+        /// </summary>
+        string LayoutFailureNoteFile()
+        {
+            return Path.Combine(Path.GetTempPath(), "BecqMoni.layout-not-saved.txt");
+        }
+
+        /// <summary>
+        /// ЧИТАТЕЛЬ записки: сказать при запуске, что прошлое закрытие не
+        /// сумело записать раскладку, и убрать записку. Без него запись при
+        /// закрытии осталась бы признаком без читателя, то есть остатком.
+        ///
+        /// Записка снимается ДО показа: иначе окно, закрытое крестиком или
+        /// отказ удаления, повторяли бы одно и то же сообщение каждый запуск.
+        /// </summary>
+        void ReportPendingLayoutFailure()
+        {
+            string note = this.LayoutFailureNoteFile();
+            string text;
+            try
+            {
+                if (!File.Exists(note))
+                {
+                    return;
+                }
+                text = File.ReadAllText(note, Encoding.UTF8);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            try
+            {
+                File.Delete(note);
+            }
+            catch (Exception)
+            {
+            }
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+            AppUi.Report(text, Resources.LayoutSaveFailedTitle, MessageBoxIcon.Warning);
         }
 
         // Token: 0x06000AB1 RID: 2737 RVA: 0x0003FD20 File Offset: 0x0003DF20

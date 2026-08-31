@@ -137,17 +137,24 @@ namespace BecquerelMonitor
             }
             isProcessing = true;
 
+            // Документ и его данные объявлены ДО try, и это не косметика (`A4`):
+            // при отказе чистить пики надо у ТОГО САМОГО спектра, на котором
+            // поиск сорвался, а не у того, что окажется активным потом.
+            DocEnergySpectrum activeDocument = null;
+            ResultData activeResultData = null;
             try
             {
-                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                activeDocument = this.mainForm.ActiveDocument;
                 if (activeDocument == null)
                 {
+                    this.ShowDetectionFailure(null);
                     return;
                 }
-                ResultData activeResultData = activeDocument.ActiveResultData;
+                activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
                 if (activeResultData.FwhmCalibration == null)
                 {
+                    this.ShowDetectionFailure(null);
                     // No calibration - nothing to detect. This used to throw
                     // NotImplementedException, silently swallowed by the catch below.
                     return;
@@ -194,13 +201,50 @@ namespace BecquerelMonitor
                 // spectrum after switching documents mid-detection.
                 if (this.mainForm.ActiveDocument == activeDocument)
                 {
+                    this.ShowDetectionFailure(null);
                     RefreshTable();
                 }
             }
             catch (Exception ex)
             {
-                // Don't swallow silently - at least leave a trace.
-                System.Diagnostics.Trace.WriteLine("Peak detection failed: " + ex.Message);
+                // ⛔ У ОТКАЗА ПОЯВИЛСЯ ЧИТАТЕЛЬ (`A4`). Прежде здесь стоял один
+                // `Trace.WriteLine`, и читать его было НЕКОМУ: в `App.config`
+                // нет раздела `system.diagnostics`, во всём дереве нет ни одного
+                // `Trace.Listeners`, и строка уходит в `OutputDebugString` —
+                // видимый только под отладчиком. Хуже молчания было другое:
+                // таблица и `DetectedPeaks` обновляются ТОЛЬКО по успеху, то
+                // есть на новом спектре оставались пики СТАРОГО, и отличить это
+                // от «так и есть» человек не мог ничем.
+                //
+                // Сделано как в соседнем пути разбора (`FsaOverlay.cs:238-242`):
+                // отказ становится СТРОКОЙ НА ЭКРАНЕ. Trace оставлен вторым, для
+                // отладчика, и несёт теперь исключение целиком, а не одну строку
+                // сообщения — по `ex.Message` от `NullReferenceException` не
+                // найти ничего.
+                System.Diagnostics.Trace.WriteLine("Peak detection failed: " + ex);
+
+                // ⛔ ЧУЖИЕ ПИКИ СО СТОЛА. Пустой список, а НЕ null: два
+                // потребителя в `EnergySpectrumView` (строки 725 и 3722) читают
+                // `DetectedPeaks` без проверки на null — `foreach` по нему и
+                // `new List<Peak>(...)` от него, — и null уронил бы отрисовку
+                // спектра там, куда отказ поиска вообще не должен доставать.
+                if (activeResultData != null)
+                {
+                    activeResultData.DetectedPeaks = new List<Peak>();
+                }
+                // Тот же сторож, что и на успешном пути: пока считали, человек
+                // мог уйти на другой документ. Чужую таблицу чистить нечего, и
+                // сообщение о чужой беде ему тоже не нужно — пики сорвавшегося
+                // спектра сняты выше, и вернувшись, он увидит пустую таблицу.
+                if (this.mainForm.ActiveDocument == activeDocument)
+                {
+                    // Строки снимаются напрямую, а не через RefreshTable():
+                    // исключение, брошенное ИЗ catch в методе `async void`,
+                    // некому поймать — оно валит процесс. Чистка списка строк
+                    // ничего не читает и бросить не может.
+                    this.tableModel1.Rows.Clear();
+                    this.ShowDetectionFailure(ex);
+                }
             }
             finally
             {
@@ -212,6 +256,56 @@ namespace BecquerelMonitor
                 }
             }
         }
+
+        /// <summary>
+        /// Отказ поиска пиков — НА ЭКРАН (`A4`).
+        ///
+        /// Единственное место, где заводится и гасится эта надпись: у отказа
+        /// обязан быть один читатель, а не два расходящихся. Зовётся с
+        /// <c>null</c> всюду, где исход известен и он не отказ, — по успеху и на
+        /// досрочных выходах (нет документа, нет калибровки ПШПВ), — иначе
+        /// сообщение о прошлой беде пережило бы переход на другой спектр.
+        ///
+        /// ⚠ Окна здесь быть не может, и это не вкус: <see cref="UpdatePeakDetectionResult"/>
+        /// зовут при каждой смене документа и спектра и КАЖДЫЕ ДВЕ СЕКУНДЫ по
+        /// таймеру записи (<c>MainForm</c>). Модальное окно на этом пути
+        /// означало бы поток окон, который нечем остановить. Соседний путь
+        /// разбора (<c>FsaOverlay</c>) при том же отказе тоже пишет строку, а не
+        /// поднимает окно.
+        ///
+        /// Подсказка несёт разбор — тип исключения и его сообщение: надпись
+        /// говорит ЧТО случилось, подсказка — почему, и человеку не нужен для
+        /// этого отладчик.
+        /// </summary>
+        void ShowDetectionFailure(Exception ex)
+        {
+            if (ex == null)
+            {
+                // ⛔ БЕЗ ПРОВЕРКИ «а видна ли она сейчас», и это измерено, а не
+                // из осторожности: `Control.Visible` НА ЧТЕНИЕ отвечает за всю
+                // цепочку родителей, и у панели, которую человек свернул или
+                // накрыл соседней вкладкой, он false при взведённом собственном
+                // признаке. Проба `A2A4Probe` на плече A4-3 поймала ровно это:
+                // сообщение о прошлом отказе пережило успешный пересчёт.
+                this.labelDetectionFailed.Visible = false;
+                return;
+            }
+
+            this.labelDetectionFailed.Text = Resources.PeakDetectionFailed;
+            this.labelDetectionFailed.Visible = true;
+            if (this.detectionToolTip == null)
+            {
+                this.detectionToolTip = new ToolTip();
+            }
+            this.detectionToolTip.SetToolTip(this.labelDetectionFailed,
+                                             ex.GetType().Name + ": " + ex.Message);
+        }
+
+        /// <summary>
+        /// Подсказка с разбором отказа. Заводится кодом по первой нужде — как и
+        /// соседняя <see cref="fsaToolTip"/>.
+        /// </summary>
+        ToolTip detectionToolTip;
 
         public void RefreshTable()
         {

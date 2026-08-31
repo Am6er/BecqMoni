@@ -1929,4 +1929,36 @@ http://xptable.sourceforge.net/</value>
   <data name="NucBase.IT" xml:space="preserve">
     <value>IT</value>
   </data>
+  <data name="ImportSpectrumLimitTitle" xml:space="preserve">
+    <value>Ввоз спектров</value>
+  </data>
+  <data name="ImportSpectrumLimitReached" xml:space="preserve">
+    <value>Ввезено спектров: {0}.
+В документе не может быть больше {1} спектров, поэтому остальное не принято. Не поместилось спектров: {2}. Файлов не читалось вовсе: {3}.</value>
+  </data>
+  <data name="LayoutSaveFailedTitle" xml:space="preserve">
+    <value>Раскладка панелей</value>
+  </data>
+  <data name="LayoutSaveFailed" xml:space="preserve">
+    <value>Не удалось записать раскладку панелей в {0}.
+Причина: {1}
+При следующем запуске вернётся прежняя расстановка.</value>
+  </data>
+  <data name="LayoutSaveFailedOnExit" xml:space="preserve">
+    <value>При закрытии приложения {0} не удалось записать раскладку панелей в {1}.
+Причина: {2}
+{3}</value>
+  </data>
+  <data name="LayoutSaveRescued" xml:space="preserve">
+    <value>Расстановка записана в {0}. Скопируйте этот файл поверх указанного выше, чтобы её вернуть.</value>
+  </data>
+  <data name="LayoutSaveNotRescued" xml:space="preserve">
+    <value>Сохранить расстановку не удалось — она потеряна.</value>
+  </data>
+  <data name="ERRCalibrationNotSavedToDevice" xml:space="preserve">
+    <value>Калибровка НЕ записана в конфигурацию прибора. У прибора осталась прежняя калибровка, спектр не изменён — устраните причину и сохраните снова.</value>
+  </data>
+  <data name="PeakDetectionFailed" xml:space="preserve">
+    <value>Поиск пиков не выполнен — список пиков очищен</value>
+  </data>
 </root>
