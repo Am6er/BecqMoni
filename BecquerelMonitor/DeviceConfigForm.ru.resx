@@ -4756,4 +4756,10 @@
   <data name="peakTypecomboBox.Items2" xml:space="preserve">
     <value>Voigt</value>
   </data>
+  <data name="labelWidenFactor.Text" xml:space="preserve">
+    <value>Расширение пика</value>
+  </data>
+  <data name="centroidComCheckBox.Text" xml:space="preserve">
+    <value>Центроида по центру масс</value>
+  </data>
 </root>

@@ -8303,6 +8303,14 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
     <value>Failed to save device configuration file.</value>
   </data>
+  <data name="ERRConfigFileRenameFailed" xml:space="preserve">
+    <value>The configuration was not renamed and not saved: the previous file "{0}" could not be deleted.
+It is probably open in another program or write-protected. Nothing on disk has been changed and the configuration is still in the list - free the file and save again.</value>
+  </data>
+  <data name="ERRConfigFileDeleteFailed" xml:space="preserve">
+    <value>The configuration file "{0}" could not be deleted, so the configuration has not been removed and is still in the list.
+It is probably open in another program or write-protected.</value>
+  </data>
   <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
     <value>Failed to load ROI configuration file(s).</value>
   </data>
@@ -43212,5 +43220,57 @@ Reason: {2}
   </data>
   <data name="PeakDetectionFailed" xml:space="preserve">
     <value>Peak detection failed - the peak list is cleared</value>
+  </data>
+  <data name="AboutVersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="UnitKilogram" xml:space="preserve">
+    <value>kg</value>
+  </data>
+  <data name="UnitGram" xml:space="preserve">
+    <value>g</value>
+  </data>
+  <data name="UnitLiter" xml:space="preserve">
+    <value>l</value>
+  </data>
+  <data name="UnitMilliliter" xml:space="preserve">
+    <value>ml</value>
+  </data>
+  <data name="UnitMicroSievertPerHour" xml:space="preserve">
+    <value>μSv/h</value>
+  </data>
+  <data name="UnitMilliSievertPerHour" xml:space="preserve">
+    <value>mSv/h</value>
+  </data>
+  <data name="UnitSievertPerHour" xml:space="preserve">
+    <value>Sv/h</value>
+  </data>
+  <data name="PulseViewWaveHeight" xml:space="preserve">
+    <value>Wave height: </value>
+  </data>
+  <data name="PulseViewMaxWaveHeight" xml:space="preserve">
+    <value>Max Wave height: </value>
+  </data>
+  <data name="ScreenshotDialogTitle" xml:space="preserve">
+    <value>Screenshot</value>
+  </data>
+  <data name="PNGFileFilter" xml:space="preserve">
+    <value>png file (*.png)|*.png</value>
+  </data>
+  <data name="WAVFileFilter" xml:space="preserve">
+    <value>WAV Files (*.wav)|*.wav|All Files (*.*)|*.*</value>
+  </data>
+  <data name="SelectSoundFileTitle" xml:space="preserve">
+    <value>Please select a sound file.</value>
+  </data>
+  <data name="ERRNoBackgroundSpectrum" xml:space="preserve">
+    <value>Background spectrum is not available for the active spectrum.</value>
+  </data>
+  <data name="ERRAudioDeviceDisconnected" xml:space="preserve">
+    <value>Device disconnected from audio port!</value>
+  </data>
+  <data name="ERROpenLinkFailure" xml:space="preserve">
+    <value>Link "{0}" couldn't be opened.
+({1})</value>
   </data>
 </root>

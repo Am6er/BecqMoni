@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -49,9 +50,16 @@ namespace BecquerelMonitor
             // минимум так и оставался нулём от конструктора). Опечатка
             // исправлена, но чинить её в отдельности было НЕЛЬЗЯ: сама по
             // себе она внесла бы падение и на объёме.
+            // ⚠ `A10`. Обозначения единиц берутся ИЗ РЕСУРСОВ. Прежде здесь
+            // стояли английские литералы «kg»/«g»/«l»/«ml», и они писались
+            // ПОВЕРХ перевода: в паре `DCSampleInfoView.ru.resx` лежат «кг» и
+            // «л», конструктор их ставил, а этот метод затирал при первой же
+            // смене документа — в русском окне рядом с русскими подписями
+            // стояли английские единицы. Ключей заведено четыре, а не два:
+            // «г» и «мл» в паре не было вовсе.
             if (this.globalConfigManager.GlobalConfig.MeasurementConfig.WeightUnit == WeightUnit.Kilogram)
             {
-                this.label5.Text = "kg";
+                this.label5.Text = Resources.UnitKilogram;
                 this.numericUpDownWeight.Minimum = 0m;
                 this.numericUpDownWeight.Maximum = 100m;
                 this.numericUpDownWeight.Increment = 0.1m;
@@ -59,7 +67,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                this.label5.Text = "g";
+                this.label5.Text = Resources.UnitGram;
                 this.numericUpDownWeight.Minimum = 0m;
                 this.numericUpDownWeight.Maximum = 100000m;
                 this.numericUpDownWeight.Increment = 100m;
@@ -67,7 +75,7 @@ namespace BecquerelMonitor
             }
             if (this.globalConfigManager.GlobalConfig.MeasurementConfig.VolumeUnit == VolumeUnit.Liter)
             {
-                this.label6.Text = "l";
+                this.label6.Text = Resources.UnitLiter;
                 this.numericUpDownVolume.Minimum = 0m;
                 this.numericUpDownVolume.Maximum = 100m;
                 this.numericUpDownVolume.Increment = 0.1m;
@@ -75,7 +83,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                this.label6.Text = "ml";
+                this.label6.Text = Resources.UnitMilliliter;
                 this.numericUpDownVolume.Minimum = 0m;
                 this.numericUpDownVolume.Maximum = 100000m;
                 this.numericUpDownVolume.Increment = 100m;

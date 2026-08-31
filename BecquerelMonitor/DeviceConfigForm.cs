@@ -716,6 +716,16 @@ namespace BecquerelMonitor
         {
             try
             {
+                // ⛔ Три числа с шапки окна разбираются ДО первой записи (`A6`):
+                //    прежде имя, файл и тип прибора были уже переписаны, когда
+                //    разбор спотыкался на времени измерения или числе каналов, —
+                //    и конфигурация, одна на всех, оставалась смесью нового со
+                //    старым. Остаток известен и НЕ закрыт здесь: ниже по методу
+                //    разбор коэффициентов калибровки стоит уже после записей и
+                //    после двух вложенных форм.
+                int defaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
+                int numberOfChannels = int.Parse(this.integerTextBox1.Text);
+                double channelPitch = double.Parse(this.doubleTextBox6.Text);
                 if (config.Guid == null || config.Guid == "")
                 {
                     config.Guid = Guid.NewGuid().ToString();
@@ -726,9 +736,9 @@ namespace BecquerelMonitor
                 ThermometerType thermometerType = (ThermometerType)this.comboBox1.SelectedItem;
                 config.DeviceType = ((deviceType != null) ? deviceType.Id : "");
                 config.ThermometerType = ((thermometerType != null) ? thermometerType.Id : "None");
-                config.DefaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
-                config.NumberOfChannels = int.Parse(this.integerTextBox1.Text);
-                config.ChannelPitch = double.Parse(this.doubleTextBox6.Text);
+                config.DefaultMeasurementTime = defaultMeasurementTime;
+                config.NumberOfChannels = numberOfChannels;
+                config.ChannelPitch = channelPitch;
                 config.Note = this.textBox19.Text;
                 this.SaveEfficiencyTab(config);
                 if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
@@ -917,6 +927,22 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000527 RID: 1319 RVA: 0x000217AC File Offset: 0x0001F9AC
+        /// <summary>
+        /// Вторая дверь к сохранению конфигурации прибора — вопрос «сохранить
+        /// изменения?» при закрытии окна, при заведении и копировании
+        /// конфигурации и при переходе на другую строку списка.
+        ///
+        /// ⛔ Прежде она звала <see cref="SaveFormContents"/> и ВЫБРАСЫВАЛА его
+        /// ответ (`A6`), тогда как кнопка «Сохранить» тот же ответ читала и
+        /// ругалась <c>ERRInvalidInputForm</c>. Одна и та же введённая ерунда по
+        /// кнопке отвергалась, а по вопросу проглатывалась — и уезжала на диск.
+        ///
+        /// ⚠ Почему при отказе окно ОСТАЁТСЯ ОТКРЫТЫМ: человек ответил «да,
+        /// сохранить», сохранить нельзя, и превращать его «да» в «нет» молча
+        /// нельзя — отказ от правок у него уже есть отдельной кнопкой «Нет».
+        /// Обе соседние беды этого же метода (<c>CalibrationFunctionError</c>,
+        /// <c>ERRDuplicateConfigName</c>) поступают так же.
+        /// </summary>
         bool ConfirmSaveDeviceConfig()
         {
             if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty)
@@ -930,7 +956,11 @@ namespace BecquerelMonitor
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         return false;
                     }
-                    this.SaveFormContents(this.activeDeviceConfig);
+                    if (!this.SaveFormContents(this.activeDeviceConfig))
+                    {
+                        MessageBox.Show(Resources.ERRInvalidInputForm);
+                        return false;
+                    }
                     if (!this.manager.SaveConfig(this.activeDeviceConfig))
                     {
                         MessageBox.Show(Resources.ERRDuplicateConfigName);

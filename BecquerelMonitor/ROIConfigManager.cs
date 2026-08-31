@@ -246,24 +246,48 @@ namespace BecquerelMonitor
         // Token: 0x06001035 RID: 4149 RVA: 0x000588C8 File Offset: 0x00056AC8
         public bool SaveConfig(ROIConfigData roiConfig)
         {
-            ROIConfigData roiconfigData = this.roiConfigMap[roiConfig.Guid];
-            this.roiConfigMap.Remove(roiconfigData.Guid);
-            this.roiConfigList.Remove(roiconfigData);
+            // ⛔ `A8`, слово в слово как у `DeviceConfigManager.SaveConfig`:
+            // снятая отсюда запись — единственное, чем конфигурация ROI
+            // представлена в списках программы, и каждый выход ниже обязан
+            // вернуть её на место.
+            ROIConfigData removed = this.roiConfigMap[roiConfig.Guid];
+            this.roiConfigMap.Remove(removed.Guid);
+            this.roiConfigList.Remove(removed);
             if (roiConfig.OriginalFilename != roiConfig.Filename)
             {
+                // Новое имя файла занято ДРУГОЙ конфигурацией — единственная
+                // причина, о которой правду говорит `ERRDuplicateConfigName`
+                // вызывающего. Внутри переименования по той же причине, что и у
+                // `DeviceConfigManager`: без переименования столкнуться именами
+                // из окон нельзя.
+                foreach (ROIConfigData other in this.roiConfigList)
+                {
+                    if (string.Equals(other.Filename, roiConfig.Filename, StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.RestoreConfig(removed);
+                        return false;
+                    }
+                }
                 try
                 {
                     File.Delete(configROI + roiConfig.OriginalFilename);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    // Дальше НЕ идём: два файла с одним `Guid` на диске — это
+                    // произвольный выбор при следующей загрузке, то есть молчаливая
+                    // подмена правок старым файлом. Диск не тронут, правки живы в
+                    // форме, сохранение можно повторить.
+                    System.Diagnostics.Trace.WriteLine("ROI config rename failed: " + ex);
+                    this.RestoreConfig(removed);
+                    AppUi.Report(string.Format(Resources.ERRConfigFileRenameFailed, roiConfig.OriginalFilename),
+                        Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     return false;
                 }
             }
             roiConfig.OriginalFilename = roiConfig.Filename;
             roiConfig.LastUpdated = DateTime.Now;
-            roiConfig.Dirty = false;
-            roiconfigData = roiConfig.Clone();
+            ROIConfigData roiconfigData = roiConfig.Clone();
             try
             {
                 string path = configROI + roiconfigData.Filename;
@@ -273,8 +297,10 @@ namespace BecquerelMonitor
                     xmlSerializer.Serialize(fileStream, roiconfigData);
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine("ROI config save failed: " + ex);
+                this.RestoreConfig(removed);
                 AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
@@ -285,10 +311,43 @@ namespace BecquerelMonitor
             {
                 this.ROIConfigListChanged(this, new EventArgs());
             }
+            // ⛔ Снятие пометки «есть несохранённое» стояло ВЫШЕ записи, до
+            // единственного места, где она может отказать. Отказ показывал окно
+            // «не удалось сохранить» и тут же объявлял конфигурацию сохранённой:
+            // кнопка сохранения гасла, а закрытие формы больше не спрашивало.
+            // У соседа (`DeviceConfigManager.SaveConfig`) пометка снимается здесь
+            // же, после успеха, — приведено к нему.
+            roiConfig.Dirty = false;
             return true;
         }
 
+        /// <summary>
+        /// Вернуть в списки запись, снятую в начале <see cref="SaveConfig"/>.
+        /// Мера та же, что у <c>DeviceConfigManager</c>, и по той же причине
+        /// (`A8`): измерено 31.08.2026 на сборке до правки — переименование
+        /// конфигурации ROI при захваченном файле давало «вернул False, в списке
+        /// НЕТ, в карте НЕТ, старый файл на диске да» и ни одного сообщения.
+        /// </summary>
+        void RestoreConfig(ROIConfigData removed)
+        {
+            if (removed == null || this.roiConfigMap.ContainsKey(removed.Guid))
+            {
+                return;
+            }
+            this.roiConfigList.Add(removed);
+            this.roiConfigMap.Add(removed.Guid, removed);
+            this.roiConfigList.Sort();
+        }
+
         // Token: 0x06001036 RID: 4150 RVA: 0x00058A38 File Offset: 0x00056C38
+        /// <summary>
+        /// ⛔ `A9`, слово в слово как у <c>DeviceConfigManager.DeleteConfig</c>:
+        /// строка снимается ТОЛЬКО после того, как файл действительно исчез.
+        /// Прежде отказ удаления уходил в пустой <c>catch</c>, а списки чистились
+        /// всегда — конфигурация «удалялась» и возвращалась при следующем запуске.
+        /// Читатель отказа — сам список: <c>ROIConfigForm.button8_Click</c> сразу
+        /// зовёт <c>ListupConfigFiles</c>, и строка возвращается на экран.
+        /// </summary>
         public void DeleteConfig(ROIConfigData roiConfig)
         {
             ROIConfigData roiconfigData = this.roiConfigMap[roiConfig.Guid];
@@ -296,8 +355,12 @@ namespace BecquerelMonitor
             {
                 File.Delete(configROI + roiconfigData.OriginalFilename);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine("ROI config delete failed: " + ex);
+                AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, roiconfigData.OriginalFilename),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return;
             }
             this.roiConfigList.Remove(roiconfigData);
             this.roiConfigMap.Remove(roiconfigData.Guid);

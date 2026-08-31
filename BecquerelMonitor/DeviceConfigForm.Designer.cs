@@ -934,13 +934,13 @@ namespace BecquerelMonitor
             //
             // labelWidenFactor
             //
+            resources.ApplyResources(this.labelWidenFactor, "labelWidenFactor");
             this.labelWidenFactor.AutoSize = true;
             this.labelWidenFactor.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.labelWidenFactor.Location = new System.Drawing.Point(225, 117);
             this.labelWidenFactor.Name = "labelWidenFactor";
             this.labelWidenFactor.Size = new System.Drawing.Size(113, 13);
             this.labelWidenFactor.TabIndex = 20;
-            this.labelWidenFactor.Text = "Peak width widen factor";
             //
             // numericUpDownWidenFactor
             //
@@ -954,13 +954,13 @@ namespace BecquerelMonitor
             //
             // centroidComCheckBox
             //
+            resources.ApplyResources(this.centroidComCheckBox, "centroidComCheckBox");
             this.centroidComCheckBox.AutoSize = true;
             this.centroidComCheckBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.centroidComCheckBox.Location = new System.Drawing.Point(225, 143);
             this.centroidComCheckBox.Name = "centroidComCheckBox";
             this.centroidComCheckBox.Size = new System.Drawing.Size(180, 17);
             this.centroidComCheckBox.TabIndex = 21;
-            this.centroidComCheckBox.Text = "Centroid by center of mass";
             this.centroidComCheckBox.UseVisualStyleBackColor = true;
             this.centroidComCheckBox.CheckedChanged += new System.EventHandler(this.centroidComCheckBox_CheckedChanged);
             // 

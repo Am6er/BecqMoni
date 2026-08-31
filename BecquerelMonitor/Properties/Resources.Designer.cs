@@ -1324,6 +1324,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRSavingDeviceConfigFailed", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration was not renamed and not saved: the previous file &quot;{0}&quot; could not be deleted..
+        /// </summary>
+        public static string ERRConfigFileRenameFailed {
+            get {
+                return ResourceManager.GetString("ERRConfigFileRenameFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration file &quot;{0}&quot; could not be deleted, so the configuration has not been removed and is still in the list..
+        /// </summary>
+        public static string ERRConfigFileDeleteFailed {
+            get {
+                return ResourceManager.GetString("ERRConfigFileDeleteFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Failed to save application configuration file..
@@ -5347,6 +5365,159 @@ namespace BecquerelMonitor.Properties {
         public static string LayoutSaveNotRescued {
             get {
                 return ResourceManager.GetString("LayoutSaveNotRescued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Version {0}.
+        /// </summary>
+        public static string AboutVersionFormat {
+            get {
+                return ResourceManager.GetString("AboutVersionFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to kg.
+        /// </summary>
+        public static string UnitKilogram {
+            get {
+                return ResourceManager.GetString("UnitKilogram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to g.
+        /// </summary>
+        public static string UnitGram {
+            get {
+                return ResourceManager.GetString("UnitGram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to l.
+        /// </summary>
+        public static string UnitLiter {
+            get {
+                return ResourceManager.GetString("UnitLiter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ml.
+        /// </summary>
+        public static string UnitMilliliter {
+            get {
+                return ResourceManager.GetString("UnitMilliliter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to μSv/h.
+        /// </summary>
+        public static string UnitMicroSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitMicroSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to mSv/h.
+        /// </summary>
+        public static string UnitMilliSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitMilliSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sv/h.
+        /// </summary>
+        public static string UnitSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Wave height: .
+        /// </summary>
+        public static string PulseViewWaveHeight {
+            get {
+                return ResourceManager.GetString("PulseViewWaveHeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Wave height: .
+        /// </summary>
+        public static string PulseViewMaxWaveHeight {
+            get {
+                return ResourceManager.GetString("PulseViewMaxWaveHeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Screenshot.
+        /// </summary>
+        public static string ScreenshotDialogTitle {
+            get {
+                return ResourceManager.GetString("ScreenshotDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to png file (*.png)|*.png.
+        /// </summary>
+        public static string PNGFileFilter {
+            get {
+                return ResourceManager.GetString("PNGFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to WAV Files (*.wav)|*.wav|All Files (*.*)|*.*.
+        /// </summary>
+        public static string WAVFileFilter {
+            get {
+                return ResourceManager.GetString("WAVFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please select a sound file..
+        /// </summary>
+        public static string SelectSoundFileTitle {
+            get {
+                return ResourceManager.GetString("SelectSoundFileTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Background spectrum is not available for the active spectrum..
+        /// </summary>
+        public static string ERRNoBackgroundSpectrum {
+            get {
+                return ResourceManager.GetString("ERRNoBackgroundSpectrum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device disconnected from audio port!.
+        /// </summary>
+        public static string ERRAudioDeviceDisconnected {
+            get {
+                return ResourceManager.GetString("ERRAudioDeviceDisconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Link "{0}" couldn't be opened. ({1}).
+        /// </summary>
+        public static string ERROpenLinkFailure {
+            get {
+                return ResourceManager.GetString("ERROpenLinkFailure", resourceCulture);
             }
         }
         

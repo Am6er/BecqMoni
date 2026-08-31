@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 
 namespace BecquerelMonitor
 {
@@ -46,19 +47,22 @@ namespace BecquerelMonitor
 
         public override string ToString()
         {
-            string uom = "μSv/h";
+            // ⚠ `A12`. Единица идёт в СТРОКУ СОСТОЯНИЯ главного окна
+            // рядом с переведённой подписью `Resources.DoseRate`
+            // («Мощность дозы:»), поэтому её место — тоже в ресурсах.
+            string uom = Resources.UnitMicroSievertPerHour;
             double rate = this.Rate;
             double error = this.Error;
             double epsilon = this.Epsilon;
             if (rate > 1000000.0)
             {
-                uom = "Sv/h";
+                uom = Resources.UnitSievertPerHour;
                 rate /= 1000000.0;
                 error /= 1000000.0;
             }
             else if (rate > 1000.0)
             {
-                uom = "mSv/h";
+                uom = Resources.UnitMilliSievertPerHour;
                 rate /= 1000.0;
                 error /= 1000.0;
             }

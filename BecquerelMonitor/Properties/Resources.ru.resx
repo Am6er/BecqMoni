@@ -290,6 +290,14 @@
   <data name="ERRSavingDeviceConfigFailed" xml:space="preserve">
     <value>Не удалось сохранить конфигурационный файл устройства.</value>
   </data>
+  <data name="ERRConfigFileRenameFailed" xml:space="preserve">
+    <value>Конфигурация не переименована и не сохранена: прежний файл «{0}» удалить не удалось.
+Скорее всего он открыт другой программой или защищён от записи. На диске ничего не изменилось, конфигурация осталась в списке — освободите файл и сохраните ещё раз.</value>
+  </data>
+  <data name="ERRConfigFileDeleteFailed" xml:space="preserve">
+    <value>Файл конфигурации «{0}» удалить не удалось, поэтому конфигурация не удалена и осталась в списке.
+Скорее всего он открыт другой программой или защищён от записи.</value>
+  </data>
   <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
     <value>Не удалось загрузить конфигурационный файл ROI.</value>
   </data>
@@ -1960,5 +1968,57 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="PeakDetectionFailed" xml:space="preserve">
     <value>Поиск пиков не выполнен — список пиков очищен</value>
+  </data>
+  <data name="AboutVersionFormat" xml:space="preserve">
+    <value>Версия {0}</value>
+  </data>
+  <data name="UnitKilogram" xml:space="preserve">
+    <value>кг</value>
+  </data>
+  <data name="UnitGram" xml:space="preserve">
+    <value>г</value>
+  </data>
+  <data name="UnitLiter" xml:space="preserve">
+    <value>л</value>
+  </data>
+  <data name="UnitMilliliter" xml:space="preserve">
+    <value>мл</value>
+  </data>
+  <data name="UnitMicroSievertPerHour" xml:space="preserve">
+    <value>мкЗв/ч</value>
+  </data>
+  <data name="UnitMilliSievertPerHour" xml:space="preserve">
+    <value>мЗв/ч</value>
+  </data>
+  <data name="UnitSievertPerHour" xml:space="preserve">
+    <value>Зв/ч</value>
+  </data>
+  <data name="PulseViewWaveHeight" xml:space="preserve">
+    <value>Амплитуда: </value>
+  </data>
+  <data name="PulseViewMaxWaveHeight" xml:space="preserve">
+    <value>Макс. амплитуда: </value>
+  </data>
+  <data name="ScreenshotDialogTitle" xml:space="preserve">
+    <value>Снимок графика</value>
+  </data>
+  <data name="PNGFileFilter" xml:space="preserve">
+    <value>Файл PNG (*.png)|*.png</value>
+  </data>
+  <data name="WAVFileFilter" xml:space="preserve">
+    <value>Файлы WAV (*.wav)|*.wav|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="SelectSoundFileTitle" xml:space="preserve">
+    <value>Выберите звуковой файл.</value>
+  </data>
+  <data name="ERRNoBackgroundSpectrum" xml:space="preserve">
+    <value>У активного спектра нет фонового спектра.</value>
+  </data>
+  <data name="ERRAudioDeviceDisconnected" xml:space="preserve">
+    <value>Устройство отключено от звукового входа!</value>
+  </data>
+  <data name="ERROpenLinkFailure" xml:space="preserve">
+    <value>Ссылку "{0}" не удалось открыть.
+({1})</value>
   </data>
 </root>
