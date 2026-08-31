@@ -2041,4 +2041,13 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRDeviceNoData" xml:space="preserve">
     <value>ПРИБОР НЕ ОТДАЁТ ДАННЫЕ: {0}</value>
   </data>
+  <data name="ERRBTUnavailable" xml:space="preserve">
+    <value>Bluetooth выключен или недоступен: {0}</value>
+  </data>
+  <data name="ERRBTNotAllowed" xml:space="preserve">
+    <value>нет разрешения на использование радиомодуля</value>
+  </data>
+  <data name="ERRBTNoAdapter" xml:space="preserve">
+    <value>адаптер Bluetooth не найден</value>
+  </data>
 </root>

@@ -43293,4 +43293,13 @@ Turn it on in Windows settings and search again.</value>
   <data name="ERRDeviceNoData" xml:space="preserve">
     <value>NO DATA FROM DEVICE: {0}</value>
   </data>
+  <data name="ERRBTUnavailable" xml:space="preserve">
+    <value>Bluetooth is off or unavailable: {0}</value>
+  </data>
+  <data name="ERRBTNotAllowed" xml:space="preserve">
+    <value>no permission to use the radio module</value>
+  </data>
+  <data name="ERRBTNoAdapter" xml:space="preserve">
+    <value>Bluetooth adapter not found</value>
+  </data>
 </root>
