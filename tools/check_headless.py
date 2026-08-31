@@ -181,6 +181,9 @@ RE_BASE = re.compile(
 RE_TOK = re.compile(r"\b[A-Za-z_]\w*\b")
 RE_CALL = re.compile(r"([A-Za-z_]\w*)\s*(?:<[^<>]*>)?\s*\(")
 RE_NEW = re.compile(r"\bnew\s+([A-Za-z_]\w*)\s*(?:<[^<>]*>)?\s*\(")
+# Строковый литерал пробы. ⚠ Ищется в СЫРОМ тексте: `blank()` литералы
+# гасит, и по нему их не найти (`T106`).
+RE_STR = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 
 BLOCK_KEYWORDS = {
     "if", "for", "foreach", "while", "switch", "using", "lock", "catch",
@@ -402,8 +405,21 @@ def measure():
     seed = set()
     seed_by = collections.defaultdict(set)
     built_by = collections.defaultdict(set)
+    probe_literals = set()
     for pf in probe_files:
-        pc = blank(read_source(pf))
+        raw = read_source(pf)
+        pc = blank(raw)
+        # Имена, которые проба называет строкой. Пробы зовут ЧАСТНЫЕ методы
+        # формы отражением — либо прямо (`typeof(T).GetMethod("Имя", …)`),
+        # либо через свой помощник (`Call(form, "DoSearch")`), — и тип у
+        # второго вида известен только в работе. Поэтому берутся ВСЕ
+        # литералы: имя метода, совпавшее с литералом пробы, считается
+        # достижимым.
+        #
+        # ⚠ Правило нарочно ШИРЕ точного: сторожу дешевле запретить окно
+        # там, где проба до него, может быть, и не доходит, чем пропустить
+        # то, до чего доходит. Ложная тревога снимается через ALLOW поимённо.
+        probe_literals.update(RE_STR.findall(raw))
         own = {m.group(1) for m in RE_DECL.finditer(pc)}
         for t in (set(RE_TOK.findall(pc)) & alltypes) - own:
             seed.add(t)
@@ -463,6 +479,7 @@ def measure():
         "files": files, "types": alltypes, "type_files": type_files, "ui": ui,
         "seed": seed, "reached": reached, "barrier": barrier, "why": why,
         "calls": calls, "probes": probe_files, "built_ui": built_ui,
+        "probe_literals": probe_literals,
     }
 
 
@@ -538,6 +555,21 @@ def main(argv=None):
         if c["type"] in m["built_ui"] and c["method"] == c["type"]:
             c["why"] = "конструктор исполняет проба " + ", ".join(
                 sorted(m["built_ui"][c["type"]]))
+            headless.append(c)
+        # REFLECT_OVERRIDE (`T106`). Окно в МЕТОДЕ оконного типа, который
+        # проба назвала сама, а имя метода стоит в литералах пробы, —
+        # безоконный путь. ALLOW его НЕ обеляет, и проверяется он сразу за
+        # конструкторным правилом, иначе список опять станет отмычкой.
+        #
+        # Правило заведено ПО ИЗМЕРЕНИЮ, а не из осторожности: `T98` — окно
+        # в `NucBase.DoSearch` — вешало прогон насмерть, а в отчёте сторожа
+        # не появлялось НИ РАЗУ, потому что оконный тип считается барьером
+        # и обелялся у него только конструктор. Между тем `ChainProbe`
+        # исполняет `DoSearch` отражением (`Call(form, "DoSearch")`), то
+        # есть окно стояло ровно на пути пробы.
+        elif (c["type"] in m["seed"] and c["type"] in ui
+              and c["method"] in m["probe_literals"]):
+            c["why"] = "метод зовёт отражением проба (имя в её литералах)"
             headless.append(c)
         elif c["type"] + "." + c["method"] in NON_UI_ALLOW:
             c["why"] = NON_UI_ALLOW[c["type"] + "." + c["method"]]

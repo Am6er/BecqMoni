@@ -877,10 +877,11 @@ namespace BecquerelMonitor
                 }
 
                 this.RefreshList(entry);
-                MessageBox.Show(this,
+                // ⛔ `T106`, довод — как у второго такого места ниже.
+                AppUi.Report(
                     string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsErrorAt,
                                   entry.Name, problem),
-                    Resources.GeometryMaterialsTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    Resources.GeometryMaterialsTitle, MessageBoxIcon.Exclamation);
                 return;
             }
 
@@ -890,10 +891,14 @@ namespace BecquerelMonitor
             }
             catch (Exception error)
             {
-                MessageBox.Show(this,
+                // ⛔ `T106`. `SaveClicked` зовёт отражением `MaterialLibraryProbe`
+                // (`Invoke(form, "SaveClicked", …)`), то есть путь безоконный
+                // (`S100`). Дверь `AppUi` в окне ведёт себя как прежний
+                // `MessageBox`, а в прогоне отдаёт отказ вместо зависания.
+                AppUi.Report(
                     string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsSaveFailed,
                                   GeometryMaterialStore.FilePath, error.Message),
-                    Resources.GeometryMaterialsTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    Resources.GeometryMaterialsTitle, MessageBoxIcon.Hand);
                 return;
             }
 

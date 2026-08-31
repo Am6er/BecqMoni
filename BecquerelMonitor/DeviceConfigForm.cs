@@ -462,7 +462,12 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                // ⛔ `T106`. Метод зовут отражением из пробы, то есть это
+                // безоконный путь (`S100`): модальное окно здесь вешало бы
+                // прогон насмерть. Сторож этого не видел, пока не научился
+                // разбирать вызовы через отражение.
+                AppUi.Report(Resources.ERRBTNotSupportedByOS,
+                             Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.PrepareDeviceForm(null);
                 this.DisableForm();
             }
