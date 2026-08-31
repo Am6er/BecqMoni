@@ -249,19 +249,62 @@ namespace BecquerelMonitor
             {
                 deviceConfigInfo = this.deviceConfigList.Find(config => config.Guid == devConfig.Guid);
             }
-            if (deviceConfigInfo != null)
+            // ⛔ `A8`: снятая отсюда запись — ЕДИНСТВЕННОЕ, чем конфигурация
+            // представлена во всех выпадающих списках программы. Каждый выход
+            // ниже обязан вернуть её на место через <see cref="RestoreConfig"/>.
+            DeviceConfigInfo removed = deviceConfigInfo;
+            if (removed != null)
             {
-                this.deviceConfigMap.Remove(deviceConfigInfo.Guid);
-                this.deviceConfigList.Remove(deviceConfigInfo);
+                this.deviceConfigMap.Remove(removed.Guid);
+                this.deviceConfigList.Remove(removed);
             }
             if (devConfig.OriginalFilename != devConfig.Filename)
             {
+                // Новое имя файла занято ДРУГОЙ конфигурацией. Записать по нему —
+                // значит затереть её файл, а сама она останется в списке и до
+                // перезапуска будет показывать чужие настройки. Измерено
+                // 31.08.2026 на сборке до правки: переименование A → «DupB.xml»
+                // вернуло true, и DupB.xml стал файлом A — конфигурация B погибла
+                // молча.
+                //
+                // ⚠ И это ЕДИНСТВЕННАЯ причина отказа, которой соответствует
+                // `Resources.ERRDuplicateConfigName` — сообщение, которое
+                // вызывающие (`DeviceConfigForm`) показывают на ЛЮБОЙ false.
+                // Прежде ей не соответствовала ни одна: проверки занятого имени
+                // тут не было вовсе.
+                //
+                // ⚠ Проверка стоит ВНУТРИ переименования нарочно. Из окон иначе
+                // столкнуться именами нельзя: имя файла выводится из имени
+                // конфигурации, а новым его даёт `AssignNewFilename`, который
+                // занятые перебирает. Снаружи же остаётся сохранение БЕЗ
+                // переименования — там совпадение имён означает лишь мусор,
+                // оставшийся в каталоге от прошлого прогона оснастки, и отказывать
+                // из-за него значило бы ломать то, что сегодня работает.
+                foreach (DeviceConfigInfo other in this.deviceConfigList)
+                {
+                    if (string.Equals(other.Filename, devConfig.Filename, StringComparison.OrdinalIgnoreCase))
+                    {
+                        this.RestoreConfig(removed);
+                        return false;
+                    }
+                }
                 try
                 {
                     File.Delete(userDirectoryConfigDevice + devConfig.OriginalFilename);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    // Переименование не состоялось — и дальше НЕ идём. Записать
+                    // новый файл, не сумев убрать старый, значит оставить на диске
+                    // ДВА файла с одним `Guid`, а `LoadAllConfigFiles` берёт из
+                    // такой пары произвольный: правки человека молча заменились бы
+                    // старым файлом при следующем запуске. Отказ здесь ничего на
+                    // диске не меняет, правки остаются в форме несохранёнными, и
+                    // повторить сохранение можно, освободив файл.
+                    Trace.WriteLine("device config rename failed: " + ex);
+                    this.RestoreConfig(removed);
+                    AppUi.Report(string.Format(Resources.ERRConfigFileRenameFailed, devConfig.OriginalFilename),
+                        Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     return false;
                 }
             }
@@ -277,8 +320,19 @@ namespace BecquerelMonitor
                     xmlSerializer.Serialize(fileStream, deviceConfigInfo);
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Сообщение здесь было и раньше, а вот запись со списков снималась
+                // и не возвращалась: человеку говорили «не удалось сохранить», и
+                // одновременно конфигурация исчезала отовсюду (`A8`).
+                //
+                // ⚠ Если переименование выше УСПЕЛО убрать старый файл, а запись
+                // нового отказала, на диске конфигурации нет вовсе, и возвращённая
+                // строка диску не соответствует. Так всё же лучше: правки живы в
+                // форме и сохранение можно повторить, а снятая строка не оставляет
+                // человеку ничего. Окно при этом сказано честно.
+                Trace.WriteLine("device config save failed: " + ex);
+                this.RestoreConfig(removed);
                 AppUi.Report(Resources.ERRSavingDeviceConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
@@ -291,6 +345,26 @@ namespace BecquerelMonitor
             }
             devConfig.Dirty = false;
             return true;
+        }
+
+        /// <summary>
+        /// Вернуть в списки запись, снятую в начале <see cref="SaveConfig"/>.
+        ///
+        /// ⛔ Без этого возврата отказ сохранения УНОСИЛ конфигурацию из всех
+        /// выпадающих списков программы до перезапуска, хотя файл на диске цел
+        /// (`A8`). Измерено 31.08.2026 на сборке ДО правки, сцена «переименование
+        /// при захваченном старом файле»: вернул False, «в списке НЕТ, в карте
+        /// НЕТ, старый файл на диске да», сообщений — ни одного.
+        /// </summary>
+        void RestoreConfig(DeviceConfigInfo removed)
+        {
+            if (removed == null || this.deviceConfigMap.ContainsKey(removed.Guid))
+            {
+                return;
+            }
+            this.deviceConfigList.Add(removed);
+            this.deviceConfigMap.Add(removed.Guid, removed);
+            this.deviceConfigList.Sort();
         }
 
         /// <summary>
@@ -356,6 +430,22 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060005FF RID: 1535 RVA: 0x00025D88 File Offset: 0x00023F88
+        /// <summary>
+        /// ⛔ `A9`: строка снимается ТОЛЬКО после того, как файл действительно
+        /// исчез. Прежде <c>File.Delete</c> стоял в ПУСТОМ <c>catch</c>, а снятие
+        /// со списков шло ВСЕГДА: человек подтверждал удаление, строка пропадала —
+        /// и после перезапуска конфигурация оказывалась на месте. Измерено
+        /// 31.08.2026 на сборке до правки при захваченном файле: «в списке НЕТ,
+        /// в карте НЕТ, файл на диске да», сообщений ноль.
+        ///
+        /// У отказа есть читатель, и это не признак, а сам список: вызывающий
+        /// (<c>DeviceConfigForm.button4_Click</c>) сразу перечитывает список
+        /// <c>ListupConfigFiles</c>, и неудалённая конфигурация возвращается на
+        /// экран — рядом с окном о том, почему.
+        ///
+        /// ⚠ Отсутствующий файл отказом НЕ считается: <c>File.Delete</c> на нём
+        /// не бросает, так что убранная руками конфигурация уходит из списка.
+        /// </summary>
         public void DeleteConfig(DeviceConfigInfo devConfig)
         {
             DeviceConfigInfo deviceConfigInfo = this.deviceConfigMap[devConfig.Guid];
@@ -363,8 +453,12 @@ namespace BecquerelMonitor
             {
                 File.Delete(userDirectoryConfigDevice + deviceConfigInfo.OriginalFilename);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Trace.WriteLine("device config delete failed: " + ex);
+                AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, deviceConfigInfo.OriginalFilename),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return;
             }
             this.deviceConfigList.Remove(deviceConfigInfo);
             this.deviceConfigMap.Remove(deviceConfigInfo.Guid);

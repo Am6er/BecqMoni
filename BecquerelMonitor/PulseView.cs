@@ -1,3 +1,4 @@
+using BecquerelMonitor.Properties;
 using System;
 using System.ComponentModel;
 using System.Drawing;
@@ -164,11 +165,14 @@ namespace BecquerelMonitor
                 graphics.PixelOffsetMode = PixelOffsetMode.Default;
             }
 
-            graphics.DrawString("Wave height: ", this.Font, Brushes.White, (float)(base.Width - 130), 2f);
+            // ⚠ `A12`. Обе подписи рисуются прямо на панели, минуя
+            // ресурсы; пары `PulseView.ru.resx` у этого вида нет вовсе,
+            // поэтому строки заведены в общей паре `Properties/Resources`.
+            graphics.DrawString(Resources.PulseViewWaveHeight, this.Font, Brushes.White, (float)(base.Width - 130), 2f);
             Rectangle r2 = new Rectangle(0, 2, base.Width - 4, 22);
             graphics.DrawString(this.pulseHeight.ToString("f2"), this.Font, Brushes.White, r2, stringFormat);
 
-            graphics.DrawString("Max Wave height: ", this.Font, Brushes.White, (float)(base.Width - 130), 20f);
+            graphics.DrawString(Resources.PulseViewMaxWaveHeight, this.Font, Brushes.White, (float)(base.Width - 130), 20f);
             Rectangle r3 = new Rectangle(0, 20, base.Width - 4, 22);
             graphics.DrawString(this.maxpulseHeight.ToString("f2"), this.Font, Brushes.White, r3, stringFormat);
 

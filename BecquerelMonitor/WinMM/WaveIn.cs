@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -317,7 +318,9 @@ namespace WinMM
                 //    как раз есть — `DCControlPanel.exept_flag` строкой выше.
                 //    Значит без окон — строка в поток ошибок, и поток буферов
                 //    доходит до конца сам.
-                AppUi.Report("Device disconnected from audio port!", "Error", MessageBoxIcon.Hand);
+                //    ⚠ `A12`: и текст, и заголовок были литералами. Заголовок
+                //    во всём дереве берут из `Resources.ErrorDialogTitle`.
+                AppUi.Report(Resources.ERRAudioDeviceDisconnected, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 Thread.Sleep(500);
             }
         }

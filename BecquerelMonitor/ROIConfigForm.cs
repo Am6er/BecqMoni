@@ -185,6 +185,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060008F9 RID: 2297 RVA: 0x00033D98 File Offset: 0x00031F98
+        /// <summary>
+        /// Вторая дверь к сохранению — вопрос «сохранить изменения?» при
+        /// закрытии окна и при всяком уходе с текущей конфигурации.
+        ///
+        /// ⛔ Прежде она звала сбор введённого и ВЫБРАСЫВАЛА его ответ (`A6`):
+        /// ерунда, которую кнопка «Сохранить» отвергала с
+        /// <c>ERRInvalidInputForm</c>, здесь проглатывалась молча и уезжала на
+        /// диск. Теперь ответ читается, и говорится то же самое, что по кнопке.
+        ///
+        /// ⚠ Почему при отказе окно ОСТАЁТСЯ ОТКРЫТЫМ. Человек ответил «да,
+        /// сохранить» — сохранить нельзя, и честных исходов ровно два:
+        /// сохранено либо не закрыто. Закрыть окно значило бы молча превратить
+        /// его «да» в «нет», то есть выбрать за него отказ от правок; отказ у
+        /// него уже есть отдельной кнопкой «Нет», которая возвращает
+        /// конфигурацию с диска. Соседняя беда в этом же методе
+        /// (<c>ERRDuplicateConfigName</c>) поступает так же — возвращает
+        /// <c>false</c>, а <c>ROIConfigForm_FormClosing</c> ставит
+        /// <c>e.Cancel = true</c>.
+        /// </summary>
         bool ConfirmSaveROIConfig()
         {
             if (this.activeROIConfig != null && this.activeROIConfig.Dirty)
@@ -192,8 +211,11 @@ namespace BecquerelMonitor
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.Yes)
                 {
-                    this.SaveFormContents(this.activeROIConfig);
-                    this.SaveROIDefinitionFormContents(this.activeROIDefinition);
+                    if (!this.CollectFormContents())
+                    {
+                        MessageBox.Show(Resources.ERRInvalidInputForm);
+                        return false;
+                    }
                     if (!this.manager.SaveConfig(this.activeROIConfig))
                     {
                         MessageBox.Show(Resources.ERRDuplicateConfigName);
@@ -256,12 +278,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            if (!this.SaveFormContents(this.activeROIConfig))
-            {
-                MessageBox.Show(Resources.ERRInvalidInputForm);
-                return;
-            }
-            if (this.activeROIDefinition != null && !this.SaveROIDefinitionFormContents(this.activeROIDefinition))
+            if (!this.CollectFormContents())
             {
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return;
@@ -808,11 +825,13 @@ namespace BecquerelMonitor
         // Token: 0x06000912 RID: 2322 RVA: 0x00034E8C File Offset: 0x0003308C
         void UpdatePrimitiveList()
         {
-            this.table2.BeginUpdate();
+            // Проверка ДО BeginUpdate: ранний выход после него оставлял таблицу
+            // навсегда приостановленной — EndUpdate в этой ветви не звался.
             if (this.activeROIDefinition == null)
             {
                 return;
             }
+            this.table2.BeginUpdate();
             foreach (object obj in this.tableModel2.Rows)
             {
                 Row row = (Row)obj;
@@ -828,14 +847,40 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000913 RID: 2323 RVA: 0x00034FBC File Offset: 0x000331BC
+        /// <summary>
+        /// Человек правит примитив зоны.
+        ///
+        /// ⛔ Прежде первый же примитив, который не разобрался, уводил отсюда
+        /// <c>return</c>-ом ДО <see cref="UpdatePrimitiveList"/> и
+        /// <see cref="SetActiveROIConfigDirty"/> (`A7`): список показывал старые
+        /// границы, «грязь» не ставилась, при закрытии не спрашивали — а
+        /// кнопка «Сохранить» строкой выше уже загоралась. То есть две половины
+        /// одного признака «есть несохранённое» расходились между собой.
+        ///
+        /// ⚠ Окна отсюда НЕ поднимается намеренно: событие приходит на каждое
+        /// нажатие клавиши, и на полпути к числу («−», «1e») текст не
+        /// разбирается законно. Про неразобранное человеку говорят там, где это
+        /// имеет цену, — у обеих дверей сохранения (`A6`), через
+        /// <see cref="CollectFormContents"/>. Признак «есть несохранённое»
+        /// теперь ставится всегда, поэтому вопрос при закрытии задаётся, и
+        /// молчания больше нет.
+        ///
+        /// Цикл идёт до конца по всем примитивам: каждый из них пишет либо всё,
+        /// либо ничего, они друг от друга не зависят, и отказ одного не повод
+        /// потерять годную правку соседнего.
+        /// </summary>
         void control_ROIPrimitiveModified(object sender, EventArgs e)
         {
             this.buttonSave.Enabled = true;
+            if (this.activeROIDefinition == null)
+            {
+                return;
+            }
             foreach (ROIPrimitiveData roiprimitiveData in this.activeROIDefinition.ROIPrimitives)
             {
-                if (!roiprimitiveData.Control.SaveFormContents(roiprimitiveData))
+                if (roiprimitiveData.Control != null)
                 {
-                    return;
+                    roiprimitiveData.Control.SaveFormContents(roiprimitiveData);
                 }
             }
             this.UpdatePrimitiveList();
@@ -843,12 +888,28 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000914 RID: 2324 RVA: 0x00035044 File Offset: 0x00033244
+        /// <summary>
+        /// ⛔ СНАЧАЛА РАЗОБРАТЬ ВСЁ, ПОТОМ ПИСАТЬ (`A6`, `A7`). Прежде поля
+        /// присваивались по одному, и первое неразобранное число оставляло зону
+        /// наполовину изменённой при возврате <c>false</c> — а вторая дверь
+        /// («сохранить изменения?» при закрытии) этот <c>false</c> ВЫБРАСЫВАЛА,
+        /// и полуразобранная зона уезжала на диск без единого слова.
+        ///
+        /// Примитивы разбираются В ТОМ ЖЕ ПОРЯДКЕ: сперва спрашиваем каждый,
+        /// разберётся ли он, и только потом пишем зону. Отказ любого из них —
+        /// отказ всей зоны, без последствий.
+        /// </summary>
         bool SaveROIDefinitionFormContents(ROIDefinitionData roi)
         {
+            double becquerelCoefficient = roi.BecquerelCoefficient;
+            double becquerelCoefficientError = roi.BecquerelCoefficientError;
+            double peakEnergy;
+            double halfLife;
+            double intencity;
+            double lowerLimit;
+            double upperLimit;
             try
             {
-                roi.Name = this.textBox1.Text;
-                roi.Enabled = this.checkBox1.Checked;
                 // При включённом «авто» поля K показывают ДЕЙСТВУЮЩЕЕ, то есть
                 // посчитанное по кривой число (см. ShowBecquerelCoefficient).
                 // Парсить их обратно значило бы затереть сохранённый ручной K
@@ -856,32 +917,90 @@ namespace BecquerelMonitor
                 // и есть запасное значение на случай, когда кривой не станет.
                 if (!roi.AutoBecquerelCoefficient)
                 {
-                    roi.BecquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
-                    roi.BecquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
+                    becquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
+                    becquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
                 }
-                roi.PeakEnergy = double.Parse(this.doubleTextBox5.Text);
-                roi.HalfLife = double.Parse(this.doubleTextBox6.Text);
-                roi.Intencity = double.Parse(this.doubleTextBox7.Text);
-                roi.LowerLimit = double.Parse(this.doubleTextBox1.Text);
-                roi.UpperLimit = double.Parse(this.doubleTextBox2.Text);
-                roi.Color.Color = this.colorComboBox1.SelectedColor;
-                if (roi.UpperLimit < roi.LowerLimit)
-                {
-                    roi.UpperLimit = roi.LowerLimit;
-                    this.doubleTextBox2.Text = roi.UpperLimit.ToString();
-                }
-                roi.Note = this.textBox2.Text;
+                peakEnergy = double.Parse(this.doubleTextBox5.Text);
+                halfLife = double.Parse(this.doubleTextBox6.Text);
+                intencity = double.Parse(this.doubleTextBox7.Text);
+                lowerLimit = double.Parse(this.doubleTextBox1.Text);
+                upperLimit = double.Parse(this.doubleTextBox2.Text);
             }
             catch (Exception)
             {
                 return false;
             }
+            // Зона без цвета роняла прежний код в его же catch и отвечала
+            // false; ответ сохраняется, но теперь он даётся ДО записи, а не
+            // посреди неё.
+            if (roi.Color == null)
+            {
+                return false;
+            }
+            // Примитивы спрашиваются ДО записи зоны: каждый из них тоже
+            // разбирает всё прежде, чем что-либо писать, так что отказ здесь
+            // не оставляет следов ни в зоне, ни в примитивах.
             foreach (ROIPrimitiveData roiprimitiveData in roi.ROIPrimitives)
             {
+                if (roiprimitiveData.Control == null)
+                {
+                    continue;
+                }
                 if (!roiprimitiveData.Control.SaveFormContents(roiprimitiveData))
                 {
                     return false;
                 }
+            }
+            bool clamped = upperLimit < lowerLimit;
+            if (clamped)
+            {
+                upperLimit = lowerLimit;
+            }
+            roi.Name = this.textBox1.Text;
+            roi.Enabled = this.checkBox1.Checked;
+            roi.BecquerelCoefficient = becquerelCoefficient;
+            roi.BecquerelCoefficientError = becquerelCoefficientError;
+            roi.PeakEnergy = peakEnergy;
+            roi.HalfLife = halfLife;
+            roi.Intencity = intencity;
+            roi.LowerLimit = lowerLimit;
+            roi.UpperLimit = upperLimit;
+            roi.Color.Color = this.colorComboBox1.SelectedColor;
+            roi.Note = this.textBox2.Text;
+            if (clamped)
+            {
+                this.doubleTextBox2.Text = upperLimit.ToString();
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// ЕДИНСТВЕННАЯ дверь к «собрать введённое в объект конфигурации».
+        ///
+        /// ⛔ Прежде дверей было ДВЕ и с разной строгостью (`A6`): кнопка
+        /// «Сохранить» читала возврат и ругалась <c>ERRInvalidInputForm</c>, а
+        /// вопрос «сохранить изменения?» при закрытии звал то же самое и
+        /// возврат ВЫБРАСЫВАЛ. Одна и та же введённая ерунда по кнопке
+        /// отвергалась, а по вопросу проглатывалась и уезжала на диск. Теперь
+        /// обе двери зовут этот метод, и обе читают его ответ.
+        ///
+        /// Окон отсюда не поднимается: показывать беду — дело вызвавшего, и это
+        /// то, чем двери законно отличаются друг от друга.
+        /// </summary>
+        bool CollectFormContents()
+        {
+            if (this.activeROIConfig == null)
+            {
+                return false;
+            }
+            if (!this.SaveFormContents(this.activeROIConfig))
+            {
+                return false;
+            }
+            if (this.activeROIDefinition != null
+                && !this.SaveROIDefinitionFormContents(this.activeROIDefinition))
+            {
+                return false;
             }
             return true;
         }

@@ -361,9 +361,11 @@ namespace BecquerelMonitor
         {
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "WAV Files (*.wav)|*.wav|All Files (*.*)|*.*";
+            // ⚠ `A12`. Фильтр и заголовок были зашиты по-английски при
+            // живой паре `GlobalConfigForm.ru.resx`.
+            openFileDialog.Filter = Resources.WAVFileFilter;
             openFileDialog.FilterIndex = 1;
-            openFileDialog.Title = "Please select a sound file.";
+            openFileDialog.Title = Resources.SelectSoundFileTitle;
             openFileDialog.RestoreDirectory = true;
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {

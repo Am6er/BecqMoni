@@ -4654,8 +4654,9 @@ namespace BecquerelMonitor
         {
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
-                dialog.Title = "Screenshot";
-                dialog.Filter = "png file (*.png)|*.png";
+                // ⚠ `A12`. Заголовок и фильтр были зашиты по-английски.
+                dialog.Title = Resources.ScreenshotDialogTitle;
+                dialog.Filter = Resources.PNGFileFilter;
                 dialog.FilterIndex = 1;
                 dialog.RestoreDirectory = true;
                 MainForm mf = (MainForm)MainForm.ActiveForm;
@@ -4668,9 +4669,18 @@ namespace BecquerelMonitor
                         base.DrawToBitmap(bitmap, new Rectangle(0, 0, base.Width - this.vScrollBar1.Width, base.Height - this.hScrollBar1.Height));
                         bitmap.Save(dialog.FileName);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        MessageBox.Show("Error while saving file");
+                        // ⛔ `A12`. Было `MessageBox.Show("Error while saving
+                        // file")` — без причины, без имени файла и мимо
+                        // ресурсов. Человеку нечего было ни прочитать, ни
+                        // назвать. Образец рядом: `MainForm` при отказе
+                        // записи спектра печатает `ERRFileSaveFailure` с
+                        // именем файла и текстом ошибки — тем же ресурсом
+                        // говорит и снимок графика.
+                        MessageBox.Show(
+                            string.Format(Resources.ERRFileSaveFailure, dialog.FileName, ex.Message),
+                            Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     }
                 }
             }

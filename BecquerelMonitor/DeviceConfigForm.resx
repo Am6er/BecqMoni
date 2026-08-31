@@ -7551,4 +7551,10 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="labelWidenFactor.Text" xml:space="preserve">
+    <value>Peak width widen factor</value>
+  </data>
+  <data name="centroidComCheckBox.Text" xml:space="preserve">
+    <value>Centroid by center of mass</value>
+  </data>
 </root>

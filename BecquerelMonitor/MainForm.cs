@@ -2356,7 +2356,8 @@ namespace BecquerelMonitor
             EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
             if (backgroundSpectrum == null)
             {
-                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⚠ `A12`: заголовок брался из ресурсов, а текст был литералом.
+                MessageBox.Show(Resources.ERRNoBackgroundSpectrum, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -2405,7 +2406,8 @@ namespace BecquerelMonitor
             EnergySpectrum backgroundSpectrum = this.activeDocument.ActiveResultData.BackgroundEnergySpectrum;
             if (backgroundSpectrum == null)
             {
-                MessageBox.Show("Background spectrum is not available for the active spectrum.", Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                // ⚠ `A12`: заголовок брался из ресурсов, а текст был литералом.
+                MessageBox.Show(Resources.ERRNoBackgroundSpectrum, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
             SaveFileDialog saveFileDialog = new SaveFileDialog();
