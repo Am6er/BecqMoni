@@ -148,6 +148,19 @@ static class MatrixDiffProbe
         // `ResponseMatrix.Save`), поэтому здесь их нет и выдумывать нечего:
         // шум печатает та проба, которая матрицу построила.
         Console.WriteLine("  клейма {0}", a.Stamp == b.Stamp ? "одинаковые" : "РАЗНЫЕ — считались не из одного");
+        if (a.Stamp != b.Stamp)
+        {
+            // ⛔ «РАЗНЫЕ» без самих клейм — признак без читателя (`T111`).
+            // Отпечаток есть `phys=<версия>;<хэш геометрии и настроек>`, и по
+            // нему видно, РАСХОДИТСЯ ли физика или геометрия: 31.08.2026 матрица,
+            // посчитанная из `G1S_point5.in`, не принялась спектром корпуса, и
+            // без печати клейм причину пришлось бы угадывать.
+            Console.WriteLine("     A: {0}", a.Stamp ?? "(нет)");
+            Console.WriteLine("     B: {0}", b.Stamp ?? "(нет)");
+            Console.WriteLine("  настройки, которыми матрицы считались:");
+            Console.WriteLine("     A: {0}", Describe(a.Options));
+            Console.WriteLine("     B: {0}", Describe(b.Options));
+        }
         Console.WriteLine();
 
         int n = live.Count;
@@ -269,6 +282,23 @@ static class MatrixDiffProbe
         double s2 = 0.0;
         foreach (double x in v) s2 += (x - mean) * (x - mean);
         error = Math.Sqrt(s2 / (v.Length - 1) / v.Length);
+    }
+
+    /// <summary>
+    /// Настройки, которыми матрица считалась. Нужны рядом с клеймом: клеймо
+    /// хэширует геометрию И настройки, поэтому «клейма РАЗНЫЕ» само по себе не
+    /// говорит, разошлась ли сцена или ключи счёта (`T111`).
+    /// </summary>
+    static string Describe(ResponseMatrixOptions o)
+    {
+        if (o == null)
+        {
+            return "(в файле нет)";
+        }
+
+        return string.Format(CultureInfo.InvariantCulture,
+                             "узлов {0}, {1:G6}–{2:G6} кэВ, бин {3:G6} кэВ, историй {4}",
+                             o.NodeCount, o.MinEnergyKev, o.MaxEnergyKev, o.BinKev, o.Histories);
     }
 
     /// <summary>
