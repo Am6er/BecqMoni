@@ -56,6 +56,30 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Занят ли прибор с этим `guid` идущим измерением.
+        ///
+        /// ⛔ `A17`. Признак не выдуман: аренда <c>deviceLeases</c> заводится в
+        /// <see cref="StartRecording"/> / <see cref="AttachToDevice"/> и
+        /// снимается на остановке, закрытии документа и удалении спектра. Здесь
+        /// у неё появляется ВТОРОЙ читатель — кнопка «Troubleshoot» настройки
+        /// прибора, которая прежде убивала занятый прибор, не спрашивая
+        /// (<c>RadiaCodeIn.TryClaimForTroubleshoot</c> и близнец у Obsidian).
+        ///
+        /// ⚠ Чтение, и только чтение: аренду этот метод не берёт и не отдаёт.
+        /// </summary>
+        public static bool IsDeviceBusy(string guid)
+        {
+            if (string.IsNullOrEmpty(guid))
+            {
+                return false;
+            }
+            lock (deviceLeaseLock)
+            {
+                return deviceLeases.ContainsKey(guid);
+            }
+        }
+
         // Idempotent lease release for teardown paths (document close / spectrum delete).
         // The lease used to be released only from StopRecording()/DetachFromDevice(), both
         // of which the close/delete callers skip once ResultDataStatus.Recording has been

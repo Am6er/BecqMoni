@@ -194,6 +194,90 @@ namespace BecquerelMonitor
             }
         }
 
+        // ⛔ `A15`, разряд 1. Близнец того же поля в `RadiaCodeIn`: причина, по
+        //    которой прибор перестал отдавать спектр. `sendTroubleShoot` путём к
+        //    человеку не является — он молчит без флага `trshoot` И без
+        //    подписчика, а подписчик один: окно настройки прибора, которое
+        //    отписывается сразу по окончании разбора
+        //    (`ObsidianDeviceForm.cs:307`).
+        private volatile string lastFailure = "";
+
+        /// <summary>
+        /// Последний отказ этого экземпляра, пустая строка — отказов не было
+        /// либо данные снова идут.
+        /// </summary>
+        public string LastFailure
+        {
+            get { return this.lastFailure ?? ""; }
+        }
+
+        void setFailure(string text)
+        {
+            this.lastFailure = text ?? "";
+        }
+
+        void clearFailure()
+        {
+            this.lastFailure = "";
+        }
+
+        /// <summary>
+        /// Отказ ЖИВОГО экземпляра с этим `guid`; пустая строка, если
+        /// экземпляра нет или он молчит без отказа.
+        ///
+        /// ⚠ Нарочно НЕ <see cref="getInstance"/>: фабрика создаёт экземпляр,
+        /// когда его нет, и поднимает ему потоки BLE. Читатель — таймер
+        /// отрисовки, зовущий этот метод каждые 200 мс.
+        /// </summary>
+        public static string GetFailure(string guid)
+        {
+            if (string.IsNullOrEmpty(guid))
+            {
+                return "";
+            }
+            lock (instancesLock)
+            {
+                foreach (ObsidianIn instance in instances)
+                {
+                    if (instance != null && guid.Equals(instance.GUID))
+                    {
+                        return instance.LastFailure;
+                    }
+                }
+            }
+            return "";
+        }
+
+        /// <summary>
+        /// Захватить прибор под разбор («Troubleshoot») — и ОТКАЗАТЬ, если он
+        /// ЗАНЯТ измерением. Близнец <c>RadiaCodeIn.TryClaimForTroubleshoot</c>,
+        /// разбор беды там же (строка `A17`).
+        /// </summary>
+        public static bool TryClaimForTroubleshoot(string guid, string deviceName, out string refusal, out bool wasRunning)
+        {
+            refusal = null;
+            wasRunning = false;
+            if (MeasurementController.IsDeviceBusy(guid))
+            {
+                refusal = string.Format(BecquerelMonitor.Properties.Resources.ERRTroubleshootDeviceBusy,
+                    string.IsNullOrEmpty(deviceName) ? guid : deviceName);
+                return false;
+            }
+            foreach (ObsidianIn instance in getAllInstances())
+            {
+                if (instance != null && instance.GUID == guid)
+                {
+                    wasRunning = true;
+                    break;
+                }
+            }
+            if (wasRunning)
+            {
+                cleanUp(guid);
+            }
+            return true;
+        }
+
         // --- Troubleshoot diagnostic helpers (used only on the troubleshoot path) ---
         private static long ElapsedMs(Stopwatch sw)
         {
@@ -285,6 +369,11 @@ namespace BecquerelMonitor
         public void sendCommand(string command)
         {
             Trace.WriteLine("Command sent: " + command);
+            // Новая попытка человека — прежняя причина отказа больше не про неё.
+            if (command == "Start")
+            {
+                clearFailure();
+            }
             switch (command)
             {
                 case "Start":
@@ -904,6 +993,8 @@ namespace BecquerelMonitor
                                 elapsedTime = packet.TIME_S;
                                 sendTroubleShoot($"Packet received. total={packet.Counter}, extra={packet.ExtraBytesCount}, trailer={packet.TrailerValue}");
                             }
+                            // Данные снова идут — прежняя причина отказа снята.
+                            clearFailure();
                             sendTroubleShoot($"Spectrum real time: {elapsedTime}");
                             spectrum.CopyTo(hystogram_buffered, 0);
                             long sum = hystogram_buffered.Sum(i => (long)i);
@@ -933,6 +1024,11 @@ namespace BecquerelMonitor
                         {
                             Trace.WriteLine($"Spectrum polling exception: {ex.Message} {ex.StackTrace}");
                             sendTroubleShoot($"Spectrum polling exception: {ex.Message}");
+                            // ⛔ `A15`. Прибор перестал отдавать спектр ПОСРЕДИ
+                            //    измерения. Читатель — строка состояния
+                            //    (`MainForm.DeviceFailureTail`); окно поднимать
+                            //    здесь нельзя, это путь измерения (`S100`).
+                            setFailure(ex.Message);
                             setStatus(State.Reconnecting);
                         }
                         break;

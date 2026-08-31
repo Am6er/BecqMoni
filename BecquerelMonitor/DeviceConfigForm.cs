@@ -1560,8 +1560,6 @@ namespace BecquerelMonitor
                             device = new RadiaCodeIn(this.activeDeviceConfig.Guid);
                             device.setDeviceSerial(rc_config.DeviceSerial, rc_config.AddressBLE);
                         }
-                        string status_msg = "";
-
                         try
                         {
                             device.setCalibration(polynomialEnergyCalibration);
@@ -1604,7 +1602,13 @@ namespace BecquerelMonitor
                         }
                         else
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                            // ⛔ `A15`. Здесь стояла склейка с `status_msg`,
+                            //    которая в ЭТОЙ ветви заводилась пустой и не
+                            //    заполнялась ничем: человек получал «Ошибка
+                            //    записи коэффициентов» и пустую строку под ней.
+                            //    Причину знает сам прибор — разбор у
+                            //    `RadiaCodeIn.CalibrationFailureText`.
+                            ShowOwnedMessageBox(RadiaCodeIn.CalibrationFailureText(device));
                         }
                     }
                     catch (Exception ex)

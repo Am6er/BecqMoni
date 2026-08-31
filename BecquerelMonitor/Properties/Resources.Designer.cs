@@ -5520,6 +5520,42 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERROpenLinkFailure", resourceCulture);
             }
         }
-        
+
+        public static string MenuShowLog {
+            get {
+                return ResourceManager.GetString("MenuShowLog", resourceCulture);
+            }
+        }
+
+        public static string ERROpenLogFailure {
+            get {
+                return ResourceManager.GetString("ERROpenLogFailure", resourceCulture);
+            }
+        }
+
+        public static string ERRBTEnableFailed {
+            get {
+                return ResourceManager.GetString("ERRBTEnableFailed", resourceCulture);
+            }
+        }
+
+        public static string VCPDeviceStatusReason {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusReason", resourceCulture);
+            }
+        }
+
+        public static string ERRTroubleshootDeviceBusy {
+            get {
+                return ResourceManager.GetString("ERRTroubleshootDeviceBusy", resourceCulture);
+            }
+        }
+
+        public static string ERRDeviceNoData {
+            get {
+                return ResourceManager.GetString("ERRDeviceNoData", resourceCulture);
+            }
+        }
+
     }
 }

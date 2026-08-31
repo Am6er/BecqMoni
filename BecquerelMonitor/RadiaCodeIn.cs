@@ -98,6 +98,145 @@ namespace BecquerelMonitor
             }
         }
 
+        // ⛔ `A15`, разряд 1. Последний отказ прибора — то, ЧЕМ он объясняет
+        //    отсутствие данных. До этой правки причина уходила только в
+        //    `Trace.WriteLine` и в `sendTroubleShoot`, а последний молчит без
+        //    флага `trshoot` И без подписчика (подписчики — только окна
+        //    настройки прибора, отписывающиеся сразу по окончании разбора,
+        //    `RadiaCodeDeviceForm.cs:279`). При закрытой настройке отказ не
+        //    доходил никуда.
+        //
+        //    Читателей у поля два, и оба живые: строка состояния
+        //    (`MainForm.DeviceFailureTail`) в пути измерения — окно там
+        //    поднимать нельзя (закрытая `S100`), — и окно записи коэффициентов
+        //    (`DeviceConfigForm` через `CalibrationFailureText`), которое
+        //    прежде показывало «Ошибка записи коэффициентов» с ПУСТОЙ причиной.
+        private volatile string lastFailure = "";
+
+        /// <summary>
+        /// Последний отказ этого экземпляра, пустая строка — отказов не было
+        /// либо данные снова идут.
+        /// </summary>
+        public string LastFailure
+        {
+            get { return this.lastFailure ?? ""; }
+        }
+
+        void setFailure(string text)
+        {
+            this.lastFailure = text ?? "";
+        }
+
+        void clearFailure()
+        {
+            this.lastFailure = "";
+        }
+
+        /// <summary>
+        /// Отказ ЖИВОГО экземпляра с этим `guid`; пустая строка, если
+        /// экземпляра нет или он молчит без отказа.
+        ///
+        /// ⚠ Нарочно НЕ <see cref="getInstance"/>: фабрика создаёт экземпляр,
+        /// когда его нет, и поднимает ему потоки BLE. Читатель у этого метода —
+        /// таймер отрисовки, зовущий его каждые 200 мс.
+        /// </summary>
+        public static string GetFailure(string guid)
+        {
+            if (string.IsNullOrEmpty(guid))
+            {
+                return "";
+            }
+            lock (instancesLock)
+            {
+                foreach (RadiaCodeIn s in instances)
+                {
+                    if (s != null && guid.Equals(s.GUID))
+                    {
+                        return s.LastFailure;
+                    }
+                }
+            }
+            return "";
+        }
+
+        /// <summary>
+        /// Текст отказа записи коэффициентов в прибор — С ПРИЧИНОЙ.
+        ///
+        /// ⛔ `A15`, разряд 1, место <c>RadiaCodeIn.cs</c> «Calibration write
+        /// exception». ⚠ Посылка строки была НЕ ВПОЛНЕ верна и поправлена
+        /// чтением: человек НЕ думает, что калибровка записана, — окно записи
+        /// ждёт состояния «Calibration done» десять секунд, не дожидается (в
+        /// отказе состояние уходит в <c>Reconnecting</c>) и показывает
+        /// «Ошибка записи коэффициентов». Беда в другом: ПРИЧИНЫ в этом окне
+        /// не было ВОВСЕ — в ветви RadiaCode переменная <c>status_msg</c>
+        /// заводилась пустой и не заполнялась ничем, то есть к сообщению
+        /// приклеивалась пустая строка.
+        ///
+        /// ⚠ Причина берётся у самого прибора (<see cref="LastFailure"/>), и
+        /// она не может быть чужой: <see cref="sendCommand"/> на команде
+        /// «Calibration» стирает прежнюю, а ставит новую только этот отказ.
+        ///
+        /// ⚠ Метод статический и живёт здесь, у владельца отказа, НАРОЧНО: так
+        /// его берёт проба приёмки, не поднимая окна настройки прибора.
+        /// </summary>
+        internal static string CalibrationFailureText(RadiaCodeIn device)
+        {
+            string head = BecquerelMonitor.Properties.Resources.ERRUploadCoefficeintsToDevice;
+            string reason = device == null ? "" : device.LastFailure;
+            if (string.IsNullOrEmpty(reason))
+            {
+                return head;
+            }
+            return head + Environment.NewLine + reason;
+        }
+
+        /// <summary>
+        /// Захватить прибор под разбор («Troubleshoot») — и ОТКАЗАТЬ, если он
+        /// ЗАНЯТ измерением.
+        ///
+        /// ⛔ `A17`. Кнопка разбора обходила живые экземпляры и на совпадении
+        /// `guid` звала <see cref="cleanUp"/>, не спрашивая никого: тот вынимает
+        /// экземпляр из списка и делает `Dispose`. Путь измерения держит прибор
+        /// НЕ ссылкой, а достаёт заново по `guid`
+        /// (<c>RadiaCodeDeviceController</c>), поэтому после разбора он молча
+        /// получал СВЕЖИЙ, ещё не подключённый экземпляр, а поток чтения
+        /// прежнего был уже убит. Того же рода, что закрытая `S100`: набор идёт,
+        /// счётчик тикает, данных нет.
+        ///
+        /// ⚠ Занятость берётся не выдуманная: `MeasurementController` ведёт
+        /// ИСКЛЮЧИТЕЛЬНУЮ аренду прибора по `guid` конфигурации
+        /// (<c>deviceLeases</c>), заводимую на старте измерения и снимаемую на
+        /// остановке. Это ровно тот признак, которого не хватало.
+        ///
+        /// Возвращает false и текст отказа для человека; true — прибор свободен
+        /// и уже освобождён (<paramref name="wasRunning"/> говорит, был ли
+        /// экземпляр).
+        /// </summary>
+        public static bool TryClaimForTroubleshoot(string guid, string deviceName, out string refusal, out bool wasRunning)
+        {
+            refusal = null;
+            wasRunning = false;
+            if (MeasurementController.IsDeviceBusy(guid))
+            {
+                refusal = string.Format(BecquerelMonitor.Properties.Resources.ERRTroubleshootDeviceBusy,
+                    string.IsNullOrEmpty(deviceName) ? guid : deviceName);
+                return false;
+            }
+            foreach (RadiaCodeIn instance in getAllInstances())
+            {
+                if (instance != null && instance.GUID == guid)
+                {
+                    wasRunning = true;
+                    break;
+                }
+            }
+            if (wasRunning)
+            {
+                cleanUp(guid);
+            }
+            return true;
+        }
+
         private void setStatus(State state)
         {
             string nextStatus;
@@ -636,6 +775,11 @@ namespace BecquerelMonitor
         public void sendCommand(string command)
         {
             Trace.WriteLine("Command sent: " + command);
+            // Новая попытка человека — прежняя причина отказа больше не про неё.
+            if (command == "Start" || command == "Calibration")
+            {
+                clearFailure();
+            }
             switch (command)
             {
                 case "Start": setStatus(State.Starting); break;
@@ -962,6 +1106,12 @@ namespace BecquerelMonitor
                         {
                             Trace.WriteLine($"Calibration write exception: {ex.Message} {ex.StackTrace}");
                             sendTroubleShoot($"Calibration write failed: {ex.Message}");
+                            // ⛔ `A15`. Калибровка НЕ записана в прибор. Причину
+                            //    читает окно записи коэффициентов через
+                            //    `CalibrationFailureText` — до этой правки оно
+                            //    показывало отказ с ПУСТОЙ причиной (разбор у
+                            //    того метода).
+                            setFailure(ex.Message);
                             calibration_sent = false;
                             setStatus(State.Reconnecting);
                         }
@@ -1050,6 +1200,9 @@ namespace BecquerelMonitor
                                 elapsedTime = (int)packet.TIME_S;
                             }
                             sendTroubleShoot("Packet recieved");
+                            // Данные снова идут — прежняя причина отказа снята,
+                            // и строка состояния перестаёт кричать о ней.
+                            clearFailure();
                             sendTroubleShoot($"Spectrum real time: {elapsedTime}");
                             sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
                             spectrum.CopyTo(hystogram_buffered, 0);
@@ -1080,6 +1233,11 @@ namespace BecquerelMonitor
                         {
                             Trace.WriteLine($"Spectrum polling exception: {ex.Message} {ex.StackTrace}");
                             sendTroubleShoot($"Spectrum polling exception: {ex.Message}");
+                            // ⛔ `A15`. Прибор перестал отдавать спектр ПОСРЕДИ
+                            //    измерения. Читатель — строка состояния
+                            //    (`MainForm.DeviceFailureTail`); окно поднимать
+                            //    здесь нельзя, это путь измерения (`S100`).
+                            setFailure(ex.Message);
                             setStatus(State.Reconnecting);
                         }
                         break;

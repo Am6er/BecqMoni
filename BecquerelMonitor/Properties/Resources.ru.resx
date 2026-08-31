@@ -2021,4 +2021,24 @@ http://xptable.sourceforge.net/</value>
     <value>Ссылку "{0}" не удалось открыть.
 ({1})</value>
   </data>
+  <data name="MenuShowLog" xml:space="preserve">
+    <value>Показать журнал</value>
+  </data>
+  <data name="ERROpenLogFailure" xml:space="preserve">
+    <value>Журнал «{0}» не удалось показать.
+({1})</value>
+  </data>
+  <data name="ERRBTEnableFailed" xml:space="preserve">
+    <value>Не удалось включить Bluetooth: {0}
+Включите его в параметрах Windows и повторите поиск.</value>
+  </data>
+  <data name="VCPDeviceStatusReason" xml:space="preserve">
+    <value>Причина: {0}</value>
+  </data>
+  <data name="ERRTroubleshootDeviceBusy" xml:space="preserve">
+    <value>Прибор «{0}» сейчас пишет спектр. Разбор забирает связь с прибором себе, и идущее измерение продолжит считать время, не получая данных. Сначала остановите то измерение.</value>
+  </data>
+  <data name="ERRDeviceNoData" xml:space="preserve">
+    <value>ПРИБОР НЕ ОТДАЁТ ДАННЫЕ: {0}</value>
+  </data>
 </root>

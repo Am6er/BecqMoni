@@ -92,6 +92,7 @@ namespace BecquerelMonitor
             this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manualMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.UpdatesAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.versionInfoAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -612,6 +613,7 @@ namespace BecquerelMonitor
             this.manualMToolStripMenuItem,
             this.toolStripSeparator3,
             this.UpdatesAToolStripMenuItem,
+            this.showLogToolStripMenuItem,
             this.versionInfoAToolStripMenuItem});
             this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
             resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
@@ -632,9 +634,14 @@ namespace BecquerelMonitor
             this.UpdatesAToolStripMenuItem.Name = "UpdatesAToolStripMenuItem";
             resources.ApplyResources(this.UpdatesAToolStripMenuItem, "UpdatesAToolStripMenuItem");
             this.UpdatesAToolStripMenuItem.Click += new System.EventHandler(this.UpdatesAToolStripMenuItem_Click);
-            // 
+            //
+            // showLogToolStripMenuItem
+            //
+            this.showLogToolStripMenuItem.Name = "showLogToolStripMenuItem";
+            this.showLogToolStripMenuItem.Click += new System.EventHandler(this.showLogToolStripMenuItem_Click);
+            //
             // versionInfoAToolStripMenuItem
-            // 
+            //
             this.versionInfoAToolStripMenuItem.Name = "versionInfoAToolStripMenuItem";
             resources.ApplyResources(this.versionInfoAToolStripMenuItem, "versionInfoAToolStripMenuItem");
             this.versionInfoAToolStripMenuItem.Click += new System.EventHandler(this.versionInfoAToolStripMenuItem_Click);
@@ -772,6 +779,12 @@ namespace BecquerelMonitor
 
 		// Token: 0x0400059C RID: 1436
 		global::System.Windows.Forms.ToolStripMenuItem manualMToolStripMenuItem;
+
+		// ⛔ `A15`. Читатель журнала приложения. Подпись и доступность ставит
+		//    `MainForm.InitializeAppLogMenuItem()` — не `resources.ApplyResources`:
+		//    строка живёт в `Properties/Resources` (обе культуры), а доступность
+		//    зависит от того, завёлся ли журнал.
+		global::System.Windows.Forms.ToolStripMenuItem showLogToolStripMenuItem;
 
 		// Token: 0x0400059D RID: 1437
 		global::System.Windows.Forms.ToolStripSeparator toolStripSeparator3;

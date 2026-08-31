@@ -29,6 +29,7 @@ namespace BecquerelMonitor
         public MainForm()
         {
             this.InitializeComponent();
+            this.InitializeAppLogMenuItem();
             this.InitializeDockPanelTheme();
         }
 
@@ -171,6 +172,7 @@ namespace BecquerelMonitor
             this.doseRateManager = new DoseRateManager(this.globalConfigManager);
             this.countsRateManager = new CountsRateManager();
             this.InitializeComponent();
+            this.InitializeAppLogMenuItem();
             this.InitializeDockPanelTheme();
             base.Icon = BecquerelMonitor.Properties.Resources.becqmoni;
             this.toolStripMenuItem7.Visible = false;
@@ -549,11 +551,11 @@ namespace BecquerelMonitor
                     }
                     if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is RadiaCodeDeviceController)
                     {
-                        SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                        SetStatusTextCenter($"Radiacode BLE status: {activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(activeDocument.ActiveResultData)}", false);
                     }
                     if (activeDocument != null && activeDocument.ActiveResultData.MeasurementController.DeviceController is ObsidianDeviceController)
                     {
-                        SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}", false);
+                        SetStatusTextCenter($"Obsidian BLE status: {activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(activeDocument.ActiveResultData)}", false);
                     }
                 }
                 this.countChart += 100;
@@ -703,12 +705,12 @@ namespace BecquerelMonitor
                 }
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
-                    SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    SetStatusTextCenter($"Radiacode BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(this.activeDocument.ActiveResultData)}", false);
                     return;
                 }
                 if (this.activeDocument.ActiveResultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
                 {
-                    SetStatusTextCenter($"Obsidian BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}", false);
+                    SetStatusTextCenter($"Obsidian BLE status: {this.activeDocument.ActiveResultData.DetectorFeature}{DeviceFailureTail(this.activeDocument.ActiveResultData)}", false);
                     return;
                 }
             }
@@ -1688,6 +1690,116 @@ namespace BecquerelMonitor
             {
                 Owner = this
             }.ShowDialog();
+        }
+
+        /// <summary>
+        /// Подпись и доступность пункта «Показать журнал».
+        ///
+        /// ⛔ `A15`, вторая половина. Журнал заведён (<see cref="AppLog"/>), но до
+        /// этой правки человек не знал, ГДЕ он лежит, и найти его не мог — то
+        /// есть болезнь «у отказа нет читателя» осталась ровно там, ради чего
+        /// строка и заводилась.
+        ///
+        /// Подпись ставится кодом, а не <c>resources.ApplyResources</c>: строка
+        /// живёт в паре <c>Properties/Resources.resx</c> / <c>.ru.resx</c>, а
+        /// культура выбрана выше по конструктору, ДО <c>InitializeComponent</c>.
+        /// Смена языка в приложении требует перезапуска
+        /// (<c>RestartRequiredMessage</c>), поэтому разового вызова достаточно.
+        ///
+        /// Пустой <see cref="AppLog.Path"/> — признак того, что журнал завести
+        /// не удалось; пункт на нём гаснет, а не лжёт пустым окном проводника.
+        /// </summary>
+        void InitializeAppLogMenuItem()
+        {
+            if (this.showLogToolStripMenuItem == null)
+            {
+                return;
+            }
+            this.showLogToolStripMenuItem.Text = Resources.MenuShowLog;
+            this.showLogToolStripMenuItem.Enabled = !string.IsNullOrEmpty(AppLog.Path);
+        }
+
+        /// <summary>
+        /// Показать журнал в проводнике.
+        ///
+        /// ⚠ Открывается КАТАЛОГ с выделенным файлом, а не сам файл: у
+        /// <c>.log</c> может не быть обработчика вовсе, а рядом лежит
+        /// подрезанный <c>becqmoni.log.1</c>, который человеку тоже нужен.
+        ///
+        /// ⚠ Отказ НАЗЫВАЕТСЯ, как это делает <c>AboutForm.OpenLink</c>
+        /// (закрытая `A14`), а не глотается пустым <c>catch</c>: щелчок, после
+        /// которого не произошло ничего, — это ровно та беда, что чинится.
+        /// </summary>
+        void showLogToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string path = AppLog.Path;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+            try
+            {
+                Process.Start("explorer.exe", "/select,\"" + path + "\"");
+            }
+            catch (Exception ex)
+            {
+                AppUi.Report(string.Format(Resources.ERROpenLogFailure, path, ex.Message),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+            }
+        }
+
+        /// <summary>
+        /// Хвост строки состояния: то, чем прибор ОБЪЯСНЯЕТ отсутствие данных.
+        ///
+        /// ⛔ `A15`, разряд 1, два места в ПУТИ ИЗМЕРЕНИЯ —
+        /// <c>RadiaCodeIn</c> «Spectrum polling exception» и близнец у
+        /// <c>ObsidianIn</c>. Окно там поднимать нельзя (закрытая `S100`), а
+        /// молчания достаточно, чтобы человек час собирал пустой спектр:
+        /// состояние в строке уже меняется на «Reconnecting», но ПРИЧИНЫ в нём
+        /// нет, и постоянный отказ выглядит как мгновенная заминка.
+        ///
+        /// Место выбрано то, где слово уже стоит и обновляется каждые 200 мс, —
+        /// середина строки состояния (<see cref="SetStatusTextCenter"/>).
+        /// Пустая строка возвращается, когда прибора нет или он молчит без
+        /// отказа, — тогда строка состояния остаётся прежней.
+        /// </summary>
+        internal static string DeviceFailureTail(string failure)
+        {
+            if (string.IsNullOrEmpty(failure))
+            {
+                return string.Empty;
+            }
+            return " — " + string.Format(Resources.ERRDeviceNoData, failure);
+        }
+
+        /// <summary>
+        /// Тот же хвост, но по спектру: находит ЖИВОЙ экземпляр прибора этого
+        /// спектра и спрашивает его о последнем отказе.
+        ///
+        /// ⚠ Спрашивается <c>GetFailure</c>, а не <c>getInstance</c>: фабрика
+        /// СОЗДАЁТ экземпляр, если его нет, а звать её из таймера отрисовки
+        /// каждые 200 мс — значит поднимать прибору потоки BLE на пустом месте.
+        /// </summary>
+        internal static string DeviceFailureTail(ResultData resultData)
+        {
+            if (resultData == null || resultData.DeviceConfig == null)
+            {
+                return string.Empty;
+            }
+            string guid = resultData.DeviceConfig.Guid;
+            if (string.IsNullOrEmpty(guid))
+            {
+                return string.Empty;
+            }
+            if (resultData.DeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig)
+            {
+                return DeviceFailureTail(RadiaCodeIn.GetFailure(guid));
+            }
+            if (resultData.DeviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+            {
+                return DeviceFailureTail(ObsidianIn.GetFailure(guid));
+            }
+            return string.Empty;
         }
 
         void UpdatesAToolStripMenuItem_Click(object sender, EventArgs e)

@@ -76,7 +76,19 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                ReportBtEnableFailure(ex);
             }
+        }
+
+        /// <summary>
+        /// Сказать человеку, что Bluetooth включить не вышло. Близнец
+        /// <c>RadiaCodeDeviceForm.ReportBtEnableFailure</c>, разбор там же
+        /// (строка `A15`, разряд 1).
+        /// </summary>
+        internal static void ReportBtEnableFailure(Exception ex)
+        {
+            AppUi.Report(string.Format(Resources.ERRBTEnableFailed, ex == null ? "" : ex.Message),
+                Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
         }
 
         private async void ScanBLEDevices()
@@ -277,18 +289,22 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            // ⛔ `A17`. Разбор забирает связь с прибором себе; разбор беды и
+            //    довод — у близнеца в `RadiaCodeDeviceForm.troubleShootbtn_Click`.
+            string refusal;
+            bool wasRunning;
+            if (!ObsidianIn.TryClaimForTroubleshoot(deviceConfigForm.ActiveDeviceConfig.Guid,
+                    deviceConfigForm.ActiveDeviceConfig.Name, out refusal, out wasRunning))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                return;
+            }
             troubleShootbtn.Enabled = false;
             TroubleshootText.Clear();
             tshootText = "";
-            List<ObsidianIn> instances = ObsidianIn.getAllInstances();
-            foreach (ObsidianIn instance in instances)
+            if (wasRunning)
             {
-                if (instance.GUID == deviceConfigForm.ActiveDeviceConfig.Guid)
-                {
-                    tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}";
-                    ObsidianIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
-                    break;
-                }
+                tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}";
             }
             tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}";
             ObsidianIn obsidianIn = ObsidianIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
