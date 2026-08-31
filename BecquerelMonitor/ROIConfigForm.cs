@@ -177,7 +177,11 @@ namespace BecquerelMonitor
             DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MSGDeleteROIConfig, this.activeROIConfig.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.DeleteConfig(this.activeROIConfig);
+                // ⛔ `A19`, довод — у близнеца в `DeviceConfigForm`.
+                if (!this.manager.DeleteConfig(this.activeROIConfig))
+                {
+                    return;
+                }
                 this.activeROIConfig = null;
                 this.EnableForm(false);
                 this.ListupConfigFiles();
@@ -534,7 +538,7 @@ namespace BecquerelMonitor
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(roidefinitionData.Name, roidefinitionData.Enabled));
-                string text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " keV";
+                string text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " " + Resources.kev;
                 row.Cells.Add(new Cell(text));
                 row.Cells.Add(new Cell(roidefinitionData.ROIPrimitives.Count.ToString()));
                 row.Tag = roidefinitionData;
@@ -558,7 +562,7 @@ namespace BecquerelMonitor
                 ROIDefinitionData roidefinitionData = (ROIDefinitionData)row.Tag;
                 row.Cells[0].Checked = roidefinitionData.Enabled;
                 row.Cells[0].Text = roidefinitionData.Name;
-                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " keV";
+                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " " + Resources.kev;
                 row.Cells[2].Text = roidefinitionData.ROIPrimitives.Count.ToString();
             }
             this.table1.EndUpdate();
@@ -800,7 +804,7 @@ namespace BecquerelMonitor
                     roisimpleDifferenceData.LowerLimit,
                     " - ",
                     roisimpleDifferenceData.UpperLimit,
-                    " keV"
+                    " " + Resources.kev
                 });
             }
             else if (prim is ROICovellMethodData)
@@ -811,7 +815,7 @@ namespace BecquerelMonitor
                     roicovellMethodData.LowerLimit,
                     " - ",
                     roicovellMethodData.UpperLimit,
-                    " keV"
+                    " " + Resources.kev
                 });
             }
             else if (prim is ROIReferenceData)
