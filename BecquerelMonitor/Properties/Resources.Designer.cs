@@ -4239,6 +4239,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ActivityLowYieldRefused {
+            get {
+                return ResourceManager.GetString("ActivityLowYieldRefused", resourceCulture);
+            }
+        }
+
         public static string BqCoeffTipAuto {
             get {
                 return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
