@@ -5581,5 +5581,41 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ERRObsCalNoAddress {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoAddress", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoDevice {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoDevice", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoService {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoService", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoCharacteristics {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoCharacteristics", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalBadCalibration {
+            get {
+                return ResourceManager.GetString("ERRObsCalBadCalibration", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalWriteRejected {
+            get {
+                return ResourceManager.GetString("ERRObsCalWriteRejected", resourceCulture);
+            }
+        }
+
     }
 }

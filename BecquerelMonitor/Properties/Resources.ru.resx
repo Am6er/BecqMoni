@@ -2053,4 +2053,22 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRBTNoAdapter" xml:space="preserve">
     <value>адаптер Bluetooth не найден</value>
   </data>
+  <data name="ERRObsCalNoAddress" xml:space="preserve">
+    <value>адрес прибора не задан</value>
+  </data>
+  <data name="ERRObsCalNoDevice" xml:space="preserve">
+    <value>прибор по этому адресу не найден</value>
+  </data>
+  <data name="ERRObsCalNoService" xml:space="preserve">
+    <value>у прибора нет службы настроек</value>
+  </data>
+  <data name="ERRObsCalNoCharacteristics" xml:space="preserve">
+    <value>поля калибровки у прибора недоступны</value>
+  </data>
+  <data name="ERRObsCalBadCalibration" xml:space="preserve">
+    <value>калибровка пуста или слишком низкого порядка</value>
+  </data>
+  <data name="ERRObsCalWriteRejected" xml:space="preserve">
+    <value>прибор отверг запись: {0}</value>
+  </data>
 </root>

@@ -1267,6 +1267,23 @@ namespace BecquerelMonitor
         private const string OBS_CALIBRATION_A1 = "fe641622-00b0-4240-ba50-05ca45bf8aaa";
         private const string OBS_CALIBRATION_A2 = "fe641623-00b0-4240-ba50-05ca45bf8aaa";
 
+        /// <summary>
+        /// Почему сорвалась последняя попытка; пустая строка — не срывалась.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `A20`. Прежде <see cref="Connect"/> и
+        /// <see cref="WriteCalibration"/> отдавали голое <c>false</c> в пяти
+        /// местах — без причины и БЕЗ `Trace` вовсе, то есть даже в журнал
+        /// (`A15`) не попадало ничего. Окно записи коэффициентов показывало
+        /// `ERRUploadCoefficeintsToDevice` без единого слова о том, что
+        /// случилось, и человеку оставалось гадать: не тот адрес, прибор не
+        /// на связи, прибор без нужной службы или он отверг запись.
+        ///
+        /// Починить это приёмом `A15` было НЕЛЬЗЯ: там доставляли уже
+        /// имеющуюся причину, а здесь её не было в природе.
+        /// </remarks>
+        public string LastFailure { get; private set; }
+
         private BluetoothLEDevice device;
         private GattDeviceService settingsService;
         private GattCharacteristic a0Characteristic;
@@ -1275,8 +1292,10 @@ namespace BecquerelMonitor
 
         public bool Connect(string addressBle)
         {
+            this.LastFailure = "";
             if (string.IsNullOrWhiteSpace(addressBle))
             {
+                this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalNoAddress;
                 return false;
             }
 
@@ -1285,6 +1304,7 @@ namespace BecquerelMonitor
             device = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addressBle)).AsTask().GetAwaiter().GetResult();
             if (device == null)
             {
+                this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalNoDevice;
                 return false;
             }
 
@@ -1292,6 +1312,7 @@ namespace BecquerelMonitor
                 device.GetGattServicesForUuidAsync(Guid.Parse(OBS_SETTINGS_SERVICE)).AsTask().GetAwaiter().GetResult();
             if (serviceResult == null || serviceResult.Status != GattCommunicationStatus.Success || serviceResult.Services.Count == 0)
             {
+                this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalNoService;
                 return false;
             }
 
@@ -1321,19 +1342,24 @@ namespace BecquerelMonitor
 
         public bool WriteCalibration(PolynomialEnergyCalibration calibration)
         {
+            this.LastFailure = "";
             if (calibration == null || calibration.Coefficients == null || calibration.PolynomialOrder < 2 || calibration.Coefficients.Length < 3)
             {
+                this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalBadCalibration;
                 return false;
             }
 
             if (a0Characteristic == null || a1Characteristic == null || a2Characteristic == null)
             {
+                this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalNoCharacteristics;
                 return false;
             }
 
-            return WriteFloatCharacteristic(a0Characteristic, (float)calibration.Coefficients[0])
-                && WriteFloatCharacteristic(a1Characteristic, (float)calibration.Coefficients[1])
-                && WriteFloatCharacteristic(a2Characteristic, (float)calibration.Coefficients[2]);
+            // Порядок сохранён: при отказе на первом коэффициенте остальные
+            // не пишутся, как и было. Изменилось одно — причина называется.
+            return WriteFloat(a0Characteristic, (float)calibration.Coefficients[0])
+                && WriteFloat(a1Characteristic, (float)calibration.Coefficients[1])
+                && WriteFloat(a2Characteristic, (float)calibration.Coefficients[2]);
         }
 
         private static void EnsureBluetoothEnabled()
@@ -1341,13 +1367,13 @@ namespace BecquerelMonitor
             RadioAccessStatus access = Radio.RequestAccessAsync().AsTask().GetAwaiter().GetResult();
             if (access != RadioAccessStatus.Allowed)
             {
-                throw new InvalidOperationException("Bluetooth access denied.");
+                throw new InvalidOperationException(BecquerelMonitor.Properties.Resources.ERRBTNotAllowed);
             }
 
             BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
             if (adapter == null)
             {
-                throw new InvalidOperationException("Bluetooth adapter not found.");
+                throw new InvalidOperationException(BecquerelMonitor.Properties.Resources.ERRBTNoAdapter);
             }
 
             Radio radio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
@@ -1388,12 +1414,22 @@ namespace BecquerelMonitor
             return BitConverter.ToSingle(buffer, 0);
         }
 
-        private static bool WriteFloatCharacteristic(GattCharacteristic characteristic, float value)
+        /// <summary>
+        /// Записать один коэффициент. ⚠ Метод перестал быть статическим
+        /// нарочно: причина отказа кладётся в <see cref="LastFailure"/>
+        /// экземпляра (`A20`), а статическому положить её некуда.
+        /// </summary>
+        private bool WriteFloat(GattCharacteristic characteristic, float value)
         {
             DataWriter writer = new DataWriter();
             writer.WriteBytes(BitConverter.GetBytes(value));
             GattCommunicationStatus status = characteristic.WriteValueAsync(writer.DetachBuffer()).AsTask().GetAwaiter().GetResult();
-            return status == GattCommunicationStatus.Success;
+            if (status != GattCommunicationStatus.Success)
+            {
+                this.LastFailure = string.Format(BecquerelMonitor.Properties.Resources.ERRObsCalWriteRejected, status);
+                return false;
+            }
+            return true;
         }
 
         public void Dispose()
