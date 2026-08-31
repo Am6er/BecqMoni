@@ -42770,6 +42770,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ActivityXrayRefused" xml:space="preserve">
     <value>element X-ray: no yield per decay</value>
   </data>
+  <data name="ActivityLowYieldRefused" xml:space="preserve">
+    <value>line yield below {0:0.#} % per decay: activity not shown</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
   </data>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -15,6 +15,18 @@ namespace BecquerelMonitor
 {
     public partial class EnergySpectrumView : UserControl
     {
+        /// <summary>
+        /// Выход линии, ниже которого активность по ней НЕ показывается, % на
+        /// распад родителя. Решение Amber 26.08.2026 (`S99`).
+        /// </summary>
+        /// <remarks>
+        /// ⚠ Число НЕ новое: это тот же порог, по которому уже отбираются
+        /// линии в нуклидный сет (`I_min` = 1 %). Одно число на проект вместо
+        /// двух — так решено сознательно, и менять его надо в обоих местах
+        /// либо не менять вовсе.
+        /// </remarks>
+        public const double MinimumActivityYieldPercent = 1.0;
+
         // Token: 0x1700017F RID: 383
         // (get) Token: 0x06000487 RID: 1159 RVA: 0x0001628C File Offset: 0x0001448C
         // (set) Token: 0x06000488 RID: 1160 RVA: 0x00016294 File Offset: 0x00014494
@@ -757,6 +769,34 @@ namespace BecquerelMonitor
                                 if (NuclideDefinition.IsElementXrayName(detectedPeak.Nuclide.Name))
                                 {
                                     analytics.ActivityRefusal = Resources.ActivityXrayRefused;
+                                }
+
+                                // ⛔ `S99`, РЕШЕНИЕ Amber 26.08.2026: активность
+                                // НЕ показывать, если выход линии ниже 1 % на
+                                // распад родителя — тем же числом, что уже
+                                // принято критерием отбора линий в нуклидный сет
+                                // (`I_min` = 1 %). Одно число на проект вместо
+                                // двух, и оно уже обосновано.
+                                //
+                                // Довод не в аккуратности: A = N·100/(ε·I), и
+                                // крошечное I в знаменателе превращает шум в
+                                // гигабеккерели. Спор соседей (выше) тут не
+                                // спасает — у слабой линии соседей в пике может
+                                // не быть вовсе, и он молчит.
+                                //
+                                // Цена измерена 28.08.2026 ПО САМОЙ библиотеке:
+                                // в поставочной `config/NuclideDefinition.xml`
+                                // из 73 видимых линий с проставленным выходом
+                                // ниже 1 % ровно ШЕСТЬ, и среди них обе, ради
+                                // которых строка заведена — Pu-238 152.0 кэВ
+                                // (I = 0.0009 %) и Pu-239 375.0 кэВ (0.0016 %).
+                                // Ни одна из шести не рентген, то есть с отказом
+                                // выше они не пересекаются: поводы независимы.
+                                else if (detectedPeak.Nuclide.Intencity < MinimumActivityYieldPercent)
+                                {
+                                    analytics.ActivityRefusal = string.Format(
+                                        Resources.ActivityLowYieldRefused,
+                                        MinimumActivityYieldPercent);
                                 }
 
                                 // ⚠ ЧЕГО ЭТИ ТРИ ПРИЗНАКА НЕ ЛОВЯТ — измерено тем же
