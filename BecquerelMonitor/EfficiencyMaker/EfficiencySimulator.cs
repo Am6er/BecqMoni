@@ -411,6 +411,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double LastContinuumRelativeError = -1.0;
 
+        /// <summary>
+        /// Прежняя мерка — ошибка ИНТЕГРАЛА континуума, 100/√N. Оставлена
+        /// рядом нарочно: по ней считаны все матрицы склада, и сравнивать
+        /// старое с новым надо в одной величине, а не пересказом.
+        /// </summary>
+        public double LastContinuumIntegralError = -1.0;
+
         readonly GeometryModel geometry;
         readonly List<Region> regions = new List<Region>();
 
@@ -3541,6 +3548,107 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// выбрасывают, но `relativeError` считается по тому же счёту и им
         /// нужен.
         /// </summary>
+        /// <summary>
+        /// Шум континуума ТАК, КАК ЕГО ВИДИТ МОДЕЛЬ: строка сворачивается с
+        /// профилем прибора, и относительная ошибка берётся у СВЁРНУТОЙ кривой
+        /// (`A39`, решение Amber 01.09.2026 «мерить после свёртки»).
+        ///
+        /// Континуум набирается аналогово (вес события ровно единица), поэтому
+        /// дисперсия бина — сам его счёт. Свёртка ядром K даёт
+        /// S(i) = Σ K(i−b)·n(b) и D(i) = Σ K(i−b)²·n(b); отношение √D / S и есть
+        /// та рябь, которую человек видит на графике.
+        ///
+        /// ⚠ Ядро — гауссиан по ПШПВ ГЕОМЕТРИИ
+        /// (<see cref="GeometryModel.FwhmAt662Percent"/>), а не по калибровке
+        /// спектра: матрица считается без спектра, своего разрешения у неё нет.
+        /// Разрешение не задано — возвращается прежняя оценка, а не выдуманная
+        /// ширина.
+        ///
+        /// ⚠ Берётся МЕДИАНА по бинам, где континуум заметен (выше сотой доли
+        /// максимума): у краёв строки счёт мал, и максимум относительной ошибки
+        /// описывал бы хвост, а не то, что видно.
+        /// </summary>
+        double SmearedContinuumError(double[] hist, int peak, double binKev, double energyKev)
+        {
+            double fwhmKev = 2.0 * this.geometry.PeakHalfWidthKev(energyKev);
+            if (!(fwhmKev > 0.0) || !(binKev > 0.0) || peak < 8)
+            {
+                return this.LastContinuumIntegralError;
+            }
+
+            double sigmaBins = fwhmKev / binKev / 2.354820045;
+            if (!(sigmaBins > 0.5))
+            {
+                return this.LastContinuumIntegralError;
+            }
+
+            int half = (int)Math.Ceiling(3.0 * sigmaBins);
+            double[] kernel = new double[2 * half + 1];
+            double norm = 0.0;
+            for (int k = -half; k <= half; k++)
+            {
+                double v = Math.Exp(-0.5 * k * k / (sigmaBins * sigmaBins));
+                kernel[k + half] = v;
+                norm += v;
+            }
+
+            for (int k = 0; k < kernel.Length; k++)
+            {
+                kernel[k] /= norm;
+            }
+
+            double[] value = new double[peak];
+            double[] variance = new double[peak];
+            for (int b = 0; b < peak; b++)
+            {
+                double n = hist[b];
+                if (!(n > 0.0))
+                {
+                    continue;
+                }
+
+                int from = Math.Max(0, b - half);
+                int to = Math.Min(peak - 1, b + half);
+                for (int i = from; i <= to; i++)
+                {
+                    double w = kernel[i - b + half];
+                    value[i] += w * n;
+                    variance[i] += w * w * n;
+                }
+            }
+
+            double top = 0.0;
+            for (int i = 0; i < peak; i++)
+            {
+                if (value[i] > top)
+                {
+                    top = value[i];
+                }
+            }
+
+            if (!(top > 0.0))
+            {
+                return this.LastContinuumIntegralError;
+            }
+
+            var seen = new List<double>();
+            for (int i = 0; i < peak; i++)
+            {
+                if (value[i] > 0.01 * top && variance[i] > 0.0)
+                {
+                    seen.Add(100.0 * Math.Sqrt(variance[i]) / value[i]);
+                }
+            }
+
+            if (seen.Count == 0)
+            {
+                return this.LastContinuumIntegralError;
+            }
+
+            seen.Sort();
+            return seen[seen.Count / 2];
+        }
+
         double Run(double energyKev, double[] histogram, double binKev, out double relativeError)
         {
             this.EnsureBuilt();
@@ -3884,9 +3992,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            // Событий в континууме строки — столько же, сколько независимых
-            // историй его набрало: ошибка интеграла 1/√N (F23).
-            this.LastContinuumRelativeError = scored > 0 ? 100.0 / Math.Sqrt(scored) : 100.0;
+            // ⛔ ШУМ МЕРЯЕТСЯ ПОСЛЕ СВЁРТКИ — так, как его видит модель
+            // (решение Amber 01.09.2026, `A39`). Прежде здесь стояла ошибка
+            // ИНТЕГРАЛА континуума, 100/√N по набравшим историям: при 300 тыс.
+            // историй она давала 1.0 % при пороге тревоги 5 %, то есть матрица
+            // считала себя хорошей — а в модели её шум разворачивался в 3 % и
+            // читался человеком как ВОЛНЫ. Мерка мерила не то, что видно.
+            this.LastContinuumIntegralError = scored > 0 ? 100.0 / Math.Sqrt(scored) : 100.0;
+            this.LastContinuumRelativeError = this.SmearedContinuumError(hist, peak, binKev, energyKev);
 
             for (int b = 0; b < peak; b++)
             {

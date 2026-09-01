@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
@@ -105,8 +105,9 @@ namespace ResponseNoiseProbe
             simulator.Histories = histories;
             double error;
             double[] response = simulator.Response(energyKev, binKev, out error);
-            Console.WriteLine("  зерно {0}: бинов {1}, взвешенная ошибка континуума {2:F2} %",
-                              seed, response != null ? response.Length : 0, error);
+            Console.WriteLine("  зерно {0}: бинов {1}, ошибка взвешенной ветки {2:F2} %, шум континуума ПОСЛЕ СВЁРТКИ {3:F2} % (интеграл {4:F2} %)",
+                              seed, response != null ? response.Length : 0, error,
+                              simulator.LastContinuumRelativeError, simulator.LastContinuumIntegralError);
             return response;
         }
     }

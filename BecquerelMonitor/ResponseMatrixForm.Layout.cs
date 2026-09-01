@@ -117,13 +117,17 @@ namespace BecquerelMonitor
                                      Pad + LabelWidth + FieldWidth + 24, row, 1, 20, 0, 2);
 
             row += 28;
+            // Умолчание поля — то же, что у `ResponseMatrixOptions.Histories`
+            // (3 млн, `A39`): два места, и разойтись им нельзя. Потолок поднят
+            // до 30 млн — при трёх миллионах прежний в 10 млн оставлял всего
+            // тройной запас на ручную правку.
             this.historiesBox = this.Field(box, Resources.ResponseMatrixHistories, Pad, row,
-                                           1000, 10000000, 0, 300000);
+                                           1000, 30000000, 0, 3000000);
             this.threadsBox = this.Field(box, Resources.ResponseMatrixThreads,
                                          Pad + LabelWidth + FieldWidth + 24, row,
                                          1, 64, 0, Math.Max(1, Environment.ProcessorCount - 1));
 
-            this.historiesBox.Increment = 50000;
+            this.historiesBox.Increment = 500000;
             this.nodesBox.Increment = 10;
 
             // Разделитель тысяч — только у числа историй. У энергии он вреден:
