@@ -26,6 +26,9 @@ namespace FsaStackShot
     ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
     ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
+    ///                [--no-drift] [--gain-steps=N] [--offset-steps=N]
+    ///                [--knots=4]
+    ///                [--calculating]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///
@@ -79,6 +82,9 @@ namespace FsaStackShot
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
             bool infer = false, equilibrium = true, needMatrix = true, libDump = false;
+            int gainSteps = 0, offsetSteps = 0;
+            double knots = double.NaN;
+            bool showCalculating = false;
             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
             int width = 1400, height = 700;
             string scale = "lin", dumpPath = null;
@@ -105,6 +111,14 @@ namespace FsaStackShot
                 else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
                 else if (a.StartsWith("--select=", StringComparison.Ordinal)) selectKev = a.Substring(9);
+                else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
+                    gainSteps = int.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--offset-steps=", StringComparison.Ordinal))
+                    offsetSteps = int.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                else if (a == "--no-drift") { gainSteps = 1; offsetSteps = 1; }
+                else if (a == "--calculating") showCalculating = true;
+                else if (a.StartsWith("--knots=", StringComparison.Ordinal))
+                    knots = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -228,7 +242,31 @@ namespace FsaStackShot
                 // пока о нём не попросили вслух.
                 if (needMatrix)
                 {
-                    Console.Error.WriteLine("матрицы нет или отпечаток не сошёлся — рисовать нечего");
+                    // ⛔ ОТКАЗ ОБЯЗАН НАЗЫВАТЬ ПРИЧИНУ (`A35`). «Матрицы нет или
+                    // отпечаток не сошёлся» — три разных случая под одной
+                    // фразой, и разбирать их приходилось догадками: файла нет /
+                    // кривая у спектра без геометрии / файл есть, а геометрия
+                    // разошлась с той, под которую он считан.
+                    if (matrix == null)
+                    {
+                        Console.Error.WriteLine("матрицы нет: файла {0} не существует или он не читается",
+                                                rd.Efficiency != null
+                                                    ? ResponseMatrixStore.PathOf(rd.Efficiency.Guid)
+                                                    : "(кривой у спектра нет)");
+                    }
+                    else if (rd.Efficiency == null || !rd.Efficiency.HasGeometry)
+                    {
+                        Console.Error.WriteLine("матрица есть, но у кривой спектра НЕТ ГЕОМЕТРИИ — сверять не с чем");
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("ОТПЕЧАТОК НЕ СОШЁЛСЯ:");
+                        Console.Error.WriteLine("  у матрицы : {0}", matrix.Stamp);
+                        Console.Error.WriteLine("  у геометрии спектра: {0}",
+                                                ResponseMatrix.ComputeStamp(rd.Efficiency.Geometry,
+                                                                            matrix.Options));
+                    }
+
                     return 1;
                 }
 
@@ -268,6 +306,25 @@ namespace FsaStackShot
                 analyzer.MaxEnergy = peakConfig.Max_Range;
             }
 
+            // (`A36`) Сетка дрейфа — ключами: подгонка усиления и сдвига
+            // двигает МОДЕЛЬ по шкале, и отделить «модель не та» от
+            // «шкалу подвинули» можно только заморозив её (`--no-drift`).
+            // Шаг узлов сплайна континуума в ПШПВ: гуще узлы — гибче подложка.
+            if (!double.IsNaN(knots))
+            {
+                analyzer.ContinuumKnotFwhm = knots;
+            }
+
+            if (gainSteps > 0)
+            {
+                analyzer.GainSteps = gainSteps;
+            }
+
+            if (offsetSteps > 0)
+            {
+                analyzer.OffsetSteps = offsetSteps;
+            }
+
             analyzer.Backscatter = backscatter;
             if (!double.IsNaN(refitZ))
             {
@@ -282,6 +339,13 @@ namespace FsaStackShot
                 return 1;
             }
 
+            // (`A36`) ДРЕЙФ ШКАЛЫ — числом, а не догадкой по картинке: подгонка
+            // усиления и сдвига двигает МОДЕЛЬ относительно измерения, и на
+            // дальнем конце шкалы это видно глазами, а величину сдвига видно
+            // только здесь.
+            Console.WriteLine("дрейф: усиление {0:F6}, сдвиг {1:F3} канала{2}",
+                              result.Gain, result.OffsetChannels,
+                              result.DriftOnGridEdge ? " — КРАЙ СЕТКИ" : "");
             Console.WriteLine("chi2/ndf {0:F3}, невязка модели {1:F1} %, суммирование {2}",
                               result.Chi2Ndf, result.ModelResidual * 100.0,
                               result.CascadeSummingUsed ? "да" : "нет");
@@ -372,6 +436,18 @@ namespace FsaStackShot
                 // фоновым потоком пробе незачем.
                 object overlay = Field(typeof(EnergySpectrumView), "fsaOverlay").GetValue(view);
                 Field(overlay.GetType(), "result").SetValue(overlay, result);
+
+                // (`A32`) Признак «идёт пересчёт» — тем же полем, каким его
+                // взводит сам расчёт. Поймать это состояние в живом окне
+                // нельзя: разбор считается доли секунды, и снимок всегда
+                // опаздывает; а признак, у которого нет читателя, — ровно та
+                // ошибка, которой этот проект уже болел.
+                if (showCalculating)
+                {
+                    Field(overlay.GetType(), "running").SetValue(overlay, true);
+                    Field(overlay.GetType(), "status").SetValue(overlay,
+                          BecquerelMonitor.Properties.Resources.FSACalculating);
+                }
 
                 // (`A27`) Выделенная область — тем же кодом, что в окне.
                 // Каналы берутся у калибровки спектра, порядок вызовов повторяет

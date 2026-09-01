@@ -328,7 +328,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // САМА библиотека, и без неё в отпечатке на экране висело бы
                 // прежнее разложение.
                 "|", ChainEquilibrium(resultData) ? "eq" : "free",
+                // (`A31`) Набор нуклидов — часть отпечатка. Состав библиотеки
+                // идёт от ПОДПИСЕЙ пиков, а подписи ставит набор, и пока
+                // менялись только его члены, отпечаток оставался прежним:
+                // добавленный в набор нуклид на экране не появлялся, пока
+                // человек не трогал что-нибудь ещё.
+                "|", NuclideSetStamp(),
                 "|", peakStamp.ToString());
+        }
+
+        /// <summary>
+        /// Отпечаток активного набора: его имя, галка «прятать неопознанные» и
+        /// СОСТАВ — число нуклидов, у которых этот набор отмечен. Правка
+        /// членства меняет число, а переименование и смена набора — имя.
+        ///
+        /// ⚠ Считается перебором определений (полторы сотни записей), потому
+        /// что членство хранится у НУКЛИДА (<see cref="NuclideDefinition.Sets"/>),
+        /// а не у набора. Проход идёт на UI-потоке, там же, где снимаются
+        /// остальные части отпечатка.
+        /// </summary>
+        static string NuclideSetStamp()
+        {
+            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
+            NuclideSet active = manager != null ? manager.ActiveSet : null;
+            if (active == null)
+            {
+                return "all";
+            }
+
+            int members = 0;
+            List<NuclideDefinition> definitions = manager.NuclideDefinitions;
+            if (definitions != null)
+            {
+                foreach (NuclideDefinition definition in definitions)
+                {
+                    if (definition != null && definition.Sets != null
+                        && definition.Sets.Contains(active.Id))
+                    {
+                        members++;
+                    }
+                }
+            }
+
+            return string.Concat(active.Name, ":", members.ToString(),
+                                 active.HideUnknownPeaks ? ":hide" : "");
         }
 
         /// <summary>

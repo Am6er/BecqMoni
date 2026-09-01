@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -237,9 +238,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return "";
             }
 
+            // ⛔ (`A34`, решение Amber 01.09.2026) РОД ОБРАЗА НАЗЫВАЕТСЯ, а не
+            // угадывается по приставке. Прежде `Xray-CsI` показывался как «CsI»,
+            // а `Esc-CsI` — как есть, и на экране рядом оказывались две строки
+            // про РАЗНУЮ физику под похожими подписями: собственный рентген
+            // кристалла (28…35 кэВ, своя K-серия) и ВЫЛЕТ этого рентгена (пик на
+            // E − Kα от каждой линии состава). Вопрос «почему тут одно, а там
+            // другое» задан по снимку и был законным.
             if (component.StartsWith("Xray-", StringComparison.OrdinalIgnoreCase))
             {
-                return component.Substring(5);
+                return string.Format(CultureInfo.CurrentCulture,
+                                     Properties.Resources.FSAXrayName,
+                                     component.Substring(5));
+            }
+
+            if (component.StartsWith("Esc-", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Format(CultureInfo.CurrentCulture,
+                                     Properties.Resources.FSAEscapeName,
+                                     component.Substring(4));
             }
 
             if (string.Equals(component, FsaResult.ContinuumLayerName, StringComparison.Ordinal))

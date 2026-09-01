@@ -4319,6 +4319,44 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Lq_counts, this.Font, Brushes.Black, r2);
                     g.DrawString(Lq.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
+
+                    // ⛔ S96. Беккерели ниже посчитаны по ВЫХОДУ ОДНОЙ ЛИНИИ, и
+                    // выбрал эту линию поиск пиков по одной близости энергии.
+                    // Без этих строк человек видит число и не видит допущения,
+                    // на котором оно стоит.
+                    //
+                    // (`A33`, указание Amber 01.09.2026) Стоит ВЫШЕ активностей,
+                    // которые объясняет, и занимает СТРОКУ ЦЕЛИКОМ, по центру:
+                    // подпись «from line:» слева и значение справа читались как
+                    // ещё одна пара «величина — число», хотя это заголовок к
+                    // трём строкам под ним, а не измерение.
+                    if (activityLabelShown)
+                    {
+                        g.DrawString(selection.ActivityLabel + " " +
+                                     selection.ActivityLineKev.ToString(floatFormat) + " " +
+                                     Resources.kev + ", " +
+                                     // Не "n2": у подписи вроде «Pu-238» выход
+                                     // 0.0009 %, и округление до сотых показало
+                                     // бы «0.00 %» — то есть спрятало бы ровно
+                                     // тот случай, ради которого строка и
+                                     // заведена (S96: такая подпись даёт
+                                     // показанные 1.5·10^9 Бк).
+                                     selection.ActivityIntensity.ToString("g4") +
+                                     Resources.PercentCharacter,
+                                     this.Font, Brushes.Black, r2, this.centerFormat);
+                        r2.Y += 16;
+
+                        if (selection.ActivityRivals > 0)
+                        {
+                            g.DrawString(string.Format(CultureInfo.CurrentCulture,
+                                                       Resources.ActivityLabelDisputed,
+                                                       selection.ActivityRivals,
+                                                       selection.ActivityRivalFactor),
+                                         this.Font, Brushes.DarkOrange, r2, this.centerFormat);
+                            r2.Y += 16;
+                        }
+                    }
+
                     if (this.selectionFWHM > 0.0 && activity > 0.0)
                     {
                         if (net_counts < Lc)
@@ -4355,38 +4393,6 @@ namespace BecquerelMonitor
                             g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
                             g.DrawString(activityByVolume.ToString(floatFormat) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat),
                                 this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
-                        }
-                    }
-
-                    // ⛔ S96. Беккерели посчитаны по ВЫХОДУ ОДНОЙ ЛИНИИ, и
-                    // выбрал эту линию поиск пиков по одной близости энергии.
-                    // Без этих двух строк человек видит число и не видит
-                    // допущения, на котором оно стоит.
-                    if (activityLabelShown)
-                    {
-                        g.DrawString(Resources.ActivityFromLine, this.Font, Brushes.Black, r2);
-                        g.DrawString(selection.ActivityLabel + " " +
-                                     selection.ActivityLineKev.ToString(floatFormat) + " " +
-                                     Resources.kev + ", " +
-                                     // Не "n2": у подписи вроде «Pu-238» выход
-                                     // 0.0009 %, и округление до сотых показало
-                                     // бы «0.00 %» — то есть спрятало бы ровно
-                                     // тот случай, ради которого строка и
-                                     // заведена (S96: такая подпись даёт
-                                     // показанные 1.5·10^9 Бк).
-                                     selection.ActivityIntensity.ToString("g4") +
-                                     Resources.PercentCharacter,
-                                     this.Font, Brushes.Black, r2, this.farFormat);
-                        r2.Y += 16;
-
-                        if (selection.ActivityRivals > 0)
-                        {
-                            g.DrawString(string.Format(CultureInfo.CurrentCulture,
-                                                       Resources.ActivityLabelDisputed,
-                                                       selection.ActivityRivals,
-                                                       selection.ActivityRivalFactor),
-                                         this.Font, Brushes.DarkOrange, r2, this.centerFormat);
                             r2.Y += 16;
                         }
                     }
