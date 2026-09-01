@@ -48,6 +48,13 @@ namespace FsaCascadeProbe
                 if (a == "--force") { force = true; continue; }
                 if (a == "--describe") { describe = true; continue; }
                 if (a == "--sum-layer-continuum") { sumLayerContinuum = true; continue; }
+                if (a.StartsWith("--joint=", StringComparison.Ordinal))
+                {
+                    // (`S19`) Замерный множитель совместной эффективности пары.
+                    FsaCascadeSummer.JointFactorOverride =
+                        double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--background=", StringComparison.Ordinal)) backgroundPath = a.Substring(13);
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
@@ -123,6 +130,10 @@ namespace FsaCascadeProbe
             // ---- сами поправки -------------------------------------------
             string scintillator = EfficiencySimulator.ScintillatorNameOf(
                 rd.Efficiency != null ? rd.Efficiency.Geometry : null);
+            // (`S19`) Журнал троек включается ДО первого счёта поправок: они
+            // кэшируются у суммирователя, и флаг, поднятый позже, не догонит.
+            FsaCascadeSummer.LogTriples = true;
+            FsaCascadeSummer.TripleLog.Clear();
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
             Console.WriteLine("кривая света: {0}",
                               summer != null && summer.LightYieldName.Length > 0
@@ -192,6 +203,21 @@ namespace FsaCascadeProbe
             Console.WriteLine();
             Console.WriteLine("компонентов поправлено {0} из {1}, сумм-пиков всего {2}",
                               corrected, library.Count, sumPeaks);
+
+            // (`S19`) Тройные суммы: все рассмотренные, с площадью и порогом.
+            if (FsaCascadeSummer.TripleLog.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("=== тройные суммы: что рассмотрено ===");
+                foreach (string line in FsaCascadeSummer.TripleLog)
+                {
+                    Console.WriteLine(line);
+                }
+            }
+            else
+            {
+                Console.WriteLine("троек не рассматривалось вовсе: у пар нет третьего кванта");
+            }
 
             if (describe)
             {
@@ -429,21 +455,34 @@ namespace FsaCascadeProbe
                 // модели взялся не из сумм, разница между колонками будет нулём.
                 Console.WriteLine();
                 Console.WriteLine("=== участок {0:F0}–{1:F0} кэВ ===", scanFrom, scanTo);
-                Console.WriteLine("    {0,8} {1,12} {2,12} {3,12}",
-                                  "кэВ", "измерено", "без налож.", "с налож.");
-                Scan(rd.EnergySpectrum, withCascade, withPileUp, scanFrom, scanTo);
+                Console.WriteLine("    {0,8} {1,12} {2,12} {3,12} {4,12}",
+                                  "кэВ", "измерено", "без каскада", "с каскадом", "разница");
+                Scan(rd.EnergySpectrum, withMatrix, withCascade, scanFrom, scanTo);
             }
 
             return 0;
         }
 
-        /// <summary>Измерение против двух моделей по окнам участка шкалы.</summary>
+        /// <summary>
+        /// Измерение против двух моделей по окнам участка шкалы, и ИТОГ под
+        /// таблицей (`S19`): сколько отсчётов недоставало модели без каскада и
+        /// какую их долю вернуло суммирование.
+        ///
+        /// ⚠ Недостача считается ПО МОДУЛЮ РАЗДЕЛЬНО: там, где модель недобирает,
+        /// и там, где перебирает. Сложить их в одно число нельзя — смещённый по
+        /// шкале пик даёт большой недобор справа и такой же перебор слева, а в
+        /// сумме почти ноль, и «модель сходится» читалось бы там, где она стоит
+        /// не на месте.
+        /// </summary>
         static void Scan(EnergySpectrum spectrum, FsaResult without, FsaResult with,
                          double fromKev, double toKev)
         {
             EnergyCalibration calibration = spectrum.EnergyCalibration;
             int[] raw = spectrum.Spectrum;
             const int width = 8;
+            double shortBefore = 0.0, overBefore = 0.0;
+            double shortAfter = 0.0, overAfter = 0.0;
+            double returned = 0.0;
             for (int lo = without.FirstChannel; lo + width <= without.LastChannel; lo += width)
             {
                 double energy = calibration.ChannelToEnergy(lo + width / 2.0);
@@ -460,8 +499,22 @@ namespace FsaCascadeProbe
                     b += with.Model[i];
                 }
 
-                Console.WriteLine("    {0,8:F1} {1,12:F0} {2,12:F0} {3,12:F0}", energy, measured, a, b);
+                if (measured > a) { shortBefore += measured - a; } else { overBefore += a - measured; }
+                if (measured > b) { shortAfter += measured - b; } else { overAfter += b - measured; }
+                returned += b - a;
+
+                Console.WriteLine("    {0,8:F1} {1,12:F0} {2,12:F0} {3,12:F0} {4,12:F0}",
+                                  energy, measured, a, b, b - a);
             }
+
+            Console.WriteLine();
+            Console.WriteLine("    ИТОГ по участку (`S19`):");
+            Console.WriteLine("      без каскада: недобор {0:F0}, перебор {1:F0}",
+                              shortBefore, overBefore);
+            Console.WriteLine("      с каскадом : недобор {0:F0}, перебор {1:F0}",
+                              shortAfter, overAfter);
+            Console.WriteLine("      суммирование положило {0:F0} отсчётов = {1:P1} недостачи",
+                              returned, shortBefore > 0.0 ? returned / shortBefore : 0.0);
         }
 
         /// <summary>

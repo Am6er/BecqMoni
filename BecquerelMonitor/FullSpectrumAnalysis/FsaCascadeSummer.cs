@@ -271,6 +271,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Больше этого числа сумм-пиков на компонент не берём.</summary>
         const int MaxSumPeaks = 24;
 
+        /// <summary>
+        /// ЖУРНАЛ ТРОЙНЫХ СУММ (`S19`, диагностика). Каждая рассмотренная тройка
+        /// с её площадью, порогом и решением — иначе не узнать, почему тройной
+        /// суммы нет в перечне: отсев идёт в трёх местах, а наружу видно только
+        /// выжившее.
+        ///
+        /// ⚠ Копится только когда включён <see cref="LogTriples"/>: на корпусном
+        /// прогоне это сотни строк на спектр, и держать их незачем.
+        /// </summary>
+        public static bool LogTriples;
+
+        /// <summary>Строки журнала троек; чистится вызывающим.</summary>
+        public static readonly List<string> TripleLog = new List<string>();
+
+        /// <summary>
+        /// ⚡ ЗАМЕРНЫЙ РЫЧАГ (`S19`, `S50`): один множитель κ на все сумм-события.
+        ///
+        /// Площадь сумм-пика считается как `p_ij · ε_p(i) · ε_p(j)` — произведение
+        /// СРЕДНИХ по объёму эффективностей. Но точка распада у двух квантов
+        /// каскада ОДНА, и на протяжённом источнике их шансы связаны: верная
+        /// величина — среднее ПРОИЗВЕДЕНИЯ ⟨ε₁ε₂⟩, которое больше. Отношение
+        /// κ = ⟨ε₁ε₂⟩/(⟨ε₁⟩⟨ε₂⟩) меряет `CascadeJointProbe`: на банке Ø40×h15
+        /// вплотную к ASN16 оно 1.34 для пары 202+307 и 2.26 для 88+202, а на
+        /// точечном источнике 1.00 — то есть мерится именно протяжённость.
+        ///
+        /// ⚠ Ноль (умолчание) — рычаг выключен, счёт прежний. Настоящая поправка
+        /// обязана зависеть от энергий пары и приходить из матрицы; этот ключ
+        /// нужен, чтобы измерить цену до того, как считать её для всего склада.
+        /// </summary>
+        public static double JointFactorOverride;
+
         static readonly object Gate = new object();
 
         static readonly Dictionary<string, NuclideData> Cache =
@@ -816,7 +847,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double area = scale * this.PairArea(data, pair);
+                double area = scale * this.PairArea(data, pair) * JointFactor();
                 if (area > floor)
                 {
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
@@ -870,13 +901,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double area = scale * baseArea * third.Value * peakThird;
+                double area = scale * baseArea * third.Value * peakThird * JointFactor();
+                double energy = this.ApparentSum(pair[0], pair[1], third.Key);
+                if (LogTriples)
+                {
+                    TripleLog.Add(string.Format(CultureInfo.InvariantCulture,
+                        "  {0,9:F2} = {1:F2}+{2:F2}+{3:F2}  {4,-8}  площадь {5:E3}  порог {6:E3}  {7}",
+                        energy, pair[0], pair[1], third.Key, nuclide, area, floor,
+                        area > floor ? "проходит" : "НИЖЕ ПОРОГА"));
+                }
+
                 if (!(area > floor))
                 {
                     continue;
                 }
 
-                double energy = this.ApparentSum(pair[0], pair[1], third.Key);
                 if (this.PeakEfficiency(energy) <= 0.0)
                 {
                     continue;
@@ -918,6 +957,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1], third.Key));
                 }
             }
+        }
+
+        /// <summary>Множитель совместной эффективности; 1.0 — рычаг выключен.</summary>
+        static double JointFactor()
+        {
+            return JointFactorOverride > 0.0 ? JointFactorOverride : 1.0;
         }
 
         /// <summary>

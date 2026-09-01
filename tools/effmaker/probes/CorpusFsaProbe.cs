@@ -178,6 +178,16 @@ namespace CorpusFsaProbe
             {
                 if (a == "--no-matrix") { o.Matrix = false; continue; }
                 if (a == "--no-cascade") { o.Cascade = false; continue; }
+                if (a.StartsWith("--joint=", StringComparison.Ordinal))
+                {
+                    // (`S19`) ЗАМЕРНЫЙ множитель совместной эффективности пары:
+                    // площадь сумм-события домножается на него. Нужен, чтобы
+                    // измерить цену поправки до того, как считать её таблицей в
+                    // матрице; настоящая поправка зависит от энергий пары.
+                    FsaCascadeSummer.JointFactorOverride =
+                        double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
                 if (a == "--no-pileup") { o.PileUp = false; continue; }
                 // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
                 // правки снимается одним двоичным файлом, «было/стало» при
