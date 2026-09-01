@@ -334,6 +334,23 @@ namespace BecquerelMonitor
                 g.PixelOffsetMode = savedPixelOffset;
             }
 
+            // ⛔ НЕВЯЗКА — ОТДЕЛЬНАЯ СУЩНОСТЬ НА ЭКРАНЕ (решение Amber
+            // 01.09.2026, `S111`). Всё, что не описано моделью по имеющимся
+            // нуклидам, обязано быть ВИДНО, а не выводиться читателем из зазора
+            // между двумя кривыми.
+            //
+            // Рисуется лентой между верхом стека (модель) и измерением, и
+            // ОБЕИМИ ЗНАКАМИ — по прямому указанию Amber:
+            //   • измерение ВЫШЕ модели — «не описано», модели не хватило;
+            //   • модель ВЫШЕ измерения — «приписано лишнее», и это не мелочь:
+            //     измерено вторым проходом (`S111`) — такие места есть у ВСЕХ
+            //     117 спектров корпуса, и до сих пор на них не смотрел никто.
+            //
+            // ⚠ Штриховка, а не заливка, и НАРОЧНО: невязка не компонент, у неё
+            // нет ни нуклида, ни амплитуды фита, и выглядеть как ещё одна лента
+            // состава она не должна. Два разных штриха разводят знаки.
+            this.DrawFsaResidual(g, this.fsaCumulative[layers.Count - 1], this.fsaNetSpectrum);
+
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.PixelOffsetMode = PixelOffsetMode.Half;
             try
@@ -374,6 +391,58 @@ namespace BecquerelMonitor
                 Math.Min(255, (int)(color.R * factor)),
                 Math.Min(255, (int)(color.G * factor)),
                 Math.Min(255, (int)(color.B * factor)));
+        }
+
+        /// <summary>
+        /// Цвет невязки: один на обе половины, знаки разводит ШТРИХ.
+        ///
+        /// Взят серо-стальной нарочно: он не встречается в палитре нуклидов
+        /// (<see cref="FsaColorOf"/>), и лента невязки не может быть принята за
+        /// ещё один компонент состава.
+        /// </summary>
+        static readonly Color FsaResidualColor = Color.FromArgb(96, 112, 128);
+
+        /// <summary>
+        /// (`S111`) Лента НЕВЯЗКИ между моделью и измерением, обеими знаками.
+        ///
+        /// Верхняя половина (измерение выше модели) — восходящий штрих, нижняя
+        /// (модель выше измерения) — нисходящий: знак читается по направлению
+        /// штриха, а не по цвету, и остаётся различим на печати и у людей,
+        /// путающих цвета.
+        ///
+        /// ⚠ Полосы строятся ЯВНО через min/max, а не подачей кривых «как
+        /// есть»: <see cref="DrawFsaBand"/> заливает многоугольник между двумя
+        /// линиями и на перевёрнутой паре нарисовал бы ленту там, где её нет.
+        /// </summary>
+        void DrawFsaResidual(Graphics g, double[] model, double[] measured)
+        {
+            if (model == null || measured == null || model.Length == 0
+                || measured.Length != model.Length)
+            {
+                return;
+            }
+
+            var above = new double[model.Length];
+            var below = new double[model.Length];
+            for (int i = 0; i < model.Length; i++)
+            {
+                above[i] = Math.Max(model[i], measured[i]);
+                below[i] = Math.Min(model[i], measured[i]);
+            }
+
+            using (Brush notDescribed = new HatchBrush(HatchStyle.LightUpwardDiagonal,
+                                                       Color.FromArgb(200, FsaResidualColor),
+                                                       Color.Transparent))
+            {
+                this.DrawFsaBand(g, notDescribed, model, above);
+            }
+
+            using (Brush overModelled = new HatchBrush(HatchStyle.LightDownwardDiagonal,
+                                                       Color.FromArgb(200, FsaResidualColor),
+                                                       Color.Transparent))
+            {
+                this.DrawFsaBand(g, overModelled, below, model);
+            }
         }
 
         /// <summary>Лента между двумя кривыми — тем же способом, что заливка пиков.</summary>
@@ -1136,6 +1205,17 @@ namespace BecquerelMonitor
             // формы, которую модель не описывает, читается одинаково на германии
             // и на обсидиане: 0 — модель согласна со статистикой, 100 % — не
             // объясняет ничего.
+            // (`S111`, решение Amber 01.09.2026) У строки невязки — ТОТ ЖЕ
+            // штрих, которым она нарисована на графике. Строка тут была и
+            // раньше, а вот связи «эта строка про эту ленту» не было ни
+            // какой: числу верили, а искать невязку глазами приходилось по
+            // зазору между двумя кривыми.
+            using (Brush swatch = new HatchBrush(HatchStyle.LightUpwardDiagonal,
+                                                 FsaResidualColor, Color.Transparent))
+            {
+                g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
+            }
+
             g.DrawString(Resources.FSAModelResidualRow, this.Font, Brushes.Black, nameRect);
             g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
                                        Resources.FSAModelResidualValue,
