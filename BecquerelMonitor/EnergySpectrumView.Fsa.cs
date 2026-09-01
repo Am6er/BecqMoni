@@ -1414,6 +1414,13 @@ namespace BecquerelMonitor
             // а не по успевшему смениться.
             FsaResult result = this.fsaOverlay.Result;
             string status = this.fsaOverlay.Status;
+
+            // ⛔ (`A32`) ПЕРЕСЧЁТ ВИДЕН ВСЕГДА, а не только на первом разборе.
+            // Прежде пометка «считается…» печаталась ТОЛЬКО когда результата
+            // ещё нет: при любой переинициализации (сменился набор, фон,
+            // калибровка) на экране висела прежняя легенда без единого
+            // признака, что она устарела и вот-вот сменится.
+            bool recalculating = this.fsaOverlay.IsRunning && result != null;
             int rows = this.FsaTableRowCount(result, status);
             if (rows == 0)
             {
@@ -1426,7 +1433,16 @@ namespace BecquerelMonitor
             // проверки «помещается ли» не было вовсе. Считается она от нижнего
             // края видимого поля, а не от области графика: таблица и так стоит
             // ниже неё, под панелями курсора.
-            int budget = this.FsaCollapsibleBudget(result, y);
+            // Пометка о пересчёте переносится по ширине панели так же, как
+            // сообщение при пустом разборе, поэтому её высота меряется, а не
+            // приравнивается табличной строке: по-русски она занимает две.
+            string recalcText = string.IsNullOrEmpty(status)
+                ? Resources.FSACalculating : status;
+            int recalcHeight = recalculating
+                ? (int)Math.Ceiling(g.MeasureString(recalcText, this.Font, width - 12).Height)
+                : 0;
+
+            int budget = this.FsaCollapsibleBudget(result, y + recalcHeight);
             if (budget < int.MaxValue)
             {
                 rows = this.FsaTableRowCount(result, status, budget);
@@ -1437,12 +1453,21 @@ namespace BecquerelMonitor
             // одну табличную строку.
             int height = result == null
                 ? (int)Math.Ceiling(g.MeasureString(status, this.Font, width - 12).Height) + 8
-                : rows * FsaTableRowHeight + 8;
+                : rows * FsaTableRowHeight + recalcHeight + 8;
             g.FillRectangle(Brushes.DarkGray, x + 3, y + 3, width, height);
             g.FillRectangle(Brushes.White, x, y, width, height);
             g.DrawRectangle(Pens.Black, x, y, width, height);
 
             Rectangle r = new Rectangle(x + 8, y + 4, width - 12, height - 8);
+            if (recalculating)
+            {
+                // Первой строкой и своим цветом: это не часть состава, а
+                // предупреждение, что состав СЕЙЧАС переписывается.
+                g.DrawString(recalcText, this.Font, Brushes.DarkOrange, r);
+                r.Y += recalcHeight;
+                r.Height -= recalcHeight;
+            }
+
             this.DrawFsaRows(g, r, result, status, budget);
         }
     }

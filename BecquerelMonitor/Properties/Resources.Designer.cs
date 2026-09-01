@@ -2915,6 +2915,24 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to X-ray {0}.
+        /// </summary>
+        public static string FSAXrayName {
+            get {
+                return ResourceManager.GetString("FSAXrayName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Escape {0}.
+        /// </summary>
+        public static string FSAEscapeName {
+            get {
+                return ResourceManager.GetString("FSAEscapeName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} — sum peak.
         /// </summary>
         public static string FSASumPeakRow {

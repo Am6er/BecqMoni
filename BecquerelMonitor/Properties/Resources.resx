@@ -8463,6 +8463,14 @@ It is probably open in another program or write-protected.</value>
     <value> · suppressed</value>
     <comment>S104: one instrument image outweighs the whole nuclide composition</comment>
   </data>
+  <data name="FSAXrayName" xml:space="preserve">
+    <value>X-ray {0}</value>
+    <comment>A29/A34: own characteristic X-rays of a material (sample, shield, crystal)</comment>
+  </data>
+  <data name="FSAEscapeName" xml:space="preserve">
+    <value>Escape {0}</value>
+    <comment>A34: K X-ray escape from the crystal, a peak at E-Kalpha of every library line</comment>
+  </data>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — sum peak</value>
   </data>
