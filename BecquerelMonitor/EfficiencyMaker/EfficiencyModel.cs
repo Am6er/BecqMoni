@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -393,7 +394,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("Xray-Pb", 84.936, 23.0);
             add("Xray-W", 59.318, 100.0);
             add("Xray-W", 57.981, 57.6);
-            add("Annih", 511.0, 100.0);
+            // Имя ОДНО на проект (решение Amber 01.09.2026 по описи `S110`):
+            // здесь стояло `Annih`, а в разборе — `Ann-511`, и два имени одной
+            // вещи расходились молча. Читатель у имени один — `FsaResult
+            // .AnnihilationComponentName`, оттуда же его берёт корпусная мерка.
+            add(FsaResult.AnnihilationComponentName, 511.0, 100.0);
             return all;
         }
     }

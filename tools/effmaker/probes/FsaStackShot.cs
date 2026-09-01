@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
@@ -25,7 +25,7 @@ namespace FsaStackShot
     ///   fsastackshot --spectrum=X.xml [--efficiency=Цилиндр] [--out=stack.png]
     ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
     ///                [--set=Ra-226] [--lines=Esc-I]
-    ///                [--no-atomic] [--no-room] [--no-backscatter] [--refit-z=0]
+    ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///
@@ -67,7 +67,7 @@ namespace FsaStackShot
             // Развязка гейтов и приборных образов — `S81`: «кто чью полку
             // забирает» иначе не разделить. `refitZ` NaN — не трогать умолчание
             // анализатора, а не «поставить ноль».
-            bool atomic = true, backscatter = true, room = true;
+            bool atomic = true, backscatter = true;
             double refitZ = double.NaN;
             // (S69/S70) Ветка галки «состав из баз»: библиотеку собирает
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
@@ -91,7 +91,6 @@ namespace FsaStackShot
                 else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
                 else if (a.StartsWith("--lines=", StringComparison.Ordinal)) linesOf = a.Substring(8);
                 else if (a == "--no-atomic") atomic = false;
-                else if (a == "--no-room") room = false;
                 else if (a == "--no-backscatter") backscatter = false;
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                     refitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
@@ -153,7 +152,6 @@ namespace FsaStackShot
                 FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, rd, out report);
                 spec.Equilibrium = equilibrium;
                 spec.AtomicXray = atomic;
-                spec.Room = room;
                 library = FsaSampleLibrary.Build(spec);
                 Console.WriteLine("состав: " + report);
                 peaks = new PeakDetector().DetectPeak(
