@@ -3048,6 +3048,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSAModelResidualValue", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to +{0} / −{1} %.
+        /// </summary>
+        public static string FSAResidualCountsValue {
+            get {
+                return ResourceManager.GetString("FSAResidualCountsValue", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to present.

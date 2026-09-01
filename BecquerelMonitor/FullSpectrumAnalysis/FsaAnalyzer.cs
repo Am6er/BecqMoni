@@ -2627,6 +2627,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 result.Model[i] = sum;
             }
 
+            // (`S111`, решение Amber 01.09.2026) НЕВЯЗКА В ОТСЧЁТАХ — обе
+            // половины, ровно те, что рисует лента на экране: измерение выше
+            // модели («не описано») и модель выше измерения («приписано
+            // лишнее»). Пара считается ЗДЕСЬ, а не в отрисовке, потому что то
+            // же число нужно пробам и корпусу, а второй копии правила в
+            // проекте быть не должно.
+            //
+            // ⚠ Мера НЕ ТА ЖЕ, что <see cref="FsaResult.ModelResidual"/>: там ε,
+            // оценённая по χ² доля формы, и она остаётся — ею меряется корпус
+            // (медиана понятной части 10.7 %). Здесь отсчёты, и на одном и том
+            // же спектре числа расходятся: `G1S24_Th228_P5` — ε 34.2 %, а по
+            // отсчётам +20.25 / −6.80 %. На ЭКРАН по решению Amber идут
+            // отсчёты: человек читает строку как площадь нарисованной ленты.
+            double aboveCounts = 0.0, belowCounts = 0.0, measuredCounts = 0.0;
+            int[] raw = spectrum.Spectrum;
+            for (int i = chLo; i <= chHi && i < raw.Length; i++)
+            {
+                double background = backgroundCurve != null && i < backgroundCurve.Length
+                    ? backgroundCurve[i] : 0.0;
+                double net = raw[i] - background;
+                double difference = net - result.Model[i];
+                measuredCounts += net;
+                if (difference > 0.0)
+                {
+                    aboveCounts += difference;
+                }
+                else
+                {
+                    belowCounts -= difference;
+                }
+            }
+
+            result.ResidualAboveShare = measuredCounts > 0.0 ? aboveCounts / measuredCounts : 0.0;
+            result.ResidualBelowShare = measuredCounts > 0.0 ? belowCounts / measuredCounts : 0.0;
+
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
             // 23.08.2026), и считается она там же, где строятся слои.
             //

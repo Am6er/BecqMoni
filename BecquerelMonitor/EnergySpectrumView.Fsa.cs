@@ -1217,9 +1217,24 @@ namespace BecquerelMonitor
             }
 
             g.DrawString(Resources.FSAModelResidualRow, this.Font, Brushes.Black, nameRect);
+
+            // ⛔ ЧИСЛО СТРОКИ — ПЛОЩАДЬ НАРИСОВАННОЙ ЛЕНТЫ, ОБЕ ПОЛОВИНЫ
+            // (решение Amber 01.09.2026, `S111`). Прежде здесь печаталась ε,
+            // оценённая по χ² доля формы, и пока ленты на экране не было, спорить
+            // было не с чем. Теперь человек читает строку как площадь того, что
+            // видит, — и она обязана быть ею: `G1S24_Th228_P5` даёт ε 34.2 % при
+            // отсчётах +20.25 / −6.80 %, то есть прежнее число под лентой лгало бы.
+            //
+            // ⚠ ε НЕ СНЯТА и снята быть не может: ею меряется корпус
+            // (`FsaResult.ModelResidual`, медиана понятной части 10.7 %), она
+            // сравнима между спектрами разной статистики, а отсчёты — нет.
+            // Разошлись ЭКРАН и МЕРКА, и это сознательно: экран показывает то,
+            // что нарисовано, мерка меряет то, чем сравнивают прогоны.
             g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
-                                       Resources.FSAModelResidualValue,
-                                       (100.0 * result.ModelResidual).ToString("n1",
+                                       Resources.FSAResidualCountsValue,
+                                       (100.0 * result.ResidualAboveShare).ToString("n1",
+                                           System.Globalization.CultureInfo.CurrentCulture),
+                                       (100.0 * result.ResidualBelowShare).ToString("n1",
                                            System.Globalization.CultureInfo.CurrentCulture)),
                          this.Font, Brushes.Black, r, this.farFormat);
             r.Y += FsaTableRowHeight;
