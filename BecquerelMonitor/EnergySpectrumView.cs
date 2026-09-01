@@ -611,7 +611,20 @@ namespace BecquerelMonitor
                     fwhmSpectrum = this.normByEffEnergySpectrum;
                 }
 
-                analytics.FwhmResult = EnergyResolutionCalculator.CalculateFWHM(fwhmSpectrum, startChannel, endChannel);
+                // ⛔ (`A45`) В РЕЖИМЕ FSA СЧИТАТЬ НАДО ПО ТОМУ, ЧТО НАРИСОВАНО.
+                //
+                // На экране там спектр ЗА ВЫЧЕТОМ ФОНА, а перебор выше о таком
+                // режиме не знал и отдавал сырой спектр — жёлтые линии полуширины
+                // вставали на уровнях сырых отсчётов, то есть висели над кривой,
+                // а центроид тянуло фоном. Тот же разбор, что у заливки выделения
+                // (`A27`), и тот же источник: «чистый спектр» у разложения
+                // (`S88`), один на вид и на пробы.
+                double[] fsaNet = this.FsaNetSpectrum;
+                analytics.FwhmResult = fsaNet != null
+                    ? EnergyResolutionCalculator.CalculateFWHM(
+                        fsaNet, this.energySpectrum.NumberOfChannels, this.energyCalibration,
+                        startChannel, endChannel)
+                    : EnergyResolutionCalculator.CalculateFWHM(fwhmSpectrum, startChannel, endChannel);
                 if (analytics.FwhmResult != null)
                 {
                     this.selectionFWHM = analytics.FwhmResult.Resolution;
@@ -630,12 +643,20 @@ namespace BecquerelMonitor
                     if (useComCentroid)
                     {
                         SpectrumAriphmetics centroidSa = new SpectrumAriphmetics();
-                        centroidChannel = centroidSa.FindCentroid(
-                            fwhmSpectrum,
-                            (int)analytics.FwhmResult.MaxChannel,
-                            startChannel,
-                            endChannel,
-                            true);
+                        centroidChannel = fsaNet != null
+                            ? centroidSa.FindCentroid(
+                                fsaNet,
+                                this.energySpectrum.NumberOfChannels,
+                                (int)analytics.FwhmResult.MaxChannel,
+                                startChannel,
+                                endChannel,
+                                true)
+                            : centroidSa.FindCentroid(
+                                fwhmSpectrum,
+                                (int)analytics.FwhmResult.MaxChannel,
+                                startChannel,
+                                endChannel,
+                                true);
                     }
                     this.selectionCentroidCh = (int)Math.Round(centroidChannel);
                     this.selectionCentroidkeV = this.energyCalibration.ChannelToEnergy(centroidChannel);
