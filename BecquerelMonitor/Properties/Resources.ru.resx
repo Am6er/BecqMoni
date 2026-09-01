@@ -455,6 +455,9 @@
   <data name="FSAModelResidualValue" xml:space="preserve">
     <value>{0} %</value>
   </data>
+  <data name="FSAResidualCountsValue" xml:space="preserve">
+    <value>+{0} / −{1} %</value>
+  </data>
   <data name="FSAPresentNoShare" xml:space="preserve">
     <value>есть</value>
     <comment>S85: backscatter has no reliable share — presence only</comment>
