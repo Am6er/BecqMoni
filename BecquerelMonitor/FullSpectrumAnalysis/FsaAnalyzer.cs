@@ -2638,9 +2638,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // оценённая по χ² доля формы, и она остаётся — ею меряется корпус
             // (медиана понятной части 10.7 %). Здесь отсчёты, и на одном и том
             // же спектре числа расходятся: `G1S24_Th228_P5` — ε 34.2 %, а по
-            // отсчётам +20.25 / −6.80 %. На ЭКРАН по решению Amber идут
+            // отсчётам «не добавлено» 20.25 % и «добавлено лишнего» 6.80 %. На ЭКРАН идут
             // отсчёты: человек читает строку как площадь нарисованной ленты.
-            double aboveCounts = 0.0, belowCounts = 0.0, measuredCounts = 0.0;
+            double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
             int[] raw = spectrum.Spectrum;
             for (int i = chLo; i <= chHi && i < raw.Length; i++)
             {
@@ -2651,16 +2651,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 measuredCounts += net;
                 if (difference > 0.0)
                 {
-                    aboveCounts += difference;
+                    missingCounts += difference;
                 }
                 else
                 {
-                    belowCounts -= difference;
+                    excessCounts -= difference;
                 }
             }
 
-            result.ResidualAboveShare = measuredCounts > 0.0 ? aboveCounts / measuredCounts : 0.0;
-            result.ResidualBelowShare = measuredCounts > 0.0 ? belowCounts / measuredCounts : 0.0;
+            result.ResidualMissingShare = measuredCounts > 0.0 ? missingCounts / measuredCounts : 0.0;
+            result.ResidualExcessShare = measuredCounts > 0.0 ? excessCounts / measuredCounts : 0.0;
 
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
             // 23.08.2026), и считается она там же, где строятся слои.
