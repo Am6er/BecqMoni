@@ -1,6 +1,6 @@
-# Завещание 16.08.2026, вечер: невязка модели, поставка ЛСРМ и корпус вдвое понятнее
+﻿# Завещание 16.08.2026, вечер: невязка модели, поставка ЛСРМ и корпус вдвое понятнее
 
-> 🔨 **Нашли проблему — строкой в [`TODO.md`](TODO.md).** Сюда пишут подробности,
+> 🔨 **Нашли проблему — строкой в [`TODO.md`](../TODO.md).** Сюда пишут подробности,
 > туда — строку с приоритетом и ссылкой сюда. И то, и другое, всегда.
 
 **Дата:** вечер и ночь 16.08.2026. **Ветка:** `pie`.
@@ -13,10 +13,10 @@
 
 | где | о чём из этого вечера |
 |---|---|
-| [`tools/effmaker/handover-response-matrix.md`](tools/effmaker/handover-response-matrix.md) | §16м (S51, невязка модели), §17 (T35, оценка GPU) |
-| [`tools/CORPUS/README.md`](tools/CORPUS/README.md) | S45 «виноват конвейер», B11 «зеркало T30», B12 «поставка ЛСРМ» и «сцены из таблицы» |
-| [`tools/effmaker/probes/README.md`](tools/effmaker/probes/README.md) | четыре новые пробы: `CalcRestore`, `MatrixLayout`, `DensityFromParts`, `PackGeometry`, `EffDip` |
-| [`TODO.md`](TODO.md) | закрыто 12 строк, заведено 7 |
+| [`tools/effmaker/handover-response-matrix.md`](../tools/effmaker/handover-response-matrix.md) | §16м (S51, невязка модели), §17 (T35, оценка GPU) |
+| [`tools/CORPUS/README.md`](../tools/CORPUS/README.md) | S45 «виноват конвейер», B11 «зеркало T30», B12 «поставка ЛСРМ» и «сцены из таблицы» |
+| [`tools/effmaker/probes/README.md`](../tools/effmaker/probes/README.md) | четыре новые пробы: `CalcRestore`, `MatrixLayout`, `DensityFromParts`, `PackGeometry`, `EffDip` |
+| [`TODO.md`](../TODO.md) | закрыто 12 строк, заведено 7 |
 
 ---
 
@@ -74,7 +74,7 @@
 > **семь маринелли-сцен были ОБЩИМИ у двух эпох**, а одна сцена не может быть
 > верна для обеих. Числа §1 этим НЕ отменяются (выше ~190 кэВ расхождение
 > ≤0.2 %), но называть их «полностью по данным» нельзя. Подробности, цена по
-> XCOM и что сделано — строка `B13` в [`TODO.md`](TODO.md).
+> XCOM и что сделано — строка `B13` в [`TODO.md`](../TODO.md).
 >
 > ⚠ **И вторая, меньшая оговорка к тому же «ни одной на глаз»:**
 > `RC103_marinelli05_kcl` (спектр `RC103_K40`, понятная часть) взята ЦЕЛИКОМ из

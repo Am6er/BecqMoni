@@ -34,9 +34,25 @@ def write(path, text):
 
 
 def row_number(line):
-    """Номер строки таблицы: `| **B4** | ...` или `| B4 | ...` -> B4."""
-    m = re.match(r"^\|\s*~?~?\*{0,2}([A-Z]\d+)\*{0,2}~?~?\s*\|", line)
+    """Номер строки таблицы: `| **B4** | ...`, `| B4 | ...`, `| ~~**B4**~~ | ...`.
+
+    ⚠ Тильд может быть сколько угодно: клетку номера уже могли вычеркнуть
+    руками, а прежний перенос вычёркивал её ЕЩЁ раз — выходило четыре тильды,
+    и строка переставала опознаваться (`T107`, поймано на `A16` 31.08.2026).
+    Правило то же, что у `check_registry.py`: `~*` с обеих сторон.
+    """
+    m = re.match(r"^\|\s*~*\*{0,2}~*\s*([A-Z]{1,2}\d{1,3})\s*~*\*{0,2}~*\s*\|", line)
     return m.group(1) if m else None
+
+
+def strike(cell):
+    """Вычеркнуть клетку номера РОВНО ОДИН раз (`T107`).
+
+    Лишние тильды снимаются, а не добавляются: четыре тильды — это то самое
+    состояние, в котором клетку перестаёт видеть и сам инструмент, и глаз.
+    """
+    text = cell.strip().strip("~")
+    return " ~~%s~~ " % text
 
 
 def sections(text):
@@ -54,8 +70,41 @@ def sections(text):
     return lines, out
 
 
+def selftest():
+    """Двусторонний контроль на четырёх видах клетки номера (`T107`).
+
+    Положительный: все четыре вида опознаются и вычёркиваются ОДИН раз.
+    Отрицательный: то, что номером не является, номером и не считается.
+    """
+    # Пятый вид — тот самый, на котором инструмент слеп: клетку вычеркнули
+    # руками, а прежний перенос вычеркнул ЕЩЁ раз (четыре тильды, `A16`).
+    forms = ["| A16 | открыто | … | … |",
+             "| **A16** | открыто | … | … |",
+             "| ~~A16~~ | открыто | … | … |",
+             "| ~~**A16**~~ | открыто | … | … |",
+             "| ~~~~**A16**~~~~ | открыто | … | … |"]
+    bad = 0
+    for line in forms:
+        got = row_number(line)
+        cell = strike(line.split("|")[1])
+        double = cell.count("~~") > 2
+        print("  %-34s -> %-5s вычеркнуто: %s%s"
+              % (line.split("|")[1].strip(), got, cell.strip(),
+                 "  ⛔ ЧЕТЫРЕ ТИЛЬДЫ" if double else ""))
+        if got != "A16" or double:
+            bad += 1
+    for line in ["| открыто | … |", "| A16b | … |", "не строка таблицы"]:
+        if row_number(line) is not None:
+            print("  ⛔ ложное опознание: %r -> %s" % (line, row_number(line)))
+            bad += 1
+    print("СОШЛОСЬ" if not bad else "НЕ СОШЛОСЬ: %d" % bad)
+    sys.exit(1 if bad else 0)
+
+
 def main():
     apply_it = "--apply" in sys.argv[1:]
+    if "--selftest" in sys.argv[1:]:
+        selftest()
     wanted = [a for a in sys.argv[1:] if not a.startswith("--")]
     if not wanted:
         sys.exit(__doc__)
@@ -93,7 +142,7 @@ def main():
 
         # Формат DONE.md: номер вычеркнут, состояние — «закрыто».
         cells = line.split("|")
-        cells[1] = " ~~%s~~ " % cells[1].strip()
+        cells[1] = strike(cells[1])
         cells[2] = " закрыто "
         moved.append((number, title, "|".join(cells)))
 
@@ -124,6 +173,19 @@ def main():
           and done_rows_after - done_rows_before == len(wanted))
     print("СОШЛОСЬ" if ok else "НЕ СОШЛОСЬ: перенесено не столько, сколько просили")
     if not ok:
+        # ⚠ Признак без читателя валил заказ, не называя виновных (`T107`):
+        # на заказе из 21 строки разница была в ОДНУ, и искать её пришлось руками.
+        seen_todo = set(filter(None, (row_number(l) for l in todo_lines)))
+        seen_done = set(filter(None, (row_number(l) for l in done_lines)))
+        lost = [n for n in wanted if n not in seen_done]
+        stuck = [n for n in wanted if n in seen_todo]
+        if lost:
+            print("  не видно в DONE.md после переноса: " + ", ".join(lost))
+        if stuck:
+            print("  остались в TODO.md: " + ", ".join(stuck))
+        if not lost and not stuck:
+            print("  номера на местах — значит счёт сбила СОСЕДНЯЯ строка,"
+                  " которую перестал опознавать row_number")
         sys.exit(1)
 
     if not apply_it:

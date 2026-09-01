@@ -1,6 +1,6 @@
-# Завещание 15.08.2026, вечер и ночь: дубликаты, эпохи G1S, и «511» у лютеция
+﻿# Завещание 15.08.2026, вечер и ночь: дубликаты, эпохи G1S, и «511» у лютеция
 
-> 🔨 **Нашли проблему — строкой в [`TODO.md`](TODO.md).** Сюда пишут подробности,
+> 🔨 **Нашли проблему — строкой в [`TODO.md`](../TODO.md).** Сюда пишут подробности,
 > туда — строку с приоритетом и ссылкой сюда. И то, и другое, всегда.
 
 **Дата:** вечер и ночь 15.08.2026. **Ветка:** `pie`.
@@ -15,9 +15,9 @@
 
 | где | о чём из этой сессии |
 |---|---|
-| [`tools/effmaker/handover-response-matrix.md`](tools/effmaker/handover-response-matrix.md) | §13е…§13л — вся история «511» у Lu-176, от подмены до закрытия |
-| [`tools/CORPUS/README.md`](tools/CORPUS/README.md) | эпохи G1S, дубликаты B6, сводка корпуса |
-| [`tools/CORPUS/corpus/SUMMARY.md`](tools/CORPUS/corpus/SUMMARY.md) | **новое: строка на спектр, всё в одном месте** |
+| [`tools/effmaker/handover-response-matrix.md`](../tools/effmaker/handover-response-matrix.md) | §13е…§13л — вся история «511» у Lu-176, от подмены до закрытия |
+| [`tools/CORPUS/README.md`](../tools/CORPUS/README.md) | эпохи G1S, дубликаты B6, сводка корпуса |
+| [`tools/CORPUS/corpus/SUMMARY.md`](../tools/CORPUS/corpus/SUMMARY.md) | **новое: строка на спектр, всё в одном месте** |
 | [`handover-2026-08-15.md`](handover-2026-08-15.md), [`handover-2026-08-14.md`](handover-2026-08-14.md) | поправлены: премиса «два прибора» и кристалл AS80x80 |
 
 ---
