@@ -12,6 +12,63 @@ using System.Xml.Serialization;
 namespace CorpusFsaProbe
 {
     /// <summary>
+    /// ⛔⛔ ВОРОТА: поставочный `config\NuclideDefinition.xml` НА КОРПУСЕ НЕ
+    /// ИСПОЛЬЗУЕТСЯ НИКОГДА — глобальное правило Amber 01.09.2026.
+    ///
+    /// Корпус гоняется только по УКАЗАННЫМ нуклидам, привязанным к конкретному
+    /// спектру: состав берётся из `manifest.csv`, линии — из `nucdb`/`matdb`
+    /// (<see cref="FsaSampleLibrary"/>), подписи пиков — из той же своей базы.
+    /// Общий поставочный список — дело человека и графика; предъявив его
+    /// спектру, отдаёшь необъяснённую структуру первому подходящему кандидату.
+    ///
+    /// ЦЕНА НАРУШЕНИЯ ИЗМЕРЕНА И НОСИТ ИМЯ (`N18`): одна запись поставочного
+    /// списка — `Pu-238`, 152 кэВ, выход 0.0009 %, — дала на `ASN16_Lu176`
+    /// состав с плутонием долей 1.7 % при z = 31.77, сев в полосу обратного
+    /// рассеяния линии 306.78 самого лютеция. Плутония не объявлял ни один из
+    /// 129 спектров манифеста.
+    ///
+    /// ⚠ ЧТО ЭТИМИ ВОРОТАМИ ПОТЕРЯНО, названо честно: ключи `--lib=peaks`
+    /// (состав по подписям поиска) и `--lib=infer` (`S57`, состав выводится из
+    /// пиков) предъявляли спектру ровно этот список, поэтому на корпусе они
+    /// больше не работают. A/B «подписи против объявленной пробы» на корпусе
+    /// заново не поставить, пока у вывода состава не появится свой источник
+    /// кандидатов, не поставочный.
+    ///
+    /// Ворота двусторонние: <see cref="Allow"/> пускает только `sample`, а
+    /// недостижимая ветвь разбора бросает <see cref="Rule"/> — правка, вернувшая
+    /// другой режим, упадёт, а не посчитает корпус чужим списком. Механическая
+    /// проверка тех же ворот — `tools/check_corpus_library.py`.
+    /// </summary>
+    static class SuppliedLibraryGuard
+    {
+        /// <summary>Само правило одной строкой — им же говорит отказ.</summary>
+        public const string Rule =
+            "поставочный config\\NuclideDefinition.xml на корпусе НЕ используется " +
+            "(глобальное правило Amber 01.09.2026): корпус гоняется только по " +
+            "указанным нуклидам, привязанным к спектру";
+
+        /// <summary>Код возврата отказа — свой, чтобы не путать с разбором ключей.</summary>
+        public const int ExitCode = 12;
+
+        public static bool Allow(string library)
+        {
+            return library == "sample";
+        }
+
+        public static int Refuse(string library)
+        {
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine(
+                "   --lib=" + (library ?? "") + " предъявил бы спектру ОБЩИЙ поставочный список.");
+            Console.Error.WriteLine(
+                "   Разрешено единственное: --lib=sample (умолчание) — состав из manifest.csv, линии из nucdb.");
+            Console.Error.WriteLine(
+                "   Цена нарушения измерена: фантом Pu-238 на ASN16_Lu176 (N18).");
+            return ExitCode;
+        }
+    }
+
+    /// <summary>
     /// Полноспектральный разбор ВСЕГО корпуса кодом ПРИЛОЖЕНИЯ (TODO S1).
     ///
     /// Зачем ещё один обход, когда есть `tools/pie/run_corpus.ps1`: у того
@@ -32,14 +89,19 @@ namespace CorpusFsaProbe
     /// ⛔ **Состав библиотеки с 18.08.2026 задаёт ОБЪЯВЛЕННАЯ ПРОБА** (`S56`,
     /// первый постулат Amber): `--lib=sample` — умолчание, линии собираются
     /// `FsaSampleLibrary` из `nucdb`/`matdb` по `manifest.csv` и
-    /// `materials.csv`. Прежний порядок (состав задают подписи поиска пиков)
-    /// остался ключом `--lib=peaks` — это A-сторона замера, а не запасной путь.
-    /// ⚠ Мерки при этом сменили смысл: recall и число фантомов считаются
-    /// относительно ПРЕДЪЯВЛЕННОГО списка, и сужение списка улучшает их само по
-    /// себе. Прогоны двух режимов между собой не сравниваются.
+    /// `materials.csv`.
+    ///
+    /// ⛔⛔ **С 01.09.2026 это ЕДИНСТВЕННЫЙ разрешённый режим** (глобальное
+    /// правило Amber): поставочный `config\NuclideDefinition.xml` на корпусе не
+    /// используется НИКОГДА, и прежние ключи `--lib=peaks` / `--lib=infer`
+    /// ОТКАЗЫВАЮТ кодом 12 — см. <see cref="SuppliedLibraryGuard"/>.
+    /// `NuclideDefinitionManager` этой пробой больше не поднимается вовсе.
+    /// ⚠ Мерки при этом сменили смысл ещё в августе: recall и число фантомов
+    /// считаются относительно ПРЕДЪЯВЛЕННОГО списка, и сужение списка улучшает
+    /// их само по себе; числа прежних режимов корпусными не считать.
     ///
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
-    ///                  [--lib=sample|peaks|infer] [--infer-theta=D] [--no-infer-anchor]
+    ///                  [--lib=sample]   (peaks/infer ЗАПРЕЩЕНЫ, отказ кодом 12)
     ///                  [--infer-head] [--infer-head-only]
     ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
@@ -424,10 +486,9 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
-            if (o.Library != "sample" && o.Library != "peaks" && o.Library != "infer")
+            if (!SuppliedLibraryGuard.Allow(o.Library))
             {
-                Console.Error.WriteLine("--lib= только sample, peaks или infer");
-                return 2;
+                return SuppliedLibraryGuard.Refuse(o.Library);
             }
 
             if (o.Part != "all" && o.Part != "known" && o.Part != "unknown")
@@ -468,7 +529,14 @@ namespace CorpusFsaProbe
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+
+            // ⛔ `NuclideDefinitionManager` здесь БОЛЬШЕ НЕ ПОДНИМАЕТСЯ (приказ
+            // Amber 01.09.2026). Он читает поставочный `config\NuclideDefinition.xml`,
+            // а корпус работает только по УКАЗАННЫМ нуклидам, привязанным к
+            // спектру. Прежде менеджер создавался на каждом прогоне, даже когда
+            // состав брался из `nucdb`, — то есть корпусный путь держал за руку
+            // файл, которым ему пользоваться нельзя. Цена нарушения измерена и
+            // носит имя: фантом `Pu-238` (`N18`).
 
             // (`T65`) Настройки прогона печатаются У АНАЛИЗАТОРА — у того
             // самого объекта, каким потом считается каждый спектр. Шапка,
@@ -479,6 +547,12 @@ namespace CorpusFsaProbe
             Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
             Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
                               samples.Count, o.Part, o.Mode);
+            // Заверение с читателем: у ворот `SuppliedLibraryGuard` должно быть
+            // видно, что они стояли, — иначе правило живёт только в комментарии.
+            Console.WriteLine("библиотека: --lib={0} — состав из manifest.csv, линии из nucdb/matdb; "
+                              + "поставочный config\\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его "
+                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026)",
+                              o.Library);
             // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
             // подбирает и подаёт сама проба, фон она подаёт или не подаёт
             // отдельным доводом. Их и печатаем у себя; всё остальное —
@@ -562,7 +636,7 @@ namespace CorpusFsaProbe
             var clock = System.Diagnostics.Stopwatch.StartNew();
             foreach (Sample sample in samples)
             {
-                rows.Add(RunOne(sample, o, nuclides));
+                rows.Add(RunOne(sample, o));
             }
 
             Write(rows, o);
@@ -1232,7 +1306,7 @@ namespace CorpusFsaProbe
         }
 
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
-        static Row RunOne(Sample sample, Options o, NuclideDefinitionManager nuclides)
+        static Row RunOne(Sample sample, Options o)
         {
             var row = new Row { Key = sample.Key, Det = sample.Det, Part = sample.Part };
             string path = Path.Combine(o.Corpus, "spectra", sample.Key + ".xml");
@@ -1290,38 +1364,12 @@ namespace CorpusFsaProbe
                 }
                 else
                 {
-                    peaks = new PeakDetector().DetectPeak(
-                        rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                        nuclides.ActiveSet, nuclides.NuclideDefinitions);
-                    if (o.Library == "infer")
-                    {
-                        // S57: манифест здесь НЕ ЧИТАЕТСЯ — в этом весь замер.
-                        // Кандидатов даёт общая библиотека прибора (та же, что
-                        // и у `--lib=peaks`), состав — `nucdb`/`matdb`, а
-                        // истина из `manifest.csv` участвует только в МЕРКЕ,
-                        // после прогона.
-                        FsaCompositionInference.Report inferred;
-                        FsaSampleSpec spec = FsaCompositionInference.Infer(
-                            peaks, rd, InferTheta(o), o.InferAnchors, o.InferNovelty,
-                            o.InferCut, out inferred);
-                        SpecMatter(spec, rd, sample);
-                        spec.Equilibrium = o.Equilibrium;
-                        library = FsaSampleLibrary.Build(spec);
-                        row.LibraryNote = inferred.ToString();
-
-                        // Подписи пиков пересобираются из ВЫВЕДЕННОГО состава,
-                        // как и у `--lib=sample`: иначе таблица пиков спорила
-                        // бы с разложением, а кривая эффективности строится по
-                        // площади ПОДПИСАННОГО пика.
-                        peaks = new PeakDetector().DetectPeak(
-                            rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                            null, FsaSampleLibrary.AsDefinitions(library));
-                    }
-                    else
-                    {
-                        library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
-                        row.LibraryNote = "по подписям поиска пиков";
-                    }
+                    // ⛔ Сюда попасть нельзя: ворота у разбора ключей
+                    // (`SuppliedLibraryGuard`) не пускают ничего, кроме
+                    // `--lib=sample`. Ветка оставлена БРОСКОМ, а не удалена
+                    // молча, чтобы правка, вернувшая другой режим, упала здесь,
+                    // а не посчитала корпус чужим списком.
+                    throw new InvalidOperationException(SuppliedLibraryGuard.Rule);
                 }
 
                 row.Peaks = peaks.Count;
