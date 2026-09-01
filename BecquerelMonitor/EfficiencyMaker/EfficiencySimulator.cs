@@ -3909,7 +3909,102 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 double x, y, z;
                 this.source.Next(this, out x, out y, out z);
+                double score = this.OneHistory(energyKev, x, y, z, histogram, binKev);
+                sum += score;
+                sum2 += score * score;
+            }
 
+            double mean = sum / n;
+            double variance = Math.Max(0.0, sum2 / n - mean * mean);
+            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
+
+            // Континуум — аналоговой веткой (физика 6): бины ниже пика
+            // перезаписываются до нормировки, оба прогона на одних n.
+            if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
+            {
+                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
+            }
+
+            return this.FinishRun(energyKev, histogram, binKev, n, mean);
+        }
+
+        /// <summary>
+        /// ⚡ СОВМЕСТНАЯ ЭФФЕКТИВНОСТЬ ПАРЫ КВАНТОВ КАСКАДА (`S19`, `S50`).
+        ///
+        /// Возвращает поправочный множитель
+        ///
+        ///     κ(E₁,E₂) = ⟨ε₁ε₂⟩ / (⟨ε₁⟩·⟨ε₂⟩)
+        ///
+        /// — во сколько раз истинная вероятность поглотить ОБА кванта целиком
+        /// больше произведения средних эффективностей, которым пользуется формула
+        /// сумм-пика.
+        ///
+        /// ЗАЧЕМ. У двух квантов каскада точка распада ОДНА, и на протяжённом
+        /// источнике их шансы связаны: распад ближе к кристаллу поднимает оба.
+        /// Произведение средних эту связь теряет и занижает сумму. Замер Geant4 на
+        /// сцене `ASN16_lu_side`: у точечного источника формула точна, у банки
+        /// Ø40×h15 недостаёт множителя 1.26 — ровно того, из-за которого сумм-пик
+        /// модели выходил 0.60 от измеренного.
+        ///
+        /// ⚠ Считается ТЕМ ЖЕ переносом (<see cref="OneHistory"/>), из одной
+        /// разыгранной точки — два кванта. Отдельного упрощённого счёта здесь нет
+        /// нарочно: он разошёлся бы с настоящим (`S37`).
+        ///
+        /// ⚠ Гистограммы не заполняются (обе истории идут с `histogram = null`):
+        /// нужна только вероятность полного поглощения.
+        /// </summary>
+        public double JointPeakFactor(double firstKev, double secondKev, out double relativeError)
+        {
+            relativeError = 0.0;
+            this.EnsureBuilt();
+            if (!(firstKev > 0.0) || !(secondKev > 0.0))
+            {
+                return 1.0;
+            }
+
+            int n = Math.Max(1000, this.Histories);
+            double sum1 = 0.0, sum2 = 0.0, joint = 0.0, joint2 = 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                double x, y, z;
+                this.source.Next(this, out x, out y, out z);
+
+                // ⛔ ОБА кванта — из ОДНОЙ точки: в этом весь смысл замера.
+                // Направления разыгрываются независимо, как и в природе.
+                double a = this.OneHistory(firstKev, x, y, z, null, 0.0);
+                double b = this.OneHistory(secondKev, x, y, z, null, 0.0);
+                sum1 += a;
+                sum2 += b;
+                joint += a * b;
+                joint2 += a * b * a * b;
+            }
+
+            double mean1 = sum1 / n, mean2 = sum2 / n, meanJoint = joint / n;
+            if (!(mean1 > 0.0) || !(mean2 > 0.0))
+            {
+                return 1.0;
+            }
+
+            double variance = Math.Max(0.0, joint2 / n - meanJoint * meanJoint);
+            relativeError = meanJoint > 0.0
+                ? Math.Sqrt(variance / n) / meanJoint * 100.0
+                : 0.0;
+            return meanJoint / (mean1 * mean2);
+        }
+
+        /// <summary>
+        /// ⚡ ОДНА ИСТОРИЯ ИЗ ЗАДАННОЙ ТОЧКИ (`S19`). Выделено из <see cref="Run"/>
+        /// ради совместной эффективности пары квантов каскада: у них ОДНА точка
+        /// распада на двоих, и разыграть вторую историю надо из неё же.
+        ///
+        /// ⛔ Второй копии переноса не заводится: две копии одного счёта однажды
+        /// разъедутся молча (`S37`). Розыгрыш от выделения не меняется — те же
+        /// обращения к ГСЧ в том же порядке.
+        /// </summary>
+        double OneHistory(double energyKev, double x, double y, double z,
+                          double[] histogram, double binKev)
+        {
+            {
                 // Направление разыгрывается не по всей сфере, а в конусе,
                 // накрывающем детектор: иначе на дальней геометрии почти все
                 // истории уходят мимо и статистика набирается впустую.
@@ -3990,20 +4085,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                sum += score;
-                sum2 += score * score;
+                return score;
             }
+        }
 
-            double mean = sum / n;
-            double variance = Math.Max(0.0, sum2 / n - mean * mean);
-            relativeError = mean > 0.0 ? Math.Sqrt(variance / n) / mean * 100.0 : 0.0;
-
-            // Континуум — аналоговой веткой (физика 6): бины ниже пика
-            // перезаписываются до нормировки, оба прогона на одних n.
-            if (histogram != null && histogram.Length > 1 && this.AnalogContinuum)
-            {
-                this.AnalogContinuumRun(energyKev, histogram, binKev, n);
-            }
+        /// <summary>Нормировка гистограммы и свет — общий хвост прогона.</summary>
+        double FinishRun(double energyKev, double[] histogram, double binKev, int n, double mean)
+        {
 
             // Бины копят сумму весов, а величина отклика — среднее по историям,
             // ровно как возвращаемая эффективность. Без этого деления отклик
