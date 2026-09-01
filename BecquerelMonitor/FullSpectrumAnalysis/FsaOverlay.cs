@@ -180,6 +180,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
 
+            // ⛔ (`A36`) ШКАЛА МОДЕЛИ ДЕРЖИТСЯ НА НАЙДЕННЫХ ПИКАХ. Список тот же
+            // самый, из которого собирается состав, — второго снимка рядом быть
+            // не должно: разошлись бы состав и привязка.
+            analyzer.DriftPeaks = peaks;
+
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
             {
                 // Диапазон поиска пиков передаётся анализатору, но при
@@ -303,7 +308,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     if (peak != null && peak.Nuclide != null)
                     {
-                        peakStamp.Append(peak.Nuclide.Name).Append(';');
+                        // (`A36`) В отпечаток идёт и ПОЛОЖЕНИЕ пика, а не только
+                        // имя: на найденных пиках держится шкала модели, и два
+                        // разбора с одинаковым списком имён, но разными
+                        // центроидами — это два разных разбора.
+                        peakStamp.Append(peak.Nuclide.Name).Append('@')
+                                 .Append(peak.Energy.ToString("F1",
+                                     System.Globalization.CultureInfo.InvariantCulture))
+                                 .Append(';');
                     }
                 }
             }
