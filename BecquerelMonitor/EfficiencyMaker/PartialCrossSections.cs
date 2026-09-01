@@ -54,41 +54,41 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            double[] grid = element.EnergyKev;
-            int n = grid.Length;
             int lo, hi;
-            if (energyKev <= grid[0])
+            if (!MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
             {
-                lo = hi = 0;
-            }
-            else if (energyKev >= grid[n - 1])
-            {
-                lo = hi = n - 1;
-            }
-            else
-            {
-                lo = 0;
-                hi = n - 1;
-                while (hi - lo > 1)
-                {
-                    int mid = (lo + hi) / 2;
-                    if (grid[mid] <= energyKev)
-                    {
-                        lo = mid;
-                    }
-                    else
-                    {
-                        hi = mid;
-                    }
-                }
+                return 0.0;
             }
 
+            return MassCrossSection(element, lo, hi, energyKev, Math.Log(energyKev), process);
+        }
+
+        /// <summary>
+        /// ⚡ (`A43`) То же сечение, но элемент найден, пара узлов уже выбрана
+        /// (<see cref="MaterialDatabase.Bracket"/>) и логарифм энергии передан
+        /// готовым.
+        ///
+        /// Зачем такой вход. У элемента ОДНА сетка энергий на все каналы, а
+        /// спрашивают их порознь: ветвление в кристалле берёт фотоэффект, комптон
+        /// и пары тремя вызовами, ослабление без когерентного — полное и
+        /// когерентное двумя. Каждый вызов заново искал по словарю элемент, заново
+        /// вёл двоичный поиск по той же сетке и заново брал `Math.Log` от той же
+        /// энергии. Здесь всё это делается по разу.
+        ///
+        /// ⛔ Арифметика прежняя до разряда: те же узлы, та же формула, тот же
+        /// порядок. Приёмка — `MatrixDiffProbe` 0.000 %.
+        /// </summary>
+        public static double MassCrossSection(MaterialDatabase.Element element,
+                                              int lo, int hi, double energyKev,
+                                              double logEnergyKev, PhotonProcess process)
+        {
             double a = Channel(element, lo, process);
             if (lo == hi)
             {
                 return a;
             }
 
+            double[] grid = element.EnergyKev;
             double x0 = grid[lo], x1 = grid[hi];
             double b = Channel(element, hi, process);
             if (!(x1 > x0))
@@ -102,7 +102,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // в профиле это был главный поставщик математики ucrt. Результат
             // побитово прежний — та же функция от того же аргумента.
             double[] logGrid = element.LogEnergyKev;
-            double f = (Math.Log(energyKev) - logGrid[lo]) / (logGrid[hi] - logGrid[lo]);
+            double f = (logEnergyKev - logGrid[lo]) / (logGrid[hi] - logGrid[lo]);
             if (!(a > 0.0) || !(b > 0.0))
             {
                 // канал открывается не с нуля шкалы: рождение пар ниже 1.022 МэВ
