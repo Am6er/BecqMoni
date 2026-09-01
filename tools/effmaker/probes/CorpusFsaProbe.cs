@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml.Serialization;
@@ -192,6 +193,7 @@ namespace CorpusFsaProbe
                 // составом пробы (первый постулат), `peaks` — подписями поиска
                 // пиков, как было до 18.08.2026. Ключ, а не пересборка: A/B
                 // считается ОДНИМ двоичным файлом.
+                if (a.StartsWith("--residual-peaks=")) { o.ResidualPeaks = a.Substring(17); continue; }
                 if (a == "--lib=sample") { o.Library = "sample"; continue; }
                 if (a == "--lib=peaks") { o.Library = "peaks"; continue; }
                 if (a == "--lib=infer") { o.Library = "infer"; continue; }
@@ -1303,6 +1305,108 @@ namespace CorpusFsaProbe
             }
         }
 
+        /// <summary>
+        /// (`S111`) ВТОРОЙ ПРОХОД ПОИСКА ПИКОВ — ПО ОСТАТКУ. Гипотеза Amber
+        /// 01.09.2026: если у спектра велика невязка формы, надо вычесть
+        /// найденное и заново прогнать финдер по тому, что осталось.
+        ///
+        /// Остаток считается ровно так, как сказано: **(спектр − фон) − модель**.
+        /// Фон здесь тот же, что вычла подгонка (`FsaResult.Background` — её
+        /// пиковая часть; континуум фона забрал сплайн), а модель — сумма
+        /// континуума и всех образов (`FsaResult.Model`). Иначе говоря, это та
+        /// же величина, что стоит в невязке разбора, только поканально.
+        ///
+        /// ⛔ **ФИНДЕРУ ПРЕДЪЯВЛЯЕТСЯ ПУСТАЯ БИБЛИОТЕКА** (не `null`!): второй
+        /// проход ищет ПИКИ, а не подписи, и поставочный список сюда не приходит
+        /// ни при каких условиях — правило Amber 01.09.2026.
+        ///
+        /// ⚠ **ДВЕ ЗНАЧИМОСТИ, И ПУТАТЬ ИХ НЕЛЬЗЯ.** Финдер считает свою `z` по
+        /// тому спектру, который ему дали, — а у остатка дисперсия НЕ его
+        /// собственная: шум остался пуассоновским от ИЗМЕРЕНИЯ, модель его не
+        /// уменьшила. Поэтому рядом печатается `z_data` = площадь остатка,
+        /// делённая на √(отсчёты ИЗМЕРЕНИЯ в том же окне). Первая величина
+        /// говорит «финдер это увидел», вторая — «это выше шума данных», и
+        /// читать надо вторую.
+        ///
+        /// ⚠ Отрицательная часть остатка финдеру не подаётся (там модель ВЫШЕ
+        /// измерения — это тоже находка, но другого рода: её видно по `Σ−`
+        /// в шапке строки).
+        /// </summary>
+        static List<string> ResidualPeaks(ResultData rd, FsaResult result, Sample sample)
+        {
+            var rows = new List<string>();
+            if (rd == null || rd.EnergySpectrum == null || result == null || result.Model == null)
+            {
+                return rows;
+            }
+
+            int[] raw = rd.EnergySpectrum.Spectrum;
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            if (raw == null || calibration == null)
+            {
+                return rows;
+            }
+
+            int lo = Math.Max(0, result.FirstChannel);
+            int hi = Math.Min(raw.Length - 1, result.LastChannel);
+            var residual = new int[raw.Length];
+            double negative = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double background = result.Background != null && i < result.Background.Length
+                    ? result.Background[i] : 0.0;
+                double value = raw[i] - background - result.Model[i];
+                if (value < 0.0)
+                {
+                    negative += value;
+                    continue;
+                }
+
+                residual[i] = (int)Math.Round(value);
+            }
+
+            // Копия измерения, у которой ОТСЧЁТЫ подменены остатком: калибровки,
+            // конфигурация поиска и живое время — те же, иначе финдер мерил бы
+            // другой прибор.
+            ResultData probe = rd.Clone();
+            probe.EnergySpectrum.Spectrum = residual;
+
+            List<Peak> peaks = new PeakDetector().DetectPeak(
+                probe, BackgroundMode.Invisible, SmoothingMethod.None,
+                null, new List<NuclideDefinition>());
+
+            foreach (Peak peak in peaks)
+            {
+                // Окно ±1 ПШПВ вокруг вершины — по нему берётся шум ИЗМЕРЕНИЯ.
+                double fwhm = peak.FWHM > 0.0 ? peak.FWHM : 1.0;
+                int from = Math.Max(lo, (int)Math.Floor(peak.Channel - fwhm));
+                int to = Math.Min(hi, (int)Math.Ceiling(peak.Channel + fwhm));
+                double measured = 0.0;
+                for (int i = from; i <= to; i++)
+                {
+                    measured += raw[i];
+                }
+
+                double zData = measured > 0.0 ? peak.Count / Math.Sqrt(measured) : double.NaN;
+                rows.Add(string.Join(",", new[]
+                {
+                    sample.Key,
+                    sample.Det,
+                    sample.Part,
+                    peak.Energy.ToString("0.###", CultureInfo.InvariantCulture),
+                    peak.Channel.ToString("0.##", CultureInfo.InvariantCulture),
+                    (fwhm * calibration.ChannelToEnergy(peak.Channel + 1.0)
+                     - fwhm * calibration.ChannelToEnergy(peak.Channel)).ToString("0.##", CultureInfo.InvariantCulture),
+                    peak.Count.ToString("0.#", CultureInfo.InvariantCulture),
+                    peak.SNR.ToString("0.##", CultureInfo.InvariantCulture),
+                    zData.ToString("0.##", CultureInfo.InvariantCulture),
+                    negative.ToString("0", CultureInfo.InvariantCulture),
+                }));
+            }
+
+            return rows;
+        }
+
         /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
         static Row RunOne(Sample sample, Options o)
         {
@@ -1641,6 +1745,11 @@ namespace CorpusFsaProbe
                 if (o.LimitsMc > 0)
                 {
                     ValidateLimits(rd, background, library, analyzer, result, efficiency, o, sample.Key);
+                }
+
+                if (!string.IsNullOrEmpty(o.ResidualPeaks))
+                {
+                    row.ResidualPeaks = ResidualPeaks(rd, result, sample);
                 }
             }
             catch (Exception ex)
@@ -2324,8 +2433,50 @@ namespace CorpusFsaProbe
         /// одних пиков, и одно число на обе означало бы среднее двух разных
         /// моделей.
         /// </summary>
+        /// <summary>
+        /// (`S111`) Пики второго прохода — одним файлом на прогон.
+        ///
+        /// Один файл, а не по группам: вопрос, ради которого он заведён, —
+        /// «что осталось ПО ВСЕМУ корпусу», и сводить его руками из шестнадцати
+        /// кусков значило бы заводить работу там, где её нет.
+        /// </summary>
+        static void WriteResidualPeaks(List<Row> rows, Options o)
+        {
+            if (string.IsNullOrEmpty(o.ResidualPeaks))
+            {
+                return;
+            }
+
+            int found = 0;
+            using (var writer = new StreamWriter(o.ResidualPeaks, false, new UTF8Encoding(true)))
+            {
+                writer.WriteLine("spectrum,detector,part,energy_kev,channel,fwhm_kev,"
+                                 + "net_counts,z_finder,z_data,negative_sum");
+                foreach (Row row in rows)
+                {
+                    if (row.ResidualPeaks == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (string line in row.ResidualPeaks)
+                    {
+                        writer.WriteLine(line);
+                        found++;
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("второй проход по остатку (`S111`): пиков {0} в {1} спектрах -> {2}",
+                              found,
+                              rows.Count(r => r.ResidualPeaks != null && r.ResidualPeaks.Count > 0),
+                              Path.GetFullPath(o.ResidualPeaks));
+        }
+
         static void Summary(List<Row> rows, Options o, double seconds)
         {
+            WriteResidualPeaks(rows, o);
             Console.WriteLine();
             // Часы — про машину, ЦП — про код. Печатаются рядом нарочно: этот
             // прогон уже дорожал вчетверо незамеченным (50 -> 236 с, S39),
@@ -3035,6 +3186,9 @@ namespace CorpusFsaProbe
             /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
             public int Residuals;
 
+            /// <summary>(S111) Куда писать пики ВТОРОГО прохода — по остатку.</summary>
+            public string ResidualPeaks = "";
+
             /// <summary>
             /// (`B17`) Делитель диапазона, задающий самый редкий шаг узлов
             /// континуума; 0 — ключ не задан, умолчание у анализатора.
@@ -3355,6 +3509,9 @@ namespace CorpusFsaProbe
             /// <summary>Невязка в запрошенном окне (`--near=`): сигмы и отсчёты.</summary>
             public double NearExcess = double.NaN;
             public double NearCounts;
+
+            /// <summary>(S111) Пики, найденные по остатку: готовые строки CSV.</summary>
+            public List<string> ResidualPeaks;
             public bool GainOnGridEdge;
             public bool OffsetOnGridEdge;
 
