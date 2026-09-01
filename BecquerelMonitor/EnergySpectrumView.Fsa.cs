@@ -348,8 +348,10 @@ namespace BecquerelMonitor
             //
             // ⚠ Штриховка, а не заливка, и НАРОЧНО: невязка не компонент, у неё
             // нет ни нуклида, ни амплитуды фита, и выглядеть как ещё одна лента
-            // состава она не должна. Два разных штриха разводят знаки.
-            this.DrawFsaResidual(g, this.fsaCumulative[layers.Count - 1], this.fsaNetSpectrum);
+            // состава она не должна. Знаки разводит ЦВЕТ штриха (`A28`).
+            this.DrawFsaResidual(g, this.fsaCumulative[layers.Count - 1], this.fsaNetSpectrum,
+                                 this.globalConfigManager.GlobalConfig.ColorConfig
+                                     .ActiveSpectrumColor.Color);
 
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.PixelOffsetMode = PixelOffsetMode.Half;
@@ -364,7 +366,9 @@ namespace BecquerelMonitor
                 ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
                 using (Pen spectrumPen = new Pen(colorConfig.ActiveSpectrumColor.Color))
                 {
-                    this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum);
+                    // (`A26`) Линия измерения не рвётся: где фон перекрыл спектр,
+                    // она идёт по низу поля.
+                    this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
                 }
             }
             finally
@@ -394,31 +398,41 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Цвет невязки: ТЁМНО-СЕРЫЙ, один на обе половины (решение Amber
-        /// 01.09.2026). Знаки разводит ШТРИХ, а не цвет.
+        /// Цвет невязки ПЕРЕБОРА — «модель приписала лишнее»: ЧЁРНЫЙ (решение
+        /// Amber 01.09.2026, `A28`; до того был тёмно-серый 64,64,64).
         ///
-        /// Серый нарочно: он не встречается в палитре нуклидов
+        /// Чёрный нарочно: он не встречается в палитре нуклидов
         /// (<see cref="FsaColorOf"/>), и лента невязки не может быть принята за
-        /// ещё один компонент состава.
+        /// ещё один компонент состава. Он же стоит образцом в строке легенды.
+        ///
+        /// ⛔ Вторая половина — недобор — цвета НЕ ИМЕЕТ здесь: она берёт цвет
+        /// линии спектра из настроек человека, см. <see cref="DrawFsaResidual"/>.
         /// </summary>
-        static readonly Color FsaResidualColor = Color.FromArgb(64, 64, 64);
+        static readonly Color FsaResidualColor = Color.FromArgb(0, 0, 0);
 
         /// <summary>
         /// (`S111`) Лента НЕВЯЗКИ между моделью и измерением, обеими знаками.
         ///
-        /// ⛔ ШТРИХ — КЛЕТКА, то есть косая ПЛЮС та же косая, повёрнутая на 90°
-        /// (решение Amber 01.09.2026). Так невязка не путается ни с чем: у
-        /// сумм-пиков штриховка ОДНОЙ косой в цвете своего нуклида, а здесь
-        /// перекрестье в тёмно-сером, которого в палитре нуклидов нет.
-        /// Половины различаются наклоном пары (`DiagonalCross` против
-        /// `Cross`) — знак читается по рисунку, а не по цвету, и остаётся
-        /// различим на печати и у людей, путающих цвета.
+        /// ⛔ ШТРИХ У ОБЕИХ ПОЛОВИН ОДИН — ПРЯМАЯ КЛЕТКА (`HatchStyle.Cross`),
+        /// а знак разводит ЦВЕТ (решение Amber 01.09.2026, `A28`):
+        ///   • недобор, «модели не хватило» — клетка ЦВЕТОМ ЛИНИИ СПЕКТРА;
+        ///   • перебор, «приписано лишнее» — ЧЁРНАЯ клетка.
+        ///
+        /// Так задано после замера глазами: до `A28` половины различались
+        /// наклоном пары (косая против прямой) и обе были тёмно-серыми, и
+        /// недобор пропадал — он лежит НАД стеком, на белом поле, где серая
+        /// косая клетка не читается, тогда как перебор лежит на ярких лентах
+        /// состава и виден хорошо. Цвет линии спектра выбран не для красоты: у
+        /// недобора смысл «до измеренной линии не достали», и штрих того же
+        /// цвета, что линия, показывает, ДО ЧЕГО не достали.
         ///
         /// ⚠ Полосы строятся ЯВНО через min/max, а не подачей кривых «как
         /// есть»: <see cref="DrawFsaBand"/> заливает многоугольник между двумя
         /// линиями и на перевёрнутой паре нарисовал бы ленту там, где её нет.
         /// </summary>
-        void DrawFsaResidual(Graphics g, double[] model, double[] measured)
+        /// <param name="spectrumColor">Цвет линии спектра из настроек человека —
+        /// им штрихуется половина недобора.</param>
+        void DrawFsaResidual(Graphics g, double[] model, double[] measured, Color spectrumColor)
         {
             if (model == null || measured == null || model.Length == 0
                 || measured.Length != model.Length)
@@ -434,16 +448,15 @@ namespace BecquerelMonitor
                 below[i] = Math.Min(model[i], measured[i]);
             }
 
-            // «Не добавлено» (минус в строке): косая клетка.
-            using (Brush missing = new HatchBrush(HatchStyle.DiagonalCross,
-                                                  Color.FromArgb(200, FsaResidualColor),
+            // «Не добавлено» (минус в строке): клетка цветом линии спектра.
+            using (Brush missing = new HatchBrush(HatchStyle.Cross,
+                                                  Color.FromArgb(200, spectrumColor),
                                                   Color.Transparent))
             {
                 this.DrawFsaBand(g, missing, model, above);
             }
 
-            // «Добавлено больше чем надо» (плюс в строке): та же клетка,
-            // повёрнутая на 90° — прямая. Половины различимы, а род штриха один.
+            // «Добавлено больше чем надо» (плюс в строке): та же клетка, чёрная.
             using (Brush excess = new HatchBrush(HatchStyle.Cross,
                                                  Color.FromArgb(200, FsaResidualColor),
                                                  Color.Transparent))
@@ -527,7 +540,23 @@ namespace BecquerelMonitor
         /// стыках дважды — 8133 пикселя расходятся с ломаной, максимум дельты
         /// 53/255, то есть по всей кривой видны тёмные точки на изломах.
         /// </summary>
-        void DrawFsaCurve(Graphics g, Pen pen, double[] values)
+        /// <param name="clampToFloor">
+        /// (`A26`, решение Amber 01.09.2026) Значение, которому на шкале места
+        /// нет — ноль или минус, — ПРИЖИМАТЬ К НИЗУ ПОЛЯ, а не рвать ломаную.
+        ///
+        /// Ставится линии ИЗМЕРЕНИЯ и только ей. В режиме FSA рисуется спектр за
+        /// вычетом фона, и там, где фон перекрыл измерение, разность уходит в
+        /// ноль или минус: у `Чароит в домике` с его домашним фоном это 1026
+        /// каналов из 8192, все в полосе 1800…3400 кэВ, — и линия рассыпалась
+        /// там на куски. Ноль и минус на графике выглядят одинаково («упёрлась в
+        /// пол»), и это сознательно: на степенной и логарифмической шкале точки
+        /// «ниже нуля» не существует вовсе.
+        ///
+        /// ⛔ Линии МОДЕЛИ прижатие НЕ ставится: её ноль означает «образа тут
+        /// нет», и стек в этом месте тоже ничего не рисует, — линия по нижнему
+        /// краю говорила бы о модели там, где её нет.
+        /// </param>
+        void DrawFsaCurve(Graphics g, Pen pen, double[] values, bool clampToFloor = false)
         {
             if (values == null)
             {
@@ -548,6 +577,10 @@ namespace BecquerelMonitor
             for (int x = firstPixel; x <= maxPixel; x++)
             {
                 int channel = pixelChannels[x - firstPixel];
+
+                // Разрыв остаётся один и настоящий: под этим пикселем НЕТ
+                // канала. Всё прочее — вопрос места на шкале, а не отсутствия
+                // данных, и рвать по нему ломаную нельзя (`A26`).
                 bool broken = channel < 0 || channel >= values.Length;
                 int y = 0;
                 if (!broken)
@@ -555,14 +588,28 @@ namespace BecquerelMonitor
                     double value = this.ScaleFsaValue(values[channel]);
                     if (value <= 0.0)
                     {
-                        broken = true;
+                        if (clampToFloor)
+                        {
+                            y = this.height;
+                        }
+                        else
+                        {
+                            broken = true;
+                        }
                     }
                     else
                     {
                         y = this.GetSpectrumValueY(value);
                         if (y > this.height)
                         {
-                            broken = true;
+                            if (clampToFloor)
+                            {
+                                y = this.height;
+                            }
+                            else
+                            {
+                                broken = true;
+                            }
                         }
                         else if (y < 0)
                         {
@@ -1217,7 +1264,14 @@ namespace BecquerelMonitor
             // раньше, а вот связи «эта строка про эту ленту» не было ни
             // какой: числу верили, а искать невязку глазами приходилось по
             // зазору между двумя кривыми.
-            using (Brush swatch = new HatchBrush(HatchStyle.DiagonalCross,
+            // ⛔ ОБРАЗЕЦ — ТА ЖЕ КЛЕТОЧКА, ЧТО НА ГРАФИКЕ (`A28`, решение Amber
+            // 01.09.2026). Была косая (`DiagonalCross`), то есть на легенде
+            // узор стоял повёрнутым на 90° к тому, что человек видит на ленте, —
+            // связь «эта строка про эту ленту» он должен был достраивать сам.
+            // Строка остаётся ОДНА и с тем же числом, хотя половин на графике
+            // две: образец назван по чёрной половине, вторая читается цветом
+            // линии спектра.
+            using (Brush swatch = new HatchBrush(HatchStyle.Cross,
                                                  FsaResidualColor, Color.White))
             {
                 g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);

@@ -1197,8 +1197,109 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var seen = new HashSet<int>();
             AddFluorescence(spec, spec.SampleElements, "проба", result, report, seen);
             AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
-            AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen);
+            if (!AddCrystalFluorescence(spec, result, report, seen))
+            {
+                AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen);
+            }
+
             AddEscape(spec, result, declared, report);
+        }
+
+        /// <summary>
+        /// ⛔ СОБСТВЕННЫЙ РЕНТГЕН КРИСТАЛЛА — ОДИН ОБРАЗ НА ВЕЩЕСТВО (`A29`,
+        /// решение Amber 01.09.2026), а не по образу на элемент.
+        ///
+        /// Довод тот же, по которому `S84` свёл в одно образы ВЫЛЕТА, и здесь он
+        /// подтверждён замером на `Чароит в домике` (прибор ASN16, кристалл CsI):
+        /// образ `Xray-I` собирался исправно, тремя линиями, а фит давал ему
+        /// РОВНО НОЛЬ — `z = 0.00`, снят отсевом значимости, — и весь рентген
+        /// кристалла забирал `Xray-Cs` (1.15 % доли). Разделить их данные не
+        /// могут: Kα иода 28.612 и цезия 30.97 кэВ отстоят на 2.4 кэВ при ПШПВ
+        /// прибора около девяти в этой полосе, то есть колонки почти
+        /// коллинеарны, и выбор между ними физического смысла не несёт. Человеку
+        /// же на легенде показывалась ПОЛОВИНА вещества, будто иода в кристалле
+        /// нет.
+        ///
+        /// Соотношение членов задаёт ВЕЩЕСТВО: массовая доля элемента (из
+        /// геометрии, через <see cref="CrystalMix"/>) на его выход флуоресценции
+        /// ω_K (из `matdb`), а внутри K-серии — веса самой серии. Свободная
+        /// амплитуда у образа одна.
+        ///
+        /// ⚠ ЭТО ПРИБЛИЖЕНИЕ, и называть его надо приближением: возбуждает
+        /// K-дырки ВЕСЬ падающий спектр, а не одна линия, поэтому строгий вес
+        /// члена — свёртка сечения фотопоглощения элемента со спектром. Взято
+        /// отношение «массовая доля × ω_K», то есть предположение о равных
+        /// сечениях; для CsI оно дёшево — Z 55 против 53, K-края 35.98 и 33.17
+        /// кэВ, ω_K 0.894 против 0.884.
+        ///
+        /// Возвращает false, если вещества кристалла нет (тогда зовущий строит
+        /// образы поэлементно, как раньше) или если элемент кристалла уже занят
+        /// образом пробы либо защиты: тогда общий образ спорил бы за те же
+        /// отсчёты со своей же половиной, и прежний путь честнее.
+        /// </summary>
+        static bool AddCrystalFluorescence(FsaSampleSpec spec, List<FsaComponent> result,
+                                           Report report, HashSet<int> seen)
+        {
+            foreach (int z in spec.CrystalElements)
+            {
+                if (z > 0 && seen.Contains(z))
+                {
+                    report.Notes.Add("рентген кристалла: Z="
+                                     + z.ToString(CultureInfo.InvariantCulture)
+                                     + " уже занят образом пробы или защиты, вещество не сводится");
+                    return false;
+                }
+            }
+
+            CrystalMix mix = CrystalMix.Of(spec, report);
+            if (mix == null)
+            {
+                return false;
+            }
+
+            var component = new FsaComponent("Xray-" + mix.Name, FsaComponentKind.Nuisance);
+            foreach (CrystalMix.Part part in mix.Parts)
+            {
+                MaterialDatabase.Fluorescence fluorescence = part.Fluorescence;
+                double omega = fluorescence.Omega(true);
+
+                // Метка линии — СВОЙ элемент, а не имя образа: отсев дубля в
+                // `AddLine` сверяет пару «метка + энергия», а линии Kβ соседних
+                // элементов кристалла сходятся близко (у CsI 32.68 иода и 34.99
+                // цезия), и с общей меткой одна из них однажды пропала бы молча.
+                string tag = "Xray-" + part.Tag.Substring(4);
+                for (int i = 0; i < fluorescence.LineKev.Length; i++)
+                {
+                    double energy = fluorescence.LineKev[i];
+                    double weight = fluorescence.LineWeight[i];
+
+                    // S98: пол библиотеки тот же, что у остальных образов.
+                    if (!(energy > 0.0) || !(weight > 0.0)
+                        || energy < spec.LineFloorKev || energy > spec.MaxEnergyKev)
+                    {
+                        continue;
+                    }
+
+                    AddLine(component, tag, energy, 100.0 * weight * part.Fraction * omega);
+                }
+            }
+
+            if (component.Lines.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (int z in spec.CrystalElements)
+            {
+                if (z > 0)
+                {
+                    seen.Add(z);
+                }
+            }
+
+            result.Add(component);
+            report.Lines += component.Lines.Count;
+            return true;
         }
 
         static void AddFluorescence(FsaSampleSpec spec, List<int> elements, string what,
