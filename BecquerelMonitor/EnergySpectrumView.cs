@@ -3334,6 +3334,16 @@ namespace BecquerelMonitor
                     g.DrawLine(pen, num6, 0, num6, this.height - 1);
                 }
             }
+            // ⛔ (`A27`) В режиме FSA закрашивается ТА ЖЕ кривая, что нарисована,
+            // — спектр ЗА ВЫЧЕТОМ ФОНА. Прежде здесь всегда брался полный
+            // спектр, а нижняя граница заливки приходила от кривой фона и
+            // только при `IsBackgroundVisible()`; в режиме `ShowFSA` это
+            // свойство ложно (оно про `Visible`/`NormalizeByEfficiency`), и
+            // выделение заливалось от низа поля до ПОЛНОГО измерения — то есть
+            // показывало кривую, которой на экране нет. Массив тот же самый, что
+            // у линии спектра (`fsaNetSpectrum`), а не посчитанный заново:
+            // вторая копия вычитания разъехалась бы с первой молча.
+            double[] fsaNet = this.FsaNetSpectrum;
             using (Brush brush = new SolidBrush(colorConfig.SelectionNetColor.Color))
             {
                 int i = Math.Max(num5, this.VisibleLeftPixel);
@@ -3354,10 +3364,15 @@ namespace BecquerelMonitor
                     int ch = (int)channelIndex;
                     if (ch >= 0 && ch < this.energySpectrum.Spectrum.Length)
                     {
-                        double fgValue = this.energySpectrum.DrawingSpectrum[ch];
+                        bool fsaNetHere = fsaNet != null && ch < fsaNet.Length;
+                        double fgValue = fsaNetHere
+                            ? this.ScaleFsaValue(fsaNet[ch])
+                            : this.energySpectrum.DrawingSpectrum[ch];
                         double bgValue = 0.0;
-                        if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
+                        if (!fsaNetHere && this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
                         {
+                            // В ветке FSA делить уже не надо: `ScaleFsaValue`
+                            // сделала это тем же правилом, что и для линии.
                             fgValue /= this.energySpectrum.MeasurementTime;
                         }
                         if (this.IsBackgroundVisible())

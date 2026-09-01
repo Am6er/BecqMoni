@@ -24,10 +24,16 @@ namespace FsaStackShot
     ///
     ///   fsastackshot --spectrum=X.xml [--efficiency=Цилиндр] [--out=stack.png]
     ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
-    ///                [--set=Ra-226] [--lines=Esc-I]
+    ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
+    ///
+    /// `--select=<от>..<до>` — выделенная область в кэВ, ровно то, что человек
+    /// тянет мышью. Заведён `A27`: заливка выделения бралась у ПОЛНОГО спектра,
+    /// а в режиме FSA на экране нарисован спектр за вычетом фона, — расхождение
+    /// видно только картинкой, и проверять его глазами в окне значило бы каждый
+    /// раз поднимать окно.
     ///
     /// `--ceiling` подрезает шкалу отсчётов: без него высокие пики забирают всё
     /// поле, и мелкая структура (сумм-пики) сливается с осью.
@@ -63,7 +69,7 @@ namespace FsaStackShot
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null, efficiencyName = null, outPath = "stack.png";
-            string setName = null, linesOf = null;
+            string setName = null, linesOf = null, selectKev = null;
             // Развязка гейтов и приборных образов — `S81`: «кто чью полку
             // забирает» иначе не разделить. `refitZ` NaN — не трогать умолчание
             // анализатора, а не «поставить ноль».
@@ -98,6 +104,7 @@ namespace FsaStackShot
                 else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
                 else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
+                else if (a.StartsWith("--select=", StringComparison.Ordinal)) selectKev = a.Substring(9);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -366,9 +373,58 @@ namespace FsaStackShot
                 object overlay = Field(typeof(EnergySpectrumView), "fsaOverlay").GetValue(view);
                 Field(overlay.GetType(), "result").SetValue(overlay, result);
 
+                // (`A27`) Выделенная область — тем же кодом, что в окне.
+                // Каналы берутся у калибровки спектра, порядок вызовов повторяет
+                // `DrawChart`: подсветка полосы ДО стека, «нетто» ПОСЛЕ него.
+                int selectFrom = -1, selectTo = -1;
+                if (selectKev != null)
+                {
+                    // Данные отрисовки готовит `PrepareViewData` у окна; проба
+                    // собирает вид без формы, и без этой строки `DrawingSpectrum`
+                    // остаётся null — старый код заливки выделения падал на ней
+                    // NullReference, то есть сравнение «до / после» не состоялось
+                    // бы вовсе. Сглаживание не применяется (`SmoothingMethod.None`
+                    // выше), поэтому это ровно измеренные отсчёты.
+                    if (spectrum.DrawingSpectrum == null)
+                    {
+                        var drawing = new double[spectrum.Spectrum.Length];
+                        for (int i = 0; i < drawing.Length; i++)
+                        {
+                            drawing[i] = spectrum.Spectrum[i];
+                        }
+
+                        spectrum.DrawingSpectrum = drawing;
+                    }
+
+                    string[] ends = selectKev.Split(new[] { ".." }, StringSplitOptions.RemoveEmptyEntries);
+                    if (ends.Length != 2)
+                    {
+                        Console.Error.WriteLine("--select=<от>..<до> в кэВ");
+                        return 2;
+                    }
+
+                    selectFrom = (int)calibration.EnergyToChannel(
+                        double.Parse(ends[0], CultureInfo.InvariantCulture),
+                        maxChannels: spectrum.NumberOfChannels);
+                    selectTo = (int)calibration.EnergyToChannel(
+                        double.Parse(ends[1], CultureInfo.InvariantCulture),
+                        maxChannels: spectrum.NumberOfChannels);
+                    Set(view, "selectionStart", selectFrom);
+                    Set(view, "selectionEnd", selectTo);
+                    Set(view, "baseEnergyCalibration", calibration);
+                    Set(view, "chartType", ChartType.BarChart);
+                    Console.WriteLine("выделение: {0}…{1} кэВ = каналы {2}…{3}",
+                                      ends[0], ends[1], selectFrom, selectTo);
+                }
+
                 using (Graphics g = Graphics.FromImage(image))
                 {
                     g.Clear(Color.Black);
+                    if (selectFrom >= 0)
+                    {
+                        Invoke(view, "ShowSelectionPart1", g);
+                    }
+
                     MethodInfo show = typeof(EnergySpectrumView).GetMethod(
                         "ShowFsaOverlay", BindingFlags.Instance | BindingFlags.NonPublic);
                     if (show == null)
@@ -378,6 +434,11 @@ namespace FsaStackShot
 
                     object drawn = show.Invoke(view, new object[] { g });
                     Console.WriteLine("отрисовано: {0}", drawn);
+
+                    if (selectFrom >= 0)
+                    {
+                        Invoke(view, "ShowSelectionPart2", g);
+                    }
 
                     // Таблица состава — она же легенда: смотреть на стек без неё
                     // значит проверять половину того, что видит человек.
@@ -470,6 +531,19 @@ namespace FsaStackShot
         static void Set(object target, string name, object value)
         {
             Field(target.GetType(), name).SetValue(target, value);
+        }
+
+        /// <summary>Позвать закрытый метод вида — как это делает окно.</summary>
+        static object Invoke(object target, string name, params object[] args)
+        {
+            MethodInfo method = target.GetType().GetMethod(
+                name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (method == null)
+            {
+                throw new InvalidOperationException("нет метода " + name + " у " + target.GetType().Name);
+            }
+
+            return method.Invoke(target, args);
         }
 
         /// <summary>
