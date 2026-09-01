@@ -56,11 +56,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Энергия последнего посчитанного узла, кэВ.</summary>
         public double LastEnergyKev;
 
-        /// <summary>Доля сделанного, % — ПО ИСТОРИЯМ (см. <see cref="DoneHistories"/>).</summary>
+        /// <summary>
+        /// Потрачено потокосекунд на сосчитанные узлы. Ими же меряется доля и
+        /// остаток (`A41`): история истории не ровня — при 2614 кэВ она втрое
+        /// дороже, чем при 30, потому что тянет за собой вторичные.
+        /// </summary>
+        public double DoneNodeSeconds;
+
+        /// <summary>Осталось потокосекунд по замеренной цене узлов (`A41`).</summary>
+        public double RemainingNodeSeconds;
+
+        /// <summary>Доля сделанного, % — ПО ЦЕНЕ УЗЛОВ, а не по числу историй.</summary>
         public double Percent
         {
             get
             {
+                double total = this.DoneNodeSeconds + this.RemainingNodeSeconds;
+                if (total > 0.0)
+                {
+                    return 100.0 * this.DoneNodeSeconds / total;
+                }
+
                 return this.TotalHistories > 0L
                     ? 100.0 * this.DoneHistories / this.TotalHistories
                     : 0.0;
@@ -156,6 +172,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] nodeSeconds = new double[grid.Length];
             int[] nodeLast = new int[grid.Length];
 
+            // (`A41`) Цена узла, измеренная на его пробе: потокосекунд на одну
+            // историю. По ней и считается остаток — в секундах, а не в историях.
+            // Ноль — проба ещё не сделана, цена берётся средней по сделанным.
+            double[] nodeCost = new double[grid.Length];
+            int[] nodeNeed = new int[grid.Length];
+            bool[] nodeSettled = new bool[grid.Length];
+            object planLock = new object();
+
             // Уложить гистограммы узла в строки матрицы.
             Action<int, double[][]> store = (index, histograms) =>
             {
@@ -213,11 +237,62 @@ namespace BecquerelMonitor.EfficiencyMaker
                 long plan = Interlocked.Read(ref plannedHistories);
                 double elapsed = watch.Elapsed.TotalSeconds;
 
-                // ⚠ Остаток берётся от историй, а не от прогонов, и уйти в
-                // минус больше не может: план по построению не меньше
-                // сделанного. Отрицательным он остаётся только пока судить не
-                // по чему (ни одной истории), и такой остаток форма не
-                // показывает вовсе.
+                // ⛔ (`A41`) ОСТАТОК СЧИТАЕТСЯ В СЕКУНДАХ ПО ЦЕНЕ УЗЛОВ, а не в
+                // историях от плана (решение Amber 01.09.2026 «считать точно»).
+                //
+                // Прежняя оценка прыгала по двум причинам сразу: план в историях
+                // РОС по ходу (узел узнаёт о своей добавке только после пробы), и
+                // все истории считались равными — а история при 2614 кэВ тянет за
+                // собой вторичные и стоит втрое дороже, чем при 30. Теперь у
+                // каждого узла есть ЗАМЕРЕННАЯ цена истории (его проба), и остаток
+                // складывается из того, что каждому узлу ещё предстоит.
+                //
+                // ⚠ Делится на число потоков: `nodeSeconds` — время ПО ЧАСАМ
+                // потока, а узлы идут одновременно. Это оценка настенного
+                // времени, и она честна ровно настолько, насколько заняты все
+                // потоки.
+                double doneSeconds = 0.0;
+                double remainingSeconds = 0.0;
+                lock (planLock)
+                {
+                    double costSum = 0.0;
+                    double aheadSum = 0.0;
+                    int measured = 0;
+                    for (int i = 0; i < grid.Length; i++)
+                    {
+                        doneSeconds += nodeSeconds[i];
+                        if (nodeCost[i] > 0.0)
+                        {
+                            costSum += nodeCost[i];
+                            aheadSum += nodeNeed[i] * nodeCost[i];
+                            measured++;
+                        }
+                    }
+
+                    double meanCost = measured > 0 ? costSum / measured : 0.0;
+                    double meanAhead = measured > 0 ? aheadSum / measured : 0.0;
+                    for (int i = 0; i < grid.Length; i++)
+                    {
+                        if (nodeSettled[i])
+                        {
+                            continue;
+                        }
+
+                        if (nodeCost[i] > 0.0)
+                        {
+                            // Проба сделана: остался ровно уточняющий проход.
+                            remainingSeconds += nodeNeed[i] * nodeCost[i];
+                        }
+                        else
+                        {
+                            // Пробы ещё не было: и она сама, и то, что за ней
+                            // последует, оцениваются средним по уже измеренным.
+                            remainingSeconds += pilot * meanCost + meanAhead;
+                        }
+                    }
+                }
+
+                double perThread = Math.Max(1, threads);
                 progress.Report(new ResponseMatrixProgress
                 {
                     Done = completed,
@@ -226,9 +301,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     TotalHistories = plan,
                     ElapsedSeconds = elapsed,
                     LastEnergyKev = grid[index],
-                    RemainingSeconds = spent > 0L && plan >= spent
-                        ? elapsed / spent * (plan - spent)
-                        : -1.0
+                    DoneNodeSeconds = doneSeconds,
+                    RemainingNodeSeconds = remainingSeconds,
+                    RemainingSeconds = remainingSeconds > 0.0
+                        ? remainingSeconds / perThread
+                        : (spent > 0L ? 0.0 : -1.0)
                 });
             };
 
@@ -278,6 +355,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                             {
                                 next = need;
                             }
+                        }
+
+                        // (`A41`) Цена истории этого узла — по ЕГО собственному
+                        // проходу, а не по средней: узлы отличаются втрое, и общая
+                        // средняя врала бы в обе стороны сразу.
+                        lock (planLock)
+                        {
+                            if (histories > 0)
+                            {
+                                double seconds = (double)(Stopwatch.GetTimestamp() - ticks0)
+                                                 / Stopwatch.Frequency;
+                                nodeCost[index] = seconds / histories;
+                            }
+
+                            nodeNeed[index] = next;
+                            nodeSettled[index] = next == 0;
                         }
 
                         report(index, histories, next);
