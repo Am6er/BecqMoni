@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -13,44 +14,143 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// что-нибудь себе заберёт.
     ///
     /// Линии компонента берутся из базы нуклидов по имени, веса — из
-    /// NuclideDefinition.Intencity. Если у нуклида в базе нет интенсивностей
-    /// (характеристический рентген, да и вся поставочная база), берётся
-    /// встроенный образ. Пики вылета добавляются всегда: они не принадлежат
-    /// нуклиду, финдер их подписать не может, а без образа NNLS вешает их на
-    /// ближайшую линию.
+    /// NuclideDefinition.Intencity. ⛔ Встроенной таблицы нуклидов здесь БОЛЬШЕ
+    /// НЕТ (решение Amber 01.09.2026, `S110` пункт 1): у кого в базе нет
+    /// интенсивностей, тот образа не получает — кроме характеристического
+    /// рентгена, которому оставлена подстановка.
+    ///
+    /// Пики вылета и аннигиляция добавляются НЕ ВСЕГДА, а по физике: их считает
+    /// <see cref="EscapeAndAnnihilation"/> от линий самого состава выше порога
+    /// рождения пар. Они не принадлежат нуклиду, финдер их подписать не может, а
+    /// без образа NNLS вешает их на ближайшую линию — но и выдумывать их там, где
+    /// рождать пары нечему, нельзя.
     /// </summary>
     public static class FsaLibrary
     {
         /// <summary>
-        /// Образы, которые в набор не приходят из поиска пиков: пики вылета и
-        /// аннигиляционная линия не принадлежат ни одному нуклиду, финдер
-        /// подписать их не может, а без образа NNLS вешает их на ближайшую
-        /// линию.
+        /// Порог рождения пар: ниже 1022 кэВ пары не рождаются, а значит нет ни
+        /// пиков вылета, ни аннигиляционного кванта. Физическая величина, не
+        /// настройка.
         /// </summary>
-        static readonly string[] AlwaysPresent = { "SE-2614", "DE-2614", "Ann-511" };
+        public const double PairThresholdKev = 1022.0;
 
         /// <summary>
-        /// Образы ВЫЛЕТА из кристалла — те, что матрица отклика содержит сама
-        /// (S47, гейт живёт в <see cref="FsaAnalyzer.EscapeGate"/>).
+        /// Сколько САМЫХ СИЛЬНЫХ линий выше порога пар получают образы вылета.
         ///
-        /// `Ann-511` сюда НЕ входит и входить не может: аннигиляционный квант
-        /// рождается в защите и обвязке и ВЛЕТАЕТ в кристалл, а матрица
-        /// описывает судьбу кванта, который в кристалл уже попал. Разница не
-        /// формальная — на ней держится всё различение подмены §13е.
+        /// ⚠ Ограничение не физическое, а счётное: каждая линия дала бы ДВЕ
+        /// свободные колонки NNLS, и на спектре с двумя десятками жёстких линий
+        /// разложение стало бы подгонкой по вылетам. Берём сильнейшие: у слабых
+        /// вылет и так тонет в континууме.
         /// </summary>
-        static readonly string[] EscapeImages = { "SE-2614", "DE-2614" };
+        public const int EscapeParents = 3;
 
-        public static bool IsEscapeImage(string name)
+        /// <summary>Ниже этого выхода линия образа вылета не получает.</summary>
+        public const double EscapeMinIntensity = 1.0;
+
+        /// <summary>
+        /// Образы вылета и аннигиляции СЧИТАЮТСЯ ОТ ЛИНИЙ СОСТАВА (решение
+        /// Amber 01.09.2026 по описи `S110`, пункт 2).
+        ///
+        /// Прежде здесь стоял неподвижный список `AlwaysPresent` = `SE-2614`,
+        /// `DE-2614`, `Ann-511`, и он дописывался к ЛЮБОМУ непустому составу:
+        /// пики вылета от линии 2614.5 кэВ (Tl-208) появлялись у спектра, в
+        /// котором тория нет вовсе. Это привязка к имени, а не к физике.
+        ///
+        /// Теперь правило одно и оно физическое: пары рождаются от
+        /// <see cref="PairThresholdKev"/>, значит образы ставятся от КАЖДОЙ
+        /// линии состава выше этого порога — одиночный вылет на E−511, двойной
+        /// на E−1022, — а аннигиляционный образ появляется только тогда, когда
+        /// такая линия в составе есть. Для ториевой пробы это ровно прежние
+        /// `SE-2614` / `DE-2614`: имена сохраняются, потому что строятся из той
+        /// же энергии.
+        ///
+        /// `Ann-511` образом ВЫЛЕТА не является и не станет: аннигиляционный
+        /// квант рождается в защите и обвязке и ВЛЕТАЕТ в кристалл, а матрица
+        /// отклика описывает судьбу кванта, уже попавшего внутрь. На этой
+        /// разнице держится различение подмены (§13е), поэтому гейт `S47`
+        /// (<see cref="FsaAnalyzer.EscapeGate"/>) её не касается.
+        /// </summary>
+        public static List<FsaComponent> EscapeAndAnnihilation(List<FsaComponent> composition)
         {
-            foreach (string escape in EscapeImages)
+            var extra = new List<FsaComponent>();
+            if (composition == null || composition.Count == 0)
             {
-                if (string.Equals(name, escape, StringComparison.OrdinalIgnoreCase))
+                return extra;
+            }
+
+            // Родители вылета: линии состава выше порога пар, сильнейшие первыми.
+            var parents = new List<FsaLine>();
+            foreach (FsaComponent component in composition)
+            {
+                if (component.Kind == FsaComponentKind.Nuisance)
                 {
-                    return true;
+                    // Мешающие образы сами вылета не порождают: у них нет
+                    // распада, а их линии — уже следствие чужого кванта.
+                    continue;
+                }
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > PairThresholdKev && line.Intensity >= EscapeMinIntensity)
+                    {
+                        parents.Add(line);
+                    }
                 }
             }
 
-            return false;
+            if (parents.Count == 0)
+            {
+                return extra;
+            }
+
+            parents.Sort((a, b) => b.Intensity.CompareTo(a.Intensity));
+            var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int used = 0;
+            foreach (FsaLine parent in parents)
+            {
+                if (used >= EscapeParents)
+                {
+                    break;
+                }
+
+                // Имя строится из энергии родителя — по нему видно, ОТ ЧЕГО
+                // вылет, и второго списка имён в проекте не заводится.
+                string tag = Math.Round(parent.Energy).ToString(CultureInfo.InvariantCulture);
+                if (!taken.Add(tag))
+                {
+                    continue;
+                }
+
+                used++;
+                extra.Add(OneLine("SE-" + tag, parent.Energy - 511.0));
+                extra.Add(OneLine("DE-" + tag, parent.Energy - 1022.0));
+            }
+
+            // Аннигиляция — только когда есть чему рождать пары.
+            extra.Add(OneLine(FsaResult.AnnihilationComponentName, 511.0));
+            return extra;
+        }
+
+        static FsaComponent OneLine(string name, double energy)
+        {
+            var component = new FsaComponent(name, FsaComponentKind.Nuisance);
+            component.Lines.Add(new FsaLine(name, energy, 100.0));
+            return component;
+        }
+
+        /// <summary>
+        /// Образ ВЫЛЕТА из кристалла — тот, что матрица отклика содержит сама
+        /// (S47, гейт живёт в <see cref="FsaAnalyzer.EscapeGate"/>).
+        ///
+        /// Опознаётся по приставке: имена строятся из энергии родителя
+        /// (<see cref="EscapeAndAnnihilation"/>), и держать рядом второй список
+        /// имён значило бы завести две копии одного правила.
+        /// </summary>
+        public static bool IsEscapeImage(string name)
+        {
+            return !string.IsNullOrEmpty(name)
+                   && (name.StartsWith("SE-", StringComparison.OrdinalIgnoreCase)
+                       || name.StartsWith("DE-", StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -224,10 +324,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // служебные образы дописываются к непустому составу оператора.
             if (result.Count > 0)
             {
-                foreach (string name in AlwaysPresent)
+                // Вылет и аннигиляция — ОТ ЛИНИЙ СОСТАВА, а не из неподвижного
+                // списка (решение Amber 01.09.2026, `S110` пункт 2).
+                foreach (FsaComponent component in EscapeAndAnnihilation(result))
                 {
-                    FsaComponent component;
-                    if (builtin.TryGetValue(name, out component) && taken.Add(name))
+                    if (taken.Add(component.Name))
                     {
                         result.Add(component);
                     }
@@ -257,23 +358,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 table[name] = component;
             };
 
-            add("K-40", FsaComponentKind.Single, new double[,] { { 1460.822, 10.66 } });
-            add("Cs-137", FsaComponentKind.Single, new double[,] { { 661.657, 85.10 } });
-            add("Am-241", FsaComponentKind.Single, new double[,] { { 59.541, 35.92 }, { 26.345, 2.31 } });
-            add("Co-60", FsaComponentKind.Single, new double[,] { { 1173.228, 99.85 }, { 1332.492, 99.9826 } });
-            add("I-131", FsaComponentKind.Single, new double[,] {
-                { 364.489, 81.5 }, { 636.989, 7.16 }, { 284.305, 6.12 },
-                { 80.185, 2.62 }, { 722.911, 1.77 } });
-            add("Eu-152", FsaComponentKind.Single, new double[,] {
-                { 121.782, 28.53 }, { 244.697, 7.55 }, { 344.279, 26.59 }, { 411.116, 2.24 },
-                { 443.965, 2.80 }, { 778.904, 12.93 }, { 867.380, 4.23 }, { 964.079, 14.51 },
-                { 1085.837, 10.11 }, { 1089.737, 1.73 }, { 1112.076, 13.67 }, { 1212.948, 1.42 },
-                { 1299.142, 1.62 }, { 1408.013, 20.87 } });
-            add("Ba-133", FsaComponentKind.Single, new double[,] {
-                { 80.998, 34.06 }, { 79.614, 2.65 }, { 276.399, 7.16 },
-                { 302.851, 18.34 }, { 356.013, 62.05 }, { 383.848, 8.94 } });
-            add("Lu-176", FsaComponentKind.Single, new double[,] {
-                { 88.34, 14.5 }, { 201.83, 78.0 }, { 306.78, 93.6 } });
+            // ⛔ ЗДЕСЬ СТОЯЛА ВСТРОЕННАЯ ТАБЛИЦА ВОСЬМИ НУКЛИДОВ — `K-40`, `Cs-137`,
+            // `Am-241`, `Co-60`, `I-131`, `Eu-152`, `Ba-133`, `Lu-176` с энергиями и
+            // выходами прямо в коде. СНЯТА 01.09.2026 решением Amber по описи `S110`
+            // (пункт 1, дословно «снять совсем»).
+            //
+            // Почему она была: поставочный `NuclideDefinition.xml` держит имя и одну
+            // энергию без интенсивности, и подписанному пику неоткуда было взять образ.
+            // Почему снята: имя нуклида в коде — правило, выведенное из одного случая
+            // и молча применённое ко всем; линии нуклида живут в `nucdb`, а не здесь.
+            //
+            // ⚠ Следствие, названное честно: нуклид, у которого в конфиге нет
+            // интенсивностей, ОБРАЗА БОЛЬШЕ НЕ ПОЛУЧАЕТ и в состав не входит — на
+            // экране такой компонент исчезнет. Корпуса это не касается: он идёт
+            // `--lib=sample`, где линии берутся из `nucdb` по объявленной пробе.
 
             // Характеристический рентген — не нуклиды, а мешающие образы:
             // флуоресценция вольфрама (ториевые WT-электроды) и свинца (домик).
@@ -283,19 +381,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             add("Xray-Pb", FsaComponentKind.Nuisance, new double[,] {
                 { 74.969, 100.0 }, { 72.804, 59.5 }, { 84.936, 23.0 }, { 87.300, 8.0 } });
 
-            // Пики вылета от 2614.5 кэВ (Tl-208): одиночный (-511) и двойной
-            // (-1022). Образы генерируются только для пиков полного поглощения,
-            // а доли вылета зависят от кристалла — поэтому отдельные образы со
-            // свободной амплитудой, а не строки внутри ториевого образа.
-            add("SE-2614", FsaComponentKind.Nuisance, new double[,] { { 2103.5, 100.0 } });
-            add("DE-2614", FsaComponentKind.Nuisance, new double[,] { { 1592.5, 100.0 } });
-
-            // Аннигиляционная линия 511 кэВ (V3): рождение пар жёсткими
-            // квантами в защите и обвязке плюс β⁺-примеси. В ториевом спектре
-            // она есть всегда, а нуклиду не принадлежит — доля зависит от
-            // домика и геометрии, поэтому свободный мешающий образ, как пики
-            // вылета. Без него NNLS вешал 511 на ближайшую линию соседа.
-            add("Ann-511", FsaComponentKind.Nuisance, new double[,] { { 511.0, 100.0 } });
+            // ⛔ Неподвижных образов вылета и аннигиляции здесь БОЛЬШЕ НЕТ:
+            // `SE-2614`, `DE-2614` и `Ann-511` строились от зашитой линии 2614.5
+            // (Tl-208) и дописывались любому составу. Снято 01.09.2026 решением
+            // Amber (`S110`, пункт 2) — теперь их считает `EscapeAndAnnihilation`
+            // от ЛИНИЙ САМОГО СОСТАВА, по порогу рождения пар.
 
             return table;
         }

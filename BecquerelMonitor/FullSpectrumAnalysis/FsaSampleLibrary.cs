@@ -1640,9 +1640,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
-            var component = new FsaComponent("Ann-511", FsaComponentKind.Nuisance);
-            component.Lines.Add(new FsaLine("Ann-511", 511.0, 100.0));
-            result.Add(component);
+            // ⛔ Не «всегда», а ПО ФИЗИКЕ (решение Amber 01.09.2026, `S110`
+            // пункт 2): аннигиляционный квант рождается парой, а пары — только
+            // от квантов выше 1022 кэВ. Состав без единой такой линии рождать
+            // их нечем, и свободный образ на 511 стал бы там подгонкой.
+            bool pairsPossible = false;
+            foreach (FsaComponent component in result)
+            {
+                if (component.Kind == FsaComponentKind.Nuisance)
+                {
+                    continue;
+                }
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > FsaLibrary.PairThresholdKev
+                        && line.Intensity >= FsaLibrary.EscapeMinIntensity)
+                    {
+                        pairsPossible = true;
+                        break;
+                    }
+                }
+
+                if (pairsPossible)
+                {
+                    break;
+                }
+            }
+
+            if (!pairsPossible)
+            {
+                report.Notes.Add("аннигиляционный образ НЕ взят: в составе нет линии выше "
+                                 + FsaLibrary.PairThresholdKev.ToString("0", CultureInfo.InvariantCulture)
+                                 + " кэВ");
+                return;
+            }
+
+            var annihilation = new FsaComponent(FsaResult.AnnihilationComponentName,
+                                                FsaComponentKind.Nuisance);
+            annihilation.Lines.Add(new FsaLine(FsaResult.AnnihilationComponentName, 511.0, 100.0));
+            result.Add(annihilation);
             report.Lines++;
         }
 
