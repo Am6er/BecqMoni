@@ -399,6 +399,22 @@ namespace FsaStackShot
             using (var image = new Bitmap(width, height))
             {
                 Set(view, "energySpectrum", spectrum);
+
+                // (`A45`) Активные данные: у них вид спрашивает настройку центроида.
+                // В окне это поле занято всегда, в пробе его надо поставить руками —
+                // иначе расчёт выделения падает на пустой ссылке.
+                Set(view, "activeResultData", rd);
+
+                // Фон: разбор выделения считает по нему подложку и «нетто», и без
+                // этих полей падает там же. Калибровка фона своя — как в окне.
+                if (rd.BackgroundEnergySpectrum != null)
+                {
+                    Set(view, "backgroundEnergySpectrum", rd.BackgroundEnergySpectrum);
+                    Set(view, "backgroundEnergyCalibration",
+                        rd.BackgroundEnergySpectrum.EnergyCalibration);
+                    Set(view, "backgroundNumberOfChannels",
+                        rd.BackgroundEnergySpectrum.NumberOfChannels);
+                }
                 Set(view, "energyCalibration", calibration);
                 Set(view, "numberOfChannels", spectrum.NumberOfChannels);
                 Set(view, "backgroundMode", BackgroundMode.ShowFSA);
@@ -514,6 +530,10 @@ namespace FsaStackShot
                     if (selectFrom >= 0)
                     {
                         Invoke(view, "ShowSelectionPart2", g);
+
+                        // (`A45`) Линии полуширины — и по какому спектру они легли.
+                        Invoke(view, "DrawFWHM", g);
+                        ReportFwhm(view, spectrum);
                     }
 
                     // Таблица состава — она же легенда: смотреть на стек без неё
@@ -602,6 +622,71 @@ namespace FsaStackShot
             }
 
             throw new InvalidOperationException("нет поля " + name + " у " + type.Name);
+        }
+
+        /// <summary>
+        /// Что вышло у расчёта полуширины выделения и по каким отсчётам (`A45`).
+        ///
+        /// Жёлтые линии в окне рисуются ровно по этим числам, поэтому сверять надо
+        /// их: вершина и полувысота обязаны стоять в шкале спектра ЗА ВЫЧЕТОМ
+        /// ФОНА — того, что нарисован. Рядом печатаются сырое и чистое значения
+        /// того же канала: по какому из них считалось, видно без гадания.
+        /// </summary>
+        static void ReportFwhm(EnergySpectrumView view, EnergySpectrum spectrum)
+        {
+            object analytics = Field(typeof(EnergySpectrumView), "selectionAnalytics").GetValue(view);
+            if (analytics == null)
+            {
+                Console.WriteLine("полуширина: разбор выделения пуст");
+                return;
+            }
+
+            object result = analytics.GetType().GetProperty("FwhmResult") != null
+                ? analytics.GetType().GetProperty("FwhmResult").GetValue(analytics, null)
+                : null;
+            if (result == null)
+            {
+                Console.WriteLine("полуширина: не посчиталась (пик не разрешён в окне)");
+                return;
+            }
+
+            double maxChannel = (double)Member(result, "MaxChannel");
+            double maxValue = (double)Member(result, "MaxValue");
+            double halfValue = (double)Member(result, "HalfValue");
+            double baseValue = (double)Member(result, "MaxBaseValue");
+            double resolution = (double)Member(result, "Resolution");
+
+            int channel = (int)maxChannel;
+            double raw = channel >= 0 && channel < spectrum.Spectrum.Length
+                ? spectrum.Spectrum[channel]
+                : double.NaN;
+            PropertyInfo netProperty = typeof(EnergySpectrumView).GetProperty(
+                "FsaNetSpectrum", BindingFlags.Instance | BindingFlags.NonPublic);
+            double[] net = netProperty != null ? (double[])netProperty.GetValue(view, null) : null;
+            double clean = net != null && channel >= 0 && channel < net.Length
+                ? net[channel]
+                : double.NaN;
+
+            Console.WriteLine("полуширина: вершина канал {0}, значение {1:F0}; полувысота {2:F0}; подложка {3:F0}; ПШПВ {4:P2}",
+                              channel, maxValue, halfValue, baseValue, resolution);
+            Console.WriteLine("            в этом канале: сырых {0:F0}, за вычетом фона {1:F0} — считалось по {2}",
+                              raw, clean,
+                              Math.Abs(maxValue - clean) < Math.Abs(maxValue - raw)
+                                  ? "ЧИСТОМУ (верно)"
+                                  : "СЫРОМУ (баг A45)");
+        }
+
+        static object Member(object target, string name)
+        {
+            PropertyInfo property = target.GetType().GetProperty(name);
+            if (property != null)
+            {
+                return property.GetValue(target, null);
+            }
+
+            FieldInfo field = target.GetType().GetField(name,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            return field != null ? field.GetValue(target) : null;
         }
 
         static void Set(object target, string name, object value)

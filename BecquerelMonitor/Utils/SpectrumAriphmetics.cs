@@ -56,9 +56,29 @@ namespace BecquerelMonitor.Utils
         // сравнения методов (переключается флагом в конфиге детекции).
         public double FindCentroid(EnergySpectrum energySpectrum, int centroid, int low_boundary, int high_boundary, bool useCenterOfMass = true)
         {
-            int[] spectrum = energySpectrum.Spectrum;
+            int[] source = energySpectrum.Spectrum;
+            double[] counts = new double[source.Length];
+            for (int i = 0; i < source.Length; i++)
+            {
+                counts[i] = source[i];
+            }
+
+            return FindCentroid(counts, energySpectrum.NumberOfChannels, centroid,
+                                low_boundary, high_boundary, useCenterOfMass);
+        }
+
+        /// <summary>
+        /// То же по ГОТОВЫМ отсчётам (`A45`) — для видов, где нарисованное не
+        /// лежит в `EnergySpectrum`: в режиме FSA центроид выделенного пика обязан
+        /// считаться по спектру ЗА ВЫЧЕТОМ ФОНА, иначе фон тянет центр масс на
+        /// себя.
+        /// </summary>
+        public double FindCentroid(double[] spectrum, int numberOfChannels, int centroid, int low_boundary, int high_boundary, bool useCenterOfMass = true)
+        {
+            if (spectrum == null) return low_boundary;
             if (low_boundary < 0) low_boundary = 0;
-            if (high_boundary >= energySpectrum.NumberOfChannels) high_boundary = energySpectrum.NumberOfChannels - 1;
+            if (high_boundary >= numberOfChannels) high_boundary = numberOfChannels - 1;
+            if (high_boundary >= spectrum.Length) high_boundary = spectrum.Length - 1;
             if (high_boundary <= low_boundary)
             {
                 return low_boundary;
@@ -80,11 +100,11 @@ namespace BecquerelMonitor.Utils
 
             // Вершина и фон (минимум) в окне.
             int apex = low_boundary;
-            int apexCounts = spectrum[low_boundary];
-            int bg = spectrum[low_boundary];
+            double apexCounts = spectrum[low_boundary];
+            double bg = spectrum[low_boundary];
             for (int i = low_boundary; i <= high_boundary; i++)
             {
-                int v = spectrum[i];
+                double v = spectrum[i];
                 if (v > apexCounts) { apexCounts = v; apex = i; }
                 if (v < bg) { bg = v; }
             }
@@ -149,6 +169,23 @@ namespace BecquerelMonitor.Utils
         /// <param name="y1"></param>
         /// <param name="y2"></param>
         /// <returns></returns>
+        /// <summary>
+        /// То же по ДРОБНЫМ точкам (`A45`). Спектр за вычетом фона живёт в
+        /// `double`, и подложка под пиком там тоже дробная; целочисленный вход
+        /// ниже остаётся для сырых отсчётов и считает ровно как раньше.
+        /// </summary>
+        public static double getY(double X, double x1, double x2, double y1, double y2)
+        {
+            if (x1 - x2 != 0.0)
+            {
+                double k = (y1 - y2) / (x1 - x2);
+                double b = y1 - k * x1;
+                return k * X + b;
+            }
+
+            return 0.0;
+        }
+
         public static double getY(int X, int x1, int x2, int y1, int y2)
         {
             if (x1 - x2 != 0)
