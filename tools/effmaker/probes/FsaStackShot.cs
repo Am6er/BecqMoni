@@ -325,6 +325,10 @@ namespace FsaStackShot
                 analyzer.OffsetSteps = offsetSteps;
             }
 
+            // (`A36`) Шкала модели держится на найденных пиках — тот же
+            // список, которым подписан спектр и собран состав.
+            analyzer.DriftPeaks = peaks;
+
             analyzer.Backscatter = backscatter;
             if (!double.IsNaN(refitZ))
             {
@@ -343,9 +347,10 @@ namespace FsaStackShot
             // усиления и сдвига двигает МОДЕЛЬ относительно измерения, и на
             // дальнем конце шкалы это видно глазами, а величину сдвига видно
             // только здесь.
-            Console.WriteLine("дрейф: усиление {0:F6}, сдвиг {1:F3} канала{2}",
+            Console.WriteLine("дрейф: якорей {3}, усиление {0:F6}, сдвиг {1:F3} канала{2}",
                               result.Gain, result.OffsetChannels,
-                              result.DriftOnGridEdge ? " — КРАЙ СЕТКИ" : "");
+                              result.DriftOnGridEdge ? " — КРАЙ СЕТКИ" : "",
+                              result.DriftAnchors);
             Console.WriteLine("chi2/ndf {0:F3}, невязка модели {1:F1} %, суммирование {2}",
                               result.Chi2Ndf, result.ModelResidual * 100.0,
                               result.CascadeSummingUsed ? "да" : "нет");

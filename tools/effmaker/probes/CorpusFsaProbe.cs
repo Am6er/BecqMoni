@@ -1600,6 +1600,10 @@ namespace CorpusFsaProbe
                 FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
                 row.EfficiencyName = rd.Efficiency != null ? rd.Efficiency.Name : "";
 
+                // (`A36`) Шкала модели держится на найденных пиках — тот же
+                // список, из которого собран состав.
+                analyzer.DriftPeaks = peaks;
+
                 FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background,
                                                     rd.FwhmCalibration, library, efficiency);
                 row.Ms = clock.Elapsed.TotalMilliseconds;

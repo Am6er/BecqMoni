@@ -352,6 +352,7 @@
       <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="FullSpectrumAnalysis\FsaAnalyzer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaDrift.cs" />
     <Compile Include="FullSpectrumAnalysis\AngularCorrelation.cs" />
     <Compile Include="FullSpectrumAnalysis\CascadeAtomicData.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaCascadeSummer.cs" />

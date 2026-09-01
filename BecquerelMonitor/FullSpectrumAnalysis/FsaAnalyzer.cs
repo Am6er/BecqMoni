@@ -791,6 +791,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string ScintillatorMaterial { get; set; }
 
         /// <summary>
+        /// ⛔ (`A36`) НАЙДЕННЫЕ ПИКИ, НА КОТОРЫХ ДЕРЖИТСЯ ШКАЛА МОДЕЛИ.
+        /// Ставится тем же кодом, что собирает библиотеку, — подписи пиков там
+        /// и так на руках. Пусто или null — прежнее поведение: широкая сетка,
+        /// выбор по общему χ².
+        ///
+        /// Правило разбирается в <see cref="FsaDrift"/>; здесь только вход.
+        /// </summary>
+        public IEnumerable<Peak> DriftPeaks { get; set; }
+
+
+        /// <summary>Поправка шкалы по пикам, посчитанная на этот разбор.</summary>
+        FsaDrift drift;
+
+        /// <summary>
+        /// Где линия окажется на шкале ИЗМЕРЕНИЯ: сначала поправка по найденным
+        /// пикам (`A36`), затем узкое уточнение узлом сетки. Одно место на
+        /// проект — прежде это же выражение стояло четырьмя копиями, и любая
+        /// правка правила требовала помнить про все четыре.
+        /// </summary>
+        double DriftPosition(double position, double gain, double offset)
+        {
+            double anchored = this.drift != null
+                ? position + this.drift.ShiftAt(position)
+                : position;
+            return gain * anchored + offset;
+        }
+
+        /// <summary>
         /// ОКНО СОВПАДЕНИЯ, секунды: мёртвое время прибора, оно же длительность
         /// импульса (S27). Два кванта складываются в один отсчёт, только если
         /// разошлись во времени меньше, чем на неё, — а разводит их время жизни
@@ -1027,6 +1055,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.cascadeApplied = false;
 
             EnergyCalibration calibration = spectrum.EnergyCalibration;
+
+            // ⛔ (`A36`) ШКАЛА МОДЕЛИ ДЕРЖИТСЯ НА НАЙДЕННЫХ ПИКАХ. Поправка
+            // считается ОДИН РАЗ на разбор и не зависит от узла сетки: она про
+            // измерение, а не про подгонку. Пиков не подано или ни один не
+            // подписан — поправки нет, и всё идёт прежним путём.
+            this.drift = FsaDrift.FromPeaks(this.DriftPeaks, calibration,
+                                            spectrum.NumberOfChannels);
 
             // S98: сужает фит РОВНО один режим. `Whole` и `LibraryToFit`
             // считают весь спектр — разница между ними в полосе БИБЛИОТЕКИ, а
@@ -1314,6 +1349,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 : (chHi - chLo) / Math.Max(1.0, this.MaxEnergy - this.MinEnergy);
             double offsetRangeChannels = this.OffsetRangeKev * channelsPerKev;
 
+            // ⛔ (`A36`) ПИКИ ЗАДАЮТ ЦЕНТР, χ² УТОЧНЯЕТ РЯДОМ (решение Amber
+            // 01.09.2026). Поправка по найденным подписям уже поставила модель
+            // на измеренные пики (<see cref="FsaDrift"/>), и перебирать после
+            // этого ±2 % шкалы значило бы снова уводить её общим χ². Диапазон
+            // сужается до ОДНОГО шага прежней сетки — столько же узлов, но
+            // вокруг решения по пикам, а не вокруг «как записано в файле».
+            //
+            // ⚠ Ни одной подписи — прежний широкий перебор: привязываться не к
+            // чему, и отнимать у фита последнюю ручку нельзя (замер
+            // 01.09.2026: без дрейфа вовсе понятная часть корпуса даёт Σχ²
+            // 672.5 против 460.7 и recall 94 % против 100 %).
+            double gainRange = this.GainRange;
+            if (this.drift != null && this.GainSteps > 1)
+            {
+                gainRange = this.GainRange / (this.GainSteps - 1);
+            }
+
+            if (this.drift != null && this.OffsetSteps > 1)
+            {
+                offsetRangeChannels /= (this.OffsetSteps - 1);
+            }
+
             int gainSteps = Math.Max(1, this.GainSteps);
             int offsetSteps = Math.Max(1, this.OffsetSteps);
             double bestGain = 1.0;
@@ -1325,7 +1382,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 double gain = gainSteps == 1
                     ? 1.0
-                    : 1.0 - this.GainRange + 2.0 * this.GainRange * gi / (gainSteps - 1);
+                    : 1.0 - gainRange + 2.0 * gainRange * gi / (gainSteps - 1);
                 for (int oi = 0; oi < offsetSteps; oi++)
                 {
                     double offset = offsetSteps == 1
@@ -1555,8 +1612,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaResult result = BuildResult(best, spectrum, fwhmCalibration, backgroundCurve, snipContinuum,
                                chLo, chHi, channels,
                                bestGain, bestOffset, liveTime, efficiency,
-                               gainSteps > 1 && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
-                               offsetSteps > 1 && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
+                               // ⚠ (`A36`) При якорной привязке край сетки НЕ ТРЕВОГА и не
+                               // печатается: сетка там узкая нарочно — один шаг прежней
+                               // вокруг решения по пикам, — и упереться в её край значит
+                               // «χ² хотел бы ещё чуть подвинуть», а не «шкале верить
+                               // нельзя». Прежний смысл пометки (оптимум ушёл на ±2 %)
+                               // сохраняется ровно там, где сетка осталась широкой.
+                               this.drift == null && gainSteps > 1
+                                   && (bestGainIndex == 0 || bestGainIndex == gainSteps - 1),
+                               this.drift == null && offsetSteps > 1
+                                   && (bestOffsetIndex == 0 || bestOffsetIndex == offsetSteps - 1));
 
             // (`S103`) Поверка столбцов подпороговых линий — ПОСЛЕ отчётного
             // фита и только по заказу: при нулевом пороге сюда не заходят.
@@ -2499,6 +2564,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EfficiencyUsed = efficiency != null,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
                 CascadeSummingUsed = this.cascadeApplied,
+                DriftAnchors = this.drift != null ? this.drift.AnchorCount : 0,
                 GainOnGridEdge = gainOnEdge,
                 OffsetOnGridEdge = offsetOnEdge,
                 Background = backgroundCurve,
@@ -3057,7 +3123,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            double p = gain * position + offset;
+            double p = this.DriftPosition(position, gain, offset);
             double fwhm = fwhmCalibration.ChannelToFwhm(p);
             if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
             {
@@ -4674,7 +4740,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double p = gain * position + offset;
+                double p = this.DriftPosition(position, gain, offset);
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
                 if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
                 {
@@ -4708,7 +4774,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     area += v;
-                    moment += v * (gain * q + offset);
+                    moment += v * this.DriftPosition(q, gain, offset);
                     if (part != null && k < part.Length)
                     {
                         partArea += part[k];
@@ -5032,7 +5098,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double p = gain * position + offset;
+                double p = this.DriftPosition(position, gain, offset);
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
                 if (fwhm <= 0.0 || Double.IsNaN(fwhm))
                 {

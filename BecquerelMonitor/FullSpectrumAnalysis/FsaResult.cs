@@ -513,6 +513,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             get { return this.GainOnGridEdge || this.OffsetOnGridEdge; }
         }
 
+        /// <summary>
+        /// (`A36`) На скольких НАЙДЕННЫХ ПИКАХ держится шкала модели. Ноль —
+        /// подписей не было и поправка не строилась: тогда <see cref="Gain"/> и
+        /// <see cref="OffsetChannels"/> означают прежнее — оптимум широкой сетки
+        /// по общему χ². При ненулевом числе они означают лишь УТОЧНЕНИЕ поверх
+        /// привязки, и читать их как «дрейф прибора» больше нельзя.
+        /// </summary>
+        public int DriftAnchors { get; set; }
+
         /// <summary>Упёрлось УСИЛЕНИЕ: оптимум на краю сетки <c>GainRange</c>.</summary>
         public bool GainOnGridEdge { get; set; }
 
