@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
@@ -41,7 +42,8 @@ namespace G4CompareProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null, histPath = null, outPath = "g4cmp.csv";
-            double fromKev = 300.0, toKev = 620.0;
+            double fromKev = 300.0, toKev = 620.0, fwhmScale = 1.0;
+            string lightMaterial = null;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -49,6 +51,17 @@ namespace G4CompareProbe
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--from=", StringComparison.Ordinal)) fromKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--to=", StringComparison.Ordinal)) toKev = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
+                // (`A37`) Во сколько раз уширять СИЛЬНЕЕ паспортной ПШПВ: проверка
+                // догадки «континуум размыт не так, как пик».
+                else if (a.StartsWith("--fwhm-scale=", StringComparison.Ordinal)) fwhmScale = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                // ⛔ (`A37`) ШКАЛА СВЕТА. Прибор меряет НЕ энергию, а свет, и у
+                // сцинтиллятора выход на килоэлектронвольт зависит от энергии
+                // электрона (непропорциональность, `F11`). Geant4 отдаёт
+                // энерговыделение и о свете не знает — значит сравнивать его
+                // с измерением в шкале энергии значит сравнивать разные
+                // величины. Ключ переводит депозит в шкалу света по нашей же
+                // кривой (`scint_electron_light_yield`), с якорем на линии.
+                else if (a.StartsWith("--light=", StringComparison.Ordinal)) lightMaterial = a.Substring(8);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -103,6 +116,7 @@ namespace G4CompareProbe
                 return 2;
             }
 
+            Console.WriteLine("уширение: паспортная ПШПВ × {0:F2}", fwhmScale);
             Console.WriteLine("гистограмма арбитра: {0} бинов по {1} кэВ, событий с откликом {2:F0}",
                               deposit.Length, binKev.ToString("F3", CultureInfo.InvariantCulture),
                               Sum(deposit));
@@ -134,6 +148,22 @@ namespace G4CompareProbe
             Console.WriteLine("выравнивание по фотопику: центр измерения {0:F2} кэВ, множитель шкалы {1:F5}",
                               weight > 0.0 ? moment / weight : 0.0, gain);
 
+            MaterialDatabase.LightYieldCurve light = null;
+            double anchorYield = 1.0;
+            if (lightMaterial != null)
+            {
+                light = MaterialDatabase.LightYieldOf(lightMaterial);
+                if (light == null)
+                {
+                    Console.Error.WriteLine("нет кривой световыхода для «{0}»", lightMaterial);
+                    return 2;
+                }
+
+                anchorYield = light.Of(661.657);
+                Console.WriteLine("шкала света: {0}, выход на линии {1:F4}, на 300 кэВ {2:F4}, на 100 кэВ {3:F4}",
+                                  lightMaterial, anchorYield, light.Of(300.0), light.Of(100.0));
+            }
+
             // Уширение: каждый бин депозита раскладывается профилем той же
             // формы, какой разбор описывает линии.
             double[] model = new double[channels];
@@ -146,13 +176,23 @@ namespace G4CompareProbe
                 }
 
                 double energy = b * binKev * gain;
+                if (light != null && energy > 0.0)
+                {
+                    // Событие принимается за ОДИН электрон своей энергии: у нас
+                    // свет копится по каждому электрону в отдельности, здесь такой
+                    // росписи нет — гистограмма приходит суммарным депозитом.
+                    // Приближение завышает свет у многоэлектронных событий и потому
+                    // даёт НИЖНЮЮ оценку сдвига, а не верхнюю.
+                    energy *= light.Of(energy) / anchorYield;
+                }
+
                 double center = calibration.EnergyToChannel(energy, maxChannels: channels);
                 if (Double.IsNaN(center) || center < 0.0 || center >= channels)
                 {
                     continue;
                 }
 
-                double width = fwhm.ChannelToFwhm(center);
+                double width = fwhmScale * fwhm.ChannelToFwhm(center);
                 if (!(width > 0.0) || Double.IsNaN(width))
                 {
                     continue;
