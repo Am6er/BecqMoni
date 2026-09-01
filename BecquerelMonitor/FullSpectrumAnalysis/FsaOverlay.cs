@@ -180,11 +180,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
 
-            // ⛔ (`A36`) ШКАЛА МОДЕЛИ ДЕРЖИТСЯ НА НАЙДЕННЫХ ПИКАХ. Список тот же
-            // самый, из которого собирается состав, — второго снимка рядом быть
-            // не должно: разошлись бы состав и привязка.
-            analyzer.DriftPeaks = peaks;
-
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
             {
                 // Диапазон поиска пиков передаётся анализатору, но при
