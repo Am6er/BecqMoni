@@ -423,6 +423,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         // Та же сцена массивом — для горячих проходов (`T43`), см. EnsureBuilt.
         Region[] regionArray;
+
+        // ⚡ ПЛОСКАЯ ГЕОМЕТРИЯ СЦЕНЫ (`A43`). Разбор луча — четверть счёта, и
+        // в нём цикл по всем областям. По объектам он ходил бы по восьми
+        // ссылкам в куче, читая из каждой по шесть полей; здесь те же числа
+        // лежат подряд. Допуск `Eps` вычтен заранее: он не зависит ни от луча,
+        // ни от истории, а вычитался на каждый вызов.
+        bool[] regBox;
+        double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
         Region crystal;
         double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
         Sampler source;
@@ -519,6 +527,27 @@ namespace BecquerelMonitor.EfficiencyMaker
             // на каждое обращение проверяет границы и версию коллекции. Сцена
             // после сборки не меняется, так что копия безопасна.
             this.regionArray = this.regions.ToArray();
+
+            // Те же размеры плоскими массивами — для разбора луча (`A43`).
+            int regionCount = this.regionArray.Length;
+            this.regBox = new bool[regionCount];
+            this.regZMinE = new double[regionCount];
+            this.regZMaxE = new double[regionCount];
+            this.regROutE = new double[regionCount];
+            this.regRInE = new double[regionCount];
+            this.regAXE = new double[regionCount];
+            this.regAYE = new double[regionCount];
+            for (int i = 0; i < regionCount; i++)
+            {
+                Region r = this.regionArray[i];
+                this.regBox[i] = r.IsBox;
+                this.regZMinE[i] = r.ZMin - Eps;
+                this.regZMaxE[i] = r.ZMax - Eps;
+                this.regROutE[i] = r.ROut - Eps;
+                this.regRInE[i] = r.RIn - Eps;
+                this.regAXE[i] = r.AX - Eps;
+                this.regAYE[i] = r.AY - Eps;
+            }
 
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
@@ -818,6 +847,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             ///
             /// Двух отрезков не бывает у бруса: он выпуклый. У кольца дырка
             /// делит отрезок надвое, когда луч проходит сквозь неё насквозь.
+            /// </summary>
+            /// <summary>
+            /// ⚠ ЭТАЛОН, А НЕ РАБОЧИЙ ПУТЬ (`A43`). Разбор луча считает
+            /// <see cref="EfficiencySimulator.SpanFlat"/> — то же самое по
+            /// плоским массивам, с заранее вычтенным допуском и без передачи
+            /// через `out`. Это тело оставлено читаемым образцом: правя одно,
+            /// правь и другое, иначе они разойдутся молча.
             /// </summary>
             public int SpanAlong(double x, double y, double z,
                                  double ux, double uy, double uz, double[] into)
@@ -1625,6 +1661,198 @@ namespace BecquerelMonitor.EfficiencyMaker
             return lo < this.rayCount ? this.rayCross[lo] - along : double.MaxValue;
         }
 
+        /// <summary>
+        /// ⚡ (`A43`) Отрезки луча внутри области `i` — по плоским массивам.
+        /// Тело то же, что у <see cref="Region.SpanAlong"/>, только размеры
+        /// берутся из массивов с уже вычтенным допуском, а `Slab` и `Disk`
+        /// вписаны сюда: их результат уходил через `out`, и значения не
+        /// удерживались в регистрах.
+        ///
+        /// ⛔ Ни одно выражение не переставлено — числа те же до разряда.
+        /// </summary>
+        int SpanFlat(int i, double x, double y, double z,
+                     double ux, double uy, double uz, double[] into)
+        {
+            // Slab по оси z
+            double lo, hi;
+            double zMinE = this.regZMinE[i], zMaxE = this.regZMaxE[i];
+            if (uz < Eps && uz > -Eps)
+            {
+                if (!(z >= zMinE && z < zMaxE))
+                {
+                    return 0;
+                }
+
+                lo = -Far;
+                hi = Far;
+            }
+            else
+            {
+                double a0 = (zMinE - z) / uz, b0 = (zMaxE - z) / uz;
+                if (a0 <= b0) { lo = a0; hi = b0; }
+                else { lo = b0; hi = a0; }
+            }
+
+            double a, b;
+            if (this.regBox[i])
+            {
+                double axE = this.regAXE[i];
+                if (ux < Eps && ux > -Eps)
+                {
+                    if (!(x >= -axE && x < axE))
+                    {
+                        return 0;
+                    }
+
+                    a = -Far;
+                    b = Far;
+                }
+                else
+                {
+                    double a1 = (-axE - x) / ux, b1 = (axE - x) / ux;
+                    if (a1 <= b1) { a = a1; b = b1; }
+                    else { a = b1; b = a1; }
+                }
+
+                if (a > lo) lo = a;
+                if (b < hi) hi = b;
+
+                double ayE = this.regAYE[i];
+                if (uy < Eps && uy > -Eps)
+                {
+                    if (!(y >= -ayE && y < ayE))
+                    {
+                        return 0;
+                    }
+
+                    a = -Far;
+                    b = Far;
+                }
+                else
+                {
+                    double a2 = (-ayE - y) / uy, b2 = (ayE - y) / uy;
+                    if (a2 <= b2) { a = a2; b = b2; }
+                    else { a = b2; b = a2; }
+                }
+
+                if (a > lo) lo = a;
+                if (b < hi) hi = b;
+                if (!(hi > lo))
+                {
+                    return 0;
+                }
+
+                into[0] = lo;
+                into[1] = hi;
+                return 1;
+            }
+
+            // Disk по внешнему радиусу
+            double rOutE = this.regROutE[i];
+            if (!(rOutE > 0.0))
+            {
+                return 0;
+            }
+
+            double aq = ux * ux + uy * uy;
+            double cq = x * x + y * y - rOutE * rOutE;
+            if (aq < Eps)
+            {
+                if (!(cq < 0.0))
+                {
+                    return 0;
+                }
+
+                a = -Far;
+                b = Far;
+            }
+            else
+            {
+                double bq = 2.0 * (x * ux + y * uy);
+                double disc = bq * bq - 4.0 * aq * cq;
+                if (disc <= 0.0)
+                {
+                    return 0;                   // мимо или по касательной
+                }
+
+                double sq = Math.Sqrt(disc), inv = 0.5 / aq;
+                a = (-bq - sq) * inv;
+                b = (-bq + sq) * inv;
+            }
+
+            if (a > lo) lo = a;
+            if (b < hi) hi = b;
+            if (!(hi > lo))
+            {
+                return 0;
+            }
+
+            // Disk по внутреннему радиусу — дырка кольца
+            double rInE = this.regRInE[i];
+            if (rInE > 0.0)
+            {
+                double h0, h1;
+                bool hit;
+                double ch = x * x + y * y - rInE * rInE;
+                if (aq < Eps)
+                {
+                    h0 = -Far;
+                    h1 = Far;
+                    hit = ch < 0.0;
+                }
+                else
+                {
+                    double bh = 2.0 * (x * ux + y * uy);
+                    double dh = bh * bh - 4.0 * aq * ch;
+                    if (dh <= 0.0)
+                    {
+                        h0 = 0.0;
+                        h1 = 0.0;
+                        hit = false;
+                    }
+                    else
+                    {
+                        double sh = Math.Sqrt(dh), ih = 0.5 / aq;
+                        h0 = (-bh - sh) * ih;
+                        h1 = (-bh + sh) * ih;
+                        hit = true;
+                    }
+                }
+
+                if (hit && h1 > lo && h0 < hi)
+                {
+                    if (h0 <= lo && h1 >= hi)
+                    {
+                        return 0;               // отрезок целиком в дырке
+                    }
+
+                    if (h0 <= lo)
+                    {
+                        into[0] = h1;
+                        into[1] = hi;
+                        return 1;
+                    }
+
+                    if (h1 >= hi)
+                    {
+                        into[0] = lo;
+                        into[1] = h0;
+                        return 1;
+                    }
+
+                    into[0] = lo;
+                    into[1] = h0;
+                    into[2] = h1;
+                    into[3] = hi;
+                    return 2;
+                }
+            }
+
+            into[0] = lo;
+            into[1] = hi;
+            return 1;
+        }
+
         // --- разбиение луча на отрезки постоянной области (`T43`) ---
         //
         // `rayCross[k]` — граница между отрезком k и k+1, по возрастанию;
@@ -1731,7 +1959,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             ulong active = 0UL;
             for (int i = 0; i < count; i++)
             {
-                int parts = all[i].SpanAlong(x, y, z, ux, uy, uz, this.spanBuf);
+                int parts = this.SpanFlat(i, x, y, z, ux, uy, uz, this.spanBuf);
                 for (int p = 0; p < parts; p++)
                 {
                     double t0 = this.spanBuf[2 * p], t1 = this.spanBuf[2 * p + 1];
