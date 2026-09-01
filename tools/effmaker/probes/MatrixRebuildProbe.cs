@@ -35,13 +35,14 @@ namespace MatrixRebuildProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null;
-            int histories = 3000000, nodes = 0, threads = 0;
+            int histories = 3000000, nodes = 0, threads = 0, estimateOnly = 0;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--nodes=", StringComparison.Ordinal)) nodes = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--threads=", StringComparison.Ordinal)) threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--estimate=", StringComparison.Ordinal)) estimateOnly = int.Parse(a.Substring(11), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -95,7 +96,35 @@ namespace MatrixRebuildProbe
                 options.Threads = threads;
             }
 
-            Console.WriteLine("считаю: историй {0}, узлов {1}", options.Histories, options.NodeCount);
+            Console.WriteLine("считаю: историй {0}, узлов {1}, потоков {2}",
+                              options.Histories, options.NodeCount,
+                              options.Threads > 0 ? options.Threads : Environment.ProcessorCount - 1);
+
+            // (`A44`) Предварительная оценка — та самая, что форма пишет строкой
+            // «Estimated time: about …». Печатается ДО счёта, чтобы её враньё
+            // было измерено, а не рассказано.
+            var estimateClock = System.Diagnostics.Stopwatch.StartNew();
+            double estimate = ResponseMatrixBuilder.EstimateSeconds(rd.Efficiency.Geometry, options);
+            estimateClock.Stop();
+            Console.WriteLine("ОЦЕНКА до счёта: {0:F0} с (сама оценка заняла {1:F1} с)",
+                              estimate, estimateClock.Elapsed.TotalSeconds);
+
+            // (`A44`) Только оценка, столько раз, сколько попросили: устойчивость
+            // видна лишь несколькими подряд, а полный счёт идёт минуты.
+            if (estimateOnly > 0)
+            {
+                for (int i = 1; i < estimateOnly; i++)
+                {
+                    var again = System.Diagnostics.Stopwatch.StartNew();
+                    double value = ResponseMatrixBuilder.EstimateSeconds(rd.Efficiency.Geometry, options);
+                    again.Stop();
+                    Console.WriteLine("ОЦЕНКА ещё раз: {0:F0} с ({1:F1} с)",
+                                      value, again.Elapsed.TotalSeconds);
+                }
+
+                return 0;
+            }
+
             var clock = System.Diagnostics.Stopwatch.StartNew();
             // (`A41`) Ход счёта печатается СТРОКАМИ: скачет ли остаток, видно
             // только рядом стоящими числами, а не одним последним.
@@ -125,6 +154,9 @@ namespace MatrixRebuildProbe
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             built.Save(path);
             Console.WriteLine("готово за {0:F0} с: {1}", clock.Elapsed.TotalSeconds, path);
+            double fact = clock.Elapsed.TotalSeconds;
+            Console.WriteLine("ИТОГ (`A44`): оценка {0:F0} с, факт {1:F0} с, врёт в {2:F2} раза",
+                              estimate, fact, estimate > 0.0 ? fact / estimate : 0.0);
             Console.WriteLine("клеймо: {0}", built.Stamp);
             return 0;
         }
