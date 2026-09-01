@@ -260,6 +260,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double MinChainBranch = 1.0e-3;
 
         /// <summary>
+        /// Доля ветвления, ниже которой ИЗОМЕР членом ряда не считается
+        /// (решение Amber 01.09.2026 по описи `S110`: судит доля, а не имя
+        /// ряда — прежде изомеры держались только в `238U`, названном прямо в
+        /// коде).
+        ///
+        /// ⚠ ЧИСЛО НАЗНАЧЕНО, А НЕ ВЫВЕДЕНО, и сегодня оно неразличимо: во
+        /// всей `decay_chain` изомер ровно ОДИН — `234PAm1`, и через него
+        /// проходит весь урановый ряд, доля 1.000. Любой порог от 1e-3 до 1.0
+        /// даёт один и тот же состав. Смысл половины: изомер остаётся, когда
+        /// ряд ИДЁТ ЧЕРЕЗ НЕГО, а не сворачивает в него боковой ветвью.
+        /// </summary>
+        public double MinIsomerBranch = 0.5;
+
+        /// <summary>
         /// РАВНОВЕСИЕ: ряд идёт в разбор ОДНОЙ колонкой с одной свободной
         /// амплитудой, а относительные веса его членов закреплены накопленной
         /// долей ветвления (решение Amber 18.08.2026, `S70`; умолчание —
@@ -481,7 +495,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                CollectChain(chain, spec.MinChainBranch, branch, owner, report);
+                CollectChain(chain, spec.MinChainBranch, spec.MinIsomerBranch,
+                             branch, owner, report);
             }
 
             foreach (string nucid in spec.Nuclides)
@@ -713,9 +728,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// не выведено.
         /// </summary>
         internal static void CollectChain(FsaSampleChain chain, double minBranch,
+                                          double minIsomerBranch,
                                           Dictionary<string, double> branch, Report report)
         {
-            CollectChain(chain, minBranch, branch, null, report);
+            CollectChain(chain, minBranch, minIsomerBranch, branch, null, report);
         }
 
         /// <summary>
@@ -724,6 +740,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// перегрузка выше.
         /// </summary>
         internal static void CollectChain(FsaSampleChain chain, double minBranch,
+                                          double minIsomerBranch,
                                           Dictionary<string, double> branch,
                                           Dictionary<string, string> owner, Report report)
         {
@@ -732,8 +749,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
-            bool keepIsomers = string.Equals(chain.Root, "238U",
-                                             StringComparison.OrdinalIgnoreCase);
+            // ⛔ ИМЕНИ РЯДА ЗДЕСЬ БОЛЬШЕ НЕТ. Стояло `keepIsomers = (chain.Root
+            // == "238U")` — изомеры держались в одном ряду, названном по имени.
+            // Снято 01.09.2026 решением Amber по описи `S110`: судит ДОЛЯ
+            // ВЕТВЛЕНИЯ, а не имя. Изомер остаётся, если ряд ИДЁТ ЧЕРЕЗ НЕГО
+            // (доля не ниже `MinIsomerBranch`), и выбрасывается, если он боковая
+            // ветвь.
+            //
+            // ⚠ Измерено перед правкой, чтобы знать цену: во ВСЕЙ `decay_chain`
+            // (4101 строка, 2241 разная дочерняя) изомер ровно ОДИН — `234PAm1`,
+            // и через него идёт весь урановый ряд (`234TH → 234PAm1` 100 %,
+            // дальше `→ 234U` 99.84 %). Ни у `232TH`, ни у `226RA`, ни у `235U`,
+            // ни у `227AC`, ни у `237NP` изомеров нет вовсе. Значит замена имени
+            // на порог сегодня даёт ПОБИТОВО тот же состав — и это проверено
+            // прогоном, а не обещано.
             Dictionary<string, double> members = ChainBranches(chain.Root, report);
             foreach (KeyValuePair<string, double> member in members)
             {
@@ -742,8 +771,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (!keepIsomers && IsIsomer(member.Key))
+                if (IsIsomer(member.Key) && member.Value < minIsomerBranch)
                 {
+                    report.ChainMembersDropped++;
                     continue;
                 }
 
@@ -1181,45 +1211,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
-                if (fluorescence == null || fluorescence.LineKev == null)
+                FsaComponent component = FluorescenceComponent(z, spec.LineFloorKev, spec.MaxEnergyKev);
+                if (component == null)
                 {
                     report.Notes.Add("нет K-серии для Z=" + z.ToString(CultureInfo.InvariantCulture)
                                      + " (" + what + ")");
                     continue;
-                }
-
-                // ⛔ L-серия сюда НЕ идёт, и это не забывчивость: в
-                // `matdb.xray_fluorescence` её нет вовсе — таблица держит только
-                // K-край, Kα1, Kα2 и Kβ. Собрать L пришлось бы из
-                // `eadl_radiative`, считая веса внутри серии самому; решением
-                // Amber 18.08.2026 в `S56` это не входит.
-                var component = new FsaComponent("Xray-" + MaterialDatabase.SymbolOf(z),
-                                                 FsaComponentKind.Nuisance);
-                for (int i = 0; i < fluorescence.LineKev.Length; i++)
-                {
-                    // S98: и здесь снизу режет пол библиотеки. Это НЕ мелочь:
-                    // при `Min_Range` = 30 кэВ у иода кристалла выбрасывались
-                    // ОБЕ линии Kα (28.317 и 28.612 кэВ, вместе 81.3 % веса
-                    // K-серии), и образ `Xray-I` состоял из одной Kβ 32.68.
-                    // Мерено 25.08.2026: так было во ВСЕХ 81 спектре понятной
-                    // части корпуса. Образ, у которого выброшена главная линия,
-                    // не «неполный» — он стоит не там, и амплитуду забирает
-                    // чужую.
-                    double energy = fluorescence.LineKev[i];
-                    double weight = fluorescence.LineWeight[i];
-                    if (!(energy > 0.0) || !(weight > 0.0)
-                        || energy < spec.LineFloorKev || energy > spec.MaxEnergyKev)
-                    {
-                        continue;
-                    }
-
-                    // Вес — доля ВНУТРИ K-серии, а не выход на распад: у
-                    // характеристического рентгена выхода на распад не
-                    // существует (атом светит, когда в K появилась дырка, а
-                    // сколько их — дело геометрии и спектра возбуждения). Ровно
-                    // поэтому образ и мешающий.
-                    AddLine(component, component.Name, energy, 100.0 * weight);
                 }
 
                 if (component.Lines.Count > 0)
@@ -1228,6 +1225,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     report.Lines += component.Lines.Count;
                 }
             }
+        }
+
+        /// <summary>
+        /// Образ характеристического рентгена элемента — ОДНО место на проект.
+        ///
+        /// Вынесено 01.09.2026 по решению Amber (`S110`, пункты 2–3): у пути
+        /// приложения лежала ВТОРАЯ копия того же знания — зашитые `Xray-W` и
+        /// `Xray-Pb` по четыре строки, — и копии успели разойтись. Измерено на
+        /// той же базе: Kα в обеих совпадали точно, а группа Kβ в коде стояла
+        /// на других энергиях и была занижена в 1.4 раза (W: 30.0 против 42.2;
+        /// Pb: 31.0 против 44.5 в нормировке на Kα1 = 100). Теперь обе стороны
+        /// зовут это.
+        ///
+        /// ⛔ L-серия сюда НЕ идёт, и это не забывчивость: в
+        /// `matdb.xray_fluorescence` её нет вовсе — таблица держит только
+        /// K-край, Kα1, Kα2 и Kβ. Собрать L пришлось бы из `eadl_radiative`,
+        /// считая веса внутри серии самому; решением Amber 18.08.2026 в `S56`
+        /// это не входит.
+        /// </summary>
+        /// <returns>Образ либо null, если K-серии для этого Z в базе нет.</returns>
+        public static FsaComponent FluorescenceComponent(int z, double floorKev, double maxKev)
+        {
+            MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
+            if (fluorescence == null || fluorescence.LineKev == null)
+            {
+                return null;
+            }
+
+            var component = new FsaComponent("Xray-" + MaterialDatabase.SymbolOf(z),
+                                             FsaComponentKind.Nuisance);
+            for (int i = 0; i < fluorescence.LineKev.Length; i++)
+            {
+                // S98: и здесь снизу режет пол библиотеки. Это НЕ мелочь:
+                // при `Min_Range` = 30 кэВ у иода кристалла выбрасывались
+                // ОБЕ линии Kα (28.317 и 28.612 кэВ, вместе 81.3 % веса
+                // K-серии), и образ `Xray-I` состоял из одной Kβ 32.68.
+                // Мерено 25.08.2026: так было во ВСЕХ 81 спектре понятной
+                // части корпуса. Образ, у которого выброшена главная линия,
+                // не «неполный» — он стоит не там, и амплитуду забирает
+                // чужую.
+                double energy = fluorescence.LineKev[i];
+                double weight = fluorescence.LineWeight[i];
+                if (!(energy > 0.0) || !(weight > 0.0)
+                    || energy < floorKev || energy > maxKev)
+                {
+                    continue;
+                }
+
+                // Вес — доля ВНУТРИ K-серии, а не выход на распад: у
+                // характеристического рентгена выхода на распад не
+                // существует (атом светит, когда в K появилась дырка, а
+                // сколько их — дело геометрии и спектра возбуждения). Ровно
+                // поэтому образ и мешающий.
+                AddLine(component, component.Name, energy, 100.0 * weight);
+            }
+
+            return component;
         }
 
         /// <summary>

@@ -577,7 +577,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var branch = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             var sample = new FsaSampleLibrary.Report();
             FsaSampleLibrary.CollectChain(new FsaSampleChain(nucid), spec.MinChainBranch,
-                                          branch, sample);
+                                          spec.MinIsomerBranch, branch, sample);
             if (branch.Count == 0)
             {
                 // Нуклида нет в `decay_chain` вовсе (стабильный, или подпись
