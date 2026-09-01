@@ -394,21 +394,25 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Цвет невязки: один на обе половины, знаки разводит ШТРИХ.
+        /// Цвет невязки: ТЁМНО-СЕРЫЙ, один на обе половины (решение Amber
+        /// 01.09.2026). Знаки разводит ШТРИХ, а не цвет.
         ///
-        /// Взят серо-стальной нарочно: он не встречается в палитре нуклидов
+        /// Серый нарочно: он не встречается в палитре нуклидов
         /// (<see cref="FsaColorOf"/>), и лента невязки не может быть принята за
         /// ещё один компонент состава.
         /// </summary>
-        static readonly Color FsaResidualColor = Color.FromArgb(96, 112, 128);
+        static readonly Color FsaResidualColor = Color.FromArgb(64, 64, 64);
 
         /// <summary>
         /// (`S111`) Лента НЕВЯЗКИ между моделью и измерением, обеими знаками.
         ///
-        /// Верхняя половина (измерение выше модели) — восходящий штрих, нижняя
-        /// (модель выше измерения) — нисходящий: знак читается по направлению
-        /// штриха, а не по цвету, и остаётся различим на печати и у людей,
-        /// путающих цвета.
+        /// ⛔ ШТРИХ — КЛЕТКА, то есть косая ПЛЮС та же косая, повёрнутая на 90°
+        /// (решение Amber 01.09.2026). Так невязка не путается ни с чем: у
+        /// сумм-пиков штриховка ОДНОЙ косой в цвете своего нуклида, а здесь
+        /// перекрестье в тёмно-сером, которого в палитре нуклидов нет.
+        /// Половины различаются наклоном пары (`DiagonalCross` против
+        /// `Cross`) — знак читается по рисунку, а не по цвету, и остаётся
+        /// различим на печати и у людей, путающих цвета.
         ///
         /// ⚠ Полосы строятся ЯВНО через min/max, а не подачей кривых «как
         /// есть»: <see cref="DrawFsaBand"/> заливает многоугольник между двумя
@@ -430,18 +434,21 @@ namespace BecquerelMonitor
                 below[i] = Math.Min(model[i], measured[i]);
             }
 
-            using (Brush notDescribed = new HatchBrush(HatchStyle.LightUpwardDiagonal,
-                                                       Color.FromArgb(200, FsaResidualColor),
-                                                       Color.Transparent))
+            // «Не добавлено» (минус в строке): косая клетка.
+            using (Brush missing = new HatchBrush(HatchStyle.DiagonalCross,
+                                                  Color.FromArgb(200, FsaResidualColor),
+                                                  Color.Transparent))
             {
-                this.DrawFsaBand(g, notDescribed, model, above);
+                this.DrawFsaBand(g, missing, model, above);
             }
 
-            using (Brush overModelled = new HatchBrush(HatchStyle.LightDownwardDiagonal,
-                                                       Color.FromArgb(200, FsaResidualColor),
-                                                       Color.Transparent))
+            // «Добавлено больше чем надо» (плюс в строке): та же клетка,
+            // повёрнутая на 90° — прямая. Половины различимы, а род штриха один.
+            using (Brush excess = new HatchBrush(HatchStyle.Cross,
+                                                 Color.FromArgb(200, FsaResidualColor),
+                                                 Color.Transparent))
             {
-                this.DrawFsaBand(g, overModelled, below, model);
+                this.DrawFsaBand(g, excess, below, model);
             }
         }
 
@@ -1210,8 +1217,8 @@ namespace BecquerelMonitor
             // раньше, а вот связи «эта строка про эту ленту» не было ни
             // какой: числу верили, а искать невязку глазами приходилось по
             // зазору между двумя кривыми.
-            using (Brush swatch = new HatchBrush(HatchStyle.LightUpwardDiagonal,
-                                                 FsaResidualColor, Color.Transparent))
+            using (Brush swatch = new HatchBrush(HatchStyle.DiagonalCross,
+                                                 FsaResidualColor, Color.White))
             {
                 g.FillRectangle(swatch, r.Left, r.Top + 4, 10, 8);
             }
@@ -1222,8 +1229,16 @@ namespace BecquerelMonitor
             // (решение Amber 01.09.2026, `S111`). Прежде здесь печаталась ε,
             // оценённая по χ² доля формы, и пока ленты на экране не было, спорить
             // было не с чем. Теперь человек читает строку как площадь того, что
-            // видит, — и она обязана быть ею: `G1S24_Th228_P5` даёт ε 34.2 % при
-            // отсчётах +20.25 / −6.80 %, то есть прежнее число под лентой лгало бы.
+            // видит, — и она обязана быть ею.
+            //
+            // ⛔ ЗНАКИ — ПО ЧТЕНИЮ ЧЕЛОВЕКА, а не по геометрии картинки (правило
+            // Amber 01.09.2026, дословно: «добавлено больше чем надо — человек
+            // читает всегда со знаком +, а не добавлено — со знаком минус»):
+            //   • ПЛЮС — модель ПРИПИСАЛА лишнее (<see cref="FsaResult.ResidualExcessShare"/>);
+            //   • МИНУС — модели НЕ ХВАТИЛО (<see cref="FsaResult.ResidualMissingShare"/>).
+            // На `G1S24_Th228_P5` это +6.8 / −20.2 %. Порядок обратен тому, как
+            // половины лежат на графике, и это НАРОЧНО: знак читают по смыслу
+            // «добавил / не добавил», а не по тому, где лента выше.
             //
             // ⚠ ε НЕ СНЯТА и снята быть не может: ею меряется корпус
             // (`FsaResult.ModelResidual`, медиана понятной части 10.7 %), она
@@ -1232,9 +1247,9 @@ namespace BecquerelMonitor
             // что нарисовано, мерка меряет то, чем сравнивают прогоны.
             g.DrawString(string.Format(System.Globalization.CultureInfo.CurrentCulture,
                                        Resources.FSAResidualCountsValue,
-                                       (100.0 * result.ResidualAboveShare).ToString("n1",
+                                       (100.0 * result.ResidualExcessShare).ToString("n1",
                                            System.Globalization.CultureInfo.CurrentCulture),
-                                       (100.0 * result.ResidualBelowShare).ToString("n1",
+                                       (100.0 * result.ResidualMissingShare).ToString("n1",
                                            System.Globalization.CultureInfo.CurrentCulture)),
                          this.Font, Brushes.Black, r, this.farFormat);
             r.Y += FsaTableRowHeight;
