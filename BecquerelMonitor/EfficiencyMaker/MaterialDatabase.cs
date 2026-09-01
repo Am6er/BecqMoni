@@ -933,27 +933,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// посчитанная при загрузке. `null` вместо логарифмов — считать на
         /// месте, как раньше.
         /// </summary>
-        public static double Interpolate(double[] grid, double[] logGrid,
-                                         double[] values, double[] logValues, double x)
+        /// <summary>
+        /// ⚡ (`A43`) НАЙТИ ПАРУ УЗЛОВ, между которыми лежит `x`. Отделено от
+        /// интерполяции, потому что сетка у элемента ОДНА на все каналы: полное
+        /// ослабление, фотоэффект, комптон, пары и когерентное живут на общих
+        /// энергиях. Спрашивать их порознь значило делать один и тот же двоичный
+        /// поиск по три-пять раз на элемент.
+        ///
+        /// Края отдаются вырожденной парой `lo == hi`: за таблицей держится
+        /// крайнее значение, как и раньше. `false` — сетки нет вовсе.
+        /// </summary>
+        public static bool Bracket(double[] grid, double x, out int lo, out int hi)
         {
             int n = grid.Length;
             if (n == 0)
             {
-                return 0.0;
+                lo = hi = -1;
+                return false;
             }
 
             if (x <= grid[0])
             {
-                return values[0];
+                lo = hi = 0;
+                return true;
             }
 
             if (x >= grid[n - 1])
             {
-                return values[n - 1];
+                lo = hi = n - 1;
+                return true;
             }
 
-            int lo = 0;
-            int hi = n - 1;
+            lo = 0;
+            hi = n - 1;
             while (hi - lo > 1)
             {
                 int mid = (lo + hi) / 2;
@@ -965,6 +977,43 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     hi = mid;
                 }
+            }
+
+            return true;
+        }
+
+        public static double Interpolate(double[] grid, double[] logGrid,
+                                         double[] values, double[] logValues, double x)
+        {
+            int lo, hi;
+            if (!Bracket(grid, x, out lo, out hi))
+            {
+                return 0.0;
+            }
+
+            if (lo == hi)
+            {
+                return values[lo];
+            }
+
+            // ⚠ Логарифм аргумента берётся ЗДЕСЬ только потому, что этот вход
+            // никто не подготовил. Горячий путь идёт через перегрузку ниже и
+            // приносит его готовым — одним на все каналы элемента (`A43`).
+            return Interpolate(grid, logGrid, values, logValues, lo, hi, x, Math.Log(x));
+        }
+
+        /// <summary>
+        /// То же, но пара узлов найдена заранее (<see cref="Bracket"/>), и
+        /// логарифм аргумента передан готовым. Значение побитово то же: та же
+        /// формула от тех же чисел (`A43`).
+        /// </summary>
+        public static double Interpolate(double[] grid, double[] logGrid,
+                                         double[] values, double[] logValues,
+                                         int lo, int hi, double x, double logX)
+        {
+            if (lo == hi)
+            {
+                return values[lo];
             }
 
             double x0 = grid[lo], x1 = grid[hi];
@@ -987,7 +1036,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double lx1 = logGrid != null ? logGrid[hi] : Math.Log(x1);
             double ly0 = logValues != null ? logValues[lo] : Math.Log(y0);
             double ly1 = logValues != null ? logValues[hi] : Math.Log(y1);
-            double t = (Math.Log(x) - lx0) / (lx1 - lx0);
+            double t = (logX - lx0) / (lx1 - lx0);
             return Math.Exp(ly0 + t * (ly1 - ly0));
         }
     }

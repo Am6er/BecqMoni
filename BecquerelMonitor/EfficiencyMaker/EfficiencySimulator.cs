@@ -1391,14 +1391,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                 photo = 0.0;
                 compton = 0.0;
                 pair = 0.0;
+
+                // ⚡ (`A43`) Три канала — с ОДНОГО прохода по сетке элемента.
+                // Сетка у него общая, энергия одна и та же; было три поиска
+                // элемента в словаре, три двоичных поиска и три логарифма от
+                // одного числа. Слагаемые и порядок сложения прежние.
+                double logEnergyKev = energyKev > 0.0 ? Math.Log(energyKev) : 0.0;
                 foreach (KeyValuePair<int, double> f in m.Fractions)
                 {
+                    MaterialDatabase.Element element;
+                    int lo, hi;
+                    if (!(energyKev > 0.0)
+                        || !MaterialDatabase.TryGet(f.Key, out element)
+                        || !MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
+                    {
+                        continue;
+                    }
+
                     photo += f.Value * PartialCrossSections.MassCrossSection(
-                        f.Key, energyKev, PhotonProcess.Photoelectric);
+                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.Photoelectric);
                     compton += f.Value * PartialCrossSections.MassCrossSection(
-                        f.Key, energyKev, PhotonProcess.Incoherent);
+                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.Incoherent);
                     pair += f.Value * PartialCrossSections.MassCrossSection(
-                        f.Key, energyKev, PhotonProcess.PairProduction);
+                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.PairProduction);
                 }
 
                 photo *= m.Density;

@@ -131,14 +131,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double LinearAttenuationWithoutCoherent(double energyKev)
         {
+            if (!(energyKev > 0.0))
+            {
+                // Как и прежде: ниже нуля шкалы обе части нулевые, сумма нулевая.
+                return 0.0;
+            }
+
+            // ⚡ (`A43`) Полное ослабление и когерентное — с ОДНОГО прохода по
+            // сетке элемента: она у них общая, энергия одна, и логарифм от неё
+            // берётся один на всё вещество. Было два поиска и два логарифма на
+            // каждый элемент.
+            double logEnergyKev = Math.Log(energyKev);
             double massAttenuation = 0.0;
             foreach (KeyValuePair<int, double> pair in this.Fractions)
             {
-                double value = AttenuationData.MassAttenuation(pair.Key, energyKev);
-                if (PartialCrossSections.HasElement(pair.Key))
+                double value = 0.0;
+                MaterialDatabase.Element element;
+                int lo, hi;
+                if (MaterialDatabase.TryGet(pair.Key, out element)
+                    && MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
                 {
+                    value = MaterialDatabase.Interpolate(
+                        element.EnergyKev, element.LogEnergyKev,
+                        element.Total, element.LogTotal, lo, hi, energyKev, logEnergyKev);
                     value -= PartialCrossSections.MassCrossSection(
-                        pair.Key, energyKev, PhotonProcess.Coherent);
+                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.Coherent);
                 }
 
                 massAttenuation += pair.Value * Math.Max(0.0, value);
@@ -157,17 +174,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double LinearIncoherent(double energyKev)
         {
-            double massAttenuation = 0.0;
-            foreach (KeyValuePair<int, double> pair in this.Fractions)
-            {
-                if (PartialCrossSections.HasElement(pair.Key))
-                {
-                    massAttenuation += pair.Value * PartialCrossSections.MassCrossSection(
-                        pair.Key, energyKev, PhotonProcess.Incoherent);
-                }
-            }
-
-            return massAttenuation * this.Density;
+            return this.LinearChannel(energyKev, PhotonProcess.Incoherent);
         }
 
         /// <summary>
@@ -182,13 +189,37 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double LinearCoherent(double energyKev)
         {
+            return this.LinearChannel(energyKev, PhotonProcess.Coherent);
+        }
+
+        /// <summary>
+        /// ⚡ (`A43`) Один канал взаимодействия по всему веществу, 1/см. Общее
+        /// тело <see cref="LinearIncoherent"/> и <see cref="LinearCoherent"/>:
+        /// они отличались только буквой канала, а платили каждый за свой поиск
+        /// элемента в словаре (`Has`, потом `TryGet` внутри сечения) и за свой
+        /// логарифм энергии.
+        ///
+        /// Элемента нет в поставке — его вклад нулевой, как и раньше: лучше не
+        /// разыграть рассеяние, чем разыграть выдуманное.
+        /// </summary>
+        double LinearChannel(double energyKev, PhotonProcess process)
+        {
+            if (!(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double logEnergyKev = Math.Log(energyKev);
             double massAttenuation = 0.0;
             foreach (KeyValuePair<int, double> pair in this.Fractions)
             {
-                if (PartialCrossSections.HasElement(pair.Key))
+                MaterialDatabase.Element element;
+                int lo, hi;
+                if (MaterialDatabase.TryGet(pair.Key, out element)
+                    && MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
                 {
                     massAttenuation += pair.Value * PartialCrossSections.MassCrossSection(
-                        pair.Key, energyKev, PhotonProcess.Coherent);
+                        element, lo, hi, energyKev, logEnergyKev, process);
                 }
             }
 
