@@ -104,7 +104,7 @@ namespace CorpusFsaProbe
     ///                  [--lib=sample]   (peaks/infer ЗАПРЕЩЕНЫ, отказ кодом 12)
     ///                  [--infer-head] [--infer-head-only]
     ///                  [--no-infer-novel]
-    ///                  [--no-atomic] [--no-room] [--no-equilibrium] [--audit] [--lib-dump]
+    ///                  [--no-atomic] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
@@ -218,7 +218,6 @@ namespace CorpusFsaProbe
                 // Ключ, а не умолчание: она стоит прохода по всем линиям
                 // состава и пишет свой файл, а нужна не каждому прогону.
                 if (a == "--audit") { o.Audit = true; continue; }
-                if (a == "--no-room") { o.Room = false; continue; }
                 if (a == "--no-equilibrium") { o.Equilibrium = false; continue; }
                 if (a == "--lib-dump") { o.LibDump = true; continue; }
                 if (a.StartsWith("--dump-curves=", StringComparison.Ordinal))
@@ -584,7 +583,6 @@ namespace CorpusFsaProbe
                                       : "по подписям поиска пиков (как до 18.08.2026)",
                               o.Library != "peaks"
                                   ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
-                                    + ", вездесущие ряды " + (o.Room ? "вкл" : "ВЫКЛ")
                                     // (`T65`) Равновесие ряда МЕНЯЕТ ЧИСЛО СВОБОДНЫХ
                                     // АМПЛИТУД, а не список компонентов, и до
                                     // 25.08.2026 не печаталось вовсе: прогон
@@ -930,7 +928,7 @@ namespace CorpusFsaProbe
         /// журнале в точности как прогон умолчанием. Это тот же отказ,
         /// другой стороной: по шапке нельзя было сказать, что считали.
         /// (Ключи, не доходящие до анализатора, — `--no-equilibrium`,
-        /// `--no-atomic`, `--no-room`, `--no-matrix`, `--no-background` —
+        /// `--no-atomic`, `--no-matrix`, `--no-background` —
         /// печатает шапка своими строками, каждая ТОЙ ЖЕ переменной, что
         /// уходит в дело.)
         ///
@@ -1700,7 +1698,6 @@ namespace CorpusFsaProbe
         {
             var spec = new FsaSampleSpec
             {
-                Room = o.Room,
                 AtomicXray = o.Atomic,
                 Equilibrium = o.Equilibrium,
 
@@ -3162,8 +3159,8 @@ namespace CorpusFsaProbe
             /// <summary>(S56) Атомные образы: рентген и пики вылета. A/B — `--no-atomic`.</summary>
             public bool Atomic = true;
 
-            /// <summary>(S56) Вездесущие K-40 / Th-232 / Ra-226. A/B — `--no-room`.</summary>
-            public bool Room = true;
+            // ⛔ Поле вездесущих рядов снято 01.09.2026 вместе с самим механизмом
+            // (решение Amber по `S110`): состав — ровно объявленное.
 
             /// <summary>
             /// (S70) Ряд связан равновесием: одна колонка, одна свободная
