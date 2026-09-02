@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
@@ -32,7 +32,7 @@ namespace BecquerelMonitor
     {
         readonly EfficiencyConfigData config;
 
-        Label stateLabel, versionsLabel, estimateLabel, progressLabel;
+        Label stateLabel, versionsLabel, progressLabel;
         CheckBox useMatrixCheck;
         Panel detailsPanel;
         string detailsText = "";
@@ -66,7 +66,7 @@ namespace BecquerelMonitor
         // Номер ПОСЛЕДНЕГО запроса оценки времени. Загрузка формы дёргает
         // ValueChanged у пяти полей подряд, и без номера ярлык доставался
         // последней ФИНИШИРОВАВШЕЙ задаче, а не последней запрошенной.
-        int estimateRequest;
+
 
         /// <summary>
         /// Трогали ли выключатель матрицы (W11). Форма пишет в ту же копию
@@ -89,7 +89,7 @@ namespace BecquerelMonitor
             this.config = config;
             this.BuildLayout();
             this.LoadExisting();
-            this.UpdateEstimateAsync();
+
         }
 
         ResponseMatrixOptions CurrentOptions()
@@ -317,44 +317,14 @@ namespace BecquerelMonitor
                                  matrix.BuildSeconds);
         }
 
-        // ------------------------------------------------------------------
-        // Оценка времени
-        // ------------------------------------------------------------------
-
-        async void UpdateEstimateAsync()
-        {
-            if (this.config == null || !this.config.HasGeometry || this.busy)
-            {
-                return;
-            }
-
-            int request = ++this.estimateRequest;
-            this.estimateLabel.Text = Resources.ResponseMatrixEstimating;
-            GeometryModel geometry = this.config.Geometry.Clone();
-            ResponseMatrixOptions options = this.CurrentOptions();
-            double seconds;
-            try
-            {
-                seconds = await Task.Run(() => ResponseMatrixBuilder.EstimateSeconds(geometry, options));
-            }
-            catch (Exception)
-            {
-                if (!this.IsDisposed && request == this.estimateRequest)
-                {
-                    this.estimateLabel.Text = "";
-                }
-
-                return;
-            }
-
-            // Пишет только последний запрошенный: устаревшая задача, финишировав
-            // позже, перетёрла бы свежую оценку своей.
-            if (!this.IsDisposed && request == this.estimateRequest)
-            {
-                this.estimateLabel.Text = string.Format(CultureInfo.CurrentCulture,
-                    Resources.ResponseMatrixEstimate, Duration(seconds));
-            }
-        }
+        // ⛔ (`A46`) ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ ВРЕМЕНИ БОЛЬШЕ НЕТ — решение Amber
+        // 02.09.2026 «убирай ETA, оно всегда врёт». Здесь стоял
+        // `UpdateEstimateAsync`, считавший её в фоне при каждой правке поля
+        // (полторы-две секунды на каждую). Разбор, почему точной она стать не
+        // могла, — в `A44`; код в коммите 818732b2.
+        //
+        // ⚠ `Duration` остался: время СЧИТАННОЙ матрицы («Done in 5:06», «took
+        // 57 s» в её свойствах) — это факт о результате, а не прогноз хода.
 
         static string Duration(double seconds)
         {
@@ -446,7 +416,12 @@ namespace BecquerelMonitor
             }
         }
 
-        /// <summary>Делений у полосы хода: доля ведётся по историям, а не по узлам (`W27`).</summary>
+        /// <summary>
+        /// Делений у полосы хода. Доля идёт по ДОСЧИТАННЫМ УЗЛАМ (`A46`):
+        /// досчитанный узел досчитан навсегда, поэтому полоса движется только
+        /// вперёд. Прежде она шла по цене узлов в потокосекундах и пятилась
+        /// назад, когда узел просил второго прохода.
+        /// </summary>
         const int ProgressScale = 1000;
 
         void ShowProgress(ResponseMatrixProgress p)
@@ -459,17 +434,13 @@ namespace BecquerelMonitor
             int value = (int)Math.Round(p.Percent * (ProgressScale / 100.0));
             this.progressBar.Value = Math.Min(this.progressBar.Maximum, Math.Max(0, value));
 
-            // ⛔ Отрицательный остаток НЕ ПОКАЗЫВАЕТСЯ ВОВСЕ (решение по `W27`),
-            // а не рисуется вопросительным знаком: «около ? осталось» читатель
-            // принимал за сбой счёта, а это всего лишь «судить пока не по чему»
-            // — первые доли секунды, до первой сосчитанной истории.
-            this.progressLabel.Text = p.RemainingSeconds >= 0.0
-                ? string.Format(CultureInfo.CurrentCulture,
-                    Resources.ResponseMatrixProgress, p.Done, p.Total, p.LastEnergyKev,
-                    Duration(p.ElapsedSeconds), Duration(p.RemainingSeconds))
-                : string.Format(CultureInfo.CurrentCulture,
-                    Resources.ResponseMatrixProgressNoEta, p.Done, p.Total, p.LastEnergyKev,
-                    Duration(p.ElapsedSeconds));
+            // ⛔ (`A46`) ВРЕМЕНИ В СТРОКЕ НЕТ — решение Amber 02.09.2026. Стоит
+            // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно
+            // постоянно, в отличие от числа прогонов, которое росло по ходу
+            // (140 → 155 → 156 → 157 на снимках одного расчёта).
+            this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                Resources.ResponseMatrixProgress,
+                p.StartedNodes, p.TotalNodes, p.LastEnergyKev);
         }
 
         void CancelClick(object sender, EventArgs e)

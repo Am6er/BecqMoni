@@ -146,13 +146,8 @@ namespace BecquerelMonitor
 
             y += box.Height + 6;
 
-            this.estimateLabel = new Label
-            {
-                Location = new Point(Pad, y),
-                Size = new Size(FormWidth - 2 * Pad, 18)
-            };
-            this.Controls.Add(this.estimateLabel);
-            y += 24;
+            // (`A46`) Строки предварительной оценки времени здесь больше нет:
+            // окно освободилось на её высоту.
 
             // --- ход счёта -------------------------------------------------
             this.progressBar = new ProgressBar
@@ -304,7 +299,7 @@ namespace BecquerelMonitor
 
         void ParametersChanged(object sender, EventArgs e)
         {
-            this.UpdateEstimateAsync();
+
         }
 
         NumericUpDown Field(Control parent, string caption, int x, int y,

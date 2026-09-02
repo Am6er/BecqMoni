@@ -100,31 +100,6 @@ namespace MatrixRebuildProbe
                               options.Histories, options.NodeCount,
                               options.Threads > 0 ? options.Threads : Environment.ProcessorCount - 1);
 
-            // (`A44`) Предварительная оценка — та самая, что форма пишет строкой
-            // «Estimated time: about …». Печатается ДО счёта, чтобы её враньё
-            // было измерено, а не рассказано.
-            var estimateClock = System.Diagnostics.Stopwatch.StartNew();
-            double estimate = ResponseMatrixBuilder.EstimateSeconds(rd.Efficiency.Geometry, options);
-            estimateClock.Stop();
-            Console.WriteLine("ОЦЕНКА до счёта: {0:F0} с (сама оценка заняла {1:F1} с)",
-                              estimate, estimateClock.Elapsed.TotalSeconds);
-
-            // (`A44`) Только оценка, столько раз, сколько попросили: устойчивость
-            // видна лишь несколькими подряд, а полный счёт идёт минуты.
-            if (estimateOnly > 0)
-            {
-                for (int i = 1; i < estimateOnly; i++)
-                {
-                    var again = System.Diagnostics.Stopwatch.StartNew();
-                    double value = ResponseMatrixBuilder.EstimateSeconds(rd.Efficiency.Geometry, options);
-                    again.Stop();
-                    Console.WriteLine("ОЦЕНКА ещё раз: {0:F0} с ({1:F1} с)",
-                                      value, again.Elapsed.TotalSeconds);
-                }
-
-                return 0;
-            }
-
             var clock = System.Diagnostics.Stopwatch.StartNew();
             // (`A41`) Ход счёта печатается СТРОКАМИ: скачет ли остаток, видно
             // только рядом стоящими числами, а не одним последним.
@@ -132,14 +107,14 @@ namespace MatrixRebuildProbe
             var progress = new Progress<ResponseMatrixProgress>(pr =>
             {
                 seen.Add(string.Format(CultureInfo.InvariantCulture,
-                                       "ХОД	{0}	{1:F1}	{2:F1}	{3:F1}	{4:F0}",
-                                       pr.Done, pr.Percent, pr.ElapsedSeconds,
-                                       pr.RemainingSeconds, pr.LastEnergyKev));
+                                       "ХОД	{0}	{1}	{2}	{3:F1}	{4:F0}",
+                                       pr.Done, pr.StartedNodes, pr.SettledNodes,
+                                       pr.Percent, pr.LastEnergyKev));
             });
 
             ResponseMatrix built = ResponseMatrixBuilder.Build(rd.Efficiency.Geometry, options,
                                                               progress, CancellationToken.None);
-            Console.WriteLine("ХОД	узлов	доля,%	прошло,с	осталось,с	кэВ");
+            Console.WriteLine("ХОД	прогонов	взято	досчитано	доля,%	кэВ");
             foreach (string line in seen)
             {
                 Console.WriteLine(line);
@@ -154,9 +129,7 @@ namespace MatrixRebuildProbe
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             built.Save(path);
             Console.WriteLine("готово за {0:F0} с: {1}", clock.Elapsed.TotalSeconds, path);
-            double fact = clock.Elapsed.TotalSeconds;
-            Console.WriteLine("ИТОГ (`A44`): оценка {0:F0} с, факт {1:F0} с, врёт в {2:F2} раза",
-                              estimate, fact, estimate > 0.0 ? fact / estimate : 0.0);
+
             Console.WriteLine("клеймо: {0}", built.Stamp);
             return 0;
         }
