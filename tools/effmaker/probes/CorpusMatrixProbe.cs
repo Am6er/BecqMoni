@@ -26,6 +26,10 @@ using System.Threading;
 //
 //   corpusmatrixprobe [--dir=tools\CORPUS\corpus\geometries] [--only=<ключ>]
 //                     [--n=300000] [--nodes=100] [--threads=N] [--force]
+//                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
+//
+// Четыре последних — рычаги физики 02.09.2026 (`S130`); умолчанием все
+// выключены, включённый входит в клеймо и честно гонит матрицу в пересчёт.
 class CorpusMatrixProbe
 {
     static int Main(string[] args)
@@ -108,6 +112,25 @@ class CorpusMatrixProbe
                 // чтобы понять, отчего линия флуоресценции в строке матрицы
                 // стоит не на своей энергии (`F27`).
                 options.LightNonproportionality = a.Substring(6) != "0";
+            else if (a.StartsWith("--pairth=", StringComparison.Ordinal))
+                // `S121`/`S130`: пороговая интерполяция сечения рождения пар
+                // (XCOM). Умолчанием ВЫКЛЮЧЕНА решением Amber; ключ — рычаг
+                // замера `S125`. Включённая меняет клеймо, поэтому пересчёт
+                // идёт честно, а прежние матрицы остаются годными.
+                options.XcomPairThreshold = a.Substring(9) != "0";
+            else if (a.StartsWith("--positron=", StringComparison.Ordinal))
+                // `S120`/`S130`: раздельный перенос e− и e+ пары. Рычаг замера
+                // `S126`, ПЕРВАЯ его половина.
+                options.PositronTransport = a.Substring(11) != "0";
+            else if (a.StartsWith("--posoffset=", StringComparison.Ordinal))
+                // ВТОРАЯ половина `S126`: смещать ли точку аннигиляции на конец
+                // пробега позитрона. Мерить порознь — ошибки разные и могут
+                // погасить друг друга. Действует только с `--positron=1`.
+                options.PositronOffset = a.Substring(12) != "0";
+            else if (a.StartsWith("--rayl2=", StringComparison.Ordinal))
+                // `N13`/`S130`: когерентное своим каналом во ВЗВЕШЕННОЙ ветви
+                // (проводка к кристаллу). Рычаг замера `S127`.
+                options.RayleighToCrystal = a.Substring(8) != "0";
             else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
                 // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только

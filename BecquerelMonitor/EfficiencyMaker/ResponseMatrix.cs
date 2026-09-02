@@ -408,6 +408,32 @@ namespace BecquerelMonitor.EfficiencyMaker
                       .Append(options.ScatterRoulette.ToString("R", CultureInfo.InvariantCulture))
                       .Append(';');
                 }
+
+                // ⛔ (`S130`) Три ключа физики 02.09.2026 — по тому же правилу
+                // `T42`: пишутся, ТОЛЬКО когда включены. Выключенные они
+                // считают прежнюю физику (измерено побайтно), и добавление
+                // полей не должно гнать в пересчёт ни одной готовой матрицы.
+                //
+                // ⚠ Без этих строк ключи были бы неотличимы в клейме: матрица
+                // с новой физикой легла бы поверх старой под тем же именем, и
+                // гвард отдал бы разбору что попало.
+                if (options.XcomPairThreshold)
+                {
+                    sb.Append("pairth=1;");
+                }
+
+                if (options.PositronTransport)
+                {
+                    // Половины `S126` обязаны различаться: со смещением
+                    // вершины и без него это две разные матрицы.
+                    sb.Append("e+tr=1;");
+                    sb.Append("e+off=").Append(options.PositronOffset ? 1 : 0).Append(';');
+                }
+
+                if (options.RayleighToCrystal)
+                {
+                    sb.Append("rayl2=1;");
+                }
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -1217,6 +1243,41 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (правило `T42`), поэтому штатные матрицы клейма не меняют.
         /// </summary>
         public bool SampleFluorescence = true;
+
+        /// <summary>
+        /// ⛔ (`S121`) Пороговая интерполяция сечения рождения пар
+        /// (<see cref="EfficiencySimulator.XcomPairThreshold"/>).
+        ///
+        /// АБЛЯЦИОННЫЙ ключ наоборот: умолчанием ВЫКЛЮЧЕН, и в клеймо, по
+        /// правилу `T42`, пишется только ВКЛЮЧЁННОЕ состояние — тогда все
+        /// посчитанные матрицы сохраняют прежнее клеймо побайтно, а
+        /// включение ключа честно гонит их в пересчёт.
+        /// </summary>
+        public bool XcomPairThreshold;
+
+        /// <summary>
+        /// ⛔ (`S120`) Раздельный перенос электрона и позитрона пары
+        /// (<see cref="EfficiencySimulator.PositronTransport"/>). Умолчанием
+        /// выключен, в клеймо пишется только включённым.
+        /// </summary>
+        public bool PositronTransport;
+
+        /// <summary>
+        /// ⛔ (`S120`) Вторая половина того же: смещать ли точку аннигиляции
+        /// на конец пробега позитрона
+        /// (<see cref="EfficiencySimulator.PositronOffset"/>). Значение имеет
+        /// смысл только при включённом <see cref="PositronTransport"/>, и в
+        /// клеймо пишется тоже только вместе с ним — половины замера `S126`
+        /// обязаны различаться клеймом, иначе гвард подсунет чужую матрицу.
+        /// </summary>
+        public bool PositronOffset = true;
+
+        /// <summary>
+        /// ⛔ (`N13`) Когерентное рассеяние своим каналом во взвешенной ветви
+        /// (<see cref="EfficiencySimulator.RayleighToCrystal"/>). Умолчанием
+        /// выключено, в клеймо пишется только включённым.
+        /// </summary>
+        public bool RayleighToCrystal;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
