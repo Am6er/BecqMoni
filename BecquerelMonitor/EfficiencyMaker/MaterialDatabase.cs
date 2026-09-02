@@ -79,6 +79,65 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// собрать.
             /// </summary>
             public double[][] LogChannels;
+
+            /// <summary>
+            /// Логарифмы ПОРОГОВОЙ ВЕЛИЧИНЫ ядерного канала рождения пар
+            /// (`S121`): log[ σ_ядро(E) / (1 − E₀/E)³ ], E₀ = 1022 кэВ. У узлов
+            /// на пороге и ниже — NaN: там делить не на что.
+            ///
+            /// Зачем отдельный массив. XCOM фитирует пары именно так — не само
+            /// сечение, а частное от порогового множителя (документация XCOM,
+            /// глава 3): у самого сечения на пороге ноль и бесконечная
+            /// производная в лог-лог шкале, а у частного — гладкая функция.
+            /// Логарифм берётся раз при загрузке, как и все прочие (`T43`).
+            /// </summary>
+            public double[] LogPairNuclearShape;
+
+            /// <summary>
+            /// То же для канала в поле ЭЛЕКТРОНА (triplet, `S121`): порог
+            /// вдвое выше, E₀ = 2044 кэВ, и своя сетка нулей. Каналы держатся
+            /// врозь именно из-за разных порогов: у суммы двух пороговых
+            /// форм своей пороговой формы нет.
+            /// </summary>
+            public double[] LogPairElectronShape;
+        }
+
+        /// <summary>Порог рождения пары в поле ЯДРА, кэВ (2mₑc²).</summary>
+        public const double PairNuclearThresholdKev = 1022.0;
+
+        /// <summary>Порог рождения пары в поле ЭЛЕКТРОНА (triplet), кэВ.</summary>
+        public const double PairElectronThresholdKev = 2044.0;
+
+        /// <summary>
+        /// Пороговый множитель (1 − E₀/E)³, на который XCOM делит сечение пар
+        /// перед подгонкой (`S121`). Ниже порога и на нём — ноль.
+        /// </summary>
+        public static double PairThresholdShape(double energyKev, double thresholdKev)
+        {
+            if (!(energyKev > thresholdKev))
+            {
+                return 0.0;
+            }
+
+            double t = 1.0 - thresholdKev / energyKev;
+            return t * t * t;
+        }
+
+        /// <summary>
+        /// Логарифмы σ/(1 − E₀/E)³ по узлам сетки; где сечение или множитель
+        /// неположительны — NaN, читать нельзя (см. <see cref="Element"/>).
+        /// </summary>
+        static double[] PairShapeLogs(double[] energyKev, double[] sigma, double thresholdKev)
+        {
+            var logs = new double[sigma.Length];
+            for (int i = 0; i < sigma.Length; i++)
+            {
+                double shape = PairThresholdShape(energyKev[i], thresholdKev);
+                logs[i] = sigma[i] > 0.0 && shape > 0.0
+                    ? Math.Log(sigma[i] / shape) : double.NaN;
+            }
+
+            return logs;
         }
 
         /// <summary>Логарифмы значений; у неположительных — NaN, см. Element.</summary>
@@ -886,6 +945,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                             }
 
                             element.LogChannels[3] = LogsOf(pairSum);
+
+                            // Пороговая форма обоих каналов пар (`S121`) —
+                            // раздельно: пороги у них разные, и общей формы у
+                            // суммы нет.
+                            element.LogPairNuclearShape = PairShapeLogs(
+                                element.EnergyKev, element.Channels[3],
+                                PairNuclearThresholdKev);
+                            element.LogPairElectronShape = PairShapeLogs(
+                                element.EnergyKev, element.Channels[4],
+                                PairElectronThresholdKev);
                         }
                     }
                 }

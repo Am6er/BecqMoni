@@ -198,10 +198,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="ShippedMode"/>: без отдельной константы строка
         /// «(умолчание)» врала бы на всяком прогоне, где порог сдвинул ключ.
         ///
-        /// 1.0 — НЕЙТРАЛЬНОЕ значение: доля зажата в [0…1], условие выброса
-        /// строгое (<c>share &gt; порога</c>), значит при 1.0 не выбрасывается
-        /// НИ ОДНА линия и режим <see cref="FsaBandMode.LibraryToFitByShare"/>
-        /// обязан воспроизвести <see cref="FsaBandMode.LibraryToFitByCurve"/>
+        /// Константа — НЕЙТРАЛЬНОЕ значение: доля зажата своим допустимым
+        /// верхним краем, а условие выброса строгое
+        /// (<c>share &gt; порога</c>), поэтому не выбрасывается НИ ОДНА линия и
+        /// режим <see cref="FsaBandMode.LibraryToFitByShare"/> обязан
+        /// воспроизвести <see cref="FsaBandMode.LibraryToFitByCurve"/>
         /// ПОБИТОВО. Это положительный контроль самой развёртки, и он даровой.
         /// </summary>
         public const double ShippedShareThreshold = 1.0;
@@ -214,10 +215,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// живёт ОДНОЙ статикой — читателя у неё два (сам разбор и заверение),
         /// и вторая копия повторила бы `S101`.
         ///
-        /// ⚠ Крайние значения — оба контроля развёртки: 1.0 не выбрасывает
-        /// ничего (поставка), 0.0 выбрасывает всякую подпороговую линию, у
-        /// которой континуум забирает хоть что-нибудь, — и это плечо
-        /// <see cref="FsaBandMode.Whole"/>.
+        /// ⚠ Крайние значения — оба контроля развёртки: поставочный верхний
+        /// край не выбрасывает ничего, нижний край выбрасывает всякую
+        /// подпороговую линию, у которой континуум забирает хоть что-нибудь, —
+        /// и это плечо <see cref="FsaBandMode.Whole"/>.
         /// </summary>
         public static double DefaultShareThreshold = ShippedShareThreshold;
 
@@ -1283,6 +1284,89 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`A49`) ЛИНИЯ НИЖЕ ПЕРВОГО УЗЛА МАТРИЦЫ В ОБРАЗ НЕ ИДЁТ.
+            // Решение Amber 02.09.2026.
+            //
+            // Отклика на такую линию у матрицы нет: `ResponseMatrix.Accumulate`
+            // за нижним краем сетки РАСТЯГИВАЕТ строку первого узла на шкалу
+            // линии, то есть отдаёт ей чужую эффективность (мерено: площадь
+            // 5.583E-3 одна и та же для 15.349 / 15.5 / 15.784 / 16.2 / 18 /
+            // 19.9 / 20.0 кэВ у матрицы с первым узлом 20 кэВ). Это не
+            // осторожность, а выдумка, и стоила она целого ряда.
+            //
+            // ⛔ ЧЕМ ИМЕННО СТОИЛА, и почему нож стоит ЗДЕСЬ, а не у порога
+            // доверия. Ниже `ResponseContinuumTrustFloorKev` континуум образа
+            // отвязывается в свободную колонку — ровно затем, чтобы жёсткая
+            // связка «пик + континуум» не зануляла компоненты с найденными
+            // пиками. Исключение из отвязки — пиковые окна ±2 ПШПВ, и у линии
+            // 16.2 кэВ такое окно на сцинтилляторе накрывает [0.6…31.8] кэВ,
+            // то есть ВЕСЬ подпороговый низ вместе с областью ниже порога АЦП,
+            // где у спектра ровно ноль отсчётов. Привязанный образ обязан
+            // положить туда 0.62 % своей площади при ЛЮБОЙ ненулевой
+            // амплитуде — и взвешенный НМНК выбирает нуль.
+            //
+            // Мерено на `Th232(WT-20)` (AS80x80, «Цилиндр Lu», матрица с
+            // нижним узлом 20 кэВ): ряд Th-232 получал ноль, а состав забирал
+            // приборный `Ann-511` с 66.89 % при χ²/ndf 31.06. Переключатель —
+            // наличие ХОТЬ ОДНОЙ линии ниже первого узла: снятие линии
+            // 15.784 кэВ с выходом 33.3 % не меняло НИЧЕГО, а снятие последней
+            // (16.2 кэВ, выход 0.72 %) переворачивало разбор — χ²/ndf 26.97,
+            // ряд 0 → 91 %. То есть режет не интенсивность, а положение, и
+            // резать надо по краю сетки.
+            //
+            // ⚠ Только компоненты, которые ИДУТ ЧЕРЕЗ МАТРИЦУ. У образа с
+            // `WeightsAreFinal` (обратное рассеяние) вес посчитан целиком и
+            // столбец строит `BuildTemplate` по кривой, а не по матрице —
+            // первого узла у него нет, и запрещать ему нечего.
+            if (this.ResponseMatrix != null && this.ResponseMatrix.Energies != null
+                && this.ResponseMatrix.Energies.Length > 0)
+            {
+                double matrixFloor = this.ResponseMatrix.Energies[0];
+                HashSet<FsaLine> belowMatrix = new HashSet<FsaLine>();
+                foreach (FsaComponent component in library)
+                {
+                    if (component == null || component.WeightsAreFinal
+                        || component.FixedTemplate != null || component.Lines == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLine line in component.Lines)
+                    {
+                        if (line.Energy > 0.0 && line.Intensity > 0.0 && line.Energy < matrixFloor)
+                        {
+                            belowMatrix.Add(line);
+                        }
+                    }
+                }
+
+                // Плечо, где не выброшено ничего, обязано БЫТЬ НАЗВАНО — тем же
+                // правилом, что у опоры полосы по столбцу ниже: иначе «нож не
+                // сработал» и «ножу нечего было резать» неразличимы.
+                if (belowMatrix.Count > 0)
+                {
+                    List<FsaComponent> narrowed = NarrowLibrary(library, belowMatrix);
+                    if (narrowed != null)
+                    {
+                        this.BandNote += string.Format(CultureInfo.InvariantCulture,
+                            "; ниже первого узла матрицы ({0:F1} кэВ) выброшено {1} линий,"
+                            + " образов опустело {2}",
+                            matrixFloor, belowMatrix.Count, CountEmptied(library, narrowed));
+                        library = narrowed;
+                    }
+                }
+            }
+
+            // Образы вылета выше и строки ниже сетки матрицы могут снять
+            // последнюю компоненту. Продолжать одними шапками континуума нельзя:
+            // это уже не разбор спектра, а подгонка фона, которую читатель
+            // принял бы за FSA. Контракт `Analyze` для пустой библиотеки —
+            // отказ (`null`), каким он был бы и на входе.
+            if (library.Count == 0)
+            {
+                return null;
+            }
+
             // Список КАНДИДАТОВ — то, что предъявлено фиту, без служебной
             // добавки наложений: по нему считаются характеристические пределы
             // (S9). Наложения — образ прибора, а не кандидат библиотеки, и
@@ -1626,7 +1710,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Сторож `shareRefit` держит глубину ровно два.
             if (shareBand && shareDrops.Count > 0)
             {
-                List<FsaComponent> narrowed = NarrowLibraryByShare(originalLibrary, shareDrops);
+                List<FsaComponent> narrowed = NarrowLibrary(originalLibrary, shareDrops);
                 if (narrowed != null && narrowed.Count > 0)
                 {
                     this.shareRefit = true;
@@ -2236,8 +2320,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// (`S103`) Библиотека ВТОРОГО ПРОХОДА: та же, минус поимённо
-        /// выброшенные линии. Компонент, у которого не осталось ни одной линии,
+        /// Библиотека, минус поимённо выброшенные линии. Компонент, у которого не осталось ни одной линии,
         /// не «пустеет», а исчезает — пустой образ в НМНК есть вырожденный
         /// столбец, и собиратель библиотеки поступает с ним ровно так же
         /// (<c>FsaSampleLibrary</c>: «образы без единой линии выбрасываются»).
@@ -2247,9 +2330,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// собирал и переиспользует (в пробе — на соседний спектр), а
         /// «сужение», уехавшее в чужой объект, было бы утечкой плеча A/B в
         /// прогон целиком.
+        ///
+        /// ⛔ ЗАКАЗЧИКОВ ДВА, и имя у метода поэтому НЕ про долю континуума
+        /// (`A49`, 02.09.2026): второй — запрет на линии ниже первого узла
+        /// матрицы. Резать библиотеку двумя своими копиями одного и того же
+        /// кода — ровно `S37`, поэтому нож один, а решение «кого выбросить»
+        /// принимает вызывающий и приносит готовым списком.
         /// </summary>
-        static List<FsaComponent> NarrowLibraryByShare(List<FsaComponent> library,
-                                                       HashSet<FsaLine> drops)
+        static List<FsaComponent> NarrowLibrary(List<FsaComponent> library,
+                                                HashSet<FsaLine> drops)
         {
             if (library == null || drops == null || drops.Count == 0)
             {
@@ -3086,14 +3175,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double position = EnergyToChannelSafe(calibration, energy, channels);
-            if (Double.IsNaN(position))
+            if (!Finite(position))
             {
                 return false;
             }
 
             double p = this.DriftPosition(position, gain, offset);
             double fwhm = fwhmCalibration.ChannelToFwhm(p);
-            if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
+            if (!PositiveFinite(fwhm) || fwhm >= channels)
             {
                 return false;
             }
@@ -4159,14 +4248,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double channel = EnergyToChannelSafe(calibration, line.Energy, channels);
                 double half = 3.0 * bin;
-                if (!Double.IsNaN(channel))
+                if (Finite(channel))
                 {
                     double fwhmChannels = fwhmCalibration.ChannelToFwhm(channel);
-                    if (fwhmChannels > 0.0 && !Double.IsNaN(fwhmChannels))
+                    if (PositiveFinite(fwhmChannels) && fwhmChannels < channels)
                     {
                         double fwhmKev = calibration.ChannelToEnergy(channel + fwhmChannels / 2.0)
                                          - calibration.ChannelToEnergy(channel - fwhmChannels / 2.0);
-                        if (fwhmKev > 0.0)
+                        if (PositiveFinite(fwhmKev))
                         {
                             half = Math.Max(half, 2.0 * fwhmKev);
                         }
@@ -4702,7 +4791,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double position = positions[b];
                 double nextPosition = positions[b + 1];
-                if (Double.IsNaN(position))
+                if (!Finite(position))
                 {
                     b++;
                     continue;
@@ -4710,13 +4799,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double p = this.DriftPosition(position, gain, offset);
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
-                if (!(fwhm > 0.0) || Double.IsNaN(fwhm))
+                if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     b++;
                     continue;
                 }
 
-                double perBin = Double.IsNaN(nextPosition) ? 0.0 : Math.Abs(nextPosition - position);
+                double perBin = Finite(nextPosition) ? Math.Abs(nextPosition - position) : 0.0;
                 int group = perBin > 0.0 ? (int)(0.25 * fwhm / perBin) : 1;
                 if (group < 1)
                 {
@@ -4736,7 +4825,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     double q = positions[k];
-                    if (Double.IsNaN(q))
+                    if (!Finite(q))
                     {
                         continue;
                     }
@@ -4756,7 +4845,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double center = moment / area;
-                if (Double.IsNaN(center))
+                if (!Finite(center))
                 {
                     continue;
                 }
@@ -4881,11 +4970,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             int pad = 64;
             double fwhm = fwhmCalibration.ChannelToFwhm(channels - 1);
-            if (fwhm > 0.0 && !Double.IsNaN(fwhm))
+            if (PositiveFinite(fwhm))
             {
                 double support = Math.Max(PeakShapeModel.GetLeftSupport(fwhmCalibration, fwhm),
                                           PeakShapeModel.GetRightSupport(fwhmCalibration, fwhm));
-                if (support > 0.0 && !Double.IsNaN(support))
+                if (PositiveFinite(support))
                 {
                     pad = (int)Math.Ceiling(2.0 * support) + 8;
                 }
@@ -5001,7 +5090,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double left = PeakShapeModel.GetLeftSupport(this.calibration, fwhm);
                 double right = PeakShapeModel.GetRightSupport(this.calibration, fwhm);
                 int leftSpan = 0;
-                if (left > 0.0 && right > 0.0 && !Double.IsNaN(left) && !Double.IsNaN(right))
+                if (PositiveFinite(left) && PositiveFinite(right))
                 {
                     leftSpan = (int)Math.Ceiling(left);
                     int rightSpan = (int)Math.Ceiling(right);
@@ -5061,14 +5150,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             foreach (FsaLine line in component.Lines)
             {
                 double position = EnergyToChannelSafe(calibration, line.Energy, channels);
-                if (Double.IsNaN(position))
+                if (!Finite(position))
                 {
                     continue;
                 }
 
                 double p = this.DriftPosition(position, gain, offset);
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
-                if (fwhm <= 0.0 || Double.IsNaN(fwhm))
+                if (!PositiveFinite(fwhm) || fwhm >= channels)
                 {
                     continue;
                 }
@@ -5183,9 +5272,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 knots.Add(ch);
                 double fwhm = fwhmCalibration.ChannelToFwhm(ch);
-                if (Double.IsNaN(fwhm) || fwhm < 1.0)
+                if (!PositiveFinite(fwhm) || fwhm < 1.0)
                 {
                     fwhm = 1.0;
+                }
+                else if (fwhm > chHi - chLo)
+                {
+                    fwhm = chHi - chLo;
                 }
 
                 ch += (int)Math.Max(1.0, Math.Max((knotFwhm > 0.0 ? knotFwhm : 4.0) * fwhm,
@@ -5554,9 +5647,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        static bool Finite(double value)
+        {
+            return !Double.IsNaN(value) && !Double.IsInfinity(value);
+        }
+
+        static bool PositiveFinite(double value)
+        {
+            return value > 0.0 && Finite(value);
+        }
+
         static int ClampChannel(double channel, int channels)
         {
-            if (Double.IsNaN(channel) || channel < 0.0)
+            if (!Finite(channel) || channel < 0.0)
             {
                 return 0;
             }

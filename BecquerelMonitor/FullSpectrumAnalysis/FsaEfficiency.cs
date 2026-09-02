@@ -104,7 +104,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<Point> points = new List<Point>();
             foreach (ROIEfficiencyData point in source)
             {
-                if (point == null || point.Energy <= 0.0 || point.Efficiency <= 0.0 || point.Efficiency > 1.0)
+                if (point == null || !Finite(point.Energy) || !Finite(point.Efficiency)
+                    || !Finite(point.ErrorPercent) || point.Energy <= 0.0
+                    || point.Efficiency <= 0.0 || point.Efficiency > 1.0)
                 {
                     continue;
                 }
@@ -124,6 +126,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             FsaEfficiency curve = new FsaEfficiency(points);
             return curve.logEnergy.Length >= 2 ? curve : null;
+        }
+
+        static bool Finite(double value)
+        {
+            return !Double.IsNaN(value) && !Double.IsInfinity(value);
         }
 
         /// <summary>

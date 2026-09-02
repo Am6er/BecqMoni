@@ -244,7 +244,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double p = gain * position + offset;
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
-                if (!(fwhm > 0.0) || double.IsNaN(fwhm) || p < 0.0 || p > channels - 1)
+                if (!(fwhm > 0.0) || double.IsNaN(fwhm) || double.IsInfinity(fwhm)
+                    || p < 0.0 || p > channels - 1)
                 {
                     continue;
                 }

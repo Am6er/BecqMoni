@@ -341,7 +341,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (Peak peak in peaks)
                 {
-                    if (peak != null && peak.Energy > 0.0)
+                    if (peak != null && peak.Energy > 0.0
+                        && !double.IsNaN(peak.Energy) && !double.IsInfinity(peak.Energy))
                     {
                         found.Add(peak);
                     }
@@ -805,7 +806,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 channel = Math.Max(0.0, Math.Min(channels - 1, channel));
                 double fwhm = fwhmCalibration.ChannelToFwhm(channel);
-                if (!(fwhm > 0.0) || double.IsNaN(fwhm))
+                if (!(fwhm > 0.0) || double.IsNaN(fwhm) || double.IsInfinity(fwhm))
                 {
                     return 0.0;
                 }
@@ -814,7 +815,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double right = energyCalibration.ChannelToEnergy(
                     Math.Min(channels - 1, channel + 0.5 * fwhm));
                 double width = right - left;
-                return width > 0.0 && !double.IsNaN(width) ? width : 0.0;
+                return width > 0.0 && !double.IsNaN(width) && !double.IsInfinity(width)
+                    ? width : 0.0;
             }
             catch (Exception)
             {

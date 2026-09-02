@@ -43,13 +43,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// ⚠ Ограничение не физическое, а счётное: каждая линия дала бы ДВЕ
         /// свободные колонки NNLS, и на спектре с двумя десятками жёстких линий
-        /// разложение стало бы подгонкой по вылетам. Берём сильнейшие: у слабых
-        /// вылет и так тонет в континууме.
+        /// разложение стало бы подгонкой по вылетам.
+        ///
+        /// ⛔ (`S122`) СИЛЬНЕЙШИЕ — не по выходу линии, а по ОЖИДАЕМОЙ ПЛОЩАДИ
+        /// вылета: вес родителя равен I·p_пар(E), где p_пар — доля рождения
+        /// пар в полном ослаблении кристалла
+        /// (<see cref="EscapeMinPairShare"/>). Прежний отбор по одному выходу
+        /// ставил порядок неверно: линия 1461 кэВ K-40 с выходом 10.7 % даёт
+        /// вылета больше, чем 1173 кэВ Co-60 со 100 %, потому что пар на ней
+        /// рождается в двенадцать раз больше.
         /// </summary>
         public const int EscapeParents = 3;
 
         /// <summary>Ниже этого выхода линия образа вылета не получает.</summary>
         public const double EscapeMinIntensity = 1.0;
+
+        /// <summary>
+        /// ⛔ (`S122`) Ниже этой доли рождения пар в полном ослаблении
+        /// кристалла линия образов вылета не получает — сколько бы её ни
+        /// испускали.
+        ///
+        /// Порога 1022 кэВ для этого мало: сразу над ним пары рождаться
+        /// МОГУТ, но практически не рождаются, и свободный столбец там ловит
+        /// один шум. Измерено по `matdb` для CsI (доля пар в полном
+        /// ослаблении): 1050 кэВ — 0.0012 %, 1100 — 0.023 %, 1173 — 0.135 %,
+        /// 1332 — 0.78 %, 1461 — 1.63 %, 2614 — 15.3 %. У NaI ход тот же и
+        /// числа на пятую часть ниже. Порог 0.1 % проводит границу между
+        /// 1.10 МэВ (образа нет) и линиями Co-60 (есть).
+        ///
+        /// ⚠ Величина проверяемая, а не подогнанная: она СЧИТАЕТСЯ по
+        /// сечениям вещества кристалла. Вещества нет (у спектра нет
+        /// геометрии) — правило не применяется вовсе, работает прежнее по
+        /// одной интенсивности.
+        /// </summary>
+        public const double EscapeMinPairShare = 0.001;
 
         /// <summary>
         /// Образы вылета и аннигиляции СЧИТАЮТСЯ ОТ ЛИНИЙ СОСТАВА (решение
@@ -76,14 +103,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static List<FsaComponent> EscapeAndAnnihilation(List<FsaComponent> composition)
         {
+            return EscapeAndAnnihilation(composition, null);
+        }
+
+        /// <summary>
+        /// То же, но с ВЕЩЕСТВОМ КРИСТАЛЛА (`S122`): массовые доли элементов,
+        /// снятые с геометрии прибора. С ними родители отбираются и
+        /// упорядочиваются по ожидаемой площади вылета I·p_пар(E), без них —
+        /// прежним правилом по одному выходу линии.
+        ///
+        /// ⚠ Доли передаются СНИМКОМ, а не ссылкой в живую конфигурацию:
+        /// сборка библиотеки идёт в фоновой задаче (`S119`).
+        /// </summary>
+        public static List<FsaComponent> EscapeAndAnnihilation(
+            List<FsaComponent> composition, IDictionary<int, double> crystalFractions)
+        {
             var extra = new List<FsaComponent>();
             if (composition == null || composition.Count == 0)
             {
                 return extra;
             }
 
-            // Родители вылета: линии состава выше порога пар, сильнейшие первыми.
-            var parents = new List<FsaLine>();
+            // Родители вылета: линии состава выше порога пар, впереди те, у
+            // кого ожидаемая площадь вылета больше.
+            var parents = new List<EscapeParent>();
+            bool anyAboveThreshold = false;
             foreach (FsaComponent component in composition)
             {
                 if (component.Kind == FsaComponentKind.Nuisance)
@@ -95,22 +139,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (FsaLine line in component.Lines)
                 {
-                    if (line.Energy > PairThresholdKev && line.Intensity >= EscapeMinIntensity)
+                    if (!(line.Energy > PairThresholdKev)
+                        || !(line.Intensity >= EscapeMinIntensity))
                     {
-                        parents.Add(line);
+                        continue;
                     }
+
+                    // Аннигиляционный образ живёт по СВОЕМУ правилу и
+                    // физического отсева ниже не касается: квант 511 родится
+                    // в защите и обвязке, а не в кристалле (см. описание
+                    // `Ann-511` выше).
+                    anyAboveThreshold = true;
+
+                    double share = PairShare(crystalFractions, line.Energy);
+                    if (!double.IsNaN(share) && !(share >= EscapeMinPairShare))
+                    {
+                        continue;         // пары рождаться могут, но не рождаются
+                    }
+
+                    parents.Add(new EscapeParent(line,
+                        double.IsNaN(share) ? line.Intensity : line.Intensity * share));
                 }
             }
 
-            if (parents.Count == 0)
+            if (!anyAboveThreshold)
             {
                 return extra;
             }
 
-            parents.Sort((a, b) => b.Intensity.CompareTo(a.Intensity));
+            // Порядок ДЕТЕРМИНИРОВАН: при равных весах решает энергия. У
+            // List.Sort порядок равных элементов не определён, а состав
+            // библиотеки обязан быть один и тот же от прогона к прогону.
+            parents.Sort((a, b) =>
+            {
+                int byWeight = b.Weight.CompareTo(a.Weight);
+                return byWeight != 0 ? byWeight : b.Line.Energy.CompareTo(a.Line.Energy);
+            });
+
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int used = 0;
-            foreach (FsaLine parent in parents)
+            foreach (EscapeParent parent in parents)
             {
                 if (used >= EscapeParents)
                 {
@@ -119,20 +187,83 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 // Имя строится из энергии родителя — по нему видно, ОТ ЧЕГО
                 // вылет, и второго списка имён в проекте не заводится.
-                string tag = Math.Round(parent.Energy).ToString(CultureInfo.InvariantCulture);
+                string tag = Math.Round(parent.Line.Energy)
+                    .ToString(CultureInfo.InvariantCulture);
                 if (!taken.Add(tag))
                 {
                     continue;
                 }
 
                 used++;
-                extra.Add(OneLine("SE-" + tag, parent.Energy - 511.0));
-                extra.Add(OneLine("DE-" + tag, parent.Energy - 1022.0));
+                extra.Add(OneLine("SE-" + tag, parent.Line.Energy - 511.0));
+                extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0));
             }
 
             // Аннигиляция — только когда есть чему рождать пары.
             extra.Add(OneLine(FsaResult.AnnihilationComponentName, 511.0));
             return extra;
+        }
+
+        /// <summary>Линия-родитель вылета и её ожидаемый вес.</summary>
+        sealed class EscapeParent
+        {
+            public readonly FsaLine Line;
+            public readonly double Weight;
+
+            public EscapeParent(FsaLine line, double weight)
+            {
+                this.Line = line;
+                this.Weight = weight;
+            }
+        }
+
+        /// <summary>
+        /// Доля рождения пар в полном ослаблении вещества кристалла на энергии
+        /// <paramref name="energyKev"/> (`S122`). NaN — вещество неизвестно
+        /// или у элемента нет сечений: тогда правило не применяется, а не
+        /// подменяется догадкой.
+        ///
+        /// ⛔ Сечение пар берётся ПОРОГОВОЙ интерполяцией (`S121`) без
+        /// оглядки на ключ матрицы: у матрицы контракт «выключенный ключ —
+        /// побитово прежний файл», а здесь величина считается заново на
+        /// каждом разборе, и считать её заведомо неверной схемой незачем.
+        /// Плотность в отношение не входит и не спрашивается.
+        /// </summary>
+        static double PairShare(IDictionary<int, double> crystalFractions, double energyKev)
+        {
+            if (crystalFractions == null || crystalFractions.Count == 0
+                || !(energyKev > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double logEnergyKev = Math.Log(energyKev);
+            double pair = 0.0;
+            double total = 0.0;
+            foreach (KeyValuePair<int, double> f in crystalFractions)
+            {
+                if (!(f.Value > 0.0))
+                {
+                    continue;
+                }
+
+                MaterialDatabase.Element element;
+                int lo, hi;
+                if (!MaterialDatabase.TryGet(f.Key, out element)
+                    || !MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
+                {
+                    return double.NaN;    // элемент без сечений — доли не знаем
+                }
+
+                pair += f.Value * PartialCrossSections.MassCrossSection(
+                    element, lo, hi, energyKev, logEnergyKev,
+                    PhotonProcess.PairProduction, true);
+                total += f.Value * MaterialDatabase.Interpolate(
+                    element.EnergyKev, element.LogEnergyKev,
+                    element.Total, element.LogTotal, lo, hi, energyKev, logEnergyKev);
+            }
+
+            return total > 0.0 ? pair / total : double.NaN;
         }
 
         static FsaComponent OneLine(string name, double energy)
@@ -177,6 +308,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             IEnumerable<Peak> peaks,
             IEnumerable<NuclideDefinition> nuclideDefinitions)
         {
+            return BuildFromPeaks(peaks, nuclideDefinitions, null);
+        }
+
+        /// <summary>
+        /// То же, но с массовыми долями вещества КРИСТАЛЛА (`S122`). Они
+        /// нужны только образам вылета: по ним считается доля рождения пар,
+        /// и по ней отбираются родители
+        /// (<see cref="EscapeAndAnnihilation(List{FsaComponent}, IDictionary{int, double})"/>).
+        /// Долей нет — отбор идёт прежним правилом, по одному выходу линии.
+        /// </summary>
+        public static List<FsaComponent> BuildFromPeaks(
+            IEnumerable<Peak> peaks,
+            IEnumerable<NuclideDefinition> nuclideDefinitions,
+            IDictionary<int, double> crystalFractions)
+        {
             List<FsaComponent> result = new List<FsaComponent>();
             if (peaks == null || nuclideDefinitions == null)
             {
@@ -198,7 +344,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запись способна дополнить образ уже опознанного нуклида и не
             // способна привести в разложение новый.
             List<NuclideDefinition> definitions = nuclideDefinitions
-                .Where(n => n != null && n.Energy > 0.0)
+                .Where(n => n != null && PositiveFinite(n.Energy))
                 .ToList();
 
             // Порядок сохраняем по первому появлению: так состав читается в
@@ -234,7 +380,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FsaComponent component = new FsaComponent(nuclide, kind);
                 foreach (NuclideDefinition definition in definitions)
                 {
-                    if (definition.Intencity <= 0.0
+                    if (!PositiveFinite(definition.Intencity)
                         || !string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
@@ -308,7 +454,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 // Вылет и аннигиляция — ОТ ЛИНИЙ СОСТАВА, а не из неподвижного
                 // списка (решение Amber 01.09.2026, `S110` пункт 2).
-                foreach (FsaComponent component in EscapeAndAnnihilation(result))
+                foreach (FsaComponent component in
+                         EscapeAndAnnihilation(result, crystalFractions))
                 {
                     if (taken.Add(component.Name))
                     {
@@ -324,6 +471,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static string NuclideToken(string name)
         {
             return NuclideDefinition.NuclideNameOf(name);
+        }
+
+        /// <summary>
+        /// Число линии, с которым можно безопасно строить физический образ.
+        /// `NaN` не сравним с нулём, а положительная бесконечность больше него,
+        /// поэтому одного условия <c>&gt; 0</c> здесь недостаточно.
+        /// </summary>
+        static bool PositiveFinite(double value)
+        {
+            return value > 0.0 && !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         // ⛔ МЕТОД `BuiltinSingles` СНЯТ 01.09.2026 (решения Amber по описи `S110`).
