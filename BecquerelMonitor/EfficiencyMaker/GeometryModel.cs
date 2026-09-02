@@ -193,6 +193,48 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Только РОЖДЕНИЕ ПАР, 1/см (`A52`, 02.09.2026). Нужно вне кристалла:
+        /// там этот канал прежде числился фотопоглощением, то есть квант просто
+        /// умирал — и два аннигиляционных кванта по 511 кэВ, которые обязаны
+        /// были из обвязки полететь, не рождались вовсе.
+        ///
+        /// <paramref name="thresholdPair"/> — тот же ключ
+        /// <see cref="EfficiencySimulator.XcomPairThreshold"/>, что у кристалла:
+        /// у канала СВОЙ порог, и линейная по логарифму сетка XCOM около него
+        /// завышает сечение (`S121`). Разводить кристалл и обвязку по разным
+        /// правилам нельзя — это одно и то же сечение.
+        /// </summary>
+        public double LinearPair(double energyKev, bool thresholdPair)
+        {
+            if (!thresholdPair)
+            {
+                return this.LinearChannel(energyKev, PhotonProcess.PairProduction);
+            }
+
+            if (!(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double logEnergyKev = Math.Log(energyKev);
+            double massAttenuation = 0.0;
+            foreach (KeyValuePair<int, double> part in this.Fractions)
+            {
+                MaterialDatabase.Element element;
+                int lo, hi;
+                if (MaterialDatabase.TryGet(part.Key, out element)
+                    && MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
+                {
+                    massAttenuation += part.Value * PartialCrossSections.MassCrossSection(
+                        element, lo, hi, energyKev, logEnergyKev,
+                        PhotonProcess.PairProduction, true);
+                }
+            }
+
+            return massAttenuation * this.Density;
+        }
+
+        /// <summary>
         /// ⚡ (`A43`) Один канал взаимодействия по всему веществу, 1/см. Общее
         /// тело <see cref="LinearIncoherent"/> и <see cref="LinearCoherent"/>:
         /// они отличались только буквой канала, а платили каждый за свой поиск

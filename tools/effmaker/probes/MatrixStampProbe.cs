@@ -106,6 +106,9 @@ static class MatrixStampProbe
         bad += Differs("--positron=1 --posoffset=0", byDefaults, geometry,
                        o => { o.PositronTransport = true; o.PositronOffset = false; });
         bad += Differs("--rayl2=1", byDefaults, geometry, o => o.RayleighToCrystal = true);
+        // `A57` — ОЦЕНЩИК, а не физика, но клеймо обязано различать и его:
+        // числа матрицы с конусом другие, и подменять ими готовую нельзя.
+        bad += Differs("--cone=1", byDefaults, geometry, o => o.AnalogConeSampling = true);
 
         // Половины `S126` обязаны различаться и МЕЖДУ СОБОЙ, а не только от
         // умолчаний: иначе гвард отдаст матрицу одной половины другой.
