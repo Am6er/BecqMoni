@@ -1,11 +1,11 @@
 ﻿spectrum,det,part,crystal,sample,shield,source,doubt,why
-ASN16_Th232,ASN16,unknown,Cs;I,W,,таблица mk_materials.py,,"геометрия ASN16_lu_side: Cesium iodide; corpus_def: extra='WT', электрод WT-20"
+ASN16_Th232,ASN16,unknown,Cs;I,W,Pb,таблица mk_materials.py,,"геометрия ASN16_lu_side: Cesium iodide; corpus_def: extra='WT', электрод WT-20; свинец — прямое слово Amber 02.09.2026 (в записи спектра домик не назван)"
 ASN16_Charoite,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит в домике»
 ASN16_UGlass,ASN16,unknown,Cs;I,U,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
 ASN16_Granite,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; гранит: тяжелее железа в заметной доле нет — клетка пуста осознанно
 AS80_Th232_v2,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»
 AS80_UGlass,AS80x80,unknown,Na;I,U,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
-AS80_Charoite,AS80x80,unknown,Na;I,Ba;Sr,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; чароит: Ba Kα 32.19, Sr Kα 14.16; состав камня НЕ УЗНАЕМ (Amber 18.08.2026) — берём"
+AS80_Charoite,AS80x80,unknown,Na;I,Ba;Sr,Pb,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; чароит: Ba Kα 32.19, Sr Kα 14.16; состав камня НЕ УЗНАЕМ (Amber 18.08.2026) — берём; свинец — прямое слово Amber 02.09.2026"
 HPGE_Uranium,HPGE,excluded,Ge,U,,таблица mk_materials.py,,"германий; часть excluded, в счёт не идёт; урановые пуговицы; часть excluded, в счёт не идёт"
 GS4000_Ra226,GS4000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО
 GS4000_Th232,GS4000,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); было принято NaI по имени прибора — ОШИБОЧНО
@@ -22,17 +22,17 @@ ASN8_Am241,ASN8_8192,unknown,Cs;I,,,таблица mk_materials.py,,CsI — пр
 OBS_UGlass,OBS,unknown,Cs;I,U,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»); урановое стекло: U Kα 94.65/98.43; долю урана НЕ УЗНАЕМ (Amber 18.08.2026) — берём
 RC101_I131,RC101,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
 AS1Pro_Ra226,AS1PRO,unknown,Cs;I,,,таблица mk_materials.py,,CsI — прямое слово Amber 18.08.2026 («там везде CsI»)
-ASN16_Charoite_v2,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит БЕЗ свинцовой защиты» — свинца нет
+ASN16_Charoite_v2,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: «Чароит БЕЗ свинцовой защиты»; свинец всё равно поставлен — приказ Amber 02.09.2026 на прямой вопрос
 ASN16_Th232_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
 ASN16_Am241,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
 ASN16_Cs137,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; corpus_def: съёмка в домике
 ASN16_Cs137_10cm,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
 ASN16_BrazilNuts,ASN16,unknown,Cs;I,,Pb,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide; орехи — лёгкая органика; защита оставлена от домика
-RC103_Th232WT20,RC103,unknown,Cs;I,W,,таблица mk_materials.py,,"геометрия RC103_lu_front: Cesium iodide; corpus_def: extra='WT', электрод WT-20"
+RC103_Th232WT20,RC103,unknown,Cs;I,W,Pb,таблица mk_materials.py,,"геометрия RC103_lu_front: Cesium iodide; corpus_def: extra='WT', электрод WT-20; свинец — прямое слово Amber 02.09.2026 (в записи спектра домик не назван)"
 AS80_Th232Medal,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; ториевый медальон: состав оправы НЕ УЗНАЕМ (Amber 18.08.2026) — клетка остаётся пустой; если там серебро или золото, их K-серия (22 и 68 кэВ) в образе не появится, и это принятая невязка"
-AS80_Onyx,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; оникс — карбонат кальция; Ca Kα 3.69 ниже рабочего низа
+AS80_Onyx,AS80x80,unknown,Na;I,,Pb,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; оникс — карбонат кальция; Ca Kα 3.69 ниже рабочего низа; свинец — прямое слово Amber 02.09.2026 (в записи спектра домик не назван)
 AS80_K40,AS80x80,unknown,Na;I,,,таблица mk_materials.py,,геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»
-AS80_Th232WT20,AS80x80,unknown,Na;I,W,,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; corpus_def: extra='WT', электрод WT-20"
+AS80_Th232WT20,AS80x80,unknown,Na;I,W,Pb,таблица mk_materials.py,,"геометрия AS80_lu_front: Sodium iodide; плюс прямое слово Amber 15.08.2026 «кристалл NaI»; corpus_def: extra='WT', электрод WT-20; свинец — прямое слово Amber 02.09.2026 (в записи спектра домик не назван)"
 RC103_K40,RC103,known,,,,из геометрии спектра,,
 AS80_Cs137_0cm,AS80x80,known,,,,из геометрии спектра,,
 RC103_Cs137_0cm,RC103,known,,,,из геометрии спектра,,
