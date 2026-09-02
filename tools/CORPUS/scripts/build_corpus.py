@@ -729,7 +729,37 @@ def write_copy(raw_path, dest, fg_coef, bg_coef, fwhm_coef, peak_type=0):
     ET.SubElement(fw, 'ExpGaussExpRightTail').text = '1.0'
     ET.SubElement(fw, 'Chi2pNdp').text = '-1'
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    tree.write(dest, encoding='utf-8', xml_declaration=True)
+    write_tree(tree, dest)
+
+
+def write_tree(tree, dest, tries=5, pause=0.4):
+    u"""Записать XML, переждав чужой перехват файла (`A74`).
+
+    ⛔ Зачем. Пересборка пишет 129 файлов подряд, и на Windows одиночная запись
+    изредка отказывает `OSError [Errno 22] Invalid argument` — файл в этот
+    момент держит кто-то ещё (антивирус, индексатор, чужая приёмка, читающая
+    те же спектры). Отказ случайный: 02.09.2026 он свалил две пересборки подряд
+    на РАЗНЫХ файлах и РАЗНЫХ шагах, а тесты на 60 и 25 записях его не
+    воспроизвели ни разу.
+
+    Цена отказа несоразмерна причине: шаг падает целиком, корпус остаётся
+    НЕДОСОБРАННЫМ (узлы стёрты, новые не положены), и это состояние выглядит
+    как готовый корпус — 129 файлов на месте и свежие.
+
+    ⚠ Повтор — не «глушение ошибки»: последняя попытка бросает исключение
+    как прежде, то есть настоящая беда (нет прав, нет места, битый путь)
+    по-прежнему валит шаг и не притворяется успехом.
+    """
+    import time
+    for attempt in range(tries):
+        try:
+            tree.write(dest, encoding='utf-8', xml_declaration=True)
+            return attempt
+        except OSError:
+            if attempt == tries - 1:
+                raise
+            time.sleep(pause * (attempt + 1))
+    return 0
 
 
 DEVICE_TEMPLATE = """<?xml version="1.0"?>
