@@ -118,6 +118,106 @@ namespace BecquerelMonitor.EfficiencyMaker
             return Math.Exp(logChannel[lo] + f * (logChannel[hi] - logChannel[lo]));
         }
 
+        /// <summary>
+        /// ⛔ (`S121`) Сечение рождения пар С ПОРОГОВОЙ ИНТЕРПОЛЯЦИЕЙ, раздельно
+        /// по ядерному каналу и triplet, — то, чем эту величину подаёт XCOM.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Общая ветка «один узел нулевой — интерполируй
+        /// линейно» превращала участок от порога до первого открытого узла в
+        /// прямую: у Cs между 1.022 и 1.250 МэВ она даёт в 1.100 МэВ
+        /// 0.01602 барн/атом. Пороговое поведение сечения этому не отвечает
+        /// ни в какой модели: у порога оно обязано подходить к нулю
+        /// касательно, а не с конечным наклоном. Независимая пороговая
+        /// аппроксимация Geant4 (ниже 1.5 МэВ сечение масштабируется как
+        /// (E − 2mₑc²)²) от той же опоры 1.5 МэВ даёт 0.00540 барн/атом —
+        /// в 2.97 раза меньше. Она здесь НЕ эталон, а проверка порядка.
+        ///
+        /// КАК СЧИТАЕТСЯ ТЕПЕРЬ. Ровно как фитирует XCOM (документация XCOM,
+        /// глава 3): интерполируется не сечение, а частное
+        /// σ(E)/(1 − E₀/E)³ — величина, у которой на пороге нет ни нуля, ни
+        /// изломa, — после чего множитель возвращается на место. Пороги у
+        /// каналов РАЗНЫЕ (ядро 1.022 МэВ, triplet в поле электрона
+        /// 2.044 МэВ), поэтому и складываются они уже посчитанными, а не
+        /// суммой в таблице: у суммы двух пороговых форм своей формы нет.
+        ///
+        /// Участок, у которого нижний узел лежит НА пороге (сечение там
+        /// тождественно нулевое, частного не существует), берёт наклон
+        /// частного у двух ближайших открытых узлов сверху; если второго
+        /// узла нет, остаётся чистый пороговый множитель от единственного.
+        ///
+        /// Проверка сходимости — `PairThresholdProbe`: узел выбрасывается из
+        /// сетки и восстанавливается по соседям, обеими схемами.
+        /// </summary>
+        public static double MassCrossSection(MaterialDatabase.Element element,
+                                              int lo, int hi, double energyKev,
+                                              double logEnergyKev, PhotonProcess process,
+                                              bool thresholdPair)
+        {
+            if (!thresholdPair || process != PhotonProcess.PairProduction)
+            {
+                return MassCrossSection(element, lo, hi, energyKev, logEnergyKev, process);
+            }
+
+            return PairChannel(element, lo, hi, energyKev, logEnergyKev,
+                               element.LogPairNuclearShape,
+                               MaterialDatabase.PairNuclearThresholdKev)
+                 + PairChannel(element, lo, hi, energyKev, logEnergyKev,
+                               element.LogPairElectronShape,
+                               MaterialDatabase.PairElectronThresholdKev);
+        }
+
+        /// <summary>
+        /// Один канал рождения пар по пороговой величине (`S121`).
+        /// <paramref name="logShape"/> — логарифмы σ/(1 − E₀/E)³ по узлам
+        /// сетки, посчитанные при загрузке; NaN там, где канал закрыт.
+        /// </summary>
+        static double PairChannel(MaterialDatabase.Element element, int lo, int hi,
+                                  double energyKev, double logEnergyKev,
+                                  double[] logShape, double thresholdKev)
+        {
+            double shape = MaterialDatabase.PairThresholdShape(energyKev, thresholdKev);
+            if (!(shape > 0.0) || logShape == null)
+            {
+                return 0.0;                 // ниже порога канала нет вовсе
+            }
+
+            double[] logGrid = element.LogEnergyKev;
+            int p, q;
+            if (lo != hi && Open(logShape, lo) && Open(logShape, hi)
+                && logGrid[hi] > logGrid[lo])
+            {
+                p = lo;
+                q = hi;                     // обычный участок: оба узла открыты
+            }
+            else if (Open(logShape, hi))
+            {
+                // Пороговый участок: снизу узел с тождественным нулём. Наклон
+                // пороговой величины берётся у двух ближайших открытых узлов
+                // СВЕРХУ и продолжается вниз; на самом узле (lo == hi) это
+                // даёт ровно табличное значение.
+                p = hi;
+                q = hi + 1;
+                if (!Open(logShape, q) || !(logGrid[q] > logGrid[p]))
+                {
+                    return Math.Exp(logShape[p]) * shape;
+                }
+            }
+            else
+            {
+                return 0.0;                 // канал на этом участке ещё закрыт
+            }
+
+            double f = (logEnergyKev - logGrid[p]) / (logGrid[q] - logGrid[p]);
+            return Math.Exp(logShape[p] + f * (logShape[q] - logShape[p])) * shape;
+        }
+
+        /// <summary>Открыт ли канал в узле: у закрытого в логарифме NaN.</summary>
+        static bool Open(double[] logShape, int i)
+        {
+            return i >= 0 && i < logShape.Length
+                && !double.IsNaN(logShape[i]) && !double.IsInfinity(logShape[i]);
+        }
+
         static double Channel(MaterialDatabase.Element element, int i, PhotonProcess process)
         {
             switch (process)

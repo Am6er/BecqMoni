@@ -386,11 +386,112 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// кристалла, и заводит его туда, куда он сам не летел.
         ///
         /// Ключ работает в АНАЛОГОВЫХ ветках переноса (розыгрыш в кристалле,
-        /// ε_полная, континуум отклика). Взвешенная проводка к кристаллу
-        /// (пиковая ветвь) устроена на exp(−τ) и угла не разыгрывает вовсе —
-        /// там по-прежнему решает <see cref="CoherentPassesThrough"/>.
+        /// ε_полная, континуум отклика). За взвешенную проводку к кристаллу
+        /// (пиковую ветвь) отвечает отдельный ключ
+        /// <see cref="RayleighToCrystal"/> (`N13`); пока он выключен, там
+        /// по-прежнему решает <see cref="CoherentPassesThrough"/>.
         /// </summary>
         public bool RayleighScatter = true;
+
+        /// <summary>
+        /// ⛔ (`N13`) Когерентное рассеяние своим разыгранным каналом и во
+        /// ВЗВЕШЕННОЙ (пиковой) ветви — той, что ведёт квант к кристаллу по
+        /// exp(−τ) и разыгрывает одно рассеяние
+        /// (<see cref="SingleScatter"/>).
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. <see cref="RayleighScatter"/> починил только
+        /// аналоговые ветви. Взвешенная углов не разыгрывала вовсе: там
+        /// решал <see cref="CoherentPassesThrough"/>, то есть когерентное
+        /// либо убивало квант, либо пропускало его НАСКВОЗЬ без поворота.
+        /// Обе крайности неверны для геометрии, и цена их растёт вниз по
+        /// шкале: в воде на 28 кэВ когерентное — до 13 % ослабления.
+        ///
+        /// ЧТО ДЕЛАЕТ КЛЮЧ. Когерентное входит в оптическую толщину наравне
+        /// с прочим (прямой член exp(−τ) от этого убывает) и появляется
+        /// вторым исходом разыгранного рассеяния: энергия та же, направление
+        /// — по форм-фактору F²(x,Z), дальше обычная проводка до кристалла.
+        /// Ровно так же лечили комптон.
+        ///
+        /// Считается, как и у комптона, ОДНО рассеяние; второе и дальше
+        /// отброшены сознательно, поэтому поправка остаётся нижней оценкой.
+        ///
+        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН: выключенный, он не
+        /// тянет ни одного лишнего случайного числа и оставляет прежний
+        /// результат до последнего бита.
+        /// </summary>
+        public bool RayleighToCrystal = false;
+
+        /// <summary>
+        /// ⛔ (`S121`) Брать сечение рождения пар ПОРОГОВОЙ интерполяцией
+        /// XCOM — раздельно по ядерному каналу и triplet, через частное
+        /// σ/(1 − E₀/E)³, — а не общей линейной веткой «один узел нулевой».
+        ///
+        /// Прежняя ветка соединяла порог 1.022 МэВ с первым открытым узлом
+        /// прямой: у Cs в 1.100 МэВ выходило 0.01602 барн/атом при 0.00540 у
+        /// независимой пороговой аппроксимации Geant4 от той же опоры. Выше
+        /// по шкале цена меньше, но не исчезает: на 2614 кэВ ядерный канал
+        /// Cs между узлами 2.044 и 3.0 МэВ выходит на 6 % больше.
+        ///
+        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН (решение Amber
+        /// 02.09.2026): выключенный, он оставляет прежнюю арифметику до
+        /// последнего бита, поэтому посчитанные матрицы и база корпуса
+        /// остаются годными. Сечение пар входит в кристалле и в ветвление,
+        /// и в длину свободного пробега, так что включённый ключ делает
+        /// матрицы устаревшими — включать после замера A/B.
+        ///
+        /// ⚠ Полное ослабление (<see cref="GeometryModel.Region"/>) берётся
+        /// из СУММЫ каналов таблицы и этой правкой не затронуто (`S124`).
+        /// </summary>
+        public bool XcomPairThreshold = false;
+
+        /// <summary>
+        /// ⛔ (`S120`) Вести электрон и позитрон пары ПОРОЗНЬ, а два кванта
+        /// аннигиляции запускать не из вершины конверсии, а с конца
+        /// эффективного пробега позитрона.
+        ///
+        /// ЧТО БЫЛО НЕ ТАК. Вся кинетическая энергия пары Eγ − 1022 кэВ шла
+        /// в ОДИН вызов <see cref="ElectronLoss"/>, а 511-кэВ кванты — из
+        /// точки рождения. Обе части неверны, и по-разному:
+        ///
+        ///   * при включённой <see cref="LightNonproportionality"/> свет
+        ///     считается по начальной энергии КАЖДОГО электрона, а функция
+        ///     светового выхода нелинейна: L(T) ≠ L(T₁) + L(T₂). Одна частица
+        ///     с суммарной энергией пары даёт не тот свет, что две;
+        ///   * точка аннигиляции смещена на пробег позитрона, и у событий
+        ///     близ поверхности этим меняется вероятность вылета одного или
+        ///     обоих квантов — то есть соотношение пика, одиночного и
+        ///     двойного вылета.
+        ///
+        /// ЧТО ЗДЕСЬ ПРИБЛИЖЕНИЕ. Энергия делится РАВНОМЕРНО: точное
+        /// распределение Бете — Гайтлера у порога сжато к равному делению, а
+        /// высоко по шкале почти плоское, и равномерное лежит между ними.
+        /// Сжатое к середине деление увело бы свет дальше от нынешнего, так
+        /// что по эффекту это НИЖНЯЯ оценка, а не подгонка. Пробег позитрона
+        /// берётся электронный (расхождение тормозных способностей — единицы
+        /// процентов), а глубина — та же эффективная, что у вылета электрона
+        /// (<see cref="ElectronEscapeSlope"/>): другой калиброванной величины
+        /// такого рода в модели нет. Позитрон, у которого конец пробега
+        /// выходит за кристалл, аннигилирует у самой границы: вести квант вне
+        /// кристалла <see cref="InCrystal"/> не умеет.
+        ///
+        /// Аннигиляция НА ЛЕТУ не моделируется: кванты по-прежнему строго по
+        /// 511 кэВ и строго встречные (решение Amber 02.09.2026).
+        ///
+        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН: выключенный, он не тянет
+        /// ни одного лишнего случайного числа и оставляет прежний результат
+        /// до последнего бита. Мерить обе половины ОТДЕЛЬНО
+        /// (<see cref="PositronOffset"/>): свет и геометрия — разные ошибки, и
+        /// вместе они могут погасить друг друга.
+        /// </summary>
+        public bool PositronTransport = false;
+
+        /// <summary>
+        /// Половина ключа <see cref="PositronTransport"/>, отвечающая за
+        /// СМЕЩЕНИЕ точки аннигиляции. Выключенная — кванты по-прежнему летят
+        /// из вершины конверсии, а порознь считается только свет. Нужна,
+        /// чтобы развести две ошибки по отдельным замерам.
+        /// </summary>
+        public bool PositronOffset = true;
 
         /// <summary>
         /// Относительная ошибка КОНТИНУУМА последнего прогона отклика, % полной
@@ -1449,7 +1550,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     compton += f.Value * PartialCrossSections.MassCrossSection(
                         element, lo, hi, energyKev, logEnergyKev, PhotonProcess.Incoherent);
                     pair += f.Value * PartialCrossSections.MassCrossSection(
-                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.PairProduction);
+                        element, lo, hi, energyKev, logEnergyKev, PhotonProcess.PairProduction,
+                        this.XcomPairThreshold);
                 }
 
                 photo *= m.Density;
@@ -2146,6 +2248,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Ослабление, по которому ВЗВЕШЕННАЯ (пиковая) ветвь считает
+        /// оптическую толщину до кристалла.
+        ///
+        /// С <see cref="RayleighToCrystal"/> когерентное входит в него
+        /// наравне с прочим — прямой член exp(−τ) убывает, а сам квант не
+        /// теряется: его подхватывает разыгранное рассеяние
+        /// (<see cref="ScatteredContribution"/>). Без ключа канал вычтен, и
+        /// это прежнее приближение <see cref="CoherentPassesThrough"/>.
+        /// </summary>
+        double WeightedMu(Region region, double energyKev)
+        {
+            return region.Mu(energyKev,
+                             this.CoherentPassesThrough && !this.RayleighToCrystal);
+        }
+
+        /// <summary>
         /// Ведёт фотон до кристалла, копя оптическую толщину. Возвращает false,
         /// если кристалл не встретился.
         /// </summary>
@@ -2172,7 +2290,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (here != null)
                 {
                     this.CountMu++;
-                    tau += here.Mu(energyKev, this.CoherentPassesThrough) * step;
+                    tau += this.WeightedMu(here, energyKev) * step;
                     if (tau > 60.0)
                     {
                         return false;      // exp(-60) — заведомо ноль
@@ -2354,23 +2472,45 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (here != null)
                 {
                     this.CountMu++;
-                    double mu = here.Mu(energyKev, this.CoherentPassesThrough);
+                    double mu = this.WeightedMu(here, energyKev);
                     if (mu > 0.0 && accumulated + mu * step >= tauTarget)
                     {
                         double advance = (tauTarget - accumulated) / mu;
                         px += ux * advance;
                         py += uy * advance;
                         pz += uz * advance;
-                        double share = here.Incoherent(energyKev) / mu;
+                        // Квант переживает взаимодействие в двух случаях из
+                        // четырёх: комптон уводит его с меньшей энергией,
+                        // когерентное — с той же (`N13`, ключ
+                        // RayleighToCrystal). Фотоэффект и пара его убивают,
+                        // и их доля выражена тем, что share < 1.
+                        double incoherent = here.Incoherent(energyKev);
+                        double coherent = this.RayleighToCrystal
+                            ? here.Coherent(energyKev) : 0.0;
+                        double alive = incoherent + coherent;
+                        double share = alive / mu;
                         if (!(share > 0.0))
                         {
-                            return false;     // взаимодействие было, но не комптон
+                            return false;     // взаимодействие было, но убивающее
                         }
 
-                        double cos;
-                        double scattered = this.ComptonScatter(here.Material, energyKev, out cos);
+                        double scattered;
                         double sx = ux, sy = uy, sz = uz;
-                        this.Rotate(ref sx, ref sy, ref sz, cos);
+                        // ⚠ Порядок проверок обязан оставить поток розыгрышей
+                        // прежним при выключенном ключе: coherent там ноль, и
+                        // случайное число на выбор канала НЕ тянется.
+                        if (coherent > 0.0 && this.Uniform() * alive < coherent)
+                        {
+                            scattered = energyKev;
+                            this.Rotate(ref sx, ref sy, ref sz,
+                                        this.RayleighCosine(here.Material, energyKev));
+                        }
+                        else
+                        {
+                            double cos;
+                            scattered = this.ComptonScatter(here.Material, energyKev, out cos);
+                            this.Rotate(ref sx, ref sy, ref sz, cos);
+                        }
 
                         double tau2;
                         if (!this.ToCrystal(ref px, ref py, ref pz, sx, sy, sz, scattered, out tau2))
@@ -2423,7 +2563,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (here != null)
                 {
                     this.CountMu++;
-                    tau += here.Mu(energyKev, this.CoherentPassesThrough) * step;
+                    tau += this.WeightedMu(here, energyKev) * step;
                     if (tau > 60.0)
                     {
                         return 60.0;
@@ -2576,20 +2716,77 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // нулевой): разыгранные независимо, они завышали бы совпадение
                 // «оба поглотились»/«оба вылетели» и портили соотношение
                 // одиночного и двойного вылета.
-                double escaped = lost + this.ElectronLoss(x, y, z, e - 2.0 * ElectronMassKev, depth);
+                double kinetic = e - 2.0 * ElectronMassKev;
+                double px = x, py = y, pz = z;
+                double escaped;
+                if (this.PositronTransport)
+                {
+                    // Электрон и позитрон — ПОРОЗНЬ (`S120`): свет считается по
+                    // начальной энергии каждого, а она у них своя. Деление
+                    // равномерное, довод — при ключе.
+                    double share = this.Uniform();
+                    escaped = lost
+                           + this.ElectronLoss(x, y, z, kinetic * share, depth)
+                           + this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth);
+                    if (this.PositronOffset)
+                    {
+                        this.PositronStop(kinetic * (1.0 - share),
+                                          ref px, ref py, ref pz);
+                    }
+                }
+                else
+                {
+                    escaped = lost + this.ElectronLoss(x, y, z, kinetic, depth);
+                }
+
                 double ax, ay, az;
                 this.Isotropic(out ax, out ay, out az);
                 // Как и у рентгена выше: метится только непомеченный рекурсией
                 // остаток, иначе вложенные вылеты считаются дважды.
                 double pairMarkedBefore = this.lossAnnihilation + this.lossXray;
-                double first = this.InCrystal(x, y, z, ax, ay, az, ElectronMassKev, depth + 1);
-                double second = this.InCrystal(x, y, z, -ax, -ay, -az, ElectronMassKev, depth + 1);
+                double first = this.InCrystal(px, py, pz, ax, ay, az, ElectronMassKev, depth + 1);
+                double second = this.InCrystal(px, py, pz, -ax, -ay, -az, ElectronMassKev, depth + 1);
                 double pairMarkedInside = this.lossAnnihilation + this.lossXray - pairMarkedBefore;
                 this.lossAnnihilation += Math.Max(0.0, first + second - pairMarkedInside);
                 return escaped + first + second;
             }
 
             return lost + e;
+        }
+
+        /// <summary>
+        /// Сдвинуть точку с вершины конверсии на КОНЕЦ эффективного пробега
+        /// позитрона кинетической энергии <paramref name="te"/> (`S120`).
+        ///
+        /// Направление изотропно — тот же довод, что у вылета электрона:
+        /// длинный трек изотропизуется многократным рассеянием. Длина — та же
+        /// эффективная глубина <see cref="ElectronEscapeSlope"/>, что и у
+        /// вылета, и зажата границей кристалла: вышедший позитрон
+        /// аннигилирует в обвязке, а вести квант снаружи нечем.
+        /// </summary>
+        void PositronStop(double te, ref double x, ref double y, ref double z)
+        {
+            if (this.electron == null || !(te > 1.0))
+            {
+                return;                     // осел там же, где родился
+            }
+
+            double range = ElectronData.RangeOf(this.electron, te)
+                           / this.geometry.Crystal.Density;              // см
+            double reach = range * Math.Min(1.0, this.ElectronEscapeSlope
+                * Math.Max(0.0, te - this.ElectronEscapeT0Kev) / 1000.0);
+            double ux, uy, uz;
+            this.Isotropic(out ux, out uy, out uz);
+            if (!(reach > 0.0))
+            {
+                return;                     // розыгрыш направления сделан всегда
+            }
+
+            double toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
+            double move = Math.Min(reach, Math.Max(0.0, toEdge - 1e-7));
+            x += ux * move;
+            y += uy * move;
+            z += uz * move;
         }
 
         /// <summary>
@@ -2631,8 +2828,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///    уходящие вбок от переднего направления, — теряет).
         ///
         /// Что здесь приближение: путь не прямая; тормозной квант испускается
-        /// в точке рождения электрона, а не вдоль его пути; вылетевший
-        /// позитрон всё равно аннигилирует в точке рождения пары.
+        /// в точке рождения электрона, а не вдоль его пути. Про позитрон
+        /// решает <see cref="PositronTransport"/> (`S120`): с выключенным
+        /// ключом вся энергия пары приходит сюда ОДНИМ вызовом и аннигиляция
+        /// считается в точке рождения пары, с включённым — электрон и
+        /// позитрон приходят порознь, а точку аннигиляции ставит
+        /// <see cref="PositronStop"/>.
         /// </summary>
         double ElectronLoss(double x, double y, double z, double te, int depth)
         {

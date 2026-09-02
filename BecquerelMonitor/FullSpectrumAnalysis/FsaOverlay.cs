@@ -133,15 +133,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         void Launch(ResultData resultData, bool subtractBackground, int myGeneration)
         {
-            EnergySpectrum spectrum = resultData.EnergySpectrum;
-            EnergySpectrum background = subtractBackground ? resultData.BackgroundEnergySpectrum : null;
-            FwhmCalibration fwhmCalibration = resultData.FwhmCalibration;
+            // Снимок самого измерения тоже обязателен: во время набора UI
+            // перезаписывает Spectrum[], а FSA ниже читает его в Task.Run.
+            // Список нуклидов уже снимался, но без этой копии один фит мог
+            // собрать левую половину модели по старому спектру, правую — по
+            // новому. Калибровки входят в тот же снимок по той же причине.
+            EnergySpectrum spectrum = resultData.EnergySpectrum.Clone();
+            EnergySpectrum background = subtractBackground && resultData.BackgroundEnergySpectrum != null
+                ? resultData.BackgroundEnergySpectrum.Clone()
+                : null;
+            FwhmCalibration fwhmCalibration = resultData.FwhmCalibration != null
+                ? resultData.FwhmCalibration.Clone()
+                : null;
             // Кривая эффективности: сначала СВОЯ кривая спектра — та, что
             // выбрана в панели измерения и лежит в его файле. Кривая переехала
             // из набора зон в конфигурацию прибора, и разложение обязано брать
             // её оттуда же, откуда её берёт активность: две разные кривые в
             // одном спектре — два разных ответа на один вопрос.
-            FsaEfficiency efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
+            EfficiencyConfigData efficiencyConfig = resultData.Efficiency != null
+                ? resultData.Efficiency.Copy()
+                : null;
+            FsaEfficiency efficiency = FsaEfficiency.FromConfig(efficiencyConfig);
+            ResultData compositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
+                                                            efficiencyConfig, spectrum, fwhmCalibration);
 
             // Снимок списков: их правит UI-поток (конструктор сетов, NucBase),
             // а перечисление живого списка в фоне ловит «Collection was modified».
@@ -160,12 +174,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // UseResponseMatrix — выключатель пользователя (W11, галка в форме
             // «Матрица отклика»): выключено — считаем без матрицы, файл даже
             // не читаем.
-            if (resultData.Efficiency != null && resultData.Efficiency.HasGeometry
-                && resultData.Efficiency.UseResponseMatrix)
+            if (efficiencyConfig != null && efficiencyConfig.HasGeometry
+                && efficiencyConfig.UseResponseMatrix)
             {
                 EfficiencyMaker.ResponseMatrix matrix =
-                    EfficiencyMaker.ResponseMatrixStore.Load(resultData.Efficiency.Guid);
-                if (matrix != null && matrix.IsValidFor(resultData.Efficiency.Geometry))
+                    EfficiencyMaker.ResponseMatrixStore.Load(efficiencyConfig.Guid);
+                if (matrix != null && matrix.IsValidFor(efficiencyConfig.Geometry))
                 {
                     analyzer.ResponseMatrix = matrix;
 
@@ -174,7 +188,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (S20), а без матрицы суммирования нет вовсе.
                     analyzer.ScintillatorMaterial =
                         EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(
-                            resultData.Efficiency.Geometry);
+                            efficiencyConfig.Geometry);
                 }
             }
 
@@ -195,6 +209,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool dbLookups = DbLookups(resultData);
             bool equilibrium = ChainEquilibrium(resultData);
 
+            // Вещество кристалла — СНИМКОМ и на UI-потоке, как всё прочее
+            // (`S119`). Образам вылета от него нужна только доля рождения пар
+            // (`S122`), а она считается по массовым долям элементов; плотность
+            // в отношение не входит. Геометрии нет — снимка нет, и отбор
+            // родителей остаётся прежним.
+            Dictionary<int, double> crystalFractions = null;
+            if (efficiencyConfig != null && efficiencyConfig.HasGeometry
+                && efficiencyConfig.Geometry.Crystal != null)
+            {
+                crystalFractions = new Dictionary<int, double>(
+                    efficiencyConfig.Geometry.Crystal.Fractions);
+            }
+
             Task.Run(() =>
             {
                 FsaResult computed = null;
@@ -212,14 +239,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (dbLookups)
                     {
                         FsaCompositionInference.Report inferred;
-                        FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, resultData, out inferred);
+                        FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, compositionInput, out inferred);
                         spec.Equilibrium = equilibrium;
                         Trace.WriteLine("FSA composition: " + inferred);
                         library = FsaSampleLibrary.Build(spec);
                     }
                     else
                     {
-                        library = FsaLibrary.BuildFromPeaks(peaks, definitions);
+                        library = FsaLibrary.BuildFromPeaks(
+                            peaks, definitions, crystalFractions);
                     }
 
                     if (library.Count == 0)
@@ -263,6 +291,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     handler(this, EventArgs.Empty);
                 }
             });
+        }
+
+        /// <summary>
+        /// Минимальный снимок <see cref="ResultData"/>, который нужен выводу
+        /// состава из баз. Полный <c>ResultData.Clone</c> здесь избыточен: FSA
+        /// не читает импульсы, ROI и метаданные, а три используемых входа уже
+        /// сняты до фоновой задачи.
+        /// </summary>
+        static ResultData CompositionInput(PeakDetectionMethodConfig peakConfig,
+                                           EfficiencyConfigData efficiency,
+                                           EnergySpectrum spectrum,
+                                           FwhmCalibration fwhmCalibration)
+        {
+            return new ResultData
+            {
+                PeakDetectionMethodConfig = PeakConfigInput(peakConfig),
+                Efficiency = efficiency,
+                EnergySpectrum = spectrum,
+                FwhmCalibration = fwhmCalibration
+            };
+        }
+
+        /// <summary>
+        /// Выводу состава от конфигурации поиска нужны только полоса и порог
+        /// SNR. Остальные настройки остаются вне фонового снимка намеренно.
+        /// </summary>
+        static PeakDetectionMethodConfig PeakConfigInput(PeakDetectionMethodConfig source)
+        {
+            FWHMPeakDetectionMethodConfig fwhm = source as FWHMPeakDetectionMethodConfig;
+            if (fwhm == null)
+            {
+                return null;
+            }
+
+            return new FWHMPeakDetectionMethodConfig
+            {
+                Min_Range = fwhm.Min_Range,
+                Max_Range = fwhm.Max_Range,
+                Min_SNR = fwhm.Min_SNR
+            };
         }
 
         /// <summary>
