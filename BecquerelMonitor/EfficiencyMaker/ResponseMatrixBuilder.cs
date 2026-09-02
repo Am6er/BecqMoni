@@ -616,6 +616,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 BremFromData = options.BremFromData,
                 ScatterRouletteWeight = options.ScatterRoulette,
                 SampleFluorescenceOutside = options.SampleFluorescence,
+                // ⛔ (`S130`) Три ключа физики 02.09.2026. Без них настройки
+                // их не доносили, и штатный прогон всегда считал выключенную
+                // физику — то есть замеры `S125`–`S127` были невыполнимы.
+                XcomPairThreshold = options.XcomPairThreshold,
+                PositronTransport = options.PositronTransport,
+                PositronOffset = options.PositronOffset,
+                RayleighToCrystal = options.RayleighToCrystal,
                 PeakHalfWidthKev = 0.0
             };
 
