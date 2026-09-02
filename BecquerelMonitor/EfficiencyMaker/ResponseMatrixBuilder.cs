@@ -623,6 +623,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 PositronTransport = options.PositronTransport,
                 PositronOffset = options.PositronOffset,
                 RayleighToCrystal = options.RayleighToCrystal,
+                // ⛔ (`A57`) Оценщик континуума — тем же путём, что физика:
+                // не доехав до построителя, ключ мёртв.
+                AnalogConeSampling = options.AnalogConeSampling,
                 PeakHalfWidthKev = 0.0
             };
 

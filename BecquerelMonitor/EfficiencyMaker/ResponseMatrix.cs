@@ -129,7 +129,36 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     цена мала, а у пробы и обвязки из железа, меди и цинка нет (F16).
         //     Вылет рентгена входит в форму отклика, поэтому матрицы прошлых
         //     поколений устарели даже там, где сдвиг мал.
-        public const int PhysicsVersion = 12;
+        // 13 — ПЕРЕНОС ПОЧИНЕН В ШЕСТИ МЕСТАХ, 02.09.2026, и это первая
+        //     версия, где отклик сверен с Geant4 бин в бин. `A52` — источник
+        //     на грани области пролетал обвязку без ослабления (полная
+        //     завышена на 15 % при 59.5 кэВ); `A53` — квант на грани кристалла
+        //     получал путь ВНУТРИ него, и точечный источник вплотную давал
+        //     ровно ДВОЙНУЮ эффективность; `A54` и `A56` — пары вне кристалла
+        //     не рождали аннигиляционных квантов (в обоих обходах: +0.61 %
+        //     полной на 2614 кэВ); `A55` — вылетевший из кристалла квант не
+        //     ведётся дальше и не возвращается из обвязки (полоса между
+        //     комптоновским краем и пиком была ниже арбитра на 15.4 % при
+        //     662 кэВ и 20.5 % при 1332.5); `A59` — соседние зёрна ГСЧ давали
+        //     один поток; `A61` — комптон не оставлял атому вакансии.
+        //
+        //     ⛔ Версия поднята ИМЕННО ЗАТЕМ, чтобы старые матрицы перестали
+        //     числиться годными. Они самосогласованы (их клеймо отвечает их
+        //     же настройкам), и без подъёма версии `IsValidFor` отвечал бы
+        //     «годна», а гвард пересчёта — «пересчитывать не надо»: разбор
+        //     молча пользовался бы откликом прежней физики. Найдено ревизией
+        //     02.09.2026, до того ни одна из шести правок версию не подняла.
+        // 14 — ВЫЛЕТ МЯГКОГО ЭЛЕКТРОНА ИЗ КРИСТАЛЛА (`A63`, 02.09.2026).
+        //     Глубина вылета `t_eff` была порогово-линейной и ниже 350 кэВ
+        //     давала РОВНО НОЛЬ: при 59.5 кэВ фотоэлектрон несёт 26 кэВ, и
+        //     вылета не было вовсе. На голом кристалле полосы 13…25 и 32…54
+        //     кэВ выходили ниже Geant4 на 88 и 87 %, а их события попадали в
+        //     ПИК (+1.85 %). Добавлен член `0.5·exp(−T/100 кэВ)`: он гаснет к
+        //     сотням кэВ и верхнюю калибровку (ε_пик 662–2614) не трогает —
+        //     измерено, на 662 пик +0.66 → +0.64 %, на 2614 −1.04 → −1.06 %.
+        //     После правки те же полосы сходятся до −1.5 и −18 %, пик
+        //     +1.84 → +0.49 %.
+        public const int PhysicsVersion = 14;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -433,6 +462,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (options.RayleighToCrystal)
                 {
                     sb.Append("rayl2=1;");
+                }
+
+                if (options.AnalogConeSampling)
+                {
+                    sb.Append("cone=1;");
                 }
             }
 
@@ -826,6 +860,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                 WriteLongs(writer, this.NodeHistories);
                 WriteDoubles(writer, this.NodeErrors);
                 WriteDoubles(writer, this.NodeSeconds);
+
+                // ⛔ ВТОРОЙ ХВОСТ, `OPTF` — КЛЮЧИ, КОТОРЫЕ ВХОДЯТ В КЛЕЙМО.
+                //
+                // `WriteOptions` их не пишет, а `ComputeStamp` учитывает — и это
+                // ровно та дыра, которую `T114` уже закрывала для ЗЕРНА: матрица,
+                // посчитанная с ключом, после чтения получала `false`,
+                // пересчитывала клеймо БЕЗ него и не сходилась САМА С СОБОЙ —
+                // `IsValidFor` отвечал «нет» навсегда, разбор печатал «БЕЗ
+                // МАТРИЦЫ». Тогда лечили подъёмом формата; здесь хвостом, потому
+                // что плюс один к `FormatVersion` объявил бы нечитаемыми все уже
+                // посчитанные матрицы.
+                //
+                // Совместимость полная в обе стороны: у старого файла хвоста нет,
+                // и флаги остаются `false` — а он и правда считался без ключей,
+                // так что его клеймо сходится; старый exe до хвоста не доходит.
+                // Найдено ревизией 02.09.2026 (`A66`).
+                ResponseMatrixOptions flags = this.Options ?? new ResponseMatrixOptions();
+                writer.Write(Encoding.ASCII.GetBytes("OPTF"));
+                writer.Write(flags.XcomPairThreshold);
+                writer.Write(flags.PositronTransport);
+                writer.Write(flags.PositronOffset);
+                writer.Write(flags.RayleighToCrystal);
+                writer.Write(flags.AnalogConeSampling);
             }
 
             if (File.Exists(path))
@@ -1081,6 +1138,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                             matrix.NodeHistories = ReadLongs(reader);
                             matrix.NodeErrors = ReadDoubles(reader);
                             matrix.NodeSeconds = ReadDoubles(reader);
+
+                            // Ключи клейма вторым хвостом (`A66`). Без них
+                            // матрица, посчитанная с ключом, не сходится сама
+                            // с собой и числится негодной навсегда.
+                            if (matrix.Options != null
+                                && stream.Length - stream.Position >= 4
+                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "OPTF")
+                            {
+                                matrix.Options.XcomPairThreshold = reader.ReadBoolean();
+                                matrix.Options.PositronTransport = reader.ReadBoolean();
+                                matrix.Options.PositronOffset = reader.ReadBoolean();
+                                matrix.Options.RayleighToCrystal = reader.ReadBoolean();
+                                matrix.Options.AnalogConeSampling = reader.ReadBoolean();
+                            }
                         }
                     }
                     catch (Exception)
@@ -1278,6 +1349,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// выключено, в клеймо пишется только включённым.
         /// </summary>
         public bool RayleighToCrystal;
+
+        /// <summary>
+        /// ⛔ (`A57`) Наводить аналоговый розыгрыш конусом на габарит сцены
+        /// (<see cref="EfficiencySimulator.AnalogConeSampling"/>). Умолчанием
+        /// выключено, в клеймо пишется только включённым.
+        ///
+        /// Это ОЦЕНЩИК, а не физика: ожидание он не двигает (сумма отклика к
+        /// Geant4 +0.30 % против +0.54 % у полной сферы), а дисперсию снимает —
+        /// на дальней сцене `G1S_point25` шум континуума 11.26 → 0.95 % при тех
+        /// же 500 тыс. историй. Клеймо всё равно обязано его различать: числа
+        /// матрицы другие, и подменять ими готовую нельзя.
+        /// </summary>
+        public bool AnalogConeSampling;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

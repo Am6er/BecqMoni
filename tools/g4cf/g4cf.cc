@@ -73,6 +73,16 @@ namespace
     double gHistBinKev = 0.0;
     int gHistBins = 0;
 
+    // Чем заполнен мир вокруг сцены: воздухом (как было всегда) или пустотой.
+    //
+    // ЗАЧЕМ ключ (`A52`, 02.09.2026). Наша сцена ВОЗДУХА НЕ ЗНАЕТ: вне
+    // объявленных областей у `EfficiencySimulator` пустота. У арбитра мир — куб
+    // 120 см воздуха, и квант, ушедший мимо детектора, может рассеяться в нём и
+    // вернуться. Пока это различие не выключено, всякий остаток сверки на
+    // подпиковой полке приходится делить между «у нас нет обстановки» и «у нас
+    // нет физики» на глазок. Ключ `vacuum` разводит их замером.
+    bool gVacuumWorld = false;
+
     // ---- Сцена из файла (effsim --dump-scene): материалы, области, источник.
     struct SceneMat
     {
@@ -262,7 +272,7 @@ public:
     G4VPhysicalVolume* ConstructFromScene()
     {
         auto nist = G4NistManager::Instance();
-        auto air = nist->FindOrBuildMaterial("G4_AIR");
+        auto air = nist->FindOrBuildMaterial(gVacuumWorld ? "G4_Galactic" : "G4_AIR");
         auto worldS = new G4Box("world", 60 * cm, 60 * cm, 60 * cm);
         auto worldL = new G4LogicalVolume(worldS, air, "world");
         auto worldP = new G4PVPlacement(nullptr, {}, worldL, "world", nullptr, false, 0);
@@ -678,20 +688,27 @@ int main(int argc, char** argv)
     //      | g4cf [scene <файл>] ion <Z> <A> <N> <окно1_кэВ> [окно2 ...]
     //      | g4cf [scene <файл>] hist <E_кэВ> <N> <шаг_бина_кэВ>
     // Файл сцены — вывод effsim --dump-scene; без него сцена вшитая (tube).
+    //      Перед всем этим может стоять `vacuum` — мир пустой вместо воздуха.
     int base = 1;
-    if (argc > 2 && std::strcmp(argv[1], "scene") == 0)
+    if (argc > base && std::strcmp(argv[base], "vacuum") == 0)
     {
-        if (!LoadScene(argv[2]))
+        gVacuumWorld = true;
+        base++;
+    }
+
+    if (argc > base + 1 && std::strcmp(argv[base], "scene") == 0)
+    {
+        if (!LoadScene(argv[base + 1]))
         {
             return 2;
         }
 
-        base = 3;
+        base += 2;
     }
 
     if (argc < base + 3)
     {
-        std::fprintf(stderr, "g4cf [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
+        std::fprintf(stderr, "g4cf [vacuum] [scene <file>] mono <E_keV> <N> | ion <Z> <A> <N> <windows...>"
                              " | hist <E_keV> <N> <bin_keV>\n");
         return 2;
     }
