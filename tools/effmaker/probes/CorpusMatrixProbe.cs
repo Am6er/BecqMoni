@@ -160,6 +160,10 @@ class CorpusMatrixProbe
                 // быть. В счёте не применять.
                 EfficiencySimulator.MeasureCollectCost = true;
             else if (a == "--force") force = true;
+            // `A60`, АБЛЯЦИЯ: склад без вылета L-рентгена. Входит в
+            // клеймо (`nolx=1`), то есть такая матрица честно другая.
+            else if (a == "--no-lxray") options.LXrayEscape = false;
+
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
 

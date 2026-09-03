@@ -198,6 +198,10 @@ namespace CorpusFsaProbe
                 if (a == "--no-ann") { o.Annihilation = false; continue; }
                 if (a == "--no-isomer") { o.Isomers = false; continue; }
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
+                // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
+                // живой матрице — то есть вернуть поведение до правки 03.09.2026.
+                // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
+                if (a == "--backscatter-with-matrix") { o.BackscatterWithMatrix = true; continue; }
                 if (a == "--no-background") { o.Background = false; continue; }
                 // S56: чем задаётся состав библиотеки. `sample` — объявленным
                 // составом пробы (первый постулат), `peaks` — подписями поиска
@@ -843,6 +847,7 @@ namespace CorpusFsaProbe
             analyzer.CoincidenceWindowSec = o.WindowSec;
             analyzer.PileUp = o.PileUp;
             analyzer.Backscatter = o.Backscatter;
+            analyzer.BackscatterWithMatrix = o.BackscatterWithMatrix;
             if (o.RefitZ >= 0.0)
             {
                 analyzer.RefitZ = o.RefitZ;
@@ -3189,6 +3194,7 @@ namespace CorpusFsaProbe
             public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
             public bool PileUp = true;
             public bool Backscatter = true;
+            public bool BackscatterWithMatrix = false;
             public bool Background = true;
             public bool Quiet;
             public bool Peaks;

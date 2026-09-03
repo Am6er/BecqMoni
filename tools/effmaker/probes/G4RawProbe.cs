@@ -53,6 +53,7 @@ namespace G4RawProbe
             double escT0 = -1.0;      // <0 — не трогать умолчание (`A63`)
             // Ключи АБЛЯЦИИ каналов утечки (`A63`): чем держится каждая полоса.
             bool xray = true, esc = true, brem = true;
+            bool noLXray = false;                       // `A60`
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -64,6 +65,9 @@ namespace G4RawProbe
                 if (a == "--no-xray") { xray = false; continue; }
                 if (a == "--no-esc") { esc = false; continue; }
                 if (a == "--no-brem") { brem = false; continue; }
+                // `A60`, АБЛЯЦИЯ: снять вылет L-рентгена. Выключенный
+                // ключ возвращает счёт физики 14 до последнего бита.
+                if (a == "--no-lxray") { noLXray = true; continue; }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
                 {
                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
@@ -144,6 +148,7 @@ namespace G4RawProbe
             simulator.Seed = seed;
             simulator.Histories = histories;
             simulator.LightNonproportionality = light;
+            simulator.LXrayEscape = !noLXray;           // `A60`
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
             simulator.XrayEscape = xray;
@@ -215,6 +220,8 @@ namespace G4RawProbe
             Console.WriteLine("комптонов в кристалле {0}, с вакансией {1}, ответили рентгеном {2} (`A61`)",
                               simulator.CountCrystalCompton, simulator.CountCrystalVacancy,
                               simulator.CountVacancyXray);
+            Console.WriteLine("флуоресценция: K-квантов {0}, L-квантов {1} (`A60`)",
+                              simulator.CountKXray, simulator.CountLXray);
 
             double totalError;
             double totalSecond = simulator.TotalEfficiency(energyKev, out totalError);

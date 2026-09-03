@@ -605,6 +605,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 Histories = options.Histories,
                 XrayEscape = options.XrayEscape,
+                LXrayEscape = options.LXrayEscape,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,
                 SingleScatter = options.SingleScatter,

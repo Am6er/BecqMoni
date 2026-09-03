@@ -31,3 +31,7 @@ tools/CORPUS/corpus/geometries/build-*.log
 # (18.08.2026): числа из них уходят в README и завещания, сами файлы
 # пересоздаются прогоном.
 tools/CORPUS/scripts/*.log
+
+# рабочие таблицы сторожа перекладки и приёмки (A79, A84)
+tools/CORPUS/scripts/store_vs_wd_*.csv
+tools/CORPUS/scripts/wd_key_guid.csv

@@ -243,6 +243,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool XrayEscape = true;
 
         /// <summary>
+        /// ⛔ (`A60`) ВЫЛЕТ L-РЕНТГЕНА. Умолчанием ВКЛЮЧЁН решением Amber
+        /// 03.09.2026; физика поднята до 15, склад пересчитан.
+        ///
+        /// До правки `SampleFluorescence` знала только K-серию. Измерено
+        /// 02.09.2026 сверкой с Geant4 на голом кристалле NaI при 59.541 кэВ:
+        /// полоса 55…59 кэВ (потеря 0.5…4.5 кэВ — L-линии иода 3.9…4.8) у
+        /// арбитра 5.794e-4 на историю, у нас РОВНО НОЛЬ; доля от полной
+        /// 0.12 %. У сцинтиллятора она лежит под собственным гауссом, но
+        /// канал не только про кристалл: флуоресценция считается в ЛЮБОЙ
+        /// области сцены (`F27`, физика 12), и у свинцовой защиты ниже её
+        /// K-края (88 кэВ) L-серия — единственный ответ атома вообще.
+        ///
+        /// Ключ измерительный: выключенный возвращает прежний счёт до
+        /// последнего бита — то же случайное число решает судьбу K, и лишних
+        /// розыгрышей канал не тратит.
+        /// </summary>
+        public bool LXrayEscape = true;
+
+        /// <summary>
         /// Не считать когерентное рассеяние потерей на пути к кристаллу.
         ///
         /// Рэлеевское рассеяние энергию не меняет: квант после него даёт тот же
@@ -1866,6 +1885,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// из них с K-вакансией, из них ответивших рентгеном.</summary>
         public long CountCrystalCompton, CountCrystalVacancy, CountVacancyXray;
 
+        /// <summary>Сколько раз атом ответил K- и L-квантом (`A60`).</summary>
+        public long CountKXray, CountLXray;
+
         /// <summary>
         /// Из выброшенных — только те, что КОМПТОН-РАССЕЯЛИСЬ вне кристалла
         /// (`S55`). Разделение обязательно, иначе замер врёт в разы: прямой
@@ -3369,9 +3391,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] weight = new double[f0.Z.Length];
             for (int i = 0; i < f0.Z.Length; i++)
             {
-                if (energyKev <= f0.Data[i].KEdgeKev)
+                // ⛔ (`A60`) Элемент годится и тогда, когда K-оболочка ещё
+                // закрыта, а L уже открыта. Прежнее условие выбрасывало из
+                // розыгрыша ровно тот случай, ради которого L-канал и нужен:
+                // свинец ниже своего K-края (88 кэВ) отвечает ТОЛЬКО L-серией
+                // (9.2…15.2 кэВ), а до правки не отвечал ничем.
+                MaterialDatabase.Fluorescence fi = f0.Data[i];
+                bool kOpen = energyKev > fi.KEdgeKev;
+                bool lOpen = this.LXrayEscape && fi.HasL
+                    && energyKev > fi.LEdgeKev[fi.LEdgeKev.Length - 1];
+                if (!kOpen && !lOpen)
                 {
-                    continue;               // K-оболочка ещё недоступна
+                    continue;               // ни одной доступной оболочки
                 }
 
                 weight[i] = f0.Fraction[i] * PartialCrossSections.MassCrossSection(
@@ -3420,23 +3451,75 @@ namespace BecquerelMonitor.EfficiencyMaker
             // иначе расчётный EADL. Число случайных чисел от выбора не
             // меняется — меняется только порог сравнения.
             double omega = f.Omega(this.MeasuredFluorescenceYield);
-            if (this.Uniform() >= kFraction * omega)
+            double u = this.Uniform();
+            if (u < kFraction * omega)
             {
-                return 0.0;                 // не K-оболочка или оже-электрон
+                this.CountKXray++;
+                return PickLine(this.Uniform(), f.LineKev, f.LineWeight);
             }
 
-            double line = this.Uniform();
-            double acc = 0.0;
-            for (int i = 0; i < f.LineWeight.Length; i++)
+            // ⛔ (`A60`) L-СЕРИЯ. Раньше здесь стоял выход: «не K-оболочка или
+            // оже-электрон» — и вылет L-рентгена не считался ВОВСЕ. Измерено
+            // 02.09.2026 на голом кристалле NaI при 59.5 кэВ: в полосе
+            // 55…59 кэВ (потеря 0.5…4.5 кэВ — это и есть L-линии иода
+            // 3.9…4.8) у Geant4 5.794e-4 на историю, у нас РОВНО НОЛЬ.
+            //
+            // ⚠ Случайное число ТО ЖЕ САМОЕ, что решало судьбу K: интервал
+            // [0, kFraction·ω_K) отдан K-кванту, следом идут три интервала
+            // L-подоболочек. Так число розыгрышей на историю не растёт, и
+            // выключенный ключ возвращает прежний поток до последнего бита.
+            //
+            // ⚠ Ниже K-края у тяжёлых элементов это ЕДИНСТВЕННЫЙ канал
+            // флуоресценции: у свинца K-край 88 кэВ, а L-линии 9.2…15.2 кэВ
+            // при выходах 0.098 / 0.404 / 0.352.
+            if (!this.LXrayEscape || !f.HasL || f0.Shells[k] == null)
             {
-                acc += f.LineWeight[i];
-                if (line < acc)
+                return 0.0;                 // оже-электрон либо нет данных L
+            }
+
+            // Все три доли берутся ОДНИМ вызовом: порознь они стоили
+            // сорока восьми поисков по таблицам на каждое поглощение и
+            // замедляли счёт в полтора раза (`A60`).
+            double[] lFrac = f0.Shells[k].LFractions(energyKev);
+            if (lFrac == null)
+            {
+                return 0.0;
+            }
+
+            double edge = kFraction * omega;
+            for (int li = 0; li < f.OmegaL.Length && li < lFrac.Length; li++)
+            {
+                if (!(f.OmegaL[li] > 0.0) || f.LineKevL[li] == null
+                    || energyKev <= f.LEdgeKev[li])
                 {
-                    return f.LineKev[i];
+                    continue;               // подоболочка закрыта на этой энергии
+                }
+
+                edge += lFrac[li] * f.OmegaL[li];
+                if (u < edge)
+                {
+                    this.CountLXray++;
+                    return PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
                 }
             }
 
-            return f.LineKev[f.LineKev.Length - 1];
+            return 0.0;                     // оже-электрон
+        }
+
+        /// <summary>Линия по разыгранному числу и весам; веса в сумме единица.</summary>
+        static double PickLine(double pick, double[] kev, double[] weight)
+        {
+            double acc = 0.0;
+            for (int i = 0; i < weight.Length; i++)
+            {
+                acc += weight[i];
+                if (pick < acc)
+                {
+                    return kev[i];
+                }
+            }
+
+            return kev[kev.Length - 1];
         }
 
         /// <summary>
