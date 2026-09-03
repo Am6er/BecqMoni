@@ -43,6 +43,7 @@ class CorpusMatrixProbe
         string dump = null;
         bool force = false;
         var options = new ResponseMatrixOptions();
+        bool coneFar = false;                    // `A57`: конус только дальним
         foreach (string a in args)
         {
             if (a.StartsWith("--dir=", StringComparison.Ordinal)) dir = a.Substring(6);
@@ -138,7 +139,14 @@ class CorpusMatrixProbe
                 // не физика: ожидание то же, дисперсия меньше — на дальней сцене
                 // шум континуума 11.26 → 0.95 % при тех же историях. Умолчанием
                 // ВЫКЛЮЧЕН, включённый меняет клеймо.
-                options.AnalogConeSampling = a.Substring(7) != "0";
+                // `far` (решение Amber 02.09.2026) — включить конус ТОЛЬКО там,
+                // где источник дальний, то есть где он вне габарита сцены и
+                // конусу есть куда наводиться. Ближние сцены считаются как
+                // считались, и под новый код не попадают.
+            {
+                coneFar = a.Substring(7) == "far";
+                options.AnalogConeSampling = !coneFar && a.Substring(7) != "0";
+            }
             else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
                 // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только
@@ -228,6 +236,22 @@ class CorpusMatrixProbe
         {
             string key = Path.GetFileNameWithoutExtension(path);
             GeometryModel geometry = GeometryModel.Load(path);
+
+            // ⛔ КОНУС — ПО СВОЙСТВУ СЦЕНЫ, А НЕ ПО СПИСКУ (`A57`).
+            //
+            // Решение Amber 02.09.2026: включать наведение там, где источник
+            // ДАЛЬНИЙ. Спрашиваем это у самой сцены (`SourceOutsideScene`), а не
+            // держим список геометрий: список пришлось бы править при каждой
+            // новой сцене и однажды забыть, а забытая сцена молча получила бы
+            // матрицу с шумом 4.5 % — тот самый, при котором волны видны глазом.
+            //
+            // Ставится ДО гварда: ключ входит в клеймо, и матрица с конусом
+            // обязана отличаться от матрицы без него.
+            if (coneFar)
+            {
+                var probe = new EfficiencySimulator(geometry);
+                options.AnalogConeSampling = probe.SourceOutsideScene();
+            }
 
             // ГВАРД ГЛОБАЛЬНОГО ПЕРЕСЧЁТА (указание Amber 16.08.2026).
             //

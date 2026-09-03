@@ -55,6 +55,7 @@ namespace G4RawProbe
             bool xray = true, esc = true, brem = true;
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
+            double escCurve = -1.0;                     // `A70`
             foreach (string a in args)
             {
                 if (a == "--no-light") { light = false; continue; }
@@ -66,6 +67,11 @@ namespace G4RawProbe
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
                 {
                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--esc-curve=", StringComparison.Ordinal))
+                {
+                    escCurve = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
                     continue;
                 }
                 if (a.StartsWith("--esc-soft-kev=", StringComparison.Ordinal))
@@ -144,6 +150,7 @@ namespace G4RawProbe
             simulator.ElectronEscape = esc;
             simulator.Bremsstrahlung = brem;
             if (escSoft >= 0.0) { simulator.ElectronEscapeSoftAmp = escSoft; }
+            if (escCurve > 0.0) { simulator.ElectronEscapeCurve = escCurve; }
             if (escSoftKev > 0.0) { simulator.ElectronEscapeSoftKev = escSoftKev; }
             if (escSlope >= 0.0)
             {
