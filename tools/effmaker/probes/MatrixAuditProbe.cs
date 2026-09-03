@@ -59,6 +59,9 @@ namespace MatrixAuditProbe
             bool quiet = false;
             var coneOnly = new List<string>();
             var except = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            // guid -> ключ сцены; пусто, если `--map=` не подан (склад, где имя
+            // файла и есть ключ). См. `A84` у места применения.
+            var byGuid = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string a in args)
             {
                 if (a == "--quiet") { quiet = true; continue; }
@@ -85,6 +88,31 @@ namespace MatrixAuditProbe
                     continue;
                 }
 
+                if (a.StartsWith("--map=", StringComparison.Ordinal))
+                {
+                    // Таблица «ключ,guid» — две колонки, первая строка заголовок.
+                    // Делает её тот, кто зовёт, из `mx_swap.key_to_guid()`.
+                    string mapPath = a.Substring(6);
+                    if (!File.Exists(mapPath))
+                    {
+                        Console.Error.WriteLine("нет файла соответствия: " + mapPath);
+                        return 2;
+                    }
+
+                    bool first = true;
+                    foreach (string line in File.ReadAllLines(mapPath))
+                    {
+                        if (first) { first = false; continue; }
+                        string[] cell = line.Split(',');
+                        if (cell.Length >= 2 && cell[0].Trim().Length > 0 && cell[1].Trim().Length > 0)
+                        {
+                            byGuid[cell[1].Trim()] = cell[0].Trim();
+                        }
+                    }
+
+                    continue;
+                }
+
                 if (a.StartsWith("--dir=", StringComparison.Ordinal)) dir = a.Substring(6);
                 else if (a.StartsWith("--phys=", StringComparison.Ordinal)) wantPhys = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--hist=", StringComparison.Ordinal)) wantHist = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
@@ -105,6 +133,27 @@ namespace MatrixAuditProbe
             if (files.Length == 0)
             {
                 Console.Error.WriteLine("в каталоге нет ни одной матрицы: " + dir);
+                return 2;
+            }
+
+            // ⛔ ЗАБЫТАЯ КАРТА НЕ ДОЛЖНА ВЫГЛЯДЕТЬ УСПЕХОМ (`A84`, замечание
+            // `bq-eng-res-net-a9`). Обёртка `audit_wd.py` подаёт `--map=` сама,
+            // но проба обязана быть безопасной и БЕЗ неё: запущенная напрямую по
+            // каталогу прогона, где имена — guid, она молча не найдёт ни одной
+            // сцены из `--except=` и `--cone-on=` и выдаст ложные находки, в том
+            // числе обвинение исправному критерию `SourceOutsideScene`.
+            //
+            // Поэтому: имена похожи на guid, поимённый ключ задан, карты нет —
+            // отказ с причиной, а не работа с невыполнимыми условиями.
+            if ((except.Count > 0 || coneOnly.Count > 0) && byGuid.Count == 0
+                && GuidNamed(files))
+            {
+                Console.Error.WriteLine(
+                    "⛔ имена файлов — guid, а поимённые ключи (--except=/--cone-on=) заданы без --map=.");
+                Console.Error.WriteLine(
+                    "  Так они не сработают НИ РАЗУ и дадут ложные находки. Зовите через обёртку:");
+                Console.Error.WriteLine(
+                    "  python tools/CORPUS/scripts/audit_wd.py --probe=<этот exe> --dir=" + dir + " …");
                 return 2;
             }
 
@@ -163,7 +212,40 @@ namespace MatrixAuditProbe
                     findings.Add(name + ": физика " + phys + ", а ждали " + wantPhys);
                 }
 
+                // ⛔ ИМЯ ФАЙЛА — НЕ ВСЕГДА КЛЮЧ СЦЕНЫ (`A84`). В складе файл
+                // зовётся ключом (`AS80_point0.rmx`), а в каталоге прогона —
+                // guid кривой (`2992663a-….rmx`), потому что `ResponseMatrixStore`
+                // ищет матрицу по нему. Без разрешения guid обратно в ключ
+                // `--except=` и `--cone-on=` НЕ СРАБАТЫВАЮТ НИ РАЗУ именно там,
+                // где приёмка нужнее всего, — на втором рубеже, по каталогу
+                // прогона (правило «звать приёмку дважды», журнал §11.3).
+                //
+                // Цена измерена 03.09.2026: по складу одна ожидаемая находка,
+                // по каталогу прогона — две, и вторая ЛОЖНАЯ (`RC103_lu_front`
+                // с её 12 млн историй). Сторож, дающий заведомо ложную находку
+                // на своём главном рубеже, приучает не читать собственный отказ.
+                //
+                // ⚠ Соответствие НЕ ВЫЧИСЛЯЕТСЯ здесь: его считает
+                // `mx_swap.key_to_guid()` по `index.csv` и узлам `<Efficiency>`
+                // самих спектров, и второй разборщик того же соответствия
+                // однажды разойдётся с первым молча (`S37`). Поэтому оно
+                // ПОДАЁТСЯ таблицей `--map=`, а кто её сделал — забота
+                // вызывающего.
                 string key = Path.GetFileNameWithoutExtension(path);
+                if (byGuid.TryGetValue(key, out string sceneKey))
+                {
+                    key = sceneKey;
+
+                    // ⛔ И ОТЧЁТ ТОЖЕ ПЕРЕИМЕНОВЫВАЕТСЯ, не только проверки.
+                    // Разрешить ключ для `--except=`/`--cone-on=` и оставить в
+                    // таблице guid — значит починить логику и бросить читателя:
+                    // «0b58cea4-…rmx: шум худшего узла 8.17 %» не говорит, о
+                    // какой сцене речь, и человек идёт сверять руками. Сторож,
+                    // чей отчёт нельзя прочесть, стоит столько же, сколько
+                    // сторож, который молчит (`A84`, вторая половина).
+                    name = key + Path.GetExtension(path);
+                }
+
                 int expectHist = except.TryGetValue(key, out int special) ? special : wantHist;
                 if (expectHist != 0 && m.Histories != expectHist)
                 {
@@ -395,6 +477,27 @@ namespace MatrixAuditProbe
         }
 
         /// <summary>Есть ли имя в списке, без оглядки на регистр.</summary>
+        /// <summary>
+        /// Похожи ли имена файлов на guid (`8-4-4-4-12` шестнадцатеричных) —
+        /// то есть это каталог прогона, а не склад (`A84`). Судим по БОЛЬШИНСТВУ,
+        /// а не по первому файлу: в каталог могли положить что-то руками.
+        /// </summary>
+        static bool GuidNamed(string[] files)
+        {
+            int guids = 0;
+            foreach (string f in files)
+            {
+                string n = Path.GetFileNameWithoutExtension(f);
+                Guid ignored;
+                if (n.Length == 36 && Guid.TryParse(n, out ignored))
+                {
+                    guids++;
+                }
+            }
+
+            return guids * 2 > files.Length;
+        }
+
         static bool Names(List<string> list, string key)
         {
             foreach (string s in list)

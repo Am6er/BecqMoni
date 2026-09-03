@@ -158,7 +158,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     измерено, на 662 пик +0.66 → +0.64 %, на 2614 −1.04 → −1.06 %.
         //     После правки те же полосы сходятся до −1.5 и −18 %, пик
         //     +1.84 → +0.49 %.
-        public const int PhysicsVersion = 14;
+        // 15 — ВЫЛЕТ L-РЕНТГЕНА (`A60`, 03.09.2026, решение Amber
+        //      «умолчанием ВКЛ»). `SampleFluorescence` знала только
+        //      K-серию: на голом кристалле NaI при 59.541 кэВ полоса
+        //      55…59 кэВ (L-линии иода 3.9…4.8) давала у нас РОВНО НОЛЬ
+        //      против 5.794e-4 на историю у Geant4. Канал общий для всей
+        //      сцены, а не только для кристалла: у свинцовой защиты ниже
+        //      её K-края (88 кэВ) L-серия — единственный ответ атома.
+        //      Ключ `--no-lxray` возвращает прежний счёт побитово.
+        public const int PhysicsVersion = 15;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -446,6 +454,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ⚠ Без этих строк ключи были бы неотличимы в клейме: матрица
                 // с новой физикой легла бы поверх старой под тем же именем, и
                 // гвард отдал бы разбору что попало.
+                // `A60`: в клеймо пишется ВЫКЛЮЧЕННЫЙ ключ — включённый
+                // есть умолчание физики 15, а выключенный делает матрицу
+                // другой и обязан быть отличим.
+                if (!options.LXrayEscape)
+                {
+                    sb.Append("nolx=1;");
+                }
+
                 if (options.XcomPairThreshold)
                 {
                     sb.Append("pairth=1;");
@@ -883,6 +899,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(flags.PositronOffset);
                 writer.Write(flags.RayleighToCrystal);
                 writer.Write(flags.AnalogConeSampling);
+                writer.Write(flags.LXrayEscape);          // `A60`
             }
 
             if (File.Exists(path))
@@ -1151,6 +1168,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 matrix.Options.PositronOffset = reader.ReadBoolean();
                                 matrix.Options.RayleighToCrystal = reader.ReadBoolean();
                                 matrix.Options.AnalogConeSampling = reader.ReadBoolean();
+                                if (stream.Length - stream.Position >= 1)
+                                {
+                                    matrix.Options.LXrayEscape = reader.ReadBoolean();
+                                }
                             }
                         }
                     }
@@ -1255,6 +1276,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int Histories = 3000000;
 
         public bool XrayEscape = true;
+
+        /// <summary>
+        /// ⛔ (`A60`) Вылет L-рентгена; умолчанием ВКЛЮЧЁН, физика 15.
+        /// Выключённый возвращает прежний счёт побитово и потому попадает
+        /// в клеймо ИМЕННО выключенным (`nolx=1`) — по правилу `T42`
+        /// наоборот: здесь прежнюю физику означает НЕ умолчание.
+        /// </summary>
+        public bool LXrayEscape = true;
 
         public bool CoherentPassesThrough = true;
 

@@ -573,6 +573,75 @@ function Read-AppWdStamp {
     if (Test-Path -LiteralPath $f) { try { Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch { $null } }
 }
 
+# ⛔ ПЕРЕКЛАДКА СКЛАДА — ПО КЛЕЙМУ, А НЕ ПО ВРЕМЕНИ (`A79`).
+#
+# Склад пишет `corpus/geometries/<ключ>.rmx`, разбор читает
+# `<оснастка>/config/device/response/<guid>.rmx`, между ними стоит
+# `mx_swap.py --store`, которого никто не зовёт автоматически. Шаг ручной, и он
+# уже ДВАЖДЫ не сделался: 18.08.2026 весь корпус посчитался без матрицы
+# (`B14`, `B20`), 02.09.2026 прогон едва не взял матрицы прошлых суток — и
+# отработал бы штатно, молча, на прежней физике.
+#
+# Сверку делает `store_vs_wd.py`: он зовёт ту же приёмку тем же
+# `ResponseMatrix.Load` и сравнивает КЛЕЙМА. Время файла говорит «кто-то
+# писал», клеймо — «лежит то самое».
+#
+# ⚠ Отсутствие питона, склада или пробы находкой НЕ считается: сторож обязан
+# работать в дереве, где корпуса нет. Такое печатается как пропуск — иначе
+# сторож начнёт отказывать там, где стеречь нечего.
+function Test-AppWdStore {
+    param([Parameter(Mandatory)]$Plan)
+
+    $probe = Join-Path $Plan.ProbeBuild 'MatrixAuditProbe.exe'
+    $script = Join-Path $PSScriptRoot 'store_vs_wd.py'
+    $store = Join-Path $Plan.Corpus 'geometries'
+    $resp = Join-Path $Plan.Wd 'config\device\response'
+
+    foreach ($need in @($probe, $script, $store, $resp)) {
+        if (-not (Test-Path -LiteralPath $need)) {
+            return [pscustomobject]@{ Bad = @(); Note = ("пропущено, нет: {0}" -f $need) }
+        }
+    }
+
+    $prev = $env:PYTHONIOENCODING
+    $env:PYTHONIOENCODING = 'utf-8'
+    $out = & python $script "--probe=$probe" "--store=$store" "--wd=$resp" 2>&1
+    $code = $LASTEXITCODE
+    $env:PYTHONIOENCODING = $prev
+
+    if ($code -eq 0) {
+        return [pscustomobject]@{ Bad = @(); Note = 'клейма склада и оснастки сошлись' }
+    }
+
+    # Код 2 — сломался сам сторож; это тоже находка, но с иной причиной, и
+    # смешивать их нельзя: «сверка не сошлась» и «сверку не удалось сделать»
+    # требуют разных действий.
+    # Берём ТОЛЬКО находки, а не всю печать: у отчёта есть шапка с путями и
+    # числом матриц, и она в списке причин выглядит как две лишние находки.
+    # Находки идут после строки «НАХОДОК: N» и до пустой строки.
+    $all = @($out | ForEach-Object { $_.ToString() })
+    $from = [Array]::FindIndex($all, [Predicate[string]] { param($x) $x -match 'НАХОДОК:' })
+    $lines = @()
+    if ($from -ge 0) {
+        for ($i = $from + 1; $i -lt $all.Count; $i++) {
+            if ($all[$i].Trim().Length -eq 0) { break }
+            $lines += $all[$i]
+        }
+    }
+    if ($lines.Count -eq 0) { $lines = @($all | Where-Object { $_ -match '⛔' }) }
+    if ($code -ne 1) {
+        return [pscustomobject]@{
+            Bad = @("⛔ сверка перекладки НЕ ВЫПОЛНЕНА (код $code): " + ($lines -join ' / '))
+            Note = 'сверка не выполнена'
+        }
+    }
+
+    $bad = @("⛔ СКЛАД И ОСНАСТКА РАСХОДЯТСЯ ПО КЛЕЙМУ — перекладка не сделана или сделана частично")
+    foreach ($l in ($lines | Select-Object -First 6)) { $bad += ("    " + $l.ToString().Trim()) }
+    $bad += "    повторить: python tools/CORPUS/scripts/mx_swap.py --from=tools/CORPUS/corpus/geometries --store"
+    return [pscustomobject]@{ Bad = $bad; Note = 'РАСХОЖДЕНИЕ' }
+}
+
 # Сторож целиком. Печатает вердикт, ВОЗВРАЩАЕТ число отказных находок.
 # Ноль — оснастка свежая; всё остальное обязано останавливать прогон.
 #
@@ -588,12 +657,15 @@ function Invoke-AppWdGuard {
     $p = Test-AppWdPlan    -Plan $Plan
     $l = Test-AppWdLibrary -Plan $Plan
     $s = if ($Building) { [pscustomobject]@{ Bad = @() } } else { Test-AppWdStamp -Plan $Plan }
+    $m = Test-AppWdStore   -Plan $Plan
     $sw.Stop()
     # Порядок нарочный: печатаются только первые 20 находок, а расхождений по
     # файлам бывают десятки (опыт 27.08.2026: занятая соседом база — 69 находок).
     # Поэтому впереди то, что решает судьбу прогона целиком — отметка, сборка,
     # библиотека, — а пофайловая сверка последней.
-    $bad = @($s.Bad) + @($b.Bad) + @($l.Bad) + @($p.Bad)
+    # Сверка перекладки идёт сразу за отметкой и сборкой: она решает судьбу
+    # прогона целиком — на чужих матрицах он отработает штатно и молча.
+    $bad = @($s.Bad) + @($b.Bad) + @($m.Bad) + @($l.Bad) + @($p.Bad)
 
     Write-Host ""
     Write-Host "=== СТОРОЖ ОСНАСТКИ (T63) ===" -ForegroundColor Cyan
@@ -604,6 +676,7 @@ function Invoke-AppWdGuard {
     if ($st) { Write-Host ("  собрана  : {0} из {1}" -f $st.built, $st.bin) }
     Write-Host ("  сверено  : {0} файлов по sha256 за {1} с" -f $Plan.Pairs.Count, $sw.Elapsed.TotalSeconds.ToString('F2'))
     if ($l.Sha) { Write-Host ("  библиотека: {0} записей, sha {1}" -f $l.Count, $l.Sha) }
+    if ($m.Note) { Write-Host ("  перекладка: {0}" -f $m.Note) }
 
     foreach ($x in $Plan.Strays) {
         Write-Host ("  ⚠ в каталоге проб exe без исходника, в оснастку не едет: {0}  {1}" -f $x.Name, $x.LastWriteTime.ToString('dd.MM HH:mm')) -ForegroundColor Yellow

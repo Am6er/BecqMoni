@@ -205,6 +205,44 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             /// <summary>Веса линий, в сумме единица.</summary>
             public double[] LineWeight;
+
+            /// <summary>
+            /// ⛔ (`A60`) L-СЕРИЯ: края, выходы и линии трёх подоболочек
+            /// L1, L2, L3 — по порядку, как в EADL (вакансии 3, 5, 6).
+            ///
+            /// Зачем отдельно от K. Вылет L-рентгена — не поправка к K, а свой
+            /// канал: он открывается на энергиях, где K-оболочка ещё закрыта, и
+            /// у тяжёлых элементов уносит заметно. У иода L-линии 3.5…5.2 кэВ
+            /// при выходах 0.043 / 0.085 / 0.086; у свинца 9.2…15.2 кэВ при
+            /// 0.098 / 0.404 / 0.352 — а K-край свинца лежит на 88 кэВ, то есть
+            /// ниже него ЕДИНСТВЕННЫЙ канал флуоресценции — этот.
+            ///
+            /// Подоболочки держатся врозь, а не сводятся к одной «L» с
+            /// эффективным выходом: их доли в фотопоглощении зависят от энергии
+            /// каждая по-своему (EPICS2017 даёт их отдельными таблицами), и
+            /// усреднение пришлось бы делать по энергии, которой на момент
+            /// загрузки ещё нет.
+            /// </summary>
+            public double[] LEdgeKev;
+
+            /// <summary>Выход флуоресценции подоболочек L1, L2, L3 (EADL).</summary>
+            public double[] OmegaL;
+
+            /// <summary>Энергии линий каждой L-подоболочки, кэВ.</summary>
+            public double[][] LineKevL;
+
+            /// <summary>Веса линий каждой L-подоболочки, в сумме единица.</summary>
+            public double[][] LineWeightL;
+
+            /// <summary>Есть ли у элемента разобранная L-серия.</summary>
+            public bool HasL
+            {
+                get
+                {
+                    return this.LEdgeKev != null && this.OmegaL != null
+                        && this.LineKevL != null && this.LineWeightL != null;
+                }
+            }
         }
 
         /// <summary>
@@ -269,6 +307,116 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 return den > 0.0 ? Math.Min(1.0, num / den) : 0.0;
             }
+
+            /// <summary>
+            /// ⛔ (`A60`) ДОЛЯ ФОТОПОГЛОЩЕНИЙ НА L-ПОДОБОЛОЧКЕ <paramref name="li"/>
+            /// (0 = L1, 1 = L2, 2 = L3) при энергии <paramref name="energyKev"/>.
+            ///
+            /// Считается как доля ОСТАТКА после K, а не отношением табличных
+            /// сечений напрямую, и это не педантизм. У K-оболочки в
+            /// `epics_photo_subshell` узлов может быть всего два (у иода —
+            /// ровно два, от 33.2 кэВ): выше них интерполяция отдаёт крайнее
+            /// значение, то есть константу, и знаменатель «сумма по всем
+            /// оболочкам» поехал бы вместе с ней. Точный K берётся фитами
+            /// (<see cref="KFraction"/>), а таблицы делят только то, что
+            /// осталось, — там они полные (73…107 узлов на подоболочку).
+            /// </summary>
+            /// <summary>
+            /// Сечение подоболочки <paramref name="seq"/> по таблице, барн
+            /// (`A60`, для диагностики: без него доля 0 неотличима от
+            /// «таблицы нет» и от «оболочка закрыта»).
+            /// </summary>
+            public double ShellCrossSection(int seq, double energyKev)
+            {
+                if (this.tableE == null || seq < 0 || seq >= this.tableE.Length
+                    || this.tableE[seq] == null)
+                {
+                    return double.NaN;
+                }
+
+                return InterpTable(this.tableE[seq], this.tableCs[seq], energyKev);
+            }
+
+            /// <summary>Сколько подоболочек в таблице (`A60`).</summary>
+            public int ShellCount
+            {
+                get { return this.tableE != null ? this.tableE.Length : 0; }
+            }
+
+            public double LFraction(double energyKev, int li)
+            {
+                double[] f = this.LFractions(energyKev);
+                return f != null && li >= 0 && li < f.Length ? f[li] : 0.0;
+            }
+
+            /// <summary>
+            /// ⛔ (`A60`) ВСЕ ТРИ ДОЛИ ЗА ОДИН ПРОХОД, С ПАМЯТЬЮ НА ПОСЛЕДНЮЮ
+            /// ЭНЕРГИЮ. Это не украшение, а цена счёта.
+            ///
+            /// Первая редакция звала `LFraction` по разу на подоболочку, а та
+            /// каждый раз считала заново и `KFraction`, и сумму `InterpTable`
+            /// по всем шестнадцати оболочкам — сорок восемь бинарных поисков с
+            /// логарифмами на КАЖДОЕ фотопоглощение. Замер по семи пересчитанным
+            /// сценам склада: счёт замедлился в **1.5 раза** (медиана; от 1.20
+            /// у сосудных сцен до 1.59 у `AS80_lu_front`). Столько же стоило бы
+            /// и человеку, считающему матрицу из формы приложения.
+            ///
+            /// Числа от этого не меняются: та же арифметика, посчитанная один
+            /// раз вместо трёх, и запомненная до смены энергии.
+            /// </summary>
+            public double[] LFractions(double energyKev)
+            {
+                if (this.tableE == null || this.tableE.Length < 4)
+                {
+                    return null;
+                }
+
+                if (this.lastFracEnergy == energyKev && this.lastFrac != null)
+                {
+                    return this.lastFrac;
+                }
+
+                double rest = 1.0 - this.KFraction(energyKev);
+                double[] result = new double[3];
+                if (rest > 0.0)
+                {
+                    double den = 0.0;
+                    for (int s = 1; s < this.tableE.Length; s++)
+                    {
+                        double v = InterpTable(this.tableE[s], this.tableCs[s], energyKev);
+                        if (v > 0.0)
+                        {
+                            den += v;
+                            if (s <= 3)
+                            {
+                                result[s - 1] = v;
+                            }
+                        }
+                    }
+
+                    if (den > 0.0)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            result[i] = rest * result[i] / den;
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            result[i] = 0.0;
+                        }
+                    }
+                }
+
+                this.lastFracEnergy = energyKev;
+                this.lastFrac = result;
+                return result;
+            }
+
+            double lastFracEnergy = double.NaN;
+            double[] lastFrac;
 
             /// <summary>σ(E) = Σ aᵢ/Eⁱ; E в кэВ снаружи, в МэВ внутри.</summary>
             static double EvalFit(double[] a, double energyKev)
@@ -632,8 +780,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                         return null;
                     }
 
-                    // Табличные векторы нужны только в зазоре между K-краем и
-                    // началом фитов; у большинства элементов он пуст.
+                    // ⛔ (`A60`) ТАБЛИЧНЫЕ ВЕКТОРЫ ГРУЗЯТСЯ ВСЕГДА, а не только
+                    // в зазоре между K-краем и началом фитов.
+                    //
+                    // Прежде их брали лишь при `lowFromKev > kEdgeKev` — для
+                    // доли K больше ничего и не требовалось, фиты покрывают всё
+                    // остальное. С появлением L-канала это стало дырой, и
+                    // молчаливой: у иода зазора НЕТ (фиты начинаются прямо с
+                    // K-края 33.18 кэВ), таблицы оставались пустыми, доля любой
+                    // L-подоболочки выходила нулём — и вылет L-рентгена не
+                    // разыгрывался НИ РАЗУ. Поймано счётчиком `CountLXray`: у
+                    // свинца (зазор 88…187 кэВ, таблицы были) канал работал и
+                    // давал 20 % на фотопоглощение, у иода — ровно ноль.
+                    //
+                    // ⚠ Выше последнего узла таблицы (у иода это 33.9 кэВ)
+                    // `InterpTable` держит крайнее значение. Для ДОЛИ это
+                    // приемлемо: делится остаток после K, посчитанный точными
+                    // фитами, а отношение L1:L2:L3 между собой меняется с
+                    // энергией медленно. Для самих сечений так делать нельзя.
                     model.tableE = new double[shells][];
                     model.tableCs = new double[shells][];
                     for (int s = 0; s < shells; s++)
@@ -642,7 +806,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                         model.tableCs[s] = new double[0];
                     }
 
-                    if (model.lowFromKev > model.kEdgeKev + 1e-9)
                     {
                         command.CommandText =
                             "select shell_seq, energy_ev, cs_b from epics_photo_subshell" +
@@ -851,6 +1014,99 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // элементов из `xray_fluorescence` он уже стоит в
                         // `omega_k`; у заведённых только что его надо взять там
                         // же, откуда его брала та таблица, — суммой по вакансии.
+                        // ⛔ (`A60`) L-СЕРИЯ: края, выходы и линии трёх
+                        // подоболочек. Всё из EADL, одним проходом по
+                        // `eadl_radiative`: сумма вероятностей по вакансии —
+                        // это и есть выход ω_Li, а сами переходы дают линии.
+                        //
+                        // ⚠ Края берутся из `eadl_binding`, а НЕ из XCOM, и
+                        // это осознанно: у K-края в дереве уже есть спор двух
+                        // источников (`D18`, XCOM против EADL, до 0.8 %), и
+                        // разводить его ещё и на L значило бы получить край от
+                        // одного источника, а линии от другого. Здесь оба из
+                        // EADL, то есть внутренне согласованы.
+                        int[] lShells = { 3, 5, 6 };
+                        for (int li = 0; li < lShells.Length; li++)
+                        {
+                            command.CommandText =
+                                "select z, binding_ev from eadl_binding where shell_id = "
+                                + lShells[li];
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    Fluorescence f;
+                                    if (!fluo.TryGetValue(reader.GetInt32(0), out f))
+                                    {
+                                        continue;
+                                    }
+
+                                    if (f.LEdgeKev == null)
+                                    {
+                                        f.LEdgeKev = new double[lShells.Length];
+                                        f.OmegaL = new double[lShells.Length];
+                                        f.LineKevL = new double[lShells.Length][];
+                                        f.LineWeightL = new double[lShells.Length][];
+                                    }
+
+                                    f.LEdgeKev[li] = reader.GetDouble(1) / 1000.0;
+                                }
+                            }
+
+                            command.CommandText =
+                                "select z, energy_ev, probability from eadl_radiative" +
+                                " where vacancy_shell = " + lShells[li] +
+                                " order by z, energy_ev";
+                            Dictionary<int, List<double[]>> lLines = new Dictionary<int, List<double[]>>();
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    int z = reader.GetInt32(0);
+                                    List<double[]> list;
+                                    if (!lLines.TryGetValue(z, out list))
+                                    {
+                                        list = new List<double[]>();
+                                        lLines[z] = list;
+                                    }
+
+                                    list.Add(new double[] { reader.GetDouble(1) / 1000.0, reader.GetDouble(2) });
+                                }
+                            }
+
+                            foreach (KeyValuePair<int, List<double[]>> pair in lLines)
+                            {
+                                Fluorescence f;
+                                if (!fluo.TryGetValue(pair.Key, out f) || f.LEdgeKev == null)
+                                {
+                                    continue;
+                                }
+
+                                double omega = 0.0;
+                                foreach (double[] row in pair.Value)
+                                {
+                                    omega += row[1];
+                                }
+
+                                if (!(omega > 0.0))
+                                {
+                                    continue;
+                                }
+
+                                double[] kev = new double[pair.Value.Count];
+                                double[] w = new double[pair.Value.Count];
+                                for (int i = 0; i < pair.Value.Count; i++)
+                                {
+                                    kev[i] = pair.Value[i][0];
+                                    w[i] = pair.Value[i][1] / omega;   // веса в сумме единица
+                                }
+
+                                f.OmegaL[li] = omega;
+                                f.LineKevL[li] = kev;
+                                f.LineWeightL[li] = w;
+                            }
+                        }
+
                         command.CommandText =
                             "select z, sum(probability) from eadl_radiative" +
                             " where vacancy_shell = 1 group by z";
