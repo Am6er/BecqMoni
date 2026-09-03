@@ -1234,7 +1234,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRLoadingROIConfigFailed", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reason: {0}.
+        /// </summary>
+        public static string ERRFailureReason {
+            get {
+                return ResourceManager.GetString("ERRFailureReason", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Specified WAV format is not supported by the audio device..
         /// </summary>
@@ -1426,7 +1435,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error! Сoefficients uploaded with error! Check connection and reupload it again..
+        ///   Looks up a localized string similar to Error! Coefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
         public static string ERRUploadCoefficeintsToDevice {
             get {
@@ -2342,6 +2351,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to THE ELEMENT DATABASE (matdb.sqlite) COULD NOT BE READ, ....
+        /// </summary>
+        public static string NucBase_ElementDataFetchError {
+            get {
+                return ResourceManager.GetString("NucBase_ElementDataFetchError", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}.
         /// </summary>
         public static string NucBase_ChainLinesRefused {
@@ -2884,6 +2902,24 @@ namespace BecquerelMonitor.Properties {
         public static string FSANoMatrixMark {
             get {
                 return ResourceManager.GetString("FSANoMatrixMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to · old matrix.
+        /// </summary>
+        public static string FSAOldMatrixMark {
+            get {
+                return ResourceManager.GetString("FSAOldMatrixMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The response matrix of efficiency curve “{0}” was computed with file format {1} [rest of string was truncated]&quot;;..
+        /// </summary>
+        public static string FSAMatrixOldFormat {
+            get {
+                return ResourceManager.GetString("FSAMatrixOldFormat", resourceCulture);
             }
         }
 

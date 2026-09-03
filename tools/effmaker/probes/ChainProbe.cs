@@ -315,12 +315,26 @@ namespace ChainProbe
                 // измениться ни на сколько: домножение на единицу.
                 bad += Near("Ac-228 911.20 не тронута", 25.8, ac911);
                 Console.WriteLine("  строк при пороге 1 %: {0}", grid.Rows.Count);
+                bad += Said(form, grid, "Th-232 по ряду");
 
                 // Тот же ряд без галочки — выходы свои, не рядовые.
                 ((System.Windows.Forms.CheckBox)Field(form, "IncludeDecayChainCheckBox")).Checked = false;
                 Set(form, "IsotopeTextBox", "Tl-208");
                 Call(form, "DoSearch");
                 bad += Near("без ряда: Tl-208 2614.51 свой выход", 99.754, Cell(grid, 2614.51));
+                bad += Said(form, grid, "Tl-208 без ряда");
+
+                // ⛔ ЗАПРОС ПРО ЭЛЕМЕНТ — ВТОРАЯ ДОРОГА К БАЗЕ ВЕЩЕСТВ (`A25`).
+                // Символ без массового числа уходит не в поиск распада, а в
+                // характеристический рентген, и трогает `matdb.sqlite` дважды
+                // (`ElementSymbol`, `GetFluorescence`). До правки отказ этой базы
+                // улетал отсюда наружу броском; теперь молчания быть не должно
+                // ни при каком её состоянии.
+                Set(form, "IsotopeTextBox", "W");
+                Set(form, "IntencityTextBox", "");
+                Call(form, "DoSearch");
+                Console.WriteLine("  строк по «W»: {0}", grid.Rows.Count);
+                bad += Said(form, grid, "W — рентген элемента");
             }
 
             return bad;
@@ -556,6 +570,36 @@ namespace ChainProbe
             }
 
             return bad;
+        }
+
+        /// <summary>
+        /// ЧТО РЕДАКТОР СКАЗАЛ ЧЕЛОВЕКУ — печатается всегда и проверяется тогда,
+        /// когда в таблице пусто (`A25`).
+        ///
+        /// Строка состояния под таблицами — единственное место, где редактор
+        /// объясняет исход запроса (`T92`), и правило у неё простое: пустая
+        /// таблица без единого слова — это молчание, неотличимое от «линий нет».
+        /// Отказ базы НУКЛИДОВ такую строку уже даёт (`D46`), отказ базы
+        /// ВЕЩЕСТВ до 03.09.2026 не давал ничего — он улетал броском мимо
+        /// строки и убивал прогон кодом −532462766.
+        ///
+        /// ⚠ Проверяется НАЛИЧИЕ слов, а не их текст: текст переведён, и на
+        /// другой машине он другой. Сами слова сверяет опыт с испорченным
+        /// каталогом, где известно, чего ждать.
+        /// </summary>
+        static int Said(object form, System.Windows.Forms.DataGridView grid, string what)
+        {
+            System.Windows.Forms.Control label =
+                (System.Windows.Forms.Control)Field(form, "SearchStatusLabel");
+            string said = (label.Text ?? "").Replace(Environment.NewLine, " | ");
+            Console.WriteLine("  сказано ({0}): {1}", what, said.Length == 0 ? "«»" : said);
+            if (grid.Rows.Count == 0 && said.Trim().Length == 0)
+            {
+                Console.WriteLine("  ⛔ таблица пуста, а строка состояния МОЛЧИТ");
+                return 1;
+            }
+
+            return 0;
         }
 
         static object Field(object target, string name)

@@ -194,7 +194,7 @@
     <value>Не могу перезаписать уже открытый файл.</value>
   </data>
   <data name="ChartHeaderEnergy" xml:space="preserve">
-    <value>Энергия[keV]:</value>
+    <value>Энергия[кэВ]:</value>
   </data>
   <data name="InvalidValueDialogTitle" xml:space="preserve">
     <value>Некорректное введённое значение</value>
@@ -206,7 +206,7 @@
     <value>Экспорт в CSV файл</value>
   </data>
   <data name="ChartHeaderNetCps" xml:space="preserve">
-    <value>CPS над фоном:</value>
+    <value>Имп/с над фоном:</value>
   </data>
   <data name="ROIPrimitiveTypeROIReference" xml:space="preserve">
     <value>Ссылка на ROI</value>
@@ -300,6 +300,9 @@
   </data>
   <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
     <value>Не удалось загрузить конфигурационный файл ROI.</value>
+  </data>
+  <data name="ERRFailureReason" xml:space="preserve">
+    <value>Причина: {0}</value>
   </data>
   <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
     <value>Разница с Фоном</value>
@@ -405,6 +408,16 @@
   </data>
   <data name="FSANoMatrixMark" xml:space="preserve">
     <value> · без матрицы</value>
+  </data>
+  <data name="FSAOldMatrixMark" xml:space="preserve">
+    <value> · старая матрица</value>
+  </data>
+  <data name="FSAMatrixOldFormat" xml:space="preserve">
+    <value>Матрица отклика кривой «{0}» посчитана форматом файла {1}, а эта сборка читает формат {2}. Разложение считается БЕЗ матрицы.
+
+Пересчитайте её: конфигурация прибора → «Эффективность» → «Матрица отклика...».
+
+{3}</value>
   </data>
   <data name="FSANoBackgroundMark" xml:space="preserve">
     <value>ФОН НЕ ВЫЧТЕН</value>
@@ -829,7 +842,7 @@
     <value>Обновить Мертвое Время</value>
   </data>
   <data name="DeadTimeLblText" xml:space="preserve">
-    <value>Мертвое время: {0} μs</value>
+    <value>Мертвое время: {0} µs</value>
   </data>
   <data name="ImportGBSFileDialogTitle" xml:space="preserve">
     <value>Импорт файла SpectraLine GBS</value>
@@ -1696,7 +1709,7 @@
     <value>кан</value>
   </data>
   <data name="ChartHeaderCPS" xml:space="preserve">
-    <value>CPS:</value>
+    <value>Имп/с:</value>
   </data>
   <data name="ChartHeaderFWHM" xml:space="preserve">
     <value>ПШПВ:</value>
@@ -1911,6 +1924,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="NucBase_LinesFetchError" xml:space="preserve">
     <value>ПОИСК ОТКАЗАЛ для {0}. Таблица пуста потому, что запрос не выполнился, — а не потому, что линий нет. {1}</value>
+  </data>
+  <data name="NucBase_ElementDataFetchError" xml:space="preserve">
+    <value>НЕ ЧИТАЕТСЯ БАЗА ВЕЩЕСТВ (matdb.sqlite), поэтому нет ни номера элемента, ни линий характеристического рентгена: их не смотрели, а не не нашли. {0}</value>
   </data>
   <data name="NucBase_ChainLinesRefused" xml:space="preserve">
     <value>ОТКАЗ по {0} членам ряда: их линии в таблицу не попали, и показанное неполно. {1}</value>

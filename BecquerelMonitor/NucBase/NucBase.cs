@@ -138,7 +138,22 @@ namespace BecquerelMonitor.NucBase
             // распад, а про характеристический рентген: чем светит вольфрам
             // электрода или свинец домика, когда в нём выбило K-электрон. Ряда
             // и родителей у такого запроса нет, поэтому ветка своя и короткая.
-            string element = ElementSymbol(isotopeTextBox);
+            // ⛔ Отказ БАЗЫ ВЕЩЕСТВ здесь — не «это не элемент», и уходить с ним
+            // в поиск нуклида нельзя (`A25`): по «W» там не найдётся ничего, и
+            // человек прочитал бы «Ничего не найдено» — то есть неправду. Ответа
+            // на вопрос у нас в этом случае нет вовсе, и так и говорится.
+            string elementError;
+            string element = ElementSymbol(isotopeTextBox, out elementError);
+            if (elementError != null)
+            {
+                this.ResultDataGridView.Rows.Clear();
+                ShowIsotopeCard("", null);
+                ShowCardNote(null);
+                SetSearchStatus(string.Format(Resources.NucBase_ElementDataFetchError, elementError), true);
+                UpdateNuclideDefinitionControlsState();
+                return;
+            }
+
             if (element != null)
             {
                 this.SearchedIsotope = element;
@@ -157,7 +172,16 @@ namespace BecquerelMonitor.NucBase
                 // Заметка о карточке от ПРОШЛОГО запроса к этому элементу не
                 // относится, и остаться на экране не должна (`T96`).
                 ShowCardNote(null);
-                if (fluorescence.Count == 0)
+                if (fw.LastError != null)
+                {
+                    // ⛔ Отказ базы ВЕЩЕСТВ на полпути (`A25`): таблица пуста
+                    // потому, что посмотреть не удалось, — а не потому, что у
+                    // элемента нет линий. Слова у этих двух случаев разные, как
+                    // и у отказа поиска нуклида ниже.
+                    refused = true;
+                    status.Add(string.Format(Resources.NucBase_ElementDataFetchError, fw.LastError));
+                }
+                else if (fluorescence.Count == 0)
                 {
                     // ⛔ ЗДЕСЬ СТОЯЛО МОДАЛЬНОЕ ОКНО, И ОНО ВЕШАЛО БЕЗОКОННЫЙ
                     // ПРОГОН НАСМЕРТЬ (`T98`). Измерено 27–28.08.2026:
@@ -182,7 +206,7 @@ namespace BecquerelMonitor.NucBase
                     status.Add(string.Format(Resources.NucBase_SearchFound, fluorescence.Count));
                 }
 
-                SetSearchStatus(string.Join(Environment.NewLine, status), false);
+                SetSearchStatus(string.Join(Environment.NewLine, status), refused);
                 UpdateNuclideDefinitionControlsState();
                 return;
             }
@@ -328,6 +352,25 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public static string ElementSymbol(string query)
         {
+            string unusedError;
+            return ElementSymbol(query, out unusedError);
+        }
+
+        /// <summary>
+        /// То же, но с причиной отказа БАЗЫ ВЕЩЕСТВ (`A25`).
+        ///
+        /// ⛔ Различить «это не элемент» и «спросить было не у кого» обязан
+        /// вызывающий, и без выходного параметра он этого сделать не может:
+        /// оба случая дают <c>null</c>. Молча свалиться в ветку поиска нуклида
+        /// при отказе базы нельзя — по «W» там не найдётся ничего, и человек
+        /// прочитает «Ничего не найдено» вместо правды.
+        ///
+        /// Перегрузка без параметра оставлена ради читателей, которым причина не
+        /// нужна (<c>XrayLinesProbe</c> сверяет только разбор).
+        /// </summary>
+        public static string ElementSymbol(string query, out string error)
+        {
+            error = null;
             string letters = Regex.Match(query ?? "", @"^[a-zA-Z]{1,2}$").Value;
             if (letters.Length == 0)
             {
@@ -336,7 +379,7 @@ namespace BecquerelMonitor.NucBase
 
             string symbol = letters.Substring(0, 1).ToUpperInvariant()
                             + letters.Substring(1).ToLowerInvariant();
-            return MaterialDatabase.ZOf(symbol) > 0 ? symbol : null;
+            return NucBaseFramework.ElementNumber(symbol, out error) > 0 ? symbol : null;
         }
 
         /// <summary>
@@ -357,6 +400,7 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         private void ShowIsotopeCard(string isotope, Nuclide nuc)
         {
+            this.lastElementError = null;
             this.IsotopeNameLabel.Text = isotope ?? "";
             this.ParentsDataGridView.Rows.Clear();
             this.DaughtersDataGridView.Rows.Clear();
@@ -366,7 +410,16 @@ namespace BecquerelMonitor.NucBase
                 // характеристическом рентгене («W»): нуклида там нет вовсе, а
                 // Z есть. У ненайденного нуклида (`232TH`) `ZOf` даёт 0, и
                 // тогда в поле пусто: ноль в графе «Z» — неправда, а не пробел.
-                int z = MaterialDatabase.ZOf(isotope ?? "");
+                //
+                // ⛔ И ЗДЕСЬ ЖЕ УМИРАЛ ВЕСЬ ЗАПРОС (`A25`). Строкой ниже стоял
+                // прямой `MaterialDatabase.ZOf`, а он тянет чтение базы веществ:
+                // измерено 03.09.2026 на каталоге без `<проба>.exe.config` —
+                // `TypeInitializationException` из поставщика SQLite уходил
+                // отсюда наружу через `ShowCardFor` и `DoSearch`, процесс умирал
+                // кодом −532462766. Причина теперь не бросок, а значение
+                // (`NucBaseFramework.ElementNumber`), и её договаривает
+                // <see cref="ShowCardFor"/> — в ту же строку состояния.
+                int z = NucBaseFramework.ElementNumber(isotope ?? "", out this.lastElementError);
                 this.IsotopeZLabel.Text = z > 0 ? z.ToString(CultureInfo.InvariantCulture) : "";
                 this.IsotopeNLabel.Text = "";
                 this.IsotopeHLLabel.Text = "";
@@ -406,16 +459,30 @@ namespace BecquerelMonitor.NucBase
         {
             NucBaseFramework fw = new NucBaseFramework();
             Nuclide nuc = fw.getNuclude(isotope);
+            // ⚠ `ShowIsotopeCard` взводит `lastElementError`, поэтому читать его
+            // надо ПОСЛЕ вызова и до следующего — так же, как `LastError`
+            // у самого `NucBaseFramework`.
             ShowIsotopeCard(isotope, nuc);
-            this.lastCardFailed = nuc == null && fw.LastError != null;
-            if (nuc != null)
+            string elementError = this.lastElementError;
+            this.lastCardFailed = (nuc == null && fw.LastError != null) || elementError != null;
+
+            string note = nuc != null
+                ? null
+                : (fw.LastError != null
+                    ? string.Format(Resources.NucBase_IsotopeFetchError, isotope, fw.LastError)
+                    : string.Format(Resources.NucBase_CardEmpty, isotope));
+
+            if (elementError == null)
             {
-                return null;
+                return note;
             }
 
-            return this.lastCardFailed
-                ? string.Format(Resources.NucBase_IsotopeFetchError, isotope, fw.LastError)
-                : string.Format(Resources.NucBase_CardEmpty, isotope);
+            // ⛔ Отказ базы ВЕЩЕСТВ — своя причина и свои слова (`A25`): графа
+            // «Z» осталась пустой не потому, что такого элемента нет, а потому,
+            // что справиться было негде. Прежде этот отказ вылетал наружу
+            // броском и убивал весь запрос.
+            string elementNote = string.Format(Resources.NucBase_ElementDataFetchError, elementError);
+            return note == null ? elementNote : note + Environment.NewLine + elementNote;
         }
 
         /// <summary>
@@ -658,6 +725,20 @@ namespace BecquerelMonitor.NucBase
         /// свои.
         /// </summary>
         private bool lastCardFailed;
+
+        /// <summary>
+        /// ПРИЧИНА ОТКАЗА БАЗЫ ВЕЩЕСТВ у последней показанной карточки, или
+        /// <c>null</c> (`A25`). Пишет <see cref="ShowIsotopeCard"/> — она одна
+        /// эту базу и трогает, — читает <see cref="ShowCardFor"/> сразу после
+        /// вызова, до следующего; так же читаются
+        /// <c>NucBaseFramework.LastError</c> и <c>LastNoCriteria</c>.
+        ///
+        /// Признак нужен затем, что <see cref="ShowIsotopeCard"/> ничего не
+        /// возвращает, а сказать человеку надо: пустая графа «Z» при отказе
+        /// базы неотличима от пустой графы у нуклида, которого в таблице
+        /// элементов нет.
+        /// </summary>
+        private string lastElementError;
 
         private void ToggleSelection()
         {

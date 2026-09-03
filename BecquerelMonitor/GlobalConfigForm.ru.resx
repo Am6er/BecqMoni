@@ -224,7 +224,7 @@
     <value>135, 13</value>
   </data>
   <data name="label86.Text" xml:space="preserve">
-    <value>Шаг: абс. значение в keV</value>
+    <value>Шаг: абс. значение в кэВ</value>
   </data>
   <data name="label86.ToolTip" xml:space="preserve">
     <value />
@@ -484,7 +484,7 @@
     <value>Имп.</value>
   </data>
   <data name="comboBox1.Items1" xml:space="preserve">
-    <value>Имп. в сек. (cps)</value>
+    <value>Имп. в сек. (имп/с)</value>
   </data>
   <data name="comboBox1.ToolTip" xml:space="preserve">
     <value />

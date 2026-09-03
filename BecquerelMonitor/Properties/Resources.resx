@@ -8314,6 +8314,9 @@ It is probably open in another program or write-protected.</value>
   <data name="ERRLoadingROIConfigFailed" xml:space="preserve">
     <value>Failed to load ROI configuration file(s).</value>
   </data>
+  <data name="ERRFailureReason" xml:space="preserve">
+    <value>Reason: {0}</value>
+  </data>
   <data name="ROIPrimitiveTypeBGDifference" xml:space="preserve">
     <value>BG Difference</value>
   </data>
@@ -8452,6 +8455,16 @@ It is probably open in another program or write-protected.</value>
   </data>
   <data name="FSANoMatrixMark" xml:space="preserve">
     <value> · no matrix</value>
+  </data>
+  <data name="FSAOldMatrixMark" xml:space="preserve">
+    <value> · old matrix</value>
+  </data>
+  <data name="FSAMatrixOldFormat" xml:space="preserve">
+    <value>The response matrix of efficiency curve “{0}” was computed with file format {1}, while this build reads format {2}. The decomposition is computed WITHOUT the matrix.
+
+Recompute it: device configuration → Efficiency → “Response matrix...”.
+
+{3}</value>
   </data>
   <data name="FSANoBackgroundMark" xml:space="preserve">
     <value>NO BACKGROUND SUBTRACTED</value>
@@ -41867,7 +41880,7 @@ It is probably open in another program or write-protected.</value>
     <value>This application works in standalone mode. If you want to use update re-install it.</value>
   </data>
   <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
-    <value>Error! Сoefficients uploaded with error! Check connection and reupload it again.</value>
+    <value>Error! Coefficients uploaded with error! Check connection and reupload it again.</value>
   </data>
   <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
     <value>Coefficients uploaded to device successfully.</value>
@@ -42179,7 +42192,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Update Dead Time</value>
   </data>
   <data name="DeadTimeLblText" xml:space="preserve">
-    <value>Dead Time: {0} μs</value>
+    <value>Dead Time: {0} µs</value>
   </data>
   <data name="RefreshBG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\RefreshBG.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -43188,6 +43201,9 @@ The matrix is stored next to the device configuration, one file per geometry, an
   <data name="NucBase_LinesFetchError" xml:space="preserve">
     <value>SEARCH FAILED for {0}. The table is empty because the query did not run — not because there are no lines. {1}</value>
   </data>
+  <data name="NucBase_ElementDataFetchError" xml:space="preserve">
+    <value>THE ELEMENT DATABASE (matdb.sqlite) COULD NOT BE READ, so the element number and the characteristic X-ray lines are missing — they were not looked up, not found empty. {0}</value>
+  </data>
   <data name="NucBase_ChainLinesRefused" xml:space="preserve">
     <value>SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}</value>
   </data>
@@ -43242,7 +43258,7 @@ Reason: {2}
     <value>ml</value>
   </data>
   <data name="UnitMicroSievertPerHour" xml:space="preserve">
-    <value>μSv/h</value>
+    <value>µSv/h</value>
   </data>
   <data name="UnitMilliSievertPerHour" xml:space="preserve">
     <value>mSv/h</value>

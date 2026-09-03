@@ -34,6 +34,10 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+LAB = os.path.dirname(HERE)
+
+sys.path.insert(0, HERE)
+import corpus_lock                                  # noqa: E402
 
 #: Шаг: (заголовок, файл, аргументы, «отказ шага валит пересборку»).
 #: Валит ВСЁ каждый из четырёх: половина пересобранного корпуса хуже
@@ -83,6 +87,14 @@ def main():
         print(u'⚠ %s передаётся только первому шагу: остальные три работают по'
               % only[0])
         print(u'  всему корпусу по построению (узлы и приёмка не делятся на части).')
+
+    # `A75`: замок берётся ДО первого шага и держится все четыре. Четвёртый шаг
+    # — сама приёмка, и она возьмёт свой замок на чтение; конфликта нет,
+    # потому что мешает ей только ЧУЖАЯ запись, а эту она сама и заказала.
+    refusal = corpus_lock.check(os.path.join(LAB, 'corpus'), corpus_lock.WRITE)
+    if refusal is not None:
+        print(refusal)
+        return 3
 
     if dry:
         print(u'шаги пересборки (--dry, ничего не запущено):')

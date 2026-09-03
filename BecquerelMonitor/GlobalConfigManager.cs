@@ -156,6 +156,51 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ПРИЧИНА ОТКАЗА СЛОВАМИ — И ОБЯЗАТЕЛЬНО С ВЛОЖЕННОЙ (`A22`, `A25`).
+        ///
+        /// Стоит здесь, а не у каждого потребителя, ровно потому же, почему
+        /// здесь стоит сама дверь: сообщений об отказе в дереве много, и второго
+        /// соглашения о том, как называется причина, быть не должно. Двух копий
+        /// этого метода — в <c>ROIConfigManager</c> и в
+        /// <c>NucBase.NucBaseFramework</c> — хватило, чтобы это стало правдой в
+        /// один вечер.
+        ///
+        /// ⚠ Внешнего исключения МАЛО, и это измерено, а не выведено. Каталог
+        /// без <c>&lt;приложение&gt;.exe.config</c>, 03.09.2026: внешнее говорит
+        /// «Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал
+        /// исключение» — по этим словам нельзя сделать ничего; вложенное
+        /// называет вещь — «не удалось загрузить сборку SQLitePCLRaw.core,
+        /// Version=2.0.6.1341 … определение манифеста не соответствует ссылке».
+        /// Разбор XML устроен так же: внешнее сообщает «в документе ошибка»,
+        /// вложенное — строку и позицию.
+        ///
+        /// Сам текст исключения НЕ переводится и переводу не подлежит: он
+        /// приходит от платформы на языке системы. Переведена подпись к нему
+        /// (<c>ERRFailureReason</c>), и она заведена в обе культуры.
+        /// </summary>
+        public static string Reason(Exception ex)
+        {
+            if (ex == null)
+            {
+                return "";
+            }
+
+            string text = ex.GetType().Name + ": " + ex.Message;
+            Exception inner = ex;
+            while (inner.InnerException != null)
+            {
+                inner = inner.InnerException;
+            }
+
+            if (!ReferenceEquals(inner, ex))
+            {
+                text += " <- " + inner.GetType().Name + ": " + inner.Message;
+            }
+
+            return text;
+        }
+
         static string OneLine(string text)
         {
             if (string.IsNullOrEmpty(text))

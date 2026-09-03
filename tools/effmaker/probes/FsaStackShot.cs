@@ -231,7 +231,10 @@ namespace FsaStackShot
                 return 1;
             }
 
-            ResponseMatrix matrix = ResponseMatrixStore.Load(rd.Efficiency != null ? rd.Efficiency.Guid : null);
+            MatrixRefusal refusal;
+            int fileFormat;
+            ResponseMatrix matrix = ResponseMatrixStore.Load(
+                rd.Efficiency != null ? rd.Efficiency.Guid : null, out refusal, out fileFormat);
             if (matrix == null || rd.Efficiency == null || !rd.Efficiency.HasGeometry
                 || !matrix.IsValidFor(rd.Efficiency.Geometry))
             {
@@ -249,10 +252,25 @@ namespace FsaStackShot
                     // разошлась с той, под которую он считан.
                     if (matrix == null)
                     {
-                        Console.Error.WriteLine("матрицы нет: файла {0} не существует или он не читается",
-                                                rd.Efficiency != null
-                                                    ? ResponseMatrixStore.PathOf(rd.Efficiency.Guid)
-                                                    : "(кривой у спектра нет)");
+                        // (`A50`) «файла нет» и «файл ЕСТЬ, но прежнего формата» —
+                        // два разных случая с двумя разными лечениями, и до
+                        // 03.09.2026 они печатались одной фразой. Теперь отказ
+                        // называет себя сам (`ResponseMatrix.MatrixRefusal`).
+                        string path = rd.Efficiency != null
+                            ? ResponseMatrixStore.PathOf(rd.Efficiency.Guid)
+                            : "(кривой у спектра нет)";
+                        if (refusal == MatrixRefusal.OldFormat)
+                        {
+                            Console.Error.WriteLine(
+                                "МАТРИЦА ПРЕЖНЕГО ФОРМАТА: в файле формат {0}, приложение читает {1} — пересчитать",
+                                fileFormat, ResponseMatrix.FormatVersion);
+                            Console.Error.WriteLine("  {0}", path);
+                        }
+                        else
+                        {
+                            Console.Error.WriteLine("матрицы нет ({0}): файла {1} не существует или он не читается",
+                                                    refusal, path);
+                        }
                     }
                     else if (rd.Efficiency == null || !rd.Efficiency.HasGeometry)
                     {

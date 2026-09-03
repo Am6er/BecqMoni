@@ -171,6 +171,19 @@ namespace BecquerelMonitor
                         }
 
                         this.Invalidate();
+
+                        // (`A50`) Отвергнутая матрица называет причину ЗДЕСЬ, а
+                        // не там, где её отвергли: решение принимается в
+                        // подготовке данных вида, то есть внутри отрисовки, и
+                        // модальное окно оттуда прокачало бы очередь сообщений
+                        // и вошло в отрисовку повторно. Строка приходит один
+                        // раз на файл — `FsaOverlay` держит ключ сказанного.
+                        string notice = this.fsaOverlay.TakeResponseMatrixNotice();
+                        if (!string.IsNullOrEmpty(notice))
+                        {
+                            AppUi.Report(notice, Resources.ResponseMatrixTitle,
+                                         MessageBoxIcon.Exclamation);
+                        }
                     });
                 }
             }
@@ -1336,9 +1349,18 @@ namespace BecquerelMonitor
             // Пометка S2: с матрицей отклика образы или без — всегда, одна из
             // двух. Молчать нельзя: матрица бракуется по отпечатку и формату
             // файла без единого сообщения, и «без матрицы» иначе неотличимо.
+            //
+            // (`A50`) Третий случай отделён от второго: матрица У КРИВОЙ ЕСТЬ,
+            // но посчитана прежним форматом файла. «Без матрицы» и «матрица
+            // стара» лечатся по-разному — посчитать против пересчитать, — и
+            // одна пометка на оба случая человеку не говорила ничего.
+            // Развёрнутое сообщение с номерами форматов и путём к файлу
+            // приходит отдельно, один раз на файл (см. FsaOverlayCompleted).
             quality += result.ResponseMatrixUsed
                 ? Resources.FSAMatrixMark
-                : Resources.FSANoMatrixMark;
+                : this.fsaOverlay.ResponseMatrixOldFormat
+                    ? Resources.FSAOldMatrixMark
+                    : Resources.FSANoMatrixMark;
 
             // Каскадное суммирование отмечается только когда оно СРАБОТАЛО:
             // у состава без каскадов (Cs-137, K-40) поправка возвращает

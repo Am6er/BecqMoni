@@ -317,7 +317,7 @@
     <value>Выберите параметры так, чтобы пики соответствовали известным энергиям.</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
-    <value>Энергия[keV] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
   </data>
   <data name="tabPage5.Text" xml:space="preserve">
     <value>Анализ</value>
@@ -368,13 +368,13 @@
     <value>113, 13</value>
   </data>
   <data name="label47.Text" xml:space="preserve">
-    <value>Мин. поиск пика keV</value>
+    <value>Мин. поиск пика кэВ</value>
   </data>
   <data name="label48.Size" type="System.Drawing.Size, System.Drawing">
     <value>119, 13</value>
   </data>
   <data name="label48.Text" xml:space="preserve">
-    <value>Макс. поиск пика keV</value>
+    <value>Макс. поиск пика кэВ</value>
   </data>
   <data name="label50.Size" type="System.Drawing.Size, System.Drawing">
     <value>95, 13</value>
@@ -428,13 +428,13 @@
     <value>Нет точек калибровки</value>
   </data>
   <data name="numberColumn5.Text" xml:space="preserve">
-    <value>Начало, keV</value>
+    <value>Начало, кэВ</value>
   </data>
   <data name="numberColumn6.Text" xml:space="preserve">
-    <value>Конец, keV</value>
+    <value>Конец, кэВ</value>
   </data>
   <data name="numberColumn8.Text" xml:space="preserve">
-    <value>Эталон МЭД, μSv/h</value>
+    <value>Эталон МЭД, мкЗв/ч</value>
   </data>
   <data name="labelDREstimateTitle.Text" xml:space="preserve">
     <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру</value>
@@ -4742,7 +4742,7 @@
     <value>Редактировать конфигурацию устройства</value>
   </data>
   <data name="numberColumn7.Text" xml:space="preserve">
-    <value>CPS</value>
+    <value>имп/с</value>
   </data>
   <data name="textColumn3.Text" xml:space="preserve">
     <value>#</value>

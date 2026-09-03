@@ -65,12 +65,22 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 
     python tools/check_registry.py [--root <каталог>]
 
+**5. Объявление действующей базы корпуса.** Смена базы — это ТРИ МЕСТА:
+преамбула `TODO.md`, журнал корпуса и память агента, — и объявить в двух значит
+НЕ объявить. Проверка заведена 03.09.2026 после ВТОРОГО подряд отставания на
+две базы (27.08.2026 — снятая `out_v5`, 03.09.2026 — снятая `out_v9`). Оба раза
+строка `grep` для этой сверки стояла в самой преамбуле, и оба раза её никто не
+позвал: помнить о ней надо ровно тогда, когда занят другим. Два места из трёх
+лежат в репозитории и сверяются строго; память — вне его, и проверяется, только
+если найдена, а её отсутствие печатается словами.
+
 Выход 1 — есть столкновение номеров внутри файла, имя из кода, которого нет в
-дереве, либо находка храповика двух копий `config/`. Остальное печатается к
-глазам.
+дереве, находка храповика двух копий `config/`, либо расхождение объявлений
+действующей базы. Остальное печатается к глазам.
 """
 import argparse
 import collections
+import glob
 import hashlib
 import io
 import os
@@ -79,6 +89,14 @@ import subprocess
 import sys
 
 ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,2}\d{1,3})\b(.*)$")
+
+# Объявление действующей базы корпуса. Привязка к НАЧАЛУ строки обязательна:
+# без неё ловятся исторические упоминания внутри задач, и они законны.
+BASE_IN_TODO = re.compile(
+    u"^⛔ \\*\\*ДЕЙСТВУЮЩАЯ БАЗА КОРПУСА — `([^`]+)`,\\s*"
+    u"(\\d{2}\\.\\d{2}\\.\\d{4})")
+BASE_IN_CORPUS = re.compile(
+    u"^## ✅ ДЕЙСТВУЮЩАЯ БАЗА: `([^`]+)`,\\s*(\\d{2}\\.\\d{2}\\.\\d{4})")
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 CODE = re.compile(r"`([^`]+)`")
 FILEY = re.compile(r"\.(cs|py|ps1|md|xml|sqlite|resx|csproj|tsv|csv|json)$")
@@ -279,6 +297,121 @@ def check_config_copies(root, out):
     return bad
 
 
+def declared_base(path, pattern):
+    u"""Найти объявление действующей базы. Возвращает (база, дата, номер строки)."""
+    if not os.path.exists(path):
+        return None
+    with io.open(path, encoding="utf-8-sig") as f:
+        for i, line in enumerate(f, 1):
+            m = pattern.match(line)
+            if m:
+                return (m.group(1), m.group(2), i)
+    return None
+
+
+def find_memory_dir(root):
+    u"""Каталог памяти агента ИМЕННО ЭТОГО дерева. Иначе None.
+
+    ⛔ Брать первый попавшийся нельзя: на машине их несколько (здесь пять — по
+    одному на проект), и первый по алфавиту принадлежит чужому дереву. Первая
+    редакция так и делала и отвечала «база названа в указателе», читая чужую
+    память; поймано положительным контролем 03.09.2026.
+
+    Имя каталога — путь дерева, где каждый не-буквенно-цифровой знак заменён
+    дефисом: `C:\\Users\\…\\BQ Eng res .NET 4.8` → `C--Users-…-BQ-Eng-res--NET-4-8`.
+    """
+    projects = os.path.join(os.path.expanduser("~"), ".claude", "projects")
+    if not os.path.isdir(projects):
+        return None
+    slug = re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(root))
+    mine = os.path.join(projects, slug, "memory")
+    if os.path.isfile(os.path.join(mine, "MEMORY.md")):
+        return mine
+    return None
+
+
+def check_corpus_base(root, out):
+    u"""Храповик по объявлению действующей базы корпуса. Возвращает число находок.
+
+    Смена базы — это ТРИ МЕСТА: преамбула `TODO.md`, журнал корпуса и память
+    агента. Объявить в двух значит НЕ объявить, и это уже случалось ДВАЖДЫ
+    ПОДРЯД: 27.08.2026 в `TODO.md` стояла снятая `out_v5` (две базы отставания),
+    03.09.2026 — снятая `out_v9` (тоже две). Оба раза проверка существовала
+    строкой `grep` в самой преамбуле, и оба раза её никто не позвал: помнить о
+    ней приходится ровно в тот момент, когда занят другим.
+
+    Привязка к НАЧАЛУ строки здесь не украшение: без неё ловятся ещё и
+    исторические упоминания внутри задач (`B26` пересказывает объявления
+    `out_v6` и `out_v5` как часть своего разбора, и они законны). Строка
+    таблицы всегда начинается с `|`, объявление — нет.
+
+    Память лежит ВНЕ репозитория и на другой машине её может не быть вовсе,
+    поэтому третье место проверяется, только если найдено, а отсутствие
+    печатается словами — молчаливый пропуск здесь был бы той же слепотой,
+    какую эта проверка и ловит.
+    """
+    out.write(u"# Действующая база корпуса — объявлена ли в ТРЁХ местах\n\n")
+    places = [
+        (u"TODO.md", os.path.join(root, "TODO.md"), BASE_IN_TODO),
+        (u"tools/CORPUS/README.md",
+         os.path.join(root, "tools", "CORPUS", "README.md"), BASE_IN_CORPUS),
+    ]
+    found = []
+    bad = 0
+    for name, path, pattern in places:
+        got = declared_base(path, pattern)
+        if got is None:
+            out.write(u"  ⛔ %s: объявления НЕ НАЙДЕНО — либо оно переписано в\n"
+                      u"      другом виде, либо базу забыли объявить\n" % name)
+            bad += 1
+            continue
+        out.write(u"  %-24s %s, %s (строка %d)\n"
+                  % (name, got[0], got[1], got[2]))
+        found.append((name, got))
+
+    if len(found) == len(places):
+        bases = set(g[0] for _, g in found)
+        dates = set(g[1] for _, g in found)
+        if len(bases) > 1:
+            out.write(u"  ⛔ РАЗНЫЕ БАЗЫ: %s. Объявить в двух местах значит НЕ\n"
+                      u"      объявить: читатель сверяет свежий прогон со снятой\n"
+                      u"      моделью и расходится заведомо.\n"
+                      % u" против ".join(sorted(bases)))
+            bad += 1
+        elif len(dates) > 1:
+            out.write(u"  ⛔ база одна (%s), а ДАТЫ разные: %s\n"
+                      % (bases.pop(), u" против ".join(sorted(dates))))
+            bad += 1
+
+    # Третье место — память. Сверяется НАЛИЧИЕМ памятки этой базы, а не
+    # упоминанием её имени: указатель памяти называет и СНЯТЫЕ базы (реестром
+    # «не цитировать»), поэтому подстрочная сверка даёт ложный пропуск —
+    # поймано положительным контролем 03.09.2026, где плечо с откаченной
+    # `out_v9` прошло со словами «назван в указателе».
+    mem = find_memory_dir(root)
+    if mem is None:
+        out.write(u"  ⚠ память агента на этой машине не найдена — ТРЕТЬЕ место\n"
+                  u"      не проверено, сверь глазами\n")
+    elif found:
+        base = found[0][1][0]
+        note = os.path.join(mem, u"corpus-base-%s.md" % base.replace(u"_", u"-"))
+        others = sorted(os.path.basename(p) for p in
+                        glob.glob(os.path.join(mem, u"corpus-base-*.md"))
+                        if os.path.basename(p) != os.path.basename(note))
+        if os.path.exists(note):
+            out.write(u"  %-24s %s\n" % (u"память агента", os.path.basename(note)))
+        else:
+            out.write(u"  ⛔ памятки %s НЕТ — третье место отстало\n"
+                      % os.path.basename(note))
+            bad += 1
+        out.write(u"      рядом лежат памятки СНЯТЫХ баз (%s) — какая из них\n"
+                  u"      действующая, машинно НЕ проверяется, только наличие\n"
+                  % (u", ".join(others) if others else u"нет"))
+
+    out.write(u"\n")
+    return bad
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", default=os.path.dirname(os.path.dirname(
@@ -398,6 +531,9 @@ def main():
 
     # --- 4. две копии config/ -------------------------------------------
     bad += check_config_copies(root, out)
+
+    # --- 5. объявление действующей базы корпуса --------------------------
+    bad += check_corpus_base(root, out)
 
     out.write(u"\n%s\n" % (u"РЕЕСТР ЧИСТ" if bad == 0
                            else u"НАХОДОК: %d" % bad))

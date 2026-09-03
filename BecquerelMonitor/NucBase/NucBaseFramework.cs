@@ -49,6 +49,48 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public bool LastNoCriteria { get; private set; }
 
+        /// <summary>
+        /// НОМЕР ЭЛЕМЕНТА ИЗ БАЗЫ ВЕЩЕСТВ — И ОТКАЗ ЭТОЙ БАЗЫ КАК ЗНАЧЕНИЕ, А НЕ
+        /// КАК БРОСОК НАРУЖУ (`A25`).
+        ///
+        /// ⛔ ЗДЕСЬ БЫЛА ВТОРАЯ ДВЕРЬ, ЗА ПЕРВОЙ ЗАКРЫТОЙ. `D46` внесла
+        /// <c>new DataBase()</c> внутрь <c>try</c> во всех трёх запросах к базе
+        /// НУКЛИДОВ, и отказ поставщика перестал лететь наружу из
+        /// <c>getDecayRad</c>. Но на том же экране редактора есть ВТОРАЯ база —
+        /// база ВЕЩЕСТВ (<c>matdb.sqlite</c>, <see cref="MaterialDatabase"/>), и
+        /// у неё двери не было вовсе. Измерено 03.09.2026, каталог без
+        /// <c>&lt;проба&gt;.exe.config</c>: <c>getDecayRad</c> отказ проглотил, а
+        /// процесс всё равно умер кодом −532462766 —
+        /// <c>NucBase.DoSearch</c> → <c>ShowCardFor</c> → <c>ShowIsotopeCard</c>
+        /// → <c>MaterialDatabase.ZOf</c> → <c>MaterialDatabase.Load</c> →
+        /// <c>TypeInitializationException</c> навылет.
+        ///
+        /// ⛔ Дверь стоит ЗДЕСЬ, а не внутри <see cref="MaterialDatabase"/>, и
+        /// это не вкусовщина: тем же <c>Load()</c> пользуются построение матрицы
+        /// отклика и разложение спектра, и «база не читается» у них обязано
+        /// остаться броском. Проглоти его общий метод — те посчитали бы числа
+        /// по пустой таблице веществ и показали бы их как настоящие.
+        ///
+        /// Ноль возвращается ровно тот же, что у ненайденного символа: все
+        /// читатели уже сверяют <c>&gt; 0</c>, и ни один из них от этого не
+        /// меняется. Отличает отказ от «нет такого элемента» ВЫХОДНОЙ ПАРАМЕТР —
+        /// у него один настоящий читатель, строка состояния редактора.
+        /// </summary>
+        public static int ElementNumber(string symbol, out string error)
+        {
+            error = null;
+            try
+            {
+                return MaterialDatabase.ZOf(symbol ?? "");
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("ElementNumber(" + symbol + "): " + AppUi.Reason(ex));
+                error = AppUi.Reason(ex);
+                return 0;
+            }
+        }
+
         public Nuclide getNuclude(string nucname)
         {
             this.LastError = null;
@@ -123,8 +165,8 @@ namespace BecquerelMonitor.NucBase
                 // который гоняет безоконная проба (`ChainProbe.CheckSearch`).
                 // Причина уезжает в <see cref="LastError"/>, и редактор
                 // показывает её строкой состояния (`T92`).
-                Trace.WriteLine("getNuclude(" + nucname + "): " + ex.GetType().Name + ": " + ex.Message);
-                this.LastError = ex.GetType().Name + ": " + ex.Message;
+                Trace.WriteLine("getNuclude(" + nucname + "): " + AppUi.Reason(ex));
+                this.LastError = AppUi.Reason(ex);
                 nuc = null;
             }
 
@@ -348,9 +390,8 @@ namespace BecquerelMonitor.NucBase
                 // уезжает в <see cref="LastError"/>, а редактор показывает её
                 // строкой состояния под таблицами (`T92`) — до этого отказ был
                 // неотличим от «линий нет».
-                Trace.WriteLine("getDecayRad: " + ex.GetType().Name + ": " + ex.Message
-                                + Environment.NewLine + sql);
-                this.LastError = ex.GetType().Name + ": " + ex.Message;
+                Trace.WriteLine("getDecayRad: " + AppUi.Reason(ex) + Environment.NewLine + sql);
+                this.LastError = AppUi.Reason(ex);
                 decayRads = null;
             }
 
@@ -598,9 +639,38 @@ namespace BecquerelMonitor.NucBase
         public List<DecayRad> GetFluorescence(string symbol, double intensity = 0.0,
                                               double lowEnergy = 0.0, double highEnergy = 0.0)
         {
+            // ⛔ Отказ базы ВЕЩЕСТВ — та же вторая дверь, что у
+            // <see cref="ElementNumber"/> (`A25`): и <c>ZOf</c>, и
+            // <c>FluorescenceOf</c> тянут один <c>MaterialDatabase.Load()</c>, и
+            // бросок отсюда уходил из <c>DoSearch</c> наружу — то есть в
+            // необработанное исключение WinForms в окнах и в код возврата
+            // −532462766 без окон. Признак отказа тот же, что у соседей по
+            // классу, — <see cref="LastError"/>; пустой список при нём значит
+            // «не смогли посмотреть», а не «линий нет».
+            this.LastError = null;
             List<DecayRad> lines = new List<DecayRad>();
-            int z = MaterialDatabase.ZOf(symbol);
-            MaterialDatabase.Fluorescence fluorescence = z > 0 ? MaterialDatabase.FluorescenceOf(z) : null;
+            string error;
+            int z = ElementNumber(symbol, out error);
+            MaterialDatabase.Fluorescence fluorescence = null;
+            if (error == null && z > 0)
+            {
+                try
+                {
+                    fluorescence = MaterialDatabase.FluorescenceOf(z);
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("GetFluorescence(" + symbol + "): " + AppUi.Reason(ex));
+                    error = AppUi.Reason(ex);
+                }
+            }
+
+            if (error != null)
+            {
+                this.LastError = error;
+                return lines;
+            }
+
             if (fluorescence == null)
             {
                 return lines;
@@ -744,8 +814,8 @@ namespace BecquerelMonitor.NucBase
                 // молчать об этом нельзя: недостающие члены выглядят как
                 // «их в ряду нет». Причина уезжает в <see cref="LastError"/>,
                 // редактор говорит о ней строкой состояния (`T92`).
-                Trace.WriteLine("GetChainBranches(" + rootNucid + "): " + ex.GetType().Name + ": " + ex.Message);
-                this.LastError = ex.GetType().Name + ": " + ex.Message;
+                Trace.WriteLine("GetChainBranches(" + rootNucid + "): " + AppUi.Reason(ex));
+                this.LastError = AppUi.Reason(ex);
             }
 
             // Соединения может не быть вовсе — см. `getNuclude` (`D46`).

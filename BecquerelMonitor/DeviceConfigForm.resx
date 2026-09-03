@@ -2692,7 +2692,7 @@
     <value>60</value>
   </data>
   <data name="numberColumn8.Text" xml:space="preserve">
-    <value>Reference Dose Rate, μSv/h</value>
+    <value>Reference Dose Rate, µSv/h</value>
   </data>
   <data name="numberColumn8.ToolTipText" xml:space="preserve">
     <value />

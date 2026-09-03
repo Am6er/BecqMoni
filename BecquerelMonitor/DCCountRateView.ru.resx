@@ -140,6 +140,6 @@
     <value>Мёртвое время</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>cps</value>
+    <value>имп/с</value>
   </data>
 </root>

@@ -71,6 +71,17 @@ namespace BecquerelMonitor
         ///
         /// ⚠ Что при этом список ROI пуст, а кривая эффективности берётся
         /// именно из конфигурации ROI, — отдельная беда, и она НЕ закрыта здесь.
+        ///
+        /// ⛔ ПРИЧИНА ОТКАЗА ТЕПЕРЬ ЕДЕТ ВМЕСТЕ С СООБЩЕНИЕМ (`A22`). Прежде
+        /// <c>catch</c> ловил исключение БЕЗ ПЕРЕМЕННОЙ, и человек получал
+        /// «не удалось загрузить конфигурационный файл ROI» плюс путь — то есть
+        /// ровно то, что он и так видит; отличить «файл занят другой программой»
+        /// от «в файле неизвестный примитив» по такому сообщению нельзя.
+        /// Причина собирается <see cref="AppUi.Reason"/> и уходит той же дверью
+        /// <see cref="AppUi"/>: в окнах — в текст модального окна, без окон —
+        /// в ту же строку потока ошибок. Помощник лежит у двери, а не здесь,
+        /// затем, что тот же вопрос стоит и у редактора нуклидов (`A25`): двух
+        /// соглашений о том, как называется причина, быть не должно.
         /// </summary>
         public void LoadAllConfigFiles()
         {
@@ -122,16 +133,22 @@ namespace BecquerelMonitor
                             this.roiConfigMap.Add(roiconfigData.Guid, roiconfigData);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + path, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                        System.Diagnostics.Trace.WriteLine("ROI config load failed: " + path + ": " + ex);
+                        AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + AppUi.Where(path)
+                            + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                            Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Trace.WriteLine("ROI config directory unreadable: " + configROIDir + ": " + ex);
                 Directory.CreateDirectory(configROIDir);
-                AppUi.Report(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + AppUi.Where(configROIDir)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
             }
             this.roiConfigList.Sort();
             this.isLoaded = true;
@@ -155,9 +172,12 @@ namespace BecquerelMonitor
                     xmlSerializer.Serialize(fileStream, roiconfigData);
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                System.Diagnostics.Trace.WriteLine("ROI config create failed: " + path + ": " + ex);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed + "\n" + AppUi.Where(path)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -178,18 +198,21 @@ namespace BecquerelMonitor
             roiconfigData.OriginalFilename = filename;
             roiconfigData.Filename = filename;
             roiconfigData.Name = config.Name + Resources.CopyPostfix;
+            string duplicatePath = configROI + roiconfigData.Filename;
             try
             {
-                string path = configROI + roiconfigData.Filename;
-                Utils.AtomicFileWriter.Write(path, fileStream =>
+                Utils.AtomicFileWriter.Write(duplicatePath, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                     xmlSerializer.Serialize(fileStream, roiconfigData);
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                System.Diagnostics.Trace.WriteLine("ROI config duplicate failed: " + duplicatePath + ": " + ex);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed + "\n" + AppUi.Where(duplicatePath)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return null;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -208,9 +231,9 @@ namespace BecquerelMonitor
             ROIConfigData roiconfigData = this.roiConfigMap[roiConfig.Guid];
             this.roiConfigMap.Remove(roiconfigData.Guid);
             this.roiConfigList.Remove(roiconfigData);
+            string path = configROI + roiconfigData.OriginalFilename;
             try
             {
-                string path = configROI + roiconfigData.OriginalFilename;
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                 xmlSerializer.UnknownElement += (s, e) => TraceDroppedElement(path, e);
                 using (FileStream fileStream = new FileStream(path, FileMode.Open))
@@ -232,9 +255,12 @@ namespace BecquerelMonitor
                 roiconfigData.OriginalFilename = Path.GetFileName(path);
                 roiconfigData.Filename = Path.GetFileName(path);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                AppUi.Report(Resources.ERRLoadingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                System.Diagnostics.Trace.WriteLine("ROI config reload failed: " + path + ": " + ex);
+                AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + AppUi.Where(path)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -280,7 +306,8 @@ namespace BecquerelMonitor
                     // форме, сохранение можно повторить.
                     System.Diagnostics.Trace.WriteLine("ROI config rename failed: " + ex);
                     this.RestoreConfig(removed);
-                    AppUi.Report(string.Format(Resources.ERRConfigFileRenameFailed, roiConfig.OriginalFilename),
+                    AppUi.Report(string.Format(Resources.ERRConfigFileRenameFailed, roiConfig.OriginalFilename)
+                        + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
                         Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     return false;
                 }
@@ -288,10 +315,10 @@ namespace BecquerelMonitor
             roiConfig.OriginalFilename = roiConfig.Filename;
             roiConfig.LastUpdated = DateTime.Now;
             ROIConfigData roiconfigData = roiConfig.Clone();
+            string savePath = configROI + roiconfigData.Filename;
             try
             {
-                string path = configROI + roiconfigData.Filename;
-                Utils.AtomicFileWriter.Write(path, fileStream =>
+                Utils.AtomicFileWriter.Write(savePath, fileStream =>
                 {
                     XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
                     xmlSerializer.Serialize(fileStream, roiconfigData);
@@ -301,7 +328,9 @@ namespace BecquerelMonitor
             {
                 System.Diagnostics.Trace.WriteLine("ROI config save failed: " + ex);
                 this.RestoreConfig(removed);
-                AppUi.Report(Resources.ERRSavingROIConfigFailed, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingROIConfigFailed + "\n" + AppUi.Where(savePath)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             this.roiConfigList.Add(roiconfigData);
@@ -363,7 +392,8 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.WriteLine("ROI config delete failed: " + ex);
-                AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, roiconfigData.OriginalFilename),
+                AppUi.Report(string.Format(Resources.ERRConfigFileDeleteFailed, roiconfigData.OriginalFilename)
+                    + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
                     Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }

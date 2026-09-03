@@ -1081,11 +1081,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Читает матрицу; null, если файла нет или он не наш.</summary>
         public static ResponseMatrix Load(string path)
         {
+            MatrixRefusal refusal;
+            int fileFormat;
+            return Load(path, out refusal, out fileFormat);
+        }
+
+        /// <summary>
+        /// То же чтение, но отказ НАЗЫВАЕТ СЕБЯ (`A50`).
+        ///
+        /// Прежде отказов было четыре — файла нет, файл не наш, формат прежний,
+        /// файл обрублен, — а ответ один: <c>null</c>. Потребитель мог сказать
+        /// только «матрицы нет», и человек с матрицей прежнего формата видел в
+        /// легенде «· без матрицы» ровно то же, что человек, у которого файла
+        /// нет вовсе: зацепиться не за что, а лечится это по-разному
+        /// (пересчитать против посчитать).
+        ///
+        /// ⚠ <paramref name="fileFormat"/> имеет смысл только при
+        /// <see cref="MatrixRefusal.OldFormat"/> — это версия ФАЙЛА, ради
+        /// сообщения «посчитана форматом N, читаем M». У остальных отказов он 0.
+        /// </summary>
+        public static ResponseMatrix Load(string path, out MatrixRefusal refusal, out int fileFormat)
+        {
+            refusal = MatrixRefusal.NoFile;
+            fileFormat = 0;
             if (!File.Exists(path))
             {
                 return null;
             }
 
+            refusal = MatrixRefusal.Unreadable;
             try
             {
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -1093,11 +1117,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BQRM")
                     {
+                        refusal = MatrixRefusal.NotOurs;
                         return null;
                     }
 
-                    if (reader.ReadInt32() != FormatVersion)
+                    int format = reader.ReadInt32();
+                    if (format != FormatVersion)
                     {
+                        refusal = MatrixRefusal.OldFormat;
+                        fileFormat = format;
                         return null;
                     }
 
@@ -1181,6 +1209,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     matrix.RebuildTotals();
+                    refusal = MatrixRefusal.None;
                     return matrix;
                 }
             }
@@ -1190,6 +1219,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return null;
             }
         }
+    }
+
+    /// <summary>
+    /// Почему матрица не прочиталась (`A50`). <see cref="None"/> — прочиталась.
+    ///
+    /// Заведено затем, что молчащий <c>null</c> сваливал в одну кучу четыре
+    /// разных беды с четырьмя разными лечениями, и приложение не могло сказать
+    /// человеку ни одной из них.
+    /// </summary>
+    public enum MatrixRefusal
+    {
+        /// <summary>Прочиталась.</summary>
+        None,
+
+        /// <summary>Файла нет — матрицу для этой геометрии не считали.</summary>
+        NoFile,
+
+        /// <summary>Файл есть, но не наш: нет метки `BQRM`.</summary>
+        NotOurs,
+
+        /// <summary>Файл наш, но посчитан ПРЕЖНИМ форматом — надо пересчитать.</summary>
+        OldFormat,
+
+        /// <summary>Файл наш и формат нынешний, а чтение оборвалось (обрубок).</summary>
+        Unreadable
     }
 
     /// <summary>
