@@ -37,12 +37,26 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public static ResponseMatrix Load(string efficiencyGuid)
         {
+            MatrixRefusal refusal;
+            int fileFormat;
+            return Load(efficiencyGuid, out refusal, out fileFormat);
+        }
+
+        /// <summary>
+        /// То же, но отказ называет себя (`A50`) — см.
+        /// <see cref="ResponseMatrix.Load(string, out MatrixRefusal, out int)"/>.
+        /// </summary>
+        public static ResponseMatrix Load(string efficiencyGuid, out MatrixRefusal refusal,
+                                          out int fileFormat)
+        {
+            refusal = MatrixRefusal.NoFile;
+            fileFormat = 0;
             if (string.IsNullOrEmpty(efficiencyGuid))
             {
                 return null;
             }
 
-            return ResponseMatrix.Load(PathOf(efficiencyGuid));
+            return ResponseMatrix.Load(PathOf(efficiencyGuid), out refusal, out fileFormat);
         }
 
         public static void Save(string efficiencyGuid, ResponseMatrix matrix)

@@ -33,6 +33,37 @@ using System.Threading;
 // выключены, включённый входит в клеймо и честно гонит матрицу в пересчёт.
 class CorpusMatrixProbe
 {
+    /// <summary>
+    /// Строгий разбор булева ключа (`A77`). Принимает РОВНО `0` и `1`; на всё
+    /// остальное бросает, и прогон кончается в первую секунду.
+    ///
+    /// ⛔ Так сделано не из аккуратности, а по цене. Прежний разбор был
+    /// `a.Substring(n) != "0"` — то есть ЛЮБОЕ неизвестное значение он толковал
+    /// как истину и молчал. 02.09.2026 к `--cone=` добавили третье значение
+    /// `far`, а прогон пошёл каталогом проб, собранным ДО правки: старый разбор
+    /// сравнил «far» с «0», получил «не ноль» и включил конус ВСЕМ 44 сценам.
+    /// Ни отказа, ни предупреждения — ключ синтаксически прежний, значение
+    /// просто «истинное». ⚠ Ни побитовый замер, ни клеймо этого не ловят:
+    /// содержимое матриц вышло верным (на ближних сценах конус тождественен),
+    /// испорчено ПРОИСХОЖДЕНИЕ — они пометились `cone=on`, и следующий прочёл
+    /// бы их как «посчитаны с наведением». Цена молчания — три часа счёта.
+    ///
+    /// Именно поэтому отказ, а не предупреждение: предупреждение в начале
+    /// трёхчасового прогона никто не читает.
+    /// </summary>
+    static bool Flag(string arg, int prefix, string alsoNamed = null)
+    {
+        string key = arg.Substring(0, prefix);
+        string value = arg.Substring(prefix);
+        if (value == "0") return false;
+        if (value == "1") return true;
+        throw new ArgumentException(
+            "ключ " + key + " понимает только "
+            + (alsoNamed == null ? "0 и 1" : "0, 1 и " + alsoNamed)
+            + ", а получил «" + value + "». Разбор строгий с 03.09.2026 (`A77`): "
+            + "прежний считал ЛЮБОЕ неизвестное значение истиной и молчал.");
+    }
+
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -44,6 +75,8 @@ class CorpusMatrixProbe
         bool force = false;
         var options = new ResponseMatrixOptions();
         bool coneFar = false;                    // `A57`: конус только дальним
+        try
+        {
         foreach (string a in args)
         {
             if (a.StartsWith("--dir=", StringComparison.Ordinal)) dir = a.Substring(6);
@@ -65,7 +98,7 @@ class CorpusMatrixProbe
                 // `E31`: разрешать K-края веществ сцены в сетке. Включено
                 // умолчанием; ключ нужен, чтобы выделить вклад краёв отдельно от
                 // остального — иначе пересчёт меняет две вещи разом.
-                options.ResolveEdges = a.Substring(8) != "0";
+                options.ResolveEdges = Flag(a, 8);
             else if (a.StartsWith("--emin=", StringComparison.Ordinal))
                 // Диапазон сетки — чтобы профилировать ОДИН узел, как требует
                 // раздел Profiling в CLAUDE.md: профиль всей сцены смешивает
@@ -88,19 +121,19 @@ class CorpusMatrixProbe
                 // узнать, во что обходится аналоговая ветка — она гонит СВОИ n
                 // историй поверх взвешенных, и без замера доля её работы
                 // неизвестна. Матрицу, посчитанную так, в дело не пускать.
-                options.AnalogContinuum = a.Substring(8) != "0";
+                options.AnalogContinuum = Flag(a, 8);
             else if (a.StartsWith("--scat=", StringComparison.Ordinal))
                 // АБЛЯЦИЯ, как и `--acont=`: выключает однократное рассеяние по
                 // дороге к кристаллу (и вместе с ним проводку промахнувшихся
                 // лучей до выхода из сцены). Даёт долю времени, которую эта
                 // поправка стоит; вклад её в полную эффективность ~15 %.
-                options.SingleScatter = a.Substring(7) != "0";
+                options.SingleScatter = Flag(a, 7);
             else if (a.StartsWith("--bound=", StringComparison.Ordinal))
                 // АБЛЯЦИЯ: рассеяние на СВЯЗАННОМ электроне (физика 7) — угол со
                 // множителем отбора, доплеровское размытие, когерентное своим
                 // каналом. Всё это отбором с перебросом, то есть недёшево;
                 // ключ показывает, сколько именно оно стоит.
-                options.BoundScattering = a.Substring(8) != "0";
+                options.BoundScattering = Flag(a, 8);
             else if (a.StartsWith("--roulette=", StringComparison.Ordinal))
                 // `T43`, решение Amber: рулетка по весу поправки на однократное
                 // рассеяние. Ноль — прежний счёт. ⚠ Судить её временем прогона
@@ -113,26 +146,26 @@ class CorpusMatrixProbe
                 // по пику. Выключенный ключ возвращает шкалу энергии. Нужен,
                 // чтобы понять, отчего линия флуоресценции в строке матрицы
                 // стоит не на своей энергии (`F27`).
-                options.LightNonproportionality = a.Substring(6) != "0";
+                options.LightNonproportionality = Flag(a, 6);
             else if (a.StartsWith("--pairth=", StringComparison.Ordinal))
                 // `S121`/`S130`: пороговая интерполяция сечения рождения пар
                 // (XCOM). Умолчанием ВЫКЛЮЧЕНА решением Amber; ключ — рычаг
                 // замера `S125`. Включённая меняет клеймо, поэтому пересчёт
                 // идёт честно, а прежние матрицы остаются годными.
-                options.XcomPairThreshold = a.Substring(9) != "0";
+                options.XcomPairThreshold = Flag(a, 9);
             else if (a.StartsWith("--positron=", StringComparison.Ordinal))
                 // `S120`/`S130`: раздельный перенос e− и e+ пары. Рычаг замера
                 // `S126`, ПЕРВАЯ его половина.
-                options.PositronTransport = a.Substring(11) != "0";
+                options.PositronTransport = Flag(a, 11);
             else if (a.StartsWith("--posoffset=", StringComparison.Ordinal))
                 // ВТОРАЯ половина `S126`: смещать ли точку аннигиляции на конец
                 // пробега позитрона. Мерить порознь — ошибки разные и могут
                 // погасить друг друга. Действует только с `--positron=1`.
-                options.PositronOffset = a.Substring(12) != "0";
+                options.PositronOffset = Flag(a, 12);
             else if (a.StartsWith("--rayl2=", StringComparison.Ordinal))
                 // `N13`/`S130`: когерентное своим каналом во ВЗВЕШЕННОЙ ветви
                 // (проводка к кристаллу). Рычаг замера `S127`.
-                options.RayleighToCrystal = a.Substring(8) != "0";
+                options.RayleighToCrystal = Flag(a, 8);
             else if (a.StartsWith("--cone=", StringComparison.Ordinal))
                 // `A57`: наводить аналоговый розыгрыш конусом на габарит СЦЕНЫ
                 // (не детектора — иначе режется вещество пробы). Это оценщик, а
@@ -145,13 +178,13 @@ class CorpusMatrixProbe
                 // считались, и под новый код не попадают.
             {
                 coneFar = a.Substring(7) == "far";
-                options.AnalogConeSampling = !coneFar && a.Substring(7) != "0";
+                options.AnalogConeSampling = !coneFar && Flag(a, 7, "far");
             }
             else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
                 // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только
                 // так и меряется, что она даёт, без смены версии физики.
-                options.SampleFluorescence = a.Substring(7) != "0";
+                options.SampleFluorescence = Flag(a, 7);
             else if (a == "--recollect")
                 // `T43`, ЗАМЕР: разбирать луч заново на каждом шаге. Считается
                 // то же самое, но разборов становится столько же, сколько шагов;
@@ -165,6 +198,15 @@ class CorpusMatrixProbe
             else if (a == "--no-lxray") options.LXrayEscape = false;
 
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+        }
+        }
+        catch (ArgumentException e)
+        {
+            // `A77`: отказ, а не предупреждение. Прогон склада идёт часами, и
+            // предупреждение в его первой строке никто не прочтёт — а мёртвый
+            // ключ виден только по клейму, то есть уже после счёта.
+            Console.Error.WriteLine("⛔ " + e.Message);
+            return 2;
         }
 
         if (!Directory.Exists(dir))

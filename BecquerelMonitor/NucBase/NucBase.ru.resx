@@ -137,7 +137,7 @@
     <value>35, 13</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>keV и</value>
+    <value>кэВ и</value>
   </data>
   <data name="label10.ToolTip" xml:space="preserve">
     <value />
@@ -207,6 +207,15 @@
   </data>
   <data name="labelNameFormat.Size" type="System.Drawing.Size, System.Drawing">
     <value>128, 13</value>
+  </data>
+  <data name="SearchStatusLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>495, 384</value>
+  </data>
+  <data name="SearchStatusLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>469, 70</value>
+  </data>
+  <data name="SearchStatusLabel.Text" xml:space="preserve">
+    <value />
   </data>
   <data name="labelNameFormat.Text" xml:space="preserve">
     <value>Формат имени изотопа</value>
@@ -335,7 +344,7 @@
     <value>Тип</value>
   </data>
   <data name="EnergyColumn.HeaderText" xml:space="preserve">
-    <value>Энергия, keV</value>
+    <value>Энергия, кэВ</value>
   </data>
   <data name="IntensityColumn.HeaderText" xml:space="preserve">
     <value>Интенс, %</value>

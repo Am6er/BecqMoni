@@ -286,7 +286,7 @@
     <value>±</value>
   </data>
   <data name="label12.Text" xml:space="preserve">
-    <value>Бк/cps</value>
+    <value>Бк/(имп/с)</value>
   </data>
   <data name="label14.Text" xml:space="preserve">
     <value>кэВ</value>

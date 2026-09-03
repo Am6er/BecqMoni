@@ -124,7 +124,7 @@
     <value>Имп.</value>
   </data>
   <data name="cpsViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Имп. в сек. (CPS)</value>
+    <value>Имп. в сек. (имп/с)</value>
   </data>
   <data name="toolStripSplitButton1.ToolTipText" xml:space="preserve">
     <value>Выбрать вертикальную единицу</value>
@@ -163,7 +163,7 @@
     <value>Канал</value>
   </data>
   <data name="energyViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Энергия (keV)</value>
+    <value>Энергия (кэВ)</value>
   </data>
   <data name="toolStripSplitButton4.ToolTipText" xml:space="preserve">
     <value>Выбрать горизонтальную единицу</value>
@@ -277,7 +277,7 @@
     <value>Установить нижний порог спектра по курсору (&amp;L)</value>
   </data>
   <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
-    <value>Установить верхний порог спектра по курсору (&amp;Н)</value>
+    <value>Установить верхний порог спектра по курсору (&amp;H)</value>
   </data>
   <data name="toolStripMenuItem2.Text" xml:space="preserve">
     <value>Конфигурация устройства (&amp;D)</value>

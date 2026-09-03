@@ -49,6 +49,7 @@ SPECTRA = os.path.join(LAB, 'corpus', 'spectra')
 sys.path.insert(0, HERE)
 import calibrate                                      # noqa: E402
 import corpus_calib                                   # noqa: E402
+import corpus_lock                                    # noqa: E402
 import corpus_def                                     # noqa: E402
 import build_corpus                                   # noqa: E402
 import spectrum                                       # noqa: E402
@@ -590,6 +591,15 @@ def main():
     for a in sys.argv[1:]:
         if a.startswith('--key='):
             only = set(a.split('=', 1)[1].split(','))
+
+    # `A75`: отказ обязан прийти ДО первого чтения спектра. Пересборка пишет те
+    # же 129 файлов, которые читаем мы, и вместе это даёт отказ на СЛУЧАЙНОМ
+    # спектре, выглядящий как порча данных, а не как встречный процесс.
+    refusal = corpus_lock.guard(os.path.join(LAB, 'corpus'), corpus_lock.READ,
+                                u'приёмка check_corpus.py')
+    if refusal is not None:
+        print(refusal)
+        return 3
 
     print('%-20s %-9s %4s %8s %8s %8s %8s  %s' % (
         'спектр', 'детектор', 'лин', 'медиана', 'p90', 'макс', 'ширина', 'вердикт'))

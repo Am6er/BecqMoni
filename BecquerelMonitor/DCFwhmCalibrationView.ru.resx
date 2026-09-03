@@ -4454,7 +4454,7 @@
     <value>Формула:</value>
   </data>
   <data name="energyColumn.ToolTipText" xml:space="preserve">
-    <value>Энергия в keV</value>
+    <value>Энергия в кэВ</value>
   </data>
   <data name="viewCalibrationButton.Text" xml:space="preserve">
     <value>Просмотр ...</value>

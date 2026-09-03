@@ -26,6 +26,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool running;
         string status;
 
+        // (`A50`) Матрица отклика ЕСТЬ, но прежнего формата. Держится отдельно
+        // от результата: решение «с матрицей или без» принимается ДО фонового
+        // счёта, а сказать о нём надо и тогда, когда счёт ничего не вернул.
+        bool matrixOldFormat;
+
+        // Заготовленное человеку сообщение и ключ уже сказанного. Ключ нужен,
+        // потому что `Launch` зовётся при каждом устаревании отпечатка — на
+        // каждый тик набора, — а окно об одном и том же файле человек обязан
+        // увидеть ОДИН раз.
+        string matrixNotice;
+        string matrixNoticeSaid;
+
         // Поколение результата. Сброс (смена активного спектра) его увеличивает,
         // и уже запущенный счёт, вернувшись, увидит чужой номер и промолчит:
         // иначе разложение прежнего спектра воскресало бы поверх нового уже
@@ -65,6 +77,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     return this.status;
                 }
+            }
+        }
+
+        /// <summary>
+        /// (`A50`) У кривой ЛЕЖИТ матрица, но прежнего формата: разложение
+        /// считается без неё. Отличается от «матрицы нет вовсе» тем, что
+        /// лечится пересчётом, а не расчётом с нуля, — и легенда обязана
+        /// говорить об этом отдельной пометкой.
+        /// </summary>
+        public bool ResponseMatrixOldFormat
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.matrixOldFormat;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Забрать заготовленное человеку сообщение об отвергнутой матрице —
+        /// ОДИН раз на файл. Пусто, если говорить не о чем или уже сказано.
+        ///
+        /// ⛔ Почему сообщение забирают, а не показывают на месте: решение о
+        /// матрице принимается в <c>Launch</c>, а тот зовётся из подготовки
+        /// данных вида, то есть ИЗ ОТРИСОВКИ (<c>OnPaint</c> →
+        /// <c>EnsureViewData</c> → <c>PrepareViewData</c>). Модальное окно там
+        /// прокачивает очередь сообщений и входит в отрисовку повторно.
+        /// Поэтому вид забирает строку в обработчике <see cref="Completed"/>,
+        /// уже вне отрисовки, и показывает её сам.
+        /// </summary>
+        public string TakeResponseMatrixNotice()
+        {
+            lock (this.sync)
+            {
+                string notice = this.matrixNotice;
+                this.matrixNotice = null;
+                return notice;
             }
         }
 
@@ -174,11 +225,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // UseResponseMatrix — выключатель пользователя (W11, галка в форме
             // «Матрица отклика»): выключено — считаем без матрицы, файл даже
             // не читаем.
+            this.matrixOldFormat = false;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
+                // ⛔ (`A50`) ОТКАЗ ЧИТАТЬ МАТРИЦУ ОБЯЗАН НАЗЫВАТЬ СЕБЯ. Прежде
+                // `Load` возвращал `null` молча — и «файла нет» было
+                // неотличимо от «файл есть, но посчитан прежним форматом»: в
+                // легенде обоим доставалась одна пометка «· без матрицы».
+                // Лечится это по-разному (посчитать против пересчитать), и
+                // сказать человеку, что именно с ним случилось, было нечем.
+                EfficiencyMaker.MatrixRefusal refusal;
+                int fileFormat;
                 EfficiencyMaker.ResponseMatrix matrix =
-                    EfficiencyMaker.ResponseMatrixStore.Load(efficiencyConfig.Guid);
+                    EfficiencyMaker.ResponseMatrixStore.Load(efficiencyConfig.Guid,
+                                                             out refusal, out fileFormat);
+                if (refusal == EfficiencyMaker.MatrixRefusal.OldFormat)
+                {
+                    this.matrixOldFormat = true;
+                    this.NoteOldMatrixFormat(efficiencyConfig, fileFormat);
+                }
+
                 if (matrix != null && matrix.IsValidFor(efficiencyConfig.Geometry))
                 {
                     analyzer.ResponseMatrix = matrix;
@@ -291,6 +358,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     handler(this, EventArgs.Empty);
                 }
             });
+        }
+
+        /// <summary>
+        /// (`A50`) Сказать о матрице ПРЕЖНЕГО ФОРМАТА — громче пометки в
+        /// легенде и ровно один раз на файл.
+        ///
+        /// Приём тот же, каким приложение говорит о непрочитанной конфигурации
+        /// прибора (<see cref="AppUi"/>): без окон — строка в поток ошибок,
+        /// чтобы её видели пробы и корпусные прогоны; с окнами — сообщение,
+        /// которое показывает ВИД, забрав строку в
+        /// <see cref="TakeResponseMatrixNotice"/> (окно посреди отрисовки
+        /// открывать нельзя, см. там же).
+        ///
+        /// Ключ уже сказанного — путь, время записи и размер файла: пересчитали
+        /// матрицу — скажем снова, а на каждый тик набора об одном и том же
+        /// файле человек не услышит ничего.
+        /// </summary>
+        void NoteOldMatrixFormat(EfficiencyConfigData efficiency, int fileFormat)
+        {
+            string path = EfficiencyMaker.ResponseMatrixStore.PathOf(efficiency.Guid);
+            string key;
+            try
+            {
+                var file = new System.IO.FileInfo(path);
+                key = path + ":" + file.LastWriteTimeUtc.Ticks + ":" + file.Length;
+            }
+            catch (Exception)
+            {
+                key = path;
+            }
+
+            string text = string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                        Properties.Resources.FSAMatrixOldFormat,
+                                        efficiency.Name, fileFormat,
+                                        EfficiencyMaker.ResponseMatrix.FormatVersion,
+                                        AppUi.Where(path));
+            lock (this.sync)
+            {
+                if (key == this.matrixNoticeSaid)
+                {
+                    return;
+                }
+
+                this.matrixNoticeSaid = key;
+                this.matrixNotice = text;
+            }
+
+            // Молчит, когда есть окна: там строку заберёт и покажет вид.
+            AppUi.Note(text);
         }
 
         /// <summary>

@@ -739,7 +739,7 @@
     <value>496, 22</value>
   </data>
   <data name="setUpperThresholdHToolStripMenuItem.Text" xml:space="preserve">
-    <value>Set the upper threshold limit from the position of the cursor on the spectrum(&amp;Н)</value>
+    <value>Set the upper threshold limit from the position of the cursor on the spectrum(&amp;H)</value>
   </data>
   <data name="toolStripMenuItem2.Size" type="System.Drawing.Size, System.Drawing">
     <value>203, 22</value>

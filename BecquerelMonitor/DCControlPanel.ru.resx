@@ -193,7 +193,7 @@
     <value>Сбросить кривую эффективности</value>
   </data>
   <data name="countRateLbl.Text" xml:space="preserve">
-    <value>Скор. счета cps</value>
+    <value>Скор. счёта имп/с</value>
   </data>
   <data name="deviceConfigLbl.Text" xml:space="preserve">
     <value>Устройство</value>

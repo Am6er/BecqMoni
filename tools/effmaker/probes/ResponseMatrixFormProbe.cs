@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Globalization;
 using System.IO;
@@ -27,6 +28,10 @@ namespace ResponseMatrixFormProbe
     /// 4. **Кнопка есть на вкладке** и подписана из ресурсов.
     /// 5. **Сохранение кладёт файл туда, где его ищут,** и не трогает
     ///    конфигурацию — иначе матрица уехала бы внутрь файлов спектров.
+    /// 6. **Матрица ПРЕЖНЕГО ФОРМАТА не отбрасывается молча** (`A50`): отказ
+    ///    чтения называет себя, форма говорит «устарела: другое поколение», а
+    ///    разбор заготавливает человеку сообщение с обоими номерами формата.
+    ///    Положительный контроль — у годного файла разбор молчит.
     ///
     ///     responsematrixformprobe --geometry=X.in [--png=X.png]
     ///         [--nodes=N] [--histories=N] [--threads=N] [--target=%]
@@ -102,9 +107,19 @@ namespace ResponseMatrixFormProbe
             {
                 string state = TextOf(form, "stateLabel");
                 string details = StringField(form, "detailsText");
+
+                // ⛔ (`A47`) СВЕРЯТЬСЯ НАДО С `matrix.NodeCount`, А НЕ С
+                // `options.NodeCount`. Заказанное число узлов — ПРОСЬБА, а не
+                // итог: `BuildGrid(geometry)` доводит сетку узлами вокруг
+                // K-краёв веществ пробы (`T42`), и у `ASN16_lu_side.in`
+                // заказанные 10 превращаются в 12. Форма печатает 12 — и
+                // печатает ПРАВИЛЬНО, а проба искала «10» и роняла пункт с
+                // 27.08.2026. Мерено: `BuildGrid(null)` = 10, `BuildGrid(g)` = 12.
+                int nodesInMatrix = matrix.NodeCount;
                 bool ok = state == BecquerelMonitor.Properties.Resources.ResponseMatrixStateValid
-                          && details.Contains(options.NodeCount.ToString(CultureInfo.CurrentCulture));
-                Report(ok, "годная матрица: «{0}», в подробностях {1} узлов", Short(state), options.NodeCount);
+                          && details.Contains(nodesInMatrix.ToString(CultureInfo.CurrentCulture));
+                Report(ok, "годная матрица: «{0}», в подробностях {1} узлов (заказано {2}); первая строка: «{3}»",
+                       Short(state), nodesInMatrix, options.NodeCount, Short(FirstLine(details)));
                 bad += ok ? 0 : 1;
             }
 
@@ -129,8 +144,41 @@ namespace ResponseMatrixFormProbe
             }
 
             // Правим геометрию — матрица обязана стать устаревшей.
+            //
+            // ⛔ (`A47`) ДВИГАТЬ НАДО ТУ ДЛИНУ, КОТОРАЯ У ЭТОЙ ФОРМЫ КРИСТАЛЛА
+            // РАБОЧАЯ. Прежде проба всегда прибавляла миллиметр к
+            // `CrystalHeight` — полю ЦИЛИНДРА. У бруска (`Shape == Box`, а это
+            // весь ASN16) оно не участвует ни в чём: `GeometryWriter.Render`
+            // пишет в `DS_CrystalHeight` значение `CrystalBoxZ`, а сцену
+            // `EfficiencySimulator` строит по `CrystalBoxInScene`. Измерено на
+            // `ASN16_lu_side.in`: после `CrystalHeight += 1` текст геометрии
+            // совпадает с исходным ПОБАЙТНО (8175 знаков оба), отпечаток тот же
+            // (`phys=15;386e80d6…`), сцена та же (ax=9, ay=30, hc=15). То есть
+            // «матрица осталась годной» было ВЕРНЫМ ответом на пустой сдвиг, а
+            // не дырой в отпечатке: при `CrystalBoxZ += 1` отпечаток меняется
+            // (`5ec58627…`), и форма честно говорит «устарела».
             GeometryModel moved = geometry.Clone();
-            moved.CrystalHeight += 1.0;
+            string movedField;
+            if (moved.Shape == CrystalShape.Box)
+            {
+                moved.CrystalBoxZ += 1.0;
+                movedField = "CrystalBoxZ";
+            }
+            else
+            {
+                moved.CrystalHeight += 1.0;
+                movedField = "CrystalHeight";
+            }
+
+            // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ НА САМ СДВИГ. Отпечаток считается от
+            // ТЕКСТА геометрии; сдвиг, не дошедший до текста, не дойдёт и до
+            // отпечатка, и проверка ниже мерила бы пустоту — ровно это и
+            // случилось. Здесь она отказывает ЗАМЕТНО, а не молча проходит.
+            bool textMoved = GeometryWriter.Render(moved) != GeometryWriter.Render(geometry);
+            Report(textMoved, "сдвиг виден в тексте геометрии ({0} +1 мм, форма {1})",
+                   movedField, moved.Shape);
+            bad += textMoved ? 0 : 1;
+
             var movedConfig = new EfficiencyConfigData("проба-2")
             {
                 Guid = config.Guid,
@@ -141,7 +189,7 @@ namespace ResponseMatrixFormProbe
             {
                 string state = TextOf(form, "stateLabel");
                 bool ok = state == BecquerelMonitor.Properties.Resources.ResponseMatrixStateStale;
-                Report(ok, "геометрию сдвинули на 1 мм: «{0}»", Short(state));
+                Report(ok, "геометрию сдвинули на 1 мм ({0}): «{1}»", movedField, Short(state));
                 bad += ok ? 0 : 1;
             }
 
@@ -171,6 +219,73 @@ namespace ResponseMatrixFormProbe
             Report(tabButton, "на вкладке «Эффективность» есть кнопка «{0}»",
                    BecquerelMonitor.Properties.Resources.EfficiencyTabResponseMatrix);
             bad += tabButton ? 0 : 1;
+
+            // ------------------------------------------------------------------
+            // (`A50`) МАТРИЦА ПРЕЖНЕГО ФОРМАТА НЕ ОТБРАСЫВАЕТСЯ МОЛЧА
+            // ------------------------------------------------------------------
+            // Подъём `FormatVersion` делает нечитаемым весь прежний склад; у
+            // Amber 02.09.2026 таких файлов лежало шесть из десяти. `Load`
+            // возвращал `null` без единого слова, и в легенде разбора это было
+            // видно только пометкой «· без матрицы» — той же самой, что у
+            // человека, который матрицу вовсе не считал. Лечится это
+            // по-разному (пересчитать против посчитать), поэтому отказ обязан
+            // называть СЕБЯ, а разбор — говорить об этом человеку.
+            //
+            // Сцена делается из ГОДНОГО файла правкой четырёхбайтного поля
+            // версии в шапке: так получается ровно то, что лежит у людей после
+            // подъёма формата — наш файл, наша матрица, читать нельзя.
+            string matrixPath = ResponseMatrixStore.PathOf(config.Guid);
+            int oldFormat = ResponseMatrix.FormatVersion - 1;
+            SetFileFormat(matrixPath, oldFormat);
+
+            MatrixRefusal refusal;
+            int fileFormat;
+            ResponseMatrix refused = ResponseMatrix.Load(matrixPath, out refusal, out fileFormat);
+            bool named = refused == null && refusal == MatrixRefusal.OldFormat
+                         && fileFormat == oldFormat;
+            Report(named, "старый формат назван: отказ «{0}», в файле формат {1}, читаем {2}",
+                   refusal, fileFormat, ResponseMatrix.FormatVersion);
+            bad += named ? 0 : 1;
+
+            using (var form = new ResponseMatrixForm(config))
+            {
+                string state = TextOf(form, "stateLabel");
+                bool ok = state == BecquerelMonitor.Properties.Resources.ResponseMatrixStateStaleVersions;
+                Report(ok, "форма про старый формат: «{0}»", Short(state));
+                bad += ok ? 0 : 1;
+            }
+
+            // Главное: РАЗБОР говорит об этом человеку. Сообщение заготавливает
+            // `FsaOverlay` (окно показывает вид — открывать его там, где решение
+            // принимается, нельзя: это середина отрисовки), и в нём обязаны
+            // стоять ОБА номера формата, иначе оно ничему не учит.
+            // ⚠ Свои жалобы разбор пишет в `Trace`, а `Launch` глушит любое
+            // исключение и оставляет от него только состояние: без слушателя
+            // отказ этой проверки выглядел бы как «не сказал», хотя причина
+            // была бы совсем другой.
+            System.Diagnostics.Trace.Listeners.Add(
+                new System.Diagnostics.TextWriterTraceListener(Console.Error));
+
+            var overlay = new FsaOverlay();
+            overlay.EnsureUpToDate(SceneOf(config), false);
+            string notice = overlay.TakeResponseMatrixNotice() ?? "";
+            bool told = overlay.ResponseMatrixOldFormat
+                        && notice.Contains(oldFormat.ToString(CultureInfo.CurrentCulture))
+                        && notice.Contains(ResponseMatrix.FormatVersion.ToString(CultureInfo.CurrentCulture));
+            Report(told, "разбор назвал причину: пометка «старая матрица» {0}, состояние «{1}», сообщение «{2}»",
+                   overlay.ResponseMatrixOldFormat ? "есть" : "НЕТ", Short(overlay.Status), Short(notice));
+            bad += told ? 0 : 1;
+
+            // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: у ГОДНОГО файла ни пометки, ни
+            // сообщения. Без него проверка выше прошла бы и на «говорит всегда».
+            SetFileFormat(matrixPath, ResponseMatrix.FormatVersion);
+            var quiet = new FsaOverlay();
+            quiet.EnsureUpToDate(SceneOf(config), false);
+            bool silent = !quiet.ResponseMatrixOldFormat
+                          && string.IsNullOrEmpty(quiet.TakeResponseMatrixNotice());
+            Report(silent, "у годного файла разбор молчит: пометки {0}",
+                   quiet.ResponseMatrixOldFormat ? "ЕСТЬ" : "нет");
+            bad += silent ? 0 : 1;
 
             // 6. ХОД СЧЁТА НЕ ВРЁТ (`W27`). При останове по шуму — а это
             //    умолчание — сетка проходится до трёх раз, и прежде счётчик
@@ -272,6 +387,50 @@ namespace ResponseMatrixFormProbe
             MethodInfo handler = typeof(DeviceConfigForm).GetMethod(
                 "efficiencyMatrixButton_Click", BindingFlags.Instance | BindingFlags.NonPublic);
             return field != null && field.FieldType == typeof(Button) && handler != null;
+        }
+
+        /// <summary>
+        /// Версия формата в шапке `.rmx`: «BQRM» и следом четыре байта. Правится
+        /// на месте, чтобы получить файл ПРЕЖНЕГО поколения, не держа в дереве
+        /// двоичный образец, который сам протухнет со следующим подъёмом.
+        /// </summary>
+        static void SetFileFormat(string path, int format)
+        {
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite))
+            {
+                stream.Position = 4;
+                stream.Write(BitConverter.GetBytes(format), 0, 4);
+            }
+        }
+
+        /// <summary>
+        /// Наименьший спектр, на котором `FsaOverlay` доходит до решения о
+        /// матрице: решение принимается ДО фонового счёта, поэтому содержимое
+        /// спектра здесь неважно, а важна кривая с геометрией и включённым
+        /// выключателем матрицы.
+        /// </summary>
+        static ResultData SceneOf(EfficiencyConfigData config)
+        {
+            // ⚠ КАЛИБРОВКА ОБЯЗАТЕЛЬНА, и это не украшение: `Launch` начинается
+            // со снимка спектра, а `EnergySpectrum.Clone` зовёт
+            // `energyCalibration.Clone()` без проверки на null. Спектр без
+            // калибровки роняет разбор ещё до решения о матрице, и проверка
+            // ниже мерила бы пустоту — поймано слушателем `Trace`.
+            var spectrum = new EnergySpectrum(1.0, 128);
+            spectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+            spectrum.MeasurementTime = 100.0;
+            return new ResultData
+            {
+                EnergySpectrum = spectrum,
+                Efficiency = config.Copy()
+            };
+        }
+
+        static string FirstLine(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            int end = text.IndexOfAny(new[] { '\r', '\n' });
+            return end < 0 ? text : text.Substring(0, end);
         }
 
         static string Serialized(EfficiencyConfigData config)
