@@ -115,9 +115,19 @@ def main():
 
     print(u'\nПересборка прошла. Осталось то, что делается НЕ этим скриптом:')
     print(u'  python tools/CORPUS/scripts/bg_from_spe.py --apply   # полный фон G1S (S44)')
-    print(u'  CorpusEffProbe.exe                                   # склад матриц (B20)')
+    print(u'  CorpusMatrixProbe.exe                                # склад матриц (B20)')
+    # ⛔ ШАГ, КОТОРОГО ЗДЕСЬ НЕ БЫЛО ДО 02.09.2026 (`A78`). Склад пишет
+    # `geometries/<сцена>.rmx`, а разбор берёт `geometries/response/<guid>.rmx`
+    # — это РАЗНЫЕ каталоги, и между ними стоит перекладывание. Без него
+    # прогон отработает штатно на матрицах прошлого месяца: у них верное имя,
+    # верный guid и верный формат, они просто старые. Цена уже измерена
+    # однажды (`B14`, `B20`): 18.08.2026 весь корпус считался БЕЗ МАТРИЦЫ.
+    print(u'  python tools/CORPUS/scripts/mx_swap.py --from=tools/CORPUS/corpus/geometries --store')
+    print(u'                                                       # ⛔ ОБЯЗАТЕЛЬНО после склада: разбор')
+    print(u'                                                       # берёт geometries/response/<guid>.rmx')
     print(u'  python tools/CORPUS/scripts/corpus_summary.py        # сводка')
     print(u'  python tools/CORPUS/scripts/mkconfig.py              # рабочие каталоги wd_*')
+    print(u'  pwsh tools/CORPUS/scripts/mk_appwd.ps1               # рабочий каталог приложения')
     return 0
 
 
