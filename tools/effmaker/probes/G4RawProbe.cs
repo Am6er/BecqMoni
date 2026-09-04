@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
@@ -54,6 +54,7 @@ namespace G4RawProbe
             // Ключи АБЛЯЦИИ каналов утечки (`A63`): чем держится каждая полоса.
             bool xray = true, esc = true, brem = true;
             bool noLXray = false;                       // `A60`
+            bool klCascade = false;                     // `A101`
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -68,6 +69,9 @@ namespace G4RawProbe
                 // `A60`, АБЛЯЦИЯ: снять вылет L-рентгена. Выключенный
                 // ключ возвращает счёт физики 14 до последнего бита.
                 if (a == "--no-lxray") { noLXray = true; continue; }
+                // `A101`: атомный каскад K→L. Умолчанием ВЫКЛ, как и в
+                // расчёте матрицы, — иначе проба мерила бы не то, что склад.
+                if (a == "--klcasc") { klCascade = true; continue; }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
                 {
                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
@@ -149,6 +153,7 @@ namespace G4RawProbe
             simulator.Histories = histories;
             simulator.LightNonproportionality = light;
             simulator.LXrayEscape = !noLXray;           // `A60`
+            simulator.KLCascade = klCascade;            // `A101`
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
             simulator.XrayEscape = xray;
@@ -222,6 +227,10 @@ namespace G4RawProbe
                               simulator.CountVacancyXray);
             Console.WriteLine("флуоресценция: K-квантов {0}, L-квантов {1} (`A60`)",
                               simulator.CountKXray, simulator.CountLXray);
+            // `A101`: знаменатель рядом с числителем нарочно — без него
+            // «мало каскадов» неотличимо от «мало Kα».
+            Console.WriteLine("каскад K→L: вакансий на L {0}, из них ответили квантом {1} (`A101`)",
+                              simulator.CountKLVacancy, simulator.CountKLCascade);
 
             double totalError;
             double totalSecond = simulator.TotalEfficiency(energyKev, out totalError);

@@ -467,6 +467,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     sb.Append("pairth=1;");
                 }
 
+                // `A101`: по тому же правилу `T42` — выключенный ключ в клеймо
+                // не пишется, и добавление поля не гонит в пересчёт ни одной
+                // уже посчитанной матрицы.
+                if (options.KLCascade)
+                {
+                    sb.Append("klcasc=1;");
+                }
+
                 if (options.PositronTransport)
                 {
                     // Половины `S126` обязаны различаться: со смещением
@@ -900,6 +908,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(flags.RayleighToCrystal);
                 writer.Write(flags.AnalogConeSampling);
                 writer.Write(flags.LXrayEscape);          // `A60`
+                writer.Write(flags.KLCascade);            // `A101`
             }
 
             if (File.Exists(path))
@@ -1200,6 +1209,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 {
                                     matrix.Options.LXrayEscape = reader.ReadBoolean();
                                 }
+
+                                // `A101` тем же хвостом. Умолчание `false`, и у
+                                // старого файла байта нет — он и правда считался
+                                // без каскада, так что клеймо сходится.
+                                if (stream.Length - stream.Position >= 1)
+                                {
+                                    matrix.Options.KLCascade = reader.ReadBoolean();
+                                }
                             }
                         }
                     }
@@ -1338,6 +1355,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// наоборот: здесь прежнюю физику означает НЕ умолчание.
         /// </summary>
         public bool LXrayEscape = true;
+
+        /// <summary>
+        /// (`A101`) Атомный каскад K→L: одно поглощение отдаёт ДВА кванта.
+        /// Умолчанием ВЫКЛЮЧЕН (решение Amber 04.09.2026); включённый входит
+        /// в клеймо и честно гонит матрицу в пересчёт.
+        /// </summary>
+        public bool KLCascade;
 
         public bool CoherentPassesThrough = true;
 
