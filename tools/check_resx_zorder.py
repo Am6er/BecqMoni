@@ -77,6 +77,17 @@ Studio их принял и форму нарисовал: проверка ОТ
 Запуск:
     python tools/check_resx_zorder.py [--form NucBase] [--out FILE]
 Код возврата 0 — расхождений нет, 1 — есть.
+
+## ⚠ Формат файла — плечо сторожа (`T156`, 05.09.2026)
+
+Каждый `*.resx` обязан быть UTF-8 С BOM и с переводами строк CRLF, без
+примесей (правило, счёт по дереву и причины — в `tools/resx_format.py`).
+Файл чужого формата сверка НЕ читает молча: печатает `ФОРМАТ  <файл>: чем
+плох` и возвращает 1, даже если по своему предмету всё сошлось. Правка,
+написанная под BOM+CRLF, на таком файле отказывает (`A118`), и заход уходит
+на выяснение причины — плечо заведено, чтобы причину называл сторож.
+Снять плечо — ключ `--no-format` (на дереве с `core.autocrlf=false` всё
+лежит LF, и там оно красно на всех файлах по устройству, а не по дефекту).
 """
 import argparse
 import io
@@ -85,6 +96,8 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
+import resx_format
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.normpath(os.path.join(HERE, "..", "BecquerelMonitor"))
 
@@ -92,6 +105,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--root", default=APP, help="корень приложения")
 ap.add_argument("--form", default=None, help="только эта форма (имя без .resx)")
 ap.add_argument("--out", default=None, help="писать отчёт в файл (UTF-8)")
+ap.add_argument("--no-format", action="store_true",
+                help="не проверять формат файлов (BOM + CRLF, T156)")
 args = ap.parse_args()
 
 PROPS = ("Name", "Type", "Parent", "ZOrder")
@@ -189,7 +204,11 @@ for des, resx in pairs:
                     report.append(u"      %2d  ZOrder=%-28s Controls.Add=%-28s %s"
                                   % (i, a, b, u"  " if a == b else u"<<"))
 
+# Плечо формата (`T156`) — по файлам, которые сверка прочла.
+fmt = [] if args.no_format else resx_format.problems([r for _d, r in pairs])
+report.extend(fmt)
 buf.write(u"контейнеров проверено: %d, с расхождением: %d\n" % (n_cont, n_bad))
+buf.write(u"файлов чужого формата (не BOM+CRLF): %d\n" % len(fmt))
 buf.write(u"=" * 74 + u"\n")
 buf.write(u"\n".join(report) if report else u"расхождений нет")
 buf.write(u"\n")
@@ -200,4 +219,4 @@ if args.out:
 else:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stdout.write(text)
-sys.exit(1 if n_bad else 0)
+sys.exit(1 if n_bad or fmt else 0)
