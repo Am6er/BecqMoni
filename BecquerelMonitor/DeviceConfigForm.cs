@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -45,6 +46,7 @@ namespace BecquerelMonitor
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
             this.BuildEfficiencyTab();
+            this.BuildDoseRateTab();
             this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
@@ -448,6 +450,7 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             this.LoadEfficiencyTab(config);
+            this.LoadDoseRateTab(config);
             this.textBox1.Text = config.Name;
             this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
             this.integerTextBox1.Text = config.NumberOfChannels.ToString();
@@ -2400,7 +2403,218 @@ namespace BecquerelMonitor
 
 
         private EnergySpectrum doseRateSpectrum;
-        private IInterpolation efficiencyCurve;
+        private DoseRateCurve efficiencyCurve;
+
+        // --- `C4(а)` и `C4(б)`: то, что уже есть у приложения, вместо диалога ---
+        //
+        // Оба списка строятся кодом, а не конструктором форм, ровно по той же
+        // причине, что и вкладка «Эффективность»: у полосы, которая их пишет,
+        // `*.resx` формы не в правке, а строки списку нужны. Подписи идут через
+        // `DoseRateCoefficients.Text` — как только координатор заведёт пару
+        // ключей (английский + русский), она подхватится сама.
+        ComboBox comboDoseRateSpectrum;
+        ComboBox comboDoseRateEfficiency;
+        ToolTip doseRateToolTip;
+
+        /// <summary>Спектр, поднятый из файла старым путём; null, если его не было.</summary>
+        DoseRateSpectrumChoice doseRateFileChoice;
+
+        /// <summary>Кривая, поднятая из файла ЛСРМ старым путём.</summary>
+        List<ROIEfficiencyData> doseRateFileCurve;
+        string doseRateFileCurveName;
+
+
+        /// <summary>
+        /// Достроить вкладку «Dose Rate»: два списка вместо двух диалогов.
+        ///
+        /// Списки встают ТОЧНО на место двух полей «путь к файлу», которые до
+        /// сих пор только показывали имя и ничего не делали, — места на
+        /// странице (490x599) свободного нет, а поля свою работу передают
+        /// списку: выбранный пункт и есть имя источника, полный путь висит
+        /// подсказкой.
+        /// </summary>
+        void BuildDoseRateTab()
+        {
+            this.doseRateToolTip = new ToolTip();
+
+            this.comboDoseRateSpectrum = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = this.textBoxDoseRateSpectrumFile.Location,
+                Size = new Size(this.textBoxDoseRateSpectrumFile.Width, 21),
+                TabIndex = this.textBoxDoseRateSpectrumFile.TabIndex,
+            };
+
+            this.comboDoseRateEfficiency = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = this.textBoxEffFile.Location,
+                Size = new Size(this.textBoxEffFile.Width, 21),
+                TabIndex = this.textBoxEffFile.TabIndex,
+            };
+
+            this.textBoxDoseRateSpectrumFile.Visible = false;
+            this.textBoxEffFile.Visible = false;
+
+            this.comboDoseRateSpectrum.SelectedIndexChanged += this.comboDoseRateSpectrum_SelectedIndexChanged;
+            this.comboDoseRateEfficiency.SelectedIndexChanged += this.comboDoseRateEfficiency_SelectedIndexChanged;
+
+            this.tabPage7.Controls.Add(this.comboDoseRateSpectrum);
+            this.tabPage7.Controls.Add(this.comboDoseRateEfficiency);
+
+            // Подпись под кривой врала после `C4(в)`: диапазон больше не
+            // «40 keV - 3MeV», он берётся у шкалы прибора.
+            this.labelEffNote.Text = DoseRateCoefficients.Text(
+                "DoseRateEffNote",
+                "*only the shape of the curve matters; the ranges follow the device scale");
+        }
+
+        /// <summary>
+        /// Наполнить оба списка. Зовётся при загрузке конфигурации: набор
+        /// кривых у каждой конфигурации свой.
+        /// </summary>
+        void LoadDoseRateTab(DeviceConfigInfo config)
+        {
+            if (this.comboDoseRateEfficiency == null)
+            {
+                return;
+            }
+
+            this.FillDoseRateEfficiencyCombo(config);
+            this.FillDoseRateSpectrumCombo();
+        }
+
+        void FillDoseRateEfficiencyCombo(DeviceConfigInfo config)
+        {
+            this.comboDoseRateEfficiency.Items.Clear();
+
+            // Кривые САМОЙ конфигурации прибора — то, чего вкладка не видела
+            // вовсе (`C4(а)`).
+            foreach (EfficiencyConfigData item in DoseRateEstimator.OfferedEfficiencies(config))
+            {
+                this.comboDoseRateEfficiency.Items.Add(item);
+            }
+
+            // Файл ЛСРМ остаётся: старый путь цел, он просто перестал быть
+            // единственным.
+            if (this.doseRateFileCurve != null)
+            {
+                this.comboDoseRateEfficiency.Items.Add(this.doseRateFileCurveName);
+            }
+
+            if (this.comboDoseRateEfficiency.Items.Count > 0)
+            {
+                this.comboDoseRateEfficiency.SelectedIndex = this.comboDoseRateEfficiency.Items.Count - 1;
+            }
+            else
+            {
+                this.efficiencyCurve = null;
+                this.EvaluateButtonEstimateDRState();
+            }
+        }
+
+        void FillDoseRateSpectrumCombo()
+        {
+            this.comboDoseRateSpectrum.Items.Clear();
+
+            // Уже открытые спектры (`C4(б)`).
+            foreach (DoseRateSpectrumChoice choice in this.OpenSpectrumChoices())
+            {
+                this.comboDoseRateSpectrum.Items.Add(choice);
+            }
+
+            if (this.doseRateFileChoice != null)
+            {
+                this.comboDoseRateSpectrum.Items.Add(this.doseRateFileChoice);
+            }
+
+            if (this.comboDoseRateSpectrum.Items.Count > 0)
+            {
+                this.comboDoseRateSpectrum.SelectedIndex = this.comboDoseRateSpectrum.Items.Count - 1;
+            }
+            else
+            {
+                this.doseRateSpectrum = null;
+                this.EvaluateButtonEstimateDRState();
+            }
+        }
+
+        /// <summary>Открытые документы, приведённые к выбору вкладки.</summary>
+        List<DoseRateSpectrumChoice> OpenSpectrumChoices()
+        {
+            var titles = new List<string>();
+            var results = new List<ResultData>();
+            try
+            {
+                foreach (DocEnergySpectrum document in DocumentManager.GetInstance().DocumentList)
+                {
+                    if (document == null || document.ActiveResultData == null)
+                    {
+                        continue;
+                    }
+
+                    titles.Add(string.IsNullOrEmpty(document.Filename)
+                        ? document.Text
+                        : Path.GetFileNameWithoutExtension(document.Filename));
+                    results.Add(document.ActiveResultData);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Список документов — удобство, а не условие работы: без него
+                // остаётся старый путь через файл.
+                Trace.WriteLine("Dose rate: список открытых документов недоступен: " + ex.Message);
+            }
+
+            return DoseRateEstimator.OfferedSpectra(titles, results);
+        }
+
+        void comboDoseRateSpectrum_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DoseRateSpectrumChoice choice = this.comboDoseRateSpectrum.SelectedItem as DoseRateSpectrumChoice;
+            this.doseRateSpectrum = choice == null ? null : choice.Spectrum;
+            this.EvaluateButtonEstimateDRState();
+        }
+
+        void comboDoseRateEfficiency_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            object selected = this.comboDoseRateEfficiency.SelectedItem;
+            try
+            {
+                EfficiencyConfigData data = selected as EfficiencyConfigData;
+                List<ROIEfficiencyData> points = null;
+                if (data != null)
+                {
+                    points = data.Curve;
+                }
+                else if (this.doseRateFileCurve != null)
+                {
+                    points = this.doseRateFileCurve;
+                }
+
+                this.efficiencyCurve = points == null ? null : DoseRateEstimator.CurveOf(points);
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                this.efficiencyCurve = null;
+
+                // ⚠ Во время загрузки конфигурации окно НЕ показывается: список
+                // наполняется сам, человек ничего не выбирал, и негодная кривая
+                // из хранилища встретила бы его модальным окном на открытии
+                // формы. Причина при этом не теряется — она уходит в журнал, а
+                // кнопка «Оценить» остаётся выключенной.
+                if (this.contentsLoading)
+                {
+                    Trace.WriteLine("Dose rate: " + ex.Message);
+                }
+                else
+                {
+                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
+            this.EvaluateButtonEstimateDRState();
+        }
 
         private void buttonLoadDoseRateSpectrum_Click(object sender, EventArgs e)
         {
@@ -2416,15 +2630,158 @@ namespace BecquerelMonitor
 
             this.textBoxDoseRateSpectrumFile.Text = openFileDialog.FileName;
 
-            using (FileStream fileStream = new FileStream(openFileDialog.FileName, FileMode.Open))
+            try
             {
-                XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                ResultDataFile result = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-                // TODO: add input data validation
-                doseRateSpectrum = result.ResultDataList[0].EnergySpectrum;
+                using (FileStream fileStream = new FileStream(openFileDialog.FileName, FileMode.Open))
+                {
+                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
+                    ResultDataFile result = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
+
+                    // Проверка входа, которой на этом месте не было (собственное
+                    // `TODO: add input data validation`): пустой список или
+                    // спектр без калибровки прежде уезжали дальше молча и
+                    // всплывали `NullReferenceException` в расчёте.
+                    var titles = new List<string> { Path.GetFileNameWithoutExtension(openFileDialog.FileName) };
+                    var results = new List<ResultData>();
+                    if (result != null && result.ResultDataList != null && result.ResultDataList.Count > 0)
+                    {
+                        results.Add(result.ResultDataList[0]);
+                    }
+
+                    List<DoseRateSpectrumChoice> choices = DoseRateEstimator.OfferedSpectra(titles, results);
+                    if (choices.Count == 0)
+                    {
+                        MessageBox.Show(this, string.Format(
+                            CultureInfo.CurrentCulture,
+                            DoseRateCoefficients.Text("DoseRateFileUnusable",
+                                "Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time."),
+                            openFileDialog.FileName), this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    this.doseRateFileChoice = choices[0];
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, ex.Message),
+                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
+            this.doseRateToolTip.SetToolTip(this.comboDoseRateSpectrum, openFileDialog.FileName);
+            this.FillDoseRateSpectrumCombo();
             EvaluateButtonEstimateDRState();
+        }
+
+        /// <summary>
+        /// Общий разбор текстового экспорта ЛСРМ (собственное `TODO: create
+        /// shared method for LSRM file read`). Статический и без формы нарочно:
+        /// так его можно проверить пробой, не поднимая окна.
+        ///
+        /// Что проверяется, чего раньше не проверялось вовсе: файл читается, в
+        /// нём есть строки, числа разбираются, и точек набралось хотя бы две.
+        /// Прежде разбор молча глотал исключение, отдавал пустой список и
+        /// строил по нему сплайн.
+        /// </summary>
+        /// <summary>
+        /// Число из файла ЛСРМ. Пробуются ОБА разделителя дробной части.
+        ///
+        /// ⛔ Найдено 05.09.2026 (`C4(а)`). Прежде здесь стоял
+        /// `Convert.ToDouble(string)` — он разбирает по ТЕКУЩЕЙ культуре, а
+        /// файл приходит с той, в которой его записали. На русской системе
+        /// «0.0386379» ловит `FormatException`, старый разбор его глотал,
+        /// отдавал пустой список и строил по нему сплайн; на английской то же
+        /// самое случалось с «0,0386379». Читатель файла обязан быть безразличен
+        /// к культуре машины, на которой файл открывают.
+        /// </summary>
+        static double ParseLsrmDouble(string text)
+        {
+            text = text == null ? "" : text.Trim();
+            double value;
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            {
+                return value;
+            }
+
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
+            {
+                return value;
+            }
+
+            // Последняя попытка: запятая как дробная часть на любой системе.
+            if (text.IndexOf(',') >= 0
+                && double.TryParse(text.Replace(',', '.'), NumberStyles.Float,
+                                   CultureInfo.InvariantCulture, out value))
+            {
+                return value;
+            }
+
+            throw new FormatException(string.Format(CultureInfo.CurrentCulture,
+                "«{0}» — не число ни с точкой, ни с запятой", text));
+        }
+
+        internal static List<ROIEfficiencyData> ReadLsrmEfficiencyExport(string path, out string problem)
+        {
+            problem = null;
+            var points = new List<ROIEfficiencyData>();
+            int lineNumber = 0;
+            try
+            {
+                using (StreamReader streamReader = new StreamReader(path, Encoding.GetEncoding(65001)))
+                {
+                    // Заголовок вида "Energy, keV\tEfficiency\tUncertainty, %".
+                    streamReader.ReadLine();
+                    lineNumber = 1;
+                    while (streamReader.Peek() != -1)
+                    {
+                        lineNumber++;
+                        List<string> lineList = streamReader.ReadLine().Split(new char[] { '\t' }).ToList<string>();
+                        if (lineList.Count <= 5)
+                        {
+                            continue;
+                        }
+
+                        for (int i = 0; i < lineList.Count; i++)
+                        {
+                            if (lineList[i] == "")
+                            {
+                                lineList.RemoveAt(i);
+                                i--;
+                                if (i > lineList.Count - 1) break;
+                            }
+                        }
+
+                        if (lineList.Count < 3)
+                        {
+                            continue;
+                        }
+
+                        points.Add(new ROIEfficiencyData()
+                        {
+                            Energy = ParseLsrmDouble(lineList[0]),
+                            Efficiency = ParseLsrmDouble(lineList[1]),
+                            ErrorPercent = ParseLsrmDouble(lineList[2])
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                problem = string.Format(CultureInfo.CurrentCulture, "{0} (line {1}): {2}",
+                                        path, lineNumber, ex.Message);
+                return points;
+            }
+
+            if (points.Count < 2)
+            {
+                problem = string.Format(CultureInfo.CurrentCulture,
+                    DoseRateCoefficients.Text("DoseRateLsrmNoPoints",
+                        "Dose rate: {0} yielded {1} curve point(s) — at least two are needed."),
+                    path, points.Count);
+            }
+
+            return points;
         }
 
         private void buttonLoadEff_Click(object sender, EventArgs e)
@@ -2440,59 +2797,62 @@ namespace BecquerelMonitor
             }
 
             this.textBoxEffFile.Text = openFileDialog.FileName;
-            // TODO: create shared method for LSRM file read
-            List<ROIEfficiencyData> points = new List<ROIEfficiencyData>();
-            try
+
+            string problem;
+            List<ROIEfficiencyData> points = ReadLsrmEfficiencyExport(openFileDialog.FileName, out problem);
+            if (problem != null)
             {
-                // read file
-                using (StreamReader streamReader = new StreamReader(openFileDialog.FileName, Encoding.GetEncoding(65001)))
-                {
-                    // skip first line like "Energy, keV	Efficiency	Uncertainty, %"
-                    streamReader.ReadLine();
-                    while (streamReader.Peek() != -1)
-                    {
-                        List<string> lineList = streamReader.ReadLine().Split(new char[] { '\t' }).ToList<string>();
-                        if (lineList.Count > 5)
-                        {
-                            for (int i = 0; i < lineList.Count; i++)
-                            {
-                                if (lineList[i] == "")
-                                {
-                                    lineList.RemoveAt(i);
-                                    i--;
-                                    if (i > lineList.Count - 1) break;
-                                }
-                            }
-                            points.Add(new ROIEfficiencyData()
-                            {
-                                Energy = Convert.ToDouble(lineList[0]),
-                                Efficiency = Convert.ToDouble(lineList[1]),
-                                ErrorPercent = Convert.ToDouble(lineList[2])
-                            });
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, ex.Message));
+                MessageBox.Show(this, string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, problem),
+                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
-            // TODO: add input data validation
-            efficiencyCurve = Interpolate.CubicSplineMonotone(points.Select(p => p.Energy), points.Select(p => p.Efficiency));
+            this.doseRateFileCurve = points;
+            this.doseRateFileCurveName = Path.GetFileNameWithoutExtension(openFileDialog.FileName);
+            this.doseRateToolTip.SetToolTip(this.comboDoseRateEfficiency, openFileDialog.FileName);
+            this.FillDoseRateEfficiencyCombo(this.activeDeviceConfig);
 
             EvaluateButtonEstimateDRState();
         }
 
         private void buttonEstimateDRConf_Click(object sender, EventArgs e)
         {
-            if (doseRateSpectrum == null || efficiencyCurve == null || this.upDownDoseRateValue.Value <= 0)
+            List<DoseRateCalibrationPoint> doseConfig;
+            try
             {
+                double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
+
+                // Сетка от ШКАЛЫ ПРИБОРА, а не от двух вшитых чисел (`C4(в)`).
+                double minKev, maxKev;
+                DoseRateEstimator.DeviceRange(this.activeDeviceConfig, this.doseRateSpectrum,
+                                              out minKev, out maxKev);
+
+                // ...и по протяжённости кривой: за её крайними точками сплайн
+                // продолжает форму, а не эффективность.
+                if (this.efficiencyCurve != null)
+                {
+                    minKev = Math.Max(minKev, this.efficiencyCurve.MinKev);
+                    maxKev = Math.Min(maxKev, this.efficiencyCurve.MaxKev);
+                }
+
+                double[] energies = DoseRateEstimator.BuildGrid(minKev, maxKev);
+
+                var log = new List<string>();
+                doseConfig = CalculateDoseRateConfig(this.doseRateSpectrum, this.efficiencyCurve,
+                                                     expectedDoseRate, energies, log);
+                foreach (string line in log)
+                {
+                    Trace.WriteLine(line);
+                }
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                // ⛔ Отказ ВИДИМЫЙ. Прежде обработчик молча выходил по `return`,
+                // и человек нажимал кнопку, не получая ни таблицы, ни причины.
+                MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
-            List<DoseRateCalibrationPoint> doseConfig = CalculateDoseRateConfig(doseRateSpectrum, efficiencyCurve, expectedDoseRate);
             // Оценка ЗАМЕЩАЕТ таблицу, а не дописывается к ней. Прежде кнопка
             // включалась только при пустой таблице (см. EvaluateButtonEstimateDRState),
             // и чтобы пересчитать, надо было сначала нажать «Очистить» —
@@ -2520,85 +2880,21 @@ namespace BecquerelMonitor
             buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null;
         }
 
-        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(EnergySpectrum spectrum, IInterpolation efficiency, double expectedDoseRate)
+        /// <summary>
+        /// Точки калибровки мощности дозы.
+        ///
+        /// ⛔ `C4(в)`. Здесь больше нет ни сетки, ни коэффициентов: пятнадцать
+        /// вшитых диапазонов 40–3000 кэВ, шестнадцать значений μ_en/ρ и
+        /// шестнадцать значений перевода Р→Зв уехали в
+        /// <see cref="DoseRateCoefficients"/>, где у них есть имя, единица и
+        /// источник, а μ_en/ρ вообще перестал быть таблицей — считается из XCOM
+        /// (`matdb.sqlite`). Сетка приходит снаружи, от шкалы прибора.
+        /// </summary>
+        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(
+            EnergySpectrum spectrum, DoseRateCurve efficiency, double expectedDoseRate,
+            double[] energies, IList<string> log)
         {
-            double[] energies = { 40, 50, 60, 80, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000, 3000 };
-            double[] muValues = { 0.006694, 0.004031, 0.003004, 0.002393, 0.002318, 0.002494, 0.002672, 0.002872, 0.002949, 0.002966, 0.002953, 0.002882, 0.002787, 0.002545, 0.002342, 0.002054 };
-            double[] RToSv = { 1.29, 1.46, 1.52, 1.51, 1.44, 1.31, 1.22, 1.15, 1.10, 1.07, 1.04, 1.02, 1.01, 0.99, 0.99, 0.98 };
-            IInterpolation muCurve = Interpolate.CubicSplineMonotone(energies, muValues);
-            IInterpolation RToSvCurve = Interpolate.CubicSplineMonotone(energies, RToSv);
-
-            // calculate dose rate for spectrum as is
-            double doseRate = 0;
-            List<double> rangeCpsList = new List<double>();
-            List<double> rangeEffList = new List<double>();
-            List<double> rangeDoseRateFactorList = new List<double>();
-            for (int i = 0; i < energies.Length - 1; i++)
-            {
-                double fromE = energies[i];
-                double toE = energies[i + 1];
-                int fromChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(fromE, maxChannels: spectrum.NumberOfChannels));
-                int toChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(toE, maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
-                double centerE = (fromE + toE) / 2;
-
-                double doseRateFactor = muCurve.Interpolate(centerE) * RToSvCurve.Interpolate(centerE) * centerE;
-                rangeDoseRateFactorList.Add(doseRateFactor);
-
-                double rangeEff = efficiency.Interpolate(centerE);
-                rangeEffList.Add(rangeEff);
-                
-                double rangeCounts = 0;
-                // Полуоткрыто, как и в DoseRateManager: диапазоны идут встык,
-                // и граничный канал принадлежит следующему (W19).
-                if (fromChannel < 0) fromChannel = 0;
-                for (int j = fromChannel; j < toChannel; j++)
-                {
-                    rangeCounts += spectrum.Spectrum[j];
-                }
-                double rangeCps = rangeCounts / spectrum.MeasurementTime;
-                rangeCpsList.Add(rangeCps);
-
-                double rangeDoseRate = rangeCps * doseRateFactor / rangeEff;
-                doseRate += rangeDoseRate;
-            }
-
-            // adjust rates according to expected value
-            double doseRateCoeff = expectedDoseRate / doseRate;
-            List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
-            for (int i = 0; i < energies.Length - 1; i++)
-            {
-                // Чувствительность диапазона — доза на один отсчёт; в точке она
-                // лежит частным Etalon/CPS. Прежде сюда клали CPS = 1, и колонка
-                // не значила ничего: посмотреть, сколько эталон реально дал в
-                // этом диапазоне, было негде. Теперь в CPS идёт ИЗМЕРЕННАЯ
-                // скорость счёта диапазона, а в Etalon — пришедшаяся на него
-                // доза; частное, то есть сама чувствительность, прежнее
-                // (C4(г), решение Amber 08.08.2026).
-                double sensitivity = doseRateCoeff * rangeDoseRateFactorList[i] / rangeEffList[i];
-                double rangeCps = rangeCpsList[i];
-                if (!(rangeCps > 0.0))
-                {
-                    // Диапазон, в котором эталон не дал ни одного отсчёта,
-                    // откалибровать по нему НЕЛЬЗЯ: частное 0/0 не определено, а
-                    // прежняя запись подставляла туда чистую модель, выдавая
-                    // измерением то, что измерением не было.
-                    Trace.WriteLine(string.Format(
-                        "Dose rate: диапазон {0}–{1} кэВ пуст в эталонном спектре, точка не заведена.",
-                        energies[i], energies[i + 1]));
-                    continue;
-                }
-
-                DoseRateCalibrationPoint point = new DoseRateCalibrationPoint()
-                {
-                    LowerBound = energies[i],
-                    UpperBound = energies[i + 1],
-                    CPS = rangeCps,
-                    EtalonDoseRateValue = sensitivity * rangeCps,
-                };
-                doseRateCalibrationPoints.Add(point);
-            }
-
-            return doseRateCalibrationPoints;
+            return DoseRateEstimator.Estimate(spectrum, efficiency, expectedDoseRate, energies, log);
         }
 
         private void buttonClearDoseRate_Click(object sender, EventArgs e)
