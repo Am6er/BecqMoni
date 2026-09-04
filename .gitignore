@@ -2,6 +2,15 @@
 BecquerelMonitor/.vs/*
 BecquerelMonitor/bin/*
 BecquerelMonitor/obj/*
+# ⛔ ВЫХОД СБОРКИ НА ЛЮБОЙ ГЛУБИНЕ (`A110`, 04.09.2026). Образцы выше прибиты к
+# одному уровню, и `MSBuild` с ОТНОСИТЕЛЬНЫМ `OutputPath`, запущенный из корня
+# репозитория вместо каталога проекта, кладёт выход уровнем ниже — в
+# `BecquerelMonitor/BecquerelMonitor/bin/Debug_A90_before/`. Такой каталог виден
+# в `git status` как `??`, и один `git add -A` унёс бы в коммит целую сборку.
+# Отслеживаемых файлов в `bin/` и `obj/` в дереве НЕТ НИ ОДНОГО (проверено
+# `git ls-files`), поэтому образец безопасно поставить на любую глубину.
+**/bin/
+**/obj/
 *.csproj.user
 AGENTS.md
 CLAUDE.md

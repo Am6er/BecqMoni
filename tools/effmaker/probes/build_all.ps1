@@ -153,6 +153,24 @@ function Invoke-AppWdCheck {
     $r
 }
 
+# ⛔ ОТКАЗ СБОРКИ ПРОБ ПЕЧАТАЕТСЯ ПОСЛЕДНИМ И УХОДИТ В `stderr` (`T144`).
+# Мерено 04.09.2026: скрипт вернул `CS0103`, следующая строка вызывающего
+# запустила пробу прежним `.exe`, и та напечатала «ВСЕ СОШЛИСЬ» — без единой
+# новой проверки. Код возврата у скрипта был, читателя у кода не было. Поэтому
+# отказ, во-первых, повторяется В КОНЦЕ вывода (первые строки уже уехали за
+# экран под сотней «ok»), во-вторых, пишется в ПОТОК ОШИБОК — его видно и в
+# консоли красным, и в перенаправленном логе, и `$?` после него ложно.
+$script:BuildBad = @()
+function Write-BuildFailBanner {
+    if ($script:BuildBad.Count -eq 0) { return }
+    Write-Host ""
+    Write-Host "⛔⛔ ОТКАЗ: ПРОБЫ НЕ СОБРАЛИСЬ (T144)" -ForegroundColor Red
+    foreach ($line in $script:BuildBad) { Write-Host ("   " + $line) -ForegroundColor Red }
+    Write-Host "   ⛔ Запускать пробы из этого каталога НЕЛЬЗЯ: у сломанных лежит ПРЕЖНЯЯ сборка," -ForegroundColor Red
+    Write-Host "      она отработает молча и напечатает «сошлось» по коду, которого больше нет." -ForegroundColor Red
+    $Host.UI.WriteErrorLine("build_all.ps1: ОТКАЗ (T144) — " + ($script:BuildBad -join '; '))
+}
+
 function Deny-Guard {
     param([Parameter(Mandatory)][string]$Why)
     Write-Host ""
@@ -160,6 +178,7 @@ function Deny-Guard {
     foreach ($line in ($Why -split "`n")) { Write-Host ("   " + $line) -ForegroundColor Red }
     Write-Host "   Пустой список находок при нулевом числе сверенного — это ОТКАЗ, а не «проверено»." -ForegroundColor Red
     Write-Host ""
+    Write-BuildFailBanner
     exit 3
 }
 
@@ -286,6 +305,16 @@ $refs = @(
 $fail = @()
 $locked = @()
 $built = 0
+$restored = @()
+# ⛔ РЕЗЕРВ ПРЕЖНИХ СБОРОК НА ВРЕМЯ КОМПИЛЯЦИИ (`T144`). Компилятор сносит цель
+# ДО того, как убедится, что может её записать, — и неудача оставляет не старый
+# exe, а его отсутствие: один сломанный `.cs` лишал каталог и СТАРОЙ
+# работоспособной пробы. Резерв кладётся в `%TEMP%`, а не рядом: `Get-AppWdExtra`
+# считает любой загружаемый файл вне плана посторонним, и резерв в каталоге проб
+# валил бы прогон сам. Живёт он секунды — снимается сразу после удачной
+# компиляции своей пробы либо сразу после восстановления.
+$keepDir = Join-Path ([IO.Path]::GetTempPath()) ("bq_build_all_keep_" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
+New-Item -ItemType Directory -Force $keepDir | Out-Null
 # ⛔ ЭТОТ ПЕРЕБОР ОБЯЗАН СОВПАСТЬ С `$probeSrc` ИЗ `Get-AppWdPlan` (`T83`).
 # Второго списка исходников быть не должно, но компилировать надо ДО того, как
 # план вообще можно построить (план требует уже собранных проб), — поэтому
@@ -338,28 +367,77 @@ foreach ($f in $sources) {
         }
     }
 
-    $log = & $csc /nologo /target:exe /langversion:7.3 "/out:$exe" @refs $f.FullName @extra 2>&1
+    # ⛔ `/d:TRACE` — НЕ УКРАШЕНИЕ (`T146`, решение Amber 04.09.2026). `Trace.WriteLine`
+    # и `Trace.Flush` помечены `[Conditional("TRACE")]`: без объявленного символа
+    # вызов НЕ ПОПАДАЕТ В ДВОИЧНЫЙ КОД ВОВСЕ, и компилятор об этом не говорит ни
+    # слова. Проба, пишущая маяк в журнал, «проходит» ровно так же, как настоящая,
+    # — а маяка нет. Мерено на себе 04.09.2026: тот же исходник с тем же
+    # `Trace.WriteLine` даёт 0 вхождений метки без ключа и 1 с ключом. Приложению
+    # символ ставит `.csproj`; у проб проекта нет (см. `README.md`), поэтому его
+    # ставит здесь — ВСЕМ и сразу, чтобы следующий автор не наступил заново.
+    # Резерв снимается ПЕРЕД компиляцией — после неё копировать уже нечего.
+    $keep = $null
+    if (Test-Path $exe) {
+        $keep = Join-Path $keepDir ($f.BaseName + '.exe')
+        try { Copy-Item -LiteralPath $exe -Destination $keep -Force } catch { $keep = $null }
+    }
+
+    $log = & $csc /nologo /target:exe /langversion:7.3 /d:TRACE "/out:$exe" @refs $f.FullName @extra 2>&1
     if ($LASTEXITCODE -ne 0) {
         $fail += $f.Name
         Write-Host "FAIL $($f.Name)"
         $log | Select-Object -First 6 | ForEach-Object { Write-Host "    $_" }
-        # Компилятор сносит цель ДО того, как убедится, что может её записать:
-        # неудача оставляет не старый exe, а его отсутствие. Об этом надо сказать
-        # отдельно — «FAIL» читается как «осталось как было».
+        # ⚠ ЧТО ИМЕННО СНОСИТ ЦЕЛЬ — НЕ КОМПИЛЯТОР (мерено 04.09.2026, `T144`).
+        # Прежний текст здесь утверждал, что `csc` сносит выход до того, как
+        # убедится, что может его записать. ОПРОВЕРГНУТО девятью родами отказа
+        # (CS0103, CS5001, CS1002, CS0246, CS0117, CS2001, CS0006, CS2012 при
+        # цели «только чтение», CS1583 с битым значком): во ВСЕХ девяти прежний
+        # exe остался на месте байт в байт. Значит наблюдение 04.09.2026
+        # («CrashLogProbe.exe при этом ИСЧЕЗ») объясняется не компилятором, а
+        # внешней причиной — антивирусом (грабля (1) в шапке) либо тем, что
+        # пробу заводили в тот же день и прежней сборки не было ВОВСЕ.
+        # Резерв поэтому остаётся страховкой от ВНЕШНЕГО сноса: он стоит доли
+        # секунды, а возвращает файл со своим `LastWriteTime` — подделывать
+        # время нельзя, на нём стоит `Test-AppWdBuild`, и подделка сняла бы
+        # единственного читателя отказа.
         if (-not (Test-Path $exe)) {
-            Write-Host "    ⚠ $($f.BaseName).exe при этом ИСЧЕЗ — прежней сборки на месте больше нет" -ForegroundColor Yellow
+            if ($keep -and (Test-Path -LiteralPath $keep)) {
+                Copy-Item -LiteralPath $keep -Destination $exe -Force
+                $restored += $f.BaseName
+                Write-Host ("    ⚠ $($f.BaseName).exe исчез после неудачной компиляции — ВЕРНУЛ прежнюю сборку от {0}" -f
+                            (Get-Item -LiteralPath $exe -Force).LastWriteTime.ToString('dd.MM HH:mm:ss')) -ForegroundColor Yellow
+            } else {
+                Write-Host "    ⚠ $($f.BaseName).exe при этом ИСЧЕЗ — прежней сборки не было и вернуть нечего" -ForegroundColor Yellow
+            }
         }
     } else {
         Write-Host "ok   $($f.Name)"
         $built++
     }
+    if ($keep -and (Test-Path -LiteralPath $keep)) { Remove-Item -LiteralPath $keep -Force -ErrorAction SilentlyContinue }
 }
+Remove-Item -LiteralPath $keepDir -Recurse -Force -ErrorAction SilentlyContinue
 Write-Host "----"
 # Занятые пробы — НЕ успех (T41): в каталоге осталась СТАРАЯ сборка,
 # а выглядело бы это как «все собрались» — тот же класс ошибки, что и исчезнувший exe.
 if ($locked.Count) { Write-Host "ЗАНЯТЫ (старая сборка на месте): $($locked -join ', ')" }
-if ($fail.Count) { Write-Host "СЛОМАНО: $($fail -join ', ')"; exit 1 }
-if ($locked.Count) { exit 1 }
+if ($fail.Count)   { Write-Host "СЛОМАНО: $($fail -join ', ')" }
+if ($restored.Count) { Write-Host "ВЕРНУТА ПРЕЖНЯЯ СБОРКА: $($restored -join ', ')" -ForegroundColor Yellow }
+
+# ⛔ ОТКАЗ СБОРКИ БОЛЬШЕ НЕ ОБРЫВАЕТ ПРОГОН ЗДЕСЬ (`T144`, 04.09.2026).
+# Прежде `exit 1` стоял этой строкой — ДО раскладки, — и сломанная проба
+# оставляла каталог с НОВЫМИ пробами и СТАРЫМ приложением: измерено 04.09.2026,
+# приложение в `bin` 16:00:37, его копия рядом с пробами 15:53:26. Следующий
+# прогон пошёл бы старым приложением с новыми пробами, и заметить это было
+# нечем — сторож свежести (`Test-AppWdBuild`) стоит НИЖЕ и до него не доходили.
+# Теперь раскладка и все три сверки идут ВСЕГДА: каталог остаётся согласованным,
+# а сторож на этом же прогоне называет и «пробы старше своих исходников», и
+# «пробы собраны против другого приложения». Отказ никуда не делся — он
+# печатается в конце и возвращается кодом 1, но уже ПОСЛЕ того, как каталог
+# приведён в известное состояние.
+if ($fail.Count)   { $script:BuildBad += ("не собрались: {0}" -f ($fail -join ', ')) }
+if ($locked.Count) { $script:BuildBad += ("заняты (осталась старая сборка): {0}" -f ($locked -join ', ')) }
+if ($restored.Count) { $script:BuildBad += ("прежняя сборка возвращена из резерва: {0}" -f ($restored -join ', ')) }
 
 # ⛔ ОСНАСТКА КЛАДЁТСЯ ПОСЛЕ СБОРКИ И ПО ЧУЖОМУ ПЛАНУ (`T77`, `T79`, `T83`).
 # Порядок «сначала собрать, потом обставить» — не перестановка ради красоты:
@@ -400,6 +478,7 @@ if ($onlyPlan.Count -or $onlyMine.Count) {
     Write-Host ("   План:    {0} (Get-AppWdPlan, `$probeSrc)" -f $planFile) -ForegroundColor Red
     Write-Host "   Один из двух перестал видеть пробу — собранное и сверенное это разные наборы." -ForegroundColor Red
     Write-Host ""
+    Write-BuildFailBanner
     exit 3
 }
 
@@ -419,6 +498,7 @@ if ($unknown.Count) {
     Write-Host "   Молча пропустить нельзя: либо это кладём и мы, либо это оснастка корпуса." -ForegroundColor Red
     Write-Host ("   Решается в {0} — там же, где заведён новый род." -f $planFile) -ForegroundColor Red
     Write-Host ""
+    Write-BuildFailBanner
     exit 3
 }
 
@@ -449,6 +529,7 @@ if ($lostWhy.Count) {
     Write-Host ("   Источник: {0}" -f $Bin) -ForegroundColor Red
     Write-Host "   Такой каталог собирается и не запускается — молча класть его нельзя." -ForegroundColor Red
     Write-Host ""
+    Write-BuildFailBanner
     exit 1
 }
 
@@ -501,6 +582,7 @@ $minePlan = New-SubPlan -Base $plan -Pairs (@($minePairs) + @($selfPairs) + @($e
 try { Invoke-AppWdPlan -Plan $copyPlan | Out-Null } catch {
     Write-Host ("РАСКЛАДКА ОБОРВАЛАСЬ: {0}" -f $_.Exception.Message) -ForegroundColor Red
     Write-Host "  Каталог проб обставлен наполовину — пользоваться им нельзя." -ForegroundColor Red
+    Write-BuildFailBanner
     exit 1
 }
 
@@ -525,6 +607,7 @@ if ($bad.Count) {
     Write-Host "  Пробы ЗАПУСКАЮТСЯ из $Out и грузят приложение, базы и конфиг ОТТУДА." -ForegroundColor Red
     Write-Host "  Числа с такого каталога недействительны (B20/B21)." -ForegroundColor Red
     Write-Host "  Порядок: закрыть пробы, собрать приложение, перегнать build_all.ps1." -ForegroundColor Red
+    Write-BuildFailBanner
     exit 1
 }
 if ($null -eq $chk.PSObject.Properties['Ok']) {
@@ -599,4 +682,13 @@ if (Test-Path -LiteralPath $selfTest) {
     foreach ($line in $stOut) { Write-Host "  $line" }
 } else {
     Deny-Guard ('нет {0} — самопроверку сторожа полосы (S101) провести нечем' -f $selfTest)
+}
+
+# ⛔ ПОСЛЕДНЕЕ СЛОВО — ЗА ОТКАЗОМ СБОРКИ (`T144`). Каталог к этому месту уже
+# приведён в известное состояние: приложение донесено, всё сверено по sha256,
+# сторож свежести отработал. Но пробы собрались НЕ ВСЕ, и молчать об этом
+# кодом 0 нельзя — прошлый раз именно так и вышло.
+if ($script:BuildBad.Count) {
+    Write-BuildFailBanner
+    exit 1
 }

@@ -347,15 +347,17 @@ namespace BoxDeadFieldsProbe
             Console.WriteLine();
             Console.WriteLine("=== редактор геометрии ===");
 
-            // Сверяемся с КЛОНОМ: `BuildModel` работает на клоне, а `Clone`
-            // намеренно не переносит `Raw`, из которого `Render` берёт чужие
-            // блоки файла. На наших файлах разницы нет (измерено — строка
-            // ниже), но требовать этого от ввезённого файла ЛСРМ нельзя.
+            // Сверяемся с КЛОНОМ: `BuildModel` работает на клоне. После `A139`
+            // `Clone` переносит и `Raw` — разбор файла, из которого `Render`
+            // берёт чужие блоки (коаксиал `DC_*`, вещества ЛСРМ), — поэтому
+            // совпадение текста клона с исходником здесь уже не «повезло на
+            // наших файлах», а ТРЕБОВАНИЕ: разошлись — значит `Clone` снова
+            // потерял разбор, и всё, что ниже, меряет не то.
             GeometryModel boxRef = box.Clone();
             string boxText = GeometryWriter.Render(boxRef);
             string boxScene = SceneShape(boxRef);
-            Console.WriteLine("  (клон и исходник дают {0} текст)",
-                              GeometryWriter.Render(box) == boxText ? "ОДИН" : "РАЗНЫЙ");
+            Report(GeometryWriter.Render(box) == boxText,
+                   "клон и исходник дают ОДИН текст (A139: Clone переносит Raw)");
 
             using (var panel = new GeometryEditorPanel())
             {
@@ -373,20 +375,19 @@ namespace BoxDeadFieldsProbe
                        && built.CrystalDiameter == 0.0 && built.CrystalHeight == 0.0,
                        "брусок через редактор: мёртвые 333/444 сняты (стало D={0:R} H={1:R})",
                        built.CrystalDiameter, built.CrystalHeight);
-                // ⚠ Совпадения ВСЕГО текста здесь требовать нельзя, и это не
-                // про `A94`. Редактор давно подставляет размеры прямоугольной
-                // кюветы из цилиндрической (`BoxSourceX` ← `BeakerDiameter` и
-                // т.д. — умышленная подсказка, заведена до `A94`), и после
-                // сборки модели ключи `SB_*` в файле оказываются заполненными.
-                // Сцены это не касается: источник у геометрии цилиндрический,
-                // и `SB_*` в неё не входят. Поэтому проверяется РАСХОЖДЕНИЕ ПО
-                // КЛЮЧАМ: всё, кроме `SB_`, обязано совпасть — сдвиг кристалла
-                // или сосуда провалит пункт.
+                // ⛔ ИСКЛЮЧЕНИЕ КЛЮЧЕЙ `SB_*` СНЯТО (`T148`, 04.09.2026). Оно
+                // стояло на подстановке: редактор открывал прямоугольную кювету
+                // размерами ЦИЛИНДРИЧЕСКОГО сосуда, и после сборки модели ключи
+                // `SB_*` в файле оказывались заполненными — у геометрии, где
+                // источник не прямоугольный. `A134` подстановку в МОДЕЛЬ убрал
+                // (подсказка осталась только на экране), и расхождения больше
+                // нет: измерено на этой же пробе до снятия — «разошлись: нет».
+                // Поэтому требуется совпадение ВСЕГО текста: любой сдвиг —
+                // кристалла, сосуда или кюветы — теперь валит пункт.
                 string builtText = GeometryWriter.Render(built);
                 List<string> drift = Drift(boxText, builtText);
-                List<string> outside = drift.FindAll(k => !k.StartsWith("SB_", StringComparison.Ordinal));
-                Report(outside.Count == 0,
-                       "брусок через редактор: вне ключей кюветы SB_* не сдвинулось ничего "
+                Report(drift.Count == 0,
+                       "брусок через редактор: не сдвинулось НИЧЕГО, ключи кюветы SB_* тоже "
                        + "(разошлись: {0})", drift.Count == 0 ? "нет" : string.Join(", ", drift.ToArray()));
                 Report(SceneShape(built) == boxScene, "брусок через редактор: СЦЕНА та же{0}",
                        Diff(boxScene, SceneShape(built)));
@@ -429,17 +430,19 @@ namespace BoxDeadFieldsProbe
                 GeometryModel built = Build(panel);
                 GeometryModel cylRef = cyl.Clone();
                 string cylText = GeometryWriter.Render(cylRef);
+                // `T148`: исключение `SB_*` снято и здесь — после `A134`
+                // редактор не подставляет кювете размеры сосуда, и у ЦИЛИНДРА
+                // ключи `SB_*` обязаны остаться такими же, как были в файле.
                 List<string> drift = Drift(cylText, GeometryWriter.Render(built));
-                List<string> outside = drift.FindAll(k => !k.StartsWith("SB_", StringComparison.Ordinal));
                 Report(built.Shape == CrystalShape.Cylinder
                        && Near(built.CrystalDiameter, cyl.CrystalDiameter)
                        && Near(built.CrystalHeight, cyl.CrystalHeight)
-                       && outside.Count == 0
+                       && drift.Count == 0
                        && SceneShape(built) == SceneShape(cylRef),
                        "ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: у ЦИЛИНДРА редактор те же поля СОХРАНЯЕТ "
-                       + "(D={0:R} H={1:R}), сцена та же, вне SB_* разошлись: {2}",
+                       + "(D={0:R} H={1:R}), сцена та же, разошлись: {2}",
                        built.CrystalDiameter, built.CrystalHeight,
-                       outside.Count == 0 ? "нет" : string.Join(", ", outside.ToArray()));
+                       drift.Count == 0 ? "нет" : string.Join(", ", drift.ToArray()));
             }
         }
 
