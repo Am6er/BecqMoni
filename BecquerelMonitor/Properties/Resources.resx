@@ -41872,6 +41872,12 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
     <value>The N42 file has fewer than five calibration points, so no polynomial is fitted. Using the default calibration y=x: the channel number is taken as the energy.</value>
   </data>
+  <data name="ERRSkippedMeasurementClassN42" xml:space="preserve">
+    <value>The N42 file contains measurements of class {0}; they are skipped, because the application imports foreground and background spectra only. Spectra imported: {1}.</value>
+  </data>
+  <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
+    <value>The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the current time is used instead. Everything else in the spectrum is imported.</value>
+  </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4.</value>
   </data>
@@ -42279,6 +42285,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="PeakFitChiTableChi2PerNdpColumn" xml:space="preserve">
     <value>chi2/ndp</value>
+  </data>
+  <data name="PeakFitChiTableScoreColumn" xml:space="preserve">
+    <value>AIC (chi2 + parameter penalty)</value>
   </data>
   <data name="PeakFitChiTableParametersColumn" xml:space="preserve">
     <value>Parameters</value>

@@ -48,6 +48,7 @@ namespace N42RoundTripProbe
         static string only = null;
         static string culture = null;
         static string manifest = null;
+        static string round2 = null;
         static bool dot = false;
 
         [STAThread]
@@ -63,6 +64,11 @@ namespace N42RoundTripProbe
                 else if (a.StartsWith("--only=")) only = a.Substring(7);
                 else if (a.StartsWith("--culture=")) culture = a.Substring(10);
                 else if (a.StartsWith("--manifest=")) manifest = a.Substring(11);
+                // `A156`: ВТОРОЙ КРУГ. Ключ отдельный и каталог отдельный нарочно:
+                //   файлы второго оборота не смеют попасть в tools\CORPUS\n42,
+                //   иначе перевыгрузка дерева удвоит его содержимое. Без ключа
+                //   второй круг не гоняется вовсе — как было до 05.09.2026.
+                else if (a.StartsWith("--round2=")) round2 = a.Substring(9);
                 else if (a == "--dot") dot = true;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
@@ -159,7 +165,11 @@ namespace N42RoundTripProbe
                      + "counts_diff_channels,counts_max_abs_diff,sum_src,sum_back,"
                      + "order_src,order_back,coeff_max_rel_diff,max_dE_keV,"
                      + "meastime_src,meastime_back,livetime_src,livetime_back,counts_ok,time_ok,"
-                     + "time_max_abs_s,bg_src,bg_back,start_ok");
+                     + "time_max_abs_s,bg_src,bg_back,start_ok,"
+                     // `A155`: живое время ФОНА — своя величина, а не время измерения.
+                     + "bg_live_src,bg_live_back,bg_live_ok,bg_live_diff_s,"
+                     // `A156`: второй оборот круга. -1 значит «не гонялся» (нет --round2).
+                     + "start2_ok,start2_shift_s");
 
             int bad = 0;
             foreach (string name in names)
@@ -202,14 +212,19 @@ namespace N42RoundTripProbe
             int iBgSrc = head.IndexOf("bg_src");
             int iBgBack = head.IndexOf("bg_back");
             int iStart = head.IndexOf("start_ok");
-            if (iCounts < 0 || iTime < 0 || iCoeff < 0 || iDt < 0 || iBgSrc < 0 || iBgBack < 0 || iStart < 0)
+            int iBgLive = head.IndexOf("bg_live_ok");
+            int iBgLiveDiff = head.IndexOf("bg_live_diff_s");
+            int iStart2 = head.IndexOf("start2_ok");
+            if (iCounts < 0 || iTime < 0 || iCoeff < 0 || iDt < 0 || iBgSrc < 0 || iBgBack < 0
+                || iStart < 0 || iBgLive < 0 || iBgLiveDiff < 0 || iStart2 < 0)
             {
                 Console.Error.WriteLine("⛔ шапка списка происхождения разошлась с ИТОГОМ");
                 return 2;
             }
 
             int countsBad = 0, timeBad = 0, coeffBad = 0, bgBad = 0, startBad = 0;
-            double worstTime = 0.0;
+            int bgLiveBad = 0, start2Bad = 0, start2Run = 0;
+            double worstTime = 0.0, worstBgLive = 0.0;
             for (int i = 1; i < rows.Count; i++)
             {
                 string[] c = rows[i].Split(',');
@@ -220,6 +235,19 @@ namespace N42RoundTripProbe
                 if (dt > worstTime) worstTime = dt;
                 if (c[iBgSrc] != c[iBgBack]) bgBad++;
                 if (c[iStart] != "1") startBad++;
+                // `A155`: у файлов БЕЗ фона столбец «-», и в счёт он не идёт.
+                if (c[iBgLive] == "0") bgLiveBad++;
+                if (c[iBgLiveDiff] != "-")
+                {
+                    double dbg = double.Parse(c[iBgLiveDiff], NumberStyles.Float, CultureInfo.InvariantCulture);
+                    if (dbg > worstBgLive) worstBgLive = dbg;
+                }
+                // `A156`: второй оборот считается только там, где он гонялся.
+                if (c[iStart2] != "-")
+                {
+                    start2Run++;
+                    if (c[iStart2] != "1") start2Bad++;
+                }
             }
 
             Console.WriteLine();
@@ -230,7 +258,11 @@ namespace N42RoundTripProbe
                               + " (наибольший остаток " + worstTime.ToString("E3", CultureInfo.InvariantCulture) + " с)"
                               + ", ШКАЛА разошлась у " + coeffBad
                               + ", ПРИЗНАК ФОНА потерян у " + bgBad
-                              + ", НАЧАЛО НАБОРА потеряно у " + startBad);
+                              + ", ЖИВОЕ ВРЕМЯ ФОНА потеряно у " + bgLiveBad
+                              + " (наибольший остаток " + worstBgLive.ToString("E3", CultureInfo.InvariantCulture) + " с)"
+                              + ", НАЧАЛО НАБОРА потеряно у " + startBad
+                              + ", ВТОРОЙ КРУГ гнался у " + start2Run
+                              + " и потерял начало у " + start2Bad);
             return bad == 0 && countsBad == 0 ? 0 : 1;
         }
 
@@ -262,26 +294,10 @@ namespace N42RoundTripProbe
             // отличается от этих строк ровно диалогом сохранения файла и
             // обёрткой catch: сам файл строит Util.ExportToN42, а записывает
             // XmlSerializer с настройками xmlSettings (UTF8, Indent).
-            try
+            string exportSaid = ExportOne(doc, dst);
+            if (exportSaid != null)
             {
-                Util util = new Util();
-                RadInstrumentData radN42Object = util.ExportToN42(doc);
-                XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
-                XmlWriterSettings settings = new XmlWriterSettings();
-                settings.Encoding = Encoding.UTF8;
-                settings.Indent = true;
-                BecquerelMonitor.Utils.AtomicFileWriter.Write(dst, delegate(Stream fileStream)
-                {
-                    using (XmlWriter writer = XmlWriter.Create(fileStream, settings))
-                    {
-                        xmlSerializer.Serialize(writer, radN42Object);
-                        writer.Flush();
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("  ⛔ ВЫВОЗ ОТКАЗАЛ: " + ex.GetType().Name + ": " + Flat(ex.Message));
+                Console.WriteLine("  ⛔ ВЫВОЗ ОТКАЗАЛ: " + exportSaid);
                 return null;
             }
 
@@ -364,8 +380,21 @@ namespace N42RoundTripProbe
             //   поля нарочно: вывоз берёт ResultData.StartTime, а ввоз кладёт
             //   прочитанное в SampleInfo.Time — это не описка пробы, а
             //   несимметричность самого разбора, и мерить надо то, что есть.
-            double startShift = (backRd.SampleInfo.Time - srcRd.StartTime).TotalSeconds;
+            // ⚠ `A156` ПОПРАВИЛА ЭТУ МЕРКУ. Прежде здесь стояло только
+            //   SampleInfo.Time — потому что ввоз клал прочитанное ТОЛЬКО туда, а
+            //   вывоз берёт ResultData.StartTime. Мерить надо ТО ПОЛЕ, КОТОРЫМ
+            //   ПОЛЬЗУЕТСЯ ВЫВОЗ, иначе первый круг сходится, а второй теряет дату
+            //   и мерка этого не видит. Печатаются оба поля.
+            double startShift = (backRd.StartTime - srcRd.StartTime).TotalSeconds;
+            double sampleShift = (backRd.SampleInfo.Time - srcRd.StartTime).TotalSeconds;
             bool startOk = Math.Abs(startShift) < 1.0;
+
+            // `A155`: ЖИВОЕ ВРЕМЯ ФОНА. Прежде вывоз писал в LiveTimeDuration фона
+            //   его же MeasurementTime, то есть живое время фона в файл не уходило
+            //   вовсе. Столбец «-» значит «фона нет и мерить нечего».
+            double bgLiveSrc = bgSrc ? srcRd.BackgroundEnergySpectrum.LiveTime : 0.0;
+            double bgLiveBack = bgBack ? backRd.BackgroundEnergySpectrum.LiveTime : 0.0;
+            string bgLiveOk = !bgSrc ? "-" : (bgBack && bgLiveSrc == bgLiveBack ? "1" : "0");
 
             bool ok = countsOk && ordSrc == ordBack && coeffRel == 0.0 && timeOk
                       && bgSrc == bgBack && startOk;
@@ -403,8 +432,59 @@ namespace N42RoundTripProbe
                                  ? ("; живое фона " + srcRd.BackgroundEnergySpectrum.LiveTime.ToString("0.###", CultureInfo.InvariantCulture)
                                     + " → " + backRd.BackgroundEnergySpectrum.LiveTime.ToString("0.###", CultureInfo.InvariantCulture))
                                  : ""));
-            Console.WriteLine("  НАЧАЛО НАБОРА: сдвиг " + startShift.ToString("0.###", CultureInfo.InvariantCulture)
+            Console.WriteLine("  НАЧАЛО НАБОРА: сдвиг StartTime " + startShift.ToString("0.###", CultureInfo.InvariantCulture)
+                              + " с, SampleInfo.Time " + sampleShift.ToString("0.###", CultureInfo.InvariantCulture)
                               + " с" + (startOk ? "  ✓" : "  ⚠ ВРЕМЯ НАЧАЛА ПОТЕРЯНО"));
+
+            // ==============================================================
+            // ВТОРОЙ ОБОРОТ КРУГА (`A156`)
+            //
+            // ⛔ Первый оборот НЕ ЛОВИТ дефекта «вывоз и ввоз работают с разными
+            //    полями»: прочитанное ложится в поле, из которого вывоз не берёт,
+            //    и это видно только тогда, когда ввезённый документ выгружают
+            //    СНОВА. Поэтому оборотов два: вывоз → ввоз → вывоз → ввоз.
+            // ==============================================================
+            string start2 = "-";
+            double start2Shift = 0.0;
+            if (round2 != null)
+            {
+                Directory.CreateDirectory(round2);
+                string dst2 = Path.Combine(round2, Path.GetFileNameWithoutExtension(dst) + ".round2.n42");
+                string said2 = ExportOne(back, dst2);
+                if (said2 != null)
+                {
+                    Console.WriteLine("  ⛔ ВТОРОЙ ВЫВОЗ ОТКАЗАЛ: " + said2);
+                    start2 = "0";
+                }
+                else
+                {
+                    DocEnergySpectrum back2 = new DocEnergySpectrum();
+                    string imported2 = null;
+                    try
+                    {
+                        DocumentManager.GetInstance().ImportDocumentN42(back2, dst2);
+                    }
+                    catch (Exception ex)
+                    {
+                        imported2 = ex.GetType().Name + ": " + Flat(ex.Message);
+                    }
+                    if (imported2 != null)
+                    {
+                        Console.WriteLine("  ⛔ ВТОРОЙ ВВОЗ ОТКАЗАЛ: " + imported2);
+                        start2 = "0";
+                    }
+                    else
+                    {
+                        ResultData back2Rd = back2.ResultDataFile.ResultDataList[0];
+                        start2Shift = (back2Rd.StartTime - srcRd.StartTime).TotalSeconds;
+                        start2 = Math.Abs(start2Shift) < 1.0 ? "1" : "0";
+                        Console.WriteLine("  ВТОРОЙ КРУГ: начало " + srcRd.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                                          + " → " + back2Rd.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                                          + ", сдвиг " + start2Shift.ToString("0.###", CultureInfo.InvariantCulture) + " с"
+                                          + (start2 == "1" ? "  ✓" : "  ⛔ ДАТА НЕ ДОЖИЛА ДО ВТОРОГО ОБОРОТА"));
+                    }
+                }
+            }
             Console.WriteLine("  КРУГ: " + (ok ? "СОШЁЛСЯ ПОЛНОСТЬЮ"
                               : ("отсчёты " + (countsOk ? "СОШЛИСЬ ТОЧНО" : "РАЗОШЛИСЬ")
                                  + ", шкала " + (coeffRel == 0.0 ? "сошлась точно"
@@ -431,7 +511,53 @@ namespace N42RoundTripProbe
                 backEs.LiveTime.ToString("0.###", CultureInfo.InvariantCulture),
                 countsOk ? "1" : "0", timeOk ? "1" : "0",
                 dTime.ToString("E3", CultureInfo.InvariantCulture),
-                bgSrc ? "1" : "0", bgBack ? "1" : "0", startOk ? "1" : "0" });
+                bgSrc ? "1" : "0", bgBack ? "1" : "0", startOk ? "1" : "0",
+                // ⚠ Формат "R", а не «0.######»: у трёх файлов дерева расхождение
+                //   живого времени фона живёт в 11-м знаке (предел сетки 100 нс,
+                //   `A147`), и шесть знаков после запятой печатали ОДНО И ТО ЖЕ
+                //   число у столбцов, приговор по которым «разошлось».
+                bgSrc ? bgLiveSrc.ToString("R", CultureInfo.InvariantCulture) : "-",
+                bgBack ? bgLiveBack.ToString("R", CultureInfo.InvariantCulture) : "-",
+                bgLiveOk,
+                bgSrc && bgBack
+                    ? Math.Abs(bgLiveSrc - bgLiveBack).ToString("E3", CultureInfo.InvariantCulture)
+                    : "-",
+                start2, start2 == "-" ? "-" : start2Shift.ToString("0.###", CultureInfo.InvariantCulture) });
+        }
+
+        /// <summary>
+        /// Вывоз ОДНОГО документа тем же путём, что у приложения: Util.ExportToN42
+        /// плюс XmlSerializer с настройками DocumentManager. Возвращает null, если
+        /// вывоз удался, иначе — сказанное отказом.
+        ///
+        /// ⚠ Метод выделен для ВТОРОГО круга (`A156`): вывоз обязан быть тем же
+        /// самым, иначе второй оборот мерил бы другой код и находка не значила бы
+        /// ничего.
+        /// </summary>
+        static string ExportOne(DocEnergySpectrum doc, string dst)
+        {
+            try
+            {
+                Util util = new Util();
+                RadInstrumentData radN42Object = util.ExportToN42(doc);
+                XmlSerializer xmlSerializer = new XmlSerializer(typeof(RadInstrumentData));
+                XmlWriterSettings settings = new XmlWriterSettings();
+                settings.Encoding = Encoding.UTF8;
+                settings.Indent = true;
+                BecquerelMonitor.Utils.AtomicFileWriter.Write(dst, delegate(Stream fileStream)
+                {
+                    using (XmlWriter writer = XmlWriter.Create(fileStream, settings))
+                    {
+                        xmlSerializer.Serialize(writer, radN42Object);
+                        writer.Flush();
+                    }
+                });
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return ex.GetType().Name + ": " + Flat(ex.Message);
+            }
         }
 
         static double CoeffDiff(PolynomialEnergyCalibration a, PolynomialEnergyCalibration b)
@@ -487,6 +613,15 @@ namespace N42RoundTripProbe
                 string name = Path.GetFileName(f);
                 DocEnergySpectrum doc = new DocEnergySpectrum();
                 string said = null;
+
+                // ⛔ СКАЗАННОЕ БЕЗ ОТКАЗА ТОЖЕ ЛОВИТСЯ (`A157`, `A160`).
+                //    AppUi.Report без окон пишет в поток ошибок и работу
+                //    продолжает — то есть приложение говорит, а проба этого не
+                //    видела вовсе и печатала «(молча)». Признак без читателя это
+                //    не признак: поток подменяется на время ввоза.
+                TextWriter realErr = Console.Error;
+                StringWriter caught = new StringWriter();
+                Console.SetError(caught);
                 try
                 {
                     DocumentManager.GetInstance().ImportDocumentN42(doc, f);
@@ -501,18 +636,24 @@ namespace N42RoundTripProbe
                         inner = inner.InnerException;
                     }
                 }
+                finally
+                {
+                    Console.SetError(realErr);
+                }
+                string spoken = Flat(caught.ToString()).Trim();
 
                 if (said == null)
                 {
                     ok++;
                     prints.Add(name + " | ВВЕЗЁН | " + Print(doc));
-                    voices.Add(name + " | ВВЕЗЁН | (молча)");
+                    voices.Add(name + " | ВВЕЗЁН | " + (spoken.Length == 0 ? "(молча)" : spoken));
                 }
                 else
                 {
                     failed++;
                     prints.Add(name + " | ОТКАЗ | " + Print(doc));
-                    voices.Add(name + " | ОТКАЗ | " + said);
+                    voices.Add(name + " | ОТКАЗ | " + said
+                               + (spoken.Length == 0 ? "" : "   [сказано вслух: " + spoken + "]"));
                 }
             }
 
@@ -572,6 +713,14 @@ namespace N42RoundTripProbe
                           : (Math.Abs((DateTime.Now - rd.SampleInfo.Time).TotalMinutes) < 1.0
                              ? "ПОТЕРЯНО (сейчас)"
                              : rd.SampleInfo.Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)))
+                      // `A156`: ВТОРОЕ ПОЛЕ ВРЕМЕНИ, И ИМЕННО ИМ ПОЛЬЗУЕТСЯ ВЫВОЗ.
+                      //   Прежде слепок его не печатал вовсе, и «дата доехала»
+                      //   мерилось по полю, которое вывоз не читает: круг сходился
+                      //   на первом обороте и терял дату на втором.
+                      .Append(", StartTime ").Append(
+                          Math.Abs((DateTime.Now - rd.StartTime).TotalMinutes) < 1.0
+                          ? "ПОТЕРЯНО (сейчас)"
+                          : rd.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
                       .Append(", шкала ").Append(p == null
                           ? (es.EnergyCalibration == null ? "нет" : es.EnergyCalibration.GetType().Name)
                           : ("порядок " + p.PolynomialOrder + " " + Coeffs(p)));
@@ -650,6 +799,53 @@ namespace N42RoundTripProbe
             // настоящих файлов RadiologicalInstrumentData в дереве нет.
             Write(Path.Combine(outDir, "case9_rad_over.n42"), Rad(9000));
 
+            // ==============================================================
+            // КЛАСС ИЗМЕРЕНИЯ (`A160`), КРАЙНИЕ СЛУЧАИ ФОНА (`A150`),
+            // НЕЧИТАЕМАЯ ДАТА (`A157`) И ОТРИЦАТЕЛЬНЫЙ ОТСЧЁТ (`A158`).
+            //
+            // ⚠ Все они СОЧИНЕНЫ и говорят о поведении РАЗБОРА, а не о том, что
+            //    такие файлы встречаются. Настоящих файлов с классом Calibration
+            //    в дереве нет — как нет и настоящего RadiologicalInstrumentData.
+            // ==============================================================
+            Write(Path.Combine(outDir, "case10_calibclass.n42"),
+                  Multi("case10", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", Counts(0))
+                                + Meas("M2", "Calibration", "2026-09-05T13:00:00Z", Counts(1))));
+
+            Write(Path.Combine(outDir, "case11_intrinsic.n42"),
+                  Multi("case11", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", Counts(0))
+                                + Meas("M2", "IntrinsicActivity", "2026-09-05T13:00:00Z", Counts(1))));
+
+            // Крайний случай: в файле НЕТ ни одного ввозимого измерения.
+            Write(Path.Combine(outDir, "case12_calibonly.n42"),
+                  Multi("case12", Meas("M1", "Calibration", "2026-09-05T12:00:00Z", Counts(0))));
+
+            // Крайние случаи фона (`A150`): цепляться не к чему, только фон, два фона.
+            Write(Path.Combine(outDir, "case13_bgfirst.n42"),
+                  Multi("case13", Meas("M1", "Background", "2026-09-05T12:00:00Z", Counts(0))
+                                + Meas("M2", "Foreground", "2026-09-05T13:00:00Z", Counts(1))));
+            Write(Path.Combine(outDir, "case14_bgonly.n42"),
+                  Multi("case14", Meas("M1", "Background", "2026-09-05T12:00:00Z", Counts(0))));
+            Write(Path.Combine(outDir, "case15_twobg.n42"),
+                  Multi("case15", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", Counts(0))
+                                + Meas("M2", "Background", "2026-09-05T13:00:00Z", Counts(1))
+                                + Meas("M3", "Background", "2026-09-05T14:00:00Z", Counts(2))));
+
+            // `A157`: дата, какую писала СТАРАЯ сборка под ar-SA — год по хиджре и
+            //   арабское «до полудня». Ни XmlConvert, ни en-US, ни инвариантная
+            //   культура её не читают. ⚠ Под ar-SA она прочитается: приговор такого
+            //   входа зависит от культуры прогона, и мерить его надо под en-US.
+            Write(Path.Combine(outDir, "case16_baddate.n42"),
+                  Multi("case16", Meas("M1", "Foreground", "04/05/44 10:07:57 ص", Counts(0))));
+
+            // `A158`: ОТРИЦАТЕЛЬНЫЙ ОТСЧЁТ — положительный контроль культурного
+            //   чтения целых. У 41 культуры из 890 (замер 05.09.2026 на этой
+            //   машине) знак минуса НЕ «-»: например у sv-SE это U+2212. Под такой
+            //   культурой старый int.Parse на строке «-3» из файла отказывает, а
+            //   инвариантный читает. На положительных отсчётах разницы нет вовсе —
+            //   потому дефект и держался на данных, а не на разборе.
+            Write(Path.Combine(outDir, "case17_negcount.n42"),
+                  Multi("case17", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", NegCounts())));
+
             Console.WriteLine("сочинённые входы положены в " + Path.GetFullPath(outDir));
             Console.WriteLine("⚠ Они СОЧИНЕНЫ и доказывают поведение РАЗБОРА, а не совместимость с приборами.");
             return 0;
@@ -675,6 +871,56 @@ namespace N42RoundTripProbe
                  + "      <RadInstrumentComponentVersion>1</RadInstrumentComponentVersion>\r\n"
                  + "    </RadInstrumentVersion>\r\n"
                  + "  </RadInstrumentInformation>\r\n";
+        }
+
+        /// <summary>
+        /// Файл N42-2012 с ОДНОЙ шкалой и любым числом измерений (`A150`, `A160`).
+        /// </summary>
+        static string Multi(string tag, string measurements)
+        {
+            return Head(tag)
+                 + "  <EnergyCalibration id=\"EC1\">\r\n"
+                 + "    <CoefficientValues>3.5 12.5</CoefficientValues>\r\n"
+                 + "  </EnergyCalibration>\r\n"
+                 + measurements
+                 + "</RadInstrumentData>\r\n";
+        }
+
+        static string Meas(string id, string classCode, string startDateTime, string counts)
+        {
+            return "  <RadMeasurement id=\"" + id + "\">\r\n"
+                 + "    <MeasurementClassCode>" + classCode + "</MeasurementClassCode>\r\n"
+                 + "    <StartDateTime>" + startDateTime + "</StartDateTime>\r\n"
+                 + "    <RealTimeDuration>PT300S</RealTimeDuration>\r\n"
+                 + "    <Spectrum id=\"S-" + id + "\" energyCalibrationReference=\"EC1\">\r\n"
+                 + "      <LiveTimeDuration>PT295S</LiveTimeDuration>\r\n"
+                 + "      <ChannelData>" + counts + "</ChannelData>\r\n"
+                 + "    </Spectrum>\r\n"
+                 + "  </RadMeasurement>\r\n";
+        }
+
+        /// <summary>64 канала отсчётов; сдвиг делает измерения РАЗЛИЧИМЫМИ по сумме.</summary>
+        static string Counts(int shift)
+        {
+            StringBuilder counts = new StringBuilder();
+            for (int i = 0; i < 64; i++)
+            {
+                if (i > 0) counts.Append(' ');
+                counts.Append((i % 7) + 1 + shift);
+            }
+            return counts.ToString();
+        }
+
+        /// <summary>64 канала, у одного отсчёт ОТРИЦАТЕЛЬНЫЙ (`A158`).</summary>
+        static string NegCounts()
+        {
+            StringBuilder counts = new StringBuilder();
+            for (int i = 0; i < 64; i++)
+            {
+                if (i > 0) counts.Append(' ');
+                counts.Append(i == 7 ? -3 : (i % 7) + 1);
+            }
+            return counts.ToString();
         }
 
         static string Edges()

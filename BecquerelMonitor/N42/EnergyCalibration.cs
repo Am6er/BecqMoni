@@ -87,7 +87,14 @@ namespace BecquerelMonitor.N42
             double[] coefficients = new double[n42CalibrationCoeff.Length];
             for (int i = 0; i < n42CalibrationCoeff.Length; i++)
             {
-                coefficients[i] = double.Parse(n42CalibrationCoeff[i]);
+                // `A158`: инвариантная культура — то же правило, что у разбора
+                //   коэффициентов в Util.cs (`A142`). ⚠ ЧЕСТНО: читателей у этого
+                //   метода в дереве НОЛЬ (Util.cs разбирает CoefficientValues сам),
+                //   то есть правка ничего сегодня не меняет числом. Сделана она
+                //   затем, что метод публичный и живой: пара «пишем инвариантно —
+                //   читаем культурой машины» уже дважды расходилась молча, и
+                //   оставлять здесь второе соглашение значит ждать третьего раза.
+                coefficients[i] = double.Parse(n42CalibrationCoeff[i], System.Globalization.CultureInfo.InvariantCulture);
             }
             return coefficients;
         }

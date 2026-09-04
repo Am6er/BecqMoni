@@ -616,6 +616,12 @@
   <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
     <value>В файле N42 меньше пяти точек калибровки, полином не подгоняется. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
+  <data name="ERRSkippedMeasurementClassN42" xml:space="preserve">
+    <value>В файле N42 есть измерения класса {0}; они пропущены, потому что приложение ввозит только передние и фоновые спектры. Спектров ввезено: {1}.</value>
+  </data>
+  <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
+    <value>В файле N42 не прочитано время начала набора у {0} измерений (первое: {1}); вместо него подставлено текущее время. Остальное в спектре ввезено.</value>
+  </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>Энергетическая шкала в файле N42 задана полиномом {0}-го порядка, а приложение читает полиномы не выше четвёртого.</value>
   </data>
@@ -906,6 +912,9 @@
   </data>
   <data name="PeakFitChiTableChi2PerNdpColumn" xml:space="preserve">
     <value>chi2/ndp</value>
+  </data>
+  <data name="PeakFitChiTableScoreColumn" xml:space="preserve">
+    <value>AIC (chi2 + штраф за параметры)</value>
   </data>
   <data name="PeakFitChiTableParametersColumn" xml:space="preserve">
     <value>Параметры</value>

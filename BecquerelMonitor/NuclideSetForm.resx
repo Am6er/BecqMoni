@@ -4857,6 +4857,42 @@
   <data name="&gt;&gt;tableModelSets.Type" xml:space="preserve">
     <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
+  <data name="&gt;&gt;labelAssignColor.Name" xml:space="preserve">
+    <value>labelAssignColor</value>
+  </data>
+  <data name="&gt;&gt;labelAssignColor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;labelAssignColor.Parent" xml:space="preserve">
+    <value>groupBoxEdit</value>
+  </data>
+  <data name="&gt;&gt;labelAssignColor.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="&gt;&gt;assignColorComboBox.Name" xml:space="preserve">
+    <value>assignColorComboBox</value>
+  </data>
+  <data name="&gt;&gt;assignColorComboBox.Type" xml:space="preserve">
+    <value>ColorComboBox.ColorComboBox, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;assignColorComboBox.Parent" xml:space="preserve">
+    <value>groupBoxEdit</value>
+  </data>
+  <data name="&gt;&gt;assignColorComboBox.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="&gt;&gt;buttonAssignColor.Name" xml:space="preserve">
+    <value>buttonAssignColor</value>
+  </data>
+  <data name="&gt;&gt;buttonAssignColor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;buttonAssignColor.Parent" xml:space="preserve">
+    <value>groupBoxEdit</value>
+  </data>
+  <data name="&gt;&gt;buttonAssignColor.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>NuclideSetForm</value>
   </data>

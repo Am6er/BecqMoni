@@ -1,14 +1,16 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace ReasonProbe
 {
     /// <summary>
-    /// МЕРКА ЕДИНСТВЕННОЙ ДВЕРИ, КОТОРАЯ НАЗЫВАЕТ ПРИЧИНУ (`A129`).
+    /// МЕРКА ЕДИНСТВЕННОЙ ДВЕРИ, КОТОРАЯ НАЗЫВАЕТ ПРИЧИНУ (`A129`, `A144`).
     ///
     /// ЗАЧЕМ ПРОБА. <c>AppUi.Reason</c> приписывает к внешнему исключению самое
     /// внутреннее («<c> &lt;- Тип: сообщение</c>»), и делала она это ВСЕГДА —
@@ -28,9 +30,22 @@ namespace ReasonProbe
     ///     приписывается. Признак «уже названо» — точный: ровно та строка,
     ///     которую собираются приписать, а не «похожая».
     ///
+    /// ⛔ ЦЕПОЧКА ЦЕЛИКОМ (`A144`, решение Amber 05.09.2026). Прежде дверь
+    /// называла ТОЛЬКО самое внутреннее звено, и средние пропадали молча.
+    /// Плечи, мерящие это:
+    ///   * <c>без своих слов</c> — обёртка, чьё сообщение о причине не говорит
+    ///     НИЧЕГО (<c>TargetInvocationException</c>): среднее звено сегодня
+    ///     теряется целиком, после правки обязано называться;
+    ///   * <c>петля</c> и <c>предел</c> — сторожа обхода. Оба обязаны
+    ///     ГОВОРИТЬ О СЕБЕ хвостовым «&lt;- …»: молчаливая потеря звена и есть
+    ///     чинимый дефект;
+    ///   * <c>ветвление</c> — <c>AggregateException</c>. Плечо СПРАВОЧНОЕ:
+    ///     обход идёт по <c>InnerException</c>, а он отдаёт лишь первую ветвь.
+    ///
     /// ⚠ Ожидание РАЗНОЕ у двух сборок, и это не изъян пробы, а её смысл: на
     /// старой сборке плечо <c>цитата</c> обязано дать «ДВАЖДЫ» и код 1, на
-    /// новой — «ОДИН РАЗ» и код 0. Прогон без старой сборки мерит пустоту.
+    /// новой — «ОДИН РАЗ» и код 0; после `A144` на старой сборке отказывают ещё
+    /// и плечи цепочки. Прогон без старой сборки мерит пустоту.
     ///
     ///     reasonprobe [--real]
     ///
@@ -72,6 +87,10 @@ namespace ReasonProbe
             HalfQuoted();
             WithoutClass();
             EmptyInner();
+            Speechless();
+            Looped();
+            TooDeep();
+            Branched();
             if (real)
             {
                 Real();
@@ -114,6 +133,20 @@ namespace ReasonProbe
 
             return inner.GetType().Name + ": " + inner.Message;
         }
+
+        /// <summary>Звено так, как его называет дверь: «Тип: сообщение».</summary>
+        static string Link(Exception ex)
+        {
+            return ex.GetType().Name + ": " + ex.Message;
+        }
+
+        /// <summary>
+        /// Предел звеньев обхода — то же число, что <c>AppUi.ReasonChainLimit</c>
+        /// (`A144`). Держится здесь СВОИМ, а не берётся из приложения нарочно:
+        /// проба обязана собираться и против СТАРОЙ сборки, где такого имени ещё
+        /// нет. Разошлись — плечо <c>предел</c> отказывает и называет расхождение.
+        /// </summary>
+        const int ChainLimit = 16;
 
         // ------------------------------------------------------------------
 
@@ -166,10 +199,14 @@ namespace ReasonProbe
             int n = Count(said, tail);
             Print("без цитаты", said);
             Console.WriteLine("    длина {0} знаков, причина стоит {1} раз(а)", said.Length, n);
-            Say("без цитаты", "ХВОСТ ОСТАЛСЯ", Count(said, " <- ") == 1);
+            Say("без цитаты", "ХВОСТ ОСТАЛСЯ", Count(said, " <- ") >= 1);
             Say("без цитаты", "причина названа ровно раз", n == 1);
             Say("без цитаты", "внешнее на месте",
                 said.IndexOf("matdb.sqlite: подъём таблиц вещества", StringComparison.Ordinal) >= 0);
+            // `A144`: среднее звено здесь никем не названо — обязано появиться.
+            Say("без цитаты", "СРЕДНЕЕ звено названо",
+                Count(said, Link(middle)) == 1);
+            Say("без цитаты", "звеньев ровно два", Count(said, " <- ") == 2);
         }
 
         /// <summary>
@@ -189,7 +226,9 @@ namespace ReasonProbe
             Console.WriteLine("    длина {0} знаков", said.Length);
             Say("половина", "ПОЛНОЕ сообщение причины на месте",
                 said.IndexOf(InnerText, StringComparison.Ordinal) >= 0);
-            Say("половина", "хвост приписан", Count(said, " <- ") == 1);
+            Say("половина", "хвост приписан", Count(said, " <- ") >= 1);
+            Say("половина", "СРЕДНЕЕ звено названо", Count(said, Link(middle)) == 1);
+            Say("половина", "звеньев ровно два", Count(said, " <- ") == 2);
         }
 
         /// <summary>
@@ -208,7 +247,9 @@ namespace ReasonProbe
             Console.WriteLine("    длина {0} знаков", said.Length);
             Say("без класса", "класс причины назван",
                 said.IndexOf("FileLoadException", StringComparison.Ordinal) >= 0);
-            Say("без класса", "хвост приписан", Count(said, " <- ") == 1);
+            Say("без класса", "хвост приписан", Count(said, " <- ") >= 1);
+            Say("без класса", "СРЕДНЕЕ звено названо", Count(said, Link(middle)) == 1);
+            Say("без класса", "звеньев ровно два", Count(said, " <- ") == 2);
         }
 
         /// <summary>
@@ -225,6 +266,133 @@ namespace ReasonProbe
             Print("пустое внутри", said);
             Say("пустое внутри", "класс причины назван",
                 said.IndexOf("ObjectDisposedException", StringComparison.Ordinal) >= 0);
+        }
+
+        /// <summary>
+        /// ⛔ ГЛАВНОЕ ПЛЕЧО `A144`: ОБЁРТКА БЕЗ СВОИХ СЛОВ. Сообщение
+        /// <c>TargetInvocationException</c> — платформенное, о причине оно не
+        /// говорит НИЧЕГО, и позаботиться о среднем звене здесь некому. Прежняя
+        /// дверь брала только самое внутреннее, и <c>TypeInitializationException</c>
+        /// пропадал целиком: у читателя оставалось «вызов бросил» плюс «сборка не
+        /// загрузилась», а звена «инициализатор типа поставщика SQLite» — не
+        /// было. На сцене `F_a25_noconf` его видно лишь потому, что
+        /// <c>MaterialDatabase.Refuse</c> положил его в текст своей рукой.
+        /// </summary>
+        static void Speechless()
+        {
+            Exception middle = Middle();
+            Exception outer = new TargetInvocationException(middle);
+
+            string said = AppUi.Reason(outer);
+            Print("без своих слов", said);
+            Console.WriteLine("    длина {0} знаков, звеньев названо {1}",
+                              said.Length, Count(said, " <- ") + 1);
+            Say("без своих слов", "внешнее названо",
+                said.IndexOf("TargetInvocationException", StringComparison.Ordinal) == 0);
+            Say("без своих слов", "СРЕДНЕЕ звено названо", Count(said, Link(middle)) == 1);
+            Say("без своих слов", "причина названа", Count(said, Tail(outer)) == 1);
+            Say("без своих слов", "звеньев ровно три", Count(said, " <- ") == 2);
+            Say("без своих слов", "сторож обхода не сработал",
+                said.IndexOf(" <- …", StringComparison.Ordinal) < 0);
+        }
+
+        /// <summary>
+        /// СТОРОЖ ПЕТЛИ. Штатным путём петлю во <c>InnerException</c> не собрать
+        /// (задаётся конструктором), но полем <c>_innerException</c> её кладут и
+        /// отражение, и десериализация. ⚠ Сторож обязан ГОВОРИТЬ О СЕБЕ:
+        /// молчаливая потеря звена и есть чинимый дефект.
+        ///
+        /// ⛔ ЗОВЁТСЯ СО СРОКОМ, И ЭТО НЕ ПЕРЕСТРАХОВКА, А ИЗМЕРЕНИЕ. Дверь ДО
+        /// правки `A144` искала самое внутреннее циклом <c>while
+        /// (inner.InnerException != null)</c> — на петле он вечный. Измерено
+        /// 05.09.2026 на старой сборке: <c>ReasonProbe.exe</c> сжёг 616 секунд
+        /// процессора и был убит по сроку. Прямой вызов повесил бы саму пробу, и
+        /// «до» замерить стало бы нечем; поток фоновый, поэтому невернувшийся
+        /// обход выходу процесса не мешает.
+        /// </summary>
+        static void Looped()
+        {
+            FieldInfo slot = typeof(Exception).GetField("_innerException",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (slot == null)
+            {
+                Console.WriteLine("ПЛЕЧО петля");
+                Console.WriteLine("  ⚠ поля _innerException нет — петлю не собрать, плечо НЕ МЕРИТ");
+                bad++;
+                return;
+            }
+
+            Exception first = new InvalidOperationException("первое звено петли");
+            Exception second = new InvalidOperationException("второе звено петли", first);
+            slot.SetValue(first, second);   // first -> second -> first
+
+            string said = null;
+            Thread walk = new Thread(delegate() { said = AppUi.Reason(second); });
+            walk.IsBackground = true;
+            walk.Start();
+            bool done = walk.Join(TimeSpan.FromSeconds(10.0));
+
+            Console.WriteLine("ПЛЕЧО петля");
+            if (!done)
+            {
+                Console.WriteLine("  ⛔ ОБХОД НЕ ВЕРНУЛСЯ за 10 с — сторожа петли НЕТ");
+                bad++;
+                return;
+            }
+
+            Console.WriteLine("  сказано: {0}", OneLine(said));
+            Say("петля", "оба звена названы",
+                Count(said, "второе звено петли") == 1 && Count(said, "первое звено петли") == 1);
+            Say("петля", "сторож СКАЗАЛ О СЕБЕ",
+                said.EndsWith(" <- …", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// СТОРОЖ ПРЕДЕЛА. Цепочка заведомо длиннее предела; у каждого звена своё
+        /// сообщение, иначе их сняло бы правило «уже названо». Предел — сторож от
+        /// испорченной цепочки, а не обрезка по длине: резать текст под ширину
+        /// строки качества запрещено решением Amber 05.09.2026.
+        /// </summary>
+        static void TooDeep()
+        {
+            Exception link = new InvalidOperationException("звено 0");
+            for (int i = 1; i <= ChainLimit + 4; i++)
+            {
+                link = new InvalidOperationException("звено " + i, link);
+            }
+
+            string said = AppUi.Reason(link);
+            Console.WriteLine("ПЛЕЧО предел");
+            Console.WriteLine("  цепочка {0} звеньев, названо {1}, предел пробы {2}",
+                              ChainLimit + 5, Count(said, " <- "), ChainLimit);
+            Console.WriteLine("  сказано: {0}", OneLine(said));
+            Say("предел", "сторож СКАЗАЛ О СЕБЕ",
+                said.EndsWith(" <- …", StringComparison.Ordinal));
+            Say("предел", "названо ровно предел звеньев",
+                Count(said, " <- ") == ChainLimit);
+            Say("предел", "самое внешнее названо первым",
+                said.IndexOf("звено " + (ChainLimit + 4), StringComparison.Ordinal) >= 0);
+        }
+
+        /// <summary>
+        /// СПРАВОЧНОЕ ПЛЕЧО, вердикта не выносит по соседним ветвям.
+        /// <c>AggregateException</c> держит НЕСКОЛЬКО внутренних, а
+        /// <c>InnerException</c> отдаёт только первую: обход идёт по ней, соседние
+        /// ветви не называются. Для полосы `A144` это находка, а не правка —
+        /// раскрытие ветвления было бы вторым правилом обхода.
+        /// </summary>
+        static void Branched()
+        {
+            Exception one = new InvalidOperationException("ветвь ПЕРВАЯ: нет калибровки");
+            Exception two = new FileNotFoundException("ветвь ВТОРАЯ: нет файла спектра");
+            Exception outer = new AggregateException("две беды разом", one, two);
+
+            string said = AppUi.Reason(outer);
+            Print("ветвление", said);
+            Say("ветвление", "первая ветвь названа", Count(said, "ветвь ПЕРВАЯ") >= 1);
+            bool second = Count(said, "ветвь ВТОРАЯ") >= 1;
+            Console.WriteLine("  {0,-34} {1}", "вторая ветвь названа",
+                              second ? "ДА" : "НЕТ — находка, вердикта нет");
         }
 
         /// <summary>

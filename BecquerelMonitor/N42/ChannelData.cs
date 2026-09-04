@@ -61,10 +61,17 @@ namespace BecquerelMonitor.N42
                 System.Collections.Generic.List<int> expanded = new System.Collections.Generic.List<int>();
                 for (int i = 0; i < n42SpectrimCounts.Length; i++)
                 {
-                    int channelValue = int.Parse(n42SpectrimCounts[i]);
+                    // `A158`: ЧТЕНИЕ ИНВАРИАНТНОЙ КУЛЬТУРОЙ — то же правило, что у
+                    //   записи в SpectrumFromArray ниже (`A146`) и у коэффициентов
+                    //   в Util.cs (`A142`). В N42 число записано по спецификации, а
+                    //   int.Parse без культуры берёт у машины знак минуса
+                    //   (NegativeSign) — на отсчётах это сегодня не стреляет только
+                    //   потому, что они неотрицательны, то есть держится не на
+                    //   разборе, а на данных.
+                    int channelValue = int.Parse(n42SpectrimCounts[i], System.Globalization.CultureInfo.InvariantCulture);
                     if (channelValue == 0 && i + 1 < n42SpectrimCounts.Length)
                     {
-                        int zeroCount = int.Parse(n42SpectrimCounts[++i]);
+                        int zeroCount = int.Parse(n42SpectrimCounts[++i], System.Globalization.CultureInfo.InvariantCulture);
                         for (int z = 0; z < zeroCount; z++)
                         {
                             expanded.Add(0);
@@ -84,7 +91,8 @@ namespace BecquerelMonitor.N42
 
             for (int i = 0; i < NumberOfChanels; i++)
             {
-                returnvalue[i] = int.Parse(n42SpectrimCounts[i]);
+                // `A158`: та же инвариантная культура, что и в сжатой ветви выше.
+                returnvalue[i] = int.Parse(n42SpectrimCounts[i], System.Globalization.CultureInfo.InvariantCulture);
             }
 
             return returnvalue;
