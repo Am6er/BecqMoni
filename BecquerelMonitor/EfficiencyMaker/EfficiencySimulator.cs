@@ -262,6 +262,38 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool LXrayEscape = true;
 
         /// <summary>
+        /// ⛔ (`A101`) АТОМНЫЙ КАСКАД K→L: второй квант из ОДНОГО поглощения.
+        /// Умолчанием ВЫКЛЮЧЕН — решение Amber 04.09.2026.
+        ///
+        /// До правки одно поглощение отдавало ЛИБО K-квант, ЛИБО L-квант:
+        /// ветка K возвращала линию сразу, и дырка, переехавшая из K в L после
+        /// вылета K-кванта, второго кванта не рождала. Между тем это ровно то,
+        /// что происходит в атоме: K-вакансию закрывает электрон с L, и на L
+        /// остаётся своя вакансия со своим выходом флуоресценции.
+        ///
+        /// Измерено 03.09.2026 (`A85`) на голом NaI, 59.541 кэВ, шкала энергии:
+        /// в бинах L-линий (55+56) у арбитра 5.268e-4 на историю, у нас
+        /// 2.128e-4 — недобор **3.14e-4**. ⚠ Разводящий опыт называет причину
+        /// однозначно: на 30 кэВ, НИЖЕ K-края иода 33.17, где K-вакансий нет ни
+        /// у кого и каскада быть не может, наш/арбитр = 1.06; выше края — 0.59.
+        /// То есть сам L-канал исправен, ему не хватало источника вакансий.
+        ///
+        /// Куда переехала вакансия, известно ТОЧНО и без новых данных:
+        /// `Fluorescence.LineKev` хранит линии в порядке **Kα1, Kα2, Kβ**, а
+        /// Kα1 — это переход L3→K, Kα2 — L2→K. Значит индекс разыгранной
+        /// K-линии прямо называет подоболочку, где осталась дырка; Kβ уводит её
+        /// на M/N, минуя L, и каскад тогда не считается (переход M→L второго
+        /// порядка и здесь не ведётся).
+        ///
+        /// ⚠ Ключ, а не безусловная правка, — по цене: правка меняет отклик
+        /// ВСЕГДА, то есть поднимает `PhysicsVersion` и обесценивает все 44
+        /// матрицы склада разом (`A67`). Выключенный ключ в клеймо не пишется
+        /// (`T42`), склад остаётся годным, и лишних розыгрышей канал не тратит —
+        /// поток при выключенном ключе прежний до последнего бита.
+        /// </summary>
+        public bool KLCascade;
+
+        /// <summary>
         /// Не считать когерентное рассеяние потерей на пути к кристаллу.
         ///
         /// Рэлеевское рассеяние энергию не меняет: квант после него даёт тот же
@@ -1889,6 +1921,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long CountKXray, CountLXray;
 
         /// <summary>
+        /// (`A101`) Сколько раз K-вылет ПОРОДИЛ второй, каскадный L-квант, и
+        /// сколько раз вакансия после K-линии вообще попадала на L-подоболочку
+        /// (то есть линия была Kα, а не Kβ). Второе — знаменатель первого:
+        /// без него «мало каскадов» неотличимо от «мало Kα».
+        /// ⚠ Признак без читателя — главная грабля этого проекта, поэтому оба
+        /// счётчика печатает `G4RawProbe` рядом с соседними по флуоресценции,
+        /// а не только копятся в поле.
+        /// </summary>
+        public long CountKLCascade, CountKLVacancy;
+
+        /// <summary>
+        /// (`A101`) Второй квант каскада, кэВ, — то, что `SampleFluorescence`
+        /// не может вернуть возвратом: у неё один `double` на один квант.
+        /// Ставится ТОЛЬКО при включённом ключе и обнуляется в начале КАЖДОГО
+        /// вызова, чтобы прошлое значение не досталось чужому поглощению.
+        /// Читатель обязан забрать его сразу после вызова и обнулить.
+        /// </summary>
+        double pendingCascadeKev;
+
+        /// <summary>
         /// Из выброшенных — только те, что КОМПТОН-РАССЕЯЛИСЬ вне кристалла
         /// (`S55`). Разделение обязательно, иначе замер врёт в разы: прямой
         /// квант, поглотившийся целиком, выброшен ПРАВИЛЬНО — его считает
@@ -3043,6 +3095,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // равна энергии поглощённого кванта, ничего не теряется и
                     // не появляется.
                     double xray = this.SampleFluorescence(this.geometry.Crystal, e);
+                    // (`A101`) Второй квант каскада K→L. Забирается СРАЗУ: ниже
+                    // идёт рекурсия `InCrystal`, и её собственная флуоресценция
+                    // перетёрла бы поле. При выключенном ключе он всегда ноль,
+                    // и весь код ниже вырождается в прежний.
+                    double casc = this.pendingCascadeKev;
+                    this.pendingCascadeKev = 0.0;
                     if (xray > 0.0)
                     {
                         double kx, ky, kz;
@@ -3052,7 +3110,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Оба тянут случайные числа, и перестановка уводит
                         // поток — матрица выходит другой, а кривая
                         // эффективности перестаёт быть побитово прежней.
-                        double electron = this.ElectronLoss(x, y, z, e - xray, depth);
+                        double electron = this.ElectronLoss(x, y, z, e - xray - casc, depth);
                         // Метка канала — только НЕПОМЕЧЕННЫЙ остаток вылета:
                         // вложенная рекурсия свои вылеты уже пометила (её метка
                         // точнее — она знает, ЧЕМ квант вылетел), и прибавка
@@ -3062,7 +3120,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double gone = this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
                         double markedInside = this.lossAnnihilation + this.lossXray - markedBefore;
                         this.lossXray += Math.Max(0.0, gone - markedInside);
-                        return lost + electron + gone;
+
+                        // (`A101`) Каскадный L-квант ведётся ТЕМ ЖЕ путём, что и
+                        // вакансионный рентген комптона (`A61`): своё
+                        // направление, рекурсия, метка по непомеченному
+                        // остатку. Баланс сходится — на электроны ушло
+                        // `e − xray − casc`, оба кванта уведены отдельно.
+                        double goneC = 0.0;
+                        if (casc > 0.0)
+                        {
+                            double cx, cy, cz;
+                            this.Isotropic(out cx, out cy, out cz);
+                            double markedBeforeC = this.lossAnnihilation + this.lossXray;
+                            goneC = this.InCrystal(x, y, z, cx, cy, cz, casc, depth + 1);
+                            double markedInsideC = this.lossAnnihilation + this.lossXray - markedBeforeC;
+                            this.lossXray += Math.Max(0.0, goneC - markedInsideC);
+                        }
+
+                        return lost + electron + gone + goneC;
                     }
 
                     // фотоэлектрон уносит почти всю энергию кванта
@@ -3380,6 +3455,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double SampleFluorescence(GeometryMaterial material, double energyKev)
         {
+            // (`A101`) Каскадный квант принадлежит ТОЛЬКО этому вызову. Гасим
+            // его здесь, а не у читателя: у функции три места вызова, и
+            // забытое обнуление отдало бы прошлый квант чужому поглощению —
+            // отказ, которого не видно ничем.
+            this.pendingCascadeKev = 0.0;
             Fluorescers f0 = this.FluorescersOf(material);
             if (!this.XrayEscape || f0.Z.Length == 0)
             {
@@ -3455,7 +3535,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (u < kFraction * omega)
             {
                 this.CountKXray++;
-                return PickLine(this.Uniform(), f.LineKev, f.LineWeight);
+                int line;
+                double kev = PickLineAt(this.Uniform(), f.LineKev, f.LineWeight, out line);
+                if (this.KLCascade)
+                {
+                    this.CascadeAfterK(f, f0.Shells[k], line, energyKev);
+                }
+
+                return kev;
             }
 
             // ⛔ (`A60`) L-СЕРИЯ. Раньше здесь стоял выход: «не K-оболочка или
@@ -3506,8 +3593,70 @@ namespace BecquerelMonitor.EfficiencyMaker
             return 0.0;                     // оже-электрон
         }
 
+        /// <summary>
+        /// (`A101`) КАСКАД K→L: после вылета K-кванта дырка переезжает на ту
+        /// подоболочку, ОТКУДА пришёл закрывший её электрон, и та отвечает
+        /// своим квантом со своим выходом.
+        ///
+        /// Подоболочка не гадается: `LineKev` хранит линии в порядке
+        /// **Kα1, Kα2, Kβ**, Kα1 — переход L3→K, Kα2 — L2→K. Индексы L-массивов
+        /// идут L1, L2, L3, поэтому Kα1 → 2, Kα2 → 1. Kβ уводит вакансию на
+        /// M/N: перехода M→L здесь нет, и каскад не считается — это второй
+        /// порядок, а его цена не измерена.
+        ///
+        /// ⚠ Розыгрышей ровно два и ТОЛЬКО при включённом ключе: выключенный
+        /// сюда не заходит вовсе, и поток остаётся прежним до последнего бита.
+        /// </summary>
+        void CascadeAfterK(MaterialDatabase.Fluorescence f,
+                           MaterialDatabase.PhotoShellModel shell,
+                           int kLine, double energyKev)
+        {
+            if (!this.LXrayEscape || !f.HasL || shell == null)
+            {
+                return;                     // L-канала нет — каскаду некуда идти
+            }
+
+            // Kα1 -> L3 (индекс 2), Kα2 -> L2 (индекс 1), Kβ -> мимо L.
+            int li = kLine == 0 ? 2 : (kLine == 1 ? 1 : -1);
+            if (li < 0 || li >= f.OmegaL.Length || f.LineKevL[li] == null
+                || !(f.OmegaL[li] > 0.0))
+            {
+                return;
+            }
+
+            // ⚠ Подоболочка обязана быть ОТКРЫТА на этой энергии — иначе
+            // вакансии на ней не бывает и каскад считал бы несуществующее.
+            if (li < f.LEdgeKev.Length && energyKev <= f.LEdgeKev[li])
+            {
+                return;
+            }
+
+            this.CountKLVacancy++;
+            if (this.Uniform() >= f.OmegaL[li])
+            {
+                return;                     // ответил оже-электрон
+            }
+
+            this.CountKLCascade++;
+            this.pendingCascadeKev =
+                PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+        }
+
         /// <summary>Линия по разыгранному числу и весам; веса в сумме единица.</summary>
         static double PickLine(double pick, double[] kev, double[] weight)
+        {
+            int line;
+            return PickLineAt(pick, kev, weight, out line);
+        }
+
+        /// <summary>
+        /// То же, но с НОМЕРОМ линии (`A101`): для K-серии он называет
+        /// подоболочку, откуда пришёл электрон, — Kα1 (0) с L3, Kα2 (1) с L2.
+        /// ⚠ Случайное число тратится ОДНО, ровно как в `PickLine`, поэтому
+        /// переход на этот вызов поток не двигает и матрицы остаются
+        /// побитово прежними.
+        /// </summary>
+        static double PickLineAt(double pick, double[] kev, double[] weight, out int line)
         {
             double acc = 0.0;
             for (int i = 0; i < weight.Length; i++)
@@ -3515,10 +3664,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 acc += weight[i];
                 if (pick < acc)
                 {
+                    line = i;
                     return kev[i];
                 }
             }
 
+            line = kev.Length - 1;
             return kev[kev.Length - 1];
         }
 
