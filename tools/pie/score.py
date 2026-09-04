@@ -81,6 +81,7 @@ components.csv (упал — ERROR в *_runs.csv — или не был прог
 """
 import argparse
 import csv
+import io
 import os
 import sys
 from collections import defaultdict
@@ -193,6 +194,29 @@ def enable_members():
                 sys.exit('дочерний %s принадлежит двум семействам: %s и %s'
                          % (member, MEMBER_FAMILY[member], fam))
             MEMBER_FAMILY[member] = fam
+
+
+def read_only(spec):
+    """Множество ключей из `--only`: список через запятую либо файл (`S136`).
+
+    Файл читается как csv/txt, где ключ — ПЕРВЫЙ столбец; строки, начинающиеся
+    с `#`, и заголовок `spectrum,...` пропускаются. Так один и тот же
+    `corpus/mini.csv` служит и определением базы, и её списком для счёта: два
+    списка разошлись бы молча, а одного разойтись не с чем.
+    """
+    if os.path.exists(spec):
+        names = set()
+        with io.open(spec, encoding='utf-8-sig') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                key = line.split(',')[0].strip()
+                if not key or key == 'spectrum':
+                    continue
+                names.add(key)
+        return names
+    return {x.strip() for x in spec.split(',') if x.strip()}
 
 
 def load_parts():
@@ -372,6 +396,22 @@ def main():
     ap.add_argument('--members', action='store_true',
                     help='состав назван ДОЧЕРНИМИ нуклидами (разбор приложения), '
                          'а не цепочками: развернуть цепочки манифеста в их членов')
+    # ⛔ ПОДМНОЖЕСТВО КОРПУСА (`S136`). Без этого ключа recall прогона по части
+    # спектров ЛОЖЕН по построению: знаменатель берётся из манифеста, и спектр,
+    # который НЕ ГОНЯЛИ, считается промахом наравне с упавшим. Измерено
+    # 04.09.2026 первым же прогоном малой базы: 42 спектра дали «итого 79,
+    # recall 48 %», где 79 — это все понятные спектры задетых групп, а 48 % —
+    # доля прогнанных, а не найденных.
+    #
+    # ⚠ Сторож покрытия при этом НЕ отключается и отключать его нельзя: он
+    # ловит спектр, который УПАЛ и не оставил строк, — иначе тот молча выпал бы
+    # из recall. Ключ лишь переносит меру покрытия с манифеста на ОБЪЯВЛЕННЫЙ
+    # список: спектр, названный в списке и не давший результата, по-прежнему
+    # находка.
+    ap.add_argument('--only', default=None,
+                    help='ограничить объявленным списком: имена через запятую '
+                         'либо путь к csv/txt, где ключ — первый столбец '
+                         '(строки с # и заголовок пропускаются)')
     args = ap.parse_args()
 
     if args.members:
@@ -395,6 +435,24 @@ def main():
                  and (args.part == 'all' or parts.get(k, 'unknown') == args.part)}
     elif args.part != 'all':
         sys.exit('нет %s — часть корпуса выбрать нечем' % PARTS)
+
+    # Подмножество (`S136`) — ПОСЛЕ отбора по части, чтобы «объявлено» и
+    # «судится» считались в одних и тех же границах.
+    if args.only:
+        declared = read_only(args.only)
+        if not declared:
+            sys.exit('--only=%s: не нашлось ни одного имени' % args.only)
+        unknown_names = sorted(declared - in_manifest)
+        if unknown_names:
+            print('ВНИМАНИЕ: в списке --only есть имена, которых нет в манифесте '
+                  '(%d): %s' % (len(unknown_names), ', '.join(unknown_names[:5])),
+                  file=sys.stderr)
+        truth = {k: t for k, t in truth.items() if k in declared}
+        if not truth:
+            sys.exit('--only: в части «%s» не осталось ни одного спектра списка'
+                     % args.part)
+        print('подмножество: объявлено %d, в части «%s» судится %d'
+              % (len(declared), args.part, len(truth)))
     results, groups, errors, chi2, eps, bg_rej = load_results(args.mode, args.out_dir)
     if not results:
         sys.exit('нет результатов режима %s в %s' % (args.mode, args.out_dir))
