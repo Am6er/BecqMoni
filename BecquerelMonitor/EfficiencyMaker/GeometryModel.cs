@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
@@ -904,10 +905,113 @@ namespace BecquerelMonitor.EfficiencyMaker
         static readonly Regex Line = new Regex(@"^\s*([A-Za-z_][A-Za-z0-9_\[\]\.]*)\s*=\s*(.+?)\s*$",
                                                RegexOptions.Compiled);
 
+        /// <summary>
+        /// Однобайтная кириллица — та же кодировка, какой файл ПИШЕТСЯ
+        /// (<see cref="GeometryWriter.Save"/>). Держится готовой: `Load`
+        /// зовётся на каждую сцену корпуса, а `GetEncoding` ходит в таблицу
+        /// кодовых страниц.
+        /// </summary>
+        static readonly Encoding Ansi = Encoding.GetEncoding(1251);
+
+        /// <summary>
+        /// Прочитать файл геометрии ТОЙ ЖЕ кодировкой, какой он пишется
+        /// (`A161`, решение Amber 05.09.2026).
+        ///
+        /// ⛔ **Чем это было.** `File.ReadAllLines` без кодировки — это UTF-8, а
+        /// <see cref="GeometryWriter.Save"/> пишет `Encoding.GetEncoding(1251)`.
+        /// Круг «открыл — сохранил» поэтому терял кириллицу дважды: при чтении
+        /// однобайтные байты становились `U+FFFD`, при записи `U+FFFD` не
+        /// ложился в 1251 и становился `?`. Имя вещества входит в
+        /// <see cref="ResponseMatrix.ComputeStamp"/> (через `GeometryWriter.Render`),
+        /// значит один такой круг объявлял матрицу устаревшей при НЕИЗМЕННОЙ
+        /// сцене. Измерено 05.09.2026 на 66 геометриях дерева: имя терялось у
+        /// **36**, и ровно у тех же 36 круг двигал отпечаток.
+        ///
+        /// ⚠ **Почему распознавание, а не «всегда 1251».** Сплошной разбор всех
+        /// 614 `.in` дерева: 606 однобайтных, 7 чистого ASCII (кодировка на них
+        /// не влияет) и **один настоящий UTF-8** —
+        /// `tools/effmaker/models/Nano16Pro_box.in`, где 97 `U+FFFD` уже
+        /// записаны в файл ранним кругом этого самого дефекта. Слепое
+        /// переключение прочло бы его байты как 1251 и выдало третье, новое
+        /// написание. Распознавание держит такой файл прежним и переживает
+        /// правку `.in` в редакторе, сохраняющем UTF-8.
+        ///
+        /// ⚠ Ложное «это UTF-8» на однобайтном файле измерено и равно НУЛЮ:
+        /// строгий разбор UTF-8 отверг все 606 однобайтных до одного. Русский
+        /// текст в 1251 почти не бывает годным UTF-8 — заглавные буквы лежат в
+        /// `C0..DF` (ведущий байт пары), а следом обязан идти `80..BF`, куда
+        /// попадают лишь редкие знаки, но не буквы.
+        /// </summary>
+        static string[] ReadAllLines(string path)
+        {
+            byte[] data = File.ReadAllBytes(path);
+            List<string> lines = new List<string>();
+
+            // Разбиение на строки отдано `StreamReader`: у него ровно та же
+            // разметка концов, что была у `File.ReadAllLines` (одиночные
+            // `\r`, `\n` и пара `\r\n`), и своя копия этого правила разъехалась
+            // бы с ней молча. Признак порядка байтов оставлен включённым —
+            // файл с BOM прочтётся своим, а не угаданным.
+            using (MemoryStream stream = new MemoryStream(data, false))
+            using (StreamReader reader = new StreamReader(stream, Detect(data), true))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    lines.Add(line);
+                }
+            }
+
+            return lines.ToArray();
+        }
+
+        /// <summary>
+        /// Кодировка файла: UTF-8, если он ЦЕЛИКОМ годен как UTF-8, иначе 1251.
+        ///
+        /// ⚠ Порядок проверок обратить нельзя: 1251 принимает ЛЮБЫЕ байты, и
+        /// вопрос «а не 1251 ли это» ответа не имеет вовсе. Отличить может
+        /// только строгий разбор UTF-8.
+        /// </summary>
+        static Encoding Detect(byte[] data)
+        {
+            if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
+            {
+                return new UTF8Encoding(false);
+            }
+
+            bool high = false;
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i] >= 0x80)
+                {
+                    high = true;
+                    break;
+                }
+            }
+
+            if (!high)
+            {
+                // Ни одного байта выше 0x7F — обе кодировки дают побуквенно
+                // одно и то же, и гадать не о чем.
+                return Ansi;
+            }
+
+            try
+            {
+                new UTF8Encoding(false, true).GetString(data);
+                return new UTF8Encoding(false);
+            }
+            catch (ArgumentException)
+            {
+                // `DecoderFallbackException` — наследник `ArgumentException`.
+                return Ansi;
+            }
+        }
+
         public static GeometryModel Load(string path)
         {
             Dictionary<string, string> kv = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string raw in File.ReadAllLines(path))
+            foreach (string raw in ReadAllLines(path))
             {
                 int comment = raw.IndexOf("//", StringComparison.Ordinal);
                 string text = comment >= 0 ? raw.Substring(0, comment) : raw;

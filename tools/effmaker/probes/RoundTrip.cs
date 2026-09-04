@@ -58,7 +58,7 @@ namespace RoundTrip
 
             if (free.Count < 2)
             {
-                Console.Error.WriteLine("roundtrip <каталог моделей> <каталог для записи> [--break=order|wall]");
+                Console.Error.WriteLine("roundtrip <каталог[;каталог...]> <каталог для записи> [--break=order|size]");
                 return 1;
             }
 
@@ -69,21 +69,63 @@ namespace RoundTrip
                                   breakage);
             }
 
-            int bad = 0;
-            foreach (string path in Directory.GetFiles(args[0], "*.in"))
+            // ⛔ КАТАЛОГОВ МОЖЕТ БЫТЬ НЕСКОЛЬКО (`A163`, 05.09.2026). Штатный
+            // прогон до сегодня брал ОДИН каталог — `tools\effmaker\models`, 15
+            // сцен, — а 44 корпусные геометрии проверялись руками и от случая к
+            // случаю. Именно там и жил дефект кодировки (`A161`): 72 отказа из
+            // 88, и все 72 только на имени вещества. Список каталогов через `;`
+            // делает корпус частью штатного прогона, а один каталог остаётся
+            // прежней строкой без изменений.
+            //
+            // ⚠ Имена файлов в каталогах ПОВТОРЯЮТСЯ (`Nano16Pro.in` есть и в
+            // `models`, и в `LSRM Geometries\Models`), поэтому цель нумеруется:
+            // общее имя затирало бы одну сцену другой молча.
+            var sources = new List<string>();
+            foreach (string d in args[0].Split(';'))
             {
-                bad += Check(path, Path.Combine(args[1], Path.GetFileName(path)), false) ? 0 : 1;
+                if (d.Trim().Length == 0)
+                {
+                    continue;
+                }
+
+                if (!Directory.Exists(d.Trim()))
+                {
+                    Console.Error.WriteLine("НЕТ КАТАЛОГА: " + d.Trim());
+                    return 1;
+                }
+
+                sources.Add(d.Trim());
             }
 
-            // Вторая ветвь: кристалл-цилиндр. У всех наших моделей кристалл
-            // прямоугольный, и диаметр с высотой там ПРОИЗВОДНЫЕ — не читаются
-            // расчётом вовсе. Чтобы проверить и их, форма принудительно
-            // сводится к цилиндру: тогда эти два поля становятся входными.
-            Console.WriteLine();
-            Console.WriteLine("### та же проверка с принудительно цилиндрическим кристаллом");
-            foreach (string path in Directory.GetFiles(args[0], "*.in"))
+            int bad = 0, seen = 0;
+            foreach (string dir in sources)
             {
-                bad += Check(path, Path.Combine(args[1], "cyl_" + Path.GetFileName(path)), true) ? 0 : 1;
+                Console.WriteLine();
+                Console.WriteLine("### каталог {0}", dir);
+                int here = 0, count = 0;
+                string[] found = Directory.GetFiles(dir, "*.in");
+                Array.Sort(found, StringComparer.Ordinal);
+                foreach (string path in found)
+                {
+                    count++;
+                    here += Check(path, Target(args[1], seen++, "", path), false) ? 0 : 1;
+                }
+
+                // Вторая ветвь: кристалл-цилиндр. У всех наших моделей кристалл
+                // прямоугольный, и диаметр с высотой там ПРОИЗВОДНЫЕ — не читаются
+                // расчётом вовсе. Чтобы проверить и их, форма принудительно
+                // сводится к цилиндру: тогда эти два поля становятся входными.
+                Console.WriteLine();
+                Console.WriteLine("### та же проверка с принудительно цилиндрическим кристаллом");
+                foreach (string path in found)
+                {
+                    count++;
+                    here += Check(path, Target(args[1], seen++, "cyl_", path), true) ? 0 : 1;
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("### итог каталога {0}: проверок {1}, расхождений {2}", dir, count, here);
+                bad += here;
             }
 
             Console.WriteLine();
@@ -102,6 +144,16 @@ namespace RoundTrip
 
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("РАСХОЖДЕНИЙ: {0}", bad));
             return bad == 0 ? 0 : 2;
+        }
+
+        /// <summary>
+        /// Путь цели: НОМЕР проверки плюс имя исходника. Номер обязателен —
+        /// тёзки из разных каталогов иначе пишутся в один файл (`A163`).
+        /// </summary>
+        static string Target(string dir, int index, string prefix, string source)
+        {
+            return Path.Combine(dir, index.ToString("000", CultureInfo.InvariantCulture)
+                                     + "_" + prefix + Path.GetFileName(source));
         }
 
         static bool Check(string source, string target, bool forceCylinder)
@@ -190,10 +242,20 @@ namespace RoundTrip
         ///
         /// `order` — перевернуть порядок элементов ПРОБЫ. Круг его выправит
         /// (писатель сортирует, читатель с `A131` тоже), значит модель до и
-        /// после разойдутся порядком — а по нему `EfficiencySimulator`
-        /// выбирает элемент розыгрышем. Это ровно тот дефект, который проба
-        /// нашла, и он НЕ ВИДЕН ни в одном поле списка: сортированный состав
-        /// совпадает, текст совпадает, клеймо совпадает. Ловит только кривая.
+        /// после разойдутся порядком.
+        ///
+        /// ⛔ **ЧЕМ ЭТО ЛОВИТСЯ — с 05.09.2026 ДРУГИМ (`A162`).** Прежде здесь
+        /// стояло «ловит только кривая», и это было верно: порядок был входом
+        /// розыгрыша (`PickAtom`, `SampleFluorescence`), и перестановка уводила
+        /// поток случайных чисел. `A162` канонизировал порядок НА ПОТРЕБЛЕНИИ —
+        /// `EfficiencySimulator` сортирует состав своей копии модели, — и
+        /// кривая от перестановки больше НЕ ДВИГАЕТСЯ ВООБЩЕ. Измерено на этом
+        /// самом контроле: 30 отказов из 30, и все тридцать — по полю
+        /// `Source.Order`, строк с расхождением кривой НОЛЬ.
+        ///
+        /// То есть контроль жив, но держит его теперь `.Order` в списке полей
+        /// (заведён `A131`), а не кривая. ⚠ Убрав `.Order` из <see cref="Fields"/>,
+        /// вы обесточите этот контроль полностью и не увидите этого ничем.
         ///
         /// `size` — сдвинуть ДЛИНУ КРИСТАЛЛА на 1e-6 относительных: настоящая
         /// мелкая потеря, которую ослабленный порог обязан по-прежнему видеть.
