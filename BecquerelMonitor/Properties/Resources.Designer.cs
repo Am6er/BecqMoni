@@ -1397,6 +1397,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The N42 file has fewer than five calibration points, so no polynomial is fitted. Using the default calibration y=x: the channel number is taken as the energy..
+        /// </summary>
+        public static string ERRTooFewCalibrationPointsN42 {
+            get {
+                return ResourceManager.GetString("ERRTooFewCalibrationPointsN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
         /// </summary>
         public static string ERRUnsupportedCalibrationMethod {

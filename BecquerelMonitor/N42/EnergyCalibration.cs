@@ -13,6 +13,8 @@ namespace BecquerelMonitor.N42
 
         private string coefficientValuesField;
 
+        private string energyBoundaryValuesField;
+
         private string idField;
 
         public EnergyCalibration()
@@ -31,6 +33,36 @@ namespace BecquerelMonitor.N42
             set
             {
                 this.coefficientValuesField = value;
+            }
+        }
+
+        /// <summary>
+        /// Шкала, заданная ГРАНИЦАМИ ЭНЕРГИЙ КАНАЛОВ, а не полиномом (`A136`).
+        ///
+        /// В N42-2011/2012 объект EnergyCalibration несёт ЛИБО CoefficientValues,
+        /// ЛИБО EnergyBoundaryValues. Приложение читает только полином, и это
+        /// не меняется: поле заведено затем, чтобы разбор ВИДЕЛ это положение и
+        /// называл его своим именем.
+        ///
+        /// ⚠ До 05.09.2026 поля не было, XmlSerializer пропускал элемент МОЛЧА,
+        /// и файл со шкалой по границам приходил с пустым CoefficientValues —
+        /// в один catch вместе с нечислом в коэффициентах и порядком полинома
+        /// больше четырёх. Один текст на три разные беды.
+        ///
+        /// ⛔ Начального значения НЕТ нарочно: null означает «элемента в файле
+        /// не было», и XmlSerializer такое поле при вывозе НЕ ЗАПИСЫВАЕТ. Пустая
+        /// строка вместо null дописала бы в КАЖДЫЙ выгруженный файл пустой
+        /// &lt;EnergyBoundaryValues /&gt;, которого там быть не должно.
+        /// </summary>
+        public string EnergyBoundaryValues
+        {
+            get
+            {
+                return this.energyBoundaryValuesField;
+            }
+            set
+            {
+                this.energyBoundaryValuesField = value;
             }
         }
 
