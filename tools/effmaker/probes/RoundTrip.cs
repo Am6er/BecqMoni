@@ -18,12 +18,55 @@ namespace RoundTrip
     {
         static readonly double[] Energies = { 50, 100, 300, 662, 1461, 2614 };
 
+        /// <summary>
+        /// Порог расхождения кривой, % — и он НЕ «ноль» (`A131`, `T147`).
+        ///
+        /// ⛔ Прежде стояло 1e-9 %, то есть 1e-11 ОТНОСИТЕЛЬНЫХ, и это ниже
+        /// того, что держит сама двойная арифметика на сумме по историям.
+        /// Проба ловила собственное округление: `Nano16Pro_box.in` расходился
+        /// на 3.8e-9…8.2e-9 % — печаталось «+0.000 %» и объявлялось
+        /// РАСХОЖДЕНИЕМ. Отличить это от настоящей потери было нечем: у
+        /// настоящей в том же столбце стояло такое же «+0.000 %».
+        ///
+        /// Порог берётся у ФОРМАТА, а не у наблюдения. Писатель кладёт `.in`
+        /// в сантиметрах через `G8` — восемь значащих, — значит любой размер
+        /// на круге вправе сдвинуться на 5e-9 относительных, и кривая за ним.
+        /// 1e-5 % (1e-7 относительных) — двадцатикратный запас над этим
+        /// пределом и в тысячи раз ниже самой мелкой НАСТОЯЩЕЙ потери,
+        /// какую проба видела (0.16 %). Обе стороны названы числом нарочно:
+        /// порог, взятый «чтобы прошло», молчит навсегда.
+        /// </summary>
+        const double CurveTolerancePercent = 1e-5;
+
+        /// <summary>Подставленная порча — положительный контроль (`A131`).</summary>
+        static string breakage = "";
+
         static int Main(string[] args)
         {
-            if (args.Length < 2)
+            var free = new List<string>();
+            foreach (string a in args)
             {
-                Console.Error.WriteLine("roundtrip <каталог моделей> <каталог для записи>");
+                if (a.StartsWith("--break=", StringComparison.Ordinal))
+                {
+                    breakage = a.Substring(8);
+                }
+                else
+                {
+                    free.Add(a);
+                }
+            }
+
+            if (free.Count < 2)
+            {
+                Console.Error.WriteLine("roundtrip <каталог моделей> <каталог для записи> [--break=order|wall]");
                 return 1;
+            }
+
+            args = free.ToArray();
+            if (breakage.Length > 0)
+            {
+                Console.WriteLine("### ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: подставлена порча «{0}» — проба ОБЯЗАНА отказать",
+                                  breakage);
             }
 
             int bad = 0;
@@ -44,6 +87,19 @@ namespace RoundTrip
             }
 
             Console.WriteLine();
+            if (breakage.Length > 0)
+            {
+                // ⚠ Порча, ни к одной сцене не приложившаяся, — это НЕ пройденный
+                // контроль, а контроль, которого не было. Печатается числом.
+                Console.WriteLine("### контроль «{0}»: испорчено сцен {1}, расхождений {2}",
+                                  breakage, broken, bad);
+                if (broken == 0)
+                {
+                    Console.WriteLine("### ⛔ ПОРЧА НИ К ЧЕМУ НЕ ПРИЛОЖИЛАСЬ — контроль НЕ СОСТОЯЛСЯ");
+                    return 3;
+                }
+            }
+
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("РАСХОЖДЕНИЙ: {0}", bad));
             return bad == 0 ? 0 : 2;
         }
@@ -73,8 +129,10 @@ namespace RoundTrip
                 a.DropDeadCrystalSize();
             }
 
+            Break(a, false);
             GeometryWriter.Save(a, target);
             GeometryModel b = GeometryModel.Load(target);
+            Break(b, true);
 
             Console.WriteLine("=== {0}", Path.GetFileName(target));
             Console.WriteLine("    было : {0}", a.Describe());
@@ -107,9 +165,15 @@ namespace RoundTrip
                 ea = sa.Efficiency(e, out err);
                 eb = sb.Efficiency(e, out err);
                 double delta = ea > 0.0 ? (eb / ea - 1.0) * 100.0 : (eb > 0.0 ? 100.0 : 0.0);
-                if (Math.Abs(delta) > 1e-9)
+                if (Math.Abs(delta) > CurveTolerancePercent)
                 {
-                    Console.WriteLine("    {0,6:F0} кэВ: {1:E4} -> {2:E4}  ({3:+0.000;-0.000} %)", e, ea, eb, delta);
+                    // ⚠ (`A131`) Отклонение печатается ЕЩЁ И порядком величины.
+                    // «+0.000 %» стояло у расхождения в 1e-11 и у расхождения в
+                    // 2 %, и по столбцу они выглядели одинаково: разбор,
+                    // потерявший поле, и последний бит округления читались как
+                    // одна беда. Разряд `T147`.
+                    Console.WriteLine("    {0,6:F0} кэВ: {1:E4} -> {2:E4}  ({3:+0.000;-0.000} %, |откл| {4:E2} %)",
+                                      e, ea, eb, delta, Math.Abs(delta));
                     ok = false;
                 }
             }
@@ -117,6 +181,99 @@ namespace RoundTrip
             Console.WriteLine(ok ? "    кривая совпала точно" : "    РАСХОЖДЕНИЕ");
             return ok;
         }
+
+        /// <summary>
+        /// Подставить порчу — положительный контроль (`A131`).
+        ///
+        /// ⛔ Без него вывод «стало сходиться» ничего не стоит: проба, у
+        /// которой ослаблен порог, сходится и на сломанном входе тоже.
+        ///
+        /// `order` — перевернуть порядок элементов ПРОБЫ. Круг его выправит
+        /// (писатель сортирует, читатель с `A131` тоже), значит модель до и
+        /// после разойдутся порядком — а по нему `EfficiencySimulator`
+        /// выбирает элемент розыгрышем. Это ровно тот дефект, который проба
+        /// нашла, и он НЕ ВИДЕН ни в одном поле списка: сортированный состав
+        /// совпадает, текст совпадает, клеймо совпадает. Ловит только кривая.
+        ///
+        /// `size` — сдвинуть ДЛИНУ КРИСТАЛЛА на 1e-6 относительных: настоящая
+        /// мелкая потеря, которую ослабленный порог обязан по-прежнему видеть.
+        /// ⚠ Именно кристалл, и ПО ФОРМЕ (`A47`): первая редакция двигала
+        /// стенку сосуда, а у одиннадцати сцен из пятнадцати источник точечный
+        /// или маринелли — стенки в сцене нет вовсе, кривая не шелохнулась, и
+        /// отказ пришёл ТОЛЬКО от списка полей. Контроль порога КРИВОЙ обязан
+        /// двигать то, что в сцене есть всегда.
+        ///
+        /// ⛔ СТОРОНА ПОРЧИ — половина дела, и на ней я споткнулся 05.09.2026.
+        /// Первая редакция портила ОБЕ модели: порча вносилась ДО записи, файл
+        /// её честно переносил (`G8` держит 8 значащих, сдвиг 1e-6 в них
+        /// влезает), и обе стороны круга приходили одинаково испорченными —
+        /// «расхождений 0», контроль показал ПУСТОТУ. Поэтому:
+        /// `order` вносится ДО записи (круг обязан его выправить — писатель
+        /// сортирует), а `wall` — ПОСЛЕ чтения, иначе он доедет до обеих.
+        /// Признак «испорчено сцен N, расхождений 0» ловит именно этот случай.
+        /// </summary>
+        static void Break(GeometryModel g, bool afterRead)
+        {
+            if (breakage.Length == 0)
+            {
+                return;
+            }
+
+            if (breakage == "order")
+            {
+                if (afterRead)
+                {
+                    return;
+                }
+
+                GeometryMaterial m = g.Source;
+                if (m == null || m.Fractions.Count < 2)
+                {
+                    return;
+                }
+
+                List<int> zs = new List<int>(m.Fractions.Keys);
+                List<double> vs = new List<double>();
+                foreach (int z in zs)
+                {
+                    vs.Add(m.Fractions[z]);
+                }
+
+                zs.Reverse();
+                vs.Reverse();
+                m.Fractions.Clear();
+                for (int i = 0; i < zs.Count; i++)
+                {
+                    m.Fractions[zs[i]] = vs[i];
+                }
+
+                broken++;
+            }
+            else if (breakage == "size")
+            {
+                if (!afterRead)
+                {
+                    return;
+                }
+
+                if (g.Shape == CrystalShape.Box)
+                {
+                    g.CrystalBoxZ *= 1.000001;
+                }
+                else
+                {
+                    g.CrystalHeight *= 1.000001;
+                }
+
+                broken++;
+            }
+            else
+            {
+                throw new ArgumentException("не знаю порчи: " + breakage);
+            }
+        }
+
+        static int broken;
 
         /// <summary>
         /// То же число, но с ТОЧНОСТЬЮ ФАЙЛА.
@@ -178,6 +335,22 @@ namespace RoundTrip
             }
 
             map[name + ".Comp"] = text.Trim();
+
+            // ⛔ (`A131`) ПОРЯДОК элементов — не украшение, а вход расчёта.
+            // Состав лежит в `Dictionary<int,double>`, порядок в нём —
+            // порядок вставки, и по нему строятся массивы, из которых
+            // `PickAtom` и `SampleFluorescence` ВЫБИРАЮТ элемент розыгрышем.
+            // Переставь два элемента — то же самое случайное число попадёт в
+            // другой элемент, поток разойдётся, и кривая уедет на величину
+            // шума. Сортированный `Comp` выше этого не видит по построению.
+            List<int> order = new List<int>(m.Fractions.Keys);
+            string seq = "";
+            foreach (int z in order)
+            {
+                seq += z.ToString(CultureInfo.InvariantCulture) + " ";
+            }
+
+            map[name + ".Order"] = seq.Trim();
         }
     }
 }
