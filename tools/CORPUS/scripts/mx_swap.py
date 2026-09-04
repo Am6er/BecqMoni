@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 u"""Подменить матрицы отклика в каталоге прогона (`T35`).
 
 Зачем. Вопрос `T35` — «как шум матрицы переходит в невязку разбора»: порог 5 %
@@ -69,14 +69,26 @@ def main():
     ap.add_argument('--wd', help=u'каталог прогона (копия wd_app)')
     ap.add_argument('--store', action='store_true',
                     help=u'класть в СКЛАД КОРПУСА geometries/response, а не в прогон')
+    # `S138`: третья цель — ЧУЖОЙ склад (склад ПЛЕЧА). Нужна потому, что
+    # плечо считается в свой каталог сцен, а оснастка берёт матрицы из его
+    # `response`; без этого ключа плечо пришлось бы класть в склад корпуса,
+    # то есть портить базу ради замера.
+    ap.add_argument('--into', default=None,
+                    help=u'каталог склада ПЛЕЧА: кладём в <каталог>/response')
     args = ap.parse_args()
 
-    if bool(args.wd) == bool(args.store):
-        print(u'⛔ нужен РОВНО ОДИН из --wd и --store: первый правит один прогон,'
-              u' второй — склад, с которым поедут все следующие')
+    picked = [bool(args.wd), bool(args.store), bool(args.into)]
+    if sum(1 for x in picked if x) != 1:
+        print(u'⛔ нужен РОВНО ОДИН из --wd, --store и --into: первый правит один'
+              u' прогон, второй — склад корпуса (с ним поедут все следующие),'
+              u' третий — склад отдельного плеча')
         return 2
 
-    if args.store:
+    if args.into:
+        store = os.path.join(os.path.abspath(args.into), 'response')
+        if not os.path.isdir(store):
+            os.makedirs(store)
+    elif args.store:
         store = os.path.join(CORPUS, 'geometries', 'response')
         if not os.path.isdir(store):
             os.makedirs(store)
