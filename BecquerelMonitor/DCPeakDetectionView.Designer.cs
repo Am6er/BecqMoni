@@ -221,21 +221,28 @@
             //
             // labelDetectionFailed
             //
-            // ⛔ Надпись об отказе поиска пиков (`A4`). Раскладка задана ЗДЕСЬ,
-            // а не в паре `.resx`: ширина и место у неё от культуры не зависят,
-            // а сам текст берётся из `Properties.Resources` и переводится вместе
-            // со всеми (`Resources.PeakDetectionFailed`). Стоит она в пустой
-            // полосе справа от «Detected Peaks» (label4: 7,60 и ширина 84) и
-            // тянется до правого края панели, не задевая таблицу (та ниже, с
-            // 75-й точки).
+            // ⛔ Надпись об отказе поиска пиков (`A4`). РАСКЛАДКА ПЕРЕЕХАЛА В
+            // ПАРУ `.resx` (`A166`): прежний довод «ширина и место от культуры
+            // не зависят» опровергнут — текст берётся из `Properties.Resources`
+            // и ПЕРЕВОДИТСЯ (`Resources.PeakDetectionFailed`), а ширина у
+            // надписи закреплена, и при `AutoEllipsis` перевод, который в неё
+            // не влез, просто обрывается многоточием. То есть от культуры
+            // зависит РОВНО ТО, чего в resx не было. Теперь ширину можно
+            // перекрыть в `.ru.resx`, как перекрывают подпись.
+            //
+            // Стоит она в пустой полосе справа от «Detected Peaks» (label4:
+            // 7,60 и ширина 84) и тянется до правого края панели, не задевая
+            // таблицу (та ниже, с 75-й точки). Значения те же, что были в коде:
+            // `Location` 97,60, `Size` 332,13, `Anchor` Top|Left|Right,
+            // `ForeColor` Firebrick — они ушли в `DCPeakDetectionView.resx`.
+            //
+            // ⚠ `AutoSize` снимается ДО `ApplyResources`: при поднятом
+            // `AutoSize` надпись меряет себя сама и `Size` из ресурсов
+            // пропадает молча.
             this.labelDetectionFailed.AutoSize = false;
             this.labelDetectionFailed.AutoEllipsis = true;
-            this.labelDetectionFailed.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelDetectionFailed.ForeColor = System.Drawing.Color.Firebrick;
-            this.labelDetectionFailed.Location = new System.Drawing.Point(97, 60);
+            resources.ApplyResources(this.labelDetectionFailed, "labelDetectionFailed");
             this.labelDetectionFailed.Name = "labelDetectionFailed";
-            this.labelDetectionFailed.Size = new System.Drawing.Size(332, 13);
             this.labelDetectionFailed.Visible = false;
             //
             // DCPeakDetectionView
