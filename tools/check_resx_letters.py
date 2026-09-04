@@ -37,6 +37,51 @@
 неё нет. В английском плече она ловится, в русском нет, и это цена того, чтобы
 второе плечо не тонуло в 239 законных строках.
 
+## Третий вид файла — `*.Designer.cs` (`A124`, 04.09.2026)
+
+Правило РАСШИРЕНО, а не заведено второе: судят те же три плеча, меняется только
+то, откуда берётся ЗНАЧЕНИЕ.
+
+Понадобилось это потому, что признак `A100` держал не весь класс. `A124`:
+в `Properties/Resources.Designer.cs` подсказка `DeadTimeLblText` осталась с
+ГРЕЧЕСКОЙ мю U+03BC, когда в `Resources.resx` уже стоял знак микро U+00B5, —
+и увидеть это было НЕЧЕМ: сторож смотрел только `*.resx`. То есть следующий
+такой омоглиф в генерируемом файле снова не увидел бы никто.
+
+**Письмо у `*.Designer.cs` всегда английское.** Парного `*.ru.Designer.cs` не
+бывает: генератор делает свойства по НЕЙТРАЛЬНОМУ resx, русский приходит
+сателлитом на ходу. Поэтому файлу достаются плечи английского: кириллица —
+всегда подмена, плюс общее плечо самозванца в единице.
+
+**Значение берётся из двух мест, и оба измерены перебором дерева 04.09.2026:**
+
+* **комментарий-подсказка** `/// Looks up a localized string similar to …` —
+  это копия значения resx, которую кладёт генератор (403 штуки, все в
+  `Properties/Resources.Designer.cs`). Многострочное значение продолжается
+  следующими `///` до `</summary>`;
+* **строковый литерал** в НЕ закомментированной строке — надписи, которые
+  раскладка задаёт прямо в коде, минуя resx (`this.calculateButton.Text =
+  "Calculate from geometry"`). Таких литералов в дереве 3259.
+
+Итого сторож судит **3662 значения в 45 файлах** — это число он и печатает.
+⚠ В описании до правки стояло «1780 литералов»: оно записано ДО того, как
+разбор был написан, и разбором не подтвердилось. Числа здесь — то, что печатает
+код рядом, а не то, что помнилось.
+
+⛔ **Файл целиком смотреть НЕЛЬЗЯ** — по той же причине, по которой в русских
+resx не ищется латиница. Кириллица в `*.Designer.cs` законна и её много: это
+русские комментарии к раскладке (`MainForm` 4 строки, `EfficiencyMakerForm` 35,
+`NucBase` 667 знаков) и русская шапка самого генератора в
+`WinMM/Properties/Resources.Designer.cs`. Сторож на правиле «кириллицы в файле
+быть не должно» был бы красным всегда, то есть мёртвым. В ЗНАЧЕНИЯХ же — в
+подсказках и в литералах — кириллицы на чистом дереве РОВНО НОЛЬ из 3662
+значений, и правило «кириллица здесь всегда подмена» остаётся жёстким.
+
+⚠ Отсюда же следует, что комментарий отрезается ПОСИМВОЛЬНО, а не выражением:
+в дереве есть и `this.linkLabel.Text = "http://amba.cloud/…"` (для выражения
+выглядит как комментарий), и `// Даже вот такая строка: "…"` (для выражения
+выглядит как литерал). Обе ловушки стоят в отрицательном контроле.
+
 ## Чего этот сторож НЕ смотрит, и почему
 
 **Ресурсы с атрибутом `type` или `mimetype`.** Там лежат картинки в base64, и
@@ -45,16 +90,44 @@
 как в `check_resx.py`. Служебные `>>name` / `>>type` пропускаются тоже: там
 имена контролов и имена типов .NET, они латинские всегда.
 
-**Греческую «мю».** В `DeviceConfigForm.resx` английское `μSv/h` написано через
-U+03BC (греческая мю), а не через U+00B5 (знак микро) — это тоже омоглиф, но
-другого рода, и английские единицы решением Amber 03.09.2026 законны и не
-правятся. Заводить на них сторожа значит красить дерево в красный по вопросу,
-который решён.
+⛔ **Абзац про греческую «мю» СНЯТ 04.09.2026 (`A124`) — он был отменён в тот
+же день, что и написан.** Здесь стояло, что U+03BC в английском `μSv/h`
+законна и сторожа на неё заводить нельзя; решением Amber по `A100` (03.09.2026)
+принято обратное — микро пишется знаком микро, — и плечо `check_units` ровно
+это и проверяет. Оставлять два взаимоисключающих утверждения в одной шапке
+нельзя: следующий читатель поверит не тому.
 
 ## Приёмка (03.09.2026, `A88`)
 
 Оба плеча на одних и тех же трёх подменах. На дереве `HEAD` до правки —
 3 находки, все три названы поимённо с кодом точки; после правки — 0.
+
+## Приёмка расширения на `*.Designer.cs` (04.09.2026, `A124`)
+
+⛔ **Тем самым опытом, которым пойман провал прошлой полосы.** Она дописала сюда
+это самое описание и НЕ написала разбора; на нарочно испорченном входе сторож
+ответил «находок: 0» и кодом 0, и без опыта расширение выглядело бы сделанным.
+
+**Опыт на НАСТОЯЩЕМ дереве.** В `Properties/Resources.Designer.cs` подсказка
+`DeadTimeLblText` портится побайтово: U+00B5 → U+03BC, длина файла та же.
+До порчи — 0 находок, код 0. После — код **1** и строка
+
+    BecquerelMonitor/Properties/Resources.Designer.cs:582 | DeadTimeLblText | самозванец в единице
+
+с `--list` она же называет значение и обе точки. Возврат из копии, sha256
+сошлись (`1011d274…ac1d`), после возврата снова 0 и код 0.
+
+**Опыт на ИСКУССТВЕННОМ дереве** — потому что кириллицы в значениях настоящего
+дерева ноль, и «СОШЛОСЬ» о втором плече не говорит ничего. Пять ветвей, все
+прошли: чисто (кириллица только в комментариях) — 0 находок; кириллица в
+однострочной подсказке; кириллица во ВТОРОЙ строке многострочной подсказки
+(находка называет строку ГОЛОВЫ); кириллица в литерале раскладки; греческая мю
+в литерале раскладки. Отрицательная ветвь держит и обе ловушки разбора, и
+русские комментарии к раскладке.
+
+⚠ Сам этот контроль с первого захода объявил три ветви провалившимися — и
+неправ был он, а не сторож: номера строк в ожиданиях считались ГЛАЗАМИ и все
+три оказались на единицу больше. Теперь ожидаемый номер считается по тексту.
 
     python tools/check_resx_letters.py [--list] [путь]
 
@@ -92,6 +165,123 @@ def values(path):
             yield name, (node.findtext('value') or '')
 
 
+# --- Откуда берётся значение у `*.Designer.cs` (`A124`) ---------------------
+
+#: Голова подсказки генератора: значение — всё, что после «similar to».
+HINT_HEAD = re.compile(r'///\s*Looks up a localized string similar to (.*)$')
+#: Продолжение многострочного значения: те же `///` до `</summary>`.
+HINT_TAIL = re.compile(r'///\s?(.*)$')
+#: Свойство, которому подсказка принадлежит: стоит первой строкой ПОСЛЕ
+#: `</summary>`. Им находка и зовётся — человеку нужен КЛЮЧ, а не номер строки.
+HINT_PROP = re.compile(r'\bstatic\s+[\w.:<>\[\], ]+?\s+(\w+)\s*\{')
+#: Кому присваивается литерал раскладки: `this.calculateButton.Text = "…"`.
+LITERAL_TARGET = re.compile(r'([A-Za-z_][\w.]*)\s*=\s*[^=]')
+
+
+def literals(line):
+    """Строковые литералы ОДНОЙ строки C#.
+
+    Всё, что стоит вне литерала после `//` или `/*`, — комментарий, и в него
+    смотреть нельзя (кириллица там законна). Разбор посимвольный, а не
+    выражением: `"http://a"` для выражения выглядит как комментарий, а
+    `// "текст"` — как литерал; оба случая в дереве есть.
+
+    ⚠ Чего не умеет: `@"…"`, продолжающийся на СЛЕДУЮЩУЮ строку, и внутренние
+    строки многострочного `/* … */`. Ни того, ни другого в 45 генерируемых
+    файлах дерева нет — проверено перебором 04.09.2026 (нечётных кавычек 0,
+    файлов с `/*` 0), — а разбор по строке даёт находке НОМЕР СТРОКИ, ради
+    которого всё и затевалось.
+    """
+    out, i, n = [], 0, len(line)
+    while i < n:
+        ch = line[i]
+        if ch == '/' and line[i:i + 2] in ('//', '/*'):
+            break
+        if ch == '@' and line[i:i + 2] == '@"':
+            j, buf = i + 2, []
+            while j < n:
+                if line[j] == '"':
+                    if line[j:j + 2] == '""':   # удвоение — кавычка внутри
+                        buf.append('"')
+                        j += 2
+                        continue
+                    break
+                buf.append(line[j])
+                j += 1
+            out.append(''.join(buf))
+            i = j + 1
+            continue
+        if ch == '"':
+            j, buf = i + 1, []
+            while j < n:
+                if line[j] == '\\' and j + 1 < n:
+                    buf.append(line[j + 1])
+                    j += 2
+                    continue
+                if line[j] == '"':
+                    break
+                buf.append(line[j])
+                j += 1
+            out.append(''.join(buf))
+            i = j + 1
+            continue
+        if ch == "'":                            # знаковый литерал: `'"'`
+            j = i + 1
+            while j < n:
+                if line[j] == '\\':
+                    j += 2
+                    continue
+                if line[j] == "'":
+                    break
+                j += 1
+            i = j + 1
+            continue
+        i += 1
+    return out
+
+
+def designer_values(path):
+    """Значения генерируемого файла: (номер строки, имя, значение).
+
+    Два источника, оба описаны в шапке: подсказка генератора и литерал в НЕ
+    закомментированной строке. Файл целиком не смотрится НИКОГДА.
+    """
+    # ⚠ Часть `*.cs` дерева не в UTF-8 (наследство декомпилятора). Среди
+    # `*.Designer.cs` таких нет (перебор 04.09.2026: 0 из 45), но чтение всё
+    # равно снисходительное: испорченный байт станет U+FFFD и находкой не
+    # прикинется. Файл только читается.
+    with open(path, encoding='utf-8-sig', errors='replace', newline='') as fh:
+        lines = fh.read().replace('\r\n', '\n').split('\n')
+
+    i = 0
+    while i < len(lines):
+        head = HINT_HEAD.search(lines[i])
+        if head:
+            parts, j = [head.group(1)], i + 1
+            while j < len(lines) and '</summary>' not in lines[j]:
+                tail = HINT_TAIL.search(lines[j])
+                parts.append(tail.group(1) if tail else '')
+                j += 1
+            name = ''
+            for k in range(j, min(j + 4, len(lines))):
+                prop = HINT_PROP.search(lines[k])
+                if prop:
+                    name = prop.group(1)
+                    break
+            yield i + 1, name or u'подсказка', '\n'.join(parts)
+            i = j
+        i += 1
+
+    for num, line in enumerate(lines, 1):
+        found = literals(line)
+        if not found:
+            continue
+        target = LITERAL_TARGET.search(line)
+        name = target.group(1) if target else u'литерал'
+        for value in found:
+            yield num, name, value
+
+
 def point(ch):
     return 'U+%04X %s' % (ord(ch), unicodedata.name(ch, '?'))
 
@@ -106,10 +296,10 @@ UNIT_LOOKALIKES = {
 }
 
 
-def check_units(path):
+def check_units(rows):
     """Самозванец в единице измерения (`A100`). Общий для обоих писем."""
     out = []
-    for name, value in values(path):
+    for name, value in rows:
         bad = []
         for ch in sorted(set(value)):
             if ch in UNIT_LOOKALIKES:
@@ -120,10 +310,10 @@ def check_units(path):
     return out
 
 
-def check_english(path):
+def check_english(rows):
     """Кириллица в английском ресурсе — всегда подмена."""
     out = []
-    for name, value in values(path):
+    for name, value in rows:
         if name in ALLOW_CYRILLIC_IN_EN:
             continue
         bad = sorted({c for c in value if CYRILLIC.match(c)})
@@ -132,10 +322,10 @@ def check_english(path):
     return out
 
 
-def check_russian(path):
+def check_russian(rows):
     """Слово со смешанным письмом в русском ресурсе — подмена буквы."""
     out = []
-    for name, value in values(path):
+    for name, value in rows:
         mixed = [w for w in WORD.findall(value)
                  if CYRILLIC.search(w) and LATIN.search(w)]
         if mixed:
@@ -153,21 +343,38 @@ def main(argv):
     root = rest[0] if rest else 'BecquerelMonitor'
 
     seen_en = seen_ru = 0
+    seen_cs = seen_cs_values = 0
     findings = []
     for path in sorted(glob.glob(os.path.join(root, '**', '*.resx'), recursive=True)):
+        rows = list(values(path))
         if path.endswith('.ru.resx'):
             seen_ru += 1
-            rows = check_russian(path)
+            found = check_russian(rows)
             arm = 'смешанное слово в русском'
         else:
             seen_en += 1
-            rows = check_english(path)
+            found = check_english(rows)
             arm = 'кириллица в английском'
-        for name, value, bad in rows:
+        for name, value, bad in found:
             findings.append((path, arm, name, value, bad))
         # Третье плечо — общее для обоих писем (`A100`).
-        for name, value, bad in check_units(path):
+        for name, value, bad in check_units(rows):
             findings.append((path, u'самозванец в единице', name, value, bad))
+
+    # Третий вид файла (`A124`): генерируемый `*.Designer.cs`. Письмо у него
+    # всегда английское — парного `*.ru.Designer.cs` не бывает, — поэтому
+    # плечи те же, что у английского resx, а меняется только источник значения.
+    for path in sorted(glob.glob(os.path.join(root, '**', '*.Designer.cs'),
+                                 recursive=True)):
+        seen_cs += 1
+        for num, name, value in designer_values(path):
+            seen_cs_values += 1
+            place = '%s:%d' % (path.replace(os.sep, '/'), num)
+            row = [(name, value)]
+            for nm, val, bad in check_english(row):
+                findings.append((place, u'кириллица в генерируемом', nm, val, bad))
+            for nm, val, bad in check_units(row):
+                findings.append((place, u'самозванец в единице', nm, val, bad))
 
     for path, arm, name, value, bad in findings:
         print('%s | %s | %s' % (path.replace(os.sep, '/'), name, arm))
@@ -178,6 +385,8 @@ def main(argv):
 
     print()
     print('английских resx просмотрено: %d, русских: %d' % (seen_en, seen_ru))
+    print('генерируемых *.Designer.cs: %d, значений в них: %d'
+          % (seen_cs, seen_cs_values))
     print('находок: %d' % len(findings))
     print('РАЗОШЛОСЬ' if findings else 'СОШЛОСЬ')
     return 1 if findings else 0

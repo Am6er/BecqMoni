@@ -110,6 +110,7 @@ namespace CorpusFsaProbe
     ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
+    ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
@@ -172,6 +173,8 @@ namespace CorpusFsaProbe
             StockBandFloor = FsaBand.DefaultFloor;
             StockBandFraction = FsaBand.DefaultFloorFraction;
             StockShareThreshold = FsaBand.DefaultShareThreshold;
+            StockNoCurveFloor = FsaBand.DefaultNoCurveFloor;
+            StockNoCurveFloorKev = FsaBand.DefaultNoCurveFloorKev;
 
             var o = new Options();
             foreach (string a in args)
@@ -343,6 +346,36 @@ namespace CorpusFsaProbe
                     }
 
                     FsaBand.DefaultFloorFraction = o.FloorFraction;
+                    continue;
+                }
+
+                // (`A73`) ЧЕМ НАЗНАЧАЕТСЯ ПОЛ У СПЕКТРА БЕЗ КРИВОЙ.
+                //
+                // ⛔ Плечо действует ТОЛЬКО на непонятной части: у спектра с
+                // кривой пол назначает кривая, и её приоритет первый. Понятная
+                // часть поэтому — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ развёртки: её числа
+                // обязаны совпасть с базой ПОБИТОВО на всех плечах, а
+                // разошедшись — назвать не плечо, а дефект правки.
+                //
+                // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
+                // `FsaSampleSpec.NoCurveFloorKev` (что режет линии) и заверение
+                // анализатора (что печатается). Ставить одному концу значило бы
+                // повторить `S101`.
+                if (a.StartsWith("--nocurve-floor=", StringComparison.Ordinal))
+                {
+                    o.NoCurveFloorName = a.Substring(16);
+                    FsaNoCurveFloor source;
+                    double kev;
+                    if (!FsaBand.TryParseNoCurveFloor(o.NoCurveFloorName, out source, out kev))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестное значение --nocurve-floor=: {0}"
+                            + " (minrange | adc | <кэВ>)", o.NoCurveFloorName);
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultNoCurveFloor = source;
+                    FsaBand.DefaultNoCurveFloorKev = kev;
                     continue;
                 }
 
@@ -720,7 +753,8 @@ namespace CorpusFsaProbe
             int kept = 0;
             using (var w = new StreamWriter(spectra, false, new UTF8Encoding(false)))
             {
-                w.WriteLine("key,det,part,min_range_keV,curve_floor_keV,lines_below,"
+                w.WriteLine("key,det,part,min_range_keV,curve_floor_keV,adc_floor_keV,"
+                            + "line_floor_keV,lines_below,"
                             + "audited_lines,chi2ndf,model_residual_pct,data_total,data_below,"
                             + "model_below,continuum_below,images_below,area_lines_below");
                 foreach (Row r in rows)
@@ -742,6 +776,7 @@ namespace CorpusFsaProbe
 
                     w.WriteLine(string.Join(",",
                         r.Key, r.Det, r.Part, F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
+                        F(r.AdcFloorKev, "F2"), F(r.LineFloorKev, "F2"),
                         r.LinesBelowMinRange < 0
                             ? ""
                             : r.LinesBelowMinRange.ToString(CultureInfo.InvariantCulture),
@@ -983,6 +1018,15 @@ namespace CorpusFsaProbe
         static double StockShareThreshold;
 
         /// <summary>
+        /// (`A73`) Поставочная запасная ветвь пола, снятая ДО разбора
+        /// ключей, — той же цели, что <see cref="StockShareThreshold"/>.
+        /// </summary>
+        static FsaNoCurveFloor StockNoCurveFloor;
+
+        /// <summary>(`A73`) Поставочное число запасной ветви, кэВ.</summary>
+        static double StockNoCurveFloorKev;
+
+        /// <summary>
         /// ⛔ ПОЛОСА ОБОИМИ КОНЦАМИ И ВСЛУХ (`S101`). Печатается не «что заказано
         /// ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ: анализатор (полоса
         /// фита и заверение) и спецификация библиотеки (то, что режет линии).
@@ -1118,11 +1162,15 @@ namespace CorpusFsaProbe
             double liveFloor = FsaBand.DefaultFloor;
             double liveFraction = FsaBand.DefaultFloorFraction;
             double liveThreshold = FsaBand.DefaultShareThreshold;
+            FsaNoCurveFloor liveNoCurve = FsaBand.DefaultNoCurveFloor;
+            double liveNoCurveKev = FsaBand.DefaultNoCurveFloorKev;
             FsaAnalyzer stock;
             FsaBand.DefaultMode = StockBandMode;
             FsaBand.DefaultFloor = StockBandFloor;
             FsaBand.DefaultFloorFraction = StockBandFraction;
             FsaBand.DefaultShareThreshold = StockShareThreshold;
+            FsaBand.DefaultNoCurveFloor = StockNoCurveFloor;
+            FsaBand.DefaultNoCurveFloorKev = StockNoCurveFloorKev;
             try
             {
                 stock = new FsaAnalyzer();
@@ -1133,6 +1181,8 @@ namespace CorpusFsaProbe
                 FsaBand.DefaultFloor = liveFloor;
                 FsaBand.DefaultFloorFraction = liveFraction;
                 FsaBand.DefaultShareThreshold = liveThreshold;
+                FsaBand.DefaultNoCurveFloor = liveNoCurve;
+                FsaBand.DefaultNoCurveFloorKev = liveNoCurveKev;
             }
 
             var changed = new List<string>();
@@ -1189,6 +1239,22 @@ namespace CorpusFsaProbe
                 changed.Add(string.Format(CultureInfo.InvariantCulture,
                     "ShareThreshold: {0:F3} (поставка {1:F3})",
                     FsaBand.DefaultShareThreshold, StockShareThreshold));
+            }
+
+            // (`A73`) Запасная ветвь пола — та же статика и та же слепота
+            // отражения: сличается поимённо, с эталоном, снятым до ключей.
+            if (FsaBand.DefaultNoCurveFloor != StockNoCurveFloor
+                || (FsaBand.DefaultNoCurveFloor == FsaNoCurveFloor.Fixed
+                    && Math.Abs(FsaBand.DefaultNoCurveFloorKev - StockNoCurveFloorKev) > 1e-9))
+            {
+                changed.Add(string.Format(CultureInfo.InvariantCulture,
+                    "NoCurveFloor: {0}{1} (поставка {2})",
+                    FsaBand.DefaultNoCurveFloor,
+                    FsaBand.DefaultNoCurveFloor == FsaNoCurveFloor.Fixed
+                        ? string.Format(CultureInfo.InvariantCulture, " {0:F2} кэВ",
+                                        FsaBand.DefaultNoCurveFloorKev)
+                        : "",
+                    StockNoCurveFloor));
             }
 
             changed.Sort(StringComparer.Ordinal);
@@ -1474,6 +1540,12 @@ namespace CorpusFsaProbe
                     row.LibraryNote = built.ToString();
                     row.MinRangeKev = spec.MinEnergyKev;
                     row.CurveFloorKev = spec.CurveFloorKev;
+                    // (`A73`) Пол, который РЕАЛЬНО режет линии, и порог АЦП, из
+                    // которого его может назначить запасная ветвь. Без первого
+                    // доказательство «пол не сдвинулся» читалось бы по двум
+                    // числам в уме, без второго — не видно, было ли чем назначать.
+                    row.LineFloorKev = spec.LineFloorKev;
+                    row.AdcFloorKev = spec.AdcFloorKev;
                     row.LinesBelowMinRange = built.LinesBelowMinRange;
                     peaks = new PeakDetector().DetectPeak(
                         rd, BackgroundMode.Invisible, SmoothingMethod.None,
@@ -1828,7 +1900,12 @@ namespace CorpusFsaProbe
                 // ⛔ Кривая — только ради пола полосы по ней самой (`S98`,
                 // решение Amber 27.08.2026). Расчёт живёт в
                 // `FsaEfficiency.FloorAtFraction`, здесь одно присваивание.
-                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency)
+                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
+
+                // ⛔ `A73`: порог АЦП спектра — второй источник пола полосы, тот
+                // самый, что работает у 39 корпусных спектров без геометрии.
+                // Расчёт — `FsaBand.AdcFloorOf`, здесь одно присваивание.
+                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
             };
             foreach (string label in sample.Chains)
             {
@@ -3413,6 +3490,14 @@ namespace CorpusFsaProbe
             /// </summary>
             public double ShareThreshold = -1.0;
 
+            /// <summary>
+            /// (`A73`) Чем назначается пол у спектра БЕЗ кривой, ключ
+            /// `--nocurve-floor=` (`minrange` | `adc` | число в кэВ); пусто —
+            /// не трогать умолчание (<c>FsaBand.ShippedNoCurveFloor</c> =
+            /// `minrange`, то есть в точности поведение до 04.09.2026).
+            /// </summary>
+            public string NoCurveFloorName;
+
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
             public bool BandSelfTest;
@@ -3496,6 +3581,12 @@ namespace CorpusFsaProbe
             public int ShareOffered;
             public double MinRangeKev = double.NaN;
             public double CurveFloorKev = double.NaN;
+
+            /// <summary>(`A73`) Пол, которым линии реально резаны, кэВ.</summary>
+            public double LineFloorKev = double.NaN;
+
+            /// <summary>(`A73`) Порог АЦП спектра, кэВ; 0 — назначить нечем.</summary>
+            public double AdcFloorKev = double.NaN;
             public int LinesBelowMinRange = -1;
             public double DataBelow;
             public double ContinuumBelow;
