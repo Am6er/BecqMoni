@@ -30,6 +30,18 @@
 param(
     [string]$Out = 'tools\pie\out_mini',
     [string[]]$Extra = @(),
+    # Оснастка и сборка — для ПЛЕЧА с другим складом матриц. Плечо считается в
+    # СВОЙ каталог матриц, кладётся в СВОЮ копию оснастки (`mx_swap.py --wd`) и
+    # гоняется ею; базовый склад корпуса при этом не трогается вовсе.
+    [string]$Wd = '',
+    [string]$Bin = '',
+    [string]$ProbeBuild = '',
+    # `S138`: склад матриц ПЛЕЧА. Пустой — штатный склад корпуса. Оснастка
+    # берёт матрицы из его `response`, и сторож сверяет клейма с НИМ ЖЕ, а не
+    # с корпусом, — иначе плечо объявлялось бы расхождением и требовало
+    # `-Force`, который сам же объявляет числа негодными для журнала.
+    [string]$Store = '',
+    [switch]$Force,
     [switch]$SkipScore
 )
 
@@ -71,7 +83,16 @@ Write-Output ''
 
 $sw = [Diagnostics.Stopwatch]::StartNew()
 $argv = @("--only=$($keys -join ',')") + $Extra
-& (Join-Path $here 'run_appwd.ps1') -Out $Out -Extra $argv
+# ⛔ Именованные параметры собираются в хеш-таблицу и уходят СПЛАТТИНГОМ: пустая
+# строка, переданная как `-Wd ''`, у `run_appwd.ps1` значит «оснастка по
+# умолчанию», а вот `-Force:$false` она понимает иначе, чем отсутствие ключа.
+$pass = @{ Out = $Out; Extra = $argv }
+if ($Wd) { $pass['Wd'] = $Wd }
+if ($Bin) { $pass['Bin'] = $Bin }
+if ($ProbeBuild) { $pass['ProbeBuild'] = $ProbeBuild }
+if ($Store) { $pass['Store'] = $Store }
+if ($Force) { $pass['Force'] = $true }
+& (Join-Path $here 'run_appwd.ps1') @pass
 $code = $LASTEXITCODE
 $spent = $sw.Elapsed.TotalSeconds
 

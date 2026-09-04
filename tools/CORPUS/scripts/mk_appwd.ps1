@@ -1,4 +1,4 @@
-# Собрать ИЗОЛИРОВАННЫЙ рабочий каталог для корпусного прогона кодом
+﻿# Собрать ИЗОЛИРОВАННЫЙ рабочий каталог для корпусного прогона кодом
 # приложения (TODO S1).
 #
 #   pwsh tools/CORPUS/scripts/mk_appwd.ps1 [-Bin <сборка>] [-Wd <каталог>] [-ProbeBuild <пробы>] [-Force]
@@ -56,6 +56,8 @@ param(
     # (`Get-AppWdPlan`): прежде план молча ужимался, и пробы из оснастки
     # сносились как сироты с зелёным вердиктом сверху.
     [string]$ProbeBuild = "",
+    # `S138`: собрать оснастку ПЛЕЧА — с матрицами из своего склада.
+    [string]$Store = "",
     [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
@@ -69,7 +71,7 @@ if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
     throw "нет $Bin\BecquerelMonitor.exe — сначала соберите приложение"
 }
 
-$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
+$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
 
 # T41: СБОРКА СТАРШЕ ИСХОДНИКОВ — и это МОЛЧАЛО. 16.08.2026 в `wd_app` лежал
 # exe от 17:25, а `PowerFwhmCalibration.cs` написан в 23:35 того же дня: типа

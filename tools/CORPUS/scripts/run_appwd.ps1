@@ -1,4 +1,4 @@
-# Запуск корпусного прогона ЧЕРЕЗ СТОРОЖА (`T63`) — то есть читатель отказа.
+﻿# Запуск корпусного прогона ЧЕРЕЗ СТОРОЖА (`T63`) — то есть читатель отказа.
 #
 #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог>
 #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--sthr=0.30'
@@ -48,6 +48,8 @@ param(
     [string]$Bin = '',
     [string]$Wd  = '',
     [string]$ProbeBuild = '',
+    # `S138`: склад матриц плеча; пустой — штатный склад корпуса.
+    [string]$Store = '',
     [switch]$Force,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest
 )
@@ -100,7 +102,7 @@ if (-not $Bin) {
 }
 if (-not $ProbeBuild -and $st -and $st.probes) { $ProbeBuild = [string]$st.probes }
 
-$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
+$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
 if (-not $Corpus) { $Corpus = $plan.Corpus }
 $bad = Invoke-AppWdGuard -Plan $plan
 
