@@ -24,12 +24,44 @@ namespace BecquerelMonitor
             // разности — показание дозиметра менялось от галки отрисовки
             // (TODO G6). Дозиметр так себя не ведёт: фон — тоже доза.
             EnergySpectrum energySpectrum = resultData.EnergySpectrum;
+            DoseRate doseRate = new DoseRate();
+
+            // ⛔ `C4(в)`. Негодный вход отказывается ВИДИМО. Прежде расчёт на
+            // спектре без калибровки падал `NullReferenceException` где-то
+            // внутри, а на спектре с нулевым временем возвращал ровный ноль —
+            // и ноль уходил в строку состояния неотличимо от измеренного.
+            if (energySpectrum == null || energySpectrum.Spectrum == null
+                || energySpectrum.NumberOfChannels < 1)
+            {
+                doseRate.Refusal = DoseRateCoefficients.Text(
+                    "DoseRateEmptySpectrum", "Dose rate: the reference spectrum has no channels.");
+                return doseRate;
+            }
 
             // Базовый тип, не каст к PolynomialEnergyCalibration: у спектра
             // может стоять NonlinearEnergyCalibration — она сестра, а не
             // наследник, и каст валил расчёт InvalidCastException (TODO G5).
             EnergyCalibration calibration = energySpectrum.EnergyCalibration;
-            DoseRate doseRate = new DoseRate();
+            if (calibration == null)
+            {
+                doseRate.Refusal = DoseRateCoefficients.Text(
+                    "DoseRateNoCalibration",
+                    "Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.");
+                return doseRate;
+            }
+
+            if (!(energySpectrum.MeasurementTime > 0.0))
+            {
+                doseRate.Refusal = DoseRateCoefficients.Text(
+                    "DoseRateNoTime", "Dose rate: the reference spectrum has zero measurement time.");
+                return doseRate;
+            }
+
+            // Сколько отсчётов спектра вообще попало в откалиброванные
+            // диапазоны. Считается по флажкам каналов, а не сложением длин:
+            // диапазоны в конфигурации могут перекрываться, и сумма их
+            // содержимого была бы больше спектра.
+            bool[] covered = new bool[energySpectrum.Spectrum.Length];
 
             List<double> errors = new List<double>();
             List<double> doseRates = new List<double>();
@@ -50,6 +82,7 @@ namespace BecquerelMonitor
                 for (int i = startch; i < endch; i++)
                 {
                     counts += energySpectrum.Spectrum[i];
+                    covered[i] = true;
                 }
                 if (counts == 0) continue;
                 double error = Math.Sqrt(counts) / counts;
@@ -58,10 +91,27 @@ namespace BecquerelMonitor
                 errors.Add(dr * error);
             }
 
+            // Доля отсчётов, попавшая в откалиброванные диапазоны (`C4(в)`).
+            double total = 0.0;
+            double inside = 0.0;
+            for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
+            {
+                total += energySpectrum.Spectrum[i];
+                if (covered[i])
+                {
+                    inside += energySpectrum.Spectrum[i];
+                }
+            }
+
+            doseRate.Coverage = total > 0.0 ? inside / total : -1.0;
+
             doseRate.Rate = doseRates.Sum();
             if (double.IsNaN(doseRate.Rate) || double.IsInfinity(doseRate.Rate) || energySpectrum.MeasurementTime == 0.0)
             {
                 doseRate.Rate = 0.0;
+                doseRate.Refusal = DoseRateCoefficients.Text(
+                    "DoseRateNotFinite",
+                    "Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.");
                 return doseRate;
             }
 
