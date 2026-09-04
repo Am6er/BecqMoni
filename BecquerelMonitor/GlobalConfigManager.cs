@@ -52,6 +52,14 @@ namespace BecquerelMonitor
         /// Сообщить о беде, после которой работа продолжается. В окнах —
         /// модальное окно, как было; без окон — одна строка в поток ошибок
         /// (её видно в перехваченном выводе пробы), и запуск идёт дальше.
+        ///
+        /// ⚠ Заголовок у сообщения бывает ПУСТЫМ, и это не редкость, а
+        /// обычай: окно без заголовка — штатный вид <c>MessageBox</c>, и так
+        /// её зовут все места ввоза N42 и большая часть <c>DocumentManager</c>.
+        /// Без окон пустой заголовок печатался как есть, и строка выходила
+        /// «BecqMoni: : текст» (`A174`, 05.09.2026). Разделитель ставится
+        /// только за непустым заголовком; строка с заголовком — прежняя,
+        /// байт в байт. Мерит <c>ReasonProbe</c>, плечо <c>заголовок</c>.
         /// </summary>
         public static void Report(string text, string caption, MessageBoxIcon icon)
         {
@@ -62,7 +70,8 @@ namespace BecquerelMonitor
             }
             try
             {
-                Console.Error.WriteLine("BecqMoni: " + caption + ": " + AppUi.OneLine(text));
+                string head = string.IsNullOrEmpty(caption) ? "" : caption + ": ";
+                Console.Error.WriteLine("BecqMoni: " + head + AppUi.OneLine(text));
                 Console.Error.Flush();
             }
             catch (IOException)
@@ -226,7 +235,8 @@ namespace BecquerelMonitor
         /// ГДЕ ОСТАНАВЛИВАЕТСЯ ОБХОД. Он идёт до конца цепочки, и у него два
         /// сторожа, оба — от ИСПОРЧЕННОЙ цепочки, а не от длины текста:
         /// <list type="bullet">
-        /// <item>ПЕТЛЯ. Звено, уже встречавшееся ПО ССЫЛКЕ, обход прекращает.
+        /// <item>ПЕТЛЯ. Звено, уже встречавшееся ПО ССЫЛКЕ, обход прекращает
+        /// (с `A165` — обход ЭТОЙ ветви; соседним ветвям ход остаётся).
         /// Штатным путём петлю не собрать (<c>InnerException</c> задаётся
         /// конструктором и не переопределяется), но полем <c>_innerException</c>
         /// её кладут и отражение, и десериализация, а ценой была бы вечная
@@ -243,10 +253,38 @@ namespace BecquerelMonitor
         /// заново своими руками нельзя. Знак выбран безъязыкий: текст платформы
         /// не переводится (см. выше), и своих переводимых слов тут быть не должно.
         ///
-        /// ⚠ Ветвление <c>AggregateException</c> этот обход НЕ раскрывает:
-        /// <c>InnerException</c> отдаёт лишь первую из <c>InnerExceptions</c>, и
-        /// соседние ветви не называются. Мерится плечом <c>ветвление</c> пробы
-        /// <c>ReasonProbe</c>; для полосы `A144` это находка, а не правка.
+        /// ⛔ ВЕТВЛЕНИЕ РАСКРЫВАЕТСЯ (`A165`, 05.09.2026). У
+        /// <c>AggregateException</c> вложенных НЕСКОЛЬКО, а <c>InnerException</c>
+        /// отдаёт лишь ПЕРВУЮ из <c>InnerExceptions</c>; до `A165` обход шёл по
+        /// ней, и соседние ветви терялись МОЛЧА. Случай живой: <c>Parallel.For</c>
+        /// и <c>Task.Run</c> стоят в <c>ResponseMatrixBuilder</c>,
+        /// <c>EfficiencyCalculation</c>, <c>FsaOverlay</c>, <c>PeakFilter</c>, и у
+        /// падения фонового счёта причина называлась бы неполной. Теперь у
+        /// такого звена обходятся ВСЕ <c>InnerExceptions</c>, каждая ветвь — своей
+        /// припиской с безъязыкой пометкой «<c>(i/n)</c>»: «<c>Agg: m &lt;- (1/2)
+        /// A: m &lt;- B: m &lt;- (2/2) C: m</c>». Цепочка ПОД ветвью идёт тем же
+        /// «&lt;-», пока не начнётся следующая ветвь. Ветвь ЕДИНСТВЕННАЯ пометки не
+        /// получает, и текст для неё БАЙТ В БАЙТ прежний: приписки `A129` и метки
+        /// редактора нуклидов на этом держатся.
+        ///
+        /// ⚠ <c>Flatten()</c> здесь НЕ зовётся, и это не забывчивость. Он
+        /// (1) строит НОВЫЙ объект, и сторож петли по ссылке его не узнал бы;
+        /// (2) сам ходит по вложенным <c>AggregateException</c> БЕЗ сторожа, и на
+        /// испорченном дереве повис бы раньше нашего обхода; (3) теряет сообщения
+        /// вложенных <c>AggregateException</c>. Вложенное ветвление обходится
+        /// тем же правилом: вложенный <c>AggregateException</c> — обычное звено,
+        /// у которого несколько вложенных.
+        ///
+        /// СТОРОЖА ОБЩИЕ НА ВСЁ ДЕРЕВО, а не на ветвь: звенья, названные в ЛЮБОЙ
+        /// ветви, лежат в одном списке «встречено», и предел
+        /// <see cref="ReasonChainLimit"/> считает их ВСЕ. Сработавший предел
+        /// останавливает ОБХОД ЦЕЛИКОМ (называть больше нечего) и говорит о себе
+        /// хвостовым «&lt;- …». Петля через ветвь — ветвь ссылается на предка или
+        /// на соседа — останавливает ТУ ветвь, ставит «&lt;- …» и отдаёт ход
+        /// следующей ветви: соседняя ветвь не виновата в чужой петле, и терять
+        /// её молча нельзя. Мерится плечами <c>ветвление</c>, <c>одна ветвь</c>,
+        /// <c>петля через ветвь</c> (со сроком) и <c>предел по дереву</c> пробы
+        /// <c>ReasonProbe</c>.
         ///
         /// ⚠ Приём `A129` работал потому, что прежний метод ВСЕГДА кончался тем
         /// самым хвостом. Теперь он не зависит и от этого: каждое звено ищется
@@ -259,50 +297,105 @@ namespace BecquerelMonitor
                 return "";
             }
 
-            string text = ex.GetType().Name + ": " + ex.Message;
-            Exception[] seen = new Exception[ReasonChainLimit];
-            seen[0] = ex;
-            int depth = 1;
+            ReasonWalk walk = new ReasonWalk(ex);
+            walk.Descend(ex);
+            return walk.Text;
+        }
 
-            Exception link = ex.InnerException;
-            while (link != null)
+        /// <summary>
+        /// Состояние ОДНОГО обхода <see cref="Reason"/>: собранный текст, список
+        /// встреченных по ссылке звеньев и число названных. Один на всё дерево —
+        /// так сторожа петли и предела (`A144`) остаются общими и после того, как
+        /// у звена стало несколько вложенных (`A165`).
+        /// </summary>
+        sealed class ReasonWalk
+        {
+            public string Text;
+            readonly Exception[] seen = new Exception[ReasonChainLimit];
+            int depth;
+            bool stopped;
+
+            public ReasonWalk(Exception root)
             {
-                bool loop = false;
-                for (int i = 0; i < depth; i++)
+                this.Text = root.GetType().Name + ": " + root.Message;
+                this.seen[0] = root;
+                this.depth = 1;
+            }
+
+            /// <summary>
+            /// От НАЗВАННОГО звена — к его вложенным. У обычного звена вложенное
+            /// одно (<c>InnerException</c>); у <c>AggregateException</c> — все
+            /// <c>InnerExceptions</c>, и <c>InnerException</c> для него НЕ берётся
+            /// отдельно: это та же первая ветвь, второй раз она попала бы под
+            /// сторож петли и ложно взвела бы его.
+            /// </summary>
+            public void Descend(Exception from)
+            {
+                AggregateException fork = from as AggregateException;
+                if (fork == null)
                 {
-                    if (ReferenceEquals(seen[i], link))
+                    this.Visit(from.InnerException, "");
+                    return;
+                }
+
+                System.Collections.ObjectModel.ReadOnlyCollection<Exception> branches =
+                    fork.InnerExceptions;
+                int n = branches == null ? 0 : branches.Count;
+                for (int i = 0; i < n && !this.stopped; i++)
+                {
+                    // Единственная ветвь пометки не получает — текст обязан
+                    // остаться байт в байт прежним (`A129`, метки редактора).
+                    string mark = n > 1 ? "(" + (i + 1) + "/" + n + ") " : "";
+                    this.Visit(branches[i], mark);
+                }
+            }
+
+            void Visit(Exception link, string mark)
+            {
+                if (link == null || this.stopped)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < this.depth; i++)
+                {
+                    if (ReferenceEquals(this.seen[i], link))
                     {
-                        loop = true;
-                        break;
+                        // Петля. Сторож сработал — и говорит об этом. Молчать
+                        // нельзя: это ровно тот дефект, который здесь чинится
+                        // (`A144`). Останавливается ЭТА ветвь; соседним ход
+                        // остаётся (`A165`).
+                        this.Text += " <- …";
+                        return;
                     }
                 }
 
-                if (loop || depth >= ReasonChainLimit)
+                if (this.depth >= ReasonChainLimit)
                 {
-                    // Сторож сработал — и говорит об этом. Молчать нельзя: это
-                    // ровно тот дефект, который здесь чинится (`A144`).
-                    text += " <- …";
-                    break;
+                    // Предел звеньев — общий на всё дерево. Больше назвать
+                    // нечего, обход останавливается целиком.
+                    this.Text += " <- …";
+                    this.stopped = true;
+                    return;
                 }
 
-                seen[depth] = link;
-                depth++;
+                this.seen[this.depth] = link;
+                this.depth++;
 
                 string part = link.GetType().Name + ": " + link.Message;
-                if (text.IndexOf(part, StringComparison.Ordinal) < 0)
+                if (this.Text.IndexOf(part, StringComparison.Ordinal) < 0)
                 {
-                    text += " <- " + part;
+                    this.Text += " <- " + mark + part;
                 }
 
-                link = link.InnerException;
+                this.Descend(link);
             }
-
-            return text;
         }
 
         /// <summary>
         /// Сколько звеньев цепочки исключений называет <see cref="Reason"/>
-        /// (`A144`). Это СТОРОЖ ОТ ИСПОРЧЕННОЙ ЦЕПОЧКИ, а не обрезка по длине:
+        /// (`A144`) — по ВСЕМУ дереву, ветви <c>AggregateException</c> считаются
+        /// в тот же предел (`A165`). Это СТОРОЖ ОТ ИСПОРЧЕННОЙ ЦЕПОЧКИ, а не обрезка по длине:
         /// глубочайшая цепочка, измеренная в этом дереве, — три звена, предел
         /// взят на порядок выше. Резать текст по ширине строки качества
         /// запрещено решением Amber 05.09.2026.
