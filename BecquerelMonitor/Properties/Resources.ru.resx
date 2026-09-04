@@ -613,6 +613,9 @@
   <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
     <value>В файле N42 нет объекта EnergyCalibration. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
+  <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
+    <value>В файле N42 меньше пяти точек калибровки, полином не подгоняется. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
+  </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Не поддерживаемый метод калибровки полиномом {0} порядка. Поддерживаются полиномы 1,2,3,4 порядков.</value>
   </data>

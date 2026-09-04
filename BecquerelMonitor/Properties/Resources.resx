@@ -41869,6 +41869,9 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
     <value>The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy.</value>
   </data>
+  <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
+    <value>The N42 file has fewer than five calibration points, so no polynomial is fitted. Using the default calibration y=x: the channel number is taken as the energy.</value>
+  </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist.</value>
   </data>
