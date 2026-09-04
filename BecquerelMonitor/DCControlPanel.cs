@@ -897,10 +897,47 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060002A2 RID: 674 RVA: 0x0000C1E8 File Offset: 0x0000A3E8
+        /// <summary>
+        /// Пересобрать спектр из сырых импульсов под сетку каналов прибора.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `A111`. Прежде калибровку здесь НЕ СТАВИЛИ ВОВСЕ, и чинил это
+        /// единственный вызывающий — двумя операторами позже. Дефектом это не
+        /// было ровно до тех пор, пока вызывающий один: метод <c>public</c>, а
+        /// после `A95` спектр без калибровки ОТКАЗЫВАЕТСЯ сниматься копией
+        /// (<see cref="EnergySpectrum.Clone"/> бросает названный
+        /// <c>InvalidOperationException</c>). Второй вызывающий получил бы
+        /// спектр, негодный ни для разложения, ни для поиска пиков, и узнал бы
+        /// об этом не здесь, а где-то вглубине.
+        ///
+        /// ⚠ Числа от этого не меняются: калибровка берётся у ТОГО ЖЕ прибора и
+        /// тем же <c>Clone()</c>, каким её ставит вызывающий, — то есть
+        /// конечное состояние прежнее, а промежуточное перестало быть битым.
+        /// Строку у вызывающего не убрать: она стоит ВНЕ той ветки, из которой
+        /// зовут пересборку, и нужна остальным.
+        ///
+        /// ⛔ Подставить калибровку «по умолчанию» здесь нельзя — это то же
+        /// самое, о чём говорит `A95`: <c>new PolynomialEnergyCalibration()</c>
+        /// объявляет номер канала энергией. Поэтому взять её неоткуда — значит
+        /// названный отказ.
+        /// </remarks>
         public void RebuildSpectrum(ResultData resultData)
         {
+            if (resultData.DeviceConfig == null || resultData.DeviceConfig.EnergyCalibration == null)
+            {
+                throw new InvalidOperationException(
+                    "DCControlPanel.RebuildSpectrum: у прибора «"
+                    + (resultData.DeviceConfig == null ? "<прибора нет>" : resultData.DeviceConfig.Name)
+                    + "» нет энергетической калибровки (DeviceConfig.EnergyCalibration == null)."
+                    + " Пересобранный спектр остался бы без шкалы энергии: такой не"
+                    + " снимается копией (EnergySpectrum.Clone), не разбирается и не"
+                    + " годится для поиска пиков, а подставить калибровку значило бы"
+                    + " объявить номер канала энергией.");
+            }
+
             EnergySpectrum energySpectrum = resultData.EnergySpectrum;
             resultData.EnergySpectrum = new EnergySpectrum(resultData.DeviceConfig.ChannelPitch, resultData.DeviceConfig.NumberOfChannels);
+            resultData.EnergySpectrum.EnergyCalibration = resultData.DeviceConfig.EnergyCalibration.Clone();
             resultData.EnergySpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             resultData.EnergySpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
             resultData.EnergySpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;

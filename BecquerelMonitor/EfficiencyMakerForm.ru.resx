@@ -83,7 +83,7 @@
     <value>Порядок полинома:</value>
   </data>
   <data name="minIntensityLabel.Text" xml:space="preserve">
-    <value>Мин. Intensity, %:</value>
+    <value>Мин. интенсивность, %:</value>
   </data>
   <data name="minSignificanceLabel.Text" xml:space="preserve">
     <value>Мин. z линии:</value>
@@ -92,7 +92,7 @@
     <value>Вычитать фон</value>
   </data>
   <data name="anchorLabel.Text" xml:space="preserve">
-    <value>Опора уровня, кэВ / eps:</value>
+    <value>Опора уровня, кэВ / ε:</value>
   </data>
   <data name="anchorHintLabel.Text" xml:space="preserve">
     <value>Измерения дают только форму кривой; абсолютный уровень берётся с исходной кривой или с этой опорной точки.</value>

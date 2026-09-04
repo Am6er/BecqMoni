@@ -1294,19 +1294,19 @@
     <value />
   </data>
   <data name="comboBox13.Items" xml:space="preserve">
-    <value>Килограмм (kg)</value>
+    <value>Килограмм (кг)</value>
   </data>
   <data name="comboBox13.Items1" xml:space="preserve">
-    <value>Грамм (g)</value>
+    <value>Грамм (г)</value>
   </data>
   <data name="comboBox13.ToolTip" xml:space="preserve">
     <value />
   </data>
   <data name="comboBox12.Items" xml:space="preserve">
-    <value>Литр (l)</value>
+    <value>Литр (л)</value>
   </data>
   <data name="comboBox12.Items1" xml:space="preserve">
-    <value>Милилитр (ml)</value>
+    <value>Миллилитр (мл)</value>
   </data>
   <data name="comboBox12.ToolTip" xml:space="preserve">
     <value />

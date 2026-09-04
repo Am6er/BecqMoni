@@ -133,7 +133,7 @@
     <value>Формат Atom Spectra v3</value>
   </data>
   <data name="cSVCToolStripMenuItem.Text" xml:space="preserve">
-    <value>Файл &amp;CSV</value>
+    <value>&amp;Файл CSV</value>
   </data>
   <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
     <value>CSV (Channel,Counts) Файл</value>
@@ -157,7 +157,7 @@
     <value>Открыть папку конфигурации приложения в Windows Explorer...</value>
   </data>
   <data name="roiDefinitionRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Редактировать конфигурации &amp;ROI...</value>
+    <value>Редактировать конфи&amp;гурации ROI...</value>
   </data>
   <data name="toolStripMenuItem7.Text" xml:space="preserve">
     <value>Расположение</value>
@@ -175,25 +175,25 @@
     <value>&amp;Экспорт</value>
   </data>
   <data name="controlPanelCToolStripMenuItem.Text" xml:space="preserve">
-    <value>Управление измерением</value>
+    <value>&amp;Управление измерением</value>
   </data>
   <data name="spectrumSToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Спектр</value>
   </data>
   <data name="spectrumListLToolStripMenuItem.Text" xml:space="preserve">
-    <value>Список спектров</value>
+    <value>&amp;Список спектров</value>
   </data>
   <data name="toolsTToolStripMenuItem1.Text" xml:space="preserve">
     <value>&amp;Инструменты</value>
   </data>
   <data name="editDeviceConfigurationDToolStripMenuItem.Text" xml:space="preserve">
-    <value>Конфигурация устройства...</value>
+    <value>&amp;Конфигурация устройства...</value>
   </data>
   <data name="saveDataSToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Сохранить</value>
   </data>
   <data name="saveDataAsRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Сохранить как</value>
+    <value>Сохранить &amp;как</value>
   </data>
   <data name="closeDataCToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Закрыть</value>
@@ -211,7 +211,7 @@
     <value>&amp;Монитор импульсов</value>
   </data>
   <data name="peakDetectionDToolStripMenuItem.Text" xml:space="preserve">
-    <value>Обнаружение пиков</value>
+    <value>&amp;Обнаружение пиков</value>
   </data>
   <data name="fileFToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Файл</value>
@@ -241,19 +241,19 @@
     <value>&amp;Импорт из файла</value>
   </data>
   <data name="NuclideDefinitionToolStripMenuItem.Text" xml:space="preserve">
-    <value>Редактировать библиотеку изотопов...</value>
+    <value>Редактировать &amp;библиотеку изотопов...</value>
   </data>
   <data name="stopMeasurementTToolStripMenuItem.Text" xml:space="preserve">
-    <value>Остановить измерение</value>
+    <value>О&amp;становить измерение</value>
   </data>
   <data name="measurementResultsRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Результат измерений</value>
+    <value>&amp;Результат измерений</value>
   </data>
   <data name="startMeasurementSToolStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;Начало измерения</value>
+    <value>Начало из&amp;мерения</value>
   </data>
   <data name="exitXToolStripMenuItem.Text" xml:space="preserve">
-    <value>Выход</value>
+    <value>Вы&amp;ход</value>
   </data>
   <data name="viewTToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Вид</value>
@@ -292,10 +292,10 @@
     <value>Калибровка по FWHM</value>
   </data>
   <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
-    <value>Калибровка энергии</value>
+    <value>Калибровка &amp;энергии</value>
   </data>
   <data name="countsRateStripMenuItem.Text" xml:space="preserve">
-    <value>Скорость счёта</value>
+    <value>С&amp;корость счёта</value>
   </data>
   <data name="cSVEnFileToolStripMenuItem.Text" xml:space="preserve">
     <value>CSV (Energy,Counts) Файл</value>

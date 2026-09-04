@@ -302,11 +302,40 @@ namespace BecquerelMonitor
             this.versionsLabel.ForeColor = mismatch ? Color.Firebrick : SystemColors.GrayText;
         }
 
+        /// <summary>
+        /// Число узлов в подробностях: сколько их СТАЛО и, если разошлось,
+        /// сколько ЗАКАЗАНО в поле формы.
+        ///
+        /// Расходятся они законно и оба числа ВЕРНЫ: при <c>ResolveEdges</c>
+        /// (умолчание) <c>BuildGrid(geometry)</c> добирает узлы вокруг K-краёв
+        /// веществ пробы (`T42`), и сетка выходит длиннее заказанной — заказ 10
+        /// даёт 12. На экране стояло одно число, и оно читалось как несогласие
+        /// поля ввода с подробностями (`A93`).
+        ///
+        /// Вторая цифра печатается ТОЛЬКО при расхождении: «12 (заказано 12)»
+        /// объясняло бы то, чего не происходило. У старой матрицы
+        /// <c>Options</c> может не быть вовсе (по ней и поля формы не
+        /// выставляются, см. <see cref="LoadExisting"/>) — тогда сравнивать не
+        /// с чем, и печатается одно число.
+        /// </summary>
+        string DescribeNodes(ResponseMatrix matrix)
+        {
+            int made = matrix.NodeCount;
+            if (matrix.Options == null || matrix.Options.NodeCount == made)
+            {
+                return made.ToString(CultureInfo.CurrentCulture);
+            }
+
+            return string.Format(CultureInfo.CurrentCulture,
+                                 Resources.ResponseMatrixNodesRequested,
+                                 made, matrix.Options.NodeCount);
+        }
+
         string Describe(ResponseMatrix matrix)
         {
             long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid);
             return string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixDetails,
-                                 matrix.NodeCount,
+                                 this.DescribeNodes(matrix),
                                  matrix.Energies[0],
                                  matrix.Energies[matrix.NodeCount - 1],
                                  matrix.BinKev,

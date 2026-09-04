@@ -137,7 +137,7 @@
     <value>Failed to load application configuration file.</value>
   </data>
   <data name="ERRDuplicateDeviceConfigGUID" xml:space="preserve">
-    <value>Duplicate GUID for deivce configuration "{0}"</value>
+    <value>Duplicate GUID for device configuration "{0}"</value>
   </data>
   <data name="ROIPrimitiveOperationTypeSubtraction" xml:space="preserve">
     <value>Subtraction</value>
@@ -8128,13 +8128,13 @@ http://xptable.sourceforge.net/</value>
     <value>FWHM:</value>
   </data>
   <data name="ERRBackgroundLoadFailure" xml:space="preserve">
-    <value>Failed to load background spectrum "{0}" Messsage: {1}.</value>
+    <value>Failed to load background spectrum "{0}" Message: {1}.</value>
   </data>
   <data name="MessageRemoveDeviceConfig" xml:space="preserve">
     <value>Remove device configuration "{0}"?</value>
   </data>
   <data name="MSGSaveEnergyCalibration" xml:space="preserve">
-    <value>Save energy calibration parmeters to current device configuration?</value>
+    <value>Save energy calibration parameters to current device configuration?</value>
   </data>
   <data name="BG" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -8363,10 +8363,6 @@ It is probably open in another program or write-protected.</value>
   <data name="MSGPickUpChannel1" xml:space="preserve">
     <value>Pick up channel #1 from spectrum chart.</value>
   </data>
-  <data name="ERRCannotRetreiveDeviceData" xml:space="preserve">
-    <value>Unable to retreive device data. (prohibited while measurement processing)
-</value>
-  </data>
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
     <value>Export Selected Spectra To File</value>
   </data>
@@ -8439,7 +8435,7 @@ It is probably open in another program or write-protected.</value>
     <value>Full-spectrum decomposition is not possible for this spectrum</value>
   </data>
   <data name="FSAFailed" xml:space="preserve">
-    <value>Full-spectrum decomposition failed, see the log</value>
+    <value>Full-spectrum decomposition failed.</value>
   </data>
   <data name="FSALegendModel" xml:space="preserve">
     <value>model</value>
@@ -41841,7 +41837,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
   </data>
   <data name="ERRDeviceMismatchConfiguration" xml:space="preserve">
-    <value>Missmatched device configuration: to solve this create new file and use Audio Input device.</value>
+    <value>Mismatched device configuration: to solve this create new file and use Audio Input device.</value>
   </data>
   <data name="ERREmptyCoefficients" xml:space="preserve">
     <value>This device doesn't contain calibration coefficients. Write them first.</value>
@@ -41853,7 +41849,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>Error. Expected empty line separator, got: {0}</value>
   </data>
   <data name="ERRIncorrectCRC" xml:space="preserve">
-    <value>Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again.</value>
+    <value>Incorrect Crc32 checksum! Possible broken coefficients. Try to upload them again.</value>
   </data>
   <data name="ERROpenAtomSpectraFormat" xml:space="preserve">
     <value>Error. Can not open this file. Expected format 3, got: {0}</value>
@@ -41867,8 +41863,11 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
     <value>Couldn't read device data from Port!</value>
   </data>
-  <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
-    <value>N42 EnergyBoundaryValues not supported. Using current calibration.</value>
+  <data name="ERRUnsupportedEnergyBoundaryN42" xml:space="preserve">
+    <value>N42 EnergyBoundaryValues not supported. Only calibration coefficients are supported. Using the default calibration y=x: the channel number is taken as the energy.</value>
+  </data>
+  <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
+    <value>The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy.</value>
   </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist.</value>
@@ -41879,14 +41878,14 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>This application works in standalone mode. If you want to use update re-install it.</value>
   </data>
-  <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
+  <data name="ERRUploadCoefficientsToDevice" xml:space="preserve">
     <value>Error! Coefficients uploaded with error! Check connection and reupload it again.</value>
   </data>
-  <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
+  <data name="MSGCoefficientsUploadedSuccessful" xml:space="preserve">
     <value>Coefficients uploaded to device successfully.</value>
   </data>
   <data name="MSGNoNewVersion" xml:space="preserve">
-    <value>No new version avalable. Current version: {0}</value>
+    <value>No new version available. Current version: {0}</value>
   </data>
   <data name="MSGRestartNeeded" xml:space="preserve">
     <value>Update finished. Application WILL RESTART.</value>
@@ -41902,7 +41901,7 @@ You must be completely sure, what you are doing.</value>
     <value>COM Port:</value>
   </data>
   <data name="ERRUpdateExc" xml:space="preserve">
-    <value>Cann't install the latest version. Error happens.
+    <value>Can't install the latest version. Error happens.
 {0}</value>
   </data>
   <data name="MSGUpdateLong" xml:space="preserve">
@@ -41911,7 +41910,7 @@ Before updating save all unsaved data. Application WILL RESTART!
 Install update?</value>
   </data>
   <data name="MSGUpdateShort" xml:space="preserve">
-    <value>Update avalable</value>
+    <value>Update available</value>
   </data>
   <data name="ERRImportAtomSpectra" xml:space="preserve">
     <value>Channel mismatch between device and imported spectra file.
@@ -42078,7 +42077,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Combined spectra {0} has incorrect calibration, so channel by channel combine method will be used.</value>
   </data>
   <data name="ERRVCPComPortsNumeration" xml:space="preserve">
-    <value>Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what's happend with your USB system hub.</value>
+    <value>Error while look ANY COM port in OS. OS returns empty list. Now program sets port from device config file, but you should check what's happened with your USB system hub.</value>
   </data>
   <data name="ResetCalibrationToDeviceSettingsConflict" xml:space="preserve">
     <value>Device calibration is polynom order {0}. Spectrum calibration is polynom order {1}. Do you want to reset whole calibration points to device calibration?</value>
@@ -42221,8 +42220,8 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="AutoSaveExclamationTitle" xml:space="preserve">
     <value>Autosave disabled on this file!</value>
   </data>
-  <data name="ERRAppAllreadyRunning" xml:space="preserve">
-    <value>BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
+  <data name="ERRAppAlreadyRunning" xml:space="preserve">
+    <value>BecqMoni already running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
   </data>
   <data name="MinPeaksRequirement" xml:space="preserve">
     <value>Minimum peaks requirement: {0}</value>
@@ -42231,7 +42230,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Save FWHM calibration to current device configuration?</value>
   </data>
   <data name="ERRPeakExist" xml:space="preserve">
-    <value>Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
+    <value>Selected peak FWHM already exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
   </data>
   <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
     <value>Import using SpecUtils</value>
@@ -43006,6 +43005,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
 Bin: {3:F0} keV, histories per node: {4}
 Data: {5:F0} KB, file: {6:F0} KB
 Computed: {7}, took {8:F0} s</value>
+  </data>
+  <data name="ResponseMatrixNodesRequested" xml:space="preserve">
+    <value>{0} ({1} requested)</value>
   </data>
   <data name="ResponseMatrixParameters" xml:space="preserve">
     <value>Parameters</value>

@@ -181,7 +181,7 @@ namespace BecquerelMonitor
         /// </summary>
         internal static string CalibrationFailureText(RadiaCodeIn device)
         {
-            string head = BecquerelMonitor.Properties.Resources.ERRUploadCoefficeintsToDevice;
+            string head = BecquerelMonitor.Properties.Resources.ERRUploadCoefficientsToDevice;
             string reason = device == null ? "" : device.LastFailure;
             if (string.IsNullOrEmpty(reason))
             {

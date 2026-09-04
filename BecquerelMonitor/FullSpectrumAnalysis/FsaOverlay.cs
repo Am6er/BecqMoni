@@ -173,13 +173,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             catch (Exception ex)
             {
                 Trace.WriteLine("FSA start failed: " + ex);
+                string said = FailureText(ex);
                 lock (this.sync)
                 {
                     this.running = false;
                     this.pendingStamp = null;
-                    this.status = Properties.Resources.FSAFailed;
+                    this.status = said;
                 }
             }
+        }
+
+        /// <summary>
+        /// ⛔ ОТКАЗ РАЗЛОЖЕНИЯ НАЗЫВАЕТ ПРИЧИНУ (`A95`).
+        ///
+        /// Оба перехвата — подготовки (<see cref="EnsureUpToDate"/>) и самого
+        /// счёта — писали в строку состояния ОДИН И ТОТ ЖЕ текст
+        /// «Полноспектральное разложение не удалось, подробности в журнале», а
+        /// причина уходила только в <see cref="Trace"/>, которого при обычном
+        /// запуске никто не читает. Отсюда разряд дефекта, стоивший заходов:
+        /// снимок спектра без энергетической калибровки падал пустым NRE, и
+        /// обе половины опыта молчали одинаково — положительный контроль
+        /// проходил ВПУСТУЮ.
+        ///
+        /// Слова собираются той же дверью, что у отвергнутой матрицы (`A50`) и
+        /// у менеджеров-одиночек (`A22`, `A25`): <see cref="AppUi.Reason"/> —
+        /// единственное соглашение о том, как называется причина, и оно
+        /// обязательно с ВЛОЖЕННЫМ исключением. Второго заводить нельзя.
+        ///
+        /// Читателей у признака два, и оба уже есть: без окон — поток ошибок
+        /// (<see cref="AppUi.Note"/>), его видят пробы и корпусные прогоны; с
+        /// окнами — сама строка состояния, которую вид печатает под графиком с
+        /// переносом по ширине. Модальным окном здесь сказать нельзя:
+        /// <c>EnsureUpToDate</c> зовётся из подготовки данных вида, то есть
+        /// изнутри отрисовки (см. <see cref="NoteOldMatrixFormat"/>).
+        ///
+        /// Подпись причины (<c>ERRFailureReason</c>) переведена в обе культуры;
+        /// сам текст исключения приходит от платформы и переводу не подлежит.
+        /// </summary>
+        static string FailureText(Exception ex)
+        {
+            string text = Properties.Resources.FSAFailed + " "
+                          + string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                                          Properties.Resources.ERRFailureReason,
+                                          AppUi.Reason(ex));
+            AppUi.Note(text);
+            return text;
         }
 
         void Launch(ResultData resultData, bool subtractBackground, int myGeneration)
@@ -333,7 +371,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 catch (Exception ex)
                 {
                     Trace.WriteLine("FSA failed: " + ex);
-                    message = Properties.Resources.FSAFailed;
+                    // (`A95`) Тот же приём, что у перехвата подготовки: причина
+                    // называется, а не остаётся в журнале трассировки.
+                    message = FailureText(ex);
                 }
 
                 lock (this.sync)

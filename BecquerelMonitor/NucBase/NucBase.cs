@@ -131,8 +131,11 @@ namespace BecquerelMonitor.NucBase
             // «линий нет»: список молча оставался таким, каким был. Части
             // складываются сюда и уезжают в строку одним куском в конце — так
             // от прошлого запроса не остаётся ни одного слова.
-            List<string> status = new List<string>();
-            bool refused = false;
+            //
+            // ⚠ Части и ПРИЧИНЫ к ним лежат врозь (<see cref="StatusNote"/>,
+            // `A92`): причина у всех частей одного отказа одна, а складывалась
+            // она в метку столько раз, сколько было частей.
+            StatusNote status = new StatusNote();
 
             // Символ элемента без массового числа («W», «Pb») — запрос не про
             // распад, а про характеристический рентген: чем светит вольфрам
@@ -149,7 +152,8 @@ namespace BecquerelMonitor.NucBase
                 this.ResultDataGridView.Rows.Clear();
                 ShowIsotopeCard("", null);
                 ShowCardNote(null);
-                SetSearchStatus(string.Format(Resources.NucBase_ElementDataFetchError, elementError), true);
+                status.AddFailure(Resources.NucBase_ElementDataFetchError, elementError);
+                SetSearchStatus(status);
                 UpdateNuclideDefinitionControlsState();
                 return;
             }
@@ -178,8 +182,7 @@ namespace BecquerelMonitor.NucBase
                     // потому, что посмотреть не удалось, — а не потому, что у
                     // элемента нет линий. Слова у этих двух случаев разные, как
                     // и у отказа поиска нуклида ниже.
-                    refused = true;
-                    status.Add(string.Format(Resources.NucBase_ElementDataFetchError, fw.LastError));
+                    status.AddFailure(Resources.NucBase_ElementDataFetchError, fw.LastError);
                 }
                 else if (fluorescence.Count == 0)
                 {
@@ -206,7 +209,7 @@ namespace BecquerelMonitor.NucBase
                     status.Add(string.Format(Resources.NucBase_SearchFound, fluorescence.Count));
                 }
 
-                SetSearchStatus(string.Join(Environment.NewLine, status), refused);
+                SetSearchStatus(status);
                 UpdateNuclideDefinitionControlsState();
                 return;
             }
@@ -221,8 +224,7 @@ namespace BecquerelMonitor.NucBase
                 List<DecayRad> decayRads = fw.getDecayRad(isotope, intensity: intensity, lowEnergy: lowEnergy, highEnergy: highEnergy, half_life_sec: half_life);
                 if (decayRads == null)
                 {
-                    refused = true;
-                    status.Add(string.Format(Resources.NucBase_LinesFetchError, isotope, fw.LastError));
+                    status.AddFailure(Resources.NucBase_LinesFetchError, fw.LastError, isotope);
                 }
                 else
                 {
@@ -257,8 +259,7 @@ namespace BecquerelMonitor.NucBase
                     // Обход ряда оборвался на полпути: часть членов до списка
                     // не доехала, и без этих слов их отсутствие выглядит как
                     // «их в ряду нет».
-                    refused = true;
-                    status.Add(string.Format(Resources.NucBase_DaughtersFetchError, isotope, fw.LastError));
+                    status.AddFailure(Resources.NucBase_DaughtersFetchError, fw.LastError, isotope);
                 }
 
                 int shown = 0;
@@ -304,8 +305,7 @@ namespace BecquerelMonitor.NucBase
                 RestoreSorting();
                 if (refusedMembers > 0)
                 {
-                    refused = true;
-                    status.Add(string.Format(Resources.NucBase_ChainLinesRefused, refusedMembers, firstReason));
+                    status.AddFailure(Resources.NucBase_ChainLinesRefused, firstReason, refusedMembers);
                 }
 
                 if (shown > 0)
@@ -338,7 +338,7 @@ namespace BecquerelMonitor.NucBase
                 ShowCardNote(ShowCardFor(isotope));
             }
 
-            SetSearchStatus(string.Join(Environment.NewLine, status), refused);
+            SetSearchStatus(status);
             UpdateNuclideDefinitionControlsState();
         }
 
@@ -449,13 +449,13 @@ namespace BecquerelMonitor.NucBase
         /// Прочитать нуклид и показать его карточку — или очистить её, если
         /// показывать нечего.
         ///
-        /// Возвращает текст, который надо СКАЗАТЬ человеку, когда карточки не
-        /// будет, и <c>null</c>, когда она показана. Слова у двух причин
-        /// РАЗНЫЕ (`T92`): «в таблице такой строки нет либо период не измерен»
-        /// — это законный ответ базы, а «прочитать не удалось» — отказ, и
-        /// <see cref="lastCardFailed"/> взводится только у второго.
+        /// Возвращает то, что надо СКАЗАТЬ человеку, когда карточки не будет, и
+        /// ПУСТУЮ заметку, когда она показана. Слова у двух причин РАЗНЫЕ
+        /// (`T92`): «в таблице такой строки нет либо период не измерен» — это
+        /// законный ответ базы, а «прочитать не удалось» — отказ, и признак
+        /// <see cref="StatusNote.Failed"/> взводится только у второго.
         /// </summary>
-        private string ShowCardFor(string isotope)
+        private StatusNote ShowCardFor(string isotope)
         {
             NucBaseFramework fw = new NucBaseFramework();
             Nuclide nuc = fw.getNuclude(isotope);
@@ -464,25 +464,30 @@ namespace BecquerelMonitor.NucBase
             // у самого `NucBaseFramework`.
             ShowIsotopeCard(isotope, nuc);
             string elementError = this.lastElementError;
-            this.lastCardFailed = (nuc == null && fw.LastError != null) || elementError != null;
 
-            string note = nuc != null
-                ? null
-                : (fw.LastError != null
-                    ? string.Format(Resources.NucBase_IsotopeFetchError, isotope, fw.LastError)
-                    : string.Format(Resources.NucBase_CardEmpty, isotope));
-
-            if (elementError == null)
+            StatusNote note = new StatusNote();
+            if (nuc == null)
             {
-                return note;
+                if (fw.LastError != null)
+                {
+                    note.AddFailure(Resources.NucBase_IsotopeFetchError, fw.LastError, isotope);
+                }
+                else
+                {
+                    note.Add(string.Format(Resources.NucBase_CardEmpty, isotope));
+                }
             }
 
-            // ⛔ Отказ базы ВЕЩЕСТВ — своя причина и свои слова (`A25`): графа
-            // «Z» осталась пустой не потому, что такого элемента нет, а потому,
-            // что справиться было негде. Прежде этот отказ вылетал наружу
-            // броском и убивал весь запрос.
-            string elementNote = string.Format(Resources.NucBase_ElementDataFetchError, elementError);
-            return note == null ? elementNote : note + Environment.NewLine + elementNote;
+            if (elementError != null)
+            {
+                // ⛔ Отказ базы ВЕЩЕСТВ — своя причина и свои слова (`A25`): графа
+                // «Z» осталась пустой не потому, что такого элемента нет, а потому,
+                // что справиться было негде. Прежде этот отказ вылетал наружу
+                // броском и убивал весь запрос.
+                note.AddFailure(Resources.NucBase_ElementDataFetchError, elementError);
+            }
+
+            return note;
         }
 
         /// <summary>
@@ -507,10 +512,9 @@ namespace BecquerelMonitor.NucBase
         /// 148EUm1 нет: …», и итог не возвращался до следующего поиска. Терялся
         /// он ровно тогда, когда сказать было что ОБОИМ.
         /// </summary>
-        private void SetSearchStatus(string text, bool failed)
+        private void SetSearchStatus(StatusNote note)
         {
-            this.searchStatus = text ?? "";
-            this.searchFailed = failed;
+            this.searchNote = note ?? new StatusNote();
             RenderStatus();
         }
 
@@ -519,40 +523,160 @@ namespace BecquerelMonitor.NucBase
         /// или <c>null</c> слот ОЧИЩАЮТ — заметка о прошлой строке таблицы к
         /// новой не относится.
         /// </summary>
-        private void SetCardStatus(string text, bool failed)
+        private void SetCardStatus(StatusNote note)
         {
-            this.cardStatus = text ?? "";
-            this.cardFailed = failed;
+            this.cardNote = note ?? new StatusNote();
             RenderStatus();
         }
 
         /// <summary>
         /// Собрать метку из двух слотов. Пустой слот места не занимает — иначе
         /// у сообщения появлялась бы пустая строка сверху или снизу.
+        ///
+        /// ⛔ ПРИЧИНА НАЗЫВАЕТСЯ РОВНО ОДИН РАЗ (`A92`). Отказ базы виден сразу
+        /// нескольким наблюдателям — обходу ряда, сбору линий его членов и
+        /// карточке нуклида, — и каждый говорил о нём СВОИМИ словами, доклеивая
+        /// к ним ПОЛНЫЙ текст одной и той же причины. Измерено 04.09.2026 на
+        /// сцене `F_a25_noconf` (каталог без <c>&lt;проба&gt;.exe.config</c>,
+        /// поставщик SQLite не поднимается): в метке стояло 4699 знаков, и
+        /// 1160 из них — два лишних повтора причины про <c>nucdb.sqlite</c>.
+        /// Читать такую метку нельзя: перечень отказавшего тонет в трёх копиях
+        /// одного абзаца.
+        ///
+        /// Поэтому слоты держат ЧАСТИ и ПРИЧИНЫ врозь (<see cref="StatusNote"/>):
+        /// сперва идёт перечень того, что отказало, затем — каждая РАЗЛИЧНАЯ
+        /// причина по одному разу, подписью <c>ERRFailureReason</c>. Ни одно
+        /// слово из состава сообщения при этом не теряется.
         /// </summary>
         private void RenderStatus()
         {
-            string text = this.searchStatus;
-            if (this.cardStatus.Length > 0)
+            List<string> lines = new List<string>();
+            lines.AddRange(this.searchNote.Parts);
+            lines.AddRange(this.cardNote.Parts);
+
+            List<string> reasons = new List<string>();
+            foreach (string reason in this.searchNote.Reasons.Concat(this.cardNote.Reasons))
             {
-                text = text.Length > 0
-                    ? text + Environment.NewLine + this.cardStatus
-                    : this.cardStatus;
+                // Слоты заполняются с РАЗНЫХ путей (`T96`), и одинаковая причина
+                // приходит в них по отдельности: сверять надо после слияния, а
+                // не внутри каждого.
+                if (!reasons.Contains(reason))
+                {
+                    reasons.Add(reason);
+                }
             }
 
-            this.SearchStatusLabel.Text = text;
-            this.SearchStatusLabel.ForeColor = this.searchFailed || this.cardFailed
+            foreach (string reason in reasons)
+            {
+                lines.Add(string.Format(Resources.ERRFailureReason, reason));
+            }
+
+            this.SearchStatusLabel.Text = string.Join(Environment.NewLine, lines);
+            this.SearchStatusLabel.ForeColor = this.searchNote.Failed || this.cardNote.Failed
                 ? System.Drawing.Color.Firebrick
                 : System.Drawing.SystemColors.ControlText;
         }
 
         /// <summary>Итог последнего поиска и был ли он отказом (`T96`).</summary>
-        private string searchStatus = "";
-        private bool searchFailed;
+        private StatusNote searchNote = new StatusNote();
 
         /// <summary>Заметка о последней показанной карточке (`T96`).</summary>
-        private string cardStatus = "";
-        private bool cardFailed;
+        private StatusNote cardNote = new StatusNote();
+
+        /// <summary>
+        /// Сообщение строки состояния: ЧТО отказало (<see cref="Parts"/>) и
+        /// ПОЧЕМУ (<see cref="Reasons"/>) — ВРОЗЬ (`A92`).
+        ///
+        /// ⛔ Порознь они лежат затем, что причина у нескольких частей одного
+        /// отказа ОДНА, а складывалась она в метку столько раз, сколько было
+        /// частей. Резать метку по длине было бы лечением следствия: длинна она
+        /// не потому, что причина длинная, а потому, что причина повторена.
+        ///
+        /// ⚠ Признак <see cref="Failed"/> взводится САМОЙ укладкой отказа
+        /// (<see cref="AddFailure"/>), а не отдельным присваиванием: прежде это
+        /// были две строки в шести местах, и забыть вторую ничего не стоило.
+        /// Прежнее поле `lastCardFailed` снято — оно держало ровно этот признак
+        /// у карточки, и теперь он едет вместе с самим сообщением.
+        /// </summary>
+        private sealed class StatusNote
+        {
+            /// <summary>Что отказало (или чем кончился удачный запрос) — без причин.</summary>
+            public readonly List<string> Parts = new List<string>();
+
+            /// <summary>Причины, каждая по одному разу и в порядке появления.</summary>
+            public readonly List<string> Reasons = new List<string>();
+
+            /// <summary>Был ли среди частей отказ: от него краснота метки.</summary>
+            public bool Failed;
+
+            public void Add(string text)
+            {
+                if (!string.IsNullOrEmpty(text))
+                {
+                    this.Parts.Add(text);
+                }
+            }
+
+            /// <summary>
+            /// Сложить сообщение об отказе: слова — в <see cref="Parts"/>,
+            /// причину — в <see cref="Reasons"/>, и только если её там ещё нет.
+            ///
+            /// Причина у шаблона всегда ПОСЛЕДНИЙ довод, поэтому она и стоит
+            /// вторым параметром: остальные доводы (<paramref name="args"/>)
+            /// уходят в текст, как уходили.
+            /// </summary>
+            public void AddFailure(string template, string reason, params object[] args)
+            {
+                this.Failed = true;
+                Add(WithoutReason(template, args));
+                if (!string.IsNullOrEmpty(reason) && !this.Reasons.Contains(reason))
+                {
+                    this.Reasons.Add(reason);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Текст сообщения БЕЗ причины: шаблон обрезается по месту, где в нём
+        /// стоит причина (`A92`).
+        ///
+        /// ⛔ Обрезается ШАБЛОН, а не готовая строка, и это не изящество:
+        /// причина приходит от платформы и содержит что угодно — точки,
+        /// двоеточия, пути, чужие сообщения, — а искать её в готовом тексте
+        /// значило бы искать иголку, которую сам же туда и положил. Место
+        /// причины известно точно: она ПОСЛЕДНИЙ довод шаблона, то есть
+        /// «{N}», где N — число остальных доводов.
+        ///
+        /// ⚠ Вводное предложение, у которого отобрали то, что оно вводит,
+        /// снимается целиком: «Дочерние нуклиды {0} прочитаны не все.
+        /// Сообщение:» без сообщения — не текст. Признак вводного — ХВОСТОВОЕ
+        /// двоеточие; режется по ближайшей точке слева, и правило это работает
+        /// в обеих культурах («… Message:» у того же ключа по-английски).
+        /// </summary>
+        static string WithoutReason(string template, params object[] args)
+        {
+            int given = args == null ? 0 : args.Length;
+            string text = template ?? "";
+            int cut = text.IndexOf("{" + given.ToString(CultureInfo.InvariantCulture) + "}",
+                                   StringComparison.Ordinal);
+            if (cut >= 0)
+            {
+                text = text.Substring(0, cut);
+            }
+
+            text = text.TrimEnd();
+            if (text.EndsWith(":", StringComparison.Ordinal))
+            {
+                int stop = text.LastIndexOfAny(SentenceEnd);
+                text = stop >= 0
+                    ? text.Substring(0, stop + 1)
+                    : text.Substring(0, text.Length - 1).TrimEnd();
+            }
+
+            return given == 0 ? text : string.Format(text, args);
+        }
+
+        static readonly char[] SentenceEnd = { '.', '!', '?' };
 
         private void UpdateNuclideDefinitionControlsState()
         {
@@ -710,21 +834,10 @@ namespace BecquerelMonitor.NucBase
         /// же было единственным, что берегло итог поиска, — а берёг он его лишь
         /// пока сказать было нечего.
         /// </summary>
-        private void ShowCardNote(string note)
+        private void ShowCardNote(StatusNote note)
         {
-            SetCardStatus(note, note != null && this.lastCardFailed);
+            SetCardStatus(note);
         }
-
-        /// <summary>
-        /// Был ли последний отказ карточки отказом БАЗЫ, а не отсутствием
-        /// строки. Пишет <see cref="ShowCardFor"/>, читает
-        /// <see cref="ShowCardNote"/> — единственный, с тех пор как заметка
-        /// уехала во второй слот (`T96`); прежде читал ещё и
-        /// <see cref="DoSearch"/>, который подклеивал заметку к итогу поиска.
-        /// Зависит от него только цвет строки состояния, слова у двух причин
-        /// свои.
-        /// </summary>
-        private bool lastCardFailed;
 
         /// <summary>
         /// ПРИЧИНА ОТКАЗА БАЗЫ ВЕЩЕСТВ у последней показанной карточки, или

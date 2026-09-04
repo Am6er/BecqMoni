@@ -340,9 +340,6 @@
   <data name="MSGPickUpChannel1" xml:space="preserve">
     <value>Выберите канал #1 из спектра.</value>
   </data>
-  <data name="ERRCannotRetreiveDeviceData" xml:space="preserve">
-    <value>Не могу получить данные с устройства.</value>
-  </data>
   <data name="ExportSpectraToFileDialogTitle" xml:space="preserve">
     <value>Экспорт выбранного спектра в файл</value>
   </data>
@@ -392,7 +389,7 @@
     <value>Полноспектральное разложение для этого спектра невозможно</value>
   </data>
   <data name="FSAFailed" xml:space="preserve">
-    <value>Полноспектральное разложение не удалось, подробности в журнале</value>
+    <value>Полноспектральное разложение не удалось.</value>
   </data>
   <data name="FSALegendModel" xml:space="preserve">
     <value>модель</value>
@@ -610,8 +607,11 @@
   <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
     <value>Не могу прочитать данные с устройства по COM порту!</value>
   </data>
-  <data name="ERRUnsuportedEnergyBoundaryN42" xml:space="preserve">
-    <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается в приложении. Используйте калибровки полиномом.</value>
+  <data name="ERRUnsupportedEnergyBoundaryN42" xml:space="preserve">
+    <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается: читаются только коэффициенты полинома. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
+  </data>
+  <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
+    <value>В файле N42 нет объекта EnergyCalibration. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Не поддерживаемый метод калибровки полиномом {0} порядка. Поддерживаются полиномы 1,2,3,4 порядков.</value>
@@ -622,10 +622,10 @@
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.</value>
   </data>
-  <data name="ERRUploadCoefficeintsToDevice" xml:space="preserve">
+  <data name="ERRUploadCoefficientsToDevice" xml:space="preserve">
     <value>Коэффициенты были загружены с ошибкой! Проверьте подключение к устройству, кабель и попробуйте загрузить заново.</value>
   </data>
-  <data name="MSGCoefficientsUploadedSuccesfull" xml:space="preserve">
+  <data name="MSGCoefficientsUploadedSuccessful" xml:space="preserve">
     <value>Коэффициенты калибровки успешно загружены в устройство.</value>
   </data>
   <data name="MSGNoNewVersion" xml:space="preserve">
@@ -839,10 +839,10 @@
     <value>Пропущено линий Kβ как дубликатов: {0}. Были отмечены и итог (KB), и его разложение (KpB1 + KpB2); ввезено только одно из двух.</value>
   </data>
   <data name="UpdateDeadTime" xml:space="preserve">
-    <value>Обновить Мертвое Время</value>
+    <value>Обновить мёртвое время</value>
   </data>
   <data name="DeadTimeLblText" xml:space="preserve">
-    <value>Мертвое время: {0} µs</value>
+    <value>Мёртвое время: {0} мкс</value>
   </data>
   <data name="ImportGBSFileDialogTitle" xml:space="preserve">
     <value>Импорт файла SpectraLine GBS</value>
@@ -859,7 +859,7 @@
   <data name="AutoSaveExclamationTitle" xml:space="preserve">
     <value>Автосохранение выключено в этом файле!</value>
   </data>
-  <data name="ERRAppAllreadyRunning" xml:space="preserve">
+  <data name="ERRAppAlreadyRunning" xml:space="preserve">
     <value>Приложение BecqMoni уже запущено! Чтобы избежать проблем с конфигурационными файлами, этот запуск приложения отменяется. Проверьте диспетчер задач на запущенные процессы BecquerelMonitor.exe!</value>
   </data>
   <data name="MinPeaksRequirement" xml:space="preserve">
@@ -921,7 +921,7 @@
     <value>Спектры не выбраны.</value>
   </data>
   <data name="EfficiencyMakerNoChains" xml:space="preserve">
-    <value>Наборов нуклидов с заполненным Intensity нет: цепочки построить не из чего.</value>
+    <value>Наборов нуклидов с заполненной интенсивностью нет: цепочки построить не из чего.</value>
   </data>
   <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
     <value>Не отмечена ни одна цепочка.</value>
@@ -1119,10 +1119,10 @@
     <value>серия выброшена: {0} (разброс x{1:F1})</value>
   </data>
   <data name="EfficiencyMakerReasonImpossible" xml:space="preserve">
-    <value>невозможная eps={0:F2}</value>
+    <value>невозможная ε={0:F2}</value>
   </data>
   <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
-    <value>{0}: {1:F1} кэВ снята, eps={2:F2} &gt; 1</value>
+    <value>{0}: {1:F1} кэВ снята, ε={2:F2} &gt; 1</value>
   </data>
   <data name="GeometryEditorTitle" xml:space="preserve">
     <value>Конструктор геометрии</value>
@@ -1368,7 +1368,7 @@
     <value>Набор нуклидов «{0}» использовать нельзя: {1}</value>
   </data>
   <data name="EfficiencyMakerSetNoIntensity" xml:space="preserve">
-    <value>у {0} из {1} его линий не заполнен Intensity: {2}. Кривая строится как площадь пика, делённая на Intensity, поэтому такая линия в счёт не идёт — годных осталось {3} из {1}, а нужно не меньше двух. Intensity задаётся в редакторе нуклидов.</value>
+    <value>у {0} из {1} его линий не заполнена интенсивность: {2}. Кривая строится как площадь пика, делённая на интенсивность, поэтому такая линия в счёт не идёт — годных осталось {3} из {1}, а нужно не меньше двух. Интенсивность задаётся в редакторе нуклидов.</value>
   </data>
   <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
     <value>в нём годных линий {0}, а нужно хотя бы две — одну сравнить не с чем.</value>
@@ -1386,7 +1386,7 @@
     <value>Считать по эффективности</value>
   </data>
   <data name="BqCoeffNoIntensity" xml:space="preserve">
-    <value>У зоны не задан Intensity линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
+    <value>У зоны не задана интенсивность линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
   </data>
   <data name="BqCoeffNoEnergy" xml:space="preserve">
     <value>У зоны не задана энергия линии — посчитать K по кривой не из чего. Взято сохранённое значение.</value>
@@ -1422,13 +1422,13 @@
     <value>выход линии ниже {0:0.#} % на распад: активность не показана</value>
   </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
-    <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и Intensity этой зоны: K = 100 / (эффективность · Intensity). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
+    <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>
   <data name="EfficiencyMakerTipOrder" xml:space="preserve">
     <value>Насколько кривой позволено гнуться. 1 — прямая в логарифмических осях, 3 — пологая волна. Чем больше, тем ближе кривая к измеренным точкам, но на малом числе линий она начинает мотаться между ними — если фит отказал как невозможный, снижать надо в первую очередь это.</value>
   </data>
   <data name="EfficiencyMakerTipMinIntensity" xml:space="preserve">
-    <value>Слабые линии пропускаются. Число — это Intensity: сколько квантов такой энергии вылетает на 100 распадов. При 1 % считается и линия, которая испускается раз на сотню распадов; поднимайте, если еле заметные линии таскают кривую.</value>
+    <value>Слабые линии пропускаются. Число — это интенсивность: сколько квантов такой энергии вылетает на 100 распадов. При 1 % считается и линия, которая испускается раз на сотню распадов; поднимайте, если еле заметные линии таскают кривую.</value>
   </data>
   <data name="EfficiencyMakerTipMinSignificance" xml:space="preserve">
     <value>Насколько пик обязан подняться над шумом фона, чтобы его измеряли, в единицах этого шума. 4 — вчетверо выше шума, то есть «это точно пик, а не бугор». Ниже — поймаются слабые линии ценой случайных, выше — останутся только надёжные пики.</value>
@@ -1630,6 +1630,9 @@
 Бин: {3:F0} кэВ, историй на узел: {4}
 Данных: {5:F0} КБ, файл: {6:F0} КБ
 Посчитана: {7}, заняла {8:F0} с</value>
+  </data>
+  <data name="ResponseMatrixNodesRequested" xml:space="preserve">
+    <value>{0} (заказано {1})</value>
   </data>
   <data name="ResponseMatrixParameters" xml:space="preserve">
     <value>Параметры</value>

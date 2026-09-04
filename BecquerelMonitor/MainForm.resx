@@ -162,7 +162,7 @@
     <value>180, 22</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
-    <value>Close &amp;All</value>
+    <value>Close A&amp;ll</value>
   </data>
   <data name="toolStripSeparator6.Size" type="System.Drawing.Size, System.Drawing">
     <value>177, 6</value>
@@ -381,7 +381,7 @@
     <value>190, 22</value>
   </data>
   <data name="spectrumListLToolStripMenuItem.Text" xml:space="preserve">
-    <value>Spectrum &amp;List</value>
+    <value>Spectrum L&amp;ist</value>
   </data>
   <data name="energyCalibrationStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>

@@ -84,6 +84,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// ⛔ ЧЕМ НАЗНАЧАЕТСЯ ПОЛ ПОЛОСЫ, КОГДА КРИВОЙ НЕТ (`A73`, 04.09.2026).
+    ///
+    /// До этой строки такого выбора не было вовсе: пол назначала КРИВАЯ
+    /// (<see cref="FsaBandMode.LibraryToFitByCurve"/>), а у спектра без кривой
+    /// он падал на `Min_Range` — то есть на настройку ПОИСКА ПИКОВ, которая к
+    /// полосе разбора отношения не имеет. Кривая тем самым несла ДВЕ работы
+    /// разом: эффективность и границу полосы, — и спектры без геометрии
+    /// (39 корпусных из 129) теряли вторую вместе с первой.
+    ///
+    /// ⚠ Разводятся здесь именно РАБОТЫ, а не рычаги: пол по-прежнему считает
+    /// ОДНО место (<c>FsaSampleSpec.LineFloorKev</c>), и у кривой приоритет
+    /// остаётся первым — там, где кривая есть, всё до последнего знака как
+    /// было. Этот выбор действует ТОЛЬКО на запасной ветви.
+    /// </summary>
+    public enum FsaNoCurveFloor
+    {
+        /// <summary>
+        /// Как было до `A73`: пола нет, режет `Min_Range` прибора.
+        /// Оставлено ради A/B и как поставочное умолчание, пока замер не
+        /// назовёт лучшее.
+        /// </summary>
+        MinRange,
+
+        /// <summary>
+        /// ПОРОГ АЦП САМОГО СПЕКТРА — наименьшая энергия, на которой у спектра
+        /// вообще есть отсчёты (<see cref="FsaBand.AdcFloorOf"/>). Кандидат из
+        /// строки `A73`: величина есть У КАЖДОГО спектра, кривой не требует.
+        /// </summary>
+        Adc,
+
+        /// <summary>
+        /// ЧИСЛО, объявленное на весь разбор
+        /// (<see cref="FsaBand.DefaultNoCurveFloorKev"/>). Третий кандидат
+        /// строки `A73` («число в манифесте»), сведённый к одному числу: у
+        /// корпуса пол одной и той же кривой одинаков внутри группы приборов,
+        /// и 39 отдельных чисел манифеста были бы 39 копиями одного решения.
+        /// </summary>
+        Fixed
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -223,6 +264,156 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static double DefaultShareThreshold = ShippedShareThreshold;
 
         /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ ЗАПАСНОЙ ВЕТВЬЮ — отдельно от того, что стоит
+        /// СЕЙЧАС, по той же причине, что <see cref="ShippedMode"/>.
+        ///
+        /// Поставляется <see cref="FsaNoCurveFloor.MinRange"/>, то есть в
+        /// точности прежнее поведение: это положительный контроль самой правки
+        /// `A73` — прогон поставочным умолчанием обязан воспроизвести базу
+        /// ПОБИТОВО, и только тогда числа других плеч принадлежат плечу, а не
+        /// правке.
+        /// </summary>
+        public const FsaNoCurveFloor ShippedNoCurveFloor = FsaNoCurveFloor.MinRange;
+
+        /// <summary>
+        /// Чем назначается пол у спектра БЕЗ кривой (`A73`). Двигается ключом
+        /// пробы `--nocurve-floor=`; живёт ОДНОЙ статикой и читается В МОМЕНТ
+        /// ОБРАЩЕНИЯ — вторая копия повторила бы `S101`.
+        /// </summary>
+        public static FsaNoCurveFloor DefaultNoCurveFloor = ShippedNoCurveFloor;
+
+        /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ ЧИСЛОМ запасной ветви. Число НЕЙТРАЛЬНОЕ ровно
+        /// постольку, поскольку сама ветвь по умолчанию выключена
+        /// (<see cref="ShippedNoCurveFloor"/>); значение взято равным полу,
+        /// который кривая назначает 38 спектрам малой базы из 42, — то есть
+        /// это НЕ «на глаз», а перенос уже измеренного числа на спектры, у
+        /// которых кривой нет. Годность его на непонятной части решает замер,
+        /// а не эта строка.
+        /// </summary>
+        public const double ShippedNoCurveFloorKev = 20.0;
+
+        /// <summary>Число запасной ветви, кэВ; ключ пробы `--nocurve-floor=&lt;кэВ&gt;`.</summary>
+        public static double DefaultNoCurveFloorKev = ShippedNoCurveFloorKev;
+
+        /// <summary>
+        /// ⛔ ПОЛ БЕЗ КРИВОЙ — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A73`).
+        ///
+        /// Возвращает 0, если назначить нечем: тогда, как и до `A73`, режет
+        /// `Min_Range`. Спрашивают его двое — <c>FsaSampleSpec.LineFloorKev</c>
+        /// (что режет линии) и заверение <see cref="FsaAnalyzer.BandNote"/> (что
+        /// печатается), — и оба обязаны звать ИМЕННО ЭТОТ метод: разойдясь в
+        /// нём, они повторили бы `S101` на новом месте.
+        /// </summary>
+        /// <param name="adcFloorKev">
+        /// порог АЦП спектра, кэВ (<see cref="AdcFloorOf"/>); 0 — неизвестен.
+        /// </param>
+        public static double NoCurveFloor(double adcFloorKev)
+        {
+            switch (DefaultNoCurveFloor)
+            {
+                case FsaNoCurveFloor.Adc:
+                    return adcFloorKev > 0.0 ? adcFloorKev : 0.0;
+                case FsaNoCurveFloor.Fixed:
+                    return DefaultNoCurveFloorKev > 0.0 ? DefaultNoCurveFloorKev : 0.0;
+                default:
+                    return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// ⛔ ПОРОГ АЦП СПЕКТРА, кэВ — наименьшая ПОЛОЖИТЕЛЬНАЯ энергия, на
+        /// которой у спектра есть хоть один отсчёт. Ниже неё в данных ровно
+        /// ноль, и привязанный образ, обязанный положить туда площадь, там
+        /// зануляется целиком — это измеренный отказ `A49`.
+        ///
+        /// ⚠ Каналы с неположительной энергией пропускаются нарочно: у 46
+        /// спектров малой базы из 59 нулевой канал сидит на отрицательной
+        /// энергии (до −43.9 кэВ у `G1S16_Mn54_P5`), потому что калибровка
+        /// внизу шкалы экстраполирована. Пол, взятый оттуда, был бы
+        /// отрицательным, то есть не полом вовсе.
+        ///
+        /// Возвращает 0, если спектра нет, калибровки нет или отсчётов нет
+        /// нигде: «назначить нечем» — законный ответ, а не отказ.
+        /// </summary>
+        public static double AdcFloorOf(int[] counts, EnergyCalibration calibration)
+        {
+            if (counts == null || calibration == null)
+            {
+                return 0.0;
+            }
+
+            for (int ch = 0; ch < counts.Length; ch++)
+            {
+                if (counts[ch] <= 0)
+                {
+                    continue;
+                }
+
+                double energy = calibration.ChannelToEnergy(ch);
+                if (energy > 0.0 && !double.IsNaN(energy) && !double.IsInfinity(energy))
+                {
+                    return energy;
+                }
+            }
+
+            return 0.0;
+        }
+
+        /// <summary>Тот же порог по готовому спектру.</summary>
+        public static double AdcFloorOf(EnergySpectrum spectrum)
+        {
+            return spectrum == null
+                ? 0.0
+                : AdcFloorOf(spectrum.Spectrum, spectrum.EnergyCalibration);
+        }
+
+        /// <summary>
+        /// Разобрать значение ключа `--nocurve-floor=`: `minrange` (как было),
+        /// `adc` (порог АЦП) или число в кэВ.
+        ///
+        /// ⛔ Возвращает false на непонятном значении, а НЕ «умолчание молча»:
+        /// старый разбор, счётший новое значение ключа за «не ноль», стоил
+        /// трёх часов счёта (`A77`).
+        /// </summary>
+        public static bool TryParseNoCurveFloor(string name, out FsaNoCurveFloor source,
+                                                out double kev)
+        {
+            source = DefaultNoCurveFloor;
+            kev = DefaultNoCurveFloorKev;
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            string s = name.Trim();
+            if (string.Equals(s, "minrange", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(s, "min", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(s, "off", StringComparison.OrdinalIgnoreCase))
+            {
+                source = FsaNoCurveFloor.MinRange;
+                return true;
+            }
+
+            if (string.Equals(s, "adc", StringComparison.OrdinalIgnoreCase))
+            {
+                source = FsaNoCurveFloor.Adc;
+                return true;
+            }
+
+            double value;
+            if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && value > 0.0)
+            {
+                source = FsaNoCurveFloor.Fixed;
+                kev = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// ⛔ СТОРОЖ ОБОИХ КОНЦОВ ПОЛОСЫ (`S101`, измерено 26.08.2026).
         ///
         /// Полосу читают ДВА места — <see cref="FsaAnalyzer"/> (полоса фита и
@@ -337,7 +528,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string Describe(FsaBandMode mode, double floorKev, double minKev, double maxKev)
         {
+            return Describe(mode, floorKev, minKev, maxKev, 0.0);
+        }
+
+        /// <summary>
+        /// То же, но с ПОЛОМ ЗАПАСНОЙ ВЕТВИ (`A73`): у спектра без кривой
+        /// заверение обязано назвать, чем пол назначен на самом деле, — иначе
+        /// строка «назначить нечем» врёт на всяком прогоне, где ветвь включена.
+        /// </summary>
+        public static string Describe(FsaBandMode mode, double floorKev, double minKev, double maxKev,
+                                      double noCurveFloorKev)
+        {
             string tail = mode == ShippedMode ? " (умолчание)" : " (НЕ умолчание, A/B)";
+            string noCurve = DefaultNoCurveFloor == ShippedNoCurveFloor
+                ? ""
+                : string.Format(CultureInfo.InvariantCulture,
+                    "; пол БЕЗ КРИВОЙ — {0} (НЕ умолчание, A/B)",
+                    DefaultNoCurveFloor == FsaNoCurveFloor.Adc
+                        ? "порог АЦП спектра"
+                        : string.Format(CultureInfo.InvariantCulture, "{0:F1} кэВ числом",
+                                        DefaultNoCurveFloorKev));
             switch (mode)
             {
                 case FsaBandMode.FitToLibrary:
@@ -352,13 +562,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // ⛔ Печатается ФАКТИЧЕСКИЙ пол, а не заказанный: у спектра
                     // без кривой его назначить нечем, и он падает на Min_Range.
                     // Заверение обязано называть то, что случилось.
-                    return floorKev > 0.0
+                    if (floorKev > 0.0)
+                    {
+                        return string.Format(CultureInfo.InvariantCulture,
+                            "полоса сведена ПОЛОМ ПО КРИВОЙ {0:F1} кэВ ({1:P1} от максимума, Min_Range {2:F1}), фит на всём спектре{3}{4}",
+                            floorKev, DefaultFloorFraction, minKev, tail, noCurve);
+                    }
+
+                    // `A73`: кривой нет — пол назначает запасная ветвь, и она
+                    // называется вслух ЧИСЛОМ. Без числа строка «запасная
+                    // ветвь» не отличает включённую ветвь от выключенной.
+                    return noCurveFloorKev > 0.0
                         ? string.Format(CultureInfo.InvariantCulture,
-                            "полоса сведена ПОЛОМ ПО КРИВОЙ {0:F1} кэВ ({1:P1} от максимума, Min_Range {2:F1}), фит на всём спектре{3}",
-                            floorKev, DefaultFloorFraction, minKev, tail)
+                            "кривой нет — пол БЕЗ КРИВОЙ {0:F1} кэВ (Min_Range {1:F1}), фит на всём спектре{2}{3}",
+                            Math.Min(minKev, noCurveFloorKev), minKev, tail, noCurve)
                         : string.Format(CultureInfo.InvariantCulture,
-                            "пол по кривой НАЗНАЧИТЬ НЕЧЕМ (кривой нет), библиотека от {0:F1} кэВ — запасная ветвь{1}",
-                            minKev, tail);
+                            "пол по кривой НАЗНАЧИТЬ НЕЧЕМ (кривой нет), библиотека от {0:F1} кэВ — запасная ветвь{1}{2}",
+                            minKev, tail, noCurve);
                 case FsaBandMode.LibraryToFitByShare:
                     // ⛔ Называется И пол первого прохода, И порог: без первого
                     // не видно, что вообще было впущено, без второго — что из
@@ -368,9 +588,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return string.Format(CultureInfo.InvariantCulture,
                         "полоса сведена ОПОРОЙ ПО СТОЛБЦУ: первый проход полом по кривой {0:F1} кэВ"
                         + " ({1:P1} от максимума, Min_Range {2:F1}), затем выброс подпороговых линий"
-                        + " с долей континуума > {3:F3} и ПЕРЕФИТ{4}",
-                        floorKev > 0.0 ? floorKev : minKev, DefaultFloorFraction, minKev,
-                        DefaultShareThreshold, tail);
+                        + " с долей континуума > {3:F3} и ПЕРЕФИТ{4}{5}",
+                        floorKev > 0.0
+                            ? floorKev
+                            : (noCurveFloorKev > 0.0 ? Math.Min(minKev, noCurveFloorKev) : minKev),
+                        DefaultFloorFraction, minKev,
+                        DefaultShareThreshold, tail, noCurve);
                 default:
                     return string.Format(CultureInfo.InvariantCulture,
                         "полосы РАЗНЫЕ, как до 25.08.2026: фит на всём спектре, библиотека от {0:F1} кэВ{1}",
@@ -1143,9 +1366,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                        ? efficiency.FloorAtFraction(FsaBand.DefaultFloorFraction)
                        : 0.0)
                 : this.LibraryFloorKev;
+
+            // `A73`: и пол ЗАПАСНОЙ ВЕТВИ — тем же способом, что у библиотеки.
+            // Порог АЦП анализатор считает по ТОМУ ЖЕ спектру, что разбирает, а
+            // решение «чем назначать» берёт у той же `FsaBand.NoCurveFloor`:
+            // два конца, назвавшие разные числа об одном поле, — это `S101`.
+            double noteNoCurve = FsaBand.NoCurveFloor(
+                FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
                 "{0}; фит {1}…{2} ({3:F1}…{4:F1} кэВ)",
-                FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy),
+                FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
                 chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
