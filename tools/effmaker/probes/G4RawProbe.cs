@@ -54,7 +54,7 @@ namespace G4RawProbe
             // Ключи АБЛЯЦИИ каналов утечки (`A63`): чем держится каждая полоса.
             bool xray = true, esc = true, brem = true;
             bool noLXray = false;                       // `A60`
-            bool klCascade = false;                     // `A101`
+            bool noKLCascade = false;                   // `A101`
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -69,9 +69,10 @@ namespace G4RawProbe
                 // `A60`, АБЛЯЦИЯ: снять вылет L-рентгена. Выключенный
                 // ключ возвращает счёт физики 14 до последнего бита.
                 if (a == "--no-lxray") { noLXray = true; continue; }
-                // `A101`: атомный каскад K→L. Умолчанием ВЫКЛ, как и в
-                // расчёте матрицы, — иначе проба мерила бы не то, что склад.
-                if (a == "--klcasc") { klCascade = true; continue; }
+                // `A101`: атомный каскад K→L. Умолчанием ВКЛ (физика 16), как и
+                // в расчёте матрицы, — иначе проба мерила бы не то, что склад.
+                // Ключ выключает его для абляции.
+                if (a == "--no-klcasc") { noKLCascade = true; continue; }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
                 {
                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
@@ -153,7 +154,7 @@ namespace G4RawProbe
             simulator.Histories = histories;
             simulator.LightNonproportionality = light;
             simulator.LXrayEscape = !noLXray;           // `A60`
-            simulator.KLCascade = klCascade;            // `A101`
+            simulator.KLCascade = !noKLCascade;         // `A101`
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
             simulator.XrayEscape = xray;
