@@ -1,0 +1,11 @@
+=== слова отказа (A89, A95) ===
+каталог сборки: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_noconf\
+
+ПЛЕЧО fsa — FsaOverlay.EnsureUpToDate на том же спектре
+BecqMoni: Ошибка: Не удалось загрузить библиотеку изотопов.
+  ПЛЕЧО НЕ ЗАПУСТИЛОСЬ (fsa): не поднялось библиотека нуклидов (NuclideDefinitionManager, config\NuclideDefinition.xml)
+  причина          : InvalidOperationException: BecqMoni: nuclide library could not be loaded and there is no UI to report it to: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_noconf\config\NuclideDefinition.xml. The 4-nuclide starter library is a windowed-first-run fallback only: it drives both peak search and FSA, so a headless run on it would print plausible nonsense. Run from a directory that has config\NuclideDefinition.xml.
+  ИТОГ fsa: НЕ ЗАПУСТИЛОСЬ — это отказ среды (каталог проб), вердикта по приложению нет
+
+
+НЕ ЗАПУСТИЛИСЬ: 1 (отказ СРЕДЫ, а не приложения; см. слова выше)

@@ -30,6 +30,17 @@ using BecquerelMonitor.EfficiencyMaker;
 ///   effcfgprobe &lt;модель.in&gt; &lt;кривая.txt&gt;
 ///
 /// Ожидание: «ВСЕ СОШЛИСЬ».
+///
+/// ⛔ ТРЕТЬЕГО ДОВОДА БОЛЬШЕ НЕТ (`T155`, 05.09.2026). Он назывался «пустой
+/// рабочий каталог» и обещал управлять местом записи на диск, а после `S102`
+/// место записи задаёт каталог СБОРКИ (`Package.DeviceDir`), и довод остался
+/// со смыслом «диск проверять» — имя обещало не то, что делалось. Живых
+/// читателей у него не нашлось (по дереву: ни один `.ps1`/`.py` пробу не
+/// зовёт; в `README.md` и в журнале 05.09.2026 он стоит как пример). Поэтому
+/// довод снят, а проверка диска идёт ВСЕГДА — она и есть то звено, ради
+/// которого заведена `T153`. Лишний довод — отказ словами, а не молчаливое
+/// поедание: прежняя команда с тремя доводами обязана упасть, иначе никто не
+/// узнает, что «каталог» перестал что-либо значить.
 /// </summary>
 static class EfficiencyConfigProbe
 {
@@ -37,9 +48,19 @@ static class EfficiencyConfigProbe
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        if (args.Length < 2)
+        if (args.Length != 2)
         {
-            Console.WriteLine("effcfgprobe <модель.in> <кривая.txt> [пустой рабочий каталог]");
+            Console.WriteLine("effcfgprobe <модель.in> <кривая.txt>");
+            if (args.Length > 2)
+            {
+                // `T155`: третий довод прежде звался «рабочий каталог», а местом
+                // записи не управлял. Съесть его молча значило бы оставить
+                // вызывающему веру, что он что-то задал.
+                Console.WriteLine("!! доводов {0}, а нужно 2: третий («{1}») снят — местом записи управляет каталог "
+                                  + "сборки (Package.DeviceDir), а не он (T155, S102)",
+                                  args.Length, args[2]);
+            }
+
             return 2;
         }
 
@@ -111,15 +132,9 @@ static class EfficiencyConfigProbe
         // Второй путь, на котором конфигурация может пропасть, — копия.
         bad += CheckClone(device);
 
-        // Третий — весь путь целиком, до файла на диске и обратно.
-        if (args.Length >= 3)
-        {
-            bad += CheckDisk(args[2], config);
-        }
-        else
-        {
-            Console.WriteLine("(диск не проверялся: рабочий каталог не задан)");
-        }
+        // Третий — весь путь целиком, до файла на диске и обратно. Всегда
+        // (`T155`): куда писать, решает сборка, спрашивать нечего.
+        bad += CheckDisk(config);
 
         Console.WriteLine();
         Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
@@ -137,11 +152,11 @@ static class EfficiencyConfigProbe
     /// пропущенное в конструкторе копирования поле не доезжает до файла, даже
     /// если в памяти оно было.
     ///
-    /// Каталог задаётся снаружи и должен быть ОТДЕЛЬНЫМ: `Package` в отвязанной
-    /// сборке считает конфиг от текущего каталога, и проба, запущенная не там,
-    /// писала бы в чужие настройки.
+    /// Каталог снаружи НЕ задаётся (`T155`): `Package` в отвязанной сборке
+    /// считает конфиг от каталога СБОРКИ, и запись идёт рядом с exe пробы —
+    /// в каталог проб. Что проба там завела, она за собой убирает.
     /// </summary>
-    static int CheckDisk(string workdir, EfficiencyConfigData template)
+    static int CheckDisk(EfficiencyConfigData template)
     {
         // ⛔ КУДА ПИШЕТ ПРИЛОЖЕНИЕ, РЕШАЕТ КАТАЛОГ СБОРКИ, А НЕ ТЕКУЩИЙ (`T153`).
         //
@@ -158,19 +173,26 @@ static class EfficiencyConfigProbe
         //
         // Поэтому каталог спрашивается У ПРИЛОЖЕНИЯ, тем же `Package`, каким
         // пользуется менеджер: второй копии этого правила в пробе быть не
-        // должно — она и разошлась. `workdir` остаётся смыслом «диск
-        // проверять», и проба говорит, если он не тот, куда пойдёт запись.
+        // должно — она и разошлась. Довода «рабочий каталог» больше нет
+        // (`T155`): он этим местом не управлял.
         string device = Package.GetInstance().DeviceDir;
+        // ⛔ ЗАВЕДЁННЫЙ КАТАЛОГ — ТОЖЕ СЛЕД, И ЕГО ТОЖЕ УБИРАЕМ (`T155`, найдено
+        // 05.09.2026). `config\device`, оставленный пробой в каталоге проб, —
+        // ровно та «пустая заготовка в чужом каталоге», из-за которой заведены
+        // `S100` и `A90`: у `DeviceConfigManager` без окон отказ поднимается
+        // только на ОТСУТСТВУЮЩЕМ каталоге, а пустой существующий он читает
+        // молча, — и одна прогонка этой пробы меняла исход всех последующих
+        // (`RefusalWordsProbe --arm=fsa` в том же каталоге переставал падать).
+        // Мерено: `build_b1_bare\config\device` от 04.09.2026 22:47 — пустой и
+        // никем не убранный; завести его без окон могла только эта проба —
+        // единственный `CreateDirectory(config\device)` в дереве, кроме её, у
+        // `DeviceConfigManager.cs:149`, и тот стоит под `HasWindows`. Убираем,
+        // если завели сами и он остался пуст; чужой каталог с чужими
+        // конфигурациями не трогаем.
+        bool madeDir = !Directory.Exists(device);
         Directory.CreateDirectory(device);
-        Console.WriteLine("диск: каталог записи (Package.DeviceDir) {0}", device);
-        string asked = Path.GetFullPath(Path.Combine(workdir, "config", "device"));
-        if (!string.Equals(Path.GetFullPath(device).TrimEnd(Path.DirectorySeparatorChar),
-                           asked.TrimEnd(Path.DirectorySeparatorChar),
-                           StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine("  (заданный каталог {0} местом записи НЕ является — S102: путь от каталога сборки)",
-                              asked);
-        }
+        Console.WriteLine("диск: каталог записи (Package.DeviceDir) {0}{1}", device,
+                          madeDir ? " — заведён пробой, будет убран" : " — был");
 
         DeviceConfigManager manager = DeviceConfigManager.GetInstance();
         manager.LoadAllConfigFiles();
@@ -238,6 +260,30 @@ static class EfficiencyConfigProbe
         {
             Console.WriteLine("!! диск: не удалось убрать {0}: {1}", path, e.Message);
             bad++;
+        }
+
+        if (madeDir)
+        {
+            try
+            {
+                // Только пустой: появись там чужой файл за время прогона,
+                // сносить его не наше дело.
+                if (Directory.GetFileSystemEntries(device).Length == 0)
+                {
+                    Directory.Delete(device);
+                    Console.WriteLine("диск: заведённый каталог {0} убран", device);
+                }
+                else
+                {
+                    Console.WriteLine("!! диск: заведённый каталог {0} не пуст — оставлен", device);
+                    bad++;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("!! диск: не удалось убрать каталог {0}: {1}", device, e.Message);
+                bad++;
+            }
         }
 
         return bad;

@@ -1,0 +1,14 @@
+исходно: точек 60, веществ с составом 5
+XML: 21679 знаков
+Raw: разбор 191 пар, переносимых 48, доехало 48; текст .in ТОТ ЖЕ
+полей геометрии сверено: 41
+Raw: разбор 191 пар, переносимых 48, доехало 191; текст .in ТОТ ЖЕ
+полей геометрии сверено: 41
+диск: каталог записи (Package.DeviceDir) C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\device
+  (заданный каталог C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\effwd\config\device местом записи НЕ является — S102: путь от каталога сборки)
+BecqMoni: device configs: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\device: 0 loaded
+диск: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\device\effprobe.xml, 22011 знаков
+Raw: разбор 191 пар, переносимых 48, доехало 48; текст .in ТОТ ЖЕ
+полей геометрии сверено: 41
+
+ВСЕ СОШЛИСЬ

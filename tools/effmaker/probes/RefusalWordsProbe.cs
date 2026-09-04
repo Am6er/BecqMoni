@@ -37,7 +37,7 @@ namespace RefusalWordsProbe
     /// мерит пустоту — это уже стоило захода (см. `A95`: обе половины молчали
     /// одинаково, и контроль проходил впустую).
     ///
-    ///     refusalwordsprobe [--arm=matdb|clone|fsa|all]
+    ///     refusalwordsprobe [--arm=matdb|clone|fsa|all] [--control=empty]
     ///
     /// Плечо <c>matdb</c> требует, чтобы рядом с пробой лежала ИСПОРЧЕННАЯ
     /// <c>matdb.sqlite</c> (база берётся из каталога сборки, см.
@@ -45,10 +45,46 @@ namespace RefusalWordsProbe
     /// Плечи <c>clone</c> и <c>fsa</c> базы не трогают вовсе.
     ///
     /// Ожидание на новой сборке: «ВСЕ СОШЛИСЬ», код возврата 0.
+    ///
+    /// ⛔ «ПЛЕЧО ОТКАЗАЛО» И «ПЛЕЧО НЕ ЗАПУСТИЛОСЬ» — РАЗНЫЕ ИСХОДЫ (`T150`,
+    /// 05.09.2026). Плечо <c>fsa</c> поднимало <c>DeviceConfigManager</c> ДО
+    /// всякого перехвата, а тот без <c>config\device</c> и без окон законно
+    /// бросает (`A90`): проба умирала кодом −532462766 со стеком на экране, и
+    /// отказ СРЕДЫ выглядел как отказ ПРОБЫ. Измерено 04.09.2026 (`A129`) и
+    /// 05.09.2026 на голом каталоге проб — одинаково.
+    ///
+    /// ⚠ ПОСЫЛКА СТРОКИ `T150` («плечу нужен <c>config\device</c>») УЖЕ
+    /// РЕАЛЬНОСТИ, и это установлено поиском, а не мнением: во всём
+    /// <c>FullSpectrumAnalysis\*.cs</c>, в <c>EnergySpectrum.cs</c> и в
+    /// <c>ResultData.cs</c> единственный вызов <c>GetInstance()</c> — это
+    /// <c>NuclideDefinitionManager</c> (<c>FsaOverlay.cs:251</c>, <c>:583</c>).
+    /// Ни <c>DeviceConfigManager</c>, ни <c>GlobalConfigManager</c> дверь
+    /// разложения не трогает; требование <c>config\device</c> проба выдумала
+    /// себе сама. Поэтому под перехватом поднимается РОВНО ТО, что дверь может
+    /// тронуть, — библиотека нуклидов, — и среда, в которой плечо не
+    /// запускается, это каталог без <c>config\NuclideDefinition.xml</c>, а не
+    /// без <c>config\device</c>. Отказ подготовки печатается словами «ПЛЕЧО НЕ
+    /// ЗАПУСТИЛОСЬ» с ОТДЕЛЬНЫМ кодом:
+    ///
+    ///   0 — все плечи запустились и у всех «ПРИЧИНА НАЗВАНА»;
+    ///   1 — все запустились, хоть у одного «ПРИЧИНА МОЛЧОК» (дефект ПРИЛОЖЕНИЯ);
+    ///   2 — неизвестный ключ;
+    ///   3 — хоть одно плечо НЕ ЗАПУСТИЛОСЬ (дефект СРЕДЫ: нет <c>config\</c>,
+    ///       менеджер не поднялся) — вердикта по приложению у такого прогона НЕТ.
+    ///
+    /// Положительный контроль плеча <c>fsa</c> — ключ <c>--control=empty</c>:
+    /// у спектра СНИМАЕТСЯ массив отсчётов (<c>Spectrum = null</c>), дверь
+    /// разложения на нём НЕ отказывает (сторож в начале <c>EnsureUpToDate</c>
+    /// отсекает его раньше, чем дело дойдёт до снимка), и плечо обязано сказать
+    /// «РАЗЛОЖЕНИЕ НЕ ОТКАЗАЛО — плечо ничего не мерит» кодом 1. Плечо, которое
+    /// на этом входе даёт «ПРИЧИНА НАЗВАНА», не мерит ничего. Ключ относится
+    /// только к плечу <c>fsa</c>: с другим <c>--arm=</c> — отказ кодом 2.
     /// </summary>
     static class Program
     {
         static int bad;
+        static int notStarted;
+        static string control = "";
 
         static int Main(string[] args)
         {
@@ -62,6 +98,10 @@ namespace RefusalWordsProbe
                 {
                     arm = a.Substring(6);
                 }
+                else if (a == "--control=empty")
+                {
+                    control = "empty";
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
@@ -69,8 +109,19 @@ namespace RefusalWordsProbe
                 }
             }
 
+            if (control.Length > 0 && arm != "all" && arm != "fsa")
+            {
+                Console.Error.WriteLine("--control=" + control + " относится к плечу fsa, а выбрано --arm=" + arm
+                                        + ": контроль, который ни к чему не приложен, мерит пустоту");
+                return 2;
+            }
+
             Console.WriteLine("=== слова отказа (A89, A95) ===");
             Console.WriteLine("каталог сборки: {0}", AppDomain.CurrentDomain.BaseDirectory);
+            if (control.Length > 0)
+            {
+                Console.WriteLine("контроль      : {0} (плечо fsa обязано сказать «не мерит» и вернуть 1)", control);
+            }
             Console.WriteLine();
 
             if (arm == "all" || arm == "matdb")
@@ -89,8 +140,44 @@ namespace RefusalWordsProbe
             }
 
             Console.WriteLine();
+            if (notStarted > 0)
+            {
+                // Вердикта по приложению НЕТ: плечо, которое не запустилось,
+                // ничего не измерило, и «НЕ СОШЛОСЬ» здесь было бы ложью о
+                // приложении. Код отдельный — читатель отличит среду от дефекта.
+                Console.WriteLine("НЕ ЗАПУСТИЛИСЬ: {0} (отказ СРЕДЫ, а не приложения; см. слова выше){1}",
+                                  notStarted, bad > 0 ? "; у запустившихся НЕ СОШЛОСЬ: " + bad : "");
+                return 3;
+            }
+
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Подготовка плеча под перехватом (`T150`): всё, что плечо поднимает ДО
+        /// замера, — менеджеры, конфиги — может отказать по вине СРЕДЫ, и такой
+        /// отказ обязан быть назван как «не запустилось», а не уронить пробу
+        /// стеком и кодом −532462766. Причина печатается словами
+        /// <see cref="AppUi.Reason"/> — той же дверью, что у приложения.
+        /// </summary>
+        static bool Prepare(string arm, string what, Action warmUp)
+        {
+            try
+            {
+                warmUp();
+                Console.WriteLine("  подготовка       : {0} — поднялось", what);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("  ПЛЕЧО НЕ ЗАПУСТИЛОСЬ ({0}): не поднялось {1}", arm, what);
+                Console.WriteLine("  причина          : {0}", OneLine(AppUi.Reason(ex)));
+                Console.WriteLine("  ИТОГ {0}: НЕ ЗАПУСТИЛОСЬ — это отказ среды (каталог проб), вердикта по приложению нет", arm);
+                Console.WriteLine();
+                notStarted++;
+                return false;
+            }
         }
 
         // ------------------------------------------------------------------
@@ -180,14 +267,31 @@ namespace RefusalWordsProbe
         {
             Console.WriteLine("ПЛЕЧО fsa — FsaOverlay.EnsureUpToDate на том же спектре");
 
-            // Менеджеры поднимаются ДО подмены потока ошибок: их собственные
-            // заверения (`AppUi.Note`) не должны попасть в замеряемое.
-            GlobalConfigManager.GetInstance();
-            DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager.GetInstance();
+            // Поднимается ДО подмены потока ошибок и ПОД ПЕРЕХВАТОМ (`T150`)
+            // ровно то, что дверь разложения может тронуть, — библиотека
+            // нуклидов (`FsaOverlay.Launch`, `NuclideDefinitionManager`): её
+            // заверение (`AppUi.Note`) не должно попасть в замеряемое, а её
+            // отказ без `config\NuclideDefinition.xml` — это отказ СРЕДЫ, и
+            // выглядеть отказом пробы он не должен. `DeviceConfigManager` и
+            // `GlobalConfigManager` здесь БОЛЬШЕ НЕ поднимаются: дверь их не
+            // зовёт (см. шапку), а требовать `config\device` от плеча, которому
+            // он не нужен, значило ронять пробу на каждом голом каталоге.
+            if (!Prepare("fsa", "библиотека нуклидов (NuclideDefinitionManager, config\\NuclideDefinition.xml)",
+                         () => NuclideDefinitionManager.GetInstance()))
+            {
+                return;
+            }
 
             ResultData data = new ResultData();
             data.EnergySpectrum = MakeSpectrumWithoutCalibration();
+            if (control == "empty")
+            {
+                // Положительный контроль: без отсчётов дверь молчит ЗАКОННО, а
+                // плечо обязано это заметить и сказать «не мерит» — иначе
+                // «ПРИЧИНА НАЗВАНА» ниже ничего не значило бы.
+                data.EnergySpectrum.Spectrum = null;
+                Console.WriteLine("  контроль         : у спектра снят массив отсчётов (Spectrum = null)");
+            }
 
             FsaOverlay overlay = new FsaOverlay();
             TextWriter saved = Console.Error;
@@ -229,8 +333,9 @@ namespace RefusalWordsProbe
 
         /// <summary>
         /// Спектр без энергетической калибровки — ровно то, обо что спотыкался
-        /// снимок. Отсчёты заполняются: пустой <c>Spectrum</c> отсекается
-        /// сторожем <c>EnsureUpToDate</c> раньше, и плечо не дошло бы до отказа.
+        /// снимок. Отсчёты заполняются: <c>Spectrum == null</c> отсекается
+        /// сторожем <c>EnsureUpToDate</c> раньше, и плечо не дошло бы до отказа
+        /// — на этом и стоит контроль <c>--control=empty</c>.
         /// </summary>
         static EnergySpectrum MakeSpectrumWithoutCalibration()
         {
