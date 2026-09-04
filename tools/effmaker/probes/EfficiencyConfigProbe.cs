@@ -143,9 +143,34 @@ static class EfficiencyConfigProbe
     /// </summary>
     static int CheckDisk(string workdir, EfficiencyConfigData template)
     {
-        string device = Path.Combine(workdir, "config", "device");
+        // ⛔ КУДА ПИШЕТ ПРИЛОЖЕНИЕ, РЕШАЕТ КАТАЛОГ СБОРКИ, А НЕ ТЕКУЩИЙ (`T153`).
+        //
+        // Проба строила путь сама — `<workdir>\config\device\effprobe.xml` — и
+        // переводила туда текущий каталог. Пока портативные пути `Package`
+        // были ОТНОСИТЕЛЬНЫМИ, это работало. Правка `S102` (27.08.2026) увела
+        // их на `AppDomain.CurrentDomain.BaseDirectory` — каталог, где лежит
+        // exe, — потому что текущий каталог приложению меняет любой диалог
+        // открытия файла. С тех пор `SetCurrentDirectory` на место записи не
+        // влияет ВОВСЕ: менеджер пишет рядом с exe, а проба искала файл в
+        // `workdir` и честно отказывала «файла нет». Измерено 04.09.2026:
+        // `LoadAllConfigFiles` даже не дошёл до записи — свалился на
+        // отсутствии `<каталог проб>\config\device`, назвав его вслух.
+        //
+        // Поэтому каталог спрашивается У ПРИЛОЖЕНИЯ, тем же `Package`, каким
+        // пользуется менеджер: второй копии этого правила в пробе быть не
+        // должно — она и разошлась. `workdir` остаётся смыслом «диск
+        // проверять», и проба говорит, если он не тот, куда пойдёт запись.
+        string device = Package.GetInstance().DeviceDir;
         Directory.CreateDirectory(device);
-        Directory.SetCurrentDirectory(workdir);
+        Console.WriteLine("диск: каталог записи (Package.DeviceDir) {0}", device);
+        string asked = Path.GetFullPath(Path.Combine(workdir, "config", "device"));
+        if (!string.Equals(Path.GetFullPath(device).TrimEnd(Path.DirectorySeparatorChar),
+                           asked.TrimEnd(Path.DirectorySeparatorChar),
+                           StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("  (заданный каталог {0} местом записи НЕ является — S102: путь от каталога сборки)",
+                              asked);
+        }
 
         DeviceConfigManager manager = DeviceConfigManager.GetInstance();
         manager.LoadAllConfigFiles();
@@ -199,6 +224,22 @@ static class EfficiencyConfigProbe
         bad += Same("диск: точек кривой", added.Curve.Count, back.Curve.Count);
         bad += Same("диск: ActiveEfficiency найдена", true, fromDisk.ActiveEfficiency != null);
         bad += CompareGeometry(added.Geometry, back.Geometry);
+
+        // ⚠ ЗА СОБОЙ УБИРАЕМ (`T153`). Запись идёт в каталог СБОРКИ, то есть в
+        // каталог проб, и оставленный `effprobe.xml` попал бы в
+        // `LoadAllConfigFiles` всех следующих прогонов — конфигурация прибора,
+        // которой нет ни в одном списке источников. Не удалось убрать —
+        // говорим вслух, а не молчим.
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("!! диск: не удалось убрать {0}: {1}", path, e.Message);
+            bad++;
+        }
+
         return bad;
     }
 
@@ -263,8 +304,27 @@ static class EfficiencyConfigProbe
                 continue;
             }
 
-            // Разбор файла не хранится нарочно — см. GeometryModel.Raw.
-            if (f.Name == "Raw" || f.Name == "Warnings")
+            // ⛔ РАЗБОР ФАЙЛА (`Raw`) СВЕРЯЕТСЯ (`T152`, 04.09.2026). Прежде он
+            // из сверки исключался, и это было верно, пока `Raw` не хранился в
+            // конфигурации. После `A139` он хранится (`GeometryModel.RawList`,
+            // `[XmlArray("Raw")]`) — и если потеряется при записи-чтении, то
+            // писатель перестанет находить чужие блоки файла, текст `.in`
+            // изменится, а с ним и `ComputeStamp`: человек получит «матрица
+            // устарела» и часы пересчёта при той же геометрии. Именно это
+            // исключение и делало пропажу невидимой.
+            //
+            // ⚠ `Equals` на `Dictionary` — сравнение ССЫЛОК, и на разных
+            // объектах оно ложно ВСЕГДА. Поэтому пары сверяются поимённо.
+            if (f.Name == "Raw")
+            {
+                checkedFields++;
+                bad += CompareRaw(a, b);
+                continue;
+            }
+
+            // `Warnings` — список замечаний РАЗБОРА, он заполняется при чтении
+            // `.in` и в конфигурацию не пишется. Сверять его нечем и незачем.
+            if (f.Name == "Warnings")
             {
                 continue;
             }
@@ -279,6 +339,76 @@ static class EfficiencyConfigProbe
         }
 
         Console.WriteLine("полей геометрии сверено: {0}", checkedFields);
+        return bad;
+    }
+
+    /// <summary>
+    /// Разбор файла `.in` (`GeometryModel.Raw`): пары ключ-значение, из которых
+    /// писатель берёт чужие блоки — коаксиал `DC_*`, вещества ЛСРМ. `T152`.
+    ///
+    /// ⛔ СВЕРЯЕТСЯ НЕ ВЕСЬ РАЗБОР, А ЕГО ПЕРЕНОСИМАЯ ДОЛЯ, и это не поблажка.
+    /// `GeometryModel.RawList` (форма записи `Raw` для XML) хранит ровно
+    /// `GeometryWriter.CarriedFrom` — то, что писатель ЧИТАЕТ обратно; остальное
+    /// это те же числа, что уже лежат в полях модели, и хранить их значило бы
+    /// раздувать конфигурацию вдвое (мерено при `A139` на `Nano16Pro.in`: 191
+    /// ключ против 55, XML 18960 знаков против 11000). Требовать все 191 —
+    /// значит требовать от кода того, чего он не обещал: измерено 04.09.2026,
+    /// первая редакция этой сверки дала 288 «расхождений», и все до одного были
+    /// НЕпереносимыми ключами.
+    ///
+    /// Потеря же переносимого ключа — настоящая беда, ради которой сверка и
+    /// заводится: писатель перестанет находить чужой блок, текст `.in`
+    /// изменится, а с ним и `ComputeStamp` — «матрица устарела» на пустом месте.
+    ///
+    /// ⚠ ЛИШНИЕ ключи в копии расхождением НЕ считаются. Два пути хранения
+    /// доносят разный объём — измерено 04.09.2026 на `Nano16Pro_Marinelli.in`:
+    /// круговорот `XmlSerializer` в памяти доносит все 191 пару, а запись
+    /// менеджером на диск и чтение обратно — 48 переносимых. Вреда от лишнего
+    /// нет: писатель читает только своё. Поэтому проверяется ПРОПАЖА и ПОДМЕНА,
+    /// а рядом стоит прямая мера смысла — совпадение самого текста `.in`.
+    /// </summary>
+    static int CompareRaw(GeometryModel a, GeometryModel b)
+    {
+        if (a.Raw == null || b.Raw == null)
+        {
+            Console.WriteLine("!! Raw: разбор равен null (было {0}, стало {1})",
+                              a.Raw == null ? "null" : a.Raw.Count.ToString(),
+                              b.Raw == null ? "null" : b.Raw.Count.ToString());
+            return 1;
+        }
+
+        // Ожидаемое берётся у САМОГО писателя, а не переписывается сюда
+        // списком: второй список «что переносится» разошёлся бы молча.
+        Dictionary<string, string> carried = GeometryWriter.CarriedFrom(a);
+
+        int bad = 0;
+        foreach (KeyValuePair<string, string> pair in carried)
+        {
+            string got;
+            if (!b.Raw.TryGetValue(pair.Key, out got))
+            {
+                Console.WriteLine("!! Raw: ПЕРЕНОСИМЫЙ ключ {0} ПРОПАЛ (было «{1}»)", pair.Key, pair.Value);
+                bad++;
+            }
+            else if (got != pair.Value)
+            {
+                Console.WriteLine("!! Raw: {0}: «{1}» -> «{2}»", pair.Key, pair.Value, got);
+                bad++;
+            }
+        }
+
+        // ⛔ ПРЯМАЯ МЕРА: ради чего разбор хранится, то и спрашивается — текст
+        // `.in`, отрисованный писателем, обязан совпасть до знака. Ключи могут
+        // храниться как угодно; сойтись обязан результат.
+        string ta = GeometryWriter.Render(a), tb = GeometryWriter.Render(b);
+        if (ta != tb)
+        {
+            Console.WriteLine("!! текст .in после круговорота РАЗОШЁЛСЯ: {0} знаков -> {1}", ta.Length, tb.Length);
+            bad++;
+        }
+
+        Console.WriteLine("Raw: разбор {0} пар, переносимых {1}, доехало {2}; текст .in {3}",
+                          a.Raw.Count, carried.Count, b.Raw.Count, ta == tb ? "ТОТ ЖЕ" : "РАЗОШЁЛСЯ");
         return bad;
     }
 

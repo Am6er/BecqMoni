@@ -36,17 +36,32 @@ u"""Ключ, которого нет: `GetString("X")` без `X` в парно
 `null` любому, у кого культура не русская, — поэтому такая находка не
 прощается, а печатается отдельной пометкой «есть только в ru».
 
+**Третье — литерал через ОДИН шаг (`A108`, 04.09.2026).** Имя ключа не обязано
+стоять в самом вызове: `GetResourceText("PeakFitChiTableTitle", "…")` уходит в
+обёртку, а `GetString(issue.Resource)` берёт имя из поля, куда литерал кладут в
+другом файле. Оба пути разбираются НЕ по списку имён, а по устройству: сначала
+находится вызов с вычисляемым именем, из него выводится источник (параметр
+обёртки либо имя члена), и только потом по дереву собираются литералы. Так
+третье такое место проверится само, без правки этого файла.
+
+⛔ **Ручная проверка тех же мест уже промахнулась, и это измерено.** До `A108`
+шесть ключей были проверены глазами и объявлены целыми. Первый же прогон
+третьего плеча нашёл СЕДЬМОЙ: `DCFwhmCalibrationView.cs:704` просит
+`PeakFitChiTableScoreColumn`, которого нет ни в `Resources.resx`, ни в
+`Resources.ru.resx`. Приложение не падает (у обёртки есть запасное «Score»),
+но заголовок столбца не переводится вовсе. Глаза считали ключи у ОДНОГО вызова
+обёртки, а их у неё семь.
+
 ## Чего это НЕ ловит
 
-**Обращение с ВЫЧИСЛЯЕМЫМ именем.** `GetString(resourceName)`,
-`GetString(issue.Resource)` — имя ключа известно только на ходу. Такие места
-НЕ пропускаются молча: они считаются и печатаются числом, чтобы было видно,
-какая доля дерева этой проверке недоступна. На 04.09.2026 их ДВА, и оба
-проверены руками: `DCFwhmCalibrationView.GetResourceText` зовут только с
-литералом `PeakFitChiTableUnavailable` и у неё ЕСТЬ запасное значение на
-`null`; `GeometryEditorPanel` берёт имя из поля `Resource`, а туда в
-`EfficiencyMaker/GeometryScenes.cs` кладут пять литералов
-`GeometryEditorError*`. Все шесть ключей в `Resources.resx` есть.
+**Вычисляемое имя, чей источник не литерал.** Разбирается ровно один шаг —
+параметр обёртки и присваивание члену. Имя, собранное из кусков или пришедшее
+из таблицы, останется недоступным; такие места не пропускаются молча, а
+считаются и печатаются числом. На 04.09.2026 недоступных НОЛЬ.
+
+**Обёртка над ЧУЖИМ менеджером ресурсов.** Разбирается только вызов через
+общий `Resources.ResourceManager` — у него известен resx. Лучше честный ноль,
+чем сверка не с тем файлом.
 
 **Ключ, который есть, но пуст.** Это забота `check_resx.py` (`ResXNullRef`).
 
@@ -77,6 +92,18 @@ SHA256. Проверка отказала (код 1), назвала ключ и
 и был неправ он, а не проверка: строка «НЕТ ПАРНОГО RESX» называет ФАЙЛ и
 ожидавшийся resx, а контроль искал в ней имя ключа.
 
+**Плечо третье — тоже на искусственном дереве (`A108`, 04.09.2026), потому что
+файлы с ключами одного шага заняты другими полосами и портить их нельзя.**
+Собирается дерево с обёрткой (`Wrap("Ключ", "запасное")` → `GetString(param)`) и
+с членом (`GetString(issue.Resource)`, а `Resource = "Ключ"` кладут в ДРУГОМ
+файле). Исправное дерево — код 0; порча ветви обёртки и порча ветви члена по
+очереди — код 1, и каждый раз названы файл, строка и ключ.
+
+И рядом стоит естественная мера на НАСТОЯЩЕМ дереве: та же команда на версии до
+`A108` даёт 709 обращений, 0 находок, код 0; после — 726 обращений (+17 через
+один шаг), недоступных 2 → 0, и ОДНА находка, подтверждённая руками
+(`PeakFitChiTableScoreColumn` нет ни в одном из двух resx).
+
     python tools/check_resx_designer.py [--list] [путь]
 
 Возвращает 1, если хоть один ключ не найден.
@@ -93,6 +120,139 @@ LITERAL = re.compile(r'ResourceManager\.Get(String|Object)\(\s*"([^"]*)"')
 DYNAMIC = re.compile(r'ResourceManager\.Get(?:String|Object)\(\s*(?!")')
 # Плечо обычного кода: единственная форма записи, встречающаяся в дереве.
 HAND = re.compile(r'\bResources\.ResourceManager\.Get(String|Object)\(\s*"([^"]*)"')
+
+# ---------------------------------------------------------------------------
+# Плечо третье: литерал, доезжающий до `GetString` через ОДИН шаг (`A108`).
+#
+# Имя ключа не обязано стоять в самом вызове. В дереве оно приходит двумя
+# путями, и оба до 04.09.2026 были для проверки невидимы:
+#
+#   * ОБЁРТКА — `GetResourceText("PeakFitChiTableUnavailable", "n/a")`, а внутри
+#     `Resources.ResourceManager.GetString(resourceName)`;
+#   * ЧЛЕН — `GetString(issue.Resource)`, а `Resource = "GeometryEditorError…"`
+#     кладут в другом файле (`EfficiencyMaker/GeometryScenes.cs`).
+#
+# Оба разбираются НЕ по списку имён, а по устройству: сначала находится сам
+# вызов с вычисляемым именем, из него выводится источник (параметр обёртки либо
+# имя члена), и только потом по дереву собираются литералы, которые в этот
+# источник кладут. Список «какие обёртки бывают» здесь не пишется нарочно — он
+# устарел бы ровно так же, как устарела ручная проверка шести ключей.
+#
+# ⛔ Разбирается только вызов через ОБЩИЙ менеджер (`Resources.ResourceManager`):
+# у него известен resx. Обёртка над другим менеджером останется в недоступных —
+# лучше честный ноль, чем сверка не с тем файлом.
+
+# `Resources.ResourceManager.GetString(имя)` — простой идентификатор (параметр).
+WRAP_CALL = re.compile(r'\bResources\.ResourceManager\.Get(?:String|Object)\(\s*([A-Za-z_]\w*)\s*[,)]')
+# `Resources.ResourceManager.GetString(что-то.Член)` — имя из члена.
+MEMBER_CALL = re.compile(r'\bResources\.ResourceManager\.Get(?:String|Object)\(\s*[A-Za-z_][\w\.]*\.([A-Za-z_]\w*)\s*[,)]')
+# Объявление метода: модификаторы, тип, имя, скобки, открывающая фигурная.
+DECL = re.compile(
+    r'(?m)^[ \t]*(?:(?:public|private|protected|internal|static|virtual|override|sealed'
+    r'|async|new|partial|extern|unsafe)\s+)*'
+    r'[A-Za-z_][\w\.<>\[\],\s\?]*?\s+([A-Za-z_]\w*)\s*\(([^()]*)\)\s*(?:\r?\n)?\s*\{')
+
+
+def split_params(text):
+    u"""Имена параметров объявления: последнее слово каждого куска."""
+    out = []
+    depth = 0
+    piece = ''
+    for ch in text + ',':
+        if ch in '<([':
+            depth += 1
+        elif ch in '>)]':
+            depth -= 1
+        if ch == ',' and depth <= 0:
+            words = re.findall(r'[A-Za-z_]\w*', piece)
+            if words:
+                out.append(words[-1])
+            piece = ''
+        else:
+            piece += ch
+    return out
+
+
+def wrappers(root):
+    u"""Обёртки: {имя метода: номер параметра, который уходит в GetString}."""
+    found = {}
+    for path in sources(root, designer=False):
+        text = read(path)
+        decls = [(m.start(), m.group(1), split_params(m.group(2))) for m in DECL.finditer(text)]
+        if not decls:
+            continue
+        for call in WRAP_CALL.finditer(text):
+            # Объемлющий метод — последнее объявление ДО вызова. Конец тела не
+            # считается скобками нарочно: следующее объявление и есть граница,
+            # а вложенный метод в C# 7.3 внутри тела объявить можно и он тоже
+            # попадёт в список — то есть граница выйдет только УЖЕ, не шире.
+            owner = None
+            for start, name, params in decls:
+                if start < call.start():
+                    owner = (name, params)
+                else:
+                    break
+            if owner is None:
+                continue
+            name, params = owner
+            arg = call.group(1)
+            if arg in params:
+                found[name] = params.index(arg)
+    return found
+
+
+def members(root):
+    u"""Имена членов, через которые имя ключа доезжает до `GetString`."""
+    out = set()
+    for path in sources(root, designer=False):
+        for m in MEMBER_CALL.finditer(read(path)):
+            out.add(m.group(1))
+    return out
+
+
+def one_step(root):
+    u"""Литералы, доезжающие до `GetString` через один шаг: [(файл, строка, ключ, откуда)]."""
+    found = []
+    wraps = wrappers(root)
+    membs = members(root)
+    if not wraps and not membs:
+        return found, wraps, membs
+
+    calls = [(re.compile(r'\b%s\s*\(([^()]*)\)' % re.escape(name)), name, pos)
+             for name, pos in sorted(wraps.items())]
+    sets = [(re.compile(r'\b%s\s*=\s*"([^"]*)"' % re.escape(name)), name)
+            for name in sorted(membs)]
+
+    for designer in (True, False):
+        for path in sources(root, designer=designer):
+            for num, line in enumerate(read(path).replace('\r\n', '\n').split('\n'), 1):
+                for pattern, name, pos in calls:
+                    for args in pattern.findall(line):
+                        parts = split_args(args)
+                        if pos < len(parts):
+                            lit = re.match(r'^\s*"([^"]*)"\s*$', parts[pos])
+                            if lit:
+                                found.append((path, num, lit.group(1), name + '()'))
+                for pattern, name in sets:
+                    for lit in pattern.findall(line):
+                        found.append((path, num, lit, '.' + name))
+    return found, wraps, membs
+
+
+def split_args(text):
+    u"""Аргументы вызова по запятым верхнего уровня."""
+    out, depth, piece = [], 0, ''
+    for ch in text + ',':
+        if ch in '<([':
+            depth += 1
+        elif ch in '>)]':
+            depth -= 1
+        if ch == ',' and depth <= 0:
+            out.append(piece)
+            piece = ''
+        else:
+            piece += ch
+    return out
 
 # Общие ресурсы приложения — то, к чему обращается рукописный код. Путь берётся
 # ОТ КОРНЯ разбора, а не прибит: иначе проверку нельзя проверить на другом дереве.
@@ -118,13 +278,18 @@ def sources(root, designer):
             yield path
 
 
+def read(path):
+    u"""Текст файла. ⚠ Часть `*.cs` в дереве НЕ в UTF-8 (наследство
+    декомпилятора), и строгое чтение на них падает. Имена ключей — ASCII всегда,
+    поэтому испорченная буква в комментарии разбору не мешает; файл только
+    читается, не пишется."""
+    with open(path, encoding='utf-8-sig', errors='replace', newline='') as fh:
+        return fh.read()
+
+
 def scan(path, pattern):
     u"""Строки файла с обращениями: [(номер строки, вид, ключ)]."""
-    # ⚠ Часть `*.cs` в дереве НЕ в UTF-8 (наследство декомпилятора), и строгое
-    # чтение на них падает. Имена ключей — ASCII всегда, поэтому испорченная
-    # буква в комментарии разбору не мешает; файл только читается, не пишется.
-    with open(path, encoding='utf-8-sig', errors='replace', newline='') as fh:
-        text = fh.read()
+    text = read(path)
     found, dynamic = [], 0
     for num, line in enumerate(text.replace('\r\n', '\n').split('\n'), 1):
         for kind, name in pattern.findall(line):
@@ -181,6 +346,15 @@ def main(argv):
             if name not in names:
                 bad.append((path, num, kind, name, bool(ru and name in ru)))
 
+    # Плечо третье: литерал через ОДИН шаг — обёртка или член (`A108`).
+    step, wraps, membs = one_step(root)
+    for path, num, key, via in step:
+        checked += 1
+        if names is None:
+            continue
+        if key not in names:
+            bad.append((path, num, u'String через ' + via, key, bool(ru and key in ru)))
+
     for path, num, kind, name, only_ru in bad:
         print(u'НЕТ КЛЮЧА  %s:%d  Get%s("%s")%s'
               % (path.replace('\\', '/'), num, kind, name,
@@ -191,8 +365,22 @@ def main(argv):
 
     print()
     print(u'обращений с литеральным именем проверено: %d' % checked)
+    print(u'  из них через ОДИН шаг (обёртка или член): %d' % len(step))
     print(u'ключей, которых нет в нейтральном resx: %d' % len(bad))
-    print(u'обращений с вычисляемым именем (проверке недоступны): %d' % dynamic_total)
+    # ⚠ Вычитается ЧИСЛО ВЫЗОВОВ с вычисляемым именем, а не число разобранных
+    # литералов: один такой вызов обслуживает много литералов, и вычитание
+    # вторых дало бы отрицательный остаток. Разобранным считается вызов, чей
+    # источник имени найден, — их ровно столько, сколько обёрток и членов.
+    resolved = len(wraps) + len(membs)
+    print(u'обращений с вычисляемым именем: %d, из них разобрано одним шагом: %d'
+          % (dynamic_total, resolved))
+    print(u'обращений с вычисляемым именем (проверке недоступны): %d'
+          % max(dynamic_total - resolved, 0))
+    if wraps:
+        print(u'      обёртки: %s'
+              % u', '.join(u'%s(аргумент %d)' % (n, p + 1) for n, p in sorted(wraps.items())))
+    if membs:
+        print(u'      члены:   %s' % u', '.join(sorted(membs)))
     if show:
         for path in sources(root, designer=False):
             for num, _kind, _name in scan(path, HAND)[0]:
