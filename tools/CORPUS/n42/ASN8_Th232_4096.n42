@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="a0cf5d1e-5d33-4346-8131-65742c0dc2f5" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="5fe7fac5-3ba1-49fd-b5e5-68436c2e5b2a" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -21,11 +21,11 @@
     <CoefficientValues>-9.04552 0.733659 1.39E-05 </CoefficientValues>
   </EnergyCalibration>
   <EnergyCalibration id="BackgroundCalibration-0">
-    <CoefficientValues>-12.2296132356866 0.773791195750682 1.0308709193001E-05 </CoefficientValues>
+    <CoefficientValues>-12.229613235686569 0.77379119575068156 1.0308709193001E-05 </CoefficientValues>
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
-    <StartDateTime>13.10.2021 7:15:10</StartDateTime>
+    <StartDateTime>2021-10-13T07:15:10.388468+03:00</StartDateTime>
     <RealTimeDuration>PT131721.854932S</RealTimeDuration>
     <Spectrum id="SpectrumData" radDetectorInformationReference="Detector" energyCalibrationReference="SpectrumCalibration-0">
       <LiveTimeDuration>PT131721.854932S</LiveTimeDuration>
@@ -37,7 +37,7 @@
   </RadMeasurement>
   <RadMeasurement id="BackgroundMeasurement-0">
     <MeasurementClassCode>Background</MeasurementClassCode>
-    <StartDateTime>13.10.2021 7:15:10</StartDateTime>
+    <StartDateTime>2021-10-13T07:15:10.388468+03:00</StartDateTime>
     <RealTimeDuration>PT86427.132708S</RealTimeDuration>
     <Spectrum id="BackgroundData" radDetectorInformationReference="Detector" energyCalibrationReference="BackgroundCalibration-0">
       <LiveTimeDuration>PT86427.132708S</LiveTimeDuration>

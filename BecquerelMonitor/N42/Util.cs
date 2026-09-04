@@ -91,8 +91,8 @@ namespace BecquerelMonitor.N42
                 {
                     id = idMeasurement, //"SpectrumMeasurement",
                     MeasurementClassCode = measurementClassCode, // "Foreground",
-                    StartDateTime = data.StartTime.ToString(),
-                    RealTimeDuration = "PT" + data.EnergySpectrum.MeasurementTime + "S",
+                    StartDateTime = N42DateTime(data.StartTime),
+                    RealTimeDuration = N42Duration(data.EnergySpectrum.MeasurementTime),
                     //RadMeasurement -> Spectrum
                     Spectrum = new Spectrum[1]
                 };
@@ -100,7 +100,7 @@ namespace BecquerelMonitor.N42
                 {
                     id = idSpectrum, //"SpectrumData",
                     energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                    LiveTimeDuration = "PT" + data.EnergySpectrum.LiveTime + "S"
+                    LiveTimeDuration = N42Duration(data.EnergySpectrum.LiveTime)
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.EnergySpectrum.Spectrum);
 
@@ -109,7 +109,7 @@ namespace BecquerelMonitor.N42
                 rad.GrossCounts[0] = new GrossCounts
                 {
                     id = idGrossCounts, //"GrossForeground",
-                    TotalCounts = data.EnergySpectrum.TotalPulseCount.ToString()
+                    TotalCounts = N42Count(data.EnergySpectrum.TotalPulseCount)
                 };
             } else
             {
@@ -117,8 +117,8 @@ namespace BecquerelMonitor.N42
                 {
                     id = idMeasurement, //"SpectrumMeasurement",
                     MeasurementClassCode = measurementClassCode, // "Background",
-                    StartDateTime = data.StartTime.ToString(),
-                    RealTimeDuration = "PT" + data.BackgroundEnergySpectrum.MeasurementTime + "S",
+                    StartDateTime = N42DateTime(data.StartTime),
+                    RealTimeDuration = N42Duration(data.BackgroundEnergySpectrum.MeasurementTime),
                     //RadMeasurement -> Spectrum
                     Spectrum = new Spectrum[1]
                 };
@@ -126,7 +126,13 @@ namespace BecquerelMonitor.N42
                 {
                     id = idSpectrum, //"SpectrumData",
                     energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                    LiveTimeDuration = "PT" + data.BackgroundEnergySpectrum.MeasurementTime + "S"
+                    // ⚠ ЖИВОЕ ВРЕМЯ ФОНА ЗДЕСЬ НЕ ЖИВОЕ, а его же время измерения —
+                    //    в объекте есть LiveTime, и он не пишется. Дефект ОСТАВЛЕН
+                    //    как есть нарочно: он не про культуру (`A146`), сам по себе
+                    //    строки не имеет, а править вывоз «заодно» значит менять
+                    //    содержимое файлов сверх измеренного. Заведён отдельной
+                    //    находкой захода 05.09.2026.
+                    LiveTimeDuration = N42Duration(data.BackgroundEnergySpectrum.MeasurementTime)
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.BackgroundEnergySpectrum.Spectrum);
 
@@ -135,7 +141,7 @@ namespace BecquerelMonitor.N42
                 rad.GrossCounts[0] = new GrossCounts
                 {
                     id = idGrossCounts, //"GrossBackground",
-                    TotalCounts = data.BackgroundEnergySpectrum.TotalPulseCount.ToString()
+                    TotalCounts = N42Count(data.BackgroundEnergySpectrum.TotalPulseCount)
                 };
             }
             return rad;
@@ -148,11 +154,135 @@ namespace BecquerelMonitor.N42
             output.id = id;
             for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
             {
-                output.CoefficientValues = output.CoefficientValues + energyCalibration.Coefficients[i].ToString() + " ";
+                // ⛔ `A148`: ФОРМАТ "R", А НЕ ToString(). Без формата double
+                //    печатается как «G15», то есть пятнадцатью значащими
+                //    цифрами, а для точного обратного чтения их нужно
+                //    семнадцать. Измерено 05.09.2026 на 12 выгруженных файлах:
+                //    коэффициенты расходились у 9 из 12, относительно до
+                //    3.451E-15, а по шкале — до 7.7E-12 кэВ. Величина физически
+                //    ничтожна, но круг «вывоз → ввоз» из-за неё не сходился
+                //    ТОЧНО, и всякая побайтовая приёмка на нём слепла.
+                output.CoefficientValues = output.CoefficientValues
+                    + N42Number(energyCalibration.Coefficients[i]) + " ";
 
             }
-            output.CoefficientValues = output.CoefficientValues.Replace(',', '.');
+            // ⛔ `A146`: ЗДЕСЬ БЫЛА .Replace(',', '.') — ПОЛОВИНА ПОЧИНКИ, И ЕЁ БОЛЬШЕ НЕТ.
+            //    Про запятую в этом классе знали и правили её ровно у коэффициентов,
+            //    а у длительностей и даты нет. Подмена символа лечила только те
+            //    культуры, у которых разделитель дробной части — запятая: у fa-IR
+            //    это U+066B, и там она не помогала вовсе. Теперь число печатается
+            //    инвариантной культурой ИЗНАЧАЛЬНО, и подменять в нём нечего.
             return output;
+        }
+
+        // ==================================================================
+        // ЧИСЛО, ДЛИТЕЛЬНОСТЬ И ДАТА В ФАЙЛ N42 (`A146`, `A148`)
+        //
+        // ⛔ ФАЙЛ ПИШЕТСЯ ИНВАРИАНТНОЙ КУЛЬТУРОЙ, А НЕ КУЛЬТУРОЙ МАШИНЫ.
+        //    В N42 число записано с ТОЧКОЙ по спецификации, а double.ToString()
+        //    без культуры печатает разделителем то, что стоит у машины. Измерено
+        //    05.09.2026: под ru-RU вывоз давал
+        //    <LiveTimeDuration>PT356491,21293S</LiveTimeDuration>, и такой файл не
+        //    читается ни нами, ни кем-либо ещё.
+        //
+        // ⛔ ЭТО ХУЖЕ ЧТЕНИЯ (`A142`). Там отказывал ВВОЗ, и человек это видел
+        //    сразу; здесь порченый файл молча ложится на диск и обнаруживается у
+        //    получателя, когда исходного спектра под рукой уже нет.
+        //
+        // ⚠ В окнах дефект не проявлялся только потому, что MainForm.cs:162-164
+        //    при запуске глобально ставит разделителем точку: вывоз ФАЙЛА держался
+        //    на настройке, сделанной в другом месте и по другому поводу. Всякий
+        //    безоконный вызывающий этой подпорки не имеет.
+        // ==================================================================
+
+        /// <summary>
+        /// Вещественное число в файл N42: инвариантная культура и формат "R".
+        /// </summary>
+        private static string N42Number(double value)
+        {
+            return value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Целое число отсчётов в файл N42.
+        ///
+        /// ⚠ У целого «G» разделителей разрядов не ставит ни в одной культуре, то
+        /// есть отличие от прежнего <c>ToString()</c> тут только в знаке минуса —
+        /// а отсчёты неотрицательны. Инвариантная культура ставится всё равно:
+        /// правило «в файл пишем инвариантно» дороже поштучного разбора, у какого
+        /// именно поля культура сегодня не видна.
+        /// </summary>
+        private static string N42Count(long value)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Длительность в файл N42 — xs:duration вида <c>PT1234.5S</c>.
+        ///
+        /// ⛔ ФОРМАТ ЗДЕСЬ НЕ "R", И ЭТО ИЗМЕРЕНО, А НЕ ВЫБРАНО (05.09.2026).
+        /// Две причины, каждая — отказ:
+        ///
+        /// 1. "R" ПЕЧАТАЕТ ПОКАЗАТЕЛЬ СТЕПЕНИ, а xs:duration его не принимает.
+        ///    Замер: <c>(1e-7).ToString("R")</c> даёт «1E-07», и
+        ///    <c>XmlConvert.ToTimeSpan("PT1E-07S")</c> бросает FormatException —
+        ///    то есть «R» у длительностей завело бы ровно тот же дефект, ради
+        ///    которого затевалась `A146`: нечитаемый файл на диске.
+        /// 2. ЧИТАТЕЛЬ ЖИВЁТ НА СЕТКЕ 100 нс. TimeSpan хранит целые «тики» по
+        ///    100 нс, и цифры мельче отбрасываются ОБРЕЗАНИЕМ, а не округлением:
+        ///    55470.709087999996 доезжало обратно как 55470.7090879, то есть
+        ///    потеря 1E-7 с. Семь знаков после запятой — это ровно сетка тика:
+        ///    больше писать нечего, и округление до неё даёт остаток 7E-12 с
+        ///    вместо 1E-7 с.
+        ///
+        /// ⚠ ЧЕСТНО: круг «вывоз → ввоз» сходится ТОЧНО только для значений,
+        /// уже лежащих на сетке 100 нс. У корпусных времён в XML записаны все
+        /// 17 значащих цифр double (55470.709087999996), и такое значение на
+        /// сетку не ложится — остаётся 7E-12 с, предел самой сетки. Со ВТОРОГО
+        /// круга значение уже на сетке и сходится точно.
+        /// </summary>
+        private static string N42Duration(double seconds)
+        {
+            return "PT" + seconds.ToString("0.#######", CultureInfo.InvariantCulture) + "S";
+        }
+
+        /// <summary>
+        /// Длительность ИЗ файла N42 в секунды (`A147`).
+        ///
+        /// ⛔ ДЕЛЕНИЕ, А НЕ <c>TotalSeconds</c>, и это тоже замер. Свойство
+        /// <c>TimeSpan.TotalSeconds</c> считает УМНОЖЕНИЕМ на 1E-7, а само 1E-7
+        /// в double неточно — поэтому обратное чтение промахивалось на единицу
+        /// младшего разряда даже там, где строка была короткой и на сетку
+        /// ложилась: «PT3599.996S» давало 3599.9959999999996 вместо
+        /// 3599.9960000000001. Деление целого числа тиков на 10000000.0
+        /// округляется правильно и промаха не даёт. Измерено 05.09.2026 на 18
+        /// значениях: умножение промахнулось у 8 из 18, деление — ни у одного.
+        /// </summary>
+        private static double N42Seconds(string duration)
+        {
+            return XmlConvert.ToTimeSpan(duration).Ticks / (double)TimeSpan.TicksPerSecond;
+        }
+
+        /// <summary>
+        /// Дата и время начала набора в файл N42 — xs:dateTime.
+        ///
+        /// ⛔ Прежде здесь стояло <c>data.StartTime.ToString()</c>, и это было
+        /// негодно во ВСЯКОЙ культуре, а не только в культуре с запятой. Измерено
+        /// 05.09.2026 на одном и том же спектре: под ru-RU выходило
+        /// «28.11.2022 10:07:57», под en-US «11/28/2022 10:07:57 AM». Ни то, ни
+        /// другое не есть xs:dateTime, которого ждёт спецификация, и хуже того —
+        /// эти две записи ЧИТАЮТСЯ ПО-РАЗНОМУ: «28.11.2022», прочитанное культурой
+        /// с порядком месяц-день, либо даёт другую дату, либо не читается вовсе, а
+        /// разбор в <c>ParseMeasurementStartDateTime</c> обёрнут в пустой
+        /// <c>catch</c> — то есть время начала подменяется на «сейчас» МОЛЧА.
+        ///
+        /// <c>RoundtripKind</c> взят затем, что ровно им и читает
+        /// <c>ParseMeasurementStartDateTime</c> ПЕРВОЙ попыткой: пишущий и
+        /// читающий спрашивают об одном одинаково.
+        /// </summary>
+        private static string N42DateTime(DateTime value)
+        {
+            return XmlConvert.ToString(value, XmlDateTimeSerializationMode.RoundtripKind);
         }
 
         public DocEnergySpectrum ImportFromN42(RadiologicalInstrumentData rad, DocEnergySpectrum doc, string filename)
@@ -181,6 +311,23 @@ namespace BecquerelMonitor.N42
             List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
             long totalpulsecount = 0;
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+
+            // ⛔ `A152`: ЧИСЛО КАНАЛОВ БЕРЁТСЯ У ФАЙЛА, КАК У СОСЕДА.
+            //    Прежде этой строки здесь не было: файл на 1024 канала ложился в
+            //    документ, объявляющий 8192, каналы 1024…8191 оставались нулями, а
+            //    длина шкалы у документа была чужая. Разбор 2012 года в этом же
+            //    файле число каналов ФАЙЛА записывает — третьего соглашения быть
+            //    не должно.
+            //    ⛔ И это портило заведённую `A141` проверку: CheckCalibration
+            //    судит по числу каналов ДОКУМЕНТА, а полином подгонялся по точкам
+            //    ФАЙЛА, — то есть проверялась экстраполяция за край подгонки, а не
+            //    то, что подгоняли.
+            //    ⚠ Сверх того снимается падение: файл, у которого каналов БОЛЬШЕ,
+            //    чем у документа, ронял разбор IndexOutOfRangeException в цикле
+            //    ниже.
+            //    ⚠ ChannelPitch НЕ трогается нарочно: строка про него не говорит, а
+            //    у файлов, которые ввозились и раньше, это сдвинуло бы шаг шкалы.
+            energySpectrum.NumberOfChannels = NumberOfChanels;
             energySpectrum.Initialize();
 
             for (int i = 0; i < NumberOfChanels; i++)
@@ -293,8 +440,13 @@ namespace BecquerelMonitor.N42
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = chanData.Length;
-            double lifetime = XmlConvert.ToTimeSpan(rad.Measurement.Spectrum.LiveTime).TotalSeconds;
-            double realtime = XmlConvert.ToTimeSpan(rad.Measurement.Spectrum.RealTime).TotalSeconds;
+            // `A147`: тот же читатель длительности, что и у разбора 2012 года, —
+            //   деление вместо TotalSeconds. Здесь дробная часть не терялась
+            //   (приведения к int не было), но промах на единицу младшего разряда
+            //   был тот же, и второго соглашения о чтении времени в одном файле
+            //   быть не должно.
+            double lifetime = N42Seconds(rad.Measurement.Spectrum.LiveTime);
+            double realtime = N42Seconds(rad.Measurement.Spectrum.RealTime);
             string starttime = rad.Measurement.Spectrum.StartTime;
             N42_2006_InstrumentInformation instrument = rad.Measurement.InstrumentInformation;
 
@@ -348,9 +500,15 @@ namespace BecquerelMonitor.N42
             // PolynomialEnergyCalibration supports order 4 at most (see ChannelToEnergy);
             // the old check allowed order 5, which later failed outside the import's
             // try/catch at draw time.
+            //
+            // ⛔ `A151`: ТЕКСТ ИЗ РЕСУРСА, А НЕ АНГЛИЙСКИЙ ЛИТЕРАЛ. После `A136`
+            //    оконная дверь берёт причину из сообщения исключения, а причины
+            //    `A140` написаны по-русски — то есть в ОДНОМ окне человек читал то
+            //    русскую причину, то английскую, смотря какая беда с файлом. Ключ
+            //    заводится в обе культуры, как у `A135`.
             if (PolynomialOrder > 4)
             {
-                throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+                throw new Exception(string.Format(Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
             }
 
             double[] coefficients = new double[PolynomialOrder + 1];
@@ -426,6 +584,11 @@ namespace BecquerelMonitor.N42
             doc.Filename = SpectrumName + ".xml";
             doc.Text = SpectrumName;
 
+            // Сколько спектров УЖЕ положено в список. Это не то же самое, что
+            // номер измерения i (`A150`): фоновое измерение своей строки в списке
+            // не занимает, оно цепляется к предыдущему спектру.
+            int added = 0;
+
             for (int i = 0; i < SpectrumCount; i++)
             {
                 RadMeasurement radMeasurement = rad.RadMeasurement[i];
@@ -484,21 +647,34 @@ namespace BecquerelMonitor.N42
                 }
                 catch
                 { }
-                int LiveTime = 0;
-                int ElapsedTime = 0;
+                // ⛔ `A147`: ВРЕМЯ ХРАНИТСЯ ДРОБНЫМ, А НЕ ОБРЕЗАЕТСЯ ДО СЕКУНД.
+                //    Прежде здесь стояло (int)…TotalSeconds, то есть 356 491.213
+                //    превращалось в 356 491, а 3602.675 — в 3602. Измерено
+                //    05.09.2026 на 9 файлах из 12 в дереве.
+                //    ⚠ Это НЕ косметика: живое время стоит в знаменателе скорости
+                //    счёта, и потеря доезжает до чисел на экране — до 1 с потери,
+                //    то есть 0.03 % на часовом наборе и до 100 % на секундном.
+                //    Оба соседних разбора N42 в этом же файле хранят время дробным
+                //    (2006 — double lifetime/realtime, RadiologicalInstrumentData —
+                //    double LiveTime), третьего соглашения тут быть не должно.
+                //    ⚠ PresetTime остаётся целым: у ResultDataStatus это поле int
+                //    по смыслу (заданная человеком уставка в секундах), и менять
+                //    его вид — не эта работа.
+                double LiveTime = 0.0;
+                double ElapsedTime = 0.0;
                 if (radMeasurement.Spectrum[0].LiveTimeDuration != null && radMeasurement.Spectrum[0].LiveTimeDuration != "")
                 {
-                    LiveTime = (int)XmlConvert.ToTimeSpan(radMeasurement.Spectrum[0].LiveTimeDuration).TotalSeconds;
+                    LiveTime = N42Seconds(radMeasurement.Spectrum[0].LiveTimeDuration);
                 }
                 if (radMeasurement.RealTimeDuration != null && radMeasurement.RealTimeDuration != "")
                 {
-                    ElapsedTime = (int)XmlConvert.ToTimeSpan(radMeasurement.RealTimeDuration).TotalSeconds;
+                    ElapsedTime = N42Seconds(radMeasurement.RealTimeDuration);
                 }
                 resultData.EnergySpectrum.MeasurementTime = ElapsedTime;
                 resultData.EnergySpectrum.LiveTime = LiveTime;
                 resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
-                resultData.ResultDataStatus.PresetTime = ElapsedTime;
+                resultData.ResultDataStatus.PresetTime = (int)ElapsedTime;
 
                 // ChannelData.SpectrumToArray() handles compressionCode="CountedZeroes"
                 // (N42 run-length); the old manual split ignored it and produced a wrong
@@ -567,9 +743,11 @@ namespace BecquerelMonitor.N42
                     int PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
                     // Max supported order is 4 (see PolynomialEnergyCalibration).
+                    // `A151`: тот же ключ, что и у разбора 2006 года выше, — беда
+                    // одна, и текст у неё обязан быть один.
                     if (PolynomialOrder > 4)
                     {
-                        throw new Exception("Unsupported calibration points number. Got polynom order = " + PolynomialOrder);
+                        throw new Exception(string.Format(Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
                     }
 
                     double[] coefficients = new double[PolynomialOrder + 1];
@@ -644,12 +822,44 @@ namespace BecquerelMonitor.N42
                     }
                     AppUi.Report(text, "", MessageBoxIcon.None);
                 }
-                if (i == 0)
+                // ⛔ `A150`: ФОН ВОЗВРАЩАЕТСЯ ФОНОМ, А НЕ ВТОРЫМ ОБЫЧНЫМ СПЕКТРОМ.
+                //
+                //    Признак фона в N42 ЕСТЬ и он законный: MeasurementClassCode
+                //    со значением Background — и наш собственный вывоз его пишет
+                //    (см. ExportToN42 выше). Прежде разбор это поле не читал вовсе,
+                //    и всякий RadMeasurement становился равноправным спектром
+                //    списка: круг «вывоз → ввоз» превращал «спектр + фон» в «два
+                //    спектра» у 11 файлов из 12, и человеку об этом не говорилось.
+                //    Поэтому правильная правка здесь — ПЕРЕНОСИТЬ признак, а не
+                //    объявлять его невыразимым: невыразимым он не был.
+                //
+                //    Соглашение взято У СОСЕДА ЦЕЛИКОМ, а не заведено своё:
+                //    DocumentManager.ImportDocumentSpecUtils на источнике вида
+                //    «Background» кладёт спектр в ResultData.BackgroundEnergySpectrum
+                //    и подписывает его BackgroundSpectrumFile тем же образом. Модель
+                //    приложения такой признак носит; выдумывать поле не требуется.
+                //
+                //    ⚠ Фон, которому не к чему прицепиться (файл начинается с
+                //    Background или у хозяина фон уже есть), кладётся ОБЫЧНЫМ
+                //    спектром — так же, как у соседа. Иначе файл из одних только
+                //    фоновых измерений ввозился бы пустым.
+                bool isBackground = radMeasurement.MeasurementClassCode == "Background";
+                ResultData host = added > 0 ? doc.ResultDataFile.ResultDataList[added - 1] : null;
+                if (isBackground && host != null && host.BackgroundEnergySpectrum == null)
                 {
-                    doc.ResultDataFile.ResultDataList[0] = resultData;
-                } else
+                    host.BackgroundEnergySpectrum = resultData.EnergySpectrum;
+                    host.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + (added - 1) + ")";
+                }
+                else
                 {
-                    doc.ResultDataFile.ResultDataList.Add(resultData);
+                    if (added == 0)
+                    {
+                        doc.ResultDataFile.ResultDataList[0] = resultData;
+                    } else
+                    {
+                        doc.ResultDataFile.ResultDataList.Add(resultData);
+                    }
+                    added++;
                 }
             }
             doc.ResultDataFile.ResultDataList[0].Visible = true;

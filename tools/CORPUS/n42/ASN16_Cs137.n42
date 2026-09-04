@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="66bcf206-119e-4704-b287-876ce492c232" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="6edeb5b7-b2e9-4cbe-b4c1-b506a9795f90" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -18,14 +18,14 @@
     </RadInstrumentVersion>
   </RadInstrumentInformation>
   <EnergyCalibration id="SpectrumCalibration-0">
-    <CoefficientValues>-14.3070816163109 0.382405569375015 5.25695431580857E-06 1.61989407642933E-12 -2.60988169382898E-14 </CoefficientValues>
+    <CoefficientValues>-14.3070816163109 0.38240556937501541 5.256954315808566E-06 1.6198940764293263E-12 -2.60988169382898E-14 </CoefficientValues>
   </EnergyCalibration>
   <EnergyCalibration id="BackgroundCalibration-0">
-    <CoefficientValues>-14.3070816163109 0.382405569375015 5.25695431580857E-06 1.61989407642933E-12 -2.60988169382898E-14 </CoefficientValues>
+    <CoefficientValues>-14.3070816163109 0.38240556937501541 5.256954315808566E-06 1.6198940764293263E-12 -2.60988169382898E-14 </CoefficientValues>
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
-    <StartDateTime>28.11.2022 10:07:57</StartDateTime>
+    <StartDateTime>2022-11-28T10:07:57.379976+03:00</StartDateTime>
     <RealTimeDuration>PT360002S</RealTimeDuration>
     <Spectrum id="SpectrumData" radDetectorInformationReference="Detector" energyCalibrationReference="SpectrumCalibration-0">
       <LiveTimeDuration>PT356491.21293S</LiveTimeDuration>
@@ -37,7 +37,7 @@
   </RadMeasurement>
   <RadMeasurement id="BackgroundMeasurement-0">
     <MeasurementClassCode>Background</MeasurementClassCode>
-    <StartDateTime>28.11.2022 10:07:57</StartDateTime>
+    <StartDateTime>2022-11-28T10:07:57.379976+03:00</StartDateTime>
     <RealTimeDuration>PT497812S</RealTimeDuration>
     <Spectrum id="BackgroundData" radDetectorInformationReference="Detector" energyCalibrationReference="BackgroundCalibration-0">
       <LiveTimeDuration>PT497812S</LiveTimeDuration>

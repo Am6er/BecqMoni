@@ -95,7 +95,14 @@ namespace BecquerelMonitor.N42
             this.valueField = "";
             for (int i = 0; i < inputSpectra.Length; i++)
             {
-                this.valueField = this.valueField + inputSpectra[i].ToString() + " ";
+                // `A146`: в файл пишем ИНВАРИАНТНОЙ культурой. ⚠ У целого «G» не
+                // ставит разделителей разрядов ни в одной культуре, то есть здесь
+                // от прежнего ToString() отличается только знак минуса, а отсчёты
+                // неотрицательны. Правило всё равно применяется целиком: разбирать
+                // поштучно, у какого поля культура сегодня не видна, дороже, чем
+                // писать инвариантно везде.
+                this.valueField = this.valueField
+                    + inputSpectra[i].ToString(System.Globalization.CultureInfo.InvariantCulture) + " ";
 
             }
         }

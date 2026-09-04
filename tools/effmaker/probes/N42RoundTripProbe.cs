@@ -158,7 +158,8 @@ namespace N42RoundTripProbe
             rows.Add("spectrum,n42,bytes,channels_src,channels_back,channels_equal,"
                      + "counts_diff_channels,counts_max_abs_diff,sum_src,sum_back,"
                      + "order_src,order_back,coeff_max_rel_diff,max_dE_keV,"
-                     + "meastime_src,meastime_back,livetime_src,livetime_back,counts_ok,time_ok");
+                     + "meastime_src,meastime_back,livetime_src,livetime_back,counts_ok,time_ok,"
+                     + "time_max_abs_s,bg_src,bg_back,start_ok");
 
             int bad = 0;
             foreach (string name in names)
@@ -188,19 +189,48 @@ namespace N42RoundTripProbe
                 Console.WriteLine("список происхождения: " + Path.GetFullPath(manifest));
             }
 
-            int countsBad = 0, timeBad = 0;
+            // ⛔ Столбцы ищутся ПО ИМЕНИ, а не по смещению с конца. Прежде здесь
+            //    стояло c[c.Length - 2] и c[c.Length - 1], и первый же новый
+            //    столбец (05.09.2026 их прибавилось три) молча сместил бы обе
+            //    величины ИТОГА, не изменив ни строки вывода: та же грабля, что
+            //    «старый разбор понимает новое значение ключа по-старому».
+            List<string> head = new List<string>(rows[0].Split(','));
+            int iCounts = head.IndexOf("counts_ok");
+            int iTime = head.IndexOf("time_ok");
+            int iCoeff = head.IndexOf("coeff_max_rel_diff");
+            int iDt = head.IndexOf("time_max_abs_s");
+            int iBgSrc = head.IndexOf("bg_src");
+            int iBgBack = head.IndexOf("bg_back");
+            int iStart = head.IndexOf("start_ok");
+            if (iCounts < 0 || iTime < 0 || iCoeff < 0 || iDt < 0 || iBgSrc < 0 || iBgBack < 0 || iStart < 0)
+            {
+                Console.Error.WriteLine("⛔ шапка списка происхождения разошлась с ИТОГОМ");
+                return 2;
+            }
+
+            int countsBad = 0, timeBad = 0, coeffBad = 0, bgBad = 0, startBad = 0;
+            double worstTime = 0.0;
             for (int i = 1; i < rows.Count; i++)
             {
                 string[] c = rows[i].Split(',');
-                if (c[c.Length - 2] != "1") countsBad++;
-                if (c[c.Length - 1] != "1") timeBad++;
+                if (c[iCounts] != "1") countsBad++;
+                if (c[iTime] != "1") timeBad++;
+                if (double.Parse(c[iCoeff], CultureInfo.InvariantCulture) != 0.0) coeffBad++;
+                double dt = double.Parse(c[iDt], NumberStyles.Float, CultureInfo.InvariantCulture);
+                if (dt > worstTime) worstTime = dt;
+                if (c[iBgSrc] != c[iBgBack]) bgBad++;
+                if (c[iStart] != "1") startBad++;
             }
 
             Console.WriteLine();
             Console.WriteLine("ИТОГ: выгружено " + (rows.Count - 1)
                               + ", отказов вывоза/ввоза " + bad
                               + ", ОТСЧЁТЫ разошлись у " + countsBad
-                              + ", ВРЕМЕНА разошлись у " + timeBad);
+                              + ", ВРЕМЕНА разошлись у " + timeBad
+                              + " (наибольший остаток " + worstTime.ToString("E3", CultureInfo.InvariantCulture) + " с)"
+                              + ", ШКАЛА разошлась у " + coeffBad
+                              + ", ПРИЗНАК ФОНА потерян у " + bgBad
+                              + ", НАЧАЛО НАБОРА потеряно у " + startBad);
             return bad == 0 && countsBad == 0 ? 0 : 1;
         }
 
@@ -318,7 +348,27 @@ namespace N42RoundTripProbe
             bool countsOk = chSrc == chBack && diffChannels == 0 && sumSrc == sumBack;
             bool timeOk = srcEs.MeasurementTime == backEs.MeasurementTime
                           && srcEs.LiveTime == backEs.LiveTime;
-            bool ok = countsOk && ordSrc == ordBack && coeffRel == 0.0 && timeOk;
+
+            // `A147`: «разошлось» — приговор, а НЕ величина. Прежде здесь было
+            //   только равенство, и потеря целой секунды выглядела так же, как
+            //   промах на единицу младшего разряда double. Мерить надо остаток.
+            double dTime = Math.Max(Math.Abs(srcEs.MeasurementTime - backEs.MeasurementTime),
+                                    Math.Abs(srcEs.LiveTime - backEs.LiveTime));
+
+            // `A150`: пережил ли круг ПРИЗНАК ФОНА. До правки фон приезжал вторым
+            //   равноправным спектром списка, и мерить это было нечем.
+            bool bgSrc = srcRd.BackgroundEnergySpectrum != null;
+            bool bgBack = backRd.BackgroundEnergySpectrum != null;
+
+            // `A146`: пережило ли круг ВРЕМЯ НАЧАЛА НАБОРА. ⚠ Сравниваются РАЗНЫЕ
+            //   поля нарочно: вывоз берёт ResultData.StartTime, а ввоз кладёт
+            //   прочитанное в SampleInfo.Time — это не описка пробы, а
+            //   несимметричность самого разбора, и мерить надо то, что есть.
+            double startShift = (backRd.SampleInfo.Time - srcRd.StartTime).TotalSeconds;
+            bool startOk = Math.Abs(startShift) < 1.0;
+
+            bool ok = countsOk && ordSrc == ordBack && coeffRel == 0.0 && timeOk
+                      && bgSrc == bgBack && startOk;
 
             Console.WriteLine("  каналов: " + chSrc + " → " + chBack
                               + (chSrc == chBack ? "  ✓" : "  ⛔ РАЗОШЛОСЬ"));
@@ -340,11 +390,21 @@ namespace N42RoundTripProbe
                               + ", живое "
                               + srcEs.LiveTime.ToString("0.###", CultureInfo.InvariantCulture) + " → "
                               + backEs.LiveTime.ToString("0.###", CultureInfo.InvariantCulture)
-                              + (srcEs.MeasurementTime == backEs.MeasurementTime
-                                 && srcEs.LiveTime == backEs.LiveTime ? "  ✓" : "  ⚠ РАЗОШЛОСЬ"));
+                              + (timeOk ? "  ✓"
+                                 : ("  ⚠ РАЗОШЛОСЬ на "
+                                    + dTime.ToString("E3", CultureInfo.InvariantCulture) + " с")));
             Console.WriteLine("  спектров в файле после ввоза: " + back.ResultDataFile.ResultDataList.Count
                               + " (у корпусного было " + doc.ResultDataFile.ResultDataList.Count
-                              + " + фон " + (srcRd.BackgroundEnergySpectrum != null ? "есть" : "нет") + ")");
+                              + " + фон " + (bgSrc ? "есть" : "нет") + ")");
+            Console.WriteLine("  ФОН: было " + (bgSrc ? "есть" : "нет") + " → стало "
+                              + (bgBack ? "есть" : "нет")
+                              + (bgSrc == bgBack ? "  ✓" : "  ⚠ ПРИЗНАК ФОНА ПОТЕРЯН")
+                              + (bgSrc && bgBack
+                                 ? ("; живое фона " + srcRd.BackgroundEnergySpectrum.LiveTime.ToString("0.###", CultureInfo.InvariantCulture)
+                                    + " → " + backRd.BackgroundEnergySpectrum.LiveTime.ToString("0.###", CultureInfo.InvariantCulture))
+                                 : ""));
+            Console.WriteLine("  НАЧАЛО НАБОРА: сдвиг " + startShift.ToString("0.###", CultureInfo.InvariantCulture)
+                              + " с" + (startOk ? "  ✓" : "  ⚠ ВРЕМЯ НАЧАЛА ПОТЕРЯНО"));
             Console.WriteLine("  КРУГ: " + (ok ? "СОШЁЛСЯ ПОЛНОСТЬЮ"
                               : ("отсчёты " + (countsOk ? "СОШЛИСЬ ТОЧНО" : "РАЗОШЛИСЬ")
                                  + ", шкала " + (coeffRel == 0.0 ? "сошлась точно"
@@ -369,7 +429,9 @@ namespace N42RoundTripProbe
                 backEs.MeasurementTime.ToString("0.###", CultureInfo.InvariantCulture),
                 srcEs.LiveTime.ToString("0.###", CultureInfo.InvariantCulture),
                 backEs.LiveTime.ToString("0.###", CultureInfo.InvariantCulture),
-                countsOk ? "1" : "0", timeOk ? "1" : "0" });
+                countsOk ? "1" : "0", timeOk ? "1" : "0",
+                dTime.ToString("E3", CultureInfo.InvariantCulture),
+                bgSrc ? "1" : "0", bgBack ? "1" : "0", startOk ? "1" : "0" });
         }
 
         static double CoeffDiff(PolynomialEnergyCalibration a, PolynomialEnergyCalibration b)
@@ -454,7 +516,23 @@ namespace N42RoundTripProbe
                 }
             }
 
-            Console.WriteLine("=== СЛЕПОК (сверяется между плечами) ===");
+            Console.WriteLine("=== ПРИГОВОРЫ (ОБЯЗАНЫ совпасть между плечами) ===");
+            // ⛔ Отдельный раздел заведён 05.09.2026 (полоса `A146`…`A152`).
+            //    Слепок целиком между плечами УЖЕ НЕ СОВПАДАЕТ по построению:
+            //    времена получают дробную часть (`A147`), коэффициенты — последнюю
+            //    цифру (`A148`), фон уезжает из списка в поле фона (`A150`). А
+            //    главное требование полосы — «список успешно импортируемых файлов
+            //    не имеет права измениться» — про ПРИГОВОР, а не про числа. Раз
+            //    числа меняются нарочно, приговор обязан жить отдельной строкой,
+            //    которую можно сверить посимвольно.
+            foreach (string p in prints)
+            {
+                int bar = p.IndexOf('|');
+                int bar2 = p.IndexOf('|', bar + 1);
+                Console.WriteLine(p.Substring(0, bar2).TrimEnd());
+            }
+            Console.WriteLine();
+            Console.WriteLine("=== СЛЕПОК (числа; меняется ТОЛЬКО названными правками) ===");
             foreach (string p in prints) Console.WriteLine(p);
             Console.WriteLine();
             Console.WriteLine("ВВЕЗЕНО: " + ok + "   ОТКАЗАНО: " + failed);
@@ -482,11 +560,31 @@ namespace N42RoundTripProbe
                     sb.Append(" | [").Append(i).Append("] кан ").Append(es.NumberOfChannels)
                       .Append(", сумма ").Append(sum)
                       .Append(", всего ").Append(es.TotalPulseCount)
-                      .Append(", изм ").Append(es.MeasurementTime.ToString("0.###", CultureInfo.InvariantCulture))
-                      .Append(", живое ").Append(es.LiveTime.ToString("0.###", CultureInfo.InvariantCulture))
+                      .Append(", изм ").Append(es.MeasurementTime.ToString("0.######", CultureInfo.InvariantCulture))
+                      .Append(", живое ").Append(es.LiveTime.ToString("0.######", CultureInfo.InvariantCulture))
+                      // `A146`: время начала набора берётся из файла и молча
+                      //   подменяется на «сейчас», если запись не прочиталась, —
+                      //   поэтому в слепке печатается не само время, а СОВПАЛО ЛИ
+                      //   оно с «сейчас» с точностью до минуты. Печатать саму дату
+                      //   нельзя: у двух плеч она была бы разной по построению.
+                      .Append(", начало ").Append(
+                          rd.SampleInfo == null ? "нет"
+                          : (Math.Abs((DateTime.Now - rd.SampleInfo.Time).TotalMinutes) < 1.0
+                             ? "ПОТЕРЯНО (сейчас)"
+                             : rd.SampleInfo.Time.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)))
                       .Append(", шкала ").Append(p == null
                           ? (es.EnergyCalibration == null ? "нет" : es.EnergyCalibration.GetType().Name)
                           : ("порядок " + p.PolynomialOrder + " " + Coeffs(p)));
+                    // `A150`: фон — ОТДЕЛЬНАЯ сущность документа, а не строка списка.
+                    //   До правки он приезжал вторым равноправным спектром, и этой
+                    //   пометки в слепке не было вовсе.
+                    EnergySpectrum bg = rd.BackgroundEnergySpectrum;
+                    sb.Append(bg == null ? ", фона нет"
+                        : (", ФОН кан " + bg.NumberOfChannels
+                           + ", сумма " + bg.Spectrum.Sum(x => (long)x)
+                           + ", изм " + bg.MeasurementTime.ToString("0.######", CultureInfo.InvariantCulture)
+                           + ", живое " + bg.LiveTime.ToString("0.######", CultureInfo.InvariantCulture)
+                           + ", подпись «" + (rd.BackgroundSpectrumFile ?? "нет") + "»"));
                 }
                 return sb.ToString();
             }
@@ -543,6 +641,14 @@ namespace N42RoundTripProbe
             // проверялся CheckCalibration вовсе.
             Write(Path.Combine(outDir, "case7_rad_few.n42"), Rad(4));
             Write(Path.Combine(outDir, "case8_rad_many.n42"), Rad(1024));
+
+            // `A152`: вход, у которого каналов БОЛЬШЕ, чем у документа (8192 у
+            // пустого DocEnergySpectrum). Прежде число каналов ФАЙЛА в спектр не
+            // записывалось вовсе, и цикл разбора выходил за конец массива
+            // документа — ввоз падал IndexOutOfRangeException. ⚠ Это ЕДИНСТВЕННЫЙ
+            // вход полосы, у которого приговор меняется нарочно, и он сочинённый:
+            // настоящих файлов RadiologicalInstrumentData в дереве нет.
+            Write(Path.Combine(outDir, "case9_rad_over.n42"), Rad(9000));
 
             Console.WriteLine("сочинённые входы положены в " + Path.GetFullPath(outDir));
             Console.WriteLine("⚠ Они СОЧИНЕНЫ и доказывают поведение РАЗБОРА, а не совместимость с приборами.");
