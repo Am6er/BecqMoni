@@ -1,11 +1,13 @@
 ﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace ReasonProbe
 {
@@ -39,13 +41,32 @@ namespace ReasonProbe
     ///   * <c>петля</c> и <c>предел</c> — сторожа обхода. Оба обязаны
     ///     ГОВОРИТЬ О СЕБЕ хвостовым «&lt;- …»: молчаливая потеря звена и есть
     ///     чинимый дефект;
-    ///   * <c>ветвление</c> — <c>AggregateException</c>. Плечо СПРАВОЧНОЕ:
-    ///     обход идёт по <c>InnerException</c>, а он отдаёт лишь первую ветвь.
+    ///   * <c>ветвление</c> — <c>AggregateException</c>. До `A165` плечо было
+    ///     СПРАВОЧНЫМ: обход шёл по <c>InnerException</c>, а он отдаёт лишь
+    ///     первую ветвь.
+    ///
+    /// ⛔ ВЕТВЛЕНИЕ РАСКРЫВАЕТСЯ (`A165`, 05.09.2026). Плечи:
+    ///   * <c>ветвление</c> — три разных ветви, все три обязаны быть названы,
+    ///     с пометками «(i/3)», цепочка под ветвью — тем же «&lt;-»;
+    ///   * <c>одна ветвь</c> — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ФОРМАТА: у единственной
+    ///     ветви текст обязан быть БАЙТ В БАЙТ прежним, без пометки;
+    ///   * <c>вложенное ветвление</c> — узел в узле, все листья названы;
+    ///   * <c>петля через ветвь</c> — ветвь на предка и ветвь на соседа, СО
+    ///     СРОКОМ в секунду; сторож говорит о себе, чистая ветвь не теряется;
+    ///   * <c>предел по дереву</c> — предел один на всё дерево, а не на ветвь.
+    ///
+    /// ⛔ СОСЕДНЯЯ ДВЕРЬ ТОЙ ЖЕ ОБЁРТКИ — <c>AppUi.Report</c> (`A174`, 05.09.2026).
+    /// Без окон она печатает одну строку в поток ошибок, и при ПУСТОМ
+    /// заголовке (так её зовут все места ввоза N42) строка выходила
+    /// «BecqMoni: : текст». Плечо <c>заголовок</c> перехватывает поток ошибок
+    /// и мерит обе стороны: без заголовка — «BecqMoni: текст», с заголовком
+    /// — прежняя строка БАЙТ В БАЙТ, «BecqMoni: заголовок: текст».
     ///
     /// ⚠ Ожидание РАЗНОЕ у двух сборок, и это не изъян пробы, а её смысл: на
     /// старой сборке плечо <c>цитата</c> обязано дать «ДВАЖДЫ» и код 1, на
     /// новой — «ОДИН РАЗ» и код 0; после `A144` на старой сборке отказывают ещё
-    /// и плечи цепочки. Прогон без старой сборки мерит пустоту.
+    /// и плечи цепочки, после `A165` — плечи ветвления, после `A174` — плечо
+    /// <c>заголовок</c>. Прогон без старой сборки мерит пустоту.
     ///
     ///     reasonprobe [--real]
     ///
@@ -91,6 +112,11 @@ namespace ReasonProbe
             Looped();
             TooDeep();
             Branched();
+            SingleBranch();
+            NestedBranch();
+            BranchedLoop();
+            TooDeepTree();
+            Reported();
             if (real)
             {
                 Real();
@@ -375,24 +401,232 @@ namespace ReasonProbe
         }
 
         /// <summary>
-        /// СПРАВОЧНОЕ ПЛЕЧО, вердикта не выносит по соседним ветвям.
-        /// <c>AggregateException</c> держит НЕСКОЛЬКО внутренних, а
-        /// <c>InnerException</c> отдаёт только первую: обход идёт по ней, соседние
-        /// ветви не называются. Для полосы `A144` это находка, а не правка —
-        /// раскрытие ветвления было бы вторым правилом обхода.
+        /// ⛔ ГЛАВНОЕ ПЛЕЧО `A165`: ВЕТВЛЕНИЕ. <c>AggregateException</c> держит
+        /// НЕСКОЛЬКО внутренних, а <c>InnerException</c> отдаёт только первую.
+        /// До `A165` обход шёл по ней, и соседние ветви терялись молча — это
+        /// плечо было справочным и вердикта не выносило. Теперь три РАЗНЫХ ветви
+        /// обязаны быть названы все три; у каждой своя пометка «(i/3)», и
+        /// цепочка ПОД ветвью (вторая ветвь несёт своё вложенное) обязана
+        /// назваться тем же «&lt;-». На старой сборке плечо ОТКАЗЫВАЕТ — это
+        /// его положительный контроль.
         /// </summary>
         static void Branched()
         {
             Exception one = new InvalidOperationException("ветвь ПЕРВАЯ: нет калибровки");
-            Exception two = new FileNotFoundException("ветвь ВТОРАЯ: нет файла спектра");
-            Exception outer = new AggregateException("две беды разом", one, two);
+            Exception twoInner = new FileLoadException("под второй ветвью: сборка не загрузилась");
+            Exception two = new FileNotFoundException("ветвь ВТОРАЯ: нет файла спектра", twoInner);
+            Exception three = new ArgumentException("ветвь ТРЕТЬЯ: пустой спектр");
+            Exception outer = new AggregateException("три беды разом", one, two, three);
 
             string said = AppUi.Reason(outer);
             Print("ветвление", said);
+            Console.WriteLine("    длина {0} знаков, приписок {1}", said.Length, Count(said, " <- "));
             Say("ветвление", "первая ветвь названа", Count(said, "ветвь ПЕРВАЯ") >= 1);
-            bool second = Count(said, "ветвь ВТОРАЯ") >= 1;
-            Console.WriteLine("  {0,-34} {1}", "вторая ветвь названа",
-                              second ? "ДА" : "НЕТ — находка, вердикта нет");
+            Say("ветвление", "ВТОРАЯ ветвь названа", Count(said, "ветвь ВТОРАЯ") >= 1);
+            Say("ветвление", "ТРЕТЬЯ ветвь названа", Count(said, "ветвь ТРЕТЬЯ") >= 1);
+            Say("ветвление", "звено ПОД второй ветвью названо",
+                Count(said, Link(twoInner)) == 1);
+            Say("ветвление", "ветви помечены (1/3)…(3/3)",
+                Count(said, " <- (1/3) ") == 1 && Count(said, " <- (2/3) ") == 1
+                && Count(said, " <- (3/3) ") == 1);
+            Say("ветвление", "порядок ветвей сохранён",
+                said.IndexOf("ветвь ПЕРВАЯ", StringComparison.Ordinal)
+                    < said.IndexOf("ветвь ВТОРАЯ", StringComparison.Ordinal)
+                && said.IndexOf(Link(twoInner), StringComparison.Ordinal)
+                    < said.IndexOf("ветвь ТРЕТЬЯ", StringComparison.Ordinal));
+            Say("ветвление", "приписок ровно четыре", Count(said, " <- ") == 4);
+            Say("ветвление", "сторож обхода не сработал",
+                said.IndexOf(" <- …", StringComparison.Ordinal) < 0);
+        }
+
+        /// <summary>
+        /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ФОРМАТА (`A165`). <c>AggregateException</c>
+        /// с ОДНОЙ ветвью — то, что даёт <c>Task.Run</c> с одним упавшим
+        /// делегатом, самый частый живой случай. Текст обязан быть БАЙТ В БАЙТ
+        /// прежним: без пометки ветви, ровно «Тип: сообщение &lt;- Тип:
+        /// сообщение &lt;- …». На этом держатся приписки `A129` и длины меток
+        /// редактора нуклидов: ветвление не должно раздувать текст там, где
+        /// веток нет.
+        /// </summary>
+        static void SingleBranch()
+        {
+            Exception middle = Middle();
+            Exception outer = new AggregateException("одна беда", middle);
+            string want = Link(outer) + " <- " + Link(middle) + " <- " + Tail(outer);
+
+            string said = AppUi.Reason(outer);
+            Print("одна ветвь", said);
+            Console.WriteLine("    длина {0} знаков, ожидалось {1}", said.Length, want.Length);
+            Say("одна ветвь", "текст БАЙТ В БАЙТ прежний", said == want);
+            Say("одна ветвь", "пометки ветви нет",
+                said.IndexOf("(1/1)", StringComparison.Ordinal) < 0);
+        }
+
+        /// <summary>
+        /// ВЛОЖЕННОЕ ВЕТВЛЕНИЕ — то, что даёт <c>Task.WhenAll</c> поверх упавших
+        /// задач: <c>AggregateException</c> внутри <c>AggregateException</c>.
+        /// Дверь <c>Flatten()</c> не зовёт нарочно (сторож петли по ссылке,
+        /// сообщения вложенных), а обходит вложенное как обычное звено с
+        /// несколькими вложенными: все листья обязаны быть названы.
+        /// </summary>
+        static void NestedBranch()
+        {
+            Exception a = new InvalidOperationException("лист А");
+            Exception b = new InvalidOperationException("лист Б");
+            Exception c = new InvalidOperationException("лист В");
+            Exception inner = new AggregateException("вложенный узел", a, b);
+            Exception outer = new AggregateException("внешний узел", inner, c);
+
+            string said = AppUi.Reason(outer);
+            Print("вложенное ветвление", said);
+            Say("вложенное ветвление", "все три листа названы",
+                Count(said, "лист А") == 1 && Count(said, "лист Б") == 1 && Count(said, "лист В") == 1);
+            Say("вложенное ветвление", "вложенный узел назван",
+                Count(said, Link(inner)) == 1);
+            Say("вложенное ветвление", "сторож обхода не сработал",
+                said.IndexOf(" <- …", StringComparison.Ordinal) < 0);
+        }
+
+        /// <summary>
+        /// ⛔ ПЕТЛЯ ЧЕРЕЗ ВЕТВЛЕНИЕ, СО СРОКОМ (`A165`). Ветвление — новый способ
+        /// собрать петлю: ветвь ссылается на предка (вторая — на сам
+        /// <c>AggregateException</c>) или на соседа (первая — на вторую).
+        /// Собирается тем же полем <c>_innerException</c>, что и плечо
+        /// <c>петля</c>. Сторож обязан пережить раскрытие ветвей: обход
+        /// возвращается за секунду, говорит о себе «&lt;- …», а ветвь, НЕ
+        /// виноватая в чужой петле, остаётся названной. Срок — измерение, а не
+        /// перестраховка: до `A144` дверь на петле висела насмерть (616 с ЦП).
+        /// </summary>
+        static void BranchedLoop()
+        {
+            FieldInfo slot = typeof(Exception).GetField("_innerException",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (slot == null)
+            {
+                Console.WriteLine("ПЛЕЧО петля через ветвь");
+                Console.WriteLine("  ⚠ поля _innerException нет — петлю не собрать, плечо НЕ МЕРИТ");
+                bad++;
+                return;
+            }
+
+            Exception one = new InvalidOperationException("ветвь-сосед");
+            Exception two = new InvalidOperationException("ветвь-к-предку");
+            Exception three = new InvalidOperationException("ветвь чистая");
+            Exception outer = new AggregateException("узел с петлёй", one, two, three);
+            slot.SetValue(one, two);     // первая ветвь -> вторая (сосед)
+            slot.SetValue(two, outer);   // вторая ветвь -> узел (предок)
+
+            string said = null;
+            Thread walk = new Thread(delegate() { said = AppUi.Reason(outer); });
+            walk.IsBackground = true;
+            Stopwatch clock = Stopwatch.StartNew();
+            walk.Start();
+            bool done = walk.Join(TimeSpan.FromSeconds(1.0));
+            clock.Stop();
+
+            Console.WriteLine("ПЛЕЧО петля через ветвь");
+            if (!done)
+            {
+                Console.WriteLine("  ⛔ ОБХОД НЕ ВЕРНУЛСЯ за 1 с — сторож петли через ветвь НЕ РАБОТАЕТ");
+                bad++;
+                return;
+            }
+
+            Console.WriteLine("  вернулся за {0} мс", clock.ElapsedMilliseconds);
+            Console.WriteLine("  сказано: {0}", OneLine(said));
+            Say("петля через ветвь", "все три ветви названы по разу",
+                Count(said, "ветвь-сосед") == 1 && Count(said, "ветвь-к-предку") == 1
+                && Count(said, "ветвь чистая") == 1);
+            Say("петля через ветвь", "сторож СКАЗАЛ О СЕБЕ",
+                Count(said, " <- …") >= 1);
+            Say("петля через ветвь", "чистая ветвь названа ПОСЛЕ сторожа",
+                said.IndexOf(" <- …", StringComparison.Ordinal)
+                    < said.IndexOf("ветвь чистая", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// ПРЕДЕЛ ПО ДЕРЕВУ (`A165`). Предел <c>ReasonChainLimit</c> — ОДИН на
+        /// всё дерево, а не на ветвь: три ветви по восемь звеньев дают 25
+        /// звеньев, названо обязано быть ровно предел, сторож обязан сказать о
+        /// себе, и обход после него останавливается — третья ветвь не
+        /// называется вовсе.
+        /// </summary>
+        static void TooDeepTree()
+        {
+            const int Arm = 8;
+            Exception[] tips = new Exception[3];
+            for (int b = 0; b < 3; b++)
+            {
+                Exception link = new InvalidOperationException("ветвь " + b + " звено 0");
+                for (int i = 1; i < Arm; i++)
+                {
+                    link = new InvalidOperationException("ветвь " + b + " звено " + i, link);
+                }
+                tips[b] = link;
+            }
+            Exception outer = new AggregateException("широкое дерево", tips);
+
+            string said = AppUi.Reason(outer);
+            Console.WriteLine("ПЛЕЧО предел по дереву");
+            Console.WriteLine("  дерево {0} звеньев, приписок {1}, предел пробы {2}",
+                              1 + 3 * Arm, Count(said, " <- "), ChainLimit);
+            Console.WriteLine("  сказано: {0}", OneLine(said));
+            Say("предел по дереву", "сторож СКАЗАЛ О СЕБЕ",
+                said.EndsWith(" <- …", StringComparison.Ordinal));
+            Say("предел по дереву", "названо ровно предел звеньев",
+                Count(said, " <- ") == ChainLimit);
+            Say("предел по дереву", "первая ветвь названа целиком",
+                Count(said, "ветвь 0 звено 0") == 1);
+            Say("предел по дереву", "третья ветвь за пределом не названа",
+                Count(said, "ветвь 2 ") == 0);
+        }
+
+        /// <summary>
+        /// ДВЕРЬ <c>AppUi.Report</c> БЕЗ ЗАГОЛОВКА (`A174`). Проба безоконна
+        /// (входная сборка — не приложение), поэтому дверь пишет в поток
+        /// ошибок; поток на время плеча подменяется и читается обратно.
+        /// Три стороны: пустой заголовок — разделителя нет; непустой —
+        /// строка прежняя, байт в байт (положительный контроль формата: правка
+        /// не смеет тронуть то, что уже читают перехваты других проб);
+        /// многострочный текст — в одну строку, как и было.
+        /// </summary>
+        static void Reported()
+        {
+            const string Text = "в файле N42 не прочитано время начала набора";
+            const string Caption = "Ввоз N42";
+            string nl = Environment.NewLine;
+
+            string bare = CaptureError(() => AppUi.Report(Text, "", MessageBoxIcon.None));
+            string headed = CaptureError(() => AppUi.Report(Text, Caption, MessageBoxIcon.Warning));
+            string folded = CaptureError(() => AppUi.Report("первая\r\nвторая", "", MessageBoxIcon.None));
+
+            Console.WriteLine("ПЛЕЧО заголовок");
+            Console.WriteLine("  без заголовка: {0}", OneLine(bare));
+            Console.WriteLine("  с заголовком : {0}", OneLine(headed));
+            Console.WriteLine("  две строки   : {0}", OneLine(folded));
+            Say("заголовок", "без заголовка — «BecqMoni: текст»",
+                bare == "BecqMoni: " + Text + nl);
+            Say("заголовок", "с заголовком — прежняя строка",
+                headed == "BecqMoni: " + Caption + ": " + Text + nl);
+            Say("заголовок", "две строки сложены в одну",
+                folded == "BecqMoni: первая вторая" + nl);
+        }
+
+        /// <summary>Поток ошибок на время одного вызова — строкой.</summary>
+        static string CaptureError(Action act)
+        {
+            TextWriter saved = Console.Error;
+            StringWriter caught = new StringWriter();
+            try
+            {
+                Console.SetError(caught);
+                act();
+            }
+            finally
+            {
+                Console.SetError(saved);
+            }
+            return caught.ToString();
         }
 
         /// <summary>
