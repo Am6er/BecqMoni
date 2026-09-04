@@ -591,8 +591,16 @@ namespace ChainProbe
         {
             System.Windows.Forms.Control label =
                 (System.Windows.Forms.Control)Field(form, "SearchStatusLabel");
-            string said = (label.Text ?? "").Replace(Environment.NewLine, " | ");
-            Console.WriteLine("  сказано ({0}): {1}", what, said.Length == 0 ? "«»" : said);
+            string raw = label.Text ?? "";
+            string said = raw.Replace(Environment.NewLine, " | ");
+            // ⚠ ДЛИНА МЕТКИ — ЧИСЛО, А НЕ ВПЕЧАТЛЕНИЕ (`A92`). Мерится она по
+            // САМОЙ метке, до замены переводов строки: в печатной строке каждый
+            // из них занимает три знака вместо двух, и «сколько человек увидит»
+            // по ней не сосчитать. Строка состояния повторяла одну и ту же
+            // причину до трёх раз и вырастала до тысяч знаков; вернувшийся рост
+            // виден здесь сразу.
+            Console.WriteLine("  сказано ({0}) [{1} знаков]: {2}", what, raw.Length,
+                              said.Length == 0 ? "«»" : said);
             if (grid.Rows.Count == 0 && said.Trim().Length == 0)
             {
                 Console.WriteLine("  ⛔ таблица пуста, а строка состояния МОЛЧИТ");

@@ -53,8 +53,24 @@ namespace RoundTrip
             GeometryModel a = GeometryModel.Load(source);
             if (forceCylinder)
             {
+                // ⛔ (`A94`) Сведение к цилиндру ОБЯЗАНО задать его размеры. У
+                // бруска полей `CrystalDiameter`/`CrystalHeight` нет — чтение
+                // их больше не заводит, — и прежняя строка «сменить форму и
+                // обнулить брусок» оставила бы кристалл нулевым: сцена пустая,
+                // кривая нулевая, а проба отчиталась бы о РАСХОЖДЕНИИ, не
+                // назвав причины. Равноценный цилиндр берётся тем же правилом
+                // LSRM, каким его пишет в файл `GeometryWriter`.
+                if (a.Shape == CrystalShape.Box)
+                {
+                    double d = AsWritten(GeometryWriter.EquivalentDiameter(a.CrystalBoxX, a.CrystalBoxY));
+                    double h = AsWritten(a.CrystalBoxZ);
+                    a.Shape = CrystalShape.Cylinder;
+                    a.CrystalDiameter = d;
+                    a.CrystalHeight = h;
+                }
+
                 a.Shape = CrystalShape.Cylinder;
-                a.CrystalBoxX = a.CrystalBoxY = a.CrystalBoxZ = 0.0;
+                a.DropDeadCrystalSize();
             }
 
             GeometryWriter.Save(a, target);
@@ -100,6 +116,24 @@ namespace RoundTrip
 
             Console.WriteLine(ok ? "    кривая совпала точно" : "    РАСХОЖДЕНИЕ");
             return ok;
+        }
+
+        /// <summary>
+        /// То же число, но с ТОЧНОСТЬЮ ФАЙЛА.
+        ///
+        /// Писатель кладёт `.in` в сантиметрах через `G8`, и равноценный
+        /// диаметр 18.5411617 мм возвращается из файла как 18.541162. Кладя в
+        /// принудительный цилиндр полную точность, круговая проверка
+        /// расходилась бы на восьмом знаке у каждой геометрии-бруска и мерила
+        /// бы ФОРМАТ ЗАПИСИ, а не разбор: измерено 04.09.2026 — девять
+        /// расхождений из тринадцати были ровно этим.
+        /// </summary>
+        static double AsWritten(double mm)
+        {
+            double cm = mm / GeometryModel.MmPerCm;
+            return double.Parse(cm.ToString("G8", CultureInfo.InvariantCulture),
+                                NumberStyles.Float, CultureInfo.InvariantCulture)
+                   * GeometryModel.MmPerCm;
         }
 
         /// <summary>Всё, что наш разбор берёт из файла, — плоским списком.</summary>

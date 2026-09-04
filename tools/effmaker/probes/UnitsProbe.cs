@@ -93,8 +93,26 @@ namespace UnitsProbe
             // Сравнивается с тем, что написано В САМОМ ФАЙЛЕ: числа не
             // прописываются в пробе, иначе она проверяла бы свою же копию.
             Dictionary<string, double> raw = ReadCm(path);
-            Check("DS_CrystalDiameter", g.CrystalDiameter, raw, "DS_CrystalDiameter");
-            Check("DS_CrystalHeight", g.CrystalHeight, raw, "DS_CrystalHeight");
+            // ⛔ (`A94`) У БРУСКА этих полей нет: в файле лежит ПРОИЗВОДНЫЙ
+            // цилиндр равной площади торца, и обратно он не читается. Сверять
+            // тогда надо с тем, из чего он выведен, — иначе проба требовала бы
+            // от модели поля, которого у этой формы кристалла не существует.
+            if (g.Shape == CrystalShape.Box)
+            {
+                // ⚠ Точность — ФАЙЛА (`G8` в сантиметрах): 18.5411617 мм
+                // записываются как 1.8541162 см, и полная точность разошлась
+                // бы на восьмом знаке, меряя формат записи, а не разбор.
+                Check("DS_CrystalDiameter (производный)",
+                      AsWritten(GeometryWriter.EquivalentDiameter(g.CrystalBoxX, g.CrystalBoxY)),
+                      raw, "DS_CrystalDiameter");
+                Check("DS_CrystalHeight (производный)", AsWritten(g.CrystalBoxZ),
+                      raw, "DS_CrystalHeight");
+            }
+            else
+            {
+                Check("DS_CrystalDiameter", g.CrystalDiameter, raw, "DS_CrystalDiameter");
+                Check("DS_CrystalHeight", g.CrystalHeight, raw, "DS_CrystalHeight");
+            }
             Check("DS_CrystalFrontReflectorThickness", g.FrontReflectorThickness,
                   raw, "DS_CrystalFrontReflectorThickness");
             Check("DS_DetectorMountingThickness", g.MountingThickness,
@@ -151,6 +169,15 @@ namespace UnitsProbe
         static void Check(string caption, double mm, Dictionary<string, double> raw, string key)
         {
             Same(caption + " (мм)", mm, Value(raw, key) * 10.0);
+        }
+
+        /// <summary>То же число, но с точностью ФАЙЛА (`GeometryWriter.Trim` — `G8` в см).</summary>
+        static double AsWritten(double mm)
+        {
+            double cm = mm / GeometryModel.MmPerCm;
+            return double.Parse(cm.ToString("G8", CultureInfo.InvariantCulture),
+                                NumberStyles.Float, CultureInfo.InvariantCulture)
+                   * GeometryModel.MmPerCm;
         }
 
         // --------------------------------------------------------------

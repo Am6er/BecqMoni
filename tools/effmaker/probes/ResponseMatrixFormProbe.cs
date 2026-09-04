@@ -35,9 +35,16 @@ namespace ResponseMatrixFormProbe
     ///
     ///     responsematrixformprobe --geometry=X.in [--png=X.png]
     ///         [--nodes=N] [--histories=N] [--threads=N] [--target=%]
-    ///         [--bin=кэВ] [--emin=кэВ] [--emax=кэВ]
+    ///         [--bin=кэВ] [--emin=кэВ] [--emax=кэВ] [--move=height]
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
+    ///
+    /// ⛔ `--move=height` — ПРОВЕРКА СТОРОЖА НА ЗАВЕДОМО ИСПОРЧЕННОМ ВХОДЕ, и
+    /// в этом режиме проба ОБЯЗАНА ОТКАЗАТЬ на геометрии-бруске. Ключ
+    /// возвращает поведение до `A47`: двигать `CrystalHeight` независимо от
+    /// формы кристалла. У бруска это поле мертво (`A94`), сдвиг не доходит до
+    /// текста геометрии, и положительный контроль обязан это увидеть. Сторож,
+    /// который проходит и с ключом, и без него, не меряет ничего.
     /// </summary>
     static class Program
     {
@@ -54,9 +61,15 @@ namespace ResponseMatrixFormProbe
             // рядовой.
             int wNodes = 12, wHistories = 20000, wThreads = 0;
             double wTarget = 1.0, wBin = 8.0, wMin = 0.0, wMax = 0.0;
+            // ⚠ `--move=height` — ПРОВЕРКА САМОГО СТОРОЖА на заведомо
+            // испорченном входе: двигать у бруска мёртвый `CrystalHeight`.
+            // Ожидание в этом режиме — ОТКАЗ пробы, а не «сошлось».
+            bool forceHeight = false;
             foreach (string a in args)
             {
-                if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
+                if (a.StartsWith("--move=", StringComparison.Ordinal))
+                    forceHeight = a.Substring(7).Equals("height", StringComparison.OrdinalIgnoreCase);
+                else if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--png=", StringComparison.Ordinal)) pngPath = a.Substring(6);
                 else if (a.StartsWith("--nodes=", StringComparison.Ordinal)) wNodes = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--histories=", StringComparison.Ordinal)) wHistories = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
@@ -157,9 +170,16 @@ namespace ResponseMatrixFormProbe
             // «матрица осталась годной» было ВЕРНЫМ ответом на пустой сдвиг, а
             // не дырой в отпечатке: при `CrystalBoxZ += 1` отпечаток меняется
             // (`5ec58627…`), и форма честно говорит «устарела».
+            //
+            // ⚠ КЛЮЧ `--move=height` ЕСТЬ НАРОЧНО: им сторожа проверяют НА
+            // ЗАВЕДОМО ИСПОРЧЕННОМ ВХОДЕ. Он возвращает прежнее поведение —
+            // двигать `CrystalHeight` всегда, — и на бруске проба обязана
+            // ОТКАЗАТЬ: положительный контроль ниже увидит, что сдвиг не дошёл
+            // до текста геометрии. Сторож, проходящий и так и эдак, не меряет
+            // ничего; здесь это можно предъявить одной командой.
             GeometryModel moved = geometry.Clone();
             string movedField;
-            if (moved.Shape == CrystalShape.Box)
+            if (moved.Shape == CrystalShape.Box && !forceHeight)
             {
                 moved.CrystalBoxZ += 1.0;
                 movedField = "CrystalBoxZ";
