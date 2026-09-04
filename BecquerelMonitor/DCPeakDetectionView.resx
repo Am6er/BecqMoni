@@ -426,6 +426,18 @@
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="labelDetectionFailed.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="labelDetectionFailed.ForeColor" type="System.Drawing.Color, System.Drawing">
+    <value>Firebrick</value>
+  </data>
+  <data name="labelDetectionFailed.Location" type="System.Drawing.Point, System.Drawing">
+    <value>97, 60</value>
+  </data>
+  <data name="labelDetectionFailed.Size" type="System.Drawing.Size, System.Drawing">
+    <value>332, 13</value>
+  </data>
   <data name="&gt;&gt;labelDetectionFailed.Name" xml:space="preserve">
     <value>labelDetectionFailed</value>
   </data>

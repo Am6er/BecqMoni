@@ -93,6 +93,7 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            EnsurePrimitiveMaps();
             this.roiConfigList.Clear();
             this.roiConfigMap.Clear();
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
@@ -253,6 +254,7 @@ namespace BecquerelMonitor
             this.roiConfigMap.Remove(roiconfigData.Guid);
             this.roiConfigList.Remove(roiconfigData);
             string path = configROI + roiconfigData.OriginalFilename;
+            EnsurePrimitiveMaps();
             try
             {
                 XmlSerializer xmlSerializer = new XmlSerializer(typeof(ROIConfigData));
@@ -428,6 +430,57 @@ namespace BecquerelMonitor
         }
 
 
+
+        /// <summary>
+        /// ⛔ ЧТЕНИЕ КОНФИГУРАЦИЙ ROI ЗАВИСЕЛО ОТ ЧУЖОГО ПОРЯДКА ЗАПУСКА (`A167`).
+        ///
+        /// Подстановка ниже — <c>ROIPrimitiveDefinition.DefinitionsMap[…]</c> и
+        /// <c>ROIPrimitiveOperation.OperationsMap[…]</c> — берёт СТАТИЧЕСКИЕ
+        /// карты, которые этот класс не заводит: их заполняет <c>MainForm</c>
+        /// (<c>InitializeROIPrimitiveDefinitions</c> / <c>…Operations</c>) и
+        /// только он. Пока карты пусты, обе они <c>null</c>, и обращение по
+        /// ключу даёт <c>NullReferenceException</c> — на КАЖДОМ файле, где есть
+        /// хоть один примитив зоны.
+        ///
+        /// ⚠ ИЗМЕРЕНО 05.09.2026 (`RoiSupplyProbe --noinit`, сцена из
+        /// поставочного <c>config\</c>): из двенадцати поставочных
+        /// конфигураций ОТКАЗЫВАЮТ ДЕВЯТЬ, а три (`Ra-226 Intensities`,
+        /// `Th-232 Intensities`, `Th-232`) проходят — ровно те, у которых
+        /// примитивов ноль. То есть беда не в файлах: те же двенадцать при
+        /// заполненных картах читаются все двенадцать, и по sha256 они
+        /// побайтно те же самые.
+        ///
+        /// ⛔ Порядок «сначала <c>MainForm</c>» — не гарантия, а обычай, и
+        /// сорваться ему просто: <c>ROIConfigForm</c> зовёт менеджер ИНИЦИАЛИЗАТОРОМ
+        /// ПОЛЯ (<c>manager = ROIConfigManager.GetInstance()</c>), то есть до
+        /// собственного конструктора, и так же устроен <c>DCControlPanel</c>.
+        /// Всякий, кто построит такую форму раньше главного окна — проба,
+        /// харнесс, будущий вызов, — получает пустой список зон и по окну
+        /// об ошибке на каждый файл. Поэтому недостающее заводится ЗДЕСЬ, у
+        /// места употребления, а не поручается вызывающему.
+        ///
+        /// ⚠ Заводится ТОЛЬКО отсутствующее: повторный
+        /// <c>Initialize…</c> создал бы НОВЫЕ объекты примитивов, и уже
+        /// подставленные <c>ROIPrimitiveData.Primitive</c> ссылались бы на
+        /// старые — то есть сравнение по ссылке начало бы врать.
+        ///
+        /// ⚠ Подписи примитивов (<c>Translation</c>) берутся из ресурсов, то
+        /// есть зависят от культуры потока. В приложении это ничего не двигает:
+        /// там карты давно заполнены <c>MainForm</c> — уже после установки
+        /// языка, — и сюда управление не заходит вовсе. А запуск, где карт нет,
+        /// сегодня не получает ни подписей, ни зон вообще.
+        /// </summary>
+        static void EnsurePrimitiveMaps()
+        {
+            if (ROIPrimitiveDefinition.DefinitionsMap == null)
+            {
+                ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+            }
+            if (ROIPrimitiveOperation.OperationsMap == null)
+            {
+                ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
+            }
+        }
 
         // Совместимости форматов в проекте не делаем, но молча терять данные тоже
         // нельзя: XmlSerializer выбрасывает всё, чему нет свойства в ROIConfigData,
