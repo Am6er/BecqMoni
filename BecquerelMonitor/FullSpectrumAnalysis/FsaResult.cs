@@ -56,6 +56,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string ChainRoot { get; set; }
 
         /// <summary>
+        /// (`A169`) ПРОИСХОЖДЕНИЕ В РЯДУ: имя корня ряда распада, членом
+        /// которого строка пришла в состав; null — одиночный нуклид или
+        /// приборный образ. Стоит у ВСЕХ членов ряда независимо от связки:
+        /// при равновесии совпадает с <see cref="ChainRoot"/>, без него
+        /// <see cref="ChainRoot"/> пуст, а это поле остаётся.
+        ///
+        /// ⛔ Два поля — два разных утверждения, и смешивать их нельзя:
+        /// «откуда строка» и «своя ли у неё амплитуда». По этому полю
+        /// строки собираются в родительскую без пересчёта (`A145`); по тому —
+        /// решается, есть ли у родителя честный предел обнаружения
+        /// (<see cref="FsaResult.ParentGroupingAllowed"/>).
+        /// </summary>
+        public string DecayChainRoot { get; set; }
+
+        /// <summary>
         /// ДОЛЯ СЛОЯ: вклад компонента в ПОЛНЫЙ счёт модели с разнесённой на
         /// него подложкой, %. ТА ЖЕ величина, что печатает легенда
         /// (<see cref="FsaStackLayer.SharePercent"/>), — по построению, а не по
@@ -141,6 +156,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public FsaComponentKind Kind { get; set; }
 
+        /// <summary>
+        /// (`A169`) Происхождение в ряду — как у
+        /// <see cref="FsaComponentResult.DecayChainRoot"/>; null — не член ряда.
+        /// Строка предела есть у КАЖДОГО поданного кандидата, в том числе у
+        /// свободного члена ряда, который в состав не вошёл, — без этого поля
+        /// у него не было бы ни строки состава, ни другого места, где помнить,
+        /// откуда он.
+        /// </summary>
+        public string DecayChainRoot { get; set; }
+
         /// <summary>Компонент вошёл в состав (амплитуда фита больше нуля).</summary>
         public bool Detected { get; set; }
 
@@ -218,6 +243,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public FsaComponentKind Kind { get; set; }
 
+        /// <summary>(`A169`) Происхождение в ряду подавленного образа; null — не член ряда.</summary>
+        public string DecayChainRoot { get; set; }
+
         /// <summary>Значимость, с которой образ был выброшен; NaN — неизвестна.</summary>
         public double Z { get; set; } = double.NaN;
     }
@@ -236,6 +264,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// принадлежность к равновесной группе обязана быть видна.
         /// </summary>
         public string ChainRoot { get; set; }
+
+        /// <summary>
+        /// (`A169`) Корень ряда, из которого слой происходит, — копия
+        /// <see cref="FsaComponentResult.DecayChainRoot"/>; null — не член
+        /// ряда. По нему строится родительская группировка слоёв (`A145`).
+        /// </summary>
+        public string DecayChainRoot { get; set; }
 
         /// <summary>Вклад слоя по каналам с разнесённой на него подложкой.</summary>
         public double[] Curve { get; set; }
@@ -541,6 +576,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeSummingUsed { get; set; }
 
         /// <summary>
+        /// (`A169`) РОДИТЕЛЬСКАЯ ГРУППИРОВКА СТРОК ДОПУСТИМА: в составе есть хоть
+        /// один ряд, СВЯЗАННЫЙ равновесием (строки с непустым
+        /// <see cref="FsaComponentResult.ChainRoot"/>). Только у такого ряда
+        /// есть честный предел обнаружения родителя — предел его единственной
+        /// колонки; пределы свободных дочерних складывать в предел родителя
+        /// нельзя, и правила для этого случая нарочно нет (решение по
+        /// `handover/a145-fsa-display-groups.md`, «Семантика группировки»).
+        ///
+        /// <c>false</c> — «родительский режим недопустим»: причину называет
+        /// <see cref="ParentGroupingRefusal"/>. Это свойство РЕЗУЛЬТАТА (что
+        /// реально получилось), условие настроек —
+        /// <see cref="FsaCalculationOptions.ParentGroupingPossible"/>; форма
+        /// обязана спрашивать оба.
+        /// </summary>
+        public bool ParentGroupingAllowed
+        {
+            get { return this.ParentGroupingRefusal == null; }
+        }
+
+        /// <summary>
+        /// (`A169`) Почему родительская группировка недопустима; null —
+        /// допустима. Текст служебный, для журнала и проб; форма переводит
+        /// его своими ресурсами по коду причины, а не по этой строке.
+        /// </summary>
+        public string ParentGroupingRefusal
+        {
+            get
+            {
+                bool anyMember = false;
+                if (this.Components != null)
+                {
+                    foreach (FsaComponentResult component in this.Components)
+                    {
+                        if (component == null)
+                        {
+                            continue;
+                        }
+
+                        if (!string.IsNullOrEmpty(component.ChainRoot))
+                        {
+                            return null;
+                        }
+
+                        if (!string.IsNullOrEmpty(component.DecayChainRoot))
+                        {
+                            anyMember = true;
+                        }
+                    }
+                }
+
+                return anyMember
+                    ? "члены ряда со свободными амплитудами: предел родителя не определён"
+                    : "в составе нет ряда распада";
+            }
+        }
+
+        /// <summary>
         /// Знаменатель долей стека: Σ по слоям от последнего
         /// <see cref="BuildStackedLayers"/>. Заполняется им же и до первого его
         /// вызова равен нулю.
@@ -672,6 +764,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Name = component.Name,
                     Kind = component.Kind,
                     ChainRoot = component.ChainRoot,
+                    DecayChainRoot = component.DecayChainRoot,
                     Curve = PositivePart(component.Curve),
                     SumPeakCurve = component.SumPeakCurve != null
                         ? (double[])component.SumPeakCurve.Clone()
@@ -1059,6 +1152,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// корпусной мерки `tools/pie/score.py:149`.
         /// </summary>
         public const string AnnihilationComponentName = "Ann-511";
+
+        /// <summary>
+        /// (`A168`) Образ аннигиляции — по имени; имя одно на проект
+        /// (<see cref="AnnihilationComponentName"/>), оба сборщика библиотеки
+        /// берут его отсюда, и второго списка имён у правила нет.
+        /// </summary>
+        public static bool IsAnnihilationImage(string name)
+        {
+            return string.Equals(name, AnnihilationComponentName, StringComparison.OrdinalIgnoreCase);
+        }
 
         /// <summary>
         /// Копия кривой без отрицательной части. У ленты стека не бывает
