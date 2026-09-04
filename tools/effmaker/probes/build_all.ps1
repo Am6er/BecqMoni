@@ -99,8 +99,9 @@ try { . $planFile } catch {
 # Поэтому проверяется не наличие имени, а ПОДПИСЬ: набор параметров обязан
 # совпасть посимвольно. Сменили — падаем сразу и называем, что именно сменили.
 $contract = [ordered]@{
-    'Get-AppWdPlan'      = @('Repo', 'Bin', 'Wd', 'ProbeBuild')
-    'New-AppWdPlanOrDie' = @('Repo', 'Bin', 'Wd', 'ProbeBuild')
+    # `S138`: `Store` — склад матриц ПЛЕЧА; пустой значит штатный склад корпуса.
+    'Get-AppWdPlan'      = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store')
+    'New-AppWdPlanOrDie' = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store')
     'Invoke-AppWdPlan'   = @('Plan')
     'Get-AppWdExtra'     = @('Plan')
     'Test-AppWdPlan'     = @('Plan')
