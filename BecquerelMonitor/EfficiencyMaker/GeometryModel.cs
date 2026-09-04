@@ -91,6 +91,51 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// Переложить состав ПО ВОЗРАСТАНИЮ Z (`A131`).
+        ///
+        /// ⛔ Порядок элементов в <see cref="Fractions"/> — не украшение, а
+        /// ВХОД РАСЧЁТА. Словарь без удалений перечисляется в порядке вставки,
+        /// и по этому порядку `EfficiencySimulator` строит массивы, из которых
+        /// РОЗЫГРЫШЕМ выбирает элемент (`PickAtom`, `SampleFluorescence`).
+        /// Переставь два элемента — то же самое случайное число попадёт в
+        /// другой элемент, поток разойдётся, и кривая уедет на величину шума.
+        ///
+        /// ⚠ Мимо отпечатка. `ComputeStamp` берёт текст `GeometryWriter.Render`,
+        /// а тот состав СОРТИРУЕТ, — значит порядок в клеймо не входит вовсе, и
+        /// две матрицы одной сцены с разным порядком неразличимы по
+        /// происхождению. Разряд `A104`/`A121`, и цена ему известна.
+        ///
+        /// Измерено 05.09.2026: `ASN16_Lu176_jar.in` хранит источник как
+        /// `SC_ZSource = 71, 8`, наш писатель кладёт `8, 71`, и круг
+        /// «прочитать → записать → прочитать» менял кривую до **2.95 %** при
+        /// совпадающих полях, тексте и клейме. Оба формата хранения — и `.in`
+        /// (<see cref="GeometryWriter"/>), и XML конфигурации
+        /// (<see cref="FractionList"/>) — состав уже сортируют; несогласным
+        /// оставался ОДИН читатель `.in`, его и приводим к общему правилу.
+        /// </summary>
+        public void SortFractions()
+        {
+            if (this.Fractions.Count < 2)
+            {
+                return;
+            }
+
+            List<int> order = new List<int>(this.Fractions.Keys);
+            order.Sort();
+            List<double> values = new List<double>(order.Count);
+            foreach (int z in order)
+            {
+                values.Add(this.Fractions[z]);
+            }
+
+            this.Fractions.Clear();
+            for (int i = 0; i < order.Count; i++)
+            {
+                this.Fractions[order[i]] = values[i];
+            }
+        }
+
         public GeometryMaterial Clone()
         {
             GeometryMaterial copy = new GeometryMaterial
@@ -1153,6 +1198,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     m.Name.Length > 0 ? m.Name : part, type));
             }
 
+            // ⛔ (`A131`) Порядок элементов приводится к тому же, каким его
+            // кладут ОБА наших формата хранения — писатель `.in` и XML
+            // конфигурации. Без этого чтение файла с иным порядком давало
+            // модель, которая после сохранения считается ИНАЧЕ при том же
+            // клейме; довод и число — в <see cref="GeometryMaterial.SortFractions"/>.
+            m.SortFractions();
             return m;
         }
 
