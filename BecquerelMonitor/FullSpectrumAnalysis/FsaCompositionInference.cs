@@ -324,6 +324,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // не завелась вторая копия.
             spec.Efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
 
+            // ⛔ `A73`: порог АЦП САМОГО спектра — второй источник пола полосы,
+            // работающий там, где кривой нет. Здесь, как и с кривой, ОДНО
+            // присваивание; расчёт живёт в `FsaBand.AdcFloorOf`.
+            spec.AdcFloorKev = FsaBand.AdcFloorOf(resultData.EnergySpectrum);
+
             // Окно — рабочий диапазон САМОГО поиска пиков. Иначе знаменатель
             // доли считался бы по линиям, которых прибор не искал: у ASN16 низ
             // стоит на 28.6 кэВ, и весь L-рентген ниже него в «ожидаемое»

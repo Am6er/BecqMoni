@@ -151,6 +151,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public FsaEfficiency Efficiency;
 
+        /// <summary>
+        /// ⛔ ПОРОГ АЦП САМОГО СПЕКТРА, кэВ (`A73`, 04.09.2026) — величина,
+        /// которая есть У КАЖДОГО спектра, в том числе у 39 корпусных без
+        /// геометрии. Ставится ОДНИМ присваиванием у каждого, кто строит
+        /// спецификацию, как и <see cref="Efficiency"/>; сам расчёт живёт в
+        /// <see cref="FsaBand.AdcFloorOf"/> и больше нигде.
+        ///
+        /// 0 — не задан, и это законно: тогда запасная ветвь
+        /// <see cref="FsaNoCurveFloor.Adc"/> назначить пол не может и молчит,
+        /// как молчит кривая, которой нет.
+        /// </summary>
+        public double AdcFloorKev;
+
         // ⛔ СОБСТВЕННОЙ ДОЛИ У СПЕЦИФИКАЦИИ НЕТ (`S101`). Здесь стояло поле
         // `FloorFraction` с признаком «ноль или отрицательное — брать
         // умолчание», и не ставил его никто. Убрано не за неиспользуемость, а
@@ -190,8 +203,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (this.Band == FsaBandMode.LibraryToFitByCurve
                     || this.Band == FsaBandMode.LibraryToFitByShare)
                 {
-                    double byCurve = this.CurveFloorKev;
-                    return byCurve > 0.0 ? Math.Min(this.MinEnergyKev, byCurve) : this.MinEnergyKev;
+                    // ⛔ ПОРЯДОК ИСТОЧНИКОВ — СУЩЕСТВО ПРАВКИ `A73`, и он
+                    // именно такой: КРИВАЯ ПЕРВОЙ. Там, где кривая есть, пол
+                    // назначает она и только она, до последнего знака как
+                    // прежде, — иначе правка сдвинула бы все существующие
+                    // числа. Запасная ветвь работает РОВНО ТАМ, где кривой нет,
+                    // и до 04.09.2026 ею был `Min_Range` — настройка ПОИСКА
+                    // ПИКОВ, к полосе разбора отношения не имеющая.
+                    double floor = this.CurveFloorKev;
+                    if (!(floor > 0.0))
+                    {
+                        floor = this.NoCurveFloorKev;
+                    }
+
+                    return floor > 0.0 ? Math.Min(this.MinEnergyKev, floor) : this.MinEnergyKev;
                 }
 
                 if (this.Band != FsaBandMode.LibraryToFit || !(this.LibraryFloorKev > 0.0))
@@ -223,6 +248,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // здесь быть не должно.
                 return this.Efficiency.FloorAtFraction(FsaBand.DefaultFloorFraction);
             }
+        }
+
+        /// <summary>
+        /// Пол, который назначает ЗАПАСНАЯ ВЕТВЬ, кэВ; 0 — назначить нечем
+        /// (`A73`). Отдельным свойством по той же причине, что и
+        /// <see cref="CurveFloorKev"/>: заверение обязано называть то, что
+        /// случилось, а не то, что заказывали.
+        ///
+        /// ⛔ Своего правила здесь НЕТ — всё решение живёт в
+        /// <see cref="FsaBand.NoCurveFloor"/>, и второй копии у него быть не
+        /// должно (`S101`).
+        /// </summary>
+        public double NoCurveFloorKev
+        {
+            get { return FsaBand.NoCurveFloor(this.AdcFloorKev); }
         }
 
         // ⛔ ПОЛЕ `Room` СНЯТО 01.09.2026 (решение Amber по описи `S110`).
@@ -678,7 +718,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                            || spec.Band == FsaBandMode.LibraryToFitByShare
                                                ? spec.CurveFloorKev
                                                : spec.LibraryFloorKev,
-                                           spec.MinEnergyKev, spec.MaxEnergyKev);
+                                           spec.MinEnergyKev, spec.MaxEnergyKev,
+                                           spec.NoCurveFloorKev);
             foreach (FsaComponent component in result)
             {
                 foreach (FsaLine line in component.Lines)

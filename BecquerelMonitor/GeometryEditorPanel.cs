@@ -956,14 +956,32 @@ namespace BecquerelMonitor
             // Размеры кристалла. У бруска, которого в файле ещё не было,
             // подставляются габариты цилиндра — чтобы поля не открывались
             // пустыми и не превращались в нули при первом же сохранении.
-            add("CrystalDiameter", g => g.CrystalDiameter, (g, v) => g.CrystalDiameter = v);
-            add("CrystalHeight", g => g.CrystalHeight, (g, v) => g.CrystalHeight = v);
+            //
+            // ⛔ (`A94`, решение Amber 04.09.2026) ПОЛЕ ЧУЖОЙ ФОРМЫ НЕ ПИШЕТСЯ В
+            // МОДЕЛЬ, А СНИМАЕТСЯ. Панель невыбранной формы и так скрыта, но
+            // `BuildModel` проходит по ВСЕМУ этому списку, и у бруска в модели
+            // оседали размеры цилиндра: задать их было можно, а увидеть негде —
+            // ни в файле, ни в отпечатке, ни в сцене. Ровно об это сломался
+            // сторож `A47`.
+            //
+            // На ЧТЕНИЕ поле показывает то, чем эта форма обернётся в файле
+            // (у бруска — производный цилиндр равной площади торца), чтобы
+            // переключение формы не открывало пустых строк. Приём не новый:
+            // тем же способом ниже подставляются габариты бруска у цилиндра.
+            add("CrystalDiameter",
+                g => g.Shape == CrystalShape.Box
+                     ? GeometryWriter.EquivalentDiameter(g.CrystalBoxX, g.CrystalBoxY)
+                     : g.CrystalDiameter,
+                (g, v) => g.CrystalDiameter = g.Shape == CrystalShape.Box ? 0.0 : v);
+            add("CrystalHeight",
+                g => g.Shape == CrystalShape.Box ? g.CrystalBoxZ : g.CrystalHeight,
+                (g, v) => g.CrystalHeight = g.Shape == CrystalShape.Box ? 0.0 : v);
             add("CrystalBoxX", g => g.CrystalBoxX > 0.0 ? g.CrystalBoxX : g.CrystalDiameter,
-                (g, v) => g.CrystalBoxX = v);
+                (g, v) => g.CrystalBoxX = g.Shape == CrystalShape.Box ? v : 0.0);
             add("CrystalBoxY", g => g.CrystalBoxY > 0.0 ? g.CrystalBoxY : g.CrystalDiameter,
-                (g, v) => g.CrystalBoxY = v);
+                (g, v) => g.CrystalBoxY = g.Shape == CrystalShape.Box ? v : 0.0);
             add("CrystalBoxZ", g => g.CrystalBoxZ > 0.0 ? g.CrystalBoxZ : g.CrystalHeight,
-                (g, v) => g.CrystalBoxZ = v);
+                (g, v) => g.CrystalBoxZ = g.Shape == CrystalShape.Box ? v : 0.0);
             add("FrontReflectorThickness", g => g.FrontReflectorThickness, (g, v) => g.FrontReflectorThickness = v);
             add("SideReflectorThickness", g => g.SideReflectorThickness, (g, v) => g.SideReflectorThickness = v);
             add("FrontCladdingThickness", g => g.FrontCladdingThickness, (g, v) => g.FrontCladdingThickness = v);
@@ -1005,21 +1023,36 @@ namespace BecquerelMonitor
             // Сторона по умолчанию равна диаметру, а не стороне равной площади:
             // пользователь меряет кювету линейкой, и подсказка должна быть той
             // величиной, которую он в неё впишет.
+            //
+            // ⛔ (`A134`, 04.09.2026) ЧУЖОМУ ВИДУ ИСТОЧНИКА ЭТИ ПОЛЯ СНИМАЮТСЯ —
+            // тем же правилом `A94`, каким снимаются размеры цилиндра у бруска.
+            // Подсказка на ЧТЕНИИ остаётся подсказкой; в модель она попадает,
+            // только если прямоугольная кювета ВЫБРАНА.
+            //
+            // Что было. `BuildModel` проходит по всему списку, вид источника при
+            // этом не спрашивался, и у цилиндрической (точечной, маринелли)
+            // геометрии подсказка оседала в модели как настоящие размеры. Дальше
+            // `GeometryWriter` пишет `SB_*` всегда, а `ResponseMatrix.ComputeStamp`
+            // берёт ИМЕННО ЭТОТ ТЕКСТ — значит простое открытие-сохранение
+            // геометрии двигало отпечаток и объявляло посчитанную матрицу
+            // устаревшей при той же сцене. Измерено 04.09.2026 на всех 66 файлах
+            // склада: отпечаток менялся у 66 из 66, ключи `SB_*` — у 65
+            // (единственный, у кого не менялся, — сама кювета `Nano16Pro_box.in`).
             add("BoxSourceX", g => g.BoxSourceX > 0.0 ? g.BoxSourceX : g.BeakerDiameter,
-                (g, v) => g.BoxSourceX = v);
+                (g, v) => g.BoxSourceX = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             add("BoxSourceY", g => g.BoxSourceY > 0.0 ? g.BoxSourceY : g.BeakerDiameter,
-                (g, v) => g.BoxSourceY = v);
+                (g, v) => g.BoxSourceY = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             add("BoxSourceHeight", g => g.BoxSourceHeight > 0.0 ? g.BoxSourceHeight : g.SourceHeight,
-                (g, v) => g.BoxSourceHeight = v);
+                (g, v) => g.BoxSourceHeight = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             add("BoxSideWallThickness",
                 g => g.BoxSideWallThickness > 0.0 ? g.BoxSideWallThickness : g.BeakerSideWallThickness,
-                (g, v) => g.BoxSideWallThickness = v);
+                (g, v) => g.BoxSideWallThickness = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             add("BoxEndWallThickness",
                 g => g.BoxEndWallThickness > 0.0 ? g.BoxEndWallThickness : g.BeakerEndWallThickness,
-                (g, v) => g.BoxEndWallThickness = v);
+                (g, v) => g.BoxEndWallThickness = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             add("BoxToDetectorDistance",
                 g => g.BoxToDetectorDistance > 0.0 ? g.BoxToDetectorDistance : g.BeakerToDetectorDistance,
-                (g, v) => g.BoxToDetectorDistance = v);
+                (g, v) => g.BoxToDetectorDistance = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             return map;
         }
 
@@ -1047,11 +1080,13 @@ namespace BecquerelMonitor
                     this.Set(field.Key, field.Read(g));
                 }
 
-                this.SelectMaterial("Crystal", g.Crystal);
-                this.SelectMaterial("Reflector", g.Reflector);
-                this.SelectMaterial("Cladding", g.Cladding);
-                this.SelectMaterial("BeakerWall", g.BeakerWall);
-                this.SelectMaterial("Source", g.Source);
+                // Состав пришедшей геометрии СОХРАНЯЕТСЯ (`A139`): открытие —
+                // не правка, и подменять доли библиотечными нельзя.
+                this.SelectMaterial("Crystal", g.Crystal, true);
+                this.SelectMaterial("Reflector", g.Reflector, true);
+                this.SelectMaterial("Cladding", g.Cladding, true);
+                this.SelectMaterial("BeakerWall", g.BeakerWall, true);
+                this.SelectMaterial("Source", g.Source, true);
 
                 this.boxRadio.Checked = g.Shape == CrystalShape.Box;
                 this.cylinderRadio.Checked = g.Shape != CrystalShape.Box;
@@ -1123,7 +1158,25 @@ namespace BecquerelMonitor
             }
         }
 
-        void SelectMaterial(string key, GeometryMaterial material)
+        /// <param name="keepComposition">
+        /// ⛔ ПОКАЗАТЬ вещество — не значит ЗАМЕНИТЬ его составом из библиотеки
+        /// (`A139`, тем же правилом, каким `A134` решает вид источника: чтение
+        /// поля остаётся подсказкой и данными не становится).
+        ///
+        /// `true` — открывается ЧУЖАЯ геометрия, и её состав обязан пережить
+        /// открытие-сохранение дословно. Прежде состав подменялся библиотечным
+        /// всякий раз, когда имя вещества в ней НАХОДИЛОСЬ, и у ввезённых из
+        /// ЛСРМ файлов это двигало десять строк долей (`SC_FractionsWall`,
+        /// `SC_FractionsSource` и их близнецы в блоке маринелли): файл хранит
+        /// 0.04196, библиотека — 0.0419585. Текст `.in` менялся, отпечаток
+        /// матрицы вместе с ним, человек ничего не правил. У 44 корпусных
+        /// геометрий разницы не было: они писаны нашим писателем из той же
+        /// библиотеки, и числа совпадали.
+        ///
+        /// `false` — вернулись из правки БИБЛИОТЕКИ, и новый состав взять
+        /// неоткуда, кроме неё: он и есть смысл той правки.
+        /// </param>
+        void SelectMaterial(string key, GeometryMaterial material, bool keepComposition)
         {
             ComboBox combo = this.materials[key];
             int index = -1;
@@ -1142,10 +1195,14 @@ namespace BecquerelMonitor
             // врать), состав из файла написан рядом, а первый осознанный выбор
             // из списка вещество заменяет. Раньше здесь выбиралась первая
             // строка библиотеки, и первый же коммит подменял состав файла ею.
-            if (index < 0 && material != null && material.Fractions.Count > 0)
+            //
+            // Найденное же в библиотеке имя даёт СТРОКУ СПИСКА, а состав всё
+            // равно остаётся пришедшим (`keepComposition`): осознанная замена —
+            // это выбор из списка руками, и её ловит `MaterialChanged`.
+            if (material != null && material.Fractions.Count > 0 && (index < 0 || keepComposition))
             {
                 this.foreignMaterials[key] = material.Clone();
-                combo.SelectedIndex = -1;
+                combo.SelectedIndex = index;
             }
             else
             {
@@ -1218,7 +1275,10 @@ namespace BecquerelMonitor
                 {
                     pair.Value.Items.Clear();
                     FillMaterialCombo(pair.Value, this.materialKinds[pair.Key]);
-                    this.SelectMaterial(pair.Key, was[pair.Key]);
+                    // Здесь состав берётся ИЗ БИБЛИОТЕКИ (`A139`): её правка —
+                    // осознанное действие человека, и новый состав обязан
+                    // доехать до геометрии. Отличается ровно этим от загрузки.
+                    this.SelectMaterial(pair.Key, was[pair.Key], false);
                 }
             }
             finally
@@ -1752,11 +1812,14 @@ namespace BecquerelMonitor
                        && g.Shape == CrystalShape.Box
                 ? GeometryDetectorFacing.Side
                 : GeometryDetectorFacing.Front;
-            foreach (FieldMap field in Map)
-            {
-                field.Write(g, this.Get(field.Key));
-            }
 
+            // ⛔ (`A134`) ВИД ИСТОЧНИКА РЕШАЕТСЯ ДО ПОЛЕЙ, а не после. Тем же
+            // правилом, каким `A94` решает форму кристалла: карта полей
+            // спрашивает у модели, СВОЯ ли ей эта строка, и чужой форме поле
+            // снимает. Пока вид источника ставился ПОСЛЕ перебора, спросить
+            // было не у кого — писатели видели вид, оставшийся от предыдущей
+            // модели, и подсказка прямоугольной кюветы оседала в цилиндрической
+            // геометрии настоящими числами.
             int kind = this.sourceTypeCombo.SelectedIndex;
             if (kind < 0 || kind >= SourceKinds.Length)
             {
@@ -1765,6 +1828,11 @@ namespace BecquerelMonitor
 
             g.SourceType = SourceKinds[kind].Key;
             g.Scene = SourceKinds[kind].Value;
+
+            foreach (FieldMap field in Map)
+            {
+                field.Write(g, this.Get(field.Key));
+            }
 
             g.Crystal = this.MaterialOf("Crystal", this.Get("Crystal.Density"));
             g.Reflector = this.MaterialOf("Reflector", this.Get("Reflector.Density"));

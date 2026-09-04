@@ -658,7 +658,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>Обёртка отказа (`A89`), см. <see cref="Refuse"/>.</summary>
         static LightYieldCurve LoadLightYield(string material)
+        {
+            try
+            {
+                return LoadLightYieldTable(material);
+            }
+            catch (FileNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Refuse("кривая световыхода «" + material + "»", DatabasePath(), ex);
+            }
+        }
+
+        static LightYieldCurve LoadLightYieldTable(string material)
         {
             string path = DatabasePath();
             if (!File.Exists(path))
@@ -703,7 +720,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
         }
 
+        /// <summary>Обёртка отказа (`A89`), см. <see cref="Refuse"/>.</summary>
         static PhotoShellModel LoadPhotoShell(int z)
+        {
+            try
+            {
+                return LoadPhotoShellTable(z);
+            }
+            catch (FileNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Refuse("оболочечная модель фотоэффекта Z=" + z, DatabasePath(), ex);
+            }
+        }
+
+        static PhotoShellModel LoadPhotoShellTable(int z)
         {
             string path = DatabasePath();
             if (!File.Exists(path))
@@ -861,7 +895,77 @@ namespace BecquerelMonitor.EfficiencyMaker
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }
 
+        /// <summary>
+        /// ⛔ ОТКАЗ БАЗЫ ВЕЩЕСТВ НАЗЫВАЕТ СЕБЯ САМ (`A89`).
+        ///
+        /// Прежде файл назывался ТОЛЬКО в ветке «файла нет»
+        /// (<see cref="FileNotFoundException"/>). Всякий другой отказ —
+        /// битая база, отказ поставщика SQLite при отсутствующем
+        /// <c>&lt;приложение&gt;.exe.config</c> — уходил наверх как есть, и в
+        /// его словах не было ни <c>matdb.sqlite</c>, ни пути: «SQLite Error 26:
+        /// 'file is not a database'» или «Инициализатор типа
+        /// "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение». По таким
+        /// словам нельзя сделать ничего, а десять потребителей этого класса
+        /// (<c>EfficiencyCalculation</c>, <c>EfficiencySimulator</c>,
+        /// <c>CascadeAtomicData</c>, <c>FsaSampleLibrary</c>, <c>FsaLibrary</c>,
+        /// <c>FsaCompositionInference</c>, <c>GeometryMaterialLibrary</c>) не
+        /// перехватывают его вовсе.
+        ///
+        /// ⛔ Отказ ОСТАЁТСЯ БРОСКОМ и здесь, и у них — проглотить его нельзя:
+        /// без таблицы веществ расчёт пойдёт по пустому набору элементов и
+        /// покажет числа как настоящие. Здесь добавляются только СЛОВА: полный
+        /// путь (<see cref="AppUi.Where"/>) и причина с вложенным исключением
+        /// (<see cref="AppUi.Reason"/>) — единственное в дереве соглашение о
+        /// том, как называется причина (`A22`, `A25`). Само исключение уходит
+        /// внутренним, чтобы стек не терялся.
+        ///
+        /// ⚠ ОБА ДЕЙСТВИЯ НУЖНЫ, И ВМЕСТЕ ОНИ ЗАКОННЫ (`A129`). Причина стоит
+        /// в СВОЁМ сообщении ради того, кто печатает один лишь <c>Message</c>
+        /// (так судит `RefusalWordsProbe`), и она же уезжает внутренним ради
+        /// стека. До 04.09.2026 <see cref="AppUi.Reason"/> поверх такой обёртки
+        /// приписывал самое внутреннее ВТОРОЙ раз — 289 знаков дословного
+        /// повтора; чинить это здесь было бы вторым соглашением о том, как
+        /// называется причина, поэтому починена ДВЕРЬ, а не потребитель.
+        ///
+        /// Текст платформы не переводится и переводу не подлежит: он приходит
+        /// на языке системы, см. <see cref="AppUi.Reason"/>.
+        /// </summary>
+        static Exception Refuse(string what, string path, Exception ex)
+        {
+            return new InvalidOperationException(
+                "matdb.sqlite: " + what + " — отказ. Файл: " + AppUi.Where(path)
+                + ". " + AppUi.Reason(ex), ex);
+        }
+
+        /// <summary>
+        /// Обёртка отказа над <see cref="LoadTables"/> (`A89`). Тело подъёма
+        /// осталось отдельным методом нарочно: так у броска появляются слова, а
+        /// у самого чтения не меняется ни строки.
+        /// </summary>
         static void Load()
+        {
+            if (elements != null)
+            {
+                return;
+            }
+
+            try
+            {
+                LoadTables();
+            }
+            catch (FileNotFoundException)
+            {
+                // Эта ветка файл уже называет — второй раз оборачивать нечего,
+                // а подмена типа исключения сломала бы тех, кто его различает.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Refuse("подъём таблиц вещества", DatabasePath(), ex);
+            }
+        }
+
+        static void LoadTables()
         {
             if (elements != null)
             {

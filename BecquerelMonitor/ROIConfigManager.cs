@@ -61,6 +61,10 @@ namespace BecquerelMonitor
         /// <see cref="AppUi"/> (<c>S100</c>): в окнах — прежнее модальное окно,
         /// без окон — строка в поток ошибок вместо зависания.
         ///
+        /// ⛔ ЗАВОДИТЬ каталог без окон тоже НЕЛЬЗЯ (`A90`): заготовка, оставленная
+        /// пробой в чужом каталоге, отменяет собственный опыт — см. верхний
+        /// <c>catch</c>. Приём для «в окнах» взят у соседа целиком.
+        ///
         /// ⛔ А вот ОТКАЗЫВАТЬ без окон, как это делает <c>DeviceConfigManager</c>
         /// при отсутствии своего каталога, здесь НЕЛЬЗЯ, и это не забывчивость:
         /// в рабочем каталоге корпусных прогонов (<c>tools\CORPUS\scripts\wd_app\config</c>)
@@ -145,7 +149,24 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.WriteLine("ROI config directory unreadable: " + configROIDir + ": " + ex);
-                Directory.CreateDirectory(configROIDir);
+                if (AppUi.HasWindows)
+                {
+                    // Каталог заводится ТОЛЬКО в окнах — тем же приёмом
+                    // (<see cref="AppUi.HasWindows"/>), каким это делает сосед
+                    // <c>DeviceConfigManager</c> (`A90`). Второго соглашения о
+                    // том, что такое «в окнах», в дереве быть не должно.
+                    //
+                    // ⛔ Пустая заготовка, оставленная ПРОБОЙ в чужом каталоге, —
+                    // ровно та грабля, из-за которой завели `S100`, и стоит она
+                    // не опрятности: опыт перестаёт воспроизводиться. Измерено
+                    // 03.09.2026 на сцене `F_a22_nodir` и повторено 04.09.2026:
+                    // ПЕРВЫЙ прогон `RoiLoadProbe` в каталоге без `config\ROI`
+                    // возвращал 2 («каталога нет»), ВТОРОЙ — 0, потому что
+                    // каталог остался от первого. Ни одна из двух цифр при этом
+                    // не выглядит отказом.
+                    Directory.CreateDirectory(configROIDir);
+                }
+
                 AppUi.Report(Resources.ERRLoadingROIConfigFailed + "\n" + AppUi.Where(configROIDir)
                     + "\n" + string.Format(Resources.ERRFailureReason, AppUi.Reason(ex)),
                     Resources.ErrorDialogTitle, MessageBoxIcon.Hand);

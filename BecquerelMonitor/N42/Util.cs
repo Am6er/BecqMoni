@@ -347,6 +347,31 @@ namespace BecquerelMonitor.N42
 
         public DocEnergySpectrum ImportFromN42(RadInstrumentData rad, DocEnergySpectrum doc, string filename)
         {
+            // ⛔ ФАЙЛ БЕЗ ЭЛЕМЕНТА EnergyCalibration — ТО ЖЕ ПОЛОЖЕНИЕ,
+            //    что и в catch ниже, и соглашение здесь ТО ЖЕ (`A137`).
+            //    Ниже по тексту такому файлу подставляется
+            //    CoefficientValues = "0 1", то есть y = x: номер канала
+            //    объявляется энергией, спектр выглядит целым и все
+            //    числа по нему не о том. До 04.09.2026 это делалось МОЛЧА,
+            //    тогда как соседний catch то же самое считал опасным, —
+            //    два соглашения об одном положении в одном методе.
+            //
+            //    Проверка стоит ДО цикла нарочно: отсутствие калибровки —
+            //    свойство ВСЕГО файла, а не отдельного измерения,
+            //    и говориться оно обязано один раз, а не по числу спектров.
+            if (rad.EnergyCalibration == null)
+            {
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: в файле N42 нет энергетической калибровки ("
+                        + AppUi.Where(filename)
+                        + "): подстановка y = x объявляет номер канала энергией — "
+                        + "считать по такому спектру нельзя.");
+                }
+                AppUi.Report(Resources.ERRNoEnergyCalibrationN42, "", MessageBoxIcon.None);
+            }
+
             int SpectrumCount = rad.RadMeasurement.Length;
 
             string SpectrumName = Path.GetFileNameWithoutExtension(filename);
@@ -513,8 +538,13 @@ namespace BecquerelMonitor.N42
                     //    ⚠ Отказ бросается ИЗ catch: `throw` внутри `catch`
                     //    уходит наружу, минуя остаток блока, — подстановка
                     //    y = x при этом не выполняется вовсе.
-                    string text = "N42 EnergyBoundaryValues not supported. Only calibration "
-                        + "coefficients supported. Using default calibration y=x.";
+                    // `A135`: текст берётся из ресурса, а не из литерала:
+                    // литерал не переводится, и русское значение ключа годами
+                    // лежало в ru.resx без читателя. ⚠ Значение ключа тем же
+                    // движением приведено к поведению (`A138`): оно говорило
+                    // «Using current calibration», а код подставляет y = x.
+                    // ⚠ Причины здесь НЕ разведены — это открытая `A136`.
+                    string text = Resources.ERRUnsupportedEnergyBoundaryN42;
                     if (!AppUi.HasWindows)
                     {
                         throw new InvalidOperationException(

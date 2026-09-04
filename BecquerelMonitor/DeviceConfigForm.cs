@@ -1493,7 +1493,7 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
@@ -1506,7 +1506,7 @@ namespace BecquerelMonitor
                             {
                                 if (result_list[i] != result_arr[i])
                                 {
-                                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                                    ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + status_msg);
                                     if (createdInstance)
                                     {
                                         AtomSpectraVCPIn.cleanUp(guid);
@@ -1514,7 +1514,7 @@ namespace BecquerelMonitor
                                     return;
                                 }
                             }
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         if (createdInstance)
                         {
@@ -1523,7 +1523,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
                 {
@@ -1540,7 +1540,7 @@ namespace BecquerelMonitor
                         PolynomialEnergyCalibration polynomialEnergyCalibration = rc_config.RC_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + "Empty calibration");
                             return;
                         }
 
@@ -1603,7 +1603,7 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
@@ -1618,7 +1618,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
                 else if (this.activeDeviceConfig.DeviceType == "Obsidian")
@@ -1636,7 +1636,7 @@ namespace BecquerelMonitor
                         PolynomialEnergyCalibration polynomialEnergyCalibration = obs_config.OBS_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + "Empty calibration");
                             return;
                         }
 
@@ -1656,18 +1656,18 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
                             ShowOwnedMessageBox(string.IsNullOrEmpty(obsFailure)
-                                ? Resources.ERRUploadCoefficeintsToDevice
-                                : Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + obsFailure);
+                                ? Resources.ERRUploadCoefficientsToDevice
+                                : Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + obsFailure);
                         }
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
 
@@ -1691,7 +1691,7 @@ namespace BecquerelMonitor
                 // Errors from DoWork used to be silently swallowed.
                 if (args.Error != null)
                 {
-                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + args.Error.Message);
+                    ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + args.Error.Message);
                 }
             });
 

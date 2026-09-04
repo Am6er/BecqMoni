@@ -1409,8 +1409,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             GeometryMaterial cladding = OrVacuum(g.Cladding);
             GeometryMaterial beakerWall = OrVacuum(g.BeakerWall);
             GeometryMaterial sample = OrVacuum(g.Source);
-            double rc = 0.5 * g.CrystalDiameter;
-            double hc = g.CrystalHeight;
+            // ⛔ (`A94`) Размеры кристалла берутся ПО ЕГО ФОРМЕ. У бруска полей
+            // `CrystalDiameter`/`CrystalHeight` не существует — рабочие размеры
+            // даёт `CrystalBoxInScene` в ветке ниже, и читать здесь цилиндр «на
+            // всякий случай» нельзя: именно так и заводилось мёртвое поле,
+            // которое можно молча испортить.
+            double rc = 0.0, hc = 0.0;
+            if (g.Shape != CrystalShape.Box)
+            {
+                rc = 0.5 * g.CrystalDiameter;
+                hc = g.CrystalHeight;
+            }
+
             double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
             double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
 
@@ -1434,7 +1444,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (тогда квант её проходит) или за кристаллом. Ключ введён как
             // измерительный: у прогона без неё остаётся ровный сдвиг вверх.
             double tm = Math.Max(0.0, g.MountingThickness);
-            double rDet = rc + tsr + tsc;
             double zFace = -(tfr + tfc) - (this.MountingInFront ? tm : 0.0);
 
             // Кристалл и его обвязка. Области вкладываются, порядок значим:
@@ -1467,6 +1476,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
             else
             {
+                // Внешний радиус собранного детектора нужен только цилиндру:
+                // у бруска обвязка прямоугольная и считается по полуширинам.
+                double rDet = rc + tsr + tsc;
                 this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
                 this.Add(0.0, rc, -tfr, 0.0, reflector, false);
                 this.Add(rc, rc + tsr, -tfr, hc, reflector, false);

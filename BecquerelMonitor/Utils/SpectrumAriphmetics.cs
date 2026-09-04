@@ -1425,10 +1425,62 @@ namespace BecquerelMonitor.Utils
             return result;
         }
 
+        /// <summary>
+        /// НАЗВАТЬ ПРИЧИНУ, ПО КОТОРОЙ КАЛИБРОВКУ СПЕКТРА ВЗЯТЬ НЕЛЬЗЯ (`A114`).
+        /// </summary>
+        /// <remarks>
+        /// ⛔ Двери этого класса берут калибровку жёстким приведением
+        /// <c>(PolynomialEnergyCalibration)</c> и отдают её копирующему
+        /// конструктору без единой проверки. Спектр без калибровки давал здесь
+        /// БЕЗЫМЯННЫЙ <c>NullReferenceException</c> — тот же, что жил в
+        /// <see cref="EnergySpectrum.Clone"/> до `A95`, только в другой двери;
+        /// спектр с калибровкой другого вида — голый
+        /// <c>InvalidCastException</c>, не называющий ни двери, ни спектра.
+        ///
+        /// ⚠ Причина называется здесь, а НЕ у каждого потребителя, по той же
+        /// причине, по какой у приложения одна дверь
+        /// <see cref="AppUi.Reason"/>: второго соглашения о том, как называется
+        /// причина, быть не должно.
+        ///
+        /// ⚠ Подставить калибровку взамен отсутствующей нельзя — единственное,
+        /// что можно подставить, это <c>new PolynomialEnergyCalibration()</c>,
+        /// то есть объявить номер канала энергией (`A95`).
+        ///
+        /// <paramref name="door"/> — имя двери: без него сообщение не говорит,
+        /// ГДЕ это случилось, а дверей с таким приведением в классе несколько.
+        /// </remarks>
+        static PolynomialEnergyCalibration PolynomialOf(EnergySpectrum spectrum, string door)
+        {
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+            if (calibration == null)
+            {
+                throw new InvalidOperationException(
+                    "SpectrumAriphmetics." + door + ": у спектра нет энергетической"
+                    + " калибровки (EnergyCalibration == null, каналов "
+                    + spectrum.NumberOfChannels + "). Обрезать нечего: без шкалы"
+                    + " энергии у краёв нет смысла, а подставить калибровку значило"
+                    + " бы объявить номер канала энергией.");
+            }
+
+            PolynomialEnergyCalibration polynomial = calibration as PolynomialEnergyCalibration;
+            if (polynomial == null)
+            {
+                throw new InvalidOperationException(
+                    "SpectrumAriphmetics." + door + ": калибровка спектра — "
+                    + calibration.GetType().Name + " (каналов " + spectrum.NumberOfChannels
+                    + "), а здесь умеют только PolynomialEnergyCalibration: обрезка"
+                    + " пересчитывает коэффициенты многочлена, и у калибровки другого"
+                    + " вида их попросту нет.");
+            }
+
+            return polynomial;
+        }
+
         public static EnergySpectrum CutoffSpectrumChannels(EnergySpectrum energySpectrum, int newChan)
         {
+            PolynomialEnergyCalibration source = PolynomialOf(energySpectrum, "CutoffSpectrumChannels");
             EnergySpectrum newSpectrum = new EnergySpectrum(energySpectrum.ChannelPitch, newChan);
-            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration((PolynomialEnergyCalibration)energySpectrum.EnergyCalibration);
+            PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration(source);
             newSpectrum.EnergyCalibration = calibration;
             newSpectrum.NumberOfChannels = newChan;
             Array.Copy(energySpectrum.Spectrum, newSpectrum.Spectrum, newChan);

@@ -57,6 +57,49 @@ namespace BecquerelMonitor.EfficiencyMaker
             FractionTypeKey = "DS_FractionTypeReflector", NamePrefix = "M_DS_Reflector",
         };
 
+        // Вещества коаксиального детектора — те, которых мы не показываем и
+        // переносим из исходного файла. Объявлены здесь, а не строками по
+        // месту, потому что список нужен ДВАЖДЫ: писателю и отбору
+        // переносимых ключей (<see cref="CarriedFrom"/>). Две копии этого
+        // перечня разошлись бы молча.
+        static readonly Slot DcCrystal = new Slot
+        {
+            CountKey = "DC_nCrystalElements", RoKey = "DC_RoCrystal",
+            ZPart = "DC_ZCrystal", FractionsPart = "DC_FractionsCrystal",
+            FractionTypeKey = "DC_FractionTypeCrystal", NamePrefix = "M_DC_Crystal",
+        };
+
+        static readonly Slot DcCladding = new Slot
+        {
+            CountKey = "DC_nCrystalSideCladdingElements", RoKey = "DC_RoCrystalSideCladding",
+            ZPart = "DC_ZCrystalSideCladding", FractionsPart = "DC_FractionsCrystalSideCladding",
+            FractionTypeKey = "DC_FractionTypeCrystalSideCladding",
+            NamePrefix = "M_DC_Crystal_Cladding",
+        };
+
+        static readonly Slot DcMounting = new Slot
+        {
+            CountKey = "DC_nCrystalMountingElements", RoKey = "DC_RoCrystalMounting",
+            ZPart = "DC_ZCrystalMounting", FractionsPart = "DC_FractionsCrystalMounting",
+            FractionTypeKey = "DC_FractionTypeCrystalMounting",
+            NamePrefix = "M_DC_Crystal_Mounting",
+        };
+
+        static readonly Slot DcCap = new Slot
+        {
+            CountKey = "DC_nDetectorCapElements", RoKey = "DC_RoDetectorCap",
+            ZPart = "DC_ZDetectorCap", FractionsPart = "DC_FractionsDetectorCap",
+            FractionTypeKey = "DC_FractionTypeDetectorCap", NamePrefix = "M_DC_Detector_Cap",
+        };
+
+        static readonly Slot DcVacuum = new Slot
+        {
+            // счётчик у вакуума называется DC_nVacuum, без Elements
+            CountKey = "DC_nVacuum", RoKey = "DC_RoVacuum",
+            ZPart = "DC_ZVacuum", FractionsPart = "DC_FractionsVacuum",
+            FractionTypeKey = "DC_FractionTypeVacuum", NamePrefix = "M_DC_Vacuum",
+        };
+
         static Slot Wall(string prefix)
         {
             return new Slot
@@ -131,12 +174,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             // а считаются по правилу самого LSRM — равная площадь торца
             // D = 2*sqrt(X*Y/pi), высота = длина бруска. Так файл остаётся
             // осмысленным и для GMaster, который бруска не знает.
-            double diameter = model.CrystalDiameter;
-            double height = model.CrystalHeight;
+            // ⛔ (`A94`) У БРУСКА эти два числа ВЫВОДЯТСЯ, а не берутся из
+            // модели: полей `CrystalDiameter`/`CrystalHeight` у него нет —
+            // ни в файле, ни в редакторе, ни в сцене. Читать их здесь «а вдруг
+            // заданы» значило бы вернуть то самое мёртвое состояние, которое
+            // молча правится и никуда не доезжает.
+            double diameter, height;
             if (model.Shape == CrystalShape.Box)
             {
                 diameter = EquivalentDiameter(model.CrystalBoxX, model.CrystalBoxY);
                 height = model.CrystalBoxZ;
+            }
+            else
+            {
+                diameter = model.CrystalDiameter;
+                height = model.CrystalHeight;
             }
 
             cm("DS_CrystalDiameter", diameter);
@@ -201,37 +253,23 @@ namespace BecquerelMonitor.EfficiencyMaker
             line("");
             line("");
             line("// Crystal");
-            Carry(text, model, "DC_nCrystalElements", "DC_RoCrystal", "DC_ZCrystal",
-                  "DC_FractionsCrystal", "DC_FractionTypeCrystal", "M_DC_Crystal",
-                  "Germanium", 5.323, "Ge1");
+            Carry(text, model, DcCrystal, "Germanium", 5.323, "Ge1");
             line("");
             line("");
             line("// Crystal Cladding");
-            Carry(text, model, "DC_nCrystalSideCladdingElements", "DC_RoCrystalSideCladding",
-                  "DC_ZCrystalSideCladding", "DC_FractionsCrystalSideCladding",
-                  "DC_FractionTypeCrystalSideCladding", "M_DC_Crystal_Cladding",
-                  "Aluminum", 2.7, "Al1");
+            Carry(text, model, DcCladding, "Aluminum", 2.7, "Al1");
             line("");
             line("");
             line("//Crystal Mounting");
-            Carry(text, model, "DC_nCrystalMountingElements", "DC_RoCrystalMounting",
-                  "DC_ZCrystalMounting", "DC_FractionsCrystalMounting",
-                  "DC_FractionTypeCrystalMounting", "M_DC_Crystal_Mounting",
-                  "Aluminum", 2.7, "Al1");
+            Carry(text, model, DcMounting, "Aluminum", 2.7, "Al1");
             line("");
             line("");
             line("//Detector Cap");
-            Carry(text, model, "DC_nDetectorCapElements", "DC_RoDetectorCap",
-                  "DC_ZDetectorCap", "DC_FractionsDetectorCap",
-                  "DC_FractionTypeDetectorCap", "M_DC_Detector_Cap",
-                  "Aluminum", 2.7, "Al1");
+            Carry(text, model, DcCap, "Aluminum", 2.7, "Al1");
             line("");
             line("");
             line("//Vacuum");
-            // счётчик у вакуума называется DC_nVacuum, без Elements
-            Carry(text, model, "DC_nVacuum", "DC_RoVacuum", "DC_ZVacuum",
-                  "DC_FractionsVacuum", "DC_FractionTypeVacuum", "M_DC_Vacuum",
-                  "Aluminum", 1e-10, "Al1");
+            Carry(text, model, DcVacuum, "Aluminum", 1e-10, "Al1");
             line("");
             line("");
             line("// Scintillation detector materials:");
@@ -352,6 +390,72 @@ namespace BecquerelMonitor.EfficiencyMaker
             "DC_DetectorCapBackThickness", "DC_DetectorMountingThickness",
         };
 
+        /// <summary>Слоты веществ, которые переносятся из разбора, а не считаются.</summary>
+        static readonly Slot[] CarriedSlots =
+        {
+            DcCrystal, DcCladding, DcMounting, DcCap, DcVacuum,
+            // «Пустое место» сосуда и маринелли: у ЛСРМ оно записано водой при
+            // воздушной плотности, и переписывать эту странность своим
+            // воздухом значит менять текст файла (см. `CarrySlot`).
+        };
+
+        /// <summary>
+        /// Разбор, УРЕЗАННЫЙ до того, что писатель действительно переносит.
+        ///
+        /// Зачем (`A139`, 04.09.2026): разбор файла теперь ХРАНИТСЯ в
+        /// конфигурации прибора — иначе геометрия, приехавшая из конфигурации,
+        /// пишет чужие блоки нулями, а та же геометрия из файла — настоящими
+        /// числами, и отпечаток матрицы расходится сам собой. Но хранить
+        /// ВЕСЬ разбор незачем: из двух сотен ключей писатель читает
+        /// шестнадцать размеров коаксиала и семь веществ, остальное — те же
+        /// числа, что уже лежат в полях модели. Измерено на `Nano16Pro.in`:
+        /// 191 ключ против 55, XML конфигурации 18960 знаков против 11000.
+        ///
+        /// ⛔ ЭТОТ СПИСОК ОБЯЗАН СОВПАДАТЬ С ТЕМ, ЧТО ЧИТАЕТ `Render`. Если
+        /// разойдётся — открытие-сохранение начнёт двигать текст `.in` и
+        /// отпечаток; ловится побитовой описью склада (проба `RawCarryProbe`,
+        /// круг «КОНФИГУРАЦИЯ (XML)»), и ловится сразу.
+        /// </summary>
+        public static Dictionary<string, string> CarriedFrom(GeometryModel model)
+        {
+            var kept = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (model == null)
+            {
+                return kept;
+            }
+
+            Action<string> take = key =>
+            {
+                string value;
+                if (key != null && model.Raw.TryGetValue(key, out value))
+                {
+                    kept[key] = value;
+                }
+            };
+
+            foreach (string key in CoaxialKeys)
+            {
+                take(key);
+            }
+
+            var slots = new List<Slot>(CarriedSlots) { EmptySpace("SC"), EmptySpace("SM") };
+            foreach (Slot slot in slots)
+            {
+                // Ровно то, что читает `Read`: плотность, имя и таблица долей.
+                // Счётчик элементов и тип долей писатель считает сам.
+                take(slot.RoKey);
+                take(slot.NamePrefix + ".MName");
+                for (int i = 0; i < 24; i++)
+                {
+                    string index = "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+                    take(slot.ZPart + index);
+                    take(slot.FractionsPart + index);
+                }
+            }
+
+            return kept;
+        }
+
         /// <summary>Значение из исходного файла, иначе ноль.</summary>
         static double Carried(GeometryModel model, string key)
         {
@@ -370,18 +474,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Вещество, которого мы не показываем: как было, иначе умолчание.</summary>
-        static void Carry(StringBuilder text, GeometryModel model, string countKey, string roKey,
-                          string zPart, string fractionsPart, string fractionTypeKey,
-                          string namePrefix, string defaultName, double defaultDensity,
-                          string defaultFormula)
+        static void Carry(StringBuilder text, GeometryModel model, Slot slot,
+                          string defaultName, double defaultDensity, string defaultFormula)
         {
-            Slot slot = new Slot
-            {
-                CountKey = countKey, RoKey = roKey, ZPart = zPart,
-                FractionsPart = fractionsPart, FractionTypeKey = fractionTypeKey,
-                NamePrefix = namePrefix,
-            };
-
             GeometryMaterial material = Read(model, slot);
             if (material == null)
             {

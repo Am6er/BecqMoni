@@ -579,7 +579,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Dead Time: {0} μs.
+        ///   Looks up a localized string similar to Dead Time: {0} µs.
         /// </summary>
         public static string DeadTimeLblText {
             get {
@@ -790,11 +790,11 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
+        ///   Looks up a localized string similar to BecqMoni already running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
         /// </summary>
-        public static string ERRAppAllreadyRunning {
+        public static string ERRAppAlreadyRunning {
             get {
-                return ResourceManager.GetString("ERRAppAllreadyRunning", resourceCulture);
+                return ResourceManager.GetString("ERRAppAlreadyRunning", resourceCulture);
             }
         }
         
@@ -808,7 +808,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Messsage: {1}..
+        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Message: {1}..
         /// </summary>
         public static string ERRBackgroundLoadFailure {
             get {
@@ -889,16 +889,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unable to retreive device data. (prohibited while measurement processing)
-        ///.
-        /// </summary>
-        public static string ERRCannotRetreiveDeviceData {
-            get {
-                return ResourceManager.GetString("ERRCannotRetreiveDeviceData", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Incorrect number of channels or energy..
         /// </summary>
         public static string ERRChanNumber {
@@ -954,7 +944,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Missmatched device configuration: to solve this create new file and use Audio Input device..
+        ///   Looks up a localized string similar to Mismatched device configuration: to solve this create new file and use Audio Input device..
         /// </summary>
         public static string ERRDeviceMismatchConfiguration {
             get {
@@ -972,7 +962,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate GUID for deivce configuration &quot;{0}&quot;.
+        ///   Looks up a localized string similar to Duplicate GUID for device configuration &quot;{0}&quot;.
         /// </summary>
         public static string ERRDuplicateDeviceConfigGUID {
             get {
@@ -1101,7 +1091,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again..
+        ///   Looks up a localized string similar to Incorrect Crc32 checksum! Possible broken coefficients. Try to upload them again..
         /// </summary>
         public static string ERRIncorrectCRC {
             get {
@@ -1299,7 +1289,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
+        ///   Looks up a localized string similar to Selected peak FWHM already exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
         /// </summary>
         public static string ERRPeakExist {
             get {
@@ -1389,11 +1379,20 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Using current calibration..
+        ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Only calibration coefficients are supported. Using the default calibration y=x: the channel number is taken as the energy..
         /// </summary>
-        public static string ERRUnsuportedEnergyBoundaryN42 {
+        public static string ERRUnsupportedEnergyBoundaryN42 {
             get {
-                return ResourceManager.GetString("ERRUnsuportedEnergyBoundaryN42", resourceCulture);
+                return ResourceManager.GetString("ERRUnsupportedEnergyBoundaryN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy..
+        /// </summary>
+        public static string ERRNoEnergyCalibrationN42 {
+            get {
+                return ResourceManager.GetString("ERRNoEnergyCalibrationN42", resourceCulture);
             }
         }
         
@@ -1425,7 +1424,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cann&apos;t install the latest version. Error happens.
+        ///   Looks up a localized string similar to Can&apos;t install the latest version. Error happens.
         ///{0}.
         /// </summary>
         public static string ERRUpdateExc {
@@ -1437,14 +1436,14 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Error! Coefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
-        public static string ERRUploadCoefficeintsToDevice {
+        public static string ERRUploadCoefficientsToDevice {
             get {
-                return ResourceManager.GetString("ERRUploadCoefficeintsToDevice", resourceCulture);
+                return ResourceManager.GetString("ERRUploadCoefficientsToDevice", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what&apos;s happend with your USB system hub..
+        ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns empty list. Now program sets port from device config file, but you should check what&apos;s happened with your USB system hub..
         /// </summary>
         public static string ERRVCPComPortsNumeration {
             get {
@@ -1775,9 +1774,9 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Coefficients uploaded to device successfully..
         /// </summary>
-        public static string MSGCoefficientsUploadedSuccesfull {
+        public static string MSGCoefficientsUploadedSuccessful {
             get {
-                return ResourceManager.GetString("MSGCoefficientsUploadedSuccesfull", resourceCulture);
+                return ResourceManager.GetString("MSGCoefficientsUploadedSuccessful", resourceCulture);
             }
         }
         
@@ -1896,7 +1895,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No new version avalable. Current version: {0}.
+        ///   Looks up a localized string similar to No new version available. Current version: {0}.
         /// </summary>
         public static string MSGNoNewVersion {
             get {
@@ -1968,7 +1967,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Save energy calibration parmeters to current device configuration?.
+        ///   Looks up a localized string similar to Save energy calibration parameters to current device configuration?.
         /// </summary>
         public static string MSGSaveEnergyCalibration {
             get {
@@ -2060,7 +2059,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update avalable.
+        ///   Looks up a localized string similar to Update available.
         /// </summary>
         public static string MSGUpdateShort {
             get {
@@ -2840,7 +2839,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Full-spectrum decomposition failed, see the log.
+        ///   Looks up a localized string similar to Full-spectrum decomposition failed..
         /// </summary>
         public static string FSAFailed {
             get {
@@ -4808,6 +4807,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} ({1} requested).
+        /// </summary>
+        public static string ResponseMatrixNodesRequested {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNodesRequested", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixParameters.
         /// </summary>
         public static string ResponseMatrixParameters {
@@ -4871,24 +4879,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ResponseMatrixEstimate.
-        /// </summary>
-        public static string ResponseMatrixEstimate {
-            get {
-                return ResourceManager.GetString("ResponseMatrixEstimate", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ResponseMatrixEstimating.
-        /// </summary>
-        public static string ResponseMatrixEstimating {
-            get {
-                return ResourceManager.GetString("ResponseMatrixEstimating", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixCompute.
         /// </summary>
         public static string ResponseMatrixCompute {
@@ -4939,15 +4929,6 @@ namespace BecquerelMonitor.Properties {
         public static string ResponseMatrixProgress {
             get {
                 return ResourceManager.GetString("ResponseMatrixProgress", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to ResponseMatrixProgressNoEta.
-        /// </summary>
-        public static string ResponseMatrixProgressNoEta {
-            get {
-                return ResourceManager.GetString("ResponseMatrixProgressNoEta", resourceCulture);
             }
         }
         
@@ -5483,7 +5464,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to μSv/h.
+        ///   Looks up a localized string similar to µSv/h.
         /// </summary>
         public static string UnitMicroSievertPerHour {
             get {

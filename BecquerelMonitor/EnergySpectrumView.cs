@@ -4067,6 +4067,31 @@ namespace BecquerelMonitor
         // Token: 0x060004C3 RID: 1219 RVA: 0x0001B334 File Offset: 0x00019534
         NuclideDefinitionManager nuclideManager;
 
+        /// <summary>
+        /// ШИРИНА ПАНЕЛИ ЗНАЧЕНИЙ КУРСОРА, ПИКСЕЛИ — и ЕДИНСТВЕННОЕ МЕСТО, ГДЕ
+        /// ЭТО ЧИСЛО ЖИВЁТ (`A128`).
+        /// </summary>
+        /// <remarks>
+        /// ⛔ Прежде оно было литералом местной переменной
+        /// <c>table_width_origin</c> внутри <see cref="ShowCursorValues"/> и
+        /// оттуда уходило в <c>ShowFsaTable</c>. Достать его снаружи было
+        /// нельзя ни ссылкой, ни отражением, и у сторожа
+        /// <c>FsaQualityRowProbe</c> лежала СВОЯ КОПИЯ. Две копии одного числа
+        /// расходятся молча, а от этой ширины зависит порог `A127` — сколько
+        /// знаков хвоста строки качества помещается и попадает ли туда пометка
+        /// «· старая матрица». Мерить порог по чужой ширине значит не мерить
+        /// его вовсе.
+        ///
+        /// ⚠ <c>static readonly</c>, а НЕ <c>const</c>: значение константы
+        /// вкомпилируется в пробу, и разойтись копии смогут снова — на этот раз
+        /// между свежим приложением и пробой, собранной вчера. Поле читается в
+        /// работе, поэтому такого зазора нет.
+        ///
+        /// ⚠ Число не изменилось: было 230, осталось 230. Отрисовка обязана
+        /// совпасть попиксельно, и это проверено, а не заявлено.
+        /// </remarks>
+        public static readonly int CursorPanelWidth = 230;
+
         void ShowCursorValues(Graphics g)
         {
             string intFormat = "n0";
@@ -4081,7 +4106,7 @@ namespace BecquerelMonitor
                 ? this.backgroundEnergySpectrum.Spectrum
                 : null;
 
-            int table_width_origin = 230;
+            int table_width_origin = EnergySpectrumView.CursorPanelWidth;
             int channel_table_x_pos;
             int region_table_x_pos;
             bool isRegionSelected = this.selectionStart != -1 && this.selectionEnd != -1;

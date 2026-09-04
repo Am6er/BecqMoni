@@ -23,6 +23,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double Fraction;
     }
 
+    /// <summary>
+    /// Одна пара «ключ = значение» разобранного файла `.in` — форма записи для
+    /// XML (см. <see cref="GeometryModel.RawList"/>). Значение хранится
+    /// СТРОКОЙ, ровно как в файле: там есть и числа с единицей («7.4 cm»), и
+    /// имена веществ, а привести их к одному типу значило бы разобрать чужой
+    /// блок, который мы нарочно не разбираем.
+    /// </summary>
+    public sealed class GeometryRawEntry
+    {
+        [XmlAttribute("k")]
+        public string Name;
+
+        [XmlAttribute("v")]
+        public string Value;
+    }
+
     public sealed class GeometryMaterial
     {
         public string Name = "";
@@ -480,6 +496,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Снять размеры, которых у ЭТОЙ формы кристалла не существует
+        /// (`A94`, решение Amber 04.09.2026).
+        ///
+        /// Зачем. У бруска <see cref="CrystalDiameter"/> и
+        /// <see cref="CrystalHeight"/> не читает НИКТО: в файл писатель кладёт
+        /// производный цилиндр равной площади торца, сцену симулятор строит по
+        /// <see cref="CrystalBoxInScene"/>, чертёж и разбор ветвятся по
+        /// <see cref="Shape"/>. Поле, которое можно задать и нельзя увидеть, —
+        /// это ловушка, а не запас: `CrystalHeight += 1` мм оставлял текст
+        /// геометрии ПОБАЙТНО тем же и отпечаток тем же, и сторож `A47` на
+        /// этом полгода выглядел как дыра в отпечатке.
+        ///
+        /// Зовётся на обеих границах модели: при чтении файла
+        /// (<see cref="Load"/>) и при сборке модели из редактора. Симметрично
+        /// снимаются и габариты бруска у цилиндра — по той же причине и без
+        /// последствий: писатель их у цилиндра не печатает вовсе.
+        /// </summary>
+        public void DropDeadCrystalSize()
+        {
+            if (this.Shape == CrystalShape.Box)
+            {
+                this.CrystalDiameter = 0.0;
+                this.CrystalHeight = 0.0;
+            }
+            else
+            {
+                this.CrystalBoxX = 0.0;
+                this.CrystalBoxY = 0.0;
+                this.CrystalBoxZ = 0.0;
+            }
+        }
+
+        /// <summary>
         /// Размеры кристалла в системе СЦЕНЫ: полуширины грани, обращённой к
         /// пробе, и глубина вдоль оси. Для <see cref="GeometryDetectorFacing.Side"/>
         /// брусок разворачивается так, чтобы к пробе смотрела САМАЯ ШИРОКАЯ
@@ -616,8 +665,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// конфигурации эффективности и копия её в файл спектра. Копируются и
         /// вещества — иначе две конфигурации правились бы за одно.
         ///
-        /// Разбор файла (Raw, Warnings) не копируется: он к сохранённой
-        /// геометрии не относится.
+        /// ⛔ РАЗБОР ФАЙЛА (<see cref="Raw"/>) КОПИРУЕТСЯ ТОЖЕ — `A139`,
+        /// 04.09.2026. До этого он намеренно терялся («к сохранённой геометрии
+        /// не относится»), и посылка была неверна: писатель берёт из разбора
+        /// ЧУЖИЕ БЛОКИ файла — коаксиальный детектор (16 ключей `DC_*` и пять
+        /// его веществ) и «пустое место» сосуда с маринелли. Нет разбора —
+        /// пишутся нули и умолчания, то есть одна и та же геометрия даёт ДВА
+        /// разных текста `.in`, а с ним и два разных `ResponseMatrix.ComputeStamp`.
+        /// Измерено на складе: у 17 ввезённых из ЛСРМ файлов из 66 копия
+        /// сдвигала отпечаток на 26 строк, ничего в геометрии не изменив, —
+        /// матрица объявлялась устаревшей, человек получал часы пересчёта.
+        /// У 44 корпусных геометрий, написанных нашим же писателем, разница
+        /// была нулевой: там чужие блоки и так пусты. Отсюда и разряд ошибки
+        /// «посылка верна на одной сцене и врёт на другой» (см. `A94`).
+        ///
+        /// <see cref="Scaled"/> переносил разбор руками — теперь не нужно.
         /// </summary>
         public GeometryModel Clone()
         {
@@ -629,8 +691,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             copy.Cladding = this.Cladding.Clone();
             copy.BeakerWall = this.BeakerWall.Clone();
             copy.Source = this.Source.Clone();
-            copy.Raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            copy.Warnings = new List<string>();
+            // Свои словарь и список, а не общие с исходником: копия для того и
+            // делается, чтобы две геометрии не правились за одну.
+            copy.Raw = new Dictionary<string, string>(this.Raw, StringComparer.OrdinalIgnoreCase);
+            copy.Warnings = new List<string>(this.Warnings);
             return copy;
         }
 
@@ -647,18 +711,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public GeometryModel Scaled(double factor)
         {
+            // Разбор файла и предупреждения переносит сам `Clone` (`A139`);
+            // здесь они нужны ровно затем же, зачем и везде: пересчёт в
+            // сантиметры делается перед записью `.in`, а писатель берёт из
+            // разбора чужие блоки файла, которых мы не показываем.
             GeometryModel g = this.Clone();
-
-            // Clone разбор файла намеренно не переносит, а здесь он нужен:
-            // пересчёт в сантиметры делается ровно перед записью `.in`, и
-            // писатель берёт из Raw чужие блоки файла, которых мы не показываем.
-            // Потерять их значило бы подменить их своими умолчаниями.
-            foreach (KeyValuePair<string, string> pair in this.Raw)
-            {
-                g.Raw[pair.Key] = pair.Value;
-            }
-
-            g.Warnings.AddRange(this.Warnings);
 
             g.CrystalDiameter *= factor;
             g.CrystalHeight *= factor;
@@ -718,13 +775,86 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// показываем. Перегенерировать их из ничего значило бы подменить чужие
         /// числа своими умолчаниями, поэтому они переносятся отсюда дословно.
         ///
-        /// НЕ ХРАНЯТСЯ. Живут ровно столько, сколько длится сеанс разбора файла:
-        /// геометрия переехала в конфиг устройства, обратной записи в `.in`
-        /// больше нет, и тащить в конфиг три сотни чужих ключей незачем.
+        /// ⛔ ХРАНЯТСЯ (`A139`, 04.09.2026). Прежде здесь стояло обратное —
+        /// «живут ровно столько, сколько длится сеанс разбора файла», — и это
+        /// давало ту же беду, что потеря разбора на <see cref="Clone"/>:
+        /// геометрия, приехавшая из конфигурации прибора, писала чужие блоки
+        /// нулями и умолчаниями, а та же геометрия прямо из файла — настоящими
+        /// числами. Два текста `.in` — два `ResponseMatrix.ComputeStamp`, и
+        /// посчитанная матрица объявлялась устаревшей после перезапуска
+        /// приложения. Измерено: 17 ввезённых из ЛСРМ файлов склада из 66;
+        /// у 44 корпусных разницы нет, там чужие блоки и так пусты.
+        ///
+        /// Цена — размер конфигурации, и она урезана: в XML едет НЕ весь
+        /// разбор, а только то, что писатель действительно переносит
+        /// (<see cref="GeometryWriter.CarriedFrom"/>) — на `Nano16Pro.in` это
+        /// 55 ключей из 191. У геометрии, собранной в редакторе с нуля, разбор
+        /// пуст и в XML не появляется вовсе, то есть конфигурации таких
+        /// приборов не меняются ни на знак.
         /// </summary>
         [XmlIgnore]
         public Dictionary<string, string> Raw =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Тот же разбор списком — форма записи для XML, как у состава
+        /// вещества (<see cref="GeometryMaterial.FractionList"/>):
+        /// `XmlSerializer` не умеет `Dictionary`.
+        ///
+        /// Порядок ключей ЗАКРЕПЛЁН сортировкой. Словарь порядка не обещает, а
+        /// конфигурация прибора сравнивается людьми и програмами построчно;
+        /// «поменялось всё» после каждого сохранения читалось бы как правка.
+        /// </summary>
+        [XmlArray("Raw")]
+        [XmlArrayItem("Entry")]
+        public GeometryRawEntry[] RawList
+        {
+            get
+            {
+                // Пустой разбор — НЕТ ЭЛЕМЕНТА, а не пустой элемент: у
+                // геометрии, собранной в редакторе, разбора нет никогда, и
+                // конфигурации таких приборов обязаны остаться прежними до
+                // знака. Иначе первое же сохранение переписало бы их все.
+                if (this.Raw.Count == 0)
+                {
+                    return null;
+                }
+
+                // Хранится не весь разбор, а ровно то, что ПЕРЕНОСИТ писатель:
+                // остальное — те же числа, что уже лежат в полях модели.
+                Dictionary<string, string> carried = GeometryWriter.CarriedFrom(this);
+                if (carried.Count == 0)
+                {
+                    return null;
+                }
+
+                List<GeometryRawEntry> list = new List<GeometryRawEntry>();
+                foreach (KeyValuePair<string, string> pair in carried)
+                {
+                    list.Add(new GeometryRawEntry { Name = pair.Key, Value = pair.Value });
+                }
+
+                list.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+                return list.ToArray();
+            }
+
+            set
+            {
+                this.Raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (value == null)
+                {
+                    return;
+                }
+
+                foreach (GeometryRawEntry entry in value)
+                {
+                    if (entry != null && !string.IsNullOrEmpty(entry.Name))
+                    {
+                        this.Raw[entry.Name] = entry.Value ?? "";
+                    }
+                }
+            }
+        }
 
         static readonly Regex Line = new Regex(@"^\s*([A-Za-z_][A-Za-z0-9_\[\]\.]*)\s*=\s*(.+?)\s*$",
                                                RegexOptions.Compiled);
@@ -761,14 +891,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Размеры читаются через Len: в файле они в сантиметрах, а модель
             // держит миллиметры. Обычный Num остаётся для того, что длиной не
             // является, — номеров элементов и массовых долей.
-            g.CrystalDiameter = Len(kv, "DS_CrystalDiameter");
-            g.CrystalHeight = Len(kv, "DS_CrystalHeight");
-            g.FrontReflectorThickness = Len(kv, "DS_CrystalFrontReflectorThickness");
-            g.SideReflectorThickness = Len(kv, "DS_CrystalSideReflectorThickness");
-            g.FrontCladdingThickness = Len(kv, "DS_CrystalFrontCladdingThickness");
-            g.SideCladdingThickness = Len(kv, "DS_CrystalSideCladdingThickness");
-            g.MountingThickness = Len(kv, "DS_DetectorMountingThickness");
-
+            //
+            // ⛔ ФОРМА КРИСТАЛЛА РЕШАЕТСЯ ПЕРВОЙ (`A94`, решение Amber
+            // 04.09.2026). У бруска полей цилиндра НЕ СУЩЕСТВУЕТ, и прочитать
+            // их «на всякий случай» значит завести мёртвое состояние: оно
+            // сохранится в модели, но не попадёт ни в файл, ни в отпечаток, ни
+            // в сцену — а править его при этом можно молча. Ровно об это
+            // сломался сторож `A47` и полгода выглядел как дыра в отпечатке.
             g.CrystalBoxX = Len(kv, "DS_CrystalBoxX");
             g.CrystalBoxY = Len(kv, "DS_CrystalBoxY");
             g.CrystalBoxZ = Len(kv, "DS_CrystalBoxZ");
@@ -776,6 +905,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 g.Shape = CrystalShape.Box;
             }
+
+            // ⚠ ОБРАТНАЯ СОВМЕСТИМОСТЬ ЧТЕНИЯ. `DS_CrystalDiameter` и
+            // `DS_CrystalHeight` в файле бруска ЕСТЬ и остаются: их кладёт туда
+            // наш же писатель, ПРОИЗВОДНЫМИ от `DS_CrystalBoxX/Y/Z` (равная
+            // площадь торца — правило самого LSRM), чтобы файл оставался
+            // осмысленным для GMaster, который бруска не знает. Обратно они не
+            // читаются — просто пропускаются; ни один старый файл от этого
+            // читаться не перестаёт.
+            if (g.Shape != CrystalShape.Box)
+            {
+                g.CrystalDiameter = Len(kv, "DS_CrystalDiameter");
+                g.CrystalHeight = Len(kv, "DS_CrystalHeight");
+            }
+
+            g.FrontReflectorThickness = Len(kv, "DS_CrystalFrontReflectorThickness");
+            g.SideReflectorThickness = Len(kv, "DS_CrystalSideReflectorThickness");
+            g.FrontCladdingThickness = Len(kv, "DS_CrystalFrontCladdingThickness");
+            g.SideCladdingThickness = Len(kv, "DS_CrystalSideCladdingThickness");
+            g.MountingThickness = Len(kv, "DS_DetectorMountingThickness");
 
             // E21: сторона, обращённая к пробе. Ключа нет — передний торец, то
             // есть прежнее поведение; так читаются все файлы до 15.08.2026 и

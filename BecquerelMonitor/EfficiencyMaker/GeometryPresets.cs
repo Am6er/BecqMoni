@@ -180,10 +180,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.CrystalBoxX = x;
             g.CrystalBoxY = y;
             g.CrystalBoxZ = z;
-            // Цилиндр всё равно заполняется — по правилу LSRM, равная площадь
-            // торца: файл должен оставаться осмысленным и для их программы.
-            g.CrystalDiameter = GeometryWriter.EquivalentDiameter(x, y);
-            g.CrystalHeight = z;
+            // ⛔ (`A94`) Цилиндр НЕ заполняется. Равнообъёмный цилиндр правила
+            // LSRM никуда не делся — его выводит `GeometryWriter.Render` в
+            // момент записи файла; хранить его ещё и в модели значит завести
+            // поле, которое можно задать и нельзя увидеть.
+            g.DropDeadCrystalSize();
         }
 
         static void Cylinder(GeometryModel g, double diameter, double height)
@@ -191,7 +192,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.Shape = CrystalShape.Cylinder;
             g.CrystalDiameter = diameter;
             g.CrystalHeight = height;
-            g.CrystalBoxX = g.CrystalBoxY = g.CrystalBoxZ = 0.0;
+            g.DropDeadCrystalSize();
         }
 
         static void Wrapping(GeometryModel g, double frontReflector, double sideReflector,

@@ -1322,6 +1322,36 @@ namespace BecquerelMonitor
             r.Y += FsaTableRowHeight;
             nameRect.Y += FsaTableRowHeight;
 
+            // (`A96`) СТРОКА КАЧЕСТВА СОБИРАЕТСЯ ОТДЕЛЬНО — чтобы её было
+            // ЧЕМ ЧИТАТЬ. Пометки складывались прямо здесь, внутри отрисовки
+            // таблицы, и добраться до готового текста можно было только
+            // глазами по снимку: пометка «· старая матрица» (`A50`) не была
+            // покрыта ни одной пробой, а урезание хвоста (`S104`) способно её
+            // съесть — и увидеть это было некому. Текст даёт
+            // <see cref="FsaQualityText"/>, рисует <see cref="DrawFsaQualityRow"/>.
+            this.DrawFsaQualityRow(g, r, result);
+        }
+
+        /// <summary>
+        /// ТЕКСТ строки качества целиком: «χ²/ndf» и хвост пометок за ним.
+        ///
+        /// ⛔ ВЫНЕСЕНО ИЗ ОТРИСОВКИ НАРОЧНО (`A96`). Пока пометки складывались
+        /// внутри <see cref="DrawFsaRows"/>, читателя у них не было вовсе:
+        /// убедиться, что «· старая матрица» вообще попадает в строку, можно
+        /// было только глазами по снимку экрана. Метод СТАТИЧЕСКИЙ и чистый
+        /// нарочно: сторожу не нужны ни вид, ни `Graphics`, ни окно, а значит
+        /// проверка стоит миллисекунды и зовёт РОВНО ТО, что зовёт отрисовка.
+        ///
+        /// ⚠ Порядок пометок здесь — это их СТАРШИНСТВО: хвост урезается с
+        /// конца (`S104`), поэтому первой стоит та, без которой читать нечего.
+        /// Менять порядок — решение Amber, а не отрисовки.
+        ///
+        /// `matrixOldFormat` — <see cref="FsaOverlay.ResponseMatrixOldFormat"/>
+        /// на момент отрисовки. Признак живёт у наложения, а не у результата:
+        /// матрица бракуется ДО разбора, и `result` о ней не знает ничего.
+        /// </summary>
+        public static string FsaQualityText(FsaResult result, bool matrixOldFormat)
+        {
             string quality = "χ²/ndf";
 
             // (`S104`) ВЕРДИКТ: состав пересилен одним приборным образом.
@@ -1358,7 +1388,7 @@ namespace BecquerelMonitor
             // приходит отдельно, один раз на файл (см. FsaOverlayCompleted).
             quality += result.ResponseMatrixUsed
                 ? Resources.FSAMatrixMark
-                : this.fsaOverlay.ResponseMatrixOldFormat
+                : matrixOldFormat
                     ? Resources.FSAOldMatrixMark
                     : Resources.FSANoMatrixMark;
 
@@ -1380,6 +1410,20 @@ namespace BecquerelMonitor
             {
                 quality += Resources.FSADriftEdgeMark;
             }
+
+            return quality;
+        }
+
+        /// <summary>
+        /// Строка качества: хвост пометок слева, χ²/ndf справа, оба — в ОДИН
+        /// прямоугольник. Признак старого формата матрицы читается ЗДЕСЬ, у
+        /// наложения, и дальше идёт чистым значением — так у сторожа есть и
+        /// текст без вида (<see cref="FsaQualityText"/>), и эта же строка,
+        /// нарисованная настоящими шрифтом и шириной панели.
+        /// </summary>
+        void DrawFsaQualityRow(Graphics g, Rectangle r, FsaResult result)
+        {
+            string quality = FsaQualityText(result, this.fsaOverlay.ResponseMatrixOldFormat);
 
             // ⛔ ХВОСТ ОБЯЗАН КОНЧАТЬСЯ ТАМ, ГДЕ НАЧИНАЕТСЯ ЧИСЛО (`S104`).
             // Обе строки рисуются в ОДИН прямоугольник — пометки от левого
@@ -1413,16 +1457,36 @@ namespace BecquerelMonitor
             // 207..232 соответственно).
             string value = result.Chi2Ndf.ToString("n2");
             Rectangle marks = r;
-            marks.Width = Math.Max(0, marks.Width
-                                      - (int)Math.Ceiling(g.MeasureString(value, this.Font).Width));
-            using (StringFormat trimmed = new StringFormat())
+            marks.Width = FsaQualityMarksWidth(g, this.Font, r.Width, value);
+            using (StringFormat trimmed = FsaQualityMarksFormat())
             {
-                trimmed.FormatFlags = StringFormatFlags.NoWrap;
-                trimmed.Trimming = StringTrimming.EllipsisCharacter;
                 g.DrawString(quality, this.Font, Brushes.Black, marks, trimmed);
             }
 
             g.DrawString(value, this.Font, Brushes.Black, r, this.farFormat);
+        }
+
+        /// <summary>
+        /// Ширина, отведённая ХВОСТУ пометок: то, что остаётся от строки после
+        /// места под число (`S104`). Отдельным приёмом — чтобы сторож мерил
+        /// урезание тем же расчётом, каким рисует вид, а не своей копией.
+        /// </summary>
+        public static int FsaQualityMarksWidth(Graphics g, Font font, int rowWidth, string value)
+        {
+            return Math.Max(0, rowWidth
+                               - (int)Math.Ceiling(g.MeasureString(value, font).Width));
+        }
+
+        /// <summary>
+        /// Формат хвоста пометок: без переноса, не влезшее — многоточием
+        /// (`S104`). Тоже отдельно и по той же причине, что ширина.
+        /// </summary>
+        public static StringFormat FsaQualityMarksFormat()
+        {
+            StringFormat trimmed = new StringFormat();
+            trimmed.FormatFlags = StringFormatFlags.NoWrap;
+            trimmed.Trimming = StringTrimming.EllipsisCharacter;
+            return trimmed;
         }
 
         /// <summary>
