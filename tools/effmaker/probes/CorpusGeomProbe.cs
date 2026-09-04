@@ -43,7 +43,22 @@ using System.Threading;
 // колодца плюс шапка над его потолком). Это не второй расчёт того же, а
 // проверка: разойдись они — сойдётся и печать, и файл, а сцена будет другой.
 //
-//   corpusgeomprobe [--out=tools\CORPUS\corpus\geometries] [--dry]
+//   corpusgeomprobe [--out=<АБСОЛЮТНЫЙ путь>] [--dry]
+//
+// ⛔ ПУТИ — ТОЛЬКО ОТ КОРНЯ ДЕРЕВА ИЛИ АБСОЛЮТНЫЕ (`T143`, 05.09.2026). До этого
+// и выход (`--out` по умолчанию), и таблица сосудов (`CorpusRoot`) считались от
+// ТЕКУЩЕГО каталога. Измерено 05.09.2026 запуском из постороннего каталога: таблица
+// `data\lsrm_spectrum_geometry.csv` не нашлась, проба построила 9 геометрий вместо
+// 44, напечатала «ВСЕ СОШЛИСЬ» и вышла кодом 0 — а без `--dry` положила бы девять
+// файлов в `<чужой каталог>\tools\CORPUS\corpus\geometries`. Тот же разряд, что
+// `T142` и `A110`. Теперь корень дерева ищется от КАТАЛОГА СБОРКИ пробы (она лежит в
+// `tools\effmaker\probes\build_*`), относительный `--out` — отказ словами, а
+// отсутствие таблицы сосудов — отказ, а не «построим меньше». Заодно список
+// `Build()` сведён с корпусом: снятая решением Amber геометрия `ASN16_lu_front`
+// (`B19`) из него убрана — иначе полный прогон возвращал её в корпус молча.
+// Приёмка: `--out=<временный каталог>` даёт 44 файла `.in`, побитово равных
+// корпусным, и опись, равную корпусной с точностью до BOM (корпусную правили
+// руками, проба BOM не пишет).
 class CorpusGeomProbe
 {
     const double Eps = 1e-9;
@@ -91,16 +106,52 @@ class CorpusGeomProbe
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
         }
 
+        // `T143`: относительный путь ОТКАЗ, а не «от текущего каталога». Проба
+        // запускается откуда угодно, и от какого каталога считать — она не
+        // угадывает: 04.09.2026 сорок пять файлов легли мимо дерева и молча.
+        if (outDir != null && !Path.IsPathRooted(outDir))
+        {
+            Console.Error.WriteLine("--out={0}: путь ОТНОСИТЕЛЬНЫЙ, а текущий каталог {1} — "
+                                    + "от какого из них считать, проба не угадывает (T143). "
+                                    + "Дайте абсолютный путь.",
+                                    outDir, Directory.GetCurrentDirectory());
+            return 2;
+        }
+
+        string corpus = CorpusRoot();
+        if (corpus == null)
+        {
+            Console.Error.WriteLine("корень дерева не найден: ни над каталогом сборки {0}, ни над "
+                                    + "текущим {1} нет `tools\\CORPUS\\corpus` (T143). "
+                                    + "Запускайте пробу из каталога сборки внутри дерева.",
+                                    AppDomain.CurrentDomain.BaseDirectory,
+                                    Directory.GetCurrentDirectory());
+            return 2;
+        }
+
         if (outDir == null)
         {
-            outDir = Path.Combine("tools", "CORPUS", "corpus", "geometries");
+            outDir = Path.Combine(corpus, "corpus", "geometries");
         }
+
+        Console.WriteLine("корень корпуса : {0}", corpus);
+        Console.WriteLine("выход          : {0}{1}", outDir, dry ? " (--dry, не пишется)" : "");
+        Console.WriteLine();
 
         // Менеджеры нужны библиотеке веществ: пресеты зовут GeometryMaterialLibrary,
         // а она читает matdb.
         GlobalConfigManager.GetInstance();
 
-        List<Geom> all = Build();
+        List<Geom> all;
+        try
+        {
+            all = Build(corpus);
+        }
+        catch (FileNotFoundException e)
+        {
+            Console.Error.WriteLine(e.Message);
+            return 2;
+        }
         bool ok = true;
         int written = 0;
 
@@ -360,20 +411,28 @@ class CorpusGeomProbe
     /// «Денты» 120 мл при h = 33 мм и 100 мл при h = 27.2 мм получается один и
     /// тот же диаметр, 68.0 и 68.4 мм, а это одна и та же банка.
     /// </summary>
-    static List<Geom> VesselScenes(string preset)
+    static List<Geom> VesselScenes(string preset, string corpus)
     {
-        string path = Path.Combine(CorpusRoot(), "data", "lsrm_spectrum_geometry.csv");
+        string path = Path.Combine(corpus, "data", "lsrm_spectrum_geometry.csv");
         List<Geom> list = new List<Geom>();
+        // ⛔ Нет таблицы — ОТКАЗ, а не «построим без сосудных сцен» (`T143`).
+        // Прежде здесь печаталась строка и возвращался пустой список: проба
+        // строила 9 геометрий вместо 44 и заканчивала словами «ВСЕ СОШЛИСЬ»
+        // кодом 0 — измерено 05.09.2026. Опись из девяти строк переписала бы
+        // `index.csv`, и `split_corpus.py` молча увёл бы 35 спектров в
+        // «непонятную» часть.
         if (!File.Exists(path))
         {
-            Console.WriteLine("нет {0} — сосудные сцены не строятся (import_spe_geometry.py)", path);
-            return list;
+            throw new FileNotFoundException(
+                "нет " + path + " — без таблицы сосудные сцены не строятся, а строить "
+                + "корпус без них значит переписать опись на 9 геометрий из 44 "
+                + "(T143; таблицу пишет import_spe_geometry.py)", path);
         }
 
         string[] lines = File.ReadAllLines(path, Encoding.UTF8);
         if (lines.Length < 2)
         {
-            return list;
+            throw new FileNotFoundException("таблица " + path + " пуста — сосудные сцены строить не из чего", path);
         }
 
         List<string> head = new List<string>(lines[0].TrimStart('﻿').Split(','));
@@ -548,25 +607,35 @@ class CorpusGeomProbe
             ? value : 0.0;
     }
 
-    /// <summary>Корень `tools/CORPUS` — от каталога запуска вверх.</summary>
+    /// <summary>
+    /// Корень `tools/CORPUS` — вверх от КАТАЛОГА СБОРКИ пробы (она лежит в
+    /// `tools\effmaker\probes\build_*` дерева), и лишь затем от текущего.
+    /// Не нашёлся — <c>null</c>, и это отказ у вызывающего; относительной
+    /// заглушки, как прежде, не возвращается (`T143`). Признак — каталог
+    /// `corpus` внутри: одного имени `tools\CORPUS` мало, его создаёт и
+    /// сама проба под чужим корнем.
+    /// </summary>
     static string CorpusRoot()
     {
-        string dir = Directory.GetCurrentDirectory();
-        for (int i = 0; i < 6 && dir != null; i++)
+        foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Directory.GetCurrentDirectory() })
         {
-            string cand = Path.Combine(dir, "tools", "CORPUS");
-            if (Directory.Exists(cand))
+            string dir = start;
+            for (int i = 0; i < 8 && !string.IsNullOrEmpty(dir); i++)
             {
-                return cand;
-            }
+                string cand = Path.Combine(dir, "tools", "CORPUS");
+                if (Directory.Exists(Path.Combine(cand, "corpus")))
+                {
+                    return Path.GetFullPath(cand);
+                }
 
-            dir = Path.GetDirectoryName(dir);
+                dir = Path.GetDirectoryName(dir);
+            }
         }
 
-        return Path.Combine("tools", "CORPUS");
+        return null;
     }
 
-    static List<Geom> Build()
+    static List<Geom> Build(string corpus)
     {
         const string G1S = "Gamma-1S UDS-GC 63x63";
         const string RC103 = "RadiaCode-103";
@@ -672,11 +741,17 @@ class CorpusGeomProbe
         // монолитных 9.42) и активность 919.1 Бк (`scripts/lu176_activity.py`:
         // 45.954 Бк на грамм Lu₂O₃ — точно, из периода и распространённости).
         //
-        // Постановки РАЗНЫЕ и обе известны: `ASN16_Lu176` снят БОКОМ (§13и —
-        // отношение сумм-пика к одиночному втрое больше, чем у контрольной, и
-        // Geant4 даёт для пары «бок / торец» ровно те же 3.03),
-        // `ASN16_Lu176_P0` — с торца, так сказала Amber. Это первая в корпусе
-        // пара «то же самое, но повёрнуто», и держится она на E21.
+        // Постановка ОДНА — БОКОМ (§13и — отношение сумм-пика к одиночному
+        // втрое больше, чем у контрольной, и Geant4 даёт для пары «бок / торец»
+        // ровно те же 3.03). ⛔ Прежде здесь стояла вторая, «с торца»
+        // (`ASN16_lu_front` для `ASN16_Lu176_P0`), и решением Amber 17.08.2026
+        // она СНЯТА (`B19`): у Lu-176 на ASN16 съёмка была ТОЛЬКО сбоку, а
+        // 02.09.2026 `ASN16_Lu176_P0` привязан к `ASN16_lu_side` — та же банка,
+        // другая дата и набор. ⚠ Корпус тогда правили РУКАМИ (`index.csv`), а
+        // этот список — нет: до 05.09.2026 полный прогон пробы возвращал снятую
+        // геометрию в корпус файлом и строкой описи, и `ASN16_Lu176_P0` уезжал
+        // обратно под «с торца» — измерено при `T143`, откачено. Список и
+        // корпус сведены; расходиться им больше нельзя: опись пишет ЭТА проба.
         //
         // Зазора НЕТ: банка лежала НА детекторе — сказано Amber 16.08.2026, и
         // ровно это здесь и стояло с самого начала (`Beaker(..., 0.0)` →
@@ -695,24 +770,11 @@ class CorpusGeomProbe
             Key = "ASN16_lu_side",
             Preset = ASN16,
             Vessel = "банка 50 мл Ø40×h15, СБОКУ у широкой грани",
-            Spectra = new[] { "ASN16_Lu176" },
+            Spectra = new[] { "ASN16_Lu176", "ASN16_Lu176_P0" },
             PassportVolumeMl = 18.85,
             PassportMassG = 20.0,
             SourceMaterial = "Lutetium oxide",
             Facing = GeometryDetectorFacing.Side,
-            Assumed = "",
-            Shape = g => Beaker(g, 40.0, 18.85, 0.0),
-        });
-
-        list.Add(new Geom
-        {
-            Key = "ASN16_lu_front",
-            Preset = ASN16,
-            Vessel = "банка 50 мл Ø40×h15, С ТОРЦА",
-            Spectra = new[] { "ASN16_Lu176_P0" },
-            PassportVolumeMl = 18.85,
-            PassportMassG = 20.0,
-            SourceMaterial = "Lutetium oxide",
             Assumed = "",
             Shape = g => Beaker(g, 40.0, 18.85, 0.0),
         });
@@ -728,8 +790,8 @@ class CorpusGeomProbe
         // держалась у них как контроль (`E21`).
         //
         // Постановка ФРОНТАЛЬНАЯ, в отличие от `ASN16_lu_side`: Amber назвала
-        // «в притык к кристаллу», то есть торцом и без зазора, как у
-        // `ASN16_lu_front`. Разворот к широкой грани — свойство той одной
+        // «в притык к кристаллу», то есть торцом и без зазора (так стояла и
+        // снятая `ASN16_lu_front`, `B19`). Разворот к широкой грани — свойство той одной
         // съёмки ASN16, восстановленное измерением, и переносить его сюда
         // догадкой нельзя.
         list.Add(new Geom
@@ -781,7 +843,7 @@ class CorpusGeomProbe
         // Мёртвый код с неверным веществом опаснее отсутствующего: его копируют.
 
         // Сосудные сцены поверки — из таблицы, а не отсюда (`B12`).
-        list.AddRange(VesselScenes(G1S));
+        list.AddRange(VesselScenes(G1S, corpus));
 
         return list;
     }

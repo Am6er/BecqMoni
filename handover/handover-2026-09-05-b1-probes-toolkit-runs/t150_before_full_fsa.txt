@@ -1,0 +1,17 @@
+=== слова отказа (A89, A95) ===
+каталог сборки: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\
+
+ПЛЕЧО fsa — FsaOverlay.EnsureUpToDate на том же спектре
+BecqMoni: main config: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\BecquerelMonitor.xml
+
+Необработанное исключение: System.InvalidOperationException: BecqMoni: the device configuration directory could not be read and there is no UI to report it to: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\device. Continuing would leave the device list EMPTY, and a spectrum that cannot find its device configuration is analysed with someone else's calibration and resolution. Run from a directory that has config\device. ---> System.IO.DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\device".
+   в System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   в System.IO.FileSystemEnumerableIterator`1.CommonInit()
+   в System.IO.FileSystemEnumerableIterator`1..ctor(String path, String originalUserPath, String searchPattern, SearchOption searchOption, SearchResultHandler`1 resultHandler, Boolean checkHost)
+   в System.IO.Directory.GetFiles(String path, String searchPattern)
+   в BecquerelMonitor.DeviceConfigManager.LoadAllConfigFiles()
+   --- Конец трассировки внутреннего стека исключений ---
+   в BecquerelMonitor.DeviceConfigManager.LoadAllConfigFiles()
+   в BecquerelMonitor.DeviceConfigManager.GetInstance()
+   в RefusalWordsProbe.Program.CheckFsaDoor()
+   в RefusalWordsProbe.Program.Main(String[] args)

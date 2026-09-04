@@ -1,0 +1,33 @@
+=== слова отказа (A89, A95) ===
+каталог сборки: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\
+
+ПЛЕЧО matdb — C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\matdb.sqlite
+  файл на месте : да, байт: 20393984
+
+  matdb/таблицы: ⚠ ОТКАЗА НЕ БЫЛО ВОВСЕ (есть ответ) — плечо ничего не мерит
+
+  matdb/оболочки: ⚠ ОТКАЗА НЕ БЫЛО ВОВСЕ (есть ответ) — плечо ничего не мерит
+
+  matdb/световыход: ⚠ ОТКАЗА НЕ БЫЛО ВОВСЕ (есть ответ) — плечо ничего не мерит
+
+ПЛЕЧО clone — EnergySpectrum.Clone() без энергетической калибровки
+  брошено  : InvalidOperationException
+  причина  : InvalidOperationException
+  сказано  : EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  называет место отказа             : ДА
+  называет имя недостающего         : ДА
+  отказ назван типом                : ДА
+  ИТОГ clone: ПРИЧИНА НАЗВАНА
+
+ПЛЕЧО fsa — FsaOverlay.EnsureUpToDate на том же спектре
+BecqMoni: nuclide library: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\config\NuclideDefinition.xml: 152 entries
+  подготовка       : библиотека нуклидов (NuclideDefinitionManager, config\NuclideDefinition.xml) — поднялось
+  строка на экране : Полноспектральное разложение не удалось. Причина: InvalidOperationException: EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  поток ошибок     : BecqMoni: Полноспектральное разложение не удалось. Причина: InvalidOperationException: EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  называет недостающее человеку за экраном : ДА
+  называет недостающее в потоке ошибок     : ДА
+  называет класс причины                   : ДА
+  ИТОГ fsa: ПРИЧИНА НАЗВАНА
+
+
+НЕ СОШЛОСЬ: 3

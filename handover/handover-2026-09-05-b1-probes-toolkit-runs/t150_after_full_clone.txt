@@ -1,0 +1,14 @@
+=== слова отказа (A89, A95) ===
+каталог сборки: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full\
+
+ПЛЕЧО clone — EnergySpectrum.Clone() без энергетической калибровки
+  брошено  : InvalidOperationException
+  причина  : InvalidOperationException
+  сказано  : EnergySpectrum.Clone: у спектра нет энергетической калибровки (EnergyCalibration == null, каналов 128). Снять копию нечего: без шкалы энергии спектр не годен ни для разложения, ни для поиска пиков, а подставить калибровку значило бы объявить номер канала энергией.
+  называет место отказа             : ДА
+  называет имя недостающего         : ДА
+  отказ назван типом                : ДА
+  ИТОГ clone: ПРИЧИНА НАЗВАНА
+
+
+ВСЕ СОШЛИСЬ

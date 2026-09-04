@@ -1,0 +1,1 @@
+effcfgprobe <модель.in> <кривая.txt>

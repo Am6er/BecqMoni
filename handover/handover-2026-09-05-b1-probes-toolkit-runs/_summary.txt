@@ -1,0 +1,29 @@
+t150_before_full_fsa         код -532462766   cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_before_noconf_fsa       код -532462766   cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_noconf
+t150_after_full_fsa          код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_after_noconf_fsa        код 3            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_noconf
+t150_after_full_ctrl         код 1            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_after_full_ctrlbad      код 2            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_after_full_clone        код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_after_full_all          код 1            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t150_before_full_clone       код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t143_before_foreign_dry      код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd
+t143_before_repo_dry         код 0            cwd=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8
+после before(foreign, --dry): файлов в foreign_cwd 0
+t143_before_foreign_write    код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd
+после before(foreign, запись): файлов в foreign_cwd 10: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd\tools\CORPUS\corpus\geometries\AS80_lu_front.in; C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd\tools\CORPUS\corpus\geometries\AS80_point0.in; C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd\tools\CORPUS\corpus\geometries\ASN16_lu_front.in
+t143_after_foreign_dry       код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd
+t143_after_foreign_rel       код 2            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd
+t143_after_foreign_abs       код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\foreign_cwd
+t143_after_repo_dry          код 0            cwd=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8
+файлов в geom_out: 46; в foreign_cwd (должно быть 0 кроме ничего): 0
+config\device в scene_full ДО: False
+t155_before_3args            код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+config\device в scene_full ПОСЛЕ before(3 довода): True
+t155_before_2args            код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t155_after_3args             код 2            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t155_after_2args             код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+config\device в scene_full ПОСЛЕ after(2 довода): False
+t155_after_1arg              код 2            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_full
+t155_after_2args_noconf      код 0            cwd=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\65d67d52-e7c9-4061-9d92-7ccf2e96ff5c\scratchpad\scene_noconf
+config\device в scene_noconf ПОСЛЕ after(2 довода): False
