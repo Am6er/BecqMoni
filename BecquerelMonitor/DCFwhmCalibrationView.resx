@@ -523,7 +523,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterValueLabel.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="peakShapeFirstParameterValueLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -550,7 +550,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterValueLabel.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="peakShapeSecondParameterLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -577,7 +577,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterLabel.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="peakShapeFirstParameterLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -604,7 +604,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterLabel.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="peakShapeTypeValueLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -631,7 +631,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeValueLabel.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="peakShapeTypeLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -658,7 +658,7 @@
     <value>peakShapeInfoGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeLabel.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="viewPeakShapeButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>221, 16</value>

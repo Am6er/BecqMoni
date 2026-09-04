@@ -501,7 +501,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;efficiencyLbl.ZOrder" xml:space="preserve">
-    <value>17</value>
+    <value>11</value>
   </data>
   <data name="efficiencyComboBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -531,7 +531,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;efficiencyComboBox.ZOrder" xml:space="preserve">
-    <value>18</value>
+    <value>10</value>
   </data>
   <data name="clearEfficiencyBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -564,7 +564,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;clearEfficiencyBtn.ZOrder" xml:space="preserve">
-    <value>19</value>
+    <value>9</value>
   </data>
   <data name="devConfigComboBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -594,7 +594,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;devConfigComboBox.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>15</value>
   </data>
   <data name="realTimeLimitTextBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -1167,7 +1167,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;selectBgBtn.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>12</value>
   </data>
   <data name="bachgroundLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1197,7 +1197,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;bachgroundLbl.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>13</value>
   </data>
   <data name="textBox1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -1221,7 +1221,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>14</value>
   </data>
   <data name="devConfigEditBtn.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -1251,7 +1251,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;devConfigEditBtn.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>16</value>
   </data>
   <data name="spectrumNameLbl.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -1275,7 +1275,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;spectrumNameLbl.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>17</value>
   </data>
   <data name="saveToLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1305,7 +1305,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;saveToLbl.ZOrder" xml:space="preserve">
-    <value>15</value>
+    <value>18</value>
   </data>
   <data name="deviceConfigLbl.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1335,7 +1335,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;deviceConfigLbl.ZOrder" xml:space="preserve">
-    <value>16</value>
+    <value>19</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>

@@ -126,13 +126,19 @@ namespace BecquerelMonitor.N42
                 {
                     id = idSpectrum, //"SpectrumData",
                     energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                    // ⚠ ЖИВОЕ ВРЕМЯ ФОНА ЗДЕСЬ НЕ ЖИВОЕ, а его же время измерения —
-                    //    в объекте есть LiveTime, и он не пишется. Дефект ОСТАВЛЕН
-                    //    как есть нарочно: он не про культуру (`A146`), сам по себе
-                    //    строки не имеет, а править вывоз «заодно» значит менять
-                    //    содержимое файлов сверх измеренного. Заведён отдельной
-                    //    находкой захода 05.09.2026.
-                    LiveTimeDuration = N42Duration(data.BackgroundEnergySpectrum.MeasurementTime)
+                    // ⛔ `A155`: ЖИВОЕ ВРЕМЯ ФОНА — ЖИВОЕ, А НЕ ПОЛНОЕ. Прежде сюда
+                    //    писалось BackgroundEnergySpectrum.MeasurementTime, то есть
+                    //    ПОЛНОЕ время фона, а поле LiveTime фона не выгружалось
+                    //    ВООБЩЕ. Измерено 05.09.2026 на 11 файлах дерева с фоном: у
+                    //    вывезенного фона «изм» и «живое» после круга равнялись друг
+                    //    другу, потому что в файл уходило одно и то же число.
+                    //    ⚠ Это не косметика: живое время стоит в ЗНАМЕНАТЕЛЕ скорости
+                    //    счёта фона, и подмена его полным занижает скорость ровно на
+                    //    мёртвое время прибора — у переднего спектра то же поле
+                    //    выгружается честно (ветка Foreground выше), то есть разница
+                    //    вносилась ТОЛЬКО в фон и вычитание фона переставало быть
+                    //    вычитанием той же величины.
+                    LiveTimeDuration = N42Duration(data.BackgroundEnergySpectrum.LiveTime)
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.BackgroundEnergySpectrum.Spectrum);
 
@@ -332,7 +338,11 @@ namespace BecquerelMonitor.N42
 
             for (int i = 0; i < NumberOfChanels; i++)
             {
-                int count = int.Parse(chanData[i]);
+                // `A158`: ОТСЧЁТЫ ЧИТАЮТСЯ ИНВАРИАНТНОЙ КУЛЬТУРОЙ — как и энергии
+                //   строкой ниже. Разбор ЧИСЛА в файле не смеет зависеть от того,
+                //   какая культура стоит у машины: у целого расходится знак минуса
+                //   (NegativeSign), а у чтения вообще — правило одно на весь файл.
+                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
                 // `A142`: разбор ЧИСЛА в файле не зависит от культуры машины.
                 decimal energy = decimal.Parse(chanEnergy[i], CultureInfo.InvariantCulture);
 
@@ -459,7 +469,9 @@ namespace BecquerelMonitor.N42
 
             for (int i = 0; i < NumberOfChanels; i++)
             {
-                int count = int.Parse(chanData[i]);
+                // `A158`: инвариантная культура — то же правило, что у коэффициентов
+                //   этого же разбора ниже (`A142`) и у отсчётов разбора 2012 года.
+                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
                 energySpectrum.Spectrum[i] = count;
                 totalpulsecount += count;
             }
@@ -472,7 +484,13 @@ namespace BecquerelMonitor.N42
             energySpectrum.TotalPulseCount = totalpulsecount;
             energySpectrum.ValidPulseCount = totalpulsecount;
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+            // `A156`: время начала кладётся в ОБА поля — то же соглашение, что у
+            //   разбора 2012 года ниже и у соседнего ввоза GBS в DocumentManager.
+            //   Прежде здесь заполнялся только SampleInfo.Time, а ResultData.StartTime
+            //   оставался «сейчас» — то есть вывоз этого же документа записал бы в
+            //   файл текущее время вместо прочитанного.
             resultData.SampleInfo.Time = XmlConvert.ToDateTime(starttime, XmlDateTimeSerializationMode.Utc);
+            resultData.StartTime = resultData.SampleInfo.Time;
             resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
                 $"Manufacturer = {instrument.Manufacturer}, " +
                 $"InstrumentModel = {instrument.InstrumentModel}, " +
@@ -589,9 +607,37 @@ namespace BecquerelMonitor.N42
             // не занимает, оно цепляется к предыдущему спектру.
             int added = 0;
 
+            // `A160`: какие классы измерений пропущены — говорится ОДИН раз на файл.
+            // `A157`: у скольких измерений не прочиталось время начала — тоже.
+            List<string> skippedClasses = new List<string>();
+            int badStart = 0;
+            string badStartSample = null;
+
             for (int i = 0; i < SpectrumCount; i++)
             {
                 RadMeasurement radMeasurement = rad.RadMeasurement[i];
+
+                // ⛔ `A160`: КЛАСС ИЗМЕРЕНИЯ СУДИТСЯ ТАК ЖЕ, КАК У СОСЕДА.
+                //    DocumentManager.ImportDocumentSpecUtils источники вида
+                //    Calibration и IntrinsicActivity ПРОПУСКАЕТ (`continue`), а этот
+                //    разбор делал из них равноправные спектры списка: два соглашения
+                //    об одном положении в одном приложении — тот же разряд, что
+                //    `A137` и `A141`. Соглашение взято У СОСЕДА, своего не заводится.
+                //    ⚠ Всё, что не Background и не в этом списке (Foreground,
+                //    NotSpecified, пустое поле, чужое значение), остаётся передним
+                //    спектром — у соседа «Unknown» тоже идёт в передний.
+                //    ⚠ Пропуск — НЕ молчаливый: разбор, отбрасывающий часть файла
+                //    без единого слова, есть отказ без читателя, а список ввозимого
+                //    здесь меняется НАРОЧНО.
+                if (radMeasurement.MeasurementClassCode == "Calibration"
+                    || radMeasurement.MeasurementClassCode == "IntrinsicActivity")
+                {
+                    if (!skippedClasses.Contains(radMeasurement.MeasurementClassCode))
+                    {
+                        skippedClasses.Add(radMeasurement.MeasurementClassCode);
+                    }
+                    continue;
+                }
                 EnergyCalibration radCalibration;
                 if (rad.EnergyCalibration == null)
                 {
@@ -611,16 +657,58 @@ namespace BecquerelMonitor.N42
                 }
                 ResultData resultData = new ResultData();
                 resultData.MeasurementController = doc.ActiveResultData.MeasurementController;
-                resultData.SampleInfo.Time = DateTime.Now;
 
-                try
+                // ⛔ `A156`: ВРЕМЯ НАЧАЛА КЛАДЁТСЯ В ТО ЖЕ ПОЛЕ, ИЗ КОТОРОГО ЕГО
+                //    БЕРЁТ ВЫВОЗ. Прежде ввоз клал прочитанное ТОЛЬКО в
+                //    SampleInfo.Time, а ExportToN42 пишет в файл ResultData.StartTime,
+                //    у ввезённого документа так и остававшееся «сейчас»
+                //    (умолчание ResultData.cs). Круг «вывоз → ввоз → вывоз» терял
+                //    дату на ВТОРОМ обороте независимо от того, что починила `A146`.
+                //    Соглашение взято У СОСЕДА ЦЕЛИКОМ: DocumentManager при ввозе
+                //    формата GBS пишет прочитанное И в SampleInfo.Time, И в
+                //    StartTime одним движением (`info.Time = …; StartTime = info.Time`),
+                //    а ввоз через SpecUtils заполняет StartTime. Здесь заполняются
+                //    оба поля: у них разный смысл (время ПРОБЫ и время НАБОРА), но
+                //    файл N42 несёт одно StartDateTime, и терять его нельзя ни в том,
+                //    ни в другом.
+                //
+                // ⛔ `A157`: ОТКАЗ РАЗБОРА ДАТЫ БОЛЬШЕ НЕ СЪЕДАЕТСЯ. Прежде здесь
+                //    стоял пустой `catch { }`: время начала молча подменялось на
+                //    «сейчас». Измерено 05.09.2026 перекрёстной культурой — файл,
+                //    выгруженный старой сборкой под ar-SA (год по хиджре), ввозился
+                //    под en-US без единого слова и с чужой датой.
+                //
+                //    ⚠ ВВОЗИМ, СКАЗАВ ВСЛУХ, а не отказываем — и это выбор с ценой,
+                //    а не осторожность. Соседние ветви ЭТОГО файла (`A137`, `A141`,
+                //    CheckCalibration) без окон бросают, потому что там негодна
+                //    ЭНЕРГЕТИЧЕСКАЯ ШКАЛА: по ней считают всё, и молчаливый счёт по
+                //    ней даёт правдоподобные чужие числа. Время начала в счёт не
+                //    входит ни одним числом — оно паспортное. А цена отказа
+                //    измерима: нечитаемую дату несут файлы, которые BecqMoni сам
+                //    выгружал ДО `A146` (под ru-RU дата «28.11.2022 10:07:57»
+                //    культурой с порядком месяц-день не читается вовсе), — отказ
+                //    сделал бы собственные старые файлы приложения неввозимыми.
+                //    Дверь та же, что у соседей, — AppUi; второго соглашения не
+                //    заводится, меняется только строгость.
+                DateTime startTime = DateTime.Now;
+                if (!string.IsNullOrEmpty(radMeasurement.StartDateTime))
                 {
-                    if (radMeasurement.StartDateTime != null && radMeasurement.StartDateTime != "")
+                    try
                     {
-                        resultData.SampleInfo.Time = ParseMeasurementStartDateTime(radMeasurement.StartDateTime);
+                        startTime = ParseMeasurementStartDateTime(radMeasurement.StartDateTime);
+                    }
+                    catch (Exception ex)
+                    {
+                        badStart++;
+                        if (badStartSample == null)
+                        {
+                            badStartSample = radMeasurement.StartDateTime + " — "
+                                             + ex.GetType().Name;
+                        }
                     }
                 }
-                catch { }
+                resultData.SampleInfo.Time = startTime;
+                resultData.StartTime = startTime;
 
                 resultData.SampleInfo.Name = SpectrumName;
                 resultData.SampleInfo.Note = "";
@@ -862,6 +950,28 @@ namespace BecquerelMonitor.N42
                     added++;
                 }
             }
+
+            // ⛔ ГОЛОСА ЗВУЧАТ ОДИН РАЗ НА ФАЙЛ, А НЕ ПО ЧИСЛУ ИЗМЕРЕНИЙ.
+            //    Соглашение то же, что у проверки «нет калибровки» выше (`A137`):
+            //    свойство ВСЕГО файла говорится один раз. Модальное окно на каждое
+            //    измерение файла из десяти спектров было бы наказанием, а не
+            //    сообщением.
+            if (skippedClasses.Count > 0)
+            {
+                // `A160`: что именно выброшено из файла и сколько осталось.
+                AppUi.Report(string.Format(Resources.ERRSkippedMeasurementClassN42,
+                                           string.Join(", ", skippedClasses.ToArray()),
+                                           added),
+                             "", MessageBoxIcon.None);
+            }
+            if (badStart > 0)
+            {
+                // `A157`: дата не прочитана — спектр ввезён, но с чужим временем.
+                AppUi.Report(string.Format(Resources.ERRUnreadableStartDateTimeN42,
+                                           badStart, badStartSample),
+                             "", MessageBoxIcon.None);
+            }
+
             doc.ResultDataFile.ResultDataList[0].Visible = true;
             return doc;
         }

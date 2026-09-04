@@ -1406,6 +1406,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The N42 file contains measurements of class {0}; they are skipped, because the application imports foreground and background spectra only. Spectra imported: {1}..
+        /// </summary>
+        public static string ERRSkippedMeasurementClassN42 {
+            get {
+                return ResourceManager.GetString("ERRSkippedMeasurementClassN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the current time is used instead. Everything else in the spectrum is imported..
+        /// </summary>
+        public static string ERRUnreadableStartDateTimeN42 {
+            get {
+                return ResourceManager.GetString("ERRUnreadableStartDateTimeN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4..
         /// </summary>
         public static string ERRUnsupportedPolynomialOrderN42 {
@@ -2491,6 +2509,15 @@ namespace BecquerelMonitor.Properties {
         public static string PeakFitChiTablePeakSummary {
             get {
                 return ResourceManager.GetString("PeakFitChiTablePeakSummary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AIC (chi2 + parameter penalty).
+        /// </summary>
+        public static string PeakFitChiTableScoreColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableScoreColumn", resourceCulture);
             }
         }
         

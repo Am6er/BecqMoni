@@ -7545,6 +7545,42 @@
   <data name="&gt;&gt;tableModel1.Type" xml:space="preserve">
     <value>XPTable.Models.TableModel, BecquerelMonitor, Version=2026.6.17.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
+  <data name="&gt;&gt;labelWidenFactor.Name" xml:space="preserve">
+    <value>labelWidenFactor</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;labelWidenFactor.ZOrder" xml:space="preserve">
+    <value>17</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Name" xml:space="preserve">
+    <value>numericUpDownWidenFactor</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Type" xml:space="preserve">
+    <value>System.Windows.Forms.NumericUpDown, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;numericUpDownWidenFactor.ZOrder" xml:space="preserve">
+    <value>18</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Name" xml:space="preserve">
+    <value>centroidComCheckBox</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.Parent" xml:space="preserve">
+    <value>groupBox2</value>
+  </data>
+  <data name="&gt;&gt;centroidComCheckBox.ZOrder" xml:space="preserve">
+    <value>19</value>
+  </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>DeviceConfigForm</value>
   </data>

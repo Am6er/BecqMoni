@@ -276,9 +276,6 @@
   <data name="label26.Text" xml:space="preserve">
     <value>Интенсивность %</value>
   </data>
-  <data name="buttonEfficiency.Text" xml:space="preserve">
-    <value>Кривая эфф.</value>
-  </data>
   <data name="buttonSave.Text" xml:space="preserve">
     <value>Сохранить</value>
   </data>
