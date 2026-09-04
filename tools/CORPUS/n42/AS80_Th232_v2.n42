@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="f9cf873b-11be-4bd2-abf0-294c6ae60a25" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="5f6820d4-247b-4fb8-bc17-22418e0583fe" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -18,14 +18,14 @@
     </RadInstrumentVersion>
   </RadInstrumentInformation>
   <EnergyCalibration id="SpectrumCalibration-0">
-    <CoefficientValues>-16.9743625718044 0.367705860869187 4.83968821241507E-07 </CoefficientValues>
+    <CoefficientValues>-16.97436257180442 0.36770586086918733 4.8396882124150659E-07 </CoefficientValues>
   </EnergyCalibration>
   <EnergyCalibration id="BackgroundCalibration-0">
-    <CoefficientValues>-16.9743625718044 0.367705860869187 4.83968821241507E-07 </CoefficientValues>
+    <CoefficientValues>-16.97436257180442 0.36770586086918733 4.8396882124150659E-07 </CoefficientValues>
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
-    <StartDateTime>29.08.2025 12:30:29</StartDateTime>
+    <StartDateTime>2025-08-29T12:30:29.1239455+03:00</StartDateTime>
     <RealTimeDuration>PT13785S</RealTimeDuration>
     <Spectrum id="SpectrumData" radDetectorInformationReference="Detector" energyCalibrationReference="SpectrumCalibration-0">
       <LiveTimeDuration>PT13772.770327S</LiveTimeDuration>
@@ -37,7 +37,7 @@
   </RadMeasurement>
   <RadMeasurement id="BackgroundMeasurement-0">
     <MeasurementClassCode>Background</MeasurementClassCode>
-    <StartDateTime>29.08.2025 12:30:29</StartDateTime>
+    <StartDateTime>2025-08-29T12:30:29.1239455+03:00</StartDateTime>
     <RealTimeDuration>PT192406S</RealTimeDuration>
     <Spectrum id="BackgroundData" radDetectorInformationReference="Detector" energyCalibrationReference="BackgroundCalibration-0">
       <LiveTimeDuration>PT192406S</LiveTimeDuration>

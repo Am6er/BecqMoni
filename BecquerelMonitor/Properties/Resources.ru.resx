@@ -616,6 +616,9 @@
   <data name="ERRTooFewCalibrationPointsN42" xml:space="preserve">
     <value>В файле N42 меньше пяти точек калибровки, полином не подгоняется. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
+  <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
+    <value>Энергетическая шкала в файле N42 задана полиномом {0}-го порядка, а приложение читает полиномы не выше четвёртого.</value>
+  </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
     <value>Не поддерживаемый метод калибровки полиномом {0} порядка. Поддерживаются полиномы 1,2,3,4 порядков.</value>
   </data>

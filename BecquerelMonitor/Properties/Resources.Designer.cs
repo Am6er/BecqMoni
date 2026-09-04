@@ -1406,6 +1406,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4..
+        /// </summary>
+        public static string ERRUnsupportedPolynomialOrderN42 {
+            get {
+                return ResourceManager.GetString("ERRUnsupportedPolynomialOrderN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
         /// </summary>
         public static string ERRUnsupportedCalibrationMethod {

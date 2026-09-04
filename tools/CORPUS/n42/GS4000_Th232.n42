@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="e4a9a58b-f557-4717-985a-efc32be486e1" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="8b0c821a-9026-4116-a20b-e92ba5d181ba" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -18,14 +18,14 @@
     </RadInstrumentVersion>
   </RadInstrumentInformation>
   <EnergyCalibration id="SpectrumCalibration-0">
-    <CoefficientValues>-11.840103850123 0.952854504154966 2.20358561695048E-05 </CoefficientValues>
+    <CoefficientValues>-11.840103850123015 0.95285450415496575 2.2035856169504791E-05 </CoefficientValues>
   </EnergyCalibration>
   <EnergyCalibration id="BackgroundCalibration-0">
     <CoefficientValues>-3.78510968110822 0.929 3.68021825778934E-05 </CoefficientValues>
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
-    <StartDateTime>03.03.2020 19:02:06</StartDateTime>
+    <StartDateTime>2020-03-03T19:02:06.455+03:00</StartDateTime>
     <RealTimeDuration>PT6866.903S</RealTimeDuration>
     <Spectrum id="SpectrumData" radDetectorInformationReference="Detector" energyCalibrationReference="SpectrumCalibration-0">
       <LiveTimeDuration>PT6866.903S</LiveTimeDuration>
@@ -37,7 +37,7 @@
   </RadMeasurement>
   <RadMeasurement id="BackgroundMeasurement-0">
     <MeasurementClassCode>Background</MeasurementClassCode>
-    <StartDateTime>03.03.2020 19:02:06</StartDateTime>
+    <StartDateTime>2020-03-03T19:02:06.455+03:00</StartDateTime>
     <RealTimeDuration>PT19567.229S</RealTimeDuration>
     <Spectrum id="BackgroundData" radDetectorInformationReference="Detector" energyCalibrationReference="BackgroundCalibration-0">
       <LiveTimeDuration>PT19567.229S</LiveTimeDuration>

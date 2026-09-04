@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="a6cc62e6-5c6a-4ef1-baea-45dd26d715d3" xmlns="http://physics.nist.gov/N42/2011/N42">
+<RadInstrumentData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" n42DocUUID="5566b2ce-df7e-4a06-a6df-01e33a8577f1" xmlns="http://physics.nist.gov/N42/2011/N42">
   <RadInstrumentInformation id="RadInstrument">
     <RadInstrumentManufacturerName>KB Radar</RadInstrumentManufacturerName>
     <RadInstrumentModelName>ATOM Spectra</RadInstrumentModelName>
@@ -25,7 +25,7 @@
   </EnergyCalibration>
   <RadMeasurement id="SpectrumMeasurement-0">
     <MeasurementClassCode>Foreground</MeasurementClassCode>
-    <StartDateTime>12.10.2021 7:10:09</StartDateTime>
+    <StartDateTime>2021-10-12T07:10:09.907453+03:00</StartDateTime>
     <RealTimeDuration>PT55470.709088S</RealTimeDuration>
     <Spectrum id="SpectrumData" radDetectorInformationReference="Detector" energyCalibrationReference="SpectrumCalibration-0">
       <LiveTimeDuration>PT55470.709088S</LiveTimeDuration>
@@ -37,7 +37,7 @@
   </RadMeasurement>
   <RadMeasurement id="BackgroundMeasurement-0">
     <MeasurementClassCode>Background</MeasurementClassCode>
-    <StartDateTime>12.10.2021 7:10:09</StartDateTime>
+    <StartDateTime>2021-10-12T07:10:09.907453+03:00</StartDateTime>
     <RealTimeDuration>PT86400.086031S</RealTimeDuration>
     <Spectrum id="BackgroundData" radDetectorInformationReference="Detector" energyCalibrationReference="BackgroundCalibration-0">
       <LiveTimeDuration>PT86400.086031S</LiveTimeDuration>
