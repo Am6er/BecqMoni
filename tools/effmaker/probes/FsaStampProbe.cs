@@ -61,6 +61,13 @@ namespace FsaStampProbe
                 return 2;
             }
 
+            // (`A145`, критерий 7 / `A170`) ОТПЕЧАТОК НАСТРОЕК РАСЧЁТА — до окон
+            // и до спектра: семь двоичных настроек дают 128 раскладок, и все
+            // 128 отпечатков обязаны быть РАЗНЫМИ, а переключение любой одной
+            // настройки — менять отпечаток. Сеанс разбора (этап 2) кладёт эту
+            // строку в общий отпечаток; здесь у неё читатель.
+            OptionsStampSection();
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
@@ -125,6 +132,55 @@ namespace FsaStampProbe
 
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "РАСХОЖДЕНИЙ: " + bad.ToString(CultureInfo.InvariantCulture));
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// (`A170`) Все 128 раскладок семи настроек расчёта — 128 разных
+        /// отпечатков; каждая одиночная перестановка меняет отпечаток.
+        /// </summary>
+        static void OptionsStampSection()
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            int collisions = 0, unchanged = 0, layouts = 0;
+            for (int mask = 0; mask < 128; mask++)
+            {
+                FsaCalculationOptions options = OptionsOf(mask);
+                string stamp = options.Stamp;
+                layouts++;
+                if (!seen.Add(stamp))
+                {
+                    collisions++;
+                    Console.WriteLine("  ⛔ два разных положения дали один отпечаток: {0}", stamp);
+                }
+
+                for (int bit = 0; bit < 7; bit++)
+                {
+                    if (OptionsOf(mask ^ (1 << bit)).Stamp == stamp)
+                    {
+                        unchanged++;
+                        Console.WriteLine("  ⛔ перестановка настройки {0} не меняет отпечаток {1}", bit, stamp);
+                    }
+                }
+            }
+
+            Console.WriteLine("настройки расчёта: раскладок {0}, разных отпечатков {1}, пример: {2}",
+                              layouts, seen.Count, OptionsOf(0).Stamp);
+            Check("128 раскладок настроек — 128 разных отпечатков", collisions == 0 && seen.Count == 128);
+            Check("переключение любого расчётного флага меняет отпечаток", unchanged == 0);
+        }
+
+        static FsaCalculationOptions OptionsOf(int mask)
+        {
+            return new FsaCalculationOptions
+            {
+                DbLookups = (mask & 1) != 0,
+                ChainEquilibrium = (mask & 2) != 0,
+                AtomicXray = (mask & 4) != 0,
+                CascadeSumming = (mask & 8) != 0,
+                Backscatter = (mask & 16) != 0,
+                EscapeAndAnnihilation = (mask & 32) != 0,
+                PileUp = (mask & 64) != 0
+            };
         }
 
         /// <summary>Хвост отпечатка — набор и пики; начало у всех одинаково.</summary>

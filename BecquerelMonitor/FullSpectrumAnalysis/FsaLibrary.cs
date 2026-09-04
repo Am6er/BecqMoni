@@ -323,6 +323,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             IEnumerable<NuclideDefinition> nuclideDefinitions,
             IDictionary<int, double> crystalFractions)
         {
+            return BuildFromPeaks(peaks, nuclideDefinitions, crystalFractions, true);
+        }
+
+        /// <summary>
+        /// То же, с пользовательским флажком «атомный рентген» (`A145`,
+        /// <see cref="FsaCalculationOptions.AtomicXray"/>): выключенный не
+        /// строит образ характеристического рентгена элемента, названного
+        /// подписью пика. На пути из баз ту же роль играет
+        /// <see cref="FsaSampleSpec.AtomicXray"/>. Образы вылета и аннигиляции
+        /// сюда НЕ относятся — их судьбу решает анализатор, знающий про матрицу
+        /// (<see cref="FsaAnalyzer.EscapeAndAnnihilation"/>).
+        /// </summary>
+        public static List<FsaComponent> BuildFromPeaks(
+            IEnumerable<Peak> peaks,
+            IEnumerable<NuclideDefinition> nuclideDefinitions,
+            IDictionary<int, double> crystalFractions,
+            bool atomicXray)
+        {
             List<FsaComponent> result = new List<FsaComponent>();
             if (peaks == null || nuclideDefinitions == null)
             {
@@ -432,7 +450,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // в `NucBase` набирается элемент → оттуда приходят его линии
                 // X-ray → уезжают в `NuclideDefinition.xml` → финдер их находит
                 // → FSA узнаёт о них по ИМЕНИ, а не по подстановке.
-                int z = MaterialDatabase.ZOf(nuclide);
+                // (`A145`) Выключенный флажок «атомный рентген» снимает этот
+                // образ — и только его: нуклидные образы выше от него не зависят.
+                int z = atomicXray ? MaterialDatabase.ZOf(nuclide) : 0;
                 if (z <= 0)
                 {
                     continue;

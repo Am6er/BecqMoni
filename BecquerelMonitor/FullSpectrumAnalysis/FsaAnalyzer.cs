@@ -892,6 +892,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool EscapeGate { get; set; }
 
+        /// <summary>
+        /// (`A168`) ПОЛОЖИТЕЛЬНО НАЗВАННЫЙ пользовательский смысл «пики вылета
+        /// SE/DE и аннигиляция 511 кэВ» — отдельные дополнительные образы в
+        /// библиотеке. Умолчание — включено, как считалось всегда.
+        ///
+        /// Толкуется ВМЕСТЕ с наличием матрицы, и это существо правки:
+        ///
+        ///   * матрица ЕСТЬ — вылеты живут в её образе, и свободные SE/DE
+        ///     снимаются гейтом <see cref="EscapeGate"/> при ЛЮБОМ значении
+        ///     этого ключа (иначе «вкл» возвращал бы двойной счёт `S47`);
+        ///     ключ решает только судьбу отдельного `Ann-511`, источника
+        ///     которого в матрице нет;
+        ///   * матрицы НЕТ — образ строится из одних пиков, и SE/DE с `Ann-511`
+        ///     есть в библиотеке при включённом ключе и сняты при выключенном.
+        ///
+        /// Четыре клетки {матрица есть/нет} × {ключ вкл/выкл} и положительный
+        /// контроль (гейт снят при матрице — двойной образ пойман) меряет
+        /// `FsaDoubleCountProbe`. Ставить ключ мимо
+        /// <see cref="FsaCalculationOptions.ApplyTo(FsaAnalyzer)"/> в
+        /// приложении нельзя — это единственная точка входа пользовательских
+        /// настроек.
+        /// </summary>
+        public bool EscapeAndAnnihilation { get; set; }
+
         public double GainRange { get; set; }
 
         public int GainSteps { get; set; }
@@ -1183,6 +1207,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // S47: умолчание выставлено по A/B корпуса, см. описание свойства
             // и §13с журнала матрицы. Выключатель для A/B — `--no-escape-gate`.
             this.EscapeGate = true;
+            // A168: отдельные образы вылета и аннигиляции включены — так
+            // считалось всегда; выключает их пользователь через
+            // `FsaCalculationOptions`, пробы — ключом `--no-escape`.
+            this.EscapeAndAnnihilation = true;
             // B17: 128 вместо прежних 64 — решение Amber 16.08.2026 по A/B на
             // КОПИИ корпуса. Понятная часть 788.4 -> 736.5 Σχ²/ndf (−6.6 %),
             // невязка модели 23.8 -> 21.0 %, recall 93 % без изменений. Цена
@@ -1528,15 +1556,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // анализатор, а собирателей библиотеки в дереве восемь. Убрать
             // столбец, который матрица уже содержит, — не «улучшение фита», а
             // прекращение второго счёта.
-            if (this.EscapeGate && this.ResponseMatrix != null)
+            //
+            // (`A168`) Второе правило — пользовательское, и оно ЧИТАЕТСЯ ВМЕСТЕ
+            // с первым, а не вместо него: свободные SE/DE снимаются, когда их
+            // уже несёт матрица (гейт) ЛИБО когда человек выключил отдельные
+            // образы вылета; `Ann-511` в матрице не живёт (см. `EscapeGate`),
+            // поэтому его снимает только выключенный ключ. Так ни в одной из
+            // четырёх клеток {матрица есть/нет} × {ключ вкл/выкл} нет ни
+            // двойного образа, ни исчезновения вылетов там, где их больше
+            // некому выразить.
+            bool dropEscapeImages = (this.EscapeGate && this.ResponseMatrix != null)
+                                    || !this.EscapeAndAnnihilation;
+            bool dropAnnihilation = !this.EscapeAndAnnihilation;
+            if (dropEscapeImages || dropAnnihilation)
             {
                 List<FsaComponent> kept = new List<FsaComponent>(library.Count);
                 foreach (FsaComponent component in library)
                 {
-                    if (!FsaLibrary.IsEscapeImage(component.Name))
+                    if (dropEscapeImages && FsaLibrary.IsEscapeImage(component.Name))
                     {
-                        kept.Add(component);
+                        continue;
                     }
+
+                    if (dropAnnihilation && FsaResult.IsAnnihilationImage(component.Name))
+                    {
+                        continue;
+                    }
+
+                    kept.Add(component);
                 }
 
                 if (kept.Count < library.Count)
@@ -1745,6 +1792,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // видели живым.
             var offeredZ = new Dictionary<string, double>(StringComparer.Ordinal);
             var offeredKind = new Dictionary<string, FsaComponentKind>(StringComparer.Ordinal);
+            // (`A169`) Происхождение в ряду — вместе с видом: подавленный
+            // свободный член ряда обязан помнить корень не хуже вошедшего.
+            var offeredOrigin = new Dictionary<string, string>(StringComparer.Ordinal);
             Action<FitResult> remember = fit =>
             {
                 for (int k = 0; k < fit.Columns.Count; k++)
@@ -1757,6 +1807,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     offeredZ[component.Name] = fit.Z[k];
                     offeredKind[component.Name] = component.Kind;
+                    offeredOrigin[component.Name] = component.DecayChainRoot;
                 }
             };
 
@@ -2038,10 +2089,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 FsaComponentKind kind;
+                string origin;
                 result.SuppressedImages.Add(new FsaSuppressedImage
                 {
                     Name = pair.Key,
                     Kind = offeredKind.TryGetValue(pair.Key, out kind) ? kind : FsaComponentKind.Single,
+                    DecayChainRoot = offeredOrigin.TryGetValue(pair.Key, out origin) ? origin : null,
                     Z = pair.Value
                 });
             }
@@ -2181,6 +2234,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Name = component.Name,
                     Kind = component.Kind,
+                    // (`A169`) Происхождение — у каждого кандидата, вошёл он
+                    // в состав или нет: свободный член ряда без значимых
+                    // линий живёт в результате ТОЛЬКО этой строкой.
+                    DecayChainRoot = component.DecayChainRoot,
                     Detected = col >= 0 && amplitude > 0.0,
                     CountRate = amplitude / liveTime,
                     DecisionThresholdRate = Double.NaN,
@@ -2978,6 +3035,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // закреплена связкой так же, как у разложенных.
                     ChainRoot = column.Component.Kind == FsaComponentKind.Chain
                         ? column.Component.Name : null,
+
+                    // (`A169`) Происхождение в ряду — отдельно от связки: у
+                    // свободного члена (равновесие выключено) ChainRoot пуст,
+                    // а корень ряда всё равно известен сборке библиотеки.
+                    DecayChainRoot = column.Component.DecayChainRoot
+                        ?? (column.Component.Kind == FsaComponentKind.Chain
+                                ? column.Component.Name : null),
                     Curve = curve,
                     SumPeakCurve = sumOnly,
                     PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
@@ -3184,6 +3248,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // либо потерялась бы вовсе, либо утащила бы строку в другую
                     // группу порядка.
                     ChainRoot = component.Name,
+
+                    // (`A169`) Происхождение члена — корень той же колонки: в
+                    // связанном ряду оба поля совпадают, различаются они у
+                    // СВОБОДНЫХ членов (см. отчёт обычной колонки выше).
+                    DecayChainRoot = component.DecayChainRoot ?? component.Name,
                     Curve = part,
                     SumPeakCurve = sumOnly,
                     PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,

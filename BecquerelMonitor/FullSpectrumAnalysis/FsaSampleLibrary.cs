@@ -591,19 +591,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // РЯДА из одного нуклида: имя то же, а вид `Chain`, и подпись пиков
             // уходила по ветке ряда. `DecayLines` кэширован, второй проход
             // ничего не стоит.
-            if (spec.Equilibrium)
+            //
+            // (`A169`) Считается ПРИ ЛЮБОМ положении равновесия, а не только при
+            // связке: тот же счёт говорит, кто из членов пришёл РЯДОМ, и это
+            // происхождение (`DecayChainRoot`) нужно свободным членам не
+            // меньше, чем связанным, — по нему строки собираются в родителя
+            // без пересчёта. На связку (`grouped` ниже) счёт без равновесия не
+            // влияет: она по-прежнему требует `spec.Equilibrium`.
+            foreach (string nucid in branch.Keys)
             {
-                foreach (string nucid in branch.Keys)
+                if (DecayLines(nucid, report).Count == 0)
                 {
-                    if (DecayLines(nucid, report).Count == 0)
-                    {
-                        continue;
-                    }
-
-                    string root = OwnerOf(owner, nucid);
-                    int have;
-                    groupSize[root] = groupSize.TryGetValue(root, out have) ? have + 1 : 1;
+                    continue;
                 }
+
+                string root = OwnerOf(owner, nucid);
+                int have;
+                groupSize[root] = groupSize.TryGetValue(root, out have) ? have + 1 : 1;
             }
 
             // Имя компонента, доставшееся нуклиду: по нему потом собираются
@@ -642,6 +646,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FsaComponent component = Take(byName, order, name,
                                               grouped ? FsaComponentKind.Chain
                                                       : FsaComponentKind.Single);
+
+                // (`A169`) Происхождение в ряду — у КАЖДОГО излучающего члена
+                // ряда из двух и более таких членов, и при связке, и без неё.
+                // Одинокий корень (K-40, объявленный сам по себе Cs-137) рядом
+                // не является и происхождения не получает — ровно по тому же
+                // счёту, по которому он не становится колонкой ряда.
+                string decayRoot = OwnerOf(owner, member.Key);
+                if (GroupCount(groupSize, decayRoot) > 1)
+                {
+                    component.DecayChainRoot = PrettyName(decayRoot);
+                }
 
                 // В колонку ряда попадают несколько нуклидов; априорным выходом
                 // колонки берётся НАИБОЛЬШИЙ из них — вопрос, на который этот

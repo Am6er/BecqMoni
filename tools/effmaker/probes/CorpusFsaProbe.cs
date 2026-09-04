@@ -114,7 +114,7 @@ namespace CorpusFsaProbe
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
-    ///                  [--no-pileup] [--no-background] [--limit=N] [--quiet]
+    ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--no-escape-gate]
@@ -497,6 +497,13 @@ namespace CorpusFsaProbe
                     // поэтому мерится его ОТКЛЮЧЕНИЕ, как у Хубера (S41).
                     o.EscapeGate = false;
                 }
+                else if (a == "--no-escape")
+                {
+                    // `A168`: пользовательский флажок «вылеты и аннигиляция»
+                    // выключен — снимаются отдельные SE/DE (без матрицы) и
+                    // `Ann-511`. Гейт `EscapeGate` этим ключом НЕ трогается.
+                    o.Escape = false;
+                }
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                 {
                     // S9 «б»: которая из двух ступеней занижает МДА слабого
@@ -605,11 +612,12 @@ namespace CorpusFsaProbe
             // подбирает и подаёт сама проба, фон она подаёт или не подаёт
             // отдельным доводом. Их и печатаем у себя; всё остальное —
             // у того объекта, который считает.
-            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, фон {4}",
+            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, вылеты {4}, фон {5}",
                               o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
                               head.CascadeSumming ? "вкл" : "выкл",
                               head.PileUp ? "вкл" : "выкл",
                               head.Backscatter ? "вкл" : "выкл",
+                              head.EscapeAndAnnihilation ? "вкл" : "выкл",
                               o.Background ? "вычитается, если есть" : "НЕ вычитается");
             // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
             // это единица измерения всего прогона: recall и число фантомов
@@ -874,14 +882,29 @@ namespace CorpusFsaProbe
             analyzer.Mode = o.Mode == "snip"
                 ? FsaAnalyzer.ContinuumMode.Snip
                 : FsaAnalyzer.ContinuumMode.Spline;
-            analyzer.CascadeSumming = o.Cascade;
-            analyzer.CascadeSumPeaks = o.Cascade;
+            // (`A170`) Пользовательские смыслы — ТЕМ ЖЕ фасадом, что и в
+            // приложении: «суммирование» пишет обе половины, «рассеяние» не
+            // поднимает `BackscatterWithMatrix`, «вылеты» не трогают гейт.
+            // Второй копии правила «какой флажок какие ключи пишет» у пробы
+            // нет — она была бы ровно тем двойником, что расходится молча.
+            new FsaCalculationOptions
+            {
+                DbLookups = true,
+                ChainEquilibrium = o.Equilibrium,
+                AtomicXray = o.Atomic,
+                CascadeSumming = o.Cascade,
+                Backscatter = o.Backscatter,
+                EscapeAndAnnihilation = o.Escape,
+                PileUp = o.PileUp
+            }.ApplyTo(analyzer);
             analyzer.CascadeXrayPartners = o.Xray;
             analyzer.CascadeAnnihilationPartners = o.Annihilation;
             analyzer.CascadeIsomerPartners = o.Isomers;
             analyzer.CoincidenceWindowSec = o.WindowSec;
-            analyzer.PileUp = o.PileUp;
-            analyzer.Backscatter = o.Backscatter;
+
+            // ⛔ АБЛЯЦИОННЫЕ ключи — ПОСЛЕ фасада и только здесь: фасад их
+            // нарочно не поднимает (`A83`, `S47`), а пробе они нужны, чтобы
+            // двойной счёт можно было померить, а не обсуждать.
             analyzer.BackscatterWithMatrix = o.BackscatterWithMatrix;
             if (o.RefitZ >= 0.0)
             {
@@ -3331,6 +3354,14 @@ namespace CorpusFsaProbe
 
             /// <summary>(S47) Гейт образов вылета при матрице; A-сторона — `--no-escape-gate`.</summary>
             public bool EscapeGate = true;
+
+            /// <summary>
+            /// (`A168`) Пользовательский флажок «вылеты SE/DE и аннигиляция
+            /// 511» — положительный ключ анализатора `EscapeAndAnnihilation`;
+            /// A-сторона — `--no-escape`. ⚠ На корпусе (`--lib=sample`) SE/DE не
+            /// строятся вовсе, и ключ снимает только `Ann-511`.
+            /// </summary>
+            public bool Escape = true;
 
             /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
             public double NoiseGamma;

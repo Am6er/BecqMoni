@@ -239,6 +239,84 @@ namespace BecquerelMonitor
             }
         }
 
+        // ------------------------------------------------------------------
+        // (`A145`, этап 1: `A168`/`A170`) ПЯТЬ ПОЛОЖИТЕЛЬНО НАЗВАННЫХ ФЛАЖКОВ
+        // «дополнительных компонентов модели» полноспектрального разбора —
+        // контракт настроек расчёта из `handover/a145-fsa-display-groups.md`
+        // (принят Amber 05.09.2026). Живут здесь, рядом с
+        // `DbLookupsForFsa`/`ChainEquilibrium`, и по той же причине: у прибора
+        // умолчание, у спектра своя копия (`AdoptFrom`), и человек, выключивший
+        // компонент для одного спектра, не выключает его всем разом.
+        //
+        // ⛔ Умолчание у всех пяти — ВКЛЮЧЕНО: так разбор считает ровно то же,
+        // что считал до появления флажков (критерий приёмки 13 `A145`), и старые
+        // файлы конфигурации, где элемента нет, получают то же значение поля.
+        //
+        // ⛔ Ни один из них НЕ равен внутреннему ключу анализатора один к
+        // одному. Единственная точка, где пользовательское значение
+        // превращается во внутренние ключи, — `FsaCalculationOptions.ApplyTo`
+        // (`A170`): именно там «каскадное суммирование» пишет ОБЕ половины,
+        // «обратное рассеяние» никогда не поднимает `BackscatterWithMatrix`,
+        // а «вылеты и аннигиляция» не трогают защитный `EscapeGate` (`A168`).
+        // Читать эти пять полей мимо `FsaCalculationOptions` нельзя.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Атомный рентген в библиотеке разбора: рентген пробы, кристалла и
+        /// защиты и образ K-вылета кристалла (`FsaSampleSpec.AtomicXray`, а на
+        /// пути по подписям пиков — рентген элементов, названных человеком).
+        /// </summary>
+        public bool AtomicXrayForFsa
+        {
+            get { return this.atomic_xray_for_fsa; }
+            set { this.atomic_xray_for_fsa = value; }
+        }
+
+        /// <summary>
+        /// Каскадное суммирование — ОБЕ физические половины разом: множитель
+        /// на площадь пика и сумм-пики (`FsaAnalyzer.CascadeSumming` +
+        /// `CascadeSumPeaks`). Вид штриховки подслоя
+        /// (`SumLayerIncludesContinuum`) флажком не управляется — это
+        /// внутреннее постоянное решение.
+        /// </summary>
+        public bool CascadeSummingForFsa
+        {
+            get { return this.cascade_summing_for_fsa; }
+            set { this.cascade_summing_for_fsa = value; }
+        }
+
+        /// <summary>
+        /// Отдельный приближённый образ обратного рассеяния — там, где матрицы
+        /// отклика НЕТ. При матрице вклад рассеяния уже в ней, и флажок не
+        /// обещает его снять: `BackscatterWithMatrix` остаётся `false` при
+        /// любом положении (`A83`, `A170`).
+        /// </summary>
+        public bool BackscatterForFsa
+        {
+            get { return this.backscatter_for_fsa; }
+            set { this.backscatter_for_fsa = value; }
+        }
+
+        /// <summary>
+        /// Отдельные образы пиков вылета SE/DE и аннигиляции 511 кэВ
+        /// (`A168`). Без матрицы флажок решает, есть ли они в библиотеке; с
+        /// матрицей вылеты живут в её образе, и флажок управляет только
+        /// отдельным `Ann-511` — защиту от двойного счёта (`EscapeGate`) он
+        /// не трогает.
+        /// </summary>
+        public bool EscapeAndAnnihilationForFsa
+        {
+            get { return this.escape_and_annihilation_for_fsa; }
+            set { this.escape_and_annihilation_for_fsa = value; }
+        }
+
+        /// <summary>Образ случайных наложений (pile-up), `FsaAnalyzer.PileUp`.</summary>
+        public bool PileUpForFsa
+        {
+            get { return this.pile_up_for_fsa; }
+            set { this.pile_up_for_fsa = value; }
+        }
+
         [XmlElement(typeof(SimpleSqrtFwhmCalibration))]
         [XmlElement(typeof(SqrtFwhmCalibration))]
         [XmlElement(typeof(PowerFwhmCalibration))]
@@ -266,6 +344,11 @@ namespace BecquerelMonitor
             this.use_center_of_mass_centroid = config.use_center_of_mass_centroid;
             this.db_lookups_for_fsa = config.db_lookups_for_fsa;
             this.chain_equilibrium = config.chain_equilibrium;
+            this.atomic_xray_for_fsa = config.atomic_xray_for_fsa;
+            this.cascade_summing_for_fsa = config.cascade_summing_for_fsa;
+            this.backscatter_for_fsa = config.backscatter_for_fsa;
+            this.escape_and_annihilation_for_fsa = config.escape_and_annihilation_for_fsa;
+            this.pile_up_for_fsa = config.pile_up_for_fsa;
             if (config.fwhmCalibration != null)
             {
                 this.fwhmCalibration = config.fwhmCalibration.Clone();
@@ -353,6 +436,19 @@ namespace BecquerelMonitor
         // Умолчание ВКЛЮЧЕНО — см. ChainEquilibrium. Старые файлы конфигурации
         // элемента не несут, и им достаётся это же значение поля.
         bool chain_equilibrium = true;
+
+        // (`A145`) Умолчания ВКЛЮЧЕНЫ — см. блок свойств выше: так сохраняется
+        // сегодняшний расчёт, и старые файлы конфигурации без этих элементов
+        // получают то же значение.
+        bool atomic_xray_for_fsa = true;
+
+        bool cascade_summing_for_fsa = true;
+
+        bool backscatter_for_fsa = true;
+
+        bool escape_and_annihilation_for_fsa = true;
+
+        bool pile_up_for_fsa = true;
 
         bool enabled = true;
 
