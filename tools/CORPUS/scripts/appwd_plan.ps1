@@ -1,4 +1,4 @@
-# Оснастка корпусного прогона: ЕДИНЫЙ план «что откуда кладётся» — и сторож,
+﻿# Оснастка корпусного прогона: ЕДИНЫЙ план «что откуда кладётся» — и сторож,
 # который этот же план проверяет. Один файл на обе роли, и это нарочно.
 #
 # ⛔ Зачем он есть (`T63`, 25.08.2026). Каталог `wd_app` держит СВОЮ копию
@@ -130,11 +130,19 @@ function Get-AppWdPlan {
         # в `probes\build_rel`, и оснастку из `bin\Release_Codex` надо собирать
         # оттуда же: иначе приложение будет из одной сборки, а пробы рядом —
         # из другой, и сторож законно откажет.
-        [string]$ProbeBuild = ''
+        [string]$ProbeBuild = '',
+        # `S138`: склад матриц ПЛЕЧА. Пустой — штатный `corpus\geometries`.
+        # Задаётся каталогом со сценами (`<ключ>.rmx`); оснастка берёт
+        # матрицы из его `response`, и сторож сверяет клейма с НИМ ЖЕ.
+        # ⛔ Без этого ключа плечо со своим складом можно было прогнать
+        # только `-Force`, а он объявляет числа негодными для журнала —
+        # то есть плечо было неизмеримо в принципе.
+        [string]$Store = ''
     )
 
     $corpus     = Join-Path $Repo 'tools\CORPUS\corpus'
-    $response   = Join-Path $corpus 'geometries\response'
+    $storeDir   = if ($Store) { $Store } else { Join-Path $corpus 'geometries' }
+    $response   = Join-Path $storeDir 'response'
     if (-not $ProbeBuild) { $ProbeBuild = Join-Path $Repo 'tools\effmaker\probes\build' }
     $probeBuild = $ProbeBuild
     $appCfgSrc  = Join-Path $Bin  'BecquerelMonitor.exe.config'
@@ -236,6 +244,8 @@ function Get-AppWdPlan {
     [pscustomobject]@{
         Repo = $Repo; Bin = $Bin; Wd = $Wd
         Corpus = $corpus; Response = $response; ProbeBuild = $probeBuild
+        # `S138`: с чем сверять клейма. У штатного прогона — склад корпуса.
+        Store = $storeDir
         Pairs = @($pairs)
         ProbeSources = @($probeSrc)
         Strays = @($strayExe)
@@ -261,10 +271,11 @@ function New-AppWdPlanOrDie {
         [Parameter(Mandatory)][string]$Repo,
         [Parameter(Mandatory)][string]$Bin,
         [Parameter(Mandatory)][string]$Wd,
-        [string]$ProbeBuild = ''
+        [string]$ProbeBuild = '',
+        [string]$Store = ''
     )
     try {
-        return Get-AppWdPlan -Repo $Repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
+        return Get-AppWdPlan -Repo $Repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
     } catch {
         Write-Host ""
         Write-Host "⛔⛔ ОТКАЗ: ПЛАН ОСНАСТКИ НЕ СТРОИТСЯ — НИЧЕГО НЕ ТРОНУТО" -ForegroundColor Red
@@ -594,7 +605,10 @@ function Test-AppWdStore {
 
     $probe = Join-Path $Plan.ProbeBuild 'MatrixAuditProbe.exe'
     $script = Join-Path $PSScriptRoot 'store_vs_wd.py'
-    $store = Join-Path $Plan.Corpus 'geometries'
+    # `S138`: у плеча склад свой, и сверять надо С НИМ, иначе сторож
+    # объявит расхождением ровно то, ради чего плечо и считалось.
+    $store = if ($Plan.PSObject.Properties['Store'] -and $Plan.Store) `
+             { $Plan.Store } else { Join-Path $Plan.Corpus 'geometries' }
     $resp = Join-Path $Plan.Wd 'config\device\response'
 
     foreach ($need in @($probe, $script, $store, $resp)) {
