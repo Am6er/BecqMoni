@@ -132,6 +132,17 @@ resx не ищется латиница. Кириллица в `*.Designer.cs` �
     python tools/check_resx_letters.py [--list] [путь]
 
 Возвращает 1, если находки есть.
+
+## ⚠ Формат файла — плечо сторожа (`T156`, 05.09.2026)
+
+Каждый `*.resx` обязан быть UTF-8 С BOM и с переводами строк CRLF, без
+примесей (правило, счёт по дереву и причины — в `tools/resx_format.py`).
+Файл чужого формата сверка НЕ читает молча: печатает `ФОРМАТ  <файл>: чем
+плох` и возвращает 1, даже если по своему предмету всё сошлось. Правка,
+написанная под BOM+CRLF, на таком файле отказывает (`A118`), и заход уходит
+на выяснение причины — плечо заведено, чтобы причину называл сторож.
+Снять плечо — ключ `--no-format` (на дереве с `core.autocrlf=false` всё
+лежит LF, и там оно красно на всех файлах по устройству, а не по дефекту).
 """
 import glob
 import os
@@ -139,6 +150,8 @@ import re
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+
+import resx_format
 
 CYRILLIC = re.compile(r'[Ѐ-ӿԀ-ԯ]')
 LATIN = re.compile(r'[A-Za-z]')
@@ -339,6 +352,7 @@ def check_russian(rows):
 
 def main(argv):
     show = '--list' in argv
+    no_format = '--no-format' in argv
     rest = [a for a in argv if not a.startswith('--')]
     root = rest[0] if rest else 'BecquerelMonitor'
 
@@ -388,8 +402,17 @@ def main(argv):
     print('генерируемых *.Designer.cs: %d, значений в них: %d'
           % (seen_cs, seen_cs_values))
     print('находок: %d' % len(findings))
-    print('РАЗОШЛОСЬ' if findings else 'СОШЛОСЬ')
-    return 1 if findings else 0
+
+    # Плечо формата (`T156`): чужой формат — отказ словами.
+    fmt = [] if no_format else resx_format.problems(
+        sorted(glob.glob(os.path.join(root, '**', '*.resx'), recursive=True)))
+    for line in fmt:
+        print(line)
+    print('файлов чужого формата (не BOM+CRLF): %d' % len(fmt))
+
+    failed = bool(findings or fmt)
+    print('РАЗОШЛОСЬ' if failed else 'СОШЛОСЬ')
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':

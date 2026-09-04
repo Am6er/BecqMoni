@@ -90,12 +90,25 @@ System.Drawing"`), а подпись — нет.
 в английском файле, потому что её там не завели вовсе (заголовок `AboutForm`).
 Ключи, одинаковые по-русски и по-английски, заводятся в паре с тем же значением
 сознательно — это отметка «смотрели, по-русски так же» (решение Amber).
+
+## ⚠ Формат файла — плечо сторожа (`T156`, 05.09.2026)
+
+Каждый `*.resx` обязан быть UTF-8 С BOM и с переводами строк CRLF, без
+примесей (правило, счёт по дереву и причины — в `tools/resx_format.py`).
+Файл чужого формата сверка НЕ читает молча: печатает `ФОРМАТ  <файл>: чем
+плох` и возвращает 1, даже если по своему предмету всё сошлось. Правка,
+написанная под BOM+CRLF, на таком файле отказывает (`A118`), и заход уходит
+на выяснение причины — плечо заведено, чтобы причину называл сторож.
+Снять плечо — ключ `--no-format` (на дереве с `core.autocrlf=false` всё
+лежит LF, и там оно красно на всех файлах по устройству, а не по дефекту).
 """
 import glob
 import os
 import re
 import sys
 import xml.etree.ElementTree as ET
+
+import resx_format
 
 NUMERIC = re.compile(r'[-0-9.,:%\s]+')
 # СЛУЖЕБНЫЕ СВОЙСТВА, ХРАНЯЩИЕСЯ СТРОКОЙ. Человек их не видит, и перевода у них
@@ -153,6 +166,7 @@ def duplicates(path):
 
 def main(argv):
     show = '--list' in argv
+    no_format = '--no-format' in argv
     rest = [a for a in argv if not a.startswith('--')]
     root = rest[0] if rest else 'BecquerelMonitor'
 
@@ -206,8 +220,16 @@ def main(argv):
         print('файлов с повторами ключей: %d (расхождение значений: %d)'
               % (dup_files, dup_conflict))
 
-    print('РАЗОШЛОСЬ' if total or extra_total or dup_conflict else 'СОШЛОСЬ')
-    return 1 if total or extra_total or dup_conflict else 0
+    # Плечо формата (`T156`): чужой формат — отказ словами, а не молчаливое чтение.
+    fmt = [] if no_format else resx_format.problems(
+        sorted(glob.glob(os.path.join(root, '**', '*.resx'), recursive=True)))
+    for line in fmt:
+        print(line)
+    print('файлов чужого формата (не BOM+CRLF): %d' % len(fmt))
+
+    failed = bool(total or extra_total or dup_conflict or fmt)
+    print('РАЗОШЛОСЬ' if failed else 'СОШЛОСЬ')
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':
