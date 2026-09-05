@@ -973,11 +973,22 @@ namespace BecquerelMonitor
             // кривая уезжала в `FWHMCalibrationGraph.Init` и валила ЧУЖОЙ класс.
             // ⛔ Поле `fwhmCalibration` здесь НЕ переприсваивается: между обновлениями
             // вида оно законно держит ещё не сохранённый выбор типа кривой (см. 223-235).
+            // ⛔ ЭНЕРГОКАЛИБРОВКА — ЧЕТВЁРТОЕ ЗВЕНО, И ОНО ЗДЕСЬ НЕ ЛИШНЕЕ (`A243`,
+            // 05.09.2026). `Init` разыменовывает `ActiveResultData.EnergySpectrum
+            // .EnergyCalibration.Clone()` первой же строкой, а спектр без шкалы
+            // энергии приложение производит штатно (`A95`: `EnergySpectrum.Clone`
+            // ради этого отказывает СЛОВАМИ, `CheckDocument` без поправок судит
+            // такой документ негодным, а ввозные двери при ответе «Нет» уходят
+            // `return`-ом из void, оставляя документ ОТКРЫТЫМ). Измерено полосой
+            // О22: при кривой ПШПВ на месте и пустой энергокалибровке дверь
+            // доходила до `Init` и валила чужой класс —
+            // `NullReferenceException @ FWHMCalibrationGraph.cs:53`.
             ResultData graphResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
             EnsureFwhmCalibration(graphResultData);
             if (fwhmCalibration == null || graphResultData == null
                 || graphResultData.FwhmCalibration == null
-                || graphResultData.EnergySpectrum == null)
+                || graphResultData.EnergySpectrum == null
+                || graphResultData.EnergySpectrum.EnergyCalibration == null)
             {
                 UpdateCalibrateButtonState();
                 return;

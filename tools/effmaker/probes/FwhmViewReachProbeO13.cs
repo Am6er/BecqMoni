@@ -94,6 +94,7 @@ namespace FwhmViewReachProbeO13
             SceneLive();
             SceneNull();
             SceneN42();
+            SceneGraphInitA243();
 
             Console.WriteLine();
             Console.WriteLine("=== ИТОГ КОНТРОЛЯ ===");
@@ -308,6 +309,122 @@ namespace FwhmViewReachProbeO13
         }
 
         // ==================================================================
+        // ЗАМЕР `A243`. Сторож `null` в `FWHMCalibrationGraph.Init`.
+        //
+        // ⛔ ЭТО ЗАМЕР ДОСТИЖИМОСТИ, А НЕ ПОЧИНКА. Строка `A243` говорит, что
+        // `Init` разыменовывает кривую голым. Разыменований там ДВА РОДА:
+        //   род I  — АРГУМЕНТ `fwhmCalibration.Clone()` (Utils/FWHMCalibrationGraph.cs:56);
+        //   род II — цепочка `mainForm.ActiveDocument.ActiveResultData
+        //            .EnergySpectrum.EnergyCalibration.Clone()` (там же, :53).
+        // Зовущий один — `DCFwhmCalibrationView.ViewCalibrationButton_Click`,
+        // и над вызовом стоит сторож `A236` (976-984).
+        //
+        // ⛔ ОТРИЦАТЕЛЬНЫЙ ВЫВОД БЕЗ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ НИЧЕГО НЕ ЗНАЧИТ:
+        //   ПЛЕЧО 1 — проба ДОСТАЁТ до `Init`: на живой кривой метод обязан
+        //     оставить след ВНУТРИ объекта графика (поля `fwhmCalibration`,
+        //     `points`, `originalpoints`, `maxChannels`, `maxFWHM`), а не
+        //     «объект создался».
+        //   ПЛЕЧО 2 — проба ЛОВИТ настоящее падение: `Init` зовётся напрямую
+        //     с `null`, и проба обязана назвать ИМЕННО строку 56. Второе
+        //     падение — рода II, с `EnergyCalibration = null`, строка 53.
+        // ==================================================================
+        static void SceneGraphInitA243()
+        {
+            Console.WriteLine("=== СЦЕНА «ГРАФИК» — ЗАМЕР `A243` (FWHMCalibrationGraph.Init) ===");
+            Console.WriteLine();
+
+            // --- ПЛЕЧО 1: проба достаёт до Init ------------------------------
+            Stand live = Stand.Make("o22-graph-live", live: true);
+            if (live == null) { Fail("стенд ЖИВАЯ (A243) не построился"); return; }
+            live.Update();
+
+            GraphOutcome g = live.InitRaw(live.Doc.ActiveResultData.FwhmCalibration);
+            Console.WriteLine("  ПЛЕЧО 1. Init(живая кривая, " + live.Channels + ")");
+            Console.WriteLine("      исход: " + (g.O.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + g.O.Text));
+            Console.WriteLine("      след ВНУТРИ графика: " + g.Trace);
+            Control("ПЛЕЧО 1: `Init` ИСПОЛНИЛСЯ — поля графика заполнены",
+                    g.O.Ok && g.Points == 3 && g.OriginalPoints == 3
+                    && g.MaxChannels == live.Channels && g.MaxFwhm > 0.0,
+                    "следа нет — проба до `Init` НЕ ДОЗВОНИЛАСЬ: " + g.Trace);
+
+            // --- ПЛЕЧО 2а: настоящее падение рода I (аргумент null) ----------
+            GraphOutcome n = live.InitRaw(null);
+            Console.WriteLine();
+            Console.WriteLine("  ПЛЕЧО 2а. Init(null, " + live.Channels + ") — род I, аргумент");
+            Console.WriteLine("      исход: " + (n.O.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + n.O.Text));
+            Control("ПЛЕЧО 2а: проба ЛОВИТ падение и называет строку 56",
+                    !n.O.Ok && n.O.Text.StartsWith("NullReferenceException")
+                    && n.O.Text.Contains("FWHMCalibrationGraph.cs:56"),
+                    "проба СЛЕПА: голое разыменование аргумента не дало названного падения — " + n.O.Text);
+
+            // --- ПЛЕЧО 2б: настоящее падение рода II (EnergyCalibration null) -
+            Stand noEcal = Stand.Make("o22-graph-noecal", live: true);
+            if (noEcal == null) { Fail("стенд БЕЗ ЭНЕРГОКАЛИБРОВКИ не построился"); return; }
+            noEcal.Update();
+            noEcal.KillEnergyCalibration();
+            GraphOutcome e = noEcal.InitRaw(noEcal.Doc.ActiveResultData.FwhmCalibration);
+            Console.WriteLine();
+            Console.WriteLine("  ПЛЕЧО 2б. Init(живая кривая) при EnergyCalibration == null — род II");
+            Console.WriteLine("      исход: " + (e.O.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + e.O.Text));
+            Control("ПЛЕЧО 2б: проба ЛОВИТ падение и называет строку 53",
+                    !e.O.Ok && e.O.Text.StartsWith("NullReferenceException")
+                    && e.O.Text.Contains("FWHMCalibrationGraph.cs:53"),
+                    "род II не дал названного падения — " + e.O.Text);
+
+            // --- ЗАМЕР: доходит ли НАСТОЯЩАЯ дверь до `Init` ------------------
+            // Пустая кривая: сторож `A236` (978-984) обязан вернуть управление.
+            // «Повисла» здесь значила бы, что дверь дошла до `ShowDialog`, то
+            // есть `Init` уже отработал.
+            Console.WriteLine();
+            Console.WriteLine("  ЗАМЕР. Настоящая дверь `ViewCalibrationButton_Click`:");
+            Stand empty = Stand.Make("o22-graph-null", live: false);
+            if (empty == null) { Fail("стенд ПУСТАЯ (A243) не построился"); return; }
+            empty.Update();
+            Console.WriteLine("      сцена ПУСТАЯ: кривая документа "
+                              + (empty.Doc.ActiveResultData.FwhmCalibration == null ? "ПУСТА" : "есть")
+                              + ", поле вида "
+                              + (GetField(empty.View, "fwhmCalibration") == null ? "ПУСТО" : "есть")
+                              + ", кнопка viewCalibrationButton "
+                              + (((Control)GetField(empty.View, "viewCalibrationButton")).Enabled ? "Enabled" : "выкл"));
+            Outcome d = empty.ViewCalibrationDoor(4000);
+            Console.WriteLine("      исход: " + (d.Ok ? "БЕЗ ОТКАЗА (сторож вернул)" : "ОТКАЗ  " + d.Text));
+            Control("РОД I НЕДОСТИЖИМ: пустая кривая остановлена сторожем 978-984, до `Init` не дошло",
+                    d.Ok, "дверь не остановлена: " + d.Text);
+
+            // Кривая ЕСТЬ, а энергокалибровки НЕТ: сторож 978-984 это звено НЕ
+            // проверяет, и дверь обязана дойти до `Init` и упасть на 53.
+            Stand door2 = Stand.Make("o22-graph-door-noecal", live: true);
+            if (door2 == null) { Fail("стенд ДВЕРЬ БЕЗ ЭНЕРГОКАЛИБРОВКИ не построился"); return; }
+            door2.Update();
+            door2.KillEnergyCalibration();
+            Outcome d2 = door2.ViewCalibrationDoor(4000);
+            Console.WriteLine();
+            Console.WriteLine("      сцена «кривая есть, EnergyCalibration == null»");
+            Console.WriteLine("      исход: " + (d2.Ok ? "БЕЗ ОТКАЗА" : "ОТКАЗ  " + d2.Text));
+            Console.WriteLine("      [ЗАМЕР] род II через настоящую дверь: "
+                              + (!d2.Ok && d2.Text.Contains("FWHMCalibrationGraph.cs:53")
+                                 ? "ДОСТИЖИМ" : "не воспроизвёлся"));
+            // ⛔ Читатель признака (`A243`): до правки эта сцена давала
+            //    `NullReferenceException @ FWHMCalibrationGraph.cs:53`
+            //    (`handover/o22-fwhmgraph/o22-1-probe-before.txt`). Сторож
+            //    978-985 добавил четвёртое звено — падение обязано уйти.
+            //    ⚠ Что уход НЕ от слепоты пробы, держит ПЛЕЧО 2б выше: прямой
+            //    вызов `Init` на той же сцене падает по-прежнему.
+            Control("РОД II ЗАКРЫТ: пустая энергокалибровка остановлена сторожем 978-985",
+                    d2.Ok, "дверь всё ещё валит чужой класс: " + d2.Text);
+
+            Console.WriteLine();
+        }
+
+        sealed class GraphOutcome
+        {
+            public Outcome O;
+            public string Trace;
+            public int Points = -1, OriginalPoints = -1, MaxChannels = -1;
+            public double MaxFwhm = double.NaN;
+        }
+
+        // ==================================================================
         // СТЕНД
         // ==================================================================
         sealed class Stand
@@ -375,6 +492,62 @@ namespace FwhmViewReachProbeO13
                     FwhmCalibration c = Doc.ActiveResultData.FwhmCalibration;
                     return c == null ? null : c.CalibrationPeaks;
                 }
+            }
+
+            public int Channels { get { return Doc.ActiveResultData.EnergySpectrum.NumberOfChannels; } }
+
+            /// <summary>
+            /// ⛔ Замер `A243`. `Init` зовётся НАПРЯМУЮ, с любым аргументом, и
+            /// после него читаются ПОЛЯ САМОГО ГРАФИКА: без следа внутри
+            /// объекта «отказа не было» неотличимо от «проба не дозвонилась».
+            /// </summary>
+            public GraphOutcome InitRaw(FwhmCalibration cal)
+            {
+                GraphOutcome r = new GraphOutcome();
+                FWHMCalibrationGraph graph;
+                try
+                {
+                    graph = new FWHMCalibrationGraph(Form);
+                }
+                catch (Exception ex)
+                {
+                    r.O = new Outcome(false, "конструктор графика: " + Where(ex));
+                    r.Trace = "график не построился";
+                    return r;
+                }
+                try
+                {
+                    graph.Init(cal, Channels);
+                    r.O = new Outcome(true, "прошла");
+                }
+                catch (Exception ex)
+                {
+                    r.O = new Outcome(false, Where(ex));
+                }
+                List<CalibrationPeak> pts = GetField(graph, "points") as List<CalibrationPeak>;
+                List<CalibrationPeak> orig = GetField(graph, "originalpoints") as List<CalibrationPeak>;
+                object mc = GetField(graph, "maxChannels");
+                object mf = GetField(graph, "maxFWHM");
+                object fc = GetField(graph, "fwhmCalibration");
+                r.Points = pts == null ? -1 : pts.Count;
+                r.OriginalPoints = orig == null ? -1 : orig.Count;
+                r.MaxChannels = mc == null ? -1 : (int)mc;
+                r.MaxFwhm = mf == null ? double.NaN : (double)mf;
+                r.Trace = "fwhmCalibration " + (fc == null ? "ПУСТО" : "есть")
+                          + ", points " + r.Points
+                          + ", originalpoints " + r.OriginalPoints
+                          + ", maxChannels " + r.MaxChannels
+                          + ", maxFWHM " + F(r.MaxFwhm);
+                return r;
+            }
+
+            /// <summary>
+            /// Снимает энергокалибровку спектра — звено, которого сторож
+            /// `A236` (978-984) НЕ проверяет, а `Init` разыменовывает (:53).
+            /// </summary>
+            public void KillEnergyCalibration()
+            {
+                Doc.ActiveResultData.EnergySpectrum.EnergyCalibration = null;
             }
 
             public Table Table { get { return (Table)GetField(View, "CollectedPeaksTable"); } }
