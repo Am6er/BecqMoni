@@ -1,0 +1,2 @@
+../../BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs : CRLF 6033, lone LF 0, lone CR 0
+../../BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs : CRLF 403, lone LF 2, lone CR 0

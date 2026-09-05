@@ -1,0 +1,4 @@
+matdb.sqlite 29 ['eadl_auger', 'estar_shells', 'estar_radiative_stopping', 'estar_element_potential', 'estar_collision_stopping', 'star_materials', 'star_material_composition', 'star_stopping_powers']
+nucdb.sqlite 11 ['thermal_cross_sect', 'cumulative_fission']
+schemedb.sqlite 6 []
+vsego tablic i predstavlenij: 46
