@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Globalization;
 using System.Threading;
 using XPTable.Models;
 
@@ -108,7 +109,7 @@ namespace BecquerelMonitor
                 this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + Resources.Sigma;
             } else
             {
-                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString() + Resources.Sigma;
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString(CultureInfo.InvariantCulture) + Resources.Sigma;
             }
             this.table1.BeginUpdate();
             string format = "f2";
@@ -128,7 +129,7 @@ namespace BecquerelMonitor
                     row.Cells.Add(new Cell(measurementResult.ROIDefinition.Name));
                     if (measurementResult.IsValid)
                     {
-                        Cell cell = new Cell(measurementResult.ResultValue.ToString(format), Math.Round(measurementResult.ResultValue, format_int));
+                        Cell cell = new Cell(measurementResult.ResultValue.ToString(format, CultureInfo.InvariantCulture), Math.Round(measurementResult.ResultValue, format_int));
                         bool flag = this.CheckDetected(measurementResult);
                         cell.Tag = flag;
                         double num = measurementResult.ResultError * (double)errorLevel;
@@ -143,7 +144,7 @@ namespace BecquerelMonitor
                         if (showValuesForNDResult || flag)
                         {
                             row.Cells.Add(cell);
-                            row.Cells.Add(new Cell(Resources.PlusMinus + num.ToString(format) + " (" + epsilon.ToString(format) + Resources.PercentCharacter + ")"));
+                            row.Cells.Add(new Cell(Resources.PlusMinus + num.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")"));
                         }
                         else
                         {
@@ -152,7 +153,7 @@ namespace BecquerelMonitor
                         }
                         if (measurementResult.MDA > 0.0)
                         {
-                            row.Cells.Add(new Cell(measurementResult.MDA.ToString(format), Math.Round(measurementResult.MDA, format_int)));
+                            row.Cells.Add(new Cell(measurementResult.MDA.ToString(format, CultureInfo.InvariantCulture), Math.Round(measurementResult.MDA, format_int)));
                         } else
                         {
                             row.Cells.Add(new Cell("0", 0.0));
@@ -197,9 +198,9 @@ namespace BecquerelMonitor
                         }
                         if (showValuesForNDResult || flag2)
                         {
-                            row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format);
+                            row2.Cells[1].Text = measurementResult2.ResultValue.ToString(format, CultureInfo.InvariantCulture);
                             row2.Cells[1].Data = Math.Round(measurementResult2.ResultValue, format_int);
-                            row2.Cells[2].Text = Resources.PlusMinus + num2.ToString(format) + " (" + epsilon.ToString(format) + Resources.PercentCharacter + ")";
+                            row2.Cells[2].Text = Resources.PlusMinus + num2.ToString(format, CultureInfo.InvariantCulture) + " (" + epsilon.ToString(format, CultureInfo.InvariantCulture) + Resources.PercentCharacter + ")";
                         }
                         else
                         {
@@ -209,7 +210,7 @@ namespace BecquerelMonitor
                         }
                         if (measurementResult2.MDA > 0.0)
                         {
-                            row2.Cells[3].Text = measurementResult2.MDA.ToString(format);
+                            row2.Cells[3].Text = measurementResult2.MDA.ToString(format, CultureInfo.InvariantCulture);
                             row2.Cells[3].Data = Math.Round(measurementResult2.MDA, format_int);
                         } else
                         {

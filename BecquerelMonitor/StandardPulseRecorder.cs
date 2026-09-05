@@ -92,13 +92,24 @@ namespace BecquerelMonitor
                 this.waveIn.BufferQueueSize = 50;
                 if (!this.waveIn.SupportsFormat(waveFormat))
                 {
-                    MessageBox.Show(Resources.ERRNotSupportedWavFormat);
+                    // ⛔ `A245`, полоса F22 05.09.2026. Три голых
+                    //    `MessageBox.Show` этого метода стояли на БЕЗОКОННОМ
+                    //    пути: `StartRecording` зовёт `AudioInputDeviceForm`
+                    //    (кнопка «Запись эталонного импульса»), а до него
+                    //    доходят пробы через `DeviceConfigForm.LoadFormContents`
+                    //    отражением. Без окон нажать «ОК» некому, и прогон
+                    //    вис насмерть. Дверь `AppUi.Report` показывает то же
+                    //    окно: `MessageBox.Show(text)` — это кнопка OK, пустой
+                    //    заголовок и БЕЗ значка, то есть `caption = ""`,
+                    //    `icon = MessageBoxIcon.None`; вид в приложении
+                    //    прежний, байт в байт.
+                    AppUi.Report(Resources.ERRNotSupportedWavFormat, "", MessageBoxIcon.None);
                     return false;
                 }
             }
             catch (MMSystemException ex)
             {
-                MessageBox.Show(ex.Message);
+                AppUi.Report(ex.Message, "", MessageBoxIcon.None);
                 this.waveIn.Dispose();
                 return false;
             }
@@ -109,7 +120,7 @@ namespace BecquerelMonitor
             }
             catch (MMSystemException ex2)
             {
-                MessageBox.Show(ex2.Message);
+                AppUi.Report(ex2.Message, "", MessageBoxIcon.None);
                 this.waveIn.Dispose();
                 return false;
             }

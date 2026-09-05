@@ -1,0 +1,45 @@
+файл                                 HEAD  сейчас
+DCControlPanel.cs                      12       1
+DCCountRateView.cs                      3       0
+DCEnergyCalibrationView.cs             22       1
+DCFwhmCalibrationView.cs               15       1
+DCPeakDetectionView.cs                 16       3
+DCResultView.cs                        15       6
+ROIConfigForm.cs                       29       4
+ROIConfigManager.cs                    14      13
+ROICovellMethodControl.cs              17       0
+ROIReferenceControl.cs                  4       0
+ROISimpleDifferenceControl.cs           9       0
+StandardPulseRecorder.cs                0       0
+ИТОГО                                 156      29
+
+=== ОСТАТОК СЕЙЧАС, поимённо ===
+DCControlPanel.cs:664	print	string.Format	UNK	recv=	args=Resources.EfficiencyFromFile
+DCEnergyCalibrationView.cs:729	print	string.Format	UNK	recv=	args=Resources.ERRAddCalibrationPoints
+DCFwhmCalibrationView.cs:747	print	ToString	UNK	recv=messageBuilder	args=
+DCPeakDetectionView.cs:344	print	concat	NUM	recv=num2	args=
+DCPeakDetectionView.cs:358	print	concat	NUM	recv=resolution	args=
+DCPeakDetectionView.cs:546	print	string.Format	UNK	recv=	args=Resources.ERRAddCalibrationPoints
+DCResultView.cs:59	print	ToString	UNK	recv=base.GetType()	args=
+DCResultView.cs:61	print	ToString	UNK	recv=this.resultTranslation	args=
+DCResultView.cs:63	print	ToString	UNK	recv=this.resultCorrection	args=
+DCResultView.cs:112	print	concat	NUM	recv=errorLevel	args=
+DCResultView.cs:147	print	concat	NUM	recv=epsilon	args=
+DCResultView.cs:203	print	concat	NUM	recv=epsilon	args=
+ROIConfigForm.cs:578	print	ToString	UNK	recv=Guid.NewGuid()	args=
+ROIConfigForm.cs:315	print	concat	NUM	recv=i	args=
+ROIConfigForm.cs:177	print	string.Format	UNK	recv=	args=Resources.MSGDeleteROIConfig
+ROIConfigForm.cs:471	print	string.Format	UNK	recv=	args=Resources.MSGDeleteROIDefinition
+ROIConfigManager.cs:185	print	ToString	UNK	recv=Guid.NewGuid()	args=
+ROIConfigManager.cs:220	print	ToString	UNK	recv=Guid.NewGuid()	args=
+ROIConfigManager.cs:134	print	string.Format	UNK	recv=	args=Resources.ERRDuplicateROIConfigGUID
+ROIConfigManager.cs:146	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:173	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:202	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:237	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:286	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:333	print	string.Format	UNK	recv=	args=Resources.ERRConfigFileRenameFailed
+ROIConfigManager.cs:334	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:356	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason
+ROIConfigManager.cs:419	print	string.Format	UNK	recv=	args=Resources.ERRConfigFileDeleteFailed
+ROIConfigManager.cs:420	print	string.Format	UNK	recv=	args=Resources.ERRFailureReason

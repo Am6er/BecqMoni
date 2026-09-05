@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -19,10 +20,10 @@ namespace BecquerelMonitor
         {
             ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)prim;
             this.comboBox1.SelectedIndex = ROIPrimitiveOperation.GetOperationIndex(prim.OperationType);
-            this.doubleTextBox3.Text = roisimpleDifferenceData.Coefficient.ToString();
-            this.doubleTextBox4.Text = roisimpleDifferenceData.CoefficientError.ToString();
-            this.doubleTextBox1.Text = roisimpleDifferenceData.LowerLimit.ToString();
-            this.doubleTextBox2.Text = roisimpleDifferenceData.UpperLimit.ToString();
+            this.doubleTextBox3.Text = roisimpleDifferenceData.Coefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roisimpleDifferenceData.CoefficientError.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox1.Text = roisimpleDifferenceData.LowerLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = roisimpleDifferenceData.UpperLimit.ToString(CultureInfo.InvariantCulture);
             this.textBox1.Text = roisimpleDifferenceData.Note;
         }
 
@@ -47,10 +48,10 @@ namespace BecquerelMonitor
             try
             {
                 roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
-                coefficient = double.Parse(this.doubleTextBox3.Text);
-                coefficientError = double.Parse(this.doubleTextBox4.Text);
-                lowerLimit = double.Parse(this.doubleTextBox1.Text);
-                upperLimit = double.Parse(this.doubleTextBox2.Text);
+                coefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                coefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
+                lowerLimit = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                upperLimit = UserNumber.ParseDouble(this.doubleTextBox2.Text);
             }
             catch (Exception)
             {
@@ -67,7 +68,7 @@ namespace BecquerelMonitor
             roisimpleDifferenceData.LowerLimit = lowerLimit;
             roisimpleDifferenceData.UpperLimit = upperLimit;
             prim.Note = this.textBox1.Text;
-            this.doubleTextBox2.Text = upperLimit.ToString();
+            this.doubleTextBox2.Text = upperLimit.ToString(CultureInfo.InvariantCulture);
             return true;
         }
 

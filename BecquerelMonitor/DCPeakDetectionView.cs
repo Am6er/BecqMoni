@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -340,21 +341,21 @@ namespace BecquerelMonitor
                         {
                             double num = peak.Energy - peak.Nuclide.Energy;
                             double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
-                            text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                            text2 = num.ToString("f2", CultureInfo.InvariantCulture) + " (" + num2.ToString("f2", CultureInfo.InvariantCulture) + "%)";
                         }
                     }
                     int snr = (int)peak.SNR;
                     row.Cells.Add(new Cell(text));
-                    row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
+                    row.Cells.Add(new Cell(peak.Energy.ToString("f2", CultureInfo.InvariantCulture), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));
-                    row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
-                    row.Cells.Add(new Cell(snr.ToString(), snr));
+                    row.Cells.Add(new Cell(peak.Channel.ToString(CultureInfo.InvariantCulture), peak.Channel));
+                    row.Cells.Add(new Cell(snr.ToString(CultureInfo.InvariantCulture), snr));
 
                     double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + ", " + resolution.ToString("f1") + "% ±" + peak.FWHM_DELTA.ToString("f1")));
+                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0", CultureInfo.InvariantCulture) + ", " + resolution.ToString("f1", CultureInfo.InvariantCulture) + "% ±" + peak.FWHM_DELTA.ToString("f1", CultureInfo.InvariantCulture)));
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();
@@ -523,15 +524,15 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    channel = Convert.ToInt32(row.Cells[3].Text);
+                    channel = Convert.ToInt32(row.Cells[3].Text, CultureInfo.InvariantCulture);
                     if (row.Cells[2].Text.Length > 1)
                     {
-                        diff = Convert.ToDecimal(row.Cells[2].Text.Split(new string[] { " " }, StringSplitOptions.None)[0]);
+                        diff = Convert.ToDecimal(row.Cells[2].Text.Split(new string[] { " " }, StringSplitOptions.None)[0], CultureInfo.InvariantCulture);
                     } else
                     {
                         diff = 0;
                     }
-                    energy = Convert.ToDecimal(row.Cells[1].Text) - diff;
+                    energy = Convert.ToDecimal(row.Cells[1].Text, CultureInfo.InvariantCulture) - diff;
                     if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > channel)
                     {
                         this.mainForm.addCalibration(channel, energy, this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[channel]);
@@ -542,14 +543,14 @@ namespace BecquerelMonitor
                     
                 } catch (Exception ex)
                 {
-                    MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(CultureInfo.InvariantCulture), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
         void ToolStripMenuItem2_Click(object sender, EventArgs e)
         {
-            decimal energy = Convert.ToDecimal(this.table1.SelectedItems[0].Cells[1].Text);
+            decimal energy = Convert.ToDecimal(this.table1.SelectedItems[0].Cells[1].Text, CultureInfo.InvariantCulture);
             this.mainForm.CallNucBaseSearch(energy);
         }
 

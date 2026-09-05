@@ -1,0 +1,771 @@
+file	side	api	kind	line	receiver	args
+BecquerelMonitor/AboutForm.cs	print	string.Format	UNK	19		Resources.AboutVersionFormat
+BecquerelMonitor/AboutForm.cs	print	string.Format	UNK	66		Resources.ERROpenLinkFailure
+BecquerelMonitor/AppLog.cs	print	ToString	UNK	351	.GetName().Version	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	42	comPortsBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	43	baudratesBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	48	Guid.NewGuid()	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	199	comPortsBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	200	baudratesBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	230	comPortsBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	231	baudratesBox.SelectedItem	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	236	Guid.NewGuid()	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	ToString	UNK	285	Guid.NewGuid()	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	concat	NUM	361	status	
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	string.Format	UNK	337		Resources.VCPDeviceStatusReason
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	string.Format	UNK	347		Resources.LabelVCPSpectraInfo
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	string.Format	UNK	366		Resources.LabelVCPSpectraInfo
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	string.Format	UNK	375		Resources.LabelVCPSpectraInfo
+BecquerelMonitor/AtomSpectraVCPDeviceForm.cs	print	string.Format	UNK	381		Resources.LabelVCPSpectraInfo
+BecquerelMonitor/AudioInputDeviceController.cs	print	concat	NUM	76	deviceId	
+BecquerelMonitor/AudioInputDeviceController.cs	print	concat	NUM	76	deviceId	
+BecquerelMonitor/AudioVolumeController.cs	print	ToString	UNK	41	stringBuilder	
+BecquerelMonitor/AudioVolumeController.cs	print	ToString	UNK	64	properties[guid].Value	
+BecquerelMonitor/ChanNumberChangeDialog.cs	parse	int.TryParse	NUM	38	int	textBox1.Text, out int newChan
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	31	value	
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	316	resultDataStatus.PresetTime	
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	362	activeResultData.EnergySpectrum.TotalPulseCount	
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	363	activeResultData.EnergySpectrum.ValidPulseCount	
+BecquerelMonitor/DCControlPanel.cs	print	ToString	NUM	365	invalidPulseCount	
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	366	activeResultData.EnergySpectrum.LiveTime	" "
+BecquerelMonitor/DCControlPanel.cs	print	ToString	NUM	380	cps	" "
+BecquerelMonitor/DCControlPanel.cs	print	ToString	NUM	392	deadTime	" "
+BecquerelMonitor/DCControlPanel.cs	print	ToString	UNK	412	((int)totalSeconds)	
+BecquerelMonitor/DCControlPanel.cs	print	string.Format	UNK	663		Resources.EfficiencyFromFile
+BecquerelMonitor/DCControlPanel.cs	parse	int.TryParse	NUM	23	int	this.realTimeLimitTextBox.Text, out result
+BecquerelMonitor/DCControlPanel.cs	parse	int.TryParse	NUM	981	int	this.realTimeLimitTextBox.Text, out presetTime
+BecquerelMonitor/DCCountRateView.cs	print	ToString	NUM	24	sEffRatio	
+BecquerelMonitor/DCCountRateView.cs	print	ToString	NUM	25	Cps	" "
+BecquerelMonitor/DCCountRateView.cs	print	ToString	NUM	39	deadTime	" "
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	78	this.energyCalibration.Coefficients[0]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	79	this.energyCalibration.Coefficients[1]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	84	this.energyCalibration.Coefficients[2]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	88	this.energyCalibration.Coefficients[3]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	92	this.energyCalibration.Coefficients[4]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	125	this.energyCalibration.Coefficients[0]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	126	this.energyCalibration.Coefficients[1]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	131	this.energyCalibration.Coefficients[2]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	135	this.energyCalibration.Coefficients[3]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	139	this.energyCalibration.Coefficients[4]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	NUM	668	num	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	863	this.energyCalibration.Coefficients[1]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	864	this.energyCalibration.Coefficients[0]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	867	this.energyCalibration.Coefficients[2]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	871	this.energyCalibration.Coefficients[3]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	ToString	UNK	875	this.energyCalibration.Coefficients[4]	
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	string.Format	UNK	101		Resources.ResetCalibrationToDeviceSettin
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	string.Format	UNK	728		Resources.ERRAddCalibrationPoints
+BecquerelMonitor/DCEnergyCalibrationView.cs	print	string.Format	UNK	890		" "
+BecquerelMonitor/DCEnergyCalibrationView.cs	parse	decimal.Parse	NUM	695	decimal	text
+BecquerelMonitor/DCEnergyCalibrationView.cs	parse	decimal.Parse	NUM	712	decimal	text2
+BecquerelMonitor/DCEnergyCalibrationView.cs	parse	int.Parse	NUM	720	int	text3
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	NUM	129	position	
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	190	fwhmCalibration.ExpGaussExpLeftTail	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	191	fwhmCalibration.ExpGaussExpRightTail	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	197	fwhmCalibration.VoigtSigma	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	198	fwhmCalibration.VoigtGamma	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	734	messageBuilder	
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	UNK	760	(chi2 / ndp)	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	ToString	NUM	767	score	" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	string.Format	UNK	163		Resources.MinPeaksRequirement
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	string.Format	UNK	419		Resources.ERRPeakExist
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	string.Format	UNK	739		" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	print	string.Format	UNK	749		" "
+BecquerelMonitor/DCFwhmCalibrationView.cs	parse	int.Parse	NUM	870	int	textvalue
+BecquerelMonitor/DCFwhmCalibrationView.cs	parse	double.Parse	NUM	874	double	textvalue
+BecquerelMonitor/DCFwhmCalibrationView.cs	parse	double.Parse	NUM	878	double	textvalue
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	NUM	343	num	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	NUM	343	num2	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	UNK	348	peak.Energy	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	UNK	350	peak.Channel	
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	NUM	351	snr	
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	UNK	357	peak.FWHM	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	NUM	357	resolution	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	UNK	357	peak.FWHM_DELTA	" "
+BecquerelMonitor/DCPeakDetectionView.cs	print	ToString	NUM	545	channel	
+BecquerelMonitor/DCPeakDetectionView.cs	print	concat	NUM	343	num2	
+BecquerelMonitor/DCPeakDetectionView.cs	print	concat	NUM	357	resolution	
+BecquerelMonitor/DCPeakDetectionView.cs	print	string.Format	UNK	545		Resources.ERRAddCalibrationPoints
+BecquerelMonitor/DCPeakDetectionView.cs	parse	Convert.ToInt32	NUM	526		row.Cells[3].Text
+BecquerelMonitor/DCPeakDetectionView.cs	parse	Convert.ToDecimal	NUM	529		row.Cells[2].Text.Split(new string[] { " " }, Stri
+BecquerelMonitor/DCPeakDetectionView.cs	parse	Convert.ToDecimal	NUM	534		row.Cells[1].Text
+BecquerelMonitor/DCPeakDetectionView.cs	parse	Convert.ToDecimal	NUM	552		this.table1.SelectedItems[0].Cells[1].Text
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	58	base.GetType()	
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	60	this.resultTranslation	
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	62	this.resultCorrection	
+BecquerelMonitor/DCResultView.cs	print	ToString	NUM	111	errorLevel	
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	131	measurementResult.ResultValue	format
+BecquerelMonitor/DCResultView.cs	print	ToString	NUM	146	num	format
+BecquerelMonitor/DCResultView.cs	print	ToString	NUM	146	epsilon	format
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	155	measurementResult.MDA	format
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	200	measurementResult2.ResultValue	format
+BecquerelMonitor/DCResultView.cs	print	ToString	NUM	202	num2	format
+BecquerelMonitor/DCResultView.cs	print	ToString	NUM	202	epsilon	format
+BecquerelMonitor/DCResultView.cs	print	ToString	UNK	212	measurementResult2.MDA	format
+BecquerelMonitor/DCResultView.cs	print	concat	NUM	111	errorLevel	
+BecquerelMonitor/DCResultView.cs	print	concat	NUM	146	epsilon	
+BecquerelMonitor/DCResultView.cs	print	concat	NUM	202	epsilon	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	524	rc_config.RC_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	541	obs_config.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	764	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1094	ex	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1396	deviceconfig.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	295	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1490	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1494	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	239		Resources.MessageRemoveDeviceConfig
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1290		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1351		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1377		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1403		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2634		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2846		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	interpolation	UNK	942		
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	476		Resources.EfficiencyTabCopySuffix
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	491		Resources.EfficiencyTabDeleteConfirm
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	165	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	205	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	121		Resources.ERRDuplicateDeviceConfigGUID
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	307		Resources.ERRConfigFileRenameFailed
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	465		Resources.ERRConfigFileDeleteFailed
+BecquerelMonitor/DocEnergySpectrum.cs	print	ToString	UNK	567	base.GetType()	
+BecquerelMonitor/DocEnergySpectrum.cs	print	string.Format	UNK	1121		Properties.Resources.FsaNoFwhmSource
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	787	list_count	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	813	list_count	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	841	list_count	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	1161	PolynomialOrder	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	1349	PolynomialOrder	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	787	list_count	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	813	list_count	
+BecquerelMonitor/DocumentManager.cs	print	concat	NUM	841	list_count	
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	90		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	348		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	360		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	413		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	443		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	453		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	556		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1008		Resources.ERRSkippedMeasurementClassN42
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1042		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1078		Resources.ERROpenGBSFormat
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1181		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1218		Resources.ERRImportAtomSpectra
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1228		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1239		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1265		Resources.ERROpenAtomSpectraFormat
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1300		Resources.ERRUnsupportedCalibrationOrder
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1363		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1474		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1508		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1612		Resources.ERRFileSaveFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1656		Resources.ERRFileSaveFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1702		Resources.ERRFileSaveFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1841		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1867		Resources.ERRBackgroundLoadFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	1948		Resources.ERRFileSaveFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2019		Resources.ERRFileSaveFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2050		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2064		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2068		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2078		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2172		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2175		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2178		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2181		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2206		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2211		" "
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2225		Resources.ERRFileOpenFailure
+BecquerelMonitor/DocumentManager.cs	print	string.Format	UNK	2321		" 
+BecquerelMonitor/DocumentManager.cs	print	interpolation	UNK	1399		
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	115	rate	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	119	rate	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	123	rate	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	126	epsilon	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	129	error	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	133	error	" "
+BecquerelMonitor/DoseRate.cs	print	ToString	NUM	137	error	" "
+BecquerelMonitor/DoseRate.cs	print	string.Format	UNK	140		" "
+BecquerelMonitor/EfficiencyConfigData.cs	print	ToString	UNK	139	System.Guid.NewGuid()	
+BecquerelMonitor/EfficiencyConfigData.cs	print	ToString	UNK	152	System.Guid.NewGuid()	
+BecquerelMonitor/EfficiencyMakerForm.cs	print	ToString	UNK	1082	text	
+BecquerelMonitor/EfficiencyMakerForm.cs	print	ToString	UNK	1286	args.Error	
+BecquerelMonitor/EnergySpectrum.cs	print	concat	NUM	230	numberOfChannels	
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	2090	this.stopwatch.ElapsedTicks	
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	3674	val	
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	3690	val	
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	3917	num5	" "
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	3959	i	
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4335	this.cursorChannel	intFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4339	channelEnergy	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4344	channelGrossCounts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4367	adjBgChannelCounts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4373	num11	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4462	start_channel	intFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4462	end_channel	intFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4465	start_energy	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4465	end_energy	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4469	gross_counts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4474	adj_bg_counts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4478	bg_ratio	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4483	net_cps	preciseFloatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4483	net_cps_err	preciseFloatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4487	net_cps	preciseFloatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4493	net_counts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4493	net_counts_err	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4497	net_counts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4504	net_cps	preciseFloatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4522	Lc	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4527	Lu	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4532	Ld	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4535	Lq	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4557	selection.ActivityLineKev	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4565	selection.ActivityIntensity	" "
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4587	activityUpperLimit	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4592	activityByMassUpperLimit	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4597	activityByVolumeUpperLimit	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4605	activity	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4605	activityError	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4610	activityByMass	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4610	activityByMassError	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4615	activityByVolume	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4615	activityByVolumeError	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4641	peak_counts	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4644	(this.selectionFWHM * 100.0)	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4645	(this.selectionFWHMinkev)	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	NUM	4645	this.selectionFullWidth	intFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4653	(this.selectionCentroidkeV)	floatFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	ToString	UNK	4654	(this.selectionCentroidCh)	intFormat
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4586	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4591	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4596	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4604	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4609	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4614	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4626	Activity	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4462	end_channel	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4465	end_energy	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4587	activityUpperLimit	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4592	activityByMassUpperLimit	
+BecquerelMonitor/EnergySpectrumView.cs	print	concat	NUM	4597	activityByVolumeUpperLimit	
+BecquerelMonitor/EnergySpectrumView.cs	print	string.Format	UNK	935		Resources.ActivityLowYieldRefused
+BecquerelMonitor/EnergySpectrumView.cs	print	string.Format	UNK	3676		" "
+BecquerelMonitor/EnergySpectrumView.cs	print	string.Format	UNK	3692		" "
+BecquerelMonitor/EnergySpectrumView.cs	print	string.Format	UNK	4966		Resources.ERRFileSaveFailure
+BecquerelMonitor/GeometryEditorPanel.cs	print	ToString	UNK	1913	text	
+BecquerelMonitor/GeometryEditorPanel.cs	print	string.Format	UNK	1872		Resources.EfficiencyMakerGeometryUnknown
+BecquerelMonitor/GeometryMaterialEditorForm.cs	print	concat	NUM	800	n	
+BecquerelMonitor/GlobalConfigManager.cs	print	concat	NUM	520	n	
+BecquerelMonitor/GlobalConfigManager.cs	print	concat	NUM	520	n	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	401	typeof(DCControlPanel)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	405	typeof(DCPulseView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	409	typeof(DCCountRateView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	413	typeof(DCFwhmCalibrationView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	417	typeof(FSAReportView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	425	typeof(DCResultView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	459	typeof(DCSampleInfoView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	463	typeof(DCSpectrumListView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	467	typeof(DCPeakDetectionView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	471	typeof(DCEnergyCalibrationView)	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	475	typeof(DocEnergySpectrum)	
+BecquerelMonitor/MainForm.cs	print	ToString	NUM	611	dt	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	689	doseRate	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	1909	info.AvailableVersion	
+BecquerelMonitor/MainForm.cs	print	ToString	UNK	1922	updateCheck.CurrentVersion	
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	611		Resources.AutosaveText
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	630		Resources.TemperatureStr
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	785		Resources.TemperatureStr
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1580		BecquerelMonitor.Properties.Resources.MS
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1608		BecquerelMonitor.Properties.Resources.MS
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1831		Resources.ERROpenLogFailure
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1857		Resources.ERRDeviceNoData
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1909		Resources.MSGUpdateLong
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1922		Resources.MSGNoNewVersion
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	1927		Resources.ERRUpdateExc
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2310		Resources.TemperatureStr
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2357		BecquerelMonitor.Properties.Resources.De
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2546		Resources.ImportSpectrumLimitReached
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2599		Resources.ERRFileSaveFailure
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2647		Resources.ERRFileSaveFailure
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	2692		Resources.ERRFileSaveFailure
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	3308		Resources.ERRFileSaveFailure
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	3505		Resources.LayoutSaveFailed
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	3536		Resources.LayoutSaveFailedOnExit
+BecquerelMonitor/MainForm.cs	print	string.Format	UNK	3542		Resources.LayoutSaveRescued
+BecquerelMonitor/MainForm.cs	print	interpolation	UNK	580		
+BecquerelMonitor/MainForm.cs	print	interpolation	UNK	584		
+BecquerelMonitor/MainForm.cs	print	interpolation	UNK	790		
+BecquerelMonitor/MainForm.cs	print	interpolation	UNK	795		
+BecquerelMonitor/MainForm.cs	parse	Enum.Parse	NONUM	436	Enum	typeof(ResultTranslation), array[1]
+BecquerelMonitor/MainForm.cs	parse	Enum.Parse	NONUM	449	Enum	typeof(ResultCorrection), array[2]
+BecquerelMonitor/MeasurementController.cs	print	string.Format	UNK	219		Resources.ERRDeviceBusy
+BecquerelMonitor/MeasurementController.cs	print	string.Format	UNK	270		Resources.ERRDeviceBusy
+BecquerelMonitor/NuclideDefinition.cs	print	interpolation	UNK	109		
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	44	nuclideDefinition.Energy	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	45	nuclideDefinition.HalfLife	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	49	nuclideDefinition.Energy	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	50	nuclideDefinition.HalfLife	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	69	nuclide.Energy	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	70	nuclide.HalfLife	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	ToString	UNK	71	nuclide.Intencity	
+BecquerelMonitor/NuclideDefinitionForm.cs	print	string.Format	UNK	175		Resources.MSGDeleteNuclideDefinition
+BecquerelMonitor/NuclideDefinitionForm.cs	print	string.Format	UNK	176		Resources.MSGDeleteNuclideDefinitions
+BecquerelMonitor/NuclideSetForm.cs	print	ToString	UNK	67	nuclideDefinition.Energy	
+BecquerelMonitor/NuclideSetForm.cs	print	interpolation	UNK	92		
+BecquerelMonitor/ObsidianDeviceController.cs	print	interpolation	UNK	78		
+BecquerelMonitor/ObsidianDeviceController.cs	print	interpolation	UNK	219		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	ToString	UNK	263	comboBox1.SelectedItem	
+BecquerelMonitor/ObsidianDeviceForm.cs	print	string.Format	UNK	91		Resources.ERRBTEnableFailed
+BecquerelMonitor/ObsidianDeviceForm.cs	print	string.Format	UNK	204		Resources.LoadDefaultPeakFinderSettingsQ
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	73		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	79		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	116		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	146		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	163		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	308		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	310		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	328		
+BecquerelMonitor/ObsidianDeviceForm.cs	print	interpolation	UNK	332		
+BecquerelMonitor/ObsidianIn.cs	print	ToString	UNK	301	device.ConnectionStatus	
+BecquerelMonitor/ObsidianIn.cs	print	ToString	UNK	547	localDevice.ConnectionStatus	
+BecquerelMonitor/ObsidianIn.cs	print	ToString	UNK	1104	dev.ConnectionStatus	
+BecquerelMonitor/ObsidianIn.cs	print	string.Format	UNK	263		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/ObsidianIn.cs	print	string.Format	UNK	418		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/ObsidianIn.cs	print	string.Format	UNK	444		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/ObsidianIn.cs	print	string.Format	UNK	453		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/ObsidianIn.cs	print	string.Format	UNK	1430		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	290		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	323		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	425		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	430		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	432		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	436		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	437		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	450		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	451		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	476		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	485		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	486		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	493		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	494		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	532		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	533		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	537		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	548		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	554		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	557		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	563		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	570		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	577		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	584		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	595		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	598		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	610		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	611		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	644		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	692		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	714		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	715		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	733		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	768		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	870		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	916		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	942		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	943		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	990		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1014		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1018		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1028		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1029		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1045		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1046		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1062		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1113		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1117		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1145		
+BecquerelMonitor/ObsidianIn.cs	print	interpolation	UNK	1197		
+BecquerelMonitor/ObsidianIn.cs	parse	Guid.Parse	NONUM	551	Guid	OBS_HISTORY_SERVICE
+BecquerelMonitor/ObsidianIn.cs	parse	Guid.Parse	NONUM	560	Guid	OBS_COMMAND_CHARACTERISTIC
+BecquerelMonitor/ObsidianIn.cs	parse	Guid.Parse	NONUM	574	Guid	OBS_NOTIFY_CHARACTERISTIC
+BecquerelMonitor/ObsidianIn.cs	parse	Guid.Parse	NONUM	1313	Guid	OBS_SETTINGS_SERVICE
+BecquerelMonitor/ObsidianIn.cs	parse	Guid.Parse	NONUM	1390	Guid	uuid
+BecquerelMonitor/Package.cs	print	ToString	UNK	223	currentDeployment.CurrentVersion	
+BecquerelMonitor/PeakDetector.cs	print	ToString	UNK	955	text	
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	302		cal.EnergyToChannel(peakConfig.Min_Range, maxChann
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	303		cal.EnergyToChannel(peakConfig.Max_Range, maxChann
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	625		centroid
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	626		centroid - mul - 1
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	627		centroid + mul + 1
+BecquerelMonitor/PeakDetector.cs	parse	Convert.ToInt32	NUM	632		Math.Round(centroid)
+BecquerelMonitor/PercentageProgressBar.cs	print	ToString	NUM	125	this.doubleValue	" "
+BecquerelMonitor/PercentageProgressBar.cs	print	ToString	NUM	128	this.doubleValue	" "
+BecquerelMonitor/PercentageProgressBar.cs	print	ToString	NUM	140	fmt	Resources.ProgressDateFmt
+BecquerelMonitor/PercentageProgressBar.cs	print	ToString	NUM	142	fmt	
+BecquerelMonitor/PercentageProgressBar.cs	print	string.Format	UNK	125		Resources.ProgressString
+BecquerelMonitor/PercentageProgressBar.cs	print	string.Format	UNK	128		Resources.ProgressString
+BecquerelMonitor/PercentageProgressBar.cs	parse	double.TryParse	NUM	135	double	seconds, out double sec
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	ToString	NUM	267	enrg	" "
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	ToString	UNK	268	v	" "
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	ToString	NUM	311	discriminant	" "
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	ToString	NUM	433	i	
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	ToString	UNK	444	this.coefficients[i]	
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	concat	NUM	267	enrg	
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	concat	NUM	311	discriminant	
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	concat	NUM	433	i	
+BecquerelMonitor/PolynomialEnergyCalibration.cs	print	string.Format	UNK	389		Resources.ERRUnsupportedCalibrationMetho
+BecquerelMonitor/PowerFwhmCalibration.cs	print	string.Format	UNK	84		formula
+BecquerelMonitor/PowerFwhmCalibration.cs	print	string.Format	UNK	112		formula
+BecquerelMonitor/Program.cs	print	ToString	UNK	298	exception	
+BecquerelMonitor/PulseView.cs	print	ToString	NUM	131	num4	" "
+BecquerelMonitor/PulseView.cs	print	ToString	NUM	173	this.pulseHeight	" "
+BecquerelMonitor/PulseView.cs	print	ToString	NUM	177	this.maxpulseHeight	" "
+BecquerelMonitor/RadiaCodeDeviceController.cs	print	interpolation	UNK	76		
+BecquerelMonitor/RadiaCodeDeviceController.cs	print	interpolation	UNK	215		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	ToString	UNK	246	comboBox1.SelectedItem	
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	string.Format	UNK	102		Resources.ERRBTEnableFailed
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	string.Format	UNK	189		Resources.LoadDefaultPeakFinderSettingsQ
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	73		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	80		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	126		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	150		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	167		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	298		
+BecquerelMonitor/RadiaCodeDeviceForm.cs	print	interpolation	UNK	300		
+BecquerelMonitor/RadiaCodeIn.cs	print	ToString	UNK	279	device.ConnectionStatus	
+BecquerelMonitor/RadiaCodeIn.cs	print	ToString	UNK	503	localDevice.ConnectionStatus	
+BecquerelMonitor/RadiaCodeIn.cs	print	ToString	UNK	1330	dev.ConnectionStatus	
+BecquerelMonitor/RadiaCodeIn.cs	print	string.Format	UNK	222		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/RadiaCodeIn.cs	print	string.Format	UNK	377		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/RadiaCodeIn.cs	print	string.Format	UNK	404		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/RadiaCodeIn.cs	print	string.Format	UNK	413		BecquerelMonitor.Properties.Resources.ER
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	255		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	268		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	384		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	389		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	391		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	395		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	396		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	410		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	411		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	433		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	442		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	443		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	449		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	450		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	488		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	489		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	493		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	504		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	510		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	513		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	519		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	526		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	533		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	540		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	550		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	553		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	569		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	570		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	603		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	612		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	721		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	734		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	735		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	742		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	752		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	753		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	861		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	889		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	897		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	929		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1029		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1075		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1101		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1102		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1133		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1134		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1148		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1153		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1203		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1232		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1233		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1243		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1244		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1260		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1261		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1277		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1339		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1343		
+BecquerelMonitor/RadiaCodeIn.cs	print	interpolation	UNK	1373		
+BecquerelMonitor/RadiaCodeIn.cs	parse	Guid.Parse	NONUM	507	Guid	RC_BLE_Service
+BecquerelMonitor/RadiaCodeIn.cs	parse	Guid.Parse	NONUM	516	Guid	RC_BLE_Characteristic
+BecquerelMonitor/RadiaCodeIn.cs	parse	Guid.Parse	NONUM	530	Guid	RC_BLE_Notify
+BecquerelMonitor/RadiaCodeIn.cs	parse	Convert.ToSingle	NUM	868		calibration.Coefficients[0]
+BecquerelMonitor/RadiaCodeIn.cs	parse	Convert.ToSingle	NUM	869		calibration.Coefficients[1]
+BecquerelMonitor/RadiaCodeIn.cs	parse	Convert.ToSingle	NUM	870		calibration.Coefficients[2]
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	NUM	315	i	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	541	roidefinitionData.LowerLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	541	roidefinitionData.UpperLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	543	roidefinitionData.ROIPrimitives.Count	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	565	roidefinitionData.LowerLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	565	roidefinitionData.UpperLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	566	roidefinitionData.ROIPrimitives.Count	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	578	Guid.NewGuid()	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	619	roi.BecquerelCoefficient	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	620	roi.BecquerelCoefficientError	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	621	roi.PeakEnergy	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	622	roi.HalfLife	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	623	roi.Intencity	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	624	roi.LowerLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	625	roi.UpperLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	773	(num + 1)	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	UNK	782	(num + 1)	
+BecquerelMonitor/ROIConfigForm.cs	print	ToString	NUM	976	upperLimit	
+BecquerelMonitor/ROIConfigForm.cs	print	concat	NUM	399	newROIIndex	
+BecquerelMonitor/ROIConfigForm.cs	print	concat	NUM	315	i	
+BecquerelMonitor/ROIConfigForm.cs	print	string.Format	UNK	177		Resources.MSGDeleteROIConfig
+BecquerelMonitor/ROIConfigForm.cs	print	string.Format	UNK	471		Resources.MSGDeleteROIDefinition
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	924	double	this.doubleTextBox3.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	925	double	this.doubleTextBox4.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	927	double	this.doubleTextBox5.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	928	double	this.doubleTextBox6.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	929	double	this.doubleTextBox7.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	930	double	this.doubleTextBox1.Text
+BecquerelMonitor/ROIConfigForm.cs	parse	double.Parse	NUM	931	double	this.doubleTextBox2.Text
+BecquerelMonitor/ROIConfigManager.cs	print	ToString	UNK	184	Guid.NewGuid()	
+BecquerelMonitor/ROIConfigManager.cs	print	ToString	UNK	219	Guid.NewGuid()	
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	133		Resources.ERRDuplicateROIConfigGUID
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	145		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	172		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	201		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	236		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	285		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	332		Resources.ERRConfigFileRenameFailed
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	333		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	355		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	418		Resources.ERRConfigFileDeleteFailed
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	419		Resources.ERRFailureReason
+BecquerelMonitor/ROIConfigManager.cs	print	string.Format	UNK	493		" " " 
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	22	roicovellMethodData.Coefficient	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	23	roicovellMethodData.CoefficientError	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	24	roicovellMethodData.LowerLimit	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	25	roicovellMethodData.UpperLimit	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	26	roicovellMethodData.LeftRegionCenter	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	27	roicovellMethodData.RightRegionCenter	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	28	roicovellMethodData.LeftRegionWidth	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	UNK	29	roicovellMethodData.RightRegionWidth	
+BecquerelMonitor/ROICovellMethodControl.cs	print	ToString	NUM	85	upperLimit	
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	54	double	this.doubleTextBox3.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	55	double	this.doubleTextBox4.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	56	double	this.doubleTextBox1.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	57	double	this.doubleTextBox2.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	58	double	this.doubleTextBox5.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	59	double	this.doubleTextBox6.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	60	double	this.doubleTextBox7.Text
+BecquerelMonitor/ROICovellMethodControl.cs	parse	double.Parse	NUM	61	double	this.doubleTextBox8.Text
+BecquerelMonitor/ROIReferenceControl.cs	print	ToString	UNK	34	roireferenceData.Coefficient	
+BecquerelMonitor/ROIReferenceControl.cs	print	ToString	UNK	35	roireferenceData.CoefficientError	
+BecquerelMonitor/ROIReferenceControl.cs	parse	double.Parse	NUM	54	double	this.doubleTextBox3.Text
+BecquerelMonitor/ROIReferenceControl.cs	parse	double.Parse	NUM	55	double	this.doubleTextBox4.Text
+BecquerelMonitor/ROISimpleDifferenceControl.cs	print	ToString	UNK	22	roisimpleDifferenceData.Coefficient	
+BecquerelMonitor/ROISimpleDifferenceControl.cs	print	ToString	UNK	23	roisimpleDifferenceData.CoefficientError	
+BecquerelMonitor/ROISimpleDifferenceControl.cs	print	ToString	UNK	24	roisimpleDifferenceData.LowerLimit	
+BecquerelMonitor/ROISimpleDifferenceControl.cs	print	ToString	UNK	25	roisimpleDifferenceData.UpperLimit	
+BecquerelMonitor/ROISimpleDifferenceControl.cs	print	ToString	NUM	70	upperLimit	
+BecquerelMonitor/ROISimpleDifferenceControl.cs	parse	double.Parse	NUM	50	double	this.doubleTextBox3.Text
+BecquerelMonitor/ROISimpleDifferenceControl.cs	parse	double.Parse	NUM	51	double	this.doubleTextBox4.Text
+BecquerelMonitor/ROISimpleDifferenceControl.cs	parse	double.Parse	NUM	52	double	this.doubleTextBox1.Text
+BecquerelMonitor/ROISimpleDifferenceControl.cs	parse	double.Parse	NUM	53	double	this.doubleTextBox2.Text
+BecquerelMonitor/SelectDeviceDialog.cs	print	ToString	UNK	77	DeviceListcomboBox.SelectedItem	
+BecquerelMonitor/SimpleSqrtFwhmCalibration.cs	print	string.Format	UNK	54		formula
+BecquerelMonitor/SimpleSqrtFwhmCalibration.cs	print	string.Format	UNK	85		formula
+BecquerelMonitor/SpectrumCutOffDialog.cs	parse	double.TryParse	NUM	62	double	energytextBox.Text, out double energyVal
+BecquerelMonitor/SpectrumCutOffDialog.cs	parse	int.TryParse	NUM	72	int	channeltextBox.Text, out int channel
+BecquerelMonitor/SqrtFwhmCalibration.cs	print	string.Format	UNK	44		formula
+BecquerelMonitor/SqrtFwhmCalibration.cs	print	string.Format	UNK	91		formula
+BecquerelMonitor/CoreAudioApi/PropVariant.cs	print	ToString	UNK	64	varEnum	
+BecquerelMonitor/EfficiencyMaker/BremsstrahlungData.cs	print	ToString	UNK	293	key	
+BecquerelMonitor/EfficiencyMaker/EfficiencyCurveGraph.cs	print	concat	NUM	150	d	
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs	print	ToString	UNK	5836	materialId.Count	ci
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs	print	string.Format	UNK	5843		ci
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs	print	string.Format	UNK	5847		ci
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs	print	string.Format	UNK	5856		ci
+BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs	print	string.Format	UNK	5859		ci
+BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs	print	concat	NUM	692	z	
+BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs	print	concat	NUM	706	z	
+BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs	print	concat	NUM	731	z	
+BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs	print	concat	NUM	745	z	
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs	print	ToString	UNK	772	text	
+BecquerelMonitor/EfficiencyMaker/GeometryModel.cs	print	concat	NUM	1270	i	
+BecquerelMonitor/EfficiencyMaker/GeometryModel.cs	print	concat	NUM	1271	i	
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs	print	ToString	UNK	373	text	
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs	print	concat	NUM	450	i	
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs	print	concat	NUM	528	i	
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs	print	concat	NUM	529	i	
+BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs	print	concat	NUM	736	z	
+BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs	print	concat	NUM	756	z	
+BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs	print	concat	NUM	776	z	
+BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs	print	concat	NUM	847	z	
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs	print	ToString	UNK	567	sb	
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs	print	ToString	UNK	1066	hex	
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs	print	concat	NUM	574	PhysicsVersion	
+BecquerelMonitor/EfficiencyMaker/ScatteringData.cs	print	concat	NUM	394	z	
+BecquerelMonitor/EfficiencyMaker/ScatteringData.cs	print	concat	NUM	419	z	
+BecquerelMonitor/EfficiencyMaker/ScatteringData.cs	print	concat	NUM	495	z	
+BecquerelMonitor/EfficiencyMaker/ScatteringData.cs	print	concat	NUM	522	z	
+BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs	print	concat	NUM	515	z	
+BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs	print	concat	NUM	517	a	
+BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs	print	concat	NUM	530	z	
+BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs	print	concat	NUM	531	a	
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs	print	ToString	UNK	339	notes	
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs	print	ToString	UNK	388	notes	
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs	print	concat	NUM	385	z	
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs	print	ToString	UNK	798	peakStamp	
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs	print	ToString	UNK	928	sb	
+BecquerelMonitor/FullSpectrumAnalysis/FsaCalculationOptions.cs	print	ToString	UNK	170	stamp	
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs	print	ToString	UNK	593	sb	
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs	print	ToString	UNK	647	sb	
+BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs	print	ToString	UNK	92	text	
+BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs	print	ToString	UNK	279	text	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	ToString	NONUM	474	text	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	ToString	UNK	1743	name	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	992	MaxChainPasses	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	993	drift	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	1303	z	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	1374	z	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	1675	z	
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs	print	concat	NUM	1700	z	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	158	xpeak	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	158	xmin	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	158	xpeak	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	158	xmin	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	158	xmax	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	concat	NUM	319	max_num	
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	string.Format	UNK	102		" " + arr.Length
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs	print	string.Format	UNK	158		" " + xpeak + " 
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs	parse	Convert.ToDouble	NUM	21		energySpectrum.Spectrum[i]
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs	parse	Convert.ToDouble	NUM	22		i
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs	parse	Convert.ToDouble	NUM	26		counts.Length
+BecquerelMonitor/N42/RadInstrumentData.cs	print	ToString	UNK	27	Guid.NewGuid()	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	383	NumberOfChanels	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	507	PolynomialOrder	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	763	PolynomialOrder	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	1095	PolynomialOrder	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	60	i	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	61	i	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	71	i	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	72	i	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	252	seconds	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	382	NumberOfChanels	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	763	PolynomialOrder	
+BecquerelMonitor/N42/Util.cs	print	concat	NUM	1095	PolynomialOrder	
+BecquerelMonitor/N42/Util.cs	print	string.Format	UNK	615		Resources.ERRUnsupportedPolynomialOrderN
+BecquerelMonitor/N42/Util.cs	print	string.Format	UNK	775		Resources.ERRUnreadableStartDateTimeN42
+BecquerelMonitor/N42/Util.cs	print	string.Format	UNK	1062		Resources.ERRUnsupportedPolynomialOrderN
+BecquerelMonitor/N42/Util.cs	print	string.Format	UNK	1186		Resources.ERRSkippedMeasurementClassN42
+BecquerelMonitor/N42/Util.cs	print	string.Format	UNK	1194		Resources.ERRUnreadableStartDateTimeN42
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	482		
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	737		
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	738		
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	739		
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	740		
+BecquerelMonitor/N42/Util.cs	print	interpolation	UNK	741		
+BecquerelMonitor/N42/Util.cs	print	Convert.ToString	UNK	330		value, XmlDateTimeSerializationMode.Roun
+BecquerelMonitor/NucBase/DataBase.cs	print	string.Format	UNK	82		Resources.ERRNucBaseOpenDatabase
+BecquerelMonitor/NucBase/Decay.cs	print	ToString	NUM	75	this.decay_type	
+BecquerelMonitor/NucBase/DecayRad.cs	print	ToString	NUM	141	this.dectype	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	431	nuc.Z	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	432	nuc.N	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	433	nuc.HalfLife	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	434	nuc.SpecialActivity	" "
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	435	nuc.Abundance	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	NUM	811	lowenergy	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	NUM	812	highenergy	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	828	this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx	
+BecquerelMonitor/NucBase/NucBase.cs	print	ToString	UNK	956	this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx	
+BecquerelMonitor/NucBase/NucBase.cs	print	concat	NUM	660	given	
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	205		Resources.NucBase_NoFluorescence
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	209		Resources.NucBase_SearchFound
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	246		Resources.NucBase_SearchFound
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	313		Resources.NucBase_SearchFound
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	477		Resources.NucBase_CardEmpty
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	571		Resources.ERRFailureReason
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	676		text
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	1056		Resources.NuclideDefImportSuccess
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	1060		Resources.NucBase_KSeriesRedundantSkippe
+BecquerelMonitor/NucBase/NucBase.cs	print	string.Format	UNK	1068		Resources.NuclideDefImportError
+BecquerelMonitor/NucBase/NucBase.cs	print	interpolation	UNK	1130		
+BecquerelMonitor/NucBase/NucBase.cs	print	interpolation	UNK	1138		
+BecquerelMonitor/NucBase/NucBase.cs	print	interpolation	UNK	1140		
+BecquerelMonitor/NucBase/NucBase.cs	print	interpolation	UNK	1142		
+BecquerelMonitor/NucBase/NucBase.cs	print	interpolation	UNK	1144		
+BecquerelMonitor/NucBase/NucBase.cs	parse	double.TryParse	NUM	105	double	this.LowEnrgTextBox.Text, out lowEnergy
+BecquerelMonitor/NucBase/NucBase.cs	parse	double.TryParse	NUM	110	double	this.HighEnrgTextBox.Text, out highEnergy
+BecquerelMonitor/NucBase/NucBase.cs	parse	double.TryParse	NUM	115	double	this.IntencityTextBox.Text, out intensity
+BecquerelMonitor/NucBase/NucBase.cs	parse	double.TryParse	NUM	121	double	this.HalfLifeTextBox.Text, out halfLifeValue
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	107	(i * ch_step)	
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	118	(i * (int)en_step)	
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	249	this.calibration	
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	255	Utils.CalibrationSolver.WMSE(this.originalcalibration.Coeffi	" "
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	256	Utils.CalibrationSolver.WMSE(this.calibration.Coefficients, 	" "
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	261	Utils.CalibrationSolver.MSE(this.originalcalibration.Coeffic	" "
+BecquerelMonitor/Utils/CalibrationGraph.cs	print	ToString	UNK	262	Utils.CalibrationSolver.MSE(this.calibration.Coefficients, t	" "
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	104	(i * ch_step)	
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	115	(i * (int)fwhm_step)	
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	206	point.Energy	" "
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	215	(point.FWHM - this.fwhmCalibration.ChannelToFwhm(point.Chann	" "
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	NUM	283	energy	" "
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	298	this.fwhmCalibration	
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	300	Utils.CalibrationSolver.MSE(this.originalfwhmCalibration, th	" "
+BecquerelMonitor/Utils/FWHMCalibrationGraph.cs	print	ToString	UNK	301	Utils.CalibrationSolver.MSE(this.fwhmCalibration, this.point	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	201	yValue	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	387	this.gaussianReferenceSigma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	413	this.currentCurveSigma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	415	this.calibration.ExpGaussExpLeftTail	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	417	this.calibration.ExpGaussExpRightTail	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	458	this.voigtScaleFactor	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	463	this.calibration.VoigtSigma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	465	this.voigtScaleFactor	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	467	this.voigtParameters.GaussianSigma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	472	this.calibration.VoigtGamma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	474	this.voigtScaleFactor	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	476	this.voigtParameters.LorentzGamma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	UNK	479	this.voigtParameters.Eta	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	ToString	NUM	494	this.currentCurveSigma	" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	string.Format	UNK	131		" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	string.Format	UNK	140		" "
+BecquerelMonitor/Utils/PeakShapePreviewGraph.cs	print	string.Format	UNK	190		" "
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	print	string.Format	UNK	237		Resources.ERRCombineBadCalibratedSpectra
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	343		this.EnergySpectrum.Spectrum[i] - norm_coeff * bge
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	360		bgenergySpectrum.EnergyCalibration.EnergyToChannel
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	363		this.EnergySpectrum.Spectrum[i] - norm_coeff * bge
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	391		spectrum.EnergyCalibration.EnergyToChannel(curve.M
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	392		spectrum.EnergyCalibration.EnergyToChannel(curve.M
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	413		normChannelValue
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	983		gauss_value(x, amplitude, fwhm, median)
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1001		exp_gauss_exp_value(x, amplitude, median, fwhm, le
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1055		amplitude * PseudoVoigtProfile.RelativeValue(i - m
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToDouble	NUM	1096		i
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1101		r.Max()
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1145		i
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1270		Math.Ceiling(peak.FWHM * SupportFactor)
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1352		Math.Ceiling(peak.FWHM * SupportFactor)
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1498		calibration.EnergyToChannel(energyVal, maxCh: ener
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1633		GetWMAPointValue(spectrum, i, window_size)
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1647		GetWMAPointValue(spectrum, i, window_size)
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1722		new_count / window_size
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1737		new_count / window_size
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToDouble	NUM	1759		spectrum[ch]
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToDouble	NUM	1781		spectrum[ch]
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs	parse	Convert.ToInt32	NUM	1798		channelValue * (1 - pointsNum) / countlimit + poin
+BecquerelMonitor/WinMM/NativeMethods.cs	print	ToString	UNK	37	error	
+BecquerelMonitor/WinMM/NativeMethods.cs	print	ToString	UNK	44	stringBuilder	
+BecquerelMonitor/WinMM/NativeMethods.cs	print	ToString	UNK	44	error	
+BecquerelMonitor/WinMM/NativeMethods.cs	print	ToString	NONUM	62	text	
+BecquerelMonitor/WinMM/WaveIn.cs	print	concat	NUM	170	deviceId	
+BecquerelMonitor/WinMM/WaveIn.cs	print	concat	NUM	254	manufacturerId	
+BecquerelMonitor/WinMM/WaveIn.cs	print	concat	NUM	250	manufacturerId	
+BecquerelMonitor/WinMM/WaveIn.cs	print	concat	NUM	254	manufacturerId	
+BecquerelMonitor/WinMM/WaveOut.cs	print	concat	NUM	188	deviceId	
+BecquerelMonitor/WinMM/WaveOut.cs	print	concat	NUM	326	manufacturerId	
+BecquerelMonitor/WinMM/WaveOut.cs	print	concat	NUM	322	manufacturerId	
+BecquerelMonitor/WinMM/WaveOut.cs	print	concat	NUM	326	manufacturerId	

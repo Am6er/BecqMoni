@@ -3,6 +3,7 @@ using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Text;
 using System.Windows.Forms;
 using XPTable.Editors;
@@ -126,7 +127,7 @@ namespace BecquerelMonitor
             foreach (CalibrationPeak calibrationPeak in fwhmCalibration.CalibrationPeaks)
             {
                 Row row = new Row();
-                row.Cells.Add(new Cell(position.ToString()));
+                row.Cells.Add(new Cell(position.ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(calibrationPeak.Channel));
                 row.Cells.Add(new Cell(calibrationPeak.Energy));
                 row.Cells.Add(new Cell(calibrationPeak.FWHM));
@@ -160,7 +161,7 @@ namespace BecquerelMonitor
 
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
             minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
-            minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
+            minPeaksRequirementLabel.Text = String.Format(CultureInfo.InvariantCulture, Resources.MinPeaksRequirement, minPeaksRequirement);
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
             UpdatePeakShapeInfo();
         }
@@ -187,15 +188,15 @@ namespace BecquerelMonitor
             {
                 peakShapeFirstParameterLabel.Text = expGaussExpLeftParameterLabelText;
                 peakShapeSecondParameterLabel.Text = expGaussExpRightParameterLabelText;
-                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.ExpGaussExpLeftTail.ToString("0.0");
-                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.ExpGaussExpRightTail.ToString("0.0");
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.ExpGaussExpLeftTail.ToString("0.0", CultureInfo.InvariantCulture);
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.ExpGaussExpRightTail.ToString("0.0", CultureInfo.InvariantCulture);
             }
             else
             {
                 peakShapeFirstParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel");
                 peakShapeSecondParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeGammaLabel");
-                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.VoigtSigma.ToString("0.0");
-                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.VoigtGamma.ToString("0.0");
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.VoigtSigma.ToString("0.0", CultureInfo.InvariantCulture);
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.VoigtGamma.ToString("0.0", CultureInfo.InvariantCulture);
             }
         }
 
@@ -416,8 +417,18 @@ namespace BecquerelMonitor
             {
                 if (peak.Equals(newPeak))
                 {
-                    string PeakExistText = String.Format(Resources.ERRPeakExist, peak.FWHM, peak.Channel);
-                    MessageBox.Show(PeakExistText, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    string PeakExistText = String.Format(CultureInfo.InvariantCulture, Resources.ERRPeakExist, peak.FWHM, peak.Channel);
+                    // ⛔ `A245`, полоса F22 05.09.2026. Здесь стоял голый
+                    //    `MessageBox.Show`, а метод лежит на БЕЗОКОННОМ пути:
+                    //    `EnergySpectrumView_PeakPickuped` зовут отражением
+                    //    пробы (`FwhmViewReachProbeO13` называет его по имени),
+                    //    и безоконный прогон, дойдя сюда, вис насмерть до
+                    //    убийства процесса — на этом подряд встали две полосы
+                    //    по ~~`A236`~~. Дверь `AppUi.Report` показывает то же
+                    //    самое окно тем же значком и с тем же заголовком
+                    //    (`MessageBox.Show(text, caption, OK, icon)` внутри), а
+                    //    без окон печатает строку в поток ошибок и идёт дальше.
+                    AppUi.Report(PeakExistText, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     return;
                 }
             }
@@ -710,6 +721,7 @@ namespace BecquerelMonitor
 
             StringBuilder messageBuilder = new StringBuilder();
             messageBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 GetResourceText("PeakFitChiTablePeakSummary", "Selected shape: {0}."),
                 GetPeakShapeName(selectedPeakType));
             messageBuilder.AppendLine();
@@ -718,6 +730,7 @@ namespace BecquerelMonitor
             foreach (PeakFitComparisonItem item in items)
             {
                 messageBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     "{0}: {1} = {2}; {3} = {4}; {5}: {6}",
                     item.CurveName,
                     GetResourceText("PeakFitChiTableScoreColumn", "Score"),
@@ -737,6 +750,7 @@ namespace BecquerelMonitor
         string GetExpGaussExpParametersText(int candidateIndex, int tailSteps)
         {
             return String.Format(
+                CultureInfo.InvariantCulture,
                 "{0}={1:0.0}; {2}={3:0.0}",
                 expGaussExpLeftParameterLabelText,
                 (candidateIndex / tailSteps + 1) * 0.1,
@@ -747,6 +761,7 @@ namespace BecquerelMonitor
         string GetVoigtParametersText(int candidateIndex, int tailSteps)
         {
             return String.Format(
+                CultureInfo.InvariantCulture,
                 "{0}={1:0.0}; {2}={3:0.0}",
                 Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel"),
                 (candidateIndex / tailSteps + 1) * 0.1,
@@ -757,14 +772,14 @@ namespace BecquerelMonitor
         string FormatPeakFitRatio(double chi2, int ndp)
         {
             return IsValidFitStatistic(chi2, ndp)
-                ? (chi2 / ndp).ToString("0.#####")
+                ? (chi2 / ndp).ToString("0.#####", CultureInfo.InvariantCulture)
                 : GetResourceText("PeakFitChiTableUnavailable", "n/a");
         }
 
         string FormatPeakShapeScore(double score)
         {
             return !Double.IsNaN(score) && !Double.IsInfinity(score)
-                ? score.ToString("0.#####")
+                ? score.ToString("0.#####", CultureInfo.InvariantCulture)
                 : GetResourceText("PeakFitChiTableUnavailable", "n/a");
         }
 
@@ -867,15 +882,15 @@ namespace BecquerelMonitor
 
             if (e.Column == 1)
             {
-                calibrationPeaks[row.Index].Channel = int.Parse(textvalue);
+                calibrationPeaks[row.Index].Channel = UserNumber.ParseInt(textvalue);
             }
             else if (e.Column == 2)
             {
-                calibrationPeaks[row.Index].Energy = double.Parse(textvalue);
+                calibrationPeaks[row.Index].Energy = UserNumber.ParseDouble(textvalue);
             }
             else if (e.Column == 3)
             {
-                calibrationPeaks[row.Index].FWHM = double.Parse(textvalue);
+                calibrationPeaks[row.Index].FWHM = UserNumber.ParseDouble(textvalue);
             } else
             {
                 return;
