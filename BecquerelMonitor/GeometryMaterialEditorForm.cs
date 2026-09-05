@@ -891,10 +891,14 @@ namespace BecquerelMonitor
             }
             catch (Exception error)
             {
-                // ⛔ `T106`. `SaveClicked` зовёт отражением `MaterialLibraryProbe`
+                // ⛔ `T106`. `SaveClicked` звали отражением из пробы
                 // (`Invoke(form, "SaveClicked", …)`), то есть путь безоконный
                 // (`S100`). Дверь `AppUi` в окне ведёт себя как прежний
                 // `MessageBox`, а в прогоне отдаёт отказ вместо зависания.
+                // ⚠ Та проба (`MaterialLibraryProbe`) снята 05.09.2026 решением
+                // Amber, и `check_headless.py` эту точку больше не пометит —
+                // дверь остаётся: путь безоконным быть не перестал, а возврат
+                // `MessageBox` вернул бы зависание следующей же пробе.
                 AppUi.Report(
                     string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsSaveFailed,
                                   GeometryMaterialStore.FilePath, error.Message),

@@ -1,0 +1,27 @@
+=== ПРОБА F41 — `A211`: единица ширины пика ===
+приложение: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f41_before\BecquerelMonitor.exe
+        sha256 = 596f85bbf0defa54   записан 2026-09-05 22:52:36
+дверь Peak.FwhmKev(EnergyCalibration): НЕТ — сборка ДО правки
+копия PeakDetector.FwhmKev(Peak,EnergyCalibration): ЕСТЬ
+
+--- §1 Чтение старых файлов спектра: слепок разобранного объекта ПО ПОЛЯМ ---
+файлов: 129   каталог: tools\CORPUS\corpus\spectra
+разобрано: 129   отказов: 0
+строк слепка (членов объекта): 41557   из них меток, изготовленных прогоном: 345
+слепок: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f41-a211-t119\parse_dump_before.txt
+  байт   = 2823331
+  sha256 = bf27014eb634f1175cffe297823b7121a4fc38ce350c56e83c88208a98a73899
+
+--- §2..§3 пропущены: двери нет, мерить нечего (это и есть разряд «сборка ДО») ---
+
+--- §4 Достаёт ли `Peak` до XML результата ---
+  обойдено типов графа: 18
+  сериализуемых членов типа `Peak`: 0
+  ResultData.DetectedPeaks: [XmlIgnore] — в файл не пишется
+  ResultData.CalibrationPeaks: [XmlIgnore] — в файл не пишется
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f41_before\config\BecquerelMonitor.xml
+  XmlSerializer(typeof(ResultDataFile)) построился: да, длина XML 1246
+  метка 1234.5 в XML: нет   элемент <Peak…>: нет
+  вывод: `DetectedPeaks` и `CalibrationPeaks` помечены [XmlIgnore] — поле `Peak.FWHM` в файл НЕ ПОПАДАЕТ, и совместимость чтения именем поля не задета
+
+СОШЛОСЬ
