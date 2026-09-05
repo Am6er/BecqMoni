@@ -1,0 +1,9 @@
+sravnenie vychislenij: pravka vs polnyj otkat fajla
+
+SOVPALO   §5 Substract фона                 = «n=2048 Σ=92994 fnv=932688271469ed86»
+SOVPALO   §5 Continuum SNIP                 = «n=2048 Σ=54398 fnv=b8765670809bccef»
+SOVPALO   §5 WMA сглаживание                = «n=2048 Σ=241417 fnv=2f55bd71edc8af16»
+SOVPALO   §5 SMA сглаживание                = «n=2048 Σ=241431 fnv=6f9a70f6f5dc7fa6»
+SOVPALO   §5 Cutoff по каналу               = «n=1024 Σ=147088 fnv=27246b787e7cff34|каналов 1024»
+
+VYVOD: vychislenija NE SDVINULIS (posimvolno, 5 iz 5)

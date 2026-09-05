@@ -1,0 +1,15 @@
+fajl                                                do posle
+Utils/SpectrumAriphmetics.cs                        23    23
+PeakDetector.cs                                      7     7
+FWHMPeakDetector/Spectrum.cs                         3     3
+EfficiencyMaker/EfficiencyCurveGraph.cs              1     1
+AboutForm.cs                                         2     2
+AudioVolumeController.cs                             2     1
+DocEnergySpectrum.cs                                 2     2
+MeasurementController.cs                             2     2
+NucBase/DataBase.cs                                  1     1
+AppLog.cs                                            1     1
+EfficiencyConfigData.cs                              2     2
+ITOGO po dole                                       46    45
+PO DEREVU                                          469   468
+CHUZHIE DOLI                                       423   423

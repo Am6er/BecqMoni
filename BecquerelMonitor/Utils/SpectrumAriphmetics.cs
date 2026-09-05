@@ -3,6 +3,7 @@ using MathNet.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -317,7 +318,9 @@ namespace BecquerelMonitor.Utils
                 {
                     throw new InvalidOperationException(
                         "BecqMoni: spectra cannot be combined and there is no UI to report it to: the main spectrum has "
-                        + mainSpectrum.NumberOfChannels + " channels, the added one " + addedSpectrum.NumberOfChannels
+                        + mainSpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                        + " channels, the added one "
+                        + addedSpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
                         + ". Nothing was added; continuing would return the UNCHANGED main spectrum, and the caller "
                         + "cannot tell that from a successful combine. " + Resources.CombineIncorrectChannels);
                 }
@@ -1457,7 +1460,8 @@ namespace BecquerelMonitor.Utils
                 throw new InvalidOperationException(
                     "SpectrumAriphmetics." + door + ": у спектра нет энергетической"
                     + " калибровки (EnergyCalibration == null, каналов "
-                    + spectrum.NumberOfChannels + "). Обрезать нечего: без шкалы"
+                    + spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                    + "). Обрезать нечего: без шкалы"
                     + " энергии у краёв нет смысла, а подставить калибровку значило"
                     + " бы объявить номер канала энергией.");
             }
@@ -1467,7 +1471,8 @@ namespace BecquerelMonitor.Utils
             {
                 throw new InvalidOperationException(
                     "SpectrumAriphmetics." + door + ": калибровка спектра — "
-                    + calibration.GetType().Name + " (каналов " + spectrum.NumberOfChannels
+                    + calibration.GetType().Name + " (каналов "
+                    + spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
                     + "), а здесь умеют только PolynomialEnergyCalibration: обрезка"
                     + " пересчитывает коэффициенты многочлена, и у калибровки другого"
                     + " вида их попросту нет.");
