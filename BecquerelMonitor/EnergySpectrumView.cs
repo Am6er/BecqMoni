@@ -4112,10 +4112,14 @@ namespace BecquerelMonitor
         // Token: 0x060004C1 RID: 1217 RVA: 0x0001AE94 File Offset: 0x00019094
         void DrawPeakFlag(Graphics g, Peak peak, int px, int py, Pen outlinePen, Brush figureBrush, Brush bgBrush)
         {
+            // (`S64`) Надпись — ВЕСЬ список кандидатов, а не одно имя: линии
+            // разных родителей внутри одного пика неразличимы по положению, и
+            // молчать о втором имени значит утверждать больше измеренного.
+            // Победитель стоит первым, флажок растягивается по замеру строки.
             string text = Resources.UnknownNuclide;
             if (peak.Nuclide != null)
             {
-                text = peak.Nuclide.Name;
+                text = PeakDetector.PeakLabel(peak);
             }
             int num = (int)g.MeasureString(text, this.Font).Width;
             if (num < 50)
