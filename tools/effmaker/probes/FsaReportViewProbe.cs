@@ -2,6 +2,7 @@ using BecquerelMonitor;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -36,10 +37,16 @@ namespace FsaReportViewProbe
     ///      меняет режим графика и не сбрасывает результат.
     ///   4. ОДИН РЕЗУЛЬТАТ (критерий 4): график и таблица держат ОДИН объект
     ///      `FsaResult`; два потребителя дают один запуск (`RunCount`).
+    ///   0. ВИД ЧИСЕЛ (`A244`): у чисел блока качества НЕТ разделителя
+    ///      разрядов ни на одной культуре. Судится ВИД строки, а не равенство
+    ///      плеч: запятая в группах одинакова на всех культурах, и приёмка по
+    ///      равенству её уже пропустила однажды.
     ///   5. СЕМЬ РОДОВ СТРОК (критерий 5) и таблица без потерь по высоте.
-    ///   6. СТРОКА КАЧЕСТВА (критерий 6): самая тяжёлая сцена в `ru-RU` и
-    ///      `en-US` — текст ячейки равен тексту модели, все пять пометок, без
-    ///      многоточия; число в своей колонке.
+    ///      ⛔ Судится СОСТАВ строк по `Tag.Kind`, а не их ЧИСЛО (`A249`):
+    ///      после `A247` строки модели ложатся в таблицу не одна в одну.
+    ///   6. БЛОК «КАЧЕСТВО РАЗБОРА» (критерий 6, переписан под `A247`): черта,
+    ///      заголовок, χ²/ndf своей строкой и по строке на каждую пометку —
+    ///      в `ru-RU` и `en-US`, с полными подписями и без многоточия.
     ///   7. ГРУППИРОВКА И ФЛАГИ (критерий 7): родители/дочерние не меняют
     ///      отпечаток и не запускают счёт; расчётный флаг — ровно один запуск
     ///      и одно событие, отпечаток другой, конфигурация спектра и
@@ -91,6 +98,11 @@ namespace FsaReportViewProbe
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
             Application.EnableVisualStyles();
+
+            // (`A244`) Разделу нужны только статические построители: он
+            // идёт ДО окна и до документов, чтобы вид чисел был измерен
+            // даже там, где спектр не открылся.
+            NumberLookSection();
 
             MainForm mainForm = new MainForm();
             DocEnergySpectrum thorium = Open(spectrumPath, nuclides);
@@ -381,6 +393,29 @@ namespace FsaReportViewProbe
 
                         Console.WriteLine("  {0} ({1}): {2} строк — {3}", doc.Filename, nucBase ? "NucBase" : "пики",
                                           here.Count, string.Join(" ", here));
+
+                        // (`A244`) ЧИСЛА СОСТАВА ПОСИМВОЛЬНО: слева — само число
+                        // формата `R` (его правка формата тронуть не может),
+                        // справа — то, что напечатано человеку. Строки `NUM`
+                        // сравниваются между сборками «до» и «после»: левая
+                        // половина обязана совпасть, правая — измениться только
+                        // там, где был разделитель разрядов.
+                        if (report.Presentation != null && report.Presentation.Layers != null)
+                        {
+                            foreach (FsaStackLayer layer in report.Presentation.Layers)
+                            {
+                                Console.WriteLine("NUM\t{0}\t{1}\t{2}\t{3}\t{4}", doc.Filename, nucBase ? "nucbase" : "peaks",
+                                                  layer.Name, layer.SharePercent.ToString("R", CultureInfo.InvariantCulture),
+                                                  FsaPresentationBuilder.ShareText(layer));
+                            }
+
+                            FsaResult src = report.Presentation.Source;
+                            Console.WriteLine("NUM\t{0}\t{1}\t{2}\t{3}\t{4}", doc.Filename, nucBase ? "nucbase" : "peaks",
+                                              "chi2/residual", src.Chi2Ndf.ToString("R", CultureInfo.InvariantCulture)
+                                              + ";" + src.ResidualExcessShare.ToString("R", CultureInfo.InvariantCulture)
+                                              + ";" + src.ResidualMissingShare.ToString("R", CultureInfo.InvariantCulture),
+                                              QualityValues(report));
+                        }
                     }
                 }
 
@@ -404,19 +439,48 @@ namespace FsaReportViewProbe
 
                 Console.WriteLine("  роды на настоящих спектрах: {0}", string.Join(" ", kinds));
 
-                // Таблица не отбрасывает по высоте: строк в XPTable = строк модели при
-                // малом окне; положительный контроль — счётчик видимых строк меньше.
-                int modelRows = report.BuildRows().Count;
+                // Таблица не отбрасывает по высоте. ⛔ СУДИТСЯ СОСТАВ, А НЕ ЧИСЛО
+                // (`A249`): после `A247` строки модели ложатся в таблицу не одна в
+                // одну — блок качества добавляет черту, заголовок и по строке на
+                // пометку, и «строк поровну» стало неверным правилом, а не
+                // нарушенным. Состав читается по `Tag.Kind`, содержимое строк вне
+                // блока — по подписи и значению.
                 using (Form host = Host(report, 320, 160))
                 {
                     report.RefreshReport();
                     Application.DoEvents();
+                    int marks;
+                    string want = Kinds(ExpectedKinds(report, out marks));
+                    string have = Kinds(TableKinds(report));
                     int visible = report.ReportTable.GetVisibleRowCount();
-                    Console.WriteLine("  окно 320×160: строк модели {0}, в таблице {1}, видимых без прокрутки {2}",
-                                      modelRows, report.ReportTable.TableModel.Rows.Count, visible);
-                    Same("малое окно: строк в таблице = строк модели", modelRows, report.ReportTable.TableModel.Rows.Count);
+                    int rowsInTable = report.ReportTable.TableModel.Rows.Count;
+                    Console.WriteLine("  окно 320×160: строк модели {0}, в таблице {1} (черта, заголовок и {2} пометки блока), видимых без прокрутки {3}",
+                                      report.BuildRows().Count, rowsInTable, marks, visible);
+                    Same("малое окно: СОСТАВ строк таблицы по Tag.Kind = составу модели с развёрнутым блоком",
+                         want, have);
+                    Same("малое окно: строки ВНЕ блока качества — один в один с моделью, и то же в ячейках",
+                         string.Empty, BodyMismatch(report));
                     Same("контроль: видимых без прокрутки МЕНЬШЕ — значит, прокрутка есть, а не потеря",
-                         true, visible < modelRows);
+                         true, visible < rowsInTable);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`A249`). Мягкая проверка вместо
+                    // жёсткой хуже жёсткой: сверка состава обязана ОТКАЗАТЬ на
+                    // подменённом роде строки и на потерянной строке. Портится
+                    // ровно то, что читает проверка, — `Tag` строки таблицы, — и
+                    // тут же возвращается.
+                    Row victim = report.ReportTable.TableModel.Rows[rowsInTable - 1];
+                    var saved = (FsaReportRow)victim.Tag;
+                    victim.Tag = new FsaReportRow { Kind = FsaReportRowKind.Layer, Name = saved.Name, Value = saved.Value };
+                    Denies("контроль: подменённый Tag.Kind последней строки сверка не принимает",
+                           want == Kinds(TableKinds(report)));
+                    victim.Tag = saved;
+                    Same("после возврата Tag состав снова сходится", want, Kinds(TableKinds(report)));
+
+                    report.ReportTable.TableModel.Rows.Remove(victim);
+                    Denies("контроль: потерянную строку блока сверка не принимает",
+                           want == Kinds(TableKinds(report)));
+                    report.RefreshReport();
+                    Same("после перестройки таблицы состав снова сходится", want, Kinds(TableKinds(report)));
                     host.Hide();
                 }
 
@@ -515,11 +579,24 @@ namespace FsaReportViewProbe
         // 6. СТРОКА КАЧЕСТВА
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// (`A249`) БЛОК «КАЧЕСТВО РАЗБОРА» — черта, заголовок, χ²/ndf своей
+        /// строкой и по строке на каждую пометку.
+        ///
+        /// ⛔ Прежнее правило («весь хвост пометок одной ячейкой, равной
+        /// <c>FsaPresentationBuilder.QualityText</c>») СНЯТО решением Amber
+        /// 05.09.2026 вместе с `A247`: та самая склеенная подпись и не
+        /// помещалась в колонку, ради чего блок и заведён. Проверять её здесь
+        /// значило бы держать приёмку на отменённом правиле.
+        ///
+        /// ⚠ χ²/ndf берётся числом ≥ 1000 нарочно (`A244`): ниже тысячи `n2` и
+        /// `f2` неотличимы, и разделитель разрядов прошёл бы приёмку насквозь.
+        /// </summary>
         static void QualitySection(MainForm mainForm, DocEnergySpectrum doc)
         {
             Console.WriteLine();
-            Console.WriteLine("=== 6. строка качества: все пометки, обе культуры, без многоточия, в ячейке XPTable ===");
-            const double chi2 = 2.94;
+            Console.WriteLine("=== 6. блок «Качество разбора»: заголовок, χ²/ndf, по строке на пометку, обе культуры ===");
+            const double chi2 = 1234.5678;
             foreach (string lang in new[] { "ru-RU", "en-US" })
             {
                 Language(lang);
@@ -539,37 +616,207 @@ namespace FsaReportViewProbe
                 using (var report = new FSAReportView(mainForm))
                 {
                     report.SetProbeSource(session, doc.ActiveResultData);
-                    string full = FsaPresentationBuilder.QualityText(scene, true);
-                    Row quality = null;
-                    foreach (Row row in report.ReportTable.TableModel.Rows)
+
+                    // Подписи и слова состояния — из СОБСТВЕННОЙ `.resx` окна,
+                    // тем же `ComponentResourceManager`, каким читает окно.
+                    // Ключ вместо перевода — отказ: значит `.resx` не прочитан.
+                    var marks = new List<string[]>
                     {
-                        if (((FsaReportRow)row.Tag).Kind == FsaReportRowKind.Quality) quality = row;
+                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixOldFormat") },
+                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyNotUsed") },
+                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed") },
+                        new[] { Own("FSAReport_DriftRow"), Own("FSAReport_DriftEdge") },
+                        // Имя пересилившего образа — данные результата, не надпись.
+                        new[] { Own("FSAReport_SuppressedRow"), "Backscatter" }
+                    };
+                    int keys = 0;
+                    foreach (string[] mark in marks)
+                    {
+                        if (mark[0].StartsWith("FSAReport_", StringComparison.Ordinal)) keys++;
                     }
 
-                    Same(lang + ": строка качества в таблице есть", true, quality != null);
-                    if (quality == null) continue;
-                    string text = quality.Cells[1].Text;
-                    Console.WriteLine("  {0}: «{1}» | {2}", lang, text, quality.Cells[2].Text);
-                    Same(lang + ": текст ячейки = текст модели", full, text);
-                    Same(lang + ": без многоточия", false, Trimmed(text));
-                    Same(lang + ": ячейка переносится по словам (не усекается)", true, quality.Cells[1].WordWrap);
-                    foreach (string mark in new[] { "FSASuppressedMark", "FSAOldMatrixMark", "FSACascadeMark",
-                                                    "FSANoEfficiencyMark", "FSADriftEdgeMark" })
-                    {
-                        string m = BecquerelMonitor.Properties.Resources.ResourceManager.GetString(mark, CultureInfo.CurrentUICulture);
-                        Same(lang + ": пометка " + mark + " на месте", true, text.Contains(m.Trim()));
-                    }
+                    Same(lang + ": все подписи блока прочитаны из resx (ни одного имени ключа)", 0, keys);
+                    ShowBlock(report, lang);
+                    Same(lang + ": блок «Качество разбора» собран верно", string.Empty,
+                         string.Join("; ", BlockProblems(report, "1234.57", marks)));
 
-                    Same(lang + ": число χ²/ndf в своей колонке", chi2.ToString("n2", CultureInfo.CurrentCulture), quality.Cells[2].Text);
-                    Same(lang + ": числа в тексте пометок нет", false, text.Contains(quality.Cells[2].Text));
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЕРВЫЙ: убрана строка χ²/ndf.
+                    // Проверка, не отказывающая на заведомо неверном составе,
+                    // хуже прежней жёсткой — она не проверяет ничего.
+                    int chiRow = Chi2Row(report);
+                    Row saved = report.ReportTable.TableModel.Rows[chiRow];
+                    report.ReportTable.TableModel.Rows.Remove(saved);
+                    Denies(lang + ": контроль — блок без строки χ²/ndf проверку не проходит",
+                           BlockProblems(report, "1234.57", marks).Count == 0);
+                    report.ReportTable.TableModel.Rows.Insert(chiRow, saved);
+                    Same(lang + ": строка χ²/ndf возвращена, блок снова сходится", string.Empty,
+                         string.Join("; ", BlockProblems(report, "1234.57", marks)));
 
-                    // Положительный контроль: урезанный многоточием текст сторож НЕ принимает.
-                    string cut = full.Substring(0, full.Length / 2) + "…";
-                    Denies(lang + ": урезанный многоточием текст сторож не принимает", !Trimmed(cut));
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ВТОРОЙ: подменено слово состояния
+                    // у пометки — блок остаётся той же длины, а содержимое лжёт.
+                    Row markRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    string was = markRow.Cells[2].Text;
+                    markRow.Cells[2].Text = Own("FSAReport_MatrixUsed");
+                    Denies(lang + ": контроль — подменённое слово состояния пометки проверку не проходит",
+                           BlockProblems(report, "1234.57", marks).Count == 0);
+                    markRow.Cells[2].Text = was;
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ТРЕТИЙ (`A244`): число с
+                    // разделителем разрядов проверку не проходит — иначе она
+                    // судила бы равенство плеч, а запятая в группах на всех
+                    // культурах одна и та же и плечи не разводит.
+                    Denies(lang + ": контроль — «1,234.57» в колонке значения проверку не проходит",
+                           BlockProblems(report, "1,234.57", marks).Count == 0);
                 }
             }
 
             Language("en-US");
+        }
+
+        /// <summary>Печать блока целиком — им читается вид, а не только отказы.</summary>
+        static void ShowBlock(FSAReportView report, string lang)
+        {
+            TableModel model = report.ReportTable.TableModel;
+            for (int i = 0; i < model.Rows.Count; i++)
+            {
+                if (((FsaReportRow)model.Rows[i].Tag).Kind != FsaReportRowKind.Quality
+                    && ((FsaReportRow)model.Rows[i].Tag).Kind != FsaReportRowKind.Residual)
+                {
+                    continue;
+                }
+
+                Console.WriteLine("  {0}: [{1}] «{2}» | {3}", lang, i,
+                                  model.Rows[i].Cells[1].Text, model.Rows[i].Cells[2].Text);
+            }
+        }
+
+        /// <summary>
+        /// Номер строки χ²/ndf: первая строка рода Quality ПОСЛЕ черты и
+        /// заголовка. Считать смещением от черты нельзя — между заголовком и
+        /// χ²/ndf стоят строки блока, которых у другой сцены может не быть
+        /// («без фона» появляется только при неучтённом фоне).
+        /// </summary>
+        static int Chi2Row(FSAReportView report)
+        {
+            TableModel model = report.ReportTable.TableModel;
+            int rule = -1;
+            for (int i = 0; i < model.Rows.Count && rule < 0; i++)
+            {
+                if (((FsaReportRow)model.Rows[i].Tag).Kind == FsaReportRowKind.Quality) rule = i;
+            }
+
+            for (int i = rule + 2; rule >= 0 && i < model.Rows.Count; i++)
+            {
+                if (((FsaReportRow)model.Rows[i].Tag).Kind == FsaReportRowKind.Quality) return i;
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// (`A249`) Жалобы на блок «Качество разбора»: пусто — блок собран так,
+        /// как решено 05.09.2026. Возвращается СПИСОК, а не признак: у
+        /// положительного контроля должно быть видно, на чём именно отказ.
+        /// </summary>
+        static List<string> BlockProblems(FSAReportView report, string chi2Value, List<string[]> marks)
+        {
+            var bad = new List<string>();
+            TableModel model = report.ReportTable.TableModel;
+            int rule = -1;
+            for (int i = 0; i < model.Rows.Count && rule < 0; i++)
+            {
+                if (((FsaReportRow)model.Rows[i].Tag).Kind == FsaReportRowKind.Quality) rule = i;
+            }
+
+            if (rule < 0)
+            {
+                bad.Add("блока нет вовсе: ни одной строки рода Quality");
+                return bad;
+            }
+
+            if (model.Rows[rule].Cells[1].Text.Length > 0 || model.Rows[rule].Cells[2].Text.Length > 0)
+            {
+                bad.Add("черта не пуста: «" + model.Rows[rule].Cells[1].Text + "»");
+            }
+
+            if (rule + 1 >= model.Rows.Count)
+            {
+                bad.Add("после черты нет заголовка");
+                return bad;
+            }
+
+            Row header = model.Rows[rule + 1];
+            if (header.Cells[1].Text != Own("FSAReport_QualityHeader"))
+            {
+                bad.Add("заголовок «" + header.Cells[1].Text + "» вместо «" + Own("FSAReport_QualityHeader") + "»");
+            }
+
+            if (header.Cells[1].Font == null || !header.Cells[1].Font.Bold)
+            {
+                bad.Add("заголовок не полужирный");
+            }
+
+            // Невязка стоит В БЛОКЕ и своей строкой: она мера разбора, а не
+            // компонент состава (`A247`).
+            if (rule + 2 >= model.Rows.Count
+                || ((FsaReportRow)model.Rows[rule + 2].Tag).Kind != FsaReportRowKind.Residual)
+            {
+                bad.Add("под заголовком нет строки невязки");
+            }
+            else if (model.Rows[rule + 2].Cells[1].Text != Own("FSAReport_ResidualRow"))
+            {
+                bad.Add("подпись невязки «" + model.Rows[rule + 2].Cells[1].Text + "»");
+            }
+
+            int chi = -1;
+            for (int i = rule + 2; i < model.Rows.Count && chi < 0; i++)
+            {
+                if (((FsaReportRow)model.Rows[i].Tag).Kind == FsaReportRowKind.Quality) chi = i;
+            }
+
+            if (chi < 0)
+            {
+                bad.Add("строки χ²/ndf в блоке нет");
+                return bad;
+            }
+
+            if (model.Rows[chi].Cells[1].Text != Own("FSAReport_Chi2Row"))
+            {
+                bad.Add("подпись χ²/ndf «" + model.Rows[chi].Cells[1].Text + "»");
+            }
+
+            if (model.Rows[chi].Cells[2].Text != chi2Value)
+            {
+                bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[2].Text + "» вместо «" + chi2Value + "»");
+            }
+
+            int have = model.Rows.Count - chi - 1;
+            if (have != marks.Count)
+            {
+                bad.Add("пометок " + have + " вместо " + marks.Count);
+            }
+
+            for (int k = 0; k < marks.Count && chi + 1 + k < model.Rows.Count; k++)
+            {
+                Row row = model.Rows[chi + 1 + k];
+                if (row.Cells[1].Text != marks[k][0] || row.Cells[2].Text != marks[k][1])
+                {
+                    bad.Add("пометка " + (k + 1) + " «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                            + "» вместо «" + marks[k][0] + " | " + marks[k][1] + "»");
+                }
+
+                if (Trimmed(row.Cells[1].Text))
+                {
+                    bad.Add("пометка " + (k + 1) + " усечена многоточием");
+                }
+
+                if (!row.Cells[1].WordWrap)
+                {
+                    bad.Add("пометка " + (k + 1) + " без переноса по словам");
+                }
+            }
+
+            return bad;
         }
 
         // ------------------------------------------------------------------
@@ -1109,6 +1356,234 @@ namespace FsaReportViewProbe
                               rd.DetectedPeaks.Count, rd.EnergySpectrum.NumberOfChannels,
                               rd.Efficiency != null ? rd.Efficiency.Name : "(нет)");
             return doc;
+        }
+
+        /// <summary>Строка из СОБСТВЕННОЙ `.resx` окна — тем же путём, каким её берёт окно.</summary>
+        static readonly ComponentResourceManager ViewResources = new ComponentResourceManager(typeof(FSAReportView));
+
+        static string Own(string key)
+        {
+            return ViewResources.GetString(key) ?? key;
+        }
+
+        /// <summary>
+        /// (`A249`) ОЖИДАЕМЫЙ СОСТАВ строк таблицы по роду, выведенный из строк
+        /// модели. Строки ложатся в таблицу НЕ ОДНА В ОДНУ (`A247`): перед
+        /// первой строкой блока качества встают ЧЕРТА и ЗАГОЛОВОК, а строка
+        /// качества разворачивается в χ²/ndf и по строке на каждую пометку.
+        /// Пометок всегда три (матрица, кривая, суммирование) плюс край сетки
+        /// дрейфа и подавленный состав — по признакам результата.
+        /// </summary>
+        static List<FsaReportRowKind> ExpectedKinds(FSAReportView report, out int marks)
+        {
+            List<FsaReportRow> model = report.BuildRows();
+            FsaResult result = report.Presentation != null ? report.Presentation.Source : null;
+            marks = 0;
+            if (result != null)
+            {
+                marks = 3;
+                if (result.DriftOnGridEdge) marks++;
+                if (result.CompositionSuppressed) marks++;
+            }
+
+            var kinds = new List<FsaReportRowKind>();
+            bool opened = false;
+            foreach (FsaReportRow row in model)
+            {
+                bool block = row.Kind == FsaReportRowKind.NoBackground
+                             || row.Kind == FsaReportRowKind.Residual
+                             || row.Kind == FsaReportRowKind.Quality;
+                if (!opened && block)
+                {
+                    opened = true;
+                    kinds.Add(FsaReportRowKind.Quality);   // черта
+                    kinds.Add(FsaReportRowKind.Quality);   // заголовок
+                }
+
+                kinds.Add(row.Kind);
+                if (row.Kind == FsaReportRowKind.Quality)
+                {
+                    for (int i = 0; i < marks; i++) kinds.Add(FsaReportRowKind.Quality);
+                }
+            }
+
+            return kinds;
+        }
+
+        /// <summary>Роды строк, как их читает окно и пробы, — из `Tag` строки таблицы.</summary>
+        static List<FsaReportRowKind> TableKinds(FSAReportView report)
+        {
+            var kinds = new List<FsaReportRowKind>();
+            foreach (Row row in report.ReportTable.TableModel.Rows)
+            {
+                kinds.Add(((FsaReportRow)row.Tag).Kind);
+            }
+
+            return kinds;
+        }
+
+        static string Kinds(List<FsaReportRowKind> kinds)
+        {
+            return string.Join(" ", kinds);
+        }
+
+        /// <summary>
+        /// (`A249`) Строки ВНЕ блока качества обязаны быть у таблицы теми же,
+        /// что у модели: род, подпись и значение один в один, и то же самое —
+        /// в ячейках. Это и есть прежняя проверка «ничего не потеряно по
+        /// высоте», только сверяется состав, а не число строк. Подпись
+        /// подменяется ровно у невязки (`A247`), значение — никогда.
+        /// </summary>
+        static string BodyMismatch(FSAReportView report)
+        {
+            var want = new List<string>();
+            foreach (FsaReportRow row in report.BuildRows())
+            {
+                if (row.Kind != FsaReportRowKind.Quality)
+                {
+                    want.Add(row.Kind + "|" + (row.Name ?? string.Empty) + "|" + (row.Value ?? string.Empty));
+                }
+            }
+
+            var have = new List<string>();
+            var cells = new List<string>();
+            foreach (Row row in report.ReportTable.TableModel.Rows)
+            {
+                var model = (FsaReportRow)row.Tag;
+                if (model.Kind == FsaReportRowKind.Quality)
+                {
+                    continue;
+                }
+
+                have.Add(model.Kind + "|" + (model.Name ?? string.Empty) + "|" + (model.Value ?? string.Empty));
+                string caption = model.Kind == FsaReportRowKind.Residual ? Own("FSAReport_ResidualRow") : model.Name ?? string.Empty;
+                if (row.Cells[1].Text != caption || row.Cells[2].Text != (model.Value ?? string.Empty))
+                {
+                    cells.Add("ячейки «" + row.Cells[1].Text + " | " + row.Cells[2].Text
+                              + "» вместо «" + caption + " | " + (model.Value ?? string.Empty) + "»");
+                }
+            }
+
+            if (want.Count != have.Count)
+            {
+                return "строк вне блока " + have.Count + " вместо " + want.Count;
+            }
+
+            for (int i = 0; i < want.Count; i++)
+            {
+                if (want[i] != have[i])
+                {
+                    return "строка " + i + ": «" + have[i] + "» вместо «" + want[i] + "»";
+                }
+            }
+
+            return cells.Count == 0 ? string.Empty : string.Join("; ", cells);
+        }
+
+        /// <summary>Значения строк блока качества одной строкой — для сверки чисел между сборками.</summary>
+        static string QualityValues(FSAReportView report)
+        {
+            var parts = new List<string>();
+            foreach (Row row in report.ReportTable.TableModel.Rows)
+            {
+                var model = (FsaReportRow)row.Tag;
+                if (model.Kind == FsaReportRowKind.Quality || model.Kind == FsaReportRowKind.Residual)
+                {
+                    if (row.Cells[2].Text.Length > 0) parts.Add(row.Cells[2].Text);
+                }
+            }
+
+            return string.Join(";", parts);
+        }
+
+        /// <summary>
+        /// (`A244`) ВИД ЧИСЕЛ БЛОКА КАЧЕСТВА: группировки разрядов нет вовсе
+        /// (решение Amber 05.09.2026). Четыре места печати судятся ПОИМЁННО, и
+        /// судится ВИД строки, а не равенство плеч разных культур: разделитель
+        /// групп у формата `n` одинаков на всех культурах — приёмка по
+        /// равенству плеч его уже пропустила однажды.
+        /// </summary>
+        static void NumberLookSection()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 0. вид чисел блока качества: разделителя разрядов НЕТ ни на одной культуре (A244) ===");
+
+            // ⛔ Раздел ходит по культурам и ОБЯЗАН вернуть их как было
+            // (мерено на себе 05.09.2026): `Resources.Culture`, выставленный
+            // явно, СИЛЬНЕЕ `CurrentUICulture`, и оставленный `en-US`
+            // пережил `Program.ApplyLanguage` в конструкторе `MainForm` — язык
+            // всего прогона сменился, а с ним и состав разбора (у документа A
+            // стало 27 строк вместо 23). Утечка глобального состояния из
+            // раздела в раздел — это чужие числа у соседа.
+            CultureInfo hadCulture = Thread.CurrentThread.CurrentCulture;
+            CultureInfo hadUi = Thread.CurrentThread.CurrentUICulture;
+            CultureInfo hadResources = BecquerelMonitor.Properties.Resources.Culture;
+
+            // Числа ≥ 1000 нарочно: ниже тысячи `n` и `f` неотличимы.
+            var scene = new FsaResult
+            {
+                Chi2Ndf = 12345.6789,
+                ResidualExcessShare = 12.345,
+                ResidualMissingShare = 98.7654,
+                BackgroundUsed = true
+            };
+            var layer = new FsaStackLayer { Name = "Cs-137", Kind = FsaComponentKind.Single, SharePercent = 1234.5 };
+
+            foreach (string name in new[] { "ru-RU", "de-DE", "en-US" })
+            {
+                Language(name);
+                FsaPresentation p = FsaPresentationBuilder.Build(scene, FsaGrouping.Daughters, false);
+                string residual = null, chi = null;
+                foreach (FsaReportRow row in p.Rows)
+                {
+                    if (row.Kind == FsaReportRowKind.Residual) residual = row.Value;
+                    else if (row.Kind == FsaReportRowKind.Quality) chi = row.Value;
+                }
+
+                string share = FsaPresentationBuilder.ShareText(layer);
+                Console.WriteLine("  {0}: невязка «{1}» | χ²/ndf «{2}» | доля слоя «{3}»", name, residual, chi, share);
+
+                Same(name + ": невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки",
+                     true, residual != null && residual.Contains("1234.5"));
+                Same(name + ": невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки",
+                     true, residual != null && residual.Contains("9876.5"));
+                Same(name + ": χ²/ndf (FsaPresentationBuilder.cs:468)", "12345.68", chi);
+                Same(name + ": доля слоя, ShareText (FsaPresentationBuilder.cs:566)", "1234.50%", share);
+                Same(name + ": в невязке разделителя разрядов нет", string.Empty, Grouped(residual));
+                Same(name + ": в χ²/ndf разделителя разрядов нет", string.Empty, Grouped(chi));
+                Same(name + ": в доле слоя разделителя разрядов нет", string.Empty, Grouped(share));
+            }
+
+            // Контроль самой мерки: `n2` на инвариантной культуре — то, что было
+            // до правки, — она обязана назвать разделителем разрядов.
+            string old = (1234.5).ToString("n2", CultureInfo.InvariantCulture);
+            Console.WriteLine("  контроль мерки: прежний формат n2 на инвариантной культуре даёт «{0}»", old);
+            Denies("контроль: прежний вид «1,234.50» мерка не принимает", Grouped(old).Length == 0);
+
+            Thread.CurrentThread.CurrentCulture = hadCulture;
+            Thread.CurrentThread.CurrentUICulture = hadUi;
+            BecquerelMonitor.Properties.Resources.Culture = hadResources;
+        }
+
+        /// <summary>
+        /// Разделитель разрядов в строке: цифра, знак-разделитель и ровно три
+        /// цифры за ним. Пусто — группировки нет. Ищутся ВСЕ знаки, какими
+        /// культуры разделяют разряды: запятая, пробел, неразрывный и узкий
+        /// неразрывный, апостроф, точка.
+        /// </summary>
+        static string Grouped(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            const string seps = ",. \u00a0\u202f\u2009'\u2019";
+            for (int i = 1; i + 3 < text.Length; i++)
+            {
+                if (!char.IsDigit(text[i - 1]) || seps.IndexOf(text[i]) < 0) continue;
+                if (!char.IsDigit(text[i + 1]) || !char.IsDigit(text[i + 2]) || !char.IsDigit(text[i + 3])) continue;
+                if (i + 4 < text.Length && char.IsDigit(text[i + 4])) continue;
+                return "«" + text.Substring(i - 1, 5) + "» в «" + text + "»";
+            }
+
+            return string.Empty;
         }
 
         static void Same(string what, object expected, object got)
