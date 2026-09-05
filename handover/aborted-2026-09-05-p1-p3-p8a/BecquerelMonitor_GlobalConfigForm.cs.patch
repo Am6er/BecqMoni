@@ -1,0 +1,57 @@
+diff --git a/BecquerelMonitor/GlobalConfigForm.cs b/BecquerelMonitor/GlobalConfigForm.cs
+index 425bb58b..c3083ffd 100644
+--- a/BecquerelMonitor/GlobalConfigForm.cs
++++ b/BecquerelMonitor/GlobalConfigForm.cs
+@@ -1,5 +1,6 @@
+ ﻿using BecquerelMonitor.Properties;
+ using System;
++using System.Globalization;
+ using System.Media;
+ using System.Windows.Forms;
+ 
+@@ -88,9 +89,9 @@ namespace BecquerelMonitor
+             this.comboBox8.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultDrawingMode;
+             this.comboBox9.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultPeakMode;
+             this.comboBox10.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+-            this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString();
+-            this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString();
+-            this.doubleTextBox2.Text = globalConfig.ChartViewConfig.EnergyOffsetStep.ToString();
++            this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox2.Text = globalConfig.ChartViewConfig.EnergyOffsetStep.ToString(CultureInfo.InvariantCulture);
+             this.numericUpDown8.Value = globalConfig.ChartViewConfig.EnergyPitch;
+             this.numericUpDown9.Value = globalConfig.ChartViewConfig.EnergyPercent;
+             this.numericUpDown1.Value = globalConfig.ChartViewConfig.NumberOfSMADataPoints;
+@@ -139,19 +140,19 @@ namespace BecquerelMonitor
+             this.textBox3.Text = easyControlConfig.EnergyCalibrationFilePrefix;
+             this.textBox4.Text = easyControlConfig.BackgroundFilePrefix;
+             this.textBox5.Text = easyControlConfig.SampleFilePrefix;
+-            this.integerTextBox11.Text = easyControlConfig.WarmupTime.ToString();
+-            this.integerTextBox12.Text = easyControlConfig.CalibrationTime.ToString();
+-            this.integerTextBox13.Text = easyControlConfig.ShutdownTime.ToString();
+-            this.integerTextBox1.Text = easyControlConfig.DefaultBGPresetTime.ToString();
+-            this.integerTextBox2.Text = easyControlConfig.BGPresetTime1.ToString();
+-            this.integerTextBox3.Text = easyControlConfig.BGPresetTime2.ToString();
+-            this.integerTextBox4.Text = easyControlConfig.BGPresetTime3.ToString();
+-            this.integerTextBox5.Text = easyControlConfig.BGPresetTime4.ToString();
+-            this.integerTextBox6.Text = easyControlConfig.DefaultPresetTime.ToString();
+-            this.integerTextBox7.Text = easyControlConfig.PresetTime1.ToString();
+-            this.integerTextBox8.Text = easyControlConfig.PresetTime2.ToString();
+-            this.integerTextBox9.Text = easyControlConfig.PresetTime3.ToString();
+-            this.integerTextBox10.Text = easyControlConfig.PresetTime4.ToString();
++            this.integerTextBox11.Text = easyControlConfig.WarmupTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox12.Text = easyControlConfig.CalibrationTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox13.Text = easyControlConfig.ShutdownTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox1.Text = easyControlConfig.DefaultBGPresetTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox2.Text = easyControlConfig.BGPresetTime1.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox3.Text = easyControlConfig.BGPresetTime2.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox4.Text = easyControlConfig.BGPresetTime3.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox5.Text = easyControlConfig.BGPresetTime4.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox6.Text = easyControlConfig.DefaultPresetTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox7.Text = easyControlConfig.PresetTime1.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox8.Text = easyControlConfig.PresetTime2.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox9.Text = easyControlConfig.PresetTime3.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox10.Text = easyControlConfig.PresetTime4.ToString(CultureInfo.InvariantCulture);
+             this.textBox6.Text = globalConfig.SoundConfig.MeasurementCompletion;
+             this.comboBox12.SelectedIndex = (int)globalConfig.MeasurementConfig.VolumeUnit;
+             this.comboBox13.SelectedIndex = (int)globalConfig.MeasurementConfig.WeightUnit;

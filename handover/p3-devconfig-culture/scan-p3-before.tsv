@@ -1,0 +1,86 @@
+file	side	api	kind	line	receiver	args
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	NUM	295	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	455	config.DefaultMeasurementTime	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	456	config.NumberOfChannels	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	457	config.ChannelPitch	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	490	polynomialEnergyCalibration.Coefficients[3]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	498	polynomialEnergyCalibration.Coefficients[4]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	507	polynomialEnergyCalibration.Coefficients[2]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	513	polynomialEnergyCalibration.Coefficients[1]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	514	polynomialEnergyCalibration.Coefficients[0]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	524	rc_config.RC_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	541	obs_config.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	764	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1094	ex	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1272	polynomialEnergyCalibration.Coefficients[0]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1273	polynomialEnergyCalibration.Coefficients[1]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1277	polynomialEnergyCalibration.Coefficients[2]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1281	polynomialEnergyCalibration.Coefficients[3]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1285	polynomialEnergyCalibration.Coefficients[4]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1344	polynomialEnergyCalibration.Coefficients[0]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1345	polynomialEnergyCalibration.Coefficients[1]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1346	polynomialEnergyCalibration.Coefficients[2]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1393	polynomialEnergyCalibration.Coefficients[0]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1394	polynomialEnergyCalibration.Coefficients[1]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1395	polynomialEnergyCalibration.Coefficients[2]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1396	deviceconfig.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1442	BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.C	" "
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	NUM	1472	crc32	" "
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	NUM	1863	num	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1964	energyCalibration.Coefficients[2]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1968	energyCalibration.Coefficients[3]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1972	energyCalibration.Coefficients[4]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1974	energyCalibration.Coefficients[1]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1975	energyCalibration.Coefficients[0]	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	NUM	2019	threshold	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	NUM	2049	threshold	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1490	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1494	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	295	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1490	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1494	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	239		Resources.MessageRemoveDeviceConfig
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1290		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1351		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1377		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1403		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1686		Resources.WriteCalibrationToAtomProProgr
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2634		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2846		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	interpolation	UNK	942		
+BecquerelMonitor/DeviceConfigForm.cs	parse	int.Parse	NUM	759	int	this.doubleTextBox5.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	int.Parse	NUM	760	int	this.integerTextBox1.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	761	double	this.doubleTextBox6.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	809	double	this.numericUpDown1.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	813	double	this.numericUpDown9.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	817	double	this.numericUpDown8.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	819	double	this.numericUpDown2.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	double.Parse	NUM	820	double	this.numericUpDown7.Text
+BecquerelMonitor/DeviceConfigForm.cs	parse	uint.Parse	NUM	1228	uint	result_arr[10], System.Globalization.NumberStyles.
+BecquerelMonitor/DeviceConfigForm.cs	parse	ulong.Parse	NUM	1240	ulong	CalibrationCoefficients[i], System.Globalization.N
+BecquerelMonitor/DeviceConfigForm.cs	parse	decimal.Parse	NUM	1888	decimal	text
+BecquerelMonitor/DeviceConfigForm.cs	parse	decimal.Parse	NUM	1896	decimal	text2
+BecquerelMonitor/DeviceConfigForm.cs	parse	decimal.Parse	NUM	1903	decimal	text2
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	474		Resources.EfficiencyTabCopySuffix
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	489		Resources.EfficiencyTabDeleteConfirm
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	164	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	204	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	120		Resources.ERRDuplicateDeviceConfigGUID
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	306		Resources.ERRConfigFileRenameFailed
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	464		Resources.ERRConfigFileDeleteFailed
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	91	globalConfig.ChartViewConfig.Energy2ndCoefficientStep	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	92	globalConfig.ChartViewConfig.EnergyCoefficientStep	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	93	globalConfig.ChartViewConfig.EnergyOffsetStep	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	142	easyControlConfig.WarmupTime	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	143	easyControlConfig.CalibrationTime	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	144	easyControlConfig.ShutdownTime	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	145	easyControlConfig.DefaultBGPresetTime	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	146	easyControlConfig.BGPresetTime1	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	147	easyControlConfig.BGPresetTime2	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	148	easyControlConfig.BGPresetTime3	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	149	easyControlConfig.BGPresetTime4	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	150	easyControlConfig.DefaultPresetTime	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	151	easyControlConfig.PresetTime1	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	152	easyControlConfig.PresetTime2	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	153	easyControlConfig.PresetTime3	
+BecquerelMonitor/GlobalConfigForm.cs	print	ToString	UNK	154	easyControlConfig.PresetTime4	

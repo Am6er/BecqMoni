@@ -1,0 +1,299 @@
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  `A244`, полоса П3 — «конфигурация прибора».
+    //
+    //  Мерится НАСТОЯЩИЙ путь окна настроек прибора: `LoadFormContents`
+    //  печатает числа конфигурации в поля формы, `SaveFormContents` читает их
+    //  обратно. Оба зовутся отражением — окно не поднимается (`S100`).
+    //
+    //  ⚠ Замер идёт на ОТДЕЛЬНОМ STA-потоке с ожиданием: форма создаёт
+    //  вложенные формы прибора и трогает менеджеров-одиночек, и если
+    //  какой-нибудь путь всё же поднимет модальное окно, прогон скажет об этом
+    //  словами, а не повиснет насмерть.
+    // ══════════════════════════════════════════════════════════════════════
+
+    sealed class P3Shot
+    {
+        public string Err;
+        public string Culture;
+        public string Bare;
+        public string[] Text;      // поля формы после печати
+        public double[] Back;      // числа, вернувшиеся разбором
+        public string TbDouble;    // DoubleTextBox: «0.5» → GetValue
+        public string TbInt;       // IntegerTextBox: «1024» → GetValue
+        public string OldDouble;   // ПРЕЖНИЙ разбор поля: double.TryParse(«0.5»)
+        public string OldDecimal;  // ПРЕЖНИЙ разбор ячейки: decimal.Parse(«1.5»)
+    }
+
+    static readonly string[] P3Fields =
+        { "doubleTextBox5", "integerTextBox1", "doubleTextBox6",
+          "numericUpDown7", "numericUpDown2", "numericUpDown1",
+          "numericUpDown9", "numericUpDown8" };
+
+    // Числа замера. Дробные нарочно такие, чтобы отличие разделителя было
+    // видно, а разбор разрядов (если бы он остался) дал ДРУГОЕ число.
+    const int P3Time = 3600;
+    const int P3Channels = 1024;
+    const double P3Pitch = 0.5;
+    static readonly double[] P3Coeff = { 1.25, 2.5, 0.001234, 4.5, 5.5 };
+
+    static void A244P3()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("`A244` П3: ЧИСЛА ОКНА НАСТРОЕК ПРИБОРА — ТОЧКА НА ЛЮБОЙ КУЛЬТУРЕ");
+        Say("══════════════════════════════════════════════════════════════");
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        P3Shot want = P3Shoot();
+        if (want.Err != null)
+        {
+            Say("  ⛔ ЭТАЛОН НЕ СНЯТ, замер невозможен: " + want.Err);
+            failures++;
+            return;
+        }
+        Say("  эталон (инвариант) поля окна: " + string.Join(" | ", want.Text));
+        Say("  эталон (инвариант) обратный разбор: " + P3Nums(want.Back));
+
+        string[] cross = null;
+
+        foreach (string name in Foreign)
+        {
+            CultureInfo os = CultureInfo.GetCultureInfo(name);
+            Say("");
+            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
+            Thread.CurrentThread.CurrentCulture = os;
+            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
+
+            P3Shot got = P3Shoot();
+            if (got.Err != null)
+            {
+                Say("  ⛔ плечо не отработало: " + got.Err);
+                failures++;
+                continue;
+            }
+
+            // ── Положительный контроль плеча: культура обязана быть видна.
+            string wantBare = comma ? "1,5" : "1.5";
+            bool armOk = got.Bare == wantBare;
+            Say("  [полож. контроль] `(1.5).ToString()` без культуры = «" + got.Bare + "»"
+                + (armOk ? " — плечо воспроизводит культуру"
+                         : " ⛔ ОЖИДАЛОСЬ «" + wantBare + "»: ПЛЕЧО НЕ МЕРИТ"));
+            if (!armOk) failures++;
+
+            // ── ПРЯМОЕ: печать в поля формы.
+            A244P3Same("  ПЕЧАТЬ  восемь полей `DeviceConfigForm`",
+                       string.Join(" | ", got.Text), string.Join(" | ", want.Text));
+
+            bool dot = true;
+            for (int i = 0; i < got.Text.Length; i++)
+            {
+                string v = got.Text[i];
+                if (v.IndexOf(',') >= 0 || v.IndexOf(' ') >= 0 || v.IndexOf(' ') >= 0)
+                {
+                    dot = false;
+                }
+            }
+            Say("  ПЕЧАТЬ  ни запятой, ни разделителя разрядов ни в одном поле: " + Verdict(dot));
+            if (!dot) failures++;
+
+            // ── ОБРАТНОЕ: то же окно прочитало напечатанное им же.
+            A244P3Nums("  ОБРАТНОЕ  `SaveFormContents` вернул те же числа", got.Back, want.Back);
+
+            // ── ПЕРЕКРЁСТНОЕ: текст ЧУЖОГО плеча читается здесь.
+            if (cross == null)
+            {
+                cross = got.Text;
+            }
+            else
+            {
+                P3Shot c = P3Read(cross);
+                if (c.Err != null)
+                {
+                    Say("  ⛔ перекрёстное плечо не отработало: " + c.Err);
+                    failures++;
+                }
+                else
+                {
+                    A244P3Nums("  ОБРАТНОЕ перекрёстное  поля первого чужого плеча разобраны здесь",
+                               c.Back, want.Back);
+                }
+            }
+
+            // ── Поля-контролы, через которые читает окно общих настроек.
+            A244P3Same("  РАЗБОР  `DoubleTextBox.GetValue()` поля «0.5»", got.TbDouble, "0.5");
+            A244P3Same("  РАЗБОР  `IntegerTextBox.GetValue()` поля «1024»", got.TbInt, "1024");
+
+            // ⛔ Положительный контроль на ПРЕЖНИЙ код. Он же — цена половины
+            //    правки: печать точкой при старом разборе давала не отказ.
+            Say("    [полож. контроль] ПРЕЖНИЙ `double.TryParse(«0.5»)` культурой потока = "
+                + got.OldDouble
+                + (comma ? (got.OldDouble == P3NoParse
+                            ? "  — дефект воспроизведён (молчаливый НОЛЬ)"
+                            : "  ⛔ ОЖИДАЛСЯ отказ с нулём: ПЛЕЧО НЕ МЕРИТ")
+                         : "  (культура с точкой — дефекта тут и не было)"));
+            if (comma && got.OldDouble != P3NoParse) failures++;
+
+            Say("    [полож. контроль] ПРЕЖНИЙ `decimal.Parse(«1.5»)` культурой потока = "
+                + got.OldDecimal
+                + (comma ? (got.OldDecimal == "15" ? "  — дефект воспроизведён (в десять раз больше, молча)"
+                                                   : "  (иной исход, но не 1.5)")
+                         : "  (культура с точкой)"));
+            if (comma && got.OldDecimal == "1.5") failures++;
+        }
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    const string P3NoParse = "не разобрано → 0";
+
+    static void A244P3Same(string title, string got, string want)
+    {
+        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
+        Say(title + " = «" + (got ?? "НЕ СНЯТО") + "»"
+            + (ok ? "  совпало с эталоном инварианта" : "  ⛔ ЭТАЛОН «" + want + "»"));
+        if (!ok) failures++;
+    }
+
+    static void A244P3Nums(string title, double[] got, double[] want)
+    {
+        bool ok = got != null && want != null && got.Length == want.Length;
+        for (int i = 0; ok && i < got.Length; i++)
+        {
+            ok = got[i] == want[i];
+        }
+        Say(title + " = " + P3Nums(got) + (ok ? "  числа те же" : "  ⛔ ЭТАЛОН " + P3Nums(want)));
+        if (!ok) failures++;
+    }
+
+    static string P3Nums(double[] v)
+    {
+        if (v == null) return "НЕ СНЯТО";
+        string[] s = new string[v.Length];
+        for (int i = 0; i < v.Length; i++)
+        {
+            s[i] = v[i].ToString("R", CultureInfo.InvariantCulture);
+        }
+        return string.Join(" | ", s);
+    }
+
+    /// <summary>Полный снимок: печать формы, обратный разбор, поля-контролы.</summary>
+    static P3Shot P3Shoot() { return P3Run(null); }
+
+    /// <summary>Перекрёстное плечо: в поля кладётся ЧУЖОЙ текст, читается здесь.</summary>
+    static P3Shot P3Read(string[] text) { return P3Run(text); }
+
+    static P3Shot P3Run(string[] preset)
+    {
+        P3Shot s = new P3Shot();
+        s.Culture = CultureInfo.CurrentCulture.Name;
+        if (s.Culture.Length == 0) s.Culture = "(инвариант)";
+        s.Bare = (1.5).ToString();
+
+        CultureInfo os = CultureInfo.CurrentCulture;
+        Thread t = new Thread(delegate()
+        {
+            Thread.CurrentThread.CurrentCulture = os;
+            try { P3Body(s, preset); }
+            catch (Exception ex) { s.Err = ex.GetType().Name + ": " + ex.Message; }
+        });
+        t.IsBackground = true;
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        if (!t.Join(120000)) s.Err = "окно настроек не ответило за 120 с (модальное окно?)";
+        return s;
+    }
+
+    static void P3Body(P3Shot s, string[] preset)
+    {
+        // ── Прежний разбор, снятый ДО правок формы: он ничем не связан с
+        //    формой и служит положительным контролем плеча.
+        double old;
+        s.OldDouble = double.TryParse("0.5", out old)
+            ? old.ToString("R", CultureInfo.InvariantCulture)
+            : P3NoParse;
+        try { s.OldDecimal = decimal.Parse("1.5").ToString(CultureInfo.InvariantCulture); }
+        catch (FormatException) { s.OldDecimal = "FormatException"; }
+
+        // ── Поля-контролы окна общих настроек: печать инвариантом → разбор.
+        DoubleTextBox dtb = new DoubleTextBox();
+        dtb.Text = P3Pitch.ToString(CultureInfo.InvariantCulture);
+        s.TbDouble = dtb.GetValue().ToString("R", CultureInfo.InvariantCulture);
+        IntegerTextBox itb = new IntegerTextBox();
+        itb.Text = P3Channels.ToString(CultureInfo.InvariantCulture);
+        s.TbInt = itb.GetValue().ToString(CultureInfo.InvariantCulture);
+
+        // ── Настоящее окно настроек прибора.
+        DeviceConfigForm form = new DeviceConfigForm();
+        DeviceConfigInfo cfg = P3Config();
+
+        MethodInfo load = typeof(DeviceConfigForm).GetMethod("LoadFormContents", NP);
+        MethodInfo save = typeof(DeviceConfigForm).GetMethod("SaveFormContents", NP);
+        if (load == null || save == null)
+        {
+            throw new InvalidOperationException("`LoadFormContents`/`SaveFormContents` не найдены: сборка чужая");
+        }
+
+        load.Invoke(form, new object[] { cfg });
+
+        s.Text = new string[P3Fields.Length];
+        for (int i = 0; i < P3Fields.Length; i++)
+        {
+            s.Text[i] = P3Ctl(form, P3Fields[i]).Text;
+        }
+
+        // Перекрёстное плечо: подменяем текст полей чужим.
+        if (preset != null)
+        {
+            for (int i = 0; i < P3Fields.Length; i++)
+            {
+                P3Ctl(form, P3Fields[i]).Text = preset[i];
+            }
+            s.Text = (string[])preset.Clone();
+        }
+
+        DeviceConfigInfo back = P3Config();
+        object ok = save.Invoke(form, new object[] { back });
+        if (!(bool)ok)
+        {
+            throw new InvalidOperationException("`SaveFormContents` вернул false: разбор полей отказал");
+        }
+
+        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)back.EnergyCalibration;
+        s.Back = new double[]
+        {
+            back.DefaultMeasurementTime, back.NumberOfChannels, back.ChannelPitch,
+            cal.Coefficients[0], cal.Coefficients[1], cal.Coefficients[2],
+            cal.Coefficients[3], cal.Coefficients[4]
+        };
+    }
+
+    static DeviceConfigInfo P3Config()
+    {
+        DeviceConfigInfo cfg = new DeviceConfigInfo();
+        cfg.InitFormatVersion();
+        cfg.Guid = "p3-culture-probe";
+        cfg.Name = "P3";
+        cfg.Filename = "p3.xml";
+        // Тип прибора берётся ИЗ РЕЕСТРА, а не выписывается сюда именем: реестр
+        // и есть источник, а выписанное имя устарело бы молча.
+        cfg.DeviceType = DeviceType.DeviceTypeList[0].Id;
+        cfg.ThermometerType = ThermometerType.ThermometerTypeList[0].Id;
+        cfg.DefaultMeasurementTime = P3Time;
+        cfg.NumberOfChannels = P3Channels;
+        cfg.ChannelPitch = P3Pitch;
+        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)cfg.EnergyCalibration;
+        cal.PolynomialOrder = 4;
+        cal.Coefficients = (double[])P3Coeff.Clone();
+        return cfg;
+    }
+
+    static System.Windows.Forms.Control P3Ctl(object form, string name)
+    {
+        FieldInfo f = form.GetType().GetField(name, NP);
+        if (f == null) throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
+        System.Windows.Forms.Control c = f.GetValue(form) as System.Windows.Forms.Control;
+        if (c == null) throw new InvalidOperationException("поле `" + name + "` пусто");
+        return c;
+    }
+}

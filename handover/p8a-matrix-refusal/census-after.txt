@@ -1,0 +1,63 @@
+
+=== BecquerelMonitor/ResponseMatrixForm.cs (690 строк)
+  ЯВНАЯ КУЛЬТУРА ПОТОКА (CurrentCulture)         1
+        457  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
+  ЯВНАЯ КУЛЬТУРА ИНТЕРФЕЙСА (CurrentUICulture)   2
+        286  bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+        476  bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+  ИНВАРИАНТ                                      17
+        232  this.stateLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        294  return Environment.NewLine + string.Format(CultureInfo.InvariantCulture, format,
+        361  return string.Format(CultureInfo.InvariantCulture,
+        386  return Environment.NewLine + string.Format(CultureInfo.InvariantCulture,
+        399  ? string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsBoth,
+        402  : string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsCurrent,
+        428  return made.ToString(CultureInfo.InvariantCulture);
+        431  return string.Format(CultureInfo.InvariantCulture,
+        439  return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
+        515  ? string.Format(CultureInfo.InvariantCulture, "{0:%h}:{0:mm}:{0:ss}", span)
+        516  : string.Format(CultureInfo.InvariantCulture, "{0:%m}:{0:ss}", span);
+        553  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        563  this.progressLabel.Text += string.Format(CultureInfo.InvariantCulture,
+        566  matrix.ContinuumWeightedError.ToString("f1", CultureInfo.InvariantCulture));
+        583  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        619  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        642  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+  StringBuilder / Append                         0
+  РАЗБОР Parse / TryParse / Convert.To           0
+  ToString                                       3
+        428  return made.ToString(CultureInfo.InvariantCulture);
+        457  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
+        566  matrix.ContinuumWeightedError.ToString("f1", CultureInfo.InvariantCulture));
+  string.Format                                  15
+        232  this.stateLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        294  return Environment.NewLine + string.Format(CultureInfo.InvariantCulture, format,
+        361  return string.Format(CultureInfo.InvariantCulture,
+        386  return Environment.NewLine + string.Format(CultureInfo.InvariantCulture,
+        399  ? string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsBoth,
+        402  : string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsCurrent,
+        431  return string.Format(CultureInfo.InvariantCulture,
+        439  return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
+        515  ? string.Format(CultureInfo.InvariantCulture, "{0:%h}:{0:mm}:{0:ss}", span)
+        516  : string.Format(CultureInfo.InvariantCulture, "{0:%m}:{0:ss}", span);
+        553  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        563  this.progressLabel.Text += string.Format(CultureInfo.InvariantCulture,
+        583  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        619  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+        642  this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+  ИНТЕРПОЛЯЦИЯ $"                                0
+  ФОРМАТ С ГРУППИРОВКОЙ (n0..n9 / N0..N9)        0
+  ThousandsSeparator                             0
+
+=== BecquerelMonitor/ResponseMatrixForm.Layout.cs (338 строк)
+  ЯВНАЯ КУЛЬТУРА ПОТОКА (CurrentCulture)         0
+  ЯВНАЯ КУЛЬТУРА ИНТЕРФЕЙСА (CurrentUICulture)   0
+  ИНВАРИАНТ                                      0
+  StringBuilder / Append                         0
+  РАЗБОР Parse / TryParse / Convert.To           0
+  ToString                                       0
+  string.Format                                  0
+  ИНТЕРПОЛЯЦИЯ $"                                0
+  ФОРМАТ С ГРУППИРОВКОЙ (n0..n9 / N0..N9)        0
+  ThousandsSeparator                             1
+        135  // `historiesBox.ThousandsSeparator = true` — единственная

@@ -1,0 +1,24 @@
+diff --git a/BecquerelMonitor/IntegerTextBox.cs b/BecquerelMonitor/IntegerTextBox.cs
+index d56d1e3c..bb0a28ae 100644
+--- a/BecquerelMonitor/IntegerTextBox.cs
++++ b/BecquerelMonitor/IntegerTextBox.cs
+@@ -23,7 +23,9 @@ namespace BecquerelMonitor
+                 this.Text = "0";
+             }
+             int num;
+-            if (!int.TryParse(this.Text, out num))
++            // `A244`: разбор ввода человека — инвариантом, с уступкой культуре
++            // системы (см. `UserNumber` в `DoubleTextBox.cs`).
++            if (!UserNumber.TryParseInt(this.Text, out num))
+             {
+                 MessageBox.Show(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                 base.SelectAll();
+@@ -35,7 +37,7 @@ namespace BecquerelMonitor
+         public int GetValue()
+         {
+             int result = 0;
+-            int.TryParse(this.Text, out result);
++            UserNumber.TryParseInt(this.Text, out result);
+             return result;
+         }
+     }

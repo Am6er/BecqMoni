@@ -1,0 +1,62 @@
+diff --git a/BecquerelMonitor/RadiaCodeDeviceForm.cs b/BecquerelMonitor/RadiaCodeDeviceForm.cs
+index 753b89bd..d130a3e8 100644
+--- a/BecquerelMonitor/RadiaCodeDeviceForm.cs
++++ b/BecquerelMonitor/RadiaCodeDeviceForm.cs
+@@ -3,6 +3,7 @@ using System.Collections.Generic;
+ using Windows.Devices.Bluetooth.Advertisement;
+ using Windows.Devices.Bluetooth;
+ using BecquerelMonitor.Properties;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using System.Diagnostics;
+@@ -146,24 +147,24 @@ namespace BecquerelMonitor
+                     return;
+                 }
+ 
+-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
++                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
+                 devices.Add(args.BluetoothAddress);
+ 
+                 string[] nameParts = deviceName.Split('#');
+                 string model = nameParts.Length > 0 ? nameParts[0] : deviceName;
+                 string name = nameParts.Length > 1 ? nameParts[1] : deviceName;
+-                devicePreset[args.BluetoothAddress.ToString()] = model;
++                devicePreset[args.BluetoothAddress.ToString(CultureInfo.InvariantCulture)] = model;
+ 
+                 comboBox1.Invoke(new Action(() =>
+                 {
+-                    adressBLE.Add(args.BluetoothAddress.ToString());
++                    adressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+                     int item = comboBox1.Items.IndexOf(name);
+                     if (item == -1) comboBox1.Items.Add(name);
+                     if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
+                 }));
+                 TroubleshootText.Invoke(new Action(() =>
+                 {
+-                    TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
++                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {name} with BLE addr {args.BluetoothAddress}") + System.Environment.NewLine);
+                 }));
+             }
+             catch (Exception)
+@@ -294,9 +295,9 @@ namespace BecquerelMonitor
+             tshootText = "";
+             if (wasRunning)
+             {
+-                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
++                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
+             }
+-            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
++            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
+             RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
+             radiaCodeIn.TroubleShoot += RadiaCodeIn_TroubleShoot;
+             radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
+@@ -332,7 +333,7 @@ namespace BecquerelMonitor
+                 isRunning = false;
+                 return;
+             }
+-            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
++            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
+         }
+     }
+ 

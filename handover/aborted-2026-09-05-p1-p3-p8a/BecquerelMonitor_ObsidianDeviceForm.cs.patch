@@ -1,0 +1,57 @@
+diff --git a/BecquerelMonitor/ObsidianDeviceForm.cs b/BecquerelMonitor/ObsidianDeviceForm.cs
+index a0f0dc5e..b2da7639 100644
+--- a/BecquerelMonitor/ObsidianDeviceForm.cs
++++ b/BecquerelMonitor/ObsidianDeviceForm.cs
+@@ -2,6 +2,7 @@ using BecquerelMonitor.Properties;
+ using System;
+ using System.Collections.Generic;
+ using System.Diagnostics;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using System.Threading.Tasks;
+@@ -142,12 +143,12 @@ namespace BecquerelMonitor
+                     return;
+                 }
+ 
+-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
++                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
+                 devices.Add(args.BluetoothAddress);
+                 string serial = ExtractSerial(deviceName);
+                 comboBox1.Invoke(new Action(() =>
+                 {
+-                    addressBLE.Add(args.BluetoothAddress.ToString());
++                    addressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+                     if (comboBox1.Items.IndexOf(serial) == -1)
+                     {
+                         comboBox1.Items.Add(serial);
+@@ -159,7 +160,7 @@ namespace BecquerelMonitor
+                 }));
+                 TroubleshootText.Invoke(new Action(() =>
+                 {
+-                    TroubleshootText.AppendText($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}");
++                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}"));
+                 }));
+             }
+             catch (Exception)
+@@ -304,9 +305,9 @@ namespace BecquerelMonitor
+             tshootText = "";
+             if (wasRunning)
+             {
+-                tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}";
++                tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}");
+             }
+-            tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}";
++            tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}");
+             ObsidianIn obsidianIn = ObsidianIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
+             obsidianIn.TroubleShoot += ObsidianIn_TroubleShoot;
+             obsidianIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
+@@ -343,7 +344,7 @@ namespace BecquerelMonitor
+                 isRunning = false;
+                 return;
+             }
+-            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
++            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
+         }
+     }
+ 
