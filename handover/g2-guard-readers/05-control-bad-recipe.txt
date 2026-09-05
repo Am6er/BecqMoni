@@ -1,0 +1,7 @@
+обойдено файлов: 1 (из них журналов-записей 0, вне git 0)
+копий рецепта найдено: 1; судимых 1 (с ключом 0, БЕЗ ключа 1)
+не судим по правилу «журнал — запись» (T219): 0 копий, из них без ключа — историчных 0
+не судим по правилу «вне git — за Amber»: 0 копий, из них без ключа 0
+
+ОТКАЗ: копий без /p:GenerateManifests=false — 1
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/aebc304d-5735-4e42-96c6-4bf53152b58d/scratchpad/g2_control_bad.ps1:1 | & 'C:/x/MSBuild.exe' 'BecquerelMonitor/BecquerelMonitor.csproj' /t:Build /p:Configuration=Debug
