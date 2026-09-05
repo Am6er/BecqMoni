@@ -62,36 +62,53 @@ namespace FsaFlagsProbe
             FacadeSection();
             ConfigSection();
 
+            // (`A145`, этап 3) Две галки переехали с панели поиска пиков в окно
+            // отчёта `FSAReportView`: источник состава — пара радиокнопок,
+            // равновесие — флажок в группе «Модель цепочек». Правило `S77` то же:
+            // равновесие доступно только при составе из NucBase, погашенное —
+            // помнит значение и объясняет себя подсказкой.
             MainForm mainForm = new MainForm();
-            DCPeakDetectionView panel = new DCPeakDetectionView(mainForm);
-            CheckBox lookups = Field(panel, "checkBoxDbLookups");
-            CheckBox equilibrium = Field(panel, "checkBoxEquilibrium");
+            FSAReportView panel = new FSAReportView(mainForm);
+            RadioButton nucBase = Field<RadioButton>(panel, "sourceNucBaseRadio");
+            RadioButton peaks = Field<RadioButton>(panel, "sourcePeaksRadio");
+            CheckBox equilibrium = Field<CheckBox>(panel, "equilibriumCheckBox");
+            FsaAnalysisSession session = new FsaAnalysisSession();
+            ResultData rd = Spectrum();
+            panel.SetProbeSource(session, rd);
+            var cfg = (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig;
 
-            Console.WriteLine("=== связь галок разбора (S77) ===");
+            Console.WriteLine("=== связь переключателей разбора (S77) в окне отчёта ===");
+            Same("на панели поиска пиков галок FSA больше нет", true,
+                 typeof(DCPeakDetectionView).GetField("checkBoxDbLookups", BindingFlags.Instance | BindingFlags.NonPublic) == null
+                 && typeof(DCPeakDetectionView).GetField("checkBoxEquilibrium", BindingFlags.Instance | BindingFlags.NonPublic) == null);
 
             // Человек включил «Равновесие» при работающем выводе из баз.
-            lookups.Checked = true;
+            nucBase.Checked = true;
             equilibrium.Checked = true;
             Same("вывод из баз включён: «Равновесие» доступно", true, equilibrium.Enabled);
-            Same("подсказки у доступной галки нет", "", HintOf(panel, equilibrium));
+            Same("подсказка доступной галки — «меняет расчёт»",
+                 BecquerelMonitor.Properties.Resources.FSAReportTipCalculation, panel.ToolTipOf(equilibrium));
+            Same("конфигурация спектра: состав из баз", true, cfg.DbLookupsForFsa);
 
             // Выключил вывод из баз — галка обязана погаснуть, но НЕ сброситься.
-            lookups.Checked = false;
+            peaks.Checked = true;
             Same("вывод из баз выключен: «Равновесие» недоступно", false, equilibrium.Enabled);
             Same("значение «Равновесия» не тронуто", true, equilibrium.Checked);
-            bool hasHint = !string.IsNullOrEmpty(HintOf(panel, equilibrium));
-            Same("у погашенной галки есть подсказка", true, hasHint);
+            Same("и в конфигурации не тронуто", true, cfg.ChainEquilibrium);
+            Same("у погашенной галки подсказка объясняет причину",
+                 BecquerelMonitor.Properties.Resources.FSAReportTipEquilibriumNeedsNucBase, panel.ToolTipOf(equilibrium));
 
             // Вернул — галка оживает с прежним значением.
-            lookups.Checked = true;
+            nucBase.Checked = true;
             Same("вернули вывод из баз: «Равновесие» снова доступно", true, equilibrium.Enabled);
             Same("и помнит прежнее значение", true, equilibrium.Checked);
 
             // И обратный случай: выключенное «Равновесие» тоже переживает
             // гашение — правило про доступность, а не про значение.
             equilibrium.Checked = false;
-            lookups.Checked = false;
+            peaks.Checked = true;
             Same("выключенное «Равновесие» переживает гашение", false, equilibrium.Checked);
+            Same("и в конфигурации выключено", false, cfg.ChainEquilibrium);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -248,31 +265,31 @@ namespace FsaFlagsProbe
             Console.WriteLine();
         }
 
-        static CheckBox Field(DCPeakDetectionView panel, string name)
+        static T Field<T>(FSAReportView panel, string name) where T : Control
         {
-            FieldInfo f = typeof(DCPeakDetectionView).GetField(
+            FieldInfo f = typeof(FSAReportView).GetField(
                 name, BindingFlags.Instance | BindingFlags.NonPublic);
             if (f == null)
             {
-                Console.WriteLine("  ⛔ поля «{0}» на панели НЕТ — проба смотрит не туда", name);
+                Console.WriteLine("  ⛔ поля «{0}» в окне НЕТ — проба смотрит не туда", name);
                 bad++;
-                return new CheckBox();
+                return null;
             }
 
-            return (CheckBox)f.GetValue(panel);
+            return (T)f.GetValue(panel);
         }
 
         /// <summary>
-        /// Текст подсказки СЕЙЧАС. ⚠ Читать поле надо каждый раз: подсказка
-        /// заводится лениво, при первом же вызове правила, и снимок, взятый до
-        /// него, остался бы null навсегда — на этом проба уже оступилась.
+        /// Спектр-заглушка: окну нужен активный спектр с конфигурацией поиска,
+        /// иначе элементы управления выключены. Считать по нему ничего не
+        /// нужно — счёт окно заказывает только видимым, а это окно не показано.
         /// </summary>
-        static string HintOf(DCPeakDetectionView panel, Control control)
+        static ResultData Spectrum()
         {
-            FieldInfo f = typeof(DCPeakDetectionView).GetField(
-                "fsaToolTip", BindingFlags.Instance | BindingFlags.NonPublic);
-            ToolTip tip = f == null ? null : (ToolTip)f.GetValue(panel);
-            return tip == null ? "" : tip.GetToolTip(control);
+            var rd = new ResultData();
+            rd.EnergySpectrum = new EnergySpectrum(1.0, 64);
+            rd.PeakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
+            return rd;
         }
 
         static void Same(string what, object expected, object got)

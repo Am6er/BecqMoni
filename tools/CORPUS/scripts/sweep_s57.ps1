@@ -24,16 +24,19 @@ param(
 $ErrorActionPreference = 'Stop'
 $env:PYTHONIOENCODING = 'utf-8'
 $corpus = Join-Path $Repo 'tools\CORPUS\corpus'
-$probe  = Join-Path $Repo "$Wd\CorpusFsaProbe.exe"
+$runner = Join-Path $Repo 'tools\CORPUS\scripts\run_appwd.ps1'
 $score  = Join-Path $Repo 'tools\pie\score.py'
 
 function Run-One([string] $out, [string[]] $extra) {
     if (Test-Path $out) { Remove-Item $out -Recurse -Force }
-    Push-Location (Join-Path $Repo $Wd)
-    try {
-        & $probe "--corpus=$corpus" "--out=$out" --quiet @extra | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "проба вернула $LASTEXITCODE для $out" }
-    } finally { Pop-Location }
+    # ⛔ ТОЛЬКО через сторожа оснастки (`T68`, 05.09.2026). До этого дня здесь
+    #    стояло `& $probe …` — прямой запуск `<Wd>\CorpusFsaProbe.exe`, и вся
+    #    развёртка порогов шла МИМО `T63`: сторож ловил всё, кроме этого
+    #    автоматического потребителя. `run_appwd.ps1` сам отказывает на
+    #    протухшей или несобранной оснастке (код 2, ни файла в `-Out`), а ключи
+    #    пробы принимает массивом `-Extra`; оператор вызова `&` — правило `T84`.
+    & $runner -Out $out -Wd (Join-Path $Repo $Wd) -Corpus $corpus -Extra (@('--quiet') + $extra) | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "прогон вернул $LASTEXITCODE для $out" }
 
     $row = @{}
     foreach ($part in @('known', 'unknown')) {

@@ -1,7 +1,22 @@
 ﻿# Собрать ИЗОЛИРОВАННЫЙ рабочий каталог для корпусного прогона кодом
 # приложения (TODO S1).
 #
-#   pwsh tools/CORPUS/scripts/mk_appwd.ps1 [-Bin <сборка>] [-Wd <каталог>] [-ProbeBuild <пробы>] [-Force]
+#   & 'tools\CORPUS\scripts\mk_appwd.ps1' [-Bin <сборка>] [-Wd <scripts\wd_*>] [-ProbeBuild <пробы>] [-Store <склад>] [-Force]
+#
+# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&`, А НЕ `pwsh <файл>.ps1` (`T84`/`T91`): при запуске
+#    ФАЙЛОМ аргументы разбирает командная строка, а не PowerShell-парсер. У этого
+#    скрипта массивов нет и разницы не видно, но правило одно на всю оснастку —
+#    соседний `run_appwd.ps1` на той же форме ломается молча со второго ключа.
+#
+# ⛔ `-Wd` ПРИНИМАЕТСЯ ТОЛЬКО ВИДА `tools\CORPUS\scripts\wd_<имя>` (`T91`,
+#    05.09.2026), иначе отказ кодом 7 до единого копирования. Именно этот образец
+#    ждут `.gitignore` корпуса (`scripts/wd_*/`), умолчания сторожей
+#    `check_appwd.ps1`/`run_appwd.ps1` и `run_mini.ps1`; каталог вне образца
+#    ложится туда, где его не ждёт никто, — и уезжает в git или мимо сторожа.
+#    Путь приводится к АБСОЛЮТНОМУ до построения плана: относительный `-Wd`
+#    разводил обход каталога (абсолютные `FullName`) с планом (склейка от того,
+#    что дали параметром), и сборщик выносил СОБСТВЕННУЮ оснастку как
+#    постороннюю — 233 файла из 235, при печати «положено 235» (полоса C6).
 #
 # Зачем отдельный каталог, а не `bin\Debug_Codex`, где уже лежит рецепт F25 «а»:
 #
@@ -66,6 +81,32 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 if (-not $Bin) { $Bin = Join-Path $repo 'BecquerelMonitor\bin\Debug_Codex' }
 if (-not $Wd)  { $Wd  = Join-Path $PSScriptRoot 'wd_app' }
+
+# ⛔ ПУТИ — В АБСОЛЮТНЫЕ ДО ПЛАНА (`T91`, находка C2 №2; та же беда стоит строкой
+#    `T136` у `-Out`). Относительный `-Wd` разводил обход каталога с планом (см.
+#    шапку), относительный `-Bin`/`-ProbeBuild` — сторожа с отметкой: в отметку
+#    ушёл бы относительный путь, а читают её из другого рабочего каталога.
+#    `GetFullPath` достраивает от ТЕКУЩЕГО каталога — как и трактовал бы их
+#    `Test-Path`, то есть смысл не меняется, меняется только форма.
+foreach ($name in @('Bin', 'Wd', 'ProbeBuild', 'Store')) {
+    $v = Get-Variable -Name $name -ValueOnly
+    if ($v) { Set-Variable -Name $name -Value ([System.IO.Path]::GetFullPath($v).TrimEnd('\')) }
+}
+
+# ⛔ ОСНАСТКА ЛЕЖИТ ТОЛЬКО В `scripts\wd_<имя>` (`T91`). Отказ ДО плана и до
+#    единого копирования: каталог вне образца не создаётся вовсе. Обходного
+#    ключа нет нарочно — он и стал бы новым обходным путём.
+$wdParent = [System.IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\')
+$wdLeaf   = Split-Path -Leaf $Wd
+if ((Split-Path -Parent $Wd).TrimEnd('\') -ne $wdParent -or $wdLeaf -notlike 'wd_*' -or $wdLeaf.Length -le 3) {
+    Write-Host ""
+    Write-Host "⛔⛔ ОТКАЗ: ОСНАСТКА ВНЕ ОБРАЗЦА — НИЧЕГО НЕ СОЗДАНО" -ForegroundColor Red
+    Write-Host ("   -Wd = {0}" -f $Wd) -ForegroundColor Red
+    Write-Host ("   Принимается только {0}\wd_<имя>: этот образец ждут .gitignore" -f $wdParent) -ForegroundColor Red
+    Write-Host "   корпуса (scripts/wd_*/) и умолчания сторожей check_appwd.ps1 / run_appwd.ps1 (T91)." -ForegroundColor Red
+    Write-Host ""
+    exit 7
+}
 
 if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
     throw "нет $Bin\BecquerelMonitor.exe — сначала соберите приложение"
@@ -155,17 +196,46 @@ Write-Host ("  конфигураций приборов: {0}, матриц: {1}
 #    проверка живёт в стороже, потому что прогон идёт мимо этого скрипта.
 #    `-Building`: отметки в этот момент ещё нет по замыслу — её пишут ниже,
 #    последним действием. Всё остальное сторож спрашивает в полном объёме.
+#    ⛔ `-Force` ПРОЩАЕТ РОВНО ТО, ЧТО ОБЪЯВЛЯЕТ, — протухшую сборку (`T41`), и
+#    ничего больше (`T84`, дописка 05.09.2026 — возврат `T80`). Прежде здесь
+#    стояло `-and -not $Force`, и ключ глушил САМОПРОВЕРКУ ЦЕЛИКОМ: сторож
+#    печатал «⛔⛔ ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ», а скрипт ставил
+#    отметку и выходил кодом 0 — против обещания собственной шапки. А без
+#    `-Force` в общем дереве не собрать вовсе: сторож `T41` красен, пока соседи
+#    правят `.cs`. Теперь прощаются только находки `Test-AppWdBuild`, остальное —
+#    отказ при любом ключе. Их число снимается ДВАЖДЫ, до и после сторожа, и
+#    берётся МЕНЬШЕЕ: сторож `T41` судит по времени, и находка, появившаяся или
+#    пропавшая между двумя замерами, при меньшем из них считается НЕ прощённой —
+#    ошибка возможна только в сторону отказа. (Ключ `-AllowStaleBuild` у самого
+#    сторожа был бы точнее — но `appwd_plan.ps1` в этот час правит другая полоса.)
+$staleBefore = @((Test-AppWdBuild -Plan $plan).Bad).Count
 $left = Invoke-AppWdGuard -Plan $plan -Building
-if ($left -gt 0 -and -not $Force) {
+$staleAfter  = @((Test-AppWdBuild -Plan $plan).Bad).Count
+$forgiven = if ($Force) { [Math]::Min($staleBefore, $staleAfter) } else { 0 }
+if ($left -gt $forgiven) {
     Write-Host "⛔ САМОПРОВЕРКА ОСНАСТКИ НЕ ПРОШЛА — прогонять НЕЛЬЗЯ." -ForegroundColor Red
     Write-Host "   Отметка .appwd.json НЕ ПОСТАВЛЕНА: такую оснастку не примет и run_appwd.ps1." -ForegroundColor Red
+    if ($Force) {
+        Write-Host ("   ⛔ -Force прощает ПРОТУХШУЮ СБОРКУ и только её: находок {0}, из них про сборку {1}." -f $left, $forgiven) -ForegroundColor Red
+    }
     exit 4
+}
+if ($left -gt 0) {
+    Write-Host ("⚠⚠ ПРОЩЕНО ключом -Force: {0} находок, все — про протухшую сборку (T41). Числа такого прогона в журнал НЕ ГОДЯТСЯ." -f $left) -ForegroundColor Yellow
 }
 
 # Отметка — ПОСЛЕДНИМ действием и только после удачной самопроверки.
 Write-AppWdStamp -Plan $plan -Files $copied
 
-Write-Host "запуск прогона — ТОЛЬКО через сторожа:"
-Write-Host ("  pwsh `"{0}\run_appwd.ps1`" -Out `"{1}\tools\pie\out_app`"" -f $PSScriptRoot, $repo)
+# ⛔ ФОРМА ЗАПУСКА В ПОДСКАЗКЕ — ОПЕРАТОР ВЫЗОВА `&`, А НЕ `pwsh <файл>` (`T91`).
+#    До 05.09.2026 здесь печаталось `pwsh "<путь>\run_appwd.ps1" -Out …` — ровно
+#    та форма, которую `run_appwd.ps1` запрещает шапкой и ловит отказом 65:
+#    при запуске файлом аргументы разбирает командная строка, и массив `-Extra`
+#    схлопывается со второго ключа. Официальный следующий шаг, напечатанный
+#    запрещённой формой, — учебник, который учит граблям.
+$hintStore = if ($Store) { " -Store '$Store'" } else { '' }
+Write-Host "запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):"
+Write-Host ("  & '{0}\run_appwd.ps1' -Wd '{1}'{2} -Out '{3}\tools\pie\out_app'" -f $PSScriptRoot, $Wd, $hintStore, $repo)
+Write-Host "  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'"
 Write-Host "проверить оснастку отдельно:"
-Write-Host ("  pwsh `"{0}\check_appwd.ps1`"" -f $PSScriptRoot)
+Write-Host ("  & '{0}\check_appwd.ps1' -Wd '{1}'{2}" -f $PSScriptRoot, $Wd, $hintStore)

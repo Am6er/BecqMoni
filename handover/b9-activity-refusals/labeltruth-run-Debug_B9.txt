@@ -1,0 +1,7 @@
+пороги подписи ИЗ СБОРКИ: выход ≥ 0.1 %, промах ≤ 1.5 ПШПВ пика
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b9\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b9\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b9\config\NuclideDefinition.xml: 152 entries
+библиотека: 152 записей, набор «(нет)»
+
+спектров разобрано 129, отказало 0; пиков 1522, из них с подписью 1367 -> C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/65d67d52-e7c9-4061-9d92-7ccf2e96ff5c/scratchpad/labeltruth_b9.csv

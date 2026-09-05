@@ -12,15 +12,39 @@ u"""`V13`: чего стоит починка демпфера в `gaussfit` —
 
 1. **Что нашлось** — старым фитом (`--ref=` файл прежнего `gaussfit`) и новым,
    поимённо, с разбивкой по частям корпуса (`corpus/parts.csv`).
-2. **Настоящая ли линия** — независимая от фита проверка бугра (`bump_ok`):
-   в САМИХ отсчётах, сглаженных тройкой, обязана быть ВНУТРЕННЯЯ вершина,
-   поднятая на 3√N и над прямой по краям окна, и над соседями по ОБЕ стороны.
-   Гаусс тут не участвует вовсе, поэтому проверка не может «подтвердить» саму
-   себя. ⚖ Мерка откалибрована по ШТАТНОМУ набору: из 473 линий, которые
+2. **Настоящая ли линия** — проверка бугра (`bump_ok`) по САМИМ отсчётам:
+   сглаженные тройкой, они обязаны иметь ВНУТРЕННЮЮ вершину, поднятую на 3√N
+   над прямой по краям окна и спадающую на столько же по ОБЕ стороны.
+
+   ⛔ **Прежде тут стояло «гаусс не участвует вовсе», и это было неверно**
+   (`T95`, найдено встречной проверкой 27.08.2026, перемерено 05.09.2026):
+   последним условием шло `abs(mu - вершина) <= ПШПВ`, где `mu` — ПОДОГНАННЫЙ
+   центр, приходящий аргументом. Замер зависимости, данные не менялись,
+   менялся только `mu`: подстановка заведомо плохого фита (`mu` сдвинут на
+   одну ПШПВ) переворачивала вердикт у **211 линий из 557** понятной части
+   (доля с вершиной 61.9 % → 24.1 %), 117 из 274 непонятной, 31 из 87
+   германия. Так что проверка была зависима от фита, как её ни называй.
+
+   Теперь она разведена на ДВА независимо считаемых вопроса, и они больше не
+   смешиваются в одном числе:
+
+     * `ok` — **вершина есть**, фит в этом не участвует;
+     * `mu_hit` — **фит сел ИМЕННО НА НЕЁ** (тот самый зажим по `mu`),
+       считается и печатается отдельной колонкой.
+
+   ⚖ Снятие зажима прежних чисел НЕ ТРОНУЛО: на всём корпусе оно перевернуло
+   **0 вердиктов** (0 из 557 / 0 из 274 / 0 из 87) — то есть у гейта нет
+   принятых линий, где настоящая вершина есть, а фит сел мимо неё дальше чем
+   на ПШПВ. Прежние доли остаются в силе, но теперь это ИЗМЕРЕНО, а не
+   принято на слово.
+
+   ⚖ Мерка откалибрована по ШТАТНОМУ набору: из 473 линий, которые
    находит и прежний фит (понятная часть, 81 спектр из 81), вершину имеют
    337 — 71.2 %; у непонятной 69.9 %, и это доля по 33 спектрам ИЗ 40:
    семёрки `corpus_def.LEGACY` в мерке нет и не будет (см. `frozen_keys`).
    Это и есть уровень, с которым сравнивают долю у вернувшихся.
+   ⚠ Доля «с вершиной» — величина ПРИЗНАКА, а не корпуса (`V17`): она
+   печатается вместе с именем признака, и цитировать её без имени нельзя.
 3. **Не выросли ли фантомы** — отрицательный контроль: тем же кодом ищутся
    линии, СДВИНУТЫЕ на ±5 ПШПВ от настоящих, то есть заведомо стоящие не там.
    Всё найденное там — ложь по построению, и сравнение старого фита с новым
@@ -30,6 +54,13 @@ u"""`V13`: чего стоит починка демпфера в `gaussfit` —
 
     python tools/CORPUS/scripts/gaussfit_check.py [--only=KEY,KEY] [--csv=файл]
                                                   [--ref=прежний_gaussfit.py]
+                                                  [--raw=каталог_сырья]
+
+`--raw=` берёт сырьё не из `scripts/_corpus_raw`, а из указанного каталога.
+Это НЕ удобство: сторож охвата (`Coverage`, код возврата 3) без него нечем
+проверить, а сторож, который ни разу не отказал, ничего не сторожит. Готовится
+битый вход — копия каталога, где один спектр удалён или обрезан, — и мерка
+обязана НАЗВАТЬ его поимённо и вернуть 3. Проверено 05.09.2026, см. `T76`.
 """
 import os
 import sys
@@ -156,14 +187,24 @@ class Coverage(object):
         печатается, а число рядом с ним обязано его называть.
     """
 
-    def __init__(self, requested=None):
+    def __init__(self, requested=None, frozen=None):
+        u"""`frozen` — ключи, отсутствие которых ОЖИДАЕМО и не есть дефект.
+
+        ⛔ Умолчание (`frozen_keys()`) верно только для мерок, живущих на
+        `scripts/_corpus_raw`. Мерке, читающей `corpus/spectra`, семёрка
+        `LEGACY` доступна наравне со всеми, и «объяснить» её пропажу значило
+        бы завести новую немую дыру ровно того рода, о котором `T76`. Такая
+        мерка передаёт `frozen=set()` явно.
+        """
         self.part = parts_of()
         self.want = [e['key'] for e in corpus_def.ALL
                      if requested is None or e['key'] in requested]
         self.subset = requested is not None
         self.unknown_keys = (sorted(set(requested) - set(self.want))
                              if requested else [])
-        self.frozen = frozen_keys() & set(self.want)
+        if frozen is None:
+            frozen = frozen_keys()
+        self.frozen = set(frozen) & set(self.want)
         self.stages = []          # [(имя, множество ключей, hard)]
 
     # -- служебное ---------------------------------------------------------
@@ -297,7 +338,7 @@ class Coverage(object):
 # ---------------------------------------------------------------------------
 # независимая проверка «бугор есть»
 # ---------------------------------------------------------------------------
-def bump_ok(counts, ch0, sigma0, mu, window=2.2):
+def bump_ok(counts, ch0, sigma0, mu=None, window=2.2):
     u"""Есть ли в окне настоящий пик — БЕЗ всякого гаусса.
 
     ⛔ Первый вариант проверки (максимум ОСТАТКА над прямой по краям) годился
@@ -309,17 +350,29 @@ def bump_ok(counts, ch0, sigma0, mu, window=2.2):
 
     Поэтому требуется ВЕРШИНА В САМИХ ОТСЧЁТАХ: сглаженные тройкой отсчёты
     обязаны иметь ВНУТРЕННИЙ максимум, значимо (3√N) поднятый и над прямой по
-    краям, и над своими соседями по ОБЕ стороны, а подогнанный центр — стоять
-    от этой вершины не дальше модельной ПШПВ.
+    краям, и над своими соседями по ОБЕ стороны.
 
-    Возвращает (годится, высота над прямой, порог 3√N).
+    ⛔ `T95`, 05.09.2026: ЗАЖИМ `abs(mu - вершина) <= ПШПВ` ИЗ ВЕРДИКТА УБРАН.
+    Он делал проверку зависимой от фита при заявленной независимости — замер
+    на неизменных данных с подменённым `mu` (сдвиг на одну ПШПВ) переворачивал
+    вердикт у 211 линий из 557 понятной части. Ответ на вопрос «сел ли фит на
+    эту вершину» никуда не делся: он возвращается ОТДЕЛЬНО (`mu_hit`) и
+    считается отдельной колонкой, чтобы два разных вопроса не смешивались в
+    одном числе. Снятие зажима не тронуло НИ ОДНОГО вердикта на всём корпусе
+    (0 из 557 / 0 из 274 / 0 из 87), то есть прежние доли остаются в силе.
+
+    ⚠ Признак называется `пик-3√N` и живёт также в `gate_blind_check.vertex`
+    (`V17`: доля с вершиной — величина ПРИЗНАКА, цитировать только с именем).
+
+    Возвращает (годится, высота над прямой, порог 3√N, фит сел на эту вершину).
+    `mu_hit` равен None, когда `mu` не передан, и False, когда вершины нет.
     """
     n = len(counts)
     half = max(4, int(round(window * sigma0)))
     lo = int(max(0, round(ch0 - half)))
     hi = int(min(n - 1, round(ch0 + half)))
     if hi - lo + 1 < 8:
-        return False, 0.0, 0.0
+        return False, 0.0, 0.0, None
     x = np.arange(lo, hi + 1, dtype=float)
     y = np.asarray(counts[lo:hi + 1], dtype=float)
     ys = np.convolve(y, np.ones(3) / 3.0, mode='same')
@@ -335,15 +388,15 @@ def bump_ok(counts, ch0, sigma0, mu, window=2.2):
     top = float(y[k] - (b0 + b1 * x[k]))
     need = 3.0 * np.sqrt(max(y[k], 1.0))
     if k < 1 or k > x.size - 2:
-        return False, top, need          # вершины нет — окно на склоне
+        return False, top, need, False   # вершины нет — окно на склоне
     if top < need:
-        return False, top, need          # над континуумом ничего не поднялось
+        return False, top, need, False   # над континуумом ничего не поднялось
     drop = min(float(ys[k] - ys[:k].min()), float(ys[k] - ys[k + 1:].min()))
     if drop < need:
-        return False, top, need          # спада по обе стороны нет — это ступень
-    if abs(mu - x[k]) > sigma0 * gaussfit.FWHM_SIGMA:
-        return False, top, need          # фит сел не на эту вершину
-    return True, top, need
+        return False, top, need, False   # спада по обе стороны нет — это ступень
+    mu_hit = (None if mu is None
+              else bool(abs(mu - x[k]) <= sigma0 * gaussfit.FWHM_SIGMA))
+    return True, top, need, mu_hit
 
 
 # ---------------------------------------------------------------------------
@@ -390,12 +443,15 @@ def fake_lines(lines, res_a, sign):
 def main():
     only = None
     csv_out = None
+    raw_dir = RAW
     ref_path = os.path.join(HERE, 'gaussfit_ref.py')
     for a in sys.argv[1:]:
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
         elif a.startswith('--csv='):
             csv_out = a.split('=', 1)[1]
+        elif a.startswith('--raw='):
+            raw_dir = a.split('=', 1)[1]
         elif a.startswith('--ref='):
             ref_path = a.split('=', 1)[1]
         elif a.startswith('--shi='):
@@ -423,6 +479,8 @@ def main():
     res_by_det = det_res_a()
     part_of = parts_of()
     cov = Coverage(requested=only)
+    if os.path.abspath(raw_dir) != os.path.abspath(RAW):
+        print(u'⚠ сырьё берётся НЕ из scripts/_corpus_raw, а из %s' % raw_dir)
     read_ok = []                  # спектры, до которых мерка вообще дошла
     rows = []
     detail = []
@@ -430,9 +488,10 @@ def main():
         key = e['key']
         if only and key not in only:
             continue
-        raw = os.path.join(RAW, key + '.xml')
+        raw = os.path.join(raw_dir, key + '.xml')
         if not os.path.isfile(raw):
-            print(u'%-24s НЕТ своей копии в _corpus_raw' % key)
+            print(u'%-24s НЕТ своей копии в %s'
+                  % (key, os.path.basename(os.path.normpath(raw_dir))))
             continue
         res_a = res_by_det.get(e['det'])
         if res_a is None:
@@ -483,24 +542,30 @@ def main():
                 moved += 1
 
         real = 0
+        miss_mu = 0               # `T95`: вершина есть, а фит сел мимо неё
         for k in only_new:
             a = got['новый'][k]
             ch0 = cal.channel(a['e_ref'])
             dedch = abs(cal.dEdch(ch0))
             fwhm_ch = max(res_a * np.sqrt(max(a['e_ref'], 5.0)) / max(dedch, 1e-9), 1.2)
-            ok, top, need = bump_ok(sp.counts, ch0, fwhm_ch / gaussfit.FWHM_SIGMA,
-                                    a['ch'])
+            ok, top, need, mu_hit = bump_ok(
+                sp.counts, ch0, fwhm_ch / gaussfit.FWHM_SIGMA, a['ch'])
             real += 1 if ok else 0
+            miss_mu += 1 if (ok and mu_hit is False) else 0
             detail.append(dict(key=key, det=e['det'], part=part_of.get(key, '?'),
                                e_ref=a['e_ref'], label=a['label'], ch=a['ch'],
                                sig=a['sig'], sig_fit=a.get('sig_fit', 0.0),
                                fwhm=a['fwhm'], fwhm_model=fwhm_ch,
-                               bump='да' if ok else 'НЕТ', top=top, need=need))
+                               bump='да' if ok else 'НЕТ',
+                               mu_hit=('—' if mu_hit is None
+                                       else ('да' if mu_hit else 'НЕТ')),
+                               top=top, need=need))
 
         rows.append(dict(key=key, det=e['det'], part=part_of.get(key, '?'),
                          old=len(got['старый']), new=len(got['новый']),
                          gain=len(only_new), lost=len(only_old), moved=moved,
-                         real=real, noconv_old=len(nocv['старый'][0]),
+                         real=real, miss_mu=miss_mu,
+                         noconv_old=len(nocv['старый'][0]),
                          noconv_new=len(nocv['новый'][0]),
                          bound_new=len(nocv['новый'][1]),
                          fake_old=fake_old, fake_new=fake_new,
@@ -550,6 +615,13 @@ def main():
                  sum(r['fake_old_bump'] for r in sub),
                  sum(r['fake_new_bump'] for r in sub)))
     print(u'⛔ части НЕ СКЛАДЫВАЮТСЯ — числа разных моделей')
+    print(u'⚠ «бугор» — доля по признаку `пик-3√N`; это величина ПРИЗНАКА, а не '
+          u'корпуса (`V17`), цитировать только вместе с его именем.')
+    # `T95`: второй вопрос — «сел ли фит НА эту вершину» — стоит отдельно и
+    # больше не подмешивается в долю «бугор».
+    print(u'⚠ `T95`: вершина есть, а фит сел от неё дальше ПШПВ — %d случаев '
+          u'из %d (в вердикт «бугор» это БОЛЬШЕ не входит)'
+          % (sum(r['miss_mu'] for r in rows), sum(r['real'] for r in rows)))
     cov.warn(u'в сводке (есть курированные линии)')
 
     print(u'')
@@ -578,13 +650,15 @@ def main():
         with io.open(csv_out, 'w', encoding='utf-8', newline='') as f:
             w = csv.writer(f)
             w.writerow(['spectrum', 'det', 'part', 'e_ref', 'label', 'ch', 'sig',
-                        'sig_fit', 'fwhm', 'fwhm_model', 'bump', 'top', 'need'])
+                        'sig_fit', 'fwhm', 'fwhm_model', 'bump', 'mu_hit',
+                        'top', 'need'])
             for d in detail:
                 w.writerow([d['key'], d['det'], d['part'], '%.3f' % d['e_ref'],
                             d['label'], '%.3f' % d['ch'], '%.2f' % d['sig'],
                             '%.2f' % d['sig_fit'],
                             '%.3f' % d['fwhm'], '%.3f' % d['fwhm_model'],
-                            d['bump'], '%.1f' % d['top'], '%.1f' % d['need']])
+                            d['bump'], d['mu_hit'],
+                            '%.1f' % d['top'], '%.1f' % d['need']])
         print(u'\nподробности: %s' % csv_out)
     # `T76`: у признака есть ЧИТАТЕЛЬ — код возврата. 3 = охват сломан
     # (пропало то, что пропасть не должно); ожидаемая семёрка сюда не входит,

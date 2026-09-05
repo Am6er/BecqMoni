@@ -1,0 +1,282 @@
+diff --git a/tools/CORPUS/scripts/appwd_plan.ps1 b/tools/CORPUS/scripts/appwd_plan.ps1
+index e4fbcfee..6569468a 100644
+--- a/tools/CORPUS/scripts/appwd_plan.ps1
++++ b/tools/CORPUS/scripts/appwd_plan.ps1
+@@ -120,6 +120,76 @@ $script:AppWdStampName   = '.appwd.json'
+ # в обе стороны: состав библиотеки задаёт и поиск пиков, и разбор FSA.
+ $script:AppWdNuclideMin = 100
+ 
++# ⛔ ПУТИ ПЛАНА ПРИВОДЯТСЯ К АБСОЛЮТНЫМ, И ЭТО НЕ ПРИДИРКА К СТИЛЮ — измерено
++#    05.09.2026 (полоса C2 нашла, полоса C6 воспроизвела). `Get-AppWdExtra`
++#    сравнивает `Dst` из плана с `FullName` обхода каталога СТРОКАМИ, а обход
++#    идёт от `Resolve-Path`, то есть от АБСОЛЮТНОГО пути. Дай плану
++#    относительный `-Wd tools\CORPUS\scripts\wd_app_c6` — и ни один `Dst` не
++#    совпадёт: вся оснастка объявляется посторонней. Опыт: `mk_appwd.ps1`
++#    положил 235 файлов и тут же ВЫНЕС 233 своим же `Remove-AppWdExtra`,
++#    оставив каталог из двух файлов, «конфигураций приборов: 0, матриц: 0», —
++#    и поставил отметку. Тот же вызов с абсолютным `-Wd`: вынесено 0,
++#    конфигураций 24, матриц 5.
++#    ⚠ Чинится в ДВУХ местах нарочно: пути нормализуются на входе в план, и
++#      сравнение в `Get-AppWdExtra` идёт по `GetFullPath` обеих сторон. Первое
++#      закрывает причину, второе — тот же класс беды, если путь придёт мимо
++#      плана (`..\`, короткое имя 8.3, лишний слэш).
++function Resolve-AppWdPath {
++    param([Parameter(Mandatory)][AllowEmptyString()][string]$Path)
++    if (-not $Path) { return $Path }
++    if (-not [System.IO.Path]::IsPathRooted($Path)) {
++        $Path = Join-Path (Get-Location).ProviderPath $Path
++    }
++    [System.IO.Path]::GetFullPath($Path)
++}
++
++# ⛔ ИСХОДНИКИ ПРОБ — ОДИН СПИСОК НА ДВОИХ (`T89`, остаток `T83`). Тот же набор
++#    `.cs` нужен `build_all.ps1` (чем компилировать) и плану (чем отсеять exe
++#    без исходника и чем судить о свежести сборки). До 05.09.2026 перебор стоял
++#    в обоих файлах, и расхождение ловилось только сверкой множеств — то есть
++#    ПОСЛЕ того, как один из двух перестанет видеть пробу. Теперь список один,
++#    а сверка осталась страховкой на случай, если кто-то заведёт свой перебор
++#    заново. Ключи `-File -Force` — часть правила: без `-Force` скрытый `.cs`
++#    попадал бы в план и не попадал в сборку.
++function Get-AppWdProbeSources {
++    param([Parameter(Mandatory)][string]$Repo)
++    $r = Resolve-AppWdPath $Repo
++    @(Get-ChildItem (Join-Path $r 'tools\effmaker\*.cs') -File -Force -ErrorAction SilentlyContinue) +
++    @(Get-ChildItem (Join-Path $r 'tools\effmaker\probes\*.cs') -File -Force -ErrorAction SilentlyContinue)
++}
++
++# ⛔ СКЛЕЕННЫЙ КЛЮЧ ПРОБЫ — ОДНА МЕРКА НА ПРОГОН И НА ПРИЁМКУ (`T84`).
++#    Мерку спрашивает `run_appwd.ps1` перед запуском пробы и `check_appwd.ps1
++#    -SelfTest`, который подбрасывает ей заведомо плохие и заведомо хорошие
++#    входы. Второго списка признаков не бывает: проверка, написанная отдельно
++#    от той, что работает, проверяет не её.
++#
++#    Четыре признака, и ни один невозможен у настоящего ключа:
++#      * кавычка ВНУТРИ аргумента — её вносит расщепление командной строки;
++#      * `--` после запятой или пробела — ВТОРОЙ ключ в том же аргументе
++#        (запятая сама по себе законна: `--groups=G1S,ASN16`, `--only=a,b`);
++#      * любой пробел внутри аргумента — ключей и значений с пробелом у пробы
++#        нет (проверено 05.09.2026 по `manifest.csv`: имён спектров с пробелом
++#        ноль). `--only=ASN16 Cs137` прежняя мерка пропускала (0 признаков из
++#        трёх), проба его принимала и отвечала «под отбор не попал ни один
++#        спектр», код 2 — измерено 05.09.2026. ⚠ Молчаливым этот случай НЕ был,
++#        но диагноз назывался НЕ ТОТ: из «ни одного спектра» не видно, что
++#        аргумент склеился, и ищут ошибку в имени спектра. Мерка называет
++#        причину и до пробы дело не доводит;
++#      * аргумент, не начинающийся с `--`, — ключей иного вида у пробы нет.
++function Get-AppWdGluedExtra {
++    param([string[]]$Extra = @())
++    $glued = [System.Collections.Generic.List[string]]::new()
++    foreach ($e in @($Extra)) {
++        if ($null -eq $e)           { continue }
++        if ($e -match '["'']')      { $glued.Add("кавычки внутри аргумента: $e"); continue }
++        if ($e -match '[,\s]\s*--') { $glued.Add("два ключа в одном аргументе: $e"); continue }
++        if ($e -match '\s')         { $glued.Add("пробел внутри аргумента: $e"); continue }
++        if ($e -notmatch '^--')     { $glued.Add("ключ пробы обязан начинаться с --: $e") }
++    }
++    @($glued)
++}
++
+ function Get-AppWdPlan {
+     param(
+         [Parameter(Mandatory)][string]$Repo,
+@@ -140,6 +210,14 @@ function Get-AppWdPlan {
+         [string]$Store = ''
+     )
+ 
++    # ⛔ ПЕРВЫМ ДЕЛОМ — В АБСОЛЮТНЫЕ (см. `Resolve-AppWdPath`): относительный
++    #    `-Wd` заставлял сборщика вынести собственную оснастку целиком.
++    $Repo       = Resolve-AppWdPath $Repo
++    $Bin        = Resolve-AppWdPath $Bin
++    $Wd         = Resolve-AppWdPath $Wd
++    $ProbeBuild = Resolve-AppWdPath $ProbeBuild
++    $Store      = Resolve-AppWdPath $Store
++
+     $corpus     = Join-Path $Repo 'tools\CORPUS\corpus'
+     $storeDir   = if ($Store) { $Store } else { Join-Path $corpus 'geometries' }
+     $response   = Join-Path $storeDir 'response'
+@@ -192,8 +270,9 @@ function Get-AppWdPlan {
+     # Ровно этот набор собирает `build_all.ps1`, и здесь он нужен дважды —
+     # отсеять из каталога exe БЕЗ ИСХОДНИКА и назвать самый свежий `.cs`
+     # (`Test-AppWdBuild`). Поэтому он считается ОДИН раз и живёт в плане.
+-    $probeSrc = @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\*.cs') -File -Force -ErrorAction SilentlyContinue) +
+-                @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\probes\*.cs') -File -Force -ErrorAction SilentlyContinue)
++    # ⛔ Сам перебор живёт в `Get-AppWdProbeSources` и зовётся ОТТУДА ЖЕ
++    #    сборщиком проб (`T89`): двух переборов одного набора не бывает.
++    $probeSrc = @(Get-AppWdProbeSources -Repo $Repo)
+     $srcNames = @{}
+     foreach ($f in $probeSrc) { $srcNames[$f.BaseName.ToLowerInvariant()] = $true }
+ 
+@@ -316,8 +395,12 @@ function Get-AppWdExtra {
+     if (-not (Test-Path -LiteralPath $Plan.Wd)) { return @($res) }
+     $wd = (Resolve-Path -LiteralPath $Plan.Wd).Path.TrimEnd('\')
+ 
++    # ⛔ СРАВНЕНИЕ — ПО НОРМАЛИЗОВАННЫМ ПУТЯМ С ОБЕИХ СТОРОН (05.09.2026).
++    #    Обход даёт `FullName`, то есть абсолютный путь; `Dst` брался как есть.
++    #    Относительный `-Wd` разводил стороны, и ВСЯ оснастка объявлялась
++    #    посторонней — 233 файла из 235 вынесены собственным сборщиком.
+     $dstSet = @{}
+-    foreach ($p in $Plan.Pairs) { $dstSet[$p.Dst.ToLowerInvariant()] = $true }
++    foreach ($p in $Plan.Pairs) { $dstSet[(Resolve-AppWdPath $p.Dst).ToLowerInvariant()] = $true }
+     # Каталоги, которые строятся из корпуса ЦЕЛИКОМ, названы планом; здесь они
+     # нужны только затем, чтобы отказ называл ЦЕНУ лишнего файла именно там.
+     $excl = @{}
+@@ -656,6 +739,116 @@ function Test-AppWdStore {
+     return [pscustomobject]@{ Bad = $bad; Note = 'РАСХОЖДЕНИЕ' }
+ }
+ 
++# ⛔ СТОРОЖ ПУТИ ЗАПУСКА (`T68`, `T91`; заведён 05.09.2026).
++#
++# Сторож оснастки стережёт КАТАЛОГ, а щель `T68` не в каталоге: `run_appwd.ps1`
++# не пускает пробу на протухшей оснастке, но `cd wd_app; .\CorpusFsaProbe.exe …`
++# идёт мимо него — и именно эту команду печатают README и памятки. Щель не в
++# коде, а в том, что ДОКУМЕНТИРОВАННЫЙ путь — обходной. Пока правило жило
++# словами, оно и оставалось словами: `sweep_s57.ps1:27` берёт путь к пробе
++# напрямую и гоняет её по всей развёртке порогов — автоматический потребитель,
++# мимо сторожа, месяцами.
++#
++# Здесь то же правило записано МАШИННО: сторож обходит дерево и называет
++# каждое место, где пробу зовут напрямую или где обёртку зовут запрещённой
++# формой `pwsh <файл>.ps1` (`T84`: аргументы разбирает командная строка, массив
++# `-Extra` схлопывается со второго ключа).
++#
++# ⚠ Что сюда НЕ входит и почему: ЖУРНАЛЫ (`handover*`, `*journal*`). Журнал —
++#   запись того, как было сделано тогда, и переписывать его задним числом
++#   нельзя; учит же тот, кто говорит «делай так»: `README.md` и скрипты.
++#   Строка, которой правило не писано (пример разбора, чужой каталог), метится
++#   в самом файле словом `appwd-ok` — молчаливых исключений в коде нет.
++function Test-AppWdCallers {
++    param([Parameter(Mandatory)][string]$Repo)
++
++    $repo = Resolve-AppWdPath $Repo
++    $mine = @('appwd_plan.ps1', 'mk_appwd.ps1', 'run_appwd.ps1', 'check_appwd.ps1')
++    $files = @(Get-ChildItem (Join-Path $repo 'tools') -Recurse -File -Force -ErrorAction SilentlyContinue |
++               Where-Object { $_.Extension -in @('.ps1', '.py', '.cmd', '.sh', '.md') } |
++               Where-Object { $_.Name -notin $mine } |
++               Where-Object { $_.Name -notmatch 'handover|journal' })
++
++    $bad = [System.Collections.Generic.List[object]]::new()
++    foreach ($f in $files) {
++        $inCorpus = $f.FullName.ToLowerInvariant().Contains('\tools\corpus\')
++        $n = 0
++        foreach ($line in (Get-Content -LiteralPath $f.FullName -Encoding utf8 -ErrorAction SilentlyContinue)) {
++            $n++
++            if ($line -match 'appwd-ok') { continue }
++            $why = $null
++            # ⚠ ОТКАЗ — там, где ЛОМАЕТСЯ, заметка — где только некрасиво.
++            #   У `mk_appwd.ps1` массивных параметров нет, и форма `pwsh <файл>`
++            #   ему ничего не портит: правило единое, но сторож, который
++            #   краснеет на безвредном, перестают читать.
++            $deny = $true
++            if ($line -match '\.\\CorpusFsaProbe\.exe' -or $line -match '&\s*[^\r\n]*CorpusFsaProbe\.exe') {
++                $why = 'проба зовётся НАПРЯМУЮ, мимо сторожа оснастки (T68)'
++            } elseif ($inCorpus -and $line -match '\$\w+\s*=\s*[^\r\n]*CorpusFsaProbe\.exe') {
++                $why = 'путь к пробе кладётся в переменную — так её зовут мимо сторожа (T68)'
++            } elseif ($line -match 'pwsh[^\r\n]*(run_appwd|run_mini)\.ps1' -and $line -notmatch '-Command') {
++                $why = 'обёртка зовётся ФАЙЛОМ: массив -Extra схлопывается со второго ключа (T84)'
++            } elseif ($line -match 'pwsh[^\r\n]*mk_appwd\.ps1' -and $line -notmatch '-Command') {
++                $why = 'запуск ФАЙЛОМ; у mk_appwd.ps1 массивов нет, поэтому заметка, а не отказ (T91)'
++                $deny = $false
++            }
++            if ($why) {
++                $bad.Add([pscustomobject]@{
++                    File = $f.FullName.Substring($repo.Length).TrimStart('\')
++                    Line = $n
++                    Text = $line.Trim()
++                    Why  = $why
++                    Deny = $deny
++                })
++            }
++        }
++    }
++    @($bad)
++}
++
++# ⛔ ПРИЁМКА ПЕРЕДАЧИ КЛЮЧЕЙ (`T84`; заведена 05.09.2026). Ставит три опыта на
++#    КОПИИ блока `param()` из `run_appwd.ps1` и говорит числом, сколько ключей
++#    доехало до потребителя при каждом способе запуска. Опыт с ОДНИМ ключом
++#    проходит всегда — им дефект и не ловится; ломается со второго, поэтому
++#    берутся один, два и три.
++#
++#    ⚠ Приёмка обязана ОТКАЗЫВАТЬ на заведомо плохом входе, иначе она меряет
++#      пустоту: сюда же подбрасываются склеенный токен, ключ с пробелом и ключ
++#      без `--`, и мерка `Get-AppWdGluedExtra` — та самая, что стоит на пути
++#      прогона, — обязана назвать каждый.
++function Test-AppWdExtraPassing {
++    param()
++
++    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("appwd_extra_" + [Guid]::NewGuid().ToString('N').Substring(0, 8) + '.ps1')
++    @'
++param([string[]]$Extra = @(), [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest)
++Write-Output ("extra={0} rest={1}" -f @($Extra).Count, @($Rest).Count)
++'@ | Set-Content -LiteralPath $tmp -Encoding utf8
++
++    $res = [System.Collections.Generic.List[object]]::new()
++    try {
++        foreach ($k in 1..3) {
++            $keys = @('--band=whole', '--only=ASN16_Cs137', '--share-thr=0.30')[0..($k - 1)]
++            $lit  = ($keys | ForEach-Object { "'" + $_ + "'" }) -join ','
++
++            $good = & $tmp -Extra $keys
++            $viaCommand = pwsh -NoProfile -Command "& '$tmp' -Extra $lit"
++            $viaFile    = pwsh -NoProfile -File $tmp -Extra ($keys -join ',')
++
++            foreach ($row in @(
++                @{ How = "& <файл> из сессии";                 Out = $good;       Want = $k }
++                @{ How = 'pwsh -NoProfile -Command "& <файл>"'; Out = $viaCommand; Want = $k }
++                @{ How = 'pwsh -File <файл> (ЗАПРЕЩЕНО)';       Out = $viaFile;    Want = 1 }
++            )) {
++                $got = 0
++                if ("$($row.Out)" -match 'extra=(\d+)') { $got = [int]$Matches[1] }
++                $res.Add([pscustomobject]@{ Keys = $k; How = $row.How; Got = $got; Want = $row.Want })
++            }
++        }
++    } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
++    @($res)
++}
++
+ # Сторож целиком. Печатает вердикт, ВОЗВРАЩАЕТ число отказных находок.
+ # Ноль — оснастка свежая; всё остальное обязано останавливать прогон.
+ #
+@@ -663,8 +856,18 @@ function Test-AppWdStore {
+ # копирования. Отметки о сборке в этот момент ещё нет по замыслу (её пишут
+ # последним действием и только после удачной самопроверки), поэтому и только
+ # поэтому её отсутствие в этом режиме не считается находкой.
++#
++# ⛔ `-AllowStaleBuild` — РОВНО ТО, ЧТО РАЗРЕШАЕТ `-Force` У СБОРЩИКА, И НИЧЕГО
++#    БОЛЬШЕ (05.09.2026). `-Force` объявлен как «собрать из ПРОТУХШЕЙ сборки»,
++#    то есть прощает находки `Test-AppWdBuild`. До этой правки он глушил
++#    самопроверку ЦЕЛИКОМ: `mk_appwd.ps1` печатал «⛔⛔ ОТКАЗ: ОСНАСТКА НЕ
++#    СООТВЕТСТВУЕТ ИСХОДНИКАМ — ПРОГОН НЕ ЗАПУСКАЕТСЯ», выходил кодом 0 и
++#    ОСТАВЛЯЛ отметку `.appwd.json` — против собственного обещания в шапке
++#    («ОТКАЗЫВАЕТ кодом возврата, НЕ ОСТАВЛЯЯ ОТМЕТКИ»). Это возврат `T80`:
++#    отказ, не доехавший до кода возврата, выглядит как успех.
++#    Прощённые находки печатаются жёлтым и поимённо: молчаливого прощения нет.
+ function Invoke-AppWdGuard {
+-    param([Parameter(Mandatory)]$Plan, [switch]$Building)
++    param([Parameter(Mandatory)]$Plan, [switch]$Building, [switch]$AllowStaleBuild)
+ 
+     $sw = [Diagnostics.Stopwatch]::StartNew()
+     $b = Test-AppWdBuild   -Plan $Plan
+@@ -679,6 +882,10 @@ function Invoke-AppWdGuard {
+     # библиотека, — а пофайловая сверка последней.
+     # Сверка перекладки идёт сразу за отметкой и сборкой: она решает судьбу
+     # прогона целиком — на чужих матрицах он отработает штатно и молча.
++    # Прощаются РОВНО находки сборки и только по явному ключу; всё остальное
++    # остаётся отказом даже при `-Force` у сборщика.
++    $forgiven = @()
++    if ($AllowStaleBuild) { $forgiven = @($b.Bad); $b = [pscustomobject]@{ Bad = @() } }
+     $bad = @($s.Bad) + @($b.Bad) + @($m.Bad) + @($l.Bad) + @($p.Bad)
+ 
+     Write-Host ""
+@@ -695,6 +902,11 @@ function Invoke-AppWdGuard {
+     foreach ($x in $Plan.Strays) {
+         Write-Host ("  ⚠ в каталоге проб exe без исходника, в оснастку не едет: {0}  {1}" -f $x.Name, $x.LastWriteTime.ToString('dd.MM HH:mm')) -ForegroundColor Yellow
+     }
++    # Прощённое `-Force`-ом называется вслух: осознанным прогон бывает только
++    # тогда, когда видно, ЧТО именно прощено.
++    foreach ($x in $forgiven) {
++        Write-Host ("  ⚠⚠ ПРОЩЕНО ключом -Force: {0}" -f $x) -ForegroundColor Yellow
++    }
+     # Не по плану, но и не загружается: продукты прогонов. Перечисляются, чтобы
+     # видно было, ЧТО именно сторож пропустил, — но не отказ: иначе сторож
+     # отказывал бы после каждого прогона, а такой сторож бесполезен.

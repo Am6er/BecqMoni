@@ -68,6 +68,8 @@ namespace DoseRateProbe
 
         static string corpusDir = @"tools\CORPUS\corpus";
 
+        static string lsrmDir = @"LSRM Geometries\Exported Curves";
+
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -76,6 +78,10 @@ namespace DoseRateProbe
                 if (a.StartsWith("--dir=", StringComparison.Ordinal))
                 {
                     corpusDir = a.Substring(6);
+                }
+                else if (a.StartsWith("--lsrm=", StringComparison.Ordinal))
+                {
+                    lsrmDir = a.Substring(7);
                 }
                 else
                 {
@@ -93,6 +99,8 @@ namespace DoseRateProbe
                 OfferedCurves();
                 OfferedSpectra();
                 LsrmReaderStillWorks();
+                LsrmRealExports();
+                OverflowRule();
                 TruncationPrice();
             }
             catch (Exception ex)
@@ -489,7 +497,637 @@ namespace DoseRateProbe
         }
 
         // ==================================================================
-        // 6. Цена молчаливого обрезания 40–3000 кэВ
+        // 6. `T174` — ВОСЕМЬ НАСТОЯЩИХ экспортов ЛСРМ
+        // ==================================================================
+
+        /// <summary>
+        /// Якорь одного файла, снятый ГЛАЗАМИ из самого файла, а не тем кодом,
+        /// который проверяется. Способ снятия: `head`/`tail`/`xxd` по сырым
+        /// байтам плюс `awk -F'\t'` по колонкам — три независимых от приложения
+        /// инструмента; вывод прочитан и переписан сюда руками 05.09.2026.
+        /// </summary>
+        sealed class LsrmAnchor
+        {
+            public string File;
+            public int DataRows;        // строк данных в файле (без шапки)
+            public double FirstEnergy;  // энергия ПЕРВОЙ строки файла
+            public double FirstEff;     // её эффективность
+            public double FirstError;   // её заявленная погрешность, %
+            public double KeptEnergy;   // энергия первой ОСТАВШЕЙСЯ точки
+            public double KeptEff;      // её эффективность
+            public double LastEnergy;
+            public double LastEff;
+            public double LastError;
+        }
+
+        static readonly LsrmAnchor[] LsrmAnchors =
+        {
+            new LsrmAnchor { File = "Nano 16 - cilinder - 5cm dist.txt", DataRows = 151,
+                             FirstEnergy = 20.0, FirstEff = 1.40534E-05,
+                             FirstError = 625,
+                             KeptEnergy = 40.0, KeptEff = 2.74157E-03,
+                             LastEnergy = 3020.0, LastEff = 2.71587E-04, LastError = 7.62 },
+            new LsrmAnchor { File = "Nano 16 - cilinder.txt", DataRows = 151,
+                             FirstEnergy = 20.0, FirstEff = 1.80392E-03,
+                             FirstError = 927,
+                             KeptEnergy = 40.0, KeptEff = 4.00862E-02,
+                             LastEnergy = 3020.0, LastEff = 2.36069E-03, LastError = 12.9 },
+            new LsrmAnchor { File = "Nano 16 - marinelli.txt", DataRows = 60,
+                             FirstEnergy = 10.0, FirstEff = 9.76E-17,
+                             FirstError = 3830,
+                             KeptEnergy = 60.0, KeptEff = 1.45493E-02,
+                             LastEnergy = 2960.0, LastEff = 7.54984E-04, LastError = 6.86 },
+            new LsrmAnchor { File = "Obsidian - marinelli 0.5.txt", DataRows = 150,
+                             FirstEnergy = 20.0, FirstEff = 1.47185E+03,
+                             FirstError = 554,
+                             KeptEnergy = 40.0, KeptEff = 5.55793E-03,
+                             LastEnergy = 3000.0, LastEff = 2.80456E-05, LastError = 11 },
+            new LsrmAnchor { File = "RadiaCode - author marinelli 0.2.txt", DataRows = 150,
+                             FirstEnergy = 20.0, FirstEff = 3.84173E-03,
+                             FirstError = 1100,
+                             KeptEnergy = 40.0, KeptEff = 4.94988E-03,
+                             LastEnergy = 3000.0, LastEff = 6.37685E-05, LastError = 22.5 },
+            new LsrmAnchor { File = "RadiaCode - author marinelli 0.5.txt", DataRows = 150,
+                             FirstEnergy = 20.0, FirstEff = 1.12419E-01,
+                             FirstError = 1170,
+                             KeptEnergy = 40.0, KeptEff = 3.39528E-03,
+                             LastEnergy = 3000.0, LastEff = 4.19508E-05, LastError = 22.6 },
+            new LsrmAnchor { File = "RadiaCode - cilinder.txt", DataRows = 151,
+                             FirstEnergy = 20.0, FirstEff = 2.43683E-03,
+                             FirstError = 622,
+                             KeptEnergy = 40.0, KeptEff = 9.32679E-03,
+                             LastEnergy = 3020.0, LastEff = 1.35734E-04, LastError = 12.3 },
+            new LsrmAnchor { File = "RadiaCode - marinelli 0.5.txt", DataRows = 150,
+                             FirstEnergy = 20.0, FirstEff = 4.55616E-02,
+                             FirstError = 1150,
+                             KeptEnergy = 40.0, KeptEff = 2.76634E-03,
+                             LastEnergy = 3000.0, LastEff = 2.48089E-05, LastError = 21.4 },
+        };
+
+        static MethodInfo LsrmReader()
+        {
+            MethodInfo reader = typeof(DeviceConfigForm).GetMethod(
+                "ReadLsrmEfficiencyExport", BindingFlags.NonPublic | BindingFlags.Static);
+            if (reader == null)
+            {
+                throw new InvalidOperationException("нет DeviceConfigForm.ReadLsrmEfficiencyExport");
+            }
+
+            return reader;
+        }
+
+        static List<ROIEfficiencyData> ReadLsrm(string path, out string problem)
+        {
+            object[] call = { path, null };
+            var points = (List<ROIEfficiencyData>)LsrmReader().Invoke(null, call);
+            problem = (string)call[1];
+            return points;
+        }
+
+        static bool Close(double a, double b)
+        {
+            return Math.Abs(a - b) <= 1e-9 * Math.Max(1.0, Math.Abs(b));
+        }
+
+        /// <summary>
+        /// `T174`. Восемь НАСТОЯЩИХ экспортов ЛСРМ из дерева против якоря,
+        /// снятого из файлов глазами. Плюс положительный контроль: испорченный
+        /// файл обязан ОТКАЗАТЬ, а не прочитаться наполовину.
+        /// </summary>
+        static void LsrmRealExports()
+        {
+            Console.WriteLine();
+            Console.WriteLine("== `T174`: восемь настоящих экспортов ЛСРМ ==");
+            Console.WriteLine("   правило: точка с заявленной погрешностью выше {0:f0} % в кривую НЕ берётся"
+                              + " (решение Amber 05.09.2026)", DeviceConfigForm_LsrmMaxErrorPercent());
+
+            if (!Directory.Exists(lsrmDir))
+            {
+                Console.WriteLine("  нет каталога " + lsrmDir + " — плечо пропущено");
+                failed++;
+                checks++;
+                return;
+            }
+
+            // ⚠ Сначала — что каталог не сузился и не разросся: якорь на восемь
+            // файлов ничего не значит, если файлов в дереве стало девять.
+            string[] present = Directory.GetFiles(lsrmDir, "*.txt");
+            Ok(present.Length == LsrmAnchors.Length,
+               string.Format("файлов в «{0}»: {1} (якорь на {2})",
+                             lsrmDir, present.Length, LsrmAnchors.Length));
+
+            int totalDropped = 0;
+            foreach (LsrmAnchor a in LsrmAnchors)
+            {
+                string path = Path.Combine(lsrmDir, a.File);
+                if (!File.Exists(path))
+                {
+                    Ok(false, "нет файла " + path);
+                    continue;
+                }
+
+                string problem;
+                List<ROIEfficiencyData> points = ReadLsrm(path, out problem);
+                int expected = a.DataRows - 1;   // отсекается РОВНО первая точка
+                int dropped = a.DataRows - points.Count;
+                totalDropped += dropped;
+
+                bool ok = problem == null
+                          && points.Count == expected
+                          && Close(points[0].Energy, a.KeptEnergy)
+                          && Close(points[0].Efficiency, a.KeptEff)
+                          && Close(points[points.Count - 1].Energy, a.LastEnergy)
+                          && Close(points[points.Count - 1].Efficiency, a.LastEff)
+                          && Close(points[points.Count - 1].ErrorPercent, a.LastError);
+
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "  {0,-38} строк {1}, отсечено {2} (первая была {3:f1} кэВ при {4:f0} %),"
+                    + " осталось {5}: {6:f1}…{7:f1} кэВ, eff {8:e5} … {9:e5}",
+                    a.File, a.DataRows, dropped, a.FirstEnergy, a.FirstError, points.Count,
+                    points.Count > 0 ? points[0].Energy : -1,
+                    points.Count > 0 ? points[points.Count - 1].Energy : -1,
+                    points.Count > 0 ? points[0].Efficiency : -1,
+                    points.Count > 0 ? points[points.Count - 1].Efficiency : -1));
+                Ok(ok, string.Format(CultureInfo.InvariantCulture,
+                    "{0}: точек {1} (якорь {2}), первая {3:f1} кэВ (якорь {4:f1}),"
+                    + " последняя {5:f1} кэВ eff {6:e5} (якорь {7:f1} / {8:e5}), жалоб «{9}»",
+                    a.File, points.Count, expected,
+                    points.Count > 0 ? points[0].Energy : -1, a.KeptEnergy,
+                    points.Count > 0 ? points[points.Count - 1].Energy : -1,
+                    points.Count > 0 ? points[points.Count - 1].Efficiency : -1,
+                    a.LastEnergy, a.LastEff, Short(problem)));
+            }
+
+            Ok(totalDropped == LsrmAnchors.Length,
+               string.Format("отсечено правилом 100 % всего {0} точек на {1} файлов —"
+                             + " ровно по одной, второй такой точки нет ни в одном",
+                             totalDropped, LsrmAnchors.Length));
+
+            LsrmCorruptions();
+            LsrmCutPrice();
+        }
+
+        /// <summary>
+        /// ⚠ ЦЕНА ОТСЕЧЕНИЯ — та ли она, о которой говорит смежная строка
+        /// `A200` (покрытие Am-241). `A200` про ШИРИНУ кривой: сетка мощности
+        /// дозы обрезана протяжённостью кривой, поставочные кривые идут ровно
+        /// 40…3000 кэВ, и низ Am-241 остаётся вне счёта. Отсечение по
+        /// погрешности эту ширину МЕНЯЕТ — оно снимает самую нижнюю точку
+        /// каждого экспорта, — поэтому вопрос «попадает ли оно в ту же цену»
+        /// разрешается только замером.
+        ///
+        /// ⛔ `A200` этим НЕ закрывается: она про поставочные `config/ROI/*.xml`,
+        /// а здесь мерятся файлы `LSRM Geometries/Exported Curves`.
+        /// </summary>
+        static void LsrmCutPrice()
+        {
+            Console.WriteLine();
+            Console.WriteLine("  -- цена отсечения для покрытия Am-241 (смежная `A200`, НЕ закрывается) --");
+
+            string devicePath = Path.Combine(corpusDir, "devices",
+                "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml");
+            string spectra = Path.Combine(corpusDir, "spectra");
+            ResultData etalon = LoadSpectrum(Path.Combine(spectra, "ASN16_Cs137.xml"));
+            ResultData americium = LoadSpectrum(Path.Combine(spectra, "ASN16_Am241.xml"));
+            if (!File.Exists(devicePath) || etalon == null || americium == null)
+            {
+                Console.WriteLine("     нет прибора или спектров корпуса — замер пропущен");
+                failed++;
+                checks++;
+                return;
+            }
+
+            DeviceConfigInfo device;
+            using (var fs = new FileStream(devicePath, FileMode.Open, FileAccess.Read))
+            {
+                device = (DeviceConfigInfo)new XmlSerializer(typeof(DeviceConfigInfo)).Deserialize(fs);
+            }
+
+            double deviceMin, deviceMax;
+            DoseRateEstimator.DeviceRange(device, null, out deviceMin, out deviceMax);
+            var manager = new DoseRateManager(Config());
+
+            // Мерятся ДВА экспорта ЛСРМ того же прибора, что и спектры ASN16:
+            // цилиндр и маринелли. Их отсечённые точки лежат на 20 и 10 кэВ —
+            // ровно там, где живёт низ америция.
+            foreach (LsrmAnchor a in LsrmAnchors.Where(x => x.File.StartsWith("Nano 16", StringComparison.Ordinal)
+                                                            && x.File.IndexOf("5cm", StringComparison.Ordinal) < 0))
+            {
+                string problem;
+                List<ROIEfficiencyData> cut = ReadLsrm(Path.Combine(lsrmDir, a.File), out problem);
+                if (problem != null)
+                {
+                    Ok(false, a.File + ": " + Short(problem));
+                    continue;
+                }
+
+                // Тот же список ПЛЮС отсечённая точка — по якорю, снятому глазами.
+                var whole = new List<ROIEfficiencyData>
+                {
+                    new ROIEfficiencyData { Energy = a.FirstEnergy, Efficiency = a.FirstEff, ErrorPercent = a.FirstError },
+                };
+                whole.AddRange(cut);
+
+                double cutRate, cutCoverage, cutLow;
+                double wholeRate, wholeCoverage, wholeLow;
+                AmericiumWith(manager, device, deviceMin, deviceMax, etalon, americium, cut,
+                              out cutRate, out cutCoverage, out cutLow);
+                AmericiumWith(manager, device, deviceMin, deviceMax, etalon, americium, whole,
+                              out wholeRate, out wholeCoverage, out wholeLow);
+
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "     {0}:", a.File));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "        С точкой {0:f1} кэВ ({1:f0} %): низ сетки {2:f1} кэВ,"
+                    + " Am-241 {3:e4} мкЗв/ч, покрытие {4:f2} %",
+                    a.FirstEnergy, a.FirstError, wholeLow, wholeRate, 100.0 * wholeCoverage));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "        БЕЗ неё:                 низ сетки {0:f1} кэВ,"
+                    + " Am-241 {1:e4} мкЗв/ч, покрытие {2:f2} %",
+                    cutLow, cutRate, 100.0 * cutCoverage));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "        отсечение стоит {0:+0.00;-0.00} п.п. покрытия и {1:+0.0;-0.0} % дозы",
+                    100.0 * (cutCoverage - wholeCoverage),
+                    wholeRate > 0.0 ? 100.0 * (cutRate - wholeRate) / wholeRate : double.NaN));
+
+                // ⛔ Числа сравнимы только тогда, когда обе кривые вообще годны.
+                Ok(cutRate > 0.0 && wholeRate > 0.0 && cutLow > wholeLow,
+                   string.Format(CultureInfo.InvariantCulture,
+                       "{0}: отсечение поднимает низ сетки {1:f1} → {2:f1} кэВ, покрытие {3:f2} → {4:f2} %",
+                       a.File, wholeLow, cutLow, 100.0 * wholeCoverage, 100.0 * cutCoverage));
+            }
+        }
+
+        static void AmericiumWith(DoseRateManager manager, DeviceConfigInfo device,
+                                  double deviceMin, double deviceMax,
+                                  ResultData etalon, ResultData americium,
+                                  List<ROIEfficiencyData> points,
+                                  out double rate, out double coverage, out double gridLow)
+        {
+            DoseRateCurve curve = DoseRateEstimator.CurveOf(points);
+            double low = Math.Max(deviceMin, curve.MinKev);
+            double high = Math.Min(deviceMax, curve.MaxKev);
+            double[] grid = DoseRateEstimator.BuildGrid(low, high);
+            gridLow = grid[0];
+
+            var config = new DoseRateConfig();
+            config.DoseRateCalibrationPoints = DoseRateEstimator.Estimate(
+                etalon.EnergySpectrum, curve, 1.0, grid, null);
+            DoseRate dose = manager.Calculate(americium, config);
+            rate = dose.Rate;
+            coverage = dose.Coverage;
+        }
+
+        /// <summary>Значение порога — из самого приложения, не переписанное сюда.</summary>
+        static double DeviceConfigForm_LsrmMaxErrorPercent()
+        {
+            FieldInfo f = typeof(DeviceConfigForm).GetField(
+                "LsrmMaxErrorPercent", BindingFlags.NonPublic | BindingFlags.Static);
+            return f == null ? double.NaN : (double)f.GetRawConstantValue();
+        }
+
+        /// <summary>
+        /// ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ разбора. Приёмка, которая на восьми целых
+        /// файлах проходит, не меряет ничего, пока не показано, что на
+        /// испорченном она ПАДАЕТ. Порча берётся от настоящего файла, а не от
+        /// сочинённого: тем самым проверяется тот же вход, что и выше.
+        /// </summary>
+        static void LsrmCorruptions()
+        {
+            Console.WriteLine();
+            Console.WriteLine("  -- положительный контроль: испорченный файл обязан ОТКАЗАТЬ --");
+
+            string source = Path.Combine(lsrmDir, LsrmAnchors[0].File);
+            if (!File.Exists(source))
+            {
+                Ok(false, "нет исходного файла для порчи: " + source);
+                return;
+            }
+
+            string[] lines = File.ReadAllLines(source);
+            string tmp = Path.Combine(Path.GetTempPath(), "doserateprobe_lsrm_broken.txt");
+
+            // (1) шапки нет вовсе — прежде она отбрасывалась безусловно, и
+            //     первая точка исчезала МОЛЧА.
+            File.WriteAllLines(tmp, lines.Skip(1).ToArray(), new UTF8Encoding(false));
+            Refuses("шапки нет: первая строка данных не проглатывается молча", tmp);
+
+            // (2) шапка есть, но колонки переставлены/переименованы.
+            var renamed = (string[])lines.Clone();
+            renamed[0] = "E\tEff\tErr";
+            File.WriteAllLines(tmp, renamed, new UTF8Encoding(false));
+            Refuses("шапка не ЛСРМ-овская", tmp);
+
+            // (3) у одной строки в середине пропала колонка — ровно тот случай,
+            //     когда прежний разбор читал ПОЛОВИНУ файла.
+            var truncated = (string[])lines.Clone();
+            truncated[40] = "600.0\t\t\t";
+            File.WriteAllLines(tmp, truncated, new UTF8Encoding(false));
+            Refuses("в строке 41 осталась одна колонка", tmp);
+
+            // (4) нечисло в столбце.
+            var notNumber = (string[])lines.Clone();
+            notNumber[40] = "600.0\t\t\tнечисло\t\t3.1";
+            File.WriteAllLines(tmp, notNumber, new UTF8Encoding(false));
+            Refuses("нечисло в столбце эффективности", tmp);
+
+            // (5) после отсечения точек осталось меньше двух.
+            var allBad = new List<string> { lines[0] };
+            allBad.Add("100.0\t\t\t1.0E-02\t\t500");
+            allBad.Add("200.0\t\t\t1.0E-02\t\t500");
+            allBad.Add("300.0\t\t\t1.0E-02\t\t3.0");
+            File.WriteAllLines(tmp, allBad.ToArray(), new UTF8Encoding(false));
+            Refuses("после отсечения осталась одна точка", tmp);
+
+            // ⚠ А ВОТ ЭТО отказом быть НЕ ДОЛЖНО, и это моё решение, названное
+            // вслух. Настоящий экспорт разделяет колонки двумя-тремя
+            // табуляциями подряд; тот же файл с ОДИНОЧНЫМИ табуляциями — это то,
+            // что делает с ним любой текстовый редактор, и никакой информации в
+            // нём не потеряно. Прежний разбор требовал шести полей на строку и
+            // читал такой файл как ПУСТОЙ; теперь он читается ЦЕЛИКОМ и даёт те
+            // же числа. Строка задания ждала здесь отказа — отказ был бы хуже:
+            // порядок колонок закреплён проверенной шапкой, гадать не о чем.
+            var single = lines.Select(l => System.Text.RegularExpressions.Regex.Replace(l, "\t+", "\t")).ToArray();
+            File.WriteAllLines(tmp, single, new UTF8Encoding(false));
+            string problem;
+            List<ROIEfficiencyData> collapsed = ReadLsrm(tmp, out problem);
+            string ignored;
+            List<ROIEfficiencyData> original = ReadLsrm(source, out ignored);
+            bool same = problem == null && collapsed.Count == original.Count
+                        && Close(collapsed[0].Energy, original[0].Energy)
+                        && Close(collapsed[collapsed.Count - 1].Efficiency,
+                                 original[original.Count - 1].Efficiency);
+            Ok(same, string.Format(CultureInfo.InvariantCulture,
+                "одиночные табуляции читаются ЦЕЛИКОМ (решение полосы): точек {0}, у оригинала {1}, жалоб «{2}»",
+                collapsed.Count, original.Count, Short(problem)));
+
+            // ...и ложной тревоги на нетронутых восьми нет — это проверено выше
+            // по якорю, здесь только повторяется исходником порчи.
+            Ok(ignored == null && original.Count == LsrmAnchors[0].DataRows - 1,
+               string.Format("исходник порчи читается без жалоб: точек {0}", original.Count));
+
+            File.Delete(tmp);
+        }
+
+        static void Refuses(string what, string path)
+        {
+            string problem;
+            List<ROIEfficiencyData> points = ReadLsrm(path, out problem);
+            Ok(problem != null && points.Count == 0,
+               string.Format("{0} → отказ «{1}», точек отдано {2}",
+                             what, Short(problem), points.Count));
+        }
+
+        // ==================================================================
+        // 7. `A203` — канал переполнения назван вслух
+        // ==================================================================
+
+        /// <summary>
+        /// `A203`. Правило «канал переполнения» (<see cref="OverflowChannel"/>)
+        /// против КОРПУСА, а не против одного ASN16, плюс сквозной замер: что
+        /// на самом деле складывает <see cref="DoseRateManager"/>.
+        /// </summary>
+        static void OverflowRule()
+        {
+            Console.WriteLine();
+            Console.WriteLine("== `A203`: канал переполнения — правило и его цена ==");
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "   критерий: v ≥ {0:f0}·max(мед{1}, 1) И v − мед ≥ {2:f0}·√(мед+1), только у КРАЙНИХ каналов",
+                OverflowChannel.MinRatio, OverflowChannel.NeighbourWindow, OverflowChannel.MinSigma));
+
+            CorpusSplit();
+            LastChannelCounted();
+        }
+
+        /// <summary>
+        /// Как правило делит корпус. Это и есть подкрепление эвристики числом:
+        /// «последний канал — всегда переполнение» опровергается прямо здесь.
+        /// </summary>
+        static void CorpusSplit()
+        {
+            string spectra = Path.Combine(corpusDir, "spectra");
+            if (!Directory.Exists(spectra))
+            {
+                Console.WriteLine("  нет " + spectra + " — разбиение корпуса не считано");
+                failed++;
+                checks++;
+                return;
+            }
+
+            string[] files = Directory.GetFiles(spectra, "*.xml");
+            Array.Sort(files, StringComparer.Ordinal);
+            int high = 0, low = 0, read = 0;
+            double smallestHigh = double.MaxValue, largestPlain = 0.0;
+            string smallestHighName = "", largestPlainName = "";
+            foreach (string file in files)
+            {
+                ResultData data;
+                try
+                {
+                    data = LoadSpectrum(file);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (data == null || data.EnergySpectrum == null || data.EnergySpectrum.Spectrum == null)
+                {
+                    continue;
+                }
+
+                int[] v = data.EnergySpectrum.Spectrum;
+                if (v.Length < 70)
+                {
+                    continue;
+                }
+
+                read++;
+                bool hi = OverflowChannel.IsOverflow(v, v.Length - 1);
+                bool lo = OverflowChannel.IsOverflow(v, 0);
+                if (hi)
+                {
+                    high++;
+                    if (v[v.Length - 1] < smallestHigh)
+                    {
+                        smallestHigh = v[v.Length - 1];
+                        smallestHighName = Path.GetFileNameWithoutExtension(file);
+                    }
+                }
+                else if (v[v.Length - 1] > largestPlain)
+                {
+                    largestPlain = v[v.Length - 1];
+                    largestPlainName = Path.GetFileNameWithoutExtension(file);
+                }
+
+                if (lo)
+                {
+                    low++;
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  корпус: прочитано {0} спектров; переполнение в ПОСЛЕДНЕМ канале у {1}, в НУЛЕВОМ у {2}",
+                read, high, low));
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  наименьшее принятое: {0} отсчётов ({1}); наибольшее отвергнутое: {2:f0} ({3})",
+                smallestHigh, smallestHighName, largestPlain, largestPlainName));
+
+            // ⛔ Главное число плеча: если бы «последний канал — всегда
+            // переполнение» было верно, здесь стояло бы read, а не 28.
+            Ok(read > 100 && high > 0 && high < read,
+               string.Format("правило разделяет корпус: переполнение у {0} спектров из {1},"
+                             + " у остальных последний канал ОБЫЧНЫЙ", high, read));
+            Ok(low == 0, string.Format(
+                "нулевой канал: переполнения нет ни у одного из {0} — живого подтверждения"
+                + " у этой половины правила НЕТ, только положительный контроль ниже", read));
+        }
+
+        /// <summary>
+        /// Сквозной замер `A203`: два спектра — с переполнением в последнем
+        /// канале и без, — и положительный контроль с переполнением в НУЛЕВОМ.
+        /// </summary>
+        static void LastChannelCounted()
+        {
+            string spectra = Path.Combine(corpusDir, "spectra");
+            ResultData withOverflow = LoadSpectrum(Path.Combine(spectra, "ASN16_Cs137.xml"));
+            ResultData plain = LoadSpectrum(Path.Combine(spectra, "G1S24_Th228_P5.xml"));
+            if (withOverflow == null || plain == null)
+            {
+                Console.WriteLine("  нет спектров корпуса — сквозной замер пропущен");
+                failed++;
+                checks++;
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("  -- что складывает DoseRateManager (диапазон шире шкалы, чувствительность 1) --");
+            WholeScale("ASN16_Cs137 — переполнение в последнем канале", withOverflow, true);
+            WholeScale("G1S24_Th228_P5 — последний канал ОБЫЧНЫЙ", plain, false);
+
+            // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: переполнение в НУЛЕВОМ канале. В корпусе
+            // такого прибора нет, поэтому спектр делается насыпкой: правило
+            // обязано увидеть его ТЕМ ЖЕ кодом, что и последний канал.
+            ResultData zero = LoadSpectrum(Path.Combine(spectra, "G1S24_Th228_P5.xml"));
+            int[] z = zero.EnergySpectrum.Spectrum;
+            long tail = 0;
+            for (int i = 1; i <= 32; i++)
+            {
+                tail += z[i];
+            }
+
+            int pile = (int)(50 * Math.Max(1.0, tail / 32.0)) + 1000;
+            int before = z[0];
+            z[0] = pile;
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  положительный контроль: в нулевой канал G1S24_Th228_P5 насыпано {0} (было {1})",
+                pile, before));
+            Ok(OverflowChannel.IsOverflow(z, 0),
+               "правило видит переполнение в НУЛЕВОМ канале тем же кодом");
+            WholeScale("G1S24_Th228_P5 с насыпанным нулевым каналом", zero, true, pile);
+
+            // ⛔ Отрицательный контроль правила: у нетронутого спектра нулевой
+            // канал переполнением не объявляется (иначе первая проверка прошла
+            // бы у чего угодно).
+            Ok(!OverflowChannel.IsOverflow(plain.EnergySpectrum.Spectrum, 0),
+               "у нетронутого G1S24_Th228_P5 нулевой канал переполнением НЕ объявлен");
+
+            RoundTripOnPlainSpectrum(plain);
+        }
+
+        /// <summary>
+        /// Один диапазон шире всей шкалы и чувствительность 1: тогда
+        /// <c>Rate · время</c> — это ровно сумма каналов, которые
+        /// <see cref="DoseRateManager"/> счёл. Сумма спектра берётся здесь
+        /// напрямую, не тем кодом, который меряется.
+        /// </summary>
+        static void WholeScale(string what, ResultData data, bool expectDropped, int expectedDrop = -1)
+        {
+            EnergySpectrum spectrum = data.EnergySpectrum;
+            int[] v = spectrum.Spectrum;
+            double all = 0.0, exceptLast = 0.0;
+            for (int i = 0; i < v.Length; i++)
+            {
+                all += v[i];
+                if (i < v.Length - 1)
+                {
+                    exceptLast += v[i];
+                }
+            }
+
+            // Границы берутся у самой калибровки, чтобы диапазон заведомо
+            // накрыл всю шкалу с обоих концов. Чувствительность 1 получается
+            // через CPS и Etalon: своего сеттера у неё нет.
+            EnergyCalibration cal = spectrum.EnergyCalibration;
+            var point = new DoseRateCalibrationPoint
+            {
+                LowerBound = cal.ChannelToEnergy(0.0) - 1000.0,
+                UpperBound = cal.ChannelToEnergy(v.Length) + 1000.0,
+                CPS = 1.0,
+            };
+            point.EtalonDoseRateValue = 1.0;
+
+            var config = new DoseRateConfig();
+            config.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint> { point };
+
+            DoseRate dose = new DoseRateManager(Config()).Calculate(data, config);
+            double counted = dose.Rate * spectrum.MeasurementTime;
+            double dropped = all - counted;
+            double expected = expectedDrop >= 0
+                ? expectedDrop
+                : (expectDropped ? v[v.Length - 1] : 0.0);
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  {0}: каналов {1}, в спектре {2:f0} отсчётов, посчитано {3:f0}, отброшено {4:f0}"
+                + " (последний канал {5}, покрытие {6:f2} %)",
+                what, v.Length, all, counted, dropped, v[v.Length - 1], 100.0 * dose.Coverage));
+            Ok(Math.Abs(dropped - expected) < 0.5,
+               string.Format(CultureInfo.InvariantCulture,
+                   "{0}: отброшено {1:f0}, ожидалось {2:f0}", what, dropped, expected));
+
+            if (!expectDropped)
+            {
+                // ⛔ Отдельно и вслух: СТАРОЕ правило отбросило бы последний
+                // канал и здесь. Именно это `A203` и называет дефектом.
+                Ok(Math.Abs(counted - all) < 0.5 && Math.Abs(all - exceptLast) > 0.5,
+                   string.Format(CultureInfo.InvariantCulture,
+                       "последний канал ТЕПЕРЬ посчитан: {0:f0} отсчётов, которые старое правило теряло",
+                       all - exceptLast));
+            }
+        }
+
+        /// <summary>
+        /// ⚠ Что правка НЕ должна была сломать: обратный ход «построить точки по
+        /// эталону — померить тот же эталон» на спектре БЕЗ переполнения в
+        /// последнем канале. Генератор точек (`DoseRateEstimator`) не тронут, и
+        /// сойтись обязано ровно потому, что его сетка до последнего канала не
+        /// достаёт, — если бы доставала, здесь была бы видна расходимость.
+        /// </summary>
+        static void RoundTripOnPlainSpectrum(ResultData plain)
+        {
+            double min, max;
+            DoseRateEstimator.DeviceRange(null, plain.EnergySpectrum, out min, out max);
+            DoseRateCurve curve = FlatCurve();
+            double low = Math.Max(min, curve.MinKev);
+            double high = Math.Min(max, curve.MaxKev);
+            double[] grid = DoseRateEstimator.BuildGrid(low, high);
+
+            const double Declared = 1.0;
+            var config = new DoseRateConfig();
+            config.DoseRateCalibrationPoints = DoseRateEstimator.Estimate(
+                plain.EnergySpectrum, curve, Declared, grid, null);
+            DoseRate back = new DoseRateManager(Config()).Calculate(plain, config);
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "  обратный ход на спектре БЕЗ переполнения ({0:f1}…{1:f0} кэВ, {2} диапазонов): {3:f6}",
+                grid[0], grid[grid.Length - 1], grid.Length - 1, back.Rate));
+            Ok(Math.Abs(back.Rate - Declared) < 1e-9,
+               string.Format(CultureInfo.InvariantCulture,
+                   "правка не развела генератор с потребителем: невязка {0:e2}",
+                   Math.Abs(back.Rate - Declared)));
+        }
+
+        // ==================================================================
+        // 8. Цена молчаливого обрезания 40–3000 кэВ
         // ==================================================================
 
         static void TruncationPrice()
@@ -619,10 +1257,14 @@ namespace DoseRateProbe
                 int endch = (int)spectrum.EnergyCalibration.EnergyToChannel(
                     p.UpperBound, spectrum.NumberOfChannels);
                 if (startch < 0) startch = 0;
-                if (endch >= spectrum.Spectrum.Length) endch = spectrum.Spectrum.Length - 1;
+                // Как считает потребитель ПОСЛЕ `A203`: зажим в длину, канал
+                // переполнения пропускается именем.
+                if (endch > spectrum.Spectrum.Length) endch = spectrum.Spectrum.Length;
+                bool[] overflow = OverflowChannel.Mask(spectrum.Spectrum);
                 double counts = 0.0;
                 for (int j = startch; j < endch; j++)
                 {
+                    if (overflow[j]) continue;
                     counts += spectrum.Spectrum[j];
                 }
 

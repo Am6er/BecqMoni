@@ -1,21 +1,32 @@
 ﻿# Запуск корпусного прогона ЧЕРЕЗ СТОРОЖА (`T63`) — то есть читатель отказа.
 #
 #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог>
-#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--sthr=0.30'
+#   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'
 #   & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> -Bin <сборка> -Wd <оснастка> -Force
 #
-# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&` ИЗ ТЕКУЩЕЙ СЕССИИ, А НЕ ПОРОЖДАТЬ `pwsh` НА ФАЙЛ
-#    (`T84`). Массив `-Extra` уходит в порождённый процесс ЧЕРЕЗ КОМАНДНУЮ
-#    СТРОКУ и схлопывается. Измерено 27.08.2026 на копии этой же шапки `param()`,
-#    аргумент `-Extra '--lib=sample','--sthr=0.30'`:
-#      * `& <файл> …` из текущей сессии  -> `$Extra` = ДВА элемента, как задумано;
+# ⛔ ЗВАТЬ ОПЕРАТОРОМ ВЫЗОВА `&`, А НЕ ЗАПУСКАТЬ ФАЙЛОМ (`T84`; причина уточнена
+#    заморозкой 27.08.2026 и записана здесь 05.09.2026 по `T91`). ⛔ Дело НЕ в
+#    том, что порождается процесс, — процесс порождается в обоих опытах. Дело в
+#    том, КТО РАЗБИРАЕТ АРГУМЕНТЫ: при запуске ФАЙЛОМ (`pwsh <файл>.ps1 …`,
+#    `pwsh -File <файл> …`) их разбирает командная строка, и массив `-Extra`
+#    схлопывается вместе с кавычками; при разборе PowerShell-парсером — хоть в
+#    текущей сессии (`& <файл> …`), хоть в новом процессе
+#    (`pwsh -NoProfile -Command "& <файл> …"`) — массив доезжает целым.
+#    Измерено 27.08.2026 на копии этой же шапки `param()`, два ключа:
+#      * `& <файл> …` из текущей сессии          -> `$Extra` = ДВА элемента;
+#      * `pwsh -NoProfile -Command "& <файл> …"` -> `$Extra` = ДВА элемента;
 #      * `pwsh <файл> …` / `pwsh -File <файл> …` -> ОДИН элемент, и в нём лежат
-#        сами кавычки: `'--lib=sample','--sthr=0.30'`. Проба на такой аргумент
-#        печатает «неизвестный ключ» и возвращает 2;
-#      * `pwsh -File <файл> -Extra @('--lib=sample','--sthr=0.30')` -> `$Extra`
-#        первый ключ, `$Rest` второй, то есть код 64 ниже.
+#        сами кавычки: `'--lib=sample','--share-thr=0.30'`. Проба на такой
+#        аргумент печатает «неизвестный ключ» и возвращает 2;
+#      * `pwsh -File <файл> -Extra @('a','b')`   -> `$Extra` первый ключ,
+#        `$Rest` второй, то есть код 64 ниже.
 #    ⚠ С ОДНИМ ключом разницы не видно (один элемент и там, и там) — ломается
 #      молча начиная со второго. Склеенный аргумент ловит проверка ниже, код 65.
+#    Приёмка числом — `check_appwd.ps1 -SelfTest`: сколько ключей доезжает при
+#    каждом способе запуска (1/2/3), и ловит ли мерка склейки плохой вход.
+#    ⚠ Ключа `--sthr` у пробы НЕТ («неизвестный ключ», код 2; полоса C6,
+#      05.09.2026) — прежний пример шапки учил несуществующему ключу. Живой
+#      однокоренной ключ — `--share-thr`.
 #
 # ⛔ Зачем эта обёртка вообще нужна. Признак без читателя — главная грабля этого
 #    проекта: `B20` завела `matrix_note` «отпечаток НЕ сошёлся», и с 18.08 по
@@ -58,7 +69,7 @@ $ErrorActionPreference = 'Stop'
 
 if ($Rest -and $Rest.Count -gt 0) {
     Write-Host "⛔ ЛИШНИЕ АРГУМЕНТЫ: $($Rest -join ' ')" -ForegroundColor Red
-    Write-Host "   Ключи пробы передавайте так: -Out <каталог> -Extra '--lib=sample','--sthr=0.30'" -ForegroundColor Red
+    Write-Host "   Ключи пробы передавайте так: -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'" -ForegroundColor Red
     Write-Host "   Россыпью нельзя: PowerShell рвёт '--out=C:\путь' по двоеточию." -ForegroundColor Red
     Write-Host "   И звать ОПЕРАТОРОМ ВЫЗОВА из текущей сессии: & '<путь>\run_appwd.ps1' … (T84)." -ForegroundColor Red
     Write-Host "   Форма 'pwsh -File <файл> -Extra @(a,b)' даёт ровно этот отказ: второй ключ уезжает сюда." -ForegroundColor Red
@@ -85,16 +96,25 @@ if ($glued.Count -gt 0) {
     Write-Host "⛔⛔ ОТКАЗ: КЛЮЧИ ПРОБЫ СКЛЕИЛИСЬ ПРИ ЗАПУСКЕ — ПРОБА НЕ ЗАПУЩЕНА" -ForegroundColor Red
     foreach ($g in $glued) { Write-Host ("   " + $g) -ForegroundColor Red }
     Write-Host ""
-    Write-Host '   Дело не в самом ключе, а в способе запуска: pwsh <файл>.ps1 -Extra a,b' -ForegroundColor Red
-    Write-Host "   порождает процесс, и массив уходит туда одной строкой вместе с кавычками." -ForegroundColor Red
-    Write-Host "   Звать надо ОПЕРАТОРОМ ВЫЗОВА из текущей сессии:" -ForegroundColor Red
-    Write-Host ("       & '{0}\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--sthr=0.30'" -f $PSScriptRoot) -ForegroundColor Red
+    Write-Host '   Дело не в самом ключе, а в способе запуска: у `pwsh <файл>.ps1 -Extra a,b`' -ForegroundColor Red
+    Write-Host "   аргументы разбирает КОМАНДНАЯ СТРОКА, а не PowerShell-парсер, и массив" -ForegroundColor Red
+    Write-Host "   приходит одной строкой вместе с кавычками. Процесс тут ни при чём:" -ForegroundColor Red
+    Write-Host '   `pwsh -NoProfile -Command "& <файл> …"` передаёт тот же массив ЦЕЛЫМ.' -ForegroundColor Red
+    Write-Host "   Звать надо ОПЕРАТОРОМ ВЫЗОВА:" -ForegroundColor Red
+    Write-Host ("       & '{0}\run_appwd.ps1' -Out <каталог> -Extra '--lib=sample','--share-thr=0.30'" -f $PSScriptRoot) -ForegroundColor Red
     Write-Host ""
     exit 65
 }
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 if (-not $Wd) { $Wd = Join-Path $PSScriptRoot 'wd_app' }
+# ⛔ ПУТЬ ОСНАСТКИ — В АБСОЛЮТНЫЙ ДО ПЕРВОГО ЧТЕНИЯ (`T91`, 05.09.2026): отметку и
+#    пробу этот скрипт ищет САМ, помимо плана, а план сверяет обход каталога
+#    (абсолютные `FullName`) со склейкой от того, что дали параметром. На
+#    относительном `-Wd` сторож объявлял ВСЮ оснастку посторонней — отказ был,
+#    но диагноз («ЛИШНЕЕ В ОСНАСТКЕ» ×235) не тот. `Test-Path` трактовал бы
+#    его от текущего каталога — `GetFullPath` делает ровно то же явно.
+$Wd = [System.IO.Path]::GetFullPath($Wd).TrimEnd('\')
 $st = Read-AppWdStamp -Wd $Wd
 if (-not $Bin) {
     if ($st -and $st.bin) { $Bin = [string]$st.bin }
@@ -108,7 +128,7 @@ $bad = Invoke-AppWdGuard -Plan $plan
 
 if ($bad -gt 0) {
     if (-not $Force) {
-        Write-Host "⛔ ПРОБА НЕ ЗАПУЩЕНА. Соберите оснастку заново: pwsh mk_appwd.ps1" -ForegroundColor Red
+        Write-Host ("⛔ ПРОБА НЕ ЗАПУЩЕНА. Соберите оснастку заново: & '{0}\mk_appwd.ps1' -Wd '{1}'" -f $PSScriptRoot, $Wd) -ForegroundColor Red
         Write-Host "   (осознанный прогон протухшей оснасткой — ключ -Force)" -ForegroundColor Red
         exit 2
     }

@@ -1,0 +1,22 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\NuclideDefinition.xml: 152 entries
+SETUP	прибор: Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ	мёртвое=0.0003628 с
+SETUP	найдено пиков: 14
+шкала: усиление 1.000000, сдвиг 0.000 канала
+chi2/ndf 3.317, невязка модели 17.6 %, суммирование да
+ROW	Tl-208	Single	36.687	-
+ROW	Pb-212	Single	35.513	-
+ROW	Bi-212	Single	3.269	-
+ROW	Bi-214	Single	2.640	-
+ROW	Pb	Nuisance	21.890	-
+CUT	Ac-228	Single	z=0.00
+CUT	Ann-511	Nuisance	z=2.65
+CUT	I-131	Single	z=1.89
+CUT	Pb-214	Single	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 14
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\b15-stackshot-th228-peaks.png: 0–3053 кэВ, потолок 14144, шкала lin

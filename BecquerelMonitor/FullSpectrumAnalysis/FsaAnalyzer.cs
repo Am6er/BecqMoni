@@ -1275,7 +1275,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CascadeSumPeaks = true;
             // S27: атомные партнёры каскада включены умолчанием. Окно
             // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
-            // ставит его сам (FsaOverlay берёт у InputDeviceConfig.DeadTime()).
+            // ставит его сам (FsaAnalysisSession берёт у InputDeviceConfig.DeadTime()).
             this.CascadeXrayPartners = true;
             this.CascadeAnnihilationPartners = true;
             this.CascadeIsomerPartners = true;

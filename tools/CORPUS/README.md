@@ -153,10 +153,13 @@
 & 'tools\CORPUS\scripts\run_mini.ps1' -Out tools\pie\out_mini_arm -Extra '--pairth=1'
 ```
 
-⛔ Звать **оператором вызова `&` из текущей сессии**, а не порождать `pwsh` на
-файл: массив `-Extra` уходит в порождённый процесс через командную строку и
-схлопывается в один элемент (`T84`). С одним ключом разницы не видно — ломается
-молча начиная со второго.
+⛔ Звать **оператором вызова `&`**, а не запускать файлом (`pwsh <файл>.ps1 …`,
+`pwsh -File …`): при запуске файлом аргументы разбирает командная строка, а не
+PowerShell-парсер, и массив `-Extra` схлопывается в один элемент (`T84`, причина
+уточнена заморозкой 27.08.2026: процесс порождается в обоих случаях, ломает
+именно разбор — `pwsh -NoProfile -Command "& <файл> …"` передаёт массив целым).
+С одним ключом разницы не видно — ломается молча начиная со второго. Приёмка
+числом: `& 'tools\CORPUS\scripts\check_appwd.ps1' -SelfTest`.
 
 Скрипт сам зовёт сторожа оснастки (`T63`), а после прогона — `score.py` по обеим
 частям.
@@ -204,9 +207,10 @@ Pop-Location
 python tools/CORPUS/scripts/mx_swap.py "--from=$arm" "--into=$arm"
 
 # 3. оснастка плеча — те же двоичные файлы, склад свой
-pwsh tools/CORPUS/scripts/mk_appwd.ps1 -Bin "$r\BecquerelMonitor\bin\<сборка>" `
+& 'tools\CORPUS\scripts\mk_appwd.ps1' -Bin "$r\BecquerelMonitor\bin\<сборка>" `
      -ProbeBuild "$r\tools\effmaker\probes\<каталог проб>" `
      -Wd "$r\tools\CORPUS\scripts\wd_arm" -Store "$arm"
+# ⛔ -Wd принимается ТОЛЬКО вида tools\CORPUS\scripts\wd_<имя> (T91): иначе отказ кодом 7
 
 # 4. прогон
 & 'tools\CORPUS\scripts\run_mini.ps1' -Out "$r\tools\pie\out_arm" `
@@ -2029,9 +2033,12 @@ python tools\CORPUS\scripts\mkconfig.py
 конфигурациями приборов и матрицами, которых в `wd_<группа>` не было никогда:
 
 ```
-pwsh tools/CORPUS/scripts/mk_appwd.ps1
-cd tools/CORPUS/scripts/wd_app
-.\CorpusFsaProbe.exe --corpus=<…\tools\CORPUS\corpus> --out=<…\tools\pie\out_app>
+& 'tools\CORPUS\scripts\mk_appwd.ps1'
+& 'tools\CORPUS\scripts\run_appwd.ps1' -Out <…\tools\pie\out_app>
+# ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+# ⛔ прямой запуск `cd wd_app; .\CorpusFsaProbe.exe …` идёт МИМО сторожа оснастки (T68):
+#    протухшую или несобранную оснастку он не заметит. Звать обёртку оператором
+#    вызова &, а не `pwsh <файл>.ps1` (T84).
 python tools/pie/score.py --mode=spline --out-dir=tools/pie/out_app --part=known   --members
 python tools/pie/score.py --mode=spline --out-dir=tools/pie/out_app --part=unknown --members
 ```

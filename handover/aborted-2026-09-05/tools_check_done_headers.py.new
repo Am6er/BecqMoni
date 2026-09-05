@@ -1,0 +1,257 @@
+# -*- coding: utf-8 -*-
+"""Сторож разряда «заголовок строки DONE.md противоречит её собственному телу».
+
+Задача `T102`. Человек ищет по архиву `grep`-ом и читает ЗАГОЛОВОК ячейки —
+первую жирную фразу. Если заголовок утверждает НЕЗНАНИЕ («причина неизвестна»,
+«не воспроизводится», «не установлено»), а тело той же ячейки это незнание
+снимает (блок ✅ называет причину), поиск выдаёт ложь, и цена этому — чужой
+заход, начатый с неверной посылки (так и случилось 27.08.2026 со строкой `S82`).
+
+Разбор СПЛОШНОЙ: режутся только первые три вертикальные черты (id и состояние),
+дальше текст не режется — внутри описаний есть свои `|`, и разбор по разделителю
+в лоб их портит молча.
+
+Запуск:
+    python tools/check_done_headers.py                 # проверить DONE.md
+    python tools/check_done_headers.py --file X.md     # проверить копию
+    python tools/check_done_headers.py --scan          # выкладка всех заголовков,
+                                                       # где есть слова незнания
+    python tools/check_done_headers.py --dump-heads    # все заголовки подряд
+
+Код возврата: 0 — противоречий нет; 1 — есть; 2 — файл не разобрался.
+"""
+
+import argparse
+import os
+import re
+import sys
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_FILE = os.path.join(REPO, "DONE.md")
+
+# ---------------------------------------------------------------- разбор строк
+
+SEPARATOR_RE = re.compile(r"^\|[\s:|-]*\|\s*$")
+TABLE_HEAD_RE = re.compile(r"^\|\s*#\s*\|")
+
+
+def read_rows(path):
+    """Вернуть список (номер строки, id, состояние, ячейка) — сплошным разбором.
+
+    ⛔ Режем ТОЛЬКО первые три черты. Всё, что дальше, склеиваем обратно:
+    в описаниях есть внутренние `|` (замерено — 19 строк из 329), и наивный
+    `split('|')` рвёт их текст молча.
+    """
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        raw = f.read()
+    rows = []
+    for num, line in enumerate(raw.split("\n"), 1):
+        if not line.startswith("|"):
+            continue
+        if SEPARATOR_RE.match(line) or TABLE_HEAD_RE.match(line):
+            continue
+        parts = line.split("|")
+        if len(parts) < 4:
+            continue
+        ident = parts[1].strip()
+        state = parts[2].strip()
+        cell = "|".join(parts[3:]).rstrip()
+        rows.append((num, ident, state, cell))
+    return rows
+
+
+def clean_id(ident):
+    return ident.replace("~~", "").replace("**", "").strip()
+
+
+LEAD_MARKS_RE = re.compile(r"^(?:[\s✅⛔⚠️❗\U0001f528]|~~БЫЛО:?~~|~~БЫЛО:?~~)+")
+
+
+def split_head_body(cell):
+    """Заголовок = первая жирная фраза ячейки; тело = всё остальное.
+
+    Если ячейка начинается не с жирного, заголовком считается первое
+    предложение (то, что видно в выдаче `grep`).
+    """
+    s = LEAD_MARKS_RE.sub("", cell).strip()
+    if s.startswith("**"):
+        end = s.find("**", 2)
+        if end > 0:
+            return s[2:end].strip(), s[end + 2:]
+    # запасной путь: первое предложение
+    m = re.search(r"[.!?»]\s", s)
+    if m:
+        return s[: m.end()].strip(), s[m.end():]
+    return s[:200].strip(), s[200:]
+
+
+# --------------------------------------------------------------- сами признаки
+
+# Слова НЕЗНАНИЯ в заголовке: заголовок утверждает, что ответа нет.
+# Именно они и врут, когда тело ответ называет.
+UNKNOWN_PATTERNS = [
+    (r"причин[аыуе]\s+(?:\w+\s+){0,3}?(?:неизвестн|не\s+(?:установлен|найден|назван|ясн|понят|выясн))",
+     "«причина неизвестна»"),
+    (r"\bне\s+воспроизвод", "«не воспроизводится»"),
+    (r"\bневоспроизвод", "«невоспроизводимо»"),
+    (r"\bнеизвестно,?\s+(?:почему|отчего|что|где|как|какой|какая|чем|кто)", "«неизвестно, почему/что/где»"),
+    (r"\bне\s+установлен[оаы]?\b", "«не установлено»"),
+    (r"\bне\s+удалось\s+(?:найти|установить|воспроизвести|понять|объяснить)", "«не удалось найти/понять»"),
+    (r"\b(?:непонятно|не\s+понятно),?\s+(?:почему|что|откуда|зачем|где|как)", "«непонятно, почему»"),
+    (r"\bпочему\s+—\s+неизвестн", "«почему — неизвестно»"),
+    (r"\bпричина\s+не\s+разобран", "«причина не разобрана»"),
+    (r"\bни\s+один\s+не\s+проверен", "«ни один не проверен»"),
+    (r"\bне\s+проверен[оаы]?\b", "«не проверено»"),
+    (r"\bне\s+измерен[оаы]?\b", "«не измерено»"),
+    (r"\bне\s+объяснен[оаы]?\b", "«не объяснено»"),
+    (r"\bзагадк", "«загадка»"),
+    (r"\bне\s+знаем\b", "«не знаем»"),
+    (r"\bне\s+ясно\b|\bнеясно\b", "«не ясно»"),
+]
+UNKNOWN_RE = [(re.compile(p, re.I | re.U), name) for p, name in UNKNOWN_PATTERNS]
+
+# Тело называет ответ / закрывает вопрос.
+ANSWERED_PATTERNS = [
+    (r"✅", "блок ✅ в той же ячейке"),
+    (r"ПРИЧИНА\s+(?:НАЗВАНА|НАЙДЕНА|В\s+ТОМ|ОКАЗАЛАСЬ)", "«причина названа»"),
+    (r"причина\s+(?:названа|найдена|оказалась)", "«причина найдена»"),
+    (r"\bвиноват", "«виноват …»"),
+    (r"\bСДЕЛАНО\b", "«СДЕЛАНО»"),
+    (r"\bЗАКРЫТА\b", "«ЗАКРЫТА»"),
+    (r"\bРАЗОБРАН", "«разобрано»"),
+    (r"\bсошл[ои]сь\b", "«сошлось»"),
+    (r"\bвоспроизв[её]л|воспроизводится\s+побитово|сошлось\s+побитово", "«воспроизвелось»"),
+]
+ANSWERED_RE = [(re.compile(p, re.U), name) for p, name in ANSWERED_PATTERNS]
+
+# Тело прямо ОТЗЫВАЕТ слова заголовка.
+RETRACTION_RE = re.compile(
+    r"(?:⛔\s*)?(?:Прежн\w+|Прежде|Раньше|Сперва|Сначала|Первоначальн\w+|Старое|БЫЛО:)\b"
+    r"[^.!?]{0,220}?(?:был[аио]?\s+не\b|оказал\w+\s+не\b|не\s+подтверди|снят|неверн|ошибочн|"
+    r"а\s+(?:ДРУГОЙ|другой|ДРУГАЯ|другая|НЕ\b))",
+    re.U,
+)
+
+# Пометка, что заголовок сознательно оставлен как ИСТОРИЯ, — тогда лжи нет.
+HISTORY_MARK_RE = re.compile(r"~~БЫЛО:?~~|Прежний\s+текст:|~~БЫЛО~~|\bБЫЛО:\s*⛔|^~~", re.U)
+
+
+def analyse(rows):
+    findings = []
+    stats = {"rows": len(rows), "with_head": 0, "unknown_head": 0}
+    for num, ident, state, cell in rows:
+        head, body = split_head_body(cell)
+        if not head:
+            continue
+        stats["with_head"] += 1
+
+        hits = [name for rx, name in UNKNOWN_RE if rx.search(head)]
+        if not hits:
+            continue
+        stats["unknown_head"] += 1
+
+        answers = [name for rx, name in ANSWERED_RE if rx.search(body)]
+        retracted = bool(RETRACTION_RE.search(body))
+        history = bool(HISTORY_MARK_RE.search(cell[:60]))
+
+        if answers and not history:
+            findings.append(
+                {
+                    "line": num,
+                    "id": clean_id(ident),
+                    "state": state,
+                    "head": head,
+                    "hits": hits,
+                    "answers": answers,
+                    "retracted": retracted,
+                    "body": body,
+                }
+            )
+    return findings, stats
+
+
+def quote_of_contradiction(body, limit=460):
+    """Кусок тела, который заголовку противоречит: сперва прямой отзыв,
+    иначе — первое предложение блока ✅."""
+    m = RETRACTION_RE.search(body)
+    if m:
+        start = max(0, m.start())
+        end = body.find(".", m.end())
+        end = end + 1 if end > 0 else min(len(body), start + limit)
+        return body[start:end].strip()
+    i = body.find("✅")
+    if i >= 0:
+        return body[i: i + limit].strip()
+    return body[:limit].strip()
+
+
+# ------------------------------------------------------------------- выкладка
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Сторож заголовков DONE.md (T102)")
+    ap.add_argument("--file", default=DEFAULT_FILE, help="какой файл проверять")
+    ap.add_argument("--scan", action="store_true",
+                    help="показать ВСЕ заголовки со словами незнания, включая безобидные")
+    ap.add_argument("--dump-heads", action="store_true", help="выложить все заголовки подряд")
+    ap.add_argument("--quiet", action="store_true", help="только счёт")
+    args = ap.parse_args(argv)
+
+    if not os.path.exists(args.file):
+        print("НЕТ ФАЙЛА: %s" % args.file)
+        return 2
+
+    rows = read_rows(args.file)
+    if not rows:
+        print("ОТКАЗ: в %s не разобрано ни одной строки таблицы" % args.file)
+        return 2
+
+    if args.dump_heads:
+        for num, ident, state, cell in rows:
+            head, _ = split_head_body(cell)
+            print("%4d  %-8s  %s" % (num, clean_id(ident), head[:170]))
+        return 0
+
+    findings, stats = analyse(rows)
+
+    if args.scan:
+        print("=== заголовки со словами незнания (все, и здоровые тоже) ===")
+        for num, ident, state, cell in rows:
+            head, body = split_head_body(cell)
+            hits = [name for rx, name in UNKNOWN_RE if rx.search(head)]
+            if not hits:
+                continue
+            answers = [name for rx, name in ANSWERED_RE if rx.search(body)]
+            history = bool(HISTORY_MARK_RE.search(cell[:60]))
+            mark = "ПРОТИВОРЕЧИЕ" if (answers and not history) else "чисто"
+            print("%4d %-8s [%s] %s" % (num, clean_id(ident), mark, ", ".join(hits)))
+            print("       заголовок: %s" % head[:200])
+            print("       тело: %s | история=%s" % (", ".join(answers) or "—", history))
+        print()
+
+    print("=== счёт ===")
+    print("строк таблицы в %s: %d" % (os.path.basename(args.file), stats["rows"]))
+    print("разобрано (заголовок выделен): %d" % stats["with_head"])
+    print("заголовков со словами незнания: %d" % stats["unknown_head"])
+    print("ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): %d" % len(findings))
+
+    if not args.quiet:
+        for f in findings:
+            print()
+            print("--- %s (строка %d), состояние: %s" % (f["id"], f["line"], f["state"]))
+            print("  признак: %s" % ", ".join(f["hits"]))
+            print("  тело отвечает: %s%s" % (", ".join(f["answers"]),
+                                             "; тело ПРЯМО отзывает заголовок" if f["retracted"] else ""))
+            print("  ЗАГОЛОВОК: %s" % f["head"])
+            print("  ТЕЛО:      %s" % quote_of_contradiction(f["body"]))
+
+    if findings:
+        print()
+        print("ОТКАЗ: заголовок противоречит телу в %d строках — см. выше." % len(findings))
+        return 1
+    print("порядок: противоречий не найдено")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

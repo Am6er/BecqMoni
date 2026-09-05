@@ -3184,15 +3184,6 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to does not fit: {0} row(s).
-        /// </summary>
-        public static string FSARowsDidNotFit {
-            get {
-                return ResourceManager.GetString("FSARowsDidNotFit", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Equilibrium works only when the composition comes from the databases: turn on &quot;Enable DB lookups for FSA&quot;. The other path builds components from peak labels and knows nothing about decay chains.
         /// </summary>
         public static string FSAEquilibriumNeedsDbLookups {
@@ -4349,6 +4340,24 @@ namespace BecquerelMonitor.Properties {
         public static string ActivityLowYieldRefused {
             get {
                 return ResourceManager.GetString("ActivityLowYieldRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityOutOfCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityOutOfCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoEpsilonRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoEpsilonRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoBackgroundRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoBackgroundRefused", resourceCulture);
             }
         }
 
@@ -5703,6 +5712,54 @@ namespace BecquerelMonitor.Properties {
         public static string ERRObsCalWriteRejected {
             get {
                 return ResourceManager.GetString("ERRObsCalWriteRejected", resourceCulture);
+            }
+        }
+
+        public static string FSAReportNoSpectrum {
+            get {
+                return ResourceManager.GetString("FSAReportNoSpectrum", resourceCulture);
+            }
+        }
+
+        public static string FSAReportRecalculating {
+            get {
+                return ResourceManager.GetString("FSAReportRecalculating", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipCalculation {
+            get {
+                return ResourceManager.GetString("FSAReportTipCalculation", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipGrouping {
+            get {
+                return ResourceManager.GetString("FSAReportTipGrouping", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipParentsNeedNucBase {
+            get {
+                return ResourceManager.GetString("FSAReportTipParentsNeedNucBase", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipParentsRefused {
+            get {
+                return ResourceManager.GetString("FSAReportTipParentsRefused", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipEquilibriumNeedsNucBase {
+            get {
+                return ResourceManager.GetString("FSAReportTipEquilibriumNeedsNucBase", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipMatrixExtra {
+            get {
+                return ResourceManager.GetString("FSAReportTipMatrixExtra", resourceCulture);
             }
         }
 

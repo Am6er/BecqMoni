@@ -1,0 +1,280 @@
+diff --git a/tools/check_registry.py b/tools/check_registry.py
+index 4c4be16f..7dd5da1f 100644
+--- a/tools/check_registry.py
++++ b/tools/check_registry.py
+@@ -74,9 +74,29 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
+ лежат в репозитории и сверяются строго; память — вне его, и проверяется, только
+ если найдена, а её отсутствие печатается словами.
+ 
++**6. Форма графы состояния.** Заведена 05.09.2026 по `T100`. Графа бывает
++нечитаемой машинно: слово «открыто» стоит в ней И вычеркнутым, И нет — у
++`S102` и `T92` было «открыто ~~открыто~~ **СДЕЛАНО …**», у `T88` — «открыто,
++**РЕШЕНИЕ Amber … ЕСТЬ** ~~открыто~~ **ИСПОЛНЕНО …**»: правка дописывала итог,
++не вычёркивая прежнее слово. Для человека мелочь, для разбора — нет: сверка
++«сколько строк открыто» считает такую строку открытой и закрытой сразу, а
++триаж вычеркнутых её либо пропустит, либо возьмёт дважды. Правило простое и
++третьего не даёт: слово состояния либо вычеркнуто целиком, либо не вычеркнуто
++вовсе. Ловятся два вида — «и так и эдак» и слово, РАЗРЕЗАННОЕ маркерами
++вычёркивания (`~~откры~~то`), которое не читается ни так, ни эдак.
++
++⛔ Сторож, у которого нет доказанного ОТКАЗА, неотличим от ненаписанного: код
++0, находок 0 (`T69`). Поэтому положительный контроль встроен и зовётся
++`python tools/check_registry.py --selftest`: во ВРЕМЕННОЙ копии `TODO.md`
++подделываются четыре графы — обе исторические формы `T100`, разрезанное слово
++и «закрыто» обоими способами, — и контроль требует, чтобы чистая копия дала
++НОЛЬ находок, а подделанная — ровно четыре и ровно в подставленных строках.
++Оригинал `TODO.md` при этом не открывается на запись вовсе.
++
+ Выход 1 — есть столкновение номеров внутри файла, имя из кода, которого нет в
+-дереве, находка храповика двух копий `config/`, либо расхождение объявлений
+-действующей базы. Остальное печатается к глазам.
++дереве, находка храповика двух копий `config/`, расхождение объявлений
++действующей базы, либо нечитаемая графа состояния. Остальное печатается к
++глазам.
+ """
+ import argparse
+ import collections
+@@ -85,8 +105,10 @@ import hashlib
+ import io
+ import os
+ import re
++import shutil
+ import subprocess
+ import sys
++import tempfile
+ 
+ ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,2}\d{1,3})\b(.*)$")
+ 
+@@ -412,11 +434,218 @@ def check_corpus_base(root, out):
+     return bad
+ 
+ 
++# ---------------------------------------------------------------------------
++# 6. форма графы состояния (`T100`)
++# ---------------------------------------------------------------------------
++#: Слова, которыми реестр называет состояние. Регистр не важен — в обоих файлах
++#: живут `открыто`, `ЗАКРЫТО` и `СНЯТА`; окончание важно: «снято» и «снята»
++#: пишут оба. Список ВЫВЕДЕН разбором, а не назначен: с ним без слова состояния
++#: остаётся ровно одна строка из 726 (`A50`, «половина ПРИЛОЖЕНИЯ СДЕЛАНА…»),
++#: без «снят[оа]» — четыре.
++STATE_WORDS = (u"открыт[оа]", u"закрыт[оа]", u"снят[оа]")
++STATE_STRUCK = re.compile(u"~~(.+?)~~")
++
++
++def state_cell(line):
++    u"""Графа состояния строки реестра и число её столбцов.
++
++    ⛔ Внутри ОПИСАНИЙ реестра стоят свои `|`: в `TODO.md` таких строк 40 из
++    397, до десяти столбцов вместо четырёх. Поэтому брать клетку С КОНЦА
++    («детали», `cells[-2]`) нельзя — у такой строки конец уезжает. Графа
++    состояния — ВТОРАЯ клетка СЛЕВА, а первая, номер, содержать `|` не может;
++    отсчёт слева поэтому надёжен. Проверено счётом: ни в одной строке обоих
++    файлов слово состояния не уехало в следующую клетку.
++
++    Второе значение — сколько у строки столбцов. У шести строк `TODO.md`
++    (`A36`, `A41`, `A44`, `A45`, `A46`, `A49`) их всего два: описание слилось с
++    графой состояния, и разбор там идёт по всему тексту строки. Форму это не
++    ломает, но находку в такой строке надо читать с оговоркой, и она её несёт.
++    """
++    cells = line.rstrip(u"\r\n").split(u"|")
++    return (cells[2] if len(cells) > 3 else u""), max(len(cells) - 2, 0)
++
++
++def state_findings(cell):
++    u"""Находки по форме графы: ([(слово, вид, живых, вычеркнутых)], есть_слово).
++
++    `both` — слово стоит И вычеркнутым, И нет (ровно `T100`).
++    `cut` — маркеры вычёркивания РАЗРЕЗАЮТ слово (`~~откры~~то`): человек
++    видит вычеркнутое «открыто», машина не видит слова вовсе.
++    """
++    spans = [(m.start(1), m.end(1)) for m in STATE_STRUCK.finditer(cell)]
++    bare = cell.replace(u"~~", u"")
++    found, seen = [], False
++    for w in STATE_WORDS:
++        pat = re.compile(w, re.IGNORECASE)
++        plain = struck = 0
++        for m in pat.finditer(cell):
++            if any(a <= m.start() < b for a, b in spans):
++                struck += 1
++            else:
++                plain += 1
++        if plain or struck:
++            seen = True
++        if plain and struck:
++            found.append((w, u"both", plain, struck))
++        if len(pat.findall(bare)) > plain + struck:
++            found.append((w, u"cut", plain, struck))
++    return found, seen
++
++
++def check_state_column(out, files):
++    u"""Приёмка на форму графы состояния (`T100`). Возвращает число находок.
++
++    `files` — список пар (имя, путь): так эту проверку зовёт и положительный
++    контроль, подсовывая ей ВРЕМЕННУЮ копию.
++
++    Находкой (выход 1) считается только форма: «и так и эдак» и разрезанное
++    слово. Графа, не называющая состояния ВООБЩЕ, печатается к глазам и прогон
++    не валит — «СНЯТА 18.08.2026 — основание исчезло» законно, а требовать
++    здесь словарь значило бы завести сторожа, который красен на чистом дереве.
++    """
++    out.write(u"# Форма графы состояния (T100)\n\n")
++    bad = 0
++    for name, path in files:
++        if not os.path.exists(path):
++            out.write(u"  %s: файла нет\n" % name)
++            continue
++        rows = noword = merged = 0
++        eyes = []
++        with io.open(path, encoding="utf-8-sig", newline=u"") as f:
++            for n, line in enumerate(f, 1):
++                m = ROW.match(line.rstrip(u"\r\n"))
++                if not m:
++                    continue
++                rows += 1
++                cell, ncols = state_cell(line)
++                if ncols < 3:
++                    merged += 1
++                found, seen = state_findings(cell)
++                for w, kind, plain, struck in found:
++                    bad += 1
++                    what = (u"И ВЫЧЕРКНУТО, И НЕТ (живых %d, вычеркнутых %d)"
++                            % (plain, struck) if kind == u"both"
++                            else u"РАЗРЕЗАНО МАРКЕРАМИ ВЫЧЁРКИВАНИЯ")
++                    out.write(u"  ⛔ %-8s %-5s строка %-4d «%s» %s%s\n"
++                              % (name, m.group(1), n, w, what,
++                                 u" [графа слита с задачей]" if ncols < 3 else u""))
++                    out.write(u"      %s\n" % cell.strip()[:150])
++                if not seen:
++                    noword += 1
++                    eyes.append(u"  ⚠ %-8s %-5s строка %-4d состояния не называет: %s\n"
++                                % (name, m.group(1), n, cell.strip()[:110]))
++        out.write(u"  %-8s строк %3d, графа слита с задачей: %d, "
++                  u"состояния не называют: %d\n" % (name, rows, merged, noword))
++        for e in eyes:
++            out.write(e)
++    out.write(u"\n")
++    return bad
++
++
++#: Подделки для положительного контроля: (пометка, чем заменить графу).
++#: Первые две — исторические формы `T100` дословно, третья — слово, разрезанное
++#: маркерами, четвёртая — то же самое на «закрыто», чтобы проверка не оказалась
++#: написанной под одно-единственное слово.
++STATE_FAKES = (
++    (u"форма S102/T92", u"открыто ~~открыто~~ **СДЕЛАНО 27.08.2026**"),
++    (u"форма T88", u"открыто, **РЕШЕНИЕ Amber ЕСТЬ** ~~открыто~~ "
++                   u"**ИСПОЛНЕНО 27.08.2026**"),
++    (u"разрезанное слово", u"~~откры~~то **СДЕЛАНО**"),
++    (u"то же на «закрыто»", u"закрыто ~~закрыто~~ **СДЕЛАНО**"),
++)
++
++
++def selftest_state_column(root, out):
++    u"""Положительный контроль проверки 6. Возвращает 0, если контроль сошёлся.
++
++    ⛔ Заведён потому, что сторож без доказанного ОТКАЗА выглядит работающим:
++    код 0, находок 0 — ровно то, что даёт и ненаписанная проверка (`T69`).
++    Здесь она обязана СНАЧАЛА промолчать на чистой копии, а ПОТОМ покраснеть
++    на подделанной, и ровно в подставленных строках: находка не в той строке —
++    такой же провал, как отсутствие находки.
++
++    Оригинал `TODO.md` только читается; правится копия в каталоге временных
++    файлов, который в конце сносится.
++    """
++    src = os.path.join(root, u"TODO.md")
++    out.write(u"# Положительный контроль проверки 6 (T100)\n\n")
++    if not os.path.exists(src):
++        out.write(u"  ⛔ TODO.md не найден — контроль не проведён\n")
++        return 1
++    tmp = tempfile.mkdtemp(prefix=u"check_registry_selftest_")
++    try:
++        dst = os.path.join(tmp, u"TODO.md")
++        shutil.copyfile(src, dst)
++        files = [(u"копия", dst)]
++
++        quiet = io.StringIO()
++        clean = check_state_column(quiet, files)
++        out.write(u"  чистая копия: находок %d (ожидалось 0)\n" % clean)
++
++        # подделываем графы у первых строк, чья графа сегодня безупречна
++        with io.open(dst, encoding="utf-8-sig", newline=u"") as f:
++            lines = f.readlines()
++        planted, k = [], 0
++        for i, line in enumerate(lines):
++            if k >= len(STATE_FAKES):
++                break
++            m = ROW.match(line.rstrip(u"\r\n"))
++            if not m:
++                continue
++            cell, ncols = state_cell(line)
++            found, seen = state_findings(cell)
++            if found or not seen or ncols < 3:
++                continue
++            cells = line.rstrip(u"\n").split(u"|")
++            cells[2] = u" %s " % STATE_FAKES[k][1]
++            lines[i] = u"|".join(cells) + u"\n"
++            planted.append((m.group(1), i + 1, STATE_FAKES[k][0]))
++            k += 1
++        with io.open(dst, "w", encoding="utf-8-sig", newline=u"") as f:
++            f.writelines(lines)
++
++        loud = io.StringIO()
++        dirty = check_state_column(loud, files)
++        text = loud.getvalue()
++        out.write(u"  подделано граф: %d — %s\n"
++                  % (len(planted), u", ".join(u"%s (%s)" % (p[0], p[2])
++                                              for p in planted)))
++        out.write(u"  подделанная копия: находок %d (ожидалось %d)\n"
++                  % (dirty, len(planted)))
++        for num, ln, what in planted:
++            hit = (u"строка %-4d " % ln) in text and (u"⛔" in text)
++            named = re.search(u"⛔ .*строка %d " % ln, text) is not None
++            out.write(u"    %-6s строка %-4d %-20s названа: %s\n"
++                      % (num, ln, what, u"да" if named else u"НЕТ"))
++        ok = (clean == 0 and dirty == len(planted) == len(STATE_FAKES)
++              and all(re.search(u"⛔ .*строка %d " % ln, text) for _, ln, _ in planted))
++        out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ СОШЁЛСЯ: молчит на чистой, "
++                                  u"краснеет на подделанной"
++                                  if ok else
++                                  u"⛔ КОНТРОЛЬ ПРОВАЛЕН — проверка меряет не то"))
++        if not ok:
++            out.write(text)
++        return 0 if ok else 1
++    finally:
++        shutil.rmtree(tmp, ignore_errors=True)
++
++
+ def main():
+     p = argparse.ArgumentParser()
+     p.add_argument("--root", default=os.path.dirname(os.path.dirname(
+         os.path.abspath(__file__))))
++    p.add_argument("--selftest", action="store_true",
++                   help=u"положительный контроль проверки 6 (T100): "
++                        u"подделать графу состояния во ВРЕМЕННОЙ копии TODO.md "
++                        u"и убедиться, что проверка на ней краснеет")
+     a = p.parse_args()
++
++    if a.selftest:
++        out = io.open(1, "w", encoding="utf-8", closefd=False)
++        rc = selftest_state_column(a.root, out)
++        out.flush()
++        return rc
++
+     root = a.root
+     out = io.open(1, "w", encoding="utf-8", closefd=False)
+     bad = 0
+@@ -535,6 +764,13 @@ def main():
+     # --- 5. объявление действующей базы корпуса --------------------------
+     bad += check_corpus_base(root, out)
+ 
++    # --- 6. форма графы состояния (T100) ---------------------------------
++    bad += check_state_column(out, [
++        (u"TODO.md", os.path.join(root, u"TODO.md")),
++        (u"DONE.md", os.path.join(root, u"DONE.md"))])
++    out.write(u"  положительный контроль этой проверки: "
++              u"python tools/check_registry.py --selftest\n")
++
+     out.write(u"\n%s\n" % (u"РЕЕСТР ЧИСТ" if bad == 0
+                            else u"НАХОДОК: %d" % bad))
+     out.flush()

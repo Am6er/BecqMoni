@@ -118,77 +118,9 @@ namespace FsaPaletteProbe
                               peakDiffers ? "да" : "НЕТ", peakDiffers ? "ok" : "⛔ ПРОВАЛ");
         }
 
-        /// <summary>
-        /// ПОТОЛОК ТАБЛИЦЫ СОСТАВА (`S73`). До 23.08.2026 высота подложки
-        /// бралась прямо из числа строк: ни обрезки, ни проверки, что она
-        /// помещается, — на богатом составе таблица уходила за низ графика, и
-        /// узнать об этом можно было только глазами.
-        ///
-        /// Проверяется ПРАВИЛО, а не пиксели: `EnergySpectrumView.FsaTableBudget`
-        /// считает, сколько сворачиваемых строк влезает, и ответ его обязан
-        /// удовлетворять трём условиям на любом поле —
-        ///
-        ///   1. таблица не переходит нижнюю границу;
-        ///   2. несворачиваемые строки (невязка, качество, «БЕЗ ФОНА») на месте
-        ///      всегда;
-        ///   3. если что-то свёрнуто, под пометку об этом оставлена строка —
-        ///      молча строки пропадать не должны.
-        /// </summary>
-        static void TableCeiling()
-        {
-            Console.WriteLine();
-            Console.WriteLine("--- потолок таблицы (S73)");
-            const int rowHeight = 16;
-            int bad = 0, cases = 0;
-            foreach (int collapsible in new[] { 0, 1, 5, 12, 30, 120 })
-            {
-                foreach (int fixedRows in new[] { 2, 3 })
-                {
-                    foreach (int top in new[] { 40, 200, 400 })
-                    {
-                        foreach (int limit in new[] { 60, 120, 300, 500, 900, 2000 })
-                        {
-                            cases++;
-                            int budget = EnergySpectrumView.FsaTableBudget(collapsible, fixedRows, top, limit);
-                            bool all = budget == int.MaxValue;
-                            int shown = all ? collapsible : Math.Min(collapsible, budget);
-                            int dropped = collapsible - shown;
-                            int rows = shown + (dropped > 0 ? 1 : 0) + fixedRows;
-                            int bottom = top + rows * rowHeight + 8;
-
-                            // (1) не переходит границу — кроме случая, когда даже
-                            // несворачиваемые строки в поле не помещаются: там
-                            // прятать нечего, и врать «поместилось» нельзя.
-                            int floorRows = fixedRows + (collapsible > 0 ? 1 : 0);
-                            bool fitsOrCannot = bottom <= limit
-                                                || rows <= floorRows;
-                            // (2) несворачиваемые на месте — по построению rows ≥ fixedRows
-                            bool keepsFixed = rows >= fixedRows;
-                            // (3) свернули — сказали
-                            bool tellsDropped = dropped == 0 || rows > shown + fixedRows - 1;
-                            if (!(fitsOrCannot && keepsFixed && tellsDropped))
-                            {
-                                bad++;
-                                Console.WriteLine(
-                                    "   ⛔ свор.{0} фикс.{1} верх {2} низ {3}: бюджет {4}, строк {5}, конец {6}",
-                                    collapsible, fixedRows, top, limit,
-                                    all ? "все" : budget.ToString(), rows, bottom);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Именной случай: всё помещается — обрезки быть не должно вовсе.
-            bool roomy = EnergySpectrumView.FsaTableBudget(9, 2, 40, 2000) == int.MaxValue;
-            if (!roomy)
-            {
-                bad++;
-                Console.WriteLine("   ⛔ просторное поле обрезает таблицу, а не должно");
-            }
-
-            Console.WriteLine("   случаев {0}, нарушений {1}   {2}", cases, bad, bad == 0 ? "ok" : "⛔ ПРОВАЛ");
-        }
+        // (`A145`, этап 3) Раздел «потолок таблицы» (`S73`) снят вместе с самой
+        // таблицей на графике: у XPTable окна отчёта есть полоса прокрутки, и
+        // бюджета высоты больше нет — ни правила, ни его читателя.
 
         static int Main(string[] args)
         {
@@ -374,7 +306,6 @@ namespace FsaPaletteProbe
 
             List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             Console.WriteLine("слоёв: {0}, chi2/ndf {1:F2}", layers.Count, result.Chi2Ndf);
-            TableCeiling();
             OneShareMeasure(result, layers);
 
             Directory.CreateDirectory(outDir);

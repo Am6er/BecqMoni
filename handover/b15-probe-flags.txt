@@ -1,0 +1,63 @@
+=== фасад FsaCalculationOptions → внутренние ключи (A170) ===
+  суммир.    рассеяние  | CascadeSumming CascadeSumPeaks Backscatter BackscatterWithMatrix
+  вкл        вкл        | True           True            True        False
+  суммирование вкл, рассеяние вкл: CascadeSumming      = True
+  суммирование вкл, рассеяние вкл: CascadeSumPeaks     = True
+  суммирование вкл, рассеяние вкл: Backscatter         = True
+  суммирование вкл, рассеяние вкл: BackscatterWithMatrix опущен = False
+  суммирование вкл, рассеяние вкл: EscapeGate не тронут = True
+  вкл        выкл       | True           True            False       False
+  суммирование вкл, рассеяние выкл: CascadeSumming     = True
+  суммирование вкл, рассеяние выкл: CascadeSumPeaks    = True
+  суммирование вкл, рассеяние выкл: Backscatter        = False
+  суммирование вкл, рассеяние выкл: BackscatterWithMatrix опущен = False
+  суммирование вкл, рассеяние выкл: EscapeGate не тронут = True
+  выкл       вкл        | False          False           True        False
+  суммирование выкл, рассеяние вкл: CascadeSumming     = False
+  суммирование выкл, рассеяние вкл: CascadeSumPeaks    = False
+  суммирование выкл, рассеяние вкл: Backscatter        = True
+  суммирование выкл, рассеяние вкл: BackscatterWithMatrix опущен = False
+  суммирование выкл, рассеяние вкл: EscapeGate не тронут = True
+  выкл       выкл       | False          False           False       False
+  суммирование выкл, рассеяние выкл: CascadeSumming    = False
+  суммирование выкл, рассеяние выкл: CascadeSumPeaks   = False
+  суммирование выкл, рассеяние выкл: Backscatter       = False
+  суммирование выкл, рассеяние выкл: BackscatterWithMatrix опущен = False
+  суммирование выкл, рассеяние выкл: EscapeGate не тронут = True
+  у фасада нет члена BackscatterWithMatrix             = 0
+  у фасада нет члена EscapeGate                        = 0
+  у фасада нет члена SumLayerIncludesContinuum         = 0
+  вылеты выкл: EscapeAndAnnihilation                   = False
+  вылеты выкл: EscapeGate по-прежнему true             = True
+
+=== флажки конфигурации: клон, XML, AdoptFrom (A145, критерий 11) ===
+  умолчание AtomicXrayForFsa                           = True
+  умолчание CascadeSummingForFsa                       = True
+  умолчание BackscatterForFsa                          = True
+  умолчание EscapeAndAnnihilationForFsa                = True
+  умолчание PileUpForFsa                               = True
+  умолчание — отпечаток настроек                       = peaks|eq|xray|sum|bs|esc|pu
+  выключенные — отпечаток настроек                     = db|free|-xray|-sum|-bs|-esc|-pu
+  клон несёт те же флажки                              = db|free|-xray|-sum|-bs|-esc|-pu
+  XML содержит EscapeAndAnnihilationForFsa             = True
+  XML туда и обратно несёт те же флажки                = db|free|-xray|-sum|-bs|-esc|-pu
+  старый XML без элементов — все пять включены         = db|free|xray|sum|bs|esc|pu
+  AdoptFrom берёт флажки у прибора                     = db|free|-xray|-sum|-bs|-esc|-pu
+  AdoptFrom оставляет спектру Enabled                  = False
+  AdoptFrom не трогает прибор                          = db|free|-xray|-sum|-bs|-esc|-pu
+
+=== связь переключателей разбора (S77) в окне отчёта ===
+  на панели поиска пиков галок FSA больше нет          = True
+  вывод из баз включён: «Равновесие» доступно          = True
+  подсказка доступной галки — «меняет расчёт»          = Меняет расчёт: разложение пересчитывается.
+  конфигурация спектра: состав из баз                  = True
+  вывод из баз выключен: «Равновесие» недоступно       = False
+  значение «Равновесия» не тронуто                     = True
+  и в конфигурации не тронуто                          = True
+  у погашенной галки подсказка объясняет причину       = Равновесие ряда работает только при составе из NucBase: путь по меткам пиков о рядах распада не знает.
+  вернули вывод из баз: «Равновесие» снова доступно    = True
+  и помнит прежнее значение                            = True
+  выключенное «Равновесие» переживает гашение          = False
+  и в конфигурации выключено                           = False
+
+ВСЕ СОШЛИСЬ

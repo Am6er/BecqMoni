@@ -38,6 +38,21 @@ namespace BecquerelMonitor.N42
         [XmlElement("LiveTime")]
         public double LiveTime { get; set; }
 
+        // ⛔ ПОЛНОЕ ВРЕМЯ НАБОРА — ЭЛЕМЕНТ БЫЛ, ЧИТАТЕЛЯ НЕ БЫЛО (05.09.2026).
+        //    В N42-2006 у Spectrum ДВА времени: RealTime (по часам) и LiveTime
+        //    (зачтённое). Модель несла только второе, XmlSerializer выбрасывал
+        //    первое МОЛЧА — тот же разряд, что `A136` (EnergyBoundaryValues), —
+        //    и разбор клал живое время в поле полного, потому что другого у
+        //    него не было.
+        //
+        //    ⚠ ТИП string, А НЕ double, И ЭТО НЕ ЛЕНЬ. Извод Alpha Hound пишет
+        //    LiveTime ГОЛЫМИ СЕКУНДАМИ («295»), а спецификация N42-2006
+        //    требует xs:duration («PT295S»). Объявив здесь double, мы получили
+        //    бы отказ разбора ВСЕГО файла на записи по спецификации; объявив
+        //    string, читаем обе записи (см. Util.N42SecondsLoose).
+        [XmlElement("RealTime")]
+        public string RealTime { get; set; }
+
         [XmlElement("SpectrumType")]
         public string SpectrumType { get; set; }
     }

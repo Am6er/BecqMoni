@@ -229,6 +229,12 @@
     <Compile Include="DCFwhmCalibrationView.Designer.cs">
       <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
     </Compile>
+    <Compile Include="FSAReportView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FSAReportView.Designer.cs">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
+    </Compile>
     <Compile Include="DCPeakDetectionView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -360,7 +366,9 @@
     <Compile Include="FullSpectrumAnalysis\FsaComponent.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaEfficiency.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaLibrary.cs" />
-    <Compile Include="FullSpectrumAnalysis\FsaOverlay.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaAnalysisSession.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPresentation.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPresentationBuilder.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaPalette.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaResult.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaLineAudit.cs" />
@@ -977,6 +985,13 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCFwhmCalibrationView.ru.resx">
       <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FSAReportView.resx">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FSAReportView.ru.resx">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>

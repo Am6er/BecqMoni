@@ -1,0 +1,213 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\NuclideDefinition.xml: 152 entries
+SETUP	ASN16_Th232.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+BecqMoni: Ошибка: Не удалось загрузить конфигурационный файл ROI. C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\ROI Причина: DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_b15\config\ROI".
+SETUP	ASN16_Th232.xml: пиков 20, каналов 8192, кривая (нет)
+SETUP	G1S16_Co60_P5.xml: прибор Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)
+SETUP	G1S16_Co60_P5.xml: пиков 9, каналов 1024, кривая G1S_point5
+
+=== 1. гигиена: ручной таблицы на графике нет, FsaOverlay нет ===
+  ok   у EnergySpectrumView нет DrawFsaOwnTable                                     True
+  ok   у EnergySpectrumView нет DrawFsaRows                                         True
+  ok   у EnergySpectrumView нет DrawFsaSwatch                                       True
+  ok   у EnergySpectrumView нет DrawFsaQualityRow                                   True
+  ok   у EnergySpectrumView нет FsaTableBudget                                      True
+  ok   у EnergySpectrumView нет FsaTableRowCount                                    True
+  ok   у EnergySpectrumView нет FsaCollapsibleBudget                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksWidth                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksFormat                               True
+  ok   контроль: строка состояния DrawFsaStatus ЕСТЬ                                True
+  ok   контроль: ShowFsaTable (имя, которое зовёт чужой файл) ЕСТЬ                  True
+  ok   класса FsaOverlay в сборке нет                                               True
+  ok   контроль: класс FsaAnalysisSession есть                                      True
+  ok   ресурса FSARowsDidNotFit нет                                                 True
+  ok   контроль: ресурс FSACalculating есть                                         True
+  ok   у Properties.Resources нет свойства FSARowsDidNotFit                         True
+
+=== 2. окно: создание, persist-string, hide/show, активный документ ===
+  persist-string: BecquerelMonitor.FSAReportView
+  ok   persist-string — имя типа                                                    BecquerelMonitor.FSAReportView
+  ok   MainForm восстанавливает окно из persist-string                              True
+  ok   и второй раз отдаёт ТО ЖЕ окно, а не новое                                   True
+  ok   контроль: чужая строка окна не даёт                                          True
+  ok   документ A: результат у окна — результат сеанса A                            True
+  строк: A 18, B 18
+  ok   документ B: результат у окна — результат сеанса B                            True
+  ok   окно показывает B, а не A                                                    False
+  ok   без документа — одна строка                                                  1
+  ok   и это «спектр не выбран»                                                     Спектр не выбран
+  ok   без документа элементы управления выключены                                  False
+  ok   скрыто                                                                       False
+  ok   показано снова                                                               True
+  ok   после hide/show строки на месте                                              18
+
+=== 3. вход в ShowFSA: явный и циклический; закрытие отчёта режим не меняет ===
+  ok   явная команда: режим графика ShowFSA                                         ShowFSA
+  ok   явная команда: событие одно                                                  1
+  ok   явная команда: признак Explicit = true                                       True
+  ok   цикл: режим графика ShowFSA                                                  ShowFSA
+  ok   цикл: событие одно                                                           1
+  ok   цикл: признак Explicit = false                                               False
+  ok   контроль: выход из ShowFSA событие не поднимает                              0
+  ok   контроль: и режим уже не ShowFSA                                             True
+  ok   MainForm: после явной команды окно отчёта создано                            True
+  ok   MainForm: окно отчёта видно (в DockPanel)                                    True
+  ok   окно отчёта — активное содержимое своей панели                               True
+  после крестика вкладки: IsDisposed=False IsHidden=True Visible=False DockState=Hidden
+  ok   закрытие отчёта: окно скрыто, а не уничтожено                                True
+  ok   закрытие отчёта: режим графика остался ShowFSA                               ShowFSA
+  ok   закрытие отчёта: результат сеанса не сброшен                                 True
+  ok   выход графика из ShowFSA не прячет отчёт                                     False
+
+=== 4. один результат на график и таблицу, второго анализа нет ===
+  запусков сеанса: 1
+  ok   два потребителя — один запуск                                                1
+  ok   результат есть                                                               True
+  ok   таблица построена из результата сеанса                                       True
+  ok   график построен из ТОГО ЖЕ объекта результата                                True
+  ok   группировка графика = группировка окна                                       Daughters
+  ok   отпечаток сеанса — от активного спектра                                      36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|peaks|eq|xray|sum|bs|esc|pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   контроль: после Invalidate — ещё один запуск                                 2
+
+=== 5. семь родов строк; таблица не отбрасывает по высоте ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\spectra\ASN16_Th232.xml (пики): 18 строк — Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Undetected Residual Quality
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\spectra\ASN16_Th232.xml (NucBase): 15 строк — Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Layer Undetected Residual Quality
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\spectra\G1S16_Co60_P5.xml (пики): 9 строк — Layer Layer SumPeaks Undetected Undetected Undetected Undetected Residual Quality
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\spectra\G1S16_Co60_P5.xml (NucBase): 5 строк — Layer Layer SumPeaks Residual Quality
+  ok   род строки в собранной сцене: Layer                                          True
+  ok   род строки в собранной сцене: SumPeaks                                       True
+  ok   род строки в собранной сцене: Undetected                                     True
+  ok   род строки в собранной сцене: UndetectedFolded                               True
+  ok   род строки в собранной сцене: NoBackground                                   True
+  ok   род строки в собранной сцене: Residual                                       True
+  ok   род строки в собранной сцене: Quality                                        True
+  роды на настоящих спектрах: Layer Undetected Residual Quality SumPeaks
+  окно 320×160: строк модели 29, в таблице 29, видимых без прокрутки 0
+  ok   малое окно: строк в таблице = строк модели                                   29
+  ok   контроль: видимых без прокрутки МЕНЬШЕ — значит, прокрутка есть, а не потеря True
+
+=== состояния таблицы: считается / пересчёт / ошибка ===
+  ok   первый расчёт идёт: одна строка                                              1
+  ok   и это «считается»                                                            Полноспектральное разложение: считается…
+  ok   пересчёт при старом результате: первая строка — «пересчёт»                   Пересчёт… строки ниже — от прежнего расчёта
+  ok   и старые строки остались (их больше одной)                                   True
+  ok   строка пересчёта оранжевая                                                   Color [DarkOrange]
+  ok   расчёт завершён: строка пересчёта убрана                                     26
+  ok   первая строка — состав                                                       Layer
+  ok   ошибка без результата: одна строка                                           1
+  ok   и это текст причины                                                          ОШИБКА: причина такая-то
+
+=== 6. строка качества: все пометки, обе культуры, без многоточия, в ячейке XPTable ===
+  ok   ru-RU: сцена «подавлен» собралась                                            True
+  ok   ru-RU: строка качества в таблице есть                                        True
+  ru-RU: «χ²/ndf · подавлен · старая матрица · суммирование (без кривой) !» | 2,94
+  ok   ru-RU: текст ячейки = текст модели                                           χ²/ndf · подавлен · старая матрица · суммирование (без кривой) !
+  ok   ru-RU: без многоточия                                                        False
+  ok   ru-RU: ячейка переносится по словам (не усекается)                           True
+  ok   ru-RU: пометка FSASuppressedMark на месте                                    True
+  ok   ru-RU: пометка FSAOldMatrixMark на месте                                     True
+  ok   ru-RU: пометка FSACascadeMark на месте                                       True
+  ok   ru-RU: пометка FSANoEfficiencyMark на месте                                  True
+  ok   ru-RU: пометка FSADriftEdgeMark на месте                                     True
+  ok   ru-RU: число χ²/ndf в своей колонке                                          2,94
+  ok   ru-RU: числа в тексте пометок нет                                            False
+  ok   ru-RU: урезанный многоточием текст сторож не принимает                       отказал, как и должен
+  ok   en-US: сцена «подавлен» собралась                                            True
+  ok   en-US: строка качества в таблице есть                                        True
+  en-US: «χ²/ndf · suppressed · old matrix · summing (no eff) !» | 2.94
+  ok   en-US: текст ячейки = текст модели                                           χ²/ndf · suppressed · old matrix · summing (no eff) !
+  ok   en-US: без многоточия                                                        False
+  ok   en-US: ячейка переносится по словам (не усекается)                           True
+  ok   en-US: пометка FSASuppressedMark на месте                                    True
+  ok   en-US: пометка FSAOldMatrixMark на месте                                     True
+  ok   en-US: пометка FSACascadeMark на месте                                       True
+  ok   en-US: пометка FSANoEfficiencyMark на месте                                  True
+  ok   en-US: пометка FSADriftEdgeMark на месте                                     True
+  ok   en-US: число χ²/ndf в своей колонке                                          2.94
+  ok   en-US: числа в тексте пометок нет                                            False
+  ok   en-US: урезанный многоточием текст сторож не принимает                       отказал, как и должен
+
+=== 7. родители/дочерние без счёта; расчётный флаг — один пересчёт ===
+  ok   исходно: результат есть                                                      True
+  ok   исходно: родители допустимы (Th-232, NucBase+равновесие)                     True
+  ok   радиокнопка родителей доступна                                               True
+  ok   родители: отпечаток сеанса тот же                                            36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|db|eq|xray|sum|bs|esc|pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   родители: запусков не прибавилось                                            4
+  ok   родители: событий не прибавилось                                             0
+  ok   родители: группировка документа = родители                                   Parents
+  ok   родители: строк стало меньше                                                 True
+  ok   дочерние: строк снова столько же                                             26
+  ok   дочерние: группировка документа = дочерние                                   Daughters
+  ok   дочерние: запусков не прибавилось                                            4
+  ok   флаг: конфигурация спектра записана                                          False
+  ok   флаг: отпечаток сменился                                                     False
+  ok   флаг: запуск ровно один                                                      5
+  ok   флаг: событие завершения ровно одно                                          1
+  ok   флаг: результат посчитан новым отпечатком                                    36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|db|eq|-xray|sum|bs|esc|pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   флаг: умолчание прибора записано                                             False
+  ok   контроль: обратное переключение — ещё один запуск                            6
+  ok   контроль: отпечаток вернулся к исходному                                     36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|db|eq|xray|sum|bs|esc|pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   серия из двух флагов: отпечаток последнего снимка                            36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|db|eq|xray|sum|-bs|esc|-pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   серия из двух флагов: публикация одна                                        3
+
+=== 8. родители недоступны без NucBase+равновесия; при допустимом — суммы сходятся ===
+  ok   по пикам: родители недоступны                                                False
+  ok   по пикам: равновесие недоступно                                              False
+  ok   по пикам: подсказка родителей — «нужен NucBase+равновесие»                   Parent nuclides are available only with the composition from NucBase and chain equilibrium on.
+  ok   по пикам: подсказка равновесия — «нужен NucBase»                             Chain equilibrium works only when the composition comes from NucBase; the peak-label path knows nothing about decay chains.
+  ok   по пикам: выбраны дочерние                                                   True
+  ok   просьба родителей при недоступности: показаны дочерние                       True
+  ok   просьба помнится                                                             Parents
+  ok   а к графику ушли дочерние                                                    Daughters
+  ok   NucBase + равновесие: равновесие доступно                                    True
+  ok   NucBase + равновесие: родители доступны                                      True
+  ok   NucBase + равновесие: просьба восстановлена — выбраны родители               True
+  ok   NucBase + равновесие: к графику ушли родители                                Parents
+  ok   подсказка родителей — «только группировка»                                   Changes only how rows and bands are grouped; nothing is recomputed.
+  ok   представление окна — родительское                                            Parents
+  корней 1; |Δкривой|/max 0.0E+000; |Δдоли| 0.0E+000
+  ok   корень ряда в родительском представлении есть                                True
+  ok   сумма кривых дочерних = кривая родителя (машинный ноль)                      True
+  ok   сумма долей дочерних = доля родителя                                         True
+  ok   равновесие выкл: родители недоступны                                         False
+  ok   равновесие выкл: показаны дочерние                                           True
+  ok   равновесие выкл: просьба помнится                                            Parents
+  ok   равновесие вкл: родители восстановлены                                       True
+  ok   без ряда: родители недоступны                                                False
+  ok   без ряда: подсказка называет причину результата                              True
+  подсказка без ряда: «Parent nuclides are not available for this result: в составе нет ряда распада»
+
+=== 11. флаг в одном документе не меняет копию конфигурации другого ===
+  ok   A: флаг записан                                                              False
+  ok   B: копия конфигурации не тронута                                             peaks|eq|xray|sum|bs|esc|pu
+  ok   B: и не та же ссылка, что у A                                                False
+  ok   A: флаг возвращён                                                            True
+
+=== 12. снимки en/ru; подписи не обрезаны и не наложены, шрифт формы ===
+  en-US: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\b15-report-en.png
+  ok   en-US: обрезанных подписей нет                                               0
+  ok   en-US: наложений нет                                                         0
+  ok   en-US: подмены шрифта нет                                                    0
+  ok   en-US: шрифт заголовка таблицы — шрифт формы                                 Microsoft Sans Serif
+  ok   en-US: таблице досталось место (высота > 150)                                True
+  en-US: таблица 304×329, строк 15
+   ⛔ обрезано: escapeCheckBox «Escape peaks and 511 keV annihilation» {Width=40, Height=17} при нужных {Width=215, Height=18} в {Width=292, Height=119}
+  ok   en-US: подброшенное усечение сторож видит                                    отказал, как и должен
+   ⛔ наложение: sourceGroupBox и 
+   ⛔ чужой шрифт:  — Courier New
+  ok   en-US: подброшенный чужой шрифт сторож видит                                 отказал, как и должен
+  ru-RU: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\b15-report-ru.png
+  ok   ru-RU: обрезанных подписей нет                                               0
+  ok   ru-RU: наложений нет                                                         0
+  ok   ru-RU: подмены шрифта нет                                                    0
+  ok   ru-RU: шрифт заголовка таблицы — шрифт формы                                 Microsoft Sans Serif
+  ok   ru-RU: таблице досталось место (высота > 150)                                True
+  ru-RU: таблица 304×329, строк 15
+   ⛔ обрезано: escapeCheckBox «Пики вылета и аннигиляция 511 кэВ» {Width=40, Height=17} при нужных {Width=209, Height=18} в {Width=292, Height=119}
+  ok   ru-RU: подброшенное усечение сторож видит                                    отказал, как и должен
+   ⛔ наложение: sourceGroupBox и 
+   ⛔ чужой шрифт:  — Courier New
+  ok   ru-RU: подброшенный чужой шрифт сторож видит                                 отказал, как и должен
+
+ВСЕ СОШЛИСЬ

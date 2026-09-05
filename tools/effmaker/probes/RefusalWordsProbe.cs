@@ -22,7 +22,7 @@ namespace RefusalWordsProbe
     ///     Потребителей у этого отказа десять, и ни один его не перехватывает.
     ///   * `A95` — <c>EnergySpectrum.Clone()</c> падал пустым
     ///     <c>NullReferenceException</c>, когда у спектра нет энергетической
-    ///     калибровки, а <c>FsaOverlay</c> глушил это в «Полноспектральное
+    ///     калибровки, а <c>FsaOverlay</c> (ныне <c>FsaAnalysisSession</c>) глушил это в «Полноспектральное
     ///     разложение не удалось».
     ///
     /// ⛔ ПРИЗНАК ПРОВЕРЯЕТСЯ МАШИННО, А НЕ ГЛАЗАМИ. У каждого плеча одна и та
@@ -265,7 +265,7 @@ namespace RefusalWordsProbe
 
         static void CheckFsaDoor()
         {
-            Console.WriteLine("ПЛЕЧО fsa — FsaOverlay.EnsureUpToDate на том же спектре");
+            Console.WriteLine("ПЛЕЧО fsa — FsaAnalysisSession.EnsureUpToDate на том же спектре");
 
             // Поднимается ДО подмены потока ошибок и ПОД ПЕРЕХВАТОМ (`T150`)
             // ровно то, что дверь разложения может тронуть, — библиотека
@@ -293,7 +293,9 @@ namespace RefusalWordsProbe
                 Console.WriteLine("  контроль         : у спектра снят массив отсчётов (Spectrum = null)");
             }
 
-            FsaOverlay overlay = new FsaOverlay();
+            // (`A145`, этап 2) Дверь разложения переехала из `FsaOverlay` в
+            // сеанс документа; подпись `EnsureUpToDate` та же.
+            FsaAnalysisSession overlay = new FsaAnalysisSession();
             TextWriter saved = Console.Error;
             StringWriter captured = new StringWriter();
             string status;

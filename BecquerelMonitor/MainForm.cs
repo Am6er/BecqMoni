@@ -290,6 +290,13 @@ namespace BecquerelMonitor
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
             this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
+            if (this.dcFsaReportView != null && !this.dcFsaReportView.IsDisposed)
+            {
+                // Смена раскладки пересоздаёт tool-view: прежнее окно отчёта
+                // отписывается от сеанса, чтобы не читать закрытый документ.
+                this.dcFsaReportView.SetDocument(null);
+            }
+            this.dcFsaReportView = new FSAReportView(this);
             this.dcControlPanel.Enabled = false;
             this.dcSampleInfoView.Enabled = false;
             this.dcSpectrumListView.Enabled = false;
@@ -395,6 +402,14 @@ namespace BecquerelMonitor
             if (a == typeof(DCFwhmCalibrationView).ToString())
             {
                 return this.dcCFwhmCalibrationView;
+            }
+            if (a == typeof(FSAReportView).ToString())
+            {
+                if (this.dcFsaReportView == null || this.dcFsaReportView.IsDisposed)
+                {
+                    this.dcFsaReportView = new FSAReportView(this);
+                }
+                return this.dcFsaReportView;
             }
             if (a == typeof(DCResultView).ToString())
             {
@@ -691,6 +706,62 @@ namespace BecquerelMonitor
         void FWHMCalStripMenuItem_Click(object sender, EventArgs e)
         {
             ShowFwhmCalibration();
+        }
+
+        /// <summary>«Вид → Отчёт FSA»: показать и активировать окно независимо от режима графика.</summary>
+        void fsaReportStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ShowFsaReportView(true);
+        }
+
+        /// <summary>
+        /// (`A145`, этап 3) Показать окно отчёта разложения. <paramref name="activate"/>:
+        /// true — окно получает фокус (команда меню, явная команда документа);
+        /// false — окно показывается, а клавиатура остаётся у графика
+        /// (циклическая кнопка режима фона). Закрытие окна — скрытие
+        /// (`HideOnClose`), поэтому пересоздаётся оно только после `Dispose`.
+        /// </summary>
+        public void ShowFsaReportView(bool activate)
+        {
+            if (this.dcFsaReportView == null || this.dcFsaReportView.IsDisposed)
+            {
+                this.dcFsaReportView = new FSAReportView(this);
+                this.dcFsaReportView.SetDocument(this.activeDocument);
+            }
+
+            IDockContent focused = this.dockPanel1.ActiveContent;
+            this.dcFsaReportView.Show(this.dockPanel1);
+            if (!activate && this.activeDocument != null && !this.activeDocument.IsDisposed)
+            {
+                // Вернуть фокус документу: `Show` активирует показанное окно,
+                // а человек листал режимы кнопкой на графике.
+                this.activeDocument.Activate();
+                if (focused != null && ReferenceEquals(focused, this.activeDocument)
+                    && this.activeDocument.EnergySpectrumView != null)
+                {
+                    this.activeDocument.EnergySpectrumView.Focus();
+                }
+            }
+        }
+
+        /// <summary>Окно отчёта разложения (пробы).</summary>
+        public FSAReportView FsaReportView
+        {
+            get { return this.dcFsaReportView; }
+        }
+
+        /// <summary>
+        /// Документ вошёл в режим разложения: явная команда показывает и
+        /// активирует отчёт, циклическая кнопка — только показывает.
+        /// </summary>
+        void DocEnergySpectrum_FsaModeEntered(object sender, FsaModeEnteredEventArgs e)
+        {
+            if (!ReferenceEquals(sender, this.activeDocument))
+            {
+                return;
+            }
+
+            this.ShowFsaReportView(e.Explicit);
         }
 
         public void ShowDetectorFeature()
@@ -1054,6 +1125,7 @@ namespace BecquerelMonitor
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
+                this.dcFsaReportView.SetDocument(this.activeDocument);
                 if (this.activeDocument.PulseDetector != null)
                 {
                     this.activeDocument.PulseDetector.PulseView = this.dcPulseView.PulseView;
@@ -1079,6 +1151,7 @@ namespace BecquerelMonitor
                 this.dcPeakDetectionView.Enabled = false;
                 this.dcEnergyCalibrationView.Enabled = false;
                 this.dcCFwhmCalibrationView.Enabled = false;
+                this.dcFsaReportView.SetDocument(null);
             }
             this.UpdateApplicationTitle();
         }
@@ -1111,6 +1184,7 @@ namespace BecquerelMonitor
                 dcresultView.Enabled = true;
             }
             this.dcSpectrumListView.Enabled = true;
+            this.dcFsaReportView.ActiveResultDataChanged();
             this.UpdateApplicationTitle();
             this.RefreshDocumentChart(this.activeDocument);
         }
@@ -1879,6 +1953,7 @@ namespace BecquerelMonitor
             doc.ShowEnergyCalibrationView += this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument += this.DocEnergySpectrum_AddSpectrumToDocument;
             doc.EfficiencyChanged += this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FsaModeEntered += this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 MeasurementController measurementController = resultData.MeasurementController;
@@ -1903,6 +1978,7 @@ namespace BecquerelMonitor
             doc.ShowEnergyCalibrationView -= this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument -= this.DocEnergySpectrum_AddSpectrumToDocument;
             doc.EfficiencyChanged -= this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FsaModeEntered -= this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 this.CleanupMeasurementController(resultData.MeasurementController);
@@ -3593,6 +3669,8 @@ namespace BecquerelMonitor
         DCCountRateView dcCountRateView;
 
         DCFwhmCalibrationView dcCFwhmCalibrationView;
+
+        FSAReportView dcFsaReportView;
 
         NucBase.NucBase nucBaseView;
 

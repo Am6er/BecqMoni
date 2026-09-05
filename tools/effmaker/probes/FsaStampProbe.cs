@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace FsaStampProbe
     /// Читатель отпечатка разложения (`A31`).
     ///
     /// ЗАЧЕМ ПРОБА. Разложение пересчитывается, только когда сменился ОТПЕЧАТОК
-    /// входных данных (<c>FsaOverlay.BuildStamp</c>). Набора нуклидов в нём не
+    /// входных данных (<c>FsaAnalysisSession.BuildStamp</c>). Набора нуклидов в нём не
     /// было, и правка набора на экране не меняла ничего: состав библиотеки идёт
     /// от подписей пиков, подписи ставит набор, а пересчитывать их после правки
     /// было некому. Признак починен — здесь у него появляется читатель, иначе
@@ -64,8 +64,9 @@ namespace FsaStampProbe
             // (`A145`, критерий 7 / `A170`) ОТПЕЧАТОК НАСТРОЕК РАСЧЁТА — до окон
             // и до спектра: семь двоичных настроек дают 128 раскладок, и все
             // 128 отпечатков обязаны быть РАЗНЫМИ, а переключение любой одной
-            // настройки — менять отпечаток. Сеанс разбора (этап 2) кладёт эту
-            // строку в общий отпечаток; здесь у неё читатель.
+            // настройки — менять отпечаток. Сеанс разбора кладёт эту строку в
+            // общий отпечаток (`FsaAnalysisSession.BuildStamp`); что она туда
+            // доезжает целиком, меряет `FsaSessionProbe` на настоящем спектре.
             OptionsStampSection();
 
             GlobalConfigManager.GetInstance();
@@ -84,15 +85,10 @@ namespace FsaStampProbe
                 return 2;
             }
 
-            MethodInfo build = typeof(FsaOverlay).GetMethod(
-                "BuildStamp", BindingFlags.Static | BindingFlags.NonPublic);
-            if (build == null)
-            {
-                Console.Error.WriteLine("нет FsaOverlay.BuildStamp");
-                return 2;
-            }
-
-            Func<string> stamp = () => (string)build.Invoke(null, new object[] { rd, true });
+            // (`A145`, этап 2) Отпечаток строит сеанс разбора, и строит
+            // ОТКРЫТО: прежде это был закрытый метод `FsaOverlay`, и проба
+            // звала его отражением.
+            Func<string> stamp = () => FsaAnalysisSession.BuildStamp(rd, true);
 
             nuclides.ActiveSet = null;
             string all = stamp();

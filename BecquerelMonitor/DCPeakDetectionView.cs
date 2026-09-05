@@ -112,15 +112,6 @@ namespace BecquerelMonitor
                 }
             }
 
-            // Галка ставится под поднятым FormLoading, как и оба числа выше:
-            // подстановка кодом выбором человека не является и ни пересчёта,
-            // ни перерисовки за собой не тянет. Фокус здесь проверять нечего —
-            // галку не «редактируют», а щёлкают, и присвоение того же значения
-            // события не поднимает.
-            this.checkBoxDbLookups.Checked = fwhmPeakDetectionMethodConfig.DbLookupsForFsa;
-            this.checkBoxEquilibrium.Checked = fwhmPeakDetectionMethodConfig.ChainEquilibrium;
-            this.UpdateEquilibriumEnabled();
-
             this.FormLoading = false;
             this.UpdatePeakDetectionResult();
             this.RefreshTable();
@@ -216,7 +207,7 @@ namespace BecquerelMonitor
                 // есть на новом спектре оставались пики СТАРОГО, и отличить это
                 // от «так и есть» человек не мог ничем.
                 //
-                // Сделано как в соседнем пути разбора (`FsaOverlay.cs:238-242`):
+                // Сделано как в соседнем пути разбора (`FsaAnalysisSession.FailureText`):
                 // отказ становится СТРОКОЙ НА ЭКРАНЕ. Trace оставлен вторым, для
                 // отладчика, и несёт теперь исключение целиком, а не одну строку
                 // сообщения — по `ex.Message` от `NullReferenceException` не
@@ -270,7 +261,7 @@ namespace BecquerelMonitor
         /// зовут при каждой смене документа и спектра и КАЖДЫЕ ДВЕ СЕКУНДЫ по
         /// таймеру записи (<c>MainForm</c>). Модальное окно на этом пути
         /// означало бы поток окон, который нечем остановить. Соседний путь
-        /// разбора (<c>FsaOverlay</c>) при том же отказе тоже пишет строку, а не
+        /// разбора (<c>FsaAnalysisSession</c>) при том же отказе тоже пишет строку, а не
         /// поднимает окно.
         ///
         /// Подсказка несёт разбор — тип исключения и его сообщение: надпись
@@ -302,8 +293,8 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Подсказка с разбором отказа. Заводится кодом по первой нужде — как и
-        /// соседняя <see cref="fsaToolTip"/>.
+        /// Подсказка с разбором отказа. Заводится кодом по первой нужде, а не
+        /// конструктором формы (`W21` — про то, чем это кончается).
         /// </summary>
         ToolTip detectionToolTip;
 
@@ -514,160 +505,10 @@ namespace BecquerelMonitor
             }
         }
 
-        /// <summary>
-        /// «Состав FSA из баз» (`S57`): библиотеку полноспектрального разбора
-        /// собирать не по подписям найденных пиков, а по цепочке родителя из
-        /// `nucdb`/`matdb`.
-        ///
-        /// Поиска пиков галка НЕ КАСАЕТСЯ — ни одного пика от неё не появится и
-        /// не исчезнет, — поэтому детекция здесь не перезапускается. Касается
-        /// она разложения, и только если оно сейчас на экране: в остальных
-        /// режимах фона считать нечего, а включённое позже разложение возьмёт
-        /// новое значение само (галка входит в отпечаток `FsaOverlay`).
-        /// </summary>
-        void checkBoxDbLookups_CheckedChanged(object sender, EventArgs e)
-        {
-            this.UpdateEquilibriumEnabled();
-            this.ApplyFsaFlag((config, view) => config.DbLookupsForFsa = view.checkBoxDbLookups.Checked);
-        }
-
-        /// <summary>
-        /// Подсказка у погашенной галки. Заводится кодом, а не конструктором
-        /// формы: одна подсказка на одну галку — не повод трогать `.Designer.cs`
-        /// и обе `.resx` конструктора (`W21` — про то, чем это кончается).
-        /// </summary>
-        ToolTip fsaToolTip;
-
-        /// <summary>
-        /// «Равновесие» доступно ТОЛЬКО при выводе состава из баз (`S77`,
-        /// решение Amber 23.08.2026).
-        ///
-        /// ⛔ Причина не в обвязке, а в существе: связывать ряд можно там, где
-        /// ряд ЕСТЬ. Состав из баз (`FsaSampleLibrary`) собирает его обходом
-        /// `nucdb.decay_chain`; прежний путь (`FsaLibrary.BuildFromPeaks`)
-        /// строит компоненты по ПОДПИСЯМ найденных пиков, и структуры ряда там
-        /// нет вовсе. До этой правки в поставке обе галки стояли ровно в тех
-        /// положениях, при которых видимая не делала НИЧЕГО: «Равновесие»
-        /// включено умолчанием, вывод из баз — выключен.
-        ///
-        /// ⚠ Само ЗНАЧЕНИЕ галки при этом не трогается и в конфиг не пишется:
-        /// погашенная галка помнит свой выбор и оживает вместе с соседней.
-        /// Гасить и обнулять — разные вещи, и второе потеряло бы настройку
-        /// человека молча.
-        /// </summary>
-        void UpdateEquilibriumEnabled()
-        {
-            bool available = this.checkBoxDbLookups.Checked;
-            this.checkBoxEquilibrium.Enabled = available;
-            if (this.fsaToolTip == null)
-            {
-                this.fsaToolTip = new ToolTip();
-            }
-
-            this.fsaToolTip.SetToolTip(this.checkBoxEquilibrium,
-                                       available ? string.Empty : Resources.FSAEquilibriumNeedsDbLookups);
-        }
-
-        /// <summary>
-        /// «Равновесие» (`S70`): ряд идёт в разбор ОДНОЙ колонкой с одной
-        /// свободной амплитудой, относительные веса членов закреплены
-        /// ветвлением. Умолчание — ВКЛЮЧЕНО, в отличие от соседней галки.
-        ///
-        /// Поиска пиков не касается ровно так же, как и соседняя, — меняется
-        /// состав библиотеки разбора, а не найденные пики.
-        /// </summary>
-        void checkBoxEquilibrium_CheckedChanged(object sender, EventArgs e)
-        {
-            this.ApplyFsaFlag((config, view) => config.ChainEquilibrium = view.checkBoxEquilibrium.Checked);
-        }
-
-        /// <summary>
-        /// Обе галки разбора устроены одинаково, и обработчик у них общий: путь
-        /// «в копию спектра, в умолчание прибора, на диск, перечитать вид»
-        /// длинный, и написанный дважды он однажды разошёлся бы.
-        ///
-        /// ⛔ Пишется В ДВА МЕСТА (решение Amber 18.08.2026). В копию СПЕКТРА —
-        /// иначе нажатие не влияет на то, что человек сейчас видит. В умолчание
-        /// ПРИБОРА и на диск — иначе положение галки не переживает ни следующий
-        /// спектр, ни перезапуск; до `S70` не делалось ни того, ни другого, и в
-        /// этом была вся строка.
-        ///
-        /// ⛔ Прибор сохраняется ТИХО
-        /// (<see cref="DeviceConfigManager.SaveConfigQuiet"/>): обычное
-        /// сохранение рассылает событие, а по нему настройки прибора
-        /// переносятся во ВСЕ открытые спектры этого прибора. Решение то же:
-        /// «умолчание прибора меняем, а уже сохранённую копию спектра не
-        /// трогаем» — соседние документы остаются при своём.
-        /// </summary>
-        void ApplyFsaFlag(Action<FWHMPeakDetectionMethodConfig, DCPeakDetectionView> set)
-        {
-            if (this.FormLoading)
-            {
-                return;
-            }
-
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null || activeDocument.ActiveResultData == null)
-            {
-                return;
-            }
-
-            if (!(activeDocument.ActiveResultData.PeakDetectionMethodConfig
-                    is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
-            {
-                return;
-            }
-
-            set(fwhmPeakDetectionMethodConfig, this);
-            this.SaveFsaFlagsToDevice(activeDocument.ActiveResultData, fwhmPeakDetectionMethodConfig);
-
-            // Режим фона смотрим у ВИДА этого документа, а не у панели: панель
-            // одна, документов много, и переключение «Show FSA» живёт там (R9).
-            if (activeDocument.EnergySpectrumView == null
-                || activeDocument.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA)
-            {
-                return;
-            }
-
-            // Перечитать заново. Отпечаток разложения содержит обе галки,
-            // поэтому подготовка данных вида увидит, что готовый результат
-            // устарел, и закажет счёт; сам счёт идёт в фоне и окна не держит.
-            activeDocument.RefreshView();
-        }
-
-        /// <summary>
-        /// Обе галки — в умолчание прибора и на диск. Прибор берётся из
-        /// менеджера по Guid: именно ту запись читает
-        /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/> при открытии
-        /// следующего спектра, и правка её копии никуда бы не дошла.
-        /// </summary>
-        void SaveFsaFlagsToDevice(ResultData resultData, FWHMPeakDetectionMethodConfig source)
-        {
-            if (resultData.DeviceConfigReference == null
-                || string.IsNullOrEmpty(resultData.DeviceConfigReference.Guid))
-            {
-                return;
-            }
-
-            DeviceConfigManager manager = DeviceConfigManager.GetInstance();
-            DeviceConfigInfo device;
-            if (!manager.DeviceConfigMap.TryGetValue(resultData.DeviceConfigReference.Guid, out device)
-                || device == null
-                || !(device.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig devicePeak))
-            {
-                return;
-            }
-
-            if (devicePeak.DbLookupsForFsa == source.DbLookupsForFsa
-                && devicePeak.ChainEquilibrium == source.ChainEquilibrium)
-            {
-                return;
-            }
-
-            devicePeak.DbLookupsForFsa = source.DbLookupsForFsa;
-            devicePeak.ChainEquilibrium = source.ChainEquilibrium;
-            manager.SaveConfigQuiet(device);
-        }
+        // (`A145`, этап 3) Две галки полноспектрального разложения — «состав
+        // из баз» и «равновесие» — с этой панели сняты: вместе с пятью новыми
+        // флажками модели они живут в окне отчёта `FSAReportView`, а запись в
+        // копию спектра и умолчание прибора — там же (`SaveOptionsToDevice`).
 
         void ToolStripMenuItem1_Click(object sender, EventArgs e)
         {

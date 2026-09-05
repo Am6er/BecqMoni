@@ -222,6 +222,49 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double BuildSeconds { get; set; }
 
         /// <summary>
+        /// ОТПЕЧАТОК ТЕЛА — SHA-256 байтов сетки и строк по каналам в том виде,
+        /// в каком они лежат в файле; 64 шестнадцатеричных знака (`A121`,
+        /// решение Amber 05.09.2026 «клеймо + отпечаток тела хвостом файла»).
+        ///
+        /// Зачем второе поле рядом с клеймом. Клеймо (<see cref="Stamp"/>)
+        /// считается ДО счёта — чтобы решить, считать ли, — и потому несёт
+        /// НАСТРОЙКИ, а не числа: два файла с одним клеймом не обещают одних
+        /// чисел (`A104`), а приёмка «сверить клейма» этого не видит. Отпечаток
+        /// — независимое утверждение «тела побайтно одни», и «то же клеймо» с
+        /// «те же числа» становятся двумя разными проверяемыми вещами.
+        ///
+        /// После <see cref="Save"/> — отпечаток записанного тела; после
+        /// <see cref="Load"/> — ПЕРЕСЧИТАН по байтам файла (а не взят из
+        /// хвоста: иначе правленое тело несло бы прежний отпечаток и сходилось
+        /// бы само с собой). Записанный в хвосте лежит рядом —
+        /// <see cref="StoredBodyFingerprint"/>. null — матрица построена и ещё
+        /// не была ни записана, ни прочитана.
+        /// </summary>
+        public string BodyFingerprint { get; set; }
+
+        /// <summary>
+        /// Отпечаток из хвоста `BODY` файла; null — хвоста нет (файл записан до
+        /// 05.09.2026, и это не отказ: такие файлы читаются как прежде) либо
+        /// матрица не читалась с диска.
+        /// </summary>
+        public string StoredBodyFingerprint { get; set; }
+
+        /// <summary>
+        /// Записанный отпечаток сходится с пересчитанным. Ложь и когда хвоста
+        /// нет — тогда сходиться нечему, и читатель обязан различать это по
+        /// <see cref="StoredBodyFingerprint"/>.
+        /// </summary>
+        public bool BodyFingerprintMatches
+        {
+            get
+            {
+                return this.StoredBodyFingerprint != null && this.BodyFingerprint != null
+                       && string.Equals(this.StoredBodyFingerprint, this.BodyFingerprint,
+                                        StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
         /// Худшая по узлам относительная ошибка КОНТИНУУМА строки, % (F23);
         /// 0 — не считалось. В ФАЙЛ НЕ ПИШЕТСЯ и у прочитанной матрицы равна
         /// нулю: это свойство прогона, а не матрицы, и ради него не стоит
@@ -846,26 +889,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(this.CreatedUtc.Ticks);
                 writer.Write(this.BuildSeconds);
                 WriteOptions(writer, this.Options);
-                writer.Write(this.Energies.Length);
-                foreach (double e in this.Energies)
+
+                // ТЕЛО — сетка и строки по каналам — сначала собирается в
+                // ПАМЯТИ, и в файл уходят ровно те байты, с которых снят
+                // отпечаток (`A121`): второй путь записи «в файл отдельно, в
+                // хеш отдельно» однажды разошёлся бы молча. Цена — копия тела
+                // в памяти на время записи, сотни килобайт.
+                byte[] body = this.RenderBody();
+                writer.Write(body);
+                byte[] digest;
+                using (var sha = SHA256.Create())
                 {
-                    writer.Write(e);
+                    digest = sha.ComputeHash(body);
                 }
 
-                // Каналы, а не сумма: сумма восстанавливается из них точно, а
-                // обратно — нет. Пустой канал занимает по четыре байта на узел.
-                writer.Write(this.ChannelRows.Length);
-                foreach (float[][] channel in this.ChannelRows)
-                {
-                    foreach (float[] row in channel)
-                    {
-                        writer.Write(row.Length);
-                        foreach (float v in row)
-                        {
-                            writer.Write(v);
-                        }
-                    }
-                }
+                this.BodyFingerprint = Hex(digest);
+                this.StoredBodyFingerprint = this.BodyFingerprint;
 
                 // ⛔ У 799 МАТРИЦ СКЛАДА ЭТОГО ХВОСТА НЕТ, И ДОПИСЫВАТЬ ЕГО НЕ
                 // НАДО — решение Amber 23.08.2026 (`T53`): ждём естественного
@@ -924,6 +963,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(flags.AnalogConeSampling);
                 writer.Write(flags.LXrayEscape);          // `A60`
                 writer.Write(flags.KLCascade);            // `A101`
+
+                // ⛔ ТРЕТИЙ ХВОСТ, `BODY` — ОТПЕЧАТОК ТЕЛА (`A121`, решение Amber
+                // 05.09.2026 «клеймо + отпечаток тела хвостом файла»). Метка и
+                // 32 байта SHA-256 от тела — байтов между блоком параметров и
+                // меткой `NOIS`: сетка узлов и строки по каналам. Шапка, клеймо
+                // и хвосты шума в него НЕ входят: они описывают настройки и
+                // прогон, а отпечаток отвечает за ЧИСЛА.
+                //
+                // `FormatVersion` НЕ ПОДНЯТ по тому же доводу, что у двух хвостов
+                // выше: плюс один объявил бы негодными все 44 корпусные и 4
+                // рабочие матрицы разом ради поля, которое их чисел не меняет.
+                // Старый файл без хвоста читается как прежде и печатает
+                // «отпечатка нет»; старый exe до хвоста не доходит.
+                writer.Write(Encoding.ASCII.GetBytes("BODY"));
+                writer.Write(digest);
             }
 
             if (File.Exists(path))
@@ -932,6 +986,76 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             File.Move(temp, path);
+        }
+
+        /// <summary>
+        /// Тело файла — сетка и строки по каналам — как оно пишется на диск.
+        /// Каналы, а не сумма: сумма восстанавливается из них точно, а обратно
+        /// — нет. Пустой канал занимает по четыре байта на узел.
+        /// </summary>
+        byte[] RenderBody()
+        {
+            using (var memory = new MemoryStream())
+            using (var writer = new BinaryWriter(memory, Encoding.UTF8))
+            {
+                writer.Write(this.Energies.Length);
+                foreach (double e in this.Energies)
+                {
+                    writer.Write(e);
+                }
+
+                writer.Write(this.ChannelRows.Length);
+                foreach (float[][] channel in this.ChannelRows)
+                {
+                    foreach (float[] row in channel)
+                    {
+                        writer.Write(row.Length);
+                        foreach (float v in row)
+                        {
+                            writer.Write(v);
+                        }
+                    }
+                }
+
+                writer.Flush();
+                return memory.ToArray();
+            }
+        }
+
+        /// <summary>SHA-256 байтов потока со смещения <paramref name="start"/> до <paramref name="end"/>, hex.</summary>
+        static string HashRange(Stream stream, long start, long end)
+        {
+            stream.Position = start;
+            using (var sha = SHA256.Create())
+            {
+                byte[] buffer = new byte[1 << 16];
+                long left = end - start;
+                while (left > 0)
+                {
+                    int n = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, left));
+                    if (n <= 0)
+                    {
+                        break;
+                    }
+
+                    sha.TransformBlock(buffer, 0, n, null, 0);
+                    left -= n;
+                }
+
+                sha.TransformFinalBlock(buffer, 0, 0);
+                return Hex(sha.Hash);
+            }
+        }
+
+        static string Hex(byte[] bytes)
+        {
+            var hex = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return hex.ToString();
         }
 
         // Помощники хвоста `T46`: длина, затем значения; null пишется нулевой
@@ -1163,6 +1287,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     };
 
                     matrix.Options = ReadOptions(reader);
+
+                    // Границы ТЕЛА — для отпечатка (`A121`): от конца блока
+                    // параметров до конца строк по каналам, ровно то, что
+                    // `RenderBody` кладёт в файл.
+                    long bodyStart = stream.Position;
                     int nodes = reader.ReadInt32();
                     matrix.Energies = new double[nodes];
                     for (int i = 0; i < nodes; i++)
@@ -1189,6 +1318,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                         matrix.ChannelRows[c] = rows;
                     }
+
+                    long bodyEnd = stream.Position;
 
                     // Хвост с достигнутым шумом (`T46`). У файлов, записанных
                     // раньше, его нет — поля остаются нулями и null, ровно тем
@@ -1232,12 +1363,36 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 {
                                     matrix.Options.KLCascade = reader.ReadBoolean();
                                 }
+
+                                // Третий хвост, `BODY` (`A121`): записанный
+                                // отпечаток тела. У файлов до 05.09.2026 его
+                                // нет — поле остаётся null, «отпечатка нет».
+                                if (stream.Length - stream.Position >= 36
+                                    && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "BODY")
+                                {
+                                    matrix.StoredBodyFingerprint = Hex(reader.ReadBytes(32));
+                                }
                             }
                         }
                     }
                     catch (Exception)
                     {
                         // Хвост — уточнение, а не условие годности матрицы.
+                    }
+
+                    // Отпечаток ПЕРЕСЧИТЫВАЕТСЯ по байтам файла, а не берётся
+                    // из хвоста (`A121`): правленое тело обязано перестать
+                    // сходиться с записанным, иначе хвост ничего не проверяет.
+                    // Цена — один проход SHA-256 по телу, миллисекунды на
+                    // мегабайт; и он не условие годности — не вышел, значит
+                    // отпечатка нет, матрица остаётся годной.
+                    try
+                    {
+                        matrix.BodyFingerprint = HashRange(stream, bodyStart, bodyEnd);
+                    }
+                    catch (Exception)
+                    {
+                        matrix.BodyFingerprint = null;
                     }
 
                     matrix.RebuildTotals();

@@ -270,6 +270,45 @@ namespace BecquerelMonitor.N42
         }
 
         /// <summary>
+        /// Длительность из файла, записанная ЛИБО как xs:duration («PT295S»),
+        /// ЛИБО голыми секундами («295», «295.5») — извод Alpha Hound (05.09.2026).
+        ///
+        /// ⛔ ДВЕ ЗАПИСИ ПРИНИМАЮТСЯ НЕ ИЗ ВЕЖЛИВОСТИ. В том же элементе
+        /// Spectrum этот прибор пишет LiveTime ГОЛЫМ ЧИСЛОМ (модель читает его
+        /// как <c>double</c> и годами читала успешно), а спецификация N42-2006
+        /// для обоих времён требует xs:duration. Читатель, знающий одну запись,
+        /// на половине настоящих файлов отказал бы — и отказал бы разбором
+        /// ВСЕГО документа, а не одного поля.
+        ///
+        /// ⛔ НЕЧИТАЕМАЯ ЗАПИСЬ — ОТКАЗ, НАЗЫВАЮЩИЙ СЕБЯ, а не молчаливая
+        /// подстановка. Оба соседних разбора этого файла на негодной
+        /// длительности отказывают (<c>N42Seconds</c> бросает), и третьего
+        /// соглашения тут быть не должно; отличие лишь в том, что причина
+        /// названа словами (`A140`), а не оставлена именем исключения.
+        /// </summary>
+        private static double N42SecondsLoose(string value, string what, string filename)
+        {
+            string s = value.Trim();
+            try
+            {
+                // xs:duration всегда начинается с 'P' (или '-P' у отрицательной).
+                if (s.StartsWith("P", StringComparison.Ordinal)
+                    || s.StartsWith("-P", StringComparison.Ordinal))
+                {
+                    return N42Seconds(s);
+                }
+                return double.Parse(s, CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    "в файле N42 (" + AppUi.Where(filename) + ") запись " + what
+                    + " «" + value + "» не читается ни как xs:duration (вида PT295S), "
+                    + "ни как число секунд (вида 295): " + ex.GetType().Name);
+            }
+        }
+
+        /// <summary>
         /// Дата и время начала набора в файл N42 — xs:dateTime.
         ///
         /// ⛔ Прежде здесь стояло <c>data.StartTime.ToString()</c>, и это было
@@ -309,7 +348,77 @@ namespace BecquerelMonitor.N42
             chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
 
             int NumberOfChanels = rad.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels;
+
+            // ⛔ ОБЪЯВЛЕННОЕ ЧИСЛО КАНАЛОВ СВЕРЯЕТСЯ С ЗАПИСАННЫМ, И СВЕРЯЕТСЯ
+            //    ДО ПЕРВОЙ ЗАПИСИ В ДОКУМЕНТ (05.09.2026).
+            //
+            //    Длину массива этот разбор берёт у АТРИБУТА NumberOfChannels, а
+            //    отсчёты и энергии читает ПО ИНДЕКСУ из двух отдельных списков.
+            //    Файл, объявивший 9000 каналов и записавший 64, выходил за конец
+            //    обоих: человек читал «Index was outside the bounds of the array»
+            //    и не мог узнать ни что не так с файлом, ни какой файл виноват.
+            //    Тот же разряд, что `A140`: второй двери здесь НЕ заводится —
+            //    заводится ПРИЧИНА для той, что уже стоит в
+            //    DocumentManager.ImportDocumentN42.
+            //
+            //    ⛔ МЕСТО ПРОВЕРКИ — ЧАСТЬ ПОЧИНКИ, А НЕ ВКУС. Ниже идут
+            //    energySpectrum.NumberOfChannels = … и Initialize(), то есть
+            //    ПЕРЕЗАПИСЬ открытого документа. Пока проверка стояла после них,
+            //    отказавший ввоз оставлял в документе числа отказавшего файла:
+            //    измерено 05.09.2026 входом case23_rad_declared — «кан 9000,
+            //    сумма 253» ПОСЛЕ отказа. Снаружи такой документ неотличим от
+            //    удачного ввоза.
+            //
+            //    ⚠ Сверяется ТОЛЬКО НЕДОСТАЧА (записано МЕНЬШЕ объявленного).
+            //    Обратный случай — записано больше объявленного — сегодня
+            //    молча отбрасывает хвост; отказывать на нём значило бы закрыть
+            //    файлы, которые сейчас ввозятся, а такого замера у нас нет.
+            //    Остаток вынесен отдельной строкой реестра.
+            if (NumberOfChanels < 0
+                || chanData.Length < NumberOfChanels
+                || chanEnergy.Length < NumberOfChanels)
+            {
+                throw new Exception(
+                    "в файле N42 (" + AppUi.Where(filename) + ") объявлено каналов "
+                    + NumberOfChanels + " (атрибут ChannelData/@NumberOfChannels), а записано "
+                    + "отсчётов " + chanData.Length + " и энергий " + chanEnergy.Length
+                    + " — читать нечего, и достраивать недостающие каналы нулями нельзя: "
+                    + "это был бы выдуманный спектр");
+            }
+
+            // ⛔ ЖИВОЕ ВРЕМЯ — В ПОЛЕ ЖИВОГО, ПОЛНОЕ — В ПОЛЕ ПОЛНОГО (05.09.2026).
+            //
+            //    Прежде здесь была ОДНА величина: Spectrum.LiveTime файла
+            //    записывалась в energySpectrum.MeasurementTime, то есть в поле
+            //    ПОЛНОГО времени, а energySpectrum.LiveTime не заполнялась вовсе
+            //    и оставалась нулём. Измерено 05.09.2026 входами
+            //    case8_rad_many и case9_rad_over: слепок давал «изм 295, живое 0».
+            //    Оба соседних разбора этого же файла (2006 и 2012 годов) держат
+            //    две величины ОТДЕЛЬНО — третьего соглашения тут быть не должно.
+            //
+            //    ⚠ ЦЕНА ИЗМЕРИМА И УЕЗЖАЕТ ИЗ ПРИЛОЖЕНИЯ. Живое время стоит в
+            //    знаменателе скорости счёта; нулём оно попадало в поле «Live
+            //    time» окна (DCControlPanel.cs:366 — «0.00»), складывалось нулём
+            //    при сложении спектров (SpectrumAriphmetics.cs:303) и, что хуже
+            //    всего, УХОДИЛО В ФАЙЛ: ExportToN42 пишет
+            //    LiveTimeDuration = N42Duration(LiveTime), то есть ввезённый
+            //    Alpha Hound выгружался обратно с «PT0S». Получатель такого
+            //    файла восстановить живое время уже ниоткуда не может.
+            //
+            //    ⚠ ЧЕСТНО: ПОЛНОГО ВРЕМЕНИ В ЭТОМ ИЗВОДЕ ЧАЩЕ ВСЕГО НЕТ. Если
+            //    элемента RealTime в файле нет, полное время приравнивается
+            //    живому — ровно то число, что стояло в этом поле и до правки,
+            //    то есть НИ ОДНО сегодняшнее число не сдвигается. Выдумать
+            //    мёртвое время не из чего, а обнулить полное нельзя: на него
+            //    делит весь показ спектра (EnergySpectrumView), доза
+            //    (DoseRateManager) и нормировка фона.
             double lifetime = rad.MeasurementGroup.Measurement.Spectrum.LiveTime;
+            double realtime = lifetime;
+            string realTimeText = rad.MeasurementGroup.Measurement.Spectrum.RealTime;
+            if (realTimeText != null && realTimeText.Trim().Length > 0)
+            {
+                realtime = N42SecondsLoose(realTimeText, "RealTime", filename);
+            }
             string spectrumtype = rad.MeasurementGroup.Measurement.Spectrum.SpectrumType;
             AH_InstrumentInformation instrument = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation;
 
@@ -353,13 +462,23 @@ namespace BecquerelMonitor.N42
                 listCalibration.Add(calibrationPoint);
             }
 
-            energySpectrum.MeasurementTime = lifetime;
+            // См. пояснение выше: полное — в поле полного, живое — в поле живого.
+            energySpectrum.MeasurementTime = realtime;
+            energySpectrum.LiveTime = lifetime;
             energySpectrum.TotalPulseCount = totalpulsecount;
             energySpectrum.ValidPulseCount = totalpulsecount;
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultData.SampleInfo.Time = DateTime.Now;
+            // ⚠ `A177`: КОНЕЦ НАБОРА — то же правило, что у двух других разборов
+            //    и у соседей в DocumentManager. ⚠ ЧЕСТНО: времени НАЧАЛА у этого
+            //    формата нет вовсе (в RadiologicalInstrumentData модель его не
+            //    несёт), поэтому началом остаётся «сейчас», и конец выходит
+            //    «сейчас + время набора». Это не отговорка: поле перестаёт быть
+            //    ПУСТЫМ и хранит длительность, а неизвестное начало — свойство
+            //    формата, а не этой строки.
+            resultData.EndTime = resultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
             resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
             // calibration part
@@ -446,60 +565,27 @@ namespace BecquerelMonitor.N42
             string[] enCalibrationCoeff = calibration.Equation.Coefficients.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
             enCalibrationCoeff = Array.FindAll(enCalibrationCoeff, isNotN42SpectrumValid);
 
-            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
-            chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
-
-            int NumberOfChanels = chanData.Length;
-            // `A147`: тот же читатель длительности, что и у разбора 2012 года, —
-            //   деление вместо TotalSeconds. Здесь дробная часть не терялась
-            //   (приведения к int не было), но промах на единицу младшего разряда
-            //   был тот же, и второго соглашения о чтении времени в одном файле
-            //   быть не должно.
-            double lifetime = N42Seconds(rad.Measurement.Spectrum.LiveTime);
-            double realtime = N42Seconds(rad.Measurement.Spectrum.RealTime);
-            string starttime = rad.Measurement.Spectrum.StartTime;
-            N42_2006_InstrumentInformation instrument = rad.Measurement.InstrumentInformation;
-
-            string spectrumtype = rad.Measurement.Spectrum.Type;
-
-            ResultData resultData = doc.ActiveResultData;
-            long totalpulsecount = 0;
-            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
-            energySpectrum.Initialize();
-
-            for (int i = 0; i < NumberOfChanels; i++)
-            {
-                // `A158`: инвариантная культура — то же правило, что у коэффициентов
-                //   этого же разбора ниже (`A142`) и у отсчётов разбора 2012 года.
-                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
-                energySpectrum.Spectrum[i] = count;
-                totalpulsecount += count;
-            }
-
-            resultData.EnergySpectrum.MeasurementTime = realtime;
-            resultData.EnergySpectrum.LiveTime = lifetime;
-            resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(realtime);
-            resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(realtime);
-            resultData.ResultDataStatus.PresetTime = (int)realtime;
-            energySpectrum.TotalPulseCount = totalpulsecount;
-            energySpectrum.ValidPulseCount = totalpulsecount;
-            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
-            // `A156`: время начала кладётся в ОБА поля — то же соглашение, что у
-            //   разбора 2012 года ниже и у соседнего ввоза GBS в DocumentManager.
-            //   Прежде здесь заполнялся только SampleInfo.Time, а ResultData.StartTime
-            //   оставался «сейчас» — то есть вывоз этого же документа записал бы в
-            //   файл текущее время вместо прочитанного.
-            resultData.SampleInfo.Time = XmlConvert.ToDateTime(starttime, XmlDateTimeSerializationMode.Utc);
-            resultData.StartTime = resultData.SampleInfo.Time;
-            resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
-                $"Manufacturer = {instrument.Manufacturer}, " +
-                $"InstrumentModel = {instrument.InstrumentModel}, " +
-                $"InstrumentID = {instrument.InstrumentID}, " +
-                $"ProbeType = {instrument.ProbeType}";
-
-
-
-            resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+            // ⛔ ШКАЛА РАЗБИРАЕТСЯ ДО ТОГО, КАК ДОКУМЕНТ ПЕРЕЗАПИСАН (05.09.2026).
+            //
+            //    Ниже идут energySpectrum.NumberOfChannels = … , Initialize() и
+            //    цикл записи отсчётов — то есть ПЕРЕЗАПИСЬ открытого документа.
+            //    Все три проверки шкалы (пустой список `A140`, порядок больше
+            //    четырёх `A151`, нечисло в коэффициентах `A142`) стояли ПОСЛЕ
+            //    неё, и отказ оставлял в документе весь спектр отказавшего файла:
+            //    измерено 05.09.2026 входом case29_2006_nocoeff — после ОТКАЗА
+            //    слепок показывал «кан 64, сумма 253, изм 300, живое 295, шкала
+            //    порядок 1 [0, 1]». Снаружи это неотличимо от удачного ввоза, а
+            //    шкала при этом y = x, то есть номер канала объявлен энергией.
+            //
+            //    ⚠ Ни одна из трёх проверок не смотрит на число каналов — им
+            //    нужен только разобранный список коэффициентов, — поэтому
+            //    перенос ничего не меняет ни в одном исходе, кроме состояния
+            //    документа после отказа. CheckCalibration остаётся ниже: ей
+            //    число каналов НУЖНО (`A141`, `A172`).
+            //
+            //    ⚠ ЧЕСТНО: сдвинуть за эту черту удалось не всё. Отказ
+            //    CheckCalibration и отказ разбора даты по-прежнему случаются
+            //    после перезаписи, и остаток вынесен отдельной строкой реестра.
             if (enCalibrationCoeff.Length == 0)
             {
                 // ⛔ `A140`: БРОСОК БЕЗ СООБЩЕНИЯ НЕ НАЗЫВАЕТ НИЧЕГО. Отсюда
@@ -537,6 +623,128 @@ namespace BecquerelMonitor.N42
                 coefficients[k] = double.Parse(enCalibrationCoeff[k], CultureInfo.InvariantCulture);
             }
 
+            string[] chanData = rad.Measurement.Spectrum.ChannelData.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
+            chanData = Array.FindAll(chanData, isNotN42SpectrumValid);
+
+            int NumberOfChanels = chanData.Length;
+            // `A147`: тот же читатель длительности, что и у разбора 2012 года, —
+            //   деление вместо TotalSeconds. Здесь дробная часть не терялась
+            //   (приведения к int не было), но промах на единицу младшего разряда
+            //   был тот же, и второго соглашения о чтении времени в одном файле
+            //   быть не должно.
+            double lifetime = N42Seconds(rad.Measurement.Spectrum.LiveTime);
+            double realtime = N42Seconds(rad.Measurement.Spectrum.RealTime);
+            string starttime = rad.Measurement.Spectrum.StartTime;
+            N42_2006_InstrumentInformation instrument = rad.Measurement.InstrumentInformation;
+
+            string spectrumtype = rad.Measurement.Spectrum.Type;
+
+            ResultData resultData = doc.ActiveResultData;
+            long totalpulsecount = 0;
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+            // ⛔ `A172`: ЧИСЛО КАНАЛОВ ФАЙЛА ПИШЕТСЯ В СПЕКТР — ТА ЖЕ ПРАВКА, ЧТО
+            //    `A152` СДЕЛАЛА У РАЗБОРА RadiologicalInstrumentData. Здесь её не
+            //    было, и разборов с ТРЕТЬИМ соглашением о числе каналов
+            //    оставалось два из трёх.
+            //    ⛔ Цена измерена 05.09.2026 двумя видами беды сразу:
+            //    файл на 9000 и на 16384 канала РОНЯЛ ввоз
+            //    IndexOutOfRangeException (цикл ниже пишет по индексу в массив
+            //    документа, а у пустого DocEnergySpectrum он на 8192), а файл
+            //    на 64 и на 1024 канала не падал вовсе и ложился в документ,
+            //    объявляющий 8192, — каналы файла кончались, остаток оставался
+            //    нулями МОЛЧА. Вторая половина хуже первой: падение видно, а
+            //    лишние семь тысяч нулевых каналов выглядят как спектр.
+            //    ⚠ И это же чинит происхождение шкалы: CheckCalibration ниже
+            //    зовётся с energySpectrum.NumberOfChannels, то есть до правки
+            //    проверяла полином на 8192 каналах у файла, где их 64, —
+            //    судила экстраполяцию, а не то, что прочитано.
+            //    ⚠ ChannelPitch не трогается: у разбора 2012 года он ставится
+            //    в 1, здесь исторически не ставится вовсе, и менять шаг шкалы
+            //    у файлов, которые ввозились и раньше, эта строка не просит.
+            energySpectrum.NumberOfChannels = NumberOfChanels;
+            energySpectrum.Initialize();
+
+            for (int i = 0; i < NumberOfChanels; i++)
+            {
+                // `A158`: инвариантная культура — то же правило, что у коэффициентов
+                //   этого же разбора ниже (`A142`) и у отсчётов разбора 2012 года.
+                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
+                energySpectrum.Spectrum[i] = count;
+                totalpulsecount += count;
+            }
+
+            resultData.EnergySpectrum.MeasurementTime = realtime;
+            resultData.EnergySpectrum.LiveTime = lifetime;
+            resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(realtime);
+            resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(realtime);
+            resultData.ResultDataStatus.PresetTime = (int)realtime;
+            energySpectrum.TotalPulseCount = totalpulsecount;
+            energySpectrum.ValidPulseCount = totalpulsecount;
+            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+            // `A156`: время начала кладётся в ОБА поля — то же соглашение, что у
+            //   разбора 2012 года ниже и у соседнего ввоза GBS в DocumentManager.
+            //   Прежде здесь заполнялся только SampleInfo.Time, а ResultData.StartTime
+            //   оставался «сейчас» — то есть вывоз этого же документа записал бы в
+            //   файл текущее время вместо прочитанного.
+            //
+            // ⛔ `A171`: ОТКАЗ РАЗБОРА ДАТЫ БОЛЬШЕ НЕ ВАЛИТ ВЕСЬ ВВОЗ. Прежде здесь
+            //    стоял голый XmlConvert.ToDateTime, и негодная запись времени
+            //    уносила файл ЦЕЛИКОМ: измерено 05.09.2026 входом
+            //    case19_2006_baddate — ОТКАЗ FormatException, тогда как тот же
+            //    файл в записи 2012 года ввозился и говорил вслух (`A157`). Два
+            //    соглашения об одном положении в одном файле — тот же разряд, что
+            //    `A137` и `A141`. Соглашение взято У РАЗБОРА 2012 ГОДА ЦЕЛИКОМ:
+            //    та же попытка чтения (ParseMeasurementStartDateTime), тот же
+            //    счётчик, тот же ключ ресурса, тот же голос один раз на файл.
+            //
+            //    ⚠ Довод «ввозим, сказав вслух, а не отказываем» тот же, что у
+            //    `A157`, и здесь он ЕЩЁ прямее: время начала не входит ни в одно
+            //    вычисление, а нечитаемую дату несут файлы, которые BecqMoni сам
+            //    выгружал до `A146`.
+            //
+            //    ⚠ Читатель сменился с XmlDateTimeSerializationMode.Utc на
+            //    ParseMeasurementStartDateTime (RoundtripKind + запасные попытки).
+            //    Для записи без часового пояса и для записи с «Z» это ОДНО И ТО ЖЕ
+            //    значение — проверено замером на входе case18_n42_2006; расходятся
+            //    они только на записи со смещением вида «+03:00», где Utc приводил
+            //    к UTC, а RoundtripKind оставляет местное. Второго соглашения о
+            //    чтении даты в одном файле быть не должно, и выбрано то, которым
+            //    читают два других разбора и пишет наш собственный вывоз.
+            DateTime startTime = DateTime.Now;
+            int badStart = 0;
+            string badStartSample = null;
+            if (!string.IsNullOrEmpty(starttime))
+            {
+                try
+                {
+                    startTime = ParseMeasurementStartDateTime(starttime);
+                }
+                catch (Exception ex)
+                {
+                    badStart++;
+                    badStartSample = starttime + " — " + ex.GetType().Name;
+                }
+            }
+            resultData.SampleInfo.Time = startTime;
+            resultData.StartTime = startTime;
+            // ⚠ `A177`: КОНЕЦ НАБОРА — ТО ЖЕ ПРАВИЛО, ЧТО У СОСЕДЕЙ.
+            //    DocumentManager при ввозе GBS и через SpecUtils ставит
+            //    EndTime = StartTime + полное время набора; ввоз N42 не ставил его
+            //    ВООБЩЕ, и поле оставалось умолчанием ResultData, то есть
+            //    «сейчас». Берётся полное время (realtime), а не живое: EndTime —
+            //    момент по часам, а не сумма зачтённого времени.
+            resultData.EndTime = startTime.AddSeconds(realtime);
+            resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
+                $"Manufacturer = {instrument.Manufacturer}, " +
+                $"InstrumentModel = {instrument.InstrumentModel}, " +
+                $"InstrumentID = {instrument.InstrumentID}, " +
+                $"ProbeType = {instrument.ProbeType}";
+
+
+
+            // Порядок полинома и коэффициенты разобраны ВЫШЕ, до перезаписи
+            // документа (см. пояснение там); здесь они только ставятся на место.
+            resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
             PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
             energyCalibration.PolynomialOrder = PolynomialOrder;
             energyCalibration.Coefficients = coefficients;
@@ -558,6 +766,16 @@ namespace BecquerelMonitor.N42
                 AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
             }
 
+            // `A171`: дата не прочитана — спектр ввезён, но с чужим временем.
+            //   Голос стоит В КОНЦЕ, как у разбора 2012 года: если файл не
+            //   доехал до этой точки, человеку названа та беда, из-за которой
+            //   он не доехал, а не эта.
+            if (badStart > 0)
+            {
+                AppUi.Report(string.Format(Resources.ERRUnreadableStartDateTimeN42,
+                                           badStart, badStartSample),
+                             "", MessageBoxIcon.None);
+            }
 
             return doc;
         }
@@ -763,6 +981,12 @@ namespace BecquerelMonitor.N42
                 resultData.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                 resultData.ResultDataStatus.PresetTime = (int)ElapsedTime;
+                // ⚠ `A177`: КОНЕЦ НАБОРА, соглашение соседей целиком —
+                //    EndTime = StartTime + ПОЛНОЕ время набора (см. пояснение у
+                //    разбора 2006 года выше). Стоит после ElapsedTime нарочно:
+                //    полное время читается двумя строками выше, и поставить
+                //    EndTime раньше значило бы прибавить ноль.
+                resultData.EndTime = resultData.StartTime.AddSeconds(ElapsedTime);
 
                 // ChannelData.SpectrumToArray() handles compressionCode="CountedZeroes"
                 // (N42 run-length); the old manual split ignored it and produced a wrong
@@ -970,6 +1194,36 @@ namespace BecquerelMonitor.N42
                 AppUi.Report(string.Format(Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
                              "", MessageBoxIcon.None);
+            }
+
+            // ⛔ `A176`: ПУСТОЙ ДОКУМЕНТ НЕ ВЫДАЁТСЯ ЗА ВВЕЗЁННЫЙ СПЕКТР.
+            //
+            //    Файл из одних калибровочных измерений после `A160` отдавал
+            //    документ, в котором НИЧЕГО не прочитано: 8192 канала умолчания,
+            //    сумма 0, шкала от прежнего состояния, — и дальше по нему
+            //    считали. Измерено 05.09.2026 входом case12_calibonly.
+            //    Тот же разряд, что `A137`: молчаливая подстановка негодных
+            //    данных вместо отказа.
+            //
+            //    ⛔ ВТОРОЙ ДВЕРИ ЗДЕСЬ НЕ ЗАВОДИТСЯ — заводится ПРИЧИНА для той,
+            //    что уже стоит, ровно как у `A140`: бросок отсюда ловит
+            //    DocumentManager.ImportDocumentN42, и он же без окон отказывает
+            //    кодом возврата, а в окнах называет причину человеку. Свой
+            //    AppUi.Report тут был бы ТРЕТЬИМ соглашением об одном положении.
+            //
+            //    ⚠ Голос `A160` («Спектров ввезено: 0») звучит ПЕРЕД этим и
+            //    остаётся: он говорит, ЧТО выброшено, а бросок — что показывать
+            //    после этого нечего.
+            if (added == 0)
+            {
+                throw new Exception(
+                    "в файле N42 не осталось ни одного ввозимого спектра"
+                    + (skippedClasses.Count > 0
+                       ? ": все измерения файла имеют класс "
+                         + string.Join(", ", skippedClasses.ToArray())
+                         + ", а приложение ввозит только передние и фоновые"
+                       : ": ввозимых измерений в файле нет")
+                    + " — документ остался бы пустым, и считать по нему нечего");
             }
 
             doc.ResultDataFile.ResultDataList[0].Visible = true;

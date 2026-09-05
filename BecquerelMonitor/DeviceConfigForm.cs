@@ -2721,47 +2721,121 @@ namespace BecquerelMonitor
                 "«{0}» — не число ни с точкой, ни с запятой", text));
         }
 
+        /// <summary>
+        /// ⛔ ПРАВИЛО «ТОЧКЕ С ПОГРЕШНОСТЬЮ ВЫШЕ 100 % НЕ ВЕРИТЬ» — решение
+        /// Amber 05.09.2026 (`T174`). Экспорт ЛСРМ несёт третьей колонкой
+        /// ЗАЯВЛЕННУЮ САМИМ ЛСРМ погрешность точки в процентах, и первая точка
+        /// каждого из восьми настоящих экспортов в дереве заявлена с
+        /// погрешностью от 554 до 3830 % — то есть значение известно хуже, чем
+        /// «неизвестно вовсе». Такая точка не мнение о кривой, а шум, и в
+        /// кривую она не берётся. Правило одинаково для всех файлов, порога «по
+        /// вкусу» здесь нет.
+        ///
+        /// ⚠ Что этим действительно выбрасывается (замер 05.09.2026 по восьми
+        /// файлам): РОВНО ПО ОДНОЙ точке из каждого — первая, 20.0 кэВ (у
+        /// `Nano 16 - marinelli` — 10.0 кэВ). Ни в одном файле второй такой
+        /// точки нет: следующая по счёту (40 кэВ) заявлена с 30.5…65.9 %. Заодно
+        /// это снимает единственное физически невозможное значение во всём
+        /// наборе — `Obsidian - marinelli 0.5`, 20 кэВ, эффективность
+        /// 1.47185E+03, то есть 147 тысяч процентов.
+        /// </summary>
+        internal const double LsrmMaxErrorPercent = 100.0;
+
+        /// <summary>
+        /// ⛔ Сколько точек обязано ОСТАТЬСЯ после отсечения (моё решение,
+        /// названо вслух — решением Amber этот случай не покрыт). Двух хватает
+        /// ровно потому, что двух требует потребитель: <c>DoseRateCurve</c>
+        /// строится сплайном по строго растущим узлам, и на одном узле сплайна
+        /// нет. Меньше двух — ОТКАЗ, и отказ называет ОБА числа: сколько точек
+        /// файл нёс и сколько отсечено, — иначе «в файле мало точек» неотличимо
+        /// от «правило съело файл».
+        ///
+        /// ⚠ На восьми настоящих экспортах этот случай не наступает ни разу:
+        /// после отсечения остаётся 149…150 точек (у `Nano 16 - marinelli` —
+        /// 59). Ветка проверена подставным файлом в `DoseRateProbe`.
+        /// </summary>
+        internal const int LsrmMinPoints = 2;
+
         internal static List<ROIEfficiencyData> ReadLsrmEfficiencyExport(string path, out string problem)
         {
             problem = null;
             var points = new List<ROIEfficiencyData>();
+            int dropped = 0;
             int lineNumber = 0;
             try
             {
                 using (StreamReader streamReader = new StreamReader(path, Encoding.GetEncoding(65001)))
                 {
-                    // Заголовок вида "Energy, keV\tEfficiency\tUncertainty, %".
-                    streamReader.ReadLine();
+                    // ⛔ Шапка ПРОВЕРЯЕТСЯ, а не проглатывается (`T174`). Прежде
+                    // первая строка отбрасывалась безусловно: файл без шапки
+                    // молча терял первую точку, а файл с переставленными
+                    // колонками читался как ЛСРМ-овский и давал числа не о том.
+                    // Шапка — единственное, что закрепляет порядок колонок
+                    // (энергия, эффективность, погрешность в процентах), и без
+                    // неё разбор был бы догадкой.
+                    string header = streamReader.ReadLine();
                     lineNumber = 1;
+                    string headerText = (header ?? "").ToLowerInvariant();
+                    if (headerText.IndexOf("energy", StringComparison.Ordinal) < 0
+                        || headerText.IndexOf("efficiency", StringComparison.Ordinal) < 0
+                        || headerText.IndexOf("uncertainty", StringComparison.Ordinal) < 0)
+                    {
+                        problem = string.Format(CultureInfo.CurrentCulture,
+                            DoseRateCoefficients.Text("DoseRateLsrmNoHeader",
+                                "Dose rate: {0} does not start with the LSRM header"
+                                + " \"Energy, keV / Efficiency / Uncertainty, %\" — the first line reads \"{1}\"."),
+                            path, header ?? "");
+                        return new List<ROIEfficiencyData>();
+                    }
+
                     while (streamReader.Peek() != -1)
                     {
                         lineNumber++;
-                        List<string> lineList = streamReader.ReadLine().Split(new char[] { '\t' }).ToList<string>();
-                        if (lineList.Count <= 5)
+                        string line = streamReader.ReadLine();
+                        if (string.IsNullOrEmpty(line) || line.Trim().Length == 0)
                         {
                             continue;
                         }
 
-                        for (int i = 0; i < lineList.Count; i++)
+                        // ⛔ Пустые поля выбрасываются, КРАТНОСТЬ табуляций
+                        // ничего не значит. Настоящий экспорт разделяет колонки
+                        // двумя-тремя табуляциями подряд (шесть полей на строку),
+                        // и прежний разбор именно на этом и держался: строка
+                        // короче шести полей ПРОПУСКАЛАСЬ МОЛЧА. Тот же файл с
+                        // одиночными табуляциями — а это ровно то, что делает с
+                        // ним любой текстовый редактор, — читался как пустой.
+                        List<string> cells = line.Split('\t')
+                                                 .Select(c => c.Trim())
+                                                 .Where(c => c.Length > 0)
+                                                 .ToList();
+                        if (cells.Count < 3)
                         {
-                            if (lineList[i] == "")
-                            {
-                                lineList.RemoveAt(i);
-                                i--;
-                                if (i > lineList.Count - 1) break;
-                            }
+                            // ⛔ ОТКАЗ, а не `continue`. Строка, не давшая точки,
+                            // — это потерянная точка; молча прочитанная половина
+                            // файла хуже непрочитанного файла, потому что по ней
+                            // строится кривая.
+                            problem = string.Format(CultureInfo.CurrentCulture,
+                                DoseRateCoefficients.Text("DoseRateLsrmShortLine",
+                                    "Dose rate: {0} (line {1}) has {2} column(s) instead of three"
+                                    + " (energy, efficiency, uncertainty): \"{3}\"."),
+                                path, lineNumber, cells.Count, line);
+                            return new List<ROIEfficiencyData>();
                         }
 
-                        if (lineList.Count < 3)
+                        double error = ParseLsrmDouble(cells[2]);
+                        if (!(error <= LsrmMaxErrorPercent))
                         {
+                            // Точка, которой сам ЛСРМ не верит. Отбрасывается
+                            // ЧИСЛОМ, а не молча: счётчик уходит в отказ ниже.
+                            dropped++;
                             continue;
                         }
 
                         points.Add(new ROIEfficiencyData()
                         {
-                            Energy = ParseLsrmDouble(lineList[0]),
-                            Efficiency = ParseLsrmDouble(lineList[1]),
-                            ErrorPercent = ParseLsrmDouble(lineList[2])
+                            Energy = ParseLsrmDouble(cells[0]),
+                            Efficiency = ParseLsrmDouble(cells[1]),
+                            ErrorPercent = error
                         });
                     }
                 }
@@ -2770,15 +2844,17 @@ namespace BecquerelMonitor
             {
                 problem = string.Format(CultureInfo.CurrentCulture, "{0} (line {1}): {2}",
                                         path, lineNumber, ex.Message);
-                return points;
+                return new List<ROIEfficiencyData>();
             }
 
-            if (points.Count < 2)
+            if (points.Count < LsrmMinPoints)
             {
                 problem = string.Format(CultureInfo.CurrentCulture,
                     DoseRateCoefficients.Text("DoseRateLsrmNoPoints",
-                        "Dose rate: {0} yielded {1} curve point(s) — at least two are needed."),
-                    path, points.Count);
+                        "Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed"
+                        + " ({3} more were dropped as declared to more than {4:f0} % uncertainty)."),
+                    path, points.Count, LsrmMinPoints, dropped, LsrmMaxErrorPercent);
+                return new List<ROIEfficiencyData>();
             }
 
             return points;

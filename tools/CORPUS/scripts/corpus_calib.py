@@ -268,10 +268,78 @@ EXTRAP_EXCESS_FWHM = 0.75
 # выдумать там ничего не могут, а `poly*` могут — именно они и уводят низ шкалы.
 EXTRAP_SCOPE = 'poly'
 
+#: `V19`: кому запрет экстраполяции действует ещё и ВЫШЕ верхней опоры.
+#: Кубика (`poly3`) — единственный кандидат, у которого выше верхней опоры
+#: есть своя свобода: квадратика там ограничена `bend_ok`, а кубический член
+#: растёт как ch³ и на 1024-канальной шкале G1S с верхней опорой 1408 кэВ
+#: способен увести верх на сотни кэВ, не тронув ни одной опоры. Поэтому
+#: третья степень допускается только там, где она ПОДТВЕРЖДЕНА опорами с
+#: обеих сторон — тем же правилом «расходиться с поставочной можно ровно
+#: настолько, насколько это подтверждено опорами», что и `B24` для низа.
+#: Для `poly1`/`poly2` верх не проверяется намеренно: это меняло бы нынешнее
+#: поведение корпуса, а оно — база, то есть слово Amber.
+EXTRAP_ABOVE = ('poly3',)
 
-def extrapolation_excess(cal, stored, pairs, res_a):
-    """Насколько сильнее кандидат расходится с поставочной НИЖЕ нижней опоры,
-    чем в пределах опор. В долях ПШПВ; отрицательное значение — не расходится.
+#: Наибольшая степень полиномиального кандидата, когда вызывающий её не
+#: назвал (`calibrate(..., max_order=None)`). Умолчание 2 — прежнее; 3
+#: впускает кубику на условиях `V19` (см. `choose`). Модульная константа,
+#: а не правка умолчания: смена степени двигает шкалу спектров корпуса, то
+#: есть базу, — как `FORM` у `V2`.
+MAX_ORDER = 2
+
+#: `V18`: правило, по которому кандидат с лишними степенями свободы должен
+#: за них ПЛАТИТЬ.
+#:
+#: 'margin' — прежнее правило: кандидат берётся, если его СКО в долях ПШПВ
+#:   меньше СКО текущего лучшего на десятую часть (`keep_margin`), без
+#:   оглядки на число параметров. Порог один и тот же при трёх опорах и при
+#:   семнадцати — и на трёх опорах квадратика (три параметра, одна степень
+#:   свободы) выигрывает у прямой почти всегда: лишний параметр СКО только
+#:   роняет.
+#: 'ftest' — то же, и сверх того кандидат с Δp дополнительными параметрами
+#:   против текущего лучшего должен пройти F-критерий
+#:       F = ((SS_best − SS_cand)/Δp) / (SS_cand/ν),  ν = n − p_cand,
+#:   на уровне `MODEL_ALPHA`. Это и есть плата за свободу: при ν = 1 порог
+#:   F(1,1) = 161, при ν = 3 — 10.1, при ν = 10 — 5.0, при ν → ∞ — 3.84;
+#:   прежний порог «СКО меньше на 10 %» отвечает F ≈ 0.23·ν, то есть на
+#:   малых n он ЛЬГОТНЕЕ F-критерия примерно на порядок, а сравнивается с
+#:   ним только к двум десяткам опор.
+#:
+#: ⚠ Что этот критерий даёт нулевому плечу `V18` и чего не даёт — измерено, а
+#: не выведено (`calib_null_check.py`, журнал `handover-2026-09-05-f5-v18-v19`).
+#: Точка с нулевой невязкой под нынешним ответом НЕ МОЖЕТ увеличить выигрыш
+#: ни одного конкурента: SS победителя не меняется, SS конкурента после
+#: перефита только растёт. Двигать выбор она может лишь одним путём —
+#: ОТКРЫВАЯ кандидата, которому раньше не хватало опор по счёту (n < p + 2),
+#: и вот у такого кандидата ν = 1, где F-критерий требует 161-кратного
+#: выигрыша. Прежнее правило пускало его за 10 %.
+MODEL_TEST = 'margin'
+MODEL_ALPHA = 0.05
+
+#: С кого в режиме 'ftest' берётся плата. 'all' — со всякого кандидата с
+#: лишними параметрами, включая `gain`/`affine`; 'poly' — только с тех, кто
+#: строит кривую С НУЛЯ (`poly1`…`poly3`), по той же логике, что
+#: `EXTRAP_SCOPE`: `gain` и `affine` суть α·поставочная + β и формы не
+#: выдумывают, а F-критерий при ν = 1…3 (три–пять опор) требует 10…200-кратного
+#: выигрыша и отбирает у них честную поправку усиления (измерено: при 'all' и
+#: α = 0.05 стадия 1 оставляет поставочную у 75 спектров из 120 вместо 21, и
+#: конвейер теряет опоры, потому что следующие проходы ищут линии по
+#: неисправленной шкале).
+MODEL_TEST_SCOPE = 'all'
+
+#: След последнего `choose`: по каждому кандидату — почему его нет
+#: (`count` — не хватило опор по счёту, `fit` — не построился/немонотонен/
+#: изгиб, `drift>5%`, `extrap_below`/`extrap_above` — запрет экстраполяции)
+#: или его оценка (`score`, `ss`, `paid` — плата за свободу) и выбран ли он.
+#: Читатель — мерка `calib_null_check.py`: по следу она называет МЕХАНИЗМ, по
+#: которому нулевая опора сдвинула выбор. Конвейер его не читает.
+LAST_CANDIDATES = []
+
+
+def extrapolation_excess(cal, stored, pairs, res_a, side='below'):
+    """Насколько сильнее кандидат расходится с поставочной ЗА опорами (ниже
+    нижней при side='below', выше верхней при side='above'), чем в пределах
+    опор. В долях ПШПВ; отрицательное значение — не расходится.
     """
     if not pairs:
         return 0.0
@@ -287,17 +355,24 @@ def extrapolation_excess(cal, stored, pairs, res_a):
         e = np.maximum(np.abs(stored.energy(grid)), 5.0)
         return float(np.max(d / (res_a * np.sqrt(e))))
 
-    step = max(1.0, ch_lo / 200.0)
-    below = worst(np.arange(0.0, ch_lo, step))
     inside = worst(np.linspace(ch_lo, max(ch_hi, ch_lo + 1.0), 200))
-    return below - inside
+    if side == 'above':
+        top = float(stored.nmax - 1)
+        if ch_hi >= top:
+            return 0.0
+        step = max(1.0, (top - ch_hi) / 200.0)
+        outside = worst(np.arange(ch_hi, top + 0.5 * step, step))
+    else:
+        step = max(1.0, ch_lo / 200.0)
+        outside = worst(np.arange(0.0, ch_lo, step))
+    return outside - inside
 
 
-def extrapolation_ok(cal, stored, pairs, res_a, tol=None):
+def extrapolation_ok(cal, stored, pairs, res_a, tol=None, side='below'):
     tol = EXTRAP_EXCESS_FWHM if tol is None else tol
     if tol is None:
         return True
-    return extrapolation_excess(cal, stored, pairs, res_a) <= tol
+    return extrapolation_excess(cal, stored, pairs, res_a, side=side) <= tol
 
 
 def bend_ok(cal, line, nmax, max_bend=0.15, lo=5.0):
@@ -348,13 +423,82 @@ def gain_drift(cal, stored, nmax):
     return abs(g - g0) / g0 if g0 > 0 else 0.0
 
 
-def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False):
+def npar(tag):
+    """Число СВОБОДНЫХ параметров кандидата по его метке: `stored` 0, `gain` 1,
+    `affine` 2, `polyN` N+1. Хвосты меток (`/recal`, `/robust`) не в счёт."""
+    base = tag.split('/')[0]
+    if base.startswith('poly'):
+        return int(base[4:]) + 1
+    return {'stored': 0, 'gain': 1, 'affine': 2}.get(base, 0)
+
+
+def residual_ss(cal, pairs, res_a):
+    """Сумма квадратов невязок в долях ПШПВ — та же величина, что под корнем
+    у `residual_fwhm`, но БЕЗ деления на n: F-критерию нужна именно она."""
+    if not pairs:
+        return float('inf')
+    d = np.array([(cal.energy(a['ch']) - a['e_ref']) /
+                  max(res_a * np.sqrt(max(a['e_ref'], 5.0)), 1e-9) for a in pairs])
+    return float((d ** 2).sum())
+
+
+def f_crit(dp, nu, alpha=None):
+    """Критическое значение F(dp, nu) на уровне alpha (по умолчанию
+    `MODEL_ALPHA`). Считает SciPy; без него режим 'ftest' работать не может, и
+    сказать об этом надо вслух, а не подменять таблицей «примерно»."""
+    alpha = MODEL_ALPHA if alpha is None else alpha
+    try:
+        from scipy.stats import f as _f
+    except ImportError:
+        raise RuntimeError(u'MODEL_TEST=ftest требует SciPy (scipy.stats.f.ppf)')
+    return float(_f.ppf(1.0 - alpha, dp, nu))
+
+
+def freedom_paid(best_tag, best_ss, tag, ss, n):
+    """`V18`: может ли кандидат `tag` сместить текущего лучшего `best_tag`,
+    если у него больше свободных параметров. В режиме 'margin' — всегда
+    (прежнее поведение). В режиме 'ftest' — только пройдя F-критерий за
+    каждый лишний параметр; кандидат без единой степени свободы (ν < 1) не
+    проходит никогда, а точный фит (ss = 0) при ν ≥ 1 проходит всегда.
+    При Δp ≤ 0 (та же или меньшая сложность) критерий не применяется —
+    платить не за что, решает `keep_margin`."""
+    dp = npar(tag) - npar(best_tag)
+    if MODEL_TEST != 'ftest' or dp <= 0:
+        return True
+    if MODEL_TEST_SCOPE == 'poly' and not tag.startswith('poly'):
+        return True
+    if tag == 'gain' and n == 1:
+        # Поправка усиления по ОДНОЙ линии — отдельное, ранее принятое решение
+        # (стабилизатор прибора по опорному пику; урановое стекло AS1 Pro), со
+        # своими сторожами в `choose`: значимость ≥ 40 и поправка ≤ 5 %.
+        # Степеней свободы у неё нет по построению, F-критерию тут нечего
+        # судить, и снимать её он не должен.
+        return True
+    nu = n - npar(tag)
+    if nu < 1:
+        return False
+    if ss <= 0.0:
+        return True
+    if not np.isfinite(best_ss):
+        return True
+    F = ((best_ss - ss) / dp) / (ss / nu)
+    return F > f_crit(dp, nu)
+
+
+def choose(stored, pairs, res_a, nmax, max_order=None, keep_margin=0.9, force=False):
     """Хранившаяся калибровка остаётся, если поправка не улучшила невязку
     заметно (на десятую часть): менять калибровку ради шума незачем.
 
     У каждого кандидата должна остаться хотя бы одна степень свободы. Иначе
     прямая по двум точкам проходит через них ровно, получает нулевую невязку и
     побеждает всегда — а за пределами этих двух точек может уходить куда угодно.
+
+    `V18`/`V19`: сверх того в режиме `MODEL_TEST='ftest'` кандидат с лишними
+    параметрами платит за них F-критерием (`freedom_paid`), а кубика
+    (`max_order=3`) допускается лишь при ν ≥ 1 (то есть от пяти опор),
+    пройдя F-критерий против текущего лучшего И запрет экстраполяции с ОБЕИХ
+    сторон опор (`EXTRAP_ABOVE`). Спектр с тремя опорами кубику не получит
+    по счёту (n < 5), с пятью — только при 161-кратном выигрыше F(1,1).
 
     `force` снимает привилегию хранившейся: она перестаёт быть точкой отсчёта и
     участвует наравне с остальными (`B16`, указание Amber 16.08.2026 —
@@ -365,7 +509,14 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
     может не оказаться вовсе — тогда возвращается она же, и метка это назовёт.
     """
     n = len(pairs)
+    if max_order is None:
+        max_order = MAX_ORDER
     cands = [('stored', stored)]
+    trace = []                     # `V18`: почему каждого кандидата нет или есть
+
+    def note(tag, status):
+        trace.append(dict(tag=tag, status=status, score=None, ss=None, paid=None,
+                          chosen=False))
     # Поправка усиления по одной линии — вырожденный случай (параметр один,
     # точка одна, невязка ноль), и обычно так делать нельзя. Исключение: очень
     # значимая линия и поправка в пределах пяти процентов. Это ровно то, что
@@ -376,16 +527,27 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
         cal = affine_of(stored, pairs, nmax, scale_only=True)
         if cal is not None and (n >= 2 or gain_drift(cal, stored, nmax) <= 0.05):
             cands.append(('gain', cal))
+        else:
+            note('gain', 'fit' if cal is None else 'drift>5%')
+    else:
+        note('gain', 'count')
     if n >= 3:
         cal = affine_of(stored, pairs, nmax)
         if cal is not None:
             cands.append(('affine', cal))
+        else:
+            note('affine', 'fit')
+    else:
+        note('affine', 'count')
     for order in range(1, max_order + 1):
         if n < order + 2:
+            note('poly%d' % order, 'count')
             continue
         cal = poly_of(pairs, order, nmax)
         if cal is not None:
             cands.append(('poly%d' % order, cal))
+        else:
+            note('poly%d' % order, 'fit')
 
     # `B24`: кандидат, который ниже нижней опоры уходит от поставочной дальше,
     # чем его же опоры это подтверждают, выбывает. Хранившаяся не проверяется —
@@ -394,10 +556,18 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
     # Если не уцелел ни один, остаётся она же, и метка это назовёт: «мы отказались
     # выдумывать шкалу» — законный исход, а не сбой.
     if EXTRAP_EXCESS_FWHM is not None and len(cands) > 1:
-        cands = [cands[0]] + [
-            (t, c) for t, c in cands[1:]
-            if (EXTRAP_SCOPE == 'poly' and not t.startswith('poly'))
-            or extrapolation_ok(c, stored, pairs, res_a)]
+        kept = [cands[0]]
+        for t, c in cands[1:]:
+            if EXTRAP_SCOPE == 'poly' and not t.startswith('poly'):
+                kept.append((t, c))
+            elif not extrapolation_ok(c, stored, pairs, res_a):
+                note(t, 'extrap_below')
+            elif t in EXTRAP_ABOVE and not extrapolation_ok(c, stored, pairs, res_a,
+                                                             side='above'):
+                note(t, 'extrap_above')
+            else:
+                kept.append((t, c))
+        cands = kept
 
     def scored(tag, cal):
         score = residual_fwhm(cal, pairs, res_a)
@@ -406,25 +576,51 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
             score += 20.0 * (drift - 0.06)       # усиление врёт на проценты, не в разы
         return score
 
+    def seen(tag, cal, paid=None):
+        rec = dict(tag=tag, status='ok', score=scored(tag, cal),
+                   ss=residual_ss(cal, pairs, res_a), paid=paid, chosen=False)
+        trace.append(rec)
+        return rec
+
+    def done(tag, cal, score):
+        global LAST_CANDIDATES
+        for rec in trace:
+            rec['chosen'] = rec['status'] == 'ok' and rec['tag'] == tag.split('/')[0]
+        LAST_CANDIDATES = trace
+        return tag, cal, score
+
     if force and len(cands) > 1:
         # Хранившаяся снята с пьедестала: побеждает лучший ПОДОБРАННЫЙ кандидат,
         # порог `keep_margin` к нему не применяется — он и заведён затем, чтобы
         # не менять калибровку ради шума, а здесь смена как раз и требуется.
+        # Плата за свободу (`freedom_paid`) применяется и здесь: «перекалибровать»
+        # не значит «отдать кубике».
+        seen(*cands[0])
         best_tag, best_cal = cands[1][0], cands[1][1]
         best_score = scored(*cands[1])
+        best_ss = residual_ss(best_cal, pairs, res_a)
+        seen(best_tag, best_cal)
         for tag, cal in cands[2:]:
             score = scored(tag, cal)
-            if score < best_score:
-                best_tag, best_cal, best_score = tag, cal, score
-        return best_tag + '/recal', best_cal, best_score
+            ss = residual_ss(cal, pairs, res_a)
+            paid = freedom_paid(best_tag, best_ss, tag, ss, n)
+            seen(tag, cal, paid)
+            if score < best_score and paid:
+                best_tag, best_cal, best_score, best_ss = tag, cal, score, ss
+        return done(best_tag + '/recal', best_cal, best_score)
 
     base = residual_fwhm(stored, pairs, res_a)
     best_tag, best_cal, best_score = 'stored', stored, base
+    best_ss = residual_ss(stored, pairs, res_a)
+    seen('stored', stored)
     for tag, cal in cands[1:]:
         score = scored(tag, cal)
-        if score < best_score * keep_margin:
-            best_tag, best_cal, best_score = tag, cal, score
-    return best_tag, best_cal, best_score
+        ss = residual_ss(cal, pairs, res_a)
+        paid = freedom_paid(best_tag, best_ss, tag, ss, n)
+        seen(tag, cal, paid)
+        if score < best_score * keep_margin and paid:
+            best_tag, best_cal, best_score, best_ss = tag, cal, score, ss
+    return done(best_tag, best_cal, best_score)
 
 
 #: `V14`, решение Amber 27.08.2026: порог гейта по A/σ(A) на ПЕРВОМ проходе.
@@ -445,12 +641,16 @@ def choose(stored, pairs, res_a, nmax, max_order=2, keep_margin=0.9, force=False
 PASS1_MIN_SIG_FIT = 3.0
 
 
-def calibrate(counts, stored_coef, lines, res_a, max_order=2, force=False):
+def calibrate(counts, stored_coef, lines, res_a, max_order=None, force=False):
     """Полный цикл: грубое сопоставление -> поправка -> точное сопоставление.
 
-    Возвращает (Ecal, пары, res_a, метка режима).
+    Возвращает (Ecal, пары, res_a, метка режима). `max_order=None` — взять
+    модульную `MAX_ORDER` (`V19`); конвейер корпуса степень не называет, и
+    флаг живёт здесь, одним местом.
     """
     nmax = len(counts)
+    if max_order is None:
+        max_order = MAX_ORDER
     stored = Ecal(stored_coef, nmax)
 
     cal = stored
