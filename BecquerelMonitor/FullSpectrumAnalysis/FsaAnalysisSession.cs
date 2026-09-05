@@ -390,6 +390,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`A205`) НАСКОЛЬКО СИЛЬНЕЙШИЙ КАНДИДАТ НЕ ДОТЯНУЛ — приписка к «нет
+        /// компонентов», без которой пустой разбор молчит о причине.
+        ///
+        /// Выходит «(Th-232 23 % &lt; 30 %)»: имя нуклида, его доля и порог. Ни
+        /// одного переводимого слова здесь нет НАРОЧНО — новая строка ресурса
+        /// потребовала бы правки обоих `Resources.resx`, а причина нужна на
+        /// обоих языках одинаково. Числа печатаются инвариантной культурой
+        /// (`A242`), группировки разрядов нет (`A244`).
+        ///
+        /// ⚠ Пусто — сказать нечего: кандидатов не было вовсе, и это ДРУГОЙ
+        /// случай, чем «кандидат был и не дотянул». Молчать о нём честнее, чем
+        /// печатать ноль как долю.
+        /// </summary>
+        static string Shortfall(FsaCompositionInference.Report report)
+        {
+            if (report == null || report.Candidates.Count == 0)
+            {
+                return null;
+            }
+
+            FsaParentEvidence best = null;
+            double top = -1.0;
+            foreach (FsaParentEvidence candidate in report.Candidates)
+            {
+                double share = double.IsNaN(candidate.HeadCoverage)
+                    ? candidate.Coverage
+                    : Math.Max(candidate.Coverage, candidate.HeadCoverage);
+                if (best == null || share > top)
+                {
+                    best = candidate;
+                    top = share;
+                }
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, "({0} {1} % < {2} %)",
+                                 best.Name,
+                                 (100.0 * top).ToString("F0", CultureInfo.InvariantCulture),
+                                 (100.0 * report.Coverage).ToString("F0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
         /// Всё, что фоновому счёту нужно от UI-потока, — одним снимком.
         /// Снимается целиком ДО <c>Task.Run</c>: во время набора UI
         /// перезаписывает <c>Spectrum[]</c>, правит списки нуклидов и
@@ -551,12 +592,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // разными правилами о линиях и рентгене в проекте быть не
                 // должно.
                 List<FsaComponent> library;
+                // (`A205`) Чем кончился вывод состава — человеку, а не только в
+                // журнал трассировки: пустой разбор при источнике «Из NucBase»
+                // до 06.09.2026 не называл ни одной причины.
+                string shortfall = null;
                 if (job.Options.DbLookups)
                 {
                     FsaCompositionInference.Report inferred;
                     FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);
                     job.Options.ApplyTo(spec);
                     Trace.WriteLine("FSA composition: " + inferred);
+                    shortfall = Shortfall(inferred);
                     library = FsaSampleLibrary.Build(spec);
                 }
                 else
@@ -567,7 +613,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (library.Count == 0)
                 {
-                    message = Properties.Resources.FSANoComponents;
+                    message = Properties.Resources.FSANoComponents
+                              + (shortfall != null ? " " + shortfall : "");
                 }
                 else
                 {

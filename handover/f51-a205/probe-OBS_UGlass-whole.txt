@@ -1,0 +1,37 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\NuclideDefinition.xml: 152 entries
+SETUP	прибор: Obsidian
+SETUP	спектр: OBS_UGlass.xml
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ
+SETUP	кривая: нет
+SETUP	найдено пиков: 3
+PEAK	58.6	W x-ray
+PEAK	1768.3	Bi-214
+PEAK	1894.8	—
+
+=== ОТЧЁТ ВЫВОДА СОСТАВА ===
+правило обрыва ряда: Whole (--cut=whole)
+REPORT	выведено из пиков: 2 из 3 подписаны, родителей 0 из 1, порог доли 30 %, оборванный ряд: не ищется; Ra-226 13 % (1/8, пиков 1) — доля ниже порога
+
+CAND	отвергнут	226RA	Ra-226 13 % (1/8, пиков 1) — доля ниже порога
+MEMBER	226RA	226RA@0 0/0
+MEMBER	226RA	222RN@1 0/0
+MEMBER	226RA	218PO@2 0/0
+MEMBER	226RA	214PB@3 0/4
+MEMBER	226RA	214BI@4 1/4
+MEMBER	226RA	210PB@5 0/0
+MEMBER	226RA	214PO@5 0/0
+MEMBER	226RA	210BI@6 0/0
+MEMBER	226RA	210PO@7 0/0
+MEMBER	226RA	206PB@8 0/0
+
+=== СОСТАВ (FsaSampleSpec) ===
+SPEC	рядов 0, одиночек 0, элементов пробы 0, кристалла 0
+
+=== БИБЛИОТЕКА ===
+LIBSIZE	1
+LIB	Xray-W	Nuisance	3
+
+ВЕРДИКТ	разбор не пуст (компонентов 1, родителей принято 0)
+модальных окон за прогон: 0

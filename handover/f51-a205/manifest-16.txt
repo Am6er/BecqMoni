@@ -1,0 +1,16 @@
+AS80_K40               chains=                     nuclides=40K
+AS80_Lu176             chains=                     nuclides=176LU
+ASN16_Charoite_v2      chains=Th-232;Ra-226        nuclides=40K
+ASN8_Th232_1024        chains=Th-232               nuclides=
+ASN8_Th232_2048        chains=Th-232               nuclides=
+G1S16_Th228_P25        chains=Th-228               nuclides=
+G1S16_Th228_P5         chains=Th-228               nuclides=
+G1S16_Y88_P25          chains=                     nuclides=88Y
+G1S24_K40_Denta120     chains=                     nuclides=40K
+G1S24_Ra226_Denta120   chains=Ra-226               nuclides=
+G1S24_Ra226_Petri_2    chains=Ra-226               nuclides=
+G1S24_Th228_P25        chains=Th-228               nuclides=
+G1S24_Th228_P5         chains=Th-228               nuclides=
+GS4000_U               chains=U-238u;U-235         nuclides=
+HPGeGMX_Th228          chains=Th-228               nuclides=
+LaBrBril_Th228         chains=Th-228               nuclides=
