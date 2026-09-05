@@ -67,6 +67,14 @@ namespace LabelTruthProbe
         /// </summary>
         static string expectSumOverride;
 
+        /// <summary>
+        /// ⛔ ТОЛЬКО ДЛЯ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ (`S64`). Подменяет ОЖИДАНИЕ
+        /// первого опыта над списком кандидатов, а не то, что считает
+        /// приложение: прогон с заведомо неверным образцом обязан ОТКАЗАТЬ.
+        /// Без ключа ожидание берётся из таблицы опытов и сверяется всегда.
+        /// </summary>
+        static string expectCandidatesOverride;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -84,6 +92,7 @@ namespace LabelTruthProbe
                 else if (a.StartsWith("--rivals=", StringComparison.Ordinal)) rivalsPath = a.Substring(9);
                 else if (a.StartsWith("--culture=", StringComparison.Ordinal)) language = a.Substring(10);
                 else if (a.StartsWith("--expect-sum=", StringComparison.Ordinal)) expectSumOverride = a.Substring(13);
+                else if (a.StartsWith("--expect-candidates=", StringComparison.Ordinal)) expectCandidatesOverride = a.Substring(20);
                 else if (a == "--selftest") selftest = true;
                 else
                 {
@@ -132,8 +141,19 @@ namespace LabelTruthProbe
             //   законную подпись за недостижимую улику. Считается ровно так,
             //   как её строит `PeakDetector.PeakFinder`: настройки в кэВ ->
             //   каналы -> обрезка по числу каналов -> обратно в кэВ.
+            // ⚠ ТРИ ПОСЛЕДНИЕ КОЛОНКИ — СПИСОК КАНДИДАТОВ (`S64`, полоса O21).
+            //   `nuclide` осталась ИМЕНЕМ ПОБЕДИТЕЛЯ и ничем иным: по ней
+            //   считается разряд подписи (`label_score.py`), и положи сюда
+            //   склейку — мерка стала бы засчитывать ИСТИНУ по любому из имён,
+            //   то есть мерить не то, что показано. `candidates` — все имена
+            //   через «|» (свой разделитель, чтобы не спорить с тем, который
+            //   выбран для человека), `label_text` — надпись КАК НА ЭКРАНЕ,
+            //   `label_token` — лексема нуклида из неё
+            //   (`NuclideDefinition.NuclideNameOf`), та самая, по которой
+            //   `FsaCompositionInference` и `FsaLibrary` читают состав.
             csv.AppendLine("spectrum,peak_kev,peak_counts,snr,fwhm_ch,fwhm_kev,nuclide,line_kev,"
-                           + "intensity_pct,miss_kev,miss_fwhm,tol_pct,range_min_kev,range_max_kev");
+                           + "intensity_pct,miss_kev,miss_fwhm,tol_pct,range_min_kev,range_max_kev,"
+                           + "candidates,label_text,label_token");
 
             // ⚠ Соперники — материал `S64`, а не `S134`: строка на КАЖДУЮ
             //   видимую линию, попавшую в пик. Окно берётся широкое (2 ПШПВ),
@@ -153,6 +173,10 @@ namespace LabelTruthProbe
             var labelRows = new List<LabelRow>();
 
             int spectra = 0, failed = 0, peaksTotal = 0, labelled = 0;
+            // (`S64`) Сколько подписей несут больше одного имени и каков самый
+            // длинный список — заглавные числа правки, поэтому считаются здесь
+            // же, тем же проходом, что и выгрузка.
+            int multiName = 0, longestList = 0, tokenMismatch = 0;
             foreach (string file in Directory.GetFiles(spectraDir, "*.xml")
                                              .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
             {
@@ -192,6 +216,23 @@ namespace LabelTruthProbe
                     double miss = nd == null ? Double.NaN : Math.Abs(peak.Energy - nd.Energy);
                     double missFwhm = nd == null || !(fwhmKev > 0.0) ? Double.NaN : miss / fwhmKev;
 
+                    List<NuclideDefinition> cands = CandidatesOf(peak);
+                    string labelText = LabelTextOf(peak);
+                    string labelToken = NuclideDefinition.NuclideNameOf(labelText);
+                    if (cands.Count > 1) multiName++;
+                    if (cands.Count > longestList) longestList = cands.Count;
+                    // ⛔ ЛЕКСЕМА НАДПИСИ ОБЯЗАНА СОВПАСТЬ С ЛЕКСЕМОЙ ПОБЕДИТЕЛЯ.
+                    //    Это и есть проверка, что разбор состава не поехал: по
+                    //    ней читают нуклид `FsaCompositionInference` и
+                    //    `FsaLibrary`, и разойдись она с победителем — состав
+                    //    сменился бы молча.
+                    if (nd != null && !string.Equals(labelToken,
+                                                     NuclideDefinition.NuclideNameOf(nd.Name),
+                                                     StringComparison.Ordinal))
+                    {
+                        tokenMismatch++;
+                    }
+
                     csv.AppendLine(string.Join(",",
                         name,
                         F(peak.Energy, "F3"), F(peak.Count, "F1"), F(peak.SNR, "F3"),
@@ -200,7 +241,10 @@ namespace LabelTruthProbe
                         nd == null ? "" : F(nd.Energy, "F3"),
                         nd == null ? "" : F(nd.Intencity, "G6"),
                         F(miss, "F3"), F(missFwhm, "F4"),
-                        F(tol, "G6"), F(rangeMin, "F3"), F(rangeMax, "F3")));
+                        F(tol, "G6"), F(rangeMin, "F3"), F(rangeMax, "F3"),
+                        Names(cands).Replace(',', ';'),
+                        labelText.Replace(',', ';'),
+                        labelToken.Replace(',', ';')));
 
                     if (nd != null)
                     {
@@ -243,8 +287,23 @@ namespace LabelTruthProbe
             Console.WriteLine("спектров разобрано {0}, отказало {1}; пиков {2}, из них с подписью {3} -> {4}",
                               spectra, failed, peaksTotal, labelled, csvPath);
 
+            Console.WriteLine();
+            Console.WriteLine("(`S64`) СПИСОК КАНДИДАТОВ В ПОДПИСИ");
+            if (!HasCandidates())
+            {
+                Console.WriteLine("  сборка БЕЗ правки `S64` — у пика списка нет, подпись одноимённая");
+            }
+            else
+            {
+                Console.WriteLine("  подписей со списком длиннее одного: {0} из {1}; самый длинный список: {2} имён",
+                                  multiName, labelled, longestList);
+                Console.WriteLine("  лексема надписи разошлась с лексемой победителя: {0}", tokenMismatch);
+            }
+
             int badNames = JudgeSumNames(labelRows, AnnihilationLine(nuclides.NuclideDefinitions));
-            return failed > 0 || badNames > 0 ? 1 : 0;
+            // ⛔ Разошедшаяся лексема — ОТКАЗ, а не примечание: по ней читают
+            //    состав, и молчаливая смена нуклида дороже любой надписи.
+            return failed > 0 || badNames > 0 || tokenMismatch > 0 ? 1 : 0;
         }
 
         // ------------------------------------------------------------------
@@ -272,6 +331,67 @@ namespace LabelTruthProbe
                                   y == null ? "(нет)" : y.Value.ToString("G6", CultureInfo.InvariantCulture),
                                   w == null ? "(нет)" : w.Value.ToString("G6", CultureInfo.InvariantCulture));
             }
+        }
+
+        // ------------------------------------------------------------------
+        // (`S64`) СПИСОК КАНДИДАТОВ — через отражение
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ Список и надпись спрашиваются ОТРАЖЕНИЕМ, а не прямым вызовом, по
+        /// той же причине, что и пороги: одна и та же проба обязана считаться
+        /// на сборке ДО правки, где ни свойства, ни метода ещё нет. Прямой
+        /// вызов сделал бы плечо «до» неизмеримым этой пробой вовсе.
+        /// </summary>
+        static readonly PropertyInfo PiCandidates = typeof(Peak).GetProperty("NuclideCandidates");
+        static readonly MethodInfo MiPeakLabel = typeof(PeakDetector).GetMethod(
+            "PeakLabel", BindingFlags.Public | BindingFlags.Static);
+
+        static bool HasCandidates()
+        {
+            return PiCandidates != null && MiPeakLabel != null;
+        }
+
+        static List<NuclideDefinition> CandidatesOf(Peak peak)
+        {
+            var list = new List<NuclideDefinition>();
+            if (PiCandidates == null)
+            {
+                if (peak.Nuclide != null) list.Add(peak.Nuclide);
+                return list;
+            }
+            var seq = PiCandidates.GetValue(peak, null) as System.Collections.IEnumerable;
+            if (seq == null)
+            {
+                if (peak.Nuclide != null) list.Add(peak.Nuclide);
+                return list;
+            }
+            foreach (object o in seq)
+            {
+                var nd = o as NuclideDefinition;
+                if (nd != null) list.Add(nd);
+            }
+            return list;
+        }
+
+        /// <summary>Надпись пика — та же, что увидит человек.</summary>
+        static string LabelTextOf(Peak peak)
+        {
+            if (peak.Nuclide == null) return "";
+            if (MiPeakLabel == null) return peak.Nuclide.Name;
+            return (string)MiPeakLabel.Invoke(null, new object[] { peak }) ?? "";
+        }
+
+        /// <summary>Имена списка через «|» — разделитель ВЫГРУЗКИ, не экрана.</summary>
+        static string Names(List<NuclideDefinition> list)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i > 0) sb.Append('|');
+                sb.Append(list[i].Name);
+            }
+            return sb.ToString();
         }
 
         // ------------------------------------------------------------------
@@ -567,6 +687,7 @@ namespace LabelTruthProbe
                 return 0;
             }
             bad += SelfTestConfirm();
+            bad += SelfTestCandidates();
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "опыт сошёлся полностью" : ("расхождений: " + bad));
             return bad == 0 ? 0 : 1;
@@ -685,6 +806,109 @@ namespace LabelTruthProbe
                                   ok ? "✓" : "⛔ РАСХОЖДЕНИЕ");
             }
             return bad;
+        }
+
+        /// <summary>
+        /// (`S64`) ОПЫТ НАД СПИСКОМ КАНДИДАТОВ. Подставной пик с подставной
+        /// библиотекой подаётся в <c>PeakDetector.MatchNuclides</c>, список
+        /// ставится пику, и сверяется НАДПИСЬ — ровно та строка, которую
+        /// увидит человек.
+        ///
+        /// ⚠ Опыт держит ОБА конца, и это здесь важнее обычного: правило,
+        /// приписывающее второе имя ВСЕМ пикам, отличается от полезного только
+        /// по паре «спор не решается положением» / «спор решён положением».
+        ///
+        /// ⛔ Ожидаемые надписи выписаны ЗДЕСЬ ДОСЛОВНО, разделитель в том
+        /// числе. Спроси проба разделитель у приложения — она напечатала бы
+        /// «сошлось» при любом, в том числе при пустом, то есть при подписи,
+        /// потерявшей все имена, кроме первого.
+        /// </summary>
+        static int SelfTestCandidates()
+        {
+            MethodInfo mMatchList = typeof(PeakDetector).GetMethod(
+                "MatchNuclides", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo mSet = typeof(Peak).GetMethod(
+                "SetNuclideCandidates", BindingFlags.Public | BindingFlags.Instance);
+            FieldInfo fDefs = typeof(PeakDetector).GetField(
+                "nuclideDefinitions", BindingFlags.NonPublic | BindingFlags.Instance);
+            Console.WriteLine();
+            Console.WriteLine("ОПЫТ НАД СПИСКОМ КАНДИДАТОВ (`S64`):");
+            if (mMatchList == null || mSet == null || fDefs == null || !HasCandidates())
+            {
+                Console.WriteLine("  списка кандидатов в сборке НЕТ — опыт над ним не ставится");
+                return 0;
+            }
+
+            // Разделитель ждём ДОСЛОВНО: пробел, косая, пробел на обоих языках.
+            const string sep = " / ";
+            var cases = new[]
+            {
+                // Спор НЕ решается положением: 0.223 кэВ разницы при ПШПВ 10 —
+                // это 0.022 ПШПВ, то есть много меньше окна. Оба имени.
+                Cand("спор не решается положением", 58.57, 10.0,
+                     "Рентген-мнимый" + sep + "Америций-мнимый",
+                     Line("Рентген-мнимый", 59.318, 57.6), Line("Америций-мнимый", 59.541, 35.9)),
+                // Тот же вход, но соперник отодвинут: 2.68 кэВ = 0.27 ПШПВ,
+                // спор решён — ОДНО имя. Близнец предыдущего опыта.
+                Cand("спор решён положением", 58.57, 10.0, "Рентген-мнимый",
+                     Line("Рентген-мнимый", 59.318, 57.6), Line("Далёкий-мнимый", 62.0, 35.9)),
+                // Четверо в окне — на экран идут ТРИ (предел числа имён).
+                Cand("соперников больше предела", 100.0, 20.0,
+                     "Первый-мнимый" + sep + "Второй-мнимый" + sep + "Третий-мнимый",
+                     Line("Первый-мнимый", 100.5, 10.0), Line("Второй-мнимый", 98.8, 10.0),
+                     Line("Третий-мнимый", 101.4, 10.0), Line("Четвёртый-мнимый", 102.3, 10.0)),
+                // Две линии ОДНОГО имени в пике — имя одно, а не дважды.
+                Cand("две линии одного имени", 100.0, 20.0, "Двойной-мнимый",
+                     Line("Двойной-мнимый", 100.5, 10.0), Line("Двойной-мнимый", 99.8, 10.0)),
+                // ПШПВ не измерена — мерить спор нечем, соперников не ищем.
+                Cand("ПШПВ не измерена", 58.57, 0.0, "Рентген-мнимый",
+                     Line("Рентген-мнимый", 59.318, 57.6), Line("Америций-мнимый", 59.541, 35.9)),
+                // Ни одна линия не проходит порог по выходу — подписи нет вовсе.
+                Cand("подписи нет вовсе", 58.57, 10.0, "(нет подписи)",
+                     Line("Ничтожный-мнимый", 59.318, 0.0009))
+            };
+
+            int bad = 0;
+            for (int i = 0; i < cases.Length; i++)
+            {
+                CandCase c = cases[i];
+                string want = i == 0 && expectCandidatesOverride != null
+                    ? expectCandidatesOverride
+                    : c.Expect;
+                var det = new PeakDetector();
+                fDefs.SetValue(det, c.Library);
+                var peak = new Peak { Energy = c.PeakKev, FWHM = c.Fwhm };
+                object list = mMatchList.Invoke(det, new object[] { peak, 10.0, null, c.Fwhm });
+                mSet.Invoke(peak, new object[] { list });
+                string got = peak.Nuclide == null ? "(нет подписи)" : LabelTextOf(peak);
+                bool ok = string.Equals(got, want, StringComparison.Ordinal);
+                if (!ok) bad++;
+                Console.WriteLine("  {0,-30} ждали «{1}» получили «{2}» {3}",
+                                  c.Title, want, got, ok ? "✓" : "⛔ РАСХОЖДЕНИЕ");
+            }
+            return bad;
+        }
+
+        class CandCase
+        {
+            public string Title;
+            public double PeakKev;
+            public double Fwhm;
+            public string Expect;
+            public List<NuclideDefinition> Library;
+        }
+
+        static CandCase Cand(string title, double peakKev, double fwhm, string expect,
+                             params NuclideDefinition[] lib)
+        {
+            return new CandCase
+            {
+                Title = title,
+                PeakKev = peakKev,
+                Fwhm = fwhm,
+                Expect = expect,
+                Library = lib.ToList()
+            };
         }
 
         class ConfirmCase

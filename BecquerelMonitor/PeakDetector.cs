@@ -181,8 +181,8 @@ namespace BecquerelMonitor
                 //    ширина В КЭВ — промах линии меряется там, — и считается
                 //    она ТЕМ ЖЕ выражением. Умножать на «кэВ-на-канал» нельзя:
                 //    калибровка нелинейна, половинки растягиваются по-разному.
-                peak.Nuclide = MatchNuclide(peak, tol, nuclideSet,
-                                            FwhmKev(peak, energySpectrum.EnergyCalibration));
+                peak.SetNuclideCandidates(MatchNuclides(peak, tol, nuclideSet,
+                                            FwhmKev(peak, energySpectrum.EnergyCalibration)));
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
                 {
                     continue;
@@ -757,6 +757,79 @@ namespace BecquerelMonitor
 
         NuclideDefinition MatchNuclide(Peak peak, double tol, NuclideSet nuclideSet, double fwhmKev)
         {
+            List<NuclideDefinition> candidates = MatchNuclides(peak, tol, nuclideSet, fwhmKev);
+            return candidates.Count == 0 ? null : candidates[0];
+        }
+
+        /// <summary>
+        /// (`S64`, решение Amber 05.09.2026) НАСКОЛЬКО промах соперника может
+        /// быть хуже промаха победителя, чтобы спор считался НЕРЕШЁННЫМ, — в
+        /// ПШПВ пика.
+        ///
+        /// ⛔ Мерка здесь — РАЗНИЦА ПРОМАХОВ, а не промах от пика, и это не
+        /// украшение. Вопрос списка не «кто рядом с пиком» (рядом при ПШПВ в
+        /// десятки кэВ пол-библиотеки), а «решает ли положение спор» — то
+        /// самое, о чём `S64`: «решают десятые доли кэВ там, где ПШПВ прибора
+        /// десятки». Обе мерки развёрнуты по корпусу на одном и том же плече
+        /// (129 спектров, 1338 подписей; «спасено» — ложная подпись получила
+        /// рядом ВЕРНОЕ имя, «засорено» — истинная получила рядом ложное):
+        ///
+        /// <code>
+        ///   разница промахов        промах от пика
+        ///   окно спасено засорено   окно спасено засорено
+        ///   0.02     5       3
+        ///   0.05    11      15
+        ///   0.10    19      35      0.30    29      132
+        ///   0.15    25      81      0.50    38      194
+        ///   0.30    38     167      0.75    44      249
+        ///   0.50    43     209      1.00    45      279
+        ///   1.50    49     314      1.50    49      314
+        /// </code>
+        ///
+        /// Разница промахов дешевле при любой одинаковой пользе: 38 спасённых
+        /// стоят 167 засорённых против 194, 44–45 — 209 против 249–279.
+        ///
+        /// ⚠ ЧИСЛО ВЗЯТО ПО КОЛЕНУ ПРИРОСТНОЙ ОТДАЧИ, а не по лучшей точке: на
+        /// каждый шаг окна 0.02→0.05→0.10 прирост спасённых к приросту
+        /// засорённых 0.50, 0.40 — и на шаге 0.10→0.15 он падает втрое, до
+        /// 0.13, дальше не поднимаясь (0.18, 0.14, 0.12). Взято 0.10.
+        /// </summary>
+        public const double CandidateHandicapInFwhm = 0.10;
+
+        /// <summary>
+        /// Сколько имён держит подпись, победителя считая. Предел нужен ЭКРАНУ:
+        /// флажок над пиком и колонка списка читаются человеком, а библиотека
+        /// у него может быть какой угодно.
+        ///
+        /// ⚠ На корпусе с поставочной библиотекой предел НЕ СРАБАТЫВАЕТ НИ
+        /// РАЗУ: при выбранном окне (<see cref="CandidateHandicapInFwhm"/>)
+        /// самый длинный список корпуса и так ровно 3 имени. То есть число
+        /// ничего не режет из измеренного и стоит здесь как ограда, а не как
+        /// настройка.
+        /// </summary>
+        public const int MaximumLabelCandidates = 3;
+
+        /// <summary>
+        /// Кто МОГ БЫ подписать этот пик — победитель первым, за ним соперники,
+        /// спор с которыми не решается положением.
+        ///
+        /// ⛔ ПОБЕДИТЕЛЬ ОТБИРАЕТСЯ ТЕМ ЖЕ ПРАВИЛОМ, ЧТО И ДО СПИСКА, вплоть до
+        /// порядка обхода библиотеки: строгое сравнение относительного промаха
+        /// оставляет при равенстве ПЕРВОГО встреченного. Иначе список стоил бы
+        /// не только новых имён на экране, но и молчаливой смены подписи —
+        /// а вместе с ней активности (`S96`) и состава разбора.
+        ///
+        /// Соперники судятся АБСОЛЮТНЫМ промахом (в кэВ), потому что мерка
+        /// спора — разрешение прибора; победитель — ОТНОСИТЕЛЬНЫМ, потому что
+        /// таков допуск поиска. Мерки разные нарочно, и обе на своём месте.
+        ///
+        /// ⚠ Список — по ИМЕНАМ, а не по линиям: две линии одного нуклида
+        /// внутри пика (`U-235` 145.0 и 185.715 у широкого сцинтиллятора) —
+        /// это одно имя, а не два, и повторять его человеку незачем.
+        /// </summary>
+        List<NuclideDefinition> MatchNuclides(Peak peak, double tol, NuclideSet nuclideSet, double fwhmKev)
+        {
+            var accepted = new List<NuclideDefinition>();
             NuclideDefinition bestNuclide = null;
             double minDelta = Double.MaxValue;
 
@@ -780,14 +853,106 @@ namespace BecquerelMonitor
                 if (miss > window) continue;
 
                 double delta = miss / nuclideDefinition.Energy;
-                if (delta < tol / 100.0 && delta < minDelta)
+                if (delta >= tol / 100.0) continue;
+
+                accepted.Add(nuclideDefinition);
+                if (delta < minDelta)
                 {
                     bestNuclide = nuclideDefinition;
                     minDelta = delta;
                 }
             }
 
-            return bestNuclide;
+            var result = new List<NuclideDefinition>();
+            if (bestNuclide == null)
+            {
+                return result;
+            }
+            result.Add(bestNuclide);
+
+            // Соперник ищется только там, где есть чем мерить спор: без ПШПВ
+            // «неразличимость» превращается в «что угодно рядом».
+            if (!(fwhmKev > 0.0) || Double.IsNaN(fwhmKev))
+            {
+                return result;
+            }
+
+            double bestMiss = Math.Abs(peak.Energy - bestNuclide.Energy);
+            double handicap = CandidateHandicapInFwhm * fwhmKev;
+
+            // Сортировка вставками по абсолютному промаху: список короткий
+            // (единицы записей), а порядок обхода библиотеки при равных
+            // промахах обязан сохраниться — как и у победителя.
+            var rivals = new List<NuclideDefinition>();
+            foreach (NuclideDefinition candidate in accepted)
+            {
+                if (candidate == bestNuclide) continue;
+                double miss = Math.Abs(peak.Energy - candidate.Energy);
+                if (Math.Abs(miss - bestMiss) > handicap) continue;
+                int at = rivals.Count;
+                while (at > 0 && Math.Abs(peak.Energy - rivals[at - 1].Energy) > miss) at--;
+                rivals.Insert(at, candidate);
+            }
+
+            foreach (NuclideDefinition rival in rivals)
+            {
+                if (result.Count >= MaximumLabelCandidates) break;
+                bool seen = false;
+                foreach (NuclideDefinition already in result)
+                {
+                    if (string.Equals(already.Name, rival.Name, StringComparison.Ordinal))
+                    {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (!seen) result.Add(rival);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// (`S64`) НАДПИСЬ ПИКА — то, что человек читает с графика и из списка
+        /// пиков: имена кандидатов через разделитель.
+        ///
+        /// ⛔ Разделитель живёт в `Properties/Resources.resx` (+ `.ru.resx`), а
+        /// не здесь: своих имён и своей пунктуации у кода нет, а надпись читает
+        /// человек — значит, она переводится (то же правило, что у
+        /// <see cref="AnnihilationSumName"/>, `A229`).
+        ///
+        /// ⚠ Пустой ресурс (недоперевод) даёт ОДНО имя победителя, а не склейку
+        /// без разделителя: одно верное имя лучше двух слипшихся.
+        ///
+        /// ⛔ Лексема нуклида читается как всё до первого пробела
+        /// (<c>NuclideDefinition.NuclideNameOf</c>), и разделитель её не
+        /// ломает по построению: первым в строке стоит имя ПОБЕДИТЕЛЯ целиком.
+        /// Но и это здесь ни при чём — строка собирается ТОЛЬКО для показа, а
+        /// разбор состава читает <c>Peak.Nuclide</c>, то есть саму запись.
+        /// </summary>
+        public static string PeakLabel(Peak peak)
+        {
+            if (peak == null || peak.Nuclide == null)
+            {
+                return null;
+            }
+            IList<NuclideDefinition> candidates = peak.NuclideCandidates;
+            if (candidates.Count <= 1)
+            {
+                return peak.Nuclide.Name;
+            }
+            string separator = Resources.ResourceManager.GetString(
+                "PeakLabelCandidateSeparator", LabelCulture());
+            if (string.IsNullOrEmpty(separator))
+            {
+                return peak.Nuclide.Name;
+            }
+            var text = new System.Text.StringBuilder(candidates[0].Name);
+            for (int i = 1; i < candidates.Count; i++)
+            {
+                text.Append(separator).Append(candidates[i].Name);
+            }
+            return text.ToString();
         }
 
         FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration)

@@ -43392,6 +43392,10 @@ Turn it on in Windows settings and search again.</value>
     <value>{0} (sum 511+511)</value>
     <comment>Instrumental peak label for the 1022 keV sum of two annihilation quanta. {0} is the name of the annihilation-image record of the nuclide library, so that the 511 and 1022 labels can be told apart on the chart. Keep {0} first and keep a SPACE right after it: the nuclide token is read as everything before the first space (NuclideDefinition.NuclideNameOf), the way "Tl-208 SE" is.</comment>
   </data>
+  <data name="PeakLabelCandidateSeparator" xml:space="preserve">
+    <value> / </value>
+    <comment>Separates the names of a peak label when several library lines fall inside the same peak and the position does not settle the argument, e.g. "W x-ray / Am-241". The FIRST name is the winner: every number computed from the label (activity, chain, composition) uses that one alone. Keep the surrounding spaces, and do not use a character that could be read as part of a nuclide name.</comment>
+  </data>
   <data name="DoseRateBadEfficiency" xml:space="preserve">
     <value>Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless.</value>
   </data>

@@ -90,7 +90,16 @@ INSTRUMENTAL = {'Annihilation', 'Xray-NaI', 'Xray-CsI', 'Esc-NaI'}
 
 
 def is_instrumental(name):
+    # ⛔ Приборный образ узнаётся по ПЕРВОЙ ЛЕКСЕМЕ, а не по всей строке: с
+    # `A229` подпись суммы двух аннигиляционных квантов несёт хвост из
+    # ресурсов приложения («Annihilation (sum 511+511)», по-русски «(сумма
+    # 511+511)»), и сверка строки целиком роняла её в ЛОЖЬ. Цена измерена
+    # полосой O21: 4 подписи корпуса, приборное 168 -> 164 и ЛОЖЬ 186 -> 190
+    # на ОБОИХ плечах сразу. Лексема берётся до первого пробела — тем же
+    # правилом, каким её читает приложение (`NuclideDefinition.NuclideNameOf`).
+    head = name.split(' ', 1)[0]
     return (name in INSTRUMENTAL
+            or head in INSTRUMENTAL
             or 'x-ray' in name.lower()
             or name.endswith(' SE') or name.endswith(' DE'))
 
