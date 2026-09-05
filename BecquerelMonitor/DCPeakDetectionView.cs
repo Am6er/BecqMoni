@@ -331,7 +331,11 @@ namespace BecquerelMonitor
                     string text2 = "";
                     if (peak.Nuclide != null)
                     {
-                        text = peak.Nuclide.Name;
+                        // (`S64`) Имена ВСЕХ кандидатов, победитель первым.
+                        // Промах ниже считается по ПОБЕДИТЕЛЮ — он и есть та
+                        // линия, которой пик подписан; у соперника свой промах,
+                        // и складывать их в одну колонку нечего.
+                        text = PeakDetector.PeakLabel(peak);
                         if (peak.Nuclide.Energy > 0.0)
                         {
                             double num = peak.Energy - peak.Nuclide.Energy;
