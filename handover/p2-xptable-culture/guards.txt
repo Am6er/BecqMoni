@@ -1,0 +1,6 @@
+== python tools/resx_format.py --check -> код 0
+== python tools/check_resx.py -> код 0
+== python tools/check_resx_designer.py -> код 0
+== python tools/check_resx_letters.py -> код 0
+== python tools/check_resx_zorder.py -> код 0
+== python tools/check_fsa_docs.py -> код 0

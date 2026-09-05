@@ -245,7 +245,7 @@ namespace XPTable.Renderers
 
                 using (var font = new Font(this.Font.FontFamily, this.Font.SizeInPoints, FontStyle.Bold))
                 {
-                    var progressText = string.Format("{0}%", intVal);
+                    var progressText = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}%", intVal);
                     e.Graphics.DrawString(
                         progressText,
                         font,

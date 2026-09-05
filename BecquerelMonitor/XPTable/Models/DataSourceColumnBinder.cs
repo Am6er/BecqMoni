@@ -96,7 +96,7 @@ namespace XPTable.Models
             switch (column.GetType().Name)
             {
                 case nameof(TextColumn):
-                    cell = val == null ? new Cell() : new Cell(val.ToString());
+                    cell = val == null ? new Cell() : new Cell(Convert.ToString(val, System.Globalization.CultureInfo.InvariantCulture));
                     break;
 
                 case nameof(CheckBoxColumn):

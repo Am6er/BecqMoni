@@ -80,7 +80,7 @@ namespace XPTable.Models
                 this.showButton.Enabled = !this.model.Columns[0].Visible;
                 this.hideButton.Enabled = this.model.Columns[0].Visible;
 
-                this.widthTextBox.Text = this.model.Columns[0].Width.ToString();
+                this.widthTextBox.Text = this.model.Columns[0].Width.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
             this.columnTable.EndUpdate();
@@ -139,7 +139,7 @@ namespace XPTable.Models
                 }
                 else
                 {
-                    int width = Convert.ToInt32(this.widthTextBox.Text);
+                    int width = Convert.ToInt32(this.widthTextBox.Text, System.Globalization.CultureInfo.InvariantCulture);
 
                     if (width < Column.MinimumWidth)
                     {
@@ -177,7 +177,7 @@ namespace XPTable.Models
                 }
                 else
                 {
-                    int width = Convert.ToInt32(this.widthTextBox.Text);
+                    int width = Convert.ToInt32(this.widthTextBox.Text, System.Globalization.CultureInfo.InvariantCulture);
 
                     if (width < Column.MinimumWidth)
                     {
@@ -195,7 +195,8 @@ namespace XPTable.Models
                 this.showButton.Enabled = !this.columnTable.TableModel[e.NewSelectedIndicies[0], 0].Checked;
                 this.hideButton.Enabled = this.columnTable.TableModel[e.NewSelectedIndicies[0], 0].Checked;
 
-                this.widthTextBox.Text = this.columnTable.TableModel[e.NewSelectedIndicies[0], 0].Tag.ToString();
+                this.widthTextBox.Text = Convert.ToString(
+                    this.columnTable.TableModel[e.NewSelectedIndicies[0], 0].Tag, System.Globalization.CultureInfo.InvariantCulture);
             }
             else
             {
