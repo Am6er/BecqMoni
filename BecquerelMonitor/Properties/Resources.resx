@@ -42484,6 +42484,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerGridSummary" xml:space="preserve">
     <value>grid: {0} points, {1:F0}-{2:F0} keV ({3}); threads: {4}</value>
   </data>
+  <data name="EfficiencyMakerGridWidened" xml:space="preserve">
+    <value>range widened: the upper bound {0:F1} keV is not above the lower one, computed up to {2:F1} keV ({1:F1} + 1 keV)</value>
+  </data>
+  <data name="EfficiencyMakerGridFallback" xml:space="preserve">
+    <value>the standard grid keeps only {0} of its nodes within {1:F1}-{2:F1} keV: computed on a LOGARITHMIC grid of {3} points</value>
+  </data>
+  <data name="EfficiencyMakerSampleIsAir" xml:space="preserve">
+    <value>WARNING: the sample material is still air ("{0}", {1:F6} g/cm3) while the sample is {2:F1} mm high - self-absorption is NOT accounted for, and the curve can be off by a factor</value>
+  </data>
   <data name="EfficiencyMakerPoints" xml:space="preserve">
     <value>Points:</value>
   </data>

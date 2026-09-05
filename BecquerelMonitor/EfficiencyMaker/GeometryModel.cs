@@ -707,6 +707,94 @@ namespace BecquerelMonitor.EfficiencyMaker
         public GeometryMaterial Source = new GeometryMaterial();
 
         /// <summary>
+        /// Наибольшая плотность, при которой проба считается ВОЗДУХОМ, г/см³
+        /// (`E19`, решение Amber 01.09.2026).
+        ///
+        /// Порог по ПЛОТНОСТИ, а не по имени вещества, нарочно: имя человек
+        /// меняет, а самопоглощения от этого не появляется, — и наоборот,
+        /// «воздух» с плотностью названного вещества это уже названное
+        /// вещество. Сотая доля грамма на кубический сантиметр — это восемь
+        /// сухих воздухов (0.001205) и вдесятеро меньше самой рыхлой засыпки:
+        /// слой в 20 мм при такой плотности даёт 0.02 г/см², то есть ослабление
+        /// в 1.3 % на 202 кэВ — против ×0.3, которые даёт там настоящий оксид
+        /// лютеция. Ниже этого порога проба не поглощает НИЧЕГО, как её ни зови.
+        /// </summary>
+        public const double AirSampleDensity = 0.01;
+
+        /// <summary>
+        /// Высота пробы, мм — тот её размер, вдоль которого квант идёт наружу.
+        /// Ноль у точечного источника: вещества у него нет по построению.
+        /// </summary>
+        [XmlIgnore]
+        public double SampleHeightMm
+        {
+            get
+            {
+                switch (this.SourceType)
+                {
+                    case GeometrySourceType.Marinelli:
+                        return this.MarinelliSourceHeight;
+                    case GeometrySourceType.Box:
+                        return this.BoxSourceHeight;
+                    case GeometrySourceType.Cylinder:
+                        return this.SourceHeight;
+                    default:
+                        return 0.0;                 // точечный источник
+                }
+            }
+        }
+
+        /// <summary>
+        /// Есть ли у пробы объём: и высота, и поперечник положительны. Число
+        /// объёма НЕ считается нарочно — у маринелли это разность двух тел, и
+        /// вторая формула того же счёта разъехалась бы с первой молча (`S37`);
+        /// а для вопроса «проба вообще есть?» довольно того, что все её размеры
+        /// не нули.
+        /// </summary>
+        [XmlIgnore]
+        public bool HasSampleVolume
+        {
+            get
+            {
+                switch (this.SourceType)
+                {
+                    case GeometrySourceType.Marinelli:
+                        return this.MarinelliSourceHeight > 0.0
+                               && this.MarinelliBeakerDiameter > 0.0;
+                    case GeometrySourceType.Box:
+                        return this.BoxSourceHeight > 0.0 && this.BoxSourceX > 0.0
+                               && this.BoxSourceY > 0.0;
+                    case GeometrySourceType.Cylinder:
+                        return this.SourceHeight > 0.0 && this.BeakerDiameter > 0.0;
+                    default:
+                        return false;               // точечный источник
+                }
+            }
+        }
+
+        /// <summary>
+        /// Вещество пробы осталось ВОЗДУХОМ, хотя сосуд не пуст (`E19`).
+        ///
+        /// Зачем это отдельным признаком. Заготовка редактора открывается с
+        /// сосудом Ø40×20 мм и воздухом в нём — воздух там стоит потому, что
+        /// вещества пробы у человека ЕЩЁ НЕТ (см. `GeometryEditorPanel.Blank`).
+        /// Не назвав вещество, он получает кривую без самопоглощения, а это не
+        /// «нет данных», а систематическая ошибка В РАЗЫ: у оксида лютеция в
+        /// слое 20 мм μ/ρ = 0.630 см²/г на 202 кэВ, то есть множитель ×0.3 при
+        /// ρ = 2.5. Молчать об этом нельзя; мешать считать — тоже, точечный
+        /// источник в воздухе законен (и сюда не попадает: объёма у него нет).
+        /// </summary>
+        [XmlIgnore]
+        public bool SampleIsAir
+        {
+            get
+            {
+                return this.HasSampleVolume
+                       && !(this.Source != null && this.Source.Density > AirSampleDensity);
+            }
+        }
+
+        /// <summary>
         /// Полная копия. Нужна там, где геометрию РАЗМНОЖАЮТ: дублирование
         /// конфигурации эффективности и копия её в файл спектра. Копируются и
         /// вещества — иначе две конфигурации правились бы за одно.
@@ -1189,24 +1277,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                   this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
 
             double wall;
-            double sample;
+            // Высота пробы берётся ОДНИМ местом (`SampleHeightMm`): её же
+            // читает признак «проба осталась воздухом» (`E19`), и вторая копия
+            // того же разбора разъехалась бы с первой молча (`S37`).
+            double sample = this.SampleHeightMm;
             switch (this.SourceType)
             {
                 case GeometrySourceType.Marinelli:
                     wall = Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness);
-                    sample = this.MarinelliSourceHeight;
                     break;
                 case GeometrySourceType.Box:
                     wall = Math.Max(this.BoxSideWallThickness, this.BoxEndWallThickness);
-                    sample = this.BoxSourceHeight;
                     break;
                 case GeometrySourceType.Cylinder:
                     wall = Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness);
-                    sample = this.SourceHeight;
                     break;
                 default:
-                    wall = 0.0;
-                    sample = 0.0;      // точечный источник вещества не имеет
+                    wall = 0.0;        // точечный источник вещества не имеет
                     break;
             }
 
