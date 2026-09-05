@@ -1,0 +1,12 @@
+
+  BecquerelMonitor -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F50\BecquerelMonitor.exe
+MSBUILD EXIT=0
+APP DIR=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F50
+APP SHA=2A2A0E3C0EFF65B2
+CSC CultureProbeO14 EXIT=0  mtime=01:39:03
+CSC RestCultureProbeF28 EXIT=0  mtime=01:39:03
+CSC GraphCultureProbeF27 EXIT=0  mtime=01:39:03
+CSC CalibGraphProbeF35 EXIT=0  mtime=01:39:04
+CSC GridStampProbeF45 EXIT=0  mtime=01:39:04
+CSC RestCultureProbeF47 EXIT=0  mtime=01:39:04
+BUILD OK

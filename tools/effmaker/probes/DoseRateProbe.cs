@@ -23,11 +23,13 @@ namespace DoseRateProbe
     ///  1. **Коэффициенты.** Пятнадцать диапазонов 40–3000 кэВ, шестнадцать
     ///     значений μ_en/ρ и шестнадцать значений перевода Р→Зв лежали
     ///     безымянными массивами внутри `CalculateDoseRateConfig`. Здесь новые
-    ///     значения, посчитанные из XCOM (`matdb.sqlite`), сверяются со
+    ///     значения μ_en/ρ, посчитанные из XCOM (`matdb.sqlite`), сверяются со
     ///     вшитыми на тех же шестнадцати энергиях. ⚠ Положительный контроль
     ///     физики — доля энергии, переданной электрону при комптоновском
     ///     рассеянии: она обязана сойтись с опорными числами Аттикса, иначе
-    ///     сходимость μ_en/ρ ничего не значит.
+    ///     сходимость μ_en/ρ ничего не значит. ⛔ Таблицу h*(10)/K_air эта
+    ///     проба НЕ судит (`T201`): её единственный судья — `DoseCoefProbeO2`
+    ///     (узлы дословно, порча отражением, схема между узлами).
     ///
     ///  2. **Цена молчаливого обрезания.** Всё ниже 40 и выше 3000 кэВ в дозу
     ///     не входило независимо от шкалы прибора. Считается сквозным
@@ -53,7 +55,10 @@ namespace DoseRateProbe
     ///     «путь к файлу», которые прятались `Visible = false`, в форме нет
     ///     вовсе; ни один контрол не выходит за страницу и не налезает на
     ///     соседа; подпись помещается в свой контрол НА ОБЕИХ культурах и не
-    ///     обещает ни ЛСРМ, ни «40 кэВ – 3 МэВ». Плюс снимок вкладки в PNG.
+    ///     обещает ни ЛСРМ, ни «40 кэВ – 3 МэВ». Плюс снимок вкладки в PNG —
+    ///     ВСЕГДА, а не только по ключу (`T231`): без `--shots=` снимки идут
+    ///     в `%TEMP%\doserateprobe-shots`, и число проверок от набора ключей
+    ///     не зависит.
     ///
     ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;кривые&gt;] [--shots=&lt;куда PNG&gt;]
     ///   doserateprobe --sabotage=long|word|hidden|overlap   (ждёт ОТКАЗ)
@@ -88,8 +93,18 @@ namespace DoseRateProbe
 
         static string lsrmDir = @"LSRM Geometries\Exported Curves";
 
-        /// <summary>Куда класть снимки вкладки; null — не снимать.</summary>
+        /// <summary>
+        /// Куда класть снимки вкладки. ⛔ Снимок делается ВСЕГДА (`T231`): без
+        /// ключа `--shots=` он идёт в `%TEMP%\doserateprobe-shots`, и проба
+        /// называет этот каталог вслух. Прежде без ключа две проверки «снимок
+        /// не фон» молча не выполнялись, и два прогона на одном дереве давали
+        /// 141 и 143 проверки, оба зелёные, — итог зависел от набора ключей,
+        /// а приёмка «не меньше, чем было» этого не видела.
+        /// </summary>
         static string shotDir;
+
+        /// <summary>Задан ли каталог снимков ключом (иначе — умолчание).</summary>
+        static bool shotDirFromKey;
 
         /// <summary>Что испортить ради положительного контроля; null — ничего.</summary>
         static string sabotage;
@@ -111,6 +126,7 @@ namespace DoseRateProbe
                 else if (a.StartsWith("--shots=", StringComparison.Ordinal))
                 {
                     shotDir = a.Substring(8);
+                    shotDirFromKey = true;
                 }
                 else if (a.StartsWith("--sabotage=", StringComparison.Ordinal))
                 {
@@ -123,13 +139,23 @@ namespace DoseRateProbe
                 }
             }
 
+            if (!shotDirFromKey)
+            {
+                shotDir = Path.Combine(Path.GetTempPath(), "doserateprobe-shots");
+            }
+
+            // Пропусков по ключам у пробы нет: что она мерит, не зависит от
+            // набора ключей, и каталог снимков называется в обоих случаях.
+            Console.WriteLine(shotDirFromKey
+                ? "снимки вкладки: " + shotDir + " (ключ --shots=)"
+                : "снимки вкладки: " + shotDir + " (ключ --shots= не задан, каталог по умолчанию)");
+
             try
             {
                 if (sabotage == null)
                 {
                     ComptonControl();
                     MuEnAgreement();
-                    AmbientAgreement();
                     Refusals();
                     OfferedCurves();
                     OfferedSpectra();
@@ -231,33 +257,18 @@ namespace DoseRateProbe
                 "худшая точка {0} кэВ: {1:+0.00;-0.00} %", worstAt, worst));
         }
 
-        static void AmbientAgreement()
-        {
-            Console.WriteLine();
-            Console.WriteLine("== h*(10)/K_air: ICRP 74 × 0.876 против вшитого «RToSv» ==");
-            Console.WriteLine("   E, кэВ    вшито      ICRP 74×0.876   расх., %");
-            double worst = 0.0;
-            string worstAt = "";
-            for (int i = 0; i < OldEnergies.Length; i++)
-            {
-                double now = DoseRateCoefficients.AmbientDoseConversion(OldEnergies[i])
-                             * DoseRateCoefficients.RemPerRoentgenFactor;
-                double diff = 100.0 * (now - OldRToSv[i]) / OldRToSv[i];
-                if (Math.Abs(diff) > Math.Abs(worst))
-                {
-                    worst = diff;
-                    worstAt = OldEnergies[i].ToString("f0", CultureInfo.InvariantCulture);
-                }
-
-                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "  {0,7:f0}    {1,7:f3}    {2,12:f3}    {3,8:+0.00;-0.00}",
-                    OldEnergies[i], OldRToSv[i], now, diff));
-            }
-
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  худшая точка {0} кэВ: {1:+0.00;-0.00} %", worstAt, worst));
-            Ok(Math.Abs(worst) < 5.0, "опознание источника подтверждено (расхождение меньше 5 %)");
-        }
+        // ⛔ h*(10)/K_air здесь НЕ судится (`T201`, 06.09.2026). Прежний раздел
+        // `AmbientAgreement` сверял таблицу приложения с вшитым «RToSv» на
+        // шестнадцати узлах с допуском 5 % — а вшитое от ICRP 74 × 0.876
+        // отличается по-настоящему (+2.20 % на 800 кэВ), так что допуск
+        // «дословно» против него невозможен, а допуск 5 % пропустил бы вчетверо
+        // больший промах молча. Единственный судья таблицы —
+        // `DoseCoefProbeO2`: все 25 узлов дословно (5e-13), порча узла
+        // отражением с ожиданием отказа, схема интерполяции на 401 точке
+        // между узлами и опора Cs-137. Сравнение с прежней таблицей там же,
+        // колонками `old_RToSv_over_0876` / `code_over_old_percent` файла
+        // `o2-a198-icrp74-nodes.csv`. `OldRToSv` остаётся: им строится
+        // ПРЕЖНЯЯ кривая в сквозном замере цены обрезания (`TruncationPrice`).
 
         // ==================================================================
         // 2. Отказы
@@ -717,21 +728,22 @@ namespace DoseRateProbe
         }
 
         /// <summary>
-        /// ⚠ ЦЕНА ОТСЕЧЕНИЯ — та ли она, о которой говорит смежная строка
-        /// `A200` (покрытие Am-241). `A200` про ШИРИНУ кривой: сетка мощности
-        /// дозы обрезана протяжённостью кривой, поставочные кривые идут ровно
-        /// 40…3000 кэВ, и низ Am-241 остаётся вне счёта. Отсечение по
-        /// погрешности эту ширину МЕНЯЕТ — оно снимает самую нижнюю точку
-        /// каждого экспорта, — поэтому вопрос «попадает ли оно в ту же цену»
-        /// разрешается только замером.
+        /// ⚠ ЦЕНА ОТСЕЧЕНИЯ — та ли она, что у покрытия Am-241 ШИРИНОЙ кривой:
+        /// сетка мощности дозы обрезана протяжённостью кривой, поставочные
+        /// кривые `config/ROI/*.xml` идут ровно 40…3000 кэВ, и низ Am-241
+        /// остаётся вне счёта. Отсечение по погрешности эту ширину МЕНЯЕТ —
+        /// оно снимает самую нижнюю точку каждого экспорта, — поэтому вопрос
+        /// «попадает ли оно в ту же цену» разрешается только замером.
         ///
-        /// ⛔ `A200` этим НЕ закрывается: она про поставочные `config/ROI/*.xml`,
-        /// а здесь мерятся файлы `LSRM Geometries/Exported Curves`.
+        /// ⛔ Ширина ПОСТАВОЧНЫХ кривых здесь не находка и не задача: поставочные
+        /// `config/ROI/*.xml` по приказу Amber 05.09.2026 не трогаются и дефекты
+        /// на них не принимаются (таблица «Чего делать НЕ надо» в `TODO.md`);
+        /// здесь мерятся файлы `LSRM Geometries/Exported Curves`.
         /// </summary>
         static void LsrmCutPrice()
         {
             Console.WriteLine();
-            Console.WriteLine("  -- цена отсечения для покрытия Am-241 (смежная `A200`, НЕ закрывается) --");
+            Console.WriteLine("  -- цена отсечения для покрытия Am-241 (поставочные кривые не трогаются, приказ 05.09.2026) --");
 
             string devicePath = Path.Combine(corpusDir, "devices",
                 "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml");
@@ -1872,14 +1884,11 @@ namespace DoseRateProbe
         /// Снимок вкладки. ⚠ Проверяется не только то, что файл записан, но и
         /// то, что он НЕ ПУСТ: `DrawToBitmap` на контроле без дескриптора
         /// отдаёт ровный фон, и такой снимок выглядит как удачный.
+        /// ⛔ Раннего выхода «каталог не задан» здесь больше нет (`T231`):
+        /// каталог есть всегда, см. <see cref="shotDir"/>.
         /// </summary>
         static void Shot(TabPage page, string culture)
         {
-            if (shotDir == null)
-            {
-                return;
-            }
-
             Directory.CreateDirectory(shotDir);
             string path = Path.Combine(shotDir, "doserate-tab-" + culture + ".png");
             using (var bmp = new Bitmap(page.Width, page.Height))

@@ -50,6 +50,16 @@ namespace DoseCoefProbeO2
     ///     одного прибора, чтобы шкала не подменяла ответ.
     ///
     ///   dosecoefprobeo2 [--dir=&lt;корпус&gt;] [--csv=&lt;каталог&gt;]
+    ///   dosecoefprobeo2 --tamper=&lt;кэВ&gt;:&lt;множитель&gt;   (ждёт ОТКАЗ)
+    ///
+    /// ⛔ С 06.09.2026 (`T201`) эта проба — ЕДИНСТВЕННЫЙ судья таблицы
+    /// h*(10)/K_air: `DoseRateProbe.AmbientAgreement` (шестнадцать узлов против
+    /// вшитого «RToSv», допуск 5 %) снята, двух судей одной таблицы с разными
+    /// допусками быть не должно. Ключ `--tamper=` — положительный контроль
+    /// оставшегося судьи снаружи, а не только внутри прогона: узел портится
+    /// отражением на ВЕСЬ прогон, и сверка узлов обязана отказать, назвав узел.
+    /// Коды возврата у `--tamper` перевёрнуты: 0 — отказ получен и узел назван
+    /// (судья смотрит), 1 — не получен (судья слеп).
     /// </summary>
     static class Program
     {
@@ -57,6 +67,12 @@ namespace DoseCoefProbeO2
         static int checks;
         static string corpusDir = @"tools\CORPUS\corpus";
         static string csvDir;
+
+        /// <summary>Порча узла на весь прогон, «кэВ:множитель»; null — нет.</summary>
+        static string tamper;
+
+        /// <summary>Расхождения, названные сверкой узлов в последнем прогоне.</summary>
+        static List<string> lastNodeDiffs = new List<string>();
 
         // ------------------------------------------------------------------
         // Опубликованное: ICRP 74 (1996), приложение A, h*(10)/K_air, Зв/Гр.
@@ -116,11 +132,45 @@ namespace DoseCoefProbeO2
                 {
                     csvDir = a.Substring(6);
                 }
+                else if (a.StartsWith("--tamper=", StringComparison.Ordinal))
+                {
+                    tamper = a.Substring(9);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
                     return 2;
                 }
+            }
+
+            double tamperKev = 0.0, tamperFactor = 1.0;
+            if (tamper != null)
+            {
+                string[] parts = tamper.Split(':');
+                if (parts.Length != 2
+                    || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out tamperKev)
+                    || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out tamperFactor))
+                {
+                    Console.Error.WriteLine("--tamper= ждёт «кэВ:множитель» с точкой, дано: " + tamper);
+                    return 2;
+                }
+
+                double[] energy = Field("AmbientEnergyKev");
+                int at = Array.IndexOf(energy, tamperKev);
+                if (at < 0)
+                {
+                    Console.Error.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "--tamper=: в таблице приложения нет узла {0} кэВ — портить нечего", tamperKev));
+                    return 2;
+                }
+
+                // Порча ЖИВОЙ таблицы приложения отражением, без восстановления:
+                // всё, что ниже, судит испорченное.
+                Field("AmbientConversion")[at] *= tamperFactor;
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "⛔ ПОРЧА НА ВЕСЬ ПРОГОН: узел {0:f0} кэВ × {1:f3} (ждётся отказ сверки узлов)",
+                    tamperKev, tamperFactor));
+                Console.WriteLine();
             }
 
             try
@@ -138,6 +188,29 @@ namespace DoseCoefProbeO2
             }
 
             Console.WriteLine();
+            if (tamper != null)
+            {
+                string node = tamperKev.ToString("f0", CultureInfo.InvariantCulture) + " кэВ";
+                bool named = false;
+                foreach (string d in lastNodeDiffs)
+                {
+                    if (d.StartsWith(node, StringComparison.Ordinal))
+                    {
+                        named = true;
+                    }
+                }
+
+                bool caught = failed > 0 && named;
+                Console.WriteLine(caught
+                    ? string.Format(CultureInfo.InvariantCulture,
+                        "ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ «{0} ×{1:f3}»: отказ получен ({2} из {3}), узел назван сверкой узлов",
+                        node, tamperFactor, failed, checks)
+                    : string.Format(CultureInfo.InvariantCulture,
+                        "ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ «{0} ×{1:f3}»: ОТКАЗА НЕТ — судья слеп (провалов {2} из {3}, узел назван: {4})",
+                        node, tamperFactor, failed, checks, named ? "да" : "нет"));
+                return caught ? 0 : 1;
+            }
+
             Console.WriteLine(failed == 0
                 ? string.Format("ВСЁ СОШЛОСЬ: {0} проверок", checks)
                 : string.Format("ПРОВАЛОВ {0} из {1}", failed, checks));
@@ -272,6 +345,7 @@ namespace DoseCoefProbeO2
 
             double worst;
             List<string> diffs = NodeDiffs(out worst);
+            lastNodeDiffs = diffs;
             foreach (string d in diffs)
             {
                 Console.WriteLine("   расхождение: " + d);
@@ -673,7 +747,9 @@ namespace DoseCoefProbeO2
             // всякое значение, подставленное туда, было бы выдумкой: на 10 кэВ
             // ICRP 74 даёт 0.008, а удержание края прежней таблицы дало бы
             // 1.47 — разница в 184 раза, и развёртка мерила бы РАСШИРЕНИЕ
-            // СЕТКИ (`C4`, `A200`), а не смену чисел (`A198`). Первый заход
+            // СЕТКИ (`C4`; ширина поставочных кривых `config/ROI/*.xml` —
+            // по приказу Amber 05.09.2026 не задача, таблица «Чего делать НЕ
+            // надо» в `TODO.md`), а не смену чисел (`A198`). Первый заход
             // именно так и соврал: 92.5 % на точке калибровки и +12.8 % на
             // Co-60. Здесь полоса одна на оба плеча.
             double[] grid = DoseRateEstimator.BuildGrid(

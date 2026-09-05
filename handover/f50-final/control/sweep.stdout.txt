@@ -1,0 +1,94 @@
+== `A244`: СПЛОШНОЙ РАЗБОР СОБРАННОГО ПРИЛОЖЕНИЯ (`--sweep`) ==
+
+сборка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f50c\BecquerelMonitor.exe
+Ищутся вызовы, печатающие/разбирающие ЧИСЛО без явной культуры:
+  `T.ToString()` и `T.ToString(String)` у числовых типов,
+  `T.Parse(String)` и `T.TryParse(String, out T)` у них же.
+⚠ ДАТА И ВРЕМЯ остаются в раскладке человека (решение Amber) —
+  `DateTime`/`TimeSpan` считаются отдельно и в итог НЕ входят.
+
+тел методов разобрано: 9344
+
+── ПЕЧАТЬ ЧИСЛА БЕЗ КУЛЬТУРЫ: 23 ──
+  BecquerelMonitor.AudioInputDeviceController  ×3
+      StartMeasurement → System.Int32.ToString()
+      StartMeasurement → System.Int16.ToString()
+      StartMeasurement → System.Int16.ToString()
+  BecquerelMonitor.EfficiencyMaker.EfficiencySimulator  ×1
+      EnsureBuilt → System.Int32.ToString()
+  BecquerelMonitor.EfficiencyMaker.MaterialDatabase  ×3
+      LoadPhotoShellTable → System.Int32.ToString()
+      LoadTables → System.Int32.ToString()
+      LoadTables → System.Int32.ToString()
+  BecquerelMonitor.EfficiencyMaker.SeltzerBergerData  ×1
+      Load → System.Int32.ToString()
+  BecquerelMonitor.FullSpectrumAnalysis.FsaAnalysisSession  ×2
+      NoteOldMatrixFormat → System.Int64.ToString()
+      NoteOldMatrixFormat → System.Int64.ToString()
+  BecquerelMonitor.FullSpectrumAnalysis.FsaCompositionInference  ×1
+      Head → System.Int32.ToString()
+  BecquerelMonitor.N42.Util  ×2
+      ImportFromN42 → System.Int32.ToString()
+      ImportFromN42 → System.Int32.ToString()
+  BecquerelMonitor.NuclideDefinitionManager  ×1
+      LoadDefinitionFile → System.Int32.ToString()
+  BecquerelMonitor.Program  ×1
+      WriteCrash → System.Int32.ToString()
+  XPTable.Editors.ColorCellEditor  ×4
+      ColorToString → System.Byte.ToString()
+      ColorToString → System.Byte.ToString()
+      ColorToString → System.Byte.ToString()
+      ColorToString → System.Byte.ToString()
+  XPTable.Renderers.ColorCellRenderer  ×4
+      OnPaint → System.Byte.ToString()
+      OnPaint → System.Byte.ToString()
+      OnPaint → System.Byte.ToString()
+      OnPaint → System.Byte.ToString()
+
+── РАЗБОР ЧИСЛА БЕЗ КУЛЬТУРЫ: 0 ──
+
+── ДАТА/ВРЕМЯ без культуры (в итог НЕ входит: решение Amber): 1 ──
+  BecquerelMonitor.MainForm  ×1
+      OnTimer → System.DateTime.ToString()
+
+── ⚠ ЛОКАТОР (не мера): в теле есть box числа И печать object без провайдера — смотреть глазами: 14 ──
+  BecquerelMonitor.DocumentManager  ×5
+      ImportDocumentSpecUtils → box Int32×1 + печать object без провайдера
+      ImportDocumentAtomSpectra → box Int32×2 + печать object без провайдера
+      ExportDocumentToCsv → box Double×1, Int32×2 + печать object без провайдера
+      ExportDocumentToECSV → box Double×3, Int32×1 + печать object без провайдера
+      ImportCsvEnergyToDocument → box Int32×2 + печать object без провайдера
+  BecquerelMonitor.FullSpectrumAnalysis.FsaCompositionInference+Report  ×1
+      ToString → box Int32×4, Double×1 + печать object без провайдера
+  BecquerelMonitor.MainForm  ×1
+      ImportSpectraIntoDocument → box Int32×4 + печать object без провайдера
+  BecquerelMonitor.NucBase.NucBase  ×2
+      DoSearch → box Int32×4 + печать object без провайдера
+      buttonImportDef_Click → box Int32×3 + печать object без провайдера
+  BecquerelMonitor.NuclideDefinitionForm  ×1
+      button4_Click → box Int32×1 + печать object без провайдера
+  BecquerelMonitor.ObsidianIn  ×2
+      TestBT → box UInt64×1 + печать object без провайдера
+      ConnectBLE → box Int64×8, Int32×1 + печать object без провайдера
+  BecquerelMonitor.RadiaCodeIn  ×2
+      TestBT → box UInt64×1 + печать object без провайдера
+      ConnectBLE → box Int64×8, Int32×1 + печать object без провайдера
+
+── целое культуре не подчиняется: замер, а не довод ──
+  ru-RU: (1234567).ToString() = «1234567», (-1234).ToString() = «-1234», (1.5).ToString() = «1,5»
+  de-DE: (1234567).ToString() = «1234567», (-1234).ToString() = «-1234», (1.5).ToString() = «1,5»
+  en-US: (1234567).ToString() = «1234567», (-1234).ToString() = «-1234», (1.5).ToString() = «1.5»
+  клон `MainForm` (ru-RU, разделитель дроби = точка): (1234567).ToString() = «1234567», (1.5).ToString() = «1.5»
+  ⇒ костыль правит ТОЛЬКО дробную часть; на целые он не влияет вовсе,
+    значит его снятие ни одного из найденных мест не сдвинет.
+
+
+══════════════════════════════════════════════════════════════
+ИТОГ: непереведённых случаев ЧИСЛА в приложении: 23
+══════════════════════════════════════════════════════════════
+[положительный контроль] BadOnPurposeInt → «System.Int32.ToString(…»: НАЙДЕНО — проверка видит
+[положительный контроль] BadOnPurposeDouble → «System.Double.ToString(…»: НАЙДЕНО — проверка видит
+[положительный контроль] BadOnPurposeAppend → «System.Text.StringBuilder.Append(Double…»: НАЙДЕНО — проверка видит
+[положительный контроль] BadOnPurposeConvert → «System.Convert.ToDouble(String…»: НАЙДЕНО — проверка видит
+[положительный контроль обхода] поймано 4 из 4
+отчёт: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f50-final\control\sweep-control.txt
