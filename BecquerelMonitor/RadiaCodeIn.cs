@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
@@ -264,7 +265,7 @@ namespace BecquerelMonitor
 
         private static string FormatProtocolError(byte? protocolError)
         {
-            return protocolError.HasValue ? $"0x{protocolError.Value:X2}" : "none";
+            return protocolError.HasValue ? FormattableString.Invariant($"0x{protocolError.Value:X2}") : "none";
         }
 
         private static string SafeConnStatus(BluetoothLEDevice device)
@@ -380,7 +381,7 @@ namespace BecquerelMonitor
                 BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
                 if (null != adapter)
                 {
-                    sendTroubleShoot($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}");
+                    sendTroubleShoot(FormattableString.Invariant($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}"));
                     Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
                     if (btRadio.State != RadioState.On)
                     {
@@ -445,8 +446,8 @@ namespace BecquerelMonitor
                 {
                     watcher.Stop();
                     watcher.Received -= Watcher_Recived;
-                    sendTroubleShoot($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen" +
-                        (discoveryAdvCount > 0 ? $", last RSSI={discoveryLastRssi} dBm." : " — device did not advertise in this window."));
+                    sendTroubleShoot(FormattableString.Invariant($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen") +
+                        (discoveryAdvCount > 0 ? FormattableString.Invariant($", last RSSI={discoveryLastRssi} dBm.") : " — device did not advertise in this window."));
                 }
             }
         }
@@ -462,7 +463,7 @@ namespace BecquerelMonitor
             try
             {
                 ulong target;
-                if (addressble != null && ulong.TryParse(addressble, out target) && args.BluetoothAddress == target)
+                if (addressble != null && ulong.TryParse(addressble, NumberStyles.Integer, CultureInfo.InvariantCulture, out target) && args.BluetoothAddress == target)
                 {
                     discoveryAdvCount++;
                     discoveryLastRssi = args.RawSignalStrengthInDBm;
@@ -486,10 +487,10 @@ namespace BecquerelMonitor
                     Stopwatch sw = trshoot ? Stopwatch.StartNew() : null;
                     Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
                     sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
-                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
+                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE, CultureInfo.InvariantCulture)).AsTask().GetAwaiter().GetResult();
                     if (localDevice == null)
                     {
-                        sendTroubleShoot($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms).");
+                        sendTroubleShoot(FormattableString.Invariant($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms)."));
                         return false;
                     }
                     // Windows caches a BluetoothLEDevice even when it is not yet connected; the very
@@ -500,22 +501,22 @@ namespace BecquerelMonitor
                     {
                         string preConnStatus;
                         try { preConnStatus = localDevice.ConnectionStatus.ToString(); } catch (Exception) { preConnStatus = "unavailable"; }
-                        sendTroubleShoot($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}");
+                        sendTroubleShoot(FormattableString.Invariant($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}"));
                     }
 
                     GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service)).AsTask().GetAwaiter().GetResult();
                     if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}");
+                        sendTroubleShoot(FormattableString.Invariant($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}"));
                         return false;
                     }
-                    sendTroubleShoot($"GATT service acquired after {ElapsedMs(sw)} ms.");
+                    sendTroubleShoot(FormattableString.Invariant($"GATT service acquired after {ElapsedMs(sw)} ms."));
 
                     localService = servicesResult.Services[0];
                     GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Characteristic)).AsTask().GetAwaiter().GetResult();
                     if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}");
+                        sendTroubleShoot(FormattableString.Invariant($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}"));
                         return false;
                     }
 
@@ -529,7 +530,7 @@ namespace BecquerelMonitor
                     GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Notify)).AsTask().GetAwaiter().GetResult();
                     if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
                     {
-                        sendTroubleShoot($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}");
+                        sendTroubleShoot(FormattableString.Invariant($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}"));
                         return false;
                     }
 
@@ -546,10 +547,10 @@ namespace BecquerelMonitor
                     if (cccdStatus != GattCommunicationStatus.Success)
                     {
                         localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
-                        sendTroubleShoot($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}");
+                        sendTroubleShoot(FormattableString.Invariant($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}"));
                         return false;
                     }
-                    sendTroubleShoot($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total.");
+                    sendTroubleShoot(FormattableString.Invariant($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total."));
 
                     localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
                     dev = localDevice;
@@ -628,7 +629,13 @@ namespace BecquerelMonitor
                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
                 reader.ReadBytes(buffer);
-                string bufferSignature = string.Join(",", buffer);
+                // `A244`: `string.Join(",", byte[])` печатает каждый байт
+                // `ToString()` БЕЗ культуры, а подпись тут же сверяется с
+                // литералом «16,0,0,0,7,0,0,128». Культура названа явно —
+                // сканер `scan_culture.py` этого вида печати не считает вовсе,
+                // и место нашлось только отдельным поиском по `string.Join`.
+                string bufferSignature = string.Join(",",
+                    Array.ConvertAll(buffer, b => b.ToString(CultureInfo.InvariantCulture)));
                 if (bufferSignature.StartsWith("16,0,0,0,7,0,0,128"))
                 {
                     if (buffer.Length > 17 && buffer[16] == 1)
@@ -724,15 +731,15 @@ namespace BecquerelMonitor
                         else
                         {
                             packet.BROKEN = true;
-                            sendTroubleShoot($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
-                            Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
+                            sendTroubleShoot(FormattableString.Invariant($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels."));
+                            Trace.WriteLine(FormattableString.Invariant($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels."));
                             return;
                         }
                     }
                     else if (packet.counter > packet.SIZE)
                     {
                         packet.BROKEN = true;
-                        Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
+                        Trace.WriteLine(FormattableString.Invariant($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}"));
                         return;
                     }
                 }
@@ -1019,7 +1026,7 @@ namespace BecquerelMonitor
                                         sendTroubleShoot("Initial discovery scan done; proceeding to first connect.");
                                     }
                                 }
-                                sendTroubleShoot($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}");
+                                sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}"));
                                 if (currentState != State.Reconnecting)
                                 {
                                     setStatus(State.Connecting);
@@ -1193,7 +1200,7 @@ namespace BecquerelMonitor
                                     lock (packetLock)
                                     {
                                         packet.BROKEN = true;
-                                        sendTroubleShoot($"Spectrum receive timeout. total={packet.counter}");
+                                        sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.counter}"));
                                     }
                                     setStatus(State.Reconnecting);
                                 }
@@ -1222,8 +1229,8 @@ namespace BecquerelMonitor
                             // Данные снова идут — прежняя причина отказа снята,
                             // и строка состояния перестаёт кричать о ней.
                             clearFailure();
-                            sendTroubleShoot($"Spectrum real time: {elapsedTime}");
-                            sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
+                            sendTroubleShoot(FormattableString.Invariant($"Spectrum real time: {elapsedTime}"));
+                            sendTroubleShoot(FormattableString.Invariant($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}"));
                             spectrum.CopyTo(hystogram_buffered, 0);
                             long sum = hystogram_buffered.Sum(i => (long)i);
                             if (elapsedTime != 0)
@@ -1233,8 +1240,8 @@ namespace BecquerelMonitor
                                     cps = sum / (double)elapsedTime;
                                 }
                             }
-                            sendTroubleShoot($"Spectrum cps: {cps}");
-                            sendTroubleShoot($"Spectrum total counts: {sum}");
+                            sendTroubleShoot(FormattableString.Invariant($"Spectrum cps: {cps}"));
+                            sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
                             if (currentState != State.Recording)
                             {
                                 setStatus(State.Recording);

@@ -1,0 +1,100 @@
+
+=== DeviceConfigForm.Efficiency.cs ===
+    474 print  string.Format  НЕ НАЗВАНО — отказ
+    489 print  string.Format  НЕ НАЗВАНО — отказ
+
+=== DeviceConfigForm.cs ===
+    239 print  string.Format  ложное: `Resources.MessageRemoveDeviceConfig` + `Name` — довод строка, числа нет
+    295 print  ToString       ложное: склейка `i`, но печатается уже `i.ToString(InvariantCulture)` — сканер видит имя переменной рядом с `+ "("`
+    295 print  concat         ложное: склейка `i`, но печатается уже `i.ToString(InvariantCulture)` — сканер видит имя переменной рядом с `+ "("`
+    455 print  ToString       НЕ НАЗВАНО — отказ
+    456 print  ToString       НЕ НАЗВАНО — отказ
+    457 print  ToString       НЕ НАЗВАНО — отказ
+    490 print  ToString       НЕ НАЗВАНО — отказ
+    498 print  ToString       НЕ НАЗВАНО — отказ
+    507 print  ToString       НЕ НАЗВАНО — отказ
+    513 print  ToString       НЕ НАЗВАНО — отказ
+    514 print  ToString       НЕ НАЗВАНО — отказ
+    524 print  ToString       ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+    541 print  ToString       ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+    759 parse  int.Parse      НЕ НАЗВАНО — отказ
+    760 parse  int.Parse      НЕ НАЗВАНО — отказ
+    761 parse  double.Parse   НЕ НАЗВАНО — отказ
+    764 print  ToString       ложное: `Guid.NewGuid().ToString()` — числа нет
+    809 parse  double.Parse   НЕ НАЗВАНО — отказ
+    813 parse  double.Parse   НЕ НАЗВАНО — отказ
+    817 parse  double.Parse   НЕ НАЗВАНО — отказ
+    819 parse  double.Parse   НЕ НАЗВАНО — отказ
+    820 parse  double.Parse   НЕ НАЗВАНО — отказ
+    942 print  interpolation  ложное: интерполяция `{Resources.ERRBTNotSupportedByOS} … {ex.Message}` — обе дыры строки
+   1094 print  ToString       ложное: `ex.ToString()` — исключение, не число
+   1228 parse  uint.Parse     НЕ НАЗВАНО — отказ
+   1240 parse  ulong.Parse    НЕ НАЗВАНО — отказ
+   1272 print  ToString       НЕ НАЗВАНО — отказ
+   1273 print  ToString       НЕ НАЗВАНО — отказ
+   1277 print  ToString       НЕ НАЗВАНО — отказ
+   1281 print  ToString       НЕ НАЗВАНО — отказ
+   1285 print  ToString       НЕ НАЗВАНО — отказ
+   1290 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `ComPortName` — строка
+   1344 print  ToString       НЕ НАЗВАНО — отказ
+   1345 print  ToString       НЕ НАЗВАНО — отказ
+   1346 print  ToString       НЕ НАЗВАНО — отказ
+   1351 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1377 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1393 print  ToString       НЕ НАЗВАНО — отказ
+   1394 print  ToString       НЕ НАЗВАНО — отказ
+   1395 print  ToString       НЕ НАЗВАНО — отказ
+   1396 print  ToString       ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)
+   1403 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1442 print  ToString       НЕ НАЗВАНО — отказ
+   1472 print  ToString       НЕ НАЗВАНО — отказ
+   1490 print  concat         ложное: склейка `i`, печатается `i.ToString(InvariantCulture)` — правлено этой же полосой
+   1490 print  concat         ложное: склейка `i`, печатается `i.ToString(InvariantCulture)` — правлено этой же полосой
+   1494 print  concat         ложное: то же, вторая склейка той же строки следа
+   1494 print  concat         ложное: то же, вторая склейка той же строки следа
+   1686 print  string.Format  НЕ НАЗВАНО — отказ
+   1863 print  ToString       НЕ НАЗВАНО — отказ
+   1888 parse  decimal.Parse  НЕ НАЗВАНО — отказ
+   1896 parse  decimal.Parse  НЕ НАЗВАНО — отказ
+   1903 parse  decimal.Parse  НЕ НАЗВАНО — отказ
+   1964 print  ToString       НЕ НАЗВАНО — отказ
+   1968 print  ToString       НЕ НАЗВАНО — отказ
+   1972 print  ToString       НЕ НАЗВАНО — отказ
+   1974 print  ToString       НЕ НАЗВАНО — отказ
+   1975 print  ToString       НЕ НАЗВАНО — отказ
+   2019 print  ToString       НЕ НАЗВАНО — отказ
+   2049 print  ToString       НЕ НАЗВАНО — отказ
+   2634 print  string.Format  ложное: `Resources.ERRFileOpenFailure` + имя файла + `ex.Message` — обе строки
+   2846 print  string.Format  ложное: `Resources.ERRFileOpenFailure` + имя файла + `problem` — обе строки
+
+=== DeviceConfigManager.cs ===
+    120 print  string.Format  НЕ НАЗВАНО — отказ
+    164 print  ToString       НЕ НАЗВАНО — отказ
+    204 print  ToString       НЕ НАЗВАНО — отказ
+    306 print  string.Format  НЕ НАЗВАНО — отказ
+    464 print  string.Format  НЕ НАЗВАНО — отказ
+
+=== GlobalConfigForm.cs ===
+     91 print  ToString       НЕ НАЗВАНО — отказ
+     92 print  ToString       НЕ НАЗВАНО — отказ
+     93 print  ToString       НЕ НАЗВАНО — отказ
+    142 print  ToString       НЕ НАЗВАНО — отказ
+    143 print  ToString       НЕ НАЗВАНО — отказ
+    144 print  ToString       НЕ НАЗВАНО — отказ
+    145 print  ToString       НЕ НАЗВАНО — отказ
+    146 print  ToString       НЕ НАЗВАНО — отказ
+    147 print  ToString       НЕ НАЗВАНО — отказ
+    148 print  ToString       НЕ НАЗВАНО — отказ
+    149 print  ToString       НЕ НАЗВАНО — отказ
+    150 print  ToString       НЕ НАЗВАНО — отказ
+    151 print  ToString       НЕ НАЗВАНО — отказ
+    152 print  ToString       НЕ НАЗВАНО — отказ
+    153 print  ToString       НЕ НАЗВАНО — отказ
+    154 print  ToString       НЕ НАЗВАНО — отказ
+
+всего мест: 85
+настоящих мест МОЕЙ доли (обязан быть ноль): 66
+уводящих в ЧУЖОЙ файл (дописка в `A244`): 3
+   DeviceConfigForm.cs:524 — ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+   DeviceConfigForm.cs:541 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+   DeviceConfigForm.cs:1396 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)

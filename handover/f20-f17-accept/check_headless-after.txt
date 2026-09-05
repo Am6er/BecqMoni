@@ -1,0 +1,22 @@
+Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+  файлов приложения: 501, типов: 682, проб: 114
+  оконных типов по наследованию: 82; засев от проб: 230 типов
+  достижимо БЕЗ окон: 532 типов; барьер (оконные): 29
+  оконных типов, которые пробы СТРОЯТ (`new T(...)`): 22 — их конструкторы ALLOW не обеляет
+  живых MessageBox.Show: 156
+
+=== БЕЗОКОННЫЙ ПУТЬ: 4 вызовов в 2 файлах ===
+  BecquerelMonitor/DCFwhmCalibrationView.cs:420  DCFwhmCalibrationView.EnergySpectrumView_PeakPickuped()
+      достижим от: метод зовёт отражением проба (имя в её литералах)
+  BecquerelMonitor/StandardPulseRecorder.cs:95  StandardPulseRecorder.StartRecording()
+      достижим от: AudioInputDeviceForm (BecquerelMonitor/AudioInputDeviceForm.cs)
+  BecquerelMonitor/StandardPulseRecorder.cs:101  StandardPulseRecorder.StartRecording()
+      достижим от: AudioInputDeviceForm (BecquerelMonitor/AudioInputDeviceForm.cs)
+  BecquerelMonitor/StandardPulseRecorder.cs:112  StandardPulseRecorder.StartRecording()
+      достижим от: AudioInputDeviceForm (BecquerelMonitor/AudioInputDeviceForm.cs)
+
+ПРЕДУПРЕЖДЕНИЕ: ALLOW['DoubleTextBox'] протухла: живых MessageBox.Show нет
+ПРЕДУПРЕЖДЕНИЕ: ALLOW['IntegerTextBox'] протухла: живых MessageBox.Show нет
+
+итого: безоконный путь 4, оконные 152, вне разряда 0
+ОТКАЗ: в безоконном пути 4 модальных окон. Проба, дойдя до любого, ВИСНЕТ. Замена: AppUi.Report(text, caption, icon).

@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Forms;
 using WinMM;
 
@@ -83,7 +84,7 @@ namespace BecquerelMonitor
         {
             if (this.deviceConfigForm != null && this.deviceConfigForm.ActiveDeviceConfig != null && this.pulseRecorder.Recording)
             {
-                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
+                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
                 this.standardPulseView1.Invalidate();
                 if (this.pulseRecorder.NumberOfPulses >= 10000)
                 {
@@ -108,30 +109,42 @@ namespace BecquerelMonitor
             }
             if (!flag && this.waveDeviceList.Count > 0)
             {
-                MessageBox.Show(Resources.ERRAudioDeviceNotFound);
+                // ⛔ `A245`, полоса F20 05.09.2026. Здесь стоял голый
+                //    `MessageBox.Show`, а метод лежит на БЕЗОКОННОМ пути:
+                //    `DeviceConfigForm.LoadFormContents` зовут отражением
+                //    пробы (`CultureProbeO14`, раздел `A244P1P3`), и у любой
+                //    новой конфигурации `AudioInputDevice` пуст — то есть
+                //    окно поднималось В КАЖДОМ прогоне. Нажать «ОК» там
+                //    некому, и приёмка становилась лотереей: у одного
+                //    прогона окно кто-то закрывал и был код 0, у другого
+                //    плечо стояло 120 с и падало «окно настроек не
+                //    ответило». Тот же ресурс уже ходит через дверь в
+                //    `AudioInputDeviceController.cs:80` — вид сообщения не
+                //    меняется, в окнах оно прежнее.
+                AppUi.Report(Resources.ERRAudioDeviceNotFound, "", MessageBoxIcon.None);
                 audioInputDeviceConfig.AudioInputDevice = this.waveDeviceList[0];
                 this.SetActiveDeviceConfigDirty();
                 this.comboBox1.SelectedIndex = 0;
             }
-            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString();
-            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString();
+            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString(CultureInfo.InvariantCulture);
+            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString(CultureInfo.InvariantCulture);
             this.trackBar1.Value = audioInputDeviceConfig.Volume;
-            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString();
+            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString(CultureInfo.InvariantCulture);
             this.checkBox2.Checked = audioInputDeviceConfig.AutoVolumeSetting;
             this.trackBar1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
             this.maskedTextBox1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
             this.checkBox1.Checked = audioInputDeviceConfig.NegativePolarity;
             PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
-            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString();
-            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
+            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
             double pulseThreshold = prahomageMethodConfig.PulseThreshold;
             this.trackBar2.Value = (int)(pulseThreshold * 100.0);
-            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString();
+            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString(CultureInfo.InvariantCulture);
             this.numericUpDown1.Value = prahomageMethodConfig.PulseShapeSize;
             this.numericUpDown2.Value = prahomageMethodConfig.PeakIndex;
-            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString();
-            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
-            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString();
+            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
+            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
             this.standardPulseView1.PulseShape = prahomageMethodConfig.PulseShape;
             this.standardPulseView1.PeakIndex = prahomageMethodConfig.PeakIndex;
             this.standardPulseView1.PulseShapeSize = prahomageMethodConfig.PulseShapeSize;
@@ -152,31 +165,31 @@ namespace BecquerelMonitor
                 {
                     audioInputDeviceConfig.AudioInputDevice = this.waveDeviceList[this.comboBox1.SelectedIndex];
                 }
-                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text);
-                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text);
-                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text);
+                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text, CultureInfo.InvariantCulture);
+                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text, CultureInfo.InvariantCulture);
+                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text, CultureInfo.InvariantCulture);
                 audioInputDeviceConfig.AutoVolumeSetting = this.checkBox2.Checked;
                 audioInputDeviceConfig.NegativePolarity = this.checkBox1.Checked;
                 PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
-                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text);
-                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text);
+                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text, CultureInfo.InvariantCulture);
+                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text, CultureInfo.InvariantCulture);
                 if (prahomageMethodConfig.UpperThreshold < prahomageMethodConfig.LowerThreshold)
                 {
                     prahomageMethodConfig.UpperThreshold = prahomageMethodConfig.LowerThreshold;
-                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
+                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
                 }
-                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text) / 100.0;
+                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text, CultureInfo.InvariantCulture) / 100.0;
                 prahomageMethodConfig.PulseShapeSize = (int)this.numericUpDown1.Value;
                 prahomageMethodConfig.PeakIndex = (int)this.numericUpDown2.Value;
-                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text);
-                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text);
+                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text, CultureInfo.InvariantCulture);
+                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text, CultureInfo.InvariantCulture);
                 if (prahomageMethodConfig.PulseUpperThreshold < prahomageMethodConfig.PulseLowerThreshold)
                 {
                     prahomageMethodConfig.PulseUpperThreshold = prahomageMethodConfig.PulseLowerThreshold;
-                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
+                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
                 }
                 prahomageMethodConfig.PulseShape = this.standardPulseView1.PulseShape;
-                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text);
+                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text, CultureInfo.InvariantCulture);
             }
             catch (Exception)
             {
@@ -235,7 +248,7 @@ namespace BecquerelMonitor
             this.button1.Enabled = true;
             this.button2.Enabled = false;
             this.pulseRecorder.StopRecording();
-            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
+            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
             this.standardPulseView1.Invalidate();
             if (this.audioVolumeController != null && this.tempConfig != null)
             {
@@ -265,7 +278,7 @@ namespace BecquerelMonitor
         // Token: 0x0600104A RID: 4170 RVA: 0x0005A430 File Offset: 0x00058630
         void trackBar1_Scroll(object sender, EventArgs e)
         {
-            this.maskedTextBox1.Text = this.trackBar1.Value.ToString();
+            this.maskedTextBox1.Text = this.trackBar1.Value.ToString(CultureInfo.InvariantCulture);
             this.SetActiveDeviceConfigDirty();
         }
 
@@ -273,7 +286,7 @@ namespace BecquerelMonitor
         void maskedTextBox1_TextChanged(object sender, EventArgs e)
         {
             int value = 0;
-            int.TryParse(this.maskedTextBox1.Text, out value);
+            int.TryParse(this.maskedTextBox1.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
             this.trackBar1.Value = value;
             this.SetActiveDeviceConfigDirty();
         }
@@ -336,7 +349,7 @@ namespace BecquerelMonitor
         // Token: 0x06001054 RID: 4180 RVA: 0x0005A570 File Offset: 0x00058770
         void trackBar2_Scroll(object sender, EventArgs e)
         {
-            this.maskedTextBox2.Text = this.trackBar2.Value.ToString();
+            this.maskedTextBox2.Text = this.trackBar2.Value.ToString(CultureInfo.InvariantCulture);
             this.SetActiveDeviceConfigDirty();
         }
 
@@ -344,7 +357,7 @@ namespace BecquerelMonitor
         void maskedTextBox2_TextChanged(object sender, EventArgs e)
         {
             int num = 0;
-            int.TryParse(this.maskedTextBox2.Text, out num);
+            int.TryParse(this.maskedTextBox2.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out num);
             if (num < 0)
             {
                 num = 0;
@@ -353,7 +366,7 @@ namespace BecquerelMonitor
             {
                 num = 100;
             }
-            this.maskedTextBox2.Text = num.ToString();
+            this.maskedTextBox2.Text = num.ToString(CultureInfo.InvariantCulture);
             this.trackBar2.Value = num;
             this.SetActiveDeviceConfigDirty();
         }
