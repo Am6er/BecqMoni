@@ -1,6 +1,8 @@
+using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -434,9 +436,9 @@ namespace BecquerelMonitor
         /// Три условия, и все три обязательны:
         ///
         ///  * в библиотеке есть запись образа аннигиляции (видимая, БЕЗ выхода,
-        ///    у энергии кванта). Имя берётся у неё, а не пишется здесь: своих
-        ///    имён линий у кода нет, и заводить строку для человека в обход
-        ///    ресурсов приложения нельзя;
+        ///    у энергии кванта). Имя берётся у неё и достраивается ХВОСТОМ из
+        ///    ресурсов приложения (`A229`, <see cref="AnnihilationSumName"/>):
+        ///    без хвоста подписи 511 и 1022 читались бы с графика ОДИНАКОВО;
         ///  * в спектре есть сам пик 511 — без слагаемого суммы не бывает;
         ///  * пик 511 ЗАМЕТНЕЕ пика 1022 (сравниваются SNR). Сумма — эффект
         ///    второго порядка по загрузке, и обратное соотношение значило бы,
@@ -479,7 +481,7 @@ namespace BecquerelMonitor
                 {
                     sum = new NuclideDefinition
                     {
-                        Name = annihilation.Name,
+                        Name = AnnihilationSumName(annihilation.Name),
                         Energy = sumKev,
                         HalfLife = annihilation.HalfLife,
                         NuclideColor = annihilation.NuclideColor,
@@ -491,6 +493,71 @@ namespace BecquerelMonitor
                 }
                 peaks[i].Nuclide = sum;
             }
+        }
+
+        /// <summary>
+        /// (`A229`, решение Amber 05.09.2026) ИМЯ приборной подписи суммы
+        /// 511+511 — имя библиотечной записи образа аннигиляции ПЛЮС хвост из
+        /// ресурсов приложения.
+        ///
+        /// ⛔ Хвост живёт в `Properties/Resources.resx` (+ `.ru.resx`), а не
+        /// здесь и не в поставочной библиотеке: своих имён линий у кода нет
+        /// (правка `config/NuclideDefinition.xml` запрещена приказом Amber
+        /// 01.09.2026), а надпись читает человек — значит, она переводится.
+        ///
+        /// ⚠ Строка ресурса — ОБРАЗЕЦ с `{0}`, а не «хвост, приклеенный кодом»:
+        /// куда именно встаёт имя записи, какие вокруг него скобки и пробел —
+        /// свойство ЯЗЫКА. Склей мы «имя + пробел + скобка + хвост» здесь, и
+        /// половина видимой строки осталась бы вне ресурсов, то есть ровно тем
+        /// дефектом, о котором `A229`.
+        ///
+        /// Образец без `{0}` (недоперевод) хвоста не даёт вовсе — тогда лучше
+        /// прежняя одинаковая надпись, чем подпись, потерявшая имя.
+        /// </summary>
+        internal static string AnnihilationSumName(string imageName)
+        {
+            string format = Resources.ResourceManager.GetString("PeakLabelAnnihilationSum", LabelCulture());
+            if (string.IsNullOrEmpty(format) || format.IndexOf("{0}", StringComparison.Ordinal) < 0)
+            {
+                return imageName;
+            }
+            return string.Format(CultureInfo.InvariantCulture, format, imageName);
+        }
+
+        /// <summary>
+        /// (`A229`) Язык НАДПИСИ, и он берётся из настройки, а не у потока.
+        ///
+        /// ⛔ `DetectPeak` крутится в `Task.Run`, а у нового потока
+        /// `CurrentUICulture` — культура ОС: `MainForm` (`:154`) выставляет
+        /// язык только СВОЕМУ потоку, а `DefaultThreadCurrentUICulture` в
+        /// приложении не выставляется нигде. Возьми подпись культуру потока —
+        /// и у человека с русской Windows, выбравшего английский язык,
+        /// над пиком стояло бы русское.
+        ///
+        /// Значения настройки те же три, что кладёт меню языка: «OS» (имя не
+        /// культура — исключение, отдаём культуру потока, ровно как `MainForm`
+        /// в своём `catch`), «» (инвариант, то есть первичные английские
+        /// ресурсы) и «ru-RU».
+        /// </summary>
+        static CultureInfo LabelCulture()
+        {
+            try
+            {
+                GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+                if (config != null && config.Language != null)
+                {
+                    return CultureInfo.GetCultureInfo(config.Language);
+                }
+            }
+            catch (CultureNotFoundException)
+            {
+            }
+            catch (Exception)
+            {
+                // Настройка недоступна (харнесс, ранний вызов) — подпись важнее
+                // языка: отдаём культуру потока, а не роняем поиск пиков.
+            }
+            return null;
         }
 
         /// <summary>

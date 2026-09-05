@@ -2137,4 +2137,8 @@ http://xptable.sourceforge.net/</value>
   <data name="FSAReportTipMatrixExtra" xml:space="preserve">
     <value>При матрице отклика переключатель управляет только отдельной дополнительной компонентой; вклад, уже заложенный в матрицу, остаётся.</value>
   </data>
+  <data name="PeakLabelAnnihilationSum" xml:space="preserve">
+    <value>{0} (сумма 511+511)</value>
+    <comment>Приборная подпись пика 1022 кэВ — суммы двух аннигиляционных квантов. {0} — имя библиотечной записи образа аннигиляции, чтобы подписи 511 и 1022 различались на графике. {0} обязан стоять первым, и сразу за ним обязан идти ПРОБЕЛ: имя нуклида читается как всё до первого пробела (NuclideDefinition.NuclideNameOf), ровно как у «Tl-208 SE».</comment>
+  </data>
 </root>

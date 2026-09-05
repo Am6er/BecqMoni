@@ -1,0 +1,2 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o10\config\BecquerelMonitor.xml
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o10\config\NuclideDefinition.xml: 152 entries
