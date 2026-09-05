@@ -120,6 +120,17 @@ namespace CorpusFsaProbe
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///                  [--bg-rebin]
+    ///                  [--offset-range=&lt;кэВ&gt;] [--offset-steps=N]
+    ///                  [--gain-range=&lt;ДОЛЯ: 0.02 = ±2 %&gt;] [--gain-steps=N]
+    ///                  [--print-settings]
+    ///
+    /// ⚠ (`T109`) У соседних ключей сетки дрейфа РАЗНЫЕ единицы: `--offset-range=`
+    /// в кэВ, `--gain-range=` — ДОЛЯ. `--gain-range=5` значило бы ±500 %, и проба
+    /// на таком значении ОТКАЗЫВАЕТ (кодом 2), а не строит сетку 0.75 / 1.00 / 1.25.
+    ///
+    /// (`T94`) `--print-settings` — печатает настройки анализатора (шапку прогона,
+    /// полосу и сличение с поставочным разбором) и выходит кодом 0, НЕ читая корпуса:
+    /// так читается поставочное значение любой настройки без единого спектра.
     ///
     /// ⛔ **«НАЙДЕНА» и «ПРИМЕНЕНА» — РАЗНЫЕ слова с 27.08.2026** (`T85`).
     /// `matrix_found` = матрица прочитана и отпечаток сошёлся с геометрией;
@@ -244,6 +255,7 @@ namespace CorpusFsaProbe
                     o.DumpCurves = a.Substring(14);
                     continue;
                 }
+                if (a == "--print-settings") { o.PrintSettings = true; continue; }
                 if (a == "--quiet") { o.Quiet = true; continue; }
                 if (a == "--peaks") { o.Peaks = true; continue; }
                 if (a == "--partial") { o.Partial = true; continue; }
@@ -481,6 +493,16 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--gain-range=", StringComparison.Ordinal))
                 {
                     o.GainRange = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    // (`T109`) Ключ принимает ДОЛЮ, сосед `--offset-range=` — кэВ; на
+                    // `--gain-range=5` сетка выходила ±500 % с шагом 25 % и абляция
+                    // отрабатывала как ни в чём не бывало. Больше единицы доля не бывает.
+                    if (o.GainRange > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "--gain-range={0}: похоже, задан процент; ключ принимает ДОЛЮ, ±5 % пишется как 0.05",
+                            a.Substring(13));
+                        return 2;
+                    }
                 }
                 else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
                 {
@@ -552,6 +574,15 @@ namespace CorpusFsaProbe
                 return 2;
             }
 
+            // (`T94`) Прочесть поставочные настройки МОЖНО без корпуса: описания в
+            // `FsaAnalyzer` чисел не называют и отсылают «прочесть прогоном», а прогон
+            // до сих пор стоил разобранного спектра — корпуса, конфигурации, матрицы.
+            if (o.PrintSettings)
+            {
+                PrintHead(NewAnalyzer(o), o, -1);
+                return 0;
+            }
+
             string partsPath = Path.Combine(o.Corpus, "parts.csv");
             if (!File.Exists(partsPath))
             {
@@ -599,93 +630,7 @@ namespace CorpusFsaProbe
             // со счётом и врала молча.
             FsaAnalyzer head = NewAnalyzer(o);
 
-            Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
-            Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
-                              samples.Count, o.Part, o.Mode);
-            // Заверение с читателем: у ворот `SuppliedLibraryGuard` должно быть
-            // видно, что они стояли, — иначе правило живёт только в комментарии.
-            Console.WriteLine("библиотека: --lib={0} — состав из manifest.csv, линии из nucdb/matdb; "
-                              + "поставочный config\\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его "
-                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026)",
-                              o.Library);
-            // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
-            // подбирает и подаёт сама проба, фон она подаёт или не подаёт
-            // отдельным доводом. Их и печатаем у себя; всё остальное —
-            // у того объекта, который считает.
-            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, вылеты {4}, фон {5}",
-                              o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
-                              head.CascadeSumming ? "вкл" : "выкл",
-                              head.PileUp ? "вкл" : "выкл",
-                              head.Backscatter ? "вкл" : "выкл",
-                              head.EscapeAndAnnihilation ? "вкл" : "выкл",
-                              o.Background ? "вычитается, если есть" : "НЕ вычитается");
-            // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
-            // это единица измерения всего прогона: recall и число фантомов
-            // считаются ОТНОСИТЕЛЬНО предъявленного списка, и сужение списка
-            // улучшает обе мерки само по себе. Прогон, у которого эта строка не
-            // записана, с прежней базой сравнивать нельзя.
-            Console.WriteLine("библиотека: {0}{1}",
-                              o.Library == "sample"
-                                  ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
-                                  : o.Library == "infer"
-                                      ? "ВЫВЕДЕНА ИЗ ПОИСКА ПИКОВ по цепочке родителя (S57), порог доли "
-                                        + InferTheta(o).ToString("P0", CultureInfo.InvariantCulture)
-                                        + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
-                                        + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
-                                        + ", оборванный ряд: "
-                                        + (o.InferCut == FsaChainCut.Whole ? "не ищется"
-                                           : o.InferCut == FsaChainCut.Criterion
-                                               ? "ГОЛОВА СУДИТ, состав весь"
-                                               : "ГОЛОВА СУДИТ И ИДЁТ В СОСТАВ")
-                                      : "по подписям поиска пиков (как до 18.08.2026)",
-                              o.Library != "peaks"
-                                  ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
-                                    // (`T65`) Равновесие ряда МЕНЯЕТ ЧИСЛО СВОБОДНЫХ
-                                    // АМПЛИТУД, а не список компонентов, и до
-                                    // 25.08.2026 не печаталось вовсе: прогон
-                                    // `--no-equilibrium` выглядел в журнале в точности
-                                    // как умолчательный. Печатается ТА ЖЕ переменная,
-                                    // которая уходит в `FsaSampleSpec.Equilibrium`
-                                    // (см. <c>SpecOf</c> и ветку `infer`).
-                                    + ", равновесие ряда " + (o.Equilibrium ? "вкл" : "ВЫКЛ")
-                                  : "");
-            if (o.Library != "peaks")
-            {
-                Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
-                                  + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
-            }
-
-            Console.WriteLine("изомеры по sandia_symbol: {0}",
-                              head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
-            Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
-                              + " окно совпадения {2:E3} с{3}",
-                              head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
-                              head.CascadeAnnihilationPartners ? "вкл" : "ВЫКЛ",
-                              head.CoincidenceWindowSec > 0.0
-                                  ? head.CoincidenceWindowSec
-                                  : FsaCascadeSummer.DefaultCoincidenceWindowSec,
-                              head.CoincidenceWindowSec > 0.0 ? "" : " (умолчание)");
-            // (`T65`) Сетка дрейфа — У АНАЛИЗАТОРА. Здесь стояла ВТОРАЯ
-            // копия её умолчаний, и 24.08.2026 она разошлась со счётом
-            // молча: печаталось «±3.00 кэВ, 9 узлов», считалось ±8.00 кэВ по
-            // 17 (`S93`). Поймано на `G1S16_Cd109_P5`, который возвращал
-            // усиление 0.980000 с пометкой «КРАЙ» — за объявленными шапкой
-            // ±0.80 %. См. <c>NewAnalyzer</c>.
-            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} ({2});"
-                              + " усиление ±{3:P2}, узлов {4} ({5})",
-                              head.OffsetRangeKev, head.OffsetSteps,
-                              GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
-                              head.GainRange, head.GainSteps,
-                              GridStep(head.GainRange, head.GainSteps, "P3", ""));
-            // (`S101`) ПОЛОСА — ОБОИМИ КОНЦАМИ И ВСЛУХ. Печатается не «что
-            // заказано ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ:
-            // анализатор (полоса фита и заверение) и спецификация библиотеки
-            // (то, что режет линии). Пока концов было два со своими копиями,
-            // прогон `--band=whole` давал побитово поставочный результат и в
-            // журнале был неотличим от него.
-            PrintBand(head, o);
-            PrintTuning(head);
-            Console.WriteLine();
+            PrintHead(head, o, samples.Count);
 
             var rows = new List<Row>();
             var clock = System.Diagnostics.Stopwatch.StartNew();
@@ -816,12 +761,17 @@ namespace CorpusFsaProbe
             double[] net = result.NetSpectrum(spectrum.Spectrum);
             EnergyCalibration calibration = spectrum.EnergyCalibration;
 
-            var head = new StringBuilder("ch,keV,net,model,continuum");
+            // (`T103`) Сырой сплайн зовётся `continuum_raw`, а не `continuum`: слой
+            // стека с именем `FsaResult.ContinuumLayerName` («continuum») идёт следом
+            // в том же заголовке, и `csv.DictReader` молча брал ВТОРОЙ — «сплайн 0»
+            // там, где он 223.9 (`S103`). На складе 05.09.2026 таких дампов 115 из 329.
+            var head = new StringBuilder("ch,keV,net,model,continuum_raw");
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
             }
 
+            RejectDuplicateColumns(head.ToString(), "--dump-curves");
             string path = Path.Combine(dir, key + "_curves.csv");
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
@@ -844,10 +794,128 @@ namespace CorpusFsaProbe
             }
         }
 
+        /// <summary>
+        /// (`T103`) Отказ, который ОТКАЗЫВАЕТ: повтор имени столбца в заголовке csv —
+        /// это число, которое придёт читателю чужим и без ошибки. Дешевле запретить
+        /// повтор при записи, чем искать его в каждом читателе.
+        /// </summary>
+        static void RejectDuplicateColumns(string header, string what)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string name in header.Split(','))
+            {
+                if (!seen.Add(name))
+                {
+                    throw new InvalidOperationException(
+                        what + ": имя столбца «" + name + "» повторяется в заголовке — "
+                        + "читатель через DictReader взял бы последнее (T103)");
+                }
+            }
+        }
+
         static string Cell(double[] a, int i)
         {
             double v = a != null && i < a.Length ? a[i] : 0.0;
             return v.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Шапка прогона: настройки У АНАЛИЗАТОРА (`T65`), полоса обоими концами
+        /// (`S101`) и сличение с поставочным разбором. Вынесена из <c>Main</c>
+        /// ради `--print-settings` (`T94`): та же печать, тем же кодом, без корпуса —
+        /// <paramref name="sampleCount"/> отрицательный, когда спектры не читались.
+        /// </summary>
+        static void PrintHead(FsaAnalyzer head, Options o, int sampleCount)
+        {
+            Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
+            Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
+                              sampleCount < 0 ? "корпус не читался (--print-settings)"
+                                              : sampleCount.ToString(CultureInfo.InvariantCulture),
+                              o.Part, o.Mode);
+            // Заверение с читателем: у ворот `SuppliedLibraryGuard` должно быть
+            // видно, что они стояли, — иначе правило живёт только в комментарии.
+            Console.WriteLine("библиотека: --lib={0} — состав из manifest.csv, линии из nucdb/matdb; "
+                              + "поставочный config\\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его "
+                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026)",
+                              o.Library);
+            // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
+            // подбирает и подаёт сама проба, фон она подаёт или не подаёт
+            // отдельным доводом. Их и печатаем у себя; всё остальное —
+            // у того объекта, который считает.
+            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, вылеты {4}, фон {5}",
+                              o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
+                              head.CascadeSumming ? "вкл" : "выкл",
+                              head.PileUp ? "вкл" : "выкл",
+                              head.Backscatter ? "вкл" : "выкл",
+                              head.EscapeAndAnnihilation ? "вкл" : "выкл",
+                              o.Background ? "вычитается, если есть" : "НЕ вычитается");
+            // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
+            // это единица измерения всего прогона: recall и число фантомов
+            // считаются ОТНОСИТЕЛЬНО предъявленного списка, и сужение списка
+            // улучшает обе мерки само по себе. Прогон, у которого эта строка не
+            // записана, с прежней базой сравнивать нельзя.
+            Console.WriteLine("библиотека: {0}{1}",
+                              o.Library == "sample"
+                                  ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
+                                  : o.Library == "infer"
+                                      ? "ВЫВЕДЕНА ИЗ ПОИСКА ПИКОВ по цепочке родителя (S57), порог доли "
+                                        + InferTheta(o).ToString("P0", CultureInfo.InvariantCulture)
+                                        + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
+                                        + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
+                                        + ", оборванный ряд: "
+                                        + (o.InferCut == FsaChainCut.Whole ? "не ищется"
+                                           : o.InferCut == FsaChainCut.Criterion
+                                               ? "ГОЛОВА СУДИТ, состав весь"
+                                               : "ГОЛОВА СУДИТ И ИДЁТ В СОСТАВ")
+                                      : "по подписям поиска пиков (как до 18.08.2026)",
+                              o.Library != "peaks"
+                                  ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
+                                    // (`T65`) Равновесие ряда МЕНЯЕТ ЧИСЛО СВОБОДНЫХ
+                                    // АМПЛИТУД, а не список компонентов, и до
+                                    // 25.08.2026 не печаталось вовсе: прогон
+                                    // `--no-equilibrium` выглядел в журнале в точности
+                                    // как умолчательный. Печатается ТА ЖЕ переменная,
+                                    // которая уходит в `FsaSampleSpec.Equilibrium`
+                                    // (см. <c>SpecOf</c> и ветку `infer`).
+                                    + ", равновесие ряда " + (o.Equilibrium ? "вкл" : "ВЫКЛ")
+                                  : "");
+            if (o.Library != "peaks")
+            {
+                Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
+                                  + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
+            }
+
+            Console.WriteLine("изомеры по sandia_symbol: {0}",
+                              head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
+            Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
+                              + " окно совпадения {2:E3} с{3}",
+                              head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
+                              head.CascadeAnnihilationPartners ? "вкл" : "ВЫКЛ",
+                              head.CoincidenceWindowSec > 0.0
+                                  ? head.CoincidenceWindowSec
+                                  : FsaCascadeSummer.DefaultCoincidenceWindowSec,
+                              head.CoincidenceWindowSec > 0.0 ? "" : " (умолчание)");
+            // (`T65`) Сетка дрейфа — У АНАЛИЗАТОРА. Здесь стояла ВТОРАЯ
+            // копия её умолчаний, и 24.08.2026 она разошлась со счётом
+            // молча: печаталось «±3.00 кэВ, 9 узлов», считалось ±8.00 кэВ по
+            // 17 (`S93`). Поймано на `G1S16_Cd109_P5`, который возвращал
+            // усиление 0.980000 с пометкой «КРАЙ» — за объявленными шапкой
+            // ±0.80 %. См. <c>NewAnalyzer</c>.
+            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} ({2});"
+                              + " усиление ±{3:P2}, узлов {4} ({5})",
+                              head.OffsetRangeKev, head.OffsetSteps,
+                              GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
+                              head.GainRange, head.GainSteps,
+                              GridStep(head.GainRange, head.GainSteps, "P3", ""));
+            // (`S101`) ПОЛОСА — ОБОИМИ КОНЦАМИ И ВСЛУХ. Печатается не «что
+            // заказано ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ:
+            // анализатор (полоса фита и заверение) и спецификация библиотеки
+            // (то, что режет линии). Пока концов было два со своими копиями,
+            // прогон `--band=whole` давал побитово поставочный результат и в
+            // журнале был неотличим от него.
+            PrintBand(head, o);
+            PrintTuning(head);
+            Console.WriteLine();
         }
 
         /// <summary>
@@ -3532,6 +3600,10 @@ namespace CorpusFsaProbe
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
             public bool BandSelfTest;
+
+            /// <summary>(`T94`) Напечатать настройки и выйти кодом 0, не читая
+            /// корпуса, — ключ `--print-settings`.</summary>
+            public bool PrintSettings;
 
             /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
             public bool Audit;

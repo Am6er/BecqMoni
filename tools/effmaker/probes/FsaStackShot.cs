@@ -56,8 +56,8 @@ namespace FsaStackShot
     /// внизу, а снимок в линейной шкале показывает почти пустое поле — по нему
     /// нельзя ни подтвердить наблюдение, ни опровергнуть.
     ///
-    /// `--dump=` — кривые ПО КАНАЛАМ в csv: измерение за вычетом фона, модель и
-    /// по колонке на каждый слой стека. Спор «модель кривая или спектр такой»
+    /// `--dump=` — кривые ПО КАНАЛАМ в csv: измерение за вычетом фона, модель,
+    /// сырой сплайн (`continuum_raw`, `T103`) и по колонке на каждый слой стека. Спор «модель кривая или спектр такой»
     /// картинкой не решается: на ней обе кривые в пикселе друг от друга.
     /// Измерение берётся у ВИДА (`fsaNetSpectrum`), а не считается заново, —
     /// выгружено то же, что нарисовано.
@@ -613,10 +613,23 @@ namespace FsaStackShot
             {
                 net = result.NetSpectrum(spectrum.Spectrum);
             }
-            var head = new StringBuilder("ch,keV,net,model,continuum");
+            // (`T103`) Сырой сплайн — `continuum_raw`: слой стека «continuum»
+            // (`FsaResult.ContinuumLayerName`) идёт в том же заголовке следом, и
+            // `csv.DictReader` брал его вместо сырого. Повтор имени — отказ.
+            var head = new StringBuilder("ch,keV,net,model,continuum_raw");
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string name in head.ToString().Split(','))
+            {
+                if (!seen.Add(name))
+                {
+                    throw new InvalidOperationException(
+                        "--dump=: имя столбца «" + name + "» повторяется в заголовке (T103)");
+                }
             }
 
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))

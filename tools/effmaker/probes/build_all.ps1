@@ -614,7 +614,9 @@ $strictPlan = New-SubPlan -Base $plan -Pairs (@($minePairs) + @($selfPairs))
 # `mk_appwd.ps1` строит целиком и потому вправе чистить `Remove-AppWdExtra`-ом.
 # Каталог проб — не оснастка: это ВЫХОД сборки и одновременно рабочий каталог,
 # в котором лежат и продукты прогонов, и положенные руками конфиги (мерено
-# 27.08.2026: в `probes\build` три `<guid>_CorpusMatrixProbe.exe` от 09–17.08,
+# 27.08.2026: в `probes\build` ПЯТЬ `<guid>_CorpusMatrixProbe.exe` от 09–17.08 — все
+# с атрибутом `Hidden`, обход без `-Force` их не видел и насчитал «три» (`T99`);
+# убраны 27.08.2026 по разрешению Amber (`T88`); откуда атрибут, не установлено;
 # в `probes\build_rel` — одиннадцать `config\ROI\*.xml`, `config\layout\*.xml`
 # и `config\device\AtomSpectraVCP.xml`). Отказывать на них значит завести
 # сторожа, который отказывает ВСЕГДА; сносить их значит удалять чужое.
