@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using XPTable.Models;
@@ -77,6 +78,17 @@ namespace BecquerelMonitor
 
         /// <summary>Снимок представления, из которого заполнена таблица; null — результата нет.</summary>
         FsaPresentation presentation;
+
+        /// <summary>
+        /// (`A250`) ПОТОК ОКОН, на котором окно живёт. Событие
+        /// <see cref="FsaAnalysisSession.Completed"/> приходит из ФОНОВОГО
+        /// потока, а строки таблицы — состояние окна; читать результат надо
+        /// ЗДЕСЬ, и только здесь. Пока у окна есть ручка, за это отвечает
+        /// <c>BeginInvoke</c>; у окна без ручки (пробы) ручки нет, и
+        /// единственная оставшаяся дверь на этот поток — его контекст
+        /// синхронизации, снятый при создании.
+        /// </summary>
+        SynchronizationContext uiContext;
 
         /// <summary>Образцы колонки-образца, по одному на (род, цвет).</summary>
         readonly Dictionary<string, Image> swatches = new Dictionary<string, Image>(StringComparer.Ordinal);
@@ -198,6 +210,11 @@ namespace BecquerelMonitor
         public FSAReportView(MainForm mainForm)
         {
             this.mainForm = mainForm;
+
+            // (`A250`) Контекст снимается ЗДЕСЬ: конструктор идёт на потоке
+            // окон, а WinForms ставит свой контекст первому же созданному на
+            // потоке элементу управления — то есть он уже есть.
+            this.CaptureUiContext();
             this.InitializeComponent();
 
             // Свойства XPTable с enum — кодом, шрифт заголовка — безопасно
@@ -233,6 +250,8 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetDocument(DocEnergySpectrum doc)
         {
+            this.CaptureUiContext();
+
             // (`A246`) Приглушение снимается У ПРЕЖНЕГО документа, пока ссылка
             // на него ещё здесь: иначе его график остался бы с поблекшими
             // лентами навсегда — окно на него больше не смотрит и снять их
@@ -276,6 +295,7 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetProbeSource(FsaAnalysisSession probeSession, ResultData resultData)
         {
+            this.CaptureUiContext();
             this.selectedLayer = null;
             this.PushHighlight();
             if (!ReferenceEquals(this.session, probeSession))
@@ -424,17 +444,67 @@ namespace BecquerelMonitor
                         this.Consume();
                         this.RefreshReport();
                     });
+                    return;
                 }
-                else if (this.ProbeConsumer && !this.IsDisposed)
+
+                if (!this.ProbeConsumer || this.IsDisposed)
                 {
-                    // Пробы: окно без ручки, очереди сообщений нет — читаем
-                    // прямо здесь. В приложении ручка есть всегда.
-                    this.RefreshReport();
+                    return;
                 }
+
+                // ⛔ (`A250`) ЧИТАТЬ ПРЯМО ЗДЕСЬ НЕЛЬЗЯ. Прежде окно без ручки
+                // звало `RefreshReport` в этой самой точке — то есть на
+                // ФОНОВОМ потоке, из которого сеанс поднимает событие, — и
+                // делало это ОДНОВРЕМЕННО с `RefreshReport` на потоке окон.
+                // `TableModel.Rows` чистились и наполнялись двумя потоками
+                // сразу, и состав отчёта у ОДНОГО спектра плыл от прогона к
+                // прогону: 16 / 20 / 22 / 27 / 29 / 31 / 32 строки на
+                // `G1S16_Co60_P5` при одной сборке и одном файле; на двенадцати
+                // пересчётах подряд — до шести разных таблиц. Сам разбор при
+                // этом ПОБИТОВО детерминирован (`FsaDeterminismProbeF29`):
+                // плыла публикация, а не счёт. Тем же гонкам обязано и падение
+                // `RowCollection.Clear()` примерно каждый третий прогон
+                // (`A251`): вторая рука опустошала список между `this[0]` и
+                // его чтением.
+                //
+                // Ручки нет — но поток окон есть, и дверь на него одна:
+                // контекст синхронизации, снятый в конструкторе. Очередь
+                // сообщений у безоконной пробы прокачивается `DoEvents`, и
+                // отложенное чтение доезжает там же, где и в приложении.
+                SynchronizationContext ui = this.uiContext;
+                if (ui == null || ui.GetType() == typeof(SynchronizationContext))
+                {
+                    // Голый базовый контекст исполняет `Post` на пуле — это
+                    // ровно тот дефект, от которого мы уходим. Такого
+                    // потребителя обслужит следующий явный `RefreshReport`
+                    // с потока окон.
+                    return;
+                }
+
+                ui.Post(delegate
+                {
+                    if (!this.IsDisposed)
+                    {
+                        this.Consume();
+                        this.RefreshReport();
+                    }
+                }, null);
             }
             catch (Exception)
             {
                 // окно успело закрыться — читать уже некому
+            }
+        }
+
+        /// <summary>
+        /// (`A250`) Снять контекст потока окон, если он ещё не снят. Зовётся с
+        /// потока окон — из конструктора и из обеих дверей источника.
+        /// </summary>
+        void CaptureUiContext()
+        {
+            if (this.uiContext == null)
+            {
+                this.uiContext = SynchronizationContext.Current;
             }
         }
 

@@ -122,6 +122,7 @@ namespace FsaReportViewProbe
             GroupingAndFlagsSection(mainForm, thorium);
             ParentsSection(mainForm, thorium, control);
             NeighbourSection(mainForm, thorium, control);
+            RepeatabilitySection(mainForm, thorium, control);
             SnapshotSection(mainForm, thorium);
 
             Console.WriteLine();
@@ -1046,6 +1047,156 @@ namespace FsaReportViewProbe
         // ------------------------------------------------------------------
         // 12. СНИМКИ
         // ------------------------------------------------------------------
+
+        // ------------------------------------------------------------------
+        // 13. ПОВТОРЯЕМОСТЬ СОСТАВА (`A250`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`A250`) ОДИН ВХОД — ОДИН И ТОТ ЖЕ ОТЧЁТ. Разбор пересчитывается
+        /// N раз подряд БЕЗ единого изменения входных данных
+        /// (<see cref="FsaAnalysisSession.Invalidate"/> обесценивает кэш, не
+        /// трогая ни спектр, ни настройки), и таблица после каждого пересчёта
+        /// снимается ПОБИТОВО: род строки плюс обе видимые ячейки.
+        ///
+        /// ⛔ Почему это не «проверка ради проверки»: состав отчёта у одного
+        /// спектра плыл от прогона к прогону — 16 / 20 / 22 / 27 / 29 / 31 / 32
+        /// строки на `G1S16_Co60_P5` при одной сборке и одном файле. Сам разбор
+        /// при этом детерминирован до бита (`FsaDeterminismProbeF29`), плыла
+        /// ПУБЛИКАЦИЯ: событие <see cref="FsaAnalysisSession.Completed"/>
+        /// приходит из ФОНОВОГО потока, и окно-потребитель без ручки читало его
+        /// прямо там — одновременно с <c>RefreshReport</c> на главном потоке.
+        /// Два потока чистили и наполняли одну <c>TableModel.Rows</c>.
+        ///
+        /// Положительных контроля два: подменённый ПОРЯДОК строк и потерянная
+        /// строка — мерка обязана назвать расхождение, а не промолчать.
+        /// </summary>
+        static void RepeatabilitySection(MainForm mainForm, DocEnergySpectrum a, DocEnergySpectrum b)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 13. повторяемость: один вход — побитово тот же отчёт (A250) ===");
+            int mainThread = Thread.CurrentThread.ManagedThreadId;
+            Console.WriteLine("  поток окон: {0}", mainThread);
+
+            foreach (DocEnergySpectrum doc in new[] { a, b })
+            {
+                SetSource(doc, true);
+                FsaAnalysisSession session = doc.FsaSession;
+                var eventThreads = new List<int>();
+                EventHandler watch = delegate
+                {
+                    lock (eventThreads) { eventThreads.Add(Thread.CurrentThread.ManagedThreadId); }
+                };
+                session.Completed += watch;
+                try
+                {
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.ProbeConsumer = true;
+                        report.SetDocument(doc);
+                        WaitIdle(session);
+                        report.RefreshReport();
+
+                        var seen = new List<string>();
+                        const int Repeats = 12;
+                        for (int i = 0; i < Repeats; i++)
+                        {
+                            // Кэш обесценен, ВХОД не тронут: следующий заказ
+                            // потребителя считает заново тот же самый спектр.
+                            session.Invalidate();
+                            report.SetDocument(doc);
+                            WaitIdle(session);
+                            report.RefreshReport();
+                            seen.Add(TableShot(report));
+                        }
+
+                        var distinct = new List<string>();
+                        foreach (string shot in seen)
+                        {
+                            if (!distinct.Contains(shot)) distinct.Add(shot);
+                        }
+
+                        Console.WriteLine("  {0}: пересчётов {1}, строк {2}, различных снимков таблицы {3}",
+                                          Path.GetFileName(doc.Filename), Repeats,
+                                          report.ReportTable.TableModel.Rows.Count, distinct.Count);
+                        if (distinct.Count > 1)
+                        {
+                            for (int k = 0; k < distinct.Count && k < 3; k++)
+                            {
+                                Console.WriteLine("    --- снимок {0}: строк {1} ---", k + 1,
+                                                  distinct[k].Split('\n').Length);
+                                Console.WriteLine("    " + distinct[k].Replace("\n", "\n    "));
+                            }
+                        }
+
+                        Same("состав отчёта повторяется побитово на " + Repeats + " пересчётах подряд",
+                             1, distinct.Count);
+
+                        // Событие приходит из ФОНОВОГО потока — это и есть
+                        // место, где публикация обязана перейти на поток окон.
+                        var others = new List<int>();
+                        lock (eventThreads)
+                        {
+                            foreach (int t in eventThreads)
+                            {
+                                if (t != mainThread && !others.Contains(t)) others.Add(t);
+                            }
+                        }
+
+                        Console.WriteLine("  событий Completed {0}, из них с ЧУЖИХ потоков {1} (потоки: {2})",
+                                          eventThreads.Count, others.Count,
+                                          others.Count == 0 ? "-" : string.Join(",", others));
+
+                        // ⛔ ДВА ПОЛОЖИТЕЛЬНЫХ КОНТРОЛЯ МЕРКИ: подменённый
+                        // ПОРЯДОК строк и потерянная строка. Портится ровно
+                        // то, что читает мерка, и тут же возвращается.
+                        string reference = TableShot(report);
+                        TableModel model = report.ReportTable.TableModel;
+                        if (model.Rows.Count >= 3)
+                        {
+                            Row last = model.Rows[model.Rows.Count - 1];
+                            Row prev = model.Rows[model.Rows.Count - 2];
+                            model.Rows.Remove(last);
+                            model.Rows.Remove(prev);
+                            model.Rows.Add(last);
+                            model.Rows.Add(prev);
+                            Denies("контроль: подменённый ПОРЯДОК двух строк мерка не принимает",
+                                   reference == TableShot(report));
+                            report.RefreshReport();
+                            Same("после перестройки таблицы снимок вернулся", reference, TableShot(report));
+
+                            model.Rows.Remove(model.Rows[model.Rows.Count - 1]);
+                            Denies("контроль: потерянную строку мерка не принимает",
+                                   reference == TableShot(report));
+                            report.RefreshReport();
+                            Same("и снова вернулся", reference, TableShot(report));
+                        }
+
+                        report.SetDocument(null);
+                    }
+                }
+                finally
+                {
+                    session.Completed -= watch;
+                }
+            }
+        }
+
+        /// <summary>Снимок таблицы: род строки и обе видимые ячейки, по строке на строку.</summary>
+        static string TableShot(FSAReportView report)
+        {
+            var sb = new StringBuilder();
+            foreach (Row row in report.ReportTable.TableModel.Rows)
+            {
+                var model = row.Tag as FsaReportRow;
+                sb.Append(model != null ? model.Kind.ToString() : "(нет Tag)")
+                  .Append('|').Append(row.Cells.Count > 1 ? row.Cells[1].Text : string.Empty)
+                  .Append('|').Append(row.Cells.Count > 2 ? row.Cells[2].Text : string.Empty)
+                  .Append('\n');
+            }
+
+            return sb.ToString();
+        }
 
         static void SnapshotSection(MainForm mainForm, DocEnergySpectrum doc)
         {

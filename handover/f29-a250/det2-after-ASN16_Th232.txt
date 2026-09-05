@@ -1,0 +1,26 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\device: 0 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\NuclideDefinition.xml: 152 entries
+SETUP	ASN16_Th232.xml: прибор прибора «1.Atom Spectra Nano 16 Pro RadiaScan 701A» (1a0651a2-0b84-4c4e-8be8-c2d286eb82eb) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	ASN16_Th232.xml: пиков 19, каналов 8192, кривая (нет)
+SETUP	источник состава: NucBase + равновесие
+
+=== ФАЗА fsa: пики ОДНИ, разбор гоняется заново ===
+  RUN  1  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  2  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  3  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  4  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  5  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  6  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  РАЗЛИЧНЫХ отпечатков: 1 из 6 прогонов
+
+=== ФАЗА peaks: поиск пиков + разбор заново ===
+  RUN  1  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  2  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  3  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  4  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  5  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  RUN  6  PEAKS aed5957c32d3  LIB 32fb8a0b700d  COMP a4993d2099e6  ROWS a5bf479c8530   слоёв 12, пределов 2
+  РАЗЛИЧНЫХ отпечатков: 1 из 6 прогонов
+
+ВСЕ СОШЛИСЬ
