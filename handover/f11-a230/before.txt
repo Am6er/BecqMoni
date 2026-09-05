@@ -1,0 +1,7 @@
+ПЛЕЧО предел по дереву
+  дерево 25 звеньев, приписок 16, предел пробы 16
+  сказано: AggregateException: широкое дерево <- (1/3) InvalidOperationException: ветвь 0 звено 7 <- InvalidOperationException: ветвь 0 звено 6 <- InvalidOperationException: ветвь 0 звено 5 <- InvalidOperationException: ветвь 0 звено 4 <- InvalidOperationException: ветвь 0 звено 3 <- InvalidOperationException: ветвь 0 звено 2 <- InvalidOperationException: ветвь 0 звено 1 <- InvalidOperationException: ветвь 0 звено 0 <- (2/3) InvalidOperationException: ветвь 1 звено 7 <- InvalidOperationException: ветвь 1 звено 6 <- InvalidOperationException: ветвь 1 звено 5 <- InvalidOperationException: ветвь 1 звено 4 <- InvalidOperationException: ветвь 1 звено 3 <- InvalidOperationException: ветвь 1 звено 2 <- InvalidOperationException: ветвь 1 звено 1 <- …
+  сторож СКАЗАЛ О СЕБЕ               ДА
+  названо ровно предел звеньев       ДА
+  первая ветвь названа целиком       ДА
+  третья ветвь за пределом не названа ДА

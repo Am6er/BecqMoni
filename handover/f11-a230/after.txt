@@ -1,0 +1,16 @@
+ПЛЕЧО предел по дереву
+  предел на ветви: дерево 24 звеньев, приписок 16, предел пробы 16
+  сказано: AggregateException: широкое дерево <- (1/3) InvalidOperationException: ветвь 0 звено 7 <- InvalidOperationException: ветвь 0 звено 6 <- InvalidOperationException: ветвь 0 звено 5 <- InvalidOperationException: ветвь 0 звено 4 <- InvalidOperationException: ветвь 0 звено 3 <- InvalidOperationException: ветвь 0 звено 2 <- InvalidOperationException: ветвь 0 звено 1 <- InvalidOperationException: ветвь 0 звено 0 <- (2/3) InvalidOperationException: ветвь 1 звено 6 <- InvalidOperationException: ветвь 1 звено 5 <- InvalidOperationException: ветвь 1 звено 4 <- InvalidOperationException: ветвь 1 звено 3 <- InvalidOperationException: ветвь 1 звено 2 <- InvalidOperationException: ветвь 1 звено 1 <- InvalidOperationException: ветвь 1 звено 0 <- (3/3) …
+  предел на ветви: знак с номером «(3/3) …» ДА
+  предел на ветви: пометки (1/3), (2/3), (3/3) по разу ДА
+  предел на ветви: названо ровно предел звеньев ДА
+  предел на ветви: третья ветвь за пределом не названа ДА
+  предел на ветви: текст БАЙТ В БАЙТ эталонный ДА
+  предел внутри ветви: дерево 25 звеньев, приписок 16, предел пробы 16
+  сказано: AggregateException: широкое дерево <- (1/3) InvalidOperationException: ветвь 0 звено 7 <- InvalidOperationException: ветвь 0 звено 6 <- InvalidOperationException: ветвь 0 звено 5 <- InvalidOperationException: ветвь 0 звено 4 <- InvalidOperationException: ветвь 0 звено 3 <- InvalidOperationException: ветвь 0 звено 2 <- InvalidOperationException: ветвь 0 звено 1 <- InvalidOperationException: ветвь 0 звено 0 <- (2/3) InvalidOperationException: ветвь 1 звено 7 <- InvalidOperationException: ветвь 1 звено 6 <- InvalidOperationException: ветвь 1 звено 5 <- InvalidOperationException: ветвь 1 звено 4 <- InvalidOperationException: ветвь 1 звено 3 <- InvalidOperationException: ветвь 1 звено 2 <- InvalidOperationException: ветвь 1 звено 1 <- …
+  предел внутри ветви: сторож СКАЗАЛ О СЕБЕ ДА
+  предел внутри ветви: знак голый, без номера ДА
+  предел внутри ветви: названо ровно предел звеньев ДА
+  предел внутри ветви: первая ветвь названа целиком ДА
+  предел внутри ветви: третья ветвь за пределом не названа ДА
+  предел внутри ветви: текст БАЙТ В БАЙТ эталонный ДА

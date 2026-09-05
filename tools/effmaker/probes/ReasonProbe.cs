@@ -56,7 +56,9 @@ namespace ReasonProbe
     ///     после `A185` — знак сторожа ОДИН, текст байт в байт; после `A219`
     ///     — все три пометки «(i/3)» на месте, у уже названной второй ветви
     ///     форма «&lt;- (2/3) = выше»;
-    ///   * <c>предел по дереву</c> — предел один на всё дерево, а не на ветвь.
+    ///   * <c>предел по дереву</c> — предел один на всё дерево, а не на ветвь;
+    ///     после `A230` — два дерева: предел, упёршийся в ветвь узла, даёт
+    ///     «&lt;- (3/3) …», предел внутри ветви — прежний голый знак.
     ///
     /// ⛔ СОСЕДНЯЯ ДВЕРЬ ТОЙ ЖЕ ОБЁРТКИ — <c>AppUi.Report</c> (`A174`, 05.09.2026).
     /// Без окон она печатает одну строку в поток ошибок, и при ПУСТОМ
@@ -594,39 +596,122 @@ namespace ReasonProbe
 
         /// <summary>
         /// ПРЕДЕЛ ПО ДЕРЕВУ (`A165`). Предел <c>ReasonChainLimit</c> — ОДИН на
-        /// всё дерево, а не на ветвь: три ветви по восемь звеньев дают 25
-        /// звеньев, названо обязано быть ровно предел, сторож обязан сказать о
-        /// себе, и обход после него останавливается — третья ветвь не
-        /// называется вовсе.
+        /// всё дерево, а не на ветвь. Два дерева, оба байт в байт:
+        ///   * ПРЕДЕЛ НА ВЕТВИ (`A230`): плечи 8, 7 и 8 звеньев — корень и две
+        ///     ветви дают ровно предел, третья ветвь и есть звено за пределом.
+        ///     Сторож обязан назвать её номером: «&lt;- (3/3) …» (решение Amber
+        ///     05.09.2026), а не голым знаком — иначе читатель видел «(1/3)»,
+        ///     «(2/3)» и знак и не мог сказать, дошёл ли обход до третьей ветви;
+        ///   * ПРЕДЕЛ ВНУТРИ ВЕТВИ (`A165`, положительный контроль формата):
+        ///     три ветви по восемь звеньев — предел встаёт на последнем звене
+        ///     ВТОРОЙ ветви (корень + 8 + 7 = 16), знак голый «&lt;- …», как и
+        ///     был, третья ветвь не называется вовсе.
+        /// ⚠ До `A230` строка реестра считала, что на дереве 8+8+8 предел
+        /// упирается в третью ветвь; замер показал звено внутри второй, поэтому
+        /// дерево под решение построено отдельно.
         /// </summary>
         static void TooDeepTree()
         {
-            const int Arm = 8;
-            Exception[] tips = new Exception[3];
-            for (int b = 0; b < 3; b++)
+            string wantOnBranch =
+                "AggregateException: широкое дерево"
+                + " <- (1/3) InvalidOperationException: ветвь 0 звено 7"
+                + " <- InvalidOperationException: ветвь 0 звено 6"
+                + " <- InvalidOperationException: ветвь 0 звено 5"
+                + " <- InvalidOperationException: ветвь 0 звено 4"
+                + " <- InvalidOperationException: ветвь 0 звено 3"
+                + " <- InvalidOperationException: ветвь 0 звено 2"
+                + " <- InvalidOperationException: ветвь 0 звено 1"
+                + " <- InvalidOperationException: ветвь 0 звено 0"
+                + " <- (2/3) InvalidOperationException: ветвь 1 звено 6"
+                + " <- InvalidOperationException: ветвь 1 звено 5"
+                + " <- InvalidOperationException: ветвь 1 звено 4"
+                + " <- InvalidOperationException: ветвь 1 звено 3"
+                + " <- InvalidOperationException: ветвь 1 звено 2"
+                + " <- InvalidOperationException: ветвь 1 звено 1"
+                + " <- InvalidOperationException: ветвь 1 звено 0"
+                + " <- (3/3) …";
+
+            string wantInside =
+                "AggregateException: широкое дерево"
+                + " <- (1/3) InvalidOperationException: ветвь 0 звено 7"
+                + " <- InvalidOperationException: ветвь 0 звено 6"
+                + " <- InvalidOperationException: ветвь 0 звено 5"
+                + " <- InvalidOperationException: ветвь 0 звено 4"
+                + " <- InvalidOperationException: ветвь 0 звено 3"
+                + " <- InvalidOperationException: ветвь 0 звено 2"
+                + " <- InvalidOperationException: ветвь 0 звено 1"
+                + " <- InvalidOperationException: ветвь 0 звено 0"
+                + " <- (2/3) InvalidOperationException: ветвь 1 звено 7"
+                + " <- InvalidOperationException: ветвь 1 звено 6"
+                + " <- InvalidOperationException: ветвь 1 звено 5"
+                + " <- InvalidOperationException: ветвь 1 звено 4"
+                + " <- InvalidOperationException: ветвь 1 звено 3"
+                + " <- InvalidOperationException: ветвь 1 звено 2"
+                + " <- InvalidOperationException: ветвь 1 звено 1"
+                + " <- …";
+
+            string onBranch = AppUi.Reason(WideTree(8, 7, 8));
+            string inside = AppUi.Reason(WideTree(8, 8, 8));
+            Console.WriteLine("ПЛЕЧО предел по дереву");
+            Console.WriteLine("  предел на ветви: дерево {0} звеньев, приписок {1}, предел пробы {2}",
+                              1 + 8 + 7 + 8, Count(onBranch, " <- "), ChainLimit);
+            Console.WriteLine("  сказано: {0}", OneLine(onBranch));
+            Say("предел по дереву", "предел на ветви: знак с номером «(3/3) …»",
+                onBranch.EndsWith(" <- (3/3) …", StringComparison.Ordinal));
+            Say("предел по дереву", "предел на ветви: пометки (1/3), (2/3), (3/3) по разу",
+                Count(onBranch, "(1/3) ") == 1 && Count(onBranch, "(2/3) ") == 1
+                && Count(onBranch, "(3/3) ") == 1);
+            Say("предел по дереву", "предел на ветви: названо ровно предел звеньев",
+                Count(onBranch, " <- ") == ChainLimit);
+            Say("предел по дереву", "предел на ветви: третья ветвь за пределом не названа",
+                Count(onBranch, "ветвь 2 ") == 0);
+            Say("предел по дереву", "предел на ветви: текст БАЙТ В БАЙТ эталонный",
+                string.Equals(onBranch, wantOnBranch, StringComparison.Ordinal));
+            if (!string.Equals(onBranch, wantOnBranch, StringComparison.Ordinal))
+            {
+                Console.WriteLine("    ожидалось: {0}", OneLine(wantOnBranch));
+                Console.WriteLine("    длина {0} знаков, ожидалось {1}", onBranch.Length, wantOnBranch.Length);
+            }
+
+            Console.WriteLine("  предел внутри ветви: дерево {0} звеньев, приписок {1}, предел пробы {2}",
+                              1 + 3 * 8, Count(inside, " <- "), ChainLimit);
+            Console.WriteLine("  сказано: {0}", OneLine(inside));
+            Say("предел по дереву", "предел внутри ветви: сторож СКАЗАЛ О СЕБЕ",
+                inside.EndsWith(" <- …", StringComparison.Ordinal));
+            Say("предел по дереву", "предел внутри ветви: знак голый, без номера",
+                Count(inside, "(3/3)") == 0);
+            Say("предел по дереву", "предел внутри ветви: названо ровно предел звеньев",
+                Count(inside, " <- ") == ChainLimit);
+            Say("предел по дереву", "предел внутри ветви: первая ветвь названа целиком",
+                Count(inside, "ветвь 0 звено 0") == 1);
+            Say("предел по дереву", "предел внутри ветви: третья ветвь за пределом не названа",
+                Count(inside, "ветвь 2 ") == 0);
+            Say("предел по дереву", "предел внутри ветви: текст БАЙТ В БАЙТ эталонный",
+                string.Equals(inside, wantInside, StringComparison.Ordinal));
+            if (!string.Equals(inside, wantInside, StringComparison.Ordinal))
+            {
+                Console.WriteLine("    ожидалось: {0}", OneLine(wantInside));
+                Console.WriteLine("    длина {0} знаков, ожидалось {1}", inside.Length, wantInside.Length);
+            }
+        }
+
+        /// <summary>
+        /// Узел <c>AggregateException</c> с ветвями заданной длины; звенья
+        /// ветви b считаются от вершины: «ветвь b звено (len−1)» … «звено 0».
+        /// </summary>
+        static AggregateException WideTree(params int[] arms)
+        {
+            Exception[] tips = new Exception[arms.Length];
+            for (int b = 0; b < arms.Length; b++)
             {
                 Exception link = new InvalidOperationException("ветвь " + b + " звено 0");
-                for (int i = 1; i < Arm; i++)
+                for (int i = 1; i < arms[b]; i++)
                 {
                     link = new InvalidOperationException("ветвь " + b + " звено " + i, link);
                 }
                 tips[b] = link;
             }
-            Exception outer = new AggregateException("широкое дерево", tips);
-
-            string said = AppUi.Reason(outer);
-            Console.WriteLine("ПЛЕЧО предел по дереву");
-            Console.WriteLine("  дерево {0} звеньев, приписок {1}, предел пробы {2}",
-                              1 + 3 * Arm, Count(said, " <- "), ChainLimit);
-            Console.WriteLine("  сказано: {0}", OneLine(said));
-            Say("предел по дереву", "сторож СКАЗАЛ О СЕБЕ",
-                said.EndsWith(" <- …", StringComparison.Ordinal));
-            Say("предел по дереву", "названо ровно предел звеньев",
-                Count(said, " <- ") == ChainLimit);
-            Say("предел по дереву", "первая ветвь названа целиком",
-                Count(said, "ветвь 0 звено 0") == 1);
-            Say("предел по дереву", "третья ветвь за пределом не названа",
-                Count(said, "ветвь 2 ") == 0);
+            return new AggregateException("широкое дерево", tips);
         }
 
         /// <summary>
