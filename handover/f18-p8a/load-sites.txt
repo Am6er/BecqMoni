@@ -1,0 +1,32 @@
+warning: in the working copy of 'BecquerelMonitor/DeviceConfigForm.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/ObsidianDeviceForm.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/ObsidianIn.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'TODO.md', LF will be replaced by CRLF the next time Git touches it
+ВСЕГО мест вызова Load: 21  (однопараметрических 10, трёхпараметрических 11)
+
+-- ОДНОПАРАМЕТРИЧЕСКИЕ: поведение меняться не должно --
+  tools/effmaker/probes/BackscatterShapeProbe.cs              66  файл при HEAD    Load(matrixPath)
+  tools/effmaker/probes/CorpusFsaProbe.cs                   1751  файл при HEAD    Load(rd.Efficiency.Guid)
+  tools/effmaker/probes/CorpusMatrixProbe.cs                 332  файл при HEAD    Load(outPathExisting)
+  tools/effmaker/probes/EscapeGateProbe.cs                   127  файл при HEAD    Load(path)
+  tools/effmaker/probes/FsaCascadeProbe.cs                   623  файл при HEAD    Load(guid)
+  tools/effmaker/probes/FsaDoubleCountProbe.cs               118  файл при HEAD    Load(rd.Efficiency.Guid)
+  tools/effmaker/probes/FsaPaletteProbe.cs                   219  файл при HEAD    Load(rd.Efficiency != null ? rd.Efficiency.Guid : null)
+  tools/effmaker/probes/MatrixRebuildProbe.cs                 75  файл при HEAD    Load(rd.Efficiency.Guid)
+  tools/effmaker/probes/MatrixStampProbe.cs                   73  файл при HEAD    Load(matrixPath)
+  tools/effmaker/probes/ResponseMatrixProbe.cs               134  файл при HEAD    Load(path)
+
+однопараметрических мест в ИЗМЕНЁННЫХ файлах: 0
+
+-- ТРЁХПАРАМЕТРИЧЕСКИЕ (A50) --
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrixStore.cs     59  файл при HEAD
+  BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs   477  файл при HEAD
+  BecquerelMonitor/ResponseMatrixForm.cs                     136  ФАЙЛ ИЗМЕНЁН
+  tools/effmaker/probes/FsaStackShot.cs                      245  файл при HEAD
+  tools/effmaker/probes/MatrixAuditProbe.cs                  185  файл при HEAD
+  tools/effmaker/probes/MatrixDiffProbe.cs                    66  файл при HEAD
+  tools/effmaker/probes/MatrixDiffProbe.cs                    67  файл при HEAD
+  tools/effmaker/probes/MatrixRefusalProbeP8.cs              174  файл при HEAD
+  tools/effmaker/probes/MatrixRefusalProbeP8.cs              208  файл при HEAD
+  tools/effmaker/probes/MatrixRefusalProbeP8.cs              223  файл при HEAD
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs           347  ФАЙЛ ИЗМЕНЁН

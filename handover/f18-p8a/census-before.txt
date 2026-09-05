@@ -1,0 +1,64 @@
+=== C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/0dfa526c-1c92-45cd-b97b-70d6b9e6b585/scratchpad/before/ResponseMatrixForm.cs (625 строк)
+  ЯВНАЯ КУЛЬТУРА ПОТОКА (CurrentCulture)         17
+         240  return Environment.NewLine + string.Format(CultureInfo.CurrentCulture, format,
+         307  return string.Format(CultureInfo.CurrentCulture,
+         332  return Environment.NewLine + string.Format(CultureInfo.CurrentCulture,
+         345  ? string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsBoth,
+         348  : string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsCurrent,
+         374  return made.ToString(CultureInfo.CurrentCulture);
+         377  return string.Format(CultureInfo.CurrentCulture,
+         385  return string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixDetails,
+         393  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
+         451  ? string.Format(CultureInfo.CurrentCulture, "{0:%h}:{0:mm}:{0:ss}", span)
+         452  : string.Format(CultureInfo.CurrentCulture, "{0:%m}:{0:ss}", span);
+         489  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         499  this.progressLabel.Text += string.Format(CultureInfo.CurrentCulture,
+         501  matrix.ContinuumWeightedError.ToString("n1", CultureInfo.CurrentCulture));
+         518  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         554  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         577  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+  ЯВНАЯ КУЛЬТУРА ИНТЕРФЕЙСА (CurrentUICulture)   2
+         235  bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+         412  bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+  ИНВАРИАНТ                                      0
+  StringBuilder / Append                         0
+  РАЗБОР Parse / TryParse / Convert.To           0
+  ToString                                       3
+         374  return made.ToString(CultureInfo.CurrentCulture);
+         393  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
+         501  matrix.ContinuumWeightedError.ToString("n1", CultureInfo.CurrentCulture));
+  string.Format                                  14
+         240  return Environment.NewLine + string.Format(CultureInfo.CurrentCulture, format,
+         307  return string.Format(CultureInfo.CurrentCulture,
+         332  return Environment.NewLine + string.Format(CultureInfo.CurrentCulture,
+         345  ? string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsBoth,
+         348  : string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsCurrent,
+         377  return string.Format(CultureInfo.CurrentCulture,
+         385  return string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixDetails,
+         451  ? string.Format(CultureInfo.CurrentCulture, "{0:%h}:{0:mm}:{0:ss}", span)
+         452  : string.Format(CultureInfo.CurrentCulture, "{0:%m}:{0:ss}", span);
+         489  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         499  this.progressLabel.Text += string.Format(CultureInfo.CurrentCulture,
+         518  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         554  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+         577  this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+  ИНТЕРПОЛЯЦИЯ $"                                0
+  ФОРМАТ С ГРУППИРОВКОЙ (n0..n9 / N0..N9)        3
+         238  ? "Посчитана {0:N0} историями на узел при штатных {1:N0}; поле поднято до штатного"
+         239  : "Computed with {0:N0} histories per node, nominal is {1:N0}; field raised to nominal";
+         501  matrix.ContinuumWeightedError.ToString("n1", CultureInfo.CurrentCulture));
+  ThousandsSeparator                             0
+
+=== C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/0dfa526c-1c92-45cd-b97b-70d6b9e6b585/scratchpad/before/ResponseMatrixForm.Layout.cs (330 строк)
+  ЯВНАЯ КУЛЬТУРА ПОТОКА (CurrentCulture)         0
+  ЯВНАЯ КУЛЬТУРА ИНТЕРФЕЙСА (CurrentUICulture)   0
+  ИНВАРИАНТ                                      0
+  StringBuilder / Append                         0
+  РАЗБОР Parse / TryParse / Convert.To           0
+  ToString                                       0
+  string.Format                                  0
+  ИНТЕРПОЛЯЦИЯ $"                                0
+  ФОРМАТ С ГРУППИРОВКОЙ (n0..n9 / N0..N9)        0
+  ThousandsSeparator                             1
+         135  this.historiesBox.ThousandsSeparator = true;
+

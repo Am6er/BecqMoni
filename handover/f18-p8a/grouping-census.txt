@@ -1,0 +1,25 @@
+МЕСТ С ГРУППИРОВКОЙ РАЗРЯДОВ В ПРИЛОЖЕНИИ: 14 в 7 файлах
+
+BecquerelMonitor/EnergySpectrumView.cs                         4
+BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs 4
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs       2
+BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs             1
+BecquerelMonitor/Properties/Resources.resx                     1
+BecquerelMonitor/Properties/Resources.ru.resx                  1
+BecquerelMonitor/XPTable/Sorting/HeapSorter.cs                 1
+
+-- поимённо --
+  BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs     173  "N"    new[] { "Nitrogen, gaseous", "N", "0.001165", "7:1" },
+  BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs     174  "N"    new[] { "Nitrogen, liquid", "N", "0.807", "7:1" },
+  BecquerelMonitor/EnergySpectrumView.cs                      4261  "n0"   string intFormat = "n0";
+  BecquerelMonitor/EnergySpectrumView.cs                      4262  "n2"   string floatFormat = "n2";
+  BecquerelMonitor/EnergySpectrumView.cs                      4263  "n4"   string preciseFloatFormat = "n4";
+  BecquerelMonitor/EnergySpectrumView.cs                      4559  "n2"   // Не "n2": у подписи вроде «Pu-238» выход
+  BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs   457  "n1"   (100.0 * result.ResidualExcessShare).ToString("n1", CultureInfo.InvariantCulture),
+  BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs   458  "n1"   (100.0 * result.ResidualMissingShare).ToString("n1", CultureInfo.InvariantCulture)),
+  BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs   468  "n2"   Value = result.Chi2Ndf.ToString("n2", CultureInfo.InvariantCulture)
+  BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs   566  "n2"   return layer.SharePercent.ToString("n2", CultureInfo.InvariantCulture) + Resources.PercentCharacter;
+  BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs          1103  "n2"   /// разряда. Доля выводится как <c>"n2"</c> — два знака после запятой, —
+  BecquerelMonitor/Properties/Resources.resx                 42353  :N0}   <value>{0:N0} histories per point</value>
+  BecquerelMonitor/Properties/Resources.ru.resx                978  :N0}   <value>историй на точку: {0:N0}</value>
+  BecquerelMonitor/XPTable/Sorting/HeapSorter.cs                90  "n"    /// <param name="n"></param>

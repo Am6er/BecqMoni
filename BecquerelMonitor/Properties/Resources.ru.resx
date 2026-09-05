@@ -1619,6 +1619,15 @@
   <data name="ResponseMatrixStateStaleVersions" xml:space="preserve">
     <value>Устарела: посчитана другим поколением переноса. Нужно пересчитать.</value>
   </data>
+  <data name="ResponseMatrixStateOldFormat" xml:space="preserve">
+    <value>Устарела: посчитана форматом файла {0}, а эта сборка читает формат {1}. Нужно пересчитать.</value>
+  </data>
+  <data name="ResponseMatrixStateUnreadable" xml:space="preserve">
+    <value>Файл наш и нынешнего формата, но чтение оборвалось — файл обрублен. Нужно пересчитать.</value>
+  </data>
+  <data name="ResponseMatrixStateNotOurs" xml:space="preserve">
+    <value>На месте матрицы лежит файл, который матрицей отклика не является. Расчёт его заменит.</value>
+  </data>
   <data name="ResponseMatrixVersionsCurrent" xml:space="preserve">
     <value>Текущая генерация: физика {0}, формат файла {1}.</value>
   </data>
