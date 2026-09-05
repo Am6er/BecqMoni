@@ -1,0 +1,21 @@
+# Nazvannye v otkrytyh strokah T fajly: est' li oni v dereve
+# Zamer F38 05.09.2026, vershina 30714c44. Otsutstvuyushchij fajl -- povod podozrevat' protuhshuyu posylku.
+
+T21    NET V DEREVE: t21_co60_off.json, t21_sc_cyl_off.json, t21_sc_mar_off.json
+T63    NET V DEREVE: config\NuclideDefinition.OLD.xml
+T67    NET V DEREVE: runs.csv
+T68    NET V DEREVE: corpus-run-with-matrix.md
+T79    NET V DEREVE: .sqlite, .xml
+T80    NET V DEREVE: Ghost.xml, config\NuclideDefinition.OLD.xml
+T113   NET V DEREVE: scratchpad/f10/t113_scan.py
+T119   NET V DEREVE: .ps1
+T157   NET V DEREVE: Designer.cs, ru.resx
+T158   NET V DEREVE: .ru.resx
+T166   NET V DEREVE: .resx
+T177   NET V DEREVE: FsaOverlay.cs
+T182   NET V DEREVE: .cs
+T194   NET V DEREVE: .cs
+T203   NET V DEREVE: Designer.cs
+T223   NET V DEREVE: !AS80x80\Lu-176.xml, .ru.resx, Designer.cs, Foo.Designer.cs, FsaOverlay.cs
+
+vsego otsutstvuyushchih ssylok: 25
