@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -1447,13 +1448,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             EnergySpectrum background = backgroundSpectrum;
             if (background != null && background.Spectrum == null)
             {
-                backgroundRejected = "у фонового спектра нет отсчётов";
+                backgroundRejected = Resources.FSABackgroundNoCounts;
                 background = null;
             }
             else if (background != null && background.NumberOfChannels != channels)
             {
                 backgroundRejected = string.Format(CultureInfo.InvariantCulture,
-                    "каналов у фона {0}, у спектра {1}",
+                    Resources.FSABackgroundChannelMismatch,
                     background.NumberOfChannels, channels);
                 background = null;
             }
@@ -1468,7 +1469,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else
                 {
-                    backgroundRejected = "у фона не задано время измерения";
+                    backgroundRejected = Resources.FSABackgroundNoLiveTime;
                     background = null;
                 }
             }

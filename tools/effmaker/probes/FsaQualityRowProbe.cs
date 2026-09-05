@@ -132,7 +132,7 @@ namespace FsaQualityRowProbe
             Same("строка модели — та, что собрал построитель", FsaPresentationBuilder.QualityText(result, true), on.Name);
             Same("в ней есть «старая матрица»", true, Has(on.Name, old));
             Same("и нет «без матрицы»", false, Has(on.Name, none));
-            Same("число χ²/ndf — в колонке значения", Chi2.ToString("n2"), on.Value);
+            Same("число χ²/ndf — в колонке значения", Chi2.ToString("f2", CultureInfo.InvariantCulture), on.Value);
 
             SetOldFlag(session, false);
             Same("признак снят — открытое свойство сеанса это подтверждает", false, session.ResponseMatrixOldFormat);
@@ -186,7 +186,7 @@ namespace FsaQualityRowProbe
                     Same(scene + " — «суммирование» " + (s.Summing ? "есть" : "нет"), s.Summing, Has(row.Name, Mark("FSACascadeMark")));
                     Same(scene + " — «без кривой» " + (s.Efficiency ? "нет" : "есть"), !s.Efficiency, Has(row.Name, Mark("FSANoEfficiencyMark")));
                     Same(scene + " — край дрейфа " + (s.DriftEdge ? "есть" : "нет"), s.DriftEdge, Has(row.Name, Mark("FSADriftEdgeMark")));
-                    Same(scene + " — значение χ²/ndf в своей колонке", Chi2.ToString("n2"), row.Value);
+                    Same(scene + " — значение χ²/ndf в своей колонке", Chi2.ToString("f2", CultureInfo.InvariantCulture), row.Value);
                     Same(scene + " — число НЕ в тексте пометок", false, Has(row.Name, row.Value));
                 }
             }

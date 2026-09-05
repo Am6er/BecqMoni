@@ -419,6 +419,18 @@
   <data name="FSANoBackgroundMark" xml:space="preserve">
     <value>ФОН НЕ ВЫЧТЕН</value>
   </data>
+  <data name="FSABackgroundRejectedMark" xml:space="preserve">
+    <value> (фон не взят)</value>
+  </data>
+  <data name="FSABackgroundNoCounts" xml:space="preserve">
+    <value>у фонового спектра нет отсчётов</value>
+  </data>
+  <data name="FSABackgroundChannelMismatch" xml:space="preserve">
+    <value>каналов у фона {0}, у спектра {1}</value>
+  </data>
+  <data name="FSABackgroundNoLiveTime" xml:space="preserve">
+    <value>у фона не задано время измерения</value>
+  </data>
   <data name="FSACascadeMark" xml:space="preserve">
     <value> · суммирование</value>
   </data>

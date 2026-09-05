@@ -1,0 +1,83 @@
+сборка приложения: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f48_before\BecquerelMonitor.exe
+собрана:           06.09.2026 00:59:28
+
+=== 1. строки ресурса: обе культуры, обе пары `.resx` ===
+  FSABackgroundRejectedMark: en=« (bg rejected)», ru=« (фон не взят)»
+  ок   FSABackgroundRejectedMark: английская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundRejectedMark: русская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundRejectedMark: культуры дают РАЗНЫЙ текст
+  FSABackgroundNoCounts: en=«the background spectrum carries no counts», ru=«у фонового спектра нет отсчётов»
+  ок   FSABackgroundNoCounts: английская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundNoCounts: русская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundNoCounts: культуры дают РАЗНЫЙ текст
+  FSABackgroundChannelMismatch: en=«the background has {0} channels, the spectrum {1}», ru=«каналов у фона {0}, у спектра {1}»
+  ок   FSABackgroundChannelMismatch: английская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundChannelMismatch: русская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundChannelMismatch: культуры дают РАЗНЫЙ текст
+  FSABackgroundNoLiveTime: en=«the background has no measurement time», ru=«у фона не задано время измерения»
+  ок   FSABackgroundNoLiveTime: английская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundNoLiveTime: русская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSABackgroundNoLiveTime: культуры дают РАЗНЫЙ текст
+  FSAReport_BackgroundRejectedRow: en=«Background rejected», ru=«Фон не взят»
+  ок   FSAReport_BackgroundRejectedRow: английская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSAReport_BackgroundRejectedRow: русская строка есть и не имя ключа: ждали «True», вышло «True»
+  ок   FSAReport_BackgroundRejectedRow: культуры дают РАЗНЫЙ текст
+  ru-RU: причина о каналах = «каналов у фона 1012, у спектра 1024»
+  ок   ru-RU: в причине число 1012 без разделителя разрядов: ждали «True», вышло «True»
+  ок   ru-RU: в причине число 1024 без разделителя разрядов: ждали «True», вышло «True»
+  ок   ru-RU: ни запятой, ни пробела в группах разрядов: ждали «False», вышло «False»
+  en-US: причина о каналах = «the background has 1012 channels, the spectrum 1024»
+  ок   en-US: в причине число 1012 без разделителя разрядов: ждали «True», вышло «True»
+  ок   en-US: в причине число 1024 без разделителя разрядов: ждали «True», вышло «True»
+  ок   en-US: ни запятой, ни пробела в группах разрядов: ждали «False», вышло «False»
+
+=== 2. модель: пометка в хвосте строки качества, обе стороны ===
+  ru-RU: здоровый  «χ²/ndf · матрица»
+  ru-RU: отвергнут «χ²/ndf · матрица»
+  ⛔ НЕТ ru-RU: у отвергнутого фона пометка ЕСТЬ: ждали «True», вышло «False»
+  ок   ru-RU: у здорового пометки НЕТ: ждали «False», вышло «False»
+  ⛔ НЕТ ru-RU: тексты двух сцен РАЗЛИЧАЮТСЯ
+  ru-RU: полный хвост «χ²/ndf · матрица (без кривой) !»
+  ⛔ НЕТ ru-RU: пометка ПОСЛЕ «без кривой»: ждали «True», вышло «False»
+  ок   ru-RU: пометка ДО края сетки: ждали «True», вышло «True»
+  en-US: здоровый  «χ²/ndf · matrix»
+  en-US: отвергнут «χ²/ndf · matrix»
+  ⛔ НЕТ en-US: у отвергнутого фона пометка ЕСТЬ: ждали «True», вышло «False»
+  ок   en-US: у здорового пометки НЕТ: ждали «False», вышло «False»
+  ⛔ НЕТ en-US: тексты двух сцен РАЗЛИЧАЮТСЯ
+  en-US: полный хвост «χ²/ndf · matrix (no eff) !»
+  ⛔ НЕТ en-US: пометка ПОСЛЕ «без кривой»: ждали «True», вышло «False»
+  ок   en-US: пометка ДО края сетки: ждали «True», вышло «True»
+
+=== 3. окно отчёта: строка блока «Качество разбора», обе стороны ===
+  ru-RU · здоровый: строк 7, роды: Quality Quality Residual Quality Quality Quality Quality
+  ок   ru-RU · здоровый: строки «фон не взят» НЕТ: ждали «0», вышло «0»
+  ru-RU · фон отвергнут: строк 8, роды: Quality Quality NoBackground Residual Quality Quality Quality Quality
+  ⛔ НЕТ ru-RU · фон отвергнут: строка «фон не взят» одна: ждали «1», вышло «0»
+  ⛔ НЕТ ru-RU · фон отвергнут: значение — причина словами: ждали «the background has 1012 channels, the spectrum 1024», вышло «»
+  ок   ru-RU · фон отвергнут: подпись не имя ключа: ждали «False», вышло «False»
+  ⛔ НЕТ ru-RU: отвергнутый фон добавил РОВНО две строки — «что» и «почему»: ждали «2», вышло «1»
+  en-US · здоровый: строк 7, роды: Quality Quality Residual Quality Quality Quality Quality
+  ок   en-US · здоровый: строки «фон не взят» НЕТ: ждали «0», вышло «0»
+  en-US · фон отвергнут: строк 8, роды: Quality Quality NoBackground Residual Quality Quality Quality Quality
+  ⛔ НЕТ en-US · фон отвергнут: строка «фон не взят» одна: ждали «1», вышло «0»
+  ⛔ НЕТ en-US · фон отвергнут: значение — причина словами: ждали «the background has 1012 channels, the spectrum 1024», вышло «»
+  ок   en-US · фон отвергнут: подпись не имя ключа: ждали «False», вышло «False»
+  ⛔ НЕТ en-US: отвергнутый фон добавил РОВНО две строки — «что» и «почему»: ждали «2», вышло «1»
+
+=== 4. цепь целиком: FsaAnalyzer -> FsaResult -> окно ===
+  ок   разбор на несовпадающем фоне состоялся: ждали «True», вышло «True»
+  ок   разбор на согласованном фоне состоялся: ждали «True», вышло «True»
+  причина у результата: «the background has 1012 channels, the spectrum 1024»
+  ок   причина названа и равна строке ресурса: ждали «the background has 1012 channels, the spectrum 1024», вышло «the background has 1012 channels, the spectrum 1024»
+  ок   фон при этом НЕ вычтен: ждали «False», вышло «False»
+  согласованный фон: причина = (нет), вычтен = True
+  ок   у согласованного фона причины НЕТ: ждали «», вышло «»
+  цепь · фон отвергнут: строк 9, роды: Undetected Quality Quality NoBackground Residual Quality Quality Quality Quality
+  ⛔ НЕТ цепь · фон отвергнут: строка «фон не взят» одна: ждали «1», вышло «0»
+  ⛔ НЕТ цепь · фон отвергнут: значение — причина словами: ждали «the background has 1012 channels, the spectrum 1024», вышло «»
+  ок   цепь · фон отвергнут: подпись не имя ключа: ждали «False», вышло «False»
+
+проверок: 49
+НЕ СОШЛОСЬ: 14
+

@@ -184,6 +184,7 @@ namespace BecquerelMonitor
         const string KeyDriftRow = "FSAReport_DriftRow";
         const string KeyDriftEdge = "FSAReport_DriftEdge";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
+        const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
         static readonly ComponentResourceManager OwnResources =
             new ComponentResourceManager(typeof(FSAReportView));
@@ -970,9 +971,9 @@ namespace BecquerelMonitor
         ///
         /// Три первые пометки печатаются ВСЕГДА (матрица, кривая,
         /// суммирование): человек обязан видеть, что учтено, а не гадать по
-        /// отсутствию слова. Две последние — только когда есть о чём сказать:
-        /// край сетки дрейфа и подавленный состав это происшествия, и строка,
-        /// стоящая всегда, их обесценила бы.
+        /// отсутствию слова. Остальные — только когда есть о чём сказать:
+        /// отвергнутый фон (`S44`), край сетки дрейфа и подавленный состав это
+        /// происшествия, и строка, стоящая всегда, их обесценила бы.
         /// </summary>
         List<Row> MakeQualityRows(FsaReportRow quality)
         {
@@ -997,6 +998,21 @@ namespace BecquerelMonitor
             made.Add(this.MakeMarkRow(KeySummingRow,
                                       OwnText(result.CascadeSummingUsed ? KeySummingUsed : KeySummingNotUsed),
                                       false));
+
+            // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
+            // словами. Стоит первой среди происшествий, как и в хвосте
+            // <see cref="FsaPresentationBuilder.QualityText"/>: строка «фон не
+            // вычтен» выше по таблице говорит ЧТО, а эта — ПОЧЕМУ, и без неё
+            // отказ был виден только пробам (`bg_rejected` у `CorpusFsaProbe`),
+            // а человеку приложение молчало.
+            //
+            // ⚠ Значение — текст ОТКАЗА как он есть у результата, ровно так же,
+            // как имя пересилившего образа ниже: переводится он ресурсами
+            // самого разбора (`FSABackgroundNoCounts` и соседи), а не здесь.
+            if (result.BackgroundRejected != null)
+            {
+                made.Add(this.MakeMarkRow(KeyBackgroundRejectedRow, result.BackgroundRejected, true));
+            }
 
             if (result.DriftOnGridEdge)
             {
