@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Media;
 using System.Windows.Forms;
 
@@ -302,7 +303,8 @@ namespace BecquerelMonitor
                     throw new InvalidOperationException(
                         "BecqMoni: the spectrum names a device configuration that is not among the loaded ones ("
                         + (deviceConfig == null ? "<none>" : "GUID " + (deviceConfig.Guid ?? "<none>"))
-                        + "); loaded: " + this.deviceConfigManager.DeviceConfigMap.Count
+                        + "); loaded: "
+                        + this.deviceConfigManager.DeviceConfigMap.Count.ToString(CultureInfo.InvariantCulture)
                         + ". The measurement cannot start, and a headless run must not continue with an empty spectrum.");
                 }
                 AppUi.Report(Resources.ERRDeviceConfigNotSelected, "", MessageBoxIcon.None);
