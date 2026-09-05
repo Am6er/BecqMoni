@@ -1,0 +1,312 @@
+diff --git a/BecquerelMonitor/EnergySpectrumView.cs b/BecquerelMonitor/EnergySpectrumView.cs
+index b93aa424..5c0f7aff 100644
+--- a/BecquerelMonitor/EnergySpectrumView.cs
++++ b/BecquerelMonitor/EnergySpectrumView.cs
+@@ -933,6 +933,7 @@ namespace BecquerelMonitor
+             else if (detectedPeak.Nuclide.Intencity < MinimumActivityYieldPercent)
+             {
+                 analytics.ActivityRefusal = string.Format(
++                    CultureInfo.InvariantCulture,
+                     Resources.ActivityLowYieldRefused,
+                     MinimumActivityYieldPercent);
+             }
+@@ -1011,11 +1012,11 @@ namespace BecquerelMonitor
+         {
+             if (coeff.Problem == BecquerelCoefficient.LineProblem.OutOfRange)
+             {
+-                return string.Format(CultureInfo.CurrentCulture, Resources.ActivityOutOfCurveRefused,
++                return string.Format(CultureInfo.InvariantCulture, Resources.ActivityOutOfCurveRefused,
+                                      energyKev, coeff.CurveMin, coeff.CurveMax);
+             }
+ 
+-            return string.Format(CultureInfo.CurrentCulture, Resources.ActivityNoEpsilonRefused, energyKev);
++            return string.Format(CultureInfo.InvariantCulture, Resources.ActivityNoEpsilonRefused, energyKev);
+         }
+ 
+         /// <summary>
+@@ -2087,7 +2088,7 @@ namespace BecquerelMonitor
+         {
+             if (this.measureDrawingTime)
+             {
+-                g.DrawString(this.stopwatch.ElapsedTicks.ToString(), this.Font, Brushes.Black, (float)(base.Width - 400), (float)this.stopwatchY);
++                g.DrawString(this.stopwatch.ElapsedTicks.ToString(CultureInfo.InvariantCulture), this.Font, Brushes.Black, (float)(base.Width - 400), (float)this.stopwatchY);
+                 this.stopwatchY += 20;
+                 this.stopwatch.Reset();
+                 this.stopwatch.Start();
+@@ -3671,9 +3672,9 @@ namespace BecquerelMonitor
+ 
+         String FormatAs10Power(decimal val)
+         {
+-            if (val < 999) return val.ToString();
++            if (val < 999) return val.ToString(CultureInfo.InvariantCulture);
+             string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
+-            string expstr = String.Format("{0:0.#E0}", val);
++            string expstr = String.Format(CultureInfo.InvariantCulture, "{0:0.#E0}", val);
+ 
+             string[] numparts = expstr.Split('E');
+             char[] powerchars = numparts[1].ToArray();
+@@ -3687,9 +3688,9 @@ namespace BecquerelMonitor
+ 
+         String FormatAs10Power(double val)
+         {
+-            if (val > 0.01 && val < 999) return val.ToString();
++            if (val > 0.01 && val < 999) return val.ToString(CultureInfo.InvariantCulture);
+             string SuperscriptDigits = "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079";
+-            string expstr = String.Format("{0:0.#E0}", val);
++            string expstr = String.Format(CultureInfo.InvariantCulture, "{0:0.#E0}", val);
+ 
+             string[] numparts = expstr.Split('E');
+             char[] powerchars = numparts[1].ToArray();
+@@ -3914,7 +3915,7 @@ namespace BecquerelMonitor
+                             {
+                                 int num6 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                                 g.DrawLine(pen, num6, this.height, num6, base.ClientSize.Height);
+-                                g.DrawString(num5.ToString("f0"), this.Font, brush2, (float)num6, (float)(this.height + 1));
++                                g.DrawString(num5.ToString("f0", CultureInfo.InvariantCulture), this.Font, brush2, (float)num6, (float)(this.height + 1));
+                                 if (num6 > this.left)
+                                 {
+                                     g.DrawLine(pen2, num6, 0, num6, this.height - 1);
+@@ -3956,7 +3957,7 @@ namespace BecquerelMonitor
+                             {
+                                 int num10 = (int)((double)i * this.horizontalScale) + this.scrollX + this.left;
+                                 g.DrawLine(pen, num10, this.height, num10, base.ClientSize.Height);
+-                                g.DrawString(i.ToString(), this.Font, brush2, (float)num10, (float)(this.height + 1));
++                                g.DrawString(i.ToString(CultureInfo.InvariantCulture), this.Font, brush2, (float)num10, (float)(this.height + 1));
+                                 if (num10 > this.left)
+                                 {
+                                     g.DrawLine(pen2, num10, 0, num10, this.height - 1);
+@@ -4258,9 +4259,15 @@ namespace BecquerelMonitor
+ 
+         void ShowCursorValues(Graphics g)
+         {
+-            string intFormat = "n0";
+-            string floatFormat = "n2";
+-            string preciseFloatFormat = "n4";
++            // ⛔ `f`, а НЕ `n` (решение Amber 05.09.2026, `A244`): формат `n…`
++            //    несёт разделитель разрядов ДАЖЕ на инвариантной культуре
++            //    («1,234.50»), а группировки разрядов не должно быть вовсе.
++            //    Культура у каждой печати ниже названа явно — панель под
++            //    курсором рисуется и из потока, культуру которого никто не
++            //    подменял, и «1,5» вместо «1.5» там появлялось молча.
++            string intFormat = "f0";
++            string floatFormat = "f2";
++            string preciseFloatFormat = "f4";
+             double fg_time = this.activeResultData.EnergySpectrum.MeasurementTime;
+             double bg_time = this.activeResultData.BackgroundEnergySpectrum != null
+                 ? this.activeResultData.BackgroundEnergySpectrum.MeasurementTime
+@@ -4332,16 +4339,16 @@ namespace BecquerelMonitor
+                 this.RegisterCursorPanel(channel_table_x_pos - 3, table_y_pos - 3, table_heigth);
+                 Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
+                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
+-                g.DrawString(this.cursorChannel.ToString(intFormat), this.Font, Brushes.Black, r, this.farFormat);
++                g.DrawString(this.cursorChannel.ToString(intFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                 r.Y += 16;
+                 double channelEnergy = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
+                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r);
+-                g.DrawString(channelEnergy.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
++                g.DrawString(channelEnergy.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                 r.Y += 22;
+                 g.DrawLine(Pens.LightGray, r.Left, r.Top - 6, r.Right, r.Top - 6);
+                 int channelGrossCounts = fg_spectrum[this.cursorChannel];
+                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r);
+-                g.DrawString(channelGrossCounts.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
++                g.DrawString(channelGrossCounts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                 if (bg_spectrum != null)
+                 {
+                     double adjBgChannelCounts = 0.0;
+@@ -4364,13 +4371,13 @@ namespace BecquerelMonitor
+                     }
+                     r.Y += 16;
+                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r);
+-                    g.DrawString(adjBgChannelCounts.ToString(floatFormat), this.Font, Brushes.Black, r, this.farFormat);
++                    g.DrawString(adjBgChannelCounts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                     r.Y += 16;
+                     if (adjBgChannelCounts != 0.0)
+                     {
+                         double num11 = (double)channelGrossCounts / adjBgChannelCounts * 100.0;
+                         g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
+-                        g.DrawString(num11.ToString(floatFormat) + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
++                        g.DrawString(num11.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
+                     }
+                 }
+             }
+@@ -4459,49 +4466,49 @@ namespace BecquerelMonitor
+                 r2.Y += 22;
+                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
+                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r2);
+-                g.DrawString(start_channel.ToString(intFormat) + " - " + end_channel.ToString(intFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                g.DrawString(start_channel.ToString(intFormat, CultureInfo.InvariantCulture) + " - " + end_channel.ToString(intFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                 r2.Y += 16;
+                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r2);
+-                g.DrawString(start_energy.ToString(floatFormat) + " - " + end_energy.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                g.DrawString(start_energy.ToString(floatFormat, CultureInfo.InvariantCulture) + " - " + end_energy.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                 r2.Y += 22;
+                 g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
+                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r2);
+-                g.DrawString(gross_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                g.DrawString(gross_counts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                 if (adj_bg_counts != 0.0)
+                 {
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r2);
+-                    g.DrawString(adj_bg_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(adj_bg_counts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
+                     double bg_ratio = gross_counts / adj_bg_counts * 100.0;
+-                    g.DrawString(bg_ratio.ToString(floatFormat) + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(bg_ratio.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
+                     if (net_cps_err != 0.0)
+                     {
+-                        g.DrawString(net_cps.ToString(preciseFloatFormat) + " " + Resources.PlusMinus + net_cps_err.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                        g.DrawString(net_cps.ToString(preciseFloatFormat, CultureInfo.InvariantCulture) + " " + Resources.PlusMinus + net_cps_err.ToString(preciseFloatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     }
+                     else
+                     {
+-                        g.DrawString(net_cps.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                        g.DrawString(net_cps.ToString(preciseFloatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     }
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderNetCounts, this.Font, Brushes.Black, r2);
+                     if (net_counts_err != 0.0)
+                     {
+-                        g.DrawString(net_counts.ToString(floatFormat) + " " + Resources.PlusMinus + net_counts_err.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                        g.DrawString(net_counts.ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.PlusMinus + net_counts_err.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     }
+                     else
+                     {
+-                        g.DrawString(net_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                        g.DrawString(net_counts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     }
+                 } 
+                 else
+                 {
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderCPS, this.Font, Brushes.Black, r2);
+-                    g.DrawString(net_cps.ToString(preciseFloatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(net_cps.ToString(preciseFloatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                 }
+                 r2.Y += 22;
+                 if (Lc > 0)
+@@ -4519,20 +4526,20 @@ namespace BecquerelMonitor
+                     }
+                     r2.Y += 16;
+                     g.DrawString(Resources.Lc_counts, this.Font, Brushes.Black, r2);
+-                    g.DrawString(Lc.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(Lc.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     if (net_counts < Lc)
+                     {
+                         g.DrawString(Resources.Lu_counts, this.Font, Brushes.Black, r2);
+-                        g.DrawString(Lu.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                        g.DrawString(Lu.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                         r2.Y += 16;
+                     }
+                     string confidencelevel_str = ConfidenceLevel.GetSingleSideLevel(this.globalConfigManager.GlobalConfig.ChartViewConfig.ConfidenceLevel);
+                     g.DrawString(Resources.Ld_counts + " (" + confidencelevel_str + ")", this.Font, Brushes.Black, r2);
+-                    g.DrawString(Ld.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(Ld.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     g.DrawString(Resources.Lq_counts, this.Font, Brushes.Black, r2);
+-                    g.DrawString(Lq.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(Lq.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                 }
+ 
+@@ -4554,22 +4561,22 @@ namespace BecquerelMonitor
+                 if (activityLabelShown)
+                 {
+                     g.DrawString(selection.ActivityLabel + " " +
+-                                 selection.ActivityLineKev.ToString(floatFormat) + " " +
++                                 selection.ActivityLineKev.ToString(floatFormat, CultureInfo.InvariantCulture) + " " +
+                                  Resources.kev + ", " +
+-                                 // Не "n2": у подписи вроде «Pu-238» выход
++                                 // Не "f2" (до `A244` — "n2"): у подписи вроде «Pu-238» выход
+                                  // 0.0009 %, и округление до сотых показало
+                                  // бы «0.00 %» — то есть спрятало бы ровно
+                                  // тот случай, ради которого строка и
+                                  // заведена (S96: такая подпись даёт
+                                  // показанные 1.5·10^9 Бк).
+-                                 selection.ActivityIntensity.ToString("g4") +
++                                 selection.ActivityIntensity.ToString("g4", CultureInfo.InvariantCulture) +
+                                  Resources.PercentCharacter,
+                                  this.Font, Brushes.Black, r2, this.centerFormat);
+                     r2.Y += 16;
+ 
+                     if (selection.ActivityRivals > 0)
+                     {
+-                        g.DrawString(string.Format(CultureInfo.CurrentCulture,
++                        g.DrawString(string.Format(CultureInfo.InvariantCulture,
+                                                    Resources.ActivityLabelDisputed,
+                                                    selection.ActivityRivals,
+                                                    selection.ActivityRivalFactor),
+@@ -4584,17 +4591,17 @@ namespace BecquerelMonitor
+                     {
+                         Brush brush = Brushes.DarkRed;
+                         g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+-                        g.DrawString("< " + activityUpperLimit.ToString(floatFormat),
++                        g.DrawString("< " + activityUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+                             this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+ 
+                         g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+-                        g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat),
++                        g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+                         this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+ 
+                         g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+-                        g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat),
++                        g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+                             this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+                     } 
+@@ -4602,17 +4609,17 @@ namespace BecquerelMonitor
+                     {
+                         Brush brush = Brushes.Black;
+                         g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+-                        g.DrawString(activity.ToString(floatFormat) + " " + Resources.PlusMinus + activityError.ToString(floatFormat),
++                        g.DrawString(activity.ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.PlusMinus + activityError.ToString(floatFormat, CultureInfo.InvariantCulture),
+                             this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+ 
+                         g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+-                        g.DrawString(activityByMass.ToString(floatFormat) + " " + Resources.PlusMinus + activityByMassError.ToString(floatFormat),
++                        g.DrawString(activityByMass.ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.PlusMinus + activityByMassError.ToString(floatFormat, CultureInfo.InvariantCulture),
+                         this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+ 
+                         g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+-                        g.DrawString(activityByVolume.ToString(floatFormat) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat),
++                        g.DrawString(activityByVolume.ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat, CultureInfo.InvariantCulture),
+                             this.Font, brush, r2, this.farFormat);
+                         r2.Y += 16;
+                     }
+@@ -4638,11 +4645,11 @@ namespace BecquerelMonitor
+                 {
+                     g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
+                     g.DrawString(Resources.ChartHeaderPeakCounts, this.Font, Brushes.Black, r2);
+-                    g.DrawString(peak_counts.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
++                    g.DrawString(peak_counts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     g.DrawString(Resources.ChartHeaderFWHM, this.Font, Brushes.Black, r2);
+-                    g.DrawString((this.selectionFWHM * 100.0).ToString(floatFormat) + Resources.PercentCharacter +
+-                        " (" + (this.selectionFWHMinkev).ToString(floatFormat) + " " + Resources.kev + ", " + this.selectionFullWidth.ToString(intFormat) + " " + Resources.ChartChannelShort + ")",
++                    g.DrawString((this.selectionFWHM * 100.0).ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter +
++                        " (" + (this.selectionFWHMinkev).ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.kev + ", " + this.selectionFullWidth.ToString(intFormat, CultureInfo.InvariantCulture) + " " + Resources.ChartChannelShort + ")",
+                         this.Font, Brushes.Black, r2, this.farFormat);
+                     r2.Y += 16;
+                     //g.DrawString(Resources._2Sigma, this.Font, Brushes.Black, r2);
+@@ -4650,8 +4657,8 @@ namespace BecquerelMonitor
+                     //    this.Font, Brushes.Black, r2, this.farFormat);
+                     //r2.Y += 16;
+                     g.DrawString(Resources.Centroid, this.Font, Brushes.Black, r2);
+-                    g.DrawString((this.selectionCentroidkeV).ToString(floatFormat) + " " + Resources.kev +
+-                        " (" + (this.selectionCentroidCh).ToString(intFormat) + " " + Resources.ChartChannelShort + ")",
++                    g.DrawString((this.selectionCentroidkeV).ToString(floatFormat, CultureInfo.InvariantCulture) + " " + Resources.kev +
++                        " (" + (this.selectionCentroidCh).ToString(intFormat, CultureInfo.InvariantCulture) + " " + Resources.ChartChannelShort + ")",
+                         this.Font, Brushes.Black, r2, this.farFormat);
+ 
+                 }
