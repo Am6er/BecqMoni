@@ -1,0 +1,74 @@
+=== ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ разбора остатка: тот же скрипт по СОСТОЯНИЮ HEAD (там мест больше и они не названы) ===
+мест разобрано: 85
+настоящих мест МОЕЙ доли: 66
+   DeviceConfigForm.Efficiency.cs:474 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.Efficiency.cs:489 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:455 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:456 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:457 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:490 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:498 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:507 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:513 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:514 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:759 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:760 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:761 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:809 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:813 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:817 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:819 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:820 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1228 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1240 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1272 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1273 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1277 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1281 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1285 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1344 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1345 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1346 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1393 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1394 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1395 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1442 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1472 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1686 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1863 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1888 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1896 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1903 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1964 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1968 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1972 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1974 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:1975 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:2019 — НЕ НАЗВАНО — отказ
+   DeviceConfigForm.cs:2049 — НЕ НАЗВАНО — отказ
+   DeviceConfigManager.cs:120 — НЕ НАЗВАНО — отказ
+   DeviceConfigManager.cs:164 — НЕ НАЗВАНО — отказ
+   DeviceConfigManager.cs:204 — НЕ НАЗВАНО — отказ
+   DeviceConfigManager.cs:306 — НЕ НАЗВАНО — отказ
+   DeviceConfigManager.cs:464 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:91 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:92 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:93 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:142 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:143 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:144 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:145 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:146 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:147 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:148 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:149 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:150 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:151 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:152 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:153 — НЕ НАЗВАНО — отказ
+   GlobalConfigForm.cs:154 — НЕ НАЗВАНО — отказ
+уводящих в ЧУЖОЙ файл (дописка в A244): 3
+   DeviceConfigForm.cs:524 — ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+   DeviceConfigForm.cs:541 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+   DeviceConfigForm.cs:1396 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)
+EXIT=1

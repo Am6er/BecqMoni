@@ -1,0 +1,1789 @@
+diff --git a/BecquerelMonitor/AtomSpectraVCPDeviceForm.cs b/BecquerelMonitor/AtomSpectraVCPDeviceForm.cs
+index a9ebb122..c44481c2 100644
+--- a/BecquerelMonitor/AtomSpectraVCPDeviceForm.cs
++++ b/BecquerelMonitor/AtomSpectraVCPDeviceForm.cs
+@@ -5,6 +5,7 @@ using System.Collections.Generic;
+ using System.ComponentModel;
+ using System.Diagnostics;
+ using System.Drawing;
++using System.Globalization;
+ using System.IO.Ports;
+ using System.Text;
+ using System.Windows.Forms;
+@@ -29,7 +30,7 @@ namespace BecquerelMonitor
+         private void Button1_Click(object sender, EventArgs e)
+         {
+             fillPorts();
+-            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
++            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
+         }
+ 
+         private void deadTimeBtn_Click(object sender, EventArgs e)
+@@ -39,7 +40,7 @@ namespace BecquerelMonitor
+                 AtomSpectraVCPIn device = null;
+                 string temporaryGuid = null;
+                 string comPort = comPortsBox.SelectedItem.ToString();
+-                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
++                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
+ 
+                 device = AtomSpectraVCPIn.findByPort(comPort);
+                 if (device == null)
+@@ -50,11 +51,11 @@ namespace BecquerelMonitor
+                 }
+                 device.sendCommand("-inf");
+                 string[] output = device.getCommandOutput(2000).Split(' ');
+-                int rise = int.Parse(output[3]);
+-                int fall = int.Parse(output[5]);
+-                double f = double.Parse(output[9]);
++                int rise = int.Parse(output[3], CultureInfo.InvariantCulture);
++                int fall = int.Parse(output[5], CultureInfo.InvariantCulture);
++                double f = double.Parse(output[9], CultureInfo.InvariantCulture);
+                 this.deadTime = ((double)rise + (double)fall + 1.0) / f;
+-                this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
++                this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                 SetActiveDeviceConfigDirty();
+                 if (temporaryGuid != null)
+                 {
+@@ -98,7 +99,7 @@ namespace BecquerelMonitor
+                     if (this.ComPort != null)
+                     {
+                         comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+-                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
++                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
+                     } else
+                     {
+                         this.ComPort = "-------";
+@@ -116,14 +117,14 @@ namespace BecquerelMonitor
+ 
+             comPortsBox.Items.Add(this.ComPort);
+             comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
+-            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
++            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
+         }
+ 
+         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
+         {
+             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
+             {
+-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
++                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
+                 SetActiveDeviceConfigDirty();
+             }
+         }
+@@ -132,7 +133,7 @@ namespace BecquerelMonitor
+         {
+             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
+             {
+-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
++                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
+                 SetActiveDeviceConfigDirty();
+             }
+         }
+@@ -182,7 +183,7 @@ namespace BecquerelMonitor
+             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
+             fillPorts();
+             this.deadTime = atomSpectraVCPInputDevice.DeadTimeValue;
+-            this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
++            this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+             this.formLoading = false;
+             TestConnection(this.ComPort, this.BaudRate);
+         }
+@@ -196,7 +197,7 @@ namespace BecquerelMonitor
+                 if (comPortsBox.Items.Count > 0 && comPortsBox.SelectedItem != null)
+                 {
+                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
+-                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
++                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
+                     atomSpectraVCPInputDevice.DeadTimeValue = deadTime;
+                 }
+                 else
+@@ -227,7 +228,7 @@ namespace BecquerelMonitor
+                     AtomSpectraVCPIn device = null;
+                     string temporaryGuid = null;
+                     string comPort = comPortsBox.SelectedItem.ToString();
+-                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
++                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
+ 
+                     device = AtomSpectraVCPIn.findByPort(comPort);
+                     if (device == null)
+@@ -276,7 +277,7 @@ namespace BecquerelMonitor
+                 if (device != null && device.BaudRate != baudRate)
+                 {
+                     returnstatus = 1;
+-                    returnvalue = device.BaudRate.ToString();
++                    returnvalue = device.BaudRate.ToString(CultureInfo.InvariantCulture);
+                     return (returnstatus, returnvalue, failure);
+                 }
+                 if (device == null)
+@@ -289,7 +290,7 @@ namespace BecquerelMonitor
+                 String result = device.getCommandOutput(2000);
+                 string[] separator = new string[] { "\r\n" };
+                 string[] result_arr = result.Split(separator, StringSplitOptions.None);
+-                Trace.WriteLine("result -cal array, size: " + result_arr.Length);
++                Trace.WriteLine("result -cal array, size: " + result_arr.Length.ToString(CultureInfo.InvariantCulture));
+                 if (result_arr.Length > 2)
+                 {
+                     returnvalue = result_arr[result_arr.Length - 2];
+@@ -357,7 +358,7 @@ namespace BecquerelMonitor
+ 
+             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
+             {
+-                Trace.WriteLine("Got status: " + status.ToString());
++                Trace.WriteLine("Got status: " + status.ToString(CultureInfo.InvariantCulture));
+                 switch (status)
+                 {
+                     case 0:
+diff --git a/BecquerelMonitor/AudioInputDeviceForm.cs b/BecquerelMonitor/AudioInputDeviceForm.cs
+index f55fa086..f90b5603 100644
+--- a/BecquerelMonitor/AudioInputDeviceForm.cs
++++ b/BecquerelMonitor/AudioInputDeviceForm.cs
+@@ -1,6 +1,7 @@
+ ﻿using BecquerelMonitor.Properties;
+ using System;
+ using System.Collections.ObjectModel;
++using System.Globalization;
+ using System.Windows.Forms;
+ using WinMM;
+ 
+@@ -83,7 +84,7 @@ namespace BecquerelMonitor
+         {
+             if (this.deviceConfigForm != null && this.deviceConfigForm.ActiveDeviceConfig != null && this.pulseRecorder.Recording)
+             {
+-                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
++                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+                 this.standardPulseView1.Invalidate();
+                 if (this.pulseRecorder.NumberOfPulses >= 10000)
+                 {
+@@ -113,25 +114,25 @@ namespace BecquerelMonitor
+                 this.SetActiveDeviceConfigDirty();
+                 this.comboBox1.SelectedIndex = 0;
+             }
+-            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString();
+-            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString();
++            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString(CultureInfo.InvariantCulture);
++            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString(CultureInfo.InvariantCulture);
+             this.trackBar1.Value = audioInputDeviceConfig.Volume;
+-            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString();
++            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString(CultureInfo.InvariantCulture);
+             this.checkBox2.Checked = audioInputDeviceConfig.AutoVolumeSetting;
+             this.trackBar1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
+             this.maskedTextBox1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
+             this.checkBox1.Checked = audioInputDeviceConfig.NegativePolarity;
+             PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
+-            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString();
+-            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
++            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
+             double pulseThreshold = prahomageMethodConfig.PulseThreshold;
+             this.trackBar2.Value = (int)(pulseThreshold * 100.0);
+-            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString();
++            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString(CultureInfo.InvariantCulture);
+             this.numericUpDown1.Value = prahomageMethodConfig.PulseShapeSize;
+             this.numericUpDown2.Value = prahomageMethodConfig.PeakIndex;
+-            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString();
+-            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
+-            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString();
++            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
++            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+             this.standardPulseView1.PulseShape = prahomageMethodConfig.PulseShape;
+             this.standardPulseView1.PeakIndex = prahomageMethodConfig.PeakIndex;
+             this.standardPulseView1.PulseShapeSize = prahomageMethodConfig.PulseShapeSize;
+@@ -152,31 +153,31 @@ namespace BecquerelMonitor
+                 {
+                     audioInputDeviceConfig.AudioInputDevice = this.waveDeviceList[this.comboBox1.SelectedIndex];
+                 }
+-                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text);
+-                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text);
+-                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text);
++                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text, CultureInfo.InvariantCulture);
++                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text, CultureInfo.InvariantCulture);
++                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text, CultureInfo.InvariantCulture);
+                 audioInputDeviceConfig.AutoVolumeSetting = this.checkBox2.Checked;
+                 audioInputDeviceConfig.NegativePolarity = this.checkBox1.Checked;
+                 PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
+-                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text);
+-                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text);
++                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text, CultureInfo.InvariantCulture);
++                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text, CultureInfo.InvariantCulture);
+                 if (prahomageMethodConfig.UpperThreshold < prahomageMethodConfig.LowerThreshold)
+                 {
+                     prahomageMethodConfig.UpperThreshold = prahomageMethodConfig.LowerThreshold;
+-                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
++                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
+                 }
+-                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text) / 100.0;
++                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text, CultureInfo.InvariantCulture) / 100.0;
+                 prahomageMethodConfig.PulseShapeSize = (int)this.numericUpDown1.Value;
+                 prahomageMethodConfig.PeakIndex = (int)this.numericUpDown2.Value;
+-                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text);
+-                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text);
++                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text, CultureInfo.InvariantCulture);
++                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text, CultureInfo.InvariantCulture);
+                 if (prahomageMethodConfig.PulseUpperThreshold < prahomageMethodConfig.PulseLowerThreshold)
+                 {
+                     prahomageMethodConfig.PulseUpperThreshold = prahomageMethodConfig.PulseLowerThreshold;
+-                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
++                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
+                 }
+                 prahomageMethodConfig.PulseShape = this.standardPulseView1.PulseShape;
+-                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text);
++                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text, CultureInfo.InvariantCulture);
+             }
+             catch (Exception)
+             {
+@@ -235,7 +236,7 @@ namespace BecquerelMonitor
+             this.button1.Enabled = true;
+             this.button2.Enabled = false;
+             this.pulseRecorder.StopRecording();
+-            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
++            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+             this.standardPulseView1.Invalidate();
+             if (this.audioVolumeController != null && this.tempConfig != null)
+             {
+@@ -265,7 +266,7 @@ namespace BecquerelMonitor
+         // Token: 0x0600104A RID: 4170 RVA: 0x0005A430 File Offset: 0x00058630
+         void trackBar1_Scroll(object sender, EventArgs e)
+         {
+-            this.maskedTextBox1.Text = this.trackBar1.Value.ToString();
++            this.maskedTextBox1.Text = this.trackBar1.Value.ToString(CultureInfo.InvariantCulture);
+             this.SetActiveDeviceConfigDirty();
+         }
+ 
+@@ -273,7 +274,7 @@ namespace BecquerelMonitor
+         void maskedTextBox1_TextChanged(object sender, EventArgs e)
+         {
+             int value = 0;
+-            int.TryParse(this.maskedTextBox1.Text, out value);
++            int.TryParse(this.maskedTextBox1.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+             this.trackBar1.Value = value;
+             this.SetActiveDeviceConfigDirty();
+         }
+@@ -336,7 +337,7 @@ namespace BecquerelMonitor
+         // Token: 0x06001054 RID: 4180 RVA: 0x0005A570 File Offset: 0x00058770
+         void trackBar2_Scroll(object sender, EventArgs e)
+         {
+-            this.maskedTextBox2.Text = this.trackBar2.Value.ToString();
++            this.maskedTextBox2.Text = this.trackBar2.Value.ToString(CultureInfo.InvariantCulture);
+             this.SetActiveDeviceConfigDirty();
+         }
+ 
+@@ -344,7 +345,7 @@ namespace BecquerelMonitor
+         void maskedTextBox2_TextChanged(object sender, EventArgs e)
+         {
+             int num = 0;
+-            int.TryParse(this.maskedTextBox2.Text, out num);
++            int.TryParse(this.maskedTextBox2.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out num);
+             if (num < 0)
+             {
+                 num = 0;
+@@ -353,7 +354,7 @@ namespace BecquerelMonitor
+             {
+                 num = 100;
+             }
+-            this.maskedTextBox2.Text = num.ToString();
++            this.maskedTextBox2.Text = num.ToString(CultureInfo.InvariantCulture);
+             this.trackBar2.Value = num;
+             this.SetActiveDeviceConfigDirty();
+         }
+diff --git a/BecquerelMonitor/DeviceConfigForm.Efficiency.cs b/BecquerelMonitor/DeviceConfigForm.Efficiency.cs
+index e2205500..9dbb3ce7 100644
+--- a/BecquerelMonitor/DeviceConfigForm.Efficiency.cs
++++ b/BecquerelMonitor/DeviceConfigForm.Efficiency.cs
+@@ -292,7 +292,9 @@ namespace BecquerelMonitor
+             List<string> parts = new List<string>();
+             if (config.HasCurve)
+             {
+-                parts.Add(string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyTabSummary,
++                // `A244`: числа в подписи — инвариантом. Точка у дробной части
++                // и никакой группировки разрядов (решение Amber 05.09.2026).
++                parts.Add(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyTabSummary,
+                                         config.Curve.Count,
+                                         (int)config.Curve[0].Energy,
+                                         (int)config.Curve[config.Curve.Count - 1].Energy));
+diff --git a/BecquerelMonitor/DeviceConfigForm.cs b/BecquerelMonitor/DeviceConfigForm.cs
+index 692661a9..7f57c7ee 100644
+--- a/BecquerelMonitor/DeviceConfigForm.cs
++++ b/BecquerelMonitor/DeviceConfigForm.cs
+@@ -292,7 +292,7 @@ namespace BecquerelMonitor
+         {
+             for (int i = 1; i < 999; i++)
+             {
+-                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString() + ").xml";
++                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
+                 bool flag = false;
+                 foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
+                 {
+@@ -452,9 +452,9 @@ namespace BecquerelMonitor
+             this.LoadEfficiencyTab(config);
+             this.LoadDoseRateTab(config);
+             this.textBox1.Text = config.Name;
+-            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
+-            this.integerTextBox1.Text = config.NumberOfChannels.ToString();
+-            this.doubleTextBox6.Text = config.ChannelPitch.ToString();
++            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox1.Text = config.NumberOfChannels.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox6.Text = config.ChannelPitch.ToString(CultureInfo.InvariantCulture);
+             this.textBox19.Text = config.Note;
+             this.deviceFormLoading = true;
+             DeviceType type = null;
+@@ -487,7 +487,7 @@ namespace BecquerelMonitor
+             PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+             if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+             {
+-                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
++                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+@@ -495,7 +495,7 @@ namespace BecquerelMonitor
+             }
+             if (polynomialEnergyCalibration.PolynomialOrder == 4)
+             {
+-                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
++                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+@@ -504,14 +504,14 @@ namespace BecquerelMonitor
+             }
+             if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+             {
+-                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+                 this.numericUpDown1.Text = "0";
+             }
+-            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
++            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+             this.ShowCalibrationPoints();
+             this.UpdateMultipointButtonState();
+             this.tableModel3.Rows.Clear();
+@@ -756,9 +756,9 @@ namespace BecquerelMonitor
+                 //    старым. Остаток известен и НЕ закрыт здесь: ниже по методу
+                 //    разбор коэффициентов калибровки стоит уже после записей и
+                 //    после двух вложенных форм.
+-                int defaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
+-                int numberOfChannels = int.Parse(this.integerTextBox1.Text);
+-                double channelPitch = double.Parse(this.doubleTextBox6.Text);
++                int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
++                int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
++                double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                 if (config.Guid == null || config.Guid == "")
+                 {
+                     config.Guid = Guid.NewGuid().ToString();
+@@ -806,18 +806,18 @@ namespace BecquerelMonitor
+                 PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+                 if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[2] = double.Parse(this.numericUpDown1.Text);
++                    polynomialEnergyCalibration.Coefficients[2] = UserNumber.ParseDouble(this.numericUpDown1.Text);
+                 }
+                 if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[3] = double.Parse(this.numericUpDown9.Text);
++                    polynomialEnergyCalibration.Coefficients[3] = UserNumber.ParseDouble(this.numericUpDown9.Text);
+                 }
+                 if (polynomialEnergyCalibration.PolynomialOrder == 4)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[4] = double.Parse(this.numericUpDown8.Text);
++                    polynomialEnergyCalibration.Coefficients[4] = UserNumber.ParseDouble(this.numericUpDown8.Text);
+                 }
+-                polynomialEnergyCalibration.Coefficients[1] = double.Parse(this.numericUpDown2.Text);
+-                polynomialEnergyCalibration.Coefficients[0] = double.Parse(this.numericUpDown7.Text);
++                polynomialEnergyCalibration.Coefficients[1] = UserNumber.ParseDouble(this.numericUpDown2.Text);
++                polynomialEnergyCalibration.Coefficients[0] = UserNumber.ParseDouble(this.numericUpDown7.Text);
+                 // Element writes bypass the property setter - drop the stale
+                 // EnergyToChannel cache explicitly.
+                 polynomialEnergyCalibration.InvalidateCache();
+@@ -1225,7 +1225,7 @@ namespace BecquerelMonitor
+                         byte[] bytes = Encoding.ASCII.GetBytes(result_str);
+                         uint crc32 = Crc32.Compute(bytes);
+ 
+-                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier) != crc32)
++                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) != crc32)
+                         {
+                             MessageBox.Show(Resources.ERRIncorrectCRC);
+                             return;
+@@ -1237,7 +1237,7 @@ namespace BecquerelMonitor
+                         {
+                             if (CalibrationCoefficients[i] != "FFFFFFFFFFFFFFFF")
+                             {
+-                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier));
++                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture));
+                                 coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
+                             }
+                         }
+@@ -1269,20 +1269,20 @@ namespace BecquerelMonitor
+                         polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 1)
+                         {
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                         {
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+                         {
+-                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
++                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder == 4)
+                         {
+-                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
++                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+                         }
+                     }
+                     else
+@@ -1341,9 +1341,9 @@ namespace BecquerelMonitor
+                             this.numericUpDown8.Text = "0";
+                             this.numericUpDown9.Text = "0";
+ 
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                             SetActiveDeviceConfigDirty();
+                             return;
+                         }
+@@ -1390,9 +1390,9 @@ namespace BecquerelMonitor
+                             this.numericUpDown8.Text = "0";
+                             this.numericUpDown9.Text = "0";
+ 
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                             this.textBox16.Text = deviceconfig.OBS_EnergyCalibration.ToString();
+                             this.button14.Enabled = true;
+                             SetActiveDeviceConfigDirty();
+@@ -1439,7 +1439,7 @@ namespace BecquerelMonitor
+                         List<string> result_list = new List<string>();
+                         for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+                         {
+-                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
++                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X", CultureInfo.InvariantCulture);
+                             if (result_str == "0")
+                             {
+                                 result_list.Add("00000000");
+@@ -1469,7 +1469,7 @@ namespace BecquerelMonitor
+                         byte[] bytes = Encoding.ASCII.GetBytes(result_string);
+                         uint crc32 = Crc32.Compute(bytes);
+ 
+-                        result_list.Add(crc32.ToString("X"));
++                        result_list.Add(crc32.ToString("X", CultureInfo.InvariantCulture));
+ 
+                         bool commands_accepted = true;
+                         System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
+@@ -1487,11 +1487,11 @@ namespace BecquerelMonitor
+                         {
+                             int percent = (int)(100*i)/(result_list.Count - 1);
+                             b.ReportProgress(percent);
+-                            device.sendCommand("-cal " + i + " " + result_list[i]);
++                            device.sendCommand("-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i]);
+                             bool result = device.waitForAnswer("ok", 2000);
+                             commands_accepted &= result;
+                             System.Diagnostics.Trace.WriteLine("result = " + result);
+-                            status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
++                            status_msg = status_msg + "-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
+                         }
+                         Cursor.Current = Cursors.Default;
+                         if (commands_accepted)
+@@ -1683,7 +1683,7 @@ namespace BecquerelMonitor
+             {
+                 if (mainForm != null)
+                 {
+-                    mainForm.SetStatusTextLeft(string.Format(Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
++                    mainForm.SetStatusTextLeft(string.Format(CultureInfo.InvariantCulture, Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
+                 }
+             });
+ 
+@@ -1860,7 +1860,7 @@ namespace BecquerelMonitor
+             foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
+             {
+                 Row row = new Row();
+-                row.Cells.Add(new Cell(num.ToString()));
++                row.Cells.Add(new Cell(num.ToString(CultureInfo.InvariantCulture)));
+                 row.Cells.Add(new Cell(calibrationPoint.Channel));
+                 row.Cells.Add(new Cell(calibrationPoint.Energy));
+                 this.tableModel2.Rows.Add(row);
+@@ -1885,7 +1885,7 @@ namespace BecquerelMonitor
+                 if (e.Column == 1)
+                 {
+                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
++                    this.calibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
+                     this.multipointModified = true;
+                     this.calibrationDone = false;
+                     this.UpdateMultipointButtonState();
+@@ -1893,14 +1893,14 @@ namespace BecquerelMonitor
+                 else if (e.Column == 2)
+                 {
+                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
++                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
+                     this.multipointModified = true;
+                     this.UpdateMultipointButtonState();
+                 }
+                 else if (e.Column == 4)
+                 {
+                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
++                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
+                     this.multipointModified = true;
+                     this.calibrationDone = false;
+                     this.UpdateMultipointButtonState();
+@@ -1961,18 +1961,18 @@ namespace BecquerelMonitor
+             this.numericUpDown9.Text = "0";
+             if (energyCalibration.PolynomialOrder >= 2)
+             {
+-                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
++                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+             }
+             if (energyCalibration.PolynomialOrder >= 3)
+             {
+-                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString();
++                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+             }
+             if (energyCalibration.PolynomialOrder == 4)
+             {
+-                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString();
++                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+             }
+-            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString();
+-            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString();
++            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+             if (!energyCalibration.CheckCalibration())
+             {
+                 MessageBox.Show(Resources.CalibrationFunctionError);
+@@ -2016,7 +2016,7 @@ namespace BecquerelMonitor
+             TextBox lowerThresholdTextBox = this.inputDeviceForm.LowerThresholdTextBox;
+             if (lowerThresholdTextBox != null)
+             {
+-                lowerThresholdTextBox.Text = threshold.ToString();
++                lowerThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
+                 lowerThresholdTextBox.SelectAll();
+                 lowerThresholdTextBox.Focus();
+             }
+@@ -2046,7 +2046,7 @@ namespace BecquerelMonitor
+             TextBox upperThresholdTextBox = this.inputDeviceForm.UpperThresholdTextBox;
+             if (upperThresholdTextBox != null)
+             {
+-                upperThresholdTextBox.Text = threshold.ToString();
++                upperThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
+                 upperThresholdTextBox.SelectAll();
+                 upperThresholdTextBox.Focus();
+             }
+@@ -2781,7 +2781,7 @@ namespace BecquerelMonitor
+                             // — это потерянная точка; молча прочитанная половина
+                             // файла хуже непрочитанного файла, потому что по ней
+                             // строится кривая.
+-                            problem = string.Format(CultureInfo.CurrentCulture,
++                            problem = string.Format(CultureInfo.InvariantCulture,
+                                 DoseRateCoefficients.Text("DoseRateLsrmShortLine",
+                                     "Dose rate: {0} (line {1}) has {2} column(s) instead of three"
+                                     + " (energy, efficiency, uncertainty): \"{3}\"."),
+@@ -2809,14 +2809,14 @@ namespace BecquerelMonitor
+             }
+             catch (Exception ex)
+             {
+-                problem = string.Format(CultureInfo.CurrentCulture, "{0} (line {1}): {2}",
++                problem = string.Format(CultureInfo.InvariantCulture, "{0} (line {1}): {2}",
+                                         path, lineNumber, ex.Message);
+                 return new List<ROIEfficiencyData>();
+             }
+ 
+             if (points.Count < LsrmMinPoints)
+             {
+-                problem = string.Format(CultureInfo.CurrentCulture,
++                problem = string.Format(CultureInfo.InvariantCulture,
+                     DoseRateCoefficients.Text("DoseRateLsrmNoPoints",
+                         "Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed"
+                         + " ({3} more were dropped as declared to more than {4:f0} % uncertainty)."),
+diff --git a/BecquerelMonitor/DeviceConfigManager.cs b/BecquerelMonitor/DeviceConfigManager.cs
+index 719d539a..f92a097e 100644
+--- a/BecquerelMonitor/DeviceConfigManager.cs
++++ b/BecquerelMonitor/DeviceConfigManager.cs
+@@ -3,6 +3,7 @@ using System;
+ using System.Collections.Generic;
+ using System.Deployment.Application;
+ using System.Diagnostics;
++using System.Globalization;
+ using System.IO;
+ using System.Windows.Forms;
+ using System.Xml.Serialization;
+@@ -153,7 +154,7 @@ namespace BecquerelMonitor
+             this.listLoaded = true;
+             // `S102`: назвать ОТКРЫТЫЙ каталог и то, сколько из него взято.
+             AppUi.Note("device configs: " + AppUi.Where(userDirectoryConfigDeviceDir) + ": "
+-                + this.deviceConfigList.Count + " loaded");
++                + this.deviceConfigList.Count.ToString(CultureInfo.InvariantCulture) + " loaded");
+         }
+ 
+         // Token: 0x060005FC RID: 1532 RVA: 0x00025990 File Offset: 0x00023B90
+diff --git a/BecquerelMonitor/DoubleTextBox.cs b/BecquerelMonitor/DoubleTextBox.cs
+index 1a77c6f0..d4c74672 100644
+--- a/BecquerelMonitor/DoubleTextBox.cs
++++ b/BecquerelMonitor/DoubleTextBox.cs
+@@ -1,10 +1,94 @@
+ ﻿using BecquerelMonitor.Properties;
++using System;
+ using System.ComponentModel;
+ using System.Drawing;
++using System.Globalization;
+ using System.Windows.Forms;
+ 
+ namespace BecquerelMonitor
+ {
++    /// <summary>
++    /// Разбор числа, НАБРАННОГО ЧЕЛОВЕКОМ в поле ввода (`A244`).
++    ///
++    /// ⛔ Печать чисел инвариантна — разделитель дробной части ВСЕГДА ТОЧКА
++    /// (правило Amber 05.09.2026). Значит и читать поле надо инвариантом:
++    /// напечатанное «0.5» на русской системе прежний `double.TryParse(text)`
++    /// не брал вовсе, а `GetValue` возвращал молча НОЛЬ — не отказ, а другое
++    /// число. У `decimal.Parse(text)` было хуже: его умолчание несёт
++    /// `AllowThousands`, и «1.5» на русской системе становилось 15.
++    ///
++    /// Вторая попытка — по культуре системы: человек за русской клавиатурой
++    /// набирает «0,5», и отказывать ему не за что. Это не подделка культуры —
++    /// печатаем всегда одинаково, читаем терпимо.
++    ///
++    /// ⛔ Разделителя разрядов не допускает НИ ОДНА попытка (`NumberStyles.Float`
++    /// его не несёт) — решение Amber 05.09.2026 «группировку убрать вовсе»,
++    /// и без него «1.234» на немецкой системе молча стало бы тысячей.
++    /// </summary>
++    public static class UserNumber
++    {
++        public static bool TryParseDouble(string text, out double value)
++        {
++            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
++        }
++
++        public static bool TryParseInt(string text, out int value)
++        {
++            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value);
++        }
++
++        public static bool TryParseDecimal(string text, out decimal value)
++        {
++            if (decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return decimal.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
++        }
++
++        // Бросающие обёртки: там, где прежде стоял `T.Parse(text)`, отказ был
++        // исключением, и на нём держится поведение вызывающих (форма
++        // конфигурации отменяет сохранение, редактор ячейки — правку). Замена
++        // на `TryParse` втихую превратила бы отказ в ноль.
++        public static double ParseDouble(string text)
++        {
++            double value;
++            if (!TryParseDouble(text, out value))
++            {
++                throw new FormatException(text + " is not a number");
++            }
++            return value;
++        }
++
++        public static int ParseInt(string text)
++        {
++            int value;
++            if (!TryParseInt(text, out value))
++            {
++                throw new FormatException(text + " is not an integer");
++            }
++            return value;
++        }
++
++        public static decimal ParseDecimal(string text)
++        {
++            decimal value;
++            if (!TryParseDecimal(text, out value))
++            {
++                throw new FormatException(text + " is not a number");
++            }
++            return value;
++        }
++    }
++
+     // Token: 0x020000F5 RID: 245
+     [ToolboxBitmap(typeof(TextBox))]
+     public class DoubleTextBox : TextBox
+@@ -23,7 +107,7 @@ namespace BecquerelMonitor
+                 this.Text = "0";
+             }
+             double num;
+-            if (!double.TryParse(this.Text, out num))
++            if (!UserNumber.TryParseDouble(this.Text, out num))
+             {
+                 MessageBox.Show(Resources.ERRInputNumber, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                 base.SelectAll();
+@@ -35,7 +119,7 @@ namespace BecquerelMonitor
+         public double GetValue()
+         {
+             double result = 0.0;
+-            double.TryParse(this.Text, out result);
++            UserNumber.TryParseDouble(this.Text, out result);
+             return result;
+         }
+     }
+diff --git a/BecquerelMonitor/GlobalConfigForm.cs b/BecquerelMonitor/GlobalConfigForm.cs
+index 425bb58b..c3083ffd 100644
+--- a/BecquerelMonitor/GlobalConfigForm.cs
++++ b/BecquerelMonitor/GlobalConfigForm.cs
+@@ -1,5 +1,6 @@
+ ﻿using BecquerelMonitor.Properties;
+ using System;
++using System.Globalization;
+ using System.Media;
+ using System.Windows.Forms;
+ 
+@@ -88,9 +89,9 @@ namespace BecquerelMonitor
+             this.comboBox8.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultDrawingMode;
+             this.comboBox9.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultPeakMode;
+             this.comboBox10.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
+-            this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString();
+-            this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString();
+-            this.doubleTextBox2.Text = globalConfig.ChartViewConfig.EnergyOffsetStep.ToString();
++            this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox2.Text = globalConfig.ChartViewConfig.EnergyOffsetStep.ToString(CultureInfo.InvariantCulture);
+             this.numericUpDown8.Value = globalConfig.ChartViewConfig.EnergyPitch;
+             this.numericUpDown9.Value = globalConfig.ChartViewConfig.EnergyPercent;
+             this.numericUpDown1.Value = globalConfig.ChartViewConfig.NumberOfSMADataPoints;
+@@ -139,19 +140,19 @@ namespace BecquerelMonitor
+             this.textBox3.Text = easyControlConfig.EnergyCalibrationFilePrefix;
+             this.textBox4.Text = easyControlConfig.BackgroundFilePrefix;
+             this.textBox5.Text = easyControlConfig.SampleFilePrefix;
+-            this.integerTextBox11.Text = easyControlConfig.WarmupTime.ToString();
+-            this.integerTextBox12.Text = easyControlConfig.CalibrationTime.ToString();
+-            this.integerTextBox13.Text = easyControlConfig.ShutdownTime.ToString();
+-            this.integerTextBox1.Text = easyControlConfig.DefaultBGPresetTime.ToString();
+-            this.integerTextBox2.Text = easyControlConfig.BGPresetTime1.ToString();
+-            this.integerTextBox3.Text = easyControlConfig.BGPresetTime2.ToString();
+-            this.integerTextBox4.Text = easyControlConfig.BGPresetTime3.ToString();
+-            this.integerTextBox5.Text = easyControlConfig.BGPresetTime4.ToString();
+-            this.integerTextBox6.Text = easyControlConfig.DefaultPresetTime.ToString();
+-            this.integerTextBox7.Text = easyControlConfig.PresetTime1.ToString();
+-            this.integerTextBox8.Text = easyControlConfig.PresetTime2.ToString();
+-            this.integerTextBox9.Text = easyControlConfig.PresetTime3.ToString();
+-            this.integerTextBox10.Text = easyControlConfig.PresetTime4.ToString();
++            this.integerTextBox11.Text = easyControlConfig.WarmupTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox12.Text = easyControlConfig.CalibrationTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox13.Text = easyControlConfig.ShutdownTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox1.Text = easyControlConfig.DefaultBGPresetTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox2.Text = easyControlConfig.BGPresetTime1.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox3.Text = easyControlConfig.BGPresetTime2.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox4.Text = easyControlConfig.BGPresetTime3.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox5.Text = easyControlConfig.BGPresetTime4.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox6.Text = easyControlConfig.DefaultPresetTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox7.Text = easyControlConfig.PresetTime1.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox8.Text = easyControlConfig.PresetTime2.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox9.Text = easyControlConfig.PresetTime3.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox10.Text = easyControlConfig.PresetTime4.ToString(CultureInfo.InvariantCulture);
+             this.textBox6.Text = globalConfig.SoundConfig.MeasurementCompletion;
+             this.comboBox12.SelectedIndex = (int)globalConfig.MeasurementConfig.VolumeUnit;
+             this.comboBox13.SelectedIndex = (int)globalConfig.MeasurementConfig.WeightUnit;
+diff --git a/BecquerelMonitor/IntegerTextBox.cs b/BecquerelMonitor/IntegerTextBox.cs
+index d56d1e3c..bb0a28ae 100644
+--- a/BecquerelMonitor/IntegerTextBox.cs
++++ b/BecquerelMonitor/IntegerTextBox.cs
+@@ -23,7 +23,9 @@ namespace BecquerelMonitor
+                 this.Text = "0";
+             }
+             int num;
+-            if (!int.TryParse(this.Text, out num))
++            // `A244`: разбор ввода человека — инвариантом, с уступкой культуре
++            // системы (см. `UserNumber` в `DoubleTextBox.cs`).
++            if (!UserNumber.TryParseInt(this.Text, out num))
+             {
+                 MessageBox.Show(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                 base.SelectAll();
+@@ -35,7 +37,7 @@ namespace BecquerelMonitor
+         public int GetValue()
+         {
+             int result = 0;
+-            int.TryParse(this.Text, out result);
++            UserNumber.TryParseInt(this.Text, out result);
+             return result;
+         }
+     }
+diff --git a/BecquerelMonitor/ObsidianDeviceForm.cs b/BecquerelMonitor/ObsidianDeviceForm.cs
+index a0f0dc5e..b2da7639 100644
+--- a/BecquerelMonitor/ObsidianDeviceForm.cs
++++ b/BecquerelMonitor/ObsidianDeviceForm.cs
+@@ -2,6 +2,7 @@ using BecquerelMonitor.Properties;
+ using System;
+ using System.Collections.Generic;
+ using System.Diagnostics;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using System.Threading.Tasks;
+@@ -142,12 +143,12 @@ namespace BecquerelMonitor
+                     return;
+                 }
+ 
+-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
++                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
+                 devices.Add(args.BluetoothAddress);
+                 string serial = ExtractSerial(deviceName);
+                 comboBox1.Invoke(new Action(() =>
+                 {
+-                    addressBLE.Add(args.BluetoothAddress.ToString());
++                    addressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+                     if (comboBox1.Items.IndexOf(serial) == -1)
+                     {
+                         comboBox1.Items.Add(serial);
+@@ -159,7 +160,7 @@ namespace BecquerelMonitor
+                 }));
+                 TroubleshootText.Invoke(new Action(() =>
+                 {
+-                    TroubleshootText.AppendText($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}");
++                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}"));
+                 }));
+             }
+             catch (Exception)
+@@ -304,9 +305,9 @@ namespace BecquerelMonitor
+             tshootText = "";
+             if (wasRunning)
+             {
+-                tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}";
++                tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}");
+             }
+-            tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}";
++            tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}");
+             ObsidianIn obsidianIn = ObsidianIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
+             obsidianIn.TroubleShoot += ObsidianIn_TroubleShoot;
+             obsidianIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
+@@ -343,7 +344,7 @@ namespace BecquerelMonitor
+                 isRunning = false;
+                 return;
+             }
+-            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
++            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
+         }
+     }
+ 
+diff --git a/BecquerelMonitor/ObsidianIn.cs b/BecquerelMonitor/ObsidianIn.cs
+index 96db2112..f77b47a9 100644
+--- a/BecquerelMonitor/ObsidianIn.cs
++++ b/BecquerelMonitor/ObsidianIn.cs
+@@ -1,6 +1,7 @@
+ ﻿using System;
+ using System.Collections.Generic;
+ using System.Diagnostics;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using Windows.Devices.Bluetooth;
+@@ -286,7 +287,7 @@ namespace BecquerelMonitor
+ 
+         private static string FormatProtocolError(byte? protocolError)
+         {
+-            return protocolError.HasValue ? $"0x{protocolError.Value:X2}" : "none";
++            return protocolError.HasValue ? FormattableString.Invariant($"0x{protocolError.Value:X2}") : "none";
+         }
+ 
+         private static string SafeConnStatus(BluetoothLEDevice device)
+@@ -421,7 +422,7 @@ namespace BecquerelMonitor
+                 BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
+                 if (adapter != null)
+                 {
+-                    sendTroubleShoot($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}");
++                    sendTroubleShoot(FormattableString.Invariant($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}"));
+                     Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
+                     if (btRadio.State != RadioState.On)
+                     {
+@@ -489,8 +490,8 @@ namespace BecquerelMonitor
+                 {
+                     watcher.Stop();
+                     watcher.Received -= Watcher_Recived;
+-                    sendTroubleShoot($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen" +
+-                        (discoveryAdvCount > 0 ? $", last RSSI={discoveryLastRssi} dBm." : " — device did not advertise in this window."));
++                    sendTroubleShoot(FormattableString.Invariant($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen") +
++                        (discoveryAdvCount > 0 ? FormattableString.Invariant($", last RSSI={discoveryLastRssi} dBm.") : " — device did not advertise in this window."));
+                 }
+             }
+         }
+@@ -506,7 +507,7 @@ namespace BecquerelMonitor
+             try
+             {
+                 ulong target;
+-                if (addressble != null && ulong.TryParse(addressble, out target) && args.BluetoothAddress == target)
++                if (addressble != null && ulong.TryParse(addressble, NumberStyles.Integer, CultureInfo.InvariantCulture, out target) && args.BluetoothAddress == target)
+                 {
+                     discoveryAdvCount++;
+                     discoveryLastRssi = args.RawSignalStrengthInDBm;
+@@ -530,10 +531,10 @@ namespace BecquerelMonitor
+                     Stopwatch sw = trshoot ? Stopwatch.StartNew() : null;
+                     Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
+                     sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
+-                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
++                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE, CultureInfo.InvariantCulture)).AsTask().GetAwaiter().GetResult();
+                     if (localDevice == null)
+                     {
+-                        sendTroubleShoot($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms).");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms)."));
+                         return false;
+                     }
+                     // Windows caches a BluetoothLEDevice even when it is not yet connected; the very
+@@ -544,22 +545,22 @@ namespace BecquerelMonitor
+                     {
+                         string preConnStatus;
+                         try { preConnStatus = localDevice.ConnectionStatus.ToString(); } catch (Exception) { preConnStatus = "unavailable"; }
+-                        sendTroubleShoot($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}");
++                        sendTroubleShoot(FormattableString.Invariant($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}"));
+                     }
+ 
+                     GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(OBS_HISTORY_SERVICE)).AsTask().GetAwaiter().GetResult();
+                     if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}"));
+                         return false;
+                     }
+-                    sendTroubleShoot($"GATT history service acquired after {ElapsedMs(sw)} ms.");
++                    sendTroubleShoot(FormattableString.Invariant($"GATT history service acquired after {ElapsedMs(sw)} ms."));
+ 
+                     localService = servicesResult.Services[0];
+                     GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_COMMAND_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
+                     if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}"));
+                         return false;
+                     }
+ 
+@@ -573,7 +574,7 @@ namespace BecquerelMonitor
+                     GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(OBS_NOTIFY_CHARACTERISTIC)).AsTask().GetAwaiter().GetResult();
+                     if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}"));
+                         return false;
+                     }
+ 
+@@ -591,10 +592,10 @@ namespace BecquerelMonitor
+                     if (cccdStatus != GattCommunicationStatus.Success)
+                     {
+                         localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+-                        sendTroubleShoot($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}"));
+                         return false;
+                     }
+-                    sendTroubleShoot($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total.");
++                    sendTroubleShoot(FormattableString.Invariant($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total."));
+ 
+                     localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
+                     dev = localDevice;
+@@ -688,7 +689,7 @@ namespace BecquerelMonitor
+                         // Only trip if we exceed the (generous) diagnostic buffer, not the
+                         // expected payload — otherwise we could never observe the true size.
+                         packet.BROKEN = true;
+-                        string overflowMessage = $"Obsidian: chunk overflow past diagnostic buffer {packet.Buffer.Length}, total would be {packet.Counter + buffer.Length}";
++                        string overflowMessage = FormattableString.Invariant($"Obsidian: chunk overflow past diagnostic buffer {packet.Buffer.Length}, total would be {packet.Counter + buffer.Length}");
+                         sendTroubleShoot(overflowMessage);
+                         Trace.WriteLine(overflowMessage);
+                         return;
+@@ -866,7 +867,7 @@ namespace BecquerelMonitor
+                                         sendTroubleShoot("Initial discovery scan done; proceeding to first connect.");
+                                     }
+                                 }
+-                                sendTroubleShoot($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}");
++                                sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}"));
+                                 if (currentState != State.Reconnecting)
+                                 {
+                                     setStatus(State.Connecting);
+@@ -986,7 +987,7 @@ namespace BecquerelMonitor
+                                     lock (packetLock)
+                                     {
+                                         packet.BROKEN = true;
+-                                        sendTroubleShoot($"Spectrum receive timeout. total={packet.Counter}");
++                                        sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.Counter}"));
+                                     }
+                                     setStatus(State.Reconnecting);
+                                 }
+@@ -1010,11 +1011,11 @@ namespace BecquerelMonitor
+                                 }
+                                 spectrum = packet.SPECTRUM.ToArray();
+                                 elapsedTime = packet.TIME_S;
+-                                sendTroubleShoot($"Packet received. total={packet.Counter}, extra={packet.ExtraBytesCount}, trailer={packet.TrailerValue}");
++                                sendTroubleShoot(FormattableString.Invariant($"Packet received. total={packet.Counter}, extra={packet.ExtraBytesCount}, trailer={packet.TrailerValue}"));
+                             }
+                             // Данные снова идут — прежняя причина отказа снята.
+                             clearFailure();
+-                            sendTroubleShoot($"Spectrum real time: {elapsedTime}");
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum real time: {elapsedTime}"));
+                             spectrum.CopyTo(hystogram_buffered, 0);
+                             long sum = hystogram_buffered.Sum(i => (long)i);
+                             if (elapsedTime != 0)
+@@ -1024,8 +1025,8 @@ namespace BecquerelMonitor
+                                     cps = sum / (double)elapsedTime;
+                                 }
+                             }
+-                            sendTroubleShoot($"Spectrum cps: {cps}");
+-                            sendTroubleShoot($"Spectrum total counts: {sum}");
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum cps: {cps}"));
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
+                             if (currentState != State.Recording)
+                             {
+                                 setStatus(State.Recording);
+@@ -1193,7 +1194,7 @@ namespace BecquerelMonitor
+                 int dumpLen = Math.Min(Counter, Buffer.Length) - dumpFrom;
+                 if (dumpFrom >= 0 && dumpLen > 0)
+                 {
+-                    Trace.WriteLine($"Obsidian spectrum tail: counter={Counter}, TIME_S={TIME_S}, bytes[{dumpFrom}..]={BitConverter.ToString(Buffer, dumpFrom, dumpLen)}");
++                    Trace.WriteLine(FormattableString.Invariant($"Obsidian spectrum tail: counter={Counter}, TIME_S={TIME_S}, bytes[{dumpFrom}..]={BitConverter.ToString(Buffer, dumpFrom, dumpLen)}"));
+                 }
+                 COMPLETE = true;
+             }
+@@ -1301,7 +1302,7 @@ namespace BecquerelMonitor
+ 
+             EnsureBluetoothEnabled();
+ 
+-            device = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addressBle)).AsTask().GetAwaiter().GetResult();
++            device = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addressBle, CultureInfo.InvariantCulture)).AsTask().GetAwaiter().GetResult();
+             if (device == null)
+             {
+                 this.LastFailure = BecquerelMonitor.Properties.Resources.ERRObsCalNoDevice;
+diff --git a/BecquerelMonitor/RadiaCodeDeviceForm.cs b/BecquerelMonitor/RadiaCodeDeviceForm.cs
+index 753b89bd..d130a3e8 100644
+--- a/BecquerelMonitor/RadiaCodeDeviceForm.cs
++++ b/BecquerelMonitor/RadiaCodeDeviceForm.cs
+@@ -3,6 +3,7 @@ using System.Collections.Generic;
+ using Windows.Devices.Bluetooth.Advertisement;
+ using Windows.Devices.Bluetooth;
+ using BecquerelMonitor.Properties;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using System.Diagnostics;
+@@ -146,24 +147,24 @@ namespace BecquerelMonitor
+                     return;
+                 }
+ 
+-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
++                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
+                 devices.Add(args.BluetoothAddress);
+ 
+                 string[] nameParts = deviceName.Split('#');
+                 string model = nameParts.Length > 0 ? nameParts[0] : deviceName;
+                 string name = nameParts.Length > 1 ? nameParts[1] : deviceName;
+-                devicePreset[args.BluetoothAddress.ToString()] = model;
++                devicePreset[args.BluetoothAddress.ToString(CultureInfo.InvariantCulture)] = model;
+ 
+                 comboBox1.Invoke(new Action(() =>
+                 {
+-                    adressBLE.Add(args.BluetoothAddress.ToString());
++                    adressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+                     int item = comboBox1.Items.IndexOf(name);
+                     if (item == -1) comboBox1.Items.Add(name);
+                     if (!comboBox1.DroppedDown) comboBox1.DroppedDown = true;
+                 }));
+                 TroubleshootText.Invoke(new Action(() =>
+                 {
+-                    TroubleshootText.AppendText($"Found device {name} with BLE addr {args.BluetoothAddress}" + System.Environment.NewLine);
++                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {name} with BLE addr {args.BluetoothAddress}") + System.Environment.NewLine);
+                 }));
+             }
+             catch (Exception)
+@@ -294,9 +295,9 @@ namespace BecquerelMonitor
+             tshootText = "";
+             if (wasRunning)
+             {
+-                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
++                tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Radiacode instance with {deviceConfigForm.ActiveDeviceConfig.Guid} allready running. Shutdown it first." + Environment.NewLine;
+             }
+-            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
++            tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture)} Starting new RadiaCodeIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}" + Environment.NewLine;
+             RadiaCodeIn radiaCodeIn = RadiaCodeIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
+             radiaCodeIn.TroubleShoot += RadiaCodeIn_TroubleShoot;
+             radiaCodeIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
+@@ -332,7 +333,7 @@ namespace BecquerelMonitor
+                 isRunning = false;
+                 return;
+             }
+-            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
++            tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
+         }
+     }
+ 
+diff --git a/BecquerelMonitor/RadiaCodeIn.cs b/BecquerelMonitor/RadiaCodeIn.cs
+index 0c908614..c40d4934 100644
+--- a/BecquerelMonitor/RadiaCodeIn.cs
++++ b/BecquerelMonitor/RadiaCodeIn.cs
+@@ -1,6 +1,7 @@
+ ﻿using System;
+ using System.Collections.Generic;
+ using System.Diagnostics;
++using System.Globalization;
+ using System.Linq;
+ using System.Threading;
+ using System.Windows.Forms;
+@@ -264,7 +265,7 @@ namespace BecquerelMonitor
+ 
+         private static string FormatProtocolError(byte? protocolError)
+         {
+-            return protocolError.HasValue ? $"0x{protocolError.Value:X2}" : "none";
++            return protocolError.HasValue ? FormattableString.Invariant($"0x{protocolError.Value:X2}") : "none";
+         }
+ 
+         private static string SafeConnStatus(BluetoothLEDevice device)
+@@ -380,7 +381,7 @@ namespace BecquerelMonitor
+                 BluetoothAdapter adapter = BluetoothAdapter.GetDefaultAsync().AsTask().GetAwaiter().GetResult();
+                 if (null != adapter)
+                 {
+-                    sendTroubleShoot($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}");
++                    sendTroubleShoot(FormattableString.Invariant($"BT adapter: address={adapter.BluetoothAddress:X12}, lowEnergySupported={adapter.IsLowEnergySupported}, centralRoleSupported={adapter.IsCentralRoleSupported}"));
+                     Radio btRadio = adapter.GetRadioAsync().AsTask().GetAwaiter().GetResult();
+                     if (btRadio.State != RadioState.On)
+                     {
+@@ -445,8 +446,8 @@ namespace BecquerelMonitor
+                 {
+                     watcher.Stop();
+                     watcher.Received -= Watcher_Recived;
+-                    sendTroubleShoot($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen" +
+-                        (discoveryAdvCount > 0 ? $", last RSSI={discoveryLastRssi} dBm." : " — device did not advertise in this window."));
++                    sendTroubleShoot(FormattableString.Invariant($"Discovery finished (watcher status={watcher.Status}): {discoveryAdvCount} advertisement(s) from target seen") +
++                        (discoveryAdvCount > 0 ? FormattableString.Invariant($", last RSSI={discoveryLastRssi} dBm.") : " — device did not advertise in this window."));
+                 }
+             }
+         }
+@@ -462,7 +463,7 @@ namespace BecquerelMonitor
+             try
+             {
+                 ulong target;
+-                if (addressble != null && ulong.TryParse(addressble, out target) && args.BluetoothAddress == target)
++                if (addressble != null && ulong.TryParse(addressble, NumberStyles.Integer, CultureInfo.InvariantCulture, out target) && args.BluetoothAddress == target)
+                 {
+                     discoveryAdvCount++;
+                     discoveryLastRssi = args.RawSignalStrengthInDBm;
+@@ -486,10 +487,10 @@ namespace BecquerelMonitor
+                     Stopwatch sw = trshoot ? Stopwatch.StartNew() : null;
+                     Trace.WriteLine($"Try to connect BLE at addr: {addrBLE}");
+                     sendTroubleShoot($"Try to connect BLE at addr: {addrBLE}");
+-                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE)).AsTask().GetAwaiter().GetResult();
++                    localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE, CultureInfo.InvariantCulture)).AsTask().GetAwaiter().GetResult();
+                     if (localDevice == null)
+                     {
+-                        sendTroubleShoot($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms).");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to create BLE device from address (FromBluetoothAddressAsync returned null after {ElapsedMs(sw)} ms)."));
+                         return false;
+                     }
+                     // Windows caches a BluetoothLEDevice even when it is not yet connected; the very
+@@ -500,22 +501,22 @@ namespace BecquerelMonitor
+                     {
+                         string preConnStatus;
+                         try { preConnStatus = localDevice.ConnectionStatus.ToString(); } catch (Exception) { preConnStatus = "unavailable"; }
+-                        sendTroubleShoot($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}");
++                        sendTroubleShoot(FormattableString.Invariant($"BLE device resolved in {ElapsedMs(sw)} ms: name='{localDevice.Name}', connStatus={preConnStatus}"));
+                     }
+ 
+                     GattDeviceServicesResult servicesResult = localDevice.GetGattServicesForUuidAsync(Guid.Parse(RC_BLE_Service)).AsTask().GetAwaiter().GetResult();
+                     if (servicesResult == null || servicesResult.Status != GattCommunicationStatus.Success || servicesResult.Services.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get GATT service after {ElapsedMs(sw)} ms. Status={servicesResult?.Status}, protocolError={FormatProtocolError(servicesResult?.ProtocolError)}, serviceCount={(servicesResult != null ? servicesResult.Services.Count : 0)}, connStatus={SafeConnStatus(localDevice)}"));
+                         return false;
+                     }
+-                    sendTroubleShoot($"GATT service acquired after {ElapsedMs(sw)} ms.");
++                    sendTroubleShoot(FormattableString.Invariant($"GATT service acquired after {ElapsedMs(sw)} ms."));
+ 
+                     localService = servicesResult.Services[0];
+                     GattCharacteristicsResult writeResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Characteristic)).AsTask().GetAwaiter().GetResult();
+                     if (writeResult == null || writeResult.Status != GattCommunicationStatus.Success || writeResult.Characteristics.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get write characteristic after {ElapsedMs(sw)} ms. Status={writeResult?.Status}, protocolError={FormatProtocolError(writeResult?.ProtocolError)}"));
+                         return false;
+                     }
+ 
+@@ -529,7 +530,7 @@ namespace BecquerelMonitor
+                     GattCharacteristicsResult notifyResult = localService.GetCharacteristicsForUuidAsync(Guid.Parse(RC_BLE_Notify)).AsTask().GetAwaiter().GetResult();
+                     if (notifyResult == null || notifyResult.Status != GattCommunicationStatus.Success || notifyResult.Characteristics.Count == 0)
+                     {
+-                        sendTroubleShoot($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to get notify characteristic after {ElapsedMs(sw)} ms. Status={notifyResult?.Status}, protocolError={FormatProtocolError(notifyResult?.ProtocolError)}"));
+                         return false;
+                     }
+ 
+@@ -546,10 +547,10 @@ namespace BecquerelMonitor
+                     if (cccdStatus != GattCommunicationStatus.Success)
+                     {
+                         localNotifyCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+-                        sendTroubleShoot($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}");
++                        sendTroubleShoot(FormattableString.Invariant($"Failed to enable notifications after {ElapsedMs(sw)} ms. CCCD status={cccdStatus}, connStatus={SafeConnStatus(localDevice)}"));
+                         return false;
+                     }
+-                    sendTroubleShoot($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total.");
++                    sendTroubleShoot(FormattableString.Invariant($"BLE connected: notifications enabled after {ElapsedMs(sw)} ms total."));
+ 
+                     localDevice.ConnectionStatusChanged += Dev_ConnectionStatusChanged;
+                     dev = localDevice;
+@@ -628,7 +629,13 @@ namespace BecquerelMonitor
+                 DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
+                 byte[] buffer = new byte[reader.UnconsumedBufferLength];
+                 reader.ReadBytes(buffer);
+-                string bufferSignature = string.Join(",", buffer);
++                // `A244`: `string.Join(",", byte[])` печатает каждый байт
++                // `ToString()` БЕЗ культуры, а подпись тут же сверяется с
++                // литералом «16,0,0,0,7,0,0,128». Культура названа явно —
++                // сканер `scan_culture.py` этого вида печати не считает вовсе,
++                // и место нашлось только отдельным поиском по `string.Join`.
++                string bufferSignature = string.Join(",",
++                    Array.ConvertAll(buffer, b => b.ToString(CultureInfo.InvariantCulture)));
+                 if (bufferSignature.StartsWith("16,0,0,0,7,0,0,128"))
+                 {
+                     if (buffer.Length > 17 && buffer[16] == 1)
+@@ -724,15 +731,15 @@ namespace BecquerelMonitor
+                         else
+                         {
+                             packet.BROKEN = true;
+-                            sendTroubleShoot($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
+-                            Trace.WriteLine($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.");
++                            sendTroubleShoot(FormattableString.Invariant($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels."));
++                            Trace.WriteLine(FormattableString.Invariant($"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels."));
+                             return;
+                         }
+                     }
+                     else if (packet.counter > packet.SIZE)
+                     {
+                         packet.BROKEN = true;
+-                        Trace.WriteLine($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}");
++                        Trace.WriteLine(FormattableString.Invariant($"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}"));
+                         return;
+                     }
+                 }
+@@ -1019,7 +1026,7 @@ namespace BecquerelMonitor
+                                         sendTroubleShoot("Initial discovery scan done; proceeding to first connect.");
+                                     }
+                                 }
+-                                sendTroubleShoot($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}");
++                                sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(currentState)}, attempt={(trshoot ? trshootCount + 1 : 0)}"));
+                                 if (currentState != State.Reconnecting)
+                                 {
+                                     setStatus(State.Connecting);
+@@ -1193,7 +1200,7 @@ namespace BecquerelMonitor
+                                     lock (packetLock)
+                                     {
+                                         packet.BROKEN = true;
+-                                        sendTroubleShoot($"Spectrum receive timeout. total={packet.counter}");
++                                        sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.counter}"));
+                                     }
+                                     setStatus(State.Reconnecting);
+                                 }
+@@ -1222,8 +1229,8 @@ namespace BecquerelMonitor
+                             // Данные снова идут — прежняя причина отказа снята,
+                             // и строка состояния перестаёт кричать о ней.
+                             clearFailure();
+-                            sendTroubleShoot($"Spectrum real time: {elapsedTime}");
+-                            sendTroubleShoot($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}");
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum real time: {elapsedTime}"));
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum calibration: A0={packet.A0} A1={packet.A1} A2={packet.A2}"));
+                             spectrum.CopyTo(hystogram_buffered, 0);
+                             long sum = hystogram_buffered.Sum(i => (long)i);
+                             if (elapsedTime != 0)
+@@ -1233,8 +1240,8 @@ namespace BecquerelMonitor
+                                     cps = sum / (double)elapsedTime;
+                                 }
+                             }
+-                            sendTroubleShoot($"Spectrum cps: {cps}");
+-                            sendTroubleShoot($"Spectrum total counts: {sum}");
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum cps: {cps}"));
++                            sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
+                             if (currentState != State.Recording)
+                             {
+                                 setStatus(State.Recording);
+diff --git a/tools/effmaker/probes/CultureProbeO14.cs b/tools/effmaker/probes/CultureProbeO14.cs
+index 4583b4f9..933179e6 100644
+--- a/tools/effmaker/probes/CultureProbeO14.cs
++++ b/tools/effmaker/probes/CultureProbeO14.cs
+@@ -183,6 +183,11 @@ static class CultureProbeO14
+         //    потоке и на потоке пула без переноса контекста исполнения.
+         A244P1();
+ 
++        // ── `A244`, ДОДЕЛКА П1+П3 (полоса F17): окно настроек прибора
++        //    (`DeviceConfigForm`) и ВВОД ЧЕЛОВЕКА в поля `DoubleTextBox` /
++        //    `IntegerTextBox`, куда это окно печатает и откуда читает.
++        A244P1P3();
++
+         Say("");
+         Say(failures == 0
+             ? "СОШЛОСЬ: строка ресурса вне UI-потока выходит по настройке во всех плечах;"
+@@ -1925,4 +1930,450 @@ static class CultureProbeO14
+         }
+         s.Baud = cfg.BaudRate.ToString(CultureInfo.InvariantCulture) + " на " + cfg.ComPortName;
+     }
++
++    // ══════════════════════════════════════════════════════════════════════
++    //  `A244`, ДОДЕЛКА ОБОРВАННЫХ ПОЛОС П1 и П3 (полоса F17).
++    //
++    //  П1 «ввод прибора» мерится разделом `A244P1` выше — он на месте и
++    //  собран. Здесь достаётся ВТОРАЯ половина той же работы, которая
++    //  осталась неизмеренной, когда обе полосы сняли на ходу:
++    //
++    //   1. ОКНО НАСТРОЕК ПРИБОРА (`DeviceConfigForm`, доля П3).
++    //      `LoadFormContents` печатает числа конфигурации в поля, а
++    //      `SaveFormContents` читает их обратно. Оба зовутся ОТРАЖЕНИЕМ —
++    //      окно не поднимается (`S100`). Печать и разбор в одном плече
++    //      нарочно: половина правки даёт не отказ, а ДРУГОЕ ЧИСЛО, тихо.
++    //
++    //   2. ВВОД ЧЕЛОВЕКА (`DoubleTextBox`, `IntegerTextBox` — те самые поля,
++    //      куда печатает и из которых читает и окно прибора, и окно общих
++    //      настроек). Показывается ТАБЛИЦА: какой текст поле принимало ДО
++    //      правки и какой принимает ПОСЛЕ, на каждой культуре.
++    //      ⛔ Разделитель ТЫСЯЧ не отдаётся: инвариантно это запятая — тот
++    //      самый символ, которым русский набирает дробную часть, и принять
++    //      его значило бы молча делать из «1,5» число 15.
++    //
++    //  ⛔ Чего этот раздел НЕ делает и почему. Отказ поля идёт через
++    //     `DoubleTextBox_Validating`, а тот при отказе поднимает
++    //     `MessageBox` — безоконный прогон повис бы на нём насмерть
++    //     (`S100`). Поэтому настоящий обработчик зовётся ТОЛЬКО на тексте,
++    //     который новый код принимает (и там судится `e.Cancel == false`), а
++    //     сторона отказа мерится настоящим публичным читателем поля
++    //     `GetValue()`, которым пользуются все вызывающие.
++    // ══════════════════════════════════════════════════════════════════════
++
++    sealed class P3Shot
++    {
++        public string Err;
++        public string Culture;
++        public string Bare;
++        public string[] Text;      // поля окна после печати
++        public double[] Back;      // числа, вернувшиеся разбором
++        public string TbDouble;    // DoubleTextBox: «0.5» → GetValue
++        public string TbInt;       // IntegerTextBox: «1024» → GetValue
++        public string OldDouble;   // ПРЕЖНИЙ разбор поля: double.TryParse(«0.5»)
++        public string OldDecimal;  // ПРЕЖНИЙ разбор ячейки: decimal.Parse(«1.5»)
++        public string[] InNew;     // что поле принимает ПОСЛЕ правки
++        public string[] InOld;     // что оно принимало ДО
++        public string ValidatorNote;
++    }
++
++    static readonly string[] P3Fields =
++        { "doubleTextBox5", "integerTextBox1", "doubleTextBox6",
++          "numericUpDown7", "numericUpDown2", "numericUpDown1",
++          "numericUpDown9", "numericUpDown8" };
++
++    // Числа замера. Дробные нарочно такие, чтобы отличие разделителя было
++    // видно, а разбор разрядов (если бы он остался) дал ДРУГОЕ число.
++    const int P3Time = 3600;
++    const int P3Channels = 1024;
++    const double P3Pitch = 0.5;
++    static readonly double[] P3Coeff = { 1.25, 2.5, 0.001234, 4.5, 5.5 };
++
++    // ⛔ Набор текстов ввода. Каждый выбран под свой вопрос:
++    //    «1.5»      — то, что теперь ПЕЧАТАЕТ приложение: поле обязано это взять;
++    //    «1,5»      — то, что набирает человек за русской/немецкой клавиатурой;
++    //    «1.234»    — три знака после точки: на немецкой системе прежний разбор
++    //                 делал из этого ТЫСЯЧУ (точка там разделитель разрядов);
++    //    «1,234»    — то же зеркально для английской системы;
++    //    «1 5» — неразрывный пробел, разделитель разрядов русской культуры;
++    //    «1 5»      — обычный пробел;
++    //    «-2.5»     — знак не должен потеряться.
++    static readonly string[] P3Inputs =
++        { "1.5", "1,5", "1.234", "1,234", "1\u00A05", "1 5", "-2.5" };
++
++    static void A244P1P3()
++    {
++        Say("");
++        Say("══════════════════════════════════════════════════════════════");
++        Say("`A244` П1+П3: ЧИСЛА ОКНА НАСТРОЕК ПРИБОРА И ВВОД ЧЕЛОВЕКА");
++        Say("══════════════════════════════════════════════════════════════");
++
++        // ⛔ Реестры приборов — ДО первого `DeviceConfigForm`. В приложении их
++        //    заводит `MainForm` (строки 177–178), а окна здесь нет: без них
++        //    конструктор окна настроек падает `NullReferenceException` на
++        //    `foreach (DeviceType … DeviceTypeList)`. Оба метода перезаводят
++        //    списки заново, повторный вызов безвреден.
++        DeviceType.InitializeDeviceTypes();
++        ThermometerType.InitializeThermometerTypes();
++
++        // Соседний раздел `A244P1` отпускает ручки по умолчанию — вернём их
++        // в известное состояние, иначе эталон снимется не на инварианте.
++        CultureInfo.DefaultThreadCurrentCulture = null;
++        CultureInfo.DefaultThreadCurrentUICulture = null;
++        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
++
++        P3Shot want = P3Shoot();
++        if (want.Err != null)
++        {
++            Say("  ⛔ ЭТАЛОН НЕ СНЯТ, замер невозможен: " + want.Err);
++            failures++;
++            return;
++        }
++        Say("  эталон (инвариант) поля окна: " + string.Join(" | ", want.Text));
++        Say("  эталон (инвариант) обратный разбор: " + P3Nums(want.Back));
++        Say("  настоящий обработчик поля: " + want.ValidatorNote);
++
++        string[] cross = null;
++
++        foreach (string name in Foreign)
++        {
++            CultureInfo os = CultureInfo.GetCultureInfo(name);
++            Say("");
++            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
++            Thread.CurrentThread.CurrentCulture = os;
++            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
++
++            P3Shot got = P3Shoot();
++            if (got.Err != null)
++            {
++                Say("  ⛔ плечо не отработало: " + got.Err);
++                failures++;
++                continue;
++            }
++
++            // ── Положительный контроль плеча: культура обязана быть видна.
++            string wantBare = comma ? "1,5" : "1.5";
++            bool armOk = got.Bare == wantBare;
++            Say("  [полож. контроль] `(1.5).ToString()` без культуры = «" + got.Bare + "»"
++                + (armOk ? " — плечо воспроизводит культуру"
++                         : " ⛔ ОЖИДАЛОСЬ «" + wantBare + "»: ПЛЕЧО НЕ МЕРИТ"));
++            if (!armOk) failures++;
++
++            // ── ПРЯМОЕ: печать в поля окна.
++            A244P3Same("  ПЕЧАТЬ  восемь полей `DeviceConfigForm`",
++                       string.Join(" | ", got.Text), string.Join(" | ", want.Text));
++
++            bool dot = true;
++            for (int i = 0; i < got.Text.Length; i++)
++            {
++                string v = got.Text[i];
++                if (v.IndexOf(',') >= 0 || v.IndexOf(' ') >= 0
++                    || v.IndexOf('\u00A0') >= 0 || v.IndexOf('\u202F') >= 0)
++                {
++                    dot = false;
++                }
++            }
++            Say("  ПЕЧАТЬ  ни запятой, ни разделителя разрядов ни в одном поле: " + Verdict(dot));
++            if (!dot) failures++;
++
++            // ── ОБРАТНОЕ: то же окно прочитало напечатанное им же.
++            A244P3Nums("  ОБРАТНОЕ  `SaveFormContents` вернул те же числа", got.Back, want.Back);
++
++            // ── ПЕРЕКРЁСТНОЕ: текст ЧУЖОГО плеча читается здесь.
++            if (cross == null)
++            {
++                cross = got.Text;
++            }
++            else
++            {
++                P3Shot c = P3Read(cross);
++                if (c.Err != null)
++                {
++                    Say("  ⛔ перекрёстное плечо не отработало: " + c.Err);
++                    failures++;
++                }
++                else
++                {
++                    A244P3Nums("  ОБРАТНОЕ перекрёстное  поля первого чужого плеча разобраны здесь",
++                               c.Back, want.Back);
++                }
++            }
++
++            // ── Поля-контролы, через которые читает и окно общих настроек.
++            A244P3Same("  РАЗБОР  `DoubleTextBox.GetValue()` поля «0.5»", got.TbDouble, "0.5");
++            A244P3Same("  РАЗБОР  `IntegerTextBox.GetValue()` поля «1024»", got.TbInt, "1024");
++
++            // ── ВВОД ЧЕЛОВЕКА: что поле брало ДО и что берёт ПОСЛЕ.
++            Say("  ВВОД ЧЕЛОВЕКА в `DoubleTextBox` (настоящий `GetValue()`):");
++            for (int i = 0; i < P3Inputs.Length; i++)
++            {
++                Say("    «" + P3Show(P3Inputs[i]) + "»  ДО: " + got.InOld[i]
++                    + "   ПОСЛЕ: " + got.InNew[i]);
++            }
++            // ⛔ Судится ровно одно: разделитель ТЫСЯЧ не принимается ни на
++            //    одной культуре, а напечатанное приложением «1.5» — принимается.
++            A244P3Same("  ВВОД  «1.5» (то, что печатает приложение)", got.InNew[0], "1.5");
++            A244P3Same("  ВВОД  «1,5» (набор с русской/немецкой клавиатуры)",
++                       got.InNew[1], comma ? "1.5" : P3NoParse);
++            A244P3Same("  ВВОД  «1.234» — три знака, а не тысяча", got.InNew[2], "1.234");
++            A244P3Same("  ВВОД  «1<NBSP>5» — разделитель разрядов НЕ принят",
++                       got.InNew[4], P3NoParse);
++            A244P3Same("  ВВОД  «1 5» — пробел НЕ принят", got.InNew[5], P3NoParse);
++            A244P3Same("  ВВОД  «-2.5» — знак цел", got.InNew[6], "-2.5");
++            Say("    настоящий обработчик поля на принятом тексте: " + got.ValidatorNote);
++
++            // ⛔ Положительный контроль на ПРЕЖНИЙ код. Он же — цена половины
++            //    правки: печать точкой при старом разборе давала не отказ.
++            // ⛔ Судится «прежний разбор НЕВЕРЕН», а не «прежний разбор отказал».
++            //    Посылка «на культуре с запятой точка не разбирается вовсе»
++            //    ПРОВЕРКОЙ СНЯТА: она верна для `ru-RU` (разделитель разрядов
++            //    там неразрывный пробел, точка незаконна) и НЕВЕРНА для
++            //    `de-DE`, где точка — законный разделитель разрядов и «0.5»
++            //    молча становится 5. Отказ и «другое число» — оба дефект, но
++            //    второй хуже, и требовать именно отказа значило бы принять
++            //    худший исход за непройденное плечо.
++            Say("    [полож. контроль] ПРЕЖНИЙ `double.TryParse(«0.5»)` культурой потока = "
++                + got.OldDouble
++                + (comma ? (got.OldDouble == "0.5"
++                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
++                            : (got.OldDouble == P3NoParse
++                               ? "  — дефект воспроизведён (молчаливый НОЛЬ)"
++                               : "  — дефект воспроизведён (ДРУГОЕ ЧИСЛО, молча)"))
++                         : "  (культура с точкой — дефекта тут и не было)"));
++            if (comma && got.OldDouble == "0.5") failures++;
++
++            Say("    [полож. контроль] ПРЕЖНИЙ `decimal.Parse(«1.5»)` культурой потока = "
++                + got.OldDecimal
++                + (comma ? (got.OldDecimal == "1.5"
++                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
++                            : (got.OldDecimal == "15"
++                               ? "  — дефект воспроизведён (в десять раз больше, молча)"
++                               : "  — дефект воспроизведён (отказ)"))
++                         : "  (культура с точкой)"));
++            if (comma && got.OldDecimal == "1.5") failures++;
++        }
++
++        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
++    }
++
++    const string P3NoParse = "не разобрано → 0";
++
++    /// <summary>Тип, слово и ТРИ верхних кадра стека — иначе чинить нечего.</summary>
++    static string P3Where(Exception ex)
++    {
++        Exception e = ex is TargetInvocationException && ex.InnerException != null
++                    ? ex.InnerException : ex;
++        string st = e.StackTrace ?? "";
++        string[] frames = st.Split('\n');
++        StringBuilder sb = new StringBuilder();
++        sb.Append(e.GetType().Name).Append(": ").Append(e.Message);
++        for (int i = 0; i < frames.Length && i < 3; i++)
++        {
++            sb.Append(" | ").Append(frames[i].Trim());
++        }
++        return sb.ToString();
++    }
++
++    /// <summary>Текст с видимыми пробелами — иначе NBSP в отчёте неотличим.</summary>
++    static string P3Show(string s)
++    {
++        return s.Replace("\u00A0", "<NBSP>").Replace(" ", "<SP>");
++    }
++
++    static void A244P3Same(string title, string got, string want)
++    {
++        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
++        Say(title + " = «" + (got ?? "НЕ СНЯТО") + "»"
++            + (ok ? "  совпало с эталоном" : "  ⛔ ЭТАЛОН «" + want + "»"));
++        if (!ok) failures++;
++    }
++
++    static void A244P3Nums(string title, double[] got, double[] want)
++    {
++        bool ok = got != null && want != null && got.Length == want.Length;
++        for (int i = 0; ok && i < got.Length; i++)
++        {
++            ok = got[i] == want[i];
++        }
++        Say(title + " = " + P3Nums(got) + (ok ? "  числа те же" : "  ⛔ ЭТАЛОН " + P3Nums(want)));
++        if (!ok) failures++;
++    }
++
++    static string P3Nums(double[] v)
++    {
++        if (v == null) return "НЕ СНЯТО";
++        string[] s = new string[v.Length];
++        for (int i = 0; i < v.Length; i++)
++        {
++            s[i] = v[i].ToString("R", CultureInfo.InvariantCulture);
++        }
++        return string.Join(" | ", s);
++    }
++
++    /// <summary>Полный снимок: печать окна, обратный разбор, поля-контролы.</summary>
++    static P3Shot P3Shoot() { return P3Run(null); }
++
++    /// <summary>Перекрёстное плечо: в поля кладётся ЧУЖОЙ текст, читается здесь.</summary>
++    static P3Shot P3Read(string[] text) { return P3Run(text); }
++
++    static P3Shot P3Run(string[] preset)
++    {
++        P3Shot s = new P3Shot();
++        s.Culture = CultureInfo.CurrentCulture.Name;
++        if (s.Culture.Length == 0) s.Culture = "(инвариант)";
++        s.Bare = (1.5).ToString();
++
++        CultureInfo os = CultureInfo.CurrentCulture;
++        Thread t = new Thread(delegate()
++        {
++            Thread.CurrentThread.CurrentCulture = os;
++            try { P3Body(s, preset); }
++            // ⚠ Со СТЕКОМ нарочно: «NullReferenceException» без места отказа —
++            //    признак без читателя, по нему нечего чинить.
++            catch (Exception ex) { s.Err = P3Where(ex); }
++        });
++        t.IsBackground = true;
++        t.SetApartmentState(ApartmentState.STA);
++        t.Start();
++        if (!t.Join(120000)) s.Err = "окно настроек не ответило за 120 с (модальное окно?)";
++        return s;
++    }
++
++    static void P3Body(P3Shot s, string[] preset)
++    {
++        // ── Прежний разбор, снятый ДО правок формы: он ничем не связан с
++        //    формой и служит положительным контролем плеча.
++        double old;
++        s.OldDouble = double.TryParse("0.5", out old)
++            ? old.ToString("R", CultureInfo.InvariantCulture)
++            : P3NoParse;
++        try { s.OldDecimal = decimal.Parse("1.5").ToString(CultureInfo.InvariantCulture); }
++        catch (FormatException) { s.OldDecimal = "FormatException"; }
++
++        // ── Поля-контролы окна общих настроек: печать инвариантом → разбор.
++        DoubleTextBox dtb = new DoubleTextBox();
++        dtb.Text = P3Pitch.ToString(CultureInfo.InvariantCulture);
++        s.TbDouble = dtb.GetValue().ToString("R", CultureInfo.InvariantCulture);
++        IntegerTextBox itb = new IntegerTextBox();
++        itb.Text = P3Channels.ToString(CultureInfo.InvariantCulture);
++        s.TbInt = itb.GetValue().ToString(CultureInfo.InvariantCulture);
++
++        P3Input(s);
++
++        // ── Настоящее окно настроек прибора.
++        DeviceConfigForm form = new DeviceConfigForm();
++        DeviceConfigInfo cfg = P3Config();
++
++        MethodInfo load = typeof(DeviceConfigForm).GetMethod("LoadFormContents", NP);
++        MethodInfo save = typeof(DeviceConfigForm).GetMethod("SaveFormContents", NP);
++        if (load == null || save == null)
++        {
++            throw new InvalidOperationException("`LoadFormContents`/`SaveFormContents` не найдены: сборка чужая");
++        }
++
++        load.Invoke(form, new object[] { cfg });
++
++        s.Text = new string[P3Fields.Length];
++        for (int i = 0; i < P3Fields.Length; i++)
++        {
++            s.Text[i] = P3Ctl(form, P3Fields[i]).Text;
++        }
++
++        // Перекрёстное плечо: подменяем текст полей чужим.
++        if (preset != null)
++        {
++            for (int i = 0; i < P3Fields.Length; i++)
++            {
++                P3Ctl(form, P3Fields[i]).Text = preset[i];
++            }
++            s.Text = (string[])preset.Clone();
++        }
++
++        DeviceConfigInfo back = P3Config();
++        object ok = save.Invoke(form, new object[] { back });
++        if (!(bool)ok)
++        {
++            throw new InvalidOperationException("`SaveFormContents` вернул false: разбор полей отказал");
++        }
++
++        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)back.EnergyCalibration;
++        s.Back = new double[]
++        {
++            back.DefaultMeasurementTime, back.NumberOfChannels, back.ChannelPitch,
++            cal.Coefficients[0], cal.Coefficients[1], cal.Coefficients[2],
++            cal.Coefficients[3], cal.Coefficients[4]
++        };
++    }
++
++    /// <summary>
++    /// ВВОД ЧЕЛОВЕКА. «Принято» мерится НАСТОЯЩИМ читателем поля —
++    /// `DoubleTextBox.GetValue()`; «принято ДО» — тем самым вызовом, который
++    /// в этом методе и стоял (`double.TryParse(this.Text, out num)`, культура
++    /// потока, стили по умолчанию — а они несут `AllowThousands`).
++    ///
++    /// ⛔ Настоящий `DoubleTextBox_Validating` зовётся ТОЛЬКО на принятом
++    ///    тексте: на отказе он поднимает `MessageBox`, и безоконный прогон
++    ///    повис бы (`S100`). Того, что оба пути судят одним предикатом, это
++    ///    плечо и не утверждает — оно показывает, что на напечатанном
++    ///    приложением «1.5» настоящий обработчик отказа НЕ даёт.
++    /// </summary>
++    static void P3Input(P3Shot s)
++    {
++        s.InNew = new string[P3Inputs.Length];
++        s.InOld = new string[P3Inputs.Length];
++        DoubleTextBox box = new DoubleTextBox();
++        for (int i = 0; i < P3Inputs.Length; i++)
++        {
++            box.Text = P3Inputs[i];
++            double got = box.GetValue();
++            s.InNew[i] = got == 0.0 ? P3NoParse : got.ToString("R", CultureInfo.InvariantCulture);
++
++            double before;
++            s.InOld[i] = double.TryParse(P3Inputs[i], out before)
++                ? before.ToString("R", CultureInfo.InvariantCulture)
++                : P3NoParse;
++        }
++
++        // Настоящий обработчик — на тексте, который новый код принимает.
++        MethodInfo v = typeof(DoubleTextBox).GetMethod("DoubleTextBox_Validating", NP);
++        if (v == null)
++        {
++            s.ValidatorNote = "⛔ `DoubleTextBox_Validating` не найден: сборка чужая";
++            return;
++        }
++        box.Text = "1.5";
++        System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
++        v.Invoke(box, new object[] { box, e });
++        s.ValidatorNote = "`DoubleTextBox_Validating` на «1.5» → Cancel="
++            + (e.Cancel ? "true ⛔ ПОЛЕ РУГАЕТСЯ НА СОБСТВЕННОЕ СОДЕРЖИМОЕ" : "false (отказа нет)");
++    }
++
++    static DeviceConfigInfo P3Config()
++    {
++        DeviceConfigInfo cfg = new DeviceConfigInfo();
++        cfg.InitFormatVersion();
++        cfg.Guid = "p3-culture-probe";
++        cfg.Name = "P3";
++        cfg.Filename = "p3.xml";
++        // Тип прибора берётся ИЗ РЕЕСТРА, а не выписывается сюда именем: реестр
++        // и есть источник, а выписанное имя устарело бы молча.
++        cfg.DeviceType = DeviceType.DeviceTypeList[0].Id;
++        cfg.ThermometerType = ThermometerType.ThermometerTypeList[0].Id;
++        cfg.DefaultMeasurementTime = P3Time;
++        cfg.NumberOfChannels = P3Channels;
++        cfg.ChannelPitch = P3Pitch;
++        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)cfg.EnergyCalibration;
++        cal.PolynomialOrder = 4;
++        cal.Coefficients = (double[])P3Coeff.Clone();
++        return cfg;
++    }
++
++    static System.Windows.Forms.Control P3Ctl(object form, string name)
++    {
++        FieldInfo f = form.GetType().GetField(name, NP);
++        if (f == null) throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
++        System.Windows.Forms.Control c = f.GetValue(form) as System.Windows.Forms.Control;
++        if (c == null) throw new InvalidOperationException("поле `" + name + "` пусто");
++        return c;
++    }
+ }

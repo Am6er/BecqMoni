@@ -1,0 +1,17 @@
+AtomSpectraVCPDeviceForm.cs              30 ->   15
+AudioInputDeviceForm.cs                  27 ->    0
+ObsidianDeviceForm.cs                    14 ->   12
+ObsidianIn.cs                            66 ->   63
+RadiaCodeDeviceForm.cs                   13 ->   10
+RadiaCodeIn.cs                           74 ->   72
+DoubleTextBox.cs                          2 ->    0
+IntegerTextBox.cs                         2 ->    0
+DeviceConfigForm.cs                      62 ->   16
+DeviceConfigForm.Efficiency.cs            2 ->    2
+DeviceConfigForm.Designer.cs              0 ->    0
+DeviceConfigManager.cs                    5 ->    5
+GlobalConfigForm.cs                      16 ->    0
+GlobalConfigForm.Designer.cs              0 ->    0
+ÈÒÎÃÎ ìîè ôàéëû                         313 ->  195
+
+ÂÑÅÃÎ ÄÅÐÅÂÎ 888 -> 770

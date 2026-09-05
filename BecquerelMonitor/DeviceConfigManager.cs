@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Deployment.Application;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml.Serialization;
@@ -153,7 +154,7 @@ namespace BecquerelMonitor
             this.listLoaded = true;
             // `S102`: назвать ОТКРЫТЫЙ каталог и то, сколько из него взято.
             AppUi.Note("device configs: " + AppUi.Where(userDirectoryConfigDeviceDir) + ": "
-                + this.deviceConfigList.Count + " loaded");
+                + this.deviceConfigList.Count.ToString(CultureInfo.InvariantCulture) + " loaded");
         }
 
         // Token: 0x060005FC RID: 1532 RVA: 0x00025990 File Offset: 0x00023B90

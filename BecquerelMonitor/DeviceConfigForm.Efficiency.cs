@@ -292,7 +292,9 @@ namespace BecquerelMonitor
             List<string> parts = new List<string>();
             if (config.HasCurve)
             {
-                parts.Add(string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyTabSummary,
+                // `A244`: числа в подписи — инвариантом. Точка у дробной части
+                // и никакой группировки разрядов (решение Amber 05.09.2026).
+                parts.Add(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyTabSummary,
                                         config.Curve.Count,
                                         (int)config.Curve[0].Energy,
                                         (int)config.Curve[config.Curve.Count - 1].Energy));

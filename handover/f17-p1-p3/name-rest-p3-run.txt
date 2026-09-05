@@ -1,0 +1,6 @@
+мест разобрано: 23
+настоящих мест МОЕЙ доли: 0
+уводящих в ЧУЖОЙ файл (дописка в A244): 3
+   DeviceConfigForm.cs:524 — ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+   DeviceConfigForm.cs:541 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+   DeviceConfigForm.cs:1396 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)

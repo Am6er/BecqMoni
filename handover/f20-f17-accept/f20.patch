@@ -1,0 +1,1071 @@
+diff --git a/BecquerelMonitor/AudioInputDeviceForm.cs b/BecquerelMonitor/AudioInputDeviceForm.cs
+index f55fa086..94f6cb54 100644
+--- a/BecquerelMonitor/AudioInputDeviceForm.cs
++++ b/BecquerelMonitor/AudioInputDeviceForm.cs
+@@ -1,6 +1,7 @@
+ ﻿using BecquerelMonitor.Properties;
+ using System;
+ using System.Collections.ObjectModel;
++using System.Globalization;
+ using System.Windows.Forms;
+ using WinMM;
+ 
+@@ -83,7 +84,7 @@ namespace BecquerelMonitor
+         {
+             if (this.deviceConfigForm != null && this.deviceConfigForm.ActiveDeviceConfig != null && this.pulseRecorder.Recording)
+             {
+-                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
++                this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+                 this.standardPulseView1.Invalidate();
+                 if (this.pulseRecorder.NumberOfPulses >= 10000)
+                 {
+@@ -108,30 +109,42 @@ namespace BecquerelMonitor
+             }
+             if (!flag && this.waveDeviceList.Count > 0)
+             {
+-                MessageBox.Show(Resources.ERRAudioDeviceNotFound);
++                // ⛔ `A245`, полоса F20 05.09.2026. Здесь стоял голый
++                //    `MessageBox.Show`, а метод лежит на БЕЗОКОННОМ пути:
++                //    `DeviceConfigForm.LoadFormContents` зовут отражением
++                //    пробы (`CultureProbeO14`, раздел `A244P1P3`), и у любой
++                //    новой конфигурации `AudioInputDevice` пуст — то есть
++                //    окно поднималось В КАЖДОМ прогоне. Нажать «ОК» там
++                //    некому, и приёмка становилась лотереей: у одного
++                //    прогона окно кто-то закрывал и был код 0, у другого
++                //    плечо стояло 120 с и падало «окно настроек не
++                //    ответило». Тот же ресурс уже ходит через дверь в
++                //    `AudioInputDeviceController.cs:80` — вид сообщения не
++                //    меняется, в окнах оно прежнее.
++                AppUi.Report(Resources.ERRAudioDeviceNotFound, "", MessageBoxIcon.None);
+                 audioInputDeviceConfig.AudioInputDevice = this.waveDeviceList[0];
+                 this.SetActiveDeviceConfigDirty();
+                 this.comboBox1.SelectedIndex = 0;
+             }
+-            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString();
+-            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString();
++            this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString(CultureInfo.InvariantCulture);
++            this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString(CultureInfo.InvariantCulture);
+             this.trackBar1.Value = audioInputDeviceConfig.Volume;
+-            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString();
++            this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString(CultureInfo.InvariantCulture);
+             this.checkBox2.Checked = audioInputDeviceConfig.AutoVolumeSetting;
+             this.trackBar1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
+             this.maskedTextBox1.Enabled = audioInputDeviceConfig.AutoVolumeSetting;
+             this.checkBox1.Checked = audioInputDeviceConfig.NegativePolarity;
+             PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
+-            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString();
+-            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
++            this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
+             double pulseThreshold = prahomageMethodConfig.PulseThreshold;
+             this.trackBar2.Value = (int)(pulseThreshold * 100.0);
+-            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString();
++            this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString(CultureInfo.InvariantCulture);
+             this.numericUpDown1.Value = prahomageMethodConfig.PulseShapeSize;
+             this.numericUpDown2.Value = prahomageMethodConfig.PeakIndex;
+-            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString();
+-            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
+-            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString();
++            this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
++            this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+             this.standardPulseView1.PulseShape = prahomageMethodConfig.PulseShape;
+             this.standardPulseView1.PeakIndex = prahomageMethodConfig.PeakIndex;
+             this.standardPulseView1.PulseShapeSize = prahomageMethodConfig.PulseShapeSize;
+@@ -152,31 +165,31 @@ namespace BecquerelMonitor
+                 {
+                     audioInputDeviceConfig.AudioInputDevice = this.waveDeviceList[this.comboBox1.SelectedIndex];
+                 }
+-                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text);
+-                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text);
+-                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text);
++                audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text, CultureInfo.InvariantCulture);
++                audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text, CultureInfo.InvariantCulture);
++                audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text, CultureInfo.InvariantCulture);
+                 audioInputDeviceConfig.AutoVolumeSetting = this.checkBox2.Checked;
+                 audioInputDeviceConfig.NegativePolarity = this.checkBox1.Checked;
+                 PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
+-                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text);
+-                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text);
++                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text, CultureInfo.InvariantCulture);
++                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text, CultureInfo.InvariantCulture);
+                 if (prahomageMethodConfig.UpperThreshold < prahomageMethodConfig.LowerThreshold)
+                 {
+                     prahomageMethodConfig.UpperThreshold = prahomageMethodConfig.LowerThreshold;
+-                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString();
++                    this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
+                 }
+-                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text) / 100.0;
++                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text, CultureInfo.InvariantCulture) / 100.0;
+                 prahomageMethodConfig.PulseShapeSize = (int)this.numericUpDown1.Value;
+                 prahomageMethodConfig.PeakIndex = (int)this.numericUpDown2.Value;
+-                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text);
+-                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text);
++                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text, CultureInfo.InvariantCulture);
++                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text, CultureInfo.InvariantCulture);
+                 if (prahomageMethodConfig.PulseUpperThreshold < prahomageMethodConfig.PulseLowerThreshold)
+                 {
+                     prahomageMethodConfig.PulseUpperThreshold = prahomageMethodConfig.PulseLowerThreshold;
+-                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString();
++                    this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.InvariantCulture);
+                 }
+                 prahomageMethodConfig.PulseShape = this.standardPulseView1.PulseShape;
+-                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text);
++                prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text, CultureInfo.InvariantCulture);
+             }
+             catch (Exception)
+             {
+@@ -235,7 +248,7 @@ namespace BecquerelMonitor
+             this.button1.Enabled = true;
+             this.button2.Enabled = false;
+             this.pulseRecorder.StopRecording();
+-            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString();
++            this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCulture);
+             this.standardPulseView1.Invalidate();
+             if (this.audioVolumeController != null && this.tempConfig != null)
+             {
+@@ -265,7 +278,7 @@ namespace BecquerelMonitor
+         // Token: 0x0600104A RID: 4170 RVA: 0x0005A430 File Offset: 0x00058630
+         void trackBar1_Scroll(object sender, EventArgs e)
+         {
+-            this.maskedTextBox1.Text = this.trackBar1.Value.ToString();
++            this.maskedTextBox1.Text = this.trackBar1.Value.ToString(CultureInfo.InvariantCulture);
+             this.SetActiveDeviceConfigDirty();
+         }
+ 
+@@ -273,7 +286,7 @@ namespace BecquerelMonitor
+         void maskedTextBox1_TextChanged(object sender, EventArgs e)
+         {
+             int value = 0;
+-            int.TryParse(this.maskedTextBox1.Text, out value);
++            int.TryParse(this.maskedTextBox1.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+             this.trackBar1.Value = value;
+             this.SetActiveDeviceConfigDirty();
+         }
+@@ -336,7 +349,7 @@ namespace BecquerelMonitor
+         // Token: 0x06001054 RID: 4180 RVA: 0x0005A570 File Offset: 0x00058770
+         void trackBar2_Scroll(object sender, EventArgs e)
+         {
+-            this.maskedTextBox2.Text = this.trackBar2.Value.ToString();
++            this.maskedTextBox2.Text = this.trackBar2.Value.ToString(CultureInfo.InvariantCulture);
+             this.SetActiveDeviceConfigDirty();
+         }
+ 
+@@ -344,7 +357,7 @@ namespace BecquerelMonitor
+         void maskedTextBox2_TextChanged(object sender, EventArgs e)
+         {
+             int num = 0;
+-            int.TryParse(this.maskedTextBox2.Text, out num);
++            int.TryParse(this.maskedTextBox2.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out num);
+             if (num < 0)
+             {
+                 num = 0;
+@@ -353,7 +366,7 @@ namespace BecquerelMonitor
+             {
+                 num = 100;
+             }
+-            this.maskedTextBox2.Text = num.ToString();
++            this.maskedTextBox2.Text = num.ToString(CultureInfo.InvariantCulture);
+             this.trackBar2.Value = num;
+             this.SetActiveDeviceConfigDirty();
+         }
+diff --git a/BecquerelMonitor/DoubleTextBox.cs b/BecquerelMonitor/DoubleTextBox.cs
+index 1a77c6f0..0e277449 100644
+--- a/BecquerelMonitor/DoubleTextBox.cs
++++ b/BecquerelMonitor/DoubleTextBox.cs
+@@ -1,10 +1,94 @@
+ ﻿using BecquerelMonitor.Properties;
++using System;
+ using System.ComponentModel;
+ using System.Drawing;
++using System.Globalization;
+ using System.Windows.Forms;
+ 
+ namespace BecquerelMonitor
+ {
++    /// <summary>
++    /// Разбор числа, НАБРАННОГО ЧЕЛОВЕКОМ в поле ввода (`A244`).
++    ///
++    /// ⛔ Печать чисел инвариантна — разделитель дробной части ВСЕГДА ТОЧКА
++    /// (правило Amber 05.09.2026). Значит и читать поле надо инвариантом:
++    /// напечатанное «0.5» на русской системе прежний `double.TryParse(text)`
++    /// не брал вовсе, а `GetValue` возвращал молча НОЛЬ — не отказ, а другое
++    /// число. У `decimal.Parse(text)` было хуже: его умолчание несёт
++    /// `AllowThousands`, и «1.5» на русской системе становилось 15.
++    ///
++    /// Вторая попытка — по культуре системы: человек за русской клавиатурой
++    /// набирает «0,5», и отказывать ему не за что. Это не подделка культуры —
++    /// печатаем всегда одинаково, читаем терпимо.
++    ///
++    /// ⛔ Разделителя разрядов не допускает НИ ОДНА попытка (`NumberStyles.Float`
++    /// его не несёт) — решение Amber 05.09.2026 «группировку убрать вовсе»,
++    /// и без него «1.234» на немецкой системе молча стало бы тысячей.
++    /// </summary>
++    public static class UserNumber
++    {
++        public static bool TryParseDouble(string text, out double value)
++        {
++            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
++        }
++
++        public static bool TryParseInt(string text, out int value)
++        {
++            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value);
++        }
++
++        public static bool TryParseDecimal(string text, out decimal value)
++        {
++            if (decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
++            {
++                return true;
++            }
++            return decimal.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
++        }
++
++        // Бросающие обёртки: там, где прежде стоял `T.Parse(text)`, отказ был
++        // исключением, и на нём держится поведение вызывающих (форма
++        // конфигурации отменяет сохранение, редактор ячейки — правку). Замена
++        // на `TryParse` втихую превратила бы отказ в ноль.
++        public static double ParseDouble(string text)
++        {
++            double value;
++            if (!TryParseDouble(text, out value))
++            {
++                throw new FormatException(text + " is not a number");
++            }
++            return value;
++        }
++
++        public static int ParseInt(string text)
++        {
++            int value;
++            if (!TryParseInt(text, out value))
++            {
++                throw new FormatException(text + " is not an integer");
++            }
++            return value;
++        }
++
++        public static decimal ParseDecimal(string text)
++        {
++            decimal value;
++            if (!TryParseDecimal(text, out value))
++            {
++                throw new FormatException(text + " is not a number");
++            }
++            return value;
++        }
++    }
++
+     // Token: 0x020000F5 RID: 245
+     [ToolboxBitmap(typeof(TextBox))]
+     public class DoubleTextBox : TextBox
+@@ -23,9 +107,18 @@ namespace BecquerelMonitor
+                 this.Text = "0";
+             }
+             double num;
+-            if (!double.TryParse(this.Text, out num))
++            if (!UserNumber.TryParseDouble(this.Text, out num))
+             {
+-                MessageBox.Show(Resources.ERRInputNumber, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
++                // ⛔ `A245`, полоса F20 05.09.2026. Голое модальное окно на
++                //    безоконном пути: этот обработчик зовут отражением пробы
++                //    (`CultureProbeO14`, раздел `A244P1P3`), и до правки
++                //    сторона ОТКАЗА поля не мерилась вовсе — плечо обходило
++                //    настоящий обработчик, потому что прогон повис бы на
++                //    окне. Дверь маршалится сама (~~`A241`~~), а на потоке
++                //    окон вызов остаётся синхронным: в приложении вид
++                //    сообщения прежний — тот же текст, тот же заголовок,
++                //    та же «ОК» и тот же знак.
++                AppUi.Report(Resources.ERRInputNumber, Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
+                 base.SelectAll();
+                 e.Cancel = true;
+             }
+@@ -35,7 +128,7 @@ namespace BecquerelMonitor
+         public double GetValue()
+         {
+             double result = 0.0;
+-            double.TryParse(this.Text, out result);
++            UserNumber.TryParseDouble(this.Text, out result);
+             return result;
+         }
+     }
+diff --git a/BecquerelMonitor/IntegerTextBox.cs b/BecquerelMonitor/IntegerTextBox.cs
+index d56d1e3c..23b4e50e 100644
+--- a/BecquerelMonitor/IntegerTextBox.cs
++++ b/BecquerelMonitor/IntegerTextBox.cs
+@@ -23,9 +23,18 @@ namespace BecquerelMonitor
+                 this.Text = "0";
+             }
+             int num;
+-            if (!int.TryParse(this.Text, out num))
++            // `A244`: разбор ввода человека — инвариантом, с уступкой культуре
++            // системы (см. `UserNumber` в `DoubleTextBox.cs`).
++            if (!UserNumber.TryParseInt(this.Text, out num))
+             {
+-                MessageBox.Show(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
++                // ⛔ `A245`, полоса F20 05.09.2026 — то же, что в
++                //    `DoubleTextBox_Validating`: голое модальное окно на
++                //    безоконном пути. Сторож `check_headless.py` этого места
++                //    не называл только потому, что до него не дотягивалась ни
++                //    одна проба; чинится вместе с соседом, иначе одно поле
++                //    ввода из двух осталось бы с окном, а разницы между ними
++                //    нет никакой.
++                AppUi.Report(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
+                 base.SelectAll();
+                 e.Cancel = true;
+             }
+@@ -35,7 +44,7 @@ namespace BecquerelMonitor
+         public int GetValue()
+         {
+             int result = 0;
+-            int.TryParse(this.Text, out result);
++            UserNumber.TryParseInt(this.Text, out result);
+             return result;
+         }
+     }
+diff --git a/tools/effmaker/probes/CultureProbeO14.cs b/tools/effmaker/probes/CultureProbeO14.cs
+index 4583b4f9..59c9e307 100644
+--- a/tools/effmaker/probes/CultureProbeO14.cs
++++ b/tools/effmaker/probes/CultureProbeO14.cs
+@@ -30,6 +30,7 @@ using System.Collections.Generic;
+ using System.Globalization;
+ using System.IO;
+ using System.Reflection;
++using System.Runtime.InteropServices;
+ using System.Text;
+ using System.Threading;
+ using System.Threading.Tasks;
+@@ -70,9 +71,31 @@ static class CultureProbeO14
+     {
+         Console.OutputEncoding = Encoding.UTF8;
+         string outPath = null;
++        bool modalControl = false;
+         foreach (string a in args)
+         {
+             if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
++            else if (a == "--modal-control") modalControl = true;
++        }
++
++        // ⛔ Сторож модальных окон — ПЕРВЫМ ДЕЛОМ, до менеджеров-одиночек:
++        //    окно, поднятое голым `MessageBox.Show` на безоконном пути, вешает
++        //    прогон насмерть, и до этого сторожа исход приёмки зависел от
++        //    того, закроет ли окно кто-то снаружи (полоса F20, `A245`).
++        ModalWatchStart();
++
++        if (modalControl)
++        {
++            // Положительный контроль САМОГО сторожа: без него «окон не было»
++            // неотличимо от «сторож молчит». Прогон обязан кончиться кодом 1.
++            ModalControl();
++            Say("");
++            Say(failures == 0
++                ? "⛔ КОНТРОЛЬ НЕ СРАБОТАЛ: сторож не засчитал ни одного окна"
++                : "РАСХОЖДЕНИЙ: " + failures + " (так и надо: это контроль сторожа)");
++            ModalWatchStop();
++            Finish(outPath);
++            return failures == 0 ? 3 : 1;
+         }
+ 
+ 
+@@ -183,7 +206,18 @@ static class CultureProbeO14
+         //    потоке и на потоке пула без переноса контекста исполнения.
+         A244P1();
+ 
++        // ── `A244`, ДОДЕЛКА П1+П3 (полоса F17): окно настроек прибора
++        //    (`DeviceConfigForm`) и ВВОД ЧЕЛОВЕКА в поля `DoubleTextBox` /
++        //    `IntegerTextBox`, куда это окно печатает и откуда читает.
++        A244P1P3();
++
++        ModalWatchStop();
++
+         Say("");
++        Say("модальных окон за прогон: " + modalSeen
++            + (modalSeen == 0
++               ? " — безоконный путь нигде не упёрся в окно"
++               : " ⛔ окна поднимались, см. строки выше"));
+         Say(failures == 0
+             ? "СОШЛОСЬ: строка ресурса вне UI-потока выходит по настройке во всех плечах;"
+               + " числа печатаются и разбираются точкой на любой культуре"
+@@ -1128,8 +1162,179 @@ static class CultureProbeO14
+ 
+     static void Say(string line)
+     {
+-        Console.WriteLine(line);
+-        Log.AppendLine(line);
++        // ⚠ Зовётся и со сторожевого потока (`ModalWatch`), поэтому под
++        //   замком: `StringBuilder` не потокобезопасен, а порванная строка
++        //   отчёта — это отказ, который никто не прочтёт.
++        lock (Log)
++        {
++            Console.WriteLine(line);
++            Log.AppendLine(line);
++        }
++    }
++
++    // ══════════════════════════════════════════════════════════════════════
++    //  СТОРОЖ МОДАЛЬНЫХ ОКОН (полоса F20, 05.09.2026).
++    //
++    //  ⛔ ЗАЧЕМ. До него приёмка раздела `A244P1P3` была ЛОТЕРЕЕЙ, и это
++    //     измерено, а не выведено: `DeviceConfigForm.LoadFormContents` →
++    //     `AudioInputDeviceForm.LoadFormContents` поднимал голый
++    //     `MessageBox.Show(«Выбранное аудио устройство не найдено.»)` — у
++    //     новой конфигурации `AudioInputDevice` пуст ВСЕГДА, значит окно
++    //     вставало в КАЖДОМ прогоне. Нажать «ОК» в безоконном прогоне
++    //     некому, и исход зависел от того, закроет ли окно кто-то снаружи:
++    //     один прогон давал код 0, следующий той же командой — «⛔ ЭТАЛОН НЕ
++    //     СНЯТ: окно настроек не ответило за 120 с». Сама беда починена в
++    //     приложении (`AppUi.Report` вместо `MessageBox.Show`), но проба
++    //     обязана ОТКАЗЫВАТЬ БЫСТРО И ВНЯТНО, если окно вернётся откуда
++    //     угодно, а не висеть и не зависеть от человека.
++    //
++    //  Что делает: каждые 200 мс перечисляет окна СВОЕГО процесса класса
++    //  `#32770` (это класс `MessageBox` и любого диалога), называет их текст,
++    //  засчитывает расхождение и посылает `WM_CLOSE` — прогон идёт дальше и
++    //  доносит отчёт целиком, а не гибнет по чужому таймауту.
++    //
++    //  Положительный контроль — ключ `--modal-control`: проба сама поднимает
++    //  `MessageBox` на фоновом потоке, и сторож ОБЯЗАН его назвать и закрыть,
++    //  а прогон обязан кончиться кодом 1 за секунды. Без этого ключа «окон не
++    //  было» неотличимо от «сторож не работает».
++    // ══════════════════════════════════════════════════════════════════════
++
++    const string DialogClass = "#32770";
++    const uint WM_CLOSE = 0x0010;
++
++    delegate bool EnumWindowProc(IntPtr hWnd, IntPtr lParam);
++
++    [DllImport("user32.dll")]
++    static extern bool EnumWindows(EnumWindowProc lpfn, IntPtr lParam);
++
++    [DllImport("user32.dll")]
++    static extern bool EnumChildWindows(IntPtr hWnd, EnumWindowProc lpfn, IntPtr lParam);
++
++    [DllImport("user32.dll")]
++    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
++
++    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
++    static extern int GetClassNameW(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
++
++    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
++    static extern int GetWindowTextW(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
++
++    [DllImport("user32.dll")]
++    static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
++
++    static volatile bool modalWatchStop;
++    static Thread modalWatchThread;
++    static int modalSeen;
++
++    static void ModalWatchStart()
++    {
++        modalWatchThread = new Thread(delegate()
++        {
++            uint self = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
++            Dictionary<long, bool> known = new Dictionary<long, bool>();
++            while (!modalWatchStop)
++            {
++                List<IntPtr> found = new List<IntPtr>();
++                try
++                {
++                    EnumWindows(delegate(IntPtr h, IntPtr l)
++                    {
++                        uint pid;
++                        GetWindowThreadProcessId(h, out pid);
++                        if (pid != self) return true;
++                        StringBuilder cls = new StringBuilder(64);
++                        GetClassNameW(h, cls, cls.Capacity);
++                        if (cls.ToString() == DialogClass) found.Add(h);
++                        return true;
++                    }, IntPtr.Zero);
++                }
++                catch (Exception) { }
++
++                foreach (IntPtr h in found)
++                {
++                    long key = h.ToInt64();
++                    if (known.ContainsKey(key)) continue;
++                    known[key] = true;
++                    modalSeen++;
++                    failures++;
++                    Say("⛔ БЕЗОКОННЫЙ ПУТЬ УПЁРСЯ В МОДАЛЬНОЕ ОКНО: «" + ModalText(h)
++                        + "» — сторож закрывает его сам; нажать «ОК» здесь некому,"
++                        + " разряд `A245`");
++                    try { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); }
++                    catch (Exception) { }
++                }
++                Thread.Sleep(200);
++            }
++        });
++        modalWatchThread.IsBackground = true;
++        modalWatchThread.Start();
++    }
++
++    /// <summary>Текст диалога — он лежит в его детях класса `Static`.</summary>
++    static string ModalText(IntPtr dialog)
++    {
++        StringBuilder acc = new StringBuilder();
++        try
++        {
++            EnumChildWindows(dialog, delegate(IntPtr ch, IntPtr l)
++            {
++                StringBuilder cls = new StringBuilder(64);
++                GetClassNameW(ch, cls, cls.Capacity);
++                if (cls.ToString() == "Static")
++                {
++                    StringBuilder txt = new StringBuilder(512);
++                    GetWindowTextW(ch, txt, txt.Capacity);
++                    string s = txt.ToString().Trim();
++                    if (s.Length > 0)
++                    {
++                        if (acc.Length > 0) acc.Append(" / ");
++                        acc.Append(s);
++                    }
++                }
++                return true;
++            }, IntPtr.Zero);
++        }
++        catch (Exception) { }
++        return acc.Length == 0 ? "(текст не прочитан)" : acc.ToString();
++    }
++
++    static void ModalWatchStop()
++    {
++        modalWatchStop = true;
++        if (modalWatchThread != null) modalWatchThread.Join(2000);
++    }
++
++    /// <summary>
++    /// Положительный контроль сторожа: окно поднимается НАРОЧНО, на фоновом
++    /// потоке — ровно как его поднимало приложение. Сторож обязан назвать его
++    /// текст и закрыть, иначе проба стояла бы здесь до убийства процесса.
++    /// </summary>
++    static void ModalControl()
++    {
++        Say("");
++        Say("══════════════════════════════════════════════════════════════");
++        Say("ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ СТОРОЖА ОКОН (`--modal-control`)");
++        Say("══════════════════════════════════════════════════════════════");
++        int before = modalSeen;
++        DateTime t0 = DateTime.UtcNow;
++        Thread th = new Thread(delegate()
++        {
++            System.Windows.Forms.MessageBox.Show("контрольное окно полосы F20",
++                                                 "контроль", System.Windows.Forms.MessageBoxButtons.OK);
++        });
++        th.IsBackground = true;
++        th.SetApartmentState(ApartmentState.STA);
++        th.Start();
++        bool closed = th.Join(20000);
++        double sec = (DateTime.UtcNow - t0).TotalSeconds;
++        Say("  окно поднято нарочно, закрыто сторожем: " + Verdict(closed)
++            + ", секунд " + sec.ToString("F1", CultureInfo.InvariantCulture)
++            + ", окон назвал сторож: " + (modalSeen - before));
++        if (!closed)
++        {
++            Say("  ⛔ СТОРОЖ НЕ РАБОТАЕТ: окно не закрыто за 20 с");
++            failures++;
++        }
+     }
+ 
+     static void Finish(string outPath)
+@@ -1925,4 +2130,491 @@ static class CultureProbeO14
+         }
+         s.Baud = cfg.BaudRate.ToString(CultureInfo.InvariantCulture) + " на " + cfg.ComPortName;
+     }
++
++    // ══════════════════════════════════════════════════════════════════════
++    //  `A244`, ДОДЕЛКА ОБОРВАННЫХ ПОЛОС П1 и П3 (полоса F17).
++    //
++    //  П1 «ввод прибора» мерится разделом `A244P1` выше — он на месте и
++    //  собран. Здесь достаётся ВТОРАЯ половина той же работы, которая
++    //  осталась неизмеренной, когда обе полосы сняли на ходу:
++    //
++    //   1. ОКНО НАСТРОЕК ПРИБОРА (`DeviceConfigForm`, доля П3).
++    //      `LoadFormContents` печатает числа конфигурации в поля, а
++    //      `SaveFormContents` читает их обратно. Оба зовутся ОТРАЖЕНИЕМ —
++    //      окно не поднимается (`S100`). Печать и разбор в одном плече
++    //      нарочно: половина правки даёт не отказ, а ДРУГОЕ ЧИСЛО, тихо.
++    //
++    //   2. ВВОД ЧЕЛОВЕКА (`DoubleTextBox`, `IntegerTextBox` — те самые поля,
++    //      куда печатает и из которых читает и окно прибора, и окно общих
++    //      настроек). Показывается ТАБЛИЦА: какой текст поле принимало ДО
++    //      правки и какой принимает ПОСЛЕ, на каждой культуре.
++    //      ⛔ Разделитель ТЫСЯЧ не отдаётся: инвариантно это запятая — тот
++    //      самый символ, которым русский набирает дробную часть, и принять
++    //      его значило бы молча делать из «1,5» число 15.
++    //
++    //  ⛔ Чего этот раздел НЕ делает и почему. Отказ поля идёт через
++    //     `DoubleTextBox_Validating`, а тот при отказе поднимает
++    //     `MessageBox` — безоконный прогон повис бы на нём насмерть
++    //     (`S100`). Поэтому настоящий обработчик зовётся ТОЛЬКО на тексте,
++    //     который новый код принимает (и там судится `e.Cancel == false`), а
++    //     сторона отказа мерится настоящим публичным читателем поля
++    //     `GetValue()`, которым пользуются все вызывающие.
++    // ══════════════════════════════════════════════════════════════════════
++
++    sealed class P3Shot
++    {
++        public string Err;
++        public string Culture;
++        public string Bare;
++        public string[] Text;      // поля окна после печати
++        public double[] Back;      // числа, вернувшиеся разбором
++        public string TbDouble;    // DoubleTextBox: «0.5» → GetValue
++        public string TbInt;       // IntegerTextBox: «1024» → GetValue
++        public string OldDouble;   // ПРЕЖНИЙ разбор поля: double.TryParse(«0.5»)
++        public string OldDecimal;  // ПРЕЖНИЙ разбор ячейки: decimal.Parse(«1.5»)
++        public string[] InNew;     // что поле принимает ПОСЛЕ правки
++        public string[] InOld;     // что оно принимало ДО
++        public string ValidatorNote;
++        public string RefuseNote;  // настоящий обработчик на ОТКАЗНОМ тексте
++    }
++
++    static readonly string[] P3Fields =
++        { "doubleTextBox5", "integerTextBox1", "doubleTextBox6",
++          "numericUpDown7", "numericUpDown2", "numericUpDown1",
++          "numericUpDown9", "numericUpDown8" };
++
++    // Числа замера. Дробные нарочно такие, чтобы отличие разделителя было
++    // видно, а разбор разрядов (если бы он остался) дал ДРУГОЕ число.
++    const int P3Time = 3600;
++    const int P3Channels = 1024;
++    const double P3Pitch = 0.5;
++    static readonly double[] P3Coeff = { 1.25, 2.5, 0.001234, 4.5, 5.5 };
++
++    // ⛔ Набор текстов ввода. Каждый выбран под свой вопрос:
++    //    «1.5»      — то, что теперь ПЕЧАТАЕТ приложение: поле обязано это взять;
++    //    «1,5»      — то, что набирает человек за русской/немецкой клавиатурой;
++    //    «1.234»    — три знака после точки: на немецкой системе прежний разбор
++    //                 делал из этого ТЫСЯЧУ (точка там разделитель разрядов);
++    //    «1,234»    — то же зеркально для английской системы;
++    //    «1 5» — неразрывный пробел, разделитель разрядов русской культуры;
++    //    «1 5»      — обычный пробел;
++    //    «-2.5»     — знак не должен потеряться.
++    static readonly string[] P3Inputs =
++        { "1.5", "1,5", "1.234", "1,234", "1\u00A05", "1 5", "-2.5" };
++
++    static void A244P1P3()
++    {
++        Say("");
++        Say("══════════════════════════════════════════════════════════════");
++        Say("`A244` П1+П3: ЧИСЛА ОКНА НАСТРОЕК ПРИБОРА И ВВОД ЧЕЛОВЕКА");
++        Say("══════════════════════════════════════════════════════════════");
++
++        // ⛔ Реестры приборов — ДО первого `DeviceConfigForm`. В приложении их
++        //    заводит `MainForm` (строки 177–178), а окна здесь нет: без них
++        //    конструктор окна настроек падает `NullReferenceException` на
++        //    `foreach (DeviceType … DeviceTypeList)`. Оба метода перезаводят
++        //    списки заново, повторный вызов безвреден.
++        DeviceType.InitializeDeviceTypes();
++        ThermometerType.InitializeThermometerTypes();
++
++        // Соседний раздел `A244P1` отпускает ручки по умолчанию — вернём их
++        // в известное состояние, иначе эталон снимется не на инварианте.
++        CultureInfo.DefaultThreadCurrentCulture = null;
++        CultureInfo.DefaultThreadCurrentUICulture = null;
++        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
++
++        P3Shot want = P3Shoot();
++        if (want.Err != null)
++        {
++            Say("  ⛔ ЭТАЛОН НЕ СНЯТ, замер невозможен: " + want.Err);
++            failures++;
++            return;
++        }
++        Say("  эталон (инвариант) поля окна: " + string.Join(" | ", want.Text));
++        Say("  эталон (инвариант) обратный разбор: " + P3Nums(want.Back));
++        Say("  настоящий обработчик поля: " + want.ValidatorNote);
++
++        string[] cross = null;
++
++        foreach (string name in Foreign)
++        {
++            CultureInfo os = CultureInfo.GetCultureInfo(name);
++            Say("");
++            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
++            Thread.CurrentThread.CurrentCulture = os;
++            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
++
++            P3Shot got = P3Shoot();
++            if (got.Err != null)
++            {
++                Say("  ⛔ плечо не отработало: " + got.Err);
++                failures++;
++                continue;
++            }
++
++            // ── Положительный контроль плеча: культура обязана быть видна.
++            string wantBare = comma ? "1,5" : "1.5";
++            bool armOk = got.Bare == wantBare;
++            Say("  [полож. контроль] `(1.5).ToString()` без культуры = «" + got.Bare + "»"
++                + (armOk ? " — плечо воспроизводит культуру"
++                         : " ⛔ ОЖИДАЛОСЬ «" + wantBare + "»: ПЛЕЧО НЕ МЕРИТ"));
++            if (!armOk) failures++;
++
++            // ── ПРЯМОЕ: печать в поля окна.
++            A244P3Same("  ПЕЧАТЬ  восемь полей `DeviceConfigForm`",
++                       string.Join(" | ", got.Text), string.Join(" | ", want.Text));
++
++            bool dot = true;
++            for (int i = 0; i < got.Text.Length; i++)
++            {
++                string v = got.Text[i];
++                if (v.IndexOf(',') >= 0 || v.IndexOf(' ') >= 0
++                    || v.IndexOf('\u00A0') >= 0 || v.IndexOf('\u202F') >= 0)
++                {
++                    dot = false;
++                }
++            }
++            Say("  ПЕЧАТЬ  ни запятой, ни разделителя разрядов ни в одном поле: " + Verdict(dot));
++            if (!dot) failures++;
++
++            // ── ОБРАТНОЕ: то же окно прочитало напечатанное им же.
++            A244P3Nums("  ОБРАТНОЕ  `SaveFormContents` вернул те же числа", got.Back, want.Back);
++
++            // ── ПЕРЕКРЁСТНОЕ: текст ЧУЖОГО плеча читается здесь.
++            if (cross == null)
++            {
++                cross = got.Text;
++            }
++            else
++            {
++                P3Shot c = P3Read(cross);
++                if (c.Err != null)
++                {
++                    Say("  ⛔ перекрёстное плечо не отработало: " + c.Err);
++                    failures++;
++                }
++                else
++                {
++                    A244P3Nums("  ОБРАТНОЕ перекрёстное  поля первого чужого плеча разобраны здесь",
++                               c.Back, want.Back);
++                }
++            }
++
++            // ── Поля-контролы, через которые читает и окно общих настроек.
++            A244P3Same("  РАЗБОР  `DoubleTextBox.GetValue()` поля «0.5»", got.TbDouble, "0.5");
++            A244P3Same("  РАЗБОР  `IntegerTextBox.GetValue()` поля «1024»", got.TbInt, "1024");
++
++            // ── ВВОД ЧЕЛОВЕКА: что поле брало ДО и что берёт ПОСЛЕ.
++            Say("  ВВОД ЧЕЛОВЕКА в `DoubleTextBox` (настоящий `GetValue()`):");
++            for (int i = 0; i < P3Inputs.Length; i++)
++            {
++                Say("    «" + P3Show(P3Inputs[i]) + "»  ДО: " + got.InOld[i]
++                    + "   ПОСЛЕ: " + got.InNew[i]);
++            }
++            // ⛔ Судится ровно одно: разделитель ТЫСЯЧ не принимается ни на
++            //    одной культуре, а напечатанное приложением «1.5» — принимается.
++            A244P3Same("  ВВОД  «1.5» (то, что печатает приложение)", got.InNew[0], "1.5");
++            A244P3Same("  ВВОД  «1,5» (набор с русской/немецкой клавиатуры)",
++                       got.InNew[1], comma ? "1.5" : P3NoParse);
++            A244P3Same("  ВВОД  «1.234» — три знака, а не тысяча", got.InNew[2], "1.234");
++            A244P3Same("  ВВОД  «1<NBSP>5» — разделитель разрядов НЕ принят",
++                       got.InNew[4], P3NoParse);
++            A244P3Same("  ВВОД  «1 5» — пробел НЕ принят", got.InNew[5], P3NoParse);
++            A244P3Same("  ВВОД  «-2.5» — знак цел", got.InNew[6], "-2.5");
++            Say("    настоящий обработчик поля на принятом тексте: " + got.ValidatorNote);
++            // ⛔ Сторона ОТКАЗА — тем же настоящим обработчиком (F20). До
++            //    правки `A245` это плечо поставить было нельзя: обработчик
++            //    поднимал голое модальное окно, и прогон вставал на нём.
++            A244P3Same("  ОТКАЗ  настоящий `DoubleTextBox_Validating` на «1<NBSP>5»",
++                       got.RefuseNote, P3RefuseWant);
++
++            // ⛔ Положительный контроль на ПРЕЖНИЙ код. Он же — цена половины
++            //    правки: печать точкой при старом разборе давала не отказ.
++            // ⛔ Судится «прежний разбор НЕВЕРЕН», а не «прежний разбор отказал».
++            //    Посылка «на культуре с запятой точка не разбирается вовсе»
++            //    ПРОВЕРКОЙ СНЯТА: она верна для `ru-RU` (разделитель разрядов
++            //    там неразрывный пробел, точка незаконна) и НЕВЕРНА для
++            //    `de-DE`, где точка — законный разделитель разрядов и «0.5»
++            //    молча становится 5. Отказ и «другое число» — оба дефект, но
++            //    второй хуже, и требовать именно отказа значило бы принять
++            //    худший исход за непройденное плечо.
++            Say("    [полож. контроль] ПРЕЖНИЙ `double.TryParse(«0.5»)` культурой потока = "
++                + got.OldDouble
++                + (comma ? (got.OldDouble == "0.5"
++                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
++                            : (got.OldDouble == P3NoParse
++                               ? "  — дефект воспроизведён (молчаливый НОЛЬ)"
++                               : "  — дефект воспроизведён (ДРУГОЕ ЧИСЛО, молча)"))
++                         : "  (культура с точкой — дефекта тут и не было)"));
++            if (comma && got.OldDouble == "0.5") failures++;
++
++            Say("    [полож. контроль] ПРЕЖНИЙ `decimal.Parse(«1.5»)` культурой потока = "
++                + got.OldDecimal
++                + (comma ? (got.OldDecimal == "1.5"
++                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
++                            : (got.OldDecimal == "15"
++                               ? "  — дефект воспроизведён (в десять раз больше, молча)"
++                               : "  — дефект воспроизведён (отказ)"))
++                         : "  (культура с точкой)"));
++            if (comma && got.OldDecimal == "1.5") failures++;
++        }
++
++        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
++    }
++
++    const string P3NoParse = "не разобрано → 0";
++
++    // Эталон стороны отказа: поле обязано ОТКАЗАТЬ и обязано сделать это БЕЗ
++    // окна — «окон поднято 0» здесь такое же судимое, как и сам отказ.
++    const string P3RefuseWant =
++        "`DoubleTextBox_Validating` на «1<NBSP>5» → Cancel=true (отказ, как и надо), окон поднято 0";
++
++    /// <summary>Тип, слово и ТРИ верхних кадра стека — иначе чинить нечего.</summary>
++    static string P3Where(Exception ex)
++    {
++        Exception e = ex is TargetInvocationException && ex.InnerException != null
++                    ? ex.InnerException : ex;
++        string st = e.StackTrace ?? "";
++        string[] frames = st.Split('\n');
++        StringBuilder sb = new StringBuilder();
++        sb.Append(e.GetType().Name).Append(": ").Append(e.Message);
++        for (int i = 0; i < frames.Length && i < 3; i++)
++        {
++            sb.Append(" | ").Append(frames[i].Trim());
++        }
++        return sb.ToString();
++    }
++
++    /// <summary>Текст с видимыми пробелами — иначе NBSP в отчёте неотличим.</summary>
++    static string P3Show(string s)
++    {
++        return s.Replace("\u00A0", "<NBSP>").Replace(" ", "<SP>");
++    }
++
++    static void A244P3Same(string title, string got, string want)
++    {
++        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
++        Say(title + " = «" + (got ?? "НЕ СНЯТО") + "»"
++            + (ok ? "  совпало с эталоном" : "  ⛔ ЭТАЛОН «" + want + "»"));
++        if (!ok) failures++;
++    }
++
++    static void A244P3Nums(string title, double[] got, double[] want)
++    {
++        bool ok = got != null && want != null && got.Length == want.Length;
++        for (int i = 0; ok && i < got.Length; i++)
++        {
++            ok = got[i] == want[i];
++        }
++        Say(title + " = " + P3Nums(got) + (ok ? "  числа те же" : "  ⛔ ЭТАЛОН " + P3Nums(want)));
++        if (!ok) failures++;
++    }
++
++    static string P3Nums(double[] v)
++    {
++        if (v == null) return "НЕ СНЯТО";
++        string[] s = new string[v.Length];
++        for (int i = 0; i < v.Length; i++)
++        {
++            s[i] = v[i].ToString("R", CultureInfo.InvariantCulture);
++        }
++        return string.Join(" | ", s);
++    }
++
++    /// <summary>Полный снимок: печать окна, обратный разбор, поля-контролы.</summary>
++    static P3Shot P3Shoot() { return P3Run(null); }
++
++    /// <summary>Перекрёстное плечо: в поля кладётся ЧУЖОЙ текст, читается здесь.</summary>
++    static P3Shot P3Read(string[] text) { return P3Run(text); }
++
++    static P3Shot P3Run(string[] preset)
++    {
++        P3Shot s = new P3Shot();
++        s.Culture = CultureInfo.CurrentCulture.Name;
++        if (s.Culture.Length == 0) s.Culture = "(инвариант)";
++        s.Bare = (1.5).ToString();
++
++        CultureInfo os = CultureInfo.CurrentCulture;
++        Thread t = new Thread(delegate()
++        {
++            Thread.CurrentThread.CurrentCulture = os;
++            try { P3Body(s, preset); }
++            // ⚠ Со СТЕКОМ нарочно: «NullReferenceException» без места отказа —
++            //    признак без читателя, по нему нечего чинить.
++            catch (Exception ex) { s.Err = P3Where(ex); }
++        });
++        t.IsBackground = true;
++        t.SetApartmentState(ApartmentState.STA);
++        t.Start();
++        // ⛔ Ожидание СОКРАЩЕНО со 120 с до 20 (полоса F20). Довод не «так
++        //    быстрее»: модальное окно теперь снимает сторож за ≤0.2 с и
++        //    называет его текст, поэтому долгое ожидание перестало быть
++        //    страховкой и осталось только ценой отказа — четыре плеча по две
++        //    минуты складывались в восемь минут молчания, после которых
++        //    отчёт всё равно говорил «модальное окно?» ВОПРОСОМ, а не
++        //    именем окна. Работы тут на десятые доли секунды.
++        if (!t.Join(20000))
++        {
++            s.Err = "окно настроек не ответило за 20 с; модальных окон сторож"
++                  + " насчитал к этому мигу " + modalSeen
++                  + (modalSeen == 0
++                     ? " — значит дело НЕ в окне, ищи блокировку в другом месте"
++                     : " — см. строки сторожа выше");
++        }
++        return s;
++    }
++
++    static void P3Body(P3Shot s, string[] preset)
++    {
++        // ── Прежний разбор, снятый ДО правок формы: он ничем не связан с
++        //    формой и служит положительным контролем плеча.
++        double old;
++        s.OldDouble = double.TryParse("0.5", out old)
++            ? old.ToString("R", CultureInfo.InvariantCulture)
++            : P3NoParse;
++        try { s.OldDecimal = decimal.Parse("1.5").ToString(CultureInfo.InvariantCulture); }
++        catch (FormatException) { s.OldDecimal = "FormatException"; }
++
++        // ── Поля-контролы окна общих настроек: печать инвариантом → разбор.
++        DoubleTextBox dtb = new DoubleTextBox();
++        dtb.Text = P3Pitch.ToString(CultureInfo.InvariantCulture);
++        s.TbDouble = dtb.GetValue().ToString("R", CultureInfo.InvariantCulture);
++        IntegerTextBox itb = new IntegerTextBox();
++        itb.Text = P3Channels.ToString(CultureInfo.InvariantCulture);
++        s.TbInt = itb.GetValue().ToString(CultureInfo.InvariantCulture);
++
++        P3Input(s);
++
++        // ── Настоящее окно настроек прибора.
++        DeviceConfigForm form = new DeviceConfigForm();
++        DeviceConfigInfo cfg = P3Config();
++
++        MethodInfo load = typeof(DeviceConfigForm).GetMethod("LoadFormContents", NP);
++        MethodInfo save = typeof(DeviceConfigForm).GetMethod("SaveFormContents", NP);
++        if (load == null || save == null)
++        {
++            throw new InvalidOperationException("`LoadFormContents`/`SaveFormContents` не найдены: сборка чужая");
++        }
++
++        load.Invoke(form, new object[] { cfg });
++
++        s.Text = new string[P3Fields.Length];
++        for (int i = 0; i < P3Fields.Length; i++)
++        {
++            s.Text[i] = P3Ctl(form, P3Fields[i]).Text;
++        }
++
++        // Перекрёстное плечо: подменяем текст полей чужим.
++        if (preset != null)
++        {
++            for (int i = 0; i < P3Fields.Length; i++)
++            {
++                P3Ctl(form, P3Fields[i]).Text = preset[i];
++            }
++            s.Text = (string[])preset.Clone();
++        }
++
++        DeviceConfigInfo back = P3Config();
++        object ok = save.Invoke(form, new object[] { back });
++        if (!(bool)ok)
++        {
++            throw new InvalidOperationException("`SaveFormContents` вернул false: разбор полей отказал");
++        }
++
++        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)back.EnergyCalibration;
++        s.Back = new double[]
++        {
++            back.DefaultMeasurementTime, back.NumberOfChannels, back.ChannelPitch,
++            cal.Coefficients[0], cal.Coefficients[1], cal.Coefficients[2],
++            cal.Coefficients[3], cal.Coefficients[4]
++        };
++    }
++
++    /// <summary>
++    /// ВВОД ЧЕЛОВЕКА. «Принято» мерится НАСТОЯЩИМ читателем поля —
++    /// `DoubleTextBox.GetValue()`; «принято ДО» — тем самым вызовом, который
++    /// в этом методе и стоял (`double.TryParse(this.Text, out num)`, культура
++    /// потока, стили по умолчанию — а они несут `AllowThousands`).
++    ///
++    /// ⛔ Настоящий `DoubleTextBox_Validating` зовётся ТОЛЬКО на принятом
++    ///    тексте: на отказе он поднимает `MessageBox`, и безоконный прогон
++    ///    повис бы (`S100`). Того, что оба пути судят одним предикатом, это
++    ///    плечо и не утверждает — оно показывает, что на напечатанном
++    ///    приложением «1.5» настоящий обработчик отказа НЕ даёт.
++    /// </summary>
++    static void P3Input(P3Shot s)
++    {
++        s.InNew = new string[P3Inputs.Length];
++        s.InOld = new string[P3Inputs.Length];
++        DoubleTextBox box = new DoubleTextBox();
++        for (int i = 0; i < P3Inputs.Length; i++)
++        {
++            box.Text = P3Inputs[i];
++            double got = box.GetValue();
++            s.InNew[i] = got == 0.0 ? P3NoParse : got.ToString("R", CultureInfo.InvariantCulture);
++
++            double before;
++            s.InOld[i] = double.TryParse(P3Inputs[i], out before)
++                ? before.ToString("R", CultureInfo.InvariantCulture)
++                : P3NoParse;
++        }
++
++        // Настоящий обработчик — на тексте, который новый код принимает.
++        MethodInfo v = typeof(DoubleTextBox).GetMethod("DoubleTextBox_Validating", NP);
++        if (v == null)
++        {
++            s.ValidatorNote = "⛔ `DoubleTextBox_Validating` не найден: сборка чужая";
++            return;
++        }
++        box.Text = "1.5";
++        System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
++        v.Invoke(box, new object[] { box, e });
++        s.ValidatorNote = "`DoubleTextBox_Validating` на «1.5» → Cancel="
++            + (e.Cancel ? "true ⛔ ПОЛЕ РУГАЕТСЯ НА СОБСТВЕННОЕ СОДЕРЖИМОЕ" : "false (отказа нет)");
++
++        // ⛔ СТОРОНА ОТКАЗА — настоящим обработчиком, а не в обход (F20).
++        //    До правки `A245` этого плеча не было вовсе: обработчик поднимал
++        //    голый `MessageBox`, безоконный прогон вставал на нём, и полоса
++        //    F17 честно записала, что мерить отказ настоящим обработчиком
++        //    нельзя. Теперь сообщение идёт дверью `AppUi.Report`, окна нет, и
++        //    отказ мерится ТЕМ ЖЕ путём, каким его увидит человек. Текст
++        //    выбран заведомо негодный: неразрывный пробел — разделитель
++        //    разрядов, число из него собирать нельзя.
++        int seenBefore = modalSeen;
++        box.Text = "1 5";
++        System.ComponentModel.CancelEventArgs r = new System.ComponentModel.CancelEventArgs();
++        v.Invoke(box, new object[] { box, r });
++        s.RefuseNote = "`DoubleTextBox_Validating` на «1<NBSP>5» → Cancel="
++            + (r.Cancel ? "true (отказ, как и надо)" : "false ⛔ ПОЛЕ ПРИНЯЛО НЕГОДНЫЙ ТЕКСТ")
++            + ", окон поднято " + (modalSeen - seenBefore);
++    }
++
++    static DeviceConfigInfo P3Config()
++    {
++        DeviceConfigInfo cfg = new DeviceConfigInfo();
++        cfg.InitFormatVersion();
++        cfg.Guid = "p3-culture-probe";
++        cfg.Name = "P3";
++        cfg.Filename = "p3.xml";
++        // Тип прибора берётся ИЗ РЕЕСТРА, а не выписывается сюда именем: реестр
++        // и есть источник, а выписанное имя устарело бы молча.
++        cfg.DeviceType = DeviceType.DeviceTypeList[0].Id;
++        cfg.ThermometerType = ThermometerType.ThermometerTypeList[0].Id;
++        cfg.DefaultMeasurementTime = P3Time;
++        cfg.NumberOfChannels = P3Channels;
++        cfg.ChannelPitch = P3Pitch;
++        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)cfg.EnergyCalibration;
++        cal.PolynomialOrder = 4;
++        cal.Coefficients = (double[])P3Coeff.Clone();
++        return cfg;
++    }
++
++    static System.Windows.Forms.Control P3Ctl(object form, string name)
++    {
++        FieldInfo f = form.GetType().GetField(name, NP);
++        if (f == null) throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
++        System.Windows.Forms.Control c = f.GetValue(form) as System.Windows.Forms.Control;
++        if (c == null) throw new InvalidOperationException("поле `" + name + "` пусто");
++        return c;
++    }
+ }

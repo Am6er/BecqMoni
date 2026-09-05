@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO.Ports;
 using System.Text;
 using System.Windows.Forms;
@@ -29,7 +30,7 @@ namespace BecquerelMonitor
         private void Button1_Click(object sender, EventArgs e)
         {
             fillPorts();
-            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+            TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
         }
 
         private void deadTimeBtn_Click(object sender, EventArgs e)
@@ -39,7 +40,7 @@ namespace BecquerelMonitor
                 AtomSpectraVCPIn device = null;
                 string temporaryGuid = null;
                 string comPort = comPortsBox.SelectedItem.ToString();
-                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
 
                 device = AtomSpectraVCPIn.findByPort(comPort);
                 if (device == null)
@@ -50,11 +51,11 @@ namespace BecquerelMonitor
                 }
                 device.sendCommand("-inf");
                 string[] output = device.getCommandOutput(2000).Split(' ');
-                int rise = int.Parse(output[3]);
-                int fall = int.Parse(output[5]);
-                double f = double.Parse(output[9]);
+                int rise = int.Parse(output[3], CultureInfo.InvariantCulture);
+                int fall = int.Parse(output[5], CultureInfo.InvariantCulture);
+                double f = double.Parse(output[9], CultureInfo.InvariantCulture);
                 this.deadTime = ((double)rise + (double)fall + 1.0) / f;
-                this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
                 SetActiveDeviceConfigDirty();
                 if (temporaryGuid != null)
                 {
@@ -98,7 +99,7 @@ namespace BecquerelMonitor
                     if (this.ComPort != null)
                     {
                         comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+                        baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
                     } else
                     {
                         this.ComPort = "-------";
@@ -116,14 +117,14 @@ namespace BecquerelMonitor
 
             comPortsBox.Items.Add(this.ComPort);
             comPortsBox.SelectedIndex = comPortsBox.Items.IndexOf(this.ComPort);
-            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString());
+            baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo.InvariantCulture));
         }
 
         private void ComPortsBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
                 SetActiveDeviceConfigDirty();
             }
         }
@@ -132,7 +133,7 @@ namespace BecquerelMonitor
         {
             if (comPortsBox.SelectedItem != null && baudratesBox.SelectedItem != null && !this.formLoading)
             {
-                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem));
+                TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
                 SetActiveDeviceConfigDirty();
             }
         }
@@ -182,7 +183,7 @@ namespace BecquerelMonitor
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
             this.deadTime = atomSpectraVCPInputDevice.DeadTimeValue;
-            this.deadTimeLbl.Text = String.Format(Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+            this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
             this.formLoading = false;
             TestConnection(this.ComPort, this.BaudRate);
         }
@@ -196,7 +197,7 @@ namespace BecquerelMonitor
                 if (comPortsBox.Items.Count > 0 && comPortsBox.SelectedItem != null)
                 {
                     atomSpectraVCPInputDevice.ComPortName = comPortsBox.SelectedItem.ToString();
-                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                    atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
                     atomSpectraVCPInputDevice.DeadTimeValue = deadTime;
                 }
                 else
@@ -227,7 +228,7 @@ namespace BecquerelMonitor
                     AtomSpectraVCPIn device = null;
                     string temporaryGuid = null;
                     string comPort = comPortsBox.SelectedItem.ToString();
-                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString());
+                    int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCulture);
 
                     device = AtomSpectraVCPIn.findByPort(comPort);
                     if (device == null)
@@ -276,7 +277,7 @@ namespace BecquerelMonitor
                 if (device != null && device.BaudRate != baudRate)
                 {
                     returnstatus = 1;
-                    returnvalue = device.BaudRate.ToString();
+                    returnvalue = device.BaudRate.ToString(CultureInfo.InvariantCulture);
                     return (returnstatus, returnvalue, failure);
                 }
                 if (device == null)
@@ -289,7 +290,7 @@ namespace BecquerelMonitor
                 String result = device.getCommandOutput(2000);
                 string[] separator = new string[] { "\r\n" };
                 string[] result_arr = result.Split(separator, StringSplitOptions.None);
-                Trace.WriteLine("result -cal array, size: " + result_arr.Length);
+                Trace.WriteLine("result -cal array, size: " + result_arr.Length.ToString(CultureInfo.InvariantCulture));
                 if (result_arr.Length > 2)
                 {
                     returnvalue = result_arr[result_arr.Length - 2];
@@ -357,7 +358,7 @@ namespace BecquerelMonitor
 
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(delegate (object o, RunWorkerCompletedEventArgs args)
             {
-                Trace.WriteLine("Got status: " + status.ToString());
+                Trace.WriteLine("Got status: " + status.ToString(CultureInfo.InvariantCulture));
                 switch (status)
                 {
                     case 0:

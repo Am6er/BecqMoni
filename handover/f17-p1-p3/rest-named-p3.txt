@@ -1,0 +1,36 @@
+
+=== DeviceConfigForm.Efficiency.cs ===
+    476 print  string.Format  ложное: `Resources.EfficiencyTabCopySuffix` + `config.Name` — строка
+    491 print  string.Format  ложное: `Resources.EfficiencyTabDeleteConfirm` + `config.Name` — строка
+
+=== DeviceConfigForm.cs ===
+    239 print  string.Format  ложное: `Resources.MessageRemoveDeviceConfig` + `Name` — довод строка, числа нет
+    295 print  concat         ложное: склейка `i`, но печатается уже `i.ToString(InvariantCulture)` — сканер видит имя переменной рядом с `+ "("`
+    524 print  ToString       ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+    541 print  ToString       ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+    764 print  ToString       ложное: `Guid.NewGuid().ToString()` — числа нет
+    942 print  interpolation  ложное: интерполяция `{Resources.ERRBTNotSupportedByOS} … {ex.Message}` — обе дыры строки
+   1094 print  ToString       ложное: `ex.ToString()` — исключение, не число
+   1290 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `ComPortName` — строка
+   1351 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1377 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1396 print  ToString       ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)
+   1403 print  string.Format  ложное: `Resources.ERRReadDataFromPort` + `DeviceSerial` — строка
+   1490 print  concat         ложное: склейка `i`, печатается `i.ToString(InvariantCulture)` — правлено этой же полосой
+   1494 print  concat         ложное: то же, вторая склейка той же строки следа
+   2634 print  string.Format  ложное: `Resources.ERRFileOpenFailure` + имя файла + `ex.Message` — обе строки
+   2846 print  string.Format  ложное: `Resources.ERRFileOpenFailure` + имя файла + `problem` — обе строки
+
+=== DeviceConfigManager.cs ===
+    121 print  string.Format  ложное: `Resources.ERRDuplicateDeviceConfigGUID` + `Filename` — строка
+    165 print  ToString       ложное: `Guid.NewGuid().ToString()` — числа нет
+    205 print  ToString       ложное: `Guid.NewGuid().ToString()` — числа нет
+    307 print  string.Format  ложное: `Resources.ERRConfigFileRenameFailed` + `OriginalFilename` — строка
+    465 print  string.Format  ложное: `Resources.ERRConfigFileDeleteFailed` + `OriginalFilename` — строка
+
+всего мест: 23
+настоящих мест МОЕЙ доли (обязан быть ноль): 0
+уводящих в ЧУЖОЙ файл (дописка в `A244`): 3
+   DeviceConfigForm.cs:524 — ЧУЖОЙ ФАЙЛ: `RC_EnergyCalibration.ToString()` — ЧИСЛА, но печатает их `PolynomialEnergyCalibration.ToString()` (ЧУЖОЙ файл, доля П8): дописка в `A244`
+   DeviceConfigForm.cs:541 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration`
+   DeviceConfigForm.cs:1396 — ЧУЖОЙ ФАЙЛ: то же для `OBS_EnergyCalibration` (третье место того же чужого `ToString()`)
