@@ -1,0 +1,17 @@
+# F27 / A244 доля П4: ПОИМЁННЫЙ РАЗБОР ОСТАТКА СКАНЕРА
+# Файл EnergySpectrumView.cs, сканер handover/o17-decimal-dot/scan_culture.py
+# счёт по моим файлам: 61 ДО -> 13 ПОСЛЕ, все 13 разобраны ниже
+
+4469	concat	g.DrawString(start_channel.ToString(intFormat, CultureInfo.InvariantCulture) + " - " + end_channel.ToString(intFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+4472	concat	g.DrawString(start_energy.ToString(floatFormat, CultureInfo.InvariantCulture) + " - " + end_energy.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r2, this.farFormat);
+4593	concat	g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+4594	concat	g.DrawString("< " + activityUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+4598	concat	g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+4599	concat	g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+4603	concat	g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+4604	concat	g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat, CultureInfo.InvariantCulture),
+4611	concat	g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+4616	concat	g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+4621	concat	g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+4633	concat	g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
+4973	string.Format	string.Format(Resources.ERRFileSaveFailure, dialog.FileName, ex.Message),
