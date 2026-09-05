@@ -1,0 +1,21 @@
+ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ сторожа check_headless.py, полоса F44, 05.09.2026
+
+sha256 ДО подброса  = 55BE917102B6918D102438B3FE4F24572A7670B710CFB94DFDC9CBB2D88C5329
+Подброс: DeviceConfigForm.cs, первое из трёх правленых мест,
+         AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, "", MessageBoxIcon.None)
+         -> MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues)
+
+Сторож с подбросом: ОТКАЗ, код 1, место названо:
+  === БЕЗОКОННЫЙ ПУТЬ: 1 вызовов в 1 файлах ===
+    BecquerelMonitor/DeviceConfigForm.cs:1956  DeviceConfigForm.button1_Click()
+        достижим от: метод зовёт отражением проба (имя в её литералах)
+  живых MessageBox.Show: 150 (было 149)
+
+sha256 ПОСЛЕ снятия = 55BE917102B6918D102438B3FE4F24572A7670B710CFB94DFDC9CBB2D88C5329
+побайтно вернулся: ДА
+
+Сторож после снятия подброса, код = 0 :
+
+
+итого: безоконный путь 0, оконные 149, вне разряда 0
+ЧИСТО: в безоконном пути модальных окон нет.
