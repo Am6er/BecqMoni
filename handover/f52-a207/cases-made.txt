@@ -1,0 +1,22 @@
+=== СБОРКА ===
+  C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\0dfa526c-1c92-45cd-b97b-70d6b9e6b585\scratchpad\probe_after\BecquerelMonitor.exe
+  собрана 2026-09-06 02:02:15
+  окна у приложения: False
+  культура прогона: ru-RU
+  ключ ERRMissingStartDateTime: «В файле нет времени начала набора (таких измерений: {0}); вр…»
+  ключ ERRUnreadableStartDateTimeN42: «В файле N42 не прочитано время начала набора (таких измерени…»
+  DateTimePicker.MinimumDateTime = 1753-01-01; эпоха 1970-01-01 в пределах: True; DateTime.MinValue в пределах: False
+
+  f52_multi_nostart.n42
+  f52_multi_withstart.n42
+  f52_multi_mixed.n42
+  f52_multi_noelement.n42
+  f52_2006_nostart.n42
+  f52_2006_withstart.n42
+  f52_rad.n42
+  f52_baddate_2012.n42
+  f52_baddate_2006.n42
+  f52_offset_2012.n42
+  f52_nozone_2012.n42
+сочинённые входы положены в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f52-a207\cases
+⚠ Они СОЧИНЕНЫ и говорят о поведении РАЗБОРА, а не о том, что такие файлы часты.

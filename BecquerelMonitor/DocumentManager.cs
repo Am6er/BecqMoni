@@ -782,6 +782,9 @@ namespace BecquerelMonitor
                 //    у неё обязан быть один (`A136`, `A151`).
                 List<string> skippedSources = new List<string>();
                 int imported = 0;
+                // `A207`: у скольких измерений времени начала не оказалось вовсе.
+                //   Голос по этому счётчику звучит ОДИН РАЗ на файл, ниже.
+                int noStart = 0;
                 for (int m = 0; m < measurements_count; m++)
                 {
                     // 16 spectrum MAX
@@ -877,8 +880,23 @@ namespace BecquerelMonitor
                     long ms = SpecUtilsNative.GetStartTime(file_h, m);
                     livetime = (livetime == 0 ) ? presettime : livetime;
                     realtime = (realtime == 0) ? presettime : realtime;
-                    ms = (ms == 0) ? 3600 : ms;
-                    DateTime startTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime;
+                    // ⛔ `A207`: ВРЕМЕНИ НАЧАЛА НЕТ — ЗНАЧЕНИЕ ТО ЖЕ, ЧТО У ДВЕРИ
+                    //    N42, И СКАЗАНО ОБ ЭТОМ ТОЖЕ. Здесь стояло
+                    //    `ms = (ms == 0) ? 3600 : ms`, то есть 1970-01-01
+                    //    00:00:03.600 — «не ноль» ради соседних строк выше и
+                    //    ничего больше; дверь N42 в том же положении ставила
+                    //    «сейчас». Один и тот же файл, открытый двумя пунктами
+                    //    меню, давал человеку ДВЕ РАЗНЫЕ выдуманные даты, и обе
+                    //    молча. Соглашение теперь одно на обе двери
+                    //    (ResultData.UnknownStartTime), и голос звучит один раз
+                    //    на файл — ниже, рядом с голосом `A175`.
+                    //    ⚠ Ноль здесь и есть признак «времени нет»: SpecUtils
+                    //    отдаёт метку эпохи, когда в файле её не было.
+                    bool startKnown = ms != 0;
+                    if (!startKnown) noStart++;
+                    DateTime startTime = startKnown
+                                         ? DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime
+                                         : ResultData.UnknownStartTime;
 
                     IntPtr p = SpecUtilsNative.GetSpectrum(file_h, m, out int spec_size);
                     float[] data = new float[spec_size];
@@ -1015,6 +1033,13 @@ namespace BecquerelMonitor
                     AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRSkippedMeasurementClassN42,
                                                string.Join(", ", skippedSources.ToArray()),
                                                imported),
+                                 "", MessageBoxIcon.None);
+                }
+                // `A207`: времени начала в файле нет — тот же голос и тот же ключ
+                //   ресурса, что у двери N42, и тоже ОДИН РАЗ на файл.
+                if (noStart > 0)
+                {
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, noStart),
                                  "", MessageBoxIcon.None);
                 }
 

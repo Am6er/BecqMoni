@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadInstrumentData xmlns="http://physics.nist.gov/N42/2011/N42" n42DocUUID="probe-a207-f52g">
+  <RadInstrumentInformation id="RadInstrument">
+    <RadInstrumentManufacturerName>PROBE</RadInstrumentManufacturerName>
+    <RadInstrumentModelName>A207</RadInstrumentModelName>
+    <RadInstrumentClassCode>Radionuclide Identifier</RadInstrumentClassCode>
+    <RadInstrumentVersion>
+      <RadInstrumentComponentName>Hardware</RadInstrumentComponentName>
+      <RadInstrumentComponentVersion>1</RadInstrumentComponentVersion>
+    </RadInstrumentVersion>
+  </RadInstrumentInformation>
+  <EnergyCalibration id="EC1">
+    <CoefficientValues>3.5 12.5</CoefficientValues>
+  </EnergyCalibration>
+  <RadMeasurement id="M1">
+    <MeasurementClassCode>Foreground</MeasurementClassCode>
+    <StartDateTime>2024-03-14T08:15:00</StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M1" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+</RadInstrumentData>

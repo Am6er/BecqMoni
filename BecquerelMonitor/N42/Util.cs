@@ -470,14 +470,20 @@ namespace BecquerelMonitor.N42
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
-            resultData.SampleInfo.Time = DateTime.Now;
+            // ⛔ `A207`: ВРЕМЕНИ НАЧАЛА У ЭТОГО ФОРМАТА НЕТ ВОВСЕ, И ТЕПЕРЬ ЭТО
+            //    ВИДНО. Модель RadiologicalInstrumentData такого элемента не
+            //    несёт; до 06.09.2026 сюда молча ложилось «сейчас» — то есть
+            //    спектр, набранный два года назад, получал СЕГОДНЯШНЮЮ дату,
+            //    неотличимую от измеренной, и уезжал с ней в отчёт и в вывоз.
+            //    Теперь ставится единое значение «время начала неизвестно»
+            //    (ResultData.UnknownStartTime), и об этом говорится один раз на
+            //    файл — решение Amber 06.09.2026.
+            resultData.StartTime = ResultData.UnknownStartTime;
+            resultData.SampleInfo.Time = ResultData.UnknownStartTime;
             // ⚠ `A177`: КОНЕЦ НАБОРА — то же правило, что у двух других разборов
-            //    и у соседей в DocumentManager. ⚠ ЧЕСТНО: времени НАЧАЛА у этого
-            //    формата нет вовсе (в RadiologicalInstrumentData модель его не
-            //    несёт), поэтому началом остаётся «сейчас», и конец выходит
-            //    «сейчас + время набора». Это не отговорка: поле перестаёт быть
-            //    ПУСТЫМ и хранит длительность, а неизвестное начало — свойство
-            //    формата, а не этой строки.
+            //    и у соседей в DocumentManager: начало плюс полное время набора.
+            //    Начало неизвестно, поэтому и конец неизвестен вместе с ним, но
+            //    ДЛИТЕЛЬНОСТЬ в паре полей сохраняется — она из файла честная.
             resultData.EndTime = resultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
             resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
@@ -530,6 +536,15 @@ namespace BecquerelMonitor.N42
             }
 
             energySpectrum.EnergyCalibration = calibration.Clone();
+
+            // ⛔ `A207`: ГОЛОС ОДИН РАЗ НА ФАЙЛ И В КОНЦЕ — как у двух соседних
+            //    разборов. Файл этого формата несёт ровно один спектр, поэтому
+            //    «один раз на файл» здесь и есть «один раз»; счётчик всё равно
+            //    печатается числом, чтобы текст был тем же самым у всех дверей.
+            //    ⚠ Голос стоит ПОСЛЕ отказов шкалы нарочно: если файл не доехал
+            //    сюда, человеку названа та беда, из-за которой он не доехал.
+            AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, 1),
+                         "", MessageBoxIcon.None);
             return doc;
         }
 
@@ -710,8 +725,17 @@ namespace BecquerelMonitor.N42
             //    к UTC, а RoundtripKind оставляет местное. Второго соглашения о
             //    чтении даты в одном файле быть не должно, и выбрано то, которым
             //    читают два других разбора и пишет наш собственный вывоз.
-            DateTime startTime = DateTime.Now;
+            //
+            // ⛔ `A207`: НЕИЗВЕСТНОЕ ВРЕМЯ НАЧАЛА — ОДНО ЗНАЧЕНИЕ НА ВСЁ
+            //    ПРИЛОЖЕНИЕ, И ОБ ЭТОМ ГОВОРИТСЯ. Здесь стояло «сейчас» и для
+            //    отсутствующей записи (молча), и для нечитаемой; вторая дверь
+            //    того же файла (DocumentManager.ImportDocumentSpecUtils) для
+            //    того же положения ставила 1970-01-01. Оба случая кончаются
+            //    одним и тем же — времени начала у документа НЕТ, — и значение
+            //    теперь одно: ResultData.UnknownStartTime.
+            DateTime startTime = ResultData.UnknownStartTime;
             int badStart = 0;
+            int noStart = 0;
             string badStartSample = null;
             if (!string.IsNullOrEmpty(starttime))
             {
@@ -724,6 +748,10 @@ namespace BecquerelMonitor.N42
                     badStart++;
                     badStartSample = starttime + " — " + ex.GetType().Name;
                 }
+            }
+            else
+            {
+                noStart++;
             }
             resultData.SampleInfo.Time = startTime;
             resultData.StartTime = startTime;
@@ -774,6 +802,13 @@ namespace BecquerelMonitor.N42
             {
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
+                             "", MessageBoxIcon.None);
+            }
+            // `A207`: записи времени начала в файле НЕТ — тот же голос, что у
+            //   двух других дверей, и тоже один раз на файл.
+            if (noStart > 0)
+            {
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, noStart),
                              "", MessageBoxIcon.None);
             }
 
@@ -829,6 +864,10 @@ namespace BecquerelMonitor.N42
             // `A157`: у скольких измерений не прочиталось время начала — тоже.
             List<string> skippedClasses = new List<string>();
             int badStart = 0;
+            // `A207`: у скольких измерений записи времени начала НЕТ вовсе —
+            //   счётчик отдельный от badStart: положение то же (времени нет), а
+            //   сказать о нём надо иначе, чем о нечитаемой записи.
+            int noStart = 0;
             string badStartSample = null;
 
             for (int i = 0; i < SpectrumCount; i++)
@@ -908,7 +947,14 @@ namespace BecquerelMonitor.N42
                 //    сделал бы собственные старые файлы приложения неввозимыми.
                 //    Дверь та же, что у соседей, — AppUi; второго соглашения не
                 //    заводится, меняется только строгость.
-                DateTime startTime = DateTime.Now;
+                //
+                // ⛔ `A207`: ЗАПИСИ ВРЕМЕНИ НЕТ ЛИБО ОНА ПУСТА — ТО ЖЕ САМОЕ
+                //    ПОЛОЖЕНИЕ, И ЗНАЧЕНИЕ У НЕГО ОДНО. Прежде здесь стояло
+                //    «сейчас» и об этом не говорилось ни слова: измерено
+                //    05.09.2026 входом case24_nostart — ВВЕЗЁН, начало «сейчас»,
+                //    молчание. Теперь ставится ResultData.UnknownStartTime, а
+                //    голос звучит один раз на файл, ниже по тексту.
+                DateTime startTime = ResultData.UnknownStartTime;
                 if (!string.IsNullOrEmpty(radMeasurement.StartDateTime))
                 {
                     try
@@ -924,6 +970,12 @@ namespace BecquerelMonitor.N42
                                              + ex.GetType().Name;
                         }
                     }
+                }
+                else
+                {
+                    // `A207`: считается ЗДЕСЬ, а говорится один раз на файл — как
+                    //   и всё прочее, что есть свойство файла, а не измерения.
+                    noStart++;
                 }
                 resultData.SampleInfo.Time = startTime;
                 resultData.StartTime = startTime;
@@ -1193,6 +1245,13 @@ namespace BecquerelMonitor.N42
                 // `A157`: дата не прочитана — спектр ввезён, но с чужим временем.
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
+                             "", MessageBoxIcon.None);
+            }
+            if (noStart > 0)
+            {
+                // `A207`: записи времени начала в файле нет — один голос на файл,
+                //   сколько бы измерений без неё ни было.
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, noStart),
                              "", MessageBoxIcon.None);
             }
 
