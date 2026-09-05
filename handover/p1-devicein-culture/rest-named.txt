@@ -1,0 +1,193 @@
+
+=== BecquerelMonitor/AtomSpectraVCPDeviceForm.cs ===
+     42 ToString()     не число: comPortsBox.SelectedItem
+     43 ToString()     не число: baudratesBox.SelectedItem
+     48 ToString()     не число: Guid.NewGuid()
+    199 ToString()     не число: comPortsBox.SelectedItem
+    200 ToString()     не число: baudratesBox.SelectedItem
+    230 ToString()     не число: comPortsBox.SelectedItem
+    231 ToString()     не число: baudratesBox.SelectedItem
+    236 ToString()     не число: Guid.NewGuid()
+    285 ToString()     не число: Guid.NewGuid()
+    337 string.Format  чисел в аргументах нет
+    347 string.Format  чисел в аргументах нет
+    361 concat         ИНВАРИАНТ (ToString(InvariantCulture) после склейки): status
+    366 string.Format  чисел в аргументах нет
+    375 string.Format  чисел в аргументах нет
+    381 string.Format  чисел в аргументах нет
+
+=== BecquerelMonitor/ObsidianDeviceForm.cs ===
+     73 interpolation  чисел в дырах нет
+     79 interpolation  чисел в дырах нет
+     91 string.Format  чисел в аргументах нет
+    116 interpolation  чисел в дырах нет
+    146 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: args.BluetoothAddress
+    163 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: args.BluetoothAddress
+    204 string.Format  чисел в аргументах нет
+    263 ToString()     не число: comboBox1.SelectedItem
+    308 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: DateTime.Now:dd-MM-yyyy HH:mm:ss
+    310 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: DateTime.Now:dd-MM-yyyy HH:mm:ss
+    328 interpolation  чисел в дырах нет
+    332 interpolation  чисел в дырах нет
+
+=== BecquerelMonitor/ObsidianIn.cs ===
+    263 string.Format  чисел в аргументах нет
+    290 interpolation  чисел в дырах нет
+    301 ToString()     не число: device.ConnectionStatus
+    323 interpolation  чисел в дырах нет
+    418 string.Format  чисел в аргументах нет
+    425 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: adapter.BluetoothAddress:X12
+    430 interpolation  чисел в дырах нет
+    432 interpolation  чисел в дырах нет
+    436 interpolation  чисел в дырах нет
+    437 interpolation  чисел в дырах нет
+    444 string.Format  чисел в аргументах нет
+    450 interpolation  чисел в дырах нет
+    451 interpolation  чисел в дырах нет
+    453 string.Format  чисел в аргументах нет
+    476 interpolation  чисел в дырах нет
+    485 interpolation  чисел в дырах нет
+    486 interpolation  чисел в дырах нет
+    493 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: discoveryAdvCount
+    494 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: discoveryLastRssi
+    532 interpolation  чисел в дырах нет
+    533 interpolation  чисел в дырах нет
+    537 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    547 ToString()     не число: localDevice.ConnectionStatus
+    548 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    551 Parse          не число: Guid.Parse
+    554 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(servicesResult?.ProtocolError); (servicesResult != null ? servicesResult.Services.Count : 0)
+    557 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    560 Parse          не число: Guid.Parse
+    563 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(writeResult?.ProtocolError)
+    570 interpolation  чисел в дырах нет
+    574 Parse          не число: Guid.Parse
+    577 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(notifyResult?.ProtocolError)
+    584 interpolation  чисел в дырах нет
+    595 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    598 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    610 interpolation  чисел в дырах нет
+    611 interpolation  чисел в дырах нет
+    644 interpolation  чисел в дырах нет
+    692 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.Buffer.Length; packet.Counter + buffer.Length
+    714 interpolation  чисел в дырах нет
+    715 interpolation  чисел в дырах нет
+    733 interpolation  чисел в дырах нет
+    768 interpolation  чисел в дырах нет
+    870 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: (trshoot ? trshootCount + 1 : 0)
+    916 interpolation  чисел в дырах нет
+    942 interpolation  чисел в дырах нет
+    943 interpolation  чисел в дырах нет
+    990 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.Counter
+   1014 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.Counter; packet.ExtraBytesCount; packet.TrailerValue
+   1018 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: elapsedTime
+   1028 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: cps
+   1029 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: sum
+   1045 interpolation  чисел в дырах нет
+   1046 interpolation  чисел в дырах нет
+   1062 interpolation  чисел в дырах нет
+   1104 ToString()     не число: dev.ConnectionStatus
+   1113 interpolation  чисел в дырах нет
+   1117 interpolation  чисел в дырах нет
+   1145 interpolation  чисел в дырах нет
+   1197 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: Counter; TIME_S; dumpFrom
+   1313 Parse          не число: Guid.Parse
+   1390 Parse          не число: Guid.Parse
+   1430 string.Format  чисел в аргументах нет
+
+=== BecquerelMonitor/RadiaCodeDeviceForm.cs ===
+     73 interpolation  чисел в дырах нет
+     80 interpolation  чисел в дырах нет
+    102 string.Format  чисел в аргументах нет
+    126 interpolation  чисел в дырах нет
+    150 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: args.BluetoothAddress
+    167 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: args.BluetoothAddress
+    189 string.Format  чисел в аргументах нет
+    246 ToString()     не число: comboBox1.SelectedItem
+    298 interpolation  чисел в дырах нет
+    300 interpolation  чисел в дырах нет
+
+=== BecquerelMonitor/RadiaCodeIn.cs ===
+    222 string.Format  чисел в аргументах нет
+    255 interpolation  чисел в дырах нет
+    268 interpolation  чисел в дырах нет
+    279 ToString()     не число: device.ConnectionStatus
+    377 string.Format  чисел в аргументах нет
+    384 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: adapter.BluetoothAddress:X12
+    389 interpolation  чисел в дырах нет
+    391 interpolation  чисел в дырах нет
+    395 interpolation  чисел в дырах нет
+    396 interpolation  чисел в дырах нет
+    404 string.Format  чисел в аргументах нет
+    410 interpolation  чисел в дырах нет
+    411 interpolation  чисел в дырах нет
+    413 string.Format  чисел в аргументах нет
+    433 interpolation  чисел в дырах нет
+    442 interpolation  чисел в дырах нет
+    443 interpolation  чисел в дырах нет
+    449 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: discoveryAdvCount
+    450 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: discoveryLastRssi
+    488 interpolation  чисел в дырах нет
+    489 interpolation  чисел в дырах нет
+    493 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    503 ToString()     не число: localDevice.ConnectionStatus
+    504 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    507 Parse          не число: Guid.Parse
+    510 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(servicesResult?.ProtocolError); (servicesResult != null ? servicesResult.Services.Count : 0)
+    513 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    516 Parse          не число: Guid.Parse
+    519 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(writeResult?.ProtocolError)
+    526 interpolation  чисел в дырах нет
+    530 Parse          не число: Guid.Parse
+    533 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw); FormatProtocolError(notifyResult?.ProtocolError)
+    540 interpolation  чисел в дырах нет
+    550 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    553 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: ElapsedMs(sw)
+    569 interpolation  чисел в дырах нет
+    570 interpolation  чисел в дырах нет
+    603 interpolation  чисел в дырах нет
+    612 interpolation  чисел в дырах нет
+    715 interpolation  чисел в дырах нет
+    728 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.SPECTRUM.Length
+    729 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.SPECTRUM.Length
+    736 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.SIZE
+    746 interpolation  чисел в дырах нет
+    747 interpolation  чисел в дырах нет
+    855 interpolation  чисел в дырах нет
+    862 Convert.To*    не разбор строки, числовая перегрузка: Convert.ToSingle(calibration.Coefficients[0])
+    863 Convert.To*    не разбор строки, числовая перегрузка: Convert.ToSingle(calibration.Coefficients[1])
+    864 Convert.To*    не разбор строки, числовая перегрузка: Convert.ToSingle(calibration.Coefficients[2])
+    883 interpolation  чисел в дырах нет
+    891 interpolation  чисел в дырах нет
+    923 interpolation  чисел в дырах нет
+   1023 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: (trshoot ? trshootCount + 1 : 0)
+   1069 interpolation  чисел в дырах нет
+   1095 interpolation  чисел в дырах нет
+   1096 interpolation  чисел в дырах нет
+   1127 interpolation  чисел в дырах нет
+   1128 interpolation  чисел в дырах нет
+   1142 interpolation  чисел в дырах нет
+   1147 interpolation  чисел в дырах нет
+   1197 interpolation  чисел в дырах нет
+   1226 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: elapsedTime
+   1227 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: packet.A0; packet.A1; packet.A2
+   1237 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: cps
+   1238 interpolation  ИНВАРИАНТ (FormattableString.Invariant), числа: sum
+   1254 interpolation  чисел в дырах нет
+   1255 interpolation  чисел в дырах нет
+   1271 interpolation  чисел в дырах нет
+   1324 ToString()     не число: dev.ConnectionStatus
+   1333 interpolation  чисел в дырах нет
+   1337 interpolation  чисел в дырах нет
+   1367 interpolation  чисел в дырах нет
+
+--- СВОДКА ---
+    81  чисел в дырах нет
+    44  ИНВАРИАНТ (FormattableString.Invariant)
+    25  не число
+    18  чисел в аргументах нет
+     3  не разбор строки
+     1  ИНВАРИАНТ (ToString(InvariantCulture) после склейки)
+
+всего разобрано мест: 172
+мест ОТКАЗА (число без инварианта либо не разобрано): 0

@@ -1,0 +1,24 @@
+file	side	api	kind	line	receiver	args
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	524	rc_config.RC_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	541	obs_config.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	764	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1094	ex	
+BecquerelMonitor/DeviceConfigForm.cs	print	ToString	UNK	1396	deviceconfig.OBS_EnergyCalibration	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	295	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1490	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	concat	NUM	1494	i	
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	239		Resources.MessageRemoveDeviceConfig
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1290		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1351		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1377		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	1403		Resources.ERRReadDataFromPort
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2634		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	string.Format	UNK	2846		Resources.ERRFileOpenFailure
+BecquerelMonitor/DeviceConfigForm.cs	print	interpolation	UNK	942		
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	476		Resources.EfficiencyTabCopySuffix
+BecquerelMonitor/DeviceConfigForm.Efficiency.cs	print	string.Format	UNK	491		Resources.EfficiencyTabDeleteConfirm
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	165	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	ToString	UNK	205	Guid.NewGuid()	
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	121		Resources.ERRDuplicateDeviceConfigGUID
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	307		Resources.ERRConfigFileRenameFailed
+BecquerelMonitor/DeviceConfigManager.cs	print	string.Format	UNK	465		Resources.ERRConfigFileDeleteFailed

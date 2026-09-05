@@ -1,0 +1,313 @@
+diff --git a/BecquerelMonitor/DeviceConfigForm.cs b/BecquerelMonitor/DeviceConfigForm.cs
+index 692661a9..7f57c7ee 100644
+--- a/BecquerelMonitor/DeviceConfigForm.cs
++++ b/BecquerelMonitor/DeviceConfigForm.cs
+@@ -292,7 +292,7 @@ namespace BecquerelMonitor
+         {
+             for (int i = 1; i < 999; i++)
+             {
+-                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString() + ").xml";
++                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
+                 bool flag = false;
+                 foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
+                 {
+@@ -452,9 +452,9 @@ namespace BecquerelMonitor
+             this.LoadEfficiencyTab(config);
+             this.LoadDoseRateTab(config);
+             this.textBox1.Text = config.Name;
+-            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
+-            this.integerTextBox1.Text = config.NumberOfChannels.ToString();
+-            this.doubleTextBox6.Text = config.ChannelPitch.ToString();
++            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
++            this.integerTextBox1.Text = config.NumberOfChannels.ToString(CultureInfo.InvariantCulture);
++            this.doubleTextBox6.Text = config.ChannelPitch.ToString(CultureInfo.InvariantCulture);
+             this.textBox19.Text = config.Note;
+             this.deviceFormLoading = true;
+             DeviceType type = null;
+@@ -487,7 +487,7 @@ namespace BecquerelMonitor
+             PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+             if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+             {
+-                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
++                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+@@ -495,7 +495,7 @@ namespace BecquerelMonitor
+             }
+             if (polynomialEnergyCalibration.PolynomialOrder == 4)
+             {
+-                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
++                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+@@ -504,14 +504,14 @@ namespace BecquerelMonitor
+             }
+             if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+             {
+-                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+             }
+             else
+             {
+                 this.numericUpDown1.Text = "0";
+             }
+-            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
++            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+             this.ShowCalibrationPoints();
+             this.UpdateMultipointButtonState();
+             this.tableModel3.Rows.Clear();
+@@ -756,9 +756,9 @@ namespace BecquerelMonitor
+                 //    старым. Остаток известен и НЕ закрыт здесь: ниже по методу
+                 //    разбор коэффициентов калибровки стоит уже после записей и
+                 //    после двух вложенных форм.
+-                int defaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
+-                int numberOfChannels = int.Parse(this.integerTextBox1.Text);
+-                double channelPitch = double.Parse(this.doubleTextBox6.Text);
++                int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
++                int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
++                double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                 if (config.Guid == null || config.Guid == "")
+                 {
+                     config.Guid = Guid.NewGuid().ToString();
+@@ -806,18 +806,18 @@ namespace BecquerelMonitor
+                 PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
+                 if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[2] = double.Parse(this.numericUpDown1.Text);
++                    polynomialEnergyCalibration.Coefficients[2] = UserNumber.ParseDouble(this.numericUpDown1.Text);
+                 }
+                 if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[3] = double.Parse(this.numericUpDown9.Text);
++                    polynomialEnergyCalibration.Coefficients[3] = UserNumber.ParseDouble(this.numericUpDown9.Text);
+                 }
+                 if (polynomialEnergyCalibration.PolynomialOrder == 4)
+                 {
+-                    polynomialEnergyCalibration.Coefficients[4] = double.Parse(this.numericUpDown8.Text);
++                    polynomialEnergyCalibration.Coefficients[4] = UserNumber.ParseDouble(this.numericUpDown8.Text);
+                 }
+-                polynomialEnergyCalibration.Coefficients[1] = double.Parse(this.numericUpDown2.Text);
+-                polynomialEnergyCalibration.Coefficients[0] = double.Parse(this.numericUpDown7.Text);
++                polynomialEnergyCalibration.Coefficients[1] = UserNumber.ParseDouble(this.numericUpDown2.Text);
++                polynomialEnergyCalibration.Coefficients[0] = UserNumber.ParseDouble(this.numericUpDown7.Text);
+                 // Element writes bypass the property setter - drop the stale
+                 // EnergyToChannel cache explicitly.
+                 polynomialEnergyCalibration.InvalidateCache();
+@@ -1225,7 +1225,7 @@ namespace BecquerelMonitor
+                         byte[] bytes = Encoding.ASCII.GetBytes(result_str);
+                         uint crc32 = Crc32.Compute(bytes);
+ 
+-                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier) != crc32)
++                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) != crc32)
+                         {
+                             MessageBox.Show(Resources.ERRIncorrectCRC);
+                             return;
+@@ -1237,7 +1237,7 @@ namespace BecquerelMonitor
+                         {
+                             if (CalibrationCoefficients[i] != "FFFFFFFFFFFFFFFF")
+                             {
+-                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier));
++                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture));
+                                 coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
+                             }
+                         }
+@@ -1269,20 +1269,20 @@ namespace BecquerelMonitor
+                         polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 1)
+                         {
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 2)
+                         {
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder >= 3)
+                         {
+-                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
++                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+                         }
+                         if (polynomialEnergyCalibration.PolynomialOrder == 4)
+                         {
+-                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
++                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+                         }
+                     }
+                     else
+@@ -1341,9 +1341,9 @@ namespace BecquerelMonitor
+                             this.numericUpDown8.Text = "0";
+                             this.numericUpDown9.Text = "0";
+ 
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                             SetActiveDeviceConfigDirty();
+                             return;
+                         }
+@@ -1390,9 +1390,9 @@ namespace BecquerelMonitor
+                             this.numericUpDown8.Text = "0";
+                             this.numericUpDown9.Text = "0";
+ 
+-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
++                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+                             this.textBox16.Text = deviceconfig.OBS_EnergyCalibration.ToString();
+                             this.button14.Enabled = true;
+                             SetActiveDeviceConfigDirty();
+@@ -1439,7 +1439,7 @@ namespace BecquerelMonitor
+                         List<string> result_list = new List<string>();
+                         for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
+                         {
+-                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
++                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X", CultureInfo.InvariantCulture);
+                             if (result_str == "0")
+                             {
+                                 result_list.Add("00000000");
+@@ -1469,7 +1469,7 @@ namespace BecquerelMonitor
+                         byte[] bytes = Encoding.ASCII.GetBytes(result_string);
+                         uint crc32 = Crc32.Compute(bytes);
+ 
+-                        result_list.Add(crc32.ToString("X"));
++                        result_list.Add(crc32.ToString("X", CultureInfo.InvariantCulture));
+ 
+                         bool commands_accepted = true;
+                         System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
+@@ -1487,11 +1487,11 @@ namespace BecquerelMonitor
+                         {
+                             int percent = (int)(100*i)/(result_list.Count - 1);
+                             b.ReportProgress(percent);
+-                            device.sendCommand("-cal " + i + " " + result_list[i]);
++                            device.sendCommand("-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i]);
+                             bool result = device.waitForAnswer("ok", 2000);
+                             commands_accepted &= result;
+                             System.Diagnostics.Trace.WriteLine("result = " + result);
+-                            status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
++                            status_msg = status_msg + "-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
+                         }
+                         Cursor.Current = Cursors.Default;
+                         if (commands_accepted)
+@@ -1683,7 +1683,7 @@ namespace BecquerelMonitor
+             {
+                 if (mainForm != null)
+                 {
+-                    mainForm.SetStatusTextLeft(string.Format(Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
++                    mainForm.SetStatusTextLeft(string.Format(CultureInfo.InvariantCulture, Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
+                 }
+             });
+ 
+@@ -1860,7 +1860,7 @@ namespace BecquerelMonitor
+             foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
+             {
+                 Row row = new Row();
+-                row.Cells.Add(new Cell(num.ToString()));
++                row.Cells.Add(new Cell(num.ToString(CultureInfo.InvariantCulture)));
+                 row.Cells.Add(new Cell(calibrationPoint.Channel));
+                 row.Cells.Add(new Cell(calibrationPoint.Energy));
+                 this.tableModel2.Rows.Add(row);
+@@ -1885,7 +1885,7 @@ namespace BecquerelMonitor
+                 if (e.Column == 1)
+                 {
+                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
++                    this.calibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
+                     this.multipointModified = true;
+                     this.calibrationDone = false;
+                     this.UpdateMultipointButtonState();
+@@ -1893,14 +1893,14 @@ namespace BecquerelMonitor
+                 else if (e.Column == 2)
+                 {
+                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
++                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
+                     this.multipointModified = true;
+                     this.UpdateMultipointButtonState();
+                 }
+                 else if (e.Column == 4)
+                 {
+                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
+-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
++                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
+                     this.multipointModified = true;
+                     this.calibrationDone = false;
+                     this.UpdateMultipointButtonState();
+@@ -1961,18 +1961,18 @@ namespace BecquerelMonitor
+             this.numericUpDown9.Text = "0";
+             if (energyCalibration.PolynomialOrder >= 2)
+             {
+-                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
++                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+             }
+             if (energyCalibration.PolynomialOrder >= 3)
+             {
+-                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString();
++                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+             }
+             if (energyCalibration.PolynomialOrder == 4)
+             {
+-                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString();
++                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+             }
+-            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString();
+-            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString();
++            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
++            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+             if (!energyCalibration.CheckCalibration())
+             {
+                 MessageBox.Show(Resources.CalibrationFunctionError);
+@@ -2016,7 +2016,7 @@ namespace BecquerelMonitor
+             TextBox lowerThresholdTextBox = this.inputDeviceForm.LowerThresholdTextBox;
+             if (lowerThresholdTextBox != null)
+             {
+-                lowerThresholdTextBox.Text = threshold.ToString();
++                lowerThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
+                 lowerThresholdTextBox.SelectAll();
+                 lowerThresholdTextBox.Focus();
+             }
+@@ -2046,7 +2046,7 @@ namespace BecquerelMonitor
+             TextBox upperThresholdTextBox = this.inputDeviceForm.UpperThresholdTextBox;
+             if (upperThresholdTextBox != null)
+             {
+-                upperThresholdTextBox.Text = threshold.ToString();
++                upperThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
+                 upperThresholdTextBox.SelectAll();
+                 upperThresholdTextBox.Focus();
+             }
+@@ -2781,7 +2781,7 @@ namespace BecquerelMonitor
+                             // — это потерянная точка; молча прочитанная половина
+                             // файла хуже непрочитанного файла, потому что по ней
+                             // строится кривая.
+-                            problem = string.Format(CultureInfo.CurrentCulture,
++                            problem = string.Format(CultureInfo.InvariantCulture,
+                                 DoseRateCoefficients.Text("DoseRateLsrmShortLine",
+                                     "Dose rate: {0} (line {1}) has {2} column(s) instead of three"
+                                     + " (energy, efficiency, uncertainty): \"{3}\"."),
+@@ -2809,14 +2809,14 @@ namespace BecquerelMonitor
+             }
+             catch (Exception ex)
+             {
+-                problem = string.Format(CultureInfo.CurrentCulture, "{0} (line {1}): {2}",
++                problem = string.Format(CultureInfo.InvariantCulture, "{0} (line {1}): {2}",
+                                         path, lineNumber, ex.Message);
+                 return new List<ROIEfficiencyData>();
+             }
+ 
+             if (points.Count < LsrmMinPoints)
+             {
+-                problem = string.Format(CultureInfo.CurrentCulture,
++                problem = string.Format(CultureInfo.InvariantCulture,
+                     DoseRateCoefficients.Text("DoseRateLsrmNoPoints",
+                         "Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed"
+                         + " ({3} more were dropped as declared to more than {4:f0} % uncertainty)."),
