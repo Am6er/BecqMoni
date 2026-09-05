@@ -1,0 +1,115 @@
+
+== вкладка «Dose Rate»: раскладка из конструктора форм, подписи из resx ==
+  ok   снятого поля textBoxEffFile в форме нет
+  ok   снятого поля textBoxDoseRateSpectrumFile в форме нет
+  ok   список comboDoseRateSpectrum объявлен полем формы типа ComboBox
+  ok   список comboDoseRateEfficiency объявлен полем формы типа ComboBox
+  ok   найден BecquerelMonitor\DeviceConfigForm.resx
+  ok   в resx есть comboDoseRateSpectrum.Location
+  ok   в resx есть comboDoseRateSpectrum.Size
+  ok   в resx есть comboDoseRateEfficiency.Location
+  ok   в resx есть comboDoseRateEfficiency.Size
+  ok   в resx не осталось раскладки textBoxEffFile
+  ok   в resx не осталось раскладки textBoxDoseRateSpectrumFile
+
+  --- культура en-US ---
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o8\config\device: 10 loaded
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o8\config\BecquerelMonitor.xml
+  ok   en-US: три кривые конфигурации доехали до списка вкладки (в списке 3)
+  ok   en-US: выбран последний пункт (2)
+  ok   en-US: выбранная кривая доехала до расчёта
+     ПОРЧА «hidden» наложена на labelEffNote (en-US)
+  ok   детей у вкладки: 11
+  ok   виден: groupBox3
+  ok   виден: labelDREstimateTitle
+  ok   виден: comboDoseRateEfficiency
+  ok   виден: comboDoseRateSpectrum
+  ok   виден: buttonEstimateDRConf
+  ok   виден: labelDoseRateValue
+  ok   виден: upDownDoseRateValue
+  ПРОВАЛ виден: labelEffNote
+  ok   виден: buttonLoadEff
+  ok   виден: labelSpectrumNote
+  ok   виден: buttonLoadDoseRateSpectrum
+  ok   groupBox3 внутри страницы 490x599: {X=9,Y=6,Width=456,Height=362}
+  ok   labelDREstimateTitle внутри страницы 490x599: {X=6,Y=371,Width=452,Height=20}
+  ok   comboDoseRateEfficiency внутри страницы 490x599: {X=162,Y=445,Width=290,Height=21}
+  ok   comboDoseRateSpectrum внутри страницы 490x599: {X=162,Y=396,Width=290,Height=21}
+  ok   buttonEstimateDRConf внутри страницы 490x599: {X=9,Y=521,Width=181,Height=25}
+  ok   labelDoseRateValue внутри страницы 490x599: {X=81,Y=493,Width=300,Height=25}
+  ok   upDownDoseRateValue внутри страницы 490x599: {X=9,Y=491,Width=66,Height=20}
+  ok   labelEffNote внутри страницы 490x599: {X=6,Y=471,Width=452,Height=17}
+  ok   buttonLoadEff внутри страницы 490x599: {X=6,Y=443,Width=150,Height=25}
+  ok   labelSpectrumNote внутри страницы 490x599: {X=6,Y=422,Width=296,Height=18}
+  ok   buttonLoadDoseRateSpectrum внутри страницы 490x599: {X=6,Y=394,Width=150,Height=25}
+  ok   контролы не налезают друг на друга (пар: 0)
+  ok   labelDREstimateTitle: подписи нужно 388 тчк, дано 452 — «Experimental: dose rate curve from efficiency (XCOM + ICRP 74) and a spectrum»
+  ok   buttonEstimateDRConf: подписи нужно 148 тчк, дано 181 — «Calculate Dose Rate Config»
+  ok   labelDoseRateValue: подписи нужно 124 тчк, дано 300 — «uSv/h, source dose rate»
+  ok   labelEffNote: подписи нужно 346 тчк, дано 452 — «*only the shape of the curve matters; the range follows the device scale»
+  ok   buttonLoadEff: подписи нужно 97 тчк, дано 150 — «Curve from a file*»
+  ok   labelSpectrumNote: подписи нужно 158 тчк, дано 296 — «*source with a known dose rate»
+  ok   buttonLoadDoseRateSpectrum: подписи нужно 114 тчк, дано 150 — «Spectrum from a file*»
+  ok   подписи вкладки (en-US) снятых слов не содержат
+     groupBox3                    {X=9,Y=6,Width=456,Height=362} «Dose Rate»
+     labelDREstimateTitle         {X=6,Y=371,Width=452,Height=20} «Experimental: dose rate curve from efficiency (XCOM + ICRP 74) and ...»
+     comboDoseRateEfficiency      {X=162,Y=445,Width=290,Height=21} «кривая 3»
+     comboDoseRateSpectrum        {X=162,Y=396,Width=290,Height=21} «»
+     buttonEstimateDRConf         {X=9,Y=521,Width=181,Height=25} «Calculate Dose Rate Config»
+     labelDoseRateValue           {X=81,Y=493,Width=300,Height=25} «uSv/h, source dose rate»
+     upDownDoseRateValue          {X=9,Y=491,Width=66,Height=20} «0,50»
+     labelEffNote                 {X=6,Y=471,Width=452,Height=17} «*only the shape of the curve matters; the range follows the device ...»
+     buttonLoadEff                {X=6,Y=443,Width=150,Height=25} «Curve from a file*»
+     labelSpectrumNote            {X=6,Y=422,Width=296,Height=18} «*source with a known dose rate»
+     buttonLoadDoseRateSpectrum   {X=6,Y=394,Width=150,Height=25} «Spectrum from a file*»
+
+  --- культура ru-RU ---
+  ok   ru-RU: три кривые конфигурации доехали до списка вкладки (в списке 3)
+  ok   ru-RU: выбран последний пункт (2)
+  ok   ru-RU: выбранная кривая доехала до расчёта
+     ПОРЧА «hidden» наложена на labelEffNote (ru-RU)
+  ok   детей у вкладки: 11
+  ok   виден: groupBox3
+  ok   виден: labelDREstimateTitle
+  ok   виден: comboDoseRateEfficiency
+  ok   виден: comboDoseRateSpectrum
+  ok   виден: buttonEstimateDRConf
+  ok   виден: labelDoseRateValue
+  ok   виден: upDownDoseRateValue
+  ПРОВАЛ виден: labelEffNote
+  ok   виден: buttonLoadEff
+  ok   виден: labelSpectrumNote
+  ok   виден: buttonLoadDoseRateSpectrum
+  ok   groupBox3 внутри страницы 490x599: {X=9,Y=6,Width=456,Height=362}
+  ok   labelDREstimateTitle внутри страницы 490x599: {X=6,Y=371,Width=452,Height=20}
+  ok   comboDoseRateEfficiency внутри страницы 490x599: {X=162,Y=445,Width=290,Height=21}
+  ok   comboDoseRateSpectrum внутри страницы 490x599: {X=162,Y=396,Width=290,Height=21}
+  ok   buttonEstimateDRConf внутри страницы 490x599: {X=9,Y=521,Width=181,Height=25}
+  ok   labelDoseRateValue внутри страницы 490x599: {X=81,Y=493,Width=300,Height=25}
+  ok   upDownDoseRateValue внутри страницы 490x599: {X=9,Y=491,Width=66,Height=20}
+  ok   labelEffNote внутри страницы 490x599: {X=6,Y=471,Width=452,Height=17}
+  ok   buttonLoadEff внутри страницы 490x599: {X=6,Y=443,Width=150,Height=25}
+  ok   labelSpectrumNote внутри страницы 490x599: {X=6,Y=422,Width=296,Height=18}
+  ok   buttonLoadDoseRateSpectrum внутри страницы 490x599: {X=6,Y=394,Width=150,Height=25}
+  ok   контролы не налезают друг на друга (пар: 0)
+  ok   labelDREstimateTitle: подписи нужно 420 тчк, дано 452 — «Экспериментально: кривая дозы по эффективности (XCOM + ICRP 74) и спектру»
+  ok   buttonEstimateDRConf: подписи нужно 152 тчк, дано 181 — «Рассчитать конфигурацию»
+  ok   labelDoseRateValue: подписи нужно 202 тчк, дано 300 — «мкЗв/ч, мощность дозы от источника»
+  ok   labelEffNote: подписи нужно 347 тчк, дано 452 — «*важна только форма кривой; диапазон берётся у шкалы прибора»
+  ok   buttonLoadEff: подписи нужно 108 тчк, дано 150 — «Кривая из файла*»
+  ok   labelSpectrumNote: подписи нужно 236 тчк, дано 296 — «*от источника с известной мощностью дозы»
+  ok   buttonLoadDoseRateSpectrum: подписи нужно 107 тчк, дано 150 — «Спектр из файла*»
+  ok   подписи вкладки (ru-RU) снятых слов не содержат
+     groupBox3                    {X=9,Y=6,Width=456,Height=362} «Мощность дозы»
+     labelDREstimateTitle         {X=6,Y=371,Width=452,Height=20} «Экспериментально: кривая дозы по эффективности (XCOM + ICRP 74) и с...»
+     comboDoseRateEfficiency      {X=162,Y=445,Width=290,Height=21} «кривая 3»
+     comboDoseRateSpectrum        {X=162,Y=396,Width=290,Height=21} «»
+     buttonEstimateDRConf         {X=9,Y=521,Width=181,Height=25} «Рассчитать конфигурацию»
+     labelDoseRateValue           {X=81,Y=493,Width=300,Height=25} «мкЗв/ч, мощность дозы от источника»
+     upDownDoseRateValue          {X=9,Y=491,Width=66,Height=20} «0,50»
+     labelEffNote                 {X=6,Y=471,Width=452,Height=17} «*важна только форма кривой; диапазон берётся у шкалы прибора»
+     buttonLoadEff                {X=6,Y=443,Width=150,Height=25} «Кривая из файла*»
+     labelSpectrumNote            {X=6,Y=422,Width=296,Height=18} «*от источника с известной мощностью дозы»
+     buttonLoadDoseRateSpectrum   {X=6,Y=394,Width=150,Height=25} «Спектр из файла*»
+
+ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ «hidden»: отказ получен (2 из 81)

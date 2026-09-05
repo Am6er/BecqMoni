@@ -2,11 +2,15 @@ using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace DoseRateProbe
@@ -44,7 +48,21 @@ namespace DoseRateProbe
     ///  5. **`C4(б)`** — открытые спектры предлагаются без второго диалога;
     ///     спектр без калибровки в список не попадает.
     ///
-    ///   doserateprobe [--dir=&lt;корпус&gt;]
+    ///  6. **`A202` и `A201` — РАСКЛАДКА и ПОДПИСИ вкладки.** Списки живут в
+    ///     конструкторе форм, а не строятся кодом по чужим координатам; полей
+    ///     «путь к файлу», которые прятались `Visible = false`, в форме нет
+    ///     вовсе; ни один контрол не выходит за страницу и не налезает на
+    ///     соседа; подпись помещается в свой контрол НА ОБЕИХ культурах и не
+    ///     обещает ни ЛСРМ, ни «40 кэВ – 3 МэВ». Плюс снимок вкладки в PNG.
+    ///
+    ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;кривые&gt;] [--shots=&lt;куда PNG&gt;]
+    ///   doserateprobe --sabotage=long|word|hidden|overlap   (ждёт ОТКАЗ)
+    ///
+    /// ⛔ Приёмка, которая проходит всегда, не мерит ничего. Ключ `--sabotage`
+    /// портит РОВНО ОДНУ вещь в уже построенной форме и требует, чтобы раздел
+    /// раскладки отказал и назвал испорченное имя; без порчи он же обязан
+    /// молчать. Коды возврата у `--sabotage` перевёрнуты: 0 — отказ получен
+    /// (сторож смотрит), 1 — не получен (сторож слеп).
     /// </summary>
     static class Program
     {
@@ -70,6 +88,13 @@ namespace DoseRateProbe
 
         static string lsrmDir = @"LSRM Geometries\Exported Curves";
 
+        /// <summary>Куда класть снимки вкладки; null — не снимать.</summary>
+        static string shotDir;
+
+        /// <summary>Что испортить ради положительного контроля; null — ничего.</summary>
+        static string sabotage;
+
+        [STAThread]
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -83,6 +108,14 @@ namespace DoseRateProbe
                 {
                     lsrmDir = a.Substring(7);
                 }
+                else if (a.StartsWith("--shots=", StringComparison.Ordinal))
+                {
+                    shotDir = a.Substring(8);
+                }
+                else if (a.StartsWith("--sabotage=", StringComparison.Ordinal))
+                {
+                    sabotage = a.Substring(11);
+                }
                 else
                 {
                     Console.Error.WriteLine("неизвестный ключ: " + a);
@@ -92,16 +125,21 @@ namespace DoseRateProbe
 
             try
             {
-                ComptonControl();
-                MuEnAgreement();
-                AmbientAgreement();
-                Refusals();
-                OfferedCurves();
-                OfferedSpectra();
-                LsrmReaderStillWorks();
-                LsrmRealExports();
-                OverflowRule();
-                TruncationPrice();
+                if (sabotage == null)
+                {
+                    ComptonControl();
+                    MuEnAgreement();
+                    AmbientAgreement();
+                    Refusals();
+                    OfferedCurves();
+                    OfferedSpectra();
+                    LsrmReaderStillWorks();
+                    LsrmRealExports();
+                    OverflowRule();
+                    TruncationPrice();
+                }
+
+                TabLayout();
             }
             catch (Exception ex)
             {
@@ -110,6 +148,17 @@ namespace DoseRateProbe
             }
 
             Console.WriteLine();
+            if (sabotage != null)
+            {
+                bool caught = failed > 0;
+                Console.WriteLine(caught
+                    ? string.Format("ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ «{0}»: отказ получен ({1} из {2})",
+                                    sabotage, failed, checks)
+                    : string.Format("ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ «{0}»: ОТКАЗА НЕТ — сторож слеп ({1} проверок)",
+                                    sabotage, checks));
+                return caught ? 0 : 1;
+            }
+
             Console.WriteLine(failed == 0
                 ? string.Format("ВСЁ СОШЛОСЬ: {0} проверок", checks)
                 : string.Format("ПРОВАЛОВ {0} из {1}", failed, checks));
@@ -1483,6 +1532,385 @@ namespace DoseRateProbe
 
             points.Add(new ROIEfficiencyData { Energy = 10000.0, Efficiency = 1e-3, ErrorPercent = 1.0 });
             return points;
+        }
+
+        // ==================================================================
+        // 6. Раскладка вкладки (`A202`) и её подписи (`A201`)
+        // ==================================================================
+
+        /// <summary>Слова, снятые с вкладки `C4`: модель больше не ЛСРМ, полосы 40–3000 нет.</summary>
+        static readonly string[] StaleWords =
+            { "LSRM", "ЛСРМ", "effcalc", "40 keV", "3MeV", "3 MeV", "40 кэВ", "3 МэВ" };
+
+        /// <summary>
+        /// Вкладка строится ЖИВЬЁМ, а разбирается двумя способами разом:
+        /// отражением (какие поля у формы есть и откуда взялись) и геометрией
+        /// уже построенных контролов. Окно при этом НЕ показывается: форма
+        /// строится, у неё берётся дескриптор, и снимок снимается прямо с
+        /// вкладки.
+        /// </summary>
+        static void TabLayout()
+        {
+            Console.WriteLine();
+            Console.WriteLine("== вкладка «Dose Rate»: раскладка из конструктора форм, подписи из resx ==");
+
+            // Раскладка не должна жить в двух местах: полей «путь к файлу», с
+            // которых списки снимали Location/Size/TabIndex, в форме больше
+            // нет вовсе (`A202`).
+            foreach (string gone in new[] { "textBoxEffFile", "textBoxDoseRateSpectrumFile" })
+            {
+                Ok(FormField(gone) == null,
+                    "снятого поля " + gone + " в форме нет");
+            }
+
+            foreach (string live in new[] { "comboDoseRateSpectrum", "comboDoseRateEfficiency" })
+            {
+                FieldInfo f = FormField(live);
+                Ok(f != null && f.FieldType == typeof(ComboBox),
+                    "список " + live + " объявлен полем формы типа ComboBox");
+            }
+
+            // Тот же вопрос со стороны РЕСУРСА: раскладка обоих списков обязана
+            // лежать в `DeviceConfigForm.resx`, иначе она снова окажется в коде.
+            string resx = ResxPath();
+            string text = resx == null ? "" : File.ReadAllText(resx, Encoding.UTF8);
+            Ok(resx != null, "найден " + (resx ?? "DeviceConfigForm.resx — НЕ НАЙДЕН"));
+            foreach (string key in new[] { "comboDoseRateSpectrum.Location", "comboDoseRateSpectrum.Size",
+                                           "comboDoseRateEfficiency.Location", "comboDoseRateEfficiency.Size" })
+            {
+                Ok(text.Contains("\"" + key + "\""), "в resx есть " + key);
+            }
+
+            foreach (string key in new[] { "textBoxEffFile", "textBoxDoseRateSpectrumFile" })
+            {
+                Ok(!text.Contains("\"" + key + "."), "в resx не осталось раскладки " + key);
+            }
+
+            DeviceType.InitializeDeviceTypes();
+            ThermometerType.InitializeThermometerTypes();
+
+            TabOnCulture("en-US");
+            TabOnCulture("ru-RU");
+        }
+
+        static FieldInfo FormField(string name)
+        {
+            return typeof(DeviceConfigForm).GetField(
+                name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        }
+
+        static string ResxPath()
+        {
+            foreach (string candidate in new[]
+                     {
+                         Path.Combine("BecquerelMonitor", "DeviceConfigForm.resx"),
+                         Path.Combine("..", "..", "..", "..", "BecquerelMonitor", "DeviceConfigForm.resx"),
+                     })
+            {
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Построить форму на заданной культуре и обмерить вкладку.</summary>
+        static void TabOnCulture(string culture)
+        {
+            Console.WriteLine();
+            Console.WriteLine("  --- культура {0} ---", culture);
+            CultureInfo previous = Thread.CurrentThread.CurrentUICulture;
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
+            try
+            {
+                using (var form = new DeviceConfigForm())
+                {
+                    var page = (TabPage)Instance(form, "tabPage7");
+                    if (page == null)
+                    {
+                        Ok(false, "вкладки tabPage7 в форме нет");
+                        return;
+                    }
+
+                    // Дескриптор нужен, чтобы контролы получили свои шрифты и
+                    // чтобы снимок не вышел пустым; окно не показывается.
+                    var tabs = (TabControl)Instance(form, "tabControl1");
+                    if (tabs != null && tabs.TabPages.Contains(page))
+                    {
+                        tabs.SelectedTab = page;
+                    }
+
+                    IntPtr ignored = form.Handle;
+                    GC.KeepAlive(ignored);
+
+                    // ⛔ Открытый `CreateControl()` у НЕВИДИМОЙ формы не делает
+                    // ничего, и `DrawToBitmap` отдаёт ровный фон — измерено:
+                    // 0.0 % точек, отличных от фона. Дескрипторы детей создаёт
+                    // внутренняя перегрузка с `ignoreVisible`; окно при этом не
+                    // показывается.
+                    MethodInfo create = typeof(Control).GetMethod(
+                        "CreateControl", BindingFlags.Instance | BindingFlags.NonPublic,
+                        null, new[] { typeof(bool) }, null);
+                    if (create != null)
+                    {
+                        create.Invoke(page, new object[] { true });
+                    }
+
+                    Filling(form, page, culture);
+                    Apply(page, culture);
+                    Measure(page, culture);
+                    Shot(page, culture);
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentUICulture = previous;
+            }
+        }
+
+        /// <summary>
+        /// Списки переехали в конструктор форм — наполняться они обязаны
+        /// по-прежнему. ⚠ Перенос, при котором раскладка верна, а связь кода с
+        /// контролом порвана, снимком не виден вовсе: пустой список выглядит
+        /// как список без кривых.
+        /// </summary>
+        static void Filling(DeviceConfigForm form, TabPage page, string culture)
+        {
+            var config = new DeviceConfigInfo();
+            for (int i = 0; i < 3; i++)
+            {
+                var curve = new EfficiencyConfigData("кривая " + (i + 1));
+                curve.Curve = new List<ROIEfficiencyData>
+                {
+                    new ROIEfficiencyData { Energy = 40, Efficiency = 0.02 },
+                    new ROIEfficiencyData { Energy = 662, Efficiency = 0.01 },
+                    new ROIEfficiencyData { Energy = 3000, Efficiency = 0.003 },
+                };
+
+                config.EfficiencyConfigs.Add(curve);
+            }
+
+            MethodInfo load = typeof(DeviceConfigForm).GetMethod(
+                "LoadDoseRateTab", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (load == null)
+            {
+                Ok(false, "у формы нет LoadDoseRateTab");
+                return;
+            }
+
+            load.Invoke(form, new object[] { config });
+
+            var combo = (ComboBox)Child(page, "comboDoseRateEfficiency");
+            Ok(combo.Items.Count == 3, string.Format(CultureInfo.InvariantCulture,
+                "{0}: три кривые конфигурации доехали до списка вкладки (в списке {1})",
+                culture, combo.Items.Count));
+            Ok(combo.SelectedIndex == combo.Items.Count - 1,
+                string.Format("{0}: выбран последний пункт ({1})", culture, combo.SelectedIndex));
+
+            // Кривая выбранного пункта дошла до расчёта — иначе кнопка «Оценить»
+            // осталась бы выключенной при полном списке.
+            object curveField = Instance(form, "efficiencyCurve");
+            Ok(curveField != null, culture + ": выбранная кривая доехала до расчёта");
+        }
+
+        /// <summary>Порча ради положительного контроля — ровно одна вещь.</summary>
+        static void Apply(TabPage page, string culture)
+        {
+            if (sabotage == null)
+            {
+                return;
+            }
+
+            Control victim = Child(page, "labelEffNote");
+            switch (sabotage)
+            {
+                case "long":
+                    victim.Text = new string('W', 200);
+                    break;
+                case "word":
+                    victim.Text = "*only curve shape is important (LSRM effcalc, 40 keV - 3MeV)";
+                    break;
+                case "hidden":
+                    victim.Visible = false;
+                    break;
+                case "overlap":
+                    victim.Location = Child(page, "buttonLoadEff").Location;
+                    break;
+                default:
+                    throw new InvalidOperationException("неизвестная порча: " + sabotage);
+            }
+
+            Console.WriteLine("     ПОРЧА «{0}» наложена на labelEffNote ({1})", sabotage, culture);
+        }
+
+        static Control Child(TabPage page, string name)
+        {
+            foreach (Control c in page.Controls)
+            {
+                if (c.Name == name)
+                {
+                    return c;
+                }
+            }
+
+            throw new InvalidOperationException("на вкладке нет контрола " + name);
+        }
+
+        /// <summary>Геометрия и подписи прямых детей вкладки.</summary>
+        static void Measure(TabPage page, string culture)
+        {
+            var kids = new List<Control>();
+            foreach (Control c in page.Controls)
+            {
+                kids.Add(c);
+            }
+
+            Ok(kids.Count > 0, string.Format("детей у вкладки: {0}", kids.Count));
+
+            // ⚠ `Control.Visible` у ребёнка невыбранной вкладки врёт (он ложен
+            // потому, что ложен родитель). Спрашивается СОБСТВЕННОЕ состояние
+            // контрола — тот самый бит, который ставил `Visible = false`.
+            foreach (Control c in kids)
+            {
+                Ok(SelfVisible(c), "виден: " + Name(c));
+            }
+
+            Rectangle field = new Rectangle(Point.Empty, page.Size);
+            foreach (Control c in kids)
+            {
+                Ok(field.Contains(c.Bounds), string.Format(CultureInfo.InvariantCulture,
+                    "{0} внутри страницы {1}x{2}: {3}", Name(c), field.Width, field.Height, c.Bounds));
+            }
+
+            int overlaps = 0;
+            for (int i = 0; i < kids.Count; i++)
+            {
+                for (int j = i + 1; j < kids.Count; j++)
+                {
+                    if (kids[i].Bounds.IntersectsWith(kids[j].Bounds))
+                    {
+                        overlaps++;
+                        Console.WriteLine("     налезают: {0} на {1}", Name(kids[i]), Name(kids[j]));
+                    }
+                }
+            }
+
+            Ok(overlaps == 0, string.Format("контролы не налезают друг на друга (пар: {0})", overlaps));
+
+            // Подпись обязана ПОМЕЩАТЬСЯ. Метка с AutoSize = false и кнопка
+            // обрезают текст молча, и на второй культуре это самый частый
+            // способ потерять половину строки.
+            foreach (Control c in kids)
+            {
+                if (!(c is Label) && !(c is Button))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(c.Text))
+                {
+                    continue;
+                }
+
+                int need = TextRenderer.MeasureText(c.Text, c.Font).Width + (c is Button ? 10 : 2);
+                Ok(need <= c.Width, string.Format(CultureInfo.InvariantCulture,
+                    "{0}: подписи нужно {1} тчк, дано {2} — «{3}»", Name(c), need, c.Width, c.Text));
+            }
+
+            // `A201`: снятые слова не должны остаться ни в одной подписи.
+            foreach (Control c in kids)
+            {
+                if (string.IsNullOrEmpty(c.Text))
+                {
+                    continue;
+                }
+
+                foreach (string word in StaleWords)
+                {
+                    if (c.Text.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        Ok(false, string.Format("{0} обещает снятое «{1}»: «{2}»", Name(c), word, c.Text));
+                    }
+                }
+            }
+
+            Ok(true, string.Format("подписи вкладки ({0}) снятых слов не содержат", culture));
+
+            foreach (Control c in kids)
+            {
+                Console.WriteLine("     {0,-28} {1,-22} «{2}»", Name(c), c.Bounds.ToString(), Shorten(c.Text));
+            }
+        }
+
+        static string Shorten(string text)
+        {
+            text = text ?? "";
+            return text.Length <= 70 ? text : text.Substring(0, 67) + "...";
+        }
+
+        static string Name(Control c)
+        {
+            return string.IsNullOrEmpty(c.Name) ? c.GetType().Name : c.Name;
+        }
+
+        /// <summary>Собственный бит видимости, не зависящий от родителя.</summary>
+        static bool SelfVisible(Control c)
+        {
+            MethodInfo m = typeof(Control).GetMethod(
+                "GetState", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(int) }, null);
+            if (m == null)
+            {
+                return c.Visible;
+            }
+
+            return (bool)m.Invoke(c, new object[] { 2 });   // STATE_VISIBLE
+        }
+
+        /// <summary>
+        /// Снимок вкладки. ⚠ Проверяется не только то, что файл записан, но и
+        /// то, что он НЕ ПУСТ: `DrawToBitmap` на контроле без дескриптора
+        /// отдаёт ровный фон, и такой снимок выглядит как удачный.
+        /// </summary>
+        static void Shot(TabPage page, string culture)
+        {
+            if (shotDir == null)
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(shotDir);
+            string path = Path.Combine(shotDir, "doserate-tab-" + culture + ".png");
+            using (var bmp = new Bitmap(page.Width, page.Height))
+            {
+                page.DrawToBitmap(bmp, new Rectangle(0, 0, page.Width, page.Height));
+                bmp.Save(path, ImageFormat.Png);
+
+                int ink = 0;
+                Color ground = bmp.GetPixel(bmp.Width - 2, bmp.Height - 2);
+                for (int y = 0; y < bmp.Height; y += 2)
+                {
+                    for (int x = 0; x < bmp.Width; x += 2)
+                    {
+                        if (bmp.GetPixel(x, y) != ground)
+                        {
+                            ink++;
+                        }
+                    }
+                }
+
+                double share = 100.0 * ink / (bmp.Width / 2.0 * (bmp.Height / 2.0));
+                Ok(share > 1.0, string.Format(CultureInfo.InvariantCulture,
+                    "снимок {0}: не фон {1:f1} % точек", path, share));
+            }
+        }
+
+        static object Instance(object target, string name)
+        {
+            FieldInfo f = target.GetType().GetField(
+                name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            return f == null ? null : f.GetValue(target);
         }
     }
 }
