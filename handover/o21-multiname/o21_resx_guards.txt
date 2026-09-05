@@ -1,0 +1,18 @@
+resx_format.py             exit=0
+
+check_resx.py              exit=0
+файлов чужого формата (не BOM+CRLF): 0
+СОШЛОСЬ
+
+check_resx_designer.py     exit=0
+файлов чужого формата (не BOM+CRLF): 0
+СОШЛОСЬ
+
+check_resx_letters.py      exit=0
+файлов чужого формата (не BOM+CRLF): 0
+СОШЛОСЬ
+
+check_resx_zorder.py       exit=0
+==========================================================================
+расхождений нет
+

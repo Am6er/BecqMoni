@@ -5773,6 +5773,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to  / .
+        /// </summary>
+        public static string PeakLabelCandidateSeparator {
+            get {
+                return ResourceManager.GetString("PeakLabelCandidateSeparator", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless..
         /// </summary>
         public static string DoseRateBadEfficiency {
