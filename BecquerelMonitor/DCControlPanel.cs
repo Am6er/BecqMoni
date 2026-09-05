@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -20,7 +21,7 @@ namespace BecquerelMonitor
             get
             {
                 int result;
-                if (!int.TryParse(this.realTimeLimitTextBox.Text, out result))
+                if (!UserNumber.TryParseInt(this.realTimeLimitTextBox.Text, out result))
                 {
                     return -1;
                 }
@@ -28,7 +29,7 @@ namespace BecquerelMonitor
             }
             set
             {
-                this.realTimeLimitTextBox.Text = value.ToString();
+                this.realTimeLimitTextBox.Text = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -313,7 +314,7 @@ namespace BecquerelMonitor
             }
             this.UpdateEfficiencyList(activeResultData);
             this.textBox1.Text = Path.GetFileName(activeResultData.BackgroundSpectrumFile);
-            this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString();
+            this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString(CultureInfo.InvariantCulture);
             if (resultDataStatus.Recording)
             {
                 this.startBtn.Enabled = false;
@@ -359,11 +360,11 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             this.ShowMeasurementProgressBar();
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
-            this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString();
-            this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
+            this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
+            this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString(CultureInfo.InvariantCulture);
             long invalidPulseCount = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
-            this.invalidCountsTextBox.Text = invalidPulseCount.ToString(); //invalid pulses
-            this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2");
+            this.invalidCountsTextBox.Text = invalidPulseCount.ToString(CultureInfo.InvariantCulture); //invalid pulses
+            this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2", CultureInfo.InvariantCulture);
             double cps = 0.0;
             double deadTime = 0.0;
             if (totalSeconds != 0.0)
@@ -377,7 +378,7 @@ namespace BecquerelMonitor
                     deadTime = 0;
                 }
             }
-            this.countRateTextBox.Text = cps.ToString("f2");
+            this.countRateTextBox.Text = cps.ToString("f2", CultureInfo.InvariantCulture);
             if (deadTime <= 20.0)
             {
                 this.deadTimetextBox.ForeColor = Color.Black;
@@ -389,7 +390,7 @@ namespace BecquerelMonitor
                 this.deadTimetextBox.ForeColor = Color.DarkRed;
             }
             this.deadTimetextBox.BackColor = this.deadTimetextBox.BackColor;
-            this.deadTimetextBox.Text = deadTime.ToString("f4");
+            this.deadTimetextBox.Text = deadTime.ToString("f4", CultureInfo.InvariantCulture);
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
@@ -409,7 +410,7 @@ namespace BecquerelMonitor
                 progress = 100.0;
             }
             this.percentageProgressBar1.DoubleValue = progress;
-            this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString();
+            this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString(CultureInfo.InvariantCulture);
             this.percentageProgressBar1.Invalidate();
         }
 
@@ -978,7 +979,7 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             int presetTime = 0;
-            if (!int.TryParse(this.realTimeLimitTextBox.Text, out presetTime))
+            if (!UserNumber.TryParseInt(this.realTimeLimitTextBox.Text, out presetTime))
             {
                 this.realTimeLimitTextBox.Text = "0";
             }

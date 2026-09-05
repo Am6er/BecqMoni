@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -31,8 +32,8 @@ namespace BecquerelMonitor
         {
             ROIReferenceData roireferenceData = (ROIReferenceData)prim;
             this.comboBox1.SelectedIndex = ROIPrimitiveOperation.GetOperationIndex(prim.OperationType);
-            this.doubleTextBox3.Text = roireferenceData.Coefficient.ToString();
-            this.doubleTextBox4.Text = roireferenceData.CoefficientError.ToString();
+            this.doubleTextBox3.Text = roireferenceData.Coefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roireferenceData.CoefficientError.ToString(CultureInfo.InvariantCulture);
             this.comboBox2.SelectedItem = roireferenceData.Reference;
             this.textBox1.Text = roireferenceData.Note;
         }
@@ -51,8 +52,8 @@ namespace BecquerelMonitor
             try
             {
                 roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
-                coefficient = double.Parse(this.doubleTextBox3.Text);
-                coefficientError = double.Parse(this.doubleTextBox4.Text);
+                coefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                coefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
                 reference = (string)this.comboBox2.SelectedItem;
             }
             catch (Exception)

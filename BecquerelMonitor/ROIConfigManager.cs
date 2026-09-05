@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -491,6 +492,7 @@ namespace BecquerelMonitor
         static void TraceDroppedElement(string path, XmlElementEventArgs e)
         {
             System.Diagnostics.Trace.WriteLine(string.Format(
+                CultureInfo.InvariantCulture,
                 "ROI config \"{0}\": элемент <{1}> (строка {2}) программе неизвестен, " +
                 "он не прочитан и будет потерян при первом сохранении конфигурации.",
                 path, e.Element != null ? e.Element.Name : "?", e.LineNumber));

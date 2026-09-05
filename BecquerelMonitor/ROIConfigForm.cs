@@ -312,7 +312,7 @@ namespace BecquerelMonitor
         {
             for (int i = 1; i < 999; i++)
             {
-                string text = Resources.NewROIConfigPrefix + "(" + i.ToString() + ").xml";
+                string text = Resources.NewROIConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
                 bool flag = false;
                 foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList)
                 {
@@ -396,7 +396,7 @@ namespace BecquerelMonitor
             string text = "";
             for (int i = 0; i < 9999; i++)
             {
-                text = "New ROI(" + this.newROIIndex + ")";
+                text = "New ROI(" + this.newROIIndex.ToString(CultureInfo.InvariantCulture) + ")";
                 this.newROIIndex++;
                 bool flag = false;
                 foreach (ROIDefinitionData roidefinitionData in this.activeROIConfig.ROIDefinitions)
@@ -538,9 +538,9 @@ namespace BecquerelMonitor
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(roidefinitionData.Name, roidefinitionData.Enabled));
-                string text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " " + Resources.kev;
+                string text = roidefinitionData.LowerLimit.ToString(CultureInfo.InvariantCulture) + " - " + roidefinitionData.UpperLimit.ToString(CultureInfo.InvariantCulture) + " " + Resources.kev;
                 row.Cells.Add(new Cell(text));
-                row.Cells.Add(new Cell(roidefinitionData.ROIPrimitives.Count.ToString()));
+                row.Cells.Add(new Cell(roidefinitionData.ROIPrimitives.Count.ToString(CultureInfo.InvariantCulture)));
                 row.Tag = roidefinitionData;
                 if (this.activeROIDefinition == roidefinitionData)
                 {
@@ -562,8 +562,8 @@ namespace BecquerelMonitor
                 ROIDefinitionData roidefinitionData = (ROIDefinitionData)row.Tag;
                 row.Cells[0].Checked = roidefinitionData.Enabled;
                 row.Cells[0].Text = roidefinitionData.Name;
-                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString() + " - " + roidefinitionData.UpperLimit.ToString() + " " + Resources.kev;
-                row.Cells[2].Text = roidefinitionData.ROIPrimitives.Count.ToString();
+                row.Cells[1].Text = roidefinitionData.LowerLimit.ToString(CultureInfo.InvariantCulture) + " - " + roidefinitionData.UpperLimit.ToString(CultureInfo.InvariantCulture) + " " + Resources.kev;
+                row.Cells[2].Text = roidefinitionData.ROIPrimitives.Count.ToString(CultureInfo.InvariantCulture);
             }
             this.table1.EndUpdate();
         }
@@ -616,13 +616,13 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             this.textBox1.Text = roi.Name;
             this.checkBox1.Checked = roi.Enabled;
-            this.doubleTextBox3.Text = roi.BecquerelCoefficient.ToString();
-            this.doubleTextBox4.Text = roi.BecquerelCoefficientError.ToString();
-            this.doubleTextBox5.Text = roi.PeakEnergy.ToString();
-            this.doubleTextBox6.Text = roi.HalfLife.ToString();
-            this.doubleTextBox7.Text = roi.Intencity.ToString();
-            this.doubleTextBox1.Text = roi.LowerLimit.ToString();
-            this.doubleTextBox2.Text = roi.UpperLimit.ToString();
+            this.doubleTextBox3.Text = roi.BecquerelCoefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roi.BecquerelCoefficientError.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox5.Text = roi.PeakEnergy.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox6.Text = roi.HalfLife.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox7.Text = roi.Intencity.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox1.Text = roi.LowerLimit.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = roi.UpperLimit.ToString(CultureInfo.InvariantCulture);
             this.colorComboBox1.SelectedColor = roi.Color.Color;
             this.colorComboBox1.Refresh();
             this.textBox2.Text = roi.Note;
@@ -664,7 +664,7 @@ namespace BecquerelMonitor
             }
 
             this.hints.SetToolTip(this.autoBqCheckBox, k.Problem ?? string.Format(
-                CultureInfo.CurrentCulture, Resources.BqCoeffFromCurve, k.Value, k.Error));
+                CultureInfo.InvariantCulture, Resources.BqCoeffFromCurve, k.Value, k.Error));
 
             // В полях показывается ДЕЙСТВУЮЩЕЕ значение, а не сохранённое:
             // иначе рядом с надписью «K посчитан по кривой» стояло бы другое
@@ -672,8 +672,8 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             try
             {
-                this.doubleTextBox3.Text = k.Value.ToString(CultureInfo.CurrentCulture);
-                this.doubleTextBox4.Text = k.Error.ToString(CultureInfo.CurrentCulture);
+                this.doubleTextBox3.Text = k.Value.ToString(CultureInfo.InvariantCulture);
+                this.doubleTextBox4.Text = k.Error.ToString(CultureInfo.InvariantCulture);
             }
             finally
             {
@@ -729,9 +729,9 @@ namespace BecquerelMonitor
                 try
                 {
                     this.doubleTextBox3.Text = this.activeROIDefinition.BecquerelCoefficient
-                        .ToString(CultureInfo.CurrentCulture);
+                        .ToString(CultureInfo.InvariantCulture);
                     this.doubleTextBox4.Text = this.activeROIDefinition.BecquerelCoefficientError
-                        .ToString(CultureInfo.CurrentCulture);
+                        .ToString(CultureInfo.InvariantCulture);
                 }
                 finally
                 {
@@ -770,7 +770,7 @@ namespace BecquerelMonitor
                 }
                 ROIPrimitiveControl roiprimitiveControl = (ROIPrimitiveControl)Activator.CreateInstance(primitive.TypeOfControl);
                 roiprimitiveControl.PrepareForm(this.activeROIConfig);
-                string text = (num + 1).ToString() + ") " + primitive.Translation;
+                string text = (num + 1).ToString(CultureInfo.InvariantCulture) + ") " + primitive.Translation;
                 TabPage tabPage = new TabPage(text);
                 roiprimitiveData.Control = roiprimitiveControl;
                 roiprimitiveControl.LoadFormContents(roiprimitiveData);
@@ -779,7 +779,7 @@ namespace BecquerelMonitor
                 roiprimitiveControl.ROIPrimitiveModified += this.control_ROIPrimitiveModified;
                 this.tabControl1.TabPages.Add(tabPage);
                 Row row = new Row();
-                row.Cells.Add(new Cell((num + 1).ToString()));
+                row.Cells.Add(new Cell((num + 1).ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(primitive.Translation));
                 Cell cell = new Cell(operation.Translation, operation.Bitmap);
                 row.Cells.Add(cell);
@@ -801,9 +801,9 @@ namespace BecquerelMonitor
                 ROISimpleDifferenceData roisimpleDifferenceData = (ROISimpleDifferenceData)prim;
                 result = string.Concat(new object[]
                 {
-                    roisimpleDifferenceData.LowerLimit,
+                    roisimpleDifferenceData.LowerLimit.ToString(CultureInfo.InvariantCulture),
                     " - ",
-                    roisimpleDifferenceData.UpperLimit,
+                    roisimpleDifferenceData.UpperLimit.ToString(CultureInfo.InvariantCulture),
                     " " + Resources.kev
                 });
             }
@@ -812,9 +812,9 @@ namespace BecquerelMonitor
                 ROICovellMethodData roicovellMethodData = (ROICovellMethodData)prim;
                 result = string.Concat(new object[]
                 {
-                    roicovellMethodData.LowerLimit,
+                    roicovellMethodData.LowerLimit.ToString(CultureInfo.InvariantCulture),
                     " - ",
-                    roicovellMethodData.UpperLimit,
+                    roicovellMethodData.UpperLimit.ToString(CultureInfo.InvariantCulture),
                     " " + Resources.kev
                 });
             }
@@ -921,14 +921,14 @@ namespace BecquerelMonitor
                 // и есть запасное значение на случай, когда кривой не станет.
                 if (!roi.AutoBecquerelCoefficient)
                 {
-                    becquerelCoefficient = double.Parse(this.doubleTextBox3.Text);
-                    becquerelCoefficientError = double.Parse(this.doubleTextBox4.Text);
+                    becquerelCoefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                    becquerelCoefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
                 }
-                peakEnergy = double.Parse(this.doubleTextBox5.Text);
-                halfLife = double.Parse(this.doubleTextBox6.Text);
-                intencity = double.Parse(this.doubleTextBox7.Text);
-                lowerLimit = double.Parse(this.doubleTextBox1.Text);
-                upperLimit = double.Parse(this.doubleTextBox2.Text);
+                peakEnergy = UserNumber.ParseDouble(this.doubleTextBox5.Text);
+                halfLife = UserNumber.ParseDouble(this.doubleTextBox6.Text);
+                intencity = UserNumber.ParseDouble(this.doubleTextBox7.Text);
+                lowerLimit = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                upperLimit = UserNumber.ParseDouble(this.doubleTextBox2.Text);
             }
             catch (Exception)
             {
@@ -973,7 +973,7 @@ namespace BecquerelMonitor
             roi.Note = this.textBox2.Text;
             if (clamped)
             {
-                this.doubleTextBox2.Text = upperLimit.ToString();
+                this.doubleTextBox2.Text = upperLimit.ToString(CultureInfo.InvariantCulture);
             }
             return true;
         }

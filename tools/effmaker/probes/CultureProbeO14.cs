@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,9 +71,31 @@ static class CultureProbeO14
     {
         Console.OutputEncoding = Encoding.UTF8;
         string outPath = null;
+        bool modalControl = false;
         foreach (string a in args)
         {
             if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
+            else if (a == "--modal-control") modalControl = true;
+        }
+
+        // ⛔ Сторож модальных окон — ПЕРВЫМ ДЕЛОМ, до менеджеров-одиночек:
+        //    окно, поднятое голым `MessageBox.Show` на безоконном пути, вешает
+        //    прогон насмерть, и до этого сторожа исход приёмки зависел от
+        //    того, закроет ли окно кто-то снаружи (полоса F20, `A245`).
+        ModalWatchStart();
+
+        if (modalControl)
+        {
+            // Положительный контроль САМОГО сторожа: без него «окон не было»
+            // неотличимо от «сторож молчит». Прогон обязан кончиться кодом 1.
+            ModalControl();
+            Say("");
+            Say(failures == 0
+                ? "⛔ КОНТРОЛЬ НЕ СРАБОТАЛ: сторож не засчитал ни одного окна"
+                : "РАСХОЖДЕНИЙ: " + failures + " (так и надо: это контроль сторожа)");
+            ModalWatchStop();
+            Finish(outPath);
+            return failures == 0 ? 3 : 1;
         }
 
 
@@ -183,7 +206,25 @@ static class CultureProbeO14
         //    потоке и на потоке пула без переноса контекста исполнения.
         A244P1();
 
+        // ── `A244`, ДОДЕЛКА П1+П3 (полоса F17): окно настроек прибора
+        //    (`DeviceConfigForm`) и ВВОД ЧЕЛОВЕКА в поля `DoubleTextBox` /
+        //    `IntegerTextBox`, куда это окно печатает и откуда читает.
+        A244P1P3();
+
+        // ── `A244`, доли П5 «панели DC» и П6 «зоны интереса» (полоса F22).
+        //    Печать и разбор берутся ЖИВЫМИ путями: таблица точек ПШПВ и её
+        //    редактор ячейки, подписи формы пика, три снасти правки зоны
+        //    (`Load`/`Save` по кругу) и строка области, которую собирает
+        //    `string.Concat(object[])` — место, которого сканер не видит.
+        A244P5P6();
+
+        ModalWatchStop();
+
         Say("");
+        Say("модальных окон за прогон: " + modalSeen
+            + (modalSeen == 0
+               ? " — безоконный путь нигде не упёрся в окно"
+               : " ⛔ окна поднимались, см. строки выше"));
         Say(failures == 0
             ? "СОШЛОСЬ: строка ресурса вне UI-потока выходит по настройке во всех плечах;"
               + " числа печатаются и разбираются точкой на любой культуре"
@@ -1128,8 +1169,179 @@ static class CultureProbeO14
 
     static void Say(string line)
     {
-        Console.WriteLine(line);
-        Log.AppendLine(line);
+        // ⚠ Зовётся и со сторожевого потока (`ModalWatch`), поэтому под
+        //   замком: `StringBuilder` не потокобезопасен, а порванная строка
+        //   отчёта — это отказ, который никто не прочтёт.
+        lock (Log)
+        {
+            Console.WriteLine(line);
+            Log.AppendLine(line);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  СТОРОЖ МОДАЛЬНЫХ ОКОН (полоса F20, 05.09.2026).
+    //
+    //  ⛔ ЗАЧЕМ. До него приёмка раздела `A244P1P3` была ЛОТЕРЕЕЙ, и это
+    //     измерено, а не выведено: `DeviceConfigForm.LoadFormContents` →
+    //     `AudioInputDeviceForm.LoadFormContents` поднимал голый
+    //     `MessageBox.Show(«Выбранное аудио устройство не найдено.»)` — у
+    //     новой конфигурации `AudioInputDevice` пуст ВСЕГДА, значит окно
+    //     вставало в КАЖДОМ прогоне. Нажать «ОК» в безоконном прогоне
+    //     некому, и исход зависел от того, закроет ли окно кто-то снаружи:
+    //     один прогон давал код 0, следующий той же командой — «⛔ ЭТАЛОН НЕ
+    //     СНЯТ: окно настроек не ответило за 120 с». Сама беда починена в
+    //     приложении (`AppUi.Report` вместо `MessageBox.Show`), но проба
+    //     обязана ОТКАЗЫВАТЬ БЫСТРО И ВНЯТНО, если окно вернётся откуда
+    //     угодно, а не висеть и не зависеть от человека.
+    //
+    //  Что делает: каждые 200 мс перечисляет окна СВОЕГО процесса класса
+    //  `#32770` (это класс `MessageBox` и любого диалога), называет их текст,
+    //  засчитывает расхождение и посылает `WM_CLOSE` — прогон идёт дальше и
+    //  доносит отчёт целиком, а не гибнет по чужому таймауту.
+    //
+    //  Положительный контроль — ключ `--modal-control`: проба сама поднимает
+    //  `MessageBox` на фоновом потоке, и сторож ОБЯЗАН его назвать и закрыть,
+    //  а прогон обязан кончиться кодом 1 за секунды. Без этого ключа «окон не
+    //  было» неотличимо от «сторож не работает».
+    // ══════════════════════════════════════════════════════════════════════
+
+    const string DialogClass = "#32770";
+    const uint WM_CLOSE = 0x0010;
+
+    delegate bool EnumWindowProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    static extern bool EnumWindows(EnumWindowProc lpfn, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    static extern bool EnumChildWindows(IntPtr hWnd, EnumWindowProc lpfn, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetClassNameW(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetWindowTextW(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    static volatile bool modalWatchStop;
+    static Thread modalWatchThread;
+    static int modalSeen;
+
+    static void ModalWatchStart()
+    {
+        modalWatchThread = new Thread(delegate()
+        {
+            uint self = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
+            Dictionary<long, bool> known = new Dictionary<long, bool>();
+            while (!modalWatchStop)
+            {
+                List<IntPtr> found = new List<IntPtr>();
+                try
+                {
+                    EnumWindows(delegate(IntPtr h, IntPtr l)
+                    {
+                        uint pid;
+                        GetWindowThreadProcessId(h, out pid);
+                        if (pid != self) return true;
+                        StringBuilder cls = new StringBuilder(64);
+                        GetClassNameW(h, cls, cls.Capacity);
+                        if (cls.ToString() == DialogClass) found.Add(h);
+                        return true;
+                    }, IntPtr.Zero);
+                }
+                catch (Exception) { }
+
+                foreach (IntPtr h in found)
+                {
+                    long key = h.ToInt64();
+                    if (known.ContainsKey(key)) continue;
+                    known[key] = true;
+                    modalSeen++;
+                    failures++;
+                    Say("⛔ БЕЗОКОННЫЙ ПУТЬ УПЁРСЯ В МОДАЛЬНОЕ ОКНО: «" + ModalText(h)
+                        + "» — сторож закрывает его сам; нажать «ОК» здесь некому,"
+                        + " разряд `A245`");
+                    try { PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero); }
+                    catch (Exception) { }
+                }
+                Thread.Sleep(200);
+            }
+        });
+        modalWatchThread.IsBackground = true;
+        modalWatchThread.Start();
+    }
+
+    /// <summary>Текст диалога — он лежит в его детях класса `Static`.</summary>
+    static string ModalText(IntPtr dialog)
+    {
+        StringBuilder acc = new StringBuilder();
+        try
+        {
+            EnumChildWindows(dialog, delegate(IntPtr ch, IntPtr l)
+            {
+                StringBuilder cls = new StringBuilder(64);
+                GetClassNameW(ch, cls, cls.Capacity);
+                if (cls.ToString() == "Static")
+                {
+                    StringBuilder txt = new StringBuilder(512);
+                    GetWindowTextW(ch, txt, txt.Capacity);
+                    string s = txt.ToString().Trim();
+                    if (s.Length > 0)
+                    {
+                        if (acc.Length > 0) acc.Append(" / ");
+                        acc.Append(s);
+                    }
+                }
+                return true;
+            }, IntPtr.Zero);
+        }
+        catch (Exception) { }
+        return acc.Length == 0 ? "(текст не прочитан)" : acc.ToString();
+    }
+
+    static void ModalWatchStop()
+    {
+        modalWatchStop = true;
+        if (modalWatchThread != null) modalWatchThread.Join(2000);
+    }
+
+    /// <summary>
+    /// Положительный контроль сторожа: окно поднимается НАРОЧНО, на фоновом
+    /// потоке — ровно как его поднимало приложение. Сторож обязан назвать его
+    /// текст и закрыть, иначе проба стояла бы здесь до убийства процесса.
+    /// </summary>
+    static void ModalControl()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ СТОРОЖА ОКОН (`--modal-control`)");
+        Say("══════════════════════════════════════════════════════════════");
+        int before = modalSeen;
+        DateTime t0 = DateTime.UtcNow;
+        Thread th = new Thread(delegate()
+        {
+            System.Windows.Forms.MessageBox.Show("контрольное окно полосы F20",
+                                                 "контроль", System.Windows.Forms.MessageBoxButtons.OK);
+        });
+        th.IsBackground = true;
+        th.SetApartmentState(ApartmentState.STA);
+        th.Start();
+        bool closed = th.Join(20000);
+        double sec = (DateTime.UtcNow - t0).TotalSeconds;
+        Say("  окно поднято нарочно, закрыто сторожем: " + Verdict(closed)
+            + ", секунд " + sec.ToString("F1", CultureInfo.InvariantCulture)
+            + ", окон назвал сторож: " + (modalSeen - before));
+        if (!closed)
+        {
+            Say("  ⛔ СТОРОЖ НЕ РАБОТАЕТ: окно не закрыто за 20 с");
+            failures++;
+        }
     }
 
     static void Finish(string outPath)
@@ -1924,5 +2136,1026 @@ static class CultureProbeO14
             throw new InvalidOperationException("`AtomSpectraVCPDeviceForm.SaveFormContents` вернул false");
         }
         s.Baud = cfg.BaudRate.ToString(CultureInfo.InvariantCulture) + " на " + cfg.ComPortName;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  `A244`, ДОДЕЛКА ОБОРВАННЫХ ПОЛОС П1 и П3 (полоса F17).
+    //
+    //  П1 «ввод прибора» мерится разделом `A244P1` выше — он на месте и
+    //  собран. Здесь достаётся ВТОРАЯ половина той же работы, которая
+    //  осталась неизмеренной, когда обе полосы сняли на ходу:
+    //
+    //   1. ОКНО НАСТРОЕК ПРИБОРА (`DeviceConfigForm`, доля П3).
+    //      `LoadFormContents` печатает числа конфигурации в поля, а
+    //      `SaveFormContents` читает их обратно. Оба зовутся ОТРАЖЕНИЕМ —
+    //      окно не поднимается (`S100`). Печать и разбор в одном плече
+    //      нарочно: половина правки даёт не отказ, а ДРУГОЕ ЧИСЛО, тихо.
+    //
+    //   2. ВВОД ЧЕЛОВЕКА (`DoubleTextBox`, `IntegerTextBox` — те самые поля,
+    //      куда печатает и из которых читает и окно прибора, и окно общих
+    //      настроек). Показывается ТАБЛИЦА: какой текст поле принимало ДО
+    //      правки и какой принимает ПОСЛЕ, на каждой культуре.
+    //      ⛔ Разделитель ТЫСЯЧ не отдаётся: инвариантно это запятая — тот
+    //      самый символ, которым русский набирает дробную часть, и принять
+    //      его значило бы молча делать из «1,5» число 15.
+    //
+    //  ⛔ Чего этот раздел НЕ делает и почему. Отказ поля идёт через
+    //     `DoubleTextBox_Validating`, а тот при отказе поднимает
+    //     `MessageBox` — безоконный прогон повис бы на нём насмерть
+    //     (`S100`). Поэтому настоящий обработчик зовётся ТОЛЬКО на тексте,
+    //     который новый код принимает (и там судится `e.Cancel == false`), а
+    //     сторона отказа мерится настоящим публичным читателем поля
+    //     `GetValue()`, которым пользуются все вызывающие.
+    // ══════════════════════════════════════════════════════════════════════
+
+    sealed class P3Shot
+    {
+        public string Err;
+        public string Culture;
+        public string Bare;
+        public string[] Text;      // поля окна после печати
+        public double[] Back;      // числа, вернувшиеся разбором
+        public string TbDouble;    // DoubleTextBox: «0.5» → GetValue
+        public string TbInt;       // IntegerTextBox: «1024» → GetValue
+        public string OldDouble;   // ПРЕЖНИЙ разбор поля: double.TryParse(«0.5»)
+        public string OldDecimal;  // ПРЕЖНИЙ разбор ячейки: decimal.Parse(«1.5»)
+        public string[] InNew;     // что поле принимает ПОСЛЕ правки
+        public string[] InOld;     // что оно принимало ДО
+        public string ValidatorNote;
+        public string RefuseNote;  // настоящий обработчик на ОТКАЗНОМ тексте
+    }
+
+    static readonly string[] P3Fields =
+        { "doubleTextBox5", "integerTextBox1", "doubleTextBox6",
+          "numericUpDown7", "numericUpDown2", "numericUpDown1",
+          "numericUpDown9", "numericUpDown8" };
+
+    // Числа замера. Дробные нарочно такие, чтобы отличие разделителя было
+    // видно, а разбор разрядов (если бы он остался) дал ДРУГОЕ число.
+    const int P3Time = 3600;
+    const int P3Channels = 1024;
+    const double P3Pitch = 0.5;
+    static readonly double[] P3Coeff = { 1.25, 2.5, 0.001234, 4.5, 5.5 };
+
+    // ⛔ Набор текстов ввода. Каждый выбран под свой вопрос:
+    //    «1.5»      — то, что теперь ПЕЧАТАЕТ приложение: поле обязано это взять;
+    //    «1,5»      — то, что набирает человек за русской/немецкой клавиатурой;
+    //    «1.234»    — три знака после точки: на немецкой системе прежний разбор
+    //                 делал из этого ТЫСЯЧУ (точка там разделитель разрядов);
+    //    «1,234»    — то же зеркально для английской системы;
+    //    «1 5» — неразрывный пробел, разделитель разрядов русской культуры;
+    //    «1 5»      — обычный пробел;
+    //    «-2.5»     — знак не должен потеряться.
+    static readonly string[] P3Inputs =
+        { "1.5", "1,5", "1.234", "1,234", "1\u00A05", "1 5", "-2.5" };
+
+    static void A244P1P3()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("`A244` П1+П3: ЧИСЛА ОКНА НАСТРОЕК ПРИБОРА И ВВОД ЧЕЛОВЕКА");
+        Say("══════════════════════════════════════════════════════════════");
+
+        // ⛔ Реестры приборов — ДО первого `DeviceConfigForm`. В приложении их
+        //    заводит `MainForm` (строки 177–178), а окна здесь нет: без них
+        //    конструктор окна настроек падает `NullReferenceException` на
+        //    `foreach (DeviceType … DeviceTypeList)`. Оба метода перезаводят
+        //    списки заново, повторный вызов безвреден.
+        DeviceType.InitializeDeviceTypes();
+        ThermometerType.InitializeThermometerTypes();
+
+        // Соседний раздел `A244P1` отпускает ручки по умолчанию — вернём их
+        // в известное состояние, иначе эталон снимется не на инварианте.
+        CultureInfo.DefaultThreadCurrentCulture = null;
+        CultureInfo.DefaultThreadCurrentUICulture = null;
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
+        P3Shot want = P3Shoot();
+        if (want.Err != null)
+        {
+            Say("  ⛔ ЭТАЛОН НЕ СНЯТ, замер невозможен: " + want.Err);
+            failures++;
+            return;
+        }
+        Say("  эталон (инвариант) поля окна: " + string.Join(" | ", want.Text));
+        Say("  эталон (инвариант) обратный разбор: " + P3Nums(want.Back));
+        Say("  настоящий обработчик поля: " + want.ValidatorNote);
+
+        string[] cross = null;
+
+        foreach (string name in Foreign)
+        {
+            CultureInfo os = CultureInfo.GetCultureInfo(name);
+            Say("");
+            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
+            Thread.CurrentThread.CurrentCulture = os;
+            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
+
+            P3Shot got = P3Shoot();
+            if (got.Err != null)
+            {
+                Say("  ⛔ плечо не отработало: " + got.Err);
+                failures++;
+                continue;
+            }
+
+            // ── Положительный контроль плеча: культура обязана быть видна.
+            string wantBare = comma ? "1,5" : "1.5";
+            bool armOk = got.Bare == wantBare;
+            Say("  [полож. контроль] `(1.5).ToString()` без культуры = «" + got.Bare + "»"
+                + (armOk ? " — плечо воспроизводит культуру"
+                         : " ⛔ ОЖИДАЛОСЬ «" + wantBare + "»: ПЛЕЧО НЕ МЕРИТ"));
+            if (!armOk) failures++;
+
+            // ── ПРЯМОЕ: печать в поля окна.
+            A244P3Same("  ПЕЧАТЬ  восемь полей `DeviceConfigForm`",
+                       string.Join(" | ", got.Text), string.Join(" | ", want.Text));
+
+            bool dot = true;
+            for (int i = 0; i < got.Text.Length; i++)
+            {
+                string v = got.Text[i];
+                if (v.IndexOf(',') >= 0 || v.IndexOf(' ') >= 0
+                    || v.IndexOf('\u00A0') >= 0 || v.IndexOf('\u202F') >= 0)
+                {
+                    dot = false;
+                }
+            }
+            Say("  ПЕЧАТЬ  ни запятой, ни разделителя разрядов ни в одном поле: " + Verdict(dot));
+            if (!dot) failures++;
+
+            // ── ОБРАТНОЕ: то же окно прочитало напечатанное им же.
+            A244P3Nums("  ОБРАТНОЕ  `SaveFormContents` вернул те же числа", got.Back, want.Back);
+
+            // ── ПЕРЕКРЁСТНОЕ: текст ЧУЖОГО плеча читается здесь.
+            if (cross == null)
+            {
+                cross = got.Text;
+            }
+            else
+            {
+                P3Shot c = P3Read(cross);
+                if (c.Err != null)
+                {
+                    Say("  ⛔ перекрёстное плечо не отработало: " + c.Err);
+                    failures++;
+                }
+                else
+                {
+                    A244P3Nums("  ОБРАТНОЕ перекрёстное  поля первого чужого плеча разобраны здесь",
+                               c.Back, want.Back);
+                }
+            }
+
+            // ── Поля-контролы, через которые читает и окно общих настроек.
+            A244P3Same("  РАЗБОР  `DoubleTextBox.GetValue()` поля «0.5»", got.TbDouble, "0.5");
+            A244P3Same("  РАЗБОР  `IntegerTextBox.GetValue()` поля «1024»", got.TbInt, "1024");
+
+            // ── ВВОД ЧЕЛОВЕКА: что поле брало ДО и что берёт ПОСЛЕ.
+            Say("  ВВОД ЧЕЛОВЕКА в `DoubleTextBox` (настоящий `GetValue()`):");
+            for (int i = 0; i < P3Inputs.Length; i++)
+            {
+                Say("    «" + P3Show(P3Inputs[i]) + "»  ДО: " + got.InOld[i]
+                    + "   ПОСЛЕ: " + got.InNew[i]);
+            }
+            // ⛔ Судится ровно одно: разделитель ТЫСЯЧ не принимается ни на
+            //    одной культуре, а напечатанное приложением «1.5» — принимается.
+            A244P3Same("  ВВОД  «1.5» (то, что печатает приложение)", got.InNew[0], "1.5");
+            A244P3Same("  ВВОД  «1,5» (набор с русской/немецкой клавиатуры)",
+                       got.InNew[1], comma ? "1.5" : P3NoParse);
+            A244P3Same("  ВВОД  «1.234» — три знака, а не тысяча", got.InNew[2], "1.234");
+            A244P3Same("  ВВОД  «1<NBSP>5» — разделитель разрядов НЕ принят",
+                       got.InNew[4], P3NoParse);
+            A244P3Same("  ВВОД  «1 5» — пробел НЕ принят", got.InNew[5], P3NoParse);
+            A244P3Same("  ВВОД  «-2.5» — знак цел", got.InNew[6], "-2.5");
+            Say("    настоящий обработчик поля на принятом тексте: " + got.ValidatorNote);
+            // ⛔ Сторона ОТКАЗА — тем же настоящим обработчиком (F20). До
+            //    правки `A245` это плечо поставить было нельзя: обработчик
+            //    поднимал голое модальное окно, и прогон вставал на нём.
+            A244P3Same("  ОТКАЗ  настоящий `DoubleTextBox_Validating` на «1<NBSP>5»",
+                       got.RefuseNote, P3RefuseWant);
+
+            // ⛔ Положительный контроль на ПРЕЖНИЙ код. Он же — цена половины
+            //    правки: печать точкой при старом разборе давала не отказ.
+            // ⛔ Судится «прежний разбор НЕВЕРЕН», а не «прежний разбор отказал».
+            //    Посылка «на культуре с запятой точка не разбирается вовсе»
+            //    ПРОВЕРКОЙ СНЯТА: она верна для `ru-RU` (разделитель разрядов
+            //    там неразрывный пробел, точка незаконна) и НЕВЕРНА для
+            //    `de-DE`, где точка — законный разделитель разрядов и «0.5»
+            //    молча становится 5. Отказ и «другое число» — оба дефект, но
+            //    второй хуже, и требовать именно отказа значило бы принять
+            //    худший исход за непройденное плечо.
+            Say("    [полож. контроль] ПРЕЖНИЙ `double.TryParse(«0.5»)` культурой потока = "
+                + got.OldDouble
+                + (comma ? (got.OldDouble == "0.5"
+                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
+                            : (got.OldDouble == P3NoParse
+                               ? "  — дефект воспроизведён (молчаливый НОЛЬ)"
+                               : "  — дефект воспроизведён (ДРУГОЕ ЧИСЛО, молча)"))
+                         : "  (культура с точкой — дефекта тут и не было)"));
+            if (comma && got.OldDouble == "0.5") failures++;
+
+            Say("    [полож. контроль] ПРЕЖНИЙ `decimal.Parse(«1.5»)` культурой потока = "
+                + got.OldDecimal
+                + (comma ? (got.OldDecimal == "1.5"
+                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
+                            : (got.OldDecimal == "15"
+                               ? "  — дефект воспроизведён (в десять раз больше, молча)"
+                               : "  — дефект воспроизведён (отказ)"))
+                         : "  (культура с точкой)"));
+            if (comma && got.OldDecimal == "1.5") failures++;
+        }
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    const string P3NoParse = "не разобрано → 0";
+
+    // Эталон стороны отказа: поле обязано ОТКАЗАТЬ и обязано сделать это БЕЗ
+    // окна — «окон поднято 0» здесь такое же судимое, как и сам отказ.
+    const string P3RefuseWant =
+        "`DoubleTextBox_Validating` на «1<NBSP>5» → Cancel=true (отказ, как и надо), окон поднято 0";
+
+    /// <summary>Тип, слово и ТРИ верхних кадра стека — иначе чинить нечего.</summary>
+    static string P3Where(Exception ex)
+    {
+        Exception e = ex is TargetInvocationException && ex.InnerException != null
+                    ? ex.InnerException : ex;
+        string st = e.StackTrace ?? "";
+        string[] frames = st.Split('\n');
+        StringBuilder sb = new StringBuilder();
+        sb.Append(e.GetType().Name).Append(": ").Append(e.Message);
+        for (int i = 0; i < frames.Length && i < 3; i++)
+        {
+            sb.Append(" | ").Append(frames[i].Trim());
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Текст с видимыми пробелами — иначе NBSP в отчёте неотличим.</summary>
+    static string P3Show(string s)
+    {
+        return s.Replace("\u00A0", "<NBSP>").Replace(" ", "<SP>");
+    }
+
+    static void A244P3Same(string title, string got, string want)
+    {
+        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
+        Say(title + " = «" + (got ?? "НЕ СНЯТО") + "»"
+            + (ok ? "  совпало с эталоном" : "  ⛔ ЭТАЛОН «" + want + "»"));
+        if (!ok) failures++;
+    }
+
+    static void A244P3Nums(string title, double[] got, double[] want)
+    {
+        bool ok = got != null && want != null && got.Length == want.Length;
+        for (int i = 0; ok && i < got.Length; i++)
+        {
+            ok = got[i] == want[i];
+        }
+        Say(title + " = " + P3Nums(got) + (ok ? "  числа те же" : "  ⛔ ЭТАЛОН " + P3Nums(want)));
+        if (!ok) failures++;
+    }
+
+    static string P3Nums(double[] v)
+    {
+        if (v == null) return "НЕ СНЯТО";
+        string[] s = new string[v.Length];
+        for (int i = 0; i < v.Length; i++)
+        {
+            s[i] = v[i].ToString("R", CultureInfo.InvariantCulture);
+        }
+        return string.Join(" | ", s);
+    }
+
+    /// <summary>Полный снимок: печать окна, обратный разбор, поля-контролы.</summary>
+    static P3Shot P3Shoot() { return P3Run(null); }
+
+    /// <summary>Перекрёстное плечо: в поля кладётся ЧУЖОЙ текст, читается здесь.</summary>
+    static P3Shot P3Read(string[] text) { return P3Run(text); }
+
+    static P3Shot P3Run(string[] preset)
+    {
+        P3Shot s = new P3Shot();
+        s.Culture = CultureInfo.CurrentCulture.Name;
+        if (s.Culture.Length == 0) s.Culture = "(инвариант)";
+        s.Bare = (1.5).ToString();
+
+        CultureInfo os = CultureInfo.CurrentCulture;
+        Thread t = new Thread(delegate()
+        {
+            Thread.CurrentThread.CurrentCulture = os;
+            try { P3Body(s, preset); }
+            // ⚠ Со СТЕКОМ нарочно: «NullReferenceException» без места отказа —
+            //    признак без читателя, по нему нечего чинить.
+            catch (Exception ex) { s.Err = P3Where(ex); }
+        });
+        t.IsBackground = true;
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        // ⛔ Ожидание СОКРАЩЕНО со 120 с до 20 (полоса F20). Довод не «так
+        //    быстрее»: модальное окно теперь снимает сторож за ≤0.2 с и
+        //    называет его текст, поэтому долгое ожидание перестало быть
+        //    страховкой и осталось только ценой отказа — четыре плеча по две
+        //    минуты складывались в восемь минут молчания, после которых
+        //    отчёт всё равно говорил «модальное окно?» ВОПРОСОМ, а не
+        //    именем окна. Работы тут на десятые доли секунды.
+        if (!t.Join(20000))
+        {
+            s.Err = "окно настроек не ответило за 20 с; модальных окон сторож"
+                  + " насчитал к этому мигу " + modalSeen
+                  + (modalSeen == 0
+                     ? " — значит дело НЕ в окне, ищи блокировку в другом месте"
+                     : " — см. строки сторожа выше");
+        }
+        return s;
+    }
+
+    static void P3Body(P3Shot s, string[] preset)
+    {
+        // ── Прежний разбор, снятый ДО правок формы: он ничем не связан с
+        //    формой и служит положительным контролем плеча.
+        double old;
+        s.OldDouble = double.TryParse("0.5", out old)
+            ? old.ToString("R", CultureInfo.InvariantCulture)
+            : P3NoParse;
+        try { s.OldDecimal = decimal.Parse("1.5").ToString(CultureInfo.InvariantCulture); }
+        catch (FormatException) { s.OldDecimal = "FormatException"; }
+
+        // ── Поля-контролы окна общих настроек: печать инвариантом → разбор.
+        DoubleTextBox dtb = new DoubleTextBox();
+        dtb.Text = P3Pitch.ToString(CultureInfo.InvariantCulture);
+        s.TbDouble = dtb.GetValue().ToString("R", CultureInfo.InvariantCulture);
+        IntegerTextBox itb = new IntegerTextBox();
+        itb.Text = P3Channels.ToString(CultureInfo.InvariantCulture);
+        s.TbInt = itb.GetValue().ToString(CultureInfo.InvariantCulture);
+
+        P3Input(s);
+
+        // ── Настоящее окно настроек прибора.
+        DeviceConfigForm form = new DeviceConfigForm();
+        DeviceConfigInfo cfg = P3Config();
+
+        MethodInfo load = typeof(DeviceConfigForm).GetMethod("LoadFormContents", NP);
+        MethodInfo save = typeof(DeviceConfigForm).GetMethod("SaveFormContents", NP);
+        if (load == null || save == null)
+        {
+            throw new InvalidOperationException("`LoadFormContents`/`SaveFormContents` не найдены: сборка чужая");
+        }
+
+        load.Invoke(form, new object[] { cfg });
+
+        s.Text = new string[P3Fields.Length];
+        for (int i = 0; i < P3Fields.Length; i++)
+        {
+            s.Text[i] = P3Ctl(form, P3Fields[i]).Text;
+        }
+
+        // Перекрёстное плечо: подменяем текст полей чужим.
+        if (preset != null)
+        {
+            for (int i = 0; i < P3Fields.Length; i++)
+            {
+                P3Ctl(form, P3Fields[i]).Text = preset[i];
+            }
+            s.Text = (string[])preset.Clone();
+        }
+
+        DeviceConfigInfo back = P3Config();
+        object ok = save.Invoke(form, new object[] { back });
+        if (!(bool)ok)
+        {
+            throw new InvalidOperationException("`SaveFormContents` вернул false: разбор полей отказал");
+        }
+
+        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)back.EnergyCalibration;
+        s.Back = new double[]
+        {
+            back.DefaultMeasurementTime, back.NumberOfChannels, back.ChannelPitch,
+            cal.Coefficients[0], cal.Coefficients[1], cal.Coefficients[2],
+            cal.Coefficients[3], cal.Coefficients[4]
+        };
+    }
+
+    /// <summary>
+    /// ВВОД ЧЕЛОВЕКА. «Принято» мерится НАСТОЯЩИМ читателем поля —
+    /// `DoubleTextBox.GetValue()`; «принято ДО» — тем самым вызовом, который
+    /// в этом методе и стоял (`double.TryParse(this.Text, out num)`, культура
+    /// потока, стили по умолчанию — а они несут `AllowThousands`).
+    ///
+    /// ⛔ Настоящий `DoubleTextBox_Validating` зовётся ТОЛЬКО на принятом
+    ///    тексте: на отказе он поднимает `MessageBox`, и безоконный прогон
+    ///    повис бы (`S100`). Того, что оба пути судят одним предикатом, это
+    ///    плечо и не утверждает — оно показывает, что на напечатанном
+    ///    приложением «1.5» настоящий обработчик отказа НЕ даёт.
+    /// </summary>
+    static void P3Input(P3Shot s)
+    {
+        s.InNew = new string[P3Inputs.Length];
+        s.InOld = new string[P3Inputs.Length];
+        DoubleTextBox box = new DoubleTextBox();
+        for (int i = 0; i < P3Inputs.Length; i++)
+        {
+            box.Text = P3Inputs[i];
+            double got = box.GetValue();
+            s.InNew[i] = got == 0.0 ? P3NoParse : got.ToString("R", CultureInfo.InvariantCulture);
+
+            double before;
+            s.InOld[i] = double.TryParse(P3Inputs[i], out before)
+                ? before.ToString("R", CultureInfo.InvariantCulture)
+                : P3NoParse;
+        }
+
+        // Настоящий обработчик — на тексте, который новый код принимает.
+        MethodInfo v = typeof(DoubleTextBox).GetMethod("DoubleTextBox_Validating", NP);
+        if (v == null)
+        {
+            s.ValidatorNote = "⛔ `DoubleTextBox_Validating` не найден: сборка чужая";
+            return;
+        }
+        box.Text = "1.5";
+        System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
+        v.Invoke(box, new object[] { box, e });
+        s.ValidatorNote = "`DoubleTextBox_Validating` на «1.5» → Cancel="
+            + (e.Cancel ? "true ⛔ ПОЛЕ РУГАЕТСЯ НА СОБСТВЕННОЕ СОДЕРЖИМОЕ" : "false (отказа нет)");
+
+        // ⛔ СТОРОНА ОТКАЗА — настоящим обработчиком, а не в обход (F20).
+        //    До правки `A245` этого плеча не было вовсе: обработчик поднимал
+        //    голый `MessageBox`, безоконный прогон вставал на нём, и полоса
+        //    F17 честно записала, что мерить отказ настоящим обработчиком
+        //    нельзя. Теперь сообщение идёт дверью `AppUi.Report`, окна нет, и
+        //    отказ мерится ТЕМ ЖЕ путём, каким его увидит человек. Текст
+        //    выбран заведомо негодный: неразрывный пробел — разделитель
+        //    разрядов, число из него собирать нельзя.
+        int seenBefore = modalSeen;
+        box.Text = "1 5";
+        System.ComponentModel.CancelEventArgs r = new System.ComponentModel.CancelEventArgs();
+        v.Invoke(box, new object[] { box, r });
+        s.RefuseNote = "`DoubleTextBox_Validating` на «1<NBSP>5» → Cancel="
+            + (r.Cancel ? "true (отказ, как и надо)" : "false ⛔ ПОЛЕ ПРИНЯЛО НЕГОДНЫЙ ТЕКСТ")
+            + ", окон поднято " + (modalSeen - seenBefore);
+    }
+
+    static DeviceConfigInfo P3Config()
+    {
+        DeviceConfigInfo cfg = new DeviceConfigInfo();
+        cfg.InitFormatVersion();
+        cfg.Guid = "p3-culture-probe";
+        cfg.Name = "P3";
+        cfg.Filename = "p3.xml";
+        // Тип прибора берётся ИЗ РЕЕСТРА, а не выписывается сюда именем: реестр
+        // и есть источник, а выписанное имя устарело бы молча.
+        cfg.DeviceType = DeviceType.DeviceTypeList[0].Id;
+        cfg.ThermometerType = ThermometerType.ThermometerTypeList[0].Id;
+        cfg.DefaultMeasurementTime = P3Time;
+        cfg.NumberOfChannels = P3Channels;
+        cfg.ChannelPitch = P3Pitch;
+        PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)cfg.EnergyCalibration;
+        cal.PolynomialOrder = 4;
+        cal.Coefficients = (double[])P3Coeff.Clone();
+        return cfg;
+    }
+
+    static System.Windows.Forms.Control P3Ctl(object form, string name)
+    {
+        FieldInfo f = form.GetType().GetField(name, NP);
+        if (f == null) throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
+        System.Windows.Forms.Control c = f.GetValue(form) as System.Windows.Forms.Control;
+        if (c == null) throw new InvalidOperationException("поле `" + name + "` пусто");
+        return c;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  `A244`, ДОЛИ П5 «панели DC» и П6 «зоны интереса».
+    //  Полоса F22 (05.09.2026) правила приложение и оборвалась на ЗОВЕ этого
+    //  раздела: в `Main` строка `A244P5P6();` стояла, а метода не было вовсе,
+    //  и проба не собиралась (`CS0103`). Раздел дописан полосой F25.
+    //
+    //  Что мерится и почему именно это. Доли П5 и П6 — это девять экранных
+    //  снастей, и общего у них ровно одно: число, НАПЕЧАТАННОЕ в поле, потом
+    //  ЧИТАЕТСЯ обратно тем же кодом. Поэтому каждое плечо ставится ПАРОЙ:
+    //  печать (что видит человек) и разбор (что программа из увиденного
+    //  соберёт), а между ними — ПЕРЕКРЁСТНОЕ плечо: текст, напечатанный на
+    //  чужой культуре, обязан разобраться здесь в те же числа. Половина
+    //  правки тут опаснее целой: печать точкой при разборе культурой даёт не
+    //  отказ, а ДРУГОЕ ЧИСЛО, молча.
+    //
+    //  ⛔ Снасти берутся НАСТОЯЩИЕ. `MainForm` поднимать нельзя (окно),
+    //     поэтому она создаётся БЕЗ конструктора
+    //     (`FormatterServices.GetUninitializedObject`) и ей выставляются ровно
+    //     два поля, которые спрашивают виды, — тем же приёмом, что и в
+    //     соседней пробе `ModalReachProbeF22`.
+    //
+    //  ⚠ Слоты ВВОДА (их 27) собираются в том же порядке, в каком печатались:
+    //    на них ложится перекрёстное плечо и по ним же идёт обратный разбор.
+    //    Слоты ВЫВОДА (надписи скорости счёта, подписи формы пика, строка
+    //    области) обратно не читаются — они судятся только печатью.
+    // ══════════════════════════════════════════════════════════════════════
+
+    sealed class P5Shot
+    {
+        public string Culture;
+        public string Bare;
+        public string Err;
+        public string[] Text;    // ВСЁ, что напечатано (ввод + вывод)
+        public string[] In;      // только слоты ввода, в порядке печати
+        public double[] Back;    // они же, прочитанные обратно
+        public string OldDouble;
+        public string OldDecimal;
+    }
+
+    // Числа сцены. Взяты так, чтобы каждое поймало свою беду: больше тысячи
+    // (разделитель разрядов), с дробной частью (разделитель дроби), с минусом
+    // (знак не должен пропасть) и мельче тысячной (короткая форма печати).
+    const int P5Time = 3600;
+    const double P5Cps = 1234.5;
+    const int P5Ratio = 4096;
+    const double P5Dead = 12.3456;
+    static readonly double[] P5Coeff = { 1234.5, 0.5, -2.75, 0.125, 1024.25 };
+    static readonly double[] P5Simple = { 1234.5, 0.25, 661.5, 1460.75 };
+    static readonly double[] P5Covell =
+        { 1234.5, 0.25, 661.5, 1460.75, 609.25, 1764.5, 12.5, 24.75 };
+    static readonly double[] P5Ref = { 4321.75, 0.125 };
+    // Порядок ТОТ ЖЕ, в каком печатает `LoadROIDefinitionFormContents`:
+    // K, ΔK, энергия пика, период, выход, нижняя, верхняя.
+    static readonly double[] P5Roi =
+        { 1234.5, 0.75, 661.657, 949944960.0, 85.1, 620.5, 700.25 };
+    const double P5Chi2 = 1234.56789;
+    const int P5Ndp = 7;
+    const double P5Score = 0.123456789;
+
+    static void A244P5P6()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("`A244` П5+П6: ЧИСЛА ПАНЕЛЕЙ DC И ОКНА ЗОН ИНТЕРЕСА");
+        Say("══════════════════════════════════════════════════════════════");
+
+        // Соседние разделы отпускают ручки культуры — вернём их в известное
+        // состояние, иначе эталон снимется не на инварианте.
+        CultureInfo.DefaultThreadCurrentCulture = null;
+        CultureInfo.DefaultThreadCurrentUICulture = null;
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
+        P5Shot want = P5Run(null);
+        if (want.Err != null)
+        {
+            Say("  ⛔ ЭТАЛОН НЕ СНЯТ, замер невозможен: " + want.Err);
+            failures++;
+            return;
+        }
+        Say("  слотов печати: " + want.Text.Length + ", из них слотов ввода: " + want.In.Length);
+        Say("  эталон (инвариант) печать: " + string.Join(" | ", want.Text));
+        Say("  эталон (инвариант) обратный разбор: " + P3Nums(want.Back));
+
+        string[] cross = null;
+
+        foreach (string name in Foreign)
+        {
+            CultureInfo os = CultureInfo.GetCultureInfo(name);
+            Say("");
+            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
+            Thread.CurrentThread.CurrentCulture = os;
+            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
+
+            P5Shot got = P5Run(null);
+            if (got.Err != null)
+            {
+                Say("  ⛔ плечо не отработало: " + got.Err);
+                failures++;
+                continue;
+            }
+
+            // ── Положительный контроль плеча: культура обязана быть видна.
+            //    Без него все проверки «прошли» бы, не измерив ничего.
+            string wantBare = comma ? "1,5" : "1.5";
+            bool armOk = got.Bare == wantBare;
+            Say("  [полож. контроль] `(1.5).ToString()` без культуры = «" + got.Bare + "»"
+                + (armOk ? " — плечо воспроизводит культуру"
+                         : " ⛔ ОЖИДАЛОСЬ «" + wantBare + "»: ПЛЕЧО НЕ МЕРИТ"));
+            if (!armOk) failures++;
+
+            // ── ПРЯМОЕ: печать всех девяти снастей.
+            A244P5Same("  ПЕЧАТЬ  все слоты П5+П6",
+                       string.Join(" | ", got.Text), string.Join(" | ", want.Text));
+
+            // ── Отдельно и строго: в ЧИСЛОВЫХ полях ввода не бывает ни
+            //    запятой, ни разделителя разрядов (решение Amber «группировки
+            //    нет вовсе»). Слоты вывода сюда не берутся: в них законно
+            //    стоят пробелы разметки («661.5 - 1460.75 keV»).
+            bool dot = true;
+            string dirty = null;
+            for (int i = 0; i < got.In.Length; i++)
+            {
+                string v = got.In[i];
+                if (v == null) continue;
+                if (v.IndexOf(',') >= 0 || v.IndexOf(' ') >= 0
+                    || v.IndexOf('\u00A0') >= 0 || v.IndexOf('\u202F') >= 0)
+                {
+                    dot = false;
+                    if (dirty == null) dirty = "слот " + i + " = «" + P3Show(v) + "»";
+                }
+            }
+            Say("  ПЕЧАТЬ  ни запятой, ни разделителя разрядов в 27 полях ввода: "
+                + Verdict(dot) + (dirty == null ? "" : "  (" + dirty + ")"));
+            if (!dot) failures++;
+
+            // ── ОБРАТНОЕ: та же снасть прочитала напечатанное ею же.
+            A244P5Nums("  ОБРАТНОЕ  27 полей разобраны в те же числа", got.Back, want.Back);
+
+            // ── ПЕРЕКРЁСТНОЕ: текст ЧУЖОГО плеча читается здесь.
+            if (cross == null)
+            {
+                cross = got.In;
+            }
+            else
+            {
+                P5Shot c = P5Run(cross);
+                if (c.Err != null)
+                {
+                    Say("  ⛔ перекрёстное плечо не отработало: " + c.Err);
+                    failures++;
+                }
+                else
+                {
+                    // ⚠ Плечо, сравнивающее только ЧИСЛА, откат правки может
+                    //    не поймать: `UserNumber` читает терпимо и «0,5» тоже
+                    //    возьмёт, две ошибки погасят друг друга. Поэтому
+                    //    рядом стоит плечо, сравнивающее ТЕКСТ поля.
+                    A244P5Nums("  ОБРАТНОЕ перекрёстное  поля чужого плеча разобраны здесь",
+                               c.Back, want.Back);
+                    A244P5Same("  ТЕКСТ перекрёстный  поля чужого плеча остались теми же",
+                               string.Join(" | ", c.In), string.Join(" | ", want.In));
+                }
+            }
+
+            // ── Положительный контроль на ПРЕЖНИЙ код: он же цена половины
+            //    правки. ⛔ Судится «прежний разбор НЕВЕРЕН», а не «прежний
+            //    разбор отказал»: на `de-DE` точка — законный разделитель
+            //    разрядов, и «0.5» молча становится 5, а не отвергается.
+            Say("    [полож. контроль] ПРЕЖНИЙ `double.TryParse(«0.5»)` культурой потока = "
+                + got.OldDouble
+                + (comma ? (got.OldDouble == "0.5"
+                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
+                            : (got.OldDouble == P3NoParse
+                               ? "  — дефект воспроизведён (молчаливый НОЛЬ)"
+                               : "  — дефект воспроизведён (ДРУГОЕ ЧИСЛО, молча)"))
+                         : "  (культура с точкой — дефекта тут и не было)"));
+            if (comma && got.OldDouble == "0.5") failures++;
+
+            Say("    [полож. контроль] ПРЕЖНИЙ `decimal.Parse(«1.5»)` культурой потока = "
+                + got.OldDecimal
+                + (comma ? (got.OldDecimal == "1.5"
+                            ? "  ⛔ ОЖИДАЛОСЬ НЕВЕРНОЕ: ПЛЕЧО НЕ МЕРИТ"
+                            : (got.OldDecimal == "15"
+                               ? "  — дефект воспроизведён (в десять раз больше, молча)"
+                               : "  — дефект воспроизведён (отказ)"))
+                         : "  (культура с точкой)"));
+            if (comma && got.OldDecimal == "1.5") failures++;
+        }
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    static void A244P5Same(string title, string got, string want)
+    {
+        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
+        Say(title + (ok ? "  совпало с эталоном" : ""));
+        if (!ok)
+        {
+            Say("    ⛔ ПОЛУЧЕНО «" + (got ?? "НЕ СНЯТО") + "»");
+            Say("       ЭТАЛОН   «" + want + "»");
+            failures++;
+        }
+    }
+
+    static void A244P5Nums(string title, double[] got, double[] want)
+    {
+        bool ok = got != null && want != null && got.Length == want.Length;
+        int first = -1;
+        for (int i = 0; ok && i < got.Length; i++)
+        {
+            if (got[i] != want[i]) { ok = false; first = i; }
+        }
+        Say(title + (ok ? "  числа те же" : ""));
+        if (!ok)
+        {
+            Say("    ⛔ ПОЛУЧЕНО " + P3Nums(got));
+            Say("       ЭТАЛОН   " + P3Nums(want)
+                + (first >= 0 ? "  (первое расхождение в слоте " + first + ")" : ""));
+            failures++;
+        }
+    }
+
+    static void P5SetField(object target, string name, object value)
+    {
+        Type t = target.GetType();
+        while (t != null)
+        {
+            FieldInfo f = t.GetField(name, NP);
+            if (f != null) { f.SetValue(target, value); return; }
+            t = t.BaseType;
+        }
+        throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
+    }
+
+    static object P5Field(object target, string name)
+    {
+        Type t = target.GetType();
+        while (t != null)
+        {
+            FieldInfo f = t.GetField(name, NP);
+            if (f != null) return f.GetValue(target);
+            t = t.BaseType;
+        }
+        throw new InvalidOperationException("поля `" + name + "` нет: сборка чужая");
+    }
+
+    static System.Windows.Forms.Control P5Ctl(object target, string name)
+    {
+        System.Windows.Forms.Control c = P5Field(target, name) as System.Windows.Forms.Control;
+        if (c == null) throw new InvalidOperationException("поле `" + name + "` пусто или не снасть");
+        return c;
+    }
+
+    static object P5Call(object target, string name, params object[] args)
+    {
+        Type t = target.GetType();
+        while (t != null)
+        {
+            MethodInfo m = t.GetMethod(name, BindingFlags.Instance | BindingFlags.Public
+                                             | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+            if (m != null)
+            {
+                try { return m.Invoke(target, args); }
+                catch (TargetInvocationException ex)
+                {
+                    throw new InvalidOperationException(
+                        name + " бросил: " + P3Where(ex.InnerException ?? ex));
+                }
+            }
+            t = t.BaseType;
+        }
+        throw new InvalidOperationException("метода `" + name + "` нет: сборка чужая");
+    }
+
+    static P5Shot P5Run(string[] preset)
+    {
+        P5Shot s = new P5Shot();
+        s.Culture = CultureInfo.CurrentCulture.Name;
+        if (s.Culture.Length == 0) s.Culture = "(инвариант)";
+        s.Bare = (1.5).ToString();
+
+        CultureInfo os = CultureInfo.CurrentCulture;
+        Thread t = new Thread(delegate()
+        {
+            Thread.CurrentThread.CurrentCulture = os;
+            try { P5Body(s, preset); }
+            catch (Exception ex) { s.Err = P3Where(ex); }
+        });
+        t.IsBackground = true;
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        if (!t.Join(60000))
+        {
+            s.Err = "снасти П5/П6 не ответили за 60 с; модальных окон сторож насчитал к этому"
+                  + " мигу " + modalSeen
+                  + (modalSeen == 0
+                     ? " — значит дело НЕ в окне, ищи блокировку в другом месте"
+                     : " — см. строки сторожа выше");
+        }
+        return s;
+    }
+
+    static int p5Scene;
+
+    static void P5Body(P5Shot s, string[] preset)
+    {
+        // ── Прежний разбор: ничем не связан со снастями и служит
+        //    положительным контролем плеча.
+        double old;
+        s.OldDouble = double.TryParse("0.5", out old)
+            ? old.ToString("R", CultureInfo.InvariantCulture)
+            : P3NoParse;
+        try { s.OldDecimal = decimal.Parse("1.5").ToString(CultureInfo.InvariantCulture); }
+        catch (FormatException) { s.OldDecimal = "FormatException"; }
+
+        List<string> text = new List<string>();
+        List<string> ins = new List<string>();
+        List<System.Windows.Forms.Control> boxes = new List<System.Windows.Forms.Control>();
+        List<double> back = new List<double>();
+
+        // ── Оболочка БЕЗ конструктора: `MainForm` — окно, поднимать нельзя.
+        //    Виды спрашивают у неё ровно два поля.
+        p5Scene++;
+        DocEnergySpectrum doc = DocumentManager.GetInstance()
+            .CreateDocument("f25-p5p6-" + p5Scene.ToString(CultureInfo.InvariantCulture) + ".xml");
+        if (doc == null) throw new InvalidOperationException("документ не создан: сцена не встала");
+        MainForm shell = (MainForm)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(MainForm));
+        P5SetField(shell, "activeDocument", doc);
+        P5SetField(shell, "documentManager", DocumentManager.GetInstance());
+
+        // ══ П5-1. `DCCountRateView.UpdateInfo` — три надписи, только вывод. ══
+        DCCountRateView rate = new DCCountRateView(shell);
+        rate.UpdateInfo(P5Cps, P5Ratio, P5Dead);
+        text.Add(P5Ctl(rate, "LossCountsRatioValLbl").Text);
+        text.Add(P5Ctl(rate, "cpslabel").Text);
+        text.Add(P5Ctl(rate, "DeadTimeValLbl").Text);
+
+        // ══ П5-2. `DCControlPanel.PresetTime` — печать и разбор одной парой. ══
+        DCControlPanel panel = new DCControlPanel(shell);
+        panel.PresetTime = P5Time;
+        System.Windows.Forms.Control timeBox = P5Ctl(panel, "realTimeLimitTextBox");
+        text.Add(timeBox.Text); ins.Add(timeBox.Text); boxes.Add(timeBox);
+
+        // ══ П5-3. `DCEnergyCalibrationView.SetEnergyCalibration` — пять полей. ══
+        DCEnergyCalibrationView energy = new DCEnergyCalibrationView(shell);
+        PolynomialEnergyCalibration cal = new PolynomialEnergyCalibration();
+        cal.PolynomialOrder = 4;
+        cal.Coefficients = (double[])P5Coeff.Clone();
+        energy.SetEnergyCalibration(cal, (EnergyCalibration)cal.Clone());
+        // Порядок печати в самом виде: 3, 2, 1, 5, 4 — коэффициенты 0..4.
+        string[] coeffFields = { "numericUpDown3", "numericUpDown2", "numericUpDown1",
+                                 "numericUpDown5", "numericUpDown4" };
+        foreach (string f in coeffFields)
+        {
+            System.Windows.Forms.Control c = P5Ctl(energy, f);
+            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
+        }
+
+        // ══ П5-4. `DCFwhmCalibrationView` — подписи формы пика и четыре
+        //          собранные строки. Только вывод. ══
+        DCFwhmCalibrationView fwhmView = new DCFwhmCalibrationView(shell);
+        SimpleSqrtFwhmCalibration fc = new SimpleSqrtFwhmCalibration();
+        fc.PeakType = FwhmCalibration.ExpGaussExpPeakType;
+        fc.ExpGaussExpLeftTail = 1.25;
+        fc.ExpGaussExpRightTail = 3.75;
+        fc.VoigtSigma = 0.25;
+        fc.VoigtGamma = 0.75;
+        P5SetField(fwhmView, "fwhmCalibration", fc);
+        P5Call(fwhmView, "UpdatePeakShapeInfo");
+        text.Add(P5Ctl(fwhmView, "peakShapeFirstParameterValueLabel").Text);
+        text.Add(P5Ctl(fwhmView, "peakShapeSecondParameterValueLabel").Text);
+        text.Add((string)P5Call(fwhmView, "FormatPeakFitRatio", P5Chi2, P5Ndp));
+        text.Add((string)P5Call(fwhmView, "FormatPeakShapeScore", P5Score));
+        text.Add((string)P5Call(fwhmView, "GetExpGaussExpParametersText", 25, 10));
+        text.Add((string)P5Call(fwhmView, "GetVoigtParametersText", 25, 10));
+
+        // ══ П6-1. `ROISimpleDifferenceControl` — четыре числа по кругу. ══
+        string op0 = ROIPrimitiveOperation.Operations[0].Name;
+        ROISimpleDifferenceControl simple = new ROISimpleDifferenceControl();
+        ROISimpleDifferenceData sd = new ROISimpleDifferenceData();
+        sd.OperationType = op0;
+        sd.Coefficient = P5Simple[0];
+        sd.CoefficientError = P5Simple[1];
+        sd.LowerLimit = P5Simple[2];
+        sd.UpperLimit = P5Simple[3];
+        simple.LoadFormContents(sd);
+        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
+                                            "doubleTextBox1", "doubleTextBox2" })
+        {
+            System.Windows.Forms.Control c = P5Ctl(simple, f);
+            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
+        }
+
+        // ══ П6-2. `ROICovellMethodControl` — восемь чисел по кругу. ══
+        ROICovellMethodControl covell = new ROICovellMethodControl();
+        ROICovellMethodData cd = new ROICovellMethodData();
+        cd.OperationType = op0;
+        cd.Coefficient = P5Covell[0];
+        cd.CoefficientError = P5Covell[1];
+        cd.LowerLimit = P5Covell[2];
+        cd.UpperLimit = P5Covell[3];
+        cd.LeftRegionCenter = P5Covell[4];
+        cd.RightRegionCenter = P5Covell[5];
+        cd.LeftRegionWidth = P5Covell[6];
+        cd.RightRegionWidth = P5Covell[7];
+        covell.LoadFormContents(cd);
+        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
+                                            "doubleTextBox1", "doubleTextBox2",
+                                            "doubleTextBox5", "doubleTextBox6",
+                                            "doubleTextBox7", "doubleTextBox8" })
+        {
+            System.Windows.Forms.Control c = P5Ctl(covell, f);
+            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
+        }
+
+        // ══ П6-3. `ROIReferenceControl` — два числа по кругу. ══
+        ROIReferenceControl reference = new ROIReferenceControl();
+        ROIReferenceData rd2 = new ROIReferenceData();
+        rd2.OperationType = op0;
+        rd2.Coefficient = P5Ref[0];
+        rd2.CoefficientError = P5Ref[1];
+        rd2.Reference = "";
+        reference.LoadFormContents(rd2);
+        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4" })
+        {
+            System.Windows.Forms.Control c = P5Ctl(reference, f);
+            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
+        }
+
+        // ══ П6-4. Окно зон целиком: семь полей зоны по кругу. ══
+        ROIConfigForm roiForm = new ROIConfigForm();
+        ROIDefinitionData roi = new ROIDefinitionData();
+        roi.Name = "P5P6";
+        roi.Enabled = true;
+        roi.AutoBecquerelCoefficient = false;
+        roi.BecquerelCoefficient = P5Roi[0];
+        roi.BecquerelCoefficientError = P5Roi[1];
+        roi.PeakEnergy = P5Roi[2];
+        roi.HalfLife = P5Roi[3];
+        roi.Intencity = P5Roi[4];
+        roi.LowerLimit = P5Roi[5];
+        roi.UpperLimit = P5Roi[6];
+        P5Call(roiForm, "LoadROIDefinitionFormContents", roi);
+        foreach (string f in new string[] { "doubleTextBox3", "doubleTextBox4",
+                                            "doubleTextBox5", "doubleTextBox6",
+                                            "doubleTextBox7", "doubleTextBox1",
+                                            "doubleTextBox2" })
+        {
+            System.Windows.Forms.Control c = P5Ctl(roiForm, f);
+            text.Add(c.Text); ins.Add(c.Text); boxes.Add(c);
+        }
+
+        // ══ П6-5. Строка области — `string.Concat(new object[]{…})`.
+        //          ⚠ Место, которого СКАНЕР НЕ ВИДИТ вовсе: число уходит в
+        //          `object[]`, и `ToString()` без культуры зовёт сама
+        //          склейка. Поймано только глазами, судится только здесь. ══
+        text.Add((string)P5Call(roiForm, "GetPrimitiveRegionString", sd));
+        text.Add((string)P5Call(roiForm, "GetPrimitiveRegionString", cd));
+
+        s.Text = text.ToArray();
+
+        // ── ПЕРЕКРЁСТНОЕ плечо: в те же поля кладём ЧУЖОЙ текст.
+        if (preset != null)
+        {
+            if (preset.Length != boxes.Count)
+            {
+                throw new InvalidOperationException("перекрёстное плечо: слотов "
+                    + boxes.Count + ", а подано " + preset.Length);
+            }
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                boxes[i].Text = preset[i];
+            }
+            s.In = (string[])preset.Clone();
+        }
+        else
+        {
+            s.In = ins.ToArray();
+        }
+
+        // ══════════ ОБРАТНЫЙ РАЗБОР, В ТОМ ЖЕ ПОРЯДКЕ ══════════
+        back.Add(panel.PresetTime);
+
+        foreach (string f in coeffFields)
+        {
+            back.Add((double)P5Call(energy, "fromStringtoDouble", P5Ctl(energy, f).Text));
+        }
+
+        ROISimpleDifferenceData sdBack = new ROISimpleDifferenceData();
+        sdBack.OperationType = op0;
+        if (!simple.SaveFormContents(sdBack))
+        {
+            throw new InvalidOperationException("`ROISimpleDifferenceControl.SaveFormContents`"
+                + " вернул false: разбор полей отказал");
+        }
+        back.Add(sdBack.Coefficient); back.Add(sdBack.CoefficientError);
+        back.Add(sdBack.LowerLimit); back.Add(sdBack.UpperLimit);
+
+        ROICovellMethodData cdBack = new ROICovellMethodData();
+        cdBack.OperationType = op0;
+        if (!covell.SaveFormContents(cdBack))
+        {
+            throw new InvalidOperationException("`ROICovellMethodControl.SaveFormContents`"
+                + " вернул false: разбор полей отказал");
+        }
+        back.Add(cdBack.Coefficient); back.Add(cdBack.CoefficientError);
+        back.Add(cdBack.LowerLimit); back.Add(cdBack.UpperLimit);
+        back.Add(cdBack.LeftRegionCenter); back.Add(cdBack.RightRegionCenter);
+        back.Add(cdBack.LeftRegionWidth); back.Add(cdBack.RightRegionWidth);
+
+        ROIReferenceData refBack = new ROIReferenceData();
+        refBack.OperationType = op0;
+        if (!reference.SaveFormContents(refBack))
+        {
+            throw new InvalidOperationException("`ROIReferenceControl.SaveFormContents`"
+                + " вернул false: разбор полей отказал");
+        }
+        back.Add(refBack.Coefficient); back.Add(refBack.CoefficientError);
+
+        ROIDefinitionData roiBack = new ROIDefinitionData();
+        roiBack.AutoBecquerelCoefficient = false;
+        object saved = P5Call(roiForm, "SaveROIDefinitionFormContents", roiBack);
+        if (!(bool)saved)
+        {
+            throw new InvalidOperationException("`SaveROIDefinitionFormContents`"
+                + " вернул false: разбор полей зоны отказал");
+        }
+        back.Add(roiBack.BecquerelCoefficient); back.Add(roiBack.BecquerelCoefficientError);
+        back.Add(roiBack.PeakEnergy); back.Add(roiBack.HalfLife); back.Add(roiBack.Intencity);
+        back.Add(roiBack.LowerLimit); back.Add(roiBack.UpperLimit);
+
+        s.Back = back.ToArray();
     }
 }
