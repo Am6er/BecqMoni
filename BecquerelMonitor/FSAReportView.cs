@@ -114,6 +114,33 @@ namespace BecquerelMonitor
         bool suspendSelection;
 
         // ------------------------------------------------------------------
+        // (`A248`) ПОКАЗ ЛЕНТЫ НЕВЯЗКИ
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`A248`, задача Amber 05.09.2026) Показывать ли ленту НЕВЯЗКИ на
+        /// графике. Настройка ПОКАЗА, а не расчёта: она не пишется ни в копию
+        /// спектра, ни в умолчание прибора, не входит в отпечаток разбора
+        /// (<see cref="FsaCalculationOptions"/>) и пересчёта не заказывает —
+        /// одна перерисовка графика, как у выделения `A246`.
+        ///
+        /// ⛔ Строка невязки и χ²/ndf в ТАБЛИЦЕ от неё не зависят вовсе
+        /// (решение Amber 05.09.2026): мера качества разбора видна при любом
+        /// положении галочки, гасится только лента на графике. Поэтому здесь
+        /// нет ни <see cref="RefreshReport"/>, ни чего-либо ещё, что трогало бы
+        /// строки.
+        ///
+        /// Живёт в ОКНЕ, а не в документе: окно одно на приложение
+        /// (<see cref="MainForm"/>), и положение галочки держится при переходе
+        /// от спектра к спектру — так же, как просьба о группировке
+        /// (<see cref="requestedGrouping"/>).
+        /// </summary>
+        bool showResidualBand = true;
+
+        /// <summary>Ключ подсказки шестой галочки: «меняет только показ».</summary>
+        const string KeyResidualBandTip = "FSAReport_ResidualBandTip";
+
+        // ------------------------------------------------------------------
         // (`A247`) БЛОК «КАЧЕСТВО РАЗБОРА»: ключи собственных строк окна
         // ------------------------------------------------------------------
         //
@@ -325,6 +352,11 @@ namespace BecquerelMonitor
             }
 
             this.PushGrouping();
+
+            // (`A248`) Положение галочки принадлежит ОКНУ и переезжает на
+            // график того документа, который показывается сейчас: иначе
+            // снятая лента возвращалась бы при каждой смене спектра.
+            this.PushResidualBand();
             this.Consume();
             this.RefreshReport();
         }
@@ -450,6 +482,68 @@ namespace BecquerelMonitor
         void pileUpCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             this.ApplyCalculationChange(cfg => cfg.PileUpForFsa = this.pileUpCheckBox.Checked);
+        }
+
+        // ------------------------------------------------------------------
+        // (`A248`) Показ ленты невязки — переключатель ПОКАЗА, не расчёта
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ Шестая галочка блока стоит рядом с пятью расчётными, но идёт
+        /// ДРУГОЙ дорогой: не <see cref="ApplyCalculationChange"/>, а одна
+        /// перерисовка графика. Никакой записи в конфигурацию, никакого
+        /// <c>session.Invalidate()</c>, никакого <c>Consume()</c> — иначе снятая
+        /// лента стоила бы человеку полного пересчёта разбора и, что хуже,
+        /// поменяла бы отпечаток: те же числа считались бы заново.
+        /// </summary>
+        void residualBandCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.showResidualBand = this.residualBandCheckBox.Checked;
+            this.PushResidualBand();
+        }
+
+        /// <summary>Показывать ли ленту невязки (пробы).</summary>
+        public bool ShowResidualBand
+        {
+            get
+            {
+                return this.showResidualBand;
+            }
+
+            set
+            {
+                this.loading = true;
+                try
+                {
+                    this.residualBandCheckBox.Checked = value;
+                }
+                finally
+                {
+                    this.loading = false;
+                }
+
+                this.showResidualBand = value;
+                this.PushResidualBand();
+            }
+        }
+
+        /// <summary>
+        /// Сказать графику, показывать ли ленту невязки. ⛔ Ничего, кроме
+        /// перерисовки, это не меняет: ни расчёта, ни представления, ни строк
+        /// таблицы — по образцу <see cref="PushHighlight"/>.
+        /// </summary>
+        void PushResidualBand()
+        {
+            if (this.document != null && !this.document.IsDisposed
+                && this.document.EnergySpectrumView != null)
+            {
+                this.document.EnergySpectrumView.FsaShowResidual = this.showResidualBand;
+            }
         }
 
         /// <summary>
@@ -1155,6 +1249,7 @@ namespace BecquerelMonitor
             this.backscatterCheckBox.Enabled = has;
             this.escapeCheckBox.Enabled = has;
             this.pileUpCheckBox.Enabled = has;
+            this.residualBandCheckBox.Enabled = has;
             this.reportTable.Enabled = has;
 
             bool nucBase = has && this.sourceNucBaseRadio.Checked;
@@ -1212,6 +1307,12 @@ namespace BecquerelMonitor
             this.toolTip.SetToolTip(this.backscatterCheckBox, Resources.FSAReportTipCalculation);
             this.toolTip.SetToolTip(this.escapeCheckBox, Resources.FSAReportTipCalculation);
             this.toolTip.SetToolTip(this.pileUpCheckBox, Resources.FSAReportTipCalculation);
+
+            // (`A248`) Шестая галочка блока — единственная, что расчёта НЕ
+            // меняет, и подсказка обязана сказать это прямо: подпись, по
+            // решению Amber, ничего не поясняет, а окно делит подсказки ровно
+            // на два рода — «меняет расчёт» и «меняет только показ».
+            this.toolTip.SetToolTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
         }
 
         /// <summary>Подсказка элемента сейчас (пробы).</summary>
@@ -1233,6 +1334,12 @@ namespace BecquerelMonitor
                 // дальше и остался бы поблекшим навсегда.
                 this.selectedLayer = null;
                 this.PushHighlight();
+
+                // (`A248`) Тот же довод: окна не станет, а с ним и галочки, —
+                // спрятанная лента невязки осталась бы спрятанной навсегда, и
+                // вернуть её было бы нечем.
+                this.showResidualBand = true;
+                this.PushResidualBand();
 
                 if (this.session != null)
                 {
