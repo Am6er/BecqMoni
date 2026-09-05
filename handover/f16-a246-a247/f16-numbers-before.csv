@@ -1,0 +1,21 @@
+kind,name,value
+Layer,Pb-214,38.77%
+Layer,Bi-214,17.88%
+Layer,U-235,8.64%
+Layer,K-40,2.89%
+Layer,Tl-208,0.27%
+Layer,Pb,13.96%
+Layer,SE-1120,10.78%
+Layer,Backscatter,есть
+Undetected,Ag-108m,< 0.142 %
+Undetected,Ac-228,< 0.147 %
+service,residual,+4.1 / −5.3 %
+service,chi2,2.34
+share,Pb-214,38.768910312045058
+share,Bi-214,17.876003679336154
+share,U-235,8.6371128882427186
+share,K-40,2.8889666583299505
+share,Tl-208,0.27074560107194795
+share,Pb,13.964157906203306
+share,SE-1120,10.780428491476949
+share,Backscatter,6.81367446329391

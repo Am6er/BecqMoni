@@ -49,6 +49,13 @@ namespace BecquerelMonitor
         /// <summary>Снимок представления, построенный для текущего результата и группировки.</summary>
         FsaPresentation fsaPresentation;
 
+        /// <summary>
+        /// (`A246`) Имя слоя состава, ВЫБРАННОГО в таблице отчёта; null —
+        /// выбора нет. Ставит окно отчёта (<see cref="FSAReportView"/>), читает
+        /// только отрисовка лент.
+        /// </summary>
+        string fsaHighlight;
+
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
         // один раз на результат: кумулятивные кривые стека (низ и верх каждой
         // ленты), спектр за вычетом фона и точки прямых подписей. Раньше эти
@@ -128,6 +135,78 @@ namespace BecquerelMonitor
                 this.ForgetFsaPresentation();
                 this.Invalidate();
             }
+        }
+
+        /// <summary>
+        /// (`A246`, решение Amber 05.09.2026) ВЫДЕЛЕННЫЙ КОМПОНЕНТ СОСТАВА —
+        /// имя слоя (<see cref="FsaStackLayer.Name"/>), выбранного строкой в
+        /// таблице отчёта; null — выбора нет.
+        ///
+        /// Выделение делается ПРИГЛУШЕНИЕМ ОСТАЛЬНЫХ: выбранная лента остаётся
+        /// в полном цвете, прочие бледнеют (<see cref="MuteFsaColor"/>).
+        /// Штриховка на эту роль не годится — она занята сумм-пиками.
+        ///
+        /// ⛔ Ни расчёта, ни представления это не трогает: ни один слой, ни одна
+        /// кривая и ни одно число от выделения не меняются — меняется ТОЛЬКО
+        /// краска. Поэтому здесь не сбрасывается ни снимок представления, ни
+        /// кадровые массивы, и пересчёт не заказывается: одна перерисовка.
+        /// </summary>
+        internal string FsaHighlight
+        {
+            get
+            {
+                return this.fsaHighlight;
+            }
+
+            set
+            {
+                string next = string.IsNullOrEmpty(value) ? null : value;
+                if (string.Equals(this.fsaHighlight, next, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                this.fsaHighlight = next;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>Доля непрозрачности приглушённой ленты (у полноцветной — 230).</summary>
+        const int MutedBandAlpha = 64;
+
+        /// <summary>Насколько приглушённый цвет сдвинут к своему же серому, доля.</summary>
+        const double MutedBandDesaturation = 0.6;
+
+        /// <summary>
+        /// (`A246`) ПРИГЛУШЁННЫЙ цвет ленты: та же краска, сдвинутая к своему
+        /// серому и залитая много прозрачнее.
+        ///
+        /// ⚠ Приглушение сделано ПРОЗРАЧНОСТЬЮ, а не подмешиванием белого или
+        /// чёрного, НАРОЧНО — и это единственный способ, работающий на обеих
+        /// темах: цвет поля графика задаёт человек
+        /// (<see cref="ColorConfig.BackgroundColor"/>), и лента с малой альфой
+        /// уходит к ТОМУ фону, какой под ней есть, — к светлому на светлой теме
+        /// и к тёмному на тёмной. Подмешивание постоянного цвета на одной из
+        /// двух тем давало бы обратное: «приглушённая» лента становилась бы
+        /// КОНТРАСТНЕЕ полноцветной.
+        ///
+        /// Ленты стека не перекрываются (слой k занимает полосу между
+        /// накоплениями k−1 и k), поэтому под приглушённой лентой лежит поле, а
+        /// не соседний слой, и прозрачность не путает цвета между собой.
+        /// </summary>
+        static Color MuteFsaColor(Color color)
+        {
+            double grey = 0.30 * color.R + 0.59 * color.G + 0.11 * color.B;
+            return Color.FromArgb(MutedBandAlpha,
+                                  MuteChannel(color.R, grey),
+                                  MuteChannel(color.G, grey),
+                                  MuteChannel(color.B, grey));
+        }
+
+        static int MuteChannel(int value, double grey)
+        {
+            int muted = (int)Math.Round(value + (grey - value) * MutedBandDesaturation);
+            return muted < 0 ? 0 : muted > 255 ? 255 : muted;
         }
 
         bool IsFsaMode()
@@ -380,13 +459,34 @@ namespace BecquerelMonitor
             PixelOffsetMode savedPixelOffset = g.PixelOffsetMode;
             g.SmoothingMode = SmoothingMode.None;
             g.PixelOffsetMode = PixelOffsetMode.Default;
+            // (`A246`) Приглушение включается ТОЛЬКО когда выбранный компонент
+            // и вправду нарисован лентой. Выбор строки без ленты (необнаруженный
+            // кандидат, невязка, качество) не приглушает ничего: поблекший
+            // график, на котором не подсвечено НИЧЕГО, врал бы о том, что
+            // выбранного на нём нет вовсе.
+            string highlight = this.fsaHighlight;
+            bool muting = false;
+            if (highlight != null)
+            {
+                for (int k = 0; k < layers.Count; k++)
+                {
+                    if (string.Equals(layers[k].Name, highlight, StringComparison.Ordinal))
+                    {
+                        muting = true;
+                        break;
+                    }
+                }
+            }
+
             try
             {
                 for (int k = 0; k < layers.Count; k++)
                 {
                     double[] lower = k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
                     Color color = this.fsaPresentation.ColorOf(layers[k].Name);
-                    using (Brush brush = new SolidBrush(Color.FromArgb(230, color)))
+                    bool muted = muting && !string.Equals(layers[k].Name, highlight, StringComparison.Ordinal);
+                    Color painted = muted ? MuteFsaColor(color) : Color.FromArgb(230, color);
+                    using (Brush brush = new SolidBrush(painted))
                     {
                         this.DrawFsaBand(g, brush, lower, this.fsaCumulative[k]);
                     }
@@ -397,9 +497,14 @@ namespace BecquerelMonitor
                     double[] sumLevel = this.fsaSumPeakLevel != null ? this.fsaSumPeakLevel[k] : null;
                     if (sumLevel != null)
                     {
+                        // Подслой сумм-пиков блекнет ВМЕСТЕ со своей лентой: он
+                        // часть того же нуклида, и оставленный ярким — выдал бы
+                        // приглушённый компонент за выбранный.
+                        Color hatchColor = muted
+                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
+                            : FsaPalette.SumPeakHatchColor(color);
                         using (Brush hatch = new HatchBrush(HatchStyle.DarkUpwardDiagonal,
-                                                            FsaPalette.SumPeakHatchColor(color),
-                                                            Color.FromArgb(230, color)))
+                                                            hatchColor, painted))
                         {
                             this.DrawFsaBand(g, hatch, lower, sumLevel);
                         }

@@ -2,6 +2,7 @@ using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -93,6 +94,80 @@ namespace BecquerelMonitor
         /// <summary>Ширина колонки значения, пикселей: «+12,3 / −45,6 %» помещается с запасом.</summary>
         const int ValueColumnWidth = 92;
 
+        // ------------------------------------------------------------------
+        // (`A246`) ВЫДЕЛЕНИЕ КОМПОНЕНТА
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Имя слоя (<see cref="FsaStackLayer.Name"/>) выбранной строки состава;
+        /// null — выбора нет либо выбрана строка без ленты. Это ЕДИНСТВЕННОЕ,
+        /// что окно говорит графику о выборе.
+        /// </summary>
+        string selectedLayer;
+
+        /// <summary>
+        /// Перестройка таблицы сама двигает выбор (строки чистятся и создаются
+        /// заново), и XPTable честно поднимает на это событие. Пока флаг
+        /// поднят, событие не читается: иначе каждый фоновый пересчёт снимал бы
+        /// выбор человека, а по дороге ещё и слал бы графику null.
+        /// </summary>
+        bool suspendSelection;
+
+        // ------------------------------------------------------------------
+        // (`A247`) БЛОК «КАЧЕСТВО РАЗБОРА»: ключи собственных строк окна
+        // ------------------------------------------------------------------
+        //
+        // ⛔ Строки живут в паре `FSAReportView.resx` / `FSAReportView.ru.resx`,
+        //    а не в общем `Properties/Resources` — так же, как `NucBase`
+        //    держит свою `NucBase_NoCriteria`: они принадлежат только этому
+        //    окну и читаются тем же `ComponentResourceManager`, каким
+        //    конструктор берёт подписи его же контролов. Пара проверяется
+        //    `tools/check_resx.py` наравне с подписями.
+        //
+        // ⛔ Ключи НЕ ИМЕЮТ вида «контрол.свойство» и конструктору форм
+        //    неизвестны: при перезаписи `resx` конструктором WinForms их легко
+        //    потерять. Потеря видна сразу — в таблице встанет само имя ключа
+        //    (<see cref="OwnText"/>), а не пустота.
+
+        const string KeyQualityHeader = "FSAReport_QualityHeader";
+        const string KeyResidualRow = "FSAReport_ResidualRow";
+        const string KeyChi2Row = "FSAReport_Chi2Row";
+        const string KeyMatrixRow = "FSAReport_MatrixRow";
+        const string KeyMatrixUsed = "FSAReport_MatrixUsed";
+        const string KeyMatrixNotUsed = "FSAReport_MatrixNotUsed";
+        const string KeyMatrixOldFormat = "FSAReport_MatrixOldFormat";
+        const string KeyEfficiencyRow = "FSAReport_EfficiencyRow";
+        const string KeyEfficiencyUsed = "FSAReport_EfficiencyUsed";
+        const string KeyEfficiencyNotUsed = "FSAReport_EfficiencyNotUsed";
+        const string KeySummingRow = "FSAReport_SummingRow";
+        const string KeySummingUsed = "FSAReport_SummingUsed";
+        const string KeySummingNotUsed = "FSAReport_SummingNotUsed";
+        const string KeyDriftRow = "FSAReport_DriftRow";
+        const string KeyDriftEdge = "FSAReport_DriftEdge";
+        const string KeySuppressedRow = "FSAReport_SuppressedRow";
+
+        static readonly ComponentResourceManager OwnResources =
+            new ComponentResourceManager(typeof(FSAReportView));
+
+        /// <summary>
+        /// Строка из собственного <c>resx</c> окна. Ключ вместо пропажи: пустая
+        /// подпись неотличима от «сказать нечего», а признак без читателя —
+        /// не работа.
+        /// </summary>
+        static string OwnText(string key)
+        {
+            return OwnResources.GetString(key) ?? key;
+        }
+
+        /// <summary>Толщина черты над блоком качества, пикселей.</summary>
+        const int QualityRuleHeight = 3;
+
+        /// <summary>Цвет черты над блоком качества.</summary>
+        static readonly Color QualityRuleColor = Color.FromArgb(128, 128, 128);
+
+        /// <summary>Заголовок блока — тем же шрифтом, но полужирным; заводится один раз.</summary>
+        Font headerFont;
+
         public FSAReportView(MainForm mainForm)
         {
             this.mainForm = mainForm;
@@ -111,8 +186,11 @@ namespace BecquerelMonitor
             this.reportTable.EnableWordWrap = true;
             this.reportTable.EnableToolTips = true;
 
+            this.headerFont = new Font(this.Font, FontStyle.Bold);
+
             this.SetToolTips();
             this.reportTable.Resize += this.ReportTable_Resize;
+            this.reportTable.SelectionChanged += this.ReportTable_SelectionChanged;
             this.VisibleChanged += this.ConsumerStateChanged;
             this.DockStateChanged += this.ConsumerStateChanged;
             this.SetDocument(null);
@@ -128,6 +206,16 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetDocument(DocEnergySpectrum doc)
         {
+            // (`A246`) Приглушение снимается У ПРЕЖНЕГО документа, пока ссылка
+            // на него ещё здесь: иначе его график остался бы с поблекшими
+            // лентами навсегда — окно на него больше не смотрит и снять их
+            // будет некому.
+            if (!ReferenceEquals(this.document, doc))
+            {
+                this.selectedLayer = null;
+                this.PushHighlight();
+            }
+
             FsaAnalysisSession next = doc != null ? doc.FsaSession : null;
             if (!ReferenceEquals(this.session, next))
             {
@@ -161,6 +249,8 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetProbeSource(FsaAnalysisSession probeSession, ResultData resultData)
         {
+            this.selectedLayer = null;
+            this.PushHighlight();
             if (!ReferenceEquals(this.session, probeSession))
             {
                 if (this.session != null)
@@ -606,17 +696,51 @@ namespace BecquerelMonitor
             };
         }
 
-        /// <summary>Перечитать сеанс: таблица и доступность элементов управления.</summary>
+        /// <summary>
+        /// Перечитать сеанс: таблица и доступность элементов управления.
+        ///
+        /// (`A247`) Строки модели ложатся в таблицу НЕ ОДНА В ОДНУ. Всё, что не
+        /// компонент состава — «фон не вычтен», невязка и качество, — идёт
+        /// отдельным блоком: перед первой такой строкой встают ЧЕРТА и
+        /// ЗАГОЛОВОК «Качество разбора» (решение Amber 05.09.2026), а строка
+        /// качества разворачивается в несколько строк с подписями, чтобы
+        /// всплывающая подсказка была не нужна.
+        ///
+        /// ⛔ ЧИСЛА ПРИ ЭТОМ НЕ ТРОГАЮТСЯ: и невязка, и χ²/ndf берут
+        /// <see cref="FsaReportRow.Value"/> модели ДОСЛОВНО. Ни одного второго
+        /// форматирования числа в окне нет и быть не должно (`A242`/`A244`).
+        /// </summary>
         public void RefreshReport()
         {
             List<FsaReportRow> rows = this.BuildRows();
+            string keep = this.selectedLayer;
+            this.suspendSelection = true;
             this.reportTable.BeginUpdate();
             try
             {
                 this.tableModel.Rows.Clear();
+                bool blockOpened = false;
                 foreach (FsaReportRow row in rows)
                 {
-                    this.tableModel.Rows.Add(this.MakeRow(row));
+                    if (!blockOpened && IsQualityBlockRow(row))
+                    {
+                        blockOpened = true;
+                        this.tableModel.Rows.Add(this.MakeRuleRow());
+                        this.tableModel.Rows.Add(this.MakeHeaderRow());
+                    }
+
+                    if (row.Kind == FsaReportRowKind.Quality)
+                    {
+                        foreach (Row made in this.MakeQualityRows(row))
+                        {
+                            this.tableModel.Rows.Add(made);
+                        }
+
+                        continue;
+                    }
+
+                    this.tableModel.Rows.Add(this.MakeRow(
+                        row, row.Kind == FsaReportRowKind.Residual ? OwnText(KeyResidualRow) : null));
                 }
             }
             finally
@@ -624,8 +748,274 @@ namespace BecquerelMonitor
                 this.reportTable.EndUpdate();
             }
 
+            this.RestoreSelection(keep);
             this.FitColumns();
             this.UpdateAvailability();
+        }
+
+        /// <summary>
+        /// (`A247`) Строка НЕ О СОСТАВЕ — с неё начинается блок качества. Род
+        /// читается из <see cref="FsaReportRow.Kind"/>, а не из текста: «фон не
+        /// вычтен», невязка и качество не компоненты, а мера разбора, и стоять
+        /// в одном списке с `Pb-214 – Ra-226 chain` им нечего.
+        /// </summary>
+        static bool IsQualityBlockRow(FsaReportRow row)
+        {
+            return row.Kind == FsaReportRowKind.NoBackground
+                   || row.Kind == FsaReportRowKind.Residual
+                   || row.Kind == FsaReportRowKind.Quality;
+        }
+
+        /// <summary>(`A247`) Черта над блоком: строка в три пикселя, залитая целиком.</summary>
+        Row MakeRuleRow()
+        {
+            var cells = new[] { new Cell(string.Empty, (Image)null), new Cell(string.Empty), new Cell(string.Empty) };
+            foreach (Cell cell in cells)
+            {
+                cell.BackColor = QualityRuleColor;
+            }
+
+            var row = new Row(cells);
+            row.Height = QualityRuleHeight;
+            row.Tag = ServiceRow(string.Empty, string.Empty);
+            return row;
+        }
+
+        /// <summary>(`A247`) Заголовок блока — полужирным, без значения.</summary>
+        Row MakeHeaderRow()
+        {
+            string text = OwnText(KeyQualityHeader);
+            var name = new Cell(text);
+            name.Font = this.headerFont;
+            name.ForeColor = Color.Black;
+            name.ToolTipText = text;
+            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, new Cell(string.Empty) });
+            row.Tag = ServiceRow(text, string.Empty);
+            return row;
+        }
+
+        /// <summary>
+        /// (`A247`) Строка качества, развёрнутая в перечень с подписями.
+        ///
+        /// Первой идёт χ²/ndf с числом модели ДОСЛОВНО, за ней — по строке на
+        /// каждую пометку прежнего хвоста `· matrix · summing (no eff) !`,
+        /// каждая с полной подписью и своим словом состояния. Пометки читаются
+        /// из признаков РЕЗУЛЬТАТА, а не разбором локализованного текста:
+        /// разбирать собранную строку обратно — тот же грех, за который род
+        /// строки вынесен в <see cref="FsaReportRowKind"/>.
+        ///
+        /// Три первые пометки печатаются ВСЕГДА (матрица, кривая,
+        /// суммирование): человек обязан видеть, что учтено, а не гадать по
+        /// отсутствию слова. Две последние — только когда есть о чём сказать:
+        /// край сетки дрейфа и подавленный состав это происшествия, и строка,
+        /// стоящая всегда, их обесценила бы.
+        /// </summary>
+        List<Row> MakeQualityRows(FsaReportRow quality)
+        {
+            var made = new List<Row>();
+            made.Add(this.MakeRow(quality, OwnText(KeyChi2Row)));
+
+            FsaResult result = this.presentation != null ? this.presentation.Source : null;
+            if (result == null)
+            {
+                return made;
+            }
+
+            bool oldFormat = this.presentation.MatrixOldFormat;
+            made.Add(this.MakeMarkRow(KeyMatrixRow,
+                                      OwnText(result.ResponseMatrixUsed
+                                                  ? KeyMatrixUsed
+                                                  : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
+                                      false));
+            made.Add(this.MakeMarkRow(KeyEfficiencyRow,
+                                      OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
+                                      false));
+            made.Add(this.MakeMarkRow(KeySummingRow,
+                                      OwnText(result.CascadeSummingUsed ? KeySummingUsed : KeySummingNotUsed),
+                                      false));
+
+            if (result.DriftOnGridEdge)
+            {
+                made.Add(this.MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), true));
+            }
+
+            if (result.CompositionSuppressed)
+            {
+                // Имя пересилившего образа — не надпись, а данные результата,
+                // и переводу не подлежит (`Backscatter`, `Esc-I`, нуклид).
+                made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, true));
+            }
+
+            return made;
+        }
+
+        /// <summary>
+        /// (`A247`) Строка пометки: подпись слева, слово состояния справа.
+        /// Числа здесь не бывает никогда — только у невязки и χ²/ndf, и оба
+        /// берут его у модели.
+        /// </summary>
+        Row MakeMarkRow(string captionKey, string value, bool attention)
+        {
+            string caption = OwnText(captionKey);
+            var name = new Cell(caption);
+            var cell = new Cell(value ?? string.Empty);
+            name.ForeColor = Color.Black;
+            cell.ForeColor = attention ? Color.Firebrick : Color.Gray;
+
+            // Подпись переносится по ширине колонки: усечение многоточием и
+            // есть та беда, ради которой заведена `A247`.
+            name.WordWrap = true;
+            name.ToolTipText = caption;
+            cell.ToolTipText = cell.Text;
+            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            row.Tag = ServiceRow(caption, cell.Text, attention);
+            return row;
+        }
+
+        /// <summary>
+        /// Модельная строка для служебных строк блока (черта, заголовок,
+        /// пометка): у таблицы обязан быть <see cref="Row.Tag"/> известного
+        /// рода — по нему читают строки и пробы, и обработчик выбора.
+        /// Ленты у таких строк нет, поэтому выбор их ничего не подсвечивает.
+        /// </summary>
+        static FsaReportRow ServiceRow(string name, string value, bool warning = false)
+        {
+            return new FsaReportRow
+            {
+                Kind = FsaReportRowKind.Quality,
+                Name = name,
+                Value = value,
+                Warning = warning
+            };
+        }
+
+        // ------------------------------------------------------------------
+        // (`A246`) Выбор строки состава -> приглушение остальных лент
+        // ------------------------------------------------------------------
+
+        /// <summary>Имя слоя выбранного компонента; null — выбора нет (пробы).</summary>
+        public string SelectedComponent
+        {
+            get { return this.selectedLayer; }
+        }
+
+        /// <summary>
+        /// Выбрать строку состава по имени слоя — ТЕМ ЖЕ путём, каким её
+        /// выбирает мышь (пробы). false — такой строки в таблице нет.
+        /// Пустое имя снимает выбор.
+        /// </summary>
+        public bool SelectComponent(string layerName)
+        {
+            if (string.IsNullOrEmpty(layerName))
+            {
+                this.reportTable.TableModel.Selections.Clear();
+                this.selectedLayer = null;
+                this.PushHighlight();
+                return true;
+            }
+
+            int index = this.RowOfLayer(layerName);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            this.tableModel.Selections.SelectCell(index, 1);
+            return true;
+        }
+
+        /// <summary>Номер строки таблицы, показывающей слой с этим именем; −1 — нет такой.</summary>
+        int RowOfLayer(string layerName)
+        {
+            for (int i = 0; i < this.tableModel.Rows.Count; i++)
+            {
+                FsaReportRow model = this.tableModel.Rows[i].Tag as FsaReportRow;
+                if (model != null && model.Layer != null
+                    && string.Equals(model.Layer.Name, layerName, StringComparison.Ordinal))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        void ReportTable_SelectionChanged(object sender, XPTable.Events.SelectionEventArgs e)
+        {
+            if (this.suspendSelection)
+            {
+                return;
+            }
+
+            this.selectedLayer = this.LayerOfSelection();
+            this.PushHighlight();
+        }
+
+        /// <summary>
+        /// Слой выбранной строки; null — выбора нет или выбрана строка без
+        /// ленты (необнаруженный кандидат, невязка, качество, состояние).
+        /// Такую выбрать можно, и приглушать по ней НЕЧЕГО: на графике её нет.
+        /// </summary>
+        string LayerOfSelection()
+        {
+            int[] indices = this.tableModel.Selections.SelectedIndicies;
+            if (indices == null || indices.Length == 0)
+            {
+                return null;
+            }
+
+            int index = indices[0];
+            if (index < 0 || index >= this.tableModel.Rows.Count)
+            {
+                return null;
+            }
+
+            FsaReportRow model = this.tableModel.Rows[index].Tag as FsaReportRow;
+            return model != null && model.Layer != null ? model.Layer.Name : null;
+        }
+
+        /// <summary>
+        /// Сказать графику, что выделено. ⛔ Ничего, кроме краски, это не
+        /// меняет: ни расчёта, ни представления, ни группировки — поэтому
+        /// заказа пересчёта здесь нет и не будет.
+        /// </summary>
+        void PushHighlight()
+        {
+            if (this.document != null && !this.document.IsDisposed
+                && this.document.EnergySpectrumView != null)
+            {
+                this.document.EnergySpectrumView.FsaHighlight = this.selectedLayer;
+            }
+        }
+
+        /// <summary>
+        /// Вернуть выбор на ту же строку состава после перестройки таблицы.
+        /// Слоя может уже не быть (сменился спектр, группировка, состав) —
+        /// тогда выбор снимается, и приглушение снимается вместе с ним.
+        /// </summary>
+        void RestoreSelection(string layerName)
+        {
+            this.suspendSelection = true;
+            try
+            {
+                this.tableModel.Selections.Clear();
+                int index = layerName != null ? this.RowOfLayer(layerName) : -1;
+                if (index >= 0)
+                {
+                    this.tableModel.Selections.SelectCell(index, 1);
+                    this.selectedLayer = layerName;
+                }
+                else
+                {
+                    this.selectedLayer = null;
+                }
+            }
+            finally
+            {
+                this.suspendSelection = false;
+            }
+
+            this.PushHighlight();
         }
 
         /// <summary>
@@ -634,23 +1024,31 @@ namespace BecquerelMonitor
         /// из текста. Цвет текста никогда не остаётся единственным носителем
         /// смысла: у серых строк есть «&lt; … %», у красных — свой текст.
         /// </summary>
-        Row MakeRow(FsaReportRow row)
+        /// <param name="caption">
+        /// (`A247`) Подпись ВМЕСТО <see cref="FsaReportRow.Name"/>; null —
+        /// подпись модели. Подменяются ровно две строки блока качества —
+        /// невязка и χ²/ndf, — и подменяется у них ТОЛЬКО ПОДПИСЬ: значение
+        /// берётся у модели дословно, второго форматирования числа нет.
+        /// </param>
+        Row MakeRow(FsaReportRow row, string caption = null)
         {
             Color fore = row.Kind == FsaReportRowKind.Status && row.Warning
                 ? Color.DarkOrange
                 : row.Warning ? Color.Firebrick : row.Muted ? Color.Gray : Color.Black;
 
             var swatch = new Cell(string.Empty, this.SwatchOf(row));
-            var name = new Cell(row.Name ?? string.Empty);
+            var name = new Cell(caption ?? row.Name ?? string.Empty);
             var value = new Cell(row.Value ?? string.Empty);
             name.ForeColor = fore;
             value.ForeColor = fore;
-            name.ToolTipText = row.Name;
+            name.ToolTipText = name.Text;
             value.ToolTipText = row.Value;
 
-            // Полный текст без усечения: строка качества и строка состояния
-            // (причина отказа бывает длинной) переносятся по ширине колонки.
-            if (row.Kind == FsaReportRowKind.Quality || row.Kind == FsaReportRowKind.Status)
+            // Полный текст без усечения: строки блока качества и строка
+            // состояния (причина отказа бывает длинной) переносятся по ширине
+            // колонки.
+            if (row.Kind == FsaReportRowKind.Quality || row.Kind == FsaReportRowKind.Status
+                || row.Kind == FsaReportRowKind.Residual || row.Kind == FsaReportRowKind.NoBackground)
             {
                 name.WordWrap = true;
             }
@@ -831,10 +1229,21 @@ namespace BecquerelMonitor
         {
             if (disposing)
             {
+                // (`A246`) Окна не станет — приглушение снимается: график живёт
+                // дальше и остался бы поблекшим навсегда.
+                this.selectedLayer = null;
+                this.PushHighlight();
+
                 if (this.session != null)
                 {
                     this.session.Completed -= this.SessionCompleted;
                     this.session = null;
+                }
+
+                if (this.headerFont != null)
+                {
+                    this.headerFont.Dispose();
+                    this.headerFont = null;
                 }
 
                 foreach (Image image in this.swatches.Values)

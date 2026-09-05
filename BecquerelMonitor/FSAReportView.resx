@@ -4998,4 +4998,52 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
+  <data name="FSAReport_QualityHeader" xml:space="preserve">
+    <value>Analysis quality</value>
+  </data>
+  <data name="FSAReport_ResidualRow" xml:space="preserve">
+    <value>Residual: + excess / − missing</value>
+  </data>
+  <data name="FSAReport_Chi2Row" xml:space="preserve">
+    <value>χ²/ndf, goodness of fit</value>
+  </data>
+  <data name="FSAReport_MatrixRow" xml:space="preserve">
+    <value>Response matrix</value>
+  </data>
+  <data name="FSAReport_MatrixUsed" xml:space="preserve">
+    <value>used</value>
+  </data>
+  <data name="FSAReport_MatrixNotUsed" xml:space="preserve">
+    <value>not used</value>
+  </data>
+  <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
+    <value>old format</value>
+  </data>
+  <data name="FSAReport_EfficiencyRow" xml:space="preserve">
+    <value>Efficiency curve</value>
+  </data>
+  <data name="FSAReport_EfficiencyUsed" xml:space="preserve">
+    <value>used</value>
+  </data>
+  <data name="FSAReport_EfficiencyNotUsed" xml:space="preserve">
+    <value>not used</value>
+  </data>
+  <data name="FSAReport_SummingRow" xml:space="preserve">
+    <value>Cascade summing</value>
+  </data>
+  <data name="FSAReport_SummingUsed" xml:space="preserve">
+    <value>applied</value>
+  </data>
+  <data name="FSAReport_SummingNotUsed" xml:space="preserve">
+    <value>not applied</value>
+  </data>
+  <data name="FSAReport_DriftRow" xml:space="preserve">
+    <value>Scale drift fit</value>
+  </data>
+  <data name="FSAReport_DriftEdge" xml:space="preserve">
+    <value>at grid edge</value>
+  </data>
+  <data name="FSAReport_SuppressedRow" xml:space="preserve">
+    <value>Composition suppressed by</value>
+  </data>
 </root>
