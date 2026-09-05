@@ -3,6 +3,7 @@ using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -588,6 +589,100 @@ namespace BecquerelMonitor
             return docEnergySpectrum2;
         }
 
+        /// <summary>
+        /// СПЕКТР БЕЗ МОДЕЛИ РАЗРЕШЕНИЯ НАЗЫВАЕТСЯ ВСЛУХ (`A234`, 05.09.2026).
+        ///
+        /// ⛔ Одна дверь на обе двери ввоза, и это условие строки, а не
+        /// украшение: `A160` и `A175` уже дважды сводили `ImportDocumentN42` и
+        /// `ImportDocumentSpecUtils`, разошедшиеся на ОДНОМ файле, и человек
+        /// получал слово или молчание в зависимости от пункта меню. Общий метод
+        /// значит, что разойтись им больше нечем: и повод, и текст, и голос
+        /// у них один.
+        ///
+        /// ⛔ Умолчание здесь НЕ ПОДСТАВЛЯЕТСЯ. `DefaultCalibration` зовётся
+        /// только затем, чтобы СПРОСИТЬ ПРИЧИНУ (`A235`), и её результат
+        /// выбрасывается: подставленная кривая разрешения задаёт ширину окна
+        /// поиска пиков и форму образа в полноспектральном разборе, то есть
+        /// даёт числа, неотличимые от измеренных. Отказ — слово, а не подмена.
+        ///
+        /// ⚠ Голос звучит ОДИН РАЗ НА ФАЙЛ, а не по числу спектров — соглашение
+        /// то же, что у `A160`/`A175` строкой выше.
+        ///
+        /// ⚠ Измерено 05.09.2026 (`N42RoundTripProbe --mode=noconfig`, замер ДО
+        /// и ПОСЛЕ двери): на 12 корпусных .n42 состояние оставляет только
+        /// дверь SpecUtils (12 из 12 в двух плечах), а дверь N42 — ни разу,
+        /// потому что разбор спецификации 2012 года заводит свои `ResultData` с
+        /// умолчанием настроек поиска пиков. На файле спецификации 2006 года,
+        /// который пишет прочитанное прямо в документ, состояние дают ОБЕ.
+        /// </summary>
+        void ReportMissingFwhmCalibration(DocEnergySpectrum doc, string path)
+        {
+            if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
+            {
+                return;
+            }
+
+            int total = 0;
+            int without = 0;
+            string why = null;
+            foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+            {
+                if (data == null || data.EnergySpectrum == null)
+                {
+                    continue;
+                }
+                total++;
+                if (data.FwhmCalibration != null)
+                {
+                    continue;
+                }
+                without++;
+                if (why == null)
+                {
+                    why = WhyNoFwhmCalibration(data);
+                }
+            }
+
+            if (without == 0)
+            {
+                return;
+            }
+
+            AppUi.Report(string.Format(CultureInfo.CurrentCulture,
+                                       Resources.ERRNoFwhmCalibrationImport,
+                                       path, without, total, why),
+                         "", MessageBoxIcon.None);
+        }
+
+        /// <summary>
+        /// ПОЧЕМУ у спектра нет модели разрешения — словами и с числами.
+        /// Причин ровно две, и они разные для человека: умолчание НЕ СТРОИТСЯ
+        /// по настройкам прибора (тогда называются три числа, которых нет ни на
+        /// одной форме) — или строится, но его никто не построил.
+        /// </summary>
+        string WhyNoFwhmCalibration(ResultData data)
+        {
+            try
+            {
+                FWHMPeakDetectionMethodConfig cfg = data.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+                if (cfg != null && data.EnergySpectrum.EnergyCalibration != null)
+                {
+                    string refusal;
+                    // ⛔ Результат НЕ ПРИСВАИВАЕТСЯ — спрашивается только причина.
+                    FwhmCalibration.DefaultCalibration(cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
+                    if (!string.IsNullOrEmpty(refusal))
+                    {
+                        return refusal;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Причина — не место падать: у отказа и без неё есть текст.
+            }
+            return Resources.ERRFwhmCalibrationUnset;
+        }
+
         public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath, int presettime)
         {
             IntPtr file_h = IntPtr.Zero;
@@ -643,11 +738,20 @@ namespace BecquerelMonitor
                 //    НЕЛЬЗЯ: измерено, что в этом самом состоянии кривая
                 //    настроек поиска пиков тоже null (подставлять нечего), а
                 //    когда она есть — её уже взял бы `CreateResultData`.
-                //    Отказывать словами тоже нельзя: соседняя дверь того же
-                //    файла, `ImportDocumentN42`, ввозит все 12 из 12 с пустой
-                //    ПШПВ и молча, и отказ здесь развёл бы два пункта меню на
-                //    одном файле — та самая беда, ради которой сведены `A160`
-                //    и `A175`.
+                //
+                //    ⚠ ПОПРАВКА 05.09.2026 (`A234`). Здесь стояло «отказывать
+                //    словами тоже нельзя: соседняя дверь `ImportDocumentN42`
+                //    ввозит все 12 из 12 с пустой ПШПВ и молча». Замер ДО и
+                //    ПОСЛЕ двери это ОПРОВЕРГ: те 12 нулей были состоянием
+                //    ЗАГОТОВКИ документа, а после двери N42 кривая есть у всех
+                //    12 (разбор спецификации 2012 года заводит свои
+                //    `ResultData`). Разошлись двери не в том, говорить ли, а в
+                //    том, доходят ли до состояния вовсе. Отказ словами теперь
+                //    стоит у ОБЕИХ дверей одним общим методом
+                //    (`ReportMissingFwhmCalibration`), и на файле спецификации
+                //    2006 года, где до состояния доходят обе, они говорят
+                //    ОДНО И ТО ЖЕ — сведение `A160`/`A175` этим соблюдено, а
+                //    не нарушено.
                 FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration != null
                                                   ? doc.ActiveResultData.FwhmCalibration.Clone()
                                                   : null;
@@ -924,6 +1028,9 @@ namespace BecquerelMonitor
                            : ": ввозимых измерений в файле нет")
                         + " — документ остался бы пустым, и считать по нему нечего");
                 }
+
+                // `A234`: та же дверь, что у ввоза N42 — одна на обе.
+                this.ReportMissingFwhmCalibration(doc, filepath);
             }
             catch (Exception ex)
             {
@@ -1370,6 +1477,9 @@ namespace BecquerelMonitor
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
                     doc.Dirty = true;
                 }
+
+                // `A234`: та же дверь, что у ввоза через SpecUtils — одна на обе.
+                this.ReportMissingFwhmCalibration(doc, filename);
 
                 Cursor.Current = Cursors.Default;
             }

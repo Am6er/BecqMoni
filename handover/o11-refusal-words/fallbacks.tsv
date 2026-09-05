@@ -1,0 +1,30 @@
+DoseRateBadEfficiency	BecquerelMonitor/DoseRate.cs:792	Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless.
+DoseRateBadScale	BecquerelMonitor/DoseRate.cs:710	Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels).
+DoseRateCurveBadEnergy	BecquerelMonitor/DoseRate.cs:987	Dose rate: the efficiency curve has a point at {0} keV.
+DoseRateCurveBadValue	BecquerelMonitor/DoseRate.cs:996	Dose rate: the efficiency curve gives {0} at {1:f1} keV.
+DoseRateCurveTooShort	BecquerelMonitor/DoseRate.cs:973	Dose rate: the efficiency curve has {0} point(s), at least two are needed.
+DoseRateCurveTooShort	BecquerelMonitor/DoseRate.cs:1015	Dose rate: the efficiency curve has {0} point(s), at least two are needed.
+DoseRateEmptyRange	BecquerelMonitor/DoseRate.cs:647	Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV).
+DoseRateEmptySpectrum	BecquerelMonitor/DoseRate.cs:743	Dose rate: the reference spectrum has no channels.
+DoseRateEmptySpectrum	BecquerelMonitor/DoseRateManager.cs:170	Dose rate: the reference spectrum has no channels.
+DoseRateEnergyNotPositive	BecquerelMonitor/DoseRate.cs:323	Dose rate: energy {0} keV is not positive.
+DoseRateEtalonEmpty	BecquerelMonitor/DoseRate.cs:843	Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against.
+DoseRateFileUnusable	BecquerelMonitor/DeviceConfigForm.cs:2623	Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time.
+DoseRateLsrmNoHeader	BecquerelMonitor/DeviceConfigForm.cs:2751	Dose rate: {0} does not start with the LSRM header \"Energy, keV / Efficiency / Uncertainty, %\" — the first line reads \"{1}\".
+DoseRateLsrmNoPoints	BecquerelMonitor/DeviceConfigForm.cs:2820	Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty).
+DoseRateLsrmShortLine	BecquerelMonitor/DeviceConfigForm.cs:2785	Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): \"{3}\".
+DoseRateNoCalibration	BecquerelMonitor/DoseRate.cs:736	Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.
+DoseRateNoCalibration	BecquerelMonitor/DoseRateManager.cs:181	Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.
+DoseRateNoEfficiency	BecquerelMonitor/DoseRate.cs:755	Dose rate: no efficiency curve is selected.
+DoseRateNoElement	BecquerelMonitor/DoseRate.cs:340	Dose rate: element Z={0} is missing from the material database.
+DoseRateNoExpected	BecquerelMonitor/DoseRate.cs:761	Dose rate: the declared dose rate of the source must be positive.
+DoseRateNoGrid	BecquerelMonitor/DoseRate.cs:767	Dose rate: the energy grid is empty.
+DoseRateNoScale	BecquerelMonitor/DoseRate.cs:697	Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on.
+DoseRateNoSpectrum	BecquerelMonitor/DoseRate.cs:730	Dose rate: no reference spectrum is selected.
+DoseRateNoTime	BecquerelMonitor/DoseRate.cs:749	Dose rate: the reference spectrum has zero measurement time.
+DoseRateNoTime	BecquerelMonitor/DoseRateManager.cs:189	Dose rate: the reference spectrum has zero measurement time.
+DoseRateNotFinite	BecquerelMonitor/DoseRateManager.cs:277	Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.
+DoseRateOutsideCurve	BecquerelMonitor/DoseRate.cs:584	Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV).
+DoseRateOutsideIcrp	BecquerelMonitor/DoseRate.cs:401	Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV).
+DoseRateOutsideXcom	BecquerelMonitor/DoseRate.cs:353	Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV).
+DoseRatePartialCoverage	BecquerelMonitor/DoseRate.cs:146	(covers {0:f0} % of counts)
