@@ -1,0 +1,193 @@
+# Полоса О4, 05.09.2026 — вывод всех плеч приёмки T81 и T200
+# дерево: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8, ветка: pie
+# вершина: ed398e09
+# снято: 2026-09-05 11:32:19
+
+==============================================================================
+T81 / ПЛЕЧО 1. Дерево после правки, штатная область сторожа (tools/**). Ожидание: 0 копий без ключа.
+$ python tools/check_build_recipe.py
+------------------------------------------------------------------------------
+обойдено файлов: 367
+копий рецепта найдено: 4 (с ключом 4, БЕЗ ключа 0)
+копий без ключа: 0
+
+с ключом (для сверки):
+  tools/effmaker/handover-2026-08-05.md:113
+  tools/effmaker/handover-response-matrix.md:328
+  tools/effmaker/run.ps1:36
+  tools/interspec/handover-2026-08-05.md:720
+--- код возврата: 0
+
+==============================================================================
+T81 / ПЛЕЧО 2. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: подброшена ЗАВЕДОМО ПЛОХАЯ копия (во временный каталог, не в дерево) рядом с заведомо хорошей. Ожидание: ОТКАЗ кодом 1 ровно на плохой.
+$ python tools/check_build_recipe.py C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\31b3afe8-e2e2-4084-9d4e-18c65f47af52\scratchpad\ctl_recipe
+------------------------------------------------------------------------------
+обойдено файлов: 2
+копий рецепта найдено: 2 (с ключом 1, БЕЗ ключа 1)
+
+ОТКАЗ: копий без /p:GenerateManifests=false — 1
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/ctl_recipe/bad.ps1:2 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+
+с ключом (для сверки):
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/ctl_recipe/good.ps1:2
+--- код возврата: 1
+
+==============================================================================
+T81 / ПЛЕЧО 3. Только ХОРОШАЯ подброшенная копия. Ожидание: код 0, ложной тревоги нет.
+$ python tools/check_build_recipe.py C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\31b3afe8-e2e2-4084-9d4e-18c65f47af52\scratchpad\ctl_recipe\good.ps1
+------------------------------------------------------------------------------
+обойдено файлов: 1
+копий рецепта найдено: 1 (с ключом 1, БЕЗ ключа 0)
+копий без ключа: 0
+
+с ключом (для сверки):
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/ctl_recipe/good.ps1:2
+--- код возврата: 0
+
+==============================================================================
+T81 / ПЛЕЧО 4. Четыре ПРАВЛЕННЫХ места поимённо. Ожидание: 4 копии, все с ключом.
+$ python tools/check_build_recipe.py C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\run.ps1 C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\handover-2026-08-05.md C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\handover-response-matrix.md C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\interspec\handover-2026-08-05.md
+------------------------------------------------------------------------------
+обойдено файлов: 4
+копий рецепта найдено: 4 (с ключом 4, БЕЗ ключа 0)
+копий без ключа: 0
+
+с ключом (для сверки):
+  tools/effmaker/handover-2026-08-05.md:113
+  tools/effmaker/handover-response-matrix.md:328
+  tools/effmaker/run.ps1:36
+  tools/interspec/handover-2026-08-05.md:720
+--- код возврата: 0
+
+==============================================================================
+T81 / ПЛЕЧО 5. СЧЁТ ПОСЫЛКИ: всё дерево целиком (включая журналы и AGENTS.md). Это НЕ приёмка — это перепись мест. Строка называла ШЕСТЬ.
+$ python tools/check_build_recipe.py C:\Users\moroz\source\repos\BQ Eng res .NET 4.8
+------------------------------------------------------------------------------
+обойдено файлов: 1161
+копий рецепта найдено: 30 (с ключом 17, БЕЗ ключа 13)
+
+ОТКАЗ: копий без /p:GenerateManifests=false — 13
+  .claude/settings.local.json:6 | "PowerShell(& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bi
+  AGENTS.md:27 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-13.md:200 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-14.md:256 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-15-evening.md:202 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-15.md:274 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-16-evening.md:311 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-16-night.md:193 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-16.md:132 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-17-fluorescence.md:202 | & '...\MSBuild.exe' 'BecquerelMonitor\BecquerelMonitor.csproj' /t:Build `
+  handover/handover-2026-08-17-matrix-speed.md:447 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-17.md:190 | & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
+  handover/handover-2026-08-18-cascade-xray.md:228 | & '...\MSBuild.exe' 'BecquerelMonitor\BecquerelMonitor.csproj' /t:Build `
+
+с ключом (для сверки):
+  CLAUDE.md:99
+  CLAUDE.md:161
+  handover/f4-a185/build_f4.ps1:7
+  handover/f8-a219/build_f8.ps1:8
+  handover/f8-a219/run_f8.ps1:3
+  handover/handover-2026-09-04-a134.md:221
+  handover/handover-2026-09-04-a139.md:250
+  handover/handover-2026-09-04-a89-a95.md:140
+  handover/handover-2026-09-05-b1-probes-toolkit.md:130
+  handover/handover-2026-09-05-encoding.md:438
+  handover/handover-2026-09-05-n42-rest.md:296
+  handover/handover-2026-09-05-n42.md:319
+  handover/handover-2026-09-05-tooling.md:264
+  tools/effmaker/handover-2026-08-05.md:113
+  tools/effmaker/handover-response-matrix.md:328
+  tools/effmaker/run.ps1:36
+  tools/interspec/handover-2026-08-05.md:720
+--- код возврата: 1
+
+==============================================================================
+T200 / ПЛЕЧО 1. Дерево после правки, штатная область (tools/**/*.ps1,*.py,*.cs) против ОБОИХ реестров.
+$ python tools/check_registry_refs.py
+------------------------------------------------------------------------------
+реестры: DONE.md — 329 строк, TODO.md — 506 строк
+известных номеров всего: 833, буквы: ABCDEFMNPRSTVWX
+обойдено файлов: 254, строгих ссылок проверено: 1264
+
+ОТКАЗ: ссылок в никуда — 6
+  tools/effmaker/probes/EffGridRangeProbe.cs:303: T42 -> нет ни в одном реестре | // Цели останова по шуму (`T42`): матрица, посчитанная плоским числом
+  tools/effmaker/probes/EffGridRangeProbe.cs:319: T42 -> нет ни в одном реестре | // писать его в клеймо было бы прямым нарушением правила `T42`:
+  tools/effmaker/probes/EffGridRangeProbe.cs:377: T42 -> нет ни в одном реестре | // при ВЫКЛЮЧЕННОМ обязано НЕ замечать (иначе правило `T42` нарушено
+  tools/effmaker/probes/EffGridRangeProbe.cs:396: T42 -> нет ни в одном реестре | // Края учтены СЕТКОЙ, и в этом весь смысл (`T42`): у пробы с K-краем
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs:144: T42 -> нет ни в одном реестре | // K-краёв веществ пробы (`T42`), и у `ASN16_lu_side.in`
+  tools/effmaker/probes/build_all.ps1:514: C12 -> нет ни в одном реестре | #     завела `.cs` во время сборки — такое было 05.09.2026, `C12`): у плана
+--- код возврата: 1
+
+==============================================================================
+T200 / ПЛЕЧО 2. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: подброшена ссылка на ЗАВЕДОМО НЕСУЩЕСТВУЮЩУЮ строку (в копии, не в дереве). Ожидание: ОТКАЗ кодом 1 с именем файла, строкой и номером.
+$ python tools/check_registry_refs.py --root C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\31b3afe8-e2e2-4084-9d4e-18c65f47af52\scratchpad\ctl_ok --root C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\31b3afe8-e2e2-4084-9d4e-18c65f47af52\scratchpad\ctl_bad
+------------------------------------------------------------------------------
+реестры: DONE.md — 329 строк, TODO.md — 506 строк
+известных номеров всего: 833, буквы: ABCDEFMNPRSTVWX
+обойдено файлов: 2, строгих ссылок проверено: 5
+
+ОТКАЗ: ссылок в никуда — 2
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/ctl_bad/refs_bad.ps1:1: T9999 -> нет ни в одном реестре | # ссылка на ЗАВЕДОМО НЕСУЩЕСТВУЮЩУЮ строку: `T9999`
+  ../../../AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/ctl_bad/refs_bad.ps1:2: A9998 -> нет ни в одном реестре | # и вторая форма: TODO A9998
+--- код возврата: 1
+
+==============================================================================
+T200 / ПЛЕЧО 3. Подброшены только СУЩЕСТВУЮЩИЕ ссылки — `T81` из TODO.md, `T3` из DONE.md, и вторая форма записи «TODO T3». Ожидание: код 0, ложной тревоги нет.
+$ python tools/check_registry_refs.py --root C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\31b3afe8-e2e2-4084-9d4e-18c65f47af52\scratchpad\ctl_ok
+------------------------------------------------------------------------------
+реестры: DONE.md — 329 строк, TODO.md — 506 строк
+известных номеров всего: 833, буквы: ABCDEFMNPRSTVWX
+обойдено файлов: 1, строгих ссылок проверено: 3
+битых строгих ссылок: 0
+--- код возврата: 0
+
+==============================================================================
+T200 / ПЛЕЧО 4. СЧЁТ ПОСЫЛКИ: всё дерево (tools, handover, BecquerelMonitor, database; .ps1 .py .cs .md .cmd .bat .sql).
+$ python tools/check_registry_refs.py --root tools --root handover --root BecquerelMonitor --root database --ext .ps1,.py,.cs,.md,.cmd,.bat,.sql
+------------------------------------------------------------------------------
+реестры: DONE.md — 329 строк, TODO.md — 506 строк
+известных номеров всего: 833, буквы: ABCDEFMNPRSTVWX
+обойдено файлов: 943, строгих ссылок проверено: 5143
+не судим 4 раз: N42 — формат файла ANSI N42 (стандарт спектров), а не строка реестра
+
+ОТКАЗ: ссылок в никуда — 36
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:394: T42 -> нет ни в одном реестре | /// <summary>Совпадают ли сетки побитово — сравнение для клейма (`T42`).</summary>
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:428: T42 -> нет ни в одном реестре | // это не мелочь, а цена рабочего дня (`T42`, 17.08.2026).
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:504: T42 -> нет ни в одном реестре | // `T42`: пишутся, ТОЛЬКО когда включены. Выключенные они
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:526: T42 -> нет ни в одном реестре | // Правило `T42` соблюдено ровно так же: строка появляется только
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1524: T42 -> нет ни в одном реестре | /// в клеймо ИМЕННО выключенным (`nolx=1`) — по правилу `T42`
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1533: T42 -> нет ни в одном реестре | /// правило `T42` называет умолчание, а не «включённость».
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1584: T42 -> нет ни в одном реестре | /// по правилу `T42`, только когда включена, иначе новое поле обесценило
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1592: T42 -> нет ни в одном реестре | /// (правило `T42`), поэтому штатные матрицы клейма не меняют.
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1601: T42 -> нет ни в одном реестре | /// правилу `T42`, пишется только ВКЛЮЧЁННОЕ состояние — тогда все
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1659: T42 -> нет ни в одном реестре | /// ⚠ В клеймо идёт ТОЛЬКО отличное от штатного (правило `T42`): иначе
+  BecquerelMonitor/ResponseMatrixForm.cs:359: T42 -> нет ни в одном реестре | /// веществ пробы (`T42`), и сетка выходит длиннее заказанной — заказ 10
+  handover/handover-2026-08-17-fluorescence.md:105: T42 -> нет ни в одном реестре | правило `T42`), поэтому «было/стало» сравнивается ПРИ ОДНОЙ версии физики:
+  handover/handover-2026-08-17-matrix-speed.md:14: T39 -> нет ни в одном реестре | | [`TODO.md`](../TODO.md) | заведены `V11`, `B18`, `S54`, `T41`, `T42`, `T43`; закрыты `E32`, `E33`; продвинуты `V2`, `B17`, `T35`, `E31`, `T39` |
+  handover/handover-2026-08-17-matrix-speed.md:14: T42 -> нет ни в одном реестре | | [`TODO.md`](../TODO.md) | заведены `V11`, `B18`, `S54`, `T41`, `T42`, `T43`; закрыты `E32`, `E33`; продвинуты `V2`, `B17`, `T35`, `E31`, `T39` |
+  handover/handover-2026-08-17-matrix-speed.md:265: T42 -> нет ни в одном реестре | ⚠ **Зерно в клеймо пишется, только если оно НЕ штатное** — то же правило `T42`,
+  handover/handover-2026-08-17-matrix-speed.md:389: T42 -> нет ни в одном реестре | ## 7. Клеймо матрицы: чему оно должно отвечать (`T42`)
+  handover/handover-2026-08-17.md:184: T39 -> нет ни в одном реестре | * **`T39`** — пустой `matdb.sqlite` в корне: снести может только Amber.
+  handover/handover-2026-08-18-cascade-xray.md:117: T42 -> нет ни в одном реестре | `T42` сюда не относится.
+  handover/handover-2026-08-18-small-rows.md:18: T39 -> нет ни в одном реестре | | [`TODO.md`](../TODO.md) | девять строк вычеркнуты, пять новых заведены, две убраны решением Amber (`T51`, `T39`) |
+  handover/handover-2026-08-18-small-rows.md:18: T51 -> нет ни в одном реестре | | [`TODO.md`](../TODO.md) | девять строк вычеркнуты, пять новых заведены, две убраны решением Amber (`T51`, `T39`) |
+  handover/handover-2026-08-18-small-rows.md:128: T42 -> нет ни в одном реестре | не изменилась бы, и клеймо по правилу `T42` обязано было совпасть — «ПРОВАЛ» был
+  handover/handover-2026-09-02-pair-and-rayleigh.md:278: T42 -> нет ни в одном реестре | ⛔ В клеймо ключи пишутся **только когда включены** (правило `T42`). Иначе
+  handover/handover-2026-09-04-a93-a107.md:24: T42 -> нет ни в одном реестре | вокруг K-краёв веществ пробы (`T42`) —
+  handover/handover-2026-09-05-b3-matrix-stores.md:139: T42 -> нет ни в одном реестре | `grid=` (только если сетка отлична от штатной, `T42`), `bin`, **`hist=` (число историй — ВХОДИТ)**,
+  handover/handover-2026-09-05-f1-t149-t89.md:30: C12 -> нет ни в одном реестре | * **Чего каталог ДЕЙСТВИТЕЛЬНО не получал** (дополнение распорядителя, находка `C12`):
+  handover/handover-2026-09-05-f1-t149-t89.md:39: C12 -> нет ни в одном реестре | * **`runtimes\` из `C12` — не воспроизводится:** свежий `OutputPath` MSBuild
+  handover/handover-2026-09-05-f1-t149-t89.md:41: C12 -> нет ни в одном реестре | сам; `build_all.ps1` донёс все три. У `C12` не хватало `runtimes\` в ЕЁ `$Bin`, и
+  handover/handover-2026-09-05-f1-t149-t89.md:42: C12 -> нет ни в одном реестре | причина этого не установлена (в журнале `C12`: скопировано руками из `Debug_Codex`).
+  handover/handover-2026-09-05-probes.md:164: T42 -> нет ни в одном реестре | (`ResponseMatrix.cs:493-499`). Это не упущение, а правило `T42`: выключенный
+  handover/handover-2026-09-05-probes.md:192: T42 -> нет ни в одном реестре | * при ВЫКЛЮЧЕННОМ — **не меняет** (иначе `T42` нарушено и склад обесценен);
+  tools/effmaker/probes/EffGridRangeProbe.cs:303: T42 -> нет ни в одном реестре | // Цели останова по шуму (`T42`): матрица, посчитанная плоским числом
+  tools/effmaker/probes/EffGridRangeProbe.cs:319: T42 -> нет ни в одном реестре | // писать его в клеймо было бы прямым нарушением правила `T42`:
+  tools/effmaker/probes/EffGridRangeProbe.cs:377: T42 -> нет ни в одном реестре | // при ВЫКЛЮЧЕННОМ обязано НЕ замечать (иначе правило `T42` нарушено
+  tools/effmaker/probes/EffGridRangeProbe.cs:396: T42 -> нет ни в одном реестре | // Края учтены СЕТКОЙ, и в этом весь смысл (`T42`): у пробы с K-краем
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs:144: T42 -> нет ни в одном реестре | // K-краёв веществ пробы (`T42`), и у `ASN16_lu_side.in`
+  tools/effmaker/probes/build_all.ps1:514: C12 -> нет ни в одном реестре | #     завела `.cs` во время сборки — такое было 05.09.2026, `C12`): у плана
+--- код возврата: 1
+
+==============================================================================
+Конец вывода.

@@ -291,6 +291,9 @@
   <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
     <value>Калибровка по FWHM</value>
   </data>
+  <data name="fsaReportStripMenuItem.Text" xml:space="preserve">
+    <value>От&amp;чёт FSA</value>
+  </data>
   <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
     <value>Калибровка &amp;энергии</value>
   </data>

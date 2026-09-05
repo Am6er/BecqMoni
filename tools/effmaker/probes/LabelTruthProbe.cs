@@ -99,8 +99,15 @@ namespace LabelTruthProbe
             //    её на кратность склейки. Промах же линии меряется В КЭВ.
             //    Делить одно на другое нельзя, поэтому кэВ считаются ТЕМ ЖЕ
             //    выражением, что и в приложении, и печатаются отдельно.
+            // ⚠ ДВЕ ПОСЛЕДНИЕ КОЛОНКИ — ПОЛОСА ПОИСКА В КЭВ (`A197`, полоса O1).
+            //   Правилу «у победителя обязана быть ещё одна СВОЯ линия» нужно
+            //   знать, какие линии прибор вообще МОГ увидеть: требовать линию
+            //   2614 кэВ от спектра, кончающегося на 1500, — значит снять
+            //   законную подпись за недостижимую улику. Считается ровно так,
+            //   как её строит `PeakDetector.PeakFinder`: настройки в кэВ ->
+            //   каналы -> обрезка по числу каналов -> обратно в кэВ.
             csv.AppendLine("spectrum,peak_kev,peak_counts,snr,fwhm_ch,fwhm_kev,nuclide,line_kev,"
-                           + "intensity_pct,miss_kev,miss_fwhm,tol_pct");
+                           + "intensity_pct,miss_kev,miss_fwhm,tol_pct,range_min_kev,range_max_kev");
 
             // ⚠ Соперники — материал `S64`, а не `S134`: строка на КАЖДУЮ
             //   видимую линию, попавшую в пик. Окно берётся широкое (2 ПШПВ),
@@ -140,6 +147,10 @@ namespace LabelTruthProbe
                 double tol = ((FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig).Tolerance;
 
                 EnergyCalibration cal = rd.EnergySpectrum.EnergyCalibration;
+                double rangeMin, rangeMax;
+                SearchRangeKev(rd.EnergySpectrum,
+                               (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig,
+                               out rangeMin, out rangeMax);
 
                 foreach (Peak peak in peaks.OrderBy(p => p.Energy))
                 {
@@ -158,7 +169,7 @@ namespace LabelTruthProbe
                         nd == null ? "" : F(nd.Energy, "F3"),
                         nd == null ? "" : F(nd.Intencity, "G6"),
                         F(miss, "F3"), F(missFwhm, "F4"),
-                        F(tol, "G6")));
+                        F(tol, "G6"), F(rangeMin, "F3"), F(rangeMax, "F3")));
 
                     if (rivals != null && fwhmKev > 0.0)
                     {
@@ -308,8 +319,158 @@ namespace LabelTruthProbe
                 Console.WriteLine("сборка без правки — исходы напечатаны, приговор не выносится");
                 return 0;
             }
+            bad += SelfTestConfirm();
+            Console.WriteLine();
             Console.WriteLine(bad == 0 ? "опыт сошёлся полностью" : ("расхождений: " + bad));
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// (`A196`, `A197`) ОПЫТ НАД ПРАВИЛАМИ, КОТОРЫМ НУЖЕН ВЕСЬ СПЕКТР —
+        /// подтверждение слабой линии и приборная подпись суммы 511+511.
+        /// Подставные пики с подставной библиотекой подаются прямо в
+        /// <c>PeakDetector.ConfirmLabels</c> отражением.
+        ///
+        /// ⚠ Опыт держит ОБА конца: на каждый вход, который правило обязано
+        /// отвергнуть, есть близнец, который оно обязано пропустить. Правило,
+        /// отвергающее всё, отличается от полезного только по таким парам.
+        /// Калибровка тождественная (1 кэВ на канал), поэтому ПШПВ в каналах и
+        /// в кэВ совпадают и опыт не спорит с единицами (см. `S134` §1).
+        /// </summary>
+        static int SelfTestConfirm()
+        {
+            MethodInfo mConfirm = typeof(PeakDetector).GetMethod(
+                "ConfirmLabels", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo fDefs = typeof(PeakDetector).GetField(
+                "nuclideDefinitions", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (mConfirm == null || fDefs == null)
+            {
+                Console.WriteLine("⚠ правил по составу спектра в сборке НЕТ — опыт над ними не ставится");
+                return 0;
+            }
+
+            var cases = new List<ConfirmCase>
+            {
+                // --- подтверждение слабой линии (`A197`) ---
+                Confirm("слабая линия, второй своей НЕ видно", 1500,
+                        new[] { Line("Икс", 1001.0, 0.842), Line("Икс", 766.0, 0.317) },
+                        new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(1275.0, 70, 40, null, 0) },
+                        new[] { "(нет)", "(нет)" }),
+                Confirm("слабая линия, вторая своя ВИДНА", 1500,
+                        new[] { Line("Икс", 1001.0, 0.842), Line("Икс", 766.0, 0.317) },
+                        new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(770.0, 60, 15, null, 0) },
+                        new[] { "Икс@1001", "(нет)" }),
+                Confirm("ЯРКАЯ линия, второй своей не видно", 1500,
+                        new[] { Line("Игрек", 911.0, 25.8), Line("Игрек", 969.0, 15.8) },
+                        new[] { P(911.0, 40, 30, "Игрек", 911.0) },
+                        new[] { "Игрек@911" }),
+                Confirm("слабая линия, других своих НЕТ вовсе", 1500,
+                        new[] { Line("Зет", 1001.0, 0.842) },
+                        new[] { P(1001.0, 60, 20, "Зет", 1001.0) },
+                        new[] { "Зет@1001" }),
+                Confirm("слабая линия, вторая своя ВНЕ полосы поиска", 1500,
+                        new[] { Line("Дубль", 1001.0, 0.842), Line("Дубль", 2614.0, 35.8) },
+                        new[] { P(1001.0, 60, 20, "Дубль", 1001.0) },
+                        new[] { "Дубль@1001" }),
+                // --- приборная подпись суммы 511+511 (`A196`) ---
+                Confirm("сумма 511+511: пик 511 есть и он заметнее", 3000,
+                        new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
+                                Line("Нуклид", 766.0, 0.317) },
+                        new[] { P(511.0, 40, 300, "Образ", 511.0), P(1002.0, 90, 16, "Нуклид", 1001.0) },
+                        new[] { "Образ@511", "Образ@1022" }),
+                Confirm("суммы нет: пика 511 в спектре НЕТ", 3000,
+                        new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
+                                Line("Нуклид", 766.0, 0.317) },
+                        new[] { P(1002.0, 90, 16, "Нуклид", 1001.0), P(766.0, 60, 15, null, 0) },
+                        new[] { "Нуклид@1001", "(нет)" }),
+                Confirm("суммы нет: пик 1022 ЗАМЕТНЕЕ пика 511", 3000,
+                        new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
+                                Line("Нуклид", 766.0, 0.317) },
+                        new[] { P(511.0, 40, 10, "Образ", 511.0), P(1002.0, 90, 500, "Нуклид", 1001.0),
+                                P(766.0, 60, 15, null, 0) },
+                        new[] { "Образ@511", "Нуклид@1001", "(нет)" })
+            };
+
+            Console.WriteLine();
+            Console.WriteLine("ОПЫТ НАД ПРАВИЛАМИ ПО СОСТАВУ СПЕКТРА (`A196`, `A197`):");
+            int bad = 0;
+            foreach (ConfirmCase c in cases)
+            {
+                var det = new PeakDetector();
+                fDefs.SetValue(det, c.Library);
+                // ⛔ ПОДПИСЬ ПИКА — ЗАПИСЬ ЭТОЙ ЖЕ БИБЛИОТЕКИ, а не её двойник:
+                //    правило судит по ВЫХОДУ подписи, и двойник с нулевым
+                //    выходом проскакивал бы мимо порога, ничего не измеряя.
+                foreach (Peak p in c.Peaks)
+                {
+                    if (p.Nuclide == null) continue;
+                    NuclideDefinition real = c.Library.FirstOrDefault(
+                        d => d.Name == p.Nuclide.Name && Math.Abs(d.Energy - p.Nuclide.Energy) < 1e-9);
+                    if (real == null)
+                    {
+                        Console.Error.WriteLine("⛔ опыт «{0}»: подписи {1}@{2} нет в подставной библиотеке",
+                                                c.Title, p.Nuclide.Name, p.Nuclide.Energy);
+                        return 1;
+                    }
+                    p.Nuclide = real;
+                }
+                var spectrum = new EnergySpectrum(1.0, 4096);
+                spectrum.EnergyCalibration = new PolynomialEnergyCalibration();
+                var cfg = new FWHMPeakDetectionMethodConfig();
+                cfg.Min_Range = 20.0;
+                cfg.Max_Range = c.MaxRangeKev;
+                mConfirm.Invoke(det, new object[] { c.Peaks, spectrum, cfg, null });
+
+                var got = c.Peaks.Select(p => p.Nuclide == null
+                              ? "(нет)"
+                              : p.Nuclide.Name + "@" + p.Nuclide.Energy.ToString("G6", CultureInfo.InvariantCulture))
+                          .ToArray();
+                bool ok = got.Length == c.Expect.Length;
+                for (int i = 0; ok && i < got.Length; i++) ok = got[i] == c.Expect[i];
+                if (!ok) bad++;
+                Console.WriteLine("  {0,-42} ждали [{1}] получили [{2}] {3}",
+                                  c.Title, string.Join(" ", c.Expect), string.Join(" ", got),
+                                  ok ? "✓" : "⛔ РАСХОЖДЕНИЕ");
+            }
+            return bad;
+        }
+
+        class ConfirmCase
+        {
+            public string Title;
+            public double MaxRangeKev;
+            public List<NuclideDefinition> Library;
+            public List<Peak> Peaks;
+            public string[] Expect;
+        }
+
+        static ConfirmCase Confirm(string title, double maxRangeKev, NuclideDefinition[] lib,
+                                   Peak[] peaks, string[] expect)
+        {
+            return new ConfirmCase
+            {
+                Title = title,
+                MaxRangeKev = maxRangeKev,
+                Library = lib.ToList(),
+                Peaks = peaks.ToList(),
+                Expect = expect
+            };
+        }
+
+        /// <summary>
+        /// Подставной пик. Калибровка опыта тождественная, поэтому канал равен
+        /// энергии, а ПШПВ в каналах — ПШПВ в кэВ.
+        /// </summary>
+        static Peak P(double kev, double fwhm, double snr, string label, double lineKev)
+        {
+            return new Peak
+            {
+                Energy = kev,
+                Channel = (int)Math.Round(kev),
+                FWHM = fwhm,
+                SNR = snr,
+                Nuclide = label == null ? null : Line(label, lineKev, 0.0)
+            };
         }
 
         class TestCase
@@ -356,6 +517,31 @@ namespace LabelTruthProbe
         /// FWHM/2)`). Своего пересчёта «умножить на кэВ-на-канал» здесь нет
         /// нарочно: калибровка нелинейна, и половинки растягиваются по-разному.
         /// </summary>
+        /// <summary>
+        /// Полоса поиска пиков В КЭВ — тем же построением, что у
+        /// <c>PeakDetector.PeakFinder</c>: настройки задают её в кэВ, финдер
+        /// переводит их в каналы и ОБРЕЗАЕТ по числу каналов спектра, поэтому
+        /// у спектра на 1024 канала с калибровкой до 1500 кэВ верх полосы —
+        /// 1500, а не записанные в приборе 3000.
+        ///
+        /// ⚠ Повтор четырёх строк приложения здесь НАРОЧЕН: проба обязана
+        /// считаться и на сборке БЕЗ правки, где этого расчёта ещё нет, — иначе
+        /// плечо «до» пришлось бы мерить другой пробой.
+        /// </summary>
+        static void SearchRangeKev(EnergySpectrum spectrum, FWHMPeakDetectionMethodConfig cfg,
+                                   out double minKev, out double maxKev)
+        {
+            EnergyCalibration cal = spectrum.EnergyCalibration;
+            int n = spectrum.NumberOfChannels;
+            int lo = Convert.ToInt32(cal.EnergyToChannel(cfg.Min_Range, maxChannels: n));
+            int hi = Convert.ToInt32(cal.EnergyToChannel(cfg.Max_Range, maxChannels: n));
+            lo = Math.Max(0, Math.Min(n - 1, lo));
+            hi = Math.Max(0, Math.Min(n - 1, hi));
+            if (hi < lo) { int swap = lo; lo = hi; hi = swap; }
+            minKev = cal.ChannelToEnergy(lo);
+            maxKev = cal.ChannelToEnergy(hi);
+        }
+
         static double FwhmKev(Peak peak, EnergyCalibration cal)
         {
             if (cal == null || !(peak.FWHM > 0.0) || Double.IsNaN(peak.FWHM))

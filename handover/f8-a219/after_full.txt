@@ -1,0 +1,102 @@
+=== как называется причина (A129) ===
+каталог сборки: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f8\
+
+ПЛЕЧО голое
+  сказано: InvalidOperationException: нет калибровки у спектра
+  хвоста нет                         ДА
+  тип и сообщение названы            ДА
+ПЛЕЧО цитата
+  сказано: InvalidOperationException: matdb.sqlite: подъём таблиц вещества — отказ. Файл: C:\probes\matdb.sqlite. TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 457 знаков, причина стоит 1 раз(а)
+  причина названа                    ДА
+  и названа ОДИН раз                 ДА
+ПЛЕЧО без цитаты
+  сказано: InvalidOperationException: matdb.sqlite: подъём таблиц вещества — отказ. Файл: C:\probes\matdb.sqlite. <- TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 460 знаков, причина стоит 1 раз(а)
+  ХВОСТ ОСТАЛСЯ                      ДА
+  причина названа ровно раз          ДА
+  внешнее на месте                   ДА
+  СРЕДНЕЕ звено названо              ДА
+  звеньев ровно два                  ДА
+ПЛЕЧО половина
+  сказано: InvalidOperationException: matdb.sqlite: подъём таблиц вещества — отказ. Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=148 <- TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 543 знаков
+  ПОЛНОЕ сообщение причины на месте  ДА
+  хвост приписан                     ДА
+  СРЕДНЕЕ звено названо              ДА
+  звеньев ровно два                  ДА
+ПЛЕЧО без класса
+  сказано: InvalidOperationException: matdb.sqlite: подъём таблиц вещества — отказ. Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку. <- TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 656 знаков
+  класс причины назван               ДА
+  хвост приписан                     ДА
+  СРЕДНЕЕ звено названо              ДА
+  звеньев ровно два                  ДА
+ПЛЕЧО пустое внутри
+  сказано: InvalidOperationException: соединение с базой уже закрыто <- ObjectDisposedException:
+  класс причины назван               ДА
+ПЛЕЧО без своих слов
+  сказано: TargetInvocationException: Адресат вызова создал исключение. <- TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 418 знаков, звеньев названо 3
+  внешнее названо                    ДА
+  СРЕДНЕЕ звено названо              ДА
+  причина названа                    ДА
+  звеньев ровно три                  ДА
+  сторож обхода не сработал          ДА
+ПЛЕЧО петля
+  сказано: InvalidOperationException: второе звено петли <- InvalidOperationException: первое звено петли <- …
+  оба звена названы                  ДА
+  сторож СКАЗАЛ О СЕБЕ               ДА
+ПЛЕЧО предел
+  цепочка 21 звеньев, названо 16, предел пробы 16
+  сказано: InvalidOperationException: звено 20 <- InvalidOperationException: звено 19 <- InvalidOperationException: звено 18 <- InvalidOperationException: звено 17 <- InvalidOperationException: звено 16 <- InvalidOperationException: звено 15 <- InvalidOperationException: звено 14 <- InvalidOperationException: звено 13 <- InvalidOperationException: звено 12 <- InvalidOperationException: звено 11 <- InvalidOperationException: звено 10 <- InvalidOperationException: звено 9 <- InvalidOperationException: звено 8 <- InvalidOperationException: звено 7 <- InvalidOperationException: звено 6 <- InvalidOperationException: звено 5 <- …
+  сторож СКАЗАЛ О СЕБЕ               ДА
+  названо ровно предел звеньев       ДА
+  самое внешнее названо первым       ДА
+ПЛЕЧО ветвление
+  сказано: AggregateException: три беды разом <- (1/3) InvalidOperationException: ветвь ПЕРВАЯ: нет калибровки <- (2/3) FileNotFoundException: ветвь ВТОРАЯ: нет файла спектра <- FileLoadException: под второй ветвью: сборка не загрузилась <- (3/3) ArgumentException: ветвь ТРЕТЬЯ: пустой спектр
+    длина 282 знаков, приписок 4
+  первая ветвь названа               ДА
+  ВТОРАЯ ветвь названа               ДА
+  ТРЕТЬЯ ветвь названа               ДА
+  звено ПОД второй ветвью названо    ДА
+  ветви помечены (1/3)…(3/3)         ДА
+  порядок ветвей сохранён            ДА
+  приписок ровно четыре              ДА
+  сторож обхода не сработал          ДА
+ПЛЕЧО одна ветвь
+  сказано: AggregateException: одна беда <- TypeInitializationException: Инициализатор типа "Microsoft.Data.Sqlite.SqliteConnection" выдал исключение. <- FileLoadException: Не удалось загрузить файл или сборку "SQLitePCLRaw.core, Version=2.0.6.1341, Culture=neutral, PublicKeyToken=1488e028ca7ab535" или один из зависимых от них компонентов. Определение манифеста не соответствует ссылке на сборку.
+    длина 387 знаков, ожидалось 387
+  текст БАЙТ В БАЙТ прежний          ДА
+  пометки ветви нет                  ДА
+ПЛЕЧО вложенное ветвление
+  сказано: AggregateException: внешний узел <- (1/2) AggregateException: вложенный узел <- (1/2) InvalidOperationException: лист А <- (2/2) InvalidOperationException: лист Б <- (2/2) InvalidOperationException: лист В
+  все три листа названы              ДА
+  вложенный узел назван              ДА
+  сторож обхода не сработал          ДА
+ПЛЕЧО петля через ветвь
+  вернулся за 0 мс
+  сказано: AggregateException: узел с петлёй <- (1/3) InvalidOperationException: ветвь-сосед <- InvalidOperationException: ветвь-к-предку <- … <- (2/3) = выше <- (3/3) InvalidOperationException: ветвь чистая
+  все три ветви названы по разу      ДА
+  сторож СКАЗАЛ О СЕБЕ               ДА
+  чистая ветвь названа ПОСЛЕ сторожа ДА
+  знак сторожа ОДИН, не «<- … <- …»  ДА
+  пометки (1/3), (2/3), (3/3) по разу ДА
+  у названной ветви «(2/3) = выше»   ДА
+  текст БАЙТ В БАЙТ эталонный        ДА
+ПЛЕЧО предел по дереву
+  дерево 25 звеньев, приписок 16, предел пробы 16
+  сказано: AggregateException: широкое дерево <- (1/3) InvalidOperationException: ветвь 0 звено 7 <- InvalidOperationException: ветвь 0 звено 6 <- InvalidOperationException: ветвь 0 звено 5 <- InvalidOperationException: ветвь 0 звено 4 <- InvalidOperationException: ветвь 0 звено 3 <- InvalidOperationException: ветвь 0 звено 2 <- InvalidOperationException: ветвь 0 звено 1 <- InvalidOperationException: ветвь 0 звено 0 <- (2/3) InvalidOperationException: ветвь 1 звено 7 <- InvalidOperationException: ветвь 1 звено 6 <- InvalidOperationException: ветвь 1 звено 5 <- InvalidOperationException: ветвь 1 звено 4 <- InvalidOperationException: ветвь 1 звено 3 <- InvalidOperationException: ветвь 1 звено 2 <- InvalidOperationException: ветвь 1 звено 1 <- …
+  сторож СКАЗАЛ О СЕБЕ               ДА
+  названо ровно предел звеньев       ДА
+  первая ветвь названа целиком       ДА
+  третья ветвь за пределом не названа ДА
+ПЛЕЧО заголовок
+  без заголовка: BecqMoni: в файле N42 не прочитано время начала набора
+  с заголовком : BecqMoni: Ввоз N42: в файле N42 не прочитано время начала набора
+  две строки   : BecqMoni: первая вторая
+  без заголовка — «BecqMoni: текст»  ДА
+  с заголовком — прежняя строка      ДА
+  две строки сложены в одну          ДА
+
+ВСЕ СОШЛИСЬ

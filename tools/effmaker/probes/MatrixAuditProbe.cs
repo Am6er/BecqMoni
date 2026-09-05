@@ -178,9 +178,11 @@ namespace MatrixAuditProbe
             {
                 string name = Path.GetFileName(path);
                 ResponseMatrix m;
+                MatrixRefusal refusal;
+                int fileFormat;
                 try
                 {
-                    m = ResponseMatrix.Load(path);
+                    m = ResponseMatrix.Load(path, out refusal, out fileFormat);
                 }
                 catch (Exception ex)
                 {
@@ -190,8 +192,13 @@ namespace MatrixAuditProbe
 
                 if (m == null)
                 {
-                    // ⛔ Load возвращает null молча, когда формат чужой (`A50`).
-                    findings.Add(name + ": ОТВЕРГНУТА загрузчиком (чужой формат или обрубок)");
+                    // ⛔ ОТКАЗ НАЗЫВАЕТ СЕБЯ (`A50`), и приёмка обязана это
+                    // ПЕЧАТАТЬ. До 05.09.2026 здесь стоял однопараметрический
+                    // `Load(path)` и строка «чужой формат или обрубок»: приёмка
+                    // склада из 10 файлов показывала шесть одинаковых «или», а
+                    // могла — «формат 6, читаем 7». Лечится это по-разному
+                    // (пересчитать против разобраться), и «или» не говорит, что.
+                    findings.Add(name + ": ОТВЕРГНУТА загрузчиком — " + Refused(refusal, fileFormat));
                     continue;
                 }
 
@@ -272,6 +279,20 @@ namespace MatrixAuditProbe
                 if (nodes == 0)
                 {
                     findings.Add(name + ": НИ ОДНОГО УЗЛА");
+                }
+
+                // ОТПЕЧАТОК ТЕЛА (`A121`, решение Amber 05.09.2026). Находка —
+                // только когда записанный в хвосте НЕ сходится с пересчитанным
+                // по байтам: тело правлено после записи. Файл без хвоста
+                // (до 05.09.2026) — не находка, а состояние «нет» в столбце.
+                string fingerprint = m.BodyFingerprint ?? "";
+                string fingerprintState = m.StoredBodyFingerprint == null ? "нет"
+                    : m.BodyFingerprintMatches ? "сходится" : "НЕ СХОДИТСЯ";
+                if (m.StoredBodyFingerprint != null && !m.BodyFingerprintMatches)
+                {
+                    findings.Add(name + ": ТЕЛО НЕ ОТВЕЧАЕТ ОТПЕЧАТКУ — правлено после записи (в файле "
+                                 + m.StoredBodyFingerprint.Substring(0, 16) + "…, по байтам "
+                                 + fingerprint.Substring(0, Math.Min(16, fingerprint.Length)) + "…)");
                 }
 
                 if (worst > noiseLimit)
@@ -386,7 +407,9 @@ namespace MatrixAuditProbe
                     cone ? "1" : "0",
                     m.CreatedUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                     m.BuildSeconds.ToString("F1", CultureInfo.InvariantCulture),
-                    (m.Stamp ?? "")
+                    (m.Stamp ?? ""),
+                    fingerprint,
+                    fingerprintState
                 }));
             }
 
@@ -407,7 +430,7 @@ namespace MatrixAuditProbe
             {
                 using (var w = new StreamWriter(csv, false, new UTF8Encoding(true)))
                 {
-                    w.WriteLine("file,phys,histories,nodes,noise_median,noise_worst,nodes_empty,cone,created,seconds,stamp");
+                    w.WriteLine("file,phys,histories,nodes,noise_median,noise_worst,nodes_empty,cone,created,seconds,stamp,body_sha256,fingerprint");
                     foreach (string l in lines)
                     {
                         w.WriteLine(l);
@@ -509,6 +532,31 @@ namespace MatrixAuditProbe
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Причина отказа загрузчика словами (`A50`). Номер формата имеет смысл
+        /// только у <see cref="MatrixRefusal.OldFormat"/> — там он и печатается.
+        /// </summary>
+        static string Refused(MatrixRefusal refusal, int fileFormat)
+        {
+            switch (refusal)
+            {
+                case MatrixRefusal.OldFormat:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         "прежний формат {0}, эта сборка читает {1} — пересчитать",
+                                         fileFormat, ResponseMatrix.FormatVersion);
+                case MatrixRefusal.NotOurs:
+                    return "не наш файл (нет метки BQRM)";
+                case MatrixRefusal.Unreadable:
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         "формат {0} наш, а чтение оборвалось — обрубок",
+                                         ResponseMatrix.FormatVersion);
+                case MatrixRefusal.NoFile:
+                    return "файла нет";
+                default:
+                    return refusal.ToString();
+            }
         }
 
         /// <summary>Версия физики из клейма — она в нём первой парой `phys=…`.</summary>

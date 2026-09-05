@@ -59,11 +59,19 @@ static class MatrixDiffProbe
             return 2;
         }
 
-        ResponseMatrix a = ResponseMatrix.Load(aPath);
-        ResponseMatrix b = ResponseMatrix.Load(bPath);
+        // Отказ чтения НАЗЫВАЕТ СЕБЯ (`A50`): «не прочиталась» без причины
+        // заставляло угадывать между прежним форматом и обрубком.
+        MatrixRefusal refusalA, refusalB;
+        int formatA, formatB;
+        ResponseMatrix a = ResponseMatrix.Load(aPath, out refusalA, out formatA);
+        ResponseMatrix b = ResponseMatrix.Load(bPath, out refusalB, out formatB);
         if (a == null || b == null)
         {
-            Console.Error.WriteLine("матрица не прочиталась");
+            Console.Error.WriteLine(string.Format(
+                "матрица не прочиталась: A {0}{1}, B {2}{3} (читаем формат {4})",
+                refusalA, refusalA == MatrixRefusal.OldFormat ? " формат " + formatA : "",
+                refusalB, refusalB == MatrixRefusal.OldFormat ? " формат " + formatB : "",
+                ResponseMatrix.FormatVersion));
             return 2;
         }
 
@@ -161,6 +169,27 @@ static class MatrixDiffProbe
             Console.WriteLine("     A: {0}", Describe(a.Options));
             Console.WriteLine("     B: {0}", Describe(b.Options));
         }
+
+        // ⛔ ОТПЕЧАТОК ТЕЛА — ВТОРОЕ УТВЕРЖДЕНИЕ, НЕЗАВИСИМОЕ ОТ КЛЕЙМА (`A121`,
+        // решение Amber 05.09.2026). Одинаковое клеймо не обещает одинаковых
+        // чисел (`A104`), а численная сверка ниже говорит «насколько», но не
+        // «побайтно ли». Отпечаток пересчитан `Load` по байтам файла; рядом —
+        // записанный в хвосте, и их расхождение значит, что тело правлено
+        // после записи. Файл до 05.09.2026 хвоста не несёт — «нет», не отказ.
+        Console.WriteLine("  отпечаток тела (SHA-256 сетки и строк):");
+        Console.WriteLine("     A: {0}", Fingerprint(a));
+        Console.WriteLine("     B: {0}", Fingerprint(b));
+        bool bodiesKnown = a.BodyFingerprint != null && b.BodyFingerprint != null;
+        bool bodiesSame = bodiesKnown && a.BodyFingerprint == b.BodyFingerprint;
+        Console.WriteLine("  {0}", !bodiesKnown ? "тела не сверены: отпечаток не снялся"
+                                  : bodiesSame ? "ТЕЛА ТОЖДЕСТВЕННЫ (побайтно, по отпечатку)"
+                                               : "ТЕЛА РАЗЛИЧНЫ (по отпечатку)");
+        bool corrupt = (a.StoredBodyFingerprint != null && !a.BodyFingerprintMatches)
+                       || (b.StoredBodyFingerprint != null && !b.BodyFingerprintMatches);
+        if (corrupt)
+        {
+            Console.WriteLine("  ⛔ ОТПЕЧАТОК НЕ СХОДИТСЯ С ЗАПИСАННЫМ: тело файла правлено после записи");
+        }
         Console.WriteLine();
 
         int n = live.Count;
@@ -253,7 +282,30 @@ static class MatrixDiffProbe
         Console.WriteLine("   сумма     : {0,7:F3} ± {1:F3}{2}", ms, es, Verdict(ms, es));
         Console.WriteLine();
         Console.WriteLine("⚠ сравнивать ЭТИ числа надо с такими же для двух зёрен одного кода");
-        return 0;
+
+        // Код 1 — ТОЛЬКО за тело, не отвечающее своему же хвосту: это порча
+        // файла, а не расхождение прогонов. Разные тела у двух матриц — штатный
+        // предмет этой пробы, и кодом их не судят.
+        return corrupt ? 1 : 0;
+    }
+
+    /// <summary>Отпечаток тела словами: пересчитанный, и сходится ли с записанным.</summary>
+    static string Fingerprint(ResponseMatrix m)
+    {
+        if (m.BodyFingerprint == null)
+        {
+            return "(не снялся)";
+        }
+
+        string head = m.BodyFingerprint.Substring(0, 16) + "…";
+        if (m.StoredBodyFingerprint == null)
+        {
+            return head + "  в файле не записан (файл до 05.09.2026)";
+        }
+
+        return head + (m.BodyFingerprintMatches
+            ? "  сходится с записанным"
+            : "  НЕ СХОДИТСЯ с записанным " + m.StoredBodyFingerprint.Substring(0, 16) + "…");
     }
 
     static string Verdict(double mean, double error)

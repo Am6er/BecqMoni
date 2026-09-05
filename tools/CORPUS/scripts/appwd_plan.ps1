@@ -91,7 +91,9 @@
 #      отказ на них означал бы сторожа, который всегда отказывает.
 #
 # Пользуются этим файлом: `mk_appwd.ps1` (собирает), `check_appwd.ps1` (сторож
-# отдельной командой), `run_appwd.ps1` (сторож + запуск пробы — ЧИТАТЕЛЬ отказа).
+# отдельной командой), `run_appwd.ps1` (сторож + запуск пробы — ЧИТАТЕЛЬ отказа),
+# `tools\effmaker\probes\build_all.ps1` (перебор исходников проб, план с ключом
+# `-ProbeCatalog` и те же сверки — для каталога проб, а не оснастки корпуса).
 
 $script:AppWdFlatMasks = @('BecquerelMonitor.exe', 'BecquerelMonitor.exe.config',
                            'BecquerelMonitor.pdb', '*.dll', '*.sqlite')
@@ -120,6 +122,24 @@ $script:AppWdStampName   = '.appwd.json'
 # в обе стороны: состав библиотеки задаёт и поиск пиков, и разбор FSA.
 $script:AppWdNuclideMin = 100
 
+# ⛔ ИСХОДНИКИ ПРОБ — ОДИН ПЕРЕБОР НА ДВОИХ (`T89`, остаток `T83`; 05.09.2026).
+#    Тот же набор `.cs` нужен `build_all.ps1` (чем компилировать) и плану (чем
+#    отсеять exe без исходника и чем судить о свежести сборки, `Test-AppWdBuild`).
+#    До 05.09.2026 перебор стоял в ОБОИХ файлах, и расхождение ловилось только
+#    сверкой множеств — то есть ПОСЛЕ того, как один из двух перестанет видеть
+#    пробу. Теперь перебор один и живёт здесь; сборщик зовёт его ДО компиляции
+#    (план тогда ещё не строится — ему нужны собранные пробы), план — при
+#    построении. Сверка множеств у сборщика осталась, но ловит она теперь
+#    другое: пробу, ПОЯВИВШУЮСЯ в дереве между компиляцией и планом (соседняя
+#    полоса завела `.cs` во время сборки), и возврат второго перебора.
+#    Ключи `-File -Force` — часть правила: без `-Force` скрытый `.cs` попадал бы
+#    в план и не попадал в сборку.
+function Get-AppWdProbeSources {
+    param([Parameter(Mandatory)][string]$Repo)
+    @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\*.cs') -File -Force -ErrorAction SilentlyContinue) +
+    @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\probes\*.cs') -File -Force -ErrorAction SilentlyContinue)
+}
+
 function Get-AppWdPlan {
     param(
         [Parameter(Mandatory)][string]$Repo,
@@ -137,7 +157,16 @@ function Get-AppWdPlan {
         # ⛔ Без этого ключа плечо со своим складом можно было прогнать
         # только `-Force`, а он объявляет числа негодными для журнала —
         # то есть плечо было неизмеримо в принципе.
-        [string]$Store = ''
+        [string]$Store = '',
+        # `T149`: план для КАТАЛОГА ПРОБ (`build_all.ps1`), а не для оснастки
+        # корпуса. Отличие одно — поставочные `config\device\*.xml` и
+        # `config\ROI\*.xml` кладутся ТОЖЕ (шаг 4). Оснастке корпуса их класть
+        # НЕЛЬЗЯ: у неё `config\device` строится из приборов КОРПУСА целиком, а
+        # поставочный `AtomSpectraVCP.xml` несёт ТОТ ЖЕ GUID, что корпусный
+        # `1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml` (сверено 05.09.2026)
+        # — два GUID = модальное окно = зависание безоконного прогона (`B6`).
+        # Поэтому ключ, а не общее правило.
+        [switch]$ProbeCatalog
     )
 
     $corpus     = Join-Path $Repo 'tools\CORPUS\corpus'
@@ -192,8 +221,9 @@ function Get-AppWdPlan {
     # Ровно этот набор собирает `build_all.ps1`, и здесь он нужен дважды —
     # отсеять из каталога exe БЕЗ ИСХОДНИКА и назвать самый свежий `.cs`
     # (`Test-AppWdBuild`). Поэтому он считается ОДИН раз и живёт в плане.
-    $probeSrc = @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\*.cs') -File -Force -ErrorAction SilentlyContinue) +
-                @(Get-ChildItem (Join-Path $Repo 'tools\effmaker\probes\*.cs') -File -Force -ErrorAction SilentlyContinue)
+    # ⛔ Сам перебор — в `Get-AppWdProbeSources`, и оттуда же его берёт
+    #    сборщик проб (`T89`): двух переборов одного набора не бывает.
+    $probeSrc = @(Get-AppWdProbeSources -Repo $Repo)
     $srcNames = @{}
     foreach ($f in $probeSrc) { $srcNames[$f.BaseName.ToLowerInvariant()] = $true }
 
@@ -227,6 +257,29 @@ function Get-AppWdPlan {
             Dst = (Join-Path $Wd   "config\$n")
             Why = 'поставочный конфиг'
         })
+    }
+    # 4а. ТОЛЬКО каталогу проб (`T149`, 05.09.2026): поставочные конфигурации
+    #     приборов и ROI. Без каталога `config\device` `DeviceConfigManager`
+    #     в безоконном прогоне бросает `InvalidOperationException` (проба
+    #     падает необработанным исключением, код −532462766), без `config\ROI`
+    #     `ROIConfigManager` пишет отказ и грузит НОЛЬ конфигураций — измерено
+    #     05.09.2026 на свежем каталоге: `FsaStampProbe` упала, `RoiLoadProbe`
+    #     и `RoiSupplyProbe` вернули 2 «нет каталога». Каталоги нарочно
+    #     заводятся С СОДЕРЖИМЫМ, а не пустыми: пустой `config\ROI` — та самая
+    #     заготовка, из-за которой завели `S100`. Источник — `BecquerelMonitor\config\`,
+    #     тот же, что у шага 4 (в `$Bin\config\device` csproj кладёт ОДИН прибор
+    #     из девяти). Дублей GUID среди девяти поставочных приборов нет
+    #     (сверено 05.09.2026).
+    if ($ProbeCatalog) {
+        foreach ($sub in @('device', 'ROI')) {
+            Get-ChildItem (Join-Path $Repo "BecquerelMonitor\config\$sub\*.xml") -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                $pairs.Add([pscustomobject]@{
+                    Src = $_.FullName
+                    Dst = (Join-Path (Join-Path $Wd "config\$sub") $_.Name)
+                    Why = "поставочный конфиг\$sub"
+                })
+            }
+        }
     }
 
     # 5. Конфигурации приборов корпуса и матрицы отклика. `ResponseMatrixStore`
@@ -272,10 +325,11 @@ function New-AppWdPlanOrDie {
         [Parameter(Mandatory)][string]$Bin,
         [Parameter(Mandatory)][string]$Wd,
         [string]$ProbeBuild = '',
-        [string]$Store = ''
+        [string]$Store = '',
+        [switch]$ProbeCatalog
     )
     try {
-        return Get-AppWdPlan -Repo $Repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
+        return Get-AppWdPlan -Repo $Repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store -ProbeCatalog:$ProbeCatalog
     } catch {
         Write-Host ""
         Write-Host "⛔⛔ ОТКАЗ: ПЛАН ОСНАСТКИ НЕ СТРОИТСЯ — НИЧЕГО НЕ ТРОНУТО" -ForegroundColor Red

@@ -352,6 +352,30 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`A145`) Сеанс полноспектрального разбора активного спектра этого
+        /// документа: результат, отпечаток, кэш, фоновый счёт. Один на документ;
+        /// график и окно отчёта — его подписчики, а не владельцы.
+        /// </summary>
+        public FullSpectrumAnalysis.FsaAnalysisSession FsaSession
+        {
+            get
+            {
+                return this.fsaSession;
+            }
+        }
+
+        /// <summary>
+        /// Документ закрывается — идущий счёт по возвращении обязан промолчать
+        /// (поколение), а его результат никому больше не нужен.
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            this.fsaSession.Completed -= this.FsaSessionCompleted;
+            this.fsaSession.Reset();
+            base.OnFormClosed(e);
+        }
+
         // Token: 0x0600031F RID: 799 RVA: 0x0000F8A8 File Offset: 0x0000DAA8
         public DocEnergySpectrum()
         {
@@ -360,6 +384,11 @@ namespace BecquerelMonitor
             this.view.Dock = DockStyle.Fill;
             this.view.Margin = new Padding(0);
             this.view.Name = "energySpectrumViewRuntime";
+            // (`A145`, этап 2) Сеанс разбора принадлежит ДОКУМЕНТУ, а вид на
+            // него только подписан: окно отчёта (этап 3) возьмёт тот же сеанс
+            // у документа, и второго расчёта не будет (критерий 4).
+            this.view.FsaSession = this.fsaSession;
+            this.fsaSession.Completed += this.FsaSessionCompleted;
             this.toolTip1.SetToolTip(this.view, this.toolTip1.GetToolTip(this.energySpectrumView1));
             this.energySpectrumView1.Controls.Add(this.view);
             this.resultDataFile = new ResultDataFile();
@@ -815,6 +844,13 @@ namespace BecquerelMonitor
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
+            if (backgroundMode == BackgroundMode.ShowFSA)
+            {
+                // Циклический вход: отчёт показывается, но фокус остаётся у
+                // графика — человек листает режимы кнопкой и ждёт следующий
+                // вид, а не переезд клавиатуры в другое окно.
+                this.OnFsaModeEntered(false);
+            }
         }
 
         /// <summary>
@@ -887,7 +923,7 @@ namespace BecquerelMonitor
 
         // Полноспектральное разложение: спектр целиком раскладывается на образы
         // нуклидов и цепочек, поверх графика рисуется послойный стек. Счёт идёт
-        // в фоне (см. FsaOverlay), поэтому нажатие не подвешивает окно.
+        // в фоне (см. FsaAnalysisSession), поэтому нажатие не подвешивает окно.
         void ShowFsaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!this.EnsureFsaInputs())
@@ -902,6 +938,79 @@ namespace BecquerelMonitor
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
+            // Явная команда документа: отчёт показывается И активируется.
+            this.OnFsaModeEntered(true);
+        }
+
+        /// <summary>
+        /// (`A145`, этап 3) Документ вошёл в режим полноспектрального
+        /// разложения — главной форме пора показать окно отчёта. Документ до
+        /// формы не дотягивается (ссылки на <c>MainForm</c> у него нет), так
+        /// что говорит событием — как и обо всём остальном.
+        /// <see cref="FsaModeEnteredEventArgs.Explicit"/>: true — команда
+        /// меню (отчёт активировать), false — циклическая кнопка (показать,
+        /// фокус графику не отдавать).
+        /// </summary>
+        public event EventHandler<FsaModeEnteredEventArgs> FsaModeEntered;
+
+        void OnFsaModeEntered(bool explicitCommand)
+        {
+            EventHandler<FsaModeEnteredEventArgs> handler = this.FsaModeEntered;
+            if (handler != null)
+            {
+                handler(this, new FsaModeEnteredEventArgs(explicitCommand));
+            }
+        }
+
+        /// <summary>
+        /// Группировка строк отчёта и лент графика: родители/дочерние
+        /// (`A145`, «Семантика группировки»). ОДНО значение на документ —
+        /// окно отчёта пишет его сюда, график читает отсюда; отдельно
+        /// хранить у каждого нельзя, иначе цвет, имя или доля разошлись бы.
+        /// Настройка представления: в файл измерения, конфигурацию прибора и
+        /// отпечаток расчёта не входит.
+        /// </summary>
+        public FullSpectrumAnalysis.FsaGrouping FsaGrouping
+        {
+            get
+            {
+                return this.view.FsaGrouping;
+            }
+
+            set
+            {
+                this.view.FsaGrouping = value;
+            }
+        }
+
+        /// <summary>
+        /// (`A50`, `A145` этап 3) Отвергнутая матрица называет причину ЗДЕСЬ —
+        /// у владельца сеанса, вне отрисовки и независимо от того, в каком
+        /// режиме график и открыт ли отчёт. Событие приходит из фонового
+        /// потока; строка приходит один раз на файл — сеанс держит ключ
+        /// сказанного.
+        /// </summary>
+        void FsaSessionCompleted(object sender, EventArgs e)
+        {
+            try
+            {
+                if (this.IsHandleCreated && !this.IsDisposed)
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        string notice = this.fsaSession.TakeResponseMatrixNotice();
+                        if (!string.IsNullOrEmpty(notice))
+                        {
+                            AppUi.Report(notice, Properties.Resources.ResponseMatrixTitle,
+                                         MessageBoxIcon.Exclamation);
+                        }
+                    });
+                }
+            }
+            catch (Exception)
+            {
+                // окно успело закрыться — говорить уже некому
+            }
         }
 
         /// <summary>
@@ -1813,6 +1922,9 @@ namespace BecquerelMonitor
         // Token: 0x04000150 RID: 336
         EnergySpectrumView view;
 
+        readonly FullSpectrumAnalysis.FsaAnalysisSession fsaSession =
+            new FullSpectrumAnalysis.FsaAnalysisSession();
+
         // Token: 0x04000151 RID: 337
         bool updateMeasurementResult;
 
@@ -1838,5 +1950,17 @@ namespace BecquerelMonitor
         // то, что до сих пор получалось само. Дальше их выборы расходятся —
         // каждый живёт своим.
         NuclideSet selectedNuclideSet = NuclideDefinitionManager.GetInstance().ActiveSet;
+    }
+
+    /// <summary>Довод события <see cref="DocEnergySpectrum.FsaModeEntered"/>.</summary>
+    public sealed class FsaModeEnteredEventArgs : EventArgs
+    {
+        public FsaModeEnteredEventArgs(bool explicitCommand)
+        {
+            this.Explicit = explicitCommand;
+        }
+
+        /// <summary>true — явная команда меню документа; false — циклическая кнопка.</summary>
+        public bool Explicit { get; private set; }
     }
 }

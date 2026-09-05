@@ -71,6 +71,7 @@ namespace BecquerelMonitor
             this.pulseViewPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.countsRateStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FWHMCalStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fsaReportStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.measurementResultsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuItem7 = new System.Windows.Forms.ToolStripMenuItem();
@@ -426,6 +427,7 @@ namespace BecquerelMonitor
             this.pulseViewPToolStripMenuItem,
             this.countsRateStripMenuItem,
             this.FWHMCalStripMenuItem,
+            this.fsaReportStripMenuItem,
             this.measurementResultsRToolStripMenuItem,
             this.toolStripSeparator8,
             this.toolStripMenuItem7,
@@ -481,6 +483,12 @@ namespace BecquerelMonitor
             this.FWHMCalStripMenuItem.Name = "FWHMCalStripMenuItem";
             resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
             this.FWHMCalStripMenuItem.Click += new System.EventHandler(this.FWHMCalStripMenuItem_Click);
+            //
+            // fsaReportStripMenuItem
+            //
+            this.fsaReportStripMenuItem.Name = "fsaReportStripMenuItem";
+            resources.ApplyResources(this.fsaReportStripMenuItem, "fsaReportStripMenuItem");
+            this.fsaReportStripMenuItem.Click += new System.EventHandler(this.fsaReportStripMenuItem_Click);
             // 
             // measurementResultsRToolStripMenuItem
             // 
@@ -928,6 +936,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem countsRateStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem FWHMCalStripMenuItem;
+
+        global::System.Windows.Forms.ToolStripMenuItem fsaReportStripMenuItem;
 
         // Token: 0x040005C1 RID: 1473
         global::System.Windows.Forms.ToolStripMenuItem cSVFileToolStripMenuItem;

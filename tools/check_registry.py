@@ -7,7 +7,7 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 закрытие N8, обещавшее правку файла, которой в дереве не было ни в одном
 коммите (S32).
 
-Проверок три.
+Проверок семь (нумерация ниже; 6 и 7 заведены 05.09.2026).
 
 **1. Столкновения номеров.** Номер обязан быть уникален внутри файла. Между
 `TODO.md` и `DONE.md` переиспользование сегодня есть и оставлено сознательно
@@ -74,9 +74,45 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 лежат в репозитории и сверяются строго; память — вне его, и проверяется, только
 если найдена, а её отсутствие печатается словами.
 
+**6. Форма графы состояния.** Заведена 05.09.2026 по `T100`. Графа бывает
+нечитаемой машинно: слово «открыто» стоит в ней И вычеркнутым, И нет — у
+`S102` и `T92` было «открыто ~~открыто~~ **СДЕЛАНО …**», у `T88` — «открыто,
+**РЕШЕНИЕ Amber … ЕСТЬ** ~~открыто~~ **ИСПОЛНЕНО …**»: правка дописывала итог,
+не вычёркивая прежнее слово. Для человека мелочь, для разбора — нет: сверка
+«сколько строк открыто» считает такую строку открытой и закрытой сразу, а
+триаж вычеркнутых её либо пропустит, либо возьмёт дважды. Правило простое и
+третьего не даёт: слово состояния либо вычеркнуто целиком, либо не вычеркнуто
+вовсе. Ловятся два вида — «и так и эдак» и слово, РАЗРЕЗАННОЕ маркерами
+вычёркивания (`~~откры~~то`), которое не читается ни так, ни эдак.
+
+⛔ Сторож, у которого нет доказанного ОТКАЗА, неотличим от ненаписанного: код
+0, находок 0 (`T69`). Поэтому положительный контроль встроен и зовётся
+`python tools/check_registry.py --selftest`: во ВРЕМЕННОЙ копии `TODO.md`
+подсаживаются ШЕСТЬ порч — четыре графы (обе исторические формы `T100`,
+разрезанное слово и «закрыто» обоими способами), задвоенный номер и одиночный
+CR с лишней `|` в описании, — и контроль требует, чтобы находок по графе стало
+ровно «чистые + четыре» и ровно в подставленных строках, задвоенный номер был
+назван проверкой 1, а от CR и `|` не прибавилось ни строк, ни находок.
+Оригинал `TODO.md` при этом не открывается на запись вовсе.
+
+⛔ Чтение реестра — ТОЛЬКО через `read_lines`: файл берётся нетронутым и режется
+по переводу строки LF руками. Построчное чтение Python режет строку и по одиночному CR, а он
+в описаниях реестра встречался: хвост строки терялся молча, номера строк после
+него уезжали от `grep -n`.
+
+**7. Заголовки `DONE.md` против их тел.** Заведена 05.09.2026 по `T102`.
+Человек ищет по архиву `grep`-ом и читает заголовок ячейки; если заголовок
+утверждает незнание («причина неизвестна», «не воспроизводится»), а тело той же
+ячейки его снимает (блок ✅, «СНЯТА», «НАХОДКИ НЕТ»), поиск выдаёт
+противоположное действительности — на `S82` так и споткнулся заход 27.08.2026.
+Разбор живёт в `tools/check_done_headers.py` (свои `--scan` и `--selftest`),
+здесь его находки считаются в итог. ⛔ `DONE.md` правит ТОЛЬКО Amber: проверка
+называет строки, а замены текстом собирает тот, кто её позвал.
+
 Выход 1 — есть столкновение номеров внутри файла, имя из кода, которого нет в
-дереве, находка храповика двух копий `config/`, либо расхождение объявлений
-действующей базы. Остальное печатается к глазам.
+дереве, находка храповика двух копий `config/`, расхождение объявлений
+действующей базы, нечитаемая графа состояния, либо заголовок `DONE.md`,
+противоречащий своему телу. Остальное печатается к глазам.
 """
 import argparse
 import collections
@@ -85,8 +121,10 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,2}\d{1,3})\b(.*)$")
 
@@ -144,14 +182,68 @@ OUTSIDE_ON_PURPOSE = {
 }
 
 
+def read_lines(path):
+    u"""Строки файла, резанные ТОЛЬКО по `\\n`; номер строки = номер у `grep -n`.
+
+    ⛔ Одиночный CR внутри строки реестра — ЗАКОННЫЙ знак (в описаниях он
+    встречался), а построчное чтение Python в любом режиме, кроме
+    `newline=""` + своего разреза, режет по нему строку пополам: хвост
+    перестаёт начинаться с `|`, теряется из разбора МОЛЧА, а номера строк
+    после него уезжают от тех, что показывает редактор и `grep -n`. Поэтому
+    файл читается целиком нетронутым и режется по `\\n` руками; CR остаётся
+    внутри своей строки. Положительный контроль: `--selftest` подсаживает
+    CR в описание строки и требует, чтобы строк не прибавилось.
+    """
+    with io.open(path, encoding="utf-8-sig", newline=u"") as f:
+        text = f.read()
+    return text.split(u"\n")
+
+
 def read_rows(path):
     rows = []
-    with io.open(path, encoding="utf-8") as f:
-        for n, line in enumerate(f, 1):
-            m = ROW.match(line)
-            if m:
-                rows.append((m.group(1), m.group(2), n))
+    for n, line in enumerate(read_lines(path), 1):
+        m = ROW.match(line)
+        if m:
+            rows.append((m.group(1), m.group(2), n))
     return rows
+
+
+def check_numbers(out, files):
+    u"""Проверка 1 — столкновения номеров. Возвращает число находок.
+
+    `files` — упорядоченный словарь имя → строки `read_rows`; вынесена из
+    `main`, чтобы положительный контроль (`--selftest`) мог подсунуть ей
+    КОПИЮ реестра с задвоенным номером и увидеть отказ с этим номером.
+    """
+    out.write(u"# Номера\n\n")
+    bad = 0
+    seen = {}
+    for name, rows in files.items():
+        counts = collections.Counter(num for num, _, _ in rows)
+        dup = sorted(n for n, c in counts.items() if c > 1)
+        out.write(u"%-8s строк %3d, столкновений внутри файла: %s\n"
+                  % (name, len(rows), u", ".join(dup) if dup else u"нет"))
+        if dup:
+            bad += len(dup)
+        seen[name] = set(counts)
+
+    names = list(files)
+    shared = sorted(set.intersection(*[seen[n] for n in names])) if len(names) > 1 else []
+    out.write(u"переиспользовано между файлами: %s\n"
+              % (u", ".join(shared) if shared else u"нет"))
+    if shared:
+        out.write(u"  (T25: оставлено сознательно, новых так заводить нельзя —\n"
+                  u"   номер берётся максимальным по обоим файлам)\n")
+
+    # какой номер следующий у каждой серии
+    nxt = collections.defaultdict(int)
+    for rows in files.values():
+        for num, _, _ in rows:
+            series = re.match(r"^([A-Z]{1,2})(\d+)$", num)
+            nxt[series.group(1)] = max(nxt[series.group(1)], int(series.group(2)))
+    out.write(u"следующий свободный номер: %s\n\n"
+              % u", ".join(u"%s%d" % (s, n + 1) for s, n in sorted(nxt.items())))
+    return bad
 
 
 def build_index(root):
@@ -412,45 +504,333 @@ def check_corpus_base(root, out):
     return bad
 
 
+# ---------------------------------------------------------------------------
+# 6. форма графы состояния (`T100`)
+# ---------------------------------------------------------------------------
+#: Слова, которыми реестр называет состояние. Регистр не важен — в обоих файлах
+#: живут `открыто`, `ЗАКРЫТО` и `СНЯТА`; окончание важно: «снято» и «снята»
+#: пишут оба. Список ВЫВЕДЕН разбором, а не назначен: с ним без слова состояния
+#: остаётся ровно одна строка из 726 (`A50`, «половина ПРИЛОЖЕНИЯ СДЕЛАНА…»),
+#: без «снят[оа]» — четыре.
+STATE_WORDS = (u"открыт[оа]", u"закрыт[оа]", u"снят[оа]")
+STATE_STRUCK = re.compile(u"~~(.+?)~~")
+
+
+def state_cell(line):
+    u"""Графа состояния строки реестра и число её столбцов.
+
+    ⛔ Внутри ОПИСАНИЙ реестра стоят свои `|`: в `TODO.md` таких строк 40 из
+    397, до десяти столбцов вместо четырёх. Поэтому брать клетку С КОНЦА
+    («детали», `cells[-2]`) нельзя — у такой строки конец уезжает. Графа
+    состояния — ВТОРАЯ клетка СЛЕВА, а первая, номер, содержать `|` не может;
+    отсчёт слева поэтому надёжен. Проверено счётом: ни в одной строке обоих
+    файлов слово состояния не уехало в следующую клетку.
+
+    Второе значение — сколько у строки столбцов. У шести строк `TODO.md`
+    (`A36`, `A41`, `A44`, `A45`, `A46`, `A49`) их всего два: описание слилось с
+    графой состояния, и разбор там идёт по всему тексту строки. Форму это не
+    ломает, но находку в такой строке надо читать с оговоркой, и она её несёт.
+    """
+    cells = line.rstrip(u"\r\n").split(u"|")
+    return (cells[2] if len(cells) > 3 else u""), max(len(cells) - 2, 0)
+
+
+def state_findings(cell):
+    u"""Находки по форме графы: ([(слово, вид, живых, вычеркнутых)], есть_слово).
+
+    `both` — слово стоит И вычеркнутым, И нет (ровно `T100`).
+    `cut` — маркеры вычёркивания РАЗРЕЗАЮТ слово (`~~откры~~то`): человек
+    видит вычеркнутое «открыто», машина не видит слова вовсе.
+    """
+    spans = [(m.start(1), m.end(1)) for m in STATE_STRUCK.finditer(cell)]
+    bare = cell.replace(u"~~", u"")
+    found, seen = [], False
+    for w in STATE_WORDS:
+        pat = re.compile(w, re.IGNORECASE)
+        plain = struck = 0
+        for m in pat.finditer(cell):
+            if any(a <= m.start() < b for a, b in spans):
+                struck += 1
+            else:
+                plain += 1
+        if plain or struck:
+            seen = True
+        if plain and struck:
+            found.append((w, u"both", plain, struck))
+        if len(pat.findall(bare)) > plain + struck:
+            found.append((w, u"cut", plain, struck))
+    return found, seen
+
+
+def check_state_column(out, files):
+    u"""Приёмка на форму графы состояния (`T100`). Возвращает число находок.
+
+    `files` — список пар (имя, путь): так эту проверку зовёт и положительный
+    контроль, подсовывая ей ВРЕМЕННУЮ копию.
+
+    Находкой (выход 1) считается только форма: «и так и эдак» и разрезанное
+    слово. Графа, не называющая состояния ВООБЩЕ, печатается к глазам и прогон
+    не валит — «СНЯТА 18.08.2026 — основание исчезло» законно, а требовать
+    здесь словарь значило бы завести сторожа, который красен на чистом дереве.
+    """
+    out.write(u"# Форма графы состояния (T100)\n\n")
+    bad = 0
+    for name, path in files:
+        if not os.path.exists(path):
+            out.write(u"  %s: файла нет\n" % name)
+            continue
+        rows = noword = merged = 0
+        eyes = []
+        for n, line in enumerate(read_lines(path), 1):
+            m = ROW.match(line.rstrip(u"\r\n"))
+            if not m:
+                continue
+            rows += 1
+            cell, ncols = state_cell(line)
+            if ncols < 3:
+                merged += 1
+            found, seen = state_findings(cell)
+            for w, kind, plain, struck in found:
+                bad += 1
+                what = (u"И ВЫЧЕРКНУТО, И НЕТ (живых %d, вычеркнутых %d)"
+                        % (plain, struck) if kind == u"both"
+                        else u"РАЗРЕЗАНО МАРКЕРАМИ ВЫЧЁРКИВАНИЯ")
+                out.write(u"  ⛔ %-8s %-5s строка %-4d «%s» %s%s\n"
+                          % (name, m.group(1), n, w, what,
+                             u" [графа слита с задачей]" if ncols < 3 else u""))
+                out.write(u"      %s\n" % cell.strip()[:150])
+            if not seen:
+                noword += 1
+                eyes.append(u"  ⚠ %-8s %-5s строка %-4d состояния не называет: %s\n"
+                            % (name, m.group(1), n, cell.strip()[:110]))
+        out.write(u"  %-8s строк %3d, графа слита с задачей: %d, "
+                  u"состояния не называют: %d\n" % (name, rows, merged, noword))
+        for e in eyes:
+            out.write(e)
+    out.write(u"\n")
+    return bad
+
+
+#: Подделки для положительного контроля: (пометка, чем заменить графу).
+#: Первые две — исторические формы `T100` дословно, третья — слово, разрезанное
+#: маркерами, четвёртая — то же самое на «закрыто», чтобы проверка не оказалась
+#: написанной под одно-единственное слово.
+STATE_FAKES = (
+    (u"форма S102/T92", u"открыто ~~открыто~~ **СДЕЛАНО 27.08.2026**"),
+    (u"форма T88", u"открыто, **РЕШЕНИЕ Amber ЕСТЬ** ~~открыто~~ "
+                   u"**ИСПОЛНЕНО 27.08.2026**"),
+    (u"разрезанное слово", u"~~откры~~то **СДЕЛАНО**"),
+    (u"то же на «закрыто»", u"закрыто ~~закрыто~~ **СДЕЛАНО**"),
+)
+
+
+def selftest_registry(root, out):
+    u"""Положительный контроль проверок 1 и 6. Возвращает 0, если сошёлся.
+
+    ⛔ Заведён потому, что сторож без доказанного ОТКАЗА выглядит работающим:
+    код 0, находок 0 — ровно то, что даёт и ненаписанная проверка (`T69`).
+    Здесь проверка обязана СНАЧАЛА дать на чистой копии столько же, сколько
+    на оригинале, а ПОТОМ покраснеть на подделанной — ровно на подставленных
+    строках и ни на одной другой: находка не в той строке такой же провал,
+    как отсутствие находки.
+
+    Подсаживается ШЕСТЬ порч в одну копию `TODO.md`:
+      * четыре графы состояния (`STATE_FAKES`) — проверка 6 обязана назвать
+        каждую своей строкой;
+      * задвоенный номер — номер первой чистой строки переписывается в ещё
+        одну строку, и проверка 1 обязана назвать именно его;
+      * одиночный CR и лишняя `|` внутри ОПИСАНИЯ ещё одной строки — это
+        законные знаки реестра, и от них не должно ни прибавиться строк, ни
+        появиться находки в этой строке (`T100`, память «питон рвёт текст на
+        одиночном CR»).
+
+    Чистых находок на оригинале может быть и больше нуля — тогда контроль
+    требует ровно «чистые + подсаженные», а не нуля: сторож обязан работать и
+    на реестре, который сегодня не безупречен.
+
+    Оригинал `TODO.md` только читается; правится копия в каталоге временных
+    файлов, который в конце сносится.
+    """
+    src = os.path.join(root, u"TODO.md")
+    out.write(u"# Положительный контроль проверок 1 и 6 (T100)\n\n")
+    if not os.path.exists(src):
+        out.write(u"  ⛔ TODO.md не найден — контроль не проведён\n")
+        return 1
+    tmp = tempfile.mkdtemp(prefix=u"check_registry_selftest_")
+    try:
+        dst = os.path.join(tmp, u"TODO.md")
+        shutil.copyfile(src, dst)
+        files = [(u"копия", dst)]
+        failures = []
+
+        quiet = io.StringIO()
+        clean = check_state_column(quiet, files)
+        clean_rows = read_rows(dst)
+        clean_dups = sorted(n for n, c in collections.Counter(
+            num for num, _, _ in clean_rows).items() if c > 1)
+        out.write(u"  чистая копия: строк %d, находок по графе %d, "
+                  u"задвоенных номеров %d\n"
+                  % (len(clean_rows), clean, len(clean_dups)))
+
+        # подделываем графы у первых строк, чья графа сегодня безупречна;
+        # следом за ними — ещё две чистые строки под номер и под CR
+        lines = read_lines(dst)
+        planted, k = [], 0
+        dup_num = dup_line = cr_line = None
+        for i, line in enumerate(lines):
+            if cr_line is not None:
+                break
+            m = ROW.match(line.rstrip(u"\r\n"))
+            if not m:
+                continue
+            cell, ncols = state_cell(line)
+            found, seen = state_findings(cell)
+            if found or not seen or ncols < 4:
+                continue
+            cells = line.rstrip(u"\n").split(u"|")
+            if k < len(STATE_FAKES):
+                cells[2] = u" %s " % STATE_FAKES[k][1]
+                planted.append((m.group(1), i + 1, STATE_FAKES[k][0]))
+                if k == 0:
+                    dup_num = m.group(1)
+                k += 1
+            elif dup_line is None:
+                # тот же номер, что у первой подделанной строки
+                cells[1] = re.sub(r"[A-Z]{1,2}\d{1,3}", dup_num, cells[1], count=1)
+                dup_line = i + 1
+            else:
+                # CR и лишняя черта — В ОПИСАНИИ, графы не касаются
+                cells[3] = cells[3] + u" хвост после CR\r а тут | черта "
+                cr_line = i + 1
+            lines[i] = u"|".join(cells)
+        with io.open(dst, "w", encoding="utf-8", newline=u"") as f:
+            f.write(u"\n".join(lines))
+
+        loud = io.StringIO()
+        dirty = check_state_column(loud, files)
+        text = loud.getvalue()
+        dirty_rows = read_rows(dst)
+        dirty_dups = sorted(n for n, c in collections.Counter(
+            num for num, _, _ in dirty_rows).items() if c > 1)
+        numbers_out = io.StringIO()
+        numbers_bad = check_numbers(numbers_out, collections.OrderedDict(
+            [(u"копия", dirty_rows)]))
+
+        out.write(u"  подделано граф: %d — %s\n"
+                  % (len(planted), u", ".join(u"%s (%s)" % (p[0], p[2])
+                                              for p in planted)))
+        out.write(u"  задвоен номер %s в строке %s; CR и `|` подсажены в "
+                  u"описание строки %s\n" % (dup_num, dup_line, cr_line))
+        out.write(u"  подделанная копия: находок по графе %d (ожидалось %d)\n"
+                  % (dirty, clean + len(planted)))
+        for num, ln, what in planted:
+            named = re.search(u"⛔ .*строка %d " % ln, text) is not None
+            out.write(u"    %-6s строка %-4d %-20s названа: %s\n"
+                      % (num, ln, what, u"да" if named else u"НЕТ"))
+            if not named:
+                failures.append(u"графа строки %d не названа" % ln)
+        if dirty != clean + len(planted):
+            failures.append(u"находок по графе %d вместо %d"
+                            % (dirty, clean + len(planted)))
+        if len(planted) != len(STATE_FAKES) or dup_line is None or cr_line is None:
+            failures.append(u"не хватило чистых строк для подсадки")
+        if re.search(u"⛔ .*строка %d " % cr_line, text):
+            failures.append(u"строка с CR названа находкой, а порчи в её графе нет")
+        out.write(u"  строк после подсадки CR: %d (ожидалось %d, CR строку не режет)\n"
+                  % (len(dirty_rows), len(clean_rows)))
+        if len(dirty_rows) != len(clean_rows):
+            failures.append(u"CR разрезал строку: строк %d вместо %d"
+                            % (len(dirty_rows), len(clean_rows)))
+        cr_row = [r for r in dirty_rows if r[2] == cr_line]
+        if not cr_row or u"| черта" not in cr_row[0][1]:
+            failures.append(u"хвост строки после CR потерян из разбора")
+        else:
+            out.write(u"  хвост описания за CR в разборе цел: да\n")
+        out.write(u"  задвоенных номеров: %s (ожидалось %s), проверка 1 дала "
+                  u"находок %d (ожидалось %d)\n"
+                  % (u", ".join(dirty_dups) or u"нет",
+                     u", ".join(sorted(set(clean_dups) | {dup_num})),
+                     numbers_bad, len(clean_dups) + 1))
+        if dup_num not in dirty_dups or numbers_bad != len(clean_dups) + 1:
+            failures.append(u"задвоенный номер %s не пойман" % dup_num)
+
+        ok = not failures
+        out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ СОШЁЛСЯ: молчит на чистом, "
+                                  u"краснеет на подделанном, CR и `|` переживает"
+                                  if ok else
+                                  u"⛔ КОНТРОЛЬ ПРОВАЛЕН — проверка меряет не то: "
+                                  + u"; ".join(failures)))
+        if not ok:
+            out.write(text)
+            out.write(numbers_out.getvalue())
+        return 0 if ok else 1
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def check_done_headers_section(root, out):
+    u"""Проверка 7 — заголовок строки `DONE.md` против её тела (`T102`).
+
+    Сам разбор живёт в `tools/check_done_headers.py` (у него свои ключи
+    `--scan`, `--dump-heads` и свой `--selftest`); здесь он только зовётся и
+    его находки считаются в общий итог. Ловится узкий разряд: слова незнания
+    в заголовке («причина неизвестна», «не воспроизводится», …) при ответе в
+    теле той же ячейки (блок ✅, «СНЯТА», «НАХОДКИ НЕТ»). ⛔ `DONE.md` правит
+    только Amber — проверка называет строки, замены текстом собирает тот, кто
+    её позвал.
+    """
+    out.write(u"# Заголовки DONE.md против их тел (T102)\n\n")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import check_done_headers
+    except ImportError as e:
+        out.write(u"  ⛔ tools/check_done_headers.py не импортируется: %s\n\n" % e)
+        return 1
+    path = os.path.join(root, u"DONE.md")
+    if not os.path.exists(path):
+        out.write(u"  DONE.md: файла нет\n\n")
+        return 0
+    findings, stats = check_done_headers.analyse_file(path)
+    out.write(u"  DONE.md  строк %d, заголовков со словами незнания: %d, "
+              u"противоречий: %d\n" % (stats["rows"], stats["unknown_head"],
+                                       len(findings)))
+    for f in findings:
+        out.write(u"  ⛔ %-8s %-5s строка %-4d заголовок: %s\n"
+                  u"      тело: %s\n"
+                  % (u"DONE.md", f["id"], f["line"], f["head"][:120],
+                     u", ".join(f["answers"])))
+    out.write(u"  положительный контроль этой проверки: "
+              u"python tools/check_done_headers.py --selftest\n\n")
+    return len(findings)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", default=os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))))
+    p.add_argument("--selftest", action="store_true",
+                   help=u"положительный контроль проверок 1 и 6 (T100): "
+                        u"подсадить во ВРЕМЕННУЮ копию TODO.md кривые графы, "
+                        u"задвоенный номер, CR и `|` — и убедиться, что "
+                        u"проверка краснеет ровно там, где надо")
     a = p.parse_args()
+
+    if a.selftest:
+        out = io.open(1, "w", encoding="utf-8", closefd=False)
+        rc = selftest_registry(a.root, out)
+        out.flush()
+        return rc
+
     root = a.root
     out = io.open(1, "w", encoding="utf-8", closefd=False)
     bad = 0
 
-    files = {"TODO.md": read_rows(os.path.join(root, "TODO.md")),
-             "DONE.md": read_rows(os.path.join(root, "DONE.md"))}
+    files = collections.OrderedDict([
+        ("TODO.md", read_rows(os.path.join(root, "TODO.md"))),
+        ("DONE.md", read_rows(os.path.join(root, "DONE.md")))])
 
     # --- 1. номера ------------------------------------------------------
-    out.write(u"# Номера\n\n")
-    seen = {}
-    for name, rows in files.items():
-        counts = collections.Counter(num for num, _, _ in rows)
-        dup = sorted(n for n, c in counts.items() if c > 1)
-        out.write(u"%-8s строк %3d, столкновений внутри файла: %s\n"
-                  % (name, len(rows), u", ".join(dup) if dup else u"нет"))
-        if dup:
-            bad += len(dup)
-        seen[name] = set(counts)
-
-    shared = sorted(seen["TODO.md"] & seen["DONE.md"])
-    out.write(u"переиспользовано между файлами: %s\n"
-              % (u", ".join(shared) if shared else u"нет"))
-    if shared:
-        out.write(u"  (T25: оставлено сознательно, новых так заводить нельзя —\n"
-                  u"   номер берётся максимальным по обоим файлам)\n")
-
-    # какой номер следующий у каждой серии
-    nxt = collections.defaultdict(int)
-    for rows in files.values():
-        for num, _, _ in rows:
-            series = re.match(r"^([A-Z]{1,2})(\d+)$", num)
-            nxt[series.group(1)] = max(nxt[series.group(1)], int(series.group(2)))
-    out.write(u"следующий свободный номер: %s\n\n"
-              % u", ".join(u"%s%d" % (s, n + 1) for s, n in sorted(nxt.items())))
+    bad += check_numbers(out, files)
 
     # --- 2. ссылки на файлы ---------------------------------------------
     index = build_index(root)
@@ -534,6 +914,16 @@ def main():
 
     # --- 5. объявление действующей базы корпуса --------------------------
     bad += check_corpus_base(root, out)
+
+    # --- 6. форма графы состояния (T100) ---------------------------------
+    bad += check_state_column(out, [
+        (u"TODO.md", os.path.join(root, u"TODO.md")),
+        (u"DONE.md", os.path.join(root, u"DONE.md"))])
+    out.write(u"  положительный контроль этой проверки: "
+              u"python tools/check_registry.py --selftest\n")
+
+    # --- 7. заголовки DONE.md против их тел (T102) -----------------------
+    bad += check_done_headers_section(root, out)
 
     out.write(u"\n%s\n" % (u"РЕЕСТР ЧИСТ" if bad == 0
                            else u"НАХОДОК: %d" % bad))

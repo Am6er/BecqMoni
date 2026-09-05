@@ -1,0 +1,15 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\bq_c2_s96\tools\CORPUS\scripts\wd_app\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\bq_c2_s96\tools\CORPUS\scripts\wd_app\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\bq_c2_s96\tools\CORPUS\scripts\wd_app\config\NuclideDefinition.xml: 152 entries
+порог выхода ИЗ СБОРКИ: 1 %; библиотека: 152 записей, набор «(нет)»; выделение 1×ПШПВ пика
+
+спектров разобрано 129, отказало 0, пиков всего 1522 -> s109_c2.csv
+
+исход                           пиков
+кривой нет                        649
+ПОКАЗАНО голым числом             494
+ПОКАЗАНО со спором                134
+нет подписи                        90
+у подписи нет выхода               67
+ОТКАЗ рентген                      57
+ОТКАЗ выход                        31

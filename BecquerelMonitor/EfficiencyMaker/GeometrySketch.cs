@@ -100,6 +100,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         static readonly Color LitColor = Color.FromArgb(0xD0, 0x20, 0x20);
 
         // ------------------------------------------------------------------
+        // Мерка чертежа
+        // ------------------------------------------------------------------
+
+        /// <summary>Прямоугольник напечатанной подписи вместе с её текстом и ключом поля.</summary>
+        public struct SketchLabel
+        {
+            public RectangleF Bounds;
+            public string Text;
+            public string Key;
+        }
+
+        readonly List<SketchLabel> labels = new List<SketchLabel>();
+
+        /// <summary>
+        /// Прямоугольники ВСЕХ подписей последней отрисовки.
+        ///
+        /// Приёмка у чертежа одна и она числовая: ни одна подпись не налезла на
+        /// соседнюю и ни одна не ушла за поле. Глазами это проверялось до
+        /// 16.08.2026 и пропустило `E28` — на сцене «в лунке» «51.9» и «547.4»
+        /// печатались в одной точке. Список наполняется в самой отрисовке, тем
+        /// же размером, каким текст и напечатан, поэтому мерит именно то, что
+        /// увидит человек, а не пересчёт по числу знаков.
+        /// </summary>
+        public SketchLabel[] Labels
+        {
+            get { return this.labels.ToArray(); }
+        }
+
+        // ------------------------------------------------------------------
         // Мир -> экран
         // ------------------------------------------------------------------
 
@@ -150,6 +179,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Canvas);
+            this.labels.Clear();
 
             using (Pen frame = new Pen(Color.FromArgb(0x90, 0x90, 0x90)))
             {
@@ -326,22 +356,52 @@ namespace BecquerelMonitor.EfficiencyMaker
                     break;
             }
 
-            float width = 0f, lineHeight = 0f;
-            foreach (string line in lines)
+            // Табличка обязана поместиться в отведённое ей поле, а поле у
+            // миниатюры чужое: её ширину задаёт окно конфигурации прибора.
+            // Строка «Точечный источник, дистанция: 100 mm» на 220 точках
+            // вылезала за правый край НЕЗАМЕТНО — обрезанный текст выглядит как
+            // короткий (мерено 05.09.2026 приёмкой `EditorShot --check`).
+            // Поэтому шрифт таблички ужимается ровно настолько, чтобы влезть, и
+            // ни на волос больше.
+            Font font = this.Font;
+            float width, lineHeight;
+            Measure(g, lines, font, out width, out lineHeight);
+            float roomX = this.Width - 12f, roomY = this.Height - 10f;
+            float shrink = Math.Min(width > roomX ? roomX / width : 1f,
+                                    lineHeight * lines.Count > roomY
+                                        ? roomY / (lineHeight * lines.Count) : 1f);
+            Font small = null;
+            if (shrink < 1f)
             {
-                SizeF size = g.MeasureString(line, this.Font);
-                width = Math.Max(width, size.Width);
-                lineHeight = Math.Max(lineHeight, size.Height);
+                small = new Font(font.FontFamily, Math.Max(font.Size * shrink, 5f),
+                                 font.Style, font.Unit);
+                font = small;
+                Measure(g, lines, font, out width, out lineHeight);
             }
 
+            using (small)
             using (Brush plate = new SolidBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF)))
             using (Brush ink = new SolidBrush(Ink))
             {
                 g.FillRectangle(plate, 4f, 4f, width + 8f, lineHeight * lines.Count + 6f);
                 for (int i = 0; i < lines.Count; i++)
                 {
-                    g.DrawString(lines[i], this.Font, ink, 8f, 6f + i * lineHeight);
+                    this.Print(g, font, ink, lines[i], null, 8f, 6f + i * lineHeight,
+                               g.MeasureString(lines[i], font));
                 }
+            }
+        }
+
+        static void Measure(Graphics g, List<string> lines, Font font,
+                            out float width, out float lineHeight)
+        {
+            width = 0f;
+            lineHeight = 0f;
+            foreach (string line in lines)
+            {
+                SizeF size = g.MeasureString(line, font);
+                width = Math.Max(width, size.Width);
+                lineHeight = Math.Max(lineHeight, size.Height);
             }
         }
 
@@ -719,17 +779,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
-        /// Горизонтальный размер со стрелками и числом над линией. Подсвеченный
-        /// рисуется красным и жирнее — вместе с линией и стрелками, а не только
-        /// числом: у тонкого слоя число стоит вплотную к соседнему, и одного
-        /// цвета цифры мало, чтобы понять, к чему она относится.
+        /// Горизонтальный размер: размерная линия, окончания и число.
+        /// Подсвеченный рисуется красным и жирнее — вместе с линией и стрелками,
+        /// а не только числом: у тонкого слоя число стоит вплотную к соседнему,
+        /// и одного цвета цифры мало, чтобы понять, к чему она относится.
+        ///
+        /// Размера, которого НЕТ (ноль), на чертеже нет — нулевой слой не
+        /// подписывается. А вот размер, который есть, но узок на экране,
+        /// подписывается ОБЯЗАТЕЛЬНО: прежде он молча пропадал по правилу
+        /// «короче двух точек — не рисуем», и на сцене «в лунке» колодец Ø51.9
+        /// при габарите 1512 исчезал с чертежа целиком (`E28`).
         /// </summary>
         void DimH(Graphics g, Pen pen, Brush ink, double x1, double x2, double z, double value, string key)
         {
-            float a = this.X(x1), b = this.X(x2), y = this.Y(z);
-            if (Math.Abs(b - a) < 2f)
+            if (!(value > 0.0))
             {
                 return;
+            }
+
+            float a = this.X(x1), b = this.X(x2), y = this.Y(z);
+            if (a > b)
+            {
+                float t = a;
+                a = b;
+                b = t;
             }
 
             bool lit = this.Lit(key);
@@ -738,22 +811,27 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 Pen p = lit ? litPen : pen;
                 Brush b2 = lit ? litInk : ink;
-                g.DrawLine(p, a, y, b, y);
-                Arrow(g, p, a, y, +1f, 0f);
-                Arrow(g, p, b, y, -1f, 0f);
+                Ends(g, p, true, a, b, y);
                 string text = Format(value);
                 SizeF size = g.MeasureString(text, this.Font);
-                g.DrawString(text, this.Font, b2, (a + b) / 2f - size.Width / 2f, y - size.Height - 1f);
+                this.Place(g, p, b2, text, key, SpotsH(a, b, y, size));
             }
         }
 
-        /// <summary>Вертикальный размер со стрелками и числом справа.</summary>
+        /// <summary>Вертикальный размер: то же самое, повёрнутое на четверть.</summary>
         void DimV(Graphics g, Pen pen, Brush ink, double x, double z1, double z2, double value, string key)
         {
-            float a = this.Y(z1), b = this.Y(z2), xx = this.X(x);
-            if (Math.Abs(b - a) < 2f)
+            if (!(value > 0.0))
             {
                 return;
+            }
+
+            float a = this.Y(z1), b = this.Y(z2), xx = this.X(x);
+            if (a > b)
+            {
+                float t = a;
+                a = b;
+                b = t;
             }
 
             bool lit = this.Lit(key);
@@ -762,13 +840,33 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 Pen p = lit ? litPen : pen;
                 Brush b2 = lit ? litInk : ink;
-                g.DrawLine(p, xx, a, xx, b);
-                Arrow(g, p, xx, a, 0f, +1f);
-                Arrow(g, p, xx, b, 0f, -1f);
+                Ends(g, p, false, a, b, xx);
                 string text = Format(value);
                 SizeF size = g.MeasureString(text, this.Font);
-                g.DrawString(text, this.Font, b2, xx + 3f, (a + b) / 2f - size.Height / 2f);
+                this.Place(g, p, b2, text, key, SpotsV(xx, a, b, size));
             }
+        }
+
+        /// <summary>
+        /// Напечатать подпись и ЗАПОМНИТЬ её прямоугольник. Один вход на все
+        /// подписи чертежа: подпись, напечатанная мимо этого метода, для
+        /// приёмки не существует.
+        /// </summary>
+        void Print(Graphics g, Brush ink, string text, string key, float x, float y, SizeF size)
+        {
+            this.Print(g, this.Font, ink, text, key, x, y, size);
+        }
+
+        void Print(Graphics g, Font font, Brush ink, string text, string key,
+                   float x, float y, SizeF size)
+        {
+            g.DrawString(text, font, ink, x, y);
+            this.labels.Add(new SketchLabel
+            {
+                Bounds = new RectangleF(x, y, size.Width, size.Height),
+                Text = text,
+                Key = key,
+            });
         }
 
         /// <summary>
@@ -789,25 +887,279 @@ namespace BecquerelMonitor.EfficiencyMaker
                      : dx > 0f ? this.X(x) + dx
                      : this.X(x) - size.Width / 2f;
             float py = this.Y(z) + (dy >= 0f ? dy : dy - size.Height);
+            // Своё место — первое, но не единственное: если его заняли, надпись
+            // уходит на полку выноски от того же тела, а не печатается поверх
+            // соседа.
+            List<Spot> spots = new List<Spot> { At(px, py, size) };
+            Shelves(spots, new PointF(this.X(x), this.Y(z)), false, size);
+
             bool lit = this.Lit(key);
+            using (Pen leader = new Pen(lit ? LitColor : Ink, 1f))
             using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
             {
-                g.DrawString(text, this.Font, lit ? litInk : ink, px, py);
+                this.Place(g, leader, lit ? litInk : ink, text, key, spots);
             }
         }
 
-        static void Arrow(Graphics g, Pen pen, float x, float y, float dx, float dy)
+        // ------------------------------------------------------------------
+        // Раскладка размерных чисел по ГОСТ 2.307-2011
+        //
+        // Правило одно и оно старше нас: ЕСЛИ МЕСТА НЕ ХВАТАЕТ, размерное число
+        // и стрелки ВЫНОСЯТ за пределы выносных линий — сначала на продолжение
+        // размерной линии, а если и там занято, то на полку линии-выноски.
+        // Масштаб при этом остаётся линейным: логарифмический прочёл бы чертёж,
+        // но соврал бы про пропорции, а чертёж затем и нужен, чтобы ошибка в
+        // размере ВЫГЛЯДЕЛА ошибкой.
+        //
+        // Место меряется НЕ числом знаков, а `MeasureString` — тем же, чем
+        // текст потом и печатается. Ширина «547.4» и «12» отличается вдвое, и
+        // порог, посчитанный по знакам, врал бы ровно там, где решается дело.
+        // ------------------------------------------------------------------
+
+        /// <summary>Зазор, который подпись требует вокруг себя, точек.</summary>
+        const float Gap = 2f;
+
+        /// <summary>Отступ числа от конца размерной линии, точек.</summary>
+        const float Reach = 5f;
+
+        /// <summary>Вылет размерной линии за выносную, когда стрелки снаружи.</summary>
+        const float Tail = 9f;
+
+        /// <summary>Длина наклонной части линии-выноски, точек.</summary>
+        const float ElbowRun = 12f;
+
+        /// <summary>Короче этого стрелки внутрь не помещаются.</summary>
+        const float ArrowRoom = 12f;
+
+        /// <summary>Насколько отводятся полки выносок, точек.</summary>
+        static readonly float[] ShelfSteps = { 16f, 28f, 40f, 54f, 70f, 88f, 108f, 130f };
+
+        /// <summary>Место, куда можно поставить число, и выноска к нему.</summary>
+        struct Spot
         {
-            const float S = 4f;
-            if (dx != 0f)
+            public RectangleF Box;
+            public PointF[] Leader;
+        }
+
+        static Spot At(float x, float y, SizeF size)
+        {
+            return new Spot { Box = new RectangleF(x, y, size.Width, size.Height) };
+        }
+
+        /// <summary>
+        /// Полка линии-выноски: от точки на теле идёт наклонная, переходящая в
+        /// горизонтальную полку, число — НАД полкой.
+        /// </summary>
+        static Spot Shelf(PointF anchor, float dx, float dy, float side, SizeF size)
+        {
+            PointF elbow = new PointF(anchor.X + dx, anchor.Y + dy);
+            PointF end = new PointF(elbow.X + side * (size.Width + 6f), elbow.Y);
+            float tx = side > 0f ? elbow.X + 3f : elbow.X - size.Width - 3f;
+            return new Spot
             {
-                g.DrawLine(pen, x, y, x + dx * S, y - S * 0.6f);
-                g.DrawLine(pen, x, y, x + dx * S, y + S * 0.6f);
+                Box = new RectangleF(tx, elbow.Y - size.Height, size.Width, size.Height),
+                Leader = new PointF[] { anchor, elbow, end },
+            };
+        }
+
+        /// <summary>
+        /// Полки во все четыре стороны, с растущим отводом. Стороны чередуются
+        /// внутри одного отвода: цепочка мелких размеров подряд так сама собой
+        /// раскладывается веером, а не столбиком в одну сторону.
+        /// </summary>
+        static void Shelves(List<Spot> list, PointF anchor, bool horizontalDim, SizeF size)
+        {
+            foreach (float off in ShelfSteps)
+            {
+                // У горизонтального размера выноска поднимается/опускается, у
+                // вертикального — отходит вбок: иначе она легла бы вдоль своей
+                // же размерной линии и стала невидимой.
+                float ax = horizontalDim ? ElbowRun : off;
+                float ay = horizontalDim ? off : ElbowRun;
+                list.Add(Shelf(anchor, +ax, -ay, +1f, size));
+                list.Add(Shelf(anchor, -ax, -ay, -1f, size));
+                list.Add(Shelf(anchor, +ax, +ay, +1f, size));
+                list.Add(Shelf(anchor, -ax, +ay, -1f, size));
+            }
+        }
+
+        /// <summary>Места для числа горизонтального размера, по убыванию желанности.</summary>
+        static List<Spot> SpotsH(float a, float b, float y, SizeF size)
+        {
+            float mid = (a + b) / 2f;
+            List<Spot> list = new List<Spot>();
+            if (size.Width + 6f <= b - a)
+            {
+                // Своё место — над серединой размерной линии.
+                list.Add(At(mid - size.Width / 2f, y - size.Height - 1f, size));
+                // Вторая половина «чередования» цепочки: соседнее число ниже.
+                list.Add(At(mid - size.Width / 2f, y + 2f, size));
+            }
+
+            // На ПРОДОЛЖЕНИИ размерной линии — сперва вправо, как принято.
+            list.Add(At(b + Reach, y - size.Height - 1f, size));
+            list.Add(At(a - Reach - size.Width, y - size.Height - 1f, size));
+            list.Add(At(b + Reach, y + 2f, size));
+            list.Add(At(a - Reach - size.Width, y + 2f, size));
+
+            Shelves(list, new PointF(mid, y), true, size);
+            return list;
+        }
+
+        /// <summary>Места для числа вертикального размера.</summary>
+        static List<Spot> SpotsV(float x, float a, float b, SizeF size)
+        {
+            float mid = (a + b) / 2f;
+            List<Spot> list = new List<Spot>();
+            if (size.Height + 4f <= b - a)
+            {
+                list.Add(At(x + 3f, mid - size.Height / 2f, size));
+                list.Add(At(x - 3f - size.Width, mid - size.Height / 2f, size));
+            }
+
+            list.Add(At(x + 3f, a - size.Height - Reach, size));
+            list.Add(At(x + 3f, b + Reach, size));
+            list.Add(At(x - 3f - size.Width, a - size.Height - Reach, size));
+            list.Add(At(x - 3f - size.Width, b + Reach, size));
+
+            Shelves(list, new PointF(x, mid), false, size);
+            return list;
+        }
+
+        /// <summary>
+        /// Поставить число в ПЕРВОЕ место, где оно и в поле помещается, и ни на
+        /// кого не налезает.
+        ///
+        /// Если свободного нет ни одного, число всё равно печатается — в
+        /// наименее занятом: потерянное число хуже прижатого, и приёмка такой
+        /// случай увидит числом, а не пропустит молча.
+        /// </summary>
+        void Place(Graphics g, Pen pen, Brush ink, string text, string key, List<Spot> spots)
+        {
+            int best = 0;
+            float bestCost = float.MaxValue;
+            for (int i = 0; i < spots.Count; i++)
+            {
+                float cost = this.Cost(spots[i].Box);
+                if (cost <= 0f)
+                {
+                    best = i;
+                    break;
+                }
+
+                if (cost < bestCost)
+                {
+                    bestCost = cost;
+                    best = i;
+                }
+            }
+
+            Spot spot = spots[best];
+            if (spot.Leader != null)
+            {
+                g.DrawLines(pen, spot.Leader);
+            }
+
+            this.Print(g, ink, text, key, spot.Box.X, spot.Box.Y,
+                       new SizeF(spot.Box.Width, spot.Box.Height));
+        }
+
+        /// <summary>
+        /// Чем плохо место: площадь перекрытия с уже поставленными подписями
+        /// плюс большой штраф за выход за поле. Ноль — место годно.
+        /// </summary>
+        float Cost(RectangleF box)
+        {
+            RectangleF field = new RectangleF(1f, 1f, this.Width - 2f, this.Height - 2f);
+            float cost = 0f;
+            if (!field.Contains(box))
+            {
+                cost = 1e6f + Math.Max(0f, field.X - box.X) + Math.Max(0f, field.Y - box.Y)
+                     + Math.Max(0f, box.Right - field.Right) + Math.Max(0f, box.Bottom - field.Bottom);
+            }
+
+            RectangleF grown = new RectangleF(box.X - Gap, box.Y - Gap,
+                                              box.Width + 2f * Gap, box.Height + 2f * Gap);
+            foreach (SketchLabel other in this.labels)
+            {
+                RectangleF hit = RectangleF.Intersect(grown, other.Bounds);
+                if (hit.Width > 0f && hit.Height > 0f)
+                {
+                    cost += hit.Width * hit.Height + 1f;
+                }
+            }
+
+            return cost;
+        }
+
+        /// <summary>
+        /// Размерная линия с окончаниями. По ГОСТ 2.307-2011: широкий размер —
+        /// стрелки внутри; узкий — стрелки ВЫНОСЯТСЯ наружу, остриями к выносным
+        /// линиям; совсем узкий — вместо стрелок засечки, иначе две стрелки
+        /// сливаются в кляксу.
+        ///
+        /// Сама деталь при этом НЕ раздувается — колодец в один пиксель так
+        /// пикселем и остаётся, честно. Видимой обязана быть ВЫНОСКА: линия
+        /// выходит за деталь на <see cref="Tail"/> точек, и от неё уже тянется
+        /// полка с числом.
+        /// </summary>
+        static void Ends(Graphics g, Pen pen, bool horizontal, float a, float b, float fixedCoord)
+        {
+            float span = b - a;
+            float tail = span >= ArrowRoom ? 0f : Tail;
+            if (horizontal)
+            {
+                g.DrawLine(pen, a - tail, fixedCoord, b + tail, fixedCoord);
             }
             else
             {
-                g.DrawLine(pen, x, y, x - S * 0.6f, y + dy * S);
-                g.DrawLine(pen, x, y, x + S * 0.6f, y + dy * S);
+                g.DrawLine(pen, fixedCoord, a - tail, fixedCoord, b + tail);
+            }
+
+            if (span >= ArrowRoom)
+            {
+                Arrow(g, pen, horizontal, a, fixedCoord, +1f);
+                Arrow(g, pen, horizontal, b, fixedCoord, -1f);
+            }
+            else if (span >= 3f)
+            {
+                Arrow(g, pen, horizontal, a, fixedCoord, -1f);
+                Arrow(g, pen, horizontal, b, fixedCoord, +1f);
+            }
+            else
+            {
+                Tick(g, pen, horizontal, a, fixedCoord);
+                Tick(g, pen, horizontal, b, fixedCoord);
+            }
+        }
+
+        /// <summary>Стрелка остриём в точку, оперением в сторону <paramref name="dir"/>.</summary>
+        static void Arrow(Graphics g, Pen pen, bool horizontal, float at, float fixedCoord, float dir)
+        {
+            const float S = 4f;
+            if (horizontal)
+            {
+                g.DrawLine(pen, at, fixedCoord, at + dir * S, fixedCoord - S * 0.6f);
+                g.DrawLine(pen, at, fixedCoord, at + dir * S, fixedCoord + S * 0.6f);
+            }
+            else
+            {
+                g.DrawLine(pen, fixedCoord, at, fixedCoord - S * 0.6f, at + dir * S);
+                g.DrawLine(pen, fixedCoord, at, fixedCoord + S * 0.6f, at + dir * S);
+            }
+        }
+
+        /// <summary>Засечка вместо стрелки — короткий наклонный штрих (ГОСТ 2.307).</summary>
+        static void Tick(Graphics g, Pen pen, bool horizontal, float at, float fixedCoord)
+        {
+            const float S = 3f;
+            if (horizontal)
+            {
+                g.DrawLine(pen, at - S * 0.5f, fixedCoord + S, at + S * 0.5f, fixedCoord - S);
+            }
+            else
+            {
+                g.DrawLine(pen, fixedCoord + S, at - S * 0.5f, fixedCoord - S, at + S * 0.5f);
             }
         }
 

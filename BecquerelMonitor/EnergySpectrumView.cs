@@ -747,99 +747,20 @@ namespace BecquerelMonitor
                         analytics.Ld = ROIAriphmetics.CalculateLd(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
                         analytics.Lq = ROIAriphmetics.CalculateLqCounts(bgCounts, bgTime, fgTime, limitsConfidenceLevel);
 
-                        // Кривая берётся у САМОГО СПЕКТРА. Раньше её искали в
-                        // наборе зон — там она больше не живёт.
-                        if (this.peakMode == PeakMode.Visible && analytics.SelectionFWHM > 0.0 &&
-                            this.activeResultData.Visible &&
-                            this.activeResultData.Efficiency != null)
+                        Peak detectedPeak = this.FindActivityPeak(analytics);
+                        if (detectedPeak != null)
                         {
-                            int numberOfPeaks = 0;
-                            Peak detectedPeak = null;
-                            foreach (Peak peak in this.activeResultData.DetectedPeaks)
+                            this.AssignActivityLabel(detectedPeak, analytics);
+
+                            if (analytics.ActivityRefusal == null)
                             {
-                                if (analytics.StartEnergy < peak.Energy && analytics.EndEnergy > peak.Energy)
+                                BecquerelCoefficient.LineResult coeff = BecquerelCoefficient.ForLine(
+                                    detectedPeak.Energy, detectedPeak.Nuclide.Intencity,
+                                    this.activeResultData.Efficiency);
+                                if (coeff.Ok)
                                 {
-                                    numberOfPeaks++;
-                                    detectedPeak = peak;
-                                }
-                            }
-                            if (numberOfPeaks == 1 && detectedPeak != null && detectedPeak.Nuclide != null && detectedPeak.Nuclide.Intencity > 0)
-                            {
-                                // ⛔ S96. Отсюда и до конца ветки число ПОКУПАЕТСЯ
-                                // ПОДПИСЬЮ: I% ниже — выход того нуклида, которого
-                                // поставил `PeakDetector.MatchNuclide` по одной лишь
-                                // близости энергии. Кто это был и по какой линии —
-                                // обязано быть видно, а заведомо бессмысленный случай
-                                // обязан быть ОТКАЗОМ, а не числом.
-                                analytics.ActivityLabel = detectedPeak.Nuclide.Name;
-                                analytics.ActivityLineKev = detectedPeak.Nuclide.Energy;
-                                analytics.ActivityIntensity = detectedPeak.Nuclide.Intencity;
-                                this.ScanActivityRivals(detectedPeak, analytics);
-
-                                // ⛔ ОТКАЗ, а не предупреждение: у характеристического
-                                // рентгена выхода НА РАСПАД не существует вовсе (см.
-                                // `NuclideDefinition.IsElementXrayName`) — число в поле
-                                // `Intencity` у него значит долю внутри K-серии, и
-                                // A = N·100/(ε·I) по нему физического смысла не имеет.
-                                // Тем же правилом такие линии уже исключены из
-                                // построения кривой эффективности. Мера цены по корпусу
-                                // (понятная часть): 59 из 678 пиков с показанными
-                                // беккерелями подписаны «W x-ray» или «Pb x-ray» на 53
-                                // спектрах из 81, и панель показывала за них до
-                                // 2.3·10^5 Бк.
-                                if (NuclideDefinition.IsElementXrayName(detectedPeak.Nuclide.Name))
-                                {
-                                    analytics.ActivityRefusal = Resources.ActivityXrayRefused;
-                                }
-
-                                // ⛔ `S99`, РЕШЕНИЕ Amber 26.08.2026: активность
-                                // НЕ показывать, если выход линии ниже 1 % на
-                                // распад родителя — тем же числом, что уже
-                                // принято критерием отбора линий в нуклидный сет
-                                // (`I_min` = 1 %). Одно число на проект вместо
-                                // двух, и оно уже обосновано.
-                                //
-                                // Довод не в аккуратности: A = N·100/(ε·I), и
-                                // крошечное I в знаменателе превращает шум в
-                                // гигабеккерели. Спор соседей (выше) тут не
-                                // спасает — у слабой линии соседей в пике может
-                                // не быть вовсе, и он молчит.
-                                //
-                                // Цена измерена 28.08.2026 ПО САМОЙ библиотеке:
-                                // в поставочной `config/NuclideDefinition.xml`
-                                // из 73 видимых линий с проставленным выходом
-                                // ниже 1 % ровно ШЕСТЬ, и среди них обе, ради
-                                // которых строка заведена — Pu-238 152.0 кэВ
-                                // (I = 0.0009 %) и Pu-239 375.0 кэВ (0.0016 %).
-                                // Ни одна из шести не рентген, то есть с отказом
-                                // выше они не пересекаются: поводы независимы.
-                                else if (detectedPeak.Nuclide.Intencity < MinimumActivityYieldPercent)
-                                {
-                                    analytics.ActivityRefusal = string.Format(
-                                        Resources.ActivityLowYieldRefused,
-                                        MinimumActivityYieldPercent);
-                                }
-
-                                // ⚠ ЧЕГО ЭТИ ТРИ ПРИЗНАКА НЕ ЛОВЯТ — измерено тем же
-                                // прогоном (понятная часть, 81 спектр, поставочная
-                                // `config/NuclideDefinition.xml`): из 678 пиков с
-                                // показанными беккерелями отказ накрывает 59, ещё 282
-                                // получают предупреждение о споре, а 337 (49.7 %)
-                                // показываются ГОЛЫМ ЧИСЛОМ. Среди них 9 стоят на линии
-                                // с выходом МЕНЬШЕ 0.01 % (Pu-238 0.0009 %, Pu-239
-                                // 0.0016 % — соседей в пике у них нет, и спор молчит),
-                                // и панель показывает за них до 1.5·10^9 Бк. Порог по
-                                // выходу здесь НЕ ЗАВЕДЁН нарочно: число, ниже которого
-                                // подпись считается недостоверной, — решение Amber, а
-                                // не догадка правки. Отдельной строкой TODO.
-
-                                double bqCoeff, bqCoeffError;
-                                if (analytics.ActivityRefusal == null &&
-                                    BecquerelCoefficient.TryForLine(detectedPeak.Energy,
-                                                                   detectedPeak.Nuclide.Intencity,
-                                                                   this.activeResultData.Efficiency,
-                                                                   out bqCoeff, out bqCoeffError))
-                                {
+                                    double bqCoeff = coeff.Value;
+                                    double bqCoeffError = coeff.Error;
                                     analytics.Activity = ROIAriphmetics.CalculateActivity(bqCoeff, fgCounts, fgTime, bgCounts, bgTime);
                                     analytics.ActivityError = ROIAriphmetics.CalculateActivityError(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, errorLevel);
                                     analytics.ActivityUpperLimit = ROIAriphmetics.CalculateActivityUpperLimit(bqCoeff, bqCoeffError, fgCounts, fgTime, bgCounts, bgTime, limitsConfidenceLevel);
@@ -857,6 +778,18 @@ namespace BecquerelMonitor
                                         analytics.ActivityByVolumeUpperLimit = analytics.ActivityUpperLimit / this.activeResultData.SampleInfo.Volume;
                                     }
                                 }
+                                else
+                                {
+                                    // ⛔ (05.09.2026) Раньше здесь стоял голый `false` от
+                                    // `TryForLine`, и при энергии пика ЗА КРАЕМ кривой ветка
+                                    // уже начиналась (подпись поставлена, кривая есть, пик
+                                    // один), но ни числа, ни отказа не появлялось — на панели
+                                    // это неотличимо от «кривой нет вовсе». Измерено
+                                    // `BqActivityProbe`: обе границы кривой — «молча ничего».
+                                    // Теперь причина называется словами, как у зон в
+                                    // `BecquerelCoefficient.Resolve`.
+                                    analytics.ActivityRefusal = ActivityCurveRefusal(detectedPeak.Energy, coeff);
+                                }
                             }
                         }
                     }
@@ -865,6 +798,22 @@ namespace BecquerelMonitor
                 {
                     analytics.NetCounts = ROIAriphmetics.CalculateNetCount(fgCounts, fgTime, 0, 0);
                     analytics.NetCountsErr = ROIAriphmetics.CalculateNetCountError(fgCounts, fgTime, 0, 0, errorLevel);
+
+                    // ⛔ (05.09.2026) Без фонового спектра беккерели НЕ считаются —
+                    // так было и раньше, но об этом не говорилось: ветка активности
+                    // целиком лежала под `bgTime > 0`, и без фона панель молчала так
+                    // же, как при отсутствующей кривой (измерено `BqActivityProbe`).
+                    // Само поведение НЕ менялось: считать ли активность без фона —
+                    // решение Amber, а не полосы; здесь только причина словами.
+                    Peak detectedPeak = this.FindActivityPeak(analytics);
+                    if (detectedPeak != null)
+                    {
+                        this.AssignActivityLabel(detectedPeak, analytics);
+                        if (analytics.ActivityRefusal == null)
+                        {
+                            analytics.ActivityRefusal = Resources.ActivityNoBackgroundRefused;
+                        }
+                    }
                 }
 
                 analytics.NetCps = analytics.NetCounts / fgTime;
@@ -872,6 +821,201 @@ namespace BecquerelMonitor
             }
 
             this.selectionAnalyticsDirty = false;
+        }
+
+        /// <summary>
+        /// Пик, по которому считается активность выделения: ровно ОДИН найденный
+        /// пик внутри выделения, и он подписан линией с выходом. Null — ветки
+        /// активности нет: пиков в выделении нет или больше одного, подписи нет,
+        /// режим пиков не Visible, ПШПВ выделения не измерена, спектр снят с
+        /// показа, кривой эффективности у спектра нет.
+        ///
+        /// Один на обе ветки — с фоновым спектром и без него (05.09.2026): до
+        /// этого отбор жил внутри ветки с фоном, и без фона панель молчала.
+        /// </summary>
+        Peak FindActivityPeak(SelectionAnalytics analytics)
+        {
+            // Кривая берётся у САМОГО СПЕКТРА. Раньше её искали в
+            // наборе зон — там она больше не живёт.
+            if (this.peakMode != PeakMode.Visible || !(analytics.SelectionFWHM > 0.0) ||
+                !this.activeResultData.Visible ||
+                this.activeResultData.Efficiency == null)
+            {
+                return null;
+            }
+
+            int numberOfPeaks = 0;
+            Peak detectedPeak = null;
+            foreach (Peak peak in this.activeResultData.DetectedPeaks)
+            {
+                if (analytics.StartEnergy < peak.Energy && analytics.EndEnergy > peak.Energy)
+                {
+                    numberOfPeaks++;
+                    detectedPeak = peak;
+                }
+            }
+
+            if (numberOfPeaks != 1 || detectedPeak == null || detectedPeak.Nuclide == null ||
+                !(detectedPeak.Nuclide.Intencity > 0))
+            {
+                return null;
+            }
+
+            return detectedPeak;
+        }
+
+        /// <summary>
+        /// Подпись, по которой куплены беккерели, спор соседей и отказы, не
+        /// зависящие от кривой (рентген, выход ниже порога). Общее для ветки с
+        /// фоном и без фона; что делать дальше — решает вызывающий.
+        /// </summary>
+        void AssignActivityLabel(Peak detectedPeak, SelectionAnalytics analytics)
+        {
+            // ⛔ S96. Отсюда и до конца ветки число ПОКУПАЕТСЯ
+            // ПОДПИСЬЮ: I% ниже — выход того нуклида, которого
+            // поставил `PeakDetector.MatchNuclide` по одной лишь
+            // близости энергии. Кто это был и по какой линии —
+            // обязано быть видно, а заведомо бессмысленный случай
+            // обязан быть ОТКАЗОМ, а не числом.
+            analytics.ActivityLabel = detectedPeak.Nuclide.Name;
+            analytics.ActivityLineKev = detectedPeak.Nuclide.Energy;
+            analytics.ActivityIntensity = detectedPeak.Nuclide.Intencity;
+            this.ScanActivityRivals(detectedPeak, analytics);
+
+            // ⛔ ОТКАЗ, а не предупреждение: у характеристического
+            // рентгена выхода НА РАСПАД не существует вовсе (см.
+            // `NuclideDefinition.IsElementXrayName`) — число в поле
+            // `Intencity` у него значит долю внутри K-серии, и
+            // A = N·100/(ε·I) по нему физического смысла не имеет.
+            // Тем же правилом такие линии уже исключены из
+            // построения кривой эффективности.
+            //
+            // ⛔ ЧИСЛА ЗДЕСЬ ПЕРЕМЕРЕНЫ 05.09.2026 (`S96`):
+            // прежние («59 из 678 на 53 спектрах из 81, до
+            // 2.3·10^5 Бк») записал агент, оборванный на
+            // пределе сессии, и встречной проверки они не
+            // проходили. Перемер — `s109activityprobe` по
+            // всему корпусу (129 спектров, 82 из них с
+            // кривой), поставочная `config/NuclideDefinition.xml`
+            // (152 записи, sha256 082c331db48f): до ветки
+            // активности доходят 716 пиков, из них рентгеном
+            // подписаны 57 на 50 спектрах — «Pb x-ray» 40 и
+            // «W x-ray» 17. Величину показанных за них
+            // беккерелей перемер НЕ ВОССТАНАВЛИВАЛ, и
+            // прежнее «до 2.3·10^5 Бк» снято как
+            // неподтверждённое.
+            if (NuclideDefinition.IsElementXrayName(detectedPeak.Nuclide.Name))
+            {
+                analytics.ActivityRefusal = Resources.ActivityXrayRefused;
+            }
+
+            // ⛔ `S99`, РЕШЕНИЕ Amber 26.08.2026: активность
+            // НЕ показывать, если выход линии ниже 1 % на
+            // распад родителя — тем же числом, что уже
+            // принято критерием отбора линий в нуклидный сет
+            // (`I_min` = 1 %). Одно число на проект вместо
+            // двух, и оно уже обосновано.
+            //
+            // Довод не в аккуратности: A = N·100/(ε·I), и
+            // крошечное I в знаменателе превращает шум в
+            // гигабеккерели. Спор соседей (выше) тут не
+            // спасает — у слабой линии соседей в пике может
+            // не быть вовсе, и он молчит.
+            //
+            // Цена измерена 28.08.2026 ПО САМОЙ библиотеке:
+            // в поставочной `config/NuclideDefinition.xml`
+            // из 73 видимых линий с проставленным выходом
+            // ниже 1 % ровно ШЕСТЬ, и среди них обе, ради
+            // которых строка заведена — Pu-238 152.0 кэВ
+            // (I = 0.0009 %) и Pu-239 375.0 кэВ (0.0016 %).
+            // Ни одна из шести не рентген, то есть с отказом
+            // выше они не пересекаются: поводы независимы.
+            else if (detectedPeak.Nuclide.Intencity < MinimumActivityYieldPercent)
+            {
+                analytics.ActivityRefusal = string.Format(
+                    Resources.ActivityLowYieldRefused,
+                    MinimumActivityYieldPercent);
+            }
+
+            // ⚠ ЧЕГО ЭТИ ТРИ ПРИЗНАКА НЕ ЛОВЯТ. ⛔ Числа
+            // ПЕРЕМЕРЕНЫ 05.09.2026 (`S96`) и заменяют
+            // прежние («678 пиков, 59 отказов, 282 спора,
+            // 337 = 49.7 % голых»), которые записал
+            // оборванный агент и которые не воспроизвелись:
+            // спор разошёлся вдвое, доля голых — в полтора
+            // раза. Мерено `s109activityprobe` и
+            // `bqactivityprobe` по всему корпусу (129
+            // спектров, 82 с кривой), поставочная
+            // `config/NuclideDefinition.xml`, выделение в
+            // одну ПШПВ пика:
+            //
+            //   до ветки активности доходят     716 пиков
+            //   ОТКАЗ рентген                    57
+            //   ОТКАЗ выход ниже порога          31 (19 из них ниже 0.01 %)
+            //   показано СО СПОРОМ              134
+            //   показано ГОЛЫМ ЧИСЛОМ           494  (69.0 % от 716)
+            //
+            // ⛔⛔ ВСТРЕЧНАЯ ПРОВЕРКА 05.09.2026 ОТОЗВАЛА
+            // ЧЕТЫРЕ ИЗ ЭТИХ ШЕСТИ ЧИСЕЛ. Проба подставляла
+            // в `SelectionFWHMinkev` поле `Peak.FWHM`, а оно
+            // В КАНАЛАХ, не в кэВ — то есть окно спора было
+            // растянуто (или сжато) в «кэВ-на-канал» раз.
+            // Измерено, а не вычитано: ширина того же пика,
+            // снятая по отсчётам тем же `EnergyResolutionCalculator`,
+            // что меряет выделение человека, на 104 спектрах
+            // корпуса, у которых кэВ-на-канал отличается от
+            // единицы не меньше чем в полтора раза, даёт
+            // Peak.FWHM / ширина_в_каналах = 0.974, а
+            // Peak.FWHM / ширина_в_кэВ = 0.382; вердикт
+            // КАНАЛЫ у 104 из 104. Разбор —
+            // `handover/handover-2026-09-05-c10-shirina-pshpv.md`.
+            //
+            // ⚠ САМО ПРИЛОЖЕНИЕ ЕДИНИЦЫ НЕ ПУТАЕТ: окно ниже
+            // берётся от `SelectionFWHMinkev`, и она честно в
+            // кэВ (сцена 0.25 кэВ/канал: приложение вернуло
+            // 28.18 кэВ при истинных 28.26 кэВ = 113.03
+            // канала). Дефект был только в пробе.
+            //
+            // Перемер тем же `bqactivityprobe` окном В КЭВ,
+            // 129 спектров, поставочная библиотека (152
+            // записи, sha 7aaa0b01c9bd). ⚠ Приведённые ниже
+            // числа сняты УЖЕ С ПРАВКОЙ `S134` в
+            // `PeakDetector` (порог выхода подписи 0.1 %),
+            // поэтому разряды до ветки тоже сдвинулись:
+            //
+            //   до ветки активности доходят     711 пиков
+            //   ОТКАЗ рентген                    57  (не изменилось)
+            //   ОТКАЗ выход ниже порога          12  (было 31; −19 забрала `S134`)
+            //   показано СО СПОРОМ              293  (было 134)
+            //   показано ГОЛЫМ ЧИСЛОМ           349  (49.1 % от 711; было 494 = 69.0 %)
+            //
+            // ⛔ И вот чего не ловит спор: его окно — ровно
+            // ПОЛОВИНА ПШПВ, а подпись выбирал `MatchNuclide`
+            // допуском в ПРОЦЕНТАХ. У 132 из 349 голых чисел
+            // есть линия-нуклид в полосе 0.5…1.0 ПШПВ — она
+            // ложится в пик краем, спутать её правдоподобно,
+            // а спор про неё МОЛЧИТ; худшее отношение выходов
+            // в этой полосе 53.1×. Отдельной строкой TODO.
+            // (Прежние «100 из 494» и «58.5×» посчитаны тем же
+            // растянутым окном и сняты.)
+        }
+
+        /// <summary>
+        /// Отказ словами, когда коэффициент по кривой не получен (05.09.2026).
+        /// ⛔ Не `BqCoeffOutOfRange` дословно: та строка кончается «Взято
+        /// сохранённое значение», а у выделения сохранённого значения нет вовсе.
+        /// Причины, кроме «за краем», сводятся к одной: кривая не даёт числа на
+        /// этой энергии (пустая кривая, неположительная эффективность).
+        /// </summary>
+        static string ActivityCurveRefusal(double energyKev, BecquerelCoefficient.LineResult coeff)
+        {
+            if (coeff.Problem == BecquerelCoefficient.LineProblem.OutOfRange)
+            {
+                return string.Format(CultureInfo.CurrentCulture, Resources.ActivityOutOfCurveRefused,
+                                     energyKev, coeff.CurveMin, coeff.CurveMax);
+            }
+
+            return string.Format(CultureInfo.CurrentCulture, Resources.ActivityNoEpsilonRefused, energyKev);
         }
 
         /// <summary>
@@ -888,10 +1032,26 @@ namespace BecquerelMonitor
         /// разрешение прибора — линии внутри одного пика неразличимы по
         /// положению в принципе (`S64`), и выбор между ними стоит числа.
         ///
+        /// ⛔ ОКНО ЗДЕСЬ В КЭВ, и это ИЗМЕРЕНО (встречная проверка 05.09.2026):
+        /// <c>SelectionFWHMinkev</c> приходит из
+        /// <c>EnergyResolutionCalculator</c> как разность энергий на полувысоте,
+        /// а <c>definition.Energy</c> — тоже кэВ. На сцене 0.25 кэВ/канал
+        /// приложение вернуло 28.18 кэВ при истинной ширине 28.26 кэВ = 113.03
+        /// канала, а подставная линия в полутора окнах ПО КЭВ (то есть внутри
+        /// канального окна, будь оно канальным) соперником НЕ засчиталась.
+        /// ⚠ Прежняя сцена проверки была ровно 1 кэВ = 1 канал и на этот вопрос
+        /// отвечала «сошлось» при любом ответе. ⛔ Не путать с
+        /// <c>Peak.FWHM</c>: та В КАНАЛАХ, и подставлять её сюда нельзя —
+        /// именно на этом ошиблись пробы `bqactivityprobe` и
+        /// `s109activityprobe`.
+        ///
         /// Цена считается по выходам: ε берётся по ЭНЕРГИИ ПИКА, а не линии
         /// (см. вызов <c>BecquerelCoefficient.TryForLine</c> выше), поэтому
-        /// подмена подписи меняет ровно множитель 1/I%. Проверено счётом на
-        /// корпусе: у всех 2138 пар с живой кривой ε обоих вариантов совпала.
+        /// подмена подписи меняет ровно множитель 1/I% — это следует из самого
+        /// вызова, а не из счёта. ⚠ Прежняя приписка «проверено счётом на
+        /// корпусе: у всех 2138 пар» СНЯТА: числа 2138 нет ни в одной выгрузке,
+        /// и повторить его не по чему. Пар «пик — соперник» на корпусе с
+        /// правильным окном — 549 (было 218 тем же прогоном с канальным).
         /// </summary>
         void ScanActivityRivals(Peak peak, SelectionAnalytics analytics)
         {
@@ -4267,9 +4427,14 @@ namespace BecquerelMonitor
                 // S96: строка «по какой подписи», предупреждение о споре под ней
                 // и отказ вместо числа. Отказ занимает место активности, поэтому
                 // подпись называется и тогда, когда числа нет вовсе.
+                //
+                // (05.09.2026) Отказ рисуется и при Lc = 0 — без фонового
+                // спектра Lc не считается вовсе, а отказ «фона нет» именно
+                // там и стоит. Число по-прежнему только при Lc > 0.
+                bool activityRefused = !string.IsNullOrEmpty(selection.ActivityRefusal);
                 bool activityLabelShown = !string.IsNullOrEmpty(selection.ActivityLabel)
-                                          && (activity > 0.0 || !string.IsNullOrEmpty(selection.ActivityRefusal));
-                if (Lc > 0 && activityLabelShown)
+                                          && ((Lc > 0 && activity > 0.0) || activityRefused);
+                if (activityLabelShown)
                 {
                     infopanel_height += 16;
                     if (selection.ActivityRivals > 0)
@@ -4277,7 +4442,7 @@ namespace BecquerelMonitor
                         infopanel_height += 16;
                     }
                 }
-                if (Lc > 0 && !string.IsNullOrEmpty(selection.ActivityRefusal))
+                if (activityRefused)
                 {
                     infopanel_height += 32;
                 }
@@ -4365,96 +4530,104 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Lq_counts, this.Font, Brushes.Black, r2);
                     g.DrawString(Lq.ToString(floatFormat), this.Font, Brushes.Black, r2, this.farFormat);
                     r2.Y += 16;
+                }
 
-                    // ⛔ S96. Беккерели ниже посчитаны по ВЫХОДУ ОДНОЙ ЛИНИИ, и
-                    // выбрал эту линию поиск пиков по одной близости энергии.
-                    // Без этих строк человек видит число и не видит допущения,
-                    // на котором оно стоит.
-                    //
-                    // (`A33`, указание Amber 01.09.2026) Стоит ВЫШЕ активностей,
-                    // которые объясняет, и занимает СТРОКУ ЦЕЛИКОМ, по центру:
-                    // подпись «from line:» слева и значение справа читались как
-                    // ещё одна пара «величина — число», хотя это заголовок к
-                    // трём строкам под ним, а не измерение.
-                    if (activityLabelShown)
+                // (05.09.2026) Подпись, спор и отказ рисуются и при Lc = 0: без
+                // фонового спектра Lc не считается, а отказ «фона нет» стоит именно
+                // там. Раньше весь блок лежал внутри `if (Lc > 0)`, и без фона панель
+                // про активность молчала. Число (ниже) по-прежнему только при Lc > 0.
+
+                // ⛔ S96. Беккерели ниже посчитаны по ВЫХОДУ ОДНОЙ ЛИНИИ, и
+                // выбрал эту линию поиск пиков по одной близости энергии.
+                // Без этих строк человек видит число и не видит допущения,
+                // на котором оно стоит.
+                //
+                // (`A33`, указание Amber 01.09.2026) Стоит ВЫШЕ активностей,
+                // которые объясняет, и занимает СТРОКУ ЦЕЛИКОМ, по центру:
+                // подпись «from line:» слева и значение справа читались как
+                // ещё одна пара «величина — число», хотя это заголовок к
+                // трём строкам под ним, а не измерение.
+                if (activityLabelShown)
+                {
+                    g.DrawString(selection.ActivityLabel + " " +
+                                 selection.ActivityLineKev.ToString(floatFormat) + " " +
+                                 Resources.kev + ", " +
+                                 // Не "n2": у подписи вроде «Pu-238» выход
+                                 // 0.0009 %, и округление до сотых показало
+                                 // бы «0.00 %» — то есть спрятало бы ровно
+                                 // тот случай, ради которого строка и
+                                 // заведена (S96: такая подпись даёт
+                                 // показанные 1.5·10^9 Бк).
+                                 selection.ActivityIntensity.ToString("g4") +
+                                 Resources.PercentCharacter,
+                                 this.Font, Brushes.Black, r2, this.centerFormat);
+                    r2.Y += 16;
+
+                    if (selection.ActivityRivals > 0)
                     {
-                        g.DrawString(selection.ActivityLabel + " " +
-                                     selection.ActivityLineKev.ToString(floatFormat) + " " +
-                                     Resources.kev + ", " +
-                                     // Не "n2": у подписи вроде «Pu-238» выход
-                                     // 0.0009 %, и округление до сотых показало
-                                     // бы «0.00 %» — то есть спрятало бы ровно
-                                     // тот случай, ради которого строка и
-                                     // заведена (S96: такая подпись даёт
-                                     // показанные 1.5·10^9 Бк).
-                                     selection.ActivityIntensity.ToString("g4") +
-                                     Resources.PercentCharacter,
-                                     this.Font, Brushes.Black, r2, this.centerFormat);
+                        g.DrawString(string.Format(CultureInfo.CurrentCulture,
+                                                   Resources.ActivityLabelDisputed,
+                                                   selection.ActivityRivals,
+                                                   selection.ActivityRivalFactor),
+                                     this.Font, Brushes.DarkOrange, r2, this.centerFormat);
                         r2.Y += 16;
-
-                        if (selection.ActivityRivals > 0)
-                        {
-                            g.DrawString(string.Format(CultureInfo.CurrentCulture,
-                                                       Resources.ActivityLabelDisputed,
-                                                       selection.ActivityRivals,
-                                                       selection.ActivityRivalFactor),
-                                         this.Font, Brushes.DarkOrange, r2, this.centerFormat);
-                            r2.Y += 16;
-                        }
                     }
+                }
 
-                    if (this.selectionFWHM > 0.0 && activity > 0.0)
+                if (Lc > 0 && this.selectionFWHM > 0.0 && activity > 0.0)
+                {
+                    if (net_counts < Lc)
                     {
-                        if (net_counts < Lc)
-                        {
-                            Brush brush = Brushes.DarkRed;
-                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityUpperLimit.ToString(floatFormat),
-                                this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
-
-                            g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat),
+                        Brush brush = Brushes.DarkRed;
+                        g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+                        g.DrawString("< " + activityUpperLimit.ToString(floatFormat),
                             this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
+                        r2.Y += 16;
 
-                            g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat),
-                                this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
-                        } 
-                        else
-                        {
-                            Brush brush = Brushes.Black;
-                            g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
-                            g.DrawString(activity.ToString(floatFormat) + " " + Resources.PlusMinus + activityError.ToString(floatFormat),
-                                this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
+                        g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+                        g.DrawString("< " + activityByMassUpperLimit.ToString(floatFormat),
+                        this.Font, brush, r2, this.farFormat);
+                        r2.Y += 16;
 
-                            g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
-                            g.DrawString(activityByMass.ToString(floatFormat) + " " + Resources.PlusMinus + activityByMassError.ToString(floatFormat),
+                        g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+                        g.DrawString("< " + activityByVolumeUpperLimit.ToString(floatFormat),
                             this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
-
-                            g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
-                            g.DrawString(activityByVolume.ToString(floatFormat) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat),
-                                this.Font, brush, r2, this.farFormat);
-                            r2.Y += 16;
-                        }
-                    }
-
-                    // ⛔ S96. Отказ вместо числа: подпись есть, кривая есть, а
-                    // считать по ней беккерели нельзя. Раньше активности просто
-                    // не появлялось, и это было неотличимо от «нет кривой».
-                    if (!string.IsNullOrEmpty(selection.ActivityRefusal))
+                        r2.Y += 16;
+                    } 
+                    else
                     {
-                        g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
-                        g.DrawString(Resources.ResultNoCoefficient, this.Font, Brushes.DarkRed, r2, this.farFormat);
+                        Brush brush = Brushes.Black;
+                        g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, brush, r2);
+                        g.DrawString(activity.ToString(floatFormat) + " " + Resources.PlusMinus + activityError.ToString(floatFormat),
+                            this.Font, brush, r2, this.farFormat);
                         r2.Y += 16;
-                        g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed, r2, this.centerFormat);
+
+                        g.DrawString(Resources.Activity + " " + Resources.Bqkg + ":", this.Font, brush, r2);
+                        g.DrawString(activityByMass.ToString(floatFormat) + " " + Resources.PlusMinus + activityByMassError.ToString(floatFormat),
+                        this.Font, brush, r2, this.farFormat);
+                        r2.Y += 16;
+
+                        g.DrawString(Resources.Activity + " " + Resources.Bql + ":", this.Font, brush, r2);
+                        g.DrawString(activityByVolume.ToString(floatFormat) + " " + Resources.PlusMinus + activityByVolumeError.ToString(floatFormat),
+                            this.Font, brush, r2, this.farFormat);
                         r2.Y += 16;
                     }
+                }
 
+                // ⛔ S96. Отказ вместо числа: подпись есть, кривая есть, а
+                // считать по ней беккерели нельзя. Раньше активности просто
+                // не появлялось, и это было неотличимо от «нет кривой».
+                if (!string.IsNullOrEmpty(selection.ActivityRefusal))
+                {
+                    g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
+                    g.DrawString(Resources.ResultNoCoefficient, this.Font, Brushes.DarkRed, r2, this.farFormat);
+                    r2.Y += 16;
+                    g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed, r2, this.centerFormat);
+                    r2.Y += 16;
+                }
+
+                if (Lc > 0 || activityLabelShown)
+                {
                     r2.Y += 6;
                 }
                 if (this.selectionFWHM > 0.0)

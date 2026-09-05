@@ -193,7 +193,327 @@ namespace BecquerelMonitor
                 }
             }
 
+            // Оба правила, которым нужен ВЕСЬ спектр целиком, стоят ПОСЛЕ
+            // сборки списка нарочно (`A196`, `A197`). Подпись участвует в
+            // разводе неразрешимых близнецов (`isNewPeak`), и если снимать её
+            // ПО ХОДУ, то менялся бы не только текст над пиком, но и то, какие
+            // пики вообще доедут до списка. Здесь же список пиков остаётся тем
+            // же, что и до правки, — меняются только надписи, и цену правки
+            // видно замером без примеси.
+            ConfirmLabels(peaks, energySpectrum, peakConfig, nuclideSet);
+
             return peaks;
+        }
+
+        /// <summary>
+        /// (`A196`) Энергия аннигиляционного кванта, кэВ — <c>m_e·c²</c>.
+        /// Число физическое, а не библиотечное: по нему ИЩЕТСЯ запись образа
+        /// аннигиляции в библиотеке, а энергия суммы берётся уже удвоением
+        /// НАЙДЕННОЙ записи — чтобы округление осталось библиотечным (511 → 1022),
+        /// а не спорило с ним на десятых долях.
+        /// </summary>
+        public const double AnnihilationKev = 510.99895;
+
+        /// <summary>
+        /// (`A197`) Выход, ниже которого линия ОДНА ЗА СЕБЯ НЕ ОТВЕЧАЕТ: чтобы
+        /// подписать ею пик, в спектре обязана быть видна ЕЩЁ ОДНА линия того же
+        /// имени — в процентах на распад родителя.
+        ///
+        /// ⛔ Зачем порог вообще, если правило звучит «у победителя должны быть
+        /// прочие линии». Потому что без порога оно снимает ЗАКОННЫЕ подписи:
+        /// развёртка по корпусу (129 спектров, поставочная библиотека, 1367
+        /// подписей) при окне подтверждения 0.5 ПШПВ даёт ИСТИНУ 562 против 572
+        /// — десять истинных подписей уходят, и среди них `Ac-228` 911.0 (выход
+        /// 25.8 %) в `AS80_Onyx` и `Tl-208` 2614.0 в `ASN3_Tile`. Яркая линия —
+        /// сама себе улика; подтверждения требует СЛАБАЯ.
+        ///
+        /// ⚠ ЧИСЛО ВЫБРАНО ПО ПОЛКЕ, А НЕ ПО ЛУЧШЕЙ ТОЧКЕ. Развёртка по порогу
+        /// (окно 0.5 ПШПВ; ИСТИНА / ФОН / ЛОЖЬ / приборные из 1522 пиков, база
+        /// 572 / 433 / 198 / 164):
+        ///
+        /// <code>
+        ///   порог, %   ИСТИНА   ФОН   ЛОЖЬ   приборн
+        ///      1        572     425   198      164
+        ///      2        572     421   189      164
+        ///      3        572     421   186      164
+        ///      5        572     413   186      164
+        ///      8        572     408   185      164
+        ///     10        572     405   185      144
+        ///     15        572     392   175      144
+        ///     20        570     384   175      144
+        /// </code>
+        ///
+        /// ЛОЖЬ стоит на 186 для любого порога от 3 до 5 и на 185 до 8 — ответ
+        /// в этой полосе не зависит от числа. Взято 5 %: середина полки, ИСТИНА
+        /// ещё цела с запасом (она держится до 15 %), приборные образы не
+        /// тронуты вовсе (их выход не проставлен, а те 20, у кого он есть,
+        /// начинают сниматься с 10 %).
+        /// </summary>
+        public const double LabelSelfConfirmYieldPercent = 5.0;
+
+        /// <summary>
+        /// (`A196`, `A197`) На сколько ПШПВ ПИКА линия может отстоять от него,
+        /// чтобы считаться УВИДЕННОЙ в спектре.
+        ///
+        /// ⛔ Это НЕ <see cref="MaximumLabelMissInFwhm"/> и одним числом их
+        /// делать нельзя, хотя оба меряют промах в ПШПВ. Там решается «этот ли
+        /// пик», и окно нарочно широкое: подпись всё равно достаётся ближайшей
+        /// линии, и лишняя ширина никого не пускает вперёд. Здесь решается
+        /// «видна ли улика», и широкое окно превращает улику в что угодно: у
+        /// сцинтиллятора с ПШПВ 49 кэВ на 700 кэВ окно 1.5 ПШПВ накрывает
+        /// ±73 кэВ, и пик 697.3 в `G1S24_Na22_P5` подтвердил бы линию 766.0 —
+        /// то есть уран в спектре натрия. При 0.5 ПШПВ (±24.5 кэВ) не
+        /// подтверждает.
+        /// </summary>
+        public const double ConfirmingLineMissInFwhm = 0.5;
+
+        /// <summary>
+        /// Полоса поиска пиков В КЭВ. Настройки задают её в кэВ, но финдер
+        /// переводит их в каналы и ОБРЕЗАЕТ по числу каналов спектра, поэтому у
+        /// спектра на 1024 канала с калибровкой до 1500 кэВ верх полосы 1500, а
+        /// не записанные в приборе 3000. Правилу подтверждения это знать
+        /// обязательно: требовать линию 2614 кэВ от спектра, который выше 1500
+        /// не смотрел, значило бы снять законную подпись за недостижимую улику.
+        /// </summary>
+        public static void SearchRangeKev(EnergySpectrum energySpectrum,
+                                          FWHMPeakDetectionMethodConfig peakConfig,
+                                          out double minKev, out double maxKev)
+        {
+            int lo, hi;
+            SearchRangeChannels(energySpectrum, peakConfig, out lo, out hi);
+            minKev = energySpectrum.EnergyCalibration.ChannelToEnergy(lo);
+            maxKev = energySpectrum.EnergyCalibration.ChannelToEnergy(hi);
+        }
+
+        /// <summary>
+        /// Та же полоса поиска, но В КАНАЛАХ — как её и строит финдер. Расчёт
+        /// здесь ОДИН на обоих читателей нарочно: разойдись они, и правило
+        /// подтверждения требовало бы улику из области, которую поиск не
+        /// смотрел (или наоборот прощало бы её отсутствие).
+        /// </summary>
+        static void SearchRangeChannels(EnergySpectrum energySpectrum,
+                                        FWHMPeakDetectionMethodConfig peakConfig,
+                                        out int minChannel, out int maxChannel)
+        {
+            EnergyCalibration cal = energySpectrum.EnergyCalibration;
+            int channels = energySpectrum.NumberOfChannels;
+            int lo = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Min_Range, maxChannels: channels));
+            int hi = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Max_Range, maxChannels: channels));
+            lo = Math.Max(0, Math.Min(channels - 1, lo));
+            hi = Math.Max(0, Math.Min(channels - 1, hi));
+            if (hi < lo)
+            {
+                int swap = lo;
+                lo = hi;
+                hi = swap;
+            }
+            minChannel = lo;
+            maxChannel = hi;
+        }
+
+        /// <summary>
+        /// ЧТО ПОДПИСЬ ЗНАЧИТ ДЛЯ ВСЕГО СПЕКТРА, а не для одного пика
+        /// (`A196`, `A197`, решение Amber 05.09.2026 — «Оба»).
+        ///
+        /// <see cref="MatchNuclide"/> судит пик в одиночку: линия достаточно
+        /// вероятна и лежит внутри пика — подпись её. Два дефекта этим не
+        /// берутся по построению, и оба измерены:
+        ///
+        ///  1. пик-СУММА двух аннигиляционных квантов (1022 кэВ) в спектрах
+        ///     Na-22 подписывался `Pa-234m` 1001.0 — промах 0.03…0.36 ПШПВ,
+        ///     выход 0.842 %, то есть РОВНО такой же, как у законных подписей
+        ///     той же линии в урановых пробах;
+        ///  2. снятая ложная подпись не исчезала, а ПЕРЕИМЕНОВЫВАЛАСЬ: из 24
+        ///     снятых плутониевых 19 пиков получили следующего по близости
+        ///     (`U-235` 145.0 — 14, `I-131` 364.0 — 5), и «уран» оказывался
+        ///     написан над спектром бария.
+        ///
+        /// Различает такие случаи только СОСТАВ ОСТАЛЬНОГО спектра, и здесь он
+        /// есть. Два правила, оба поверх уже собранного списка пиков:
+        /// приборная подпись суммы 511+511 (впереди нуклидных) и подтверждение
+        /// слабой линии ДРУГОЙ линией того же имени.
+        /// </summary>
+        void ConfirmLabels(List<Peak> peaks, EnergySpectrum energySpectrum,
+                           FWHMPeakDetectionMethodConfig peakConfig, NuclideSet nuclideSet)
+        {
+            if (peaks == null || peaks.Count == 0)
+            {
+                return;
+            }
+
+            EnergyCalibration cal = energySpectrum.EnergyCalibration;
+            double[] fwhmKev = new double[peaks.Count];
+            for (int i = 0; i < peaks.Count; i++)
+            {
+                fwhmKev[i] = FwhmKev(peaks[i], cal);
+            }
+
+            LabelAnnihilationSum(peaks, fwhmKev);
+
+            double rangeMin, rangeMax;
+            SearchRangeKev(energySpectrum, peakConfig, out rangeMin, out rangeMax);
+
+            for (int i = 0; i < peaks.Count; i++)
+            {
+                NuclideDefinition nd = peaks[i].Nuclide;
+                if (nd == null)
+                {
+                    continue;
+                }
+                // Выход НЕ ПРОСТАВЛЕН (0) — приборный образ или запись без
+                // паспорта; порогом он не судится ровно там же, где и в
+                // MatchNuclide (см. MinimumLabelYieldPercent).
+                if (!(nd.Intencity > 0.0))
+                {
+                    continue;
+                }
+                if (nd.Intencity >= LabelSelfConfirmYieldPercent)
+                {
+                    continue;
+                }
+                if (OwnLineSeen(nd, peaks, fwhmKev, i, rangeMin, rangeMax))
+                {
+                    continue;
+                }
+                peaks[i].Nuclide = null;
+            }
+
+            // Пик, оставшийся без подписи ЗДЕСЬ, обязан уйти из списка на тех же
+            // основаниях, на каких он не попал бы в него в CollectPeaks.
+            if (nuclideSet != null && nuclideSet.HideUnknownPeaks)
+            {
+                peaks.RemoveAll(p => p.Nuclide == null);
+            }
+        }
+
+        /// <summary>
+        /// Видна ли в спектре ЕЩЁ ОДНА линия того же имени.
+        ///
+        /// ⚠ Улика — ПИК ВОЗЛЕ ЛИНИИ, а не «пик, подписанный этим же нуклидом».
+        /// Разница измерена: требование чужой ПОДПИСИ рубит спор двух имён за
+        /// один пик задним числом (подтверждающая линия могла проиграть соседу
+        /// по промаху) и снимает 19 истинных подписей из 572 против нуля здесь.
+        ///
+        /// ⛔ «Своя линия» — запись библиотеки с ТЕМ ЖЕ ИМЕНЕМ. Не «тот же
+        /// элемент» и не «тот же ряд»: ряд подтверждал бы `Pa-234m` калием
+        /// через полкорпуса.
+        ///
+        /// Нуклид, у которого ДРУГИХ пригодных линий в полосе прибора нет
+        /// вовсе, подтверждать нечем — и он НЕ СУДИТСЯ (`Cs-137` 661.7,
+        /// `K-40` 1460.8, `Am-241` 59.5 в поставочной библиотеке именно таковы).
+        /// </summary>
+        bool OwnLineSeen(NuclideDefinition nuclide, List<Peak> peaks, double[] fwhmKev,
+                         int self, double rangeMin, double rangeMax)
+        {
+            bool anyOther = false;
+            foreach (NuclideDefinition other in this.nuclideDefinitions)
+            {
+                if (other == null || !other.Visible || other.Energy == 0.0) continue;
+                if (!string.Equals(other.Name, nuclide.Name, StringComparison.Ordinal)) continue;
+                if (Math.Abs(other.Energy - nuclide.Energy) < 1e-9) continue;
+                if (other.Intencity > 0.0 && other.Intencity < MinimumLabelYieldPercent) continue;
+                if (other.Energy < rangeMin || other.Energy > rangeMax) continue;
+
+                anyOther = true;
+                for (int j = 0; j < peaks.Count; j++)
+                {
+                    if (j == self || !(fwhmKev[j] > 0.0)) continue;
+                    if (Math.Abs(peaks[j].Energy - other.Energy) <= ConfirmingLineMissInFwhm * fwhmKev[j])
+                    {
+                        return true;
+                    }
+                }
+            }
+            return !anyOther;
+        }
+
+        /// <summary>
+        /// (`A196`) Пик на 1022 кэВ — это СУММА ДВУХ аннигиляционных квантов, а
+        /// не линия нуклида, и подписывается он образом аннигиляции.
+        ///
+        /// Три условия, и все три обязательны:
+        ///
+        ///  * в библиотеке есть запись образа аннигиляции (видимая, БЕЗ выхода,
+        ///    у энергии кванта). Имя берётся у неё, а не пишется здесь: своих
+        ///    имён линий у кода нет, и заводить строку для человека в обход
+        ///    ресурсов приложения нельзя;
+        ///  * в спектре есть сам пик 511 — без слагаемого суммы не бывает;
+        ///  * пик 511 ЗАМЕТНЕЕ пика 1022 (сравниваются SNR). Сумма — эффект
+        ///    второго порядка по загрузке, и обратное соотношение значило бы,
+        ///    что 1022 — что-то другое.
+        ///
+        /// Окно у обоих пиков узкое (<see cref="ConfirmingLineMissInFwhm"/>):
+        /// подпись перебивает нуклидную, и вставать она должна ровно на месте,
+        /// а не «где-то рядом». Мерено по корпусу: правило срабатывает на
+        /// четырёх спектрах Na-22 и НИ НА ОДНОМ другом — у трёх урановых проб с
+        /// законным `Pa-234m` 1001.0 пика 511 нет вовсе.
+        /// </summary>
+        void LabelAnnihilationSum(List<Peak> peaks, double[] fwhmKev)
+        {
+            NuclideDefinition annihilation = AnnihilationLine();
+            if (annihilation == null)
+            {
+                return;
+            }
+            double sumKev = 2.0 * annihilation.Energy;
+
+            int single = -1;
+            for (int i = 0; i < peaks.Count; i++)
+            {
+                if (!(fwhmKev[i] > 0.0)) continue;
+                if (Math.Abs(peaks[i].Energy - annihilation.Energy) > ConfirmingLineMissInFwhm * fwhmKev[i]) continue;
+                if (single < 0 || peaks[i].SNR > peaks[single].SNR) single = i;
+            }
+            if (single < 0)
+            {
+                return;
+            }
+
+            NuclideDefinition sum = null;
+            for (int i = 0; i < peaks.Count; i++)
+            {
+                if (i == single || !(fwhmKev[i] > 0.0)) continue;
+                if (Math.Abs(peaks[i].Energy - sumKev) > ConfirmingLineMissInFwhm * fwhmKev[i]) continue;
+                if (!(peaks[single].SNR > peaks[i].SNR)) continue;
+                if (sum == null)
+                {
+                    sum = new NuclideDefinition
+                    {
+                        Name = annihilation.Name,
+                        Energy = sumKev,
+                        HalfLife = annihilation.HalfLife,
+                        NuclideColor = annihilation.NuclideColor,
+                        Visible = true,
+                        Intencity = 0.0,
+                        Chain = annihilation.Chain,
+                        Sets = annihilation.Sets == null ? null : new HashSet<Guid>(annihilation.Sets)
+                    };
+                }
+                peaks[i].Nuclide = sum;
+            }
+        }
+
+        /// <summary>
+        /// Запись образа аннигиляции в библиотеке: видимая, БЕЗ проставленного
+        /// выхода (образ прибора, а не линия распада) и у энергии кванта.
+        /// Нет такой записи — правило суммы не работает вовсе: назвать пик
+        /// нечем, а назвать его нуклидом было бы тем самым дефектом.
+        /// </summary>
+        NuclideDefinition AnnihilationLine()
+        {
+            NuclideDefinition best = null;
+            double bestMiss = 2.0;
+            foreach (NuclideDefinition nd in this.nuclideDefinitions)
+            {
+                if (nd == null || !nd.Visible || nd.Intencity > 0.0) continue;
+                double miss = Math.Abs(nd.Energy - AnnihilationKev);
+                if (miss <= bestMiss)
+                {
+                    bestMiss = miss;
+                    best = nd;
+                }
+            }
+            return best;
         }
 
         /// <param name="netCounts">
@@ -401,16 +721,8 @@ namespace BecquerelMonitor
 
         FWHMPeakDetector.PeakFinder PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration)
         {
-            int min_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(peakConfig.Min_Range, maxChannels: energySpectrum.NumberOfChannels));
-            int max_range_ch = Convert.ToInt32(energySpectrum.EnergyCalibration.EnergyToChannel(peakConfig.Max_Range, maxChannels: energySpectrum.NumberOfChannels));
-            min_range_ch = Math.Max(0, Math.Min(energySpectrum.NumberOfChannels - 1, min_range_ch));
-            max_range_ch = Math.Max(0, Math.Min(energySpectrum.NumberOfChannels - 1, max_range_ch));
-            if (max_range_ch < min_range_ch)
-            {
-                int swap = min_range_ch;
-                min_range_ch = max_range_ch;
-                max_range_ch = swap;
-            }
+            int min_range_ch, max_range_ch;
+            SearchRangeChannels(energySpectrum, peakConfig, out min_range_ch, out max_range_ch);
 
             double fwhm_tol_min = ((double)peakConfig.Min_FWHM_Tol) / 100;
             double fwhm_tol_max = ((double)peakConfig.Max_FWHM_Tol) / 100;

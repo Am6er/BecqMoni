@@ -486,9 +486,6 @@
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>не определяются ({0})</value>
   </data>
-  <data name="FSARowsDidNotFit" xml:space="preserve">
-    <value>не поместилось строк: {0}</value>
-  </data>
   <data name="FSAChainMemberRow" xml:space="preserve">
     <value>{0} — ряд {1}</value>
   </data>
@@ -620,7 +617,7 @@
     <value>В файле N42 есть измерения класса {0}; они пропущены, потому что приложение ввозит только передние и фоновые спектры. Спектров ввезено: {1}.</value>
   </data>
   <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
-    <value>В файле N42 не прочитано время начала набора у {0} измерений (первое: {1}); вместо него подставлено текущее время. Остальное в спектре ввезено.</value>
+    <value>В файле N42 не прочитано время начала набора (таких измерений: {0}, первое: {1}); вместо него подставлено текущее время. Остальное в спектре ввезено.</value>
   </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>Энергетическая шкала в файле N42 задана полиномом {0}-го порядка, а приложение читает полиномы не выше четвёртого.</value>
@@ -1436,6 +1433,15 @@
   <data name="ActivityLowYieldRefused" xml:space="preserve">
     <value>выход линии ниже {0:0.#} % на распад: активность не показана</value>
   </data>
+  <data name="ActivityOutOfCurveRefused" xml:space="preserve">
+    <value>{0:0.##} кэВ вне кривой эффективности ({1:0.##}–{2:0.##} кэВ): активность не показана</value>
+  </data>
+  <data name="ActivityNoEpsilonRefused" xml:space="preserve">
+    <value>кривая эффективности не даёт значения на {0:0.##} кэВ: активность не показана</value>
+  </data>
+  <data name="ActivityNoBackgroundRefused" xml:space="preserve">
+    <value>фонового спектра нет: активность не показана</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>
@@ -2106,5 +2112,29 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="ERRObsCalWriteRejected" xml:space="preserve">
     <value>прибор отверг запись: {0}</value>
+  </data>
+  <data name="FSAReportNoSpectrum" xml:space="preserve">
+    <value>Спектр не выбран</value>
+  </data>
+  <data name="FSAReportRecalculating" xml:space="preserve">
+    <value>Пересчёт… строки ниже — от прежнего расчёта</value>
+  </data>
+  <data name="FSAReportTipCalculation" xml:space="preserve">
+    <value>Меняет расчёт: разложение пересчитывается.</value>
+  </data>
+  <data name="FSAReportTipGrouping" xml:space="preserve">
+    <value>Меняет только группировку строк и лент; ничего не пересчитывается.</value>
+  </data>
+  <data name="FSAReportTipParentsNeedNucBase" xml:space="preserve">
+    <value>Родительские нуклиды доступны только при составе из NucBase и включённом равновесии ряда.</value>
+  </data>
+  <data name="FSAReportTipParentsRefused" xml:space="preserve">
+    <value>Родительские нуклиды для этого результата недоступны: {0}</value>
+  </data>
+  <data name="FSAReportTipEquilibriumNeedsNucBase" xml:space="preserve">
+    <value>Равновесие ряда работает только при составе из NucBase: путь по меткам пиков о рядах распада не знает.</value>
+  </data>
+  <data name="FSAReportTipMatrixExtra" xml:space="preserve">
+    <value>При матрице отклика переключатель управляет только отдельной дополнительной компонентой; вклад, уже заложенный в матрицу, остаётся.</value>
   </data>
 </root>

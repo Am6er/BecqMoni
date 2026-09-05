@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Resources;
 using System.Text;
 using System.Threading;
 using System.Xml;
@@ -35,7 +36,15 @@ namespace N42RoundTripProbe
     ///   --mode=cases   — кладёт СОЧИНЁННЫЕ входы разбора калибровки (границы
     ///                    энергий, нечисло, порядок 5, пустые коэффициенты):
     ///                    их назначение — развести причины отказа (`A136`),
-    ///                    и они нарочно лежат ОТДЕЛЬНО от настоящих.
+    ///                    и они нарочно лежат ОТДЕЛЬНО от настоящих;
+    ///   --mode=il      — обход опкодов СОБРАННЫХ методов: чем читается число
+    ///                    и какие тексты зовутся (`A135`, `A158`);
+    ///   --mode=res     — что отвечает ResourceManager СОБРАННОЙ сборки на
+    ///                    названные ключи в обеих культурах (`A154`);
+    ///   --mode=specutils — тот же каталог ВТОРОЙ дверью приложения,
+    ///                    DocumentManager.ImportDocumentSpecUtils (`A175`):
+    ///                    у двух дверей одного файла разные соглашения, и
+    ///                    мерить надо обе.
     ///
     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
     /// AppUi.HasWindows == false и мерится ОТКАЗНАЯ половина всех дверей.
@@ -118,6 +127,8 @@ namespace N42RoundTripProbe
             if (mode == "import") return Import();
             if (mode == "cases") return Cases();
             if (mode == "il") return Il();
+            if (mode == "res") return Res();
+            if (mode == "specutils") return SpecUtils();
             Console.Error.WriteLine("неизвестный --mode: " + mode);
             return 2;
         }
@@ -683,6 +694,143 @@ namespace N42RoundTripProbe
             return 0;
         }
 
+        // ==================================================================
+        // ⛔ ВТОРАЯ ДВЕРЬ ТОГО ЖЕ ФАЙЛА — `DocumentManager.ImportDocumentSpecUtils`
+        //    (`A175`).
+        //
+        //    Один и тот же .n42 приложение умеет ввозить ДВУМЯ путями: своим
+        //    разбором (пункт меню «Import N42») и через SpecUtils (пункт
+        //    «Import spectrum file»). У них РАЗНЫЕ соглашения о калибровочных
+        //    измерениях, и до 05.09.2026 проба мерила только первый — то есть
+        //    половина поведения приложения на одних и тех же файлах не мерилась
+        //    ничем. Раздел ГОЛОСОВ здесь и есть измеряемая величина.
+        // ==================================================================
+        static int SpecUtils()
+        {
+            if (outDir == null)
+            {
+                Console.Error.WriteLine("нужен --out=<каталог с файлами спектров>");
+                return 2;
+            }
+            string[] files = Directory.GetFiles(outDir, "*.n42");
+            Array.Sort(files, StringComparer.Ordinal);
+
+            Console.WriteLine("=== ВВОЗ ЧЕРЕЗ SpecUtils КАТАЛОГА " + Path.GetFullPath(outDir) + " ===");
+            Console.WriteLine("  файлов: " + files.Length);
+            Console.WriteLine();
+
+            List<string> prints = new List<string>();
+            List<string> voices = new List<string>();
+            int ok = 0, failed = 0;
+
+            foreach (string f in files)
+            {
+                string name = Path.GetFileName(f);
+                DocEnergySpectrum doc = new DocEnergySpectrum();
+                string said = null;
+
+                TextWriter realErr = Console.Error;
+                StringWriter caught = new StringWriter();
+                Console.SetError(caught);
+                try
+                {
+                    DocumentManager.GetInstance().ImportDocumentSpecUtils(doc, f, 3600);
+                }
+                catch (Exception ex)
+                {
+                    said = ex.GetType().Name + ": " + Flat(ex.Message);
+                }
+                finally
+                {
+                    Console.SetError(realErr);
+                }
+                string spoken = Flat(caught.ToString()).Trim();
+
+                if (said == null)
+                {
+                    ok++;
+                    prints.Add(name + " | ВВЕЗЁН | " + Print(doc));
+                    voices.Add(name + " | ВВЕЗЁН | " + (spoken.Length == 0 ? "(молча)" : spoken));
+                }
+                else
+                {
+                    failed++;
+                    prints.Add(name + " | ОТКАЗ | " + Print(doc));
+                    voices.Add(name + " | ОТКАЗ | " + said
+                               + (spoken.Length == 0 ? "" : "   [сказано вслух: " + spoken + "]"));
+                }
+            }
+
+            Console.WriteLine("=== ПРИГОВОРЫ SpecUtils ===");
+            foreach (string p in prints)
+            {
+                int bar = p.IndexOf('|');
+                int bar2 = p.IndexOf('|', bar + 1);
+                Console.WriteLine(p.Substring(0, bar2).TrimEnd());
+            }
+            Console.WriteLine();
+            Console.WriteLine("=== СЛЕПОК SpecUtils ===");
+            foreach (string p in prints) Console.WriteLine(p);
+            Console.WriteLine();
+            Console.WriteLine("ВВЕЗЕНО: " + ok + "   ОТКАЗАНО: " + failed);
+            Console.WriteLine();
+            Console.WriteLine("=== ГОЛОСА SpecUtils ===");
+            foreach (string v in voices) Console.WriteLine(v);
+            return 0;
+        }
+
+        // ==================================================================
+        // ⛔ РЕСУРС ЧИТАЕТСЯ ИЗ СОБРАННОЙ СБОРКИ, А НЕ ИЗ `*.resx` (`A154`).
+        //
+        //    Между resx и человеком стоят компилятор ресурсов и сателлит
+        //    `ru\BecquerelMonitor.resources.dll`: строка, заведённая в resx и не
+        //    доехавшая до сборки, из файла выглядит целой. Спрашивается тот же
+        //    ResourceManager, каким пользуется само приложение.
+        //
+        //    Оба контроля обязательны: без ПОЛОЖИТЕЛЬНОГО (заведомо живой
+        //    ключ) ответ «ключа нет» значил бы «проба не нашла ресурсов
+        //    вовсе», без ОТРИЦАТЕЛЬНОГО (заведомо несуществующий) — «проба
+        //    отвечает „есть“ на что угодно».
+        // ==================================================================
+        static int Res()
+        {
+            Assembly app = typeof(DocumentManager).Assembly;
+            ResourceManager rm = new ResourceManager("BecquerelMonitor.Properties.Resources", app);
+            string[] keys =
+            {
+                "PeakFitChiTableScoreColumn",       // `A154`
+                "ERRSkippedMeasurementClassN42",    // `A160`
+                "ERRUnreadableStartDateTimeN42",    // `A157`, `A171`
+                "PeakFitChiTableChi2PerNdpColumn",  // положительный контроль
+                "ZZZ_NoSuchKeyAtAll"                // отрицательный контроль
+            };
+            string[] cultures = { "en-US", "ru-RU" };
+
+            Console.WriteLine("=== РЕСУРСЫ СОБРАННОЙ СБОРКИ ===");
+            Console.WriteLine("  " + app.Location);
+            foreach (string key in keys)
+            {
+                foreach (string c in cultures)
+                {
+                    string value;
+                    try
+                    {
+                        value = rm.GetString(key, new CultureInfo(c));
+                    }
+                    catch (Exception ex)
+                    {
+                        value = null;
+                        Console.WriteLine("  " + key + " | " + c + " | ОТКАЗ ЧТЕНИЯ: "
+                                          + ex.GetType().Name);
+                        continue;
+                    }
+                    Console.WriteLine("  " + key + " | " + c + " | "
+                                      + (value == null ? "(КЛЮЧА НЕТ)" : "«" + Flat(value) + "»"));
+                }
+            }
+            return 0;
+        }
+
         static string Print(DocEnergySpectrum doc)
         {
             try
@@ -721,6 +869,13 @@ namespace N42RoundTripProbe
                           Math.Abs((DateTime.Now - rd.StartTime).TotalMinutes) < 1.0
                           ? "ПОТЕРЯНО (сейчас)"
                           : rd.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
+                      // `A177`: ТРЕТЬЕ ПОЛЕ ВРЕМЕНИ. Соседние ввозы (GBS,
+                      //   SpecUtils) ставят EndTime = StartTime + время набора,
+                      //   а ввоз N42 не ставил его ВООБЩЕ — оставалось
+                      //   умолчание ResultData, то есть «сейчас». Печатается не
+                      //   сама дата, а СОШЛОСЬ ЛИ оно с началом плюс полное
+                      //   время: иначе два плеча различались бы по построению.
+                      .Append(", EndTime ").Append(EndTimeVerdict(rd, es))
                       .Append(", шкала ").Append(p == null
                           ? (es.EnergyCalibration == null ? "нет" : es.EnergyCalibration.GetType().Name)
                           : ("порядок " + p.PolynomialOrder + " " + Coeffs(p)));
@@ -741,6 +896,39 @@ namespace N42RoundTripProbe
             {
                 return "слепок не снялся: " + ex.GetType().Name + ": " + Flat(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Приговор полю <c>EndTime</c> (`A177`).
+        ///
+        /// ⛔ Печатается ПРИГОВОР, а не дата: у двух плеч «сейчас» разное по
+        /// построению, и посимвольная сверка слепков сломалась бы сама собой.
+        /// Три исхода и все три различимы:
+        ///   «НЕ ЗАПОЛНЕНО (сейчас)» — поле осталось умолчанием ResultData;
+        ///   «= начало + изм» — ровно соглашение соседей (GBS, SpecUtils);
+        ///   «РАСХОДИТСЯ на N с» — заполнено, но не тем.
+        /// </summary>
+        static string EndTimeVerdict(ResultData rd, EnergySpectrum es)
+        {
+            DateTime end = rd.EndTime;
+            double dueSeconds = es == null ? 0.0 : es.MeasurementTime;
+            DateTime due = rd.StartTime.AddSeconds(dueSeconds);
+            double off = Math.Abs((end - due).TotalSeconds);
+            // ⛔ «СЕЙЧАС» СУДИТСЯ ПЕРВЫМ, И ЭТО НЕ ПОРЯДОК ПО ВКУСУ. У НЕ
+            //    тронутого разбором документа StartTime = «сейчас», время
+            //    набора 0 и EndTime = «сейчас» — то есть равенство
+            //    «начало + изм» выполняется САМО СОБОЙ, и проверка, начатая с
+            //    него, отвечала бы «сошлось» на пустой документ. Поймано
+            //    замером 05.09.2026 на отказавших входах.
+            if (Math.Abs((DateTime.Now - end).TotalMinutes) < 1.0)
+            {
+                return "НЕ ЗАПОЛНЕНО (сейчас)";
+            }
+            if (off < 0.001)
+            {
+                return "= начало + изм";
+            }
+            return "РАСХОДИТСЯ на " + off.ToString("0.###", CultureInfo.InvariantCulture) + " с";
         }
 
         // ==================================================================
@@ -837,14 +1025,131 @@ namespace N42RoundTripProbe
             Write(Path.Combine(outDir, "case16_baddate.n42"),
                   Multi("case16", Meas("M1", "Foreground", "04/05/44 10:07:57 ص", Counts(0))));
 
-            // `A158`: ОТРИЦАТЕЛЬНЫЙ ОТСЧЁТ — положительный контроль культурного
-            //   чтения целых. У 41 культуры из 890 (замер 05.09.2026 на этой
-            //   машине) знак минуса НЕ «-»: например у sv-SE это U+2212. Под такой
-            //   культурой старый int.Parse на строке «-3» из файла отказывает, а
-            //   инвариантный читает. На положительных отсчётах разницы нет вовсе —
-            //   потому дефект и держался на данных, а не на разборе.
+            // `A158`: ОТРИЦАТЕЛЬНЫЙ ОТСЧЁТ.
+            //
+            // ⛔ ЭТО НЕ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, И ПРЕЖНИЙ ТЕКСТ ЗДЕСЬ ВРАЛ.
+            //    Он утверждал, что «у 41 культуры из 890 знак минуса НЕ дефис,
+            //    например у sv-SE это U+2212», — и это число снято в PowerShell 7,
+            //    то есть в .NET 8 с ICU. ПРИЛОЖЕНИЕ ЖИВЁТ В .NET Framework 4.8 с
+            //    NLS, и там таблица другая: перемерено 05.09.2026 пробой на самом
+            //    Framework — из 915 культур знак минуса НЕ дефис ни у ОДНОЙ, а
+            //    int.Parse("-3") без культуры не отказывает и не даёт иного
+            //    значения ни разу. Цена пяти мест int.Parse в этой среде РОВНО
+            //    НОЛЬ, и положительного контроля им не бывает вовсе; настоящая
+            //    цена есть только у double.Parse (413 культур из 915), и живёт
+            //    она в EnergyCalibration.CoefficientsToArray, у которого
+            //    читателей в дереве НОЛЬ.
+            //
+            //    Вход поэтому оставлен, но роль у него другая: он показывает, что
+            //    отрицательный отсчёт из файла оба плеча читают ОДИНАКОВО, то есть
+            //    правка ничего не сломала там, где могла бы.
             Write(Path.Combine(outDir, "case17_negcount.n42"),
                   Multi("case17", Meas("M1", "Foreground", "2026-09-05T12:00:00Z", NegCounts())));
+
+            // ==============================================================
+            // ⛔ ТРЕТИЙ РАЗБОР ФАЙЛА — `N42InstrumentData` (N42-2006, корень
+            //    «N42InstrumentData»). До 05.09.2026 у пробы НЕ БЫЛО НИ ОДНОГО
+            //    входа этого вида, а правки `A156` (время начала в оба поля) и
+            //    `A158` (отсчёты инвариантной культурой) его тоже касаются: обе
+            //    держались на исходнике и на IL, поведением их не мерил никто.
+            //    Разборов у приложения три (DocumentManager.GetN42Type), и
+            //    измеряться должны все три.
+            // ==============================================================
+            Write(Path.Combine(outDir, "case18_n42_2006.n42"), N42_2006("2026-09-05T12:00:00Z", 64));
+
+            // ⚠ ТОТ ЖЕ ФАЙЛ С НЕЧИТАЕМОЙ ДАТОЙ. Здесь `A157` НЕ РАБОТАЕТ и
+            //    работать не может: этот разбор зовёт XmlConvert.ToDateTime без
+            //    всякой обёртки, и негодная запись роняет ввоз ЦЕЛИКОМ — тогда как
+            //    разбор 2012 года в том же файле ввозит и говорит вслух. Вход
+            //    заведён затем, чтобы это расхождение соглашений было ИЗМЕРЕНО, а
+            //    не осталось замечанием: приговор ОТКАЗ обязан быть ОДИНАКОВ на
+            //    обоих плечах — строки на изменение списка ввозимого здесь нет.
+            Write(Path.Combine(outDir, "case19_2006_baddate.n42"), N42_2006("04/05/44 10:07:57 ص", 64));
+
+            // ⚠ ВХОД, У КОТОРОГО КАНАЛОВ БОЛЬШЕ, ЧЕМ У ДОКУМЕНТА, — тот же вид,
+            //    что `case9_rad_over` (`A152`), но для ТРЕТЬЕГО разбора. `A152`
+            //    починила только разбор RadiologicalInstrumentData; здесь число
+            //    каналов ФАЙЛА в спектр по-прежнему не записывается, и цикл
+            //    выходит за конец массива документа (8192 у пустого
+            //    DocEnergySpectrum, а ImportSpectrumWithEmptyConfig у агентской
+            //    сборки False). Строки на починку НЕТ — вход заведён затем, чтобы
+            //    остаток был ИЗМЕРЕН, а не записан замечанием; приговор ОТКАЗ
+            //    обязан быть одинаков на обоих плечах.
+            Write(Path.Combine(outDir, "case20_2006_over.n42"), N42_2006("2026-09-05T12:00:00Z", 9000));
+
+            // ==============================================================
+            // `A172`: ЧИСЛО КАНАЛОВ ФАЙЛА У РАЗБОРА 2006 ГОДА — контроли.
+            //
+            // ⛔ Одного входа на 9000 каналов мало: он показывает только, что
+            //    падения больше нет. Проверяется РАВЕНСТВО числа каналов
+            //    документа числу каналов файла, а оно обязано держаться и НИЖЕ
+            //    умолчания документа (8192), и ВЫШЕ него. Вход на 1024 канала
+            //    до правки не падал вовсе — он ложился в документ на 8192, и
+            //    каналы 1024…8191 оставались нулями молча: та же беда, что
+            //    закрыта `A152` у разбора RadiologicalInstrumentData, только
+            //    без исключения и потому невидимая.
+            // ==============================================================
+            Write(Path.Combine(outDir, "case21_2006_1024.n42"), N42_2006("2026-09-05T12:00:00Z", 1024));
+            Write(Path.Combine(outDir, "case22_2006_16384.n42"), N42_2006("2026-09-05T12:00:00Z", 16384));
+
+            // ⛔ ОБЪЯВЛЕННОЕ ЧИСЛО КАНАЛОВ НЕ РАВНО ФАКТИЧЕСКОМУ — только у
+            //    разбора RadiologicalInstrumentData, потому что только там оно
+            //    ОБЪЯВЛЕНО (атрибут NumberOfChannels). У формата 2006 года
+            //    (N42InstrumentData) такого поля НЕТ вовсе: число каналов там
+            //    равно числу разделённых пробелом чисел, и разойтись ему не с
+            //    чем — это свойство формата, а не недосмотр разбора.
+            //    Вход заведён положительным контролем к `A172`: проверка «кан
+            //    документа = кан файла» обязана на нём ОТКАЗАТЬ, а не пройти.
+            Write(Path.Combine(outDir, "case23_rad_declared.n42"), RadMismatch(9000, 64));
+
+            // `A177`: ФАЙЛ БЕЗ ВРЕМЕНИ НАЧАЛА. Положительный контроль к EndTime:
+            //   там, где начала нет, EndTime не может быть «начало + изм» с
+            //   настоящей датой, и проверка обязана это различать, а не
+            //   отвечать «сошлось» на что угодно.
+            Write(Path.Combine(outDir, "case24_nostart.n42"),
+                  Multi("case24", Meas("M1", "Foreground", "", Counts(0))));
+
+            // ==============================================================
+            // ⛔ ЖИВОЕ И ПОЛНОЕ ВРЕМЯ У РАЗБОРА RadiologicalInstrumentData —
+            //    ТРИ ВХОДА, И БЕЗ ВСЕХ ТРЁХ ПРОВЕРКА НИЧЕГО НЕ МЕРИТ.
+            //
+            //    Дефект: живое время файла клалось в поле ПОЛНОГО, а поле
+            //    живого оставалось нулём (слепок `case8_rad_many`: «изм 295,
+            //    живое 0»). Проверка «живое стало 295» на одном этом входе
+            //    прошла бы и у правки, которая просто ПРИСВАИВАЕТ обоим полям
+            //    одно и то же число, — то есть у правки, которая ничего не
+            //    разводит. Поэтому входа три:
+            //
+            //    case25 — живое и полное РАЗНЫЕ (295 и 300). Правка, которая
+            //             их не различает, здесь ОБЯЗАНА провалиться.
+            //    case26 — живого времени НЕТ ВОВСЕ. Правка, которая его
+            //             выдумывает (например, берёт полное), здесь ОБЯЗАНА
+            //             провалиться: из ничего время не берётся.
+            //    case27 — то же полное время, записанное как xs:duration
+            //             («PT300S»), а не голыми секундами. Извод Alpha Hound
+            //             пишет секунды, спецификация N42-2006 требует
+            //             xs:duration, и читатель обязан принять обе записи —
+            //             иначе «починка» работает только на сочинённом входе.
+            // ==============================================================
+            Write(Path.Combine(outDir, "case25_rad_realtime.n42"), RadWithRealTime(1024, "300"));
+            Write(Path.Combine(outDir, "case26_rad_nolive.n42"), RadWithoutLiveTime(1024));
+            Write(Path.Combine(outDir, "case27_rad_realtime_iso.n42"), RadWithRealTime(1024, "PT300S"));
+
+            // ⛔ ЭНЕРГИЙ МЕНЬШЕ, ЧЕМ ОТСЧЁТОВ, — ВТОРАЯ ПОЛОВИНА ТОЙ ЖЕ БЕДЫ,
+            //    что и `case23`. Там короток список ОТСЧЁТОВ, здесь — список
+            //    ЭНЕРГИЙ, а цикл разбора ходит по обоим одним и тем же
+            //    индексом. Без этого входа проверка «за край массива не
+            //    выходим» мерила бы ровно одну из двух дверей.
+            Write(Path.Combine(outDir, "case28_rad_shortener.n42"), RadShortEnergies(64, 10));
+
+            // ⛔ ПОЛУРАЗОБРАННЫЙ ДОКУМЕНТ У РАЗБОРА 2006 ГОДА. Файл со ВСЕМ
+            //    прочитанным спектром и ПУСТЫМ списком коэффициентов: отсчёты
+            //    ложатся в документ, и только потом бросается отказ (`A140`).
+            //    Снаружи это тот же вид, что `case23` у третьего разбора, —
+            //    отказ, после которого в документе лежат числа отказавшего
+            //    файла. Вход заведён затем, чтобы остаток был ИЗМЕРЕН.
+            Write(Path.Combine(outDir, "case29_2006_nocoeff.n42"),
+                  N42_2006("2026-09-05T12:00:00Z", 64).Replace("3.5 0.5", ""));
 
             Console.WriteLine("сочинённые входы положены в " + Path.GetFullPath(outDir));
             Console.WriteLine("⚠ Они СОЧИНЕНЫ и доказывают поведение РАЗБОРА, а не совместимость с приборами.");
@@ -923,6 +1228,56 @@ namespace N42RoundTripProbe
             return counts.ToString();
         }
 
+        /// <summary>
+        /// Файл N42-2006 с корнем <c>N42InstrumentData</c> — третий разбор
+        /// приложения (<c>Util.ImportFromN42(N42InstrumentData, …)</c>).
+        ///
+        /// Пространство имён взято у самой модели (<c>N42InstrumentData.Ns</c>),
+        /// а не переписано руками: разбор идёт XmlSerializer-ом, и чужое
+        /// пространство дало бы пустые поля вместо отказа. Времена — xs:duration
+        /// (их читает <c>N42Seconds</c>), шкала — двучлен.
+        ///
+        /// ⛔ НАКЛОН ШКАЛЫ 0.5 кэВ/канал, А НЕ 12.5, И ЭТО НЕ ВКУС. Этот разбор
+        /// НЕ записывает число каналов файла в спектр, поэтому
+        /// <c>CheckCalibration</c> зовётся с 8192 каналами документа, а у неё
+        /// есть верхний предел энергии: <c>prevEnrg >= 100000</c> — отказ. При
+        /// 12.5 кэВ/канал шкала переваливает за него на 8000-м канале, и вход
+        /// отказывал по ПОСТОРОННЕЙ причине, ничего не измеряя (поймано замером
+        /// 05.09.2026, первая же попытка).
+        /// </summary>
+        static string N42_2006(string startTime, int channels)
+        {
+            StringBuilder counts = new StringBuilder();
+            for (int i = 0; i < channels; i++)
+            {
+                if (i > 0) counts.Append(' ');
+                counts.Append((i % 7) + 1);
+            }
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+                 + "<N42InstrumentData xmlns=\"" + BecquerelMonitor.N42.N42InstrumentData.Ns + "\">\r\n"
+                 + "  <Measurement>\r\n"
+                 + "    <InstrumentInformation>\r\n"
+                 + "      <InstrumentType>Spectrometer</InstrumentType>\r\n"
+                 + "      <Manufacturer>PROBE</Manufacturer>\r\n"
+                 + "      <InstrumentModel>A156</InstrumentModel>\r\n"
+                 + "      <InstrumentID>2006</InstrumentID>\r\n"
+                 + "      <ProbeType>NaI</ProbeType>\r\n"
+                 + "    </InstrumentInformation>\r\n"
+                 + "    <Spectrum Type=\"PHA\">\r\n"
+                 + "      <StartTime>" + startTime + "</StartTime>\r\n"
+                 + "      <RealTime>PT300S</RealTime>\r\n"
+                 + "      <LiveTime>PT295S</LiveTime>\r\n"
+                 + "      <ChannelData>" + counts + "</ChannelData>\r\n"
+                 + "    </Spectrum>\r\n"
+                 + "  </Measurement>\r\n"
+                 + "  <Calibration Type=\"Energy\">\r\n"
+                 + "    <Equation Model=\"Polynomial\">\r\n"
+                 + "      <Coefficients>3.5 0.5</Coefficients>\r\n"
+                 + "    </Equation>\r\n"
+                 + "  </Calibration>\r\n"
+                 + "</N42InstrumentData>\r\n";
+        }
+
         static string Edges()
         {
             StringBuilder edges = new StringBuilder();
@@ -965,6 +1320,69 @@ namespace N42RoundTripProbe
         /// с ДРОБНОЙ частью нарочно: тем же входом мерится третье место
         /// культурно-зависимого разбора (`A142`, decimal.Parse).
         /// </summary>
+        /// <summary>
+        /// Вход <c>RadiologicalInstrumentData</c>, у которого ОБЪЯВЛЕННОЕ число
+        /// каналов не равно числу записанных отсчётов (`A172`, контроль).
+        ///
+        /// Разбор берёт длину массива у атрибута <c>NumberOfChannels</c>, а
+        /// отсчёты и энергии читает по индексу, — то есть при declared &gt; actual
+        /// он ОБЯЗАН отказать, а не молча обрезать или дописать нулями.
+        /// </summary>
+        static string RadMismatch(int declared, int actual)
+        {
+            string full = Rad(actual);
+            return full.Replace("NumberOfChannels=\"" + actual + "\"",
+                                "NumberOfChannels=\"" + declared + "\"");
+        }
+
+        /// <summary>
+        /// Тот же вход, но с ПОЛНЫМ временем набора рядом с живым.
+        ///
+        /// ⚠ Подмена строкой, а не второй сборкой файла, — нарочно: так
+        /// гарантировано, что от <c>Rad(n)</c> вход отличается РОВНО одним
+        /// элементом, и всякая разница в слепке приписывается ему одному.
+        /// ⛔ Подмена ПРОВЕРЯЕТСЯ: <c>Replace</c>, не нашедший образца,
+        /// молча вернул бы исходную строку, и вход мерил бы не то, что назван.
+        /// </summary>
+        static string RadWithRealTime(int n, string realTime)
+        {
+            string full = Rad(n);
+            string src = "        <LiveTime>295</LiveTime>\r\n";
+            if (!full.Contains(src)) throw new Exception("RadWithRealTime: образец не найден");
+            return full.Replace(src, src + "        <RealTime>" + realTime + "</RealTime>\r\n");
+        }
+
+        /// <summary>
+        /// Тот же вход БЕЗ элемента живого времени вовсе (контроль «не выдумывать»).
+        /// </summary>
+        static string RadWithoutLiveTime(int n)
+        {
+            string full = Rad(n);
+            string src = "        <LiveTime>295</LiveTime>\r\n";
+            if (!full.Contains(src)) throw new Exception("RadWithoutLiveTime: образец не найден");
+            return full.Replace(src, "");
+        }
+
+        /// <summary>
+        /// Тот же вход, у которого список ЭНЕРГИЙ короче списка отсчётов.
+        /// </summary>
+        static string RadShortEnergies(int n, int keep)
+        {
+            StringBuilder energies = new StringBuilder();
+            for (int i = 0; i < keep; i++)
+            {
+                double e = 5.0 + 0.5 * i + 1e-6 * i * i + 1e-11 * i * i * i + 1e-14 * i * i * i * i;
+                if (i > 0) energies.Append(' ');
+                energies.Append(e.ToString("0.######", CultureInfo.InvariantCulture));
+            }
+            string full = Rad(n);
+            int a = full.IndexOf("<ChannelEnergies>", StringComparison.Ordinal);
+            int b = full.IndexOf("</ChannelEnergies>", StringComparison.Ordinal);
+            if (a < 0 || b < 0) throw new Exception("RadShortEnergies: образец не найден");
+            a += "<ChannelEnergies>".Length;
+            return full.Substring(0, a) + energies + full.Substring(b);
+        }
+
         static string Rad(int n)
         {
             StringBuilder energies = new StringBuilder();
@@ -1024,7 +1442,29 @@ namespace N42RoundTripProbe
                 Walk(m);
                 Console.WriteLine();
             }
+
+            // ⛔ `A158`: ЧЕТЫРЕ МЕСТА ИЗ ШЕСТИ ЖИВУТ НЕ В `Util`, И ДО 05.09.2026
+            //    АРТЕФАКТА У НИХ НЕ БЫЛО ВОВСЕ. Обход выше касается только трёх
+            //    разборов `Util.ImportFromN42`, то есть двух мест; три `int.Parse`
+            //    в `ChannelData.SpectrumToArray` и один `double.Parse` в
+            //    `EnergyCalibration.CoefficientsToArray` держались на исходнике.
+            //    ⚠ У второго читателей в дереве НОЛЬ — поведением он не измерим
+            //    в принципе, и IL здесь единственная возможная приёмка.
+            WalkNamed(app, "BecquerelMonitor.N42.ChannelData", "SpectrumToArray");
+            WalkNamed(app, "BecquerelMonitor.N42.EnergyCalibration", "CoefficientsToArray");
             return 0;
+        }
+
+        static void WalkNamed(Assembly app, string typeName, string methodName)
+        {
+            string shortName = typeName.Substring(typeName.LastIndexOf('.') + 1);
+            Console.WriteLine("=== IL " + shortName + "." + methodName + "() ===");
+            Type t = app.GetType(typeName);
+            if (t == null) { Console.WriteLine("  ⛔ типа нет"); Console.WriteLine(); return; }
+            MethodInfo m = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+            if (m == null) { Console.WriteLine("  ⛔ метода нет"); Console.WriteLine(); return; }
+            Walk(m);
+            Console.WriteLine();
         }
 
         static void Walk(MethodInfo m)

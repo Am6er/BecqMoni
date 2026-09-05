@@ -32,6 +32,10 @@ namespace ResponseMatrixFormProbe
     ///    чтения называет себя, форма говорит «устарела: другое поколение», а
     ///    разбор заготавливает человеку сообщение с обоими номерами формата.
     ///    Положительный контроль — у годного файла разбор молчит.
+    /// 7. **Число историй от БЕДНОЙ матрицы не наследуется** (дефект найден
+    ///    05.09.2026 разбором `A122`): над файлом с 4000 историй поле ждёт
+    ///    штатное, а над файлом ГУЩЕ штатного — его число (`T36`). Штатное
+    ///    поля обязано совпадать с умолчанием `ResponseMatrixOptions` (`A39`).
     ///
     ///     responsematrixformprobe --geometry=X.in [--png=X.png]
     ///         [--nodes=N] [--histories=N] [--threads=N] [--target=%]
@@ -100,6 +104,7 @@ namespace ResponseMatrixFormProbe
 
             // Файла ещё нет — состояние «не посчитана».
             ResponseMatrixStore.Delete(config.Guid);
+            decimal nominal;
             using (var form = new ResponseMatrixForm(config))
             {
                 string state = TextOf(form, "stateLabel");
@@ -108,6 +113,18 @@ namespace ResponseMatrixFormProbe
                           && !Enabled(form, "saveButton");
                 Report(ok, "нет матрицы: «{0}», «Посчитать» доступна, «Сохранить» нет", Short(state));
                 bad += ok ? 0 : 1;
+
+                // ШТАТНОЕ ЧИСЛО ИСТОРИЙ — то, что стоит в поле, пока матрицы
+                // нет. Оно обязано совпадать с умолчанием `ResponseMatrixOptions`
+                // («два места, и оба обязаны совпадать», `A39`): расхождение
+                // здесь значило бы, что «Посчитать» из формы и счёт пробой дают
+                // матрицы разного усилия.
+                nominal = Histories(form);
+                int optionsDefault = new ResponseMatrixOptions().Histories;
+                bool same = nominal == optionsDefault;
+                Report(same, "штатных историй в поле {0:N0}, умолчание ResponseMatrixOptions {1:N0}",
+                       nominal, optionsDefault);
+                bad += same ? 0 : 1;
             }
 
             // Кладём годную матрицу и открываем снова.
@@ -134,7 +151,68 @@ namespace ResponseMatrixFormProbe
                 Report(ok, "годная матрица: «{0}», в подробностях {1} узлов (заказано {2}); первая строка: «{3}»",
                        Short(state), nodesInMatrix, options.NodeCount, Short(FirstLine(details)));
                 bad += ok ? 0 : 1;
+
+                // ОТПЕЧАТОК ТЕЛА В ПОДРОБНОСТЯХ (`A121`, решение Amber 05.09.2026):
+                // форма печатает первые 16 знаков SHA-256 строк — те же, что
+                // `Save` снял с записанных байтов. Хвост у свежего файла есть,
+                // значит слова «не записан» в подробностях быть не должно.
+                string head = (matrix.BodyFingerprint ?? "").Length >= 16
+                    ? matrix.BodyFingerprint.Substring(0, 16) : "";
+                bool printed = head.Length == 16 && details.Contains(head)
+                               && !details.Contains("не записан") && !details.Contains("not stored");
+                Report(printed, "отпечаток тела в подробностях: {0}… {1}", head,
+                       printed ? "есть и сходится с записанным" : "НЕТ или «не записан»");
+                bad += printed ? 0 : 1;
+
+                // ⛔ ЧИСЛО ИСТОРИЙ ОТ БЕДНОЙ МАТРИЦЫ НЕ НАСЛЕДУЕТСЯ (дефект
+                // найден 05.09.2026 разбором `A122`). Матрица выше посчитана
+                // 4000 историями — вдесятеро с лишним беднее штатного; прежде
+                // форма подставляла в поле её 4000, и «Пересчитать» повторяло
+                // бедный счёт молча. Ровно так `a6ac85bb` 04.09 получила 300 000
+                // при трёх соседях на 3 млн. Ждём в поле ШТАТНОЕ, а в
+                // подробностях — строку про унаследованное число и штатное.
+                decimal field = Histories(form);
+                bool raised = field == nominal
+                              && details.Contains(nominal.ToString("N0", CultureInfo.CurrentCulture))
+                              && details.Contains(options.Histories.ToString("N0", CultureInfo.CurrentCulture));
+                Report(raised, "матрица на {0:N0} историй: в поле {1:N0} (ждём штатные {2:N0}), подробности {3}",
+                       options.Histories, field, nominal,
+                       details.Contains(nominal.ToString("N0", CultureInfo.CurrentCulture))
+                           ? "называют штатное" : "штатное НЕ называют");
+                bad += raised ? 0 : 1;
             }
+
+            // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ НАСЛЕДОВАНИЯ: матрица, посчитанная ГУЩЕ
+            // штатного, наследуется по-прежнему (`T36` «посчитана гуще штатной —
+            // не понижать»). Без этой половины проверка выше прошла бы и на
+            // форме, которая просто всегда ставит умолчание. Файл делается из
+            // той же матрицы правкой числа историй в памяти: считать 5 млн
+            // историй ради поля формы незачем, а поле выставляется по
+            // `Options.Histories` файла, и клеймо пересчитывается, чтобы
+            // матрица осталась годной, а не просто читаемой.
+            int dense = (int)nominal + 2000000;
+            int lean = matrix.Histories;
+            matrix.Histories = dense;
+            matrix.Options.Histories = dense;
+            matrix.Stamp = ResponseMatrix.ComputeStamp(geometry, matrix.Options);
+            ResponseMatrixStore.Save(config.Guid, matrix);
+            using (var form = new ResponseMatrixForm(config))
+            {
+                decimal field = Histories(form);
+                string details = StringField(form, "detailsText");
+                bool kept = field == dense
+                            && TextOf(form, "stateLabel") == BecquerelMonitor.Properties.Resources.ResponseMatrixStateValid
+                            && !details.Contains("nominal") && !details.Contains("штатн");
+                Report(kept, "матрица на {0:N0} историй (гуще штатного): в поле {1:N0}, строки про штатное {2}",
+                       dense, field, details.Contains("nominal") || details.Contains("штатн") ? "ЕСТЬ" : "нет");
+                bad += kept ? 0 : 1;
+            }
+
+            // Возвращаем бедную матрицу на место: дальше сцена строится на ней.
+            matrix.Histories = lean;
+            matrix.Options.Histories = lean;
+            matrix.Stamp = ResponseMatrix.ComputeStamp(geometry, matrix.Options);
+            ResponseMatrixStore.Save(config.Guid, matrix);
 
             // Снимок раскладки — чтобы форму можно было посмотреть, не запуская
             // приложение целиком.
@@ -276,7 +354,7 @@ namespace ResponseMatrixFormProbe
             }
 
             // Главное: РАЗБОР говорит об этом человеку. Сообщение заготавливает
-            // `FsaOverlay` (окно показывает вид — открывать его там, где решение
+            // `FsaAnalysisSession` (окно показывает вид — открывать его там, где решение
             // принимается, нельзя: это середина отрисовки), и в нём обязаны
             // стоять ОБА номера формата, иначе оно ничему не учит.
             // ⚠ Свои жалобы разбор пишет в `Trace`, а `Launch` глушит любое
@@ -286,7 +364,7 @@ namespace ResponseMatrixFormProbe
             System.Diagnostics.Trace.Listeners.Add(
                 new System.Diagnostics.TextWriterTraceListener(Console.Error));
 
-            var overlay = new FsaOverlay();
+            var overlay = new FsaAnalysisSession();
             overlay.EnsureUpToDate(SceneOf(config), false);
             string notice = overlay.TakeResponseMatrixNotice() ?? "";
             bool told = overlay.ResponseMatrixOldFormat
@@ -299,7 +377,7 @@ namespace ResponseMatrixFormProbe
             // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: у ГОДНОГО файла ни пометки, ни
             // сообщения. Без него проверка выше прошла бы и на «говорит всегда».
             SetFileFormat(matrixPath, ResponseMatrix.FormatVersion);
-            var quiet = new FsaOverlay();
+            var quiet = new FsaAnalysisSession();
             quiet.EnsureUpToDate(SceneOf(config), false);
             bool silent = !quiet.ResponseMatrixOldFormat
                           && string.IsNullOrEmpty(quiet.TakeResponseMatrixNotice());
@@ -424,7 +502,7 @@ namespace ResponseMatrixFormProbe
         }
 
         /// <summary>
-        /// Наименьший спектр, на котором `FsaOverlay` доходит до решения о
+        /// Наименьший спектр, на котором `FsaAnalysisSession` доходит до решения о
         /// матрице: решение принимается ДО фонового счёта, поэтому содержимое
         /// спектра здесь неважно, а важна кривая с геометрией и включённым
         /// выключателем матрицы.
@@ -466,6 +544,13 @@ namespace ResponseMatrixFormProbe
         static string StringField(Form form, string fieldName)
         {
             return Field(form, fieldName) as string ?? "";
+        }
+
+        /// <summary>Значение поля «историй на узел» формы.</summary>
+        static decimal Histories(Form form)
+        {
+            var box = Field(form, "historiesBox") as NumericUpDown;
+            return box != null ? box.Value : -1m;
         }
 
         static string TextOf(Form form, string fieldName)

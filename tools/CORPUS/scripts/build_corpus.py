@@ -210,7 +210,12 @@ def nuclide_lines(nucid):
     if nucid in _NUC_CACHE:
         return _NUC_CACHE[nucid]
     c = sqlite3.connect(chains_db())
-    chains_warn_level_fallback(nucid, c)
+    if chains_warn_level_fallback(nucid, c):
+        # (`T93`) Признак ПРОЧИТАН, а не выброшен: он копится в
+        # `chains.level_fallback_hits()`, и приёмка `check_corpus.py`
+        # (`check_level_fallback`) роняет корпус, собранный на нём, кодом 1.
+        print(u'⚠ %s: линии взяты с СОСЕДНЕГО уровня родителя — приёмка '
+              u'check_corpus.py откажет (T93)' % nucid)
     rows = c.execute(
         "select energy_num, intensity_num from decay_radiations "
         "where parent_nucid = $n and type_a = 'G' and energy_num not null "

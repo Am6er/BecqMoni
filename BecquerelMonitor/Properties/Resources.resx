@@ -8532,9 +8532,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>not determined ({0})</value>
   </data>
-  <data name="FSARowsDidNotFit" xml:space="preserve">
-    <value>does not fit: {0} row(s)</value>
-  </data>
   <data name="FSAChainMemberRow" xml:space="preserve">
     <value>{0} — {1} chain</value>
   </data>
@@ -42811,6 +42808,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ActivityLowYieldRefused" xml:space="preserve">
     <value>line yield below {0:0.#} % per decay: activity not shown</value>
   </data>
+  <data name="ActivityOutOfCurveRefused" xml:space="preserve">
+    <value>{0:0.##} keV is outside the efficiency curve ({1:0.##} to {2:0.##} keV): activity not shown</value>
+  </data>
+  <data name="ActivityNoEpsilonRefused" xml:space="preserve">
+    <value>the efficiency curve gives no value at {0:0.##} keV: activity not shown</value>
+  </data>
+  <data name="ActivityNoBackgroundRefused" xml:space="preserve">
+    <value>no background spectrum: activity not shown</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
   </data>
@@ -43357,5 +43363,29 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="ERRObsCalWriteRejected" xml:space="preserve">
     <value>the device rejected the write: {0}</value>
+  </data>
+  <data name="FSAReportNoSpectrum" xml:space="preserve">
+    <value>No spectrum selected</value>
+  </data>
+  <data name="FSAReportRecalculating" xml:space="preserve">
+    <value>Recalculating… the rows below are from the previous calculation</value>
+  </data>
+  <data name="FSAReportTipCalculation" xml:space="preserve">
+    <value>Changes the calculation: the decomposition is recomputed.</value>
+  </data>
+  <data name="FSAReportTipGrouping" xml:space="preserve">
+    <value>Changes only how rows and bands are grouped; nothing is recomputed.</value>
+  </data>
+  <data name="FSAReportTipParentsNeedNucBase" xml:space="preserve">
+    <value>Parent nuclides are available only with the composition from NucBase and chain equilibrium on.</value>
+  </data>
+  <data name="FSAReportTipParentsRefused" xml:space="preserve">
+    <value>Parent nuclides are not available for this result: {0}</value>
+  </data>
+  <data name="FSAReportTipEquilibriumNeedsNucBase" xml:space="preserve">
+    <value>Chain equilibrium works only when the composition comes from NucBase; the peak-label path knows nothing about decay chains.</value>
+  </data>
+  <data name="FSAReportTipMatrixExtra" xml:space="preserve">
+    <value>With a response matrix this switch controls only the separate additional component; the contribution already inside the matrix stays.</value>
   </data>
 </root>

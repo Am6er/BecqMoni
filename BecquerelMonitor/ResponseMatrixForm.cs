@@ -111,6 +111,12 @@ namespace BecquerelMonitor
 
         void LoadExisting()
         {
+            // ⛔ ШТАТНОЕ ЧИСЛО ИСТОРИЙ СНИМАЕТСЯ С ПОЛЯ ДО ТОГО, КАК ЕГО ТРОНУТ.
+            // На входе сюда поле стоит на умолчании разметки (3 млн, `A39`), и
+            // это единственное место, где умолчание ещё известно: ниже поле
+            // перепишется тем, чем посчитана прежняя матрица.
+            decimal nominalHistories = this.historiesBox.Value;
+
             if (this.config == null || !this.config.HasGeometry)
             {
                 this.stateLabel.Text = Resources.ResponseMatrixNoGeometry;
@@ -182,7 +188,20 @@ namespace BecquerelMonitor
                 SetClamped(this.maxEnergyBox, (decimal)existing.Options.MaxEnergyKev);
                 SetClamped(this.nodesBox, existing.Options.NodeCount);
                 SetClamped(this.binBox, (decimal)existing.Options.BinKev);
-                SetClamped(this.historiesBox, existing.Options.Histories);
+
+                // ⛔ ИСТОРИЙ — НЕ НИЖЕ ШТАТНОГО. Число историй — УСИЛИЕ, а не
+                // содержание (так и сказано в `ComputeStamp` про цели останова),
+                // и наследовать его от УСТАРЕВШЕЙ матрицы значит повторять её
+                // шум. Найдено 05.09.2026 разбором `A122`: подъём умолчания до
+                // 3 млн (`A39`) не доехал до кнопки «Пересчитать» — форма
+                // подставляла 300 000 из прежнего файла, и `a6ac85bb` 04.09
+                // получила вдесятеро меньше трёх соседей, поднятых рукой.
+                // Границы, узлы и бин выше наследуются по-прежнему: они —
+                // содержание, другая сетка даёт другую матрицу и другое клеймо.
+                // Матрица, посчитанная ГУЩЕ штатного, тоже наследуется —
+                // правило `T36` «посчитана гуще штатной — не понижать».
+                SetClamped(this.historiesBox,
+                           Math.Max(existing.Options.Histories, nominalHistories));
             }
 
             // E18 (б). Матрица есть — она и выигрывает: поля обязаны повторять
@@ -190,7 +209,36 @@ namespace BecquerelMonitor
             // Но кривую с тех пор могли пересчитать в другом диапазоне, и это
             // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
             // ровно того сорта, из-за которого и заведена эта правка.
-            this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing));
+            this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing)
+                            + DescribeInheritedHistories(existing, nominalHistories));
+        }
+
+        /// <summary>
+        /// Строка о том, что прежняя матрица посчитана РЕЖЕ штатного числа
+        /// историй и поле поднято до штатного (`A122`). Пусто, когда матрица не
+        /// беднее штатной: «поднято до 3 000 000» у матрицы на 3 000 000
+        /// объясняло бы то, чего не происходило.
+        ///
+        /// ⚠ Текст ЗДЕСЬ, а не в `Resources.resx`: 05.09.2026 ресурсы правит
+        /// другая полоса, и общий файл трогать нельзя. Перенос в ресурсы —
+        /// отдельной строкой реестра; язык выбирается по культуре интерфейса,
+        /// как это делают сами ресурсы.
+        /// </summary>
+        static string DescribeInheritedHistories(ResponseMatrix matrix, decimal nominalHistories)
+        {
+            if (matrix == null || matrix.Options == null
+                || matrix.Options.Histories >= nominalHistories)
+            {
+                return "";
+            }
+
+            bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+                                    StringComparison.OrdinalIgnoreCase);
+            string format = ru
+                ? "Посчитана {0:N0} историями на узел при штатных {1:N0}; поле поднято до штатного"
+                : "Computed with {0:N0} histories per node, nominal is {1:N0}; field raised to nominal";
+            return Environment.NewLine + string.Format(CultureInfo.CurrentCulture, format,
+                                                       matrix.Options.Histories, nominalHistories);
         }
 
         static void SetClamped(NumericUpDown box, decimal value)
@@ -343,7 +391,43 @@ namespace BecquerelMonitor
                                  matrix.DataBytes / 1024.0,
                                  fileBytes / 1024.0,
                                  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
-                                 matrix.BuildSeconds);
+                                 matrix.BuildSeconds)
+                   + DescribeFingerprint(matrix);
+        }
+
+        /// <summary>
+        /// Строка про ОТПЕЧАТОК ТЕЛА (`A121`, решение Amber 05.09.2026): первые
+        /// 16 знаков SHA-256 строк матрицы — чтобы «те же числа» проверялось
+        /// глазами так же однострочно, как «то же клеймо» — версиями. Три
+        /// состояния: у файла до 05.09.2026 хвоста нет («не записан»); у
+        /// свежего — сходится; у правленого тела — НЕ СХОДИТСЯ, и это надо
+        /// видеть. У только что посчитанной и ещё не сохранённой матрицы
+        /// отпечатка нет вовсе — он снимается с байтов файла.
+        ///
+        /// ⚠ Текст здесь, а не в ресурсах, по той же причине, что у
+        /// <see cref="DescribeInheritedHistories"/>.
+        /// </summary>
+        static string DescribeFingerprint(ResponseMatrix matrix)
+        {
+            bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
+                                    StringComparison.OrdinalIgnoreCase);
+            string value;
+            if (matrix == null || string.IsNullOrEmpty(matrix.BodyFingerprint))
+            {
+                value = ru ? "нет (снимается с файла)" : "none (taken from the file)";
+            }
+            else
+            {
+                string head = matrix.BodyFingerprint.Substring(0, 16) + "…";
+                value = matrix.StoredBodyFingerprint == null
+                    ? head + (ru ? " (в файле не записан)" : " (not stored in the file)")
+                    : matrix.BodyFingerprintMatches
+                        ? head
+                        : head + (ru ? " ⚠ НЕ СХОДИТСЯ с записанным в файле"
+                                     : " ⚠ DOES NOT MATCH the one stored in the file");
+            }
+
+            return Environment.NewLine + (ru ? "Отпечаток тела: " : "Body fingerprint: ") + value;
         }
 
         // ⛔ (`A46`) ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ ВРЕМЕНИ БОЛЬШЕ НЕТ — решение Amber
@@ -493,6 +577,9 @@ namespace BecquerelMonitor
                 this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
                     Resources.ResponseMatrixSaved, ResponseMatrixStore.PathOf(this.config.Guid));
                 this.saveButton.Enabled = false;
+                // Отпечаток тела появляется при ЗАПИСИ (`A121`) — подробности
+                // после неё обязаны его показать, а не «нет».
+                this.SetDetails(this.Describe(this.computed));
             }
             catch (Exception ex)
             {

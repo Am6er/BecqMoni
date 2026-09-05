@@ -56,6 +56,55 @@ namespace BecquerelMonitor.Utils
         }
 
         /// <summary>
+        /// Почему коэффициент для отдельной линии НЕ получен. До 05.09.2026
+        /// <see cref="TryForLine"/> отвечал голым <c>false</c>, и на панели
+        /// выделения энергия за краем кривой была неотличима от «кривой нет
+        /// вовсе» (измерено `BqActivityProbe`: обе границы кривой — «молча
+        /// ничего»). На пути ЗОН ту же беду <see cref="Resolve"/> называла
+        /// причиной с самого начала; теперь причина есть у обоих путей.
+        /// </summary>
+        public enum LineProblem
+        {
+            /// <summary>Получен.</summary>
+            None,
+
+            /// <summary>Энергия или выход не положительны — считать не из чего.</summary>
+            NoInput,
+
+            /// <summary>
+            /// Кривой нет: конфигурации нет, либо в ней меньше двух годных точек
+            /// (<see cref="FsaEfficiency.FromConfig"/> отвечает null).
+            /// </summary>
+            NoCurve,
+
+            /// <summary>
+            /// Энергия за краем таблицы кривой; края лежат в
+            /// <see cref="LineResult.CurveMin"/> и <see cref="LineResult.CurveMax"/>.
+            /// </summary>
+            OutOfRange,
+
+            /// <summary>Кривая ответила, но неположительным числом.</summary>
+            NoEpsilon,
+        }
+
+        /// <summary>Ответ <see cref="ForLine"/>: коэффициент либо причина, почему его нет.</summary>
+        public struct LineResult
+        {
+            public double Value;
+            public double Error;
+            public LineProblem Problem;
+
+            /// <summary>Края таблицы кривой, кэВ; нули, когда кривой нет.</summary>
+            public double CurveMin;
+            public double CurveMax;
+
+            public bool Ok
+            {
+                get { return this.Problem == LineProblem.None; }
+            }
+        }
+
+        /// <summary>
         /// Коэффициент для ОТДЕЛЬНОЙ линии, не связанной с зоной: выделили
         /// область на спектре, в ней ровно один распознанный пик — активность
         /// считается по нему.
@@ -63,28 +112,69 @@ namespace BecquerelMonitor.Utils
         /// Отдельный вход нужен потому, что зоны здесь нет вовсе, а формула
         /// обязана быть одна: до этого в отрисовке лежала её третья по счёту
         /// копия, и разойтись им было нечем помешать.
+        ///
+        /// Отвечает ПРИЧИНОЙ, а не только отказом: у каждого <c>false</c>
+        /// прежнего <see cref="TryForLine"/> должен быть читатель, иначе панель
+        /// молчит (05.09.2026).
+        /// </summary>
+        public static LineResult ForLine(double energyKev, double intensityPercent,
+                                         EfficiencyConfigData efficiency)
+        {
+            LineResult result = new LineResult
+            {
+                Value = 0.0,
+                Error = 0.0,
+                Problem = LineProblem.None,
+                CurveMin = 0.0,
+                CurveMax = 0.0,
+            };
+
+            if (!(energyKev > 0.0) || !(intensityPercent > 0.0))
+            {
+                result.Problem = LineProblem.NoInput;
+                return result;
+            }
+
+            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency);
+            if (curve == null)
+            {
+                result.Problem = LineProblem.NoCurve;
+                return result;
+            }
+
+            result.CurveMin = curve.MinEnergy;
+            result.CurveMax = curve.MaxEnergy;
+            double eps, errorPercent;
+            if (!curve.TryEval(energyKev, out eps, out errorPercent))
+            {
+                result.Problem = LineProblem.OutOfRange;
+                return result;
+            }
+
+            if (!(eps > 0.0))
+            {
+                result.Problem = LineProblem.NoEpsilon;
+                return result;
+            }
+
+            result.Value = 100.0 / (eps * intensityPercent);
+            result.Error = result.Value * errorPercent / 100.0;
+            return result;
+        }
+
+        /// <summary>
+        /// Прежний вход: то же, что <see cref="ForLine"/>, но причина отказа
+        /// теряется. Оставлен для проб; в приложении читатель у него один —
+        /// панель выделения — и она переведена на <see cref="ForLine"/>.
         /// </summary>
         public static bool TryForLine(double energyKev, double intensityPercent,
                                       EfficiencyConfigData efficiency,
                                       out double value, out double error)
         {
-            value = 0.0;
-            error = 0.0;
-            if (!(energyKev > 0.0) || !(intensityPercent > 0.0))
-            {
-                return false;
-            }
-
-            FsaEfficiency curve = FsaEfficiency.FromConfig(efficiency);
-            double eps, errorPercent;
-            if (curve == null || !curve.TryEval(energyKev, out eps, out errorPercent) || !(eps > 0.0))
-            {
-                return false;
-            }
-
-            value = 100.0 / (eps * intensityPercent);
-            error = value * errorPercent / 100.0;
-            return true;
+            LineResult result = ForLine(energyKev, intensityPercent, efficiency);
+            value = result.Value;
+            error = result.Error;
+            return result.Ok;
         }
 
         /// <summary>

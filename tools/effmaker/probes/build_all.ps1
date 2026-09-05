@@ -1,5 +1,6 @@
 ﻿# Сборка ВСЕХ проб и харнесс-файлов effmaker — проверка, что ничего не
-# сломано молча (TODO T3). Проекта у проб нет нарочно (см. README); цена
+# сломано молча (решение и его история — в ЗАКРЫТОЙ `T3`, она в `DONE.md`,
+# не в `TODO.md`). Проекта у проб нет нарочно (см. README); цена
 # этого — компилятор молчит про файл, который перестал собираться, и проба
 # выглядит как «сегодня не гоняли». Этот скрипт — тот самый читатель
 # признака отказа: гонять после ЛЮБОГО удаления или переименования в
@@ -45,12 +46,23 @@
 # 26.08.2026 — `T77`).
 #
 # Из плана этот скрипт берёт СВОЮ долю: всё из `$Bin` (exe, конфиг, pdb, dll,
-# три базы, `runtimes\`, `ru\`), `<проба>.exe.config` каждой пробе (`T32`) и
-# ПОСТАВОЧНЫЙ `config\` (`NuclideDefinition.xml` + `BecquerelMonitor.xml`).
+# три базы, `runtimes\`, `ru\`), `<проба>.exe.config` каждой пробе (`T32`),
+# ПОСТАВОЧНЫЙ `config\` (`NuclideDefinition.xml` + `BecquerelMonitor.xml`) и —
+# по ключу плана `-ProbeCatalog` (`T149`, 05.09.2026) — поставочные
+# `config\device\*.xml` и `config\ROI\*.xml`: без первого каталога
+# `DeviceConfigManager` в безоконном прогоне бросает исключение, без второго
+# `ROIConfigManager` грузит ноль конфигураций (измерено на свежем `-Out`:
+# `FsaStampProbe` упала, `RoiLoadProbe`/`RoiSupplyProbe` вернули 2).
 # Приборы корпуса и матрицы отклика — оснастка КОРПУСА, сюда не едут; их
 # кладёт `mk_appwd.ps1`. Род файла, которого нет ни в одном из двух списков, —
 # ОТКАЗ, а не «пропустим»: значит план начал класть что-то новое, и здесь об
 # этом надо знать.
+#
+# ⚠ Свежий, ранее не существовавший `-Out` этим скриптом ОБСТАВЛЯЕТСЯ ЦЕЛИКОМ —
+# руками докладывать нечего (измерено 05.09.2026: `MaterialDbProbe` дошла до
+# данных, `FsaStampProbe`/`RoiLoadProbe`/`RoiSupplyProbe` прошли). Абзац `T45`
+# в `CLAUDE.md` («`build_all.ps1` копирует exe, три базы и `ru`, но НЕ зависимости
+# NuGet и не `runtimes\`») описывает сборку ДО 27.08.2026 и устарел.
 param(
     [string]$Bin = "",
     [string]$Out = ""
@@ -100,8 +112,13 @@ try { . $planFile } catch {
 # совпасть посимвольно. Сменили — падаем сразу и называем, что именно сменили.
 $contract = [ordered]@{
     # `S138`: `Store` — склад матриц ПЛЕЧА; пустой значит штатный склад корпуса.
-    'Get-AppWdPlan'      = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store')
-    'New-AppWdPlanOrDie' = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store')
+    # `T149`: `ProbeCatalog` — план для каталога проб: плюс поставочные
+    # `config\device` и `config\ROI`.
+    'Get-AppWdPlan'      = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store', 'ProbeCatalog')
+    'New-AppWdPlanOrDie' = @('Repo', 'Bin', 'Wd', 'ProbeBuild', 'Store', 'ProbeCatalog')
+    # `T89`: единственный перебор исходников проб — им компилирует этот скрипт,
+    # им же план отсеивает exe без исходника.
+    'Get-AppWdProbeSources' = @('Repo')
     'Invoke-AppWdPlan'   = @('Plan')
     'Get-AppWdExtra'     = @('Plan')
     'Test-AppWdPlan'     = @('Plan')
@@ -212,6 +229,8 @@ function Assert-GuardIsAlive {
         $fProbes = Join-Path $root 'probes'
         $fWd     = Join-Path $root 'wd'
         foreach ($d in @((Join-Path $fRepo 'BecquerelMonitor\config'),
+                         (Join-Path $fRepo 'BecquerelMonitor\config\device'),
+                         (Join-Path $fRepo 'BecquerelMonitor\config\ROI'),
                          (Join-Path $fRepo 'tools\effmaker\probes'),
                          $fBin, (Join-Path $fBin 'runtimes\win-x64\native'), (Join-Path $fBin 'ru'),
                          $fProbes, $fWd)) {
@@ -229,6 +248,10 @@ function Assert-GuardIsAlive {
                     ('<Nuclide/>' * $nucN) + '</NuclideDefinitions></NuclideDefinitionFile>')
         Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\BecquerelMonitor.xml') `
             -Value '<?xml version="1.0"?><GlobalConfigInfo/>'
+        # `T149`: план каталога проб кладёт и поставочные приборы с ROI —
+        # самопроверка гоняет РОВНО тот план, которым этот скрипт обставляет.
+        Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\device\podstava.xml') -Value '<DeviceConfigInfo/>'
+        Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\ROI\podstava.xml')    -Value '<ROIConfigData/>'
         Set-Content -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs') -Value '// podstava' -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'BecquerelMonitor.exe')        -Value 'app-podstava'     -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'BecquerelMonitor.exe.config') -Value '<configuration/>' -Encoding ascii
@@ -242,14 +265,23 @@ function Assert-GuardIsAlive {
         # «пробы старше своих исходников» и отрицательный контроль не сойдётся.
         (Get-Item -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs')).LastWriteTime = (Get-Date).AddHours(-1)
 
-        $p = Get-AppWdPlan -Repo $fRepo -Bin $fBin -Wd $fWd -ProbeBuild $fProbes
+        $p = Get-AppWdPlan -Repo $fRepo -Bin $fBin -Wd $fWd -ProbeBuild $fProbes -ProbeCatalog
         Invoke-AppWdPlan -Plan $p | Out-Null
+        # `T149`: оба поставочных подкаталога обязаны быть В ПЛАНЕ, иначе
+        # каталог проб снова останется без `config\device` и `config\ROI` —
+        # молча, как до 05.09.2026.
+        $why = @($p.Pairs | ForEach-Object { $_.Why })
+        foreach ($need in @('поставочный конфиг\device', 'поставочный конфиг\ROI')) {
+            if ($why -notcontains $need) {
+                $fail = "план с ключом -ProbeCatalog не содержит рода «$need» — каталог проб останется без него (T149)."
+            }
+        }
 
         # 1. ОТРИЦАТЕЛЬНЫЙ КОНТРОЛЬ: целая оснастка — ноль находок у всех троих.
         $n1 = @((Test-AppWdPlan    -Plan $p).Bad).Count
         $n2 = @((Test-AppWdBuild   -Plan $p).Bad).Count
         $n3 = @((Test-AppWdLibrary -Plan $p).Bad).Count
-        if ($n1 -or $n2 -or $n3) {
+        if (-not $fail -and ($n1 -or $n2 -or $n3)) {
             $fail = ("на ЦЕЛОЙ подставной оснастке сторож нашёл отказы: оснастка {0}, сборка {1}, библиотека {2} — должно быть 0/0/0." -f $n1, $n2, $n3) +
                     "`nСторож, который отказывает всегда, не отличает целый каталог от порченого."
         }
@@ -268,6 +300,16 @@ function Assert-GuardIsAlive {
             if ($m1 -lt 1 -or $m2 -lt 1 -or $m3 -lt 1) {
                 $fail = ("на ПОРЧЕНОЙ подставной оснастке сторож промолчал: оснастка {0}, сборка {1}, библиотека {2} — должно быть >=1 у каждой." -f $m1, $m2, $m3) +
                         "`nПодменены: база рядом с пробами, библиотека нуклидов (4 записи), приложение в каталоге проб."
+            }
+            # `T149`: подменённая поставочная ROI рядом с пробами — ОТДЕЛЬНАЯ
+            # находка сверх трёх прежних; иначе новый род файлов клался бы,
+            # но не сверялся.
+            if (-not $fail) {
+                Add-Content -LiteralPath (Join-Path $fWd 'config\ROI\podstava.xml') -Value 'porcha'
+                $m4 = @((Test-AppWdPlan -Plan $p).Bad).Count
+                if ($m4 -le $m1) {
+                    $fail = ("подменённая config\ROI\podstava.xml рядом с пробами не прибавила находок: было {0}, стало {1} (T149)." -f $m1, $m4)
+                }
             }
         }
     } catch {
@@ -315,14 +357,18 @@ $restored = @()
 # компиляции своей пробы либо сразу после восстановления.
 $keepDir = Join-Path ([IO.Path]::GetTempPath()) ("bq_build_all_keep_" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force $keepDir | Out-Null
-# ⛔ ЭТОТ ПЕРЕБОР ОБЯЗАН СОВПАСТЬ С `$probeSrc` ИЗ `Get-AppWdPlan` (`T83`).
-# Второго списка исходников быть не должно, но компилировать надо ДО того, как
-# план вообще можно построить (план требует уже собранных проб), — поэтому
-# перебор здесь остаётся, а расхождение с планом ловится ниже сверкой множеств
-# и валит прогон. Ключи `-File -Force` — те же, что у плана: без `-Force` скрытый
-# `.cs` попадал бы в план и не попадал в сборку.
-$sources = @(Get-ChildItem (Join-Path $repo 'tools\effmaker\*.cs') -File -Force -ErrorAction SilentlyContinue) +
-           @(Get-ChildItem (Join-Path $repo 'tools\effmaker\probes\*.cs') -File -Force -ErrorAction SilentlyContinue)
+# ⛔ ИСХОДНИКИ ПРОБ БЕРУТСЯ У ПЛАНА, ОДНОЙ ФУНКЦИЕЙ (`T89`, остаток `T83`;
+# 05.09.2026). Компилировать надо ДО того, как план вообще можно построить
+# (план требует уже собранных проб), и прежде здесь стоял СВОЙ перебор тех же
+# двух каталогов — вторая копия правила, которую следующая правка снова не
+# нашла бы. Теперь перебор один — `Get-AppWdProbeSources` в `appwd_plan.ps1`,
+# и `Get-AppWdPlan` берёт его оттуда же (ключи `-File -Force` — часть той
+# функции). Что функция ЕСТЬ, проверено контрактом выше; что она вернула не
+# пустоту — здесь: пустой список означал бы «собрать нечего» кодом 0.
+$sources = @(Get-AppWdProbeSources -Repo $repo)
+if ($sources.Count -eq 0) {
+    Deny-Guard "Get-AppWdProbeSources не вернула ни одного .cs — собирать нечего, а так не бывает (T89)"
+}
 
 # ДОВЕСКИ ВЫВОДЯТСЯ, А НЕ ПЕРЕЧИСЛЯЮТСЯ (`T57`, 23.08.2026). Файл без `Main` —
 # не проба, а общий кусок; такие идут довеском ко ВСЕМ пробам и сами не
@@ -452,7 +498,7 @@ if ($restored.Count) { $script:BuildBad += ("прежняя сборка воз�
 # него же, и `config\` приложение считает ОТ НЕГО
 # (`Package.MainConfig` при `IsStandAlone` = `config\BecquerelMonitor.xml`,
 # путь ОТНОСИТЕЛЬНЫЙ).
-$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Out -ProbeBuild $Out
+$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Out -ProbeBuild $Out -ProbeCatalog
 foreach ($field in @('Pairs', 'ProbeSources', 'Repo', 'Bin', 'Wd', 'ProbeBuild')) {
     if ($null -eq $plan.PSObject.Properties[$field]) {
         Deny-Guard "план вернулся без поля $field — это не план `Get-AppWdPlan`, а что-то другое"
@@ -460,11 +506,16 @@ foreach ($field in @('Pairs', 'ProbeSources', 'Repo', 'Bin', 'Wd', 'ProbeBuild')
 }
 if (@($plan.Pairs).Count -eq 0) { Deny-Guard "план пуст: класть рядом с пробами нечего, а так не бывает" }
 
-# ⛔ КОНТРАКТ ПО ИСХОДНИКАМ (`T83`). Один и тот же набор `.cs` нужен здесь (чем
-# компилировать) и плану (чем отсеять exe без исходника и чем судить о свежести
-# сборки). Списка два физически — в разных файлах, — поэтому их равенство
-# спрашивается механически, а не «по глазам»: расхождение валит прогон и
-# называет ОБЕ стороны поимённо.
+# ⛔ СВЕРКА МНОЖЕСТВ ИСХОДНИКОВ (`T83`; переосмыслена `T89`, 05.09.2026).
+# Прежде списка было два физически, и сверка была ПРИЁМКОЙ контракта между
+# ними. После `T89` обе стороны зовут одну функцию, и «два перебора разошлись»
+# она поймать уже не может — ловит она теперь ДРУГОЕ, и это измерено:
+#   * пробу, ПОЯВИВШУЮСЯ в дереве между компиляцией и планом (соседняя полоса
+#     завела `.cs` во время сборки — такое было 05.09.2026, полоса C12): у плана
+#     она есть, у сборщика нет, exe для неё не собран — код 3 с именем файла
+#     (мерено 05.09.2026 подложенным `.cs` во время компиляции);
+#   * возврат второго перебора, если кто-то заведёт его здесь заново.
+# Расхождение валит прогон и называет ОБЕ стороны поимённо.
 $planSrc = @($plan.ProbeSources | ForEach-Object { [IO.Path]::GetFullPath($_.FullName) })
 $mySrc   = @($sources           | ForEach-Object { [IO.Path]::GetFullPath($_.FullName) })
 $onlyPlan = @($planSrc | Where-Object { $mySrc   -notcontains $_ })
@@ -475,8 +526,9 @@ if ($onlyPlan.Count -or $onlyMine.Count) {
     foreach ($x in $onlyPlan) { Write-Host ("   есть у плана, нет у сборщика: {0}" -f $x) -ForegroundColor Red }
     foreach ($x in $onlyMine) { Write-Host ("   есть у сборщика, нет у плана: {0}" -f $x) -ForegroundColor Red }
     Write-Host ("   Сборщик: {0}" -f $PSCommandPath) -ForegroundColor Red
-    Write-Host ("   План:    {0} (Get-AppWdPlan, `$probeSrc)" -f $planFile) -ForegroundColor Red
-    Write-Host "   Один из двух перестал видеть пробу — собранное и сверенное это разные наборы." -ForegroundColor Red
+    Write-Host ("   План:    {0} (Get-AppWdPlan -> Get-AppWdProbeSources)" -f $planFile) -ForegroundColor Red
+    Write-Host "   Дерево изменилось между компиляцией и планом (или перебор снова задан дважды) —" -ForegroundColor Red
+    Write-Host "   собранное и сверенное это разные наборы. Повторите сборку." -ForegroundColor Red
     Write-Host ""
     Write-BuildFailBanner
     exit 3
@@ -485,7 +537,8 @@ if ($onlyPlan.Count -or $onlyMine.Count) {
 # Доля этого скрипта в плане. Род файла определяется полем `Why`, и род, которого
 # нет ни в одном из трёх списков, — ОТКАЗ: значит план начал класть что-то новое.
 $whyMine  = { $_.Why -eq 'сборка' -or $_.Why -like 'сборка\*' -or
-              $_.Why -eq 'exe.config пробы' -or $_.Why -eq 'поставочный конфиг' }
+              $_.Why -eq 'exe.config пробы' -or
+              $_.Why -eq 'поставочный конфиг' -or $_.Why -like 'поставочный конфиг\*' }
 $whyCorpus = @('прибор корпуса', 'матрица отклика')   # оснастка КОРПУСА, кладёт mk_appwd.ps1
 $whySelf   = 'проба'                                  # `$Out` и есть каталог проб: копия самой в себя
 $unknown = @($plan.Pairs |
@@ -518,9 +571,13 @@ $minePairs = @($plan.Pairs | Where-Object $whyMine)
 # строки дважды и говорит, что проверила две); `поставочный конфиг` — `T73`/`T77`
 # (без `NuclideDefinition.xml` проба ЗАВОДИТ СЕБЕ библиотеку из четырёх линий,
 # без `BecquerelMonitor.xml` `GlobalConfigManager.LoadConfigFile()` показывает
-# `MessageBox` безусловно, и безоконный прогон виснет насмерть).
+# `MessageBox` безусловно, и безоконный прогон виснет насмерть); `поставочный
+# конфиг\device` и `…\ROI` — `T149` (без каталога `config\device`
+# `DeviceConfigManager` без окон бросает исключение, без `config\ROI`
+# `ROIConfigManager` грузит ноль конфигураций).
 $haveWhy = @($plan.Pairs | ForEach-Object { $_.Why } | Sort-Object -Unique)
-$mustWhy = @('сборка', 'сборка\runtimes', 'сборка\ru', 'exe.config пробы', 'поставочный конфиг', 'проба')
+$mustWhy = @('сборка', 'сборка\runtimes', 'сборка\ru', 'exe.config пробы',
+             'поставочный конфиг', 'поставочный конфиг\device', 'поставочный конфиг\ROI', 'проба')
 $lostWhy = @($mustWhy | Where-Object { $_ -notin $haveWhy })
 if ($lostWhy.Count) {
     Write-Host ""
@@ -649,7 +706,7 @@ if (@($extra).Count -gt $extraLoad.Count) {
 }
 Write-Host ("сверено рядом с пробами: {0} файлов по sha256 с источником" -f $minePairs.Count)
 foreach ($g in ($minePairs | Group-Object Why | Sort-Object Name)) {
-    Write-Host ("    {0,-18} {1}" -f $g.Name, $g.Count)
+    Write-Host ("    {0,-26} {1}" -f $g.Name, $g.Count)
 }
 Write-Host ("  (сверять не с чем ещё у {0} проб и {1} посторонних: их источник — сам этот каталог)" -f
             $selfPairs.Count, $extraLoad.Count)

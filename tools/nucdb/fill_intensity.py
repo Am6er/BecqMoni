@@ -76,9 +76,21 @@ Cs-134, Ag-108m, плутоний), получает выход на собст�
     python fill_intensity.py <nucdb.sqlite> <NuclideDefinition.xml>
 """
 import io
+import os
 import re
 import sqlite3
 import sys
+
+# Зажим по уровню родителя в `decay_chain` — ОДНО правило на проект, и живёт
+# оно у приложения (`T78`). До 05.09.2026 здесь стояла своя копия `l_seqno = 0`,
+# и она была НЕ косметикой: изомер `234PAm1` лежит не на нулевом уровне, и
+# обход ряда U-238 обрывался на нём — 3 члена вместо 19 (`234U`, `230TH` и всё
+# ниже не достигались). На поставку это не влияло только потому, что записей
+# `U-234`/`Th-230` в `NuclideDefinition.xml` нет. Выражение читается через
+# `chains.py` корпуса, который берёт его из исходника приложения.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "CORPUS", "scripts"))
+from chains import CHAIN_LEVEL_CLAUSE, LEVEL_PARAM  # noqa: E402
 
 
 # Родители рядов: в каком порядке пробовать и как подписывать `Chain`.
@@ -127,8 +139,9 @@ def chain_factors(db, root):
         node = order.pop()
         share = reach[node]
         for daughter, perc in db.execute(
-                "select daughter_nucid, perc from decay_chain"
-                " where nucid = ? and l_seqno = 0", (node,)):
+                "select daughter_nucid, perc from decay_chain d"
+                " where nucid = $n and perc not null" + CHAIN_LEVEL_CLAUSE,
+                {LEVEL_PARAM: node}):
             if daughter is None or perc is None or daughter == node:
                 continue
             try:

@@ -84,19 +84,7 @@ def _level_clause(path=None):
     if not body:
         raise RuntimeError('в %s не найдено объявление const string LevelClause '
                            '— разметка сменилась, правило читать нечем (T74).' % path)
-    body = body.group(1)
-    # ⛔ Комментарий ВНУТРИ объявления ломает разбор, и это не выдумка: встречная
-    # проверка 26.08.2026 показала опытом, что строка вида
-    #     // тут уровень "родителя", а не дочернего
-    # перед первым литералом даёт `LEVEL_CLAUSE`, начинающийся словом `родителя` —
-    # то есть закавыченное слово из КОММЕНТАРИЯ попадает в SQL. Поэтому комментарии
-    # снимаются ДО поиска литералов, а не после (T74).
-    body = re.sub(r'//[^\n]*', '', body)
-    body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
-    if '\\' in body:
-        raise RuntimeError('в LevelClause появились escape-последовательности C#; '
-                           'простое склеивание литералов их не разберёт (T74).')
-    clause = ''.join(re.findall(r'"([^"]*)"', body))
+    clause = _sql_literals(body.group(1), 'LevelClause')
     for must in ('parent_l_seqno', 'coalesce', 'nuclides', '$' + LEVEL_PARAM):
         if must not in clause:
             raise RuntimeError('LevelClause разобран неправдоподобно (нет %r): %r' %
@@ -104,12 +92,127 @@ def _level_clause(path=None):
     return clause
 
 
+def _sql_literals(body, what):
+    """Склеить строковые литералы C# из тела объявления (`"…" + "…"`).
+
+    ⛔ Комментарий ВНУТРИ объявления ломает разбор, и это не выдумка: встречная
+    проверка 26.08.2026 показала опытом, что строка вида
+        // тут уровень "родителя", а не дочернего
+    перед первым литералом даёт выражение, начинающееся словом `родителя` —
+    то есть закавыченное слово из КОММЕНТАРИЯ попадает в SQL. Поэтому комментарии
+    снимаются ДО поиска литералов, а не после (T74).
+    """
+    body = re.sub(r'//[^\n]*', '', body)
+    body = re.sub(r'/\*.*?\*/', '', body, flags=re.S)
+    if '\\' in body:
+        raise RuntimeError('в %s появились escape-последовательности C#; простое '
+                           'склеивание литералов их не разберёт (T74).' % what)
+    return ''.join(re.findall(r'"([^"]*)"', body))
+
+
 #: Довесок к `where` для запроса к `decay_radiations`. Параметр родителя —
 #: `$n`, связывать словарём: ``{'n': nucid}``.
 LEVEL_CLAUSE = _level_clause()
 
+
+# ---------------------------------------------------------------------------
+# Зажим по уровню в `decay_chain`: тоже ОДНО правило, и тоже НЕ ЗДЕСЬ (`T78`)
+# ---------------------------------------------------------------------------
+# `LEVEL_CLAUSE` выше решает, чьи строки в `decay_radiations`. У обхода САМОЙ
+# цепочки вопрос свой: какая из строк `decay_chain` описывает физический
+# распад, а какая — тот же переход у ВОЗБУЖДЁННОГО уровня. Правило и на него
+# одно, но 26.08.2026 оно было переписано от руки ШЕСТЬЮ местами тремя
+# разными текстами:
+#
+#   A  min(l_seqno) по тройке (nucid, daughter, dec_type)
+#      — здесь, `FsaSampleLibrary.cs` (рёбра) и он же (глубина);
+#   B  то же, но минимум ищется среди строк С ЧИСЛОМ (`x.perc not null`)
+#      — `NucBaseFramework.cs`;
+#   C  `l_seqno = 0` — `CascadeAtomicData.cs` и `tools/nucdb/fill_intensity.py`.
+#
+# Измерено 05.09.2026 на всех 2535 родителях `decay_chain`: A и B дают один
+# набор дочек у ВСЕХ (0 расхождений — довесок `perc not null` на поставке
+# ничего не меняет), а C расходится с A у 551 родителя; глазами своего
+# потребителя (одна дочка с наибольшим `perc`, петли `daughter = nucid`
+# сняты) — у 39, и у 30 из них C дочки не находит ВОВСЕ, `234PAm1` среди них.
+# Ряд U-238 под C обрывается на `234PAm1` (3 члена вместо 19).
+#
+# Поэтому текст сюда не переписывается, а ЧИТАЕТСЯ у приложения — тем же
+# приёмом, что `LEVEL_CLAUSE`, с той же снятой ловушкой комментариев:
+#
+#   1) `DecayParentRule.ChainLevelClause`, когда он появится — единое место;
+#   2) пока его нет — живой текст `FsaSampleLibrary.cs`, и ВСЕ его вхождения
+#      обязаны совпасть между собой (с точностью до пробелов), иначе отказ.
+#
+# ⚠ Шаг 2 переходный и снимается вместе с правкой приложения по `T78`. Своей
+# копии выражения здесь нет ни в одном из шагов: разойтись с приложением молча
+# нечему, а если разметка сменится — импорт упадёт ВСЛУХ.
+# Путь к `FsaSampleLibrary.cs` переопределяется переменной `LFL_CHAIN_RULE_CS`.
+_CHAIN_CS = os.path.join(_SOLUTION, 'BecquerelMonitor', 'FullSpectrumAnalysis',
+                         'FsaSampleLibrary.cs')
+
+
+def _check_chain_clause(clause, where):
+    clause = ' '.join(clause.split())
+    if not clause.startswith('and ') or 'l_seqno' not in clause:
+        raise RuntimeError('зажим цепочки из %s разобран неправдоподобно: %r'
+                           % (where, clause))
+    for bad in ('?', ':', '@'):
+        if bad in clause:
+            raise RuntimeError('в зажиме цепочки из %s появился параметр %r — '
+                               'обход связывает только $%s словарём, связать этот '
+                               'нечем (T78): %r' % (where, bad, LEVEL_PARAM, clause))
+    return ' ' + clause
+
+
+def _chain_level_clause(rule_path=None, lib_path=None):
+    """Довесок к `where` обхода `decay_chain`, взятый у приложения."""
+    rule_path = rule_path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    lib_path = lib_path or os.environ.get('LFL_CHAIN_RULE_CS') or _CHAIN_CS
+    if os.path.isfile(rule_path):
+        with io.open(rule_path, encoding='utf-8-sig') as handle:
+            body = re.search(r'const\s+string\s+ChainLevelClause\s*=(.*?);',
+                             handle.read(), re.S)
+        if body:
+            return _check_chain_clause(
+                _sql_literals(body.group(1), 'ChainLevelClause'), rule_path)
+    if not os.path.isfile(lib_path):
+        raise RuntimeError(
+            'не найден источник зажима цепочки: ни ChainLevelClause в %s, ни %s. '
+            'Переписывать выражение здесь нельзя (T78); путь переопределяется '
+            'переменной LFL_CHAIN_RULE_CS.' % (rule_path, lib_path))
+    with io.open(lib_path, encoding='utf-8-sig') as handle:
+        text = handle.read()
+    found = []
+    for body in re.findall(r'CommandText\s*=(.*?);', text, re.S):
+        sql = _sql_literals(body, 'CommandText из %s' % os.path.basename(lib_path))
+        if 'from decay_chain' not in sql:
+            continue
+        head = re.search(r'\s+and\s+l_seqno\s*=', sql)
+        if not head:
+            raise RuntimeError('в %s обход decay_chain идёт БЕЗ зажима по уровню: '
+                               '%r. Читать нечего (T78).' % (lib_path, sql))
+        found.append(' '.join(sql[head.start():].split()))
+    if not found:
+        raise RuntimeError('в %s не найдено ни одного запроса к decay_chain — '
+                           'разметка сменилась, зажим читать нечем (T78).' % lib_path)
+    if len(set(found)) != 1:
+        raise RuntimeError('копии зажима цепочки в %s разошлись между собой '
+                           '(%d разных текстов на %d вхождений): %r. Правило одно, '
+                           'и выбрать за приложение здесь нельзя (T78).'
+                           % (lib_path, len(set(found)), len(found), sorted(set(found))))
+    return _check_chain_clause(found[0], lib_path)
+
+
+#: Довесок к `where` для обхода `decay_chain`. Имя родителя, если выражение
+#: его упоминает, — `$n`, связывать словарём: ``{'n': nucid}``.
+CHAIN_LEVEL_CLAUSE = _chain_level_clause()
+
 _FALLBACK_CACHE = []
 _FALLBACK_SAID = set()
+#: (`T93`) Родители, у которых запасная ветвь СРАБОТАЛА в этом процессе —
+#: то есть чей набор линий уже собран на строках соседнего состояния.
+_FALLBACK_HIT = set()
 
 
 def level_fallback_nucids(c):
@@ -134,14 +237,34 @@ def level_fallback_nucids(c):
 
 def warn_level_fallback(nucid, c):
     """Сказать ВСЛУХ, что родителю достался чужой уровень — как это делает
-    `DecayReadersProbe`. Молчать нельзя: подмена набора иначе невидима."""
-    if nucid in _FALLBACK_SAID or nucid not in level_fallback_nucids(c):
-        return
-    _FALLBACK_SAID.add(nucid)
-    sys.stderr.write(
-        '  ⚠ ЗАПАСНАЯ ВЕТВЬ %s: nuclides.l_seqno в decay_radiations не '
-        'встречается, взят самый нижний уровень — строки СОСЕДНЕГО состояния\n'
-        % nucid)
+    `DecayReadersProbe`. Молчать нельзя: подмена набора иначе невидима.
+
+    Возвращает True, если у `nucid` сработала запасная ветвь (и запоминает его
+    в `level_fallback_hits()`), иначе False. (`T93`) До 05.09.2026 функция не
+    возвращала ничего, и единственный признак «набор собран на строках
+    соседнего состояния» терялся на всех трёх путях конвейера; теперь его
+    читает `check_corpus.check_level_fallback` и он роняет приёмку.
+    """
+    if nucid not in level_fallback_nucids(c):
+        return False
+    _FALLBACK_HIT.add(nucid)
+    if nucid not in _FALLBACK_SAID:
+        _FALLBACK_SAID.add(nucid)
+        sys.stderr.write(
+            '  ⚠ ЗАПАСНАЯ ВЕТВЬ %s: nuclides.l_seqno в decay_radiations не '
+            'встречается, взят самый нижний уровень — строки СОСЕДНЕГО состояния\n'
+            % nucid)
+    return True
+
+
+def level_fallback_hits():
+    """(`T93`) Родители, у которых запасная ветвь СРАБОТАЛА с начала процесса
+    (или с последнего `reset_level_fallback_hits()`), по имени."""
+    return sorted(_FALLBACK_HIT)
+
+
+def reset_level_fallback_hits():
+    _FALLBACK_HIT.clear()
 
 
 def conn():
@@ -171,11 +294,12 @@ def chain_branches(root, c, min_fraction=1e-6):
         # present is the physical decay. Rows with a higher l_seqno duplicate the
         # transition with branching of an excited level (212BI: 35.94% at 0,
         # 67% at 5) and must not be followed.
+        # ⛔ Само выражение зажима сюда НЕ переписано: оно одно на проект и
+        # читается у приложения — `CHAIN_LEVEL_CLAUSE` (`T78`), см. выше.
         rows = c.execute(
-            "select daughter_nucid, perc from decay_chain d where nucid = ? and perc not null "
-            "and l_seqno = (select min(l_seqno) from decay_chain x where x.nucid = d.nucid "
-            "               and x.daughter_nucid = d.daughter_nucid and x.dec_type = d.dec_type)",
-            (cur,)).fetchall()
+            "select daughter_nucid, perc from decay_chain d "
+            "where nucid = $n and perc not null" + CHAIN_LEVEL_CLAUSE,
+            {LEVEL_PARAM: cur}).fetchall()
         for daughter, perc in rows:
             if daughter == cur:
                 continue                      # 238U l_seqno-119 self loop
@@ -267,6 +391,7 @@ if __name__ == '__main__':
     _fb = level_fallback_nucids(_c)
     _c.close()
     print('правило родителя прочитано из %s' % _RULE_CS)
+    print('зажим цепочки: %r' % CHAIN_LEVEL_CLAUSE)
     print('запасная ветвь сработает у %d родителей: %s' %
           (len(_fb), ', '.join(_fb) if _fb else '—'))
     print()
@@ -288,3 +413,10 @@ if __name__ == '__main__':
             near = [r for r in lines if abs(r['energy'] - a) < 3.0]
             print('    anchor %.2f -> %s' % (a, near[0]['name'] if near else 'NOT FOUND'))
         print()
+    # (`T93`) Признак обязан дойти до кода возврата: член какого-то из рядов
+    # выше собран на строках соседнего состояния — это отказ, а не заметка.
+    _hit = level_fallback_hits()
+    if _hit:
+        print('⛔ ЗАПАСНАЯ ВЕТВЬ у членов рядов: %s' % ', '.join(_hit))
+        sys.exit(1)
+    print('запасная ветвь у членов рядов не сработала')

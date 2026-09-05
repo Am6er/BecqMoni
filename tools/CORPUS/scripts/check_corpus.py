@@ -286,6 +286,76 @@ def check_composition():
     return True
 
 
+def check_level_fallback():
+    """`T93`: ни один спектр корпуса не должен стоять на ЗАПАСНОЙ ветви правила
+    родителя.
+
+    Правило `DecayParentRule.LevelClause` зажимает строки `decay_radiations` по
+    СВОЕМУ уровню родителя (`nuclides.l_seqno`), а если строк этого уровня в
+    поставке нет — берёт самый нижний уровень, то есть строки СОСЕДНЕГО
+    состояния. Это подмена набора линий, и до 05.09.2026 её единственный
+    признак (`chains.warn_level_fallback`) писал в `stderr`, ничего не
+    возвращал и не был в состоянии уронить ни один прогон.
+
+    Здесь он читается ДВАЖДЫ, и оба чтения обязаны сойтись: (1) по именам —
+    какие спектры несут линии таких родителей, тем же `sample_lines`, которым
+    собирается корпус (своей копии состава образца здесь нет); (2) по реестру
+    `chains.level_fallback_hits()`, который наполняется теми же вызовами.
+    Признак, сработавший без спектра, — тоже отказ: значит, сопоставление
+    имён сломано и сторож ослеп.
+
+    Это ОТКАЗ и входит в код возврата: корпус, собранный на чужом уровне,
+    называет себя собранным по правилу и выглядит при этом настоящим.
+    """
+    import chains
+    print('\n== запасная ветвь правила родителя (T93) ==')
+    c = chains.conn()
+    fallback = chains.level_fallback_nucids(c)
+    c.close()
+    print('  база: %s' % chains.DB)
+    print('  родителей с запасной ветвью в базе: %d%s'
+          % (len(fallback), (' — ' + ', '.join(fallback)) if fallback else ''))
+    if not fallback:
+        print('  СОШЛОСЬ: запасная ветвь не нужна никому')
+        return True
+
+    by_name = dict((chains.pretty(n), n) for n in fallback)
+    chains.reset_level_fallback_hits()
+    bad, memo = [], {}
+    for e in corpus_def.ALL:
+        key = (tuple(e.get('chains') or []), tuple(e.get('nuclides') or []),
+               e.get('extra'))
+        if key not in memo:
+            hit = set()
+            for _, _, name in build_corpus.sample_lines(e):
+                token = name.split(' (', 1)[0]
+                if token.endswith(' room'):
+                    token = token[:-5]
+                if token in by_name:
+                    hit.add(by_name[token])
+            memo[key] = sorted(hit)
+        if memo[key]:
+            bad.append((e['key'], memo[key]))
+    hits = chains.level_fallback_hits()
+    print('  спектров с линиями таких родителей: %d из %d; признак сработал у: %s'
+          % (len(bad), len(corpus_def.ALL), ', '.join(hits) or '—'))
+    if not bad and not hits:
+        print('  СОШЛОСЬ')
+        return True
+    if not bad:
+        print('  ⛔ ОТКАЗ: признак сработал (%s), но ни к одному спектру не '
+              'отнесён — сопоставление имён сломано, сторож слеп' % ', '.join(hits))
+        return False
+    print('  ⛔ ОТКАЗ: %d спектров собраны на строках СОСЕДНЕГО состояния родителя'
+          % len(bad))
+    for key, nucs in bad:
+        print('    %-24s %s' % (key, ', '.join('%s (%s)' % (chains.pretty(n), n)
+                                                for n in nucs)))
+    print('     это подмена набора линий, а не «числа сдвинутся»: либо уровень')
+    print('     родителя в `nuclides.l_seqno` неверен, либо в поставке нет его строк')
+    return False
+
+
 #: Guid узла привязки — по нему разбор ИЩЕТ ФАЙЛ МАТРИЦЫ.
 EFF_NODE_GUID = re.compile(r'<Efficiency>\s*<Guid>([^<]*)</Guid>')
 
@@ -654,6 +724,9 @@ def main():
     # но по умолчанию сторож ВКЛЮЧЁН: выключенный по умолчанию сторож не сторож.
     if '--no-fwhm-node' not in sys.argv:
         ok &= check_fwhm_node()
+    # `T93` — ОТКАЗ: спектр, чьи линии взяты с СОСЕДНЕГО уровня родителя,
+    # собран не по правилу, а признак этого раньше не читал никто.
+    ok &= check_level_fallback()
     # Порядок намеренный: состав печатается ПОСЛЕ раздела, чтобы напоминание не
     # тонуло выше вердикта, и в код возврата не входит (см. `check_composition`).
     check_composition()

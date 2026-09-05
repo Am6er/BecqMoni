@@ -1,30 +1,60 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
     /// <summary>
-    /// Разложение, показываемое поверх спектра: считает его в фоне и держит
-    /// последний готовый результат.
+    /// (`A145`, этап 2) СЕАНС ПОЛНОСПЕКТРАЛЬНОГО РАЗБОРА — расчётная половина
+    /// прежнего <c>FsaOverlay</c>, без единой обязанности UI.
+    ///
+    /// Принадлежит ДОКУМЕНТУ (<see cref="DocEnergySpectrum"/>), а не окну:
+    /// график и будущее окно отчёта подписываются на один и тот же сеанс и
+    /// строят представление из одного снимка результата
+    /// (<see cref="FsaPresentationBuilder"/>). Второго запуска разбора и
+    /// второго кэша быть не должно — это критерий 4 приёмки `A145`.
+    ///
+    /// Что здесь живёт: запуск в фоне, отпечаток входных данных
+    /// (<see cref="BuildStamp(ResultData, bool, FsaCalculationOptions)"/>),
+    /// кэш последнего результата, защита поколением, решение о матрице
+    /// отклика и строка состояния. Чего здесь НЕТ и быть не должно: слоёв,
+    /// цветов, строк таблицы, группировки родители/дочерние — всё это
+    /// представление, и на отпечаток оно не влияет (критерий 7).
     ///
     /// Считать синхронно нельзя: полный проход по сетке дрейфа занимает
     /// десятые доли секунды, а перерисовка графика идёт по таймеру набора,
     /// и фит на UI-потоке подвесил бы окно на каждом обновлении. Поэтому
-    /// результат кэшируется по «отпечатку» спектра (сам ResultData, число
-    /// отсчётов, режим фона) и пересчитывается только когда отпечаток сменился.
+    /// результат кэшируется по отпечатку и пересчитывается только когда
+    /// отпечаток сменился.
+    ///
+    /// ⛔ ПРАВИЛО ПОСЛЕДНЕГО СНИМКА (критерий 10). Если во время счёта входные
+    /// данные сменились ещё раз (быстрая серия переключений), новый снимок
+    /// становится в ОЧЕРЕДЬ ИЗ ОДНОГО МЕСТА (<see cref="pending"/>): каждый
+    /// следующий вытесняет предыдущий, а по окончании текущего счёта очередь
+    /// запускается сама. Результат счёта, который к моменту окончания уже
+    /// вытеснен, НЕ ПУБЛИКУЕТСЯ — промежуточное значение никогда не остаётся
+    /// «актуальным», и на серию из N переключений приходится ровно одна
+    /// публикация, с отпечатком последнего снимка. Смена спектра
+    /// (<see cref="Reset"/>) поднимает поколение, и вернувшийся счёт чужого
+    /// поколения тоже молчит.
     /// </summary>
-    public sealed class FsaOverlay
+    public sealed class FsaAnalysisSession
     {
         readonly object sync = new object();
 
         FsaResult result;
         string stamp = "";
-        string pendingStamp;
         bool running;
         string status;
+
+        /// <summary>Снимок, ожидающий окончания текущего счёта (не более одного).</summary>
+        Job pending;
+
+        /// <summary>Отпечаток снимка, который считается сейчас.</summary>
+        string activeStamp;
 
         // (`A50`) Матрица отклика ЕСТЬ, но прежнего формата. Держится отдельно
         // от результата: решение «с матрицей или без» принимается ДО фонового
@@ -32,7 +62,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         bool matrixOldFormat;
 
         // Заготовленное человеку сообщение и ключ уже сказанного. Ключ нужен,
-        // потому что `Launch` зовётся при каждом устаревании отпечатка — на
+        // потому что снимок берётся при каждом устаревании отпечатка — на
         // каждый тик набора, — а окно об одном и том же файле человек обязан
         // увидеть ОДИН раз.
         string matrixNotice;
@@ -43,6 +73,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // иначе разложение прежнего спектра воскресало бы поверх нового уже
         // ПОСЛЕ сброса, и забыть его было бы нечем.
         int generation;
+
+        /// <summary>
+        /// Задвижка ПРОБ: пока она поднята и не сигналит, фоновый счёт стоит
+        /// перед самым разбором. Без неё гонку «сменили спектр посреди счёта»
+        /// не воспроизвести: разбор малого спектра занимает десятки
+        /// миллисекунд, и проба всегда опаздывает. Ставится отражением
+        /// (`FsaSessionProbe`); в приложении всегда null и не стоит ничего.
+        /// </summary>
+        static WaitHandle probeGate = null;
 
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
@@ -56,7 +95,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        /// <summary>Идёт расчёт.</summary>
+        /// <summary>Отпечаток входных данных, которому отвечает <see cref="Result"/>; пусто — результата нет.</summary>
+        public string Stamp
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.stamp;
+                }
+            }
+        }
+
+        /// <summary>Идёт расчёт (в том числе стоящий в очереди следующий снимок).</summary>
         public bool IsRunning
         {
             get
@@ -83,8 +134,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// (`A50`) У кривой ЛЕЖИТ матрица, но прежнего формата: разложение
         /// считается без неё. Отличается от «матрицы нет вовсе» тем, что
-        /// лечится пересчётом, а не расчётом с нуля, — и легенда обязана
-        /// говорить об этом отдельной пометкой.
+        /// лечится пересчётом, а не расчётом с нуля, — и строка качества
+        /// обязана говорить об этом отдельной пометкой.
         /// </summary>
         public bool ResponseMatrixOldFormat
         {
@@ -102,12 +153,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ОДИН раз на файл. Пусто, если говорить не о чем или уже сказано.
         ///
         /// ⛔ Почему сообщение забирают, а не показывают на месте: решение о
-        /// матрице принимается в <c>Launch</c>, а тот зовётся из подготовки
-        /// данных вида, то есть ИЗ ОТРИСОВКИ (<c>OnPaint</c> →
-        /// <c>EnsureViewData</c> → <c>PrepareViewData</c>). Модальное окно там
-        /// прокачивает очередь сообщений и входит в отрисовку повторно.
-        /// Поэтому вид забирает строку в обработчике <see cref="Completed"/>,
-        /// уже вне отрисовки, и показывает её сам.
+        /// матрице принимается при снимке, а тот зовётся из подготовки данных
+        /// вида, то есть ИЗ ОТРИСОВКИ (<c>OnPaint</c> → <c>EnsureViewData</c> →
+        /// <c>PrepareViewData</c>). Модальное окно там прокачивает очередь
+        /// сообщений и входит в отрисовку повторно. Поэтому потребитель
+        /// забирает строку в обработчике <see cref="Completed"/>, уже вне
+        /// отрисовки, и показывает её сам.
         /// </summary>
         public string TakeResponseMatrixNotice()
         {
@@ -119,56 +170,128 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        /// <summary>Расчёт закончился — потребителю пора перерисоваться.</summary>
+        /// <summary>
+        /// Счёт закончился и очередь пуста — потребителям пора перечитать
+        /// <see cref="Result"/>/<see cref="Status"/>. Приходит из ФОНОВОГО
+        /// потока; на серию переключений приходит один раз.
+        /// </summary>
         public event EventHandler Completed;
 
+        /// <summary>
+        /// Забыть результат: он принадлежит прежнему спектру. Поднимает
+        /// поколение — идущий счёт по возвращении промолчит.
+        /// </summary>
         public void Reset()
         {
             lock (this.sync)
             {
                 this.result = null;
                 this.stamp = "";
-                this.pendingStamp = null;
+                this.pending = null;
                 this.status = null;
                 this.generation++;
             }
         }
 
         /// <summary>
+        /// Обесценить кэш, НЕ трогая результат: следующий
+        /// <see cref="EnsureUpToDate(ResultData, bool)"/> посчитает заново.
+        /// Для случая «параметры сменились, а потребителя нет»: тяжёлый счёт
+        /// откладывается до его появления (`A145`, «Связь окна с главным
+        /// интерфейсом»).
+        /// </summary>
+        public void Invalidate()
+        {
+            lock (this.sync)
+            {
+                this.stamp = "";
+            }
+        }
+
+        /// <summary>
+        /// Соответствует ли готовый результат этим входным данным. Считает
+        /// отпечаток, поэтому звать с UI-потока.
+        /// </summary>
+        public bool IsUpToDate(ResultData resultData, bool subtractBackground)
+        {
+            if (resultData == null || resultData.EnergySpectrum == null || resultData.EnergySpectrum.Spectrum == null)
+            {
+                return false;
+            }
+
+            string currentStamp = BuildStamp(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
+            lock (this.sync)
+            {
+                return !this.running && currentStamp == this.stamp;
+            }
+        }
+
+        /// <summary>
         /// Убедиться, что разложение соответствует текущему спектру, и запустить
-        /// расчёт, если нет. Вызывать с UI-потока: снимок списка нуклидов и
-        /// конфигураций снимается здесь, в фон уходят уже копии.
+        /// расчёт, если нет. Настройки расчёта снимаются с активной копии
+        /// конфигурации спектра (<see cref="FsaCalculationOptions.Of"/>).
+        /// Вызывать с UI-потока: снимок списка нуклидов и конфигураций
+        /// снимается здесь, в фон уходят уже копии.
         /// </summary>
         public void EnsureUpToDate(ResultData resultData, bool subtractBackground)
+        {
+            this.EnsureUpToDate(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
+        }
+
+        /// <summary>
+        /// То же — с явным снимком настроек расчёта. Пять флажков `*ForFsa`,
+        /// источник состава и равновесие доезжают до анализатора ТОЛЬКО этой
+        /// дорогой (<see cref="FsaCalculationOptions.ApplyTo(FsaAnalyzer)"/>,
+        /// <see cref="FsaCalculationOptions.ApplyTo(FsaSampleSpec)"/>), и их
+        /// отпечаток (<see cref="FsaCalculationOptions.Stamp"/>) — часть общего.
+        /// </summary>
+        public void EnsureUpToDate(ResultData resultData, bool subtractBackground, FsaCalculationOptions options)
         {
             if (resultData == null || resultData.EnergySpectrum == null || resultData.EnergySpectrum.Spectrum == null)
             {
                 return;
             }
 
-            string currentStamp = BuildStamp(resultData, subtractBackground);
+            if (options == null)
+            {
+                options = FsaCalculationOptions.Of(resultData);
+            }
+
+            string currentStamp = BuildStamp(resultData, subtractBackground, options);
             int myGeneration;
             lock (this.sync)
             {
-                if (this.running || currentStamp == this.stamp || currentStamp == this.pendingStamp)
+                if (this.running)
+                {
+                    // Считается ровно это — очередь не нужна (и если там
+                    // лежало что-то другое, оно больше не нужно тоже).
+                    if (currentStamp == this.activeStamp)
+                    {
+                        this.pending = null;
+                        return;
+                    }
+
+                    // Это уже стоит в очереди.
+                    if (this.pending != null && this.pending.Stamp == currentStamp)
+                    {
+                        return;
+                    }
+                }
+                else if (currentStamp == this.stamp)
                 {
                     return;
                 }
 
-                this.running = true;
-                this.pendingStamp = currentStamp;
-                this.status = Properties.Resources.FSACalculating;
                 myGeneration = this.generation;
             }
 
             // Со снятого флага и до Task.Run всё идёт под try: снимок трогает
-            // менеджеры и списки, и брошенное здесь исключение оставило бы
-            // running навсегда взведённым — разложение застряло бы на
-            // «считается» до конца жизни вида, а сама ошибка ушла бы в
+            // менеджеры и списки, и брошенное здесь исключение ушло бы в
             // отрисовку, у которой обработчика нет.
+            Job job;
             try
             {
-                this.Launch(resultData, subtractBackground, myGeneration);
+                job = this.Capture(resultData, subtractBackground, options, currentStamp, myGeneration);
             }
             catch (Exception ex)
             {
@@ -176,18 +299,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 string said = FailureText(ex);
                 lock (this.sync)
                 {
-                    this.running = false;
-                    this.pendingStamp = null;
                     this.status = said;
                 }
+
+                return;
             }
+
+            lock (this.sync)
+            {
+                if (this.running)
+                {
+                    // Очередь из одного места: последний снимок вытесняет
+                    // предыдущий (критерий 10).
+                    this.pending = job;
+                    this.status = Properties.Resources.FSACalculating;
+                    return;
+                }
+
+                this.Start(job);
+            }
+        }
+
+        /// <summary>
+        /// Сколько раз сеанс ЗАПУСКАЛ фоновый счёт за всё время жизни.
+        /// Читатель — приёмка `A145` (критерии 4 и 7): «переключение
+        /// родители/дочерние не запускает FSA» и «расчётный флаг даёт ровно
+        /// один пересчёт» доказываются этим числом, а не отсутствием
+        /// событий — событие приходит один раз на серию, и пересчёт, съеденный
+        /// очередью, через него не виден.
+        /// </summary>
+        public int RunCount
+        {
+            get
+            {
+                lock (this.sync)
+                {
+                    return this.runCount;
+                }
+            }
+        }
+
+        int runCount;
+
+        /// <summary>Запуск под <see cref="sync"/>.</summary>
+        void Start(Job job)
+        {
+            this.running = true;
+            this.runCount++;
+            this.activeStamp = job.Stamp;
+            this.status = Properties.Resources.FSACalculating;
+            Task.Run(() => this.Compute(job));
         }
 
         /// <summary>
         /// ⛔ ОТКАЗ РАЗЛОЖЕНИЯ НАЗЫВАЕТ ПРИЧИНУ (`A95`).
         ///
-        /// Оба перехвата — подготовки (<see cref="EnsureUpToDate"/>) и самого
-        /// счёта — писали в строку состояния ОДИН И ТОТ ЖЕ текст
+        /// Оба перехвата — подготовки (<see cref="EnsureUpToDate(ResultData, bool, FsaCalculationOptions)"/>)
+        /// и самого счёта — писали в строку состояния ОДИН И ТОТ ЖЕ текст
         /// «Полноспектральное разложение не удалось, подробности в журнале», а
         /// причина уходила только в <see cref="Trace"/>, которого при обычном
         /// запуске никто не читает. Отсюда разряд дефекта, стоивший заходов:
@@ -220,18 +388,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return text;
         }
 
-        void Launch(ResultData resultData, bool subtractBackground, int myGeneration)
+        /// <summary>
+        /// Всё, что фоновому счёту нужно от UI-потока, — одним снимком.
+        /// Снимается целиком ДО <c>Task.Run</c>: во время набора UI
+        /// перезаписывает <c>Spectrum[]</c>, правит списки нуклидов и
+        /// конфигурации, и фит, читающий живые объекты, собрал бы левую
+        /// половину модели по старому спектру, правую — по новому.
+        /// </summary>
+        sealed class Job
         {
-            // Снимок самого измерения тоже обязателен: во время набора UI
+            public string Stamp;
+            public int Generation;
+            public EnergySpectrum Spectrum;
+            public EnergySpectrum Background;
+            public FwhmCalibration FwhmCalibration;
+            public FsaEfficiency Efficiency;
+            public ResultData CompositionInput;
+            public List<NuclideDefinition> Definitions;
+            public List<Peak> Peaks;
+            public FsaAnalyzer Analyzer;
+            public FsaCalculationOptions Options;
+            public Dictionary<int, double> CrystalFractions;
+        }
+
+        Job Capture(ResultData resultData, bool subtractBackground, FsaCalculationOptions options,
+                    string currentStamp, int myGeneration)
+        {
+            Job job = new Job { Stamp = currentStamp, Generation = myGeneration, Options = options };
+
+            // Снимок самого измерения обязателен: во время набора UI
             // перезаписывает Spectrum[], а FSA ниже читает его в Task.Run.
-            // Список нуклидов уже снимался, но без этой копии один фит мог
-            // собрать левую половину модели по старому спектру, правую — по
-            // новому. Калибровки входят в тот же снимок по той же причине.
-            EnergySpectrum spectrum = resultData.EnergySpectrum.Clone();
-            EnergySpectrum background = subtractBackground && resultData.BackgroundEnergySpectrum != null
+            // Калибровки входят в тот же снимок по той же причине.
+            job.Spectrum = resultData.EnergySpectrum.Clone();
+            job.Background = subtractBackground && resultData.BackgroundEnergySpectrum != null
                 ? resultData.BackgroundEnergySpectrum.Clone()
                 : null;
-            FwhmCalibration fwhmCalibration = resultData.FwhmCalibration != null
+            job.FwhmCalibration = resultData.FwhmCalibration != null
                 ? resultData.FwhmCalibration.Clone()
                 : null;
             // Кривая эффективности: сначала СВОЯ кривая спектра — та, что
@@ -242,19 +434,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             EfficiencyConfigData efficiencyConfig = resultData.Efficiency != null
                 ? resultData.Efficiency.Copy()
                 : null;
-            FsaEfficiency efficiency = FsaEfficiency.FromConfig(efficiencyConfig);
-            ResultData compositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
-                                                            efficiencyConfig, spectrum, fwhmCalibration);
+            job.Efficiency = FsaEfficiency.FromConfig(efficiencyConfig);
+            job.CompositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
+                                                    efficiencyConfig, job.Spectrum, job.FwhmCalibration);
 
             // Снимок списков: их правит UI-поток (конструктор сетов, NucBase),
             // а перечисление живого списка в фоне ловит «Collection was modified».
             NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
-            List<NuclideDefinition> definitions = new List<NuclideDefinition>(nuclideManager.NuclideDefinitions);
-            List<Peak> peaks = resultData.DetectedPeaks != null
+            job.Definitions = new List<NuclideDefinition>(nuclideManager.NuclideDefinitions);
+            job.Peaks = resultData.DetectedPeaks != null
                 ? new List<Peak>(resultData.DetectedPeaks)
                 : new List<Peak>();
 
             FsaAnalyzer analyzer = new FsaAnalyzer();
+
+            // (`A170`) Пользовательские настройки — во внутренние ключи ОДНИМ
+            // фасадом; `BackscatterWithMatrix` при этом опускается, `EscapeGate`
+            // не трогается.
+            options.ApplyTo(analyzer);
 
             // Матрица отклика берётся у ТОЙ ЖЕ кривой, что и эффективность, и
             // только если её отпечаток сходится с нынешней геометрией. Не
@@ -263,7 +460,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // UseResponseMatrix — выключатель пользователя (W11, галка в форме
             // «Матрица отклика»): выключено — считаем без матрицы, файл даже
             // не читаем.
-            this.matrixOldFormat = false;
+            bool oldFormat = false;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
@@ -280,7 +477,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                              out refusal, out fileFormat);
                 if (refusal == EfficiencyMaker.MatrixRefusal.OldFormat)
                 {
-                    this.matrixOldFormat = true;
+                    oldFormat = true;
                     this.NoteOldMatrixFormat(efficiencyConfig, fileFormat);
                 }
 
@@ -297,6 +494,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // Решение о матрице — сразу, как и прежде: о нём спрашивают и до
+            // того, как счёт вернулся (`ResponseMatrixFormProbe`).
+            lock (this.sync)
+            {
+                this.matrixOldFormat = oldFormat;
+            }
+
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
 
             if (resultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
@@ -308,96 +512,126 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 analyzer.MaxEnergy = peakConfig.Max_Range;
             }
 
-            // Галки читаются ЗДЕСЬ, на UI-потоке, вместе со всеми прочими
-            // снимками: те же самые флаги решают и отпечаток, и ветку счёта, и
-            // прочитанные дважды в разные моменты они развели бы их.
-            bool dbLookups = DbLookups(resultData);
-            bool equilibrium = ChainEquilibrium(resultData);
+            job.Analyzer = analyzer;
 
             // Вещество кристалла — СНИМКОМ и на UI-потоке, как всё прочее
             // (`S119`). Образам вылета от него нужна только доля рождения пар
             // (`S122`), а она считается по массовым долям элементов; плотность
             // в отношение не входит. Геометрии нет — снимка нет, и отбор
             // родителей остаётся прежним.
-            Dictionary<int, double> crystalFractions = null;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.Geometry.Crystal != null)
             {
-                crystalFractions = new Dictionary<int, double>(
+                job.CrystalFractions = new Dictionary<int, double>(
                     efficiencyConfig.Geometry.Crystal.Fractions);
             }
 
-            Task.Run(() =>
+            return job;
+        }
+
+        /// <summary>Фоновая половина: библиотека, разбор, публикация.</summary>
+        void Compute(Job job)
+        {
+            FsaResult computed = null;
+            string message = null;
+            try
             {
-                FsaResult computed = null;
-                string message = null;
-                try
+                WaitHandle gate = probeGate;
+                if (gate != null)
                 {
-                    // ⛔ Сборка библиотеки здесь ОДНА на обе ветки, и вторую
-                    // заводить нельзя. Развилка касается только того, ОТКУДА
-                    // берётся состав: подписи пиков как есть (прежний путь) или
-                    // цепочка родителя из баз (`S57`). Собирает образы в обоих
-                    // случаях `FsaSampleLibrary`/`FsaLibrary` — двух сборок с
-                    // разными правилами о линиях и рентгене в проекте быть не
-                    // должно.
-                    List<FsaComponent> library;
-                    if (dbLookups)
-                    {
-                        FsaCompositionInference.Report inferred;
-                        FsaSampleSpec spec = FsaCompositionInference.Infer(peaks, compositionInput, out inferred);
-                        spec.Equilibrium = equilibrium;
-                        Trace.WriteLine("FSA composition: " + inferred);
-                        library = FsaSampleLibrary.Build(spec);
-                    }
-                    else
-                    {
-                        library = FsaLibrary.BuildFromPeaks(
-                            peaks, definitions, crystalFractions);
-                    }
-
-                    if (library.Count == 0)
-                    {
-                        message = Properties.Resources.FSANoComponents;
-                    }
-                    else
-                    {
-                        computed = analyzer.Analyze(spectrum, background, fwhmCalibration, library, efficiency);
-                        if (computed == null)
-                        {
-                            message = Properties.Resources.FSANotPossible;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine("FSA failed: " + ex);
-                    // (`A95`) Тот же приём, что у перехвата подготовки: причина
-                    // называется, а не остаётся в журнале трассировки.
-                    message = FailureText(ex);
+                    gate.WaitOne();
                 }
 
-                lock (this.sync)
+                // ⛔ Сборка библиотеки здесь ОДНА на обе ветки, и вторую
+                // заводить нельзя. Развилка касается только того, ОТКУДА
+                // берётся состав: подписи пиков как есть (прежний путь) или
+                // цепочка родителя из баз (`S57`). Собирает образы в обоих
+                // случаях `FsaSampleLibrary`/`FsaLibrary` — двух сборок с
+                // разными правилами о линиях и рентгене в проекте быть не
+                // должно.
+                List<FsaComponent> library;
+                if (job.Options.DbLookups)
                 {
-                    this.running = false;
-                    if (myGeneration == this.generation)
-                    {
-                        this.stamp = this.pendingStamp;
-                        this.result = computed;
-                        this.status = message;
-                    }
-
-                    // Сброс уже случился: считали прежний спектр, публиковать
-                    // нечего. Отпечаток остаётся пустым, и следующий проход
-                    // подготовки вида закажет счёт заново.
-                    this.pendingStamp = null;
+                    FsaCompositionInference.Report inferred;
+                    FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);
+                    job.Options.ApplyTo(spec);
+                    Trace.WriteLine("FSA composition: " + inferred);
+                    library = FsaSampleLibrary.Build(spec);
+                }
+                else
+                {
+                    library = FsaLibrary.BuildFromPeaks(
+                        job.Peaks, job.Definitions, job.CrystalFractions, job.Options.AtomicXray);
                 }
 
+                if (library.Count == 0)
+                {
+                    message = Properties.Resources.FSANoComponents;
+                }
+                else
+                {
+                    computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
+                                                    library, job.Efficiency);
+                    if (computed == null)
+                    {
+                        message = Properties.Resources.FSANotPossible;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("FSA failed: " + ex);
+                // (`A95`) Тот же приём, что у перехвата подготовки: причина
+                // называется, а не остаётся в журнале трассировки.
+                message = FailureText(ex);
+            }
+
+            this.Finish(job, computed, message);
+        }
+
+        /// <summary>
+        /// Публикация — или отказ от неё. Публикуется только счёт СВОЕГО
+        /// поколения и только если за ним никто не стоит в очереди: иначе
+        /// это промежуточный результат, и «актуальным» ему быть нельзя
+        /// (критерий 10). Очередь запускается отсюда же, без потребителя.
+        /// </summary>
+        void Finish(Job job, FsaResult computed, string message)
+        {
+            bool idle;
+            lock (this.sync)
+            {
+                this.running = false;
+                this.activeStamp = null;
+                Job next = this.pending;
+                this.pending = null;
+
+                if (next == null && job.Generation == this.generation)
+                {
+                    this.stamp = job.Stamp;
+                    this.result = computed;
+                    this.status = message;
+                }
+                // Иначе: сброс уже случился (считали прежний спектр) либо
+                // снимок вытеснен более поздним — публиковать нечего.
+                // Отпечаток остаётся прежним, и следующий проход подготовки
+                // вида закажет счёт заново, если очередь пуста.
+
+                if (next != null)
+                {
+                    this.Start(next);
+                }
+
+                idle = next == null;
+            }
+
+            if (idle)
+            {
                 EventHandler handler = this.Completed;
                 if (handler != null)
                 {
                     handler(this, EventArgs.Empty);
                 }
-            });
+            }
         }
 
         /// <summary>
@@ -407,7 +641,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Приём тот же, каким приложение говорит о непрочитанной конфигурации
         /// прибора (<see cref="AppUi"/>): без окон — строка в поток ошибок,
         /// чтобы её видели пробы и корпусные прогоны; с окнами — сообщение,
-        /// которое показывает ВИД, забрав строку в
+        /// которое показывает ПОТРЕБИТЕЛЬ, забрав строку в
         /// <see cref="TakeResponseMatrixNotice"/> (окно посреди отрисовки
         /// открывать нельзя, см. там же).
         ///
@@ -445,7 +679,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.matrixNotice = text;
             }
 
-            // Молчит, когда есть окна: там строку заберёт и покажет вид.
+            // Молчит, когда есть окна: там строку заберёт и покажет потребитель.
             AppUi.Note(text);
         }
 
@@ -489,35 +723,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             };
         }
 
-        /// <summary>
-        /// Состав библиотеки выводить из баз по цепочке родителя, а не брать
-        /// подписями пиков (`S57`). Настройка принадлежит спектру, а не
-        /// разбору — см. <see cref="FWHMPeakDetectionMethodConfig.DbLookupsForFsa"/>.
-        /// </summary>
-        static bool DbLookups(ResultData resultData)
+        /// <summary>Отпечаток с настройками, снятыми с активной копии конфигурации спектра.</summary>
+        public static string BuildStamp(ResultData resultData, bool subtractBackground)
         {
-            var config = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
-            return config != null && config.DbLookupsForFsa;
+            return BuildStamp(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
         }
 
         /// <summary>
-        /// Ряд связывать равновесием — одна колонка, одна свободная амплитуда
-        /// (`S70`). Настройка живёт там же, где и соседняя, — см.
-        /// <see cref="FWHMPeakDetectionMethodConfig.ChainEquilibrium"/>.
-        ///
-        /// ⚠ Умолчание ВКЛЮЧЕНО, поэтому отсутствие конфигурации у спектра
-        /// читается как «связывать», а не как «нет».
+        /// ОТПЕЧАТОК ВХОДНЫХ ДАННЫХ: всё, от чего зависит разбор, и НИЧЕГО из
+        /// того, что меняет только показ. Группировки родители/дочерние здесь
+        /// нет и быть не должно (критерий 7); семь настроек расчёта входят
+        /// строкой <see cref="FsaCalculationOptions.Stamp"/>.
         /// </summary>
-        static bool ChainEquilibrium(ResultData resultData)
-        {
-            var config = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
-            return config == null || config.ChainEquilibrium;
-        }
-
-        static string BuildStamp(ResultData resultData, bool subtractBackground)
+        public static string BuildStamp(ResultData resultData, bool subtractBackground,
+                                        FsaCalculationOptions options)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = resultData.BackgroundEnergySpectrum;
+            if (options == null)
+            {
+                options = FsaCalculationOptions.Of(resultData);
+            }
+
             // Состав библиотеки задаётся найденными пиками, поэтому их набор
             // входит в отпечаток: сменился список пиков — разложение устарело.
             StringBuilder peakStamp = new StringBuilder();
@@ -549,16 +776,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", EfficiencyStamp(resultData.Efficiency),
                 "|", MatrixFileStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
-                // Галка «состав из баз» (S57) — часть отпечатка по той же
-                // причине, что и выключатель матрицы: она меняет СОСТАВ
-                // библиотеки, и без неё готовое разложение по подписям висело
-                // бы на экране после включения вывода (и наоборот).
-                "|", DbLookups(resultData) ? "db" : "peaks",
-                // Галка «Равновесие» (S70) — по той же причине: ею ряд из
-                // нескольких свободных колонок становится одной, то есть меняется
-                // САМА библиотека, и без неё в отпечатке на экране висело бы
-                // прежнее разложение.
-                "|", ChainEquilibrium(resultData) ? "eq" : "free",
+                // Семь настроек расчёта (`A170`): источник состава (S57),
+                // равновесие (S70) и пять компонентов модели. Каждая меняет
+                // САМУ библиотеку или матрицу задачи, и без неё в отпечатке
+                // на экране висело бы прежнее разложение.
+                "|", options.Stamp,
                 // (`A31`) Набор нуклидов — часть отпечатка. Состав библиотеки
                 // идёт от ПОДПИСЕЙ пиков, а подписи ставит набор, и пока
                 // менялись только его члены, отпечаток оставался прежним:

@@ -25,8 +25,17 @@ $config = @{
 New-Item -ItemType Directory -Force $out | Out-Null
 
 if (-not $SkipBuild) {
+    # ⛔ /p:GenerateManifests=false — НЕ лишний ключ, снимать его НЕЛЬЗЯ (`T75`, `T81`).
+    # Без него шаг манифеста ClickOnce перечисляет и хеширует три *.sqlite как
+    # содержимое приложения, и сборка падает MSB3171, стоит соседнему процессу
+    # держать один из них на ЗАПИСЬ или запретить доступ (чистый читатель
+    # безвреден). Этот прогон собирает приложение САМ, поэтому без ключа
+    # гибнет ЦЕЛИКОМ: 25.08.2026 волна из восьми агентов дала восемь
+    # отказов подряд. ⛔ Снимают ключ ТОЛЬКО в сборке релиза для
+    # автообновления amba.cloud/becqmoni — там два файла ClickOnce как раз и нужны.
     & $msbuild (Join-Path $repo 'BecquerelMonitor\BecquerelMonitor.csproj') /t:Build `
         /p:Configuration=Debug /p:Platform=AnyCPU /p:SignManifests=false `
+        /p:GenerateManifests=false `
         /p:OutputPath='bin\Debug_Codex\' /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw 'msbuild failed' }
 

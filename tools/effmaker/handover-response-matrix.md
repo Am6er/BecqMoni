@@ -327,7 +327,7 @@ Backscatter 8.46, Backscatter180 1.98 — все семь слоёв совпа�
 # иначе сборка «успешна», а класса в ней нет)
 & '<VS>\MSBuild\Current\Bin\MSBuild.exe' 'BecquerelMonitor\BecquerelMonitor.csproj' `
   /t:Build /p:Configuration=Debug /p:Platform=AnyCPU /p:SignManifests=false `
-  /p:OutputPath='bin\Debug_Codex\'
+  /p:GenerateManifests=false /p:OutputPath='bin\Debug_Codex\'
 
 # пробы: компилятор ТОЛЬКО Roslyn (старый csc не знает /langversion:7.3)
 $csc='<VS>\MSBuild\Current\Bin\Roslyn\csc.exe'

@@ -190,7 +190,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>9</value>
   </data>
   <data name="numericUpDown1.Location" type="System.Drawing.Point, System.Drawing">
     <value>62, 7</value>
@@ -214,61 +214,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;numericUpDown1.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <data name="checkBoxDbLookups.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="checkBoxDbLookups.Location" type="System.Drawing.Point, System.Drawing">
-    <value>115, 9</value>
-  </data>
-  <data name="checkBoxDbLookups.Size" type="System.Drawing.Size, System.Drawing">
-    <value>156, 18</value>
-  </data>
-  <data name="checkBoxDbLookups.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="checkBoxDbLookups.Text" xml:space="preserve">
-    <value>Enable DB lookups for FSA</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDbLookups.Name" xml:space="preserve">
-    <value>checkBoxDbLookups</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDbLookups.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDbLookups.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;checkBoxDbLookups.ZOrder" xml:space="preserve">
     <value>8</value>
-  </data>
-  <data name="checkBoxEquilibrium.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="checkBoxEquilibrium.Location" type="System.Drawing.Point, System.Drawing">
-    <value>230, 35</value>
-  </data>
-  <data name="checkBoxEquilibrium.Size" type="System.Drawing.Size, System.Drawing">
-    <value>85, 18</value>
-  </data>
-  <data name="checkBoxEquilibrium.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="checkBoxEquilibrium.Text" xml:space="preserve">
-    <value>Equilibrium</value>
-  </data>
-  <data name="&gt;&gt;checkBoxEquilibrium.Name" xml:space="preserve">
-    <value>checkBoxEquilibrium</value>
-  </data>
-  <data name="&gt;&gt;checkBoxEquilibrium.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;checkBoxEquilibrium.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;checkBoxEquilibrium.ZOrder" xml:space="preserve">
-    <value>9</value>
   </data>
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>

@@ -9,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace FsaStackShot
@@ -19,8 +20,16 @@ namespace FsaStackShot
     ///
     /// Рисует `EnergySpectrumView.ShowFsaOverlay` отражением: вид собирается
     /// без формы, поля вьюпорта выставляются вручную, готовое разложение
-    /// кладётся прямо в `FsaOverlay`. Своего рисования здесь нет НАРОЧНО —
+    /// кладётся прямо в сеанс вида (`FsaAnalysisSession`, `A145` этап 2).
+    /// Своего рисования здесь нет НАРОЧНО —
     /// проба, рисующая по своим правилам, показала бы не то, что приложение.
+    ///
+    /// (`A145`, этап 3) Таблицы состава на графике больше нет: под панелью
+    /// курсора вид печатает только короткую строку состояния
+    /// (`DrawFsaStatus`), а перечень строк живёт в окне отчёта
+    /// `FSAReportView`. Поэтому справа от стека в тот же PNG кладётся снимок
+    /// настоящего окна отчёта (`DrawToBitmap`) на том же сеансе — стек и
+    /// таблица на одной картинке, как их видит человек.
     ///
     ///   fsastackshot --spectrum=X.xml [--efficiency=Цилиндр] [--out=stack.png]
     ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
@@ -302,7 +311,7 @@ namespace FsaStackShot
                 analyzer.ResponseMatrix = matrix;
 
                 // ⛔ Вещество кристалла идёт ВМЕСТЕ с матрицей — так его ставит
-                // `FsaOverlay`, и без него каскадное суммирование считает сумму
+                // `FsaAnalysisSession`, и без него каскадное суммирование считает сумму
                 // не по свету (`S20`). Проба, собирающая анализатор иначе, чем
                 // приложение, показывает не тот разбор, ради показа которого
                 // заведена.
@@ -311,7 +320,7 @@ namespace FsaStackShot
             }
 
             // Окно совпадения — мёртвое время прибора (`S27`), диапазон — тот
-            // же, что у поиска пиков. Обе строки повторяют `FsaOverlay`.
+            // же, что у поиска пиков. Обе строки повторяют `FsaAnalysisSession`.
             if (rd.DeviceConfig != null && rd.DeviceConfig.InputDeviceConfig != null)
             {
                 double deadTime = rd.DeviceConfig.InputDeviceConfig.DeadTime();
@@ -466,9 +475,11 @@ namespace FsaStackShot
                 Set(view, "pixelPerEnergy", (width - left) / (toKev - fromKev));
                 Set(view, "dirty", false);
 
-                // Готовое разложение — прямо в наложение: считать его второй раз
-                // фоновым потоком пробе незачем.
-                object overlay = Field(typeof(EnergySpectrumView), "fsaOverlay").GetValue(view);
+                // Готовое разложение — прямо в сеанс вида: считать его второй
+                // раз фоновым потоком пробе незачем. Вид без документа заводит
+                // сеанс сам при первом обращении к `FsaSession`.
+                object overlay = typeof(EnergySpectrumView).GetProperty(
+                    "FsaSession", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(view, null);
                 Field(overlay.GetType(), "result").SetValue(overlay, result);
 
                 // (`A32`) Признак «идёт пересчёт» — тем же полем, каким его
@@ -554,19 +565,26 @@ namespace FsaStackShot
                         ReportFwhm(view, spectrum);
                     }
 
-                    // Таблица состава — она же легенда: смотреть на стек без неё
-                    // значит проверять половину того, что видит человек.
-                    MethodInfo table = typeof(EnergySpectrumView).GetMethod(
-                        "DrawFsaOwnTable", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (table == null)
+                    // Строка состояния — единственное, что вид говорит о
+                    // разложении словами (`A145`, этап 3): «считается» при
+                    // `--calculating`, иначе пусто.
+                    MethodInfo status = typeof(EnergySpectrumView).GetMethod(
+                        "DrawFsaStatus", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (status == null)
                     {
-                        throw new InvalidOperationException("нет EnergySpectrumView.DrawFsaOwnTable");
+                        throw new InvalidOperationException("нет EnergySpectrumView.DrawFsaStatus");
                     }
 
-                    table.Invoke(view, new object[] { g, 20, 20, 260 });
+                    status.Invoke(view, new object[] { g, 20, 20, 260 });
+                    Console.WriteLine("строка состояния на графике: «{0}»",
+                                      EnergySpectrumView.FsaStatusText((FsaAnalysisSession)overlay) ?? "");
                 }
 
-                image.Save(outPath, ImageFormat.Png);
+                // Отчёт — настоящим окном на том же сеансе, справа от стека.
+                using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer))
+                {
+                    combined.Save(outPath, ImageFormat.Png);
+                }
                 Console.WriteLine("{0}: {1}–{2:F0} кэВ, потолок {3:F0}, шкала {4}",
                                   outPath, fromKev, toKev, ceiling, scale);
 
@@ -625,6 +643,63 @@ namespace FsaStackShot
         static double At(double[] a, int i)
         {
             return a != null && i < a.Length ? a[i] : 0.0;
+        }
+
+        /// <summary>
+        /// Снимок окна отчёта (`FSAReportView`) на том же сеансе, приклеенный
+        /// справа к снимку стека. Окно живёт в форме-носителе, показанной ради
+        /// создания ручек (как `EditorShot`); ширина — обычная ширина
+        /// dock-панели.
+        /// </summary>
+        static Bitmap WithReport(Bitmap stack, FsaAnalysisSession session, ResultData rd, bool infer)
+        {
+            const int reportWidth = 320;
+
+            // Окно читает НАСТРОЙКИ из конфигурации спектра, а результат здесь
+            // подложен и посчитан анализатором пробы: радиокнопка источника
+            // ставится по ключу `--infer`, а в сеанс кладётся отпечаток этих же
+            // настроек — иначе окно-потребитель сочло бы подложенный результат
+            // устаревшим и заказало бы СВОЙ счёт поверх него.
+            var cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            if (cfg != null)
+            {
+                cfg.DbLookupsForFsa = infer;
+            }
+
+            Field(session.GetType(), "stamp").SetValue(session,
+                FsaAnalysisSession.BuildStamp(rd, rd.BackgroundEnergySpectrum != null));
+
+            using (var host = new Form())
+            using (var report = new FSAReportView(null))
+            {
+                host.ClientSize = new Size(reportWidth, stack.Height);
+                host.StartPosition = FormStartPosition.Manual;
+                host.Location = new Point(-4000, -4000);
+                host.ShowInTaskbar = false;
+                report.TopLevel = false;
+                report.Dock = DockStyle.Fill;
+                host.Controls.Add(report);
+                report.Show();
+                host.Show();
+                report.SetProbeSource(session, rd);
+                Application.DoEvents();
+
+                var combined = new Bitmap(stack.Width + reportWidth, stack.Height);
+                using (Graphics g = Graphics.FromImage(combined))
+                {
+                    g.Clear(Color.White);
+                    g.DrawImageUnscaled(stack, 0, 0);
+                    using (var shot = new Bitmap(reportWidth, stack.Height))
+                    {
+                        report.DrawToBitmap(shot, new Rectangle(0, 0, reportWidth, stack.Height));
+                        g.DrawImageUnscaled(shot, stack.Width, 0);
+                    }
+                }
+
+                Console.WriteLine("отчёт: строк в таблице {0}", report.ReportTable.TableModel.Rows.Count);
+                host.Hide();
+                return combined;
+            }
         }
 
         static FieldInfo Field(Type type, string name)
