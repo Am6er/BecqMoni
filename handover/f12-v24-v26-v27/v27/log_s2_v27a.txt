@@ -1,0 +1,163 @@
+corpus_calib: C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/aebc304d-5735-4e42-96c6-4bf53152b58d/scratchpad/f12/calib_v27only.py (sha 83a833ec2ffd); build_corpus sha c0e7e3d94cd3; FAMILY_SCOPE=all; сырые копии: C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/aebc304d-5735-4e42-96c6-4bf53152b58d/scratchpad/f12/raw
+стадии 1+2а: спектров 122, 153 с
+КОНТРОЛЬ 1 (плечо «как было» против manifest.csv, спектры стадии 1): ref-cal здесь G1S16_Am241_P5<-G1S16_Eu152_P5, G1S16_Co57_P5<-G1S16_Eu152_P5, G1S16_Cs137_Mar_2<-G1S16_Ra226_Mar_2, RC103_K40<-RC103_Charoite; в корпусе G1S16_Am241_P5<-G1S16_Eu152_P5, G1S16_Co57_P5<-G1S16_Eu152_P5, G1S16_Cs137_Mar_2<-G1S16_Ra226_Mar_2, RC103_K40<-RC103_Charoite; СОШЛОСЬ. Метки режима совпали у 122 из 122
+семья AS80_Th232Medal [AS80x80], 3 спектров, опор 30 (после отбраковки 28), 198.1…2614.5 кэВ, разрешение 1.9011, общий фит: gain/robust
+   AS80_Cs137_0cm         опор  8, было affine/robust/grp  стало fam(AS80_Th232Medal)/affine max|ΔE| 5.661 кэВ
+   AS80_Onyx              опор 10, было stored/grp         стало fam(AS80_Th232Medal)/affine max|ΔE| 9.814 кэВ
+   AS80_Th232Medal        опор 12, было gain/robust/grp    стало fam(AS80_Th232Medal)/gain max|ΔE| 9.447 кэВ
+семья ASN16_Charoite_v2 [ASN16], 4 спектров, опор 26 (после отбраковки 26), 88.3…2614.5 кэВ, разрешение 1.5946, общий фит: affine
+   ASN16_Charoite_v2      опор 13, было affine/grp         стало fam(ASN16_Charoite_v2)/gain max|ΔE| 1.800 кэВ
+   ASN16_Cs137            опор  6, было affine             стало fam(ASN16_Charoite_v2)/affine max|ΔE| 2.700 кэВ
+   ASN16_Cs137_10cm       опор  3, было gain/grp           стало fam(ASN16_Charoite_v2)/affine max|ΔE| 39.947 кэВ
+   ASN16_Lu176_P0         опор  4, было stored/grp         стало fam(ASN16_Charoite_v2)/poly1 max|ΔE| 168.563 кэВ
+семья ASN8_Th232_8192 [ASN8_8192], 3 спектров, опор 18 (после отбраковки 17), 50.3…2614.5 кэВ, разрешение 2.0408, общий фит: stored/robust
+   ASN8_Am241             опор  3, было affine/grp         стало fam(ASN8_Th232_8192)/affine max|ΔE| 5.942 кэВ
+   ASN8_Th232_8192        опор 10, было stored/grp         стало fam(ASN8_Th232_8192)     max|ΔE| 0.000 кэВ
+   ASN8_UGlass            опор  5, было affine/grp         стало fam(ASN8_Th232_8192)/affine max|ΔE| 9.501 кэВ
+семья G1S16_Eu152_P25 [G1S16], 11 спектров, опор 51 (после отбраковки 49), 59.5…2614.5 кэВ, разрешение 1.5907, общий фит: affine/robust
+   G1S16_Am241_P25        опор  3, было affine/grp         стало fam(G1S16_Eu152_P25)/gain max|ΔE| 12.153 кэВ
+   G1S16_Ba133_P25        опор  3, было gain/grp           стало fam(G1S16_Eu152_P25)     max|ΔE| 19.027 кэВ
+   G1S16_Cd109_P25        опор  3, было gain/grp           стало fam(G1S16_Eu152_P25)/gain max|ΔE| 23.728 кэВ
+   G1S16_Ce139_P25        опор  3, было stored/grp         стало fam(G1S16_Eu152_P25)     max|ΔE| 4.042 кэВ
+   G1S16_Co60_P25         опор  4, было affine/grp         стало fam(G1S16_Eu152_P25)/affine max|ΔE| 16.120 кэВ
+   G1S16_Cs137_P25        опор  4, было stored/grp         стало fam(G1S16_Eu152_P25)/affine max|ΔE| 2.732 кэВ
+   G1S16_Eu152_P25        опор 10, было gain/grp           стало fam(G1S16_Eu152_P25)/gain max|ΔE| 9.391 кэВ
+   G1S16_Mn54_P25         опор  4, было gain               стало fam(G1S16_Eu152_P25)     max|ΔE| 5.004 кэВ
+   G1S16_Na22_P25         опор  3, было affine/grp         стало fam(G1S16_Eu152_P25)/affine max|ΔE| 0.000 кэВ
+   G1S16_Th228_P25        опор  7, было affine/robust/grp  стало fam(G1S16_Eu152_P25)/poly2 max|ΔE| 32.128 кэВ
+   G1S16_Y88_P25          опор  7, было gain/recal/grp     стало fam(G1S16_Eu152_P25)     max|ΔE| 3.313 кэВ
+семья G1S16_Eu152_P5 [G1S16], 11 спектров, опор 41 (после отбраковки 37), 59.5…1836.1 кэВ, разрешение 1.6883, общий фит: affine/robust
+   G1S16_Am241_P5         опор  1, было stored/grp         стало fam(G1S16_Eu152_P5)      max|ΔE| 6.502 кэВ
+   G1S16_Ba133_P5         опор  4, было gain               стало fam(G1S16_Eu152_P5)      max|ΔE| 24.707 кэВ
+   G1S16_Cd109_P5         опор  2, было gain/grp           стало fam(G1S16_Eu152_P5)/gain max|ΔE| 28.250 кэВ
+   G1S16_Ce139_P5         опор  3, было gain/grp           стало fam(G1S16_Eu152_P5)/gain max|ΔE| 24.118 кэВ
+   G1S16_Co57_P5          опор  1, было gain/grp           стало fam(G1S16_Eu152_P5)      max|ΔE| 121.135 кэВ
+   G1S16_Co60_P5          опор  5, было gain/grp           стало fam(G1S16_Eu152_P5)      max|ΔE| 2.847 кэВ
+   G1S16_Cs137_P5         опор  3, было affine/grp         стало fam(G1S16_Eu152_P5)/affine max|ΔE| 0.000 кэВ
+   G1S16_Eu152_P5         опор  8, было gain/grp           стало fam(G1S16_Eu152_P5)/gain max|ΔE| 22.506 кэВ
+   G1S16_Mn54_P5          опор  5, было affine/grp         стало fam(G1S16_Eu152_P5)/affine max|ΔE| 0.234 кэВ
+   G1S16_Na22_P5          опор  5, было affine/grp         стало fam(G1S16_Eu152_P5)/affine max|ΔE| 7.609 кэВ
+   G1S16_Y88_P5           опор  4, было affine/grp         стало fam(G1S16_Eu152_P5)      max|ΔE| 9.901 кэВ
+семья G1S16_Ra226_Mar [G1S16], 7 спектров, опор 57 (после отбраковки 56), 73.2…2614.5 кэВ, разрешение 1.6037, общий фит: affine/robust
+   G1S16_Cs137_Mar        опор  3, было gain/grp           стало fam(G1S16_Ra226_Mar)/affine max|ΔE| 21.586 кэВ
+   G1S16_K40_Mar          опор  3, было stored             стало fam(G1S16_Ra226_Mar)     max|ΔE| 7.536 кэВ
+   G1S16_Mix_Mar          опор 11, было affine/grp         стало fam(G1S16_Ra226_Mar)/gain max|ΔE| 5.683 кэВ
+   G1S16_Ra226_Mar        опор 12, было affine             стало fam(G1S16_Ra226_Mar)     max|ΔE| 2.401 кэВ
+   G1S16_Th232_Mar        опор  9, было affine/grp         стало fam(G1S16_Ra226_Mar)     max|ΔE| 5.244 кэВ
+   G1S16_Th232_Mar_2      опор  9, было gain               стало fam(G1S16_Ra226_Mar)     max|ΔE| 6.667 кэВ
+   G1S16_Th232_Mar_3      опор 10, было affine/grp         стало fam(G1S16_Ra226_Mar)     max|ΔE| 5.028 кэВ
+семья G1S16_Ra226_Mar_2 [G1S16], 3 спектров, опор 16 (после отбраковки 15), 186.2…2204.1 кэВ, разрешение 1.7008, общий фит: affine/robust
+   G1S16_Cs137_Mar_2      опор  1, было gain/grp           стало fam(G1S16_Ra226_Mar_2)   max|ΔE| 4.543 кэВ
+   G1S16_K40_Mar_2        опор  3, было gain               стало fam(G1S16_Ra226_Mar_2)/gain max|ΔE| 37.714 кэВ
+   G1S16_Ra226_Mar_2      опор 12, было affine/grp         стало fam(G1S16_Ra226_Mar_2)   max|ΔE| 0.583 кэВ
+семья G1S16_Mix_Denta100 [G1S16], 2 спектров, опор 18 (после отбраковки 18), 73.2…2614.5 кэВ, разрешение 1.5457, общий фит: gain
+   G1S16_Mix_Denta100     опор 10, было gain/grp           стало fam(G1S16_Mix_Denta100)  max|ΔE| 0.806 кэВ
+   G1S16_Th232_Denta100   опор  8, было gain/grp           стало fam(G1S16_Mix_Denta100)  max|ΔE| 1.868 кэВ
+семья G1S16_Mix_Petri [G1S16], 2 спектров, опор 18 (после отбраковки 17), 73.2…2614.5 кэВ, разрешение 1.5502, общий фит: affine/robust
+   G1S16_Mix_Petri        опор 11, было affine             стало fam(G1S16_Mix_Petri)/affine max|ΔE| 7.197 кэВ
+   G1S16_Th232_Petri      опор  7, было poly2/grp          стало fam(G1S16_Mix_Petri)/poly2 max|ΔE| 0.000 кэВ
+семья G1S24_Th228_P5 [G1S24], 11 спектров, опор 53 (после отбраковки 48), 59.5…2614.5 кэВ, разрешение 1.8134, общий фит: affine/robust
+   G1S24_Am241_P5         опор  2, было affine/recal/grp   стало fam(G1S24_Th228_P5)      max|ΔE| 19.326 кэВ
+   G1S24_Ba133_P5         опор  4, было affine/grp         стало fam(G1S24_Th228_P5)/affine max|ΔE| 3.017 кэВ
+   G1S24_Bi207_P5         опор  5, было affine/grp         стало fam(G1S24_Th228_P5)/affine max|ΔE| 14.651 кэВ
+   G1S24_Cd109_P5         опор  2, было gain/grp           стало fam(G1S24_Th228_P5)      max|ΔE| 69.948 кэВ
+   G1S24_Co60_P5          опор  7, было affine/grp         стало fam(G1S24_Th228_P5)/affine max|ΔE| 3.496 кэВ
+   G1S24_Cs137_P5         опор  3, было affine/grp         стало fam(G1S24_Th228_P5)/gain max|ΔE| 3.965 кэВ
+   G1S24_Eu152_P5         опор  8, было gain/grp           стало fam(G1S24_Th228_P5)/affine max|ΔE| 10.062 кэВ
+   G1S24_Na22_P5          опор  5, было affine             стало fam(G1S24_Th228_P5)/affine max|ΔE| 0.572 кэВ
+   G1S24_Th228_P5         опор  9, было affine/robust/grp  стало fam(G1S24_Th228_P5)/affine max|ΔE| 5.458 кэВ
+   G1S24_Y88_P5           опор  5, было affine             стало fam(G1S24_Th228_P5)/affine max|ΔE| 0.704 кэВ
+   G1S24_Zn65_P5          опор  3, было affine/grp         стало fam(G1S24_Th228_P5)/affine max|ΔE| 28.278 кэВ
+семья G1S24_Ra226_Denta120 [G1S24], 8 спектров, опор 59 (после отбраковки 56), 47.9…2614.5 кэВ, разрешение 1.6468, общий фит: affine/robust
+   G1S24_Cs137_Denta120   опор  2, было gain/grp           стало fam(G1S24_Ra226_Denta120)/gain max|ΔE| 9.898 кэВ
+   G1S24_Cs137_Denta120_2 опор  4, было affine             стало fam(G1S24_Ra226_Denta120)/gain max|ΔE| 13.041 кэВ
+   G1S24_K40_Denta120     опор  6, было poly2/robust/grp   стало fam(G1S24_Ra226_Denta120) max|ΔE| 47.043 кэВ
+   G1S24_K40_Denta120_2   опор  4, было poly2              стало fam(G1S24_Ra226_Denta120)/poly2 max|ΔE| 4.002 кэВ
+   G1S24_Ra226_Denta120   опор 14, было affine/robust/grp  стало fam(G1S24_Ra226_Denta120)/affine max|ΔE| 8.680 кэВ
+   G1S24_Ra226_Denta120_2 опор 11, было affine             стало fam(G1S24_Ra226_Denta120)/gain max|ΔE| 5.308 кэВ
+   G1S24_Th232_Denta120   опор  7, было affine/robust/grp  стало fam(G1S24_Ra226_Denta120) max|ΔE| 4.221 кэВ
+   G1S24_Th232_Denta120_2 опор 11, было gain/robust/grp    стало fam(G1S24_Ra226_Denta120) max|ΔE| 17.215 кэВ
+семья G1S24_Ra226_Mar_2 [G1S24], 7 спектров, опор 47 (после отбраковки 46), 47.9…2614.5 кэВ, разрешение 1.8029, общий фит: affine/robust
+   G1S24_Cs137_Mar        опор  3, было affine             стало fam(G1S24_Ra226_Mar_2)/affine max|ΔE| 1.131 кэВ
+   G1S24_Cs137_Mar_2      опор  4, было affine             стало fam(G1S24_Ra226_Mar_2)/gain max|ΔE| 8.315 кэВ
+   G1S24_K40_Mar          опор  4, было stored             стало fam(G1S24_Ra226_Mar_2)/poly1 max|ΔE| 34.756 кэВ
+   G1S24_K40_Mar_2        опор  2, было gain/grp           стало fam(G1S24_Ra226_Mar_2)   max|ΔE| 7.404 кэВ
+   G1S24_Ra226_Mar        опор 12, было affine/grp         стало fam(G1S24_Ra226_Mar_2)/affine max|ΔE| 0.000 кэВ
+   G1S24_Ra226_Mar_2      опор 13, было affine             стало fam(G1S24_Ra226_Mar_2)   max|ΔE| 1.208 кэВ
+   G1S24_Th232_Mar_2      опор  9, было affine/grp         стало fam(G1S24_Ra226_Mar_2)   max|ΔE| 1.808 кэВ
+семья G1S24_Th228_P25 [G1S24], 4 спектров, опор 25 (после отбраковки 23), 180.8…2614.5 кэВ, разрешение 1.8846, общий фит: affine/robust
+   G1S24_Cs137_P25        опор  5, было affine/grp         стало fam(G1S24_Th228_P25)/gain max|ΔE| 7.228 кэВ
+   G1S24_Na22_P25         опор  5, было gain/grp           стало fam(G1S24_Th228_P25)/gain max|ΔE| 6.283 кэВ
+   G1S24_Th228_P25        опор  9, было affine             стало fam(G1S24_Th228_P25)     max|ΔE| 0.250 кэВ
+   G1S24_Y88_P25          опор  6, было affine             стало fam(G1S24_Th228_P25)/gain max|ΔE| 5.532 кэВ
+семья G1S24_Ra226_Petri_2 [G1S24], 8 спектров, опор 59 (после отбраковки 58), 47.9…2614.5 кэВ, разрешение 1.7804, общий фит: affine/robust
+   G1S24_Cs137_Petri      опор  3, было poly2              стало fam(G1S24_Ra226_Petri_2)/affine max|ΔE| 31.218 кэВ
+   G1S24_Cs137_Petri_2    опор  4, было affine/grp         стало fam(G1S24_Ra226_Petri_2)/gain max|ΔE| 3.584 кэВ
+   G1S24_K40_Petri        опор  5, было poly2/grp          стало fam(G1S24_Ra226_Petri_2)/gain max|ΔE| 41.801 кэВ
+   G1S24_K40_Petri_2      опор  2, было gain               стало fam(G1S24_Ra226_Petri_2) max|ΔE| 12.158 кэВ
+   G1S24_Ra226_Petri      опор 10, было affine/robust/grp  стало fam(G1S24_Ra226_Petri_2) max|ΔE| 0.607 кэВ
+   G1S24_Ra226_Petri_2    опор 14, было affine/grp         стало fam(G1S24_Ra226_Petri_2)/affine max|ΔE| 1.010 кэВ
+   G1S24_Th232_Petri      опор 11, было gain               стало fam(G1S24_Ra226_Petri_2) max|ΔE| 13.043 кэВ
+   G1S24_Th232_Petri_2    опор 10, было gain/grp           стало fam(G1S24_Ra226_Petri_2) max|ΔE| 9.657 кэВ
+семья HPGeGEM_Ra226 [HPGE_GEM], 2 спектров, опор 14 (после отбраковки 14), 186.2…2204.1 кэВ, разрешение 0.0516, общий фит: affine
+   HPGeGEM_K40            опор  2, было gain/grp           стало fam(HPGeGEM_Ra226)/gain  max|ΔE| 0.166 кэВ
+   HPGeGEM_Ra226          опор 12, было poly2/grp          стало fam(HPGeGEM_Ra226)/poly2 max|ΔE| 0.000 кэВ
+семья HPGeGMX_Eu152 [HPGE_GMX], 2 спектров, опор 13 (после отбраковки 13), 510.8…2614.5 кэВ, разрешение 0.0512, общий фит: affine
+   HPGeGMX_Eu152          опор  7, было affine/grp         стало fam(HPGeGMX_Eu152)/gain  max|ΔE| 0.162 кэВ
+   HPGeGMX_Th228          опор  6, было affine             стало fam(HPGeGMX_Eu152)/gain  max|ΔE| 0.024 кэВ
+семья LaBrBril_Eu152 [LABR_BRIL], 2 спектров, опор 24 (после отбраковки 22), 121.8…2614.5 кэВ, разрешение 0.7441, общий фит: affine/robust
+   LaBrBril_Eu152         опор 13, было affine/robust/grp  стало fam(LaBrBril_Eu152)      max|ΔE| 1.504 кэВ
+   LaBrBril_Th228         опор 11, было affine/grp         стало fam(LaBrBril_Eu152)/gain max|ΔE| 3.119 кэВ
+семья RC103_Charoite [RC103], 3 спектров, опор 10 (после отбраковки 10), 187.4…2614.5 кэВ, разрешение 1.9319, общий фит: affine
+   RC103_Charoite         опор  5, было affine/robust/grp  стало fam(RC103_Charoite)/gain max|ΔE| 54.669 кэВ
+   RC103_K40              опор  1, было gain               стало fam(RC103_Charoite)      max|ΔE| 7.285 кэВ
+   RC103_Th232Village     опор  4, было affine             стало fam(RC103_Charoite)/gain max|ΔE| 5.625 кэВ
+семья RC103_Th232WT20 [RC103], 2 спектров, опор 8 (после отбраковки 7), 60.3…2614.5 кэВ, разрешение 2.0867, общий фит: affine/robust
+   RC103_Cs137_0cm        опор  2, было gain/recal         стало fam(RC103_Th232WT20)/gain max|ΔE| 7.472 кэВ
+   RC103_Th232WT20        опор  6, было poly2/grp          стало fam(RC103_Th232WT20)/poly2 max|ΔE| 1.600 кэВ
+
+семей (≥ 2 спектров на одной поставочной): 19; с общим фитом: 19; с опорами у одного члена или < 4 опор: 0
+КОНТРОЛЬ 2 (семья без второго вкладчика ведёт себя как прежде): 0 из 0 СОШЛОСЬ
+КОНТРОЛЬ 2б (синтетический: опоры сняты у всех, кроме старшего → копия донора, как прежде): 19 из 19 СОШЛОСЬ
+члены семей с общим фитом: 95; сменили метку 95; шкала сдвинулась 89; > 0.5 ПШПВ в рабочем диапазоне группы 11; > 0.5 ПШПВ где-либо 45
+   худший в рабочем диапазоне: G1S24_Cs137_Petri 24.874 кэВ = 1.766 ПШПВ (poly2 -> fam(G1S24_Ra226_Petri_2)/affine)
+КОНТРОЛЬ 3 (подмена сильнейшей опоры старшего): семей 19, отреагировали при +0.5 ПШПВ 18, при +2 ПШПВ 18
+   AS80_Th232Medal        +0.5 ПШПВ на  238.4 кэВ: gain/robust -> gain/robust, опор 28 -> 29, max|ΔE| 7.1258 кэВ = 0.0704 ПШПВ
+   AS80_Th232Medal        +2.0 ПШПВ на  238.4 кэВ: gain/robust -> gain/robust, опор 28 -> 28, max|ΔE| 5.5576 кэВ = 0.0549 ПШПВ
+   ASN16_Charoite_v2      +0.5 ПШПВ на  347.2 кэВ: affine -> affine, опор 26 -> 26, max|ΔE| 1.8611 кэВ = 0.5196 ПШПВ
+   ASN16_Charoite_v2      +2.0 ПШПВ на  347.2 кэВ: affine -> affine/robust, опор 26 -> 25, max|ΔE| 0.2887 кэВ = 0.0807 ПШПВ
+   ASN8_Th232_8192        +0.5 ПШПВ на  238.4 кэВ: stored/robust -> stored/robust, опор 17 -> 17, max|ΔE| 0.0 кэВ = 0.0 ПШПВ
+   ASN8_Th232_8192        +2.0 ПШПВ на  238.4 кэВ: stored/robust -> stored/robust, опор 17 -> 16, max|ΔE| 0.0 кэВ = 0.0 ПШПВ
+   G1S16_Eu152_P25        +0.5 ПШПВ на  121.8 кэВ: affine/robust -> affine/robust, опор 49 -> 49, max|ΔE| 1.4161 кэВ = 0.2772 ПШПВ
+   G1S16_Eu152_P25        +2.0 ПШПВ на  121.8 кэВ: affine/robust -> affine/robust, опор 49 -> 48, max|ΔE| 0.0618 кэВ = 0.012 ПШПВ
+   G1S16_Eu152_P5         +0.5 ПШПВ на  121.8 кэВ: affine/robust -> gain/robust, опор 37 -> 37, max|ΔE| 9.9641 кэВ = 0.7568 ПШПВ
+   G1S16_Eu152_P5         +2.0 ПШПВ на  121.8 кэВ: affine/robust -> affine/robust, опор 37 -> 36, max|ΔE| 0.0853 кэВ = 0.0127 ПШПВ
+   G1S16_Mix_Denta100     +0.5 ПШПВ на  511.0 кэВ: gain -> gain/robust, опор 18 -> 15, max|ΔE| 2.8542 кэВ = 0.0333 ПШПВ
+   G1S16_Mix_Denta100     +2.0 ПШПВ на  511.0 кэВ: gain -> gain/robust, опор 18 -> 15, max|ΔE| 2.8542 кэВ = 0.0333 ПШПВ
+   G1S16_Mix_Petri        +0.5 ПШПВ на  511.0 кэВ: affine/robust -> gain/robust, опор 17 -> 16, max|ΔE| 21.486 кэВ = 0.9726 ПШПВ
+   G1S16_Mix_Petri        +2.0 ПШПВ на  511.0 кэВ: affine/robust -> poly2/robust, опор 17 -> 15, max|ΔE| 15.2217 кэВ = 0.1777 ПШПВ
+   G1S16_Ra226_Mar        +0.5 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 56 -> 55, max|ΔE| 0.1022 кэВ = 0.0283 ПШПВ
+   G1S16_Ra226_Mar        +2.0 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 56 -> 55, max|ΔE| 0.1022 кэВ = 0.0283 ПШПВ
+   G1S16_Ra226_Mar_2      +0.5 ПШПВ на  351.7 кэВ: affine/robust -> poly2/robust, опор 15 -> 15, max|ΔE| 15.7798 кэВ = 0.3503 ПШПВ
+   G1S16_Ra226_Mar_2      +2.0 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 15 -> 14, max|ΔE| 0.0906 кэВ = 0.0232 ПШПВ
+   G1S24_Ra226_Denta120   +0.5 ПШПВ на  351.7 кэВ: affine/robust -> gain/robust, опор 56 -> 57, max|ΔE| 7.3868 кэВ = 0.6815 ПШПВ
+   G1S24_Ra226_Denta120   +2.0 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 56 -> 51, max|ΔE| 4.1846 кэВ = 0.2606 ПШПВ
+   G1S24_Ra226_Mar_2      +0.5 ПШПВ на  608.3 кэВ: affine/robust -> affine/robust, опор 46 -> 45, max|ΔE| 0.1008 кэВ = 0.025 ПШПВ
+   G1S24_Ra226_Mar_2      +2.0 ПШПВ на  608.3 кэВ: affine/robust -> affine/robust, опор 46 -> 45, max|ΔE| 0.1008 кэВ = 0.025 ПШПВ
+   G1S24_Ra226_Petri_2    +0.5 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 58 -> 56, max|ΔE| 2.161 кэВ = 0.3292 ПШПВ
+   G1S24_Ra226_Petri_2    +2.0 ПШПВ на  351.7 кэВ: affine/robust -> affine/robust, опор 58 -> 55, max|ΔE| 1.8746 кэВ = 0.0693 ПШПВ
+   G1S24_Th228_P25        +0.5 ПШПВ на  238.7 кэВ: affine/robust -> affine/robust, опор 23 -> 23, max|ΔE| 2.6764 кэВ = 0.634 ПШПВ
+   G1S24_Th228_P25        +2.0 ПШПВ на  238.7 кэВ: affine/robust -> affine/robust, опор 23 -> 22, max|ΔE| 0.2934 кэВ = 0.0696 ПШПВ
+   G1S24_Th228_P5         +0.5 ПШПВ на  238.7 кэВ: affine/robust -> affine/robust, опор 48 -> 48, max|ΔE| 0.8765 кэВ = 0.1934 ПШПВ
+   G1S24_Th228_P5         +2.0 ПШПВ на  238.7 кэВ: affine/robust -> affine/robust, опор 48 -> 47, max|ΔE| 0.1525 кэВ = 0.0328 ПШПВ
+   HPGeGEM_Ra226          +0.5 ПШПВ на  351.9 кэВ: affine -> gain, опор 14 -> 14, max|ΔE| 0.1142 кэВ = 0.9888 ПШПВ
+   HPGeGEM_Ra226          +2.0 ПШПВ на  351.9 кэВ: affine -> affine/robust, опор 14 -> 13, max|ΔE| 0.0078 кэВ = 0.0672 ПШПВ
+   HPGeGMX_Eu152          +0.5 ПШПВ на  964.1 кэВ: affine -> affine/robust, опор 13 -> 12, max|ΔE| 0.0039 кэВ = 0.0342 ПШПВ
+   HPGeGMX_Eu152          +2.0 ПШПВ на  964.1 кэВ: affine -> affine/robust, опор 13 -> 12, max|ΔE| 0.0039 кэВ = 0.0342 ПШПВ
+   LaBrBril_Eu152         +0.5 ПШПВ на  121.8 кэВ: affine/robust -> stored/robust, опор 22 -> 22, max|ΔE| 1.9131 кэВ = 1.1499 ПШПВ
+   LaBrBril_Eu152         +2.0 ПШПВ на  121.8 кэВ: affine/robust -> affine/robust, опор 22 -> 21, max|ΔE| 0.0603 кэВ = 0.0306 ПШПВ
+   RC103_Charoite         +0.5 ПШПВ на  351.7 кэВ: affine -> poly2/robust, опор 10 -> 8, max|ΔE| 75.7616 кэВ = 2.8436 ПШПВ
+   RC103_Charoite         +2.0 ПШПВ на  351.7 кэВ: affine -> poly2/robust, опор 10 -> 8, max|ΔE| 75.7616 кэВ = 2.8436 ПШПВ
+   RC103_Th232WT20        +0.5 ПШПВ на   60.3 кэВ: affine/robust -> affine, опор 7 -> 8, max|ΔE| 1.8479 кэВ = 0.3925 ПШПВ
+   RC103_Th232WT20        +2.0 ПШПВ на   60.3 кэВ: affine/robust -> affine, опор 7 -> 8, max|ΔE| 8.2326 кэВ = 1.7593 ПШПВ
+время: 172 с

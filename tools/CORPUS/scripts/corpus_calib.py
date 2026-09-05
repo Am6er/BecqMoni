@@ -287,6 +287,16 @@ EXTRAP_ABOVE = ('poly3',)
 #: есть базу, — как `FORM` у `V2`.
 MAX_ORDER = 2
 
+#: `V26` (решение Amber 05.09.2026): сторож «поправка усиления ≤ 5 %» у `gain`
+#: действует, пока опор не больше `GAIN_GUARD_MAX_N`. До 05.09.2026 он жил
+#: только при n = 1, и ВТОРАЯ опора любого качества открывала поправку без
+#: предела (при n = 2 конкурентов у `gain` ещё нет: `affine` и `poly1` ждут
+#: трёх опор, остаётся лишь штраф 20·(drift − 0.06) в оценке). Нулевое плечо
+#: `calib_null_check.py` давало 175.5 / 139.7 / 102.9 кэВ (`G1S16_Am241_P25`,
+#: `G1S24_Am241_P5`; `V18`). При n ≥ 3 сторожа нет, как и прежде.
+GAIN_GUARD_MAX_N = 2
+GAIN_GUARD_DRIFT = 0.05
+
 #: `V18`: правило, по которому кандидат с лишними степенями свободы должен
 #: за них ПЛАТИТЬ.
 #:
@@ -525,7 +535,9 @@ def choose(stored, pairs, res_a, nmax, max_order=None, keep_margin=0.9, force=Fa
     strongest = max(a['sig'] for a in pairs) if pairs else 0.0
     if n >= 2 and strongest >= 20.0 or n == 1 and strongest >= 40.0:
         cal = affine_of(stored, pairs, nmax, scale_only=True)
-        if cal is not None and (n >= 2 or gain_drift(cal, stored, nmax) <= 0.05):
+        # `V26`: предел поправки, пока опор не больше `GAIN_GUARD_MAX_N`.
+        if cal is not None and (n > GAIN_GUARD_MAX_N
+                                or gain_drift(cal, stored, nmax) <= GAIN_GUARD_DRIFT):
             cands.append(('gain', cal))
         else:
             note('gain', 'fit' if cal is None else 'drift>5%')
@@ -689,20 +701,61 @@ def calibrate(counts, stored_coef, lines, res_a, max_order=None, force=False):
                  <= 0.5 * res_a * np.sqrt(max(a['e_ref'], 5.0))]
         # Одна перепутанная линия — это не ошибка калибровки, а неверное
         # отождествление, и она одна тянет полином за собой. Выбрасываем
-        # выбросы по MAD и перефитываем, если стало лучше.
-        if len(pairs) >= 5:
-            d = np.array([cal.energy(a['ch']) - a['e_ref'] for a in pairs])
-            mad = float(np.median(np.abs(d - np.median(d)))) * 1.4826
-            limit = max(3.0 * mad, 0.35 * res_a * np.sqrt(np.median(
-                [a['e_ref'] for a in pairs])))
-            keep = [a for a, dd in zip(pairs, d) if abs(dd - np.median(d)) <= limit]
-            if 4 <= len(keep) < len(pairs):
-                t2, c2, _ = choose(stored, keep, res_a, nmax, max_order, force=force)
-                if residual_fwhm(c2, keep, res_a) < residual_fwhm(cal, pairs, res_a):
-                    cal, tag = c2, t2 + '/robust'
-                    pairs = match_lines(counts, cal, lines, res_a, tol_fwhm=0.7,
-                                        width_lo=0.5, width_hi=1.8) or keep
+        # выбросы по MAD и перефитываем, если стало лучше (`robust_refit`,
+        # одно правило на двоих со сводной таблицей семьи, `V27`).
+        rob = robust_refit(stored, cal, pairs, res_a, nmax, max_order, force=force)
+        if rob is not None:
+            c2, t2, keep = rob
+            cal, tag = c2, t2 + '/robust'
+            pairs = match_lines(counts, cal, lines, res_a, tol_fwhm=0.7,
+                                width_lo=0.5, width_hi=1.8) or keep
     return cal, pairs, res_a, tag
+
+
+def robust_refit(stored, cal, pairs, res_a, nmax, max_order=None, force=False):
+    """Выбросы по MAD и перефит по оставшимся: -> (cal, tag, keep) либо None,
+    если опор меньше пяти, выбросов нет или перефит не лучше.
+
+    Вынесено из `calibrate` без изменения правила (`V27`): та же корзина
+    3·MAD с полом 0.35 ПШПВ на медианной энергии, тот же порог «хотя бы четыре
+    остались», та же приёмка по невязке. Сводная таблица семьи (`fit_table`)
+    пользуется ровно им — у пула из разных спектров перепутанная линия
+    вероятнее, чем у одного.
+    """
+    if len(pairs) < 5:
+        return None
+    d = np.array([cal.energy(a['ch']) - a['e_ref'] for a in pairs])
+    mad = float(np.median(np.abs(d - np.median(d)))) * 1.4826
+    limit = max(3.0 * mad, 0.35 * res_a * np.sqrt(np.median(
+        [a['e_ref'] for a in pairs])))
+    keep = [a for a, dd in zip(pairs, d) if abs(dd - np.median(d)) <= limit]
+    if 4 <= len(keep) < len(pairs):
+        t2, c2, _ = choose(stored, keep, res_a, nmax, max_order, force=force)
+        if residual_fwhm(c2, keep, res_a) < residual_fwhm(cal, pairs, res_a):
+            return c2, t2, keep
+    return None
+
+
+def fit_table(stored, table, res_a, nmax, max_order=None):
+    """`V27`: одна калибровка на СВОДНУЮ таблицу опор семьи — спектров одной
+    группы с побайтно общей поставочной шкалой (стадия 2б `build_corpus.py`).
+
+    Правило то же, что у одного спектра: `choose` от поставочной (она
+    остаётся, если пул не улучшил невязку на десятую часть; `B24`-запрет и
+    плата за свободу действуют), затем `robust_refit`. Ни одного нового
+    порога. Опоры разных спектров семьи НЕ склеиваются: одна и та же линия,
+    найденная в трёх спектрах, — три независимых измерения канала, и каждое
+    входит со своим весом.
+
+    -> (cal, tag, keep): калибровка семьи, метка (`stored` — пул поставочную
+    не побил), опоры после отбраковки.
+    """
+    tag, cal, _ = choose(stored, table, res_a, nmax, max_order)
+    keep = list(table)
+    rob = robust_refit(stored, cal, table, res_a, nmax, max_order)
+    if rob is not None:
+        cal, tag, keep = rob[0], rob[1] + '/robust', rob[2]
+    return cal, tag, keep
 
 
 # ---------------------------------------------------------------------------
