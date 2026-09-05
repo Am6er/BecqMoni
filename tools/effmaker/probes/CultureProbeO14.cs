@@ -40,15 +40,9 @@ using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.NucBase;
 using BecquerelMonitor.Properties;
 
-// ⛔ БЕЗ ЭТОЙ СТРОКИ ПРОБА МЕРИТ ДРУГОЙ ПРОЦЕСС, А НЕ ПРИЛОЖЕНИЕ. С .NET 4.6
-//    культура течёт по задачам вместе с контекстом исполнения, и включает это
-//    поведение СОВМЕСТИМОСТНЫЙ переключатель, который платформа выбирает по
-//    целевой платформе ВХОДНОЙ сборки. У приложения она объявлена
-//    (.NETFramework 4.8), у пробы, собранной голым `csc`, — нет вовсе, и
-//    процесс пробы жил бы по старым правилам. Тогда «дефект воспроизведён»
-//    означало бы только «проба собрана иначе». Значение печатается в шапке.
-[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",
-                                                     FrameworkDisplayName = ".NET Framework 4.8")]
+// Целевая платформа процесса (.NETFramework 4.8) объявлена ОБЩИМ довеском
+// `_TargetFramework.cs` — он компилируется в каждую пробу (`T237`, 06.09.2026);
+// свой атрибут здесь дал бы CS0579. Значение печатается в шапке.
 
 static class CultureProbeO14
 {

@@ -1,0 +1,3 @@
+КАТАЛОГ ПРОБ ОБСТАВЛЕН: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g4
+довески: _TargetFramework.cs, GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+СБОРКА G4 ПРОШЛА: 0 проб

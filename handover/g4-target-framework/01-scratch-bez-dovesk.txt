@@ -1,0 +1,24 @@
+платформа процесса: НЕ ОБЪЯВЛЕНА
+NoAsyncCurrentCulture: True
+UseLegacyPathHandling: True
+ОС: ru-RU, главный поток при старте: ru-RU
+Path.GetFullPath("C:\\a\\..\\b.txt ") -> «C:\b.txt»
+
+ПЛЕЧО 1: дверь Thread.CurrentThread.CurrentCulture = Invariant
+  главный поток: |1.5|ui=
+  Task.Run:      ru-RU|1,5|ui=ru-RU
+  new Thread:    ru-RU|1,5|ui=ru-RU
+  ThreadPool:    ru-RU|1,5|ui=ru-RU
+  Parallel.For:  |1.5|ui=
+ПЛЕЧО 2: дверь CultureInfo.CurrentCulture = Invariant
+  главный поток: |1.5|ui=
+  Task.Run:      ru-RU|1,5|ui=ru-RU
+  new Thread:    ru-RU|1,5|ui=ru-RU
+  ThreadPool:    ru-RU|1,5|ui=ru-RU
+  Parallel.For:  |1.5|ui=
+ПЛЕЧО 3: DefaultThreadCurrentCulture = de-DE поверх плеча 2
+  главный поток: |1.5|ui=
+  Task.Run:      de-DE|1,5|ui=ru-RU
+  new Thread:    de-DE|1,5|ui=ru-RU
+  ThreadPool:    de-DE|1,5|ui=ru-RU
+  Parallel.For:  |1.5|ui=

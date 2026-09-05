@@ -41,13 +41,9 @@ using BecquerelMonitor;
 using BecquerelMonitor.NucBase;
 using BecquerelMonitor.Properties;
 
-// ⛔ БЕЗ ЭТОЙ СТРОКИ ПРОБА МЕРИТ ДРУГОЙ ПРОЦЕСС. Правила совместимости
-//    платформа выбирает по целевой платформе ВХОДНОЙ сборки; у пробы, собранной
-//    голым `csc`, её нет вовсе, и процесс жил бы по правилам до .NET 4.6.
-//    Замер, СОВПАВШИЙ с ожиданием, никто не перепроверяет — поэтому строка
-//    стоит здесь, а её значение печатается в шапке.
-[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",
-                                                     FrameworkDisplayName = ".NET Framework 4.8")]
+// Целевая платформа процесса (.NETFramework 4.8) объявлена ОБЩИМ довеском
+// `_TargetFramework.cs` — он компилируется в каждую пробу (`T237`, 06.09.2026);
+// свой атрибут здесь дал бы CS0579. Значение печатается в шапке.
 
 static class RestCultureProbeF28
 {

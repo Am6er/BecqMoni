@@ -1,0 +1,14 @@
+CalibGraphProbeF35_after     код 0                  0,5 с  131 строк
+CultureProbeO14_after        код 0                  2,0 с  447 строк
+CultureProbeO14_noattr_after код 0                  2,0 с  447 строк
+GraphCultureProbeF27_after   код 0                  0,5 с  187 строк
+LabelPathProbeF49_after      код 2                  0,1 с  0 строк
+MatrixRefusalProbeP8_after   код 0                  0,4 с  63 строк
+ModalThreadProbeO25_after    код 0                  1,0 с  33 строк
+PeakFwhmUnitsProbeF41_after  код 1                  0,3 с  33 строк
+RestCultureProbeF28_after    код 0                  0,3 с  62 строк
+RestCultureProbeF47_after    код 0                  0,3 с  80 строк
+FsaBackgroundMarkProbeF48_after код 0                  0,5 с  80 строк
+ModalReachProbeF22_after     код 0                  0,8 с  19 строк
+ReasonProbe_after            код 0                  0,1 с  109 строк
+LabelTruthProbe_after        код 2                  0,1 с  0 строк

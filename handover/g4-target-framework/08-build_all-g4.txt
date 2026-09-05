@@ -1,0 +1,302 @@
+довески без Main: _TargetFramework.cs, GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+целевая платформа проб: довесок _TargetFramework.cs
+ok   EtlCheck.cs
+ok   MeasuredPoint.cs
+ok   Program.cs
+ok   Simulate.cs
+ok   AngularProbe.cs
+ok   BackscatterShapeProbe.cs
+ok   BoundScatterProbe.cs
+ok   BoxDeadFieldsProbe.cs
+ok   BoxSourceProbe.cs
+ok   BqActivityProbe.cs
+ok   BqCoeffProbe.cs
+ok   BremSpectrumProbe.cs
+ok   CalcRestoreProbe.cs
+ok   CalibGraphProbeF35.cs
+ok   CalibrationDoorsProbe.cs
+ok   CalibrationNanProbeF48.cs
+ok   CascadeJointProbe.cs
+ok   CascadeXrayProbe.cs
+ok   ChainProbe.cs
+ok   CoincCfProbe.cs
+ok   CorpusEffProbe.cs
+ok   CorpusFsaProbe.cs
+ok   CorpusGeomProbe.cs
+ok   CorpusMatrixProbe.cs
+ok   CrashLogProbe.cs
+ok   CultureProbeO14.cs
+ok   CylinderGeomProbe.cs
+ok   DecayReadersProbe.cs
+ok   DensityFromPartsProbe.cs
+ok   DeviceAnalysisProbe.cs
+ok   DeviceTabProbe.cs
+ok   DoseCoefProbeO2.cs
+ok   DosePointsProbeF9.cs
+ok   DoseRateProbe.cs
+ok   EditorProbe.cs
+ok   EditorShot.cs
+ok   EffDipProbe.cs
+ok   EffGridRangeProbe.cs
+ok   EfficiencyConfigProbe.cs
+ok   EfficiencyListProbe.cs
+ok   EscapeGateProbe.cs
+ok   EscapeParentsProbe.cs
+ok   FacingProbe.cs
+ok   FsaBackgroundMarkProbeF48.cs
+ok   FsaCascadeProbe.cs
+ok   FsaDeterminismProbeF29.cs
+ok   FsaDoubleCountProbe.cs
+ok   FsaFlagsProbe.cs
+ok   FsaInferProbeF51.cs
+ok   FsaPaletteProbe.cs
+ok   FsaQualityRowProbe.cs
+ok   FsaReportViewProbe.cs
+ok   FsaResidualProbeF21.cs
+ok   FsaRobustnessProbe.cs
+ok   FsaSelectionProbeF16.cs
+ok   FsaSessionProbe.cs
+ok   FsaStackShot.cs
+ok   FsaStampProbe.cs
+ok   FwhmPowerProbe.cs
+ok   FwhmRescaleProbe.cs
+ok   FwhmViewReachProbeO13.cs
+ok   G4CompareProbe.cs
+ok   G4RawProbe.cs
+ok   GadrasProbe.cs
+ok   GeomEncodingProbe.cs
+ok   GeometryLimitsProbe.cs
+ok   GraphCultureProbeF27.cs
+ok   GridStampProbeF45.cs
+ok   GroundScenesProbe.cs
+ok   ImportEmptyConfigProbeF23.cs
+ok   IntensityLinesProbe.cs
+ok   LabelFitProbe.cs
+ok   LabelPathProbeF49.cs
+ok   LabelTruthProbe.cs
+ok   LayerProbe.cs
+ok   LightScaleProbe.cs
+ok   LSeriesProbe.cs
+ok   MakerSaveProbe.cs
+ok   MaterialDbProbe.cs
+ok   MaterialOrderProbe.cs
+ok   MatrixAuditProbe.cs
+ok   MatrixDiffProbe.cs
+ok   MatrixLayoutProbe.cs
+ok   MatrixRangeProbe.cs
+ok   MatrixRebuildProbe.cs
+ok   MatrixRefusalProbeP8.cs
+ok   MatrixStampProbe.cs
+ok   MineProbe.cs
+ok   ModalReachProbeF22.cs
+ok   ModalThreadProbeO25.cs
+ok   N42RoundTripProbe.cs
+ok   NucidProbe.cs
+ok   NuclideSetMemoryProbe.cs
+ok   OmegaProbe.cs
+ok   OrderProbe.cs
+ok   PackGeometryProbe.cs
+ok   PairThresholdProbe.cs
+ok   PeakAgreeProbe.cs
+ok   PeakFwhmUnitsProbeF41.cs
+ok   PeakOriginProbe.cs
+ok   RawCarryProbe.cs
+ok   ReasonProbe.cs
+ok   RefusalWordsProbe.cs
+ok   ResponseChannelProbe.cs
+ok   ResponseInterpProbe.cs
+ok   ResponseMatrixFormProbe.cs
+ok   ResponseMatrixProbe.cs
+ok   ResponseNoiseProbe.cs
+ok   ResponseProbe.cs
+ok   ResponseShapeProbe.cs
+ok   RestCultureProbeF28.cs
+ok   RestCultureProbeF47.cs
+ok   RoiActivityProbe.cs
+ok   RoiLoadProbe.cs
+ok   RoiSupplyProbe.cs
+ok   RoundTrip.cs
+ok   S109ActivityProbe.cs
+ok   SbKeysProbe.cs
+ok   SceneOfSpectrumProbe.cs
+ok   ScoutProbe.cs
+ok   SetColorProbe.cs
+ok   SetProbe.cs
+ok   SketchShot.cs
+ok   SpectrumEfficiencyProbe.cs
+ok   StartTimeProbeF52.cs
+ok   TrustFloorProbe.cs
+ok   UnitsProbe.cs
+ok   VisibleRuleProbe.cs
+ok   XrayLinesProbe.cs
+----
+⚠ ПОСТОРОННЕЕ в каталоге проб: _before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CalibGraphProbeF35_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CalibGraphProbeF35_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CalibGraphProbeF35_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CalibGraphProbeF35_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_noattr_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_noattr_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_noattr_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: CultureProbeO14_noattr_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: FsaBackgroundMarkProbeF48_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: FsaBackgroundMarkProbeF48_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: FsaBackgroundMarkProbeF48_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: FsaBackgroundMarkProbeF48_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: GraphCultureProbeF27_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: GraphCultureProbeF27_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: GraphCultureProbeF27_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: GraphCultureProbeF27_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelPathProbeF49_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelPathProbeF49_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelPathProbeF49_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelPathProbeF49_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelTruthProbe_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelTruthProbe_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelTruthProbe_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: LabelTruthProbe_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: MatrixRefusalProbeP8_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: MatrixRefusalProbeP8_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: MatrixRefusalProbeP8_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: MatrixRefusalProbeP8_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalReachProbeF22_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalReachProbeF22_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalReachProbeF22_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalReachProbeF22_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalThreadProbeO25_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalThreadProbeO25_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalThreadProbeO25_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ModalThreadProbeO25_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: PeakFwhmUnitsProbeF41_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: PeakFwhmUnitsProbeF41_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: PeakFwhmUnitsProbeF41_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: PeakFwhmUnitsProbeF41_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ReasonProbe_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ReasonProbe_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ReasonProbe_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ReasonProbe_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseInterpProbe_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseInterpProbe_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseInterpProbe_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseInterpProbe_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseShapeProbe_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseShapeProbe_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseShapeProbe_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: ResponseShapeProbe_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF28_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF28_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF28_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF28_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF47_after.exe  06.09 02:14
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF47_after.exe.config  06.09 02:14
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF47_before.exe  06.09 02:13
+    exe вне плана: запустить его можно, и он покажет разбор, которого в коде нет (так `PeakFinderProbe.exe` от 17.08 пролежал в оснастке восемь дней)
+⚠ ПОСТОРОННЕЕ в каталоге проб: RestCultureProbeF47_before.exe.config  06.09 02:13
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+⚠ ПОСТОРОННЕЕ в каталоге проб: config\layout\ExpertMode.xml  06.09 02:12
+    файлы этого рода приложение и пробы ЗАГРУЖАЮТ — прогон возьмёт и этот
+
+⛔⛔ ОТКАЗ: СТОРОЖ НЕ ДОКАЗАЛ, ЧТО СВЕРЯЛ (T79)
+   ИСПОЛНЯЕМОЕ вне плана в каталоге проб — 32 шт. (решение Amber, T88):
+   CalibGraphProbeF35_after.exe  (06.09 02:14)
+   CalibGraphProbeF35_before.exe  (06.09 02:13)
+   CultureProbeO14_after.exe  (06.09 02:14)
+   CultureProbeO14_before.exe  (06.09 02:13)
+   CultureProbeO14_noattr_after.exe  (06.09 02:14)
+   CultureProbeO14_noattr_before.exe  (06.09 02:13)
+   FsaBackgroundMarkProbeF48_after.exe  (06.09 02:14)
+   FsaBackgroundMarkProbeF48_before.exe  (06.09 02:13)
+   GraphCultureProbeF27_after.exe  (06.09 02:14)
+   GraphCultureProbeF27_before.exe  (06.09 02:13)
+   LabelPathProbeF49_after.exe  (06.09 02:14)
+   LabelPathProbeF49_before.exe  (06.09 02:13)
+   LabelTruthProbe_after.exe  (06.09 02:14)
+   LabelTruthProbe_before.exe  (06.09 02:13)
+   MatrixRefusalProbeP8_after.exe  (06.09 02:14)
+   MatrixRefusalProbeP8_before.exe  (06.09 02:13)
+   ModalReachProbeF22_after.exe  (06.09 02:14)
+   ModalReachProbeF22_before.exe  (06.09 02:13)
+   ModalThreadProbeO25_after.exe  (06.09 02:14)
+   ModalThreadProbeO25_before.exe  (06.09 02:13)
+   PeakFwhmUnitsProbeF41_after.exe  (06.09 02:14)
+   PeakFwhmUnitsProbeF41_before.exe  (06.09 02:13)
+   ReasonProbe_after.exe  (06.09 02:14)
+   ReasonProbe_before.exe  (06.09 02:13)
+   ResponseInterpProbe_after.exe  (06.09 02:14)
+   ResponseInterpProbe_before.exe  (06.09 02:13)
+   ResponseShapeProbe_after.exe  (06.09 02:14)
+   ResponseShapeProbe_before.exe  (06.09 02:13)
+   RestCultureProbeF28_after.exe  (06.09 02:14)
+   RestCultureProbeF28_before.exe  (06.09 02:13)
+   RestCultureProbeF47_after.exe  (06.09 02:14)
+   RestCultureProbeF47_before.exe  (06.09 02:13)
+   Это не удаляется автоматически: уберите файлы сами и повторите.
+   Пустой список находок при нулевом числе сверенного — это ОТКАЗ, а не «проверено».
+

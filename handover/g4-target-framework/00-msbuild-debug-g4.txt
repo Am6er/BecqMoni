@@ -1,0 +1,2 @@
+
+  BecquerelMonitor -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_G4\BecquerelMonitor.exe

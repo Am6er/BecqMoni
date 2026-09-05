@@ -43,10 +43,9 @@ using System.Text;
 using System.Xml.Serialization;
 using BecquerelMonitor;
 
-// ⛔ Без объявления целевой платформы проба живёт по правилам до .NET 4.6 и
-//    мерила бы не то, чем работает приложение (грабля 05.09.2026).
-[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",
-                                                     FrameworkDisplayName = ".NET Framework 4.8")]
+// Целевая платформа процесса (.NETFramework 4.8) объявлена ОБЩИМ довеском
+// `_TargetFramework.cs` — он компилируется в каждую пробу (`T237`, 06.09.2026);
+// свой атрибут здесь дал бы CS0579. Значение печатается в шапке.
 
 static class PeakFwhmUnitsProbeF41
 {
