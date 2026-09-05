@@ -190,11 +190,21 @@ namespace Pie
 
             int chLo = ClampChannel(EnergyToChannelSafe(cal, options.EMin, nch), nch);
             int chHi = ClampChannel(EnergyToChannelSafe(cal, options.EMax, nch), nch);
-            // Последний канал АЦП — канал переполнения: в него падают все
-            // события выше шкалы (RC103_Background: 11 k отсчётов при соседях
-            // ~5). Образа у такой структуры нет, фит её объяснить не может —
-            // верхний канал исключается, когда диапазон дотянулся до края.
-            if (chHi >= nch - 1) chHi = nch - 2;
+            // ⛔ `A220`. Канал переполнения выбрасывается ПО ПРАВИЛУ
+            // `BecquerelMonitor.OverflowChannel` (`A203`) — тому же, что у
+            // приложения и у дозиметра, — а не по месту в массиве. В него
+            // падают все события вне шкалы (RC103_Background: 11 k отсчётов
+            // при соседях ~5), образа у такой структуры нет, фит её объяснить
+            // не может.
+            //
+            // Прежде правило было БЕЗУСЛОВНЫМ, и таким оно быть не может: по
+            // корпусу (129 спектров, замер 05.09.2026) переполнение в последнем
+            // канале есть у 28, а у остальных 101 канал обычный — и из
+            // разложения выбрасывался настоящий отсчёт (`G1S24_Th228_P5`: 127
+            // при медиане соседей 196.5). Правило одно на ОБА конца шкалы.
+            bool[] overflow = OverflowChannel.Mask(es.Spectrum);
+            if (chHi >= nch - 1 && chHi < overflow.Length && overflow[chHi]) chHi = nch - 2;
+            if (chLo <= 0 && overflow.Length > 0 && overflow[0]) chLo = 1;
             if (chHi <= chLo + 10) throw new InvalidOperationException("degenerate fit range");
 
             // --bg-file: внешнее фоновое измерение вместо встроенного. Файл
