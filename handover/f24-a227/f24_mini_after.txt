@@ -1,0 +1,41 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\bq_f24\tools\CORPUS\scripts\wd_f24bm
+  сборка   : C:\Users\moroz\source\repos\bq_f24\BecquerelMonitor\bin\Debug_F24b
+  пробы    : C:\Users\moroz\source\repos\bq_f24\tools\effmaker\probes\build_f24b
+  собрана  : 2026-09-05 19:27:49 из C:\Users\moroz\source\repos\bq_f24\BecquerelMonitor\bin\Debug_F24b
+  сверено  : 289 файлов по sha256 за 1,32 с
+  библиотека: 152 записей, sha 082c331db48f
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 289 файлов сошлись
+
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\bq_f24\tools\CORPUS\corpus --out=C:\Users\moroz\source\repos\bq_f24\tools\pie\out_f24_after --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5
+
+ПРОГОН МАЛОЙ БАЗЫ: 11,0 с
+
+=== score.py --part=known ===
+
+детектор   спектров     recall   фантомов   подавлен
+AS80x80           2       100%          0          0
+ASN16             2       100%          0          0
+G1S16            23       100%          0          1
+G1S24            15       100%          0          0
+итого            42       100%          0          1  (+0 комнатных)  часть: known
+       ПОДАВЛЕННЫХ 1: объявленный состав слабее приборного образа — recall этого не видит (S95)
+                 42  sum chi2/ndf 555.9   медиана 5.92
+                 42  model residual медиана 29.4 %   кварт. 13.7 .. 52.6 %
+
+=== score.py --part=unknown ===
+ASN16_Th232_Am241      Am-241+Th-232                Ac-228(29/45), Tl-208(27/45), Am-241(16/81), Pb-212(10/45), Bi-212(3/45), Ra-224(1/45) ok
+ASN16_UGlass           U-235+U-238                  Th-234(20/49), Pa-234m(12/49), U-235(6/20), Ra-223(4/20), Th-227(3/20), Rn-219(1/20), Bi-211(1/20), Pb-211(1/20), Pa-231(1/20), Th-231(0/20) ok
+
+детектор   спектров     recall   фантомов   подавлен
+AS80x80           7        90%          0          1
+ASN16            10       100%          0          0
+итого            17        96%          0          1  (+0 комнатных)  часть: unknown
+       ПОДАВЛЕННЫХ 1: объявленный состав слабее приборного образа — recall этого не видит (S95)
+                 17  sum chi2/ndf 205.3   медиана 4.95
+                 17  model residual медиана 32.8 %   кварт. 21.7 .. 37.2 %
+EXIT=0
+
+[exited with code 0]

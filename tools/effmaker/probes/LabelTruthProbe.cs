@@ -75,6 +75,14 @@ namespace LabelTruthProbe
         /// </summary>
         static string expectCandidatesOverride;
 
+        /// <summary>
+        /// ⛔ ТОЛЬКО ДЛЯ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ (`A227`). Подменяет ОЖИДАНИЕ
+        /// опыта «ЯРКАЯ линия, промах 0.5 ПШПВ, второй своей нет», а не то, что
+        /// считает приложение: прогон с заведомо неверным образцом обязан
+        /// ОТКАЗАТЬ. Без ключа ожидание берётся из таблицы опытов.
+        /// </summary>
+        static string expectFarOverride;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -93,6 +101,7 @@ namespace LabelTruthProbe
                 else if (a.StartsWith("--culture=", StringComparison.Ordinal)) language = a.Substring(10);
                 else if (a.StartsWith("--expect-sum=", StringComparison.Ordinal)) expectSumOverride = a.Substring(13);
                 else if (a.StartsWith("--expect-candidates=", StringComparison.Ordinal)) expectCandidatesOverride = a.Substring(20);
+                else if (a.StartsWith("--expect-far=", StringComparison.Ordinal)) expectFarOverride = a.Substring(13);
                 else if (a == "--selftest") selftest = true;
                 else
                 {
@@ -729,14 +738,51 @@ namespace LabelTruthProbe
                         new[] { Line("Икс", 1001.0, 0.842), Line("Икс", 766.0, 0.317) },
                         new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(1275.0, 70, 40, null, 0) },
                         new[] { "(нет)", "(нет)" }),
+                // ⚠ Улика — пик, спор за который наш нуклид НЕ ПРОИГРЫВАЕТ
+                //   (`A227`): подтверждающий пик обязан нести это имя среди
+                //   кандидатов, а «просто пик рядом» уликой больше не считается.
                 Confirm("слабая линия, вторая своя ВИДНА", 1500,
                         new[] { Line("Икс", 1001.0, 0.842), Line("Икс", 766.0, 0.317) },
-                        new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(770.0, 60, 15, null, 0) },
-                        new[] { "Икс@1001", "(нет)" }),
-                Confirm("ЯРКАЯ линия, второй своей не видно", 1500,
+                        new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(770.0, 60, 15, "Икс", 766.0) },
+                        new[] { "Икс@1001", "Икс@766" }),
+                // Близнец предыдущего: пик у второй линии ЕСТЬ, но он ЧУЖОЙ —
+                // ровно случай `I-131` 722.0, «подтверждаемой» пиком Bi-212
+                // 727.3 в спектрах тория (`A227`).
+                Confirm("слабая линия, пик у второй линии ЧУЖОЙ", 1500,
+                        new[] { Line("Икс", 1001.0, 0.842), Line("Икс", 766.0, 0.317),
+                                Line("Чужой", 770.0, 60.0) },
+                        new[] { P(1001.0, 60, 20, "Икс", 1001.0), P(770.0, 60, 15, "Чужой", 770.0) },
+                        new[] { "(нет)", "Чужой@770" }, true),
+                Confirm("ЯРКАЯ линия В ПИКЕ, второй своей не видно", 1500,
                         new[] { Line("Игрек", 911.0, 25.8), Line("Игрек", 969.0, 15.8) },
                         new[] { P(911.0, 40, 30, "Игрек", 911.0) },
                         new[] { "Игрек@911" }),
+                // --- подтверждение ДАЛЁКОЙ линии (`A227`) ---
+                // Промах 0.5 ПШПВ (20 кэВ при ПШПВ 40) — линия яркая, но одна
+                // за себя не отвечает: второй своей в спектре нет.
+                Confirm("ЯРКАЯ линия, промах 0.5 ПШПВ, второй своей нет", 1500,
+                        new[] { Line("Йод-мнимый", 364.0, 81.5), Line("Йод-мнимый", 636.0, 7.2) },
+                        new[] { P(384.0, 40, 30, "Йод-мнимый", 364.0) },
+                        new[] { "(нет)" }, true),
+                Confirm("ЯРКАЯ линия, промах 0.5 ПШПВ, вторая своя ВИДНА", 1500,
+                        new[] { Line("Йод-мнимый", 364.0, 81.5), Line("Йод-мнимый", 636.0, 7.2) },
+                        new[] { P(384.0, 40, 30, "Йод-мнимый", 364.0),
+                                P(638.0, 50, 12, "Йод-мнимый", 636.0) },
+                        new[] { "Йод-мнимый@364", "Йод-мнимый@636" }, true),
+                // Германий: промах 0.4 ПШПВ, но ВСЕГО 0.6 кэВ — это огрубление
+                // записи библиотеки (74 % записей несут целую энергию), а не
+                // положение пика. Пол в кэВ обязан такую подпись сохранить.
+                Confirm("ЯРКАЯ линия, промах 0.4 ПШПВ, но 0.6 кэВ", 1500,
+                        new[] { Line("Актиний-мнимый", 911.0, 25.8),
+                                Line("Актиний-мнимый", 969.0, 15.8) },
+                        new[] { P(911.6, 1.5, 30, "Актиний-мнимый", 911.0) },
+                        new[] { "Актиний-мнимый@911" }, true),
+                // Рентген: вторая своя линия попала В ЭТОТ ЖЕ пик (`A226` п.4).
+                Confirm("далёкая линия, вторая своя ВНУТРИ ТОГО ЖЕ пика", 1500,
+                        new[] { Line("Свинец-мнимый", 87.3, 8.0),
+                                Line("Свинец-мнимый", 84.9, 23.0) },
+                        new[] { P(93.5, 15, 30, "Свинец-мнимый", 87.3) },
+                        new[] { "Свинец-мнимый@87.3" }, true),
                 Confirm("слабая линия, других своих НЕТ вовсе", 1500,
                         new[] { Line("Зет", 1001.0, 0.842) },
                         new[] { P(1001.0, 60, 20, "Зет", 1001.0) },
@@ -754,18 +800,41 @@ namespace LabelTruthProbe
                 Confirm("суммы нет: пика 511 в спектре НЕТ", 3000,
                         new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
                                 Line("Нуклид", 766.0, 0.317) },
-                        new[] { P(1002.0, 90, 16, "Нуклид", 1001.0), P(766.0, 60, 15, null, 0) },
-                        new[] { "Нуклид@1001", "(нет)" }),
+                        new[] { P(1002.0, 90, 16, "Нуклид", 1001.0), P(766.0, 60, 15, "Нуклид", 766.0) },
+                        new[] { "Нуклид@1001", "Нуклид@766" }),
                 Confirm("суммы нет: пик 1022 ЗАМЕТНЕЕ пика 511", 3000,
                         new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
                                 Line("Нуклид", 766.0, 0.317) },
                         new[] { P(511.0, 40, 10, "Образ", 511.0), P(1002.0, 90, 500, "Нуклид", 1001.0),
-                                P(766.0, 60, 15, null, 0) },
-                        new[] { "Образ@511", "Нуклид@1001", "(нет)" })
+                                P(766.0, 60, 15, "Нуклид", 766.0) },
+                        new[] { "Образ@511", "Нуклид@1001", "Нуклид@766" })
             };
 
+            // (`A227`) Опыт над правилом ДАЛЁКОЙ линии ставится только там, где
+            // правило есть: на сборке без него исходы печатаются, но приговора
+            // нет — иначе плечо «до» отказывало бы за отсутствие того, чего в
+            // нём и не должно быть.
+            bool farRule = Gate("LabelMissConfirmInFwhm") != null;
+            if (expectFarOverride != null)
+            {
+                foreach (ConfirmCase c in cases)
+                {
+                    if (c.Title.StartsWith("ЯРКАЯ линия, промах 0.5 ПШПВ, второй", StringComparison.Ordinal))
+                    {
+                        c.Expect = new[] { expectFarOverride };
+                    }
+                }
+            }
+
             Console.WriteLine();
-            Console.WriteLine("ОПЫТ НАД ПРАВИЛАМИ ПО СОСТАВУ СПЕКТРА (`A196`, `A197`):");
+            Console.WriteLine("ОПЫТ НАД ПРАВИЛАМИ ПО СОСТАВУ СПЕКТРА (`A196`, `A197`, `A227`):");
+            Console.WriteLine("  правило далёкой линии в сборке: {0}",
+                              farRule ? "есть (промах > "
+                                        + Gate("LabelMissConfirmInFwhm").Value.ToString("G6", CultureInfo.InvariantCulture)
+                                        + " ПШПВ и > "
+                                        + Gate("LabelMissConfirmFloorKev").Value.ToString("G6", CultureInfo.InvariantCulture)
+                                        + " кэВ)"
+                                      : "НЕТ — опыты над ним не судятся");
             int bad = 0;
             foreach (ConfirmCase c in cases)
             {
@@ -800,10 +869,12 @@ namespace LabelTruthProbe
                           .ToArray();
                 bool ok = got.Length == c.Expect.Length;
                 for (int i = 0; ok && i < got.Length; i++) ok = got[i] == c.Expect[i];
-                if (!ok) bad++;
-                Console.WriteLine("  {0,-42} ждали [{1}] получили [{2}] {3}",
+                bool judged = farRule || !c.NeedsFarRule;
+                if (!ok && judged) bad++;
+                Console.WriteLine("  {0,-46} ждали [{1}] получили [{2}] {3}",
                                   c.Title, string.Join(" ", c.Expect), string.Join(" ", got),
-                                  ok ? "✓" : "⛔ РАСХОЖДЕНИЕ");
+                                  !judged ? "(сборка без правила `A227`)"
+                                          : (ok ? "✓" : "⛔ РАСХОЖДЕНИЕ"));
             }
             return bad;
         }
@@ -918,10 +989,15 @@ namespace LabelTruthProbe
             public List<NuclideDefinition> Library;
             public List<Peak> Peaks;
             public string[] Expect;
+            /// <summary>
+            /// (`A227`) Опыт спрашивает правило ДАЛЁКОЙ линии либо новую силу
+            /// улики. На сборке без них исход печатается, но не судится.
+            /// </summary>
+            public bool NeedsFarRule;
         }
 
         static ConfirmCase Confirm(string title, double maxRangeKev, NuclideDefinition[] lib,
-                                   Peak[] peaks, string[] expect)
+                                   Peak[] peaks, string[] expect, bool needsFarRule = false)
         {
             return new ConfirmCase
             {
@@ -929,7 +1005,8 @@ namespace LabelTruthProbe
                 MaxRangeKev = maxRangeKev,
                 Library = lib.ToList(),
                 Peaks = peaks.ToList(),
-                Expect = expect
+                Expect = expect,
+                NeedsFarRule = needsFarRule
             };
         }
 
