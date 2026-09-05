@@ -608,7 +608,49 @@ namespace BecquerelMonitor
                 if (measurements_count == 0) throw new Exception("No measurements found in spectrum file");
 
                 bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
-                FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration.Clone();
+                // ⛔ ОТСУТСТВИЕ МОДЕЛИ РАЗРЕШЕНИЯ — ЗАКОННОЕ СОСТОЯНИЕ, А НЕ СБОЙ
+                //    (`A212`). Тут стоял голый `.Clone()`, и он бросал
+                //    NullReferenceException; внешний catch этого метода
+                //    заворачивал бросок в «ошибку открытия файла» со следом
+                //    вызовов в тексте, то есть человек получал непереводимое
+                //    сообщение о файле, с которым всё в порядке, и документ,
+                //    разобранный наполовину.
+                //
+                //    Измерено 05.09.2026 (`N42RoundTripProbe --mode=noconfig`,
+                //    12 корпусных .n42): падало 12 из 12 в ДВУХ состояниях —
+                //    список конфигураций приборов пуст (документ построен минуя
+                //    `CheckDocument`) и умолчание ПШПВ не строится вовсе. Второе
+                //    достаёт человека за экраном: `DefaultCalibration` кладёт
+                //    прямую через (0, FWHM_AT_0) и (Ch_Fwhm, Width_Fwhm) и
+                //    отдаёт null, если она не растёт. `CheckDocument` достроить
+                //    ПШПВ в этом случае НЕ МОЖЕТ, и через штатный
+                //    `CreateDocument` пункта меню «Import spectrum file»
+                //    приходил ровно null.
+                //    ⚠ Честно о достижимости: этих трёх чисел НЕТ ни на одной
+                //    форме — они приходят из `config\device\*.xml` и из
+                //    заготовок приборов, и во всех поставочных конфигурациях
+                //    дерева прямая растёт. То есть состояние достижимо
+                //    конфигурацией правленой руками, чужой или переехавшей со
+                //    старого извода (у неё нет и элемента `FwhmCalibration`,
+                //    иначе умолчание не считалось бы вовсе), а не двумя
+                //    щелчками. Редкость положения ничего не меняет: сторож тут
+                //    стоит трёх строк, а его отсутствие стоит человеку
+                //    непереводимого окна.
+                //
+                //    ⚠ Сторож ровно тот, что в `ResultData.Clone` (`ResultData.cs`,
+                //    «FwhmCalibration can legitimately be null»): есть кривая —
+                //    копия, нет — null дальше. Подставлять умолчание прибора
+                //    НЕЛЬЗЯ: измерено, что в этом самом состоянии кривая
+                //    настроек поиска пиков тоже null (подставлять нечего), а
+                //    когда она есть — её уже взял бы `CreateResultData`.
+                //    Отказывать словами тоже нельзя: соседняя дверь того же
+                //    файла, `ImportDocumentN42`, ввозит все 12 из 12 с пустой
+                //    ПШПВ и молча, и отказ здесь развёл бы два пункта меню на
+                //    одном файле — та самая беда, ради которой сведены `A160`
+                //    и `A175`.
+                FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration != null
+                                                  ? doc.ActiveResultData.FwhmCalibration.Clone()
+                                                  : null;
                 MeasurementController measurementController = doc.ActiveResultData.MeasurementController;
                 doc.ActiveResultData.BackgroundEnergySpectrum = null;
                 doc.ActiveResultData.BackgroundSpectrumPathname = null;
@@ -668,7 +710,8 @@ namespace BecquerelMonitor
                                 }
                                 
                                 resultData.EnergySpectrum = new EnergySpectrum(1, numberOfChannels);
-                                resultData.FwhmCalibration = fwhmCalibration.Clone();
+                                // `A212`: та же кривая может законно отсутствовать — см. сторож выше.
+                                resultData.FwhmCalibration = fwhmCalibration != null ? fwhmCalibration.Clone() : null;
                                 resultData.MeasurementController = measurementController;
 
                                 energySpectrum = resultData.EnergySpectrum;
@@ -692,7 +735,8 @@ namespace BecquerelMonitor
 
                                 resultData.BackgroundEnergySpectrum = new EnergySpectrum(1, numberOfChannels);
                                 resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count + ")";
-                                resultData.FwhmCalibration = fwhmCalibration.Clone();
+                                // `A212`: та же кривая может законно отсутствовать — см. сторож выше.
+                                resultData.FwhmCalibration = fwhmCalibration != null ? fwhmCalibration.Clone() : null;
                                 resultData.MeasurementController = measurementController;
 
                                 energySpectrum = resultData.BackgroundEnergySpectrum;
