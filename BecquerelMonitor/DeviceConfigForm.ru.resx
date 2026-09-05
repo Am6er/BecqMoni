@@ -437,7 +437,7 @@
     <value>Эталон МЭД, мкЗв/ч</value>
   </data>
   <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Экспериментально: оценка кривой мощности дозы по LSRM модели и спектру</value>
+    <value>Экспериментально: кривая дозы по эффективности (XCOM + ICRP 74) и спектру</value>
   </data>
   <data name="buttonEstimateDRConf.Text" xml:space="preserve">
     <value>Рассчитать конфигурацию</value>
@@ -446,16 +446,16 @@
     <value>мкЗв/ч, мощность дозы от источника</value>
   </data>
   <data name="labelEffNote.Text" xml:space="preserve">
-    <value>*важна только форма кривой (LSRM effcalc, 40 кэВ - 3 МэВ)</value>
+    <value>*важна только форма кривой; диапазон берётся у шкалы прибора</value>
   </data>
   <data name="buttonLoadEff.Text" xml:space="preserve">
-    <value>Загрузить файл эфф.*</value>
+    <value>Кривая из файла*</value>
   </data>
   <data name="labelSpectrumNote.Text" xml:space="preserve">
     <value>*от источника с известной мощностью дозы</value>
   </data>
   <data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
-    <value>Загрузить файл спектра*</value>
+    <value>Спектр из файла*</value>
   </data>
   <data name="button12.Text" xml:space="preserve">
     <value>Дубль</value>

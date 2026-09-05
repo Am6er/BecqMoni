@@ -2407,13 +2407,13 @@ namespace BecquerelMonitor
 
         // --- `C4(а)` и `C4(б)`: то, что уже есть у приложения, вместо диалога ---
         //
-        // Оба списка строятся кодом, а не конструктором форм, ровно по той же
-        // причине, что и вкладка «Эффективность»: у полосы, которая их пишет,
-        // `*.resx` формы не в правке, а строки списку нужны. Подписи идут через
-        // `DoseRateCoefficients.Text` — как только координатор заведёт пару
-        // ключей (английский + русский), она подхватится сама.
-        ComboBox comboDoseRateSpectrum;
-        ComboBox comboDoseRateEfficiency;
+        // ⚠ Оба списка — `comboDoseRateSpectrum` и `comboDoseRateEfficiency` —
+        // живут в `DeviceConfigForm.Designer.cs` и получают место, размер и
+        // порядок обхода из `DeviceConfigForm.resx` (`A202`, 05.09.2026). До
+        // того они строились здесь, кодом, и брали раскладку у двух ПОЛЕЙ
+        // «путь к файлу», которые остались в конструкторе форм и прятались
+        // `Visible = false`: раскладка жила в двух местах разом, а человек за
+        // конструктором видел поля, которых на вкладке нет.
         ToolTip doseRateToolTip;
 
         /// <summary>Спектр, поднятый из файла старым путём; null, если его не было.</summary>
@@ -2425,48 +2425,17 @@ namespace BecquerelMonitor
 
 
         /// <summary>
-        /// Достроить вкладку «Dose Rate»: два списка вместо двух диалогов.
+        /// Достроить вкладку «Dose Rate» тем, чего конструктор форм не хранит.
         ///
-        /// Списки встают ТОЧНО на место двух полей «путь к файлу», которые до
-        /// сих пор только показывали имя и ничего не делали, — места на
-        /// странице (490x599) свободного нет, а поля свою работу передают
-        /// списку: выбранный пункт и есть имя источника, полный путь висит
-        /// подсказкой.
+        /// Сами списки — спектра и кривой — стоят в конструкторе форм рядом со
+        /// своими кнопками «… из файла»: выбранный пункт и есть имя источника,
+        /// а полный путь к файлу, поднятому кнопкой, висит подсказкой. Подсказка
+        /// раскладкой не является и в `*.resx` не хранится — компонент
+        /// заводится здесь (`A202`, 05.09.2026).
         /// </summary>
         void BuildDoseRateTab()
         {
             this.doseRateToolTip = new ToolTip();
-
-            this.comboDoseRateSpectrum = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = this.textBoxDoseRateSpectrumFile.Location,
-                Size = new Size(this.textBoxDoseRateSpectrumFile.Width, 21),
-                TabIndex = this.textBoxDoseRateSpectrumFile.TabIndex,
-            };
-
-            this.comboDoseRateEfficiency = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = this.textBoxEffFile.Location,
-                Size = new Size(this.textBoxEffFile.Width, 21),
-                TabIndex = this.textBoxEffFile.TabIndex,
-            };
-
-            this.textBoxDoseRateSpectrumFile.Visible = false;
-            this.textBoxEffFile.Visible = false;
-
-            this.comboDoseRateSpectrum.SelectedIndexChanged += this.comboDoseRateSpectrum_SelectedIndexChanged;
-            this.comboDoseRateEfficiency.SelectedIndexChanged += this.comboDoseRateEfficiency_SelectedIndexChanged;
-
-            this.tabPage7.Controls.Add(this.comboDoseRateSpectrum);
-            this.tabPage7.Controls.Add(this.comboDoseRateEfficiency);
-
-            // Подпись под кривой врала после `C4(в)`: диапазон больше не
-            // «40 keV - 3MeV», он берётся у шкалы прибора.
-            this.labelEffNote.Text = DoseRateCoefficients.Text(
-                "DoseRateEffNote",
-                "*only the shape of the curve matters; the ranges follow the device scale");
         }
 
         /// <summary>
@@ -2627,8 +2596,6 @@ namespace BecquerelMonitor
             {
                 return;
             }
-
-            this.textBoxDoseRateSpectrumFile.Text = openFileDialog.FileName;
 
             try
             {
@@ -2871,8 +2838,6 @@ namespace BecquerelMonitor
             {
                 return;
             }
-
-            this.textBoxEffFile.Text = openFileDialog.FileName;
 
             string problem;
             List<ROIEfficiencyData> points = ReadLsrmEfficiencyExport(openFileDialog.FileName, out problem);

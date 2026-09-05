@@ -149,8 +149,8 @@ namespace BecquerelMonitor
             this.numberColumn8 = new XPTable.Models.NumberColumn();
             this.tableModel4 = new XPTable.Models.TableModel();
             this.labelDREstimateTitle = new System.Windows.Forms.Label();
-            this.textBoxEffFile = new System.Windows.Forms.TextBox();
-            this.textBoxDoseRateSpectrumFile = new System.Windows.Forms.TextBox();
+            this.comboDoseRateEfficiency = new System.Windows.Forms.ComboBox();
+            this.comboDoseRateSpectrum = new System.Windows.Forms.ComboBox();
             this.buttonEstimateDRConf = new System.Windows.Forms.Button();
             this.labelDoseRateValue = new System.Windows.Forms.Label();
             this.upDownDoseRateValue = new System.Windows.Forms.NumericUpDown();
@@ -1008,8 +1008,8 @@ namespace BecquerelMonitor
             this.tabPage7.BackColor = System.Drawing.SystemColors.Control;
             this.tabPage7.Controls.Add(this.groupBox3);
             this.tabPage7.Controls.Add(this.labelDREstimateTitle);
-            this.tabPage7.Controls.Add(this.textBoxEffFile);
-            this.tabPage7.Controls.Add(this.textBoxDoseRateSpectrumFile);
+            this.tabPage7.Controls.Add(this.comboDoseRateEfficiency);
+            this.tabPage7.Controls.Add(this.comboDoseRateSpectrum);
             this.tabPage7.Controls.Add(this.buttonEstimateDRConf);
             this.tabPage7.Controls.Add(this.labelDoseRateValue);
             this.tabPage7.Controls.Add(this.upDownDoseRateValue);
@@ -1109,17 +1109,21 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
             this.labelDREstimateTitle.Name = "labelDREstimateTitle";
             // 
-            // textBoxEffFile
-            // 
-            resources.ApplyResources(this.textBoxEffFile, "textBoxEffFile");
-            this.textBoxEffFile.Name = "textBoxEffFile";
-            this.textBoxEffFile.ReadOnly = true;
-            // 
-            // textBoxDoseRateSpectrumFile
-            // 
-            resources.ApplyResources(this.textBoxDoseRateSpectrumFile, "textBoxDoseRateSpectrumFile");
-            this.textBoxDoseRateSpectrumFile.Name = "textBoxDoseRateSpectrumFile";
-            this.textBoxDoseRateSpectrumFile.ReadOnly = true;
+            // comboDoseRateEfficiency
+            //
+            this.comboDoseRateEfficiency.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboDoseRateEfficiency.FormattingEnabled = true;
+            resources.ApplyResources(this.comboDoseRateEfficiency, "comboDoseRateEfficiency");
+            this.comboDoseRateEfficiency.Name = "comboDoseRateEfficiency";
+            this.comboDoseRateEfficiency.SelectedIndexChanged += new System.EventHandler(this.comboDoseRateEfficiency_SelectedIndexChanged);
+            //
+            // comboDoseRateSpectrum
+            //
+            this.comboDoseRateSpectrum.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboDoseRateSpectrum.FormattingEnabled = true;
+            resources.ApplyResources(this.comboDoseRateSpectrum, "comboDoseRateSpectrum");
+            this.comboDoseRateSpectrum.Name = "comboDoseRateSpectrum";
+            this.comboDoseRateSpectrum.SelectedIndexChanged += new System.EventHandler(this.comboDoseRateSpectrum_SelectedIndexChanged);
             // 
             // buttonEstimateDRConf
             // 
@@ -1602,8 +1606,8 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Button buttonEstimateDRConf;
         private System.Windows.Forms.Label labelDoseRateValue;
         private System.Windows.Forms.NumericUpDown upDownDoseRateValue;
-        private System.Windows.Forms.TextBox textBoxEffFile;
-        private System.Windows.Forms.TextBox textBoxDoseRateSpectrumFile;
+        private System.Windows.Forms.ComboBox comboDoseRateEfficiency;
+        private System.Windows.Forms.ComboBox comboDoseRateSpectrum;
         private System.Windows.Forms.Label labelDREstimateTitle;
         private System.Windows.Forms.Button buttonClearDoseRate;
         private GroupBox peakSpecgroupBox;
