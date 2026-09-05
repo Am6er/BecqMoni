@@ -1,0 +1,19 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\device: 0 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f29_after\config\NuclideDefinition.xml: 152 entries
+SETUP	ASN16_Th232.xml: прибор прибора «1.Atom Spectra Nano 16 Pro RadiaScan 701A» (1a0651a2-0b84-4c4e-8be8-c2d286eb82eb) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	ASN16_Th232.xml: пиков 19, каналов 8192, кривая (нет)
+
+=== ФАЗА fsa: пики ОДНИ, разбор гоняется заново ===
+  RUN  1  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  RUN  2  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  RUN  3  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  РАЗЛИЧНЫХ отпечатков: 1 из 3 прогонов
+
+=== ФАЗА peaks: поиск пиков + разбор заново ===
+  RUN  1  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  RUN  2  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  RUN  3  PEAKS aed5957c32d3  LIB 39ccf59b3081  COMP dfcb491fec1c  ROWS af9272764224   слоёв 14, пределов 7
+  РАЗЛИЧНЫХ отпечатков: 1 из 3 прогонов
+
+ВСЕ СОШЛИСЬ
