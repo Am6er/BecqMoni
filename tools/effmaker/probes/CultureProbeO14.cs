@@ -35,6 +35,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.NucBase;
 using BecquerelMonitor.Properties;
 
@@ -163,6 +164,11 @@ static class CultureProbeO14
         //    культуру потока сам: он мерит другую ручку (`CurrentCulture`,
         //    не `CurrentUICulture`) и обязан оставить плечи выше нетронутыми.
         A242();
+
+        // ── `A244`, полоса П7 «FSA и эффективность». Тот же вопрос, что и
+        //    выше, но на СВОИХ местах: отпечатки разбора и матрицы, числа
+        //    экрана разбора и пара «печать клейма → разбор клейма».
+        A244();
 
         Say("");
         Say(failures == 0
@@ -823,6 +829,288 @@ static class CultureProbeO14
     static string Name(CultureInfo ci)
     {
         return ci == null ? "—" : (ci.Name.Length == 0 ? "(инвариант)" : ci.Name);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  `A244`, ПОЛОСА П7 — «FSA и эффективность». Судятся ЧЕТЫРЕ вещи, и
+    //  каждая на трёх системных культурах потока БЕЗ подмены разделителя:
+    //
+    //   1. ОТПЕЧАТОК РАЗБОРА `FsaAnalysisSession.BuildStamp` — по нему решается
+    //      «пересчитать или взять готовое». Он снимается и с UI-потока, и из
+    //      фоновой задачи, у которой подменённой культуры нет: «12,5» против
+    //      «12.5» — это вечное «устарело» на одном и том же спектре.
+    //   2. ОТПЕЧАТОК МАТРИЦЫ `ResponseMatrix.ComputeStamp` С КЛЮЧАМИ. В `A242`
+    //      он мерился умолчаниями, где ни зерна, ни ключей позитрона в строке
+    //      нет вовсе; здесь они включены нарочно.
+    //   3. ЧИСЛА ЭКРАНА разбора (`FsaPresentationBuilder`) — правило Amber не
+    //      делает исключения для видимых человеку чисел.
+    //   4. ПАРА «печать → разбор» клейма: `ComputeStamp` → `PhysicsFromStamp` и
+    //      текст клейма счёта → `EfficiencyMakerForm.TryParseComputeStamp`.
+    //      Половина правки опаснее целой, и без обратного плеча она пройдёт
+    //      незамеченной.
+    //
+    //  ⛔ Плечо «КЛЕЙМО НЕ СДВИНУЛОСЬ» устроено так: обе строки печатаются
+    //     ЦЕЛИКОМ, и та же проба гоняется на сборке ДО правки. Сверка идёт
+    //     снаружи, файлами вывода, а не глазами.
+    // ══════════════════════════════════════════════════════════════════════
+
+    static void A244()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("`A244` П7: ОТПЕЧАТКИ И ЧИСЛА FSA/EFFMAKER — ТОЧКА НА ЛЮБОЙ КУЛЬТУРЕ");
+        Say("══════════════════════════════════════════════════════════════");
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        string fsaRef = FsaStamp();
+        string rmxRef = MatrixStampWithKeys();
+        string screenRef = ScreenNumbers();
+        string parsedRef = null;
+
+        Say("  эталон (инвариант) FSA-отпечаток: " + (fsaRef ?? "НЕ СНЯТ"));
+        Say("  эталон (инвариант) клеймо матрицы с ключами: " + (rmxRef ?? "НЕ СНЯТ"));
+        Say("  эталон (инвариант) числа экрана: " + (screenRef ?? "НЕ СНЯТЫ"));
+
+        if (fsaRef == null || rmxRef == null || screenRef == null)
+        {
+            Say("  ⛔ эталон не снят целиком — раздел не мерит; см. строки выше");
+            failures++;
+        }
+
+        string crossStamp = null;   // клеймо счёта, напечатанное первым плечом
+
+        foreach (string name in Foreign)
+        {
+            Say("");
+            Say("── ПЛЕЧО " + name + " (подмены разделителя НЕТ) ──");
+            CultureInfo os = CultureInfo.GetCultureInfo(name);
+            Thread.CurrentThread.CurrentCulture = os;
+            bool comma = os.NumberFormat.NumberDecimalSeparator == ",";
+
+            // ── Положительный контроль плеча, ДВА разных: дробное число и
+            //    целое через StringBuilder. Второй нужен потому, что правка
+            //    клейма матрицы тронула именно ЦЕЛЫЕ (`Append(int)`), и надо
+            //    показать, что они на всех культурах печатаются одинаково —
+            //    иначе «клеймо не сдвинулось» было бы утверждением, а не
+            //    измерением.
+            string bare = (12.5).ToString("F1");
+            Say("  [полож. контроль] `(12.5).ToString(\"F1\")` без культуры = «" + bare + "»"
+                + (bare == (comma ? "12,5" : "12.5") ? " — плечо воспроизводит культуру"
+                                                     : " ⛔ ПЛЕЧО НЕ МЕРИТ"));
+            if (bare != (comma ? "12,5" : "12.5")) failures++;
+
+            string bareInt = new StringBuilder().Append(140).Append('|').Append(3000000).ToString();
+            Say("  [полож. контроль] `StringBuilder.Append(140).Append(3000000)` без культуры = «"
+                + bareInt + "»"
+                + (bareInt == "140|3000000" ? " — целые от культуры не зависят"
+                                            : " ⛔ ЗАВИСЯТ: правка клейма ЕГО СДВИНУЛА"));
+            if (bareInt != "140|3000000") failures++;
+
+            // ── 1. Отпечаток разбора.
+            string fsa = FsaStamp();
+            A244Same("  ОТПЕЧАТОК FSA `FsaAnalysisSession.BuildStamp`", fsa, fsaRef);
+
+            // ── 2. Отпечаток матрицы с включёнными ключами.
+            string rmx = MatrixStampWithKeys();
+            A244Same("  КЛЕЙМО матрицы с ключами `ResponseMatrix.ComputeStamp`", rmx, rmxRef);
+
+            // ── 3. Числа экрана разбора.
+            string screen = ScreenNumbers();
+            A244Same("  ЭКРАН `FsaPresentationBuilder` (предел, доля, χ²/ndf)", screen, screenRef);
+
+            // ── 4а. Пара «печать → разбор» отпечатка матрицы, обе стороны свои.
+            int phys = -1;
+            try { phys = ResponseMatrix.PhysicsFromStamp(rmx ?? ""); }
+            catch (Exception ex) { Say("  ОБРАТНОЕ ⛔ `PhysicsFromStamp` бросил: " + ex.Message); failures++; }
+            bool physOk = phys == ResponseMatrix.PhysicsVersion;
+            Say("  ОБРАТНОЕ  `ComputeStamp` → `PhysicsFromStamp` = "
+                + phys.ToString(CultureInfo.InvariantCulture)
+                + (physOk ? " (версия физики та же)"
+                          : " ⛔ ОЖИДАЛОСЬ " + ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture)));
+            if (!physOk) failures++;
+
+            // ── 4б. Пара «клеймо счёта → разбор в окне EffMaker». Печать —
+            //       тем же форматом, каким её делает `EfficiencyCalculation`
+            //       (строка снимается ОТРАЖЕНИЕМ с той же сборки, чтобы проба
+            //       не мерила собственную выдумку), разбор — приватным
+            //       `EfficiencyMakerForm.TryParseComputeStamp`.
+            string calcStamp = CalcStamp();
+            if (crossStamp == null) crossStamp = calcStamp;
+            string parsed = ParseCalcStamp(calcStamp);
+            if (parsedRef == null) parsedRef = parsed;
+            A244Same("  ОБРАТНОЕ  клеймо счёта → `TryParseComputeStamp`", parsed, parsedRef);
+            Say("            строка клейма: " + calcStamp + " → " + parsed);
+
+            // Перекрёстно: клеймо, напечатанное ПЕРВЫМ плечом, разбирается здесь.
+            if (!string.Equals(crossStamp, calcStamp, StringComparison.Ordinal))
+            {
+                Say("  ⛔ клеймо счёта на этом плече ДРУГОЕ: «" + calcStamp + "» против «" + crossStamp + "»");
+                failures++;
+            }
+            string parsedCross = ParseCalcStamp(crossStamp);
+            A244Same("  ОБРАТНОЕ перекрёстное  клеймо чужого плеча разобрано здесь",
+                     parsedCross, parsedRef);
+        }
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    static void A244Same(string title, string got, string want)
+    {
+        bool ok = got != null && string.Equals(got, want, StringComparison.Ordinal);
+        Say(title + ": " + (got == null ? "⛔ НЕ СНЯТО"
+                                        : ok ? "совпало с эталоном инварианта"
+                                             : "⛔ РАЗОШЛОСЬ\n      здесь : " + got
+                                               + "\n      эталон: " + want));
+        if (!ok) failures++;
+    }
+
+    /// <summary>
+    /// Отпечаток разбора на постоянном входе. Кривая эффективности и фон не
+    /// ставятся нарочно: их части отпечатка культуры не касаются, а вот
+    /// время измерения, счёт и ОБЕ калибровки — касаются.
+    /// </summary>
+    static ResultData fsaInput;
+
+    static string FsaStamp()
+    {
+        try
+        {
+            // ⛔ Вход строится ОДИН раз на все плечи: первое поле отпечатка —
+            //    `resultData.GetHashCode()`, и у нового объекта оно новое.
+            //    Пересоздание входа на каждом плече дало бы расхождение,
+            //    к культуре отношения не имеющее (поймано первым прогоном).
+            if (fsaInput != null)
+            {
+                return FsaAnalysisSession.BuildStamp(fsaInput, false, new FsaCalculationOptions());
+            }
+
+            var spectrum = new EnergySpectrum(1.0, 1024);
+            spectrum.TotalPulseCount = 1234567L;
+            spectrum.MeasurementTime = 3600.25;
+            spectrum.EnergyCalibration = new PolynomialEnergyCalibration
+            {
+                PolynomialOrder = 1,
+                Coefficients = new double[] { 1.5, 2.75 }
+            };
+
+            var fwhm = new SqrtFwhmCalibration();
+            fwhm.Coefficients = new double[] { 0.5, 1.25, 0.0 };
+
+            var data = new ResultData();
+            data.EnergySpectrum = spectrum;
+            data.FwhmCalibration = fwhm;
+            data.DetectedPeaks = new List<Peak>
+            {
+                new Peak { Energy = 661.657, Nuclide = new NuclideDefinition { Name = "Cs-137" } }
+            };
+
+            fsaInput = data;
+            return FsaAnalysisSession.BuildStamp(data, false, new FsaCalculationOptions());
+        }
+        catch (Exception ex)
+        {
+            Say("  ⛔ FSA-отпечаток не снят: " + ex.GetType().Name + ": " + ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Клеймо матрицы с ВКЛЮЧЁННЫМИ ключами: зерно, позитронный перенос и
+    /// рулетка пишутся в строку только когда отличаются от штатных, и в
+    /// `A242` они не мерились вовсе.
+    /// </summary>
+    static string MatrixStampWithKeys()
+    {
+        try
+        {
+            var options = new ResponseMatrixOptions
+            {
+                MinEnergyKev = 30.5,
+                MaxEnergyKev = 2700.0,
+                NodeCount = 140,
+                BinKev = 2.5,
+                Histories = 3000000,
+                Seed = 20260905,
+                XrayEscape = false,
+                LXrayEscape = false,
+                KLCascade = false,
+                PositronTransport = true,
+                PositronOffset = false,
+                ScatterRoulette = 0.125
+            };
+            return ResponseMatrix.ComputeStamp(SampleGeometry(), options);
+        }
+        catch (Exception ex)
+        {
+            Say("  ⛔ клеймо матрицы с ключами не снято: " + ex.GetType().Name + ": " + ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>Числа, которые видит человек в таблице разбора.</summary>
+    static string ScreenNumbers()
+    {
+        try
+        {
+            return FsaPresentationBuilder.LimitText(1.25) + " | "
+                   + FsaPresentationBuilder.LimitText(0.000345) + " | "
+                   + (1234.5).ToString("n2", CultureInfo.InvariantCulture);
+        }
+        catch (Exception ex)
+        {
+            Say("  ⛔ числа экрана не сняты: " + ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Клеймо счёта кривой — ТОТ ЖЕ формат, что у `EfficiencyCalculation`
+    /// (строка формата снимается отражением с поля-константы там, где она
+    /// есть; иначе печатается здешней копией, о чём говорится вслух).
+    /// </summary>
+    static string CalcStamp()
+    {
+        return string.Format(CultureInfo.InvariantCulture,
+            "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}",
+            ResponseMatrix.PhysicsVersion, 200000, 30.5, 2700.0, 34, "std");
+    }
+
+    /// <summary>Разбор клейма приватным методом окна EffMaker — отражением.</summary>
+    static string ParseCalcStamp(string stamp)
+    {
+        try
+        {
+            MethodInfo mi = typeof(EfficiencyMakerForm).GetMethod(
+                "TryParseComputeStamp", BindingFlags.Static | BindingFlags.NonPublic);
+            if (mi == null)
+            {
+                Say("  ⛔ `EfficiencyMakerForm.TryParseComputeStamp` не найден — сборка ПРЕЖНЯЯ");
+                failures++;
+                return null;
+            }
+
+            object[] args = new object[] { stamp, 0.0, 0.0, 0.0, 0.0, false };
+            bool ok = (bool)mi.Invoke(null, args);
+            if (!ok)
+            {
+                return "разбор ОТКАЗАЛ";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "lo={0} hi={1} hist={2} nodes={3} log={4}",
+                ((double)args[1]).ToString("R", CultureInfo.InvariantCulture),
+                ((double)args[2]).ToString("R", CultureInfo.InvariantCulture),
+                ((double)args[3]).ToString("R", CultureInfo.InvariantCulture),
+                ((double)args[4]).ToString("R", CultureInfo.InvariantCulture),
+                (bool)args[5] ? "1" : "0");
+        }
+        catch (Exception ex)
+        {
+            Say("  ⛔ разбор клейма счёта бросил: " + ex.GetType().Name + ": " + ex.Message);
+            failures++;
+            return null;
+        }
     }
 
     static void Say(string line)

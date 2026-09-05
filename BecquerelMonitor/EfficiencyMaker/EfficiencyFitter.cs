@@ -98,7 +98,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     if (!input.ChainsBySpectrum.TryGetValue(file, out forFile) || forFile.Count == 0)
                     {
-                        log(string.Format(Resources.EfficiencyMakerNoSetForSpectrum,
+                        log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNoSetForSpectrum,
                                           Path.GetFileNameWithoutExtension(file)));
                         continue;
                     }
@@ -110,14 +110,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
                 catch (Exception ex)
                 {
-                    log(string.Format("{0}: {1}", Path.GetFileNameWithoutExtension(file), ex.Message));
+                    log(string.Format(CultureInfo.InvariantCulture,
+                                      "{0}: {1}", Path.GetFileNameWithoutExtension(file), ex.Message));
                 }
             }
 
             List<EfficiencyObservation> used = result.Observations.Where(o => o.Accepted).ToList();
             if (used.Count < input.PolynomialOrder + 2)
             {
-                result.Error = string.Format(Resources.EfficiencyMakerTooFewLines, used.Count);
+                result.Error = string.Format(CultureInfo.InvariantCulture,
+                                             Resources.EfficiencyMakerTooFewLines, used.Count);
                 return result;
             }
 
@@ -144,7 +146,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
             {
-                log(string.Format(Resources.EfficiencyMakerNoLiveTime, name));
+                log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNoLiveTime, name));
                 return;
             }
 
@@ -228,7 +230,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 measured += Math.Max(accepted >= 2 ? accepted : 0, 0);
             }
 
-            log(string.Format(Resources.EfficiencyMakerSpectrumDone, name, measured, liveTime));
+            log(string.Format(CultureInfo.InvariantCulture,
+                              Resources.EfficiencyMakerSpectrumDone, name, measured, liveTime));
         }
 
         /// <summary>
@@ -372,7 +375,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (gap <= fatalWindow)
                 {
                     observation.Accepted = false;
-                    observation.Reason = string.Format(Resources.EfficiencyMakerReasonBlend,
+                    observation.Reason = string.Format(CultureInfo.InvariantCulture,
+                                                       Resources.EfficiencyMakerReasonBlend,
                         other.Nuclide, other.Energy);
                     return observation;
                 }
@@ -447,7 +451,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (observation.Significance < input.MinSignificance)
             {
                 observation.Accepted = false;
-                observation.Reason = string.Format(Resources.EfficiencyMakerReasonWeak,
+                observation.Reason = string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerReasonWeak,
                     observation.Significance);
                 return observation;
             }
@@ -682,7 +686,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 if (used.Count < input.PolynomialOrder + 2)
                 {
-                    result.Error = string.Format(Resources.EfficiencyMakerTooFewLines, used.Count);
+                    result.Error = string.Format(CultureInfo.InvariantCulture,
+                                                 Resources.EfficiencyMakerTooFewLines, used.Count);
                     return;
                 }
 
@@ -732,14 +737,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // за что. Причина у неё та же, что у одинокой линии.
                     o.Reason = lone
                         ? Resources.EfficiencyMakerReasonLoneLine
-                        : string.Format(Resources.EfficiencyMakerReasonSeriesScatter,
+                        : string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerReasonSeriesScatter,
                             Math.Exp(spread));
                     drop.Add(o);
                 }
 
                 if (!lone)
                 {
-                    log(string.Format(Resources.EfficiencyMakerSeriesDropped,
+                    log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerSeriesDropped,
                         group.Key, Math.Exp(spread)));
                 }
             }
@@ -748,7 +753,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 if (!drop.Contains(o) && Math.Abs(o.Residual) > input.OutlierSigma * scale)
                 {
-                    o.Reason = string.Format(Resources.EfficiencyMakerReasonOutlier,
+                    o.Reason = string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerReasonOutlier,
                         o.Residual / scale);
                     drop.Add(o);
                 }
@@ -958,10 +963,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     foreach (EfficiencyObservation o in impossible)
                     {
                         o.Accepted = false;
-                        o.Reason = string.Format(Resources.EfficiencyMakerReasonImpossible,
+                        o.Reason = string.Format(CultureInfo.InvariantCulture,
+                                                 Resources.EfficiencyMakerReasonImpossible,
                             o.MeasuredEfficiency);
                         used.Remove(o);
-                        log(string.Format(Resources.EfficiencyMakerReasonImpossibleLog,
+                        log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerReasonImpossibleLog,
                             o.Spectrum, o.Energy, o.MeasuredEfficiency));
                     }
 
@@ -1011,14 +1017,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!(worst < 1.0))
                 {
                     result.Curve = new List<ROIEfficiencyData>();
-                    result.Error = string.Format(Resources.EfficiencyMakerImpossibleCurve,
+                    result.Error = string.Format(CultureInfo.InvariantCulture,
+                                                 Resources.EfficiencyMakerImpossibleCurve,
                                                  worstEnergy, worst, used.Count,
                                                  result.SeriesKeys.Count + Math.Max(1, input.PolynomialOrder));
                     return;
                 }
             }
 
-            log(string.Format(Resources.EfficiencyMakerFitDone,
+            log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerFitDone,
                 used.Count, result.SeriesKeys.Count, result.Chi2Ndf,
                 result.MinEnergy, result.MaxEnergy));
         }
@@ -1256,7 +1263,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Пустой список результатов — сказать словами, а не голым
                 // ArgumentOutOfRangeException из запасного [0].
                 throw new InvalidOperationException(string.Format(
-                    CultureInfo.CurrentCulture, Resources.ERRFileOpenFailure, path));
+                    CultureInfo.InvariantCulture, Resources.ERRFileOpenFailure, path));
             }
 
             ResultData data = resultIndex >= 0 && resultIndex < file.ResultDataList.Count
@@ -1283,7 +1290,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (device == null)
                 {
-                    throw new InvalidOperationException(string.Format(
+                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
                         Resources.EfficiencyMakerNoDeviceConfig, data.DeviceConfigReference.Name));
                 }
 

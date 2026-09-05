@@ -1,0 +1,31 @@
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/BremsstrahlungData.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/EfficiencyModel.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMaker/ScatteringData.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/EfficiencyMakerForm.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/FullSpectrumAnalysis/FsaPalette.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/effmaker/probes/CultureProbeO14.cs', LF will be replaced by CRLF the next time Git touches it
+1	1	BecquerelMonitor/EfficiencyMaker/BremsstrahlungData.cs
+4	3	BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs
+24	17	BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs
+5	3	BecquerelMonitor/EfficiencyMaker/EfficiencyModel.cs
+8	5	BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs
+2	2	BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs
+5	4	BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs
+22	14	BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+5	4	BecquerelMonitor/EfficiencyMaker/ScatteringData.cs
+25	18	BecquerelMonitor/EfficiencyMakerForm.cs
+5	2	BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs
+1	1	BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs
+29	15	BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs
+2	2	BecquerelMonitor/FullSpectrumAnalysis/FsaPalette.cs
+11	11	BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs
+1	1	BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
+288	0	tools/effmaker/probes/CultureProbeO14.cs

@@ -1,0 +1,61 @@
+РАЗБОР ЧИСЕЛ В 21 ФАЙЛЕ ПОЛОСЫ П7 — сплошной поиск, не по сканеру
+
+Сканер scan_culture.py даёт 'разбор 0', но он НЕ СЧИТАЕТ места с ЯВНОЙ культурой.
+Поэтому ниже — ВСЕ вызовы Parse/TryParse/Convert.To* в этих файлах, с культурой в доводах.
+
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs:299:                            || !double.TryParse(reader.IsDBNull(1) ? "" : reader.GetString(1),
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs-300-                                                NumberStyles.Float, CultureInfo.InvariantCulture,
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs-301-                                                out perc))
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs:605:                || !int.TryParse(text.Substring(0, digits), NumberStyles.None,
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs-606-                                 CultureInfo.InvariantCulture, out mass))
+BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs-607-            {
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs:405:            if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs-406-                && value > 0.0)
+BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs-407-            {
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs:1824:            if (!int.TryParse(mass, NumberStyles.None, CultureInfo.InvariantCulture, out number)
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs-1825-                || number <= 0)
+BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs-1826-            {
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:2295:                   && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs-2296-        }
+BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs-2297-
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs:327:                if (!double.TryParse(row[2], NumberStyles.Float, CultureInfo.InvariantCulture, out density)
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs-328-                    || !(density > 0.0))
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs-329-                {
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs:732:                    || !double.TryParse(part.Substring(split), NumberStyles.Float,
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs-733-                                        CultureInfo.InvariantCulture, out count))
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs-734-                {
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs:303:                    && int.TryParse(part.Substring(0, colon), System.Globalization.NumberStyles.Integer,
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs-304-                                    System.Globalization.CultureInfo.InvariantCulture, out z)
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs:305:                    && double.TryParse(part.Substring(colon + 1), System.Globalization.NumberStyles.Float,
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs-306-                                       System.Globalization.CultureInfo.InvariantCulture, out w)
+BecquerelMonitor/EfficiencyMaker/GeometryMaterialSeed.cs-307-                    && z > 0 && w > 0.0)
+BecquerelMonitor/EfficiencyMaker/GeometryModel.cs:1243:            return m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMaker/GeometryModel.cs-1244-                                                CultureInfo.InvariantCulture, out value)
+BecquerelMonitor/EfficiencyMaker/GeometryModel.cs-1245-                ? value : 0.0;
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:471:            return m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-472-                                                CultureInfo.InvariantCulture, out value)
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-473-                ? value : 0.0;
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:524:            material.Density = double.TryParse(density.Trim(), NumberStyles.Float,
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-525-                                               CultureInfo.InvariantCulture, out value) ? value : 0.0;
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-526-            for (int i = 0; i < 24; i++)
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:538:                if (int.TryParse(zRaw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out z)
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:539:                    && double.TryParse(fRaw.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out fraction)
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-540-                    && z > 0 && fraction > 0.0)
+BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs-541-                {
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:1232:            return end > 5 && int.TryParse(stamp.Substring(5, end - 5), NumberStyles.None,
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs-1233-                                           CultureInfo.InvariantCulture, out value)
+BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs-1234-                ? value : 0;
+BecquerelMonitor/EfficiencyMakerForm.cs:389:                || !double.TryParse(grid.Groups[1].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMakerForm.cs-390-                                    CultureInfo.InvariantCulture, out lo)
+BecquerelMonitor/EfficiencyMakerForm.cs:391:                || !double.TryParse(grid.Groups[2].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMakerForm.cs-392-                                    CultureInfo.InvariantCulture, out hi)
+BecquerelMonitor/EfficiencyMakerForm.cs-393-                || hi <= lo)
+BecquerelMonitor/EfficiencyMakerForm.cs:399:            if (double.TryParse(grid.Groups[3].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMakerForm.cs-400-                                CultureInfo.InvariantCulture, out parsed))
+BecquerelMonitor/EfficiencyMakerForm.cs-401-            {
+BecquerelMonitor/EfficiencyMakerForm.cs:408:            if (hist.Success && double.TryParse(hist.Groups[1].Value, NumberStyles.Float,
+BecquerelMonitor/EfficiencyMakerForm.cs-409-                                                CultureInfo.InvariantCulture, out parsed))
+BecquerelMonitor/EfficiencyMakerForm.cs-410-            {
+BecquerelMonitor/EfficiencyMakerForm.cs:1433:            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+BecquerelMonitor/EfficiencyMakerForm.cs-1434-                && value > 0.0;
+BecquerelMonitor/EfficiencyMakerForm.cs-1435-        }

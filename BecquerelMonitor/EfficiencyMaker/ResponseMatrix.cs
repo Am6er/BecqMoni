@@ -417,13 +417,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return "";
             }
 
+            // ⛔ (`A244`) КАЖДОЕ число клейма печатается ИНВАРИАНТОМ, целые в том
+            // числе. Дробные так стояли и раньше, а целые уходили через
+            // `StringBuilder.Append(int)`, то есть по культуре ПОТОКА: клеймо
+            // снимается и с UI-потока, и из фоновой задачи без переноса
+            // контекста, и разойтись им нельзя — на равенстве клейм держится
+            // решение «считать заново или взять готовую матрицу». Для целых на
+            // ru-RU/de-DE/en-US строка выходит та же (замер `CultureProbeO14`,
+            // раздел `A244`), поэтому ни одна посчитанная матрица не устарела.
             var sb = new StringBuilder();
-            sb.Append("phys=").Append(PhysicsVersion).Append(';');
+            sb.Append("phys=").Append(PhysicsVersion.ToString(CultureInfo.InvariantCulture)).Append(';');
             if (options != null)
             {
                 sb.Append("emin=").Append(options.MinEnergyKev.ToString("R", CultureInfo.InvariantCulture)).Append(';');
                 sb.Append("emax=").Append(options.MaxEnergyKev.ToString("R", CultureInfo.InvariantCulture)).Append(';');
-                sb.Append("nodes=").Append(options.NodeCount).Append(';');
+                sb.Append("nodes=").Append(options.NodeCount.ToString(CultureInfo.InvariantCulture)).Append(';');
                 // ⛔ В отпечаток идёт САМА СЕТКА, а не ключ `ResolveEdges`, и
                 // это не мелочь, а цена рабочего дня (`T42`, 17.08.2026).
                 //
@@ -452,7 +460,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double[] gridStamp = options.BuildGrid(geometry);
                 if (!SameGrid(plainGrid, gridStamp))
                 {
-                    sb.Append("grid=").Append(gridStamp.Length).Append(':');
+                    sb.Append("grid=").Append(gridStamp.Length.ToString(CultureInfo.InvariantCulture)).Append(':');
                     foreach (double node in gridStamp)
                     {
                         sb.Append(node.ToString("R", CultureInfo.InvariantCulture)).Append(',');
@@ -469,22 +477,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // понижать», `T36`), и там ей место: у неё есть числа, а у
                 // отпечатка только равно/не равно.
                 sb.Append("bin=").Append(options.BinKev.ToString("R", CultureInfo.InvariantCulture)).Append(';');
-                sb.Append("hist=").Append(options.Histories).Append(';');
-                sb.Append("xray=").Append(options.XrayEscape ? 1 : 0).Append(';');
-                sb.Append("coh=").Append(options.CoherentPassesThrough ? 1 : 0).Append(';');
-                sb.Append("brem=").Append(options.Bremsstrahlung ? 1 : 0).Append(';');
-                sb.Append("scat=").Append(options.SingleScatter ? 1 : 0).Append(';');
-                sb.Append("npl=").Append(options.LightNonproportionality ? 1 : 0).Append(';');
-                sb.Append("acont=").Append(options.AnalogContinuum ? 1 : 0).Append(';');
-                sb.Append("bound=").Append(options.BoundScattering ? 1 : 0).Append(';');
-                sb.Append("bremsb=").Append(options.BremFromData ? 1 : 0).Append(';');
+                sb.Append("hist=").Append(options.Histories.ToString(CultureInfo.InvariantCulture)).Append(';');
+                sb.Append("xray=").Append(options.XrayEscape ? "1" : "0").Append(';');
+                sb.Append("coh=").Append(options.CoherentPassesThrough ? "1" : "0").Append(';');
+                sb.Append("brem=").Append(options.Bremsstrahlung ? "1" : "0").Append(';');
+                sb.Append("scat=").Append(options.SingleScatter ? "1" : "0").Append(';');
+                sb.Append("npl=").Append(options.LightNonproportionality ? "1" : "0").Append(';');
+                sb.Append("acont=").Append(options.AnalogContinuum ? "1" : "0").Append(';');
+                sb.Append("bound=").Append(options.BoundScattering ? "1" : "0").Append(';');
+                sb.Append("bremsb=").Append(options.BremFromData ? "1" : "0").Append(';');
                 // Зерно — по тому же правилу, что и сетка выше: пишется, только
                 // если оно НЕ штатное. Матрица со штатным зерном сохраняет
                 // прежнее клеймо побайтно, и появление ключа не гонит в
                 // пересчёт ни одной посчитанной сцены.
                 if (options.Seed != 0)
                 {
-                    sb.Append("seed=").Append(options.Seed).Append(';');
+                    sb.Append("seed=").Append(options.Seed.ToString(CultureInfo.InvariantCulture)).Append(';');
                 }
 
                 // Рулетка — по тому же правилу: пишется, только если включена.
@@ -538,7 +546,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Половины `S126` обязаны различаться: со смещением
                     // вершины и без него это две разные матрицы.
                     sb.Append("e+tr=1;");
-                    sb.Append("e+off=").Append(options.PositronOffset ? 1 : 0).Append(';');
+                    sb.Append("e+off=").Append(options.PositronOffset ? "1" : "0").Append(';');
                 }
 
                 if (options.RayleighToCrystal)

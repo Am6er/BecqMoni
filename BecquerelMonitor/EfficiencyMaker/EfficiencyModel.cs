@@ -344,14 +344,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // выхода линия в кривую не входит, а одной линии мало — сравнить
                 // не с чем. Оба случая называются вслух, с числами.
                 string reason = withoutIntensity.Count > 0
-                    ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerSetNoIntensity,
                                     withoutIntensity.Count, inSet,
                                     string.Join("; ", withoutIntensity.ToArray()),
                                     lines.Count)
-                    : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count);
+                    : string.Format(CultureInfo.InvariantCulture,
+                                    Resources.EfficiencyMakerSetTooFewLines, lines.Count);
                 if (elementXray.Count > 0)
                 {
-                    reason += " " + string.Format(Resources.EfficiencyMakerSetElementXray,
+                    reason += " " + string.Format(CultureInfo.InvariantCulture,
+                                                  Resources.EfficiencyMakerSetElementXray,
                                                   elementXray.Count,
                                                   string.Join("; ", elementXray.ToArray()));
                 }

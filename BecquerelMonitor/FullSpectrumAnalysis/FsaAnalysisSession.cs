@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -381,7 +382,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static string FailureText(Exception ex)
         {
             string text = Properties.Resources.FSAFailed + " "
-                          + string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                          + string.Format(System.Globalization.CultureInfo.InvariantCulture,
                                           Properties.Resources.ERRFailureReason,
                                           AppUi.Reason(ex));
             AppUi.Note(text);
@@ -663,7 +664,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 key = path;
             }
 
-            string text = string.Format(System.Globalization.CultureInfo.CurrentCulture,
+            string text = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                                         Properties.Resources.FSAMatrixOldFormat,
                                         efficiency.Name, fileFormat,
                                         EfficiencyMaker.ResponseMatrix.FormatVersion,
@@ -766,13 +767,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ (`A244`) Числа отпечатка печатаются ИНВАРИАНТОМ, а не культурой
+            // потока. Отпечаток снимается и с UI-потока, и из фоновой задачи, а
+            // культуру с подменённым разделителем ставит себе только первый:
+            // «12,5» из задачи и «12.5» с формы — это два РАЗНЫХ отпечатка у
+            // одного и того же спектра, то есть вечное «устарело».
             return string.Concat(
-                resultData.GetHashCode().ToString(),
-                "|", spectrum.NumberOfChannels.ToString(),
-                "|", spectrum.TotalPulseCount.ToString(),
-                "|", spectrum.MeasurementTime.ToString("F1"),
+                resultData.GetHashCode().ToString(CultureInfo.InvariantCulture),
+                "|", spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture),
+                "|", spectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture),
+                "|", spectrum.MeasurementTime.ToString("F1", CultureInfo.InvariantCulture),
                 "|", subtractBackground ? "bg" : "nobg",
-                "|", background != null ? background.TotalPulseCount.ToString() : "-",
+                "|", background != null
+                         ? background.TotalPulseCount.ToString(CultureInfo.InvariantCulture)
+                         : "-",
                 "|", EfficiencyStamp(resultData.Efficiency),
                 "|", MatrixFileStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
@@ -823,7 +831,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            return string.Concat(active.Name, ":", members.ToString(),
+            return string.Concat(active.Name, ":",
+                                 members.ToString(CultureInfo.InvariantCulture),
                                  active.HideUnknownPeaks ? ":hide" : "");
         }
 
@@ -854,7 +863,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var file = new System.IO.FileInfo(
                     EfficiencyMaker.ResponseMatrixStore.PathOf(efficiency.Guid));
                 return file.Exists
-                    ? file.LastWriteTimeUtc.Ticks.ToString() + ":" + file.Length.ToString()
+                    ? file.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture)
+                      + ":" + file.Length.ToString(CultureInfo.InvariantCulture)
                     : "-";
             }
             catch (Exception)
@@ -880,8 +890,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return string.Concat(
                 efficiency.Guid,
-                ":", efficiency.LastUpdated.Ticks.ToString(),
-                ":", efficiency.Curve != null ? efficiency.Curve.Count.ToString() : "0");
+                ":", efficiency.LastUpdated.Ticks.ToString(CultureInfo.InvariantCulture),
+                ":", efficiency.Curve != null
+                         ? efficiency.Curve.Count.ToString(CultureInfo.InvariantCulture)
+                         : "0");
         }
 
         /// <summary>
@@ -897,9 +909,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int channels = spectrum.NumberOfChannels;
             if (energy != null && channels > 0)
             {
-                sb.Append(energy.ChannelToEnergy(0.0).ToString("R"));
-                sb.Append(',').Append(energy.ChannelToEnergy(channels / 2.0).ToString("R"));
-                sb.Append(',').Append(energy.ChannelToEnergy(channels - 1.0).ToString("R"));
+                sb.Append(energy.ChannelToEnergy(0.0).ToString("R", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(energy.ChannelToEnergy(channels / 2.0)
+                                            .ToString("R", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(energy.ChannelToEnergy(channels - 1.0)
+                                            .ToString("R", CultureInfo.InvariantCulture));
             }
 
             double[] fwhm = fwhmCalibration != null ? fwhmCalibration.Coefficients : null;
@@ -907,7 +921,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (double coefficient in fwhm)
                 {
-                    sb.Append(';').Append(coefficient.ToString("R"));
+                    sb.Append(';').Append(coefficient.ToString("R", CultureInfo.InvariantCulture));
                 }
             }
 

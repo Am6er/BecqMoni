@@ -733,7 +733,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
             catch (Exception ex)
             {
-                throw Refuse("оболочечная модель фотоэффекта Z=" + z, DatabasePath(), ex);
+                throw Refuse("оболочечная модель фотоэффекта Z=" + z.ToString(CultureInfo.InvariantCulture), DatabasePath(), ex);
             }
         }
 
@@ -753,7 +753,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z=" + z;
+                        "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z="
+                        + z.ToString(CultureInfo.InvariantCulture);
                     int shells;
                     PhotoShellModel model = new PhotoShellModel();
                     using (SqliteDataReader reader = command.ExecuteReader())
@@ -772,7 +773,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // последняя. Для доли K другие строки не нужны.
                     command.CommandText =
                         "select kind, shell_seq, edge_ev, a1_b, a2_b, a3_b, a4_b, a5_b, a6_b" +
-                        " from epics_photo_fit where z=" + z +
+                        " from epics_photo_fit where z=" + z.ToString(CultureInfo.InvariantCulture) +
                         " and shell_seq in (0, " + (shells - 1) + ")";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
@@ -843,7 +844,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         command.CommandText =
                             "select shell_seq, energy_ev, cs_b from epics_photo_subshell" +
-                            " where z=" + z + " order by shell_seq, energy_ev";
+                            " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_seq, energy_ev";
                         List<double>[] es = new List<double>[shells];
                         List<double>[] cs = new List<double>[shells];
                         for (int s = 0; s < shells; s++)

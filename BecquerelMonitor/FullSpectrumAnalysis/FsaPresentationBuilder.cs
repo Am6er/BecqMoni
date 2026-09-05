@@ -362,7 +362,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 rows.Add(new FsaReportRow
                 {
                     Kind = FsaReportRowKind.SumPeaks,
-                    Name = string.Format(CultureInfo.CurrentCulture,
+                    Name = string.Format(CultureInfo.InvariantCulture,
                                          Resources.FSASumPeakRow,
                                          FsaPalette.DisplayName(layer.Name)),
                     Value = string.Empty,
@@ -416,7 +416,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 rows.Add(new FsaReportRow
                 {
                     Kind = FsaReportRowKind.UndetectedFolded,
-                    Name = string.Format(CultureInfo.CurrentCulture,
+                    Name = string.Format(CultureInfo.InvariantCulture,
                                          Resources.FSAUndetectedFoldedRow, folded.Count),
                     Value = LimitText(LimitSharePercent(result, sum)),
                     Muted = true
@@ -452,10 +452,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 Kind = FsaReportRowKind.Residual,
                 Name = Resources.FSAModelResidualRow,
-                Value = string.Format(CultureInfo.CurrentCulture,
+                Value = string.Format(CultureInfo.InvariantCulture,
                                       Resources.FSAResidualCountsValue,
-                                      (100.0 * result.ResidualExcessShare).ToString("n1", CultureInfo.CurrentCulture),
-                                      (100.0 * result.ResidualMissingShare).ToString("n1", CultureInfo.CurrentCulture)),
+                                      (100.0 * result.ResidualExcessShare).ToString("n1", CultureInfo.InvariantCulture),
+                                      (100.0 * result.ResidualMissingShare).ToString("n1", CultureInfo.InvariantCulture)),
                 Swatch = FsaSwatchKind.ResidualCross,
                 Color = ResidualColor
             });
@@ -465,7 +465,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 Kind = FsaReportRowKind.Quality,
                 Name = presentation.QualityText,
-                Value = result.Chi2Ndf.ToString("n2", CultureInfo.CurrentCulture)
+                Value = result.Chi2Ndf.ToString("n2", CultureInfo.InvariantCulture)
             });
 
             return rows;
@@ -545,8 +545,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             string root = FsaPalette.DisplayName(chainRoot);
             return string.Equals(root, shown, StringComparison.Ordinal)
-                ? string.Format(CultureInfo.CurrentCulture, Resources.FSAChainRow, shown)
-                : string.Format(CultureInfo.CurrentCulture, Resources.FSAChainMemberRow, shown, root);
+                ? string.Format(CultureInfo.InvariantCulture, Resources.FSAChainRow, shown)
+                : string.Format(CultureInfo.InvariantCulture, Resources.FSAChainMemberRow, shown, root);
         }
 
         /// <summary>
@@ -563,17 +563,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Resources.FSAPresentNoShare;
             }
 
-            return layer.SharePercent.ToString("n2", CultureInfo.CurrentCulture) + Resources.PercentCharacter;
+            return layer.SharePercent.ToString("n2", CultureInfo.InvariantCulture) + Resources.PercentCharacter;
         }
 
         /// <summary>Формат предела: три значащие цифры, как и прежде.</summary>
         public static string LimitText(double sharePercent)
         {
-            return string.Format(CultureInfo.CurrentCulture,
+            return string.Format(CultureInfo.InvariantCulture,
                                  Resources.FSAMdaValue,
                                  double.IsNaN(sharePercent)
                                      ? "?"
-                                     : sharePercent.ToString("G3", CultureInfo.CurrentCulture));
+                                     : sharePercent.ToString("G3", CultureInfo.InvariantCulture));
         }
 
         /// <summary>

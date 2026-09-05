@@ -382,7 +382,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
             else
             {
-                notes.Append("нет ω_K для Z=" + z + "; ");
+                notes.Append("нет ω_K для Z=" + z.ToString(CultureInfo.InvariantCulture) + "; ");
             }
 
             data.Note = notes.ToString();

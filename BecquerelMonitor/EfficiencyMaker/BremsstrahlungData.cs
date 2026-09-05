@@ -286,7 +286,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             ordered.Sort();
             foreach (int z in ordered)
             {
-                key.Append('|').Append(z).Append(':')
+                key.Append('|').Append(z.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(':')
                    .Append(material.Fractions[z].ToString(
                        "R", System.Globalization.CultureInfo.InvariantCulture));
             }
