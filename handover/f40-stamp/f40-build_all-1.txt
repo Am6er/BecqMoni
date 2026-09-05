@@ -1,0 +1,143 @@
+довески без Main: GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+ok   EtlCheck.cs
+ok   MeasuredPoint.cs
+ok   Program.cs
+ok   Simulate.cs
+ok   AngularProbe.cs
+ok   BackscatterShapeProbe.cs
+ok   BoundScatterProbe.cs
+ok   BoxDeadFieldsProbe.cs
+ok   BoxSourceProbe.cs
+ok   BqActivityProbe.cs
+ok   BqCoeffProbe.cs
+ok   BremSpectrumProbe.cs
+ok   CalcRestoreProbe.cs
+ok   CalibGraphProbeF35.cs
+ok   CalibrationDoorsProbe.cs
+ok   CascadeJointProbe.cs
+ok   CascadeXrayProbe.cs
+ok   ChainProbe.cs
+ok   CoincCfProbe.cs
+ok   CorpusEffProbe.cs
+ok   CorpusFsaProbe.cs
+ok   CorpusGeomProbe.cs
+ok   CorpusMatrixProbe.cs
+ok   CrashLogProbe.cs
+ok   CultureProbeO14.cs
+ok   CylinderGeomProbe.cs
+ok   DecayReadersProbe.cs
+ok   DensityFromPartsProbe.cs
+ok   DeviceAnalysisProbe.cs
+ok   DeviceTabProbe.cs
+ok   DoseCoefProbeO2.cs
+ok   DosePointsProbeF9.cs
+ok   DoseRateProbe.cs
+ok   EditorProbe.cs
+ok   EditorShot.cs
+ok   EffDipProbe.cs
+ok   EffGridRangeProbe.cs
+ok   EfficiencyConfigProbe.cs
+ok   EfficiencyListProbe.cs
+ok   EscapeGateProbe.cs
+ok   EscapeParentsProbe.cs
+ok   FacingProbe.cs
+ok   FsaCascadeProbe.cs
+ok   FsaDeterminismProbeF29.cs
+ok   FsaDoubleCountProbe.cs
+ok   FsaFlagsProbe.cs
+ok   FsaPaletteProbe.cs
+ok   FsaQualityRowProbe.cs
+ok   FsaReportViewProbe.cs
+ok   FsaResidualProbeF21.cs
+ok   FsaRobustnessProbe.cs
+ok   FsaSelectionProbeF16.cs
+ok   FsaSessionProbe.cs
+ok   FsaStackShot.cs
+ok   FsaStampProbe.cs
+ok   FwhmPowerProbe.cs
+ok   FwhmRescaleProbe.cs
+ok   FwhmViewReachProbeO13.cs
+ok   G4CompareProbe.cs
+ok   G4RawProbe.cs
+ok   GadrasProbe.cs
+ok   GeomEncodingProbe.cs
+ok   GeometryLimitsProbe.cs
+ok   GraphCultureProbeF27.cs
+ok   GroundScenesProbe.cs
+ok   ImportEmptyConfigProbeF23.cs
+ok   IntensityLinesProbe.cs
+ok   LabelFitProbe.cs
+ok   LabelTruthProbe.cs
+ok   LayerProbe.cs
+ok   LightScaleProbe.cs
+ok   LSeriesProbe.cs
+ok   MakerSaveProbe.cs
+ok   MaterialDbProbe.cs
+ok   MaterialOrderProbe.cs
+ok   MatrixAuditProbe.cs
+ok   MatrixDiffProbe.cs
+ok   MatrixLayoutProbe.cs
+ok   MatrixRangeProbe.cs
+ok   MatrixRebuildProbe.cs
+ok   MatrixRefusalProbeP8.cs
+ok   MatrixStampProbe.cs
+ok   MineProbe.cs
+ok   ModalReachProbeF22.cs
+ok   ModalThreadProbeO25.cs
+ok   N42RoundTripProbe.cs
+ok   NucidProbe.cs
+ok   NuclideSetMemoryProbe.cs
+ok   OmegaProbe.cs
+ok   OrderProbe.cs
+ok   PackGeometryProbe.cs
+ok   PairThresholdProbe.cs
+ok   PeakAgreeProbe.cs
+ok   PeakFwhmUnitsProbeF41.cs
+ok   PeakOriginProbe.cs
+ok   RawCarryProbe.cs
+ok   ReasonProbe.cs
+ok   RefusalWordsProbe.cs
+ok   ResponseChannelProbe.cs
+ok   ResponseInterpProbe.cs
+ok   ResponseMatrixFormProbe.cs
+ok   ResponseMatrixProbe.cs
+ok   ResponseNoiseProbe.cs
+ok   ResponseProbe.cs
+ok   ResponseShapeProbe.cs
+ok   RestCultureProbeF28.cs
+ok   RoiActivityProbe.cs
+ok   RoiLoadProbe.cs
+ok   RoiSupplyProbe.cs
+ok   RoundTrip.cs
+ok   S109ActivityProbe.cs
+ok   SbKeysProbe.cs
+ok   SceneOfSpectrumProbe.cs
+ok   ScoutProbe.cs
+ok   SetColorProbe.cs
+ok   SetProbe.cs
+ok   SketchShot.cs
+ok   SpectrumEfficiencyProbe.cs
+ok   TrustFloorProbe.cs
+ok   UnitsProbe.cs
+ok   VisibleRuleProbe.cs
+ok   XrayLinesProbe.cs
+----
+сверено рядом с пробами: 172 файлов по sha256 с источником
+    поставочный конфиг         2
+    поставочный конфиг\device  10
+    поставочный конфиг\ROI     12
+    сборка                     22
+    сборка\ru                  1
+    сборка\runtimes            3
+    exe.config пробы           122
+  (сверять не с чем ещё у 122 проб и 0 посторонних: их источник — сам этот каталог)
+⚠ в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f40 нет заверенной записи набора — свежесть судится ВРЕМЕНЕМ (правило T41)
+приложение рядом с пробами сошлось со сборкой: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F40
+библиотека нуклидов: 152 записей, sha 7aaa0b01c9bd (поставочная)
+все собрались: 122 файлов (плюс 3 без Main, идут довеском)
+  сторож полосы (`S101`): один рычаг двигает ОБА конца на всех ЧЕТЫРЁХ режимах; подставленный рассинхрон НАЗВАН, согласные концы не тревожат. СОШЛОСЬ.
+каталог заверен (T226): наборы — приложение 309406084432 (548 файлов), пробы e1f045d8e32c (125), довесков 3
+описания FSA сверены с кодом (T86): tools\check_fsa_docs.py — код 0
+  САМОПРОВЕРКА ПРОШЛА: все 17 образцов и 3 уведённых умолчаний пойманы, якоря разобраны.
+  FsaAnalyzer.cs: описаний 128, умолчаний 39 (из них конструктор ставит 23)
+  ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
