@@ -64,8 +64,10 @@ u"""Designer-метаданные `>>X.Parent` / `>>X.ZOrder` против desig
 
 ## Состояние на 05.09.2026 (после закрытия `A118`)
 
-Пар `Foo.Designer.cs` / `Foo.resx` — 42, контейнеров с метаданными — 78,
-расхождений **0**, код возврата 0. `A87` закрыла `NucBase :: panel1`, `A118` —
+Пар `Foo.Designer.cs` / `Foo.resx` — 43, контейнеров с метаданными — 87,
+расхождений **0**, код возврата 0. ⚠ Числа записаны на вечер 05.09.2026 и
+растут с деревом (было 42 / 78 утром, до `FSAReportView`); живое печатает сама
+сверка первыми двумя строками — сверять надо с ними, а не с этим абзацем. `A87` закрыла `NucBase :: panel1`, `A118` —
 остальные десять (`DCPeakDetectionView`, `DeviceConfigForm`, `NuclideSetForm`,
 `ROIConfigForm` дважды, `DCFwhmCalibrationView`, `DCControlPanel`, `MainForm`,
 `DocEnergySpectrum`, `EnergySpectrumView`).
@@ -99,6 +101,41 @@ Studio их принял и форму нарисовал: проверка ОТ
 `check_resx_designer.py`, — чтобы четыре сверки называли одно и то же число.
 ⚠ Поэтому `--form` сужает ПРЕДМЕТ сверки, но не плечо формата: формат — про
 дерево целиком, и молчать о чужом файле из-за сужения предмета нельзя.
+
+## ⛔ ПУСТОЙ КОРЕНЬ — ОТКАЗ (`T238`, 05.09.2026)
+
+Умолчание корня здесь абсолютное (`<этот файл>/../BecquerelMonitor`) и было
+таким всегда — первой половины `T238`, из-за которой три остальные сверки
+молча проверяли пустоту при запуске не из корня репозитория, у этой сверки
+нет. А ВТОРАЯ половина была: корень можно передать явно (`--root`) и
+промахнуться, и на заведомо пустом каталоге сверка печатала «пар 0,
+контейнеров 0, расхождений нет» и возвращала 0. Замер 05.09.2026, до правки:
+
+    пустой корень → check_resx 1, check_resx_letters 1,
+                    check_resx_designer 1, check_resx_zorder **0**
+
+То есть после починки трёх сторожа разошлись ровно тем родом, что чинила
+`T234`: сверка, которой нечего проверять, отчитывалась успехом, а «сторож
+resx 0» — приёмочная формулировка десятков строк реестра.
+
+Теперь корень, под которым нет ни одного `*.resx` или ни одного
+`*.Designer.cs` (или которого нет вовсе), даёт строку `ПУСТОЙ КОРЕНЬ …` и код
+1. Проверка сделана тем же выражением и с той же константой `NEEDED`, что у
+трёх остальных, — разнобой в СПОСОБЕ был бы тем же дефектом под другим именем.
+⚠ Единственное отличие от них по виду: второй строкой они печатают свой
+приговор `РАЗОШЛОСЬ`, а у этой сверки такого слова нет вовсе (её приговор —
+тело отчёта плюс код возврата), поэтому и здесь его нет.
+
+⛔ **Та же дыра была у `--form`, и найдена она приёмкой этой правки:**
+`--form NoSuchFormAtAll` на ПОЛНОМ дереве печатал «пар 0, контейнеров 0,
+расхождений нет» и возвращал 0. Ключа `--form` у трёх остальных сверок нет,
+поэтому в `T238` этот случай не попал, но разряд у него тот же — сторож,
+которому нечего проверять, отчитывался успехом. Поэтому при `--form X`
+`NEEDED` сужается до `X.resx` и `X.Designer.cs`, а слово отказа остаётся ОДНО
+на оба случая. ⚠ Плечо формата этим не сужается (см. выше): оно про дерево.
+
+    python tools/check_resx_zorder.py --root <пустой каталог>   → код 1
+    python tools/check_resx_zorder.py --form NoSuchFormAtAll    → код 1
 """
 import argparse
 import glob
@@ -112,6 +149,17 @@ import resx_format
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.normpath(os.path.join(HERE, "..", "BecquerelMonitor"))
+
+# Что обязано найтись под корнем, чтобы сверке было что проверять (`T238`).
+# Это ВТОРОЕ требование той же строки, и оно отдельное: корень можно передать
+# явно и промахнуться, а сторож, которому нечего проверять, обязан сказать об
+# этом и ОТКАЗАТЬ, а не отчитаться успехом. Предмет здесь — ПАРА
+# `Foo.Designer.cs` / `Foo.resx`, поэтому названы оба вида файла: без
+# `*.Designer.cs` не с чем сверять метаданные, без `*.resx` нет самих
+# метаданных. `*.ru.resx` в списке НЕТ: русский файл designer-метаданных не
+# держит, и его предметом этой сверки не является (в плече формата он, как и
+# все прочие resx дерева, участвует — см. `T234`).
+NEEDED = (u"*.resx", u"*.Designer.cs")
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--root", default=APP, help="корень приложения")
@@ -148,6 +196,39 @@ def read_kids(designer):
         kids.setdefault(m.group(1) or "$this", []).append(m.group(2))
     return kids
 
+
+def empty_root(root, needed=NEEDED):
+    u"""Причина, по которой проверять нечего, либо `None` (`T238`)."""
+    if not os.path.isdir(root):
+        return u"каталога нет"
+    missing = [p for p in needed
+               if not glob.glob(os.path.join(root, "**", p), recursive=True)]
+    if missing:
+        return u"ни одного %s" % u", ".join(missing)
+    return None
+
+
+def emit(text):
+    u"""Вывод — туда же, куда и отчёт: в `--out` либо в stdout."""
+    if args.out:
+        io.open(args.out, "w", encoding="utf-8", newline="").write(text)
+        print("написано: %s" % args.out)
+    else:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stdout.write(text)
+
+
+# ⛔ Пустой корень — ОТКАЗ, а не «расхождений нет» (`T238`).
+# ⚠ При `--form` предмет сужен до ОДНОЙ формы, и «проверять нечего» сужается
+# вместе с ним: опечатка в имени формы давала «пар 0, контейнеров 0,
+# расхождений нет» и код 0 — та же подделка зелёного, только другим ключом.
+# Слово отказа при этом ОДНО на оба случая: заводить второе значило бы тот же
+# разнобой, что чинила `T234`.
+needed = NEEDED if not args.form else tuple(args.form + p.lstrip("*") for p in NEEDED)
+why = empty_root(args.root, needed)
+if why is not None:
+    emit(u"ПУСТОЙ КОРЕНЬ  %s: %s — проверять нечего\n" % (args.root, why))
+    sys.exit(1)
 
 pairs = []
 for dirpath, dirnames, filenames in os.walk(args.root):
@@ -226,11 +307,5 @@ buf.write(u"файлов чужого формата (не BOM+CRLF): %d\n" % le
 buf.write(u"=" * 74 + u"\n")
 buf.write(u"\n".join(report) if report else u"расхождений нет")
 buf.write(u"\n")
-text = buf.getvalue()
-if args.out:
-    io.open(args.out, "w", encoding="utf-8", newline="").write(text)
-    print("написано: %s" % args.out)
-else:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stdout.write(text)
+emit(buf.getvalue())
 sys.exit(1 if n_bad or fmt else 0)

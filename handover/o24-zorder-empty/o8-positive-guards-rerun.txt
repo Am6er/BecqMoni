@@ -1,0 +1,15 @@
+== check_resx.py: русский перевод снят ==
+  порча: ключа нет             код 1  НАЗВАЛ: нет в ru: labelEffNote.Text
+  порча: значение пусто        код 1  НАЗВАЛ: пусто в ru: labelEffNote.Text
+  без порчи                    код 0  тишина
+== check_resx_letters.py: кириллическая С в английской подписи ==
+  порча                        код 1  НАЗВАЛ: C:/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/o8-doserate-tab/sab/letters/DeviceConfigForm.resx | buttonLoadEff.Text | кириллица в английском
+  без порчи                    код 0  тишина
+== check_resx_designer.py: обращение к ключу, которого нет ==
+  порча                        код 1  НАЗВАЛ: НЕТ КЛЮЧА  C:/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/o8-doserate-tab/sab/designer/DeviceConfigForm.cs:2438  GetString("O8SabotageNoSuchKey")
+  без порчи                    код 0  тишина
+== check_resx_zorder.py: у списка снята метаданная ZOrder ==
+  порча                        код 1  НАЗВАЛ: у comboDoseRateSpectrum нет метаданных: ZOrder
+  без порчи                    код 0  тишина
+
+ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: все сторожа смотрят

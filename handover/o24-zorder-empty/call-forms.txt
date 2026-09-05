@@ -1,0 +1,18 @@
+ФОРМА ВЫЗОВА: корень позиционно против ключа --root
+
+  check_resx             позиционно     код 0   русских resx просмотрено: 32, из них с английской парой: 32
+  check_resx             --root         код 0   русских resx просмотрено: 32, из них с английской парой: 32
+  check_resx             без аргумента  код 0   русских resx просмотрено: 32, из них с английской парой: 32
+
+  check_resx_letters     позиционно     код 0   английских resx просмотрено: 45, русских: 32
+  check_resx_letters     --root         код 0   английских resx просмотрено: 45, русских: 32
+  check_resx_letters     без аргумента  код 0   английских resx просмотрено: 45, русских: 32
+
+  check_resx_designer    позиционно     код 0   обращений с литеральным именем проверено: 802
+  check_resx_designer    --root         код 0   обращений с литеральным именем проверено: 802
+  check_resx_designer    без аргумента  код 0   обращений с литеральным именем проверено: 802
+
+  check_resx_zorder      позиционно     код 2   usage: check_resx_zorder.py [-h] [--root ROOT] [--form FORM] [--out OUT]
+  check_resx_zorder      --root         код 0   пар Foo.Designer.cs / Foo.resx: 43
+  check_resx_zorder      без аргумента  код 0   пар Foo.Designer.cs / Foo.resx: 43
+
