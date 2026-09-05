@@ -1,0 +1,138 @@
+BecquerelMonitor/AboutForm.cs:19	СТР	print	string.Format	this.label2.Text = string.Format(Resources.AboutVersionFormat,
+BecquerelMonitor/AboutForm.cs:66	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERROpenLinkFailure, url, ex.Message),
+BecquerelMonitor/AppLog.cs:351	ТИП	print	ToString	.GetName().Version.ToString();
+BecquerelMonitor/AudioInputDeviceController.cs:77	ИНВ	print	concat	"BecqMoni: the audio input device could not be opened (id " + deviceId.ToString(CultureInfo.InvariantCulture) + ", "
+BecquerelMonitor/AudioVolumeController.cs:41	ТИП	print	ToString	string a = stringBuilder.ToString();
+BecquerelMonitor/AudioVolumeController.cs:64	ТИП	print	ToString	return device.FriendlyName + "(" + properties[guid].Value.ToString() + ")";
+BecquerelMonitor/DocEnergySpectrum.cs:567	ТИП	print	ToString	base.GetType().ToString(),
+BecquerelMonitor/DocEnergySpectrum.cs:1121	СТР	print	string.Format	string.Format(Properties.Resources.FsaNoFwhmSource, chosen.Name),
+BecquerelMonitor/DocumentManager.cs:794	ИНВ	print	concat	resultData.SampleInfo.Name = fileName + "(" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
+BecquerelMonitor/DocumentManager.cs:820	ИНВ	print	concat	resultData.SampleInfo.Name = fileName + "(" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
+BecquerelMonitor/DocumentManager.cs:848	ИНВ	print	concat	resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
+BecquerelMonitor/DocumentManager.cs:90	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuesti
+BecquerelMonitor/DocumentManager.cs:348	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuesti
+BecquerelMonitor/DocumentManager.cs:360	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:413	СТР	print	string.Format	string empty = string.Format(Resources.ERRFileOpenFailure, filename, "");
+BecquerelMonitor/DocumentManager.cs:443	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuesti
+BecquerelMonitor/DocumentManager.cs:453	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, pathname, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:556	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1049	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filepath, DetailWithStack(ex));
+BecquerelMonitor/DocumentManager.cs:1085	СТР	print	string.Format	throw new Exception(String.Format(Resources.ERROpenGBSFormat, fileheader));
+BecquerelMonitor/DocumentManager.cs:1188	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filePath, DetailWithStack(ex));
+BecquerelMonitor/DocumentManager.cs:1235	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, filePath, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuesti
+BecquerelMonitor/DocumentManager.cs:1246	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1272	СТР	print	string.Format	throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileformat));
+BecquerelMonitor/DocumentManager.cs:1370	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1481	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuesti
+BecquerelMonitor/DocumentManager.cs:1515	СТР	print	string.Format	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1619	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1663	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1709	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1848	СТР	print	string.Format	string text = String.Format(Resources.ERRFileOpenFailure, Path.GetFileName(backgroundSpectrumPathname),
+BecquerelMonitor/DocumentManager.cs:1874	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1955	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:2026	СТР	print	string.Format	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:2057	СТР	print	string.Format	throw new ArgumentException(string.Format("Wrong total time format: {0}", totalTimeStr));
+BecquerelMonitor/DocumentManager.cs:2071	СТР	print	string.Format	throw new ArgumentException(String.Format("Wrong channel format: {0}", array[0]));
+BecquerelMonitor/DocumentManager.cs:2075	СТР	print	string.Format	throw new ArgumentException(String.Format("Wrong count format: {0}", array[1]));
+BecquerelMonitor/DocumentManager.cs:2085	СТР	print	string.Format	string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:2179	СТР	print	string.Format	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2182	СТР	print	string.Format	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2185	СТР	print	string.Format	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2188	СТР	print	string.Format	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2232	СТР	print	string.Format	string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:2328	СТР	print	string.Format	throw new InvalidDataException(string.Format("Section '{0}' was not found in the GBS file.", sectionHeader));
+BecquerelMonitor/DocumentManager.cs:1406	СТР	print	interpolation	throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
+BecquerelMonitor/EfficiencyConfigData.cs:139	ТИП	print	ToString	this.guid = System.Guid.NewGuid().ToString();
+BecquerelMonitor/EfficiencyConfigData.cs:152	ТИП	print	ToString	copy.guid = System.Guid.NewGuid().ToString();
+BecquerelMonitor/GeometryEditorPanel.cs:1913	ТИП	print	ToString	return text.ToString();
+BecquerelMonitor/GeometryMaterialEditorForm.cs:800	ИНВ	print	concat	name = wanted + " " + n.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/GlobalConfigManager.cs:521	ИНВ	print	concat	string mark = n > 1 ? "(" + (i + 1).ToString(CultureInfo.InvariantCulture) + "/" + n.ToString(CultureInfo.InvariantCulture) + ") "
+BecquerelMonitor/MeasurementController.cs:219	СТР	print	string.Format	string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+BecquerelMonitor/MeasurementController.cs:270	СТР	print	string.Format	string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+BecquerelMonitor/NuclideDefinitionForm.cs:176	ИНВ	print	string.Format	? string.Format(Resources.MSGDeleteNuclideDefinition, doomed[0].Name)
+BecquerelMonitor/ObsidianDeviceController.cs:79	СТР	print	interpolation	AppUi.Report($"Device is {status}, connect device first!", "", MessageBoxIcon.None);
+BecquerelMonitor/Package.cs:223	ТИП	print	ToString	return currentDeployment.CurrentVersion.ToString();
+BecquerelMonitor/PeakDetector.cs:1090	ТИП	print	ToString	return text.ToString();
+BecquerelMonitor/PeakDetector.cs:368	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int lo = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Min_Range, maxChannels: channels));
+BecquerelMonitor/PeakDetector.cs:369	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int hi = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Max_Range, maxChannels: channels));
+BecquerelMonitor/PeakDetector.cs:760	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	Convert.ToInt32(centroid),
+BecquerelMonitor/PeakDetector.cs:761	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	Convert.ToInt32(centroid - mul - 1),
+BecquerelMonitor/PeakDetector.cs:762	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	Convert.ToInt32(centroid + mul + 1),
+BecquerelMonitor/PeakDetector.cs:767	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	peak.Channel = Math.Max(0, Math.Min(energySpectrum.NumberOfChannels - 1, Convert.ToInt32(Math.Round(centroid))));
+BecquerelMonitor/PercentageProgressBar.cs:141	ВРЕМЯ	print	ToString	return fmt.ToString(Resources.ProgressDateFmt);
+BecquerelMonitor/PercentageProgressBar.cs:143	ВРЕМЯ	print	ToString	return fmt.ToString(@"hh\:mm\:ss");
+BecquerelMonitor/PolynomialEnergyCalibration.cs:268	ИНВ	print	concat	+ why + "; requested energy " + enrg.ToString("R", CultureInfo.InvariantCulture) + " keV, coefficients ["
+BecquerelMonitor/PolynomialEnergyCalibration.cs:312	ИНВ	print	concat	this.UnusableCalibration("polynomial order 2, negative discriminant (" + discriminant.ToString("R", CultureInfo.InvariantCulture)
+BecquerelMonitor/PolynomialEnergyCalibration.cs:434	ИНВ	print	concat	xpow = "*x^" + i.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/Program.cs:298	ТИП	print	ToString	Trace.WriteLine(exception.ToString());
+BecquerelMonitor/RadiaCodeDeviceController.cs:77	СТР	print	interpolation	AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
+BecquerelMonitor/SelectDeviceDialog.cs:77	ТИП	print	ToString	if (deviceConfigManager.DeviceConfigList[i].Name == DeviceListcomboBox.SelectedItem.ToString())
+BecquerelMonitor/CoreAudioApi/PropVariant.cs:64	ТИП	print	ToString	return "FIXME Type = " + varEnum.ToString();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	ИНВ	print	concat	throw new PeakFinderError("Peak x " + xpeak.ToString(CultureInfo.InvariantCulture) + " is outside of range " + xmin.ToString(Cultu
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	ИНВ	print	concat	throw new PeakFinderError("Peak x " + xpeak.ToString(CultureInfo.InvariantCulture) + " is outside of range " + xmin.ToString(Cultu
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	ИНВ	print	concat	throw new PeakFinderError("Peak x " + xpeak.ToString(CultureInfo.InvariantCulture) + " is outside of range " + xmin.ToString(Cultu
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:320	ИНВ	print	concat	throw new PeakFinderError("Must keep at least 1 peak, not " +  max_num.ToString(CultureInfo.InvariantCulture));
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:21	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	this.counts[i] = Convert.ToDouble(energySpectrum.Spectrum[i]);
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:22	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	this.bin_edges_raw[i] = Convert.ToDouble(i);
+BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:26	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	this.bin_edges_raw[counts.Length] = Convert.ToDouble(counts.Length);
+BecquerelMonitor/N42/RadInstrumentData.cs:27	ТИП	print	ToString	this.n42DocUUIDField = Guid.NewGuid().ToString();
+BecquerelMonitor/N42/Util.cs:60	ИНВ	print	concat	string calibrationId = "SpectrumCalibration-" + i.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/N42/Util.cs:61	ИНВ	print	concat	string idMeasurement = "SpectrumMeasurement-" + i.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/N42/Util.cs:71	ИНВ	print	concat	calibrationId = "BackgroundCalibration-" + i.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/N42/Util.cs:72	ИНВ	print	concat	idMeasurement = "BackgroundMeasurement-" + i.ToString(CultureInfo.InvariantCulture);
+BecquerelMonitor/N42/Util.cs:252	ИНВ	print	concat	return "PT" + seconds.ToString("0.#######", CultureInfo.InvariantCulture) + "S";
+BecquerelMonitor/N42/Util.cs:382	ИНВ	print	concat	"в файле N42 (" + AppUi.Where(filename) + ") объявлено каналов "
+BecquerelMonitor/N42/Util.cs:763	ИНВ	print	concat	+ " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
+BecquerelMonitor/N42/Util.cs:1095	ИНВ	print	concat	+ " (N42-2012, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
+BecquerelMonitor/N42/Util.cs:482	СТР	print	interpolation	resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.Se
+BecquerelMonitor/N42/Util.cs:737	СТР	print	interpolation	resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
+BecquerelMonitor/N42/Util.cs:738	СТР	print	interpolation	$"Manufacturer = {instrument.Manufacturer}, " +
+BecquerelMonitor/N42/Util.cs:739	СТР	print	interpolation	$"InstrumentModel = {instrument.InstrumentModel}, " +
+BecquerelMonitor/N42/Util.cs:740	СТР	print	interpolation	$"InstrumentID = {instrument.InstrumentID}, " +
+BecquerelMonitor/N42/Util.cs:741	СТР	print	interpolation	$"ProbeType = {instrument.ProbeType}";
+BecquerelMonitor/N42/Util.cs:330	СТР	print	Convert.ToString	return XmlConvert.ToString(value, XmlDateTimeSerializationMode.RoundtripKind);
+BecquerelMonitor/NucBase/DataBase.cs:82	СТР	print	string.Format	string text = string.Format(Resources.ERRNucBaseOpenDatabase, this.dbPath, AppUi.Reason(ex));
+BecquerelMonitor/NucBase/NucBase.cs:828	ТИП	print	ToString	string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
+BecquerelMonitor/NucBase/NucBase.cs:956	ТИП	print	ToString	string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
+BecquerelMonitor/NucBase/NucBase.cs:660	ИНВ	print	concat	int cut = text.IndexOf("{" + given.ToString(CultureInfo.InvariantCulture) + "}",
+BecquerelMonitor/NucBase/NucBase.cs:205	СТР	print	string.Format	status.Add(string.Format(Resources.NucBase_NoFluorescence, element));
+BecquerelMonitor/NucBase/NucBase.cs:477	СТР	print	string.Format	note.Add(string.Format(Resources.NucBase_CardEmpty, isotope));
+BecquerelMonitor/NucBase/NucBase.cs:571	СТР	print	string.Format	lines.Add(string.Format(Resources.ERRFailureReason, reason));
+BecquerelMonitor/NucBase/NucBase.cs:1068	СТР	print	string.Format	MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
+BecquerelMonitor/NucBase/NucBase.cs:1130	СТР	print	interpolation	string isotopeLower = $"{isotope.Substring(0, 1)}{isotope.Substring(1).ToLower()}";
+BecquerelMonitor/NucBase/NucBase.cs:1138	СТР	print	interpolation	return $"{mass}{isotope}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1140	СТР	print	interpolation	return $"{isotopeLower}{mass}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1142	СТР	print	interpolation	return $"{isotopeLower}-{mass}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1144	СТР	print	interpolation	return $"{isotopeLower}{mass}{isomer}";
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:237	СТР	print	string.Format	AppUi.Report(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename),
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:343	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[i
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:360	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: bgenergySpectrum.NumberOfChanne
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:363	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[b
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:391	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.Numbe
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:392	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.Numbe
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:413	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normChannelValue);
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:983	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	return Convert.ToInt32(gauss_value(x, amplitude, fwhm, median));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1001	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	return Convert.ToInt32(exp_gauss_exp_value(x, amplitude, median, fwhm, left, right));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1055	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	retvalue[i] = Convert.ToInt32(amplitude * PseudoVoigtProfile.RelativeValue(i - median, voigtParameters));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1096	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	baseline = x.Select(i => Convert.ToDouble(i)).ToArray();
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1101	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int n = Convert.ToInt32(r.Max());
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1145	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1270	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1352	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1498	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	int newChan = Convert.ToInt32(calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1633	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1647	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1722	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	result[i] = Convert.ToInt32(new_count / window_size);
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1737	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	result[i] = Convert.ToInt32(new_count / window_size);
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1759	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	new_count += Convert.ToDouble(spectrum[ch]);
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1781	ЧИСЛО→ЧИСЛО	parse	Convert.ToDouble	part += Convert.ToDouble(spectrum[ch]) * weight;
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1798	ЧИСЛО→ЧИСЛО	parse	Convert.ToInt32	window_size = Convert.ToInt32(channelValue * (1 - pointsNum) / countlimit + pointsNum);
+BecquerelMonitor/WinMM/NativeMethods.cs:37	ТИП	print	ToString	string str = error.ToString();
+BecquerelMonitor/WinMM/NativeMethods.cs:44	ТИП	print	ToString	text = stringBuilder.ToString() + " (" + error.ToString() + ")";
+BecquerelMonitor/WinMM/NativeMethods.cs:44	ТИП	print	ToString	text = stringBuilder.ToString() + " (" + error.ToString() + ")";
+BecquerelMonitor/WinMM/NativeMethods.cs:62	ТИП	print	ToString	throw new MMSystemException(text.ToString());
+BecquerelMonitor/WinMM/WaveIn.cs:250	ИНВ	print	concat	xmlElement = (XmlElement)xmlDocument.SelectSingleNode("/devices/manufacturer[@id='" + manufacturerId.ToString(CultureInfo.Invarian
+BecquerelMonitor/WinMM/WaveIn.cs:254	ИНВ	print	concat	return "Unknown [" + manufacturerId.ToString(CultureInfo.InvariantCulture) + "]";
+BecquerelMonitor/WinMM/WaveOut.cs:322	ИНВ	print	concat	xmlElement = (XmlElement)xmlDocument.SelectSingleNode("/devices/manufacturer[@id='" + manufacturerId.ToString(CultureInfo.Invarian
+BecquerelMonitor/WinMM/WaveOut.cs:326	ИНВ	print	concat	return "Unknown [" + manufacturerId.ToString(CultureInfo.InvariantCulture) + "]";

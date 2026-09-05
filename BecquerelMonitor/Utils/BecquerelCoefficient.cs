@@ -217,7 +217,7 @@ namespace BecquerelMonitor.Utils
             double eps, errorPercent;
             if (!curve.TryEval(roi.PeakEnergy, out eps, out errorPercent))
             {
-                result.Problem = string.Format(CultureInfo.CurrentCulture, Resources.BqCoeffOutOfRange,
+                result.Problem = string.Format(CultureInfo.InvariantCulture, Resources.BqCoeffOutOfRange,
                                                roi.PeakEnergy, curve.MinEnergy, curve.MaxEnergy);
                 return result;
             }

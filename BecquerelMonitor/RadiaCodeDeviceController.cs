@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Diagnostics;
 using System.Windows.Forms;
 
@@ -212,7 +213,7 @@ namespace BecquerelMonitor
                 // leaves a stale tail with a TotalPulseCount that no longer matches the array.
                 if (e.Hystogram.Length != this.pulseDetector.EnergySpectrum.Spectrum.Length)
                 {
-                    Trace.WriteLine($"RadiaCode: histogram size {e.Hystogram.Length} > document channels {this.pulseDetector.EnergySpectrum.Spectrum.Length}, dropping update");
+                    Trace.WriteLine(string.Format(CultureInfo.InvariantCulture, "RadiaCode: histogram size {0} > document channels {1}, dropping update", e.Hystogram.Length, this.pulseDetector.EnergySpectrum.Spectrum.Length));
                     return;
                 }
                 e.Hystogram.CopyTo(this.pulseDetector.EnergySpectrum.Spectrum, 0);

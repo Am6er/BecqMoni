@@ -975,7 +975,7 @@
     <value>нет данных для этого кристалла</value>
   </data>
   <data name="EfficiencyMakerHistories" xml:space="preserve">
-    <value>историй на точку: {0:N0}</value>
+    <value>историй на точку: {0:F0}</value>
   </data>
   <data name="EfficiencyMakerLevelSimulation" xml:space="preserve">
     <value>уровень: посчитан из геометрии</value>

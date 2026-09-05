@@ -57,8 +57,8 @@ namespace BecquerelMonitor.N42
             int j = 0;
             for (int i = 0; i < SpectrumCount; i++)
             {
-                string calibrationId = "SpectrumCalibration-" + i;
-                string idMeasurement = "SpectrumMeasurement-" + i;
+                string calibrationId = "SpectrumCalibration-" + i.ToString(CultureInfo.InvariantCulture);
+                string idMeasurement = "SpectrumMeasurement-" + i.ToString(CultureInfo.InvariantCulture);
                 string measurementClassCode = "Foreground";
                 string idSpectrum = "SpectrumData";
                 string idGrossCounts = "GrossForeground";
@@ -68,8 +68,8 @@ namespace BecquerelMonitor.N42
 
                 if (doc.ResultDataFile.ResultDataList[i].BackgroundEnergySpectrum != null)
                 {
-                    calibrationId = "BackgroundCalibration-" + i;
-                    idMeasurement = "BackgroundMeasurement-" + i;
+                    calibrationId = "BackgroundCalibration-" + i.ToString(CultureInfo.InvariantCulture);
+                    idMeasurement = "BackgroundMeasurement-" + i.ToString(CultureInfo.InvariantCulture);
                     measurementClassCode = "Background";
                     idSpectrum = "BackgroundData";
                     idGrossCounts = "GrossBackground";
@@ -380,8 +380,8 @@ namespace BecquerelMonitor.N42
             {
                 throw new Exception(
                     "в файле N42 (" + AppUi.Where(filename) + ") объявлено каналов "
-                    + NumberOfChanels + " (атрибут ChannelData/@NumberOfChannels), а записано "
-                    + "отсчётов " + chanData.Length + " и энергий " + chanEnergy.Length
+                    + NumberOfChanels.ToString(CultureInfo.InvariantCulture) + " (атрибут ChannelData/@NumberOfChannels), а записано "
+                    + "отсчётов " + chanData.Length.ToString(CultureInfo.InvariantCulture) + " и энергий " + chanEnergy.Length.ToString(CultureInfo.InvariantCulture)
                     + " — читать нечего, и достраивать недостающие каналы нулями нельзя: "
                     + "это был бы выдуманный спектр");
             }
@@ -504,7 +504,7 @@ namespace BecquerelMonitor.N42
                         throw new InvalidOperationException(
                             "BecqMoni: " + Resources.CalibrationFunctionError
                             + " (N42 RadiologicalInstrumentData, " + AppUi.Where(filename)
-                            + ", порядок " + calibration.PolynomialOrder
+                            + ", порядок " + calibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                             + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                     }
                     AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
@@ -612,7 +612,7 @@ namespace BecquerelMonitor.N42
             //    заводится в обе культуры, как у `A135`.
             if (PolynomialOrder > 4)
             {
-                throw new Exception(string.Format(Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
+                throw new Exception(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
             }
 
             double[] coefficients = new double[PolynomialOrder + 1];
@@ -760,7 +760,7 @@ namespace BecquerelMonitor.N42
                 {
                     throw new InvalidOperationException(
                         "BecqMoni: " + Resources.CalibrationFunctionError
-                        + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder
+                        + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                         + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                 }
                 AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
@@ -772,7 +772,7 @@ namespace BecquerelMonitor.N42
             //   он не доехал, а не эта.
             if (badStart > 0)
             {
-                AppUi.Report(string.Format(Resources.ERRUnreadableStartDateTimeN42,
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
                              "", MessageBoxIcon.None);
             }
@@ -1059,7 +1059,7 @@ namespace BecquerelMonitor.N42
                     // одна, и текст у неё обязан быть один.
                     if (PolynomialOrder > 4)
                     {
-                        throw new Exception(string.Format(Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
+                        throw new Exception(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
                     }
 
                     double[] coefficients = new double[PolynomialOrder + 1];
@@ -1092,7 +1092,7 @@ namespace BecquerelMonitor.N42
                         {
                             throw new InvalidOperationException(
                                 "BecqMoni: " + Resources.CalibrationFunctionError
-                                + " (N42-2012, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder
+                                + " (N42-2012, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                 + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                         }
                         AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
@@ -1183,7 +1183,7 @@ namespace BecquerelMonitor.N42
             if (skippedClasses.Count > 0)
             {
                 // `A160`: что именно выброшено из файла и сколько осталось.
-                AppUi.Report(string.Format(Resources.ERRSkippedMeasurementClassN42,
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRSkippedMeasurementClassN42,
                                            string.Join(", ", skippedClasses.ToArray()),
                                            added),
                              "", MessageBoxIcon.None);
@@ -1191,7 +1191,7 @@ namespace BecquerelMonitor.N42
             if (badStart > 0)
             {
                 // `A157`: дата не прочитана — спектр ввезён, но с чужим временем.
-                AppUi.Report(string.Format(Resources.ERRUnreadableStartDateTimeN42,
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnreadableStartDateTimeN42,
                                            badStart, badStartSample),
                              "", MessageBoxIcon.None);
             }

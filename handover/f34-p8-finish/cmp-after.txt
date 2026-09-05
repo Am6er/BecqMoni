@@ -1,0 +1,34 @@
+ВСЕГО по дереву: HEAD 595 -> сейчас 499  (дельта -96)
+МОИ 29 .cs доли П8: HEAD 182 -> сейчас 86  (дельта -96)
+ОСТАЛЬНОЕ дерево:   HEAD 413 -> сейчас 413  (дельта +0, это чужие полосы)
+
+── мои файлы, где счёт ещё не ноль ──
+  BecquerelMonitor/AudioInputDeviceController.cs               2 ->   1
+  BecquerelMonitor/DocumentManager.cs                         47 ->  37
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs              8 ->   4
+  BecquerelMonitor/GeometryEditorPanel.cs                      2 ->   1
+  BecquerelMonitor/GeometryMaterialEditorForm.cs               1 ->   1
+  BecquerelMonitor/GlobalConfigManager.cs                      2 ->   1
+  BecquerelMonitor/N42/Util.cs                                24 ->  15
+  BecquerelMonitor/NucBase/NucBase.cs                         29 ->  12
+  BecquerelMonitor/NuclideDefinitionForm.cs                    9 ->   1
+  BecquerelMonitor/ObsidianDeviceController.cs                 2 ->   1
+  BecquerelMonitor/PolynomialEnergyCalibration.cs              9 ->   3
+  BecquerelMonitor/RadiaCodeDeviceController.cs                2 ->   1
+  BecquerelMonitor/WinMM/NativeMethods.cs                      4 ->   4
+  BecquerelMonitor/WinMM/WaveIn.cs                             4 ->   2
+  BecquerelMonitor/WinMM/WaveOut.cs                            4 ->   2
+
+── мои файлы, закрытые до нуля ──
+  BecquerelMonitor/ChanNumberChangeDialog.cs                   1 -> 0
+  BecquerelMonitor/DoseRate.cs                                 8 -> 0
+  BecquerelMonitor/EnergySpectrum.cs                           1 -> 0
+  BecquerelMonitor/NucBase/Decay.cs                            1 -> 0
+  BecquerelMonitor/NucBase/DecayRad.cs                         1 -> 0
+  BecquerelMonitor/NuclideDefinition.cs                        1 -> 0
+  BecquerelMonitor/NuclideSetForm.cs                           2 -> 0
+  BecquerelMonitor/PercentageProgressBar.cs                    7 -> 0
+  BecquerelMonitor/PowerFwhmCalibration.cs                     2 -> 0
+  BecquerelMonitor/PulseView.cs                                3 -> 0
+  BecquerelMonitor/SimpleSqrtFwhmCalibration.cs                2 -> 0
+  BecquerelMonitor/SpectrumCutOffDialog.cs                     2 -> 0

@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -138,7 +139,7 @@ namespace BecquerelMonitor.NucBase
                     case 7:
                         return Resources.NucBase_IT;
                     default:
-                        return this.dectype.ToString();
+                        return this.dectype.ToString(CultureInfo.InvariantCulture);
                 }
 
             }

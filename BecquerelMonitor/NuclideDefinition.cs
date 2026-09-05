@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Xml.Serialization;
 using System.Drawing;
 using System.Collections.Generic;
@@ -106,7 +107,7 @@ namespace BecquerelMonitor
         // Token: 0x060010AF RID: 4271 RVA: 0x0005AF14 File Offset: 0x00059114
         public override string ToString()
         {
-            return $"{this.name} - {this.energy}";
+            return this.name + " - " + this.energy.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>

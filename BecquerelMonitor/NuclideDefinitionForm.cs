@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using XPTable.Events;
@@ -41,13 +42,13 @@ namespace BecquerelMonitor
                 visibilitycellStyle.BackColor = System.Drawing.Color.LightGray;
                 if (nuclideDefinition.Visible) {
                     row.Cells.Add(new Cell(nuclideDefinition.Name));
-                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
-                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(CultureInfo.InvariantCulture), nuclideDefinition.HalfLife));
                 } else
                 {
                     row.Cells.Add(new Cell(nuclideDefinition.Name, visibilitycellStyle));
-                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy, visibilitycellStyle));
-                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(CultureInfo.InvariantCulture), nuclideDefinition.HalfLife, visibilitycellStyle));
                 }
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
@@ -66,9 +67,9 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             this.textBox1.Text = nuclide.Name;
             this.chainTextBox.Text = nuclide.Chain;
-            this.doubleTextBox1.Text = nuclide.Energy.ToString();
-            this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
-            this.intensityTextBox.Text = nuclide.Intencity.ToString();
+            this.doubleTextBox1.Text = nuclide.Energy.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = nuclide.HalfLife.ToString(CultureInfo.InvariantCulture);
+            this.intensityTextBox.Text = nuclide.Intencity.ToString(CultureInfo.InvariantCulture);
             this.textBox2.Text = nuclide.Note;
             this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
             this.checkBox1.Checked = nuclide.Visible;
@@ -173,7 +174,7 @@ namespace BecquerelMonitor
 
             string question = doomed.Count == 1
                 ? string.Format(Resources.MSGDeleteNuclideDefinition, doomed[0].Name)
-                : string.Format(Resources.MSGDeleteNuclideDefinitions, doomed.Count,
+                : string.Format(CultureInfo.InvariantCulture, Resources.MSGDeleteNuclideDefinitions, doomed.Count,
                                 string.Join(", ", doomed.Take(5).Select(n => n.Name)),
                                 doomed.Count > 5 ? "…" : "");
             DialogResult dialogResult = MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);

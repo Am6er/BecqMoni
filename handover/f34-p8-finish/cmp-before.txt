@@ -1,0 +1,125 @@
+ВСЕГО по дереву: HEAD 595 -> сейчас 501  (дельта -94)
+МОИ 29 .cs доли П8: HEAD 182 -> сейчас 88  (дельта -94)
+ОСТАЛЬНОЕ дерево:   HEAD 413 -> сейчас 413  (дельта +0, это чужие полосы)
+
+── мои файлы, где счёт ещё не ноль ──
+  BecquerelMonitor/AudioInputDeviceController.cs               2 ->   1
+  BecquerelMonitor/DocumentManager.cs                         47 ->  37
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs              8 ->   4
+  BecquerelMonitor/GeometryEditorPanel.cs                      2 ->   1
+  BecquerelMonitor/GeometryMaterialEditorForm.cs               1 ->   1
+  BecquerelMonitor/GlobalConfigManager.cs                      2 ->   1
+  BecquerelMonitor/N42/Util.cs                                24 ->  15
+  BecquerelMonitor/NucBase/NucBase.cs                         29 ->  12
+  BecquerelMonitor/NuclideDefinitionForm.cs                    9 ->   1
+  BecquerelMonitor/ObsidianDeviceController.cs                 2 ->   1
+  BecquerelMonitor/PercentageProgressBar.cs                    7 ->   2
+  BecquerelMonitor/PolynomialEnergyCalibration.cs              9 ->   3
+  BecquerelMonitor/RadiaCodeDeviceController.cs                2 ->   1
+  BecquerelMonitor/WinMM/NativeMethods.cs                      4 ->   4
+  BecquerelMonitor/WinMM/WaveIn.cs                             4 ->   2
+  BecquerelMonitor/WinMM/WaveOut.cs                            4 ->   2
+
+── мои файлы, закрытые до нуля ──
+  BecquerelMonitor/ChanNumberChangeDialog.cs                   1 -> 0
+  BecquerelMonitor/DoseRate.cs                                 8 -> 0
+  BecquerelMonitor/EnergySpectrum.cs                           1 -> 0
+  BecquerelMonitor/NucBase/Decay.cs                            1 -> 0
+  BecquerelMonitor/NucBase/DecayRad.cs                         1 -> 0
+  BecquerelMonitor/NuclideDefinition.cs                        1 -> 0
+  BecquerelMonitor/NuclideSetForm.cs                           2 -> 0
+  BecquerelMonitor/PowerFwhmCalibration.cs                     2 -> 0
+  BecquerelMonitor/PulseView.cs                                3 -> 0
+  BecquerelMonitor/SimpleSqrtFwhmCalibration.cs                2 -> 0
+  BecquerelMonitor/SpectrumCutOffDialog.cs                     2 -> 0
+  BecquerelMonitor/SqrtFwhmCalibration.cs                      2 -> 0
+
+── поимённый остаток в моих файлах ──
+  BecquerelMonitor/AudioInputDeviceController.cs:77	print	concat	NUM	deviceId | 
+  BecquerelMonitor/DocumentManager.cs:794	print	concat	NUM	list_count | 
+  BecquerelMonitor/DocumentManager.cs:820	print	concat	NUM	list_count | 
+  BecquerelMonitor/DocumentManager.cs:848	print	concat	NUM	list_count | 
+  BecquerelMonitor/DocumentManager.cs:90	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:348	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:360	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:413	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:443	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:453	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:556	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1049	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1085	print	string.Format	UNK	 | Resources.ERROpenGBSFormat
+  BecquerelMonitor/DocumentManager.cs:1188	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1235	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1246	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1272	print	string.Format	UNK	 | Resources.ERROpenAtomSpectraFormat
+  BecquerelMonitor/DocumentManager.cs:1370	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1481	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1515	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1619	print	string.Format	UNK	 | Resources.ERRFileSaveFailure
+  BecquerelMonitor/DocumentManager.cs:1663	print	string.Format	UNK	 | Resources.ERRFileSaveFailure
+  BecquerelMonitor/DocumentManager.cs:1709	print	string.Format	UNK	 | Resources.ERRFileSaveFailure
+  BecquerelMonitor/DocumentManager.cs:1848	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:1874	print	string.Format	UNK	 | Resources.ERRBackgroundLoadFailure
+  BecquerelMonitor/DocumentManager.cs:1955	print	string.Format	UNK	 | Resources.ERRFileSaveFailure
+  BecquerelMonitor/DocumentManager.cs:2026	print	string.Format	UNK	 | Resources.ERRFileSaveFailure
+  BecquerelMonitor/DocumentManager.cs:2057	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2071	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2075	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2085	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:2179	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2182	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2185	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2188	print	string.Format	UNK	 | " "
+  BecquerelMonitor/DocumentManager.cs:2232	print	string.Format	UNK	 | Resources.ERRFileOpenFailure
+  BecquerelMonitor/DocumentManager.cs:2328	print	string.Format	UNK	 | " 
+  BecquerelMonitor/DocumentManager.cs:1406	print	interpolation	UNK	 | 
+  BecquerelMonitor/GeometryEditorPanel.cs:1913	print	ToString	UNK	text | 
+  BecquerelMonitor/GeometryMaterialEditorForm.cs:800	print	concat	NUM	n | 
+  BecquerelMonitor/GlobalConfigManager.cs:521	print	concat	NUM	n | 
+  BecquerelMonitor/NuclideDefinitionForm.cs:176	print	string.Format	UNK	 | Resources.MSGDeleteNuclideDefinition
+  BecquerelMonitor/ObsidianDeviceController.cs:79	print	interpolation	UNK	 | 
+  BecquerelMonitor/PercentageProgressBar.cs:141	print	ToString	NUM	fmt | Resources.ProgressDateFmt
+  BecquerelMonitor/PercentageProgressBar.cs:143	print	ToString	NUM	fmt | 
+  BecquerelMonitor/PolynomialEnergyCalibration.cs:268	print	concat	NUM	enrg | 
+  BecquerelMonitor/PolynomialEnergyCalibration.cs:312	print	concat	NUM	discriminant | 
+  BecquerelMonitor/PolynomialEnergyCalibration.cs:434	print	concat	NUM	i | 
+  BecquerelMonitor/RadiaCodeDeviceController.cs:77	print	interpolation	UNK	 | 
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	print	concat	NUM	xpeak | 
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	print	concat	NUM	xmin | 
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:159	print	concat	NUM	xmax | 
+  BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:320	print	concat	NUM	max_num | 
+  BecquerelMonitor/N42/Util.cs:60	print	concat	NUM	i | 
+  BecquerelMonitor/N42/Util.cs:61	print	concat	NUM	i | 
+  BecquerelMonitor/N42/Util.cs:71	print	concat	NUM	i | 
+  BecquerelMonitor/N42/Util.cs:72	print	concat	NUM	i | 
+  BecquerelMonitor/N42/Util.cs:252	print	concat	NUM	seconds | 
+  BecquerelMonitor/N42/Util.cs:382	print	concat	NUM	NumberOfChanels | 
+  BecquerelMonitor/N42/Util.cs:763	print	concat	NUM	PolynomialOrder | 
+  BecquerelMonitor/N42/Util.cs:1095	print	concat	NUM	PolynomialOrder | 
+  BecquerelMonitor/N42/Util.cs:482	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:737	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:738	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:739	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:740	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:741	print	interpolation	UNK	 | 
+  BecquerelMonitor/N42/Util.cs:330	print	Convert.ToString	UNK	 | value, XmlDateTimeSerializationMode.Roun
+  BecquerelMonitor/NucBase/NucBase.cs:828	print	ToString	UNK	this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx | 
+  BecquerelMonitor/NucBase/NucBase.cs:956	print	ToString	UNK	this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx | 
+  BecquerelMonitor/NucBase/NucBase.cs:660	print	concat	NUM	given | 
+  BecquerelMonitor/NucBase/NucBase.cs:205	print	string.Format	UNK	 | Resources.NucBase_NoFluorescence
+  BecquerelMonitor/NucBase/NucBase.cs:477	print	string.Format	UNK	 | Resources.NucBase_CardEmpty
+  BecquerelMonitor/NucBase/NucBase.cs:571	print	string.Format	UNK	 | Resources.ERRFailureReason
+  BecquerelMonitor/NucBase/NucBase.cs:1068	print	string.Format	UNK	 | Resources.NuclideDefImportError
+  BecquerelMonitor/NucBase/NucBase.cs:1130	print	interpolation	UNK	 | 
+  BecquerelMonitor/NucBase/NucBase.cs:1138	print	interpolation	UNK	 | 
+  BecquerelMonitor/NucBase/NucBase.cs:1140	print	interpolation	UNK	 | 
+  BecquerelMonitor/NucBase/NucBase.cs:1142	print	interpolation	UNK	 | 
+  BecquerelMonitor/NucBase/NucBase.cs:1144	print	interpolation	UNK	 | 
+  BecquerelMonitor/WinMM/NativeMethods.cs:37	print	ToString	UNK	error | 
+  BecquerelMonitor/WinMM/NativeMethods.cs:44	print	ToString	UNK	stringBuilder | 
+  BecquerelMonitor/WinMM/NativeMethods.cs:44	print	ToString	UNK	error | 
+  BecquerelMonitor/WinMM/NativeMethods.cs:62	print	ToString	NONUM	text | 
+  BecquerelMonitor/WinMM/WaveIn.cs:250	print	concat	NUM	manufacturerId | 
+  BecquerelMonitor/WinMM/WaveIn.cs:254	print	concat	NUM	manufacturerId | 
+  BecquerelMonitor/WinMM/WaveOut.cs:322	print	concat	NUM	manufacturerId | 
+  BecquerelMonitor/WinMM/WaveOut.cs:326	print	concat	NUM	manufacturerId | 

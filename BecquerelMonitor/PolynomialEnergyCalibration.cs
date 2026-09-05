@@ -2,6 +2,7 @@
 using MathNet.Numerics;
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -264,8 +265,8 @@ namespace BecquerelMonitor
             {
                 throw new InvalidOperationException(
                     "BecqMoni: the energy calibration cannot be inverted and there is no UI to report it to: "
-                    + why + "; requested energy " + enrg.ToString("R") + " keV, coefficients ["
-                    + string.Join(", ", Array.ConvertAll(this.coefficients, v => v.ToString("R")))
+                    + why + "; requested energy " + enrg.ToString("R", CultureInfo.InvariantCulture) + " keV, coefficients ["
+                    + string.Join(", ", Array.ConvertAll(this.coefficients, v => v.ToString("R", CultureInfo.InvariantCulture)))
                     + "]. Continuing would return channel 0, which is indistinguishable from an honest zero. "
                     + Resources.CalibrationFunctionError);
             }
@@ -308,7 +309,7 @@ namespace BecquerelMonitor
                     double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
                     if (discriminant < 0.0)
                     {
-                        this.UnusableCalibration("polynomial order 2, negative discriminant (" + discriminant.ToString("R")
+                        this.UnusableCalibration("polynomial order 2, negative discriminant (" + discriminant.ToString("R", CultureInfo.InvariantCulture)
                             + "): NO channel of this calibration carries the requested energy", enrg);
                         return 0;
                     }
@@ -386,7 +387,7 @@ namespace BecquerelMonitor
                 }
             }
 
-            throw new NotImplementedException(String.Format(Resources.ERRUnsupportedCalibrationMethod, this.polynomialOrder));
+            throw new NotImplementedException(String.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedCalibrationMethod, this.polynomialOrder));
         }
 
         // Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8
@@ -430,7 +431,7 @@ namespace BecquerelMonitor
                     }
                     if (i > 1)
                     {
-                        xpow = "*x^" + i.ToString();
+                        xpow = "*x^" + i.ToString(CultureInfo.InvariantCulture);
                         if (this.coefficients[i] > 0 && i != this.coefficients.Length - 1)
                         {
                             sign = "+";
@@ -441,7 +442,7 @@ namespace BecquerelMonitor
                         }
                     }
 
-                    result = sign + this.coefficients[i].ToString() + xpow + result;
+                    result = sign + this.coefficients[i].ToString(CultureInfo.InvariantCulture) + xpow + result;
                 }
             }
             return "y = " + result;

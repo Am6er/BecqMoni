@@ -59,7 +59,7 @@ namespace BecquerelMonitor
         {
             if (energyradioButton.Checked)
             {
-                if (double.TryParse(energytextBox.Text, out double energyVal))
+                if (UserNumber.TryParseDouble(energytextBox.Text, out double energyVal))
                 {
                     if (energyVal > 0 && energyVal < double.MaxValue)
                     {
@@ -69,7 +69,7 @@ namespace BecquerelMonitor
                 return (this.resultStatus, false, 0, 0);
             } else
             {
-                if (int.TryParse(channeltextBox.Text, out int channel))
+                if (UserNumber.TryParseInt(channeltextBox.Text, out int channel))
                 {
                     if (channel > 0 && channel < int.MaxValue)
                     {

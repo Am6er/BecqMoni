@@ -42350,7 +42350,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>no data for this crystal</value>
   </data>
   <data name="EfficiencyMakerHistories" xml:space="preserve">
-    <value>{0:N0} histories per point</value>
+    <value>{0:F0} histories per point</value>
   </data>
   <data name="EfficiencyMakerLevelSimulation" xml:space="preserve">
     <value>level: calculated from geometry</value>

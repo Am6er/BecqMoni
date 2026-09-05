@@ -112,37 +112,37 @@ namespace BecquerelMonitor
             string rate_str;
             if (rate < 10.0)
             {
-                rate_str = rate.ToString("f3");
+                rate_str = rate.ToString("f3", CultureInfo.InvariantCulture);
             }
             else if (rate < 100.0)
             {
-                rate_str = rate.ToString("f2");
+                rate_str = rate.ToString("f2", CultureInfo.InvariantCulture);
             }
             else
             {
-                rate_str = rate.ToString("f1");
+                rate_str = rate.ToString("f1", CultureInfo.InvariantCulture);
             }
             string error_str;
-            string epsilon_str = epsilon.ToString("f1");
+            string epsilon_str = epsilon.ToString("f1", CultureInfo.InvariantCulture);
             if (error < 10.0)
             {
-                error_str = error.ToString("f3");
+                error_str = error.ToString("f3", CultureInfo.InvariantCulture);
             }
             else if (error < 100.0)
             {
-                error_str = error.ToString("f2");
+                error_str = error.ToString("f2", CultureInfo.InvariantCulture);
             }
             else
             {
-                error_str = error.ToString("f1");
+                error_str = error.ToString("f1", CultureInfo.InvariantCulture);
             }
 
-            string text = String.Format("{0} ±{1} ({2}%) {3}", rate_str, error_str, epsilon_str, uom);
+            string text = String.Format(CultureInfo.InvariantCulture, "{0} ±{1} ({2}%) {3}", rate_str, error_str, epsilon_str, uom);
 
             // Приписка только когда есть о чём: полное покрытие молчит.
             if (this.coverage >= 0.0 && this.coverage < CoverageNoticeThreshold)
             {
-                text += " " + string.Format(CultureInfo.CurrentCulture,
+                text += " " + string.Format(CultureInfo.InvariantCulture,
                                             DoseRateCoefficients.Text("DoseRatePartialCoverage",
                                                                       "(covers {0:f0} % of counts)"),
                                             100.0 * this.coverage);
@@ -319,7 +319,7 @@ namespace BecquerelMonitor
             if (!(energyKev > 0.0))
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     Text("DoseRateEnergyNotPositive", "Dose rate: energy {0} keV is not positive."),
                     energyKev));
             }
@@ -336,7 +336,7 @@ namespace BecquerelMonitor
                 if (!MaterialDatabase.TryGet(AirZ[i], out element))
                 {
                     throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.CurrentCulture,
+                        CultureInfo.InvariantCulture,
                         Text("DoseRateNoElement", "Dose rate: element Z={0} is missing from the material database."),
                         AirZ[i]));
                 }
@@ -349,7 +349,7 @@ namespace BecquerelMonitor
                 if (energyKev < lowKev || energyKev > highKev)
                 {
                     throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.CurrentCulture,
+                        CultureInfo.InvariantCulture,
                         Text("DoseRateOutsideXcom",
                              "Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV)."),
                         energyKev, AirZ[i], lowKev, highKev));
@@ -397,7 +397,7 @@ namespace BecquerelMonitor
             if (energyKev < MinEnergyKev || energyKev > MaxEnergyKev)
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     Text("DoseRateOutsideIcrp",
                          "Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV)."),
                     energyKev, MinEnergyKev, MaxEnergyKev));
@@ -580,7 +580,7 @@ namespace BecquerelMonitor
             if (energyKev < this.MinKev || energyKev > this.MaxKev)
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     DoseRateCoefficients.Text("DoseRateOutsideCurve",
                         "Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV)."),
                     energyKev, this.MinKev, this.MaxKev));
@@ -643,7 +643,7 @@ namespace BecquerelMonitor
             if (!(low > 0.0) || !(high > low))
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     DoseRateCoefficients.Text("DoseRateEmptyRange",
                         "Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV)."),
                     minKev, maxKev, DoseRateCoefficients.MinEnergyKev, DoseRateCoefficients.MaxEnergyKev));
@@ -706,7 +706,7 @@ namespace BecquerelMonitor
             if (!(maxKev > minKev) || double.IsNaN(minKev) || double.IsNaN(maxKev))
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     DoseRateCoefficients.Text("DoseRateBadScale",
                         "Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels)."),
                     minKev, maxKev, channels));
@@ -788,7 +788,7 @@ namespace BecquerelMonitor
                 if (!(eff > 0.0) || double.IsNaN(eff) || double.IsInfinity(eff))
                 {
                     throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.CurrentCulture,
+                        CultureInfo.InvariantCulture,
                         DoseRateCoefficients.Text("DoseRateBadEfficiency",
                             "Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless."),
                         eff, centerE));
@@ -865,7 +865,7 @@ namespace BecquerelMonitor
                     // измерением то, что измерением не было.
                     if (log != null)
                     {
-                        log.Add(string.Format(CultureInfo.CurrentCulture,
+                        log.Add(string.Format(CultureInfo.InvariantCulture,
                             "Dose rate: диапазон {0:f1}–{1:f1} кэВ пуст в эталонном спектре, точка не заведена.",
                             energies[i], energies[i + 1]));
                     }
@@ -945,7 +945,7 @@ namespace BecquerelMonitor
                 {
                     Title = titles != null && i < titles.Count && !string.IsNullOrEmpty(titles[i])
                         ? titles[i]
-                        : string.Format(CultureInfo.CurrentCulture, "#{0}", i + 1),
+                        : string.Format(CultureInfo.InvariantCulture, "#{0}", i + 1),
                     Spectrum = spectrum,
                     Efficiency = data.FileEfficiency ?? data.Efficiency,
                 });
@@ -969,7 +969,7 @@ namespace BecquerelMonitor
             if (points == null || points.Count < 2)
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     DoseRateCoefficients.Text("DoseRateCurveTooShort",
                         "Dose rate: the efficiency curve has {0} point(s), at least two are needed."),
                     points == null ? 0 : points.Count));
@@ -983,7 +983,7 @@ namespace BecquerelMonitor
                 if (double.IsNaN(point.Energy) || double.IsInfinity(point.Energy) || !(point.Energy > 0.0))
                 {
                     throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.CurrentCulture,
+                        CultureInfo.InvariantCulture,
                         DoseRateCoefficients.Text("DoseRateCurveBadEnergy",
                             "Dose rate: the efficiency curve has a point at {0} keV."),
                         point.Energy));
@@ -992,7 +992,7 @@ namespace BecquerelMonitor
                 if (double.IsNaN(point.Efficiency) || double.IsInfinity(point.Efficiency) || !(point.Efficiency > 0.0))
                 {
                     throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.CurrentCulture,
+                        CultureInfo.InvariantCulture,
                         DoseRateCoefficients.Text("DoseRateCurveBadValue",
                             "Dose rate: the efficiency curve gives {0} at {1:f1} keV."),
                         point.Efficiency, point.Energy));
@@ -1011,7 +1011,7 @@ namespace BecquerelMonitor
             if (energies.Count < 2)
             {
                 throw new DoseRateRefusalException(string.Format(
-                    CultureInfo.CurrentCulture,
+                    CultureInfo.InvariantCulture,
                     DoseRateCoefficients.Text("DoseRateCurveTooShort",
                         "Dose rate: the efficiency curve has {0} point(s), at least two are needed."),
                     energies.Count));

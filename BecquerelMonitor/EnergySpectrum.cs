@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -227,7 +228,7 @@ namespace BecquerelMonitor
             {
                 throw new InvalidOperationException(
                     "EnergySpectrum.Clone: у спектра нет энергетической калибровки"
-                    + " (EnergyCalibration == null, каналов " + this.numberOfChannels
+                    + " (EnergyCalibration == null, каналов " + this.numberOfChannels.ToString(CultureInfo.InvariantCulture)
                     + "). Снять копию нечего: без шкалы энергии спектр не годен"
                     + " ни для разложения, ни для поиска пиков, а подставить"
                     + " калибровку значило бы объявить номер канала энергией.");

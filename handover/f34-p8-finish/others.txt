@@ -1,0 +1,143 @@
+мест вне 29 файлов F28: 413, файлов: 53
+по стороне: {'print': 369, 'parse': 44}
+по выводу типа: {'UNK': 307, 'NUM': 95, 'NONUM': 11}
+
+── NUM (сканер уверен, что это ЧИСЛО) — только эти могут быть настоящими ──
+всего NUM: 95
+  BecquerelMonitor/AtomSpectraVCPDeviceForm.cs:361	print	concat	status
+  BecquerelMonitor/DCPeakDetectionView.cs:344	print	concat	num2
+  BecquerelMonitor/DCPeakDetectionView.cs:358	print	concat	resolution
+  BecquerelMonitor/DCResultView.cs:112	print	concat	errorLevel
+  BecquerelMonitor/DCResultView.cs:147	print	concat	epsilon
+  BecquerelMonitor/DCResultView.cs:203	print	concat	epsilon
+  BecquerelMonitor/DeviceConfigForm.cs:295	print	concat	i
+  BecquerelMonitor/DeviceConfigForm.cs:1490	print	concat	i
+  BecquerelMonitor/DeviceConfigForm.cs:1494	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/EfficiencyCurveGraph.cs:150	print	concat	d
+  BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs:692	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs:706	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs:731	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs:745	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/GeometryModel.cs:1270	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/GeometryModel.cs:1271	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:450	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:528	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs:529	print	concat	i
+  BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs:736	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs:756	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs:776	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs:847	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs:574	print	concat	PhysicsVersion
+  BecquerelMonitor/EfficiencyMaker/ScatteringData.cs:394	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/ScatteringData.cs:419	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/ScatteringData.cs:495	print	concat	z
+  BecquerelMonitor/EfficiencyMaker/ScatteringData.cs:522	print	concat	z
+  BecquerelMonitor/EnergySpectrumView.cs:4469	print	concat	end_channel
+  BecquerelMonitor/EnergySpectrumView.cs:4472	print	concat	end_energy
+  BecquerelMonitor/EnergySpectrumView.cs:4593	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4594	print	concat	activityUpperLimit
+  BecquerelMonitor/EnergySpectrumView.cs:4598	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4599	print	concat	activityByMassUpperLimit
+  BecquerelMonitor/EnergySpectrumView.cs:4603	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4604	print	concat	activityByVolumeUpperLimit
+  BecquerelMonitor/EnergySpectrumView.cs:4611	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4616	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4621	print	concat	Activity
+  BecquerelMonitor/EnergySpectrumView.cs:4633	print	concat	Activity
+  BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:21	parse	Convert.ToDouble	
+  BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:22	parse	Convert.ToDouble	
+  BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:26	parse	Convert.ToDouble	
+  BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs:515	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs:517	print	concat	a
+  BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs:530	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs:531	print	concat	a
+  BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs:385	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:992	print	concat	MaxChainPasses
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:993	print	concat	drift
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:1303	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:1374	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:1675	print	concat	z
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs:1700	print	concat	z
+  BecquerelMonitor/MainForm.cs:611	print	ToString	dt
+  BecquerelMonitor/PeakDetector.cs:368	parse	Convert.ToInt32	
+  BecquerelMonitor/PeakDetector.cs:369	parse	Convert.ToInt32	
+  BecquerelMonitor/PeakDetector.cs:760	parse	Convert.ToInt32	
+  BecquerelMonitor/PeakDetector.cs:761	parse	Convert.ToInt32	
+  BecquerelMonitor/PeakDetector.cs:762	parse	Convert.ToInt32	
+  BecquerelMonitor/PeakDetector.cs:767	parse	Convert.ToInt32	
+  BecquerelMonitor/ROIConfigForm.cs:315	print	concat	i
+  BecquerelMonitor/RadiaCodeIn.cs:868	parse	Convert.ToSingle	
+  BecquerelMonitor/RadiaCodeIn.cs:869	parse	Convert.ToSingle	
+  BecquerelMonitor/RadiaCodeIn.cs:870	parse	Convert.ToSingle	
+  BecquerelMonitor/Utils/FWHMCalibrationGraph.cs:283	print	ToString	energy
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:201	print	ToString	yValue
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:387	print	ToString	this.gaussianReferenceSigma
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:413	print	ToString	this.currentCurveSigma
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:458	print	ToString	this.voigtScaleFactor
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:465	print	ToString	this.voigtScaleFactor
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:474	print	ToString	this.voigtScaleFactor
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:494	print	ToString	this.currentCurveSigma
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:343	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:360	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:363	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:391	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:392	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:413	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:983	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1001	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1055	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1096	parse	Convert.ToDouble	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1101	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1145	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1270	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1352	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1498	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1633	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1647	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1722	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1737	parse	Convert.ToInt32	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1759	parse	Convert.ToDouble	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1781	parse	Convert.ToDouble	
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1798	parse	Convert.ToInt32	
+
+── по файлам (все виды) ──
+  BecquerelMonitor/RadiaCodeIn.cs                             72
+  BecquerelMonitor/ObsidianIn.cs                              63
+  BecquerelMonitor/MainForm.cs                                41
+  BecquerelMonitor/Utils/SpectrumAriphmetics.cs               23
+  BecquerelMonitor/Utils/PeakShapePreviewGraph.cs             17
+  BecquerelMonitor/DeviceConfigForm.cs                        16
+  BecquerelMonitor/AtomSpectraVCPDeviceForm.cs                15
+  BecquerelMonitor/EnergySpectrumView.cs                      13
+  BecquerelMonitor/ROIConfigManager.cs                        13
+  BecquerelMonitor/ObsidianDeviceForm.cs                      12
+  BecquerelMonitor/RadiaCodeDeviceForm.cs                     10
+  BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs    8
+  BecquerelMonitor/Utils/FWHMCalibrationGraph.cs               8
+  BecquerelMonitor/PeakDetector.cs                             7
+  BecquerelMonitor/Utils/CalibrationGraph.cs                   7
+  BecquerelMonitor/DCResultView.cs                             6
+  BecquerelMonitor/DeviceConfigManager.cs                      5
+  BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs      5
+  BecquerelMonitor/ROIConfigForm.cs                            4
+  BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs          4
+  BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs           4
+  BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs         4
+  BecquerelMonitor/EfficiencyMaker/ScatteringData.cs           4
+  BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs   4
+  BecquerelMonitor/DCPeakDetectionView.cs                      3
+  BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs           3
+  BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs   3
+  BecquerelMonitor/FWHMPeakDetector/Spectrum.cs                3
+  BecquerelMonitor/AboutForm.cs                                2
+  BecquerelMonitor/AudioVolumeController.cs                    2
+  BecquerelMonitor/DeviceConfigForm.Efficiency.cs              2
+  BecquerelMonitor/DocEnergySpectrum.cs                        2
+  BecquerelMonitor/EfficiencyConfigData.cs                     2
+  BecquerelMonitor/EfficiencyMakerForm.cs                      2
+  BecquerelMonitor/MeasurementController.cs                    2
+  BecquerelMonitor/EfficiencyMaker/GeometryModel.cs            2
+  BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs   2
+  BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs    2
+  BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs   2
+  BecquerelMonitor/AppLog.cs                                   1

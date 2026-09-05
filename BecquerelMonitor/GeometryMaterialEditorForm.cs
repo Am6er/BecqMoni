@@ -110,7 +110,7 @@ namespace BecquerelMonitor
             {
                 // Молчать здесь нельзя: библиотека сейчас ВШИТАЯ, своих веществ
                 // человек не видит, а «Сохранить» заменит непрочитанный файл.
-                this.loadErrorLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                this.loadErrorLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.GeometryMaterialsLoadFailed,
                     GeometryMaterialStore.FilePath, GeometryMaterialStore.LoadError);
                 this.loadErrorLabel.Visible = true;
@@ -485,7 +485,7 @@ namespace BecquerelMonitor
             }
 
             this.densityBox.Text = density.ToString("0.######", CultureInfo.InvariantCulture);
-            this.problemLabel.Text = string.Format(CultureInfo.CurrentCulture,
+            this.problemLabel.Text = string.Format(CultureInfo.InvariantCulture,
                                                    Resources.GeometryMaterialsDensityDone, density);
         }
 
@@ -728,7 +728,7 @@ namespace BecquerelMonitor
             {
                 // Имя — ключ: по нему ищутся составляющие смесей и по нему
                 // вещество узнаётся при чтении файла геометрии.
-                return string.Format(CultureInfo.CurrentCulture,
+                return string.Format(CultureInfo.InvariantCulture,
                                      Resources.GeometryMaterialsErrorDuplicate, entry.Name);
             }
 
@@ -748,7 +748,7 @@ namespace BecquerelMonitor
                 {
                     if (this.Lookup(component.Material) == null)
                     {
-                        return string.Format(CultureInfo.CurrentCulture,
+                        return string.Format(CultureInfo.InvariantCulture,
                                              Resources.GeometryMaterialsErrorNoComponent,
                                              component.Material);
                     }
@@ -836,14 +836,14 @@ namespace BecquerelMonitor
             if (users.Count > 0)
             {
                 MessageBox.Show(this,
-                    string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsErrorInUse,
+                    string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsErrorInUse,
                                   entry.Name, string.Join(", ", users.ToArray())),
                     Resources.GeometryMaterialsTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 return;
             }
 
             if (MessageBox.Show(this,
-                    string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsRemoveAsk, entry.Name),
+                    string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsRemoveAsk, entry.Name),
                     Resources.GeometryMaterialsTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 != DialogResult.Yes)
             {
@@ -879,7 +879,7 @@ namespace BecquerelMonitor
                 this.RefreshList(entry);
                 // ⛔ `T106`, довод — как у второго такого места ниже.
                 AppUi.Report(
-                    string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsErrorAt,
+                    string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsErrorAt,
                                   entry.Name, problem),
                     Resources.GeometryMaterialsTitle, MessageBoxIcon.Exclamation);
                 return;
@@ -896,7 +896,7 @@ namespace BecquerelMonitor
                 // (`S100`). Дверь `AppUi` в окне ведёт себя как прежний
                 // `MessageBox`, а в прогоне отдаёт отказ вместо зависания.
                 AppUi.Report(
-                    string.Format(CultureInfo.CurrentCulture, Resources.GeometryMaterialsSaveFailed,
+                    string.Format(CultureInfo.InvariantCulture, Resources.GeometryMaterialsSaveFailed,
                                   GeometryMaterialStore.FilePath, error.Message),
                     Resources.GeometryMaterialsTitle, MessageBoxIcon.Hand);
                 return;

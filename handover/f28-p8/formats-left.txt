@@ -1,0 +1,48 @@
+BecquerelMonitor/AboutForm.cs:19	this.label2.Text = string.Format(Resources.AboutVersionFormat, GlobalConfigManager.GetInstance().VersionString);
+BecquerelMonitor/AboutForm.cs:66	AppUi.Report(string.Format(Resources.ERROpenLinkFailure, url, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+BecquerelMonitor/DocEnergySpectrum.cs:1121	string.Format(Properties.Resources.FsaNoFwhmSource, chosen.Name), Properties.Resources.FsaNoFwhmTitle, MessageBoxIcon.Information);
+BecquerelMonitor/DocumentManager.cs:90	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:348	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:360	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:413	string empty = string.Format(Resources.ERRFileOpenFailure, filename, "");
+BecquerelMonitor/DocumentManager.cs:443	string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:453	string text = string.Format(Resources.ERRFileOpenFailure, pathname, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:556	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1049	string text = string.Format(Resources.ERRFileOpenFailure, filepath, DetailWithStack(ex));
+BecquerelMonitor/DocumentManager.cs:1085	throw new Exception(String.Format(Resources.ERROpenGBSFormat, fileheader));
+BecquerelMonitor/DocumentManager.cs:1188	string text = string.Format(Resources.ERRFileOpenFailure, filePath, DetailWithStack(ex));
+BecquerelMonitor/DocumentManager.cs:1235	string text = String.Format(Resources.ERRFileOpenFailure, filePath, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:1246	string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1272	throw new Exception(String.Format(Resources.ERROpenAtomSpectraFormat, fileformat));
+BecquerelMonitor/DocumentManager.cs:1370	string text = string.Format(Resources.ERRFileOpenFailure, filePath, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1481	string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:1515	string text = string.Format(Resources.ERRFileOpenFailure, filename, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:1619	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1663	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1709	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1848	string text = String.Format(Resources.ERRFileOpenFailure, Path.GetFileName(backgroundSpectrumPathname), Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+BecquerelMonitor/DocumentManager.cs:1874	AppUi.Report(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:1955	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:2026	AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+BecquerelMonitor/DocumentManager.cs:2057	throw new ArgumentException(string.Format("Wrong total time format: {0}", totalTimeStr));
+BecquerelMonitor/DocumentManager.cs:2071	throw new ArgumentException(String.Format("Wrong channel format: {0}", array[0]));
+BecquerelMonitor/DocumentManager.cs:2075	throw new ArgumentException(String.Format("Wrong count format: {0}", array[1]));
+BecquerelMonitor/DocumentManager.cs:2085	string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:2179	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2182	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2185	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2188	throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+BecquerelMonitor/DocumentManager.cs:2232	string message = string.Format(Resources.ERRFileOpenFailure, fileName, Detail(ex));
+BecquerelMonitor/DocumentManager.cs:2328	throw new InvalidDataException(string.Format("Section '{0}' was not found in the GBS file.", sectionHeader));
+BecquerelMonitor/FSAReportView.cs:1269	? string.Format(CultureInfo.CurrentCulture, Resources.FSAReportTipParentsRefused, this.presentation.ParentGroupingRefusal) : Resources.FSAReportTipGrouping;
+BecquerelMonitor/MeasurementController.cs:219	string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+BecquerelMonitor/MeasurementController.cs:270	string busy = string.Format(Resources.ERRDeviceBusy, this.resultData.DeviceConfig.Name);
+BecquerelMonitor/NuclideDefinitionForm.cs:176	? string.Format(Resources.MSGDeleteNuclideDefinition, doomed[0].Name) : string.Format(CultureInfo.InvariantCulture, Resources.MSGDeleteNuclideDefinitions, doomed.Count, string.Join(", ", doomed.Take(5).Select(n => n.Name
+BecquerelMonitor/NucBase/DataBase.cs:82	string text = string.Format(Resources.ERRNucBaseOpenDatabase, this.dbPath, AppUi.Reason(ex));
+BecquerelMonitor/NucBase/NucBase.cs:205	status.Add(string.Format(Resources.NucBase_NoFluorescence, element));
+BecquerelMonitor/NucBase/NucBase.cs:477	note.Add(string.Format(Resources.NucBase_CardEmpty, isotope));
+BecquerelMonitor/NucBase/NucBase.cs:571	lines.Add(string.Format(Resources.ERRFailureReason, reason));
+BecquerelMonitor/NucBase/NucBase.cs:1068	MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
+BecquerelMonitor/Utils/SpectrumAriphmetics.cs:237	AppUi.Report(String.Format(Resources.ERRCombineBadCalibratedSpectra, docenergySpectrum.Filename), Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+---
+string.Format БЕЗ инварианта в доле П8: 46

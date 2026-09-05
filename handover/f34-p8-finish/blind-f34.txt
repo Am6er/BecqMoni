@@ -1,0 +1,44 @@
+== StringBuilder.Append   всего   9, БЕЗ явной культуры рядом: 9
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:213  this.centroids = this.centroids.Append(xpeak).ToArray();
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:221  this.snrs = this.snrs.Append(this.snr[xbin]).ToArray();
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:229  this.fwhms = this.fwhms.Append(fwhm).ToArray();
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:237  this.integrals = this.integrals.Append(this.signal[xbin]).ToArray();
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:245  this.backgrounds = this.backgrounds.Append(this.bkg[xbin]).ToArray();
+     BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:254  this.fwhm_delta = this.fwhm_delta.Append(fwhm_delta).ToArray();
+     BecquerelMonitor/GeometryEditorPanel.cs:1908  text.AppendLine();
+     BecquerelMonitor/GeometryEditorPanel.cs:1909  text.Append("   • ");
+     BecquerelMonitor/GeometryEditorPanel.cs:1910  text.Append(IssueText(issue));
+
+== string.Join            всего   9, БЕЗ явной культуры рядом: 8
+     BecquerelMonitor/DoseRate.cs:518  return string.Join(Environment.NewLine, lines.ToArray());
+     BecquerelMonitor/NucBase/NucBase.cs:574  this.SearchStatusLabel.Text = string.Join(Environment.NewLine, lines);
+     BecquerelMonitor/N42/Util.cs:1187  string.Join(", ", skippedClasses.ToArray()),
+     BecquerelMonitor/N42/Util.cs:1223  + string.Join(", ", skippedClasses.ToArray())
+     BecquerelMonitor/NuclideDefinitionForm.cs:178  string.Join(", ", doomed.Take(5).Select(n => n.Name)),
+     BecquerelMonitor/GeometryMaterialEditorForm.cs:840  entry.Name, string.Join(", ", users.ToArray())),
+     BecquerelMonitor/DocumentManager.cs:1016  string.Join(", ", skippedSources.ToArray()),
+     BecquerelMonitor/DocumentManager.cs:1033  + string.Join(", ", skippedSources.ToArray())
+
+== string.Concat          всего   1, БЕЗ явной культуры рядом: 1
+     BecquerelMonitor/DocumentManager.cs:71  string filename = string.Concat(new object[]
+
+== интерполяция           всего  14, БЕЗ явной культуры рядом: 14
+     BecquerelMonitor/NucBase/NucBase.cs:1130  string isotopeLower = $"{isotope.Substring(0, 1)}{isotope.Substring(1).ToLower()}";
+     BecquerelMonitor/NucBase/NucBase.cs:1138  return $"{mass}{isotope}{isomer}";
+     BecquerelMonitor/NucBase/NucBase.cs:1140  return $"{isotopeLower}{mass}{isomer}";
+     BecquerelMonitor/NucBase/NucBase.cs:1142  return $"{isotopeLower}-{mass}{isomer}";
+     BecquerelMonitor/NucBase/NucBase.cs:1144  return $"{isotopeLower}{mass}{isomer}";
+     BecquerelMonitor/N42/Util.cs:482  resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
+     BecquerelMonitor/N42/Util.cs:737  resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
+     BecquerelMonitor/N42/Util.cs:738  $"Manufacturer = {instrument.Manufacturer}, " +
+     BecquerelMonitor/N42/Util.cs:739  $"InstrumentModel = {instrument.InstrumentModel}, " +
+     BecquerelMonitor/N42/Util.cs:740  $"InstrumentID = {instrument.InstrumentID}, " +
+     BecquerelMonitor/N42/Util.cs:741  $"ProbeType = {instrument.ProbeType}";
+     BecquerelMonitor/ObsidianDeviceController.cs:79  AppUi.Report($"Device is {status}, connect device first!", "", MessageBoxIcon.None);
+     BecquerelMonitor/RadiaCodeDeviceController.cs:77  AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
+     BecquerelMonitor/DocumentManager.cs:1406  throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
+
+== Parse/TryParse         всего  26, БЕЗ явной культуры рядом: 0
+
+== Convert.To*            всего   1, БЕЗ явной культуры рядом: 0
+
