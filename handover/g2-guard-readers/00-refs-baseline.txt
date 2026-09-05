@@ -1,0 +1,14 @@
+реестры: DONE.md — 329 строк, TODO.md — 548 строк
+известных номеров всего: 875, буквы: ABCDEFMNPRSTVWX
+обойдено файлов: 274, строгих ссылок проверено: 1678
+
+ОТКАЗ: ссылок в никуда — 9
+  tools/effmaker/probes/DoseCoefProbeO2.cs:676: A200 -> нет ни в одном реестре | // СЕТКИ (`C4`, `A200`), а не смену чисел (`A198`). Первый заход
+  tools/effmaker/probes/DoseRateProbe.cs:721: A200 -> нет ни в одном реестре | /// `A200` (покрытие Am-241). `A200` про ШИРИНУ кривой: сетка мощности
+  tools/effmaker/probes/DoseRateProbe.cs:728: A200 -> нет ни в одном реестре | /// ⛔ `A200` этим НЕ закрывается: она про поставочные `config/ROI/*.xml`,
+  tools/effmaker/probes/DoseRateProbe.cs:734: A200 -> нет ни в одном реестре | Console.WriteLine("  -- цена отсечения для покрытия Am-241 (смежная `A200`, НЕ закрывается) --");
+  tools/effmaker/probes/MatrixRefusalProbeP8.cs:109: N0 -> нет ни в одном реестре | // стоял формат `N0` с разделителем разрядов (`A244`).
+  tools/effmaker/probes/N42RoundTripProbe.cs:793: C12 -> нет ни в одном реестре | //    05.09.2026 полоса `C12` получила `NullReferenceException` на всех
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs:176: F0 -> нет ни в одном реестре | // печатается форматом `F0` и ИНВАРИАНТОМ, а не `N0` по культуре
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs:176: N0 -> нет ни в одном реестре | // печатается форматом `F0` и ИНВАРИАНТОМ, а не `N0` по культуре
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs:603: F0 -> нет ни в одном реестре | // здесь `F0`/`F1` по той же причине.

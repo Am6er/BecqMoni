@@ -1,0 +1,9 @@
+обойдено файлов: 493
+копий рецепта найдено: 4 (с ключом 4, БЕЗ ключа 0)
+копий без ключа: 0
+
+с ключом (для сверки):
+  tools/effmaker/handover-2026-08-05.md:113
+  tools/effmaker/handover-response-matrix.md:328
+  tools/effmaker/run.ps1:36
+  tools/interspec/handover-2026-08-05.md:720
