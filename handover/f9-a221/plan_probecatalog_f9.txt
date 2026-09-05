@@ -1,0 +1,23 @@
+План Get-AppWdPlan -ProbeCatalog, 05.09.2026 (F9, A221), после добавления BecquerelMonitor\config\device\RC-103.xml
+пар в плане: 338
+пар в config\device: 34 (поставочных: 10, корпусных: 24)
+одинаковых Dst: 1
+  rc-103.xml
+     [поставочный конфиг\device] C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\config\device\RC-103.xml  sha ABA03220E1E3
+     [прибор корпуса] C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\devices\RC-103.xml  sha E5D282DBEF73
+дубль GUID 1a0651a2-0b84-4c4e-8be8-c2d286eb82eb : [поставочный конфиг\device] AtomSpectraVCP.xml | [прибор корпуса] 1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml
+дубль GUID 7fe39199-d0fe-455a-aef7-ac98e1cd58ec : [поставочный конфиг\device] RC-103.xml | [прибор корпуса] RC-103.xml
+всего разных GUID среди источников: 32
+
+Что build_all.ps1 РЕАЛЬНО кладёт (своя доля плана, без рода 'прибор корпуса'):
+  Atom Spectra Nano 15 Pro 1024.xml          1719 sha 7D8E6362184C
+  AtomSpectraVCP.xml                         1819 sha F0D140A48DEB
+  AudioSpectrometer 384kHz 16 bit.xml        9483 sha D4C436743100
+  AudioSpectrometer 384kHz 32 bit.xml        9466 sha 1CEB8683AD9F
+  AudioSpectrometer 44.1kHz 16 bit.xml       3461 sha DF4461A7177A
+  AudioSpectrometer 44.1kHz 32 bit.xml       3462 sha F70F09E0016A
+  RC-101(191).xml                            1716 sha FBF2E10E1591
+  RC-101(95).xml                             1717 sha 68A17F4E824E
+  RC-103 (282).xml                           2025 sha F0B8910858E0
+  RC-103.xml                                22605 sha ABA03220E1E3
+  файлов: 10
