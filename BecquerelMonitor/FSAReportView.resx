@@ -5073,6 +5073,9 @@
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Composition suppressed by</value>
   </data>
+  <data name="FSAReport_BackgroundRejectedRow" xml:space="preserve">
+    <value>Background rejected</value>
+  </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Changes only the chart: nothing is recomputed.</value>
   </data>

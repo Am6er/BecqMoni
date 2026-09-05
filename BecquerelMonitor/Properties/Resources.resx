@@ -8465,6 +8465,18 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSANoBackgroundMark" xml:space="preserve">
     <value>NO BACKGROUND SUBTRACTED</value>
   </data>
+  <data name="FSABackgroundRejectedMark" xml:space="preserve">
+    <value> (bg rejected)</value>
+  </data>
+  <data name="FSABackgroundNoCounts" xml:space="preserve">
+    <value>the background spectrum carries no counts</value>
+  </data>
+  <data name="FSABackgroundChannelMismatch" xml:space="preserve">
+    <value>the background has {0} channels, the spectrum {1}</value>
+  </data>
+  <data name="FSABackgroundNoLiveTime" xml:space="preserve">
+    <value>the background has no measurement time</value>
+  </data>
   <data name="FSACascadeMark" xml:space="preserve">
     <value> · summing</value>
   </data>

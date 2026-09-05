@@ -223,6 +223,9 @@
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Состав пересилен образом</value>
   </data>
+  <data name="FSAReport_BackgroundRejectedRow" xml:space="preserve">
+    <value>Фон не взят</value>
+  </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Меняет только график; ничего не пересчитывается.</value>
   </data>

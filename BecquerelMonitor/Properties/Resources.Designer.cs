@@ -2977,6 +2977,42 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to  (bg rejected).
+        /// </summary>
+        public static string FSABackgroundRejectedMark {
+            get {
+                return ResourceManager.GetString("FSABackgroundRejectedMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background spectrum carries no counts.
+        /// </summary>
+        public static string FSABackgroundNoCounts {
+            get {
+                return ResourceManager.GetString("FSABackgroundNoCounts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background has {0} channels, the spectrum {1}.
+        /// </summary>
+        public static string FSABackgroundChannelMismatch {
+            get {
+                return ResourceManager.GetString("FSABackgroundChannelMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background has no measurement time.
+        /// </summary>
+        public static string FSABackgroundNoLiveTime {
+            get {
+                return ResourceManager.GetString("FSABackgroundNoLiveTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to · summing.
         /// </summary>
         public static string FSACascadeMark {
