@@ -1,0 +1,50 @@
+spectra 129 | unchanged 113 | changed 16
+
+### AS80_K40
+  before LIB=4  ряд 40K весь ряд | ряд 226RA весь ряд
+  after  LIB=5  ряд 40K весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH | ряд 226RA весь ряд
+### AS80_Lu176
+  before LIB=7  ряд 40K весь ряд | ряд 176LU весь ряд
+  after  LIB=8  ряд 40K весь ряд | ряд 176LU весь ряд | ряд 226RA только 206PB,210BI,210PB,210PO,214BI,214PO
+### ASN16_Charoite_v2
+  before LIB=4  ряд 40K весь ряд | ряд 226RA весь ряд
+  after  LIB=5  ряд 40K весь ряд | ряд 226RA весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### ASN8_Th232_1024
+  before LIB=3  ряд 232TH весь ряд
+  after  LIB=4  ряд 232TH весь ряд | ряд 226RA только 206PB,210BI,210PB,210PO,214BI,214PO
+### ASN8_Th232_2048
+  before LIB=3  ряд 232TH весь ряд
+  after  LIB=4  ряд 232TH весь ряд | ряд 226RA только 206PB,210BI,210PB,210PO,214BI,214PO
+### G1S16_Th228_P25
+  before LIB=7  ряд 40K весь ряд | ряд 152EU весь ряд | ряд 226RA весь ряд
+  after  LIB=8  ряд 40K весь ряд | ряд 152EU весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH | ряд 226RA весь ряд
+### G1S16_Th228_P5
+  before LIB=2  (пусто)
+  after  LIB=5  ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### G1S16_Y88_P25
+  before LIB=6  ряд 40K весь ряд | ряд 226RA весь ряд
+  after  LIB=7  ряд 40K весь ряд | ряд 226RA весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### G1S24_K40_Denta120
+  before LIB=7  ряд 40K весь ряд | ряд 243AM весь ряд | ряд 152EU весь ряд | ряд 226RA весь ряд
+  after  LIB=7  ряд 40K весь ряд | ряд 243AM весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH | ряд 226RA весь ряд
+### G1S24_Ra226_Denta120
+  before LIB=5  ряд 226RA весь ряд
+  after  LIB=6  ряд 226RA весь ряд | ряд 235U только 223FR,227AC,227TH,231PA,231TH,235U
+### G1S24_Ra226_Petri_2
+  before LIB=5  ряд 226RA весь ряд
+  after  LIB=6  ряд 226RA весь ряд | ряд 235U только 223FR,227AC,227TH,231PA,231TH,235U
+### G1S24_Th228_P25
+  before LIB=4  ряд 40K весь ряд
+  after  LIB=6  ряд 40K весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### G1S24_Th228_P5
+  before LIB=2  (пусто)
+  after  LIB=6  ряд 226RA только 214PB,218PO,222RN,226RA | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### GS4000_U
+  before LIB=4  ряд 40K весь ряд | ряд 232TH весь ряд
+  after  LIB=5  ряд 40K весь ряд | ряд 241AM только 233PA,233U,237NP,241AM | ряд 232TH весь ряд
+### HPGeGMX_Th228
+  before LIB=3  ряд 40K весь ряд
+  after  LIB=4  ряд 40K весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+### LaBrBril_Th228
+  before LIB=4  ряд 40K весь ряд | ряд 134CS весь ряд | ряд 226RA весь ряд
+  after  LIB=4  ряд 40K весь ряд | ряд 232TH только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH | ряд 226RA весь ряд

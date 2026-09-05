@@ -1,0 +1,74 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f51\config\NuclideDefinition.xml: 152 entries
+SETUP	прибор: Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)
+SETUP	спектр: G1S16_Th228_P5.xml
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ
+SETUP	кривая: G1S_point5 (геометрия есть)
+SETUP	найдено пиков: 14
+PEAK	33.5	—
+PEAK	72.0	Pb x-ray
+PEAK	128.2	Ac-228
+PEAK	237.7	Pb-212
+PEAK	299.9	Pb-214
+PEAK	377.0	—
+PEAK	510.6	Annihilation
+PEAK	587.9	Tl-208
+PEAK	730.7	Bi-212
+PEAK	864.8	Ac-228
+PEAK	1585.9	Ac-228
+PEAK	2121.9	Tl-208 SE
+PEAK	2318.4	Bi-214
+PEAK	2618.3	Tl-208
+
+=== ОТЧЁТ ВЫВОДА СОСТАВА ===
+правило обрыва ряда: Only (умолчание приложения)
+REPORT	выведено из пиков: 12 из 14 подписаны, родителей 1 из 4, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 23 % (5/22, пиков 6), подцепочка 38 % (3/8, обрыв сверху 228AC, снизу —) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван); Ra-226 17 % (1/6, пиков 2) — доля ниже порога; Bi-212 13 % (1/8, пиков 1) — доля ниже порога; Tl-208 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 1 кандидатов
+
+CAND	принят 	232TH	Th-232 23 % (5/22, пиков 6), подцепочка 38 % (3/8, обрыв сверху 228AC, снизу —) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)
+MEMBER	232TH	232TH@0 0/0
+MEMBER	232TH	228RA@1 0/0
+MEMBER	232TH	228AC@2 2/14
+MEMBER	232TH	228TH@3 0/0
+MEMBER	232TH	224RA@4 0/0
+MEMBER	232TH	220RN@5 0/0
+MEMBER	232TH	216PO@6 0/0
+MEMBER	232TH	212PB@7 1/3
+MEMBER	232TH	212BI@8 0/2
+MEMBER	232TH	208TL@9 2/3
+MEMBER	232TH	212PO@9 0/0
+MEMBER	232TH	208PB@10 0/0
+CAND	отвергнут	226RA	Ra-226 17 % (1/6, пиков 2) — доля ниже порога
+MEMBER	226RA	226RA@0 0/0
+MEMBER	226RA	222RN@1 0/0
+MEMBER	226RA	218PO@2 0/0
+MEMBER	226RA	214PB@3 1/4
+MEMBER	226RA	214BI@4 0/1
+MEMBER	226RA	210PB@5 0/1
+MEMBER	226RA	214PO@5 0/0
+MEMBER	226RA	210BI@6 0/0
+MEMBER	226RA	210PO@7 0/0
+MEMBER	226RA	206PB@8 0/0
+CAND	отвергнут	212BI	Bi-212 13 % (1/8, пиков 1) — доля ниже порога
+MEMBER	212BI	212BI@0 1/2
+MEMBER	212BI	208TL@1 0/6
+MEMBER	212BI	212PO@1 0/0
+MEMBER	212BI	208PB@2 0/0
+CAND	отвергнут	208TL	Tl-208 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком
+MEMBER	208TL	208TL@0 0/0
+MEMBER	208TL	208PB@1 0/0
+
+=== СОСТАВ (FsaSampleSpec) ===
+SPEC	рядов 1, одиночек 0, элементов пробы 0, кристалла 1
+SPEC	ряд	232TH	только 208PB,208TL,212BI,212PB,212PO,216PO,220RN,224RA,228TH
+
+=== БИБЛИОТЕКА ===
+LIBSIZE	5
+LIB	Th-232	Chain	46
+LIB	Xray-Pb	Nuisance	3
+LIB	Xray-NaI	Nuisance	3
+LIB	Esc-NaI	Nuisance	6
+LIB	Ann-511	Nuisance	1
+
+ВЕРДИКТ	разбор не пуст (компонентов 5, родителей принято 1)
+модальных окон за прогон: 0
