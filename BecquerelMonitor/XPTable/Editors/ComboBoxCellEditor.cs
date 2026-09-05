@@ -491,7 +491,7 @@ namespace XPTable.Editors
                 SelectedIndexChanged(this, e);
             }
 
-            this.TextBox.Text = this.SelectedItem.ToString();
+            this.TextBox.Text = Convert.ToString(this.SelectedItem, System.Globalization.CultureInfo.InvariantCulture);
         }
 
 

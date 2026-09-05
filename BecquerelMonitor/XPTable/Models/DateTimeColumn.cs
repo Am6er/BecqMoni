@@ -274,7 +274,6 @@ namespace XPTable.Models
                     this.OnPropertyChanged(new ColumnEventArgs(this, ColumnEventType.RendererChanged, null));
                 }
 
-                DateTime.Now.ToString(DateTimeFormatInfo.CurrentInfo.ShortDatePattern);
             }
         }
 

@@ -3230,7 +3230,8 @@ namespace XPTable.Models
                         sorter = new ShellSorter(this.TableModel, index, comparer, sortOrder);
                         break;
                     default:
-                        throw new ApplicationException("Invalid Sort Type - " + this.SortType.ToString());
+                        throw new ApplicationException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "Invalid Sort Type - {0}", this.SortType));
                 }
             }
 
@@ -8901,7 +8902,9 @@ namespace XPTable.Models
                         {
                             exception.Data.Add("row", row);
                             exception.Data.Add("column", i);
-                            exception.Data.Add("cellRect", cellRect.ToString());
+                            exception.Data.Add("cellRect", string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "{{X={0},Y={1},Width={2},Height={3}}}",
+                                cellRect.X, cellRect.Y, cellRect.Width, cellRect.Height));
                             throw;
                         }
                     }
@@ -9632,7 +9635,8 @@ namespace XPTable.Models
             {
                 PropertyDescriptor prop = propColl.Find(column.Text, false);
                 if (prop == null)
-                    throw new ApplicationException(string.Format("Cannot find property '{0}' in datasource.", column.Text));
+                    throw new ApplicationException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "Cannot find property '{0}' in datasource.", column.Text));
 
                 object val = prop.GetValue(row);
                 Cell cell = this.DataSourceColumnBinder.GetCell(column, val);
