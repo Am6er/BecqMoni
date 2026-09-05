@@ -1,0 +1,18 @@
+Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+  файлов приложения: 501, типов: 682, проб: 121
+  оконных типов по наследованию: 82; засев от проб: 252 типов
+  достижимо БЕЗ окон: 541 типов; барьер (оконные): 22
+  оконных типов, которые пробы СТРОЯТ (`new T(...)`): 32 — их конструкторы ALLOW не обеляет
+  живых MessageBox.Show: 152
+
+=== БЕЗОКОННЫЙ ПУТЬ: 3 вызовов в 1 файлах ===
+  BecquerelMonitor/DeviceConfigForm.cs:1944  DeviceConfigForm.button1_Click()
+      достижим от: метод зовёт отражением проба (имя в её литералах)
+  BecquerelMonitor/DeviceConfigForm.cs:1954  DeviceConfigForm.button1_Click()
+      достижим от: метод зовёт отражением проба (имя в её литералах)
+  BecquerelMonitor/DeviceConfigForm.cs:1978  DeviceConfigForm.button1_Click()
+      достижим от: метод зовёт отражением проба (имя в её литералах)
+
+
+итого: безоконный путь 3, оконные 149, вне разряда 0
+ОТКАЗ: в безоконном пути 3 модальных окон. Проба, дойдя до любого, ВИСНЕТ. Замена: AppUi.Report(text, caption, icon).

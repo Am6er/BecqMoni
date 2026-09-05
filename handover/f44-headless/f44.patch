@@ -1,0 +1,53 @@
+diff --git a/BecquerelMonitor/DeviceConfigForm.cs b/BecquerelMonitor/DeviceConfigForm.cs
+index 7f57c7ee..2bd6dc46 100644
+--- a/BecquerelMonitor/DeviceConfigForm.cs
++++ b/BecquerelMonitor/DeviceConfigForm.cs
+@@ -1941,7 +1941,19 @@ namespace BecquerelMonitor
+             }
+             catch (Exception)
+             {
+-                MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
++                // ⛔ `A245`, полоса F44 05.09.2026. Голое модальное окно на
++                //    БЕЗОКОННОМ пути. Окно тут было всегда, а достижимым из
++                //    безоконного прогона место стало 05.09.2026, когда проба
++                //    `RestCultureProbeF28` завела литерал `"button1_Click"` и
++                //    сторож `check_headless.py` признал метод достижимым по
++                //    правилу `REFLECT_OVERRIDE`. Нажать «ОК» здесь некому:
++                //    проба, дойдя сюда, виснет насмерть до убийства процесса.
++                //    Дверь маршалит показ на поток окон сама (~~`A241`~~), а
++                //    на потоке окон вызов остаётся синхронным — в приложении
++                //    вид сообщения ПРЕЖНИЙ: `MessageBox.Show(text)` это тот же
++                //    пустой заголовок, та же единственная «ОК» и тот же
++                //    отсутствующий знак (`MessageBoxIcon.None`).
++                AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, "", MessageBoxIcon.None);
+                 return;
+             }
+ 
+@@ -1951,7 +1963,12 @@ namespace BecquerelMonitor
+ 
+             if (!energyCalibration.CheckCalibration())
+             {
+-                MessageBox.Show(Resources.CalibrationFunctionError);
++                // ⛔ `A245`, полоса F44 05.09.2026 — то же, что соседом выше:
++                //    голое модальное окно на безоконном пути. Тот же ресурс
++                //    уже ходит через дверь с пустым заголовком в
++                //    `DocumentManager.cs:1171` и `N42/Util.cs:510` — вид
++                //    сообщения в приложении не меняется.
++                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                 return;
+             }
+             this.numericUpDown1.Text = "0";
+@@ -1975,7 +1992,12 @@ namespace BecquerelMonitor
+             this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+             if (!energyCalibration.CheckCalibration())
+             {
+-                MessageBox.Show(Resources.CalibrationFunctionError);
++                // ⛔ `A245`, полоса F44 05.09.2026. Третье голое окно того же
++                //    обработчика: проверка повторяется после того, как
++                //    коэффициенты прошли через поля ввода, и отказать может
++                //    именно она. Чинится вместе с двумя соседями — оставить
++                //    одно из трёх значило бы оставить безоконный путь висящим.
++                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                 return;
+             }
+             if (activeDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && energyCalibration.PolynomialOrder >= 2)

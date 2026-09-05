@@ -1,0 +1,42 @@
+Тип В ЗАСЕВЕ и ОКОННЫЙ — два условия из трёх уже выполнены.
+Держит только третье: имя метода ещё не встречалось в литералах проб.
+
+уже сработавших (метод назван пробой): 0 пар тип.метод, 0 вызовов
+НА ВОЛОСОК (метод пока не назван):      69 пар тип.метод, 110 вызовов
+
+── разбор по типам (сколько вызовов ждёт своего имени) ──
+  DeviceConfigForm              28 вызовов, методов 13: ConfirmSaveDeviceConfig, ShowOwnedMessageBox, button13_Click, button4_Click, button6_Click, buttonEstimateDRConf_Click …
+  MainForm                      26 вызовов, методов 16: CombineSpectrasToolStripMenuItem_Click, ConcatSpectrumsStripMenuItem_Click, ConfirmSaveDocument, ConfirmSaveUnnamedDocument, CutoffStripMenuItem_Click, DeleteActiveSpectrum …
+  DCEnergyCalibrationView       10 вызовов, методов  5: ResetCalibrationDialog, button4_Click, button7_Click, setNewCalibration, table1_EditingStopped
+  ROIConfigForm                 10 вызовов, методов  6: ConfirmSaveROIConfig, ShowPrimitiveList, button2_Click, button4_Click, button5_Click, button8_Click
+  EfficiencyMakerForm            6 вызовов, методов  5: BuildInput, ImportGeometryClick, calculateButton_Click, exportButton_Click, runButton_Click
+  DCControlPanel                 5 вызовов, методов  5: ApplyDeviceConfigChange, AttachToDevice, ClearMeasurementResult, StartMeasurement, button3_Click
+  DCFwhmCalibrationView          5 вызовов, методов  2: ExecuteCalibrationButton_Click, SaveToDeviceCfgButton_Click
+  NuclideDefinitionForm          3 вызовов, методов  3: ConfirmSaveNuclide, SaveNuclideDefinitions, button4_Click
+  ObsidianDeviceForm             3 вызовов, методов  3: ScanBLEDevices, comboBox1_SelectedIndexChanged, troubleShootbtn_Click
+  RadiaCodeDeviceForm            3 вызовов, методов  3: ScanBLEDevices, comboBox1_SelectedIndexChanged, troubleShootbtn_Click
+  AudioInputDeviceForm           2 вызовов, методов  1: StartPulseRecording
+  GeometryEditorPanel            2 вызовов, методов  1: TryCommit
+  NucBase                        2 вызовов, методов  1: buttonImportDef_Click
+  AtomSpectraVCPDeviceForm       1 вызовов, методов  1: fillPorts
+  DCPeakDetectionView            1 вызовов, методов  1: ToolStripMenuItem1_Click
+  EnergySpectrumView             1 вызовов, методов  1: takeScreenshot
+  NuclideSetForm                 1 вызовов, методов  1: NuclideSetForm_FormClosing
+  ResponseMatrixForm             1 вызовов, методов  1: SaveClick
+
+── самые ходовые имена методов среди них ──
+  button4_Click                    встречается у 4 оконных типов засева
+  comboBox1_SelectedIndexChanged   встречается у 3 оконных типов засева
+  ScanBLEDevices                   встречается у 2 оконных типов засева
+  troubleShootbtn_Click            встречается у 2 оконных типов засева
+  fillPorts                        встречается у 1 оконных типов засева
+  StartPulseRecording              встречается у 1 оконных типов засева
+  StartMeasurement                 встречается у 1 оконных типов засева
+  AttachToDevice                   встречается у 1 оконных типов засева
+  ClearMeasurementResult           встречается у 1 оконных типов засева
+  button3_Click                    встречается у 1 оконных типов засева
+  ApplyDeviceConfigChange          встречается у 1 оконных типов засева
+  ResetCalibrationDialog           встречается у 1 оконных типов засева
+
+ВСЕГО оконных типов в засеве: 38
+ВСЕГО живых MessageBox.Show в дереве: 149

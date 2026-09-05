@@ -1,0 +1,3 @@
+запущен pid=29568 exe=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\0dfa526c-1c92-45cd-b97b-70d6b9e6b585\scratchpad\f44build\BecquerelMonitor\bin\Debug_F44\HeadlessButton1ProbeF44.exe ключи=[--window-control]
+  +   0,3 с  МОДАЛЬНОЕ ОКНО  HWND=17433950 поток=28092 текст=[Контроль счётчика окон, полоса F44 ]
+итог: код=7  секунд=4.2  окон поднято=1

@@ -1,0 +1,4 @@
+запущен pid=40896 exe=C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\0dfa526c-1c92-45cd-b97b-70d6b9e6b585\scratchpad\f44build\BecquerelMonitor\bin\Debug_F44_before\HeadlessButton1ProbeF44.exe ключи=[]
+  +   0,7 с  МОДАЛЬНОЕ ОКНО  HWND=39784996 поток=27320 текст=[Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку! ]
+⛔ предел 45 с исчерпан, процесс жив — убиваю
+итог: УБИТ, секунд=45  окон поднято=1
