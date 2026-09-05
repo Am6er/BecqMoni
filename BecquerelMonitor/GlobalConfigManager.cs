@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using System.Globalization;
 using System;
 using System.Deployment.Application;
 using System.IO;
@@ -517,7 +518,7 @@ namespace BecquerelMonitor
                 {
                     // Единственная ветвь пометки не получает — текст обязан
                     // остаться байт в байт прежним (`A129`, метки редактора).
-                    string mark = n > 1 ? "(" + (i + 1) + "/" + n + ") " : "";
+                    string mark = n > 1 ? "(" + (i + 1).ToString(CultureInfo.InvariantCulture) + "/" + n.ToString(CultureInfo.InvariantCulture) + ") " : "";
                     this.Visit(branches[i], mark);
                 }
             }

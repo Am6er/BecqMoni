@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using System.Globalization;
 using System;
 using System.Windows.Forms;
 using Windows.UI.Notifications;
@@ -64,7 +65,7 @@ namespace BecquerelMonitor
             bool included = nuclideDefinition.Sets.Contains(selectedSetId);
             row.Cells.Add(new Cell() { Checked = included });
             row.Cells.Add(new Cell(nuclideDefinition.Name));
-            row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
+            row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy));
             row.Tag = nuclideDefinition;
 
             return row;
@@ -89,7 +90,7 @@ namespace BecquerelMonitor
             NuclideSet set = new NuclideSet()
             {
                 Id = Guid.NewGuid(),
-                Name = $"New set {this.tableModelSets.Rows.Count + 1}"
+                Name = "New set " + (this.tableModelSets.Rows.Count + 1).ToString(CultureInfo.InvariantCulture)
             };
 
             this.tableSets.SuspendLayout();

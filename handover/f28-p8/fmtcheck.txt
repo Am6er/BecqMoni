@@ -1,0 +1,33 @@
+ok BecquerelMonitor/AudioInputDeviceController.cs   строк 248 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/ChanNumberChangeDialog.cs       строк 57 (CRLF), правлено +1/-1, BOM да
+ok BecquerelMonitor/DocumentManager.cs              строк 2352 (LF), правлено +11/-11, BOM да
+ok BecquerelMonitor/DoseRate.cs                     строк 1024 (LF), правлено +23/-23, BOM да
+ok BecquerelMonitor/EnergySpectrum.cs               строк 282 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs  строк 374 (CRLF), правлено +4/-3, BOM да
+ok BecquerelMonitor/GeometryEditorPanel.cs          строк 1932 (LF), правлено +4/-4, BOM да
+ok BecquerelMonitor/GeometryMaterialEditorForm.cs   строк 909 (LF), правлено +8/-8, BOM да
+ok BecquerelMonitor/GlobalConfigManager.cs          строк 810 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/N42/Util.cs                     строк 1284 (CRLF), правлено +14/-14, BOM да
+ok BecquerelMonitor/NucBase/Decay.cs                строк 86 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/NucBase/DecayRad.cs             строк 195 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/NucBase/NucBase.cs              строк 1153 (CRLF), правлено +17/-17, BOM да
+ok BecquerelMonitor/NuclideDefinition.cs            строк 318 (CRLF), правлено +2/-1, BOM да
+ok BecquerelMonitor/NuclideDefinitionForm.cs        строк 486 (CRLF), правлено +9/-8, BOM да
+ok BecquerelMonitor/NuclideSetForm.cs               строк 464 (CRLF), правлено +3/-2, BOM да
+ok BecquerelMonitor/ObsidianDeviceController.cs     строк 306 (LF), правлено +2/-1, BOM да
+ok BecquerelMonitor/PercentageProgressBar.cs        строк 260 (CRLF), правлено +4/-3, BOM да
+ok BecquerelMonitor/PolynomialEnergyCalibration.cs  строк 469 (CRLF), правлено +7/-6, BOM да
+ok BecquerelMonitor/PowerFwhmCalibration.cs         строк 172 (LF), правлено +3/-2, BOM да
+ok BecquerelMonitor/Properties/Resources.resx       строк 43494 (CRLF), правлено +1/-1, BOM да
+ok BecquerelMonitor/Properties/Resources.ru.resx    строк 2243 (CRLF), правлено +1/-1, BOM да
+ok BecquerelMonitor/PulseView.cs                    строк 200 (CRLF), правлено +4/-3, BOM нет
+ok BecquerelMonitor/RadiaCodeDeviceController.cs    строк 313 (LF), правлено +2/-1, BOM да
+ok BecquerelMonitor/SimpleSqrtFwhmCalibration.cs    строк 139 (LF), правлено +3/-2, BOM да
+ok BecquerelMonitor/SpectrumCutOffDialog.cs         строк 119 (CRLF), правлено +2/-2, BOM да
+ok BecquerelMonitor/SqrtFwhmCalibration.cs          строк 145 (LF), правлено +3/-2, BOM да
+ok BecquerelMonitor/Utils/BecquerelCoefficient.cs   строк 238 (LF), правлено +1/-1, BOM нет
+ok BecquerelMonitor/WinMM/NativeMethods.cs          строк 773 (CRLF), правлено +1/-1, BOM да
+ok BecquerelMonitor/WinMM/WaveIn.cs                 строк 438 (CRLF), правлено +2/-2, BOM да
+ok BecquerelMonitor/WinMM/WaveOut.cs                строк 463 (CRLF), правлено +2/-2, BOM да
+---
+файлов правлено: 31, формат нарушен: 0

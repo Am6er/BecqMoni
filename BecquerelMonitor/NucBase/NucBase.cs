@@ -102,23 +102,23 @@ namespace BecquerelMonitor.NucBase
             double lowEnergy = 0.0;
             if (this.LowEnrgTextBox.Text.Length != 0)
             {
-                double.TryParse(this.LowEnrgTextBox.Text, out lowEnergy);
+                UserNumber.TryParseDouble(this.LowEnrgTextBox.Text, out lowEnergy);
             }
             double highEnergy = 0.0;
             if (this.HighEnrgTextBox.Text.Length != 0)
             {
-                double.TryParse(this.HighEnrgTextBox.Text, out highEnergy);
+                UserNumber.TryParseDouble(this.HighEnrgTextBox.Text, out highEnergy);
             }
             double intensity = 0.0;
             if (this.IntencityTextBox.Text.Length != 0)
             {
-                double.TryParse(this.IntencityTextBox.Text, out intensity);
+                UserNumber.TryParseDouble(this.IntencityTextBox.Text, out intensity);
             }
             double half_life = -1;
             if (this.HalfLifeUOMComboBox.Text.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
             {
                 double halfLifeValue;
-                if (double.TryParse(this.HalfLifeTextBox.Text, out halfLifeValue))
+                if (UserNumber.TryParseDouble(this.HalfLifeTextBox.Text, out halfLifeValue))
                 {
                     half_life = ConvertHalfLifeToSeconds(halfLifeValue, this.HalfLifeUOMComboBox.Text);
                 }
@@ -206,7 +206,7 @@ namespace BecquerelMonitor.NucBase
                 }
                 else
                 {
-                    status.Add(string.Format(Resources.NucBase_SearchFound, fluorescence.Count));
+                    status.Add(string.Format(CultureInfo.InvariantCulture, Resources.NucBase_SearchFound, fluorescence.Count));
                 }
 
                 SetSearchStatus(status);
@@ -243,7 +243,7 @@ namespace BecquerelMonitor.NucBase
                         ? OwnText(NoCriteriaKey)
                         : decayRads.Count == 0
                             ? Resources.NucBase_SearchEmpty
-                            : string.Format(Resources.NucBase_SearchFound, decayRads.Count));
+                            : string.Format(CultureInfo.InvariantCulture, Resources.NucBase_SearchFound, decayRads.Count));
                 }
             }
             else
@@ -310,7 +310,7 @@ namespace BecquerelMonitor.NucBase
 
                 if (shown > 0)
                 {
-                    status.Add(string.Format(Resources.NucBase_SearchFound, shown));
+                    status.Add(string.Format(CultureInfo.InvariantCulture, Resources.NucBase_SearchFound, shown));
                 }
                 else if (refusedMembers == 0)
                 {
@@ -428,11 +428,11 @@ namespace BecquerelMonitor.NucBase
                 return;
             }
 
-            this.IsotopeZLabel.Text = nuc.Z.ToString();
-            this.IsotopeNLabel.Text = nuc.N.ToString();
-            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString() + " " + nuc.HalfLifeUOM;
-            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2") + " " + Resources.Bkg;
-            this.IsotopeAbundance.Text = nuc.Abundance.ToString() + " %";
+            this.IsotopeZLabel.Text = nuc.Z.ToString(CultureInfo.InvariantCulture);
+            this.IsotopeNLabel.Text = nuc.N.ToString(CultureInfo.InvariantCulture);
+            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString(CultureInfo.InvariantCulture) + " " + nuc.HalfLifeUOM;
+            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2", CultureInfo.InvariantCulture) + " " + Resources.Bkg;
+            this.IsotopeAbundance.Text = nuc.Abundance.ToString(CultureInfo.InvariantCulture) + " %";
 
             foreach (Decay parent in nuc.Parents)
             {
@@ -673,7 +673,7 @@ namespace BecquerelMonitor.NucBase
                     : text.Substring(0, text.Length - 1).TrimEnd();
             }
 
-            return given == 0 ? text : string.Format(text, args);
+            return given == 0 ? text : string.Format(CultureInfo.InvariantCulture, text, args);
         }
 
         static readonly char[] SentenceEnd = { '.', '!', '?' };
@@ -808,8 +808,8 @@ namespace BecquerelMonitor.NucBase
                 lowenergy = 0;
             }
 
-            this.LowEnrgTextBox.Text = lowenergy.ToString();
-            this.HighEnrgTextBox.Text = highenergy.ToString();
+            this.LowEnrgTextBox.Text = lowenergy.ToString(CultureInfo.InvariantCulture);
+            this.HighEnrgTextBox.Text = highenergy.ToString(CultureInfo.InvariantCulture);
 
             DoSearch();
         }
@@ -1053,11 +1053,11 @@ namespace BecquerelMonitor.NucBase
                 if (updatedCount > 0 || createdCount > 0)
                 {
                     defManager.SaveDefinitionFile();
-                    string text = string.Format(Resources.NuclideDefImportSuccess, createdCount, updatedCount);
+                    string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, createdCount, updatedCount);
                     if (redundantSkipped > 0)
                     {
                         text += Environment.NewLine + Environment.NewLine
-                                + string.Format(Resources.NucBase_KSeriesRedundantSkipped, redundantSkipped);
+                                + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_KSeriesRedundantSkipped, redundantSkipped);
                     }
 
                     MessageBox.Show(text);

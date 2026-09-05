@@ -1,0 +1,68 @@
+??? BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:21	this.counts[i] = Convert.ToDouble(energySpectrum.Spectrum[i]);
+??? BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:22	this.bin_edges_raw[i] = Convert.ToDouble(i);
+??? BecquerelMonitor/FWHMPeakDetector/Spectrum.cs:26	this.bin_edges_raw[counts.Length] = Convert.ToDouble(counts.Length);
+??? BecquerelMonitor/N42/Util.cs:1269	if (DateTime.TryParse(startDateTime, CultureInfo.CurrentCulture, DateTimeStyles.None, out parsedDateTime)) { return parsedDateTime;
+??? BecquerelMonitor/PeakDetector.cs:368	int lo = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Min_Range, maxChannels: channels));
+??? BecquerelMonitor/PeakDetector.cs:369	int hi = Convert.ToInt32(cal.EnergyToChannel(peakConfig.Max_Range, maxChannels: channels));
+??? BecquerelMonitor/PeakDetector.cs:760	Convert.ToInt32(centroid), Convert.ToInt32(centroid - mul - 1), Convert.ToInt32(centroid + mul + 1), config.UseCenterOfMassCentroid);
+??? BecquerelMonitor/PeakDetector.cs:761	Convert.ToInt32(centroid - mul - 1), Convert.ToInt32(centroid + mul + 1), config.UseCenterOfMassCentroid);
+??? BecquerelMonitor/PeakDetector.cs:762	Convert.ToInt32(centroid + mul + 1), config.UseCenterOfMassCentroid);
+??? BecquerelMonitor/PeakDetector.cs:767	peak.Channel = Math.Max(0, Math.Min(energySpectrum.NumberOfChannels - 1, Convert.ToInt32(Math.Round(centroid))));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1001	return Convert.ToInt32(exp_gauss_exp_value(x, amplitude, median, fwhm, left, right));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1055	retvalue[i] = Convert.ToInt32(amplitude * PseudoVoigtProfile.RelativeValue(i - median, voigtParameters));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1096	baseline = x.Select(i => Convert.ToDouble(i)).ToArray();
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1101	int n = Convert.ToInt32(r.Max());
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1145	int[] baseline_arr = baseline.Select(i => Convert.ToInt32(i)).ToArray();
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1270	int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1352	int halfWidth = Math.Max(1, Convert.ToInt32(Math.Ceiling(peak.FWHM * SupportFactor)));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1498	int newChan = Convert.ToInt32(calibration.EnergyToChannel(energyVal, maxCh: energySpectrum.NumberOfChannels));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1633	result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1647	result[i] = Convert.ToInt32(GetWMAPointValue(spectrum, i, window_size));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1722	result[i] = Convert.ToInt32(new_count / window_size);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1737	result[i] = Convert.ToInt32(new_count / window_size);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1759	new_count += Convert.ToDouble(spectrum[ch]);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1781	part += Convert.ToDouble(spectrum[ch]) * weight;
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:1798	window_size = Convert.ToInt32(channelValue * (1 - pointsNum) / countlimit + pointsNum);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:343	substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[i]);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:360	int bgchan = Convert.ToInt32(bgenergySpectrum.EnergyCalibration.EnergyToChannel(enrg, maxChannels: bgenergySpectrum.NumberOfChannels));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:363	substractedEnergySpectrum.Spectrum[i] = Convert.ToInt32(this.EnergySpectrum.Spectrum[i] - norm_coeff * bgenergySpectrum.Spectrum[bgchan]);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:391	int minChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MinEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:392	int maxChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(curve.MaxEnergy, maxChannels: normalizedSpectrum.NumberOfChannels));
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:413	normalizedSpectrum.Spectrum[i] = Convert.ToInt32(normChannelValue);
+??? BecquerelMonitor/Utils/SpectrumAriphmetics.cs:983	return Convert.ToInt32(gauss_value(x, amplitude, fwhm, median));
+ИНВ BecquerelMonitor/DocumentManager.cs:1214	bool channelMismatch = doc.ActiveResultData.EnergySpectrum.NumberOfChannels != int.Parse(NumOfChannels, NumberStyles.Integer, CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/DocumentManager.cs:1230	this.ResetSpectrumConfig(doc.ActiveResultData, int.Parse(NumOfChannels, NumberStyles.Integer, CultureInfo.InvariantCulture));
+ИНВ BecquerelMonitor/DocumentManager.cs:1283	TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1, NumberStyles.Float, CultureInfo.InvariantCulture));
+ИНВ BecquerelMonitor/DocumentManager.cs:1302	int NumberOfChanels = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/DocumentManager.cs:1303	int PolynomialOrder = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/DocumentManager.cs:2055	if (!double.TryParse(totalTimeStr, NumberStyles.Float, CultureInfo.InvariantCulture, out totalTime)) { throw new ArgumentException(string.Format("Wrong total time format: {0}", totalTimeStr));
+ИНВ BecquerelMonitor/DocumentManager.cs:2070	if (!int.TryParse(array[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int channel)) { throw new ArgumentException(String.Format("Wrong channel format: {0}", array[0]));
+ИНВ BecquerelMonitor/DocumentManager.cs:2073	if (!int.TryParse(array[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)) { throw new ArgumentException(String.Format("Wrong count format: {0}", array[1]));
+ИНВ BecquerelMonitor/DocumentManager.cs:2178	if (!int.TryParse(timeStr.Substring(0, dIndex), NumberStyles.Integer, CultureInfo.InvariantCulture, out days)) throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
+ИНВ BecquerelMonitor/DocumentManager.cs:2181	if (!int.TryParse(timeStr.Substring(dIndex + 1, hIndex - dIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out hours)) throw new ArgumentException(string.Format("Wrong total time format
+ИНВ BecquerelMonitor/DocumentManager.cs:2184	if (!int.TryParse(timeStr.Substring(hIndex + 1, mIndex - hIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out minutes)) throw new ArgumentException(string.Format("Wrong total time form
+ИНВ BecquerelMonitor/DocumentManager.cs:2187	if (!int.TryParse(timeStr.Substring(mIndex + 1, sIndex - mIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds)) throw new ArgumentException(string.Format("Wrong total time form
+ИНВ BecquerelMonitor/DocumentManager.cs:2211	if (!decimal.TryParse(array[0], NumberStyles.Float, CultureInfo.InvariantCulture, out decimal energy)) { throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "Wrong energy format: {
+ИНВ BecquerelMonitor/DocumentManager.cs:2216	if (!int.TryParse(array[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int count)) { throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "Wrong count format: {0} at li
+ИНВ BecquerelMonitor/GeometryEditorPanel.cs:1692	return double.TryParse((box.Text ?? "").Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+ИНВ BecquerelMonitor/GeometryMaterialEditorForm.cs:609	entry.Density = double.TryParse(this.densityBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out density) ? density : 0.0;
+ИНВ BecquerelMonitor/GeometryMaterialEditorForm.cs:645	&& double.TryParse(Convert.ToString(row.Cells[1].Value, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out weight)) { entry.Components.Add(new GeometryMaterialCompone
+ИНВ BecquerelMonitor/N42/ChannelData.cs:71	int channelValue = int.Parse(n42SpectrimCounts[i], System.Globalization.CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/ChannelData.cs:74	int zeroCount = int.Parse(n42SpectrimCounts[++i], System.Globalization.CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/ChannelData.cs:95	returnvalue[i] = int.Parse(n42SpectrimCounts[i], System.Globalization.CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/EnergyCalibration.cs:97	coefficients[i] = double.Parse(n42CalibrationCoeff[i], System.Globalization.CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:1008	&& double.TryParse(radMeasurement.GrossCounts[0].TotalCounts, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double totalCountsValue)) { resultData.Ene
+ИНВ BecquerelMonitor/N42/Util.cs:1079	coefficients[k] = double.Parse(n42CalibrationCoeff[k], CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:1274	if (DateTime.TryParse(startDateTime, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedDateTime)) { return parsedDateTime;
+ИНВ BecquerelMonitor/N42/Util.cs:300	return double.Parse(s, CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:454	int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:456	decimal energy = decimal.Parse(chanEnergy[i], CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:623	coefficients[k] = double.Parse(enCalibrationCoeff[k], CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/N42/Util.cs:671	int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
+ИНВ BecquerelMonitor/NucBase/NucBase.cs:721	double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+ИНВ BecquerelMonitor/NucBase/NucBaseFramework.cs:532	double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+ИНВ BecquerelMonitor/NucBase/NucBaseFramework.cs:540	int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+ИНВ BecquerelMonitor/NucBase/NucBaseFramework.cs:800	|| !double.TryParse(row.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent)) { continue;
+ИНВ BecquerelMonitor/PercentageProgressBar.cs:136	if (double.TryParse(seconds, NumberStyles.Float, CultureInfo.InvariantCulture, out double sec)) { TimeSpan fmt = TimeSpan.FromSeconds(sec);
+---
+всего мест разбора/Convert: 66 ; без инварианта: 32

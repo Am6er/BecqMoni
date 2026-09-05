@@ -1402,12 +1402,12 @@ namespace BecquerelMonitor
             double mfp = GeometryScenes.MeanFreePathMm(g.Source, this.sceneEnergyKev);
             double volume = GeometryScenes.SampleVolumeCm3(g);
             double mass = volume * (g.Source != null ? g.Source.Density : 0.0);
-            string text = string.Format(CultureInfo.CurrentCulture, Resources.GeometryEditorScene,
+            string text = string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorScene,
                                         mfp / GeometryModel.MmPerCm, this.sceneEnergyKev,
                                         volume / 1000.0, mass / 1000.0);
             if (substituted.Length > 0)
             {
-                text += string.Format(CultureInfo.CurrentCulture,
+                text += string.Format(CultureInfo.InvariantCulture,
                                       Resources.GeometryEditorSceneMaterial, substituted);
             }
 
@@ -1869,7 +1869,7 @@ namespace BecquerelMonitor
             int missingZ;
             if (!g.Crystal.IsKnown(out missingZ))
             {
-                return string.Format(Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
+                return string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
             }
 
             if (g.SourceType == GeometrySourceType.Marinelli)
@@ -1925,7 +1925,7 @@ namespace BecquerelMonitor
                 return issue.Resource;
             }
 
-            return string.Format(CultureInfo.CurrentCulture, format, issue.Value, issue.Limit);
+            return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit);
         }
 
     }

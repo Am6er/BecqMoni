@@ -167,7 +167,7 @@ namespace WinMM
                 }
                 this.bufferMaintainerThread = new Thread(new ThreadStart(this.MaintainBuffers));
                 this.bufferMaintainerThread.IsBackground = true;
-                this.bufferMaintainerThread.Name = "WaveIn MaintainBuffers thread. (DeviceID = " + this.deviceId + ")";
+                this.bufferMaintainerThread.Name = "WaveIn MaintainBuffers thread. (DeviceID = " + this.deviceId.ToString(CultureInfo.InvariantCulture) + ")";
                 this.bufferMaintainerThread.Start();
                 NativeMethods.Throw(NativeMethods.waveInStart(this.handle), NativeMethods.ErrorSource.WaveIn);
             }
@@ -251,7 +251,7 @@ namespace WinMM
             }
             if (xmlElement == null)
             {
-                return "Unknown [" + manufacturerId + "]";
+                return "Unknown [" + manufacturerId.ToString(CultureInfo.InvariantCulture) + "]";
             }
             return xmlElement.GetAttribute("name");
         }

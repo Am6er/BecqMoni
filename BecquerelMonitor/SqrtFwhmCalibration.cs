@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
@@ -41,7 +42,7 @@ namespace BecquerelMonitor
 
         public override string GetFormula()
         {
-            return String.Format(formula, "c", "b", "a");
+            return String.Format(CultureInfo.InvariantCulture, formula, "c", "b", "a");
         }
 
         public override FwhmCalibration Clone()
@@ -88,7 +89,7 @@ namespace BecquerelMonitor
 
         public override string ToString()
         {
-            return String.Format(formula, coefficients[0], coefficients[1], coefficients[2]);
+            return String.Format(CultureInfo.InvariantCulture, formula, coefficients[0], coefficients[1], coefficients[2]);
         }
 
         public override bool NotCalibrated()

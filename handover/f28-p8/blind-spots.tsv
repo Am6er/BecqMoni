@@ -1,0 +1,57 @@
+BecquerelMonitor/AppLog.cs:351	ToString()	.GetName().Version.ToString();
+BecquerelMonitor/AudioVolumeController.cs:41	ToString()	string a = stringBuilder.ToString();
+BecquerelMonitor/AudioVolumeController.cs:64	ToString()	return device.FriendlyName + "(" + properties[guid].Value.ToString() + ")";
+BecquerelMonitor/DocEnergySpectrum.cs:565	Concat	return string.Concat(new string[]
+BecquerelMonitor/DocEnergySpectrum.cs:567	ToString()	base.GetType().ToString(),
+BecquerelMonitor/DocumentManager.cs:71	Concat	string filename = string.Concat(new object[]
+BecquerelMonitor/DocumentManager.cs:1016	string.Join	string.Join(", ", skippedSources.ToArray()),
+BecquerelMonitor/DocumentManager.cs:1033	string.Join	+ string.Join(", ", skippedSources.ToArray())
+BecquerelMonitor/DocumentManager.cs:1406	interp	throw new InvalidOperationException($"Unknown root element in N42 format: {rootName}, namespace: {ns}");
+BecquerelMonitor/DoseRate.cs:518	string.Join	return string.Join(Environment.NewLine, lines.ToArray());
+BecquerelMonitor/EfficiencyConfigData.cs:139	ToString()	this.guid = System.Guid.NewGuid().ToString();
+BecquerelMonitor/EfficiencyConfigData.cs:152	ToString()	copy.guid = System.Guid.NewGuid().ToString();
+BecquerelMonitor/GeometryEditorPanel.cs:1908	Append	text.AppendLine();
+BecquerelMonitor/GeometryEditorPanel.cs:1909	Append	text.Append("   • ");
+BecquerelMonitor/GeometryEditorPanel.cs:1910	Append	text.Append(IssueText(issue));
+BecquerelMonitor/GeometryEditorPanel.cs:1913	ToString()	return text.ToString();
+BecquerelMonitor/GeometryMaterialEditorForm.cs:840	string.Join	entry.Name, string.Join(", ", users.ToArray())),
+BecquerelMonitor/NuclideDefinitionForm.cs:178	string.Join	string.Join(", ", doomed.Take(5).Select(n => n.Name)),
+BecquerelMonitor/ObsidianDeviceController.cs:79	interp	AppUi.Report($"Device is {status}, connect device first!", "", MessageBoxIcon.None);
+BecquerelMonitor/Package.cs:223	ToString()	return currentDeployment.CurrentVersion.ToString();
+BecquerelMonitor/PeakDetector.cs:1088	Append	text.Append(separator).Append(candidates[i].Name);
+BecquerelMonitor/PeakDetector.cs:1090	ToString()	return text.ToString();
+BecquerelMonitor/PolynomialEnergyCalibration.cs:269	string.Join	+ string.Join(", ", Array.ConvertAll(this.coefficients, v => v.ToString("R", CultureInfo.InvariantCulture)))
+BecquerelMonitor/Program.cs:298	ToString()	Trace.WriteLine(exception.ToString());
+BecquerelMonitor/RadiaCodeDeviceController.cs:77	interp	AppUi.Report($"Device is {this.status}, connect device first!", "", MessageBoxIcon.None);
+BecquerelMonitor/ResultData.cs:173	string.Join	this.backgroundSpectrumFile = string.Join("", value.Split(Path.GetInvalidFileNameChars()));
+BecquerelMonitor/SelectDeviceDialog.cs:77	ToString()	if (deviceConfigManager.DeviceConfigList[i].Name == DeviceListcomboBox.SelectedItem.ToString())
+BecquerelMonitor/CoreAudioApi/PropVariant.cs:64	ToString()	return "FIXME Type = " + varEnum.ToString();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:213	Append	this.centroids = this.centroids.Append(xpeak).ToArray();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:221	Append	this.snrs = this.snrs.Append(this.snr[xbin]).ToArray();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:229	Append	this.fwhms = this.fwhms.Append(fwhm).ToArray();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:237	Append	this.integrals = this.integrals.Append(this.signal[xbin]).ToArray();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:245	Append	this.backgrounds = this.backgrounds.Append(this.bkg[xbin]).ToArray();
+BecquerelMonitor/FWHMPeakDetector/PeakFinder.cs:254	Append	this.fwhm_delta = this.fwhm_delta.Append(fwhm_delta).ToArray();
+BecquerelMonitor/N42/RadInstrumentData.cs:27	ToString()	this.n42DocUUIDField = Guid.NewGuid().ToString();
+BecquerelMonitor/N42/Util.cs:482	interp	resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
+BecquerelMonitor/N42/Util.cs:737	interp	resultData.SampleInfo.Note = $"InstrumentType = {instrument.InstrumentType}, " +
+BecquerelMonitor/N42/Util.cs:738	interp	$"Manufacturer = {instrument.Manufacturer}, " +
+BecquerelMonitor/N42/Util.cs:739	interp	$"InstrumentModel = {instrument.InstrumentModel}, " +
+BecquerelMonitor/N42/Util.cs:740	interp	$"InstrumentID = {instrument.InstrumentID}, " +
+BecquerelMonitor/N42/Util.cs:741	interp	$"ProbeType = {instrument.ProbeType}";
+BecquerelMonitor/N42/Util.cs:1187	string.Join	string.Join(", ", skippedClasses.ToArray()),
+BecquerelMonitor/N42/Util.cs:1223	string.Join	+ string.Join(", ", skippedClasses.ToArray())
+BecquerelMonitor/NucBase/NucBase.cs:87	interp	Match isomerRegex = Regex.Match(isotopeTextBox, @"[m]\d{0,1}$");
+BecquerelMonitor/NucBase/NucBase.cs:374	interp	string letters = Regex.Match(query ?? "", @"^[a-zA-Z]{1,2}$").Value;
+BecquerelMonitor/NucBase/NucBase.cs:574	string.Join	this.SearchStatusLabel.Text = string.Join(Environment.NewLine, lines);
+BecquerelMonitor/NucBase/NucBase.cs:828	ToString()	string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
+BecquerelMonitor/NucBase/NucBase.cs:956	ToString()	string isotope = this.ResultDataGridView.Rows[e.RowIndex].Cells[NameColumnIdx].Value.ToString();
+BecquerelMonitor/NucBase/NucBase.cs:1121	interp	Regex nameFormat = new Regex("^([0-9]+){1}([A-Z]+){1}(m[0-9]+)?$");
+BecquerelMonitor/NucBase/NucBase.cs:1130	interp	string isotopeLower = $"{isotope.Substring(0, 1)}{isotope.Substring(1).ToLower()}";
+BecquerelMonitor/NucBase/NucBase.cs:1138	interp	return $"{mass}{isotope}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1140	interp	return $"{isotopeLower}{mass}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1142	interp	return $"{isotopeLower}-{mass}{isomer}";
+BecquerelMonitor/NucBase/NucBase.cs:1144	interp	return $"{isotopeLower}{mass}{isomer}";
+BecquerelMonitor/WinMM/NativeMethods.cs:37	ToString()	string str = error.ToString();
+BecquerelMonitor/WinMM/NativeMethods.cs:44	ToString()	text = stringBuilder.ToString() + " (" + error.ToString() + ")";
+BecquerelMonitor/WinMM/NativeMethods.cs:62	ToString()	throw new MMSystemException(text.ToString());

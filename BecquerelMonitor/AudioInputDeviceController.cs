@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using System.Globalization;
 using System;
 using System.Diagnostics;
 using System.Windows.Forms;
@@ -73,7 +74,7 @@ namespace BecquerelMonitor
                 if (!AppUi.HasWindows)
                 {
                     throw new InvalidOperationException(
-                        "BecqMoni: the audio input device could not be opened (id " + deviceId + ", "
+                        "BecqMoni: the audio input device could not be opened (id " + deviceId.ToString(CultureInfo.InvariantCulture) + ", "
                         + ex.GetType().Name + "): " + ex.Message
                         + " The measurement cannot start.", ex);
                 }

@@ -1,4 +1,5 @@
 using BecquerelMonitor.Properties;
+using System.Globalization;
 using System;
 using System.ComponentModel;
 using System.Drawing;
@@ -128,7 +129,7 @@ namespace BecquerelMonitor
                 if (num4 % 100f == 0f)
                 {
                     Rectangle r = new Rectangle(4, (int)num5 - 14, 100, 22);
-                    graphics.DrawString(num4.ToString("f0"), this.Font, Brushes.Gray, r, stringFormat);
+                    graphics.DrawString(num4.ToString("f0", CultureInfo.InvariantCulture), this.Font, Brushes.Gray, r, stringFormat);
                     graphics.DrawLine(pen, 0f, num5, (float)base.Width, num5);
                 }
                 else
@@ -170,11 +171,11 @@ namespace BecquerelMonitor
             // поэтому строки заведены в общей паре `Properties/Resources`.
             graphics.DrawString(Resources.PulseViewWaveHeight, this.Font, Brushes.White, (float)(base.Width - 130), 2f);
             Rectangle r2 = new Rectangle(0, 2, base.Width - 4, 22);
-            graphics.DrawString(this.pulseHeight.ToString("f2"), this.Font, Brushes.White, r2, stringFormat);
+            graphics.DrawString(this.pulseHeight.ToString("f2", CultureInfo.InvariantCulture), this.Font, Brushes.White, r2, stringFormat);
 
             graphics.DrawString(Resources.PulseViewMaxWaveHeight, this.Font, Brushes.White, (float)(base.Width - 130), 20f);
             Rectangle r3 = new Rectangle(0, 20, base.Width - 4, 22);
-            graphics.DrawString(this.maxpulseHeight.ToString("f2"), this.Font, Brushes.White, r3, stringFormat);
+            graphics.DrawString(this.maxpulseHeight.ToString("f2", CultureInfo.InvariantCulture), this.Font, Brushes.White, r3, stringFormat);
 
             pen.Dispose();
             pen2.Dispose();

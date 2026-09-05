@@ -1,0 +1,107 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f30_before\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f30_before\config\device: 0 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f30_before\config\NuclideDefinition.xml: 152 entries
+
+=== 0. вид чисел блока качества: разделителя разрядов НЕТ ни на одной культуре (A244) ===
+  ru-RU: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   ru-RU: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   ru-RU: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   ru-RU: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   ru-RU: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   ru-RU: в невязке разделителя разрядов нет                                    
+  ok   ru-RU: в χ²/ndf разделителя разрядов нет                                     
+  ok   ru-RU: в доле слоя разделителя разрядов нет                                  
+  de-DE: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   de-DE: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   de-DE: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   de-DE: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   de-DE: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   de-DE: в невязке разделителя разрядов нет                                    
+  ok   de-DE: в χ²/ndf разделителя разрядов нет                                     
+  ok   de-DE: в доле слоя разделителя разрядов нет                                  
+  en-US: невязка «+1234.5 / −9876.5 %» | χ²/ndf «12345.68» | доля слоя «1234.50%»
+  ok   en-US: невязка, лишнее (FsaPresentationBuilder.cs:457) — 1234.5 без группировки True
+  ok   en-US: невязка, нехватка (FsaPresentationBuilder.cs:458) — 9876.5 без группировки True
+  ok   en-US: χ²/ndf (FsaPresentationBuilder.cs:468)                                12345.68
+  ok   en-US: доля слоя, ShareText (FsaPresentationBuilder.cs:566)                  1234.50%
+  ok   en-US: в невязке разделителя разрядов нет                                    
+  ok   en-US: в χ²/ndf разделителя разрядов нет                                     
+  ok   en-US: в доле слоя разделителя разрядов нет                                  
+  контроль мерки: прежний формат n2 на инвариантной культуре даёт «1,234.50»
+  ok   контроль: прежний вид «1,234.50» мерка не принимает                          отказал, как и должен
+SETUP	ASN16_Th232.xml: прибор прибора «1.Atom Spectra Nano 16 Pro RadiaScan 701A» (1a0651a2-0b84-4c4e-8be8-c2d286eb82eb) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	ASN16_Th232.xml: пиков 19, каналов 8192, кривая (нет)
+SETUP	G1S16_Co60_P5.xml: прибор прибора «Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)» (9e5a1c00-0007-4a00-9000-11c0de000007) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	G1S16_Co60_P5.xml: пиков 5, каналов 1024, кривая G1S_point5
+
+=== 1. гигиена: ручной таблицы на графике нет, FsaOverlay нет ===
+  ok   у EnergySpectrumView нет DrawFsaOwnTable                                     True
+  ok   у EnergySpectrumView нет DrawFsaRows                                         True
+  ok   у EnergySpectrumView нет DrawFsaSwatch                                       True
+  ok   у EnergySpectrumView нет DrawFsaQualityRow                                   True
+  ok   у EnergySpectrumView нет FsaTableBudget                                      True
+  ok   у EnergySpectrumView нет FsaTableRowCount                                    True
+  ok   у EnergySpectrumView нет FsaCollapsibleBudget                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksWidth                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksFormat                               True
+  ok   контроль: строка состояния DrawFsaStatus ЕСТЬ                                True
+  ok   контроль: ShowFsaTable (имя, которое зовёт чужой файл) ЕСТЬ                  True
+  ok   класса FsaOverlay в сборке нет                                               True
+  ok   контроль: класс FsaAnalysisSession есть                                      True
+  ok   ресурса FSARowsDidNotFit нет                                                 True
+  ok   контроль: ресурс FSACalculating есть                                         True
+  ok   у Properties.Resources нет свойства FSARowsDidNotFit                         True
+
+=== 2. окно: создание, persist-string, hide/show, активный документ ===
+  persist-string: BecquerelMonitor.FSAReportView
+  ok   persist-string — имя типа                                                    BecquerelMonitor.FSAReportView
+  ok   MainForm восстанавливает окно из persist-string                              True
+  ok   и второй раз отдаёт ТО ЖЕ окно, а не новое                                   True
+  ok   контроль: чужая строка окна не даёт                                          True
+  ok   документ A: результат у окна — результат сеанса A                            True
+  строк: A 23, B 31
+  ok   документ B: результат у окна — результат сеанса B                            True
+  ok   окно показывает B, а не A                                                    False
+  ok   без документа — одна строка                                                  1
+  ok   и это «спектр не выбран»                                                     Спектр не выбран
+  ok   без документа элементы управления выключены                                  False
+  ok   скрыто                                                                       False
+  ok   показано снова                                                               True
+  ok   после hide/show строки на месте                                              23
+
+=== 3. вход в ShowFSA: явный и циклический; закрытие отчёта режим не меняет ===
+  ok   явная команда: режим графика ShowFSA                                         ShowFSA
+  ok   явная команда: событие одно                                                  1
+  ok   явная команда: признак Explicit = true                                       True
+  ok   цикл: режим графика ShowFSA                                                  ShowFSA
+  ok   цикл: событие одно                                                           1
+  ok   цикл: признак Explicit = false                                               False
+  ok   контроль: выход из ShowFSA событие не поднимает                              0
+  ok   контроль: и режим уже не ShowFSA                                             True
+  ok   MainForm: после явной команды окно отчёта создано                            True
+  ok   MainForm: окно отчёта видно (в DockPanel)                                    True
+  ok   окно отчёта — активное содержимое своей панели                               True
+  после крестика вкладки: IsDisposed=False IsHidden=True Visible=False DockState=Hidden
+  ok   закрытие отчёта: окно скрыто, а не уничтожено                                True
+  ok   закрытие отчёта: режим графика остался ShowFSA                               ShowFSA
+  ok   закрытие отчёта: результат сеанса не сброшен                                 True
+  ok   выход графика из ShowFSA не прячет отчёт                                     False
+
+=== 4. один результат на график и таблицу, второго анализа нет ===
+  запусков сеанса: 1
+  ok   два потребителя — один запуск                                                1
+  ok   результат есть                                                               True
+  ok   таблица построена из результата сеанса                                       True
+  ok   график построен из ТОГО ЖЕ объекта результата                                True
+  ok   группировка графика = группировка окна                                       Daughters
+  ok   отпечаток сеанса — от активного спектра                                      36518691|8192|114046594|187685.0|bg|254758|-|-|-15.06405718884492,1710.813424256223,3543.3935044175614;1.3548007652809486;0.5728317206286514|peaks|eq|xray|sum|bs|esc|pu|all|W x-ray@55.3;Eu-152@124.1;Pb-212@238.1;Ac-228@337.2;Ac-228@405.5;Ac-228@462.0;Tl-208@510.3;Tl-208@583.6;Bi-212@727.7;Eu-152@786.9;Ac-228@912.5;Ac-228@973.0;Eu-152@1103.3;Bi-214@1247.9;K-40@1465.5;Ac-228@1586.4;Tl-208 SE@2113.2;Bi-214@2316.4;Tl-208@2614.4;
+  ok   контроль: после Invalidate — ещё один запуск                                 2
+
+Необработанное исключение: System.NullReferenceException: Ссылка на объект не указывает на экземпляр объекта.
+   в XPTable.Models.RowCollection.Clear() в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\XPTable\Models\RowCollection.cs:строка 315
+   в BecquerelMonitor.FSAReportView.RefreshReport() в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\FSAReportView.cs:строка 815
+   в BecquerelMonitor.FSAReportView.ReadDocument() в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\FSAReportView.cs:строка 361
+   в BecquerelMonitor.FSAReportView.SetDocument(DocEnergySpectrum doc) в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\FSAReportView.cs:строка 263
+   в FsaReportViewProbe.Program.OneResultSection(MainForm mainForm, DocEnergySpectrum doc)
+   в FsaReportViewProbe.Program.Main(String[] args)
+

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
@@ -81,7 +82,7 @@ namespace BecquerelMonitor
 
         public override string GetFormula()
         {
-            return String.Format(formula, "a", "p");
+            return String.Format(CultureInfo.InvariantCulture, formula, "a", "p");
         }
 
         /// <summary>
@@ -109,7 +110,7 @@ namespace BecquerelMonitor
 
         public override string ToString()
         {
-            return String.Format(formula, coefficients[0], coefficients[1]);
+            return String.Format(CultureInfo.InvariantCulture, formula, coefficients[0], coefficients[1]);
         }
 
         public override bool NotCalibrated()

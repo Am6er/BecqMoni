@@ -72,7 +72,7 @@ namespace BecquerelMonitor
             {
                 Resources.NewFilePrefix,
                 " (",
-                this.serial,
+                this.serial.ToString(CultureInfo.InvariantCulture),
                 ").xml"
             });
             DocEnergySpectrum docEnergySpectrum = this.CreateDocument(filename);
@@ -791,7 +791,7 @@ namespace BecquerelMonitor
                     int numberOfChannels = SpecUtilsNative.GetChannelCount(file_h, m);
 
                     ResultData resultData = doc.ResultDataFile.ResultDataList[list_count];
-                    resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
+                    resultData.SampleInfo.Name = fileName + "(" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
                     if (importWithEmtyConfig)
                     {
                         resultData.DeviceConfig = new DeviceConfigInfo();
@@ -817,7 +817,7 @@ namespace BecquerelMonitor
                                         resultData.DeviceConfig = new DeviceConfigInfo();
                                         resultData.ROIConfig = null;
                                     }
-                                    resultData.SampleInfo.Name = fileName + "(" + list_count + ")";
+                                    resultData.SampleInfo.Name = fileName + "(" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
                                 }
                                 
                                 resultData.EnergySpectrum = new EnergySpectrum(1, numberOfChannels);
@@ -845,7 +845,7 @@ namespace BecquerelMonitor
                                 }
 
                                 resultData.BackgroundEnergySpectrum = new EnergySpectrum(1, numberOfChannels);
-                                resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count + ")";
+                                resultData.BackgroundSpectrumFile = "BackgroundEnergySpectrum" + " (" + list_count.ToString(CultureInfo.InvariantCulture) + ")";
                                 // `A212`: та же кривая может законно отсутствовать — см. сторож выше.
                                 resultData.FwhmCalibration = fwhmCalibration != null ? fwhmCalibration.Clone() : null;
                                 resultData.MeasurementController = measurementController;
@@ -1012,7 +1012,7 @@ namespace BecquerelMonitor
                 //    соглашение то же, что у разбора N42 (`A160`).
                 if (skippedSources.Count > 0)
                 {
-                    AppUi.Report(string.Format(Resources.ERRSkippedMeasurementClassN42,
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRSkippedMeasurementClassN42,
                                                string.Join(", ", skippedSources.ToArray()),
                                                imported),
                                  "", MessageBoxIcon.None);
@@ -1165,7 +1165,7 @@ namespace BecquerelMonitor
                             throw new InvalidOperationException(
                                 "BecqMoni: " + Resources.CalibrationFunctionError
                                 + " (GBS, " + AppUi.Where(filePath) + ", порядок "
-                                + energyCalibration.PolynomialOrder
+                                + energyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                 + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
                         }
                         AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
@@ -1222,7 +1222,7 @@ namespace BecquerelMonitor
                             // — и настройка спектра тут же сбрасывается под
                             // файл следующей строкой, при любом ответе. Работа
                             // продолжается, значит хватит строки в stderr.
-                            AppUi.Report(String.Format(Resources.ERRImportAtomSpectra,
+                            AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.ERRImportAtomSpectra,
                                 doc.ActiveResultData.EnergySpectrum.NumberOfChannels,
                                 NumOfChannels), Resources.Warning, MessageBoxIcon.Warning);
                         }
@@ -1304,7 +1304,7 @@ namespace BecquerelMonitor
 
                         if (PolynomialOrder > 4)
                         {
-                            throw new Exception(String.Format(Resources.ERRUnsupportedCalibrationOrder, PolynomialOrder));
+                            throw new Exception(String.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedCalibrationOrder, PolynomialOrder));
                         }
 
                         double[] coefficients = new double[PolynomialOrder + 1];
@@ -1353,7 +1353,7 @@ namespace BecquerelMonitor
                                 throw new InvalidOperationException(
                                     "BecqMoni: " + Resources.CalibrationFunctionError
                                     + " (Atom Spectra, " + AppUi.Where(filePath) + ", порядок "
-                                    + energyCalibration.PolynomialOrder
+                                    + energyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                     + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
                             }
                             AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
@@ -2210,12 +2210,12 @@ namespace BecquerelMonitor
                         {
                             if (!decimal.TryParse(array[0], NumberStyles.Float, CultureInfo.InvariantCulture, out decimal energy))
                             {
-                                throw new ArgumentException(String.Format("Wrong energy format: {0} at line {1}", array[0], channel + 1));
+                                throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "Wrong energy format: {0} at line {1}", array[0], channel + 1));
                             }
 
                             if (!int.TryParse(array[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
                             {
-                                throw new ArgumentException(String.Format("Wrong count format: {0} at line {1}", array[1], channel + 1));
+                                throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "Wrong count format: {0} at line {1}", array[1], channel + 1));
                             }
 
                             CalibrationPoint calibrationPoint = new CalibrationPoint(channel, energy, count);
