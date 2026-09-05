@@ -1,0 +1,8 @@
+
+файлов с расхождением: 0
+непереведённых осмысленных строк: 0
+ключей, которых нет в английской паре: 0
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 2
+РАЗОШЛОСЬ
