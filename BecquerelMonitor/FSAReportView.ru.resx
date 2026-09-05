@@ -160,6 +160,9 @@
   <data name="pileUpCheckBox.Text" xml:space="preserve">
     <value>Наложение импульсов (pile-up)</value>
   </data>
+  <data name="residualBandCheckBox.Text" xml:space="preserve">
+    <value>Невязка модели</value>
+  </data>
   <data name="componentColumn.Text" xml:space="preserve">
     <value>Компонент</value>
   </data>
@@ -219,5 +222,8 @@
   </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Состав пересилен образом</value>
+  </data>
+  <data name="FSAReport_ResidualBandTip" xml:space="preserve">
+    <value>Меняет только график; ничего не пересчитывается.</value>
   </data>
 </root>

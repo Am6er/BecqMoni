@@ -316,7 +316,7 @@
     <value>6, 3, 6, 4</value>
   </data>
   <data name="extrasGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 139</value>
+    <value>320, 162</value>
   </data>
   <data name="extrasGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -334,7 +334,7 @@
     <value>6, 16</value>
   </data>
   <data name="extrasFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 117</value>
+    <value>308, 140</value>
   </data>
   <data name="extrasFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -413,6 +413,21 @@
   </data>
   <data name="pileUpCheckBox.Text" xml:space="preserve">
     <value>Pulse pile-up</value>
+  </data>
+  <data name="residualBandCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="residualBandCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 118</value>
+  </data>
+  <data name="residualBandCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>104, 17</value>
+  </data>
+  <data name="residualBandCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="residualBandCheckBox.Text" xml:space="preserve">
+    <value>Model residual</value>
   </data>
   <data name="reportTable.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Fill</value>
@@ -4950,6 +4965,18 @@
   <data name="&gt;&gt;pileUpCheckBox.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="&gt;&gt;residualBandCheckBox.Name" xml:space="preserve">
+    <value>residualBandCheckBox</value>
+  </data>
+  <data name="&gt;&gt;residualBandCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;residualBandCheckBox.Parent" xml:space="preserve">
+    <value>extrasFlow</value>
+  </data>
+  <data name="&gt;&gt;residualBandCheckBox.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
   <data name="&gt;&gt;reportTable.Name" xml:space="preserve">
     <value>reportTable</value>
   </data>
@@ -5045,5 +5072,8 @@
   </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Composition suppressed by</value>
+  </data>
+  <data name="FSAReport_ResidualBandTip" xml:space="preserve">
+    <value>Changes only the chart: nothing is recomputed.</value>
   </data>
 </root>

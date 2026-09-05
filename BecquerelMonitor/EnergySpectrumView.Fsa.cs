@@ -56,6 +56,14 @@ namespace BecquerelMonitor
         /// </summary>
         string fsaHighlight;
 
+        /// <summary>
+        /// (`A248`) Показывать ли ЛЕНТУ НЕВЯЗКИ поверх состава; ставит галочка
+        /// окна отчёта (<see cref="FSAReportView"/>), читает
+        /// <see cref="DrawFsaResidual"/>. Умолчание — показывать: до `A248`
+        /// лента рисовалась всегда, и умолчание обязано это сохранить.
+        /// </summary>
+        bool fsaShowResidual = true;
+
         // Всё, что зависит только от разложения, а не от вьюпорта, считается
         // один раз на результат: кумулятивные кривые стека (низ и верх каждой
         // ленты), спектр за вычетом фона и точки прямых подписей. Раньше эти
@@ -167,6 +175,44 @@ namespace BecquerelMonitor
                 }
 
                 this.fsaHighlight = next;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// (`A248`, задача Amber 05.09.2026) ПОКАЗЫВАТЬ ЛИ ЛЕНТУ НЕВЯЗКИ. Ставит
+        /// шестая галочка блока «Дополнительные компоненты модели» окна отчёта
+        /// (<see cref="FSAReportView"/>); умолчание — показывать.
+        ///
+        /// ⛔ ЭТО ПРАВКА ВИДА, И ТОЛЬКО ВИДА. Ни разбор, ни представление, ни
+        /// одно число от неё не меняются: доли компонентов, χ²/ndf и сама
+        /// величина невязки при любом положении признака те же, и строка
+        /// невязки в таблице отчёта остаётся на месте (решение Amber 05.09.2026:
+        /// «гасится ТОЛЬКО лента на графике»). Поэтому здесь, как и у
+        /// <see cref="FsaHighlight"/>, одна перерисовка — ни сброса снимка
+        /// представления, ни кадровых массивов, ни заказа пересчёта.
+        ///
+        /// ⚠ Пять соседних галочек того же блока, наоборот, МЕНЯЮТ модель и
+        /// ведут к пересчёту (<see cref="FsaCalculationOptions"/>). Эта — нет, и
+        /// в <see cref="FsaCalculationOptions"/> ей делать нечего: отпечаток
+        /// разбора от неё меняться не должен, иначе снятая лента стоила бы
+        /// человеку полного пересчёта.
+        /// </summary>
+        internal bool FsaShowResidual
+        {
+            get
+            {
+                return this.fsaShowResidual;
+            }
+
+            set
+            {
+                if (this.fsaShowResidual == value)
+                {
+                    return;
+                }
+
+                this.fsaShowResidual = value;
                 this.Invalidate();
             }
         }
@@ -532,6 +578,11 @@ namespace BecquerelMonitor
             // ⚠ Штриховка, а не заливка, и НАРОЧНО: невязка не компонент, у неё
             // нет ни нуклида, ни амплитуды фита, и выглядеть как ещё одна лента
             // состава она не должна. Знаки разводит ЦВЕТ штриха (`A28`).
+            //
+            // ⚠ Признак показа (`A248`, <see cref="FsaShowResidual"/>) стоит НЕ
+            // здесь, а ВНУТРИ `DrawFsaResidual`: тогда «ленты нет ни на одном
+            // виде» верно ПО ПОСТРОЕНИЮ, а не по перечислению мест вызова, —
+            // и следующее место вызова его не обойдёт.
             this.DrawFsaResidual(g, this.fsaCumulative[layers.Count - 1], this.fsaNetSpectrum,
                                  this.globalConfigManager.GlobalConfig.ColorConfig
                                      .ActiveSpectrumColor.Color);
@@ -588,6 +639,16 @@ namespace BecquerelMonitor
         /// им штрихуется половина недобора.</param>
         void DrawFsaResidual(Graphics g, double[] model, double[] measured, Color spectrumColor)
         {
+            // (`A248`) Галочка снята — ленты нет ВОВСЕ: не бледнее, не тоньше, а
+            // ни одного пикселя. Отказ стоит первым и ЗДЕСЬ, у самой отрисовки,
+            // а не у её вызова, — тогда он действует на всех видах FSA по
+            // построению (все три места отрисовки идут через `ShowFsaOverlay`,
+            // а тот — сюда).
+            if (!this.fsaShowResidual)
+            {
+                return;
+            }
+
             if (model == null || measured == null || model.Length == 0
                 || measured.Length != model.Length)
             {

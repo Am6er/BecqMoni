@@ -36,6 +36,7 @@ namespace BecquerelMonitor
             this.backscatterCheckBox = new System.Windows.Forms.CheckBox();
             this.escapeCheckBox = new System.Windows.Forms.CheckBox();
             this.pileUpCheckBox = new System.Windows.Forms.CheckBox();
+            this.residualBandCheckBox = new System.Windows.Forms.CheckBox();
             this.reportTable = new XPTable.Models.Table();
             this.columnModel = new XPTable.Models.ColumnModel();
             this.swatchColumn = new XPTable.Models.ImageColumn();
@@ -158,6 +159,7 @@ namespace BecquerelMonitor
             this.extrasFlow.Controls.Add(this.backscatterCheckBox);
             this.extrasFlow.Controls.Add(this.escapeCheckBox);
             this.extrasFlow.Controls.Add(this.pileUpCheckBox);
+            this.extrasFlow.Controls.Add(this.residualBandCheckBox);
             this.extrasFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.extrasFlow.Name = "extrasFlow";
             this.extrasFlow.WrapContents = false;
@@ -206,6 +208,15 @@ namespace BecquerelMonitor
             this.pileUpCheckBox.Name = "pileUpCheckBox";
             this.pileUpCheckBox.UseVisualStyleBackColor = true;
             this.pileUpCheckBox.CheckedChanged += new System.EventHandler(this.pileUpCheckBox_CheckedChanged);
+            //
+            // residualBandCheckBox
+            //
+            resources.ApplyResources(this.residualBandCheckBox, "residualBandCheckBox");
+            this.residualBandCheckBox.Checked = true;
+            this.residualBandCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.residualBandCheckBox.Name = "residualBandCheckBox";
+            this.residualBandCheckBox.UseVisualStyleBackColor = true;
+            this.residualBandCheckBox.CheckedChanged += new System.EventHandler(this.residualBandCheckBox_CheckedChanged);
             //
             // reportTable
             //
@@ -301,6 +312,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.CheckBox backscatterCheckBox;
         private System.Windows.Forms.CheckBox escapeCheckBox;
         private System.Windows.Forms.CheckBox pileUpCheckBox;
+        private System.Windows.Forms.CheckBox residualBandCheckBox;
         private XPTable.Models.Table reportTable;
         private XPTable.Models.ColumnModel columnModel;
         private XPTable.Models.ImageColumn swatchColumn;

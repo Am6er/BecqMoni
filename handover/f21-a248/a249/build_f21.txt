@@ -1,0 +1,58 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f21\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f21\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f21\config\NuclideDefinition.xml: 152 entries
+SETUP	ASN16_Th232.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+BecqMoni: Ошибка: Не удалось загрузить конфигурационный файл ROI. C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f21\config\ROI Причина: DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f21\config\ROI".
+SETUP	ASN16_Th232.xml: пиков 20, каналов 8192, кривая (нет)
+SETUP	ASN16_Charoite.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+SETUP	ASN16_Charoite.xml: пиков 18, каналов 8192, кривая (нет)
+
+=== 1. гигиена: ручной таблицы на графике нет, FsaOverlay нет ===
+  ok   у EnergySpectrumView нет DrawFsaOwnTable                                     True
+  ok   у EnergySpectrumView нет DrawFsaRows                                         True
+  ok   у EnergySpectrumView нет DrawFsaSwatch                                       True
+  ok   у EnergySpectrumView нет DrawFsaQualityRow                                   True
+  ok   у EnergySpectrumView нет FsaTableBudget                                      True
+  ok   у EnergySpectrumView нет FsaTableRowCount                                    True
+  ok   у EnergySpectrumView нет FsaCollapsibleBudget                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksWidth                                True
+  ok   у EnergySpectrumView нет FsaQualityMarksFormat                               True
+  ok   контроль: строка состояния DrawFsaStatus ЕСТЬ                                True
+  ok   контроль: ShowFsaTable (имя, которое зовёт чужой файл) ЕСТЬ                  True
+  ok   класса FsaOverlay в сборке нет                                               True
+  ok   контроль: класс FsaAnalysisSession есть                                      True
+  ok   ресурса FSARowsDidNotFit нет                                                 True
+  ok   контроль: ресурс FSACalculating есть                                         True
+  ok   у Properties.Resources нет свойства FSARowsDidNotFit                         True
+
+=== 2. окно: создание, persist-string, hide/show, активный документ ===
+  persist-string: BecquerelMonitor.FSAReportView
+  ok   persist-string — имя типа                                                    BecquerelMonitor.FSAReportView
+  ok   MainForm восстанавливает окно из persist-string                              True
+  ok   и второй раз отдаёт ТО ЖЕ окно, а не новое                                   True
+  ok   контроль: чужая строка окна не даёт                                          True
+  ok   документ A: результат у окна — результат сеанса A                            True
+  строк: A 24, B 19
+  ok   документ B: результат у окна — результат сеанса B                            True
+  ok   окно показывает B, а не A                                                    False
+  ok   без документа — одна строка                                                  1
+  ok   и это «спектр не выбран»                                                     Спектр не выбран
+  ok   без документа элементы управления выключены                                  False
+  ok   скрыто                                                                       False
+  ok   показано снова                                                               True
+  ⛔  после hide/show строки на месте                                              20  вместо 24
+
+=== 3. вход в ShowFSA: явный и циклический; закрытие отчёта режим не меняет ===
+
+Необработанное исключение: System.Reflection.TargetInvocationException: Адресат вызова создал исключение. ---> System.InvalidOperationException: BecqMoni: у спектра нет кривой эффективности, а выбрать её вместо человека некому: разложение спрашивает об этом окном. Задайте Efficiency спектру до включения FSA.
+   в BecquerelMonitor.DocEnergySpectrum.EnsureFsaEfficiency(ResultData active) в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\DocEnergySpectrum.cs:строка 1166
+   в BecquerelMonitor.DocEnergySpectrum.EnsureFsaInputs() в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\DocEnergySpectrum.cs:строка 1058
+   в BecquerelMonitor.DocEnergySpectrum.ShowFsaToolStripMenuItem_Click(Object sender, EventArgs e) в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\DocEnergySpectrum.cs:строка 929
+   --- Конец трассировки внутреннего стека исключений ---
+   в System.RuntimeMethodHandle.InvokeMethod(Object target, Object[] arguments, Signature sig, Boolean constructor)
+   в System.Reflection.RuntimeMethodInfo.UnsafeInvokeInternal(Object obj, Object[] parameters, Object[] arguments)
+   в System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+   в System.Reflection.MethodBase.Invoke(Object obj, Object[] parameters)
+   в FsaReportViewProbe.Program.Invoke(Object target, String name, Object[] args)
+   в FsaReportViewProbe.Program.EntrySection(MainForm mainForm, DocEnergySpectrum doc)
+   в FsaReportViewProbe.Program.Main(String[] args)
