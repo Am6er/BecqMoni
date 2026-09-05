@@ -1,0 +1,6 @@
+spektrov vsego: 129  bez krivoj: 47  pervaja tochka >= 39 keV: 3
+  AS80_Lu176               krivaya AS80_lu_front        tochek  34 pervaya 40.00 obnovlena 2026-08-16T14:11:39.5585858+03:00
+  ASN16_Lu176              krivaya ASN16_lu_side        tochek  34 pervaya 40.00 obnovlena 2026-08-16T02:16:22.7555639+03:00
+  ASN16_Lu176_P0           krivaya ASN16_lu_side        tochek  34 pervaya 40.00 obnovlena 2026-08-16T02:16:22.7555639+03:00
+raspredelenie pervoj tochki: {5.0: 2, 7.1: 30, 10.0: 47, 40.0: 3}
+chislo tochek u etih krivyh: {34: 3}
