@@ -122,8 +122,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// было только в журнале прогона, задним числом (E16). Число в поле,
         /// которым не считают, читается как обещание.
         ///
-        /// Если внутри диапазона штатных узлов не осталось двух, сетка молча
-        /// становится логарифмической: пустой ответ здесь хуже.
+        /// Если внутри диапазона штатных узлов не осталось двух, сетка
+        /// становится логарифмической: пустой ответ здесь хуже. Молча это не
+        /// делается (`E17` «б») — строка журнала называет и подмену, и число
+        /// узлов, которым посчитано, а клеймо кривой пишет `log`, а не `std`.
         /// </summary>
         public double[] BuildGrid()
         {
@@ -137,9 +139,52 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double[] BuildGrid(GeometryModel geometry, List<string> notes)
         {
-            double lo = Math.Max(1.0, this.MinEnergyKev);
-            double hi = Math.Max(lo * 1.01, this.MaxEnergyKev);
+            EfficiencyGridMode used;
+            return this.BuildGrid(geometry, notes, out used);
+        }
 
+        /// <summary>
+        /// Наименьшая ширина диапазона счёта, кэВ (`E17` «а», решение Amber
+        /// 02.09.2026). Вырожденный диапазон — верх не выше низа — разводить
+        /// надо: логарифм от нулевой ширины даёт сетку из одной точки, а из неё
+        /// кривой нет. Но разводить его надо ДОБАВКОЙ, а не долей от низа.
+        ///
+        /// ⛔ Прежде здесь стояло `Math.Max(lo * 1.01, MaxEnergyKev)`, то есть
+        /// «не уже одного процента от нижней границы», и внизу шкалы это
+        /// незаметно (5 кэВ → 0.05), а наверху раздвигает ЗАКОННЫЙ диапазон:
+        /// выставленные 3000…3010 считались до 3030 — на два узла шире, чем
+        /// стоит в поле, и увидеть это можно было только в журнале, задним
+        /// числом. Килоэлектронвольт добавки не зависит от места на шкале: он
+        /// меньше любой ширины пика и заведомо больше нуля.
+        /// </summary>
+        public const double MinSpanKev = 1.0;
+
+        /// <summary>
+        /// То же и с ответом, КАКОЙ сеткой посчитано (`E17` «б»). Заказанная
+        /// сетка и посчитанная — разные вещи: штатная, не нашедшая внутри
+        /// диапазона двух своих узлов, молча становится логарифмической. Так и
+        /// задумано (пустой ответ хуже), но журнал и клеймо обязаны назвать ТУ,
+        /// которой считали, — иначе испорчено ПРОИСХОЖДЕНИЕ кривой.
+        /// </summary>
+        public double[] BuildGrid(GeometryModel geometry, List<string> notes,
+                                  out EfficiencyGridMode used)
+        {
+            double lo = Math.Max(1.0, this.MinEnergyKev);
+            double hi = this.MaxEnergyKev;
+            if (hi < lo + MinSpanKev)
+            {
+                // Раздвижка называет себя в журнале: число в поле, которым не
+                // считают, читается как обещание (тот же довод, что в E16).
+                if (notes != null)
+                {
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        Resources.EfficiencyMakerGridWidened, hi, lo, lo + MinSpanKev));
+                }
+
+                hi = lo + MinSpanKev;
+            }
+
+            used = this.GridMode;
             if (this.GridMode == EfficiencyGridMode.Standard)
             {
                 List<double> picked = new List<double>();
@@ -160,6 +205,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                     Reach(picked, lo, hi);
                     AddEdges(picked, geometry, lo, hi, notes);
                     return picked.ToArray();
+                }
+
+                // Штатных узлов внутри меньше двух. Считается логарифмической —
+                // и об этом ГОВОРИТСЯ: число узлов берётся при этом из поля
+                // «Точек», запертого, пока выбрана штатная сетка, и человеку
+                // неоткуда узнать, что считано именно им.
+                used = EfficiencyGridMode.Logarithmic;
+                if (notes != null)
+                {
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        Resources.EfficiencyMakerGridFallback, picked.Count, lo, hi,
+                        Math.Max(2, this.NodeCount)));
                 }
             }
 
@@ -432,7 +489,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и край лежит между ними — нарисованная кривая ведёт прямую там,
             // где на деле ступенька.
             List<string> gridNotes = new List<string>();
-            double[] energies = options.BuildGrid(geometry, gridNotes);
+            // Сетка отвечает и тем, КАКОЙ она вышла (`E17` «б»): заказанная
+            // штатная становится логарифмической, если своих узлов внутри
+            // диапазона у неё меньше двух, и журнал с клеймом обязаны назвать
+            // посчитанную, а не заказанную.
+            EfficiencyGridMode gridUsed;
+            double[] energies = options.BuildGrid(geometry, gridNotes, out gridUsed);
             EfficiencySimulator simulator = new EfficiencySimulator(geometry)
             {
                 Histories = Math.Max(1000, options.Histories),
@@ -446,6 +508,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             foreach (string warning in geometry.Warnings)
             {
                 log(warning);
+            }
+
+            // (`E19`, решение Amber 01.09.2026: предупреждать, счёт разрешать.)
+            // Проба, оставшаяся ВОЗДУХОМ при непустом сосуде, — это не «нет
+            // данных», а систематическая ошибка в разы, и молчала она до сих
+            // пор целиком: ни строки в журнале, ни следа в клейме, так что две
+            // кривые, расходящиеся втрое, были неотличимы.
+            bool sampleIsAir = geometry.SampleIsAir;
+            if (sampleIsAir)
+            {
+                log(string.Format(CultureInfo.InvariantCulture,
+                    Resources.EfficiencyMakerSampleIsAir,
+                    geometry.Source == null || string.IsNullOrEmpty(geometry.Source.Name)
+                        ? "-" : geometry.Source.Name,
+                    geometry.Source == null ? 0.0 : geometry.Source.Density,
+                    geometry.SampleHeightMm));
             }
 
             log(simulator.DescribeScene());
@@ -467,7 +545,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // самой уже не сказать, на скольких узлах она получена.
             log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerGridSummary,
                               energies.Length, energies[0], energies[energies.Length - 1],
-                              options.GridMode == EfficiencyGridMode.Standard
+                              gridUsed == EfficiencyGridMode.Standard
                                   ? Resources.EfficiencyMakerGridStandard
                                   : Resources.EfficiencyMakerGridLogarithmic,
                               options.EffectiveThreads));
@@ -607,11 +685,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // переноса — та же константа, что у матрицы отклика: перенос один.
             // Формат инвариантный: клеймо хранится и сравнивается, а
             // локализованная строка расползалась бы по языкам.
+            //
+            // Имя сетки — ПОСЧИТАННОЙ (`E17` «б»), а не заказанной. Хвост
+            // `; sample=air` пишется ТОЛЬКО у кривой с воздухом вместо пробы
+            // (`E19`): на всех прочих сценах клеймо посимвольно прежнее, иначе
+            // все посчитанные кривые разом объявились бы чужими.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
-                options.GridMode == EfficiencyGridMode.Standard ? "std" : "log");
+                gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
+                sampleIsAir ? "; sample=air" : "");
             return result;
         }
     }

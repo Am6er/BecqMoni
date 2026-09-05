@@ -3718,6 +3718,24 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerGridWidened {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridWidened", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridFallback {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridFallback", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSampleIsAir {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSampleIsAir", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerPoints {
             get {
                 return ResourceManager.GetString("EfficiencyMakerPoints", resourceCulture);
