@@ -448,8 +448,8 @@ namespace BqActivityProbe
             //    в кэВ соперник один, в каналах — два.
             var defs = new List<NuclideDefinition>
             {
-                Line("ВНУТРИ", 661.657 + 0.5 * halfWindowKev, 10.0),
-                Line("ЗА КРАЕМ", 661.657 + 1.5 * halfWindowKev, 10.0),
+                Line("Внутри-1", 661.657 + 0.5 * halfWindowKev, 10.0),
+                Line("Закраем-2", 661.657 + 1.5 * halfWindowKev, 10.0),
             };
             int rivals = CountRivals(sc2, defs);
             Console.WriteLine();
@@ -471,8 +471,8 @@ namespace BqActivityProbe
             // ответа, ничего не меряет.
             var defs2 = new List<NuclideDefinition>
             {
-                Line("ВНУТРИ", 661.657 + 0.5 * halfWindowKev, 10.0),
-                Line("ТОЖЕ ВНУТРИ", 661.657 - 0.3 * halfWindowKev, 10.0),
+                Line("Внутри-1", 661.657 + 0.5 * halfWindowKev, 10.0),
+                Line("Тожевнутри-3", 661.657 - 0.3 * halfWindowKev, 10.0),
             };
             int rivals2 = CountRivals(sc2, defs2);
             Console.WriteLine("  положительный контроль мерки: обе линии внутри окна -> соперников {0} (ждали 2)", rivals2);
@@ -482,8 +482,8 @@ namespace BqActivityProbe
             // «считает всегда одного».
             var defs3 = new List<NuclideDefinition>
             {
-                Line("ЗА КРАЕМ", 661.657 + 1.5 * halfWindowKev, 10.0),
-                Line("ДАЛЕКО", 661.657 - 3.0 * halfWindowKev, 10.0),
+                Line("Закраем-2", 661.657 + 1.5 * halfWindowKev, 10.0),
+                Line("Далеко-4", 661.657 - 3.0 * halfWindowKev, 10.0),
             };
             int rivals3 = CountRivals(sc2, defs3);
             Console.WriteLine("  обратный контроль: обе линии за краем -> соперников {0} (ждали 0)", rivals3);
@@ -491,6 +491,16 @@ namespace BqActivityProbe
             Console.WriteLine();
         }
 
+        /// <summary>
+        /// Подставная линия для опытов над окном спора.
+        ///
+        /// ⛔ ИМЯ ОБЯЗАНО НЕСТИ МАССОВОЕ ЧИСЛО. `NuclideDefinition.IsElementXrayName`
+        /// зовёт рентгеном элемента ЛЮБОЕ имя без цифры в первом слове, а с
+        /// `A190` (06.09.2026) отказные линии в спор не пускаются вовсе —
+        /// поэтому прежние имена «ВНУТРИ», «ЗА КРАЕМ» перестали быть
+        /// соперниками, и три опыта §0б отказали разом, хотя окно не менялось.
+        /// Поймано прогоном полосы F49, а не глазами.
+        /// </summary>
         static NuclideDefinition Line(string name, double kev, double intensity)
         {
             return new NuclideDefinition
