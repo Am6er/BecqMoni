@@ -537,7 +537,8 @@ def choose(stored, pairs, res_a, nmax, max_order=None, keep_margin=0.9, force=Fa
         cal = affine_of(stored, pairs, nmax, scale_only=True)
         # `V26`: предел поправки, пока опор не больше `GAIN_GUARD_MAX_N`.
         if cal is not None and (n > GAIN_GUARD_MAX_N
-                                or gain_drift(cal, stored, nmax) <= GAIN_GUARD_DRIFT):
+                                or all(abs(a['e_ref'] / stored.energy(a['ch']) - 1.0)
+                                       <= GAIN_GUARD_DRIFT for a in pairs)):
             cands.append(('gain', cal))
         else:
             note('gain', 'fit' if cal is None else 'drift>5%')

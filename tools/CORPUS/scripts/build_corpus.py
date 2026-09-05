@@ -621,6 +621,145 @@ def calibrate_one(sp, entry, res_a_hint=None):
     return cal, pairs, res_a / np.sqrt(662.0), tag
 
 
+# ---------------------------------------------------------------------------
+# Стадия 2б: семья на одной поставочной шкале (`V27`)
+# ---------------------------------------------------------------------------
+#: Сколько опор должно набраться в сводной таблице, чтобы семья получила
+#: общий фит. То же число, что требовалось донору до 05.09.2026 (≥ 4 опор).
+FAMILY_MIN_ANCHORS = 4
+
+#: Кому достаётся шкала семьи. `'weak'` — только спектрам без двух своих опор
+#: (тем же, кому прежде доставалась КОПИЯ донора; остальные члены семьи не
+#: трогаются — умолчание, ближайшее к прежнему поведению). `'all'` — каждый
+#: член ставит шкалу семьи на место поставочной и решает `choose` по своим
+#: опорам (гибрид). Модульная константа по образцу `FORM`/`MODEL_TEST`:
+#: `'all'` двигает шкалу у 89 спектров из 95 членов семей (мерка F12,
+#: 05.09.2026), то есть базу целиком, — это слово Amber, не агента.
+FAMILY_SCOPE = 'weak'
+
+
+def families(state):
+    u"""Семьи: спектры одной группы `det` с побайтно общей поставочной
+    калибровкой и тем же числом каналов. Порядок детерминирован (по ключу),
+    первый член — старший по ключу."""
+    fams = []
+    for key in sorted(state):
+        st = state[key]
+        for fam in fams:
+            d = state[fam[0]]
+            if (d['det'] == st['det'] and d['sp'].n == st['sp'].n
+                    and len(d['sp'].ecal) == len(st['sp'].ecal)
+                    and np.allclose(d['sp'].ecal, st['sp'].ecal, rtol=0, atol=1e-12)):
+                fam.append(key)
+                break
+        else:
+            fams.append([key])
+    return fams
+
+
+def family_stage(state, res_hint=None, log=print):
+    u"""Стадия 2б. Спектры с побайтно общей поставочной калибровкой снимались
+    на одной настройке усиления, и шкала у них ОДНА. До 05.09.2026 стадия лишь
+    копировала калибровку сильнейшего донора (≥ 4 опор) слабым (< 2 опор):
+    «Домик сутки 8192» (142 k отсчётов за 210 ks) своих опор не набирает вовсе.
+    Решение Amber 05.09.2026 (`V27`): семья получает ОБЩИЙ фит по сводной
+    таблице опор всех своих членов (у семей G1S — 30–39 опор против 4–8 у
+    одного спектра) — ни у одного спектра нет столько опор, чтобы низ шкалы
+    был проверен, у семьи есть. K-серия серебра в опоры НЕ входит (решение
+    Amber: рентген, центроид дублета зависит от разрешения).
+
+    Правила, и ни одно не новое:
+
+      * общий фит — `corpus_calib.fit_table`: `choose` от поставочной (пул
+        обязан побить её на десятую часть невязки, иначе шкала семьи —
+        поставочная), потом отбраковка по MAD (`robust_refit`), как у одного
+        спектра. Разрешение — модели группы (`res_hint`, стадия 2а), без неё —
+        медиана по членам;
+      * член без двух своих опор берёт шкалу семьи как есть (как прежде брал
+        донорскую); метка `fam(<старший по опорам>)`;
+      * член с двумя и более опорами при `FAMILY_SCOPE = 'weak'` (умолчание)
+        не трогается — своя калибровка стадий 1–2а остаётся; при `'all'` он
+        ставит шкалу семьи на место ПОСТАВОЧНОЙ и решает тем же `choose` по
+        СВОИМ опорам: шкала семьи остаётся, если собственная поправка не лучше
+        её на десятую часть (`keep_margin`), `B24`-запрет экстраполяции считает
+        теперь от шкалы семьи, а не от поставочной. Метка `fam(<...>)` либо
+        `fam(<...>)/<режим>`. `force` (`recal` в `corpus_def`) здесь не
+        применяется: он снимает с пьедестала ПОСТАВОЧНУЮ, а точка отсчёта тут
+        уже фит;
+      * семья, в которой опоры есть лишь у ОДНОГО члена, ведёт себя как
+        прежде: слабые копируют его калибровку (`ref-cal(<донор>)`), донору
+        нужны те же ≥ 4 опор. Так семья из одного сильного спектра ничего не
+        меняет — положительный контроль стадии.
+
+    Мерка — `calib_null_check.py --stage2` на копиях `_corpus_raw`.
+
+    -> {старший член: dict(cal, tag, members, n, keep, res_a, e_lo)} по семьям,
+    получившим общий фит (для мерки; конвейеру не нужно).
+    """
+    result = {}
+    for fam in families(state):
+        if len(fam) < 2:
+            continue
+        det = state[fam[0]]['det']
+        contributors = [k for k in fam if len(state[k]['accepted']) >= 1]
+        table = [dict(a, src=k) for k in contributors for a in state[k]['accepted']]
+        if len(contributors) < 2 or len(table) < FAMILY_MIN_ANCHORS:
+            # прежнее правило: слабый наследует у единственного сильного донора
+            donors = [k for k in fam if len(state[k]['accepted']) >= 4]
+            if not donors:
+                continue
+            donor = state[max(donors, key=lambda k: len(state[k]['accepted']))]
+            for key in fam:
+                st = state[key]
+                if len(st['accepted']) >= 2:
+                    continue
+                st['ecal'] = donor['ecal']
+                st['r662'] = donor['r662']
+                st['mode'] = 'ref-cal(%s)' % donor['entry']['key']
+                if st.get('bg_mode', '').startswith('как передний план'):
+                    st['bg_ecal'] = donor['ecal']
+                log('%-20s наследует калибровку %s' % (key, donor['entry']['key']))
+            continue
+
+        sp = state[fam[0]]['sp']
+        nmax = sp.n
+        stored = corpus_calib.Ecal(sp.ecal, nmax)
+        if res_hint and res_hint.get(det):
+            res_a = float(res_hint[det])
+        else:
+            res_a = float(np.median([state[k]['r662'] for k in contributors])) * np.sqrt(662.0)
+        table.sort(key=lambda a: a['ch'])
+        fam_cal, fam_tag, keep = corpus_calib.fit_table(stored, table, res_a, nmax)
+        head = max(contributors, key=lambda k: len(state[k]['accepted']))
+        fam_id = 'fam(%s)' % head
+        es = sorted(a['e_ref'] for a in keep)
+        log(u'семья %s [%s], %d спектров, опор %d (после отбраковки %d), '
+            u'%.1f…%.1f кэВ, разрешение %.4f, общий фит: %s'
+            % (head, det, len(fam), len(table), len(keep), es[0], es[-1], res_a, fam_tag))
+        result[head] = dict(cal=fam_cal, tag=fam_tag, members=list(fam), n=len(table),
+                            keep=len(keep), res_a=res_a, e_lo=es[0], e_hi=es[-1])
+        for key in fam:
+            st = state[key]
+            own = st['accepted']
+            if len(own) < 2:
+                cal, mode = fam_cal, fam_id
+                st['r662'] = res_a / np.sqrt(662.0)
+            elif FAMILY_SCOPE != 'all':
+                continue
+            else:
+                tag2, cal, _ = corpus_calib.choose(fam_cal, own, res_a, nmax)
+                mode = fam_id if tag2 == 'stored' else '%s/%s' % (fam_id, tag2)
+            shift = float(np.max(np.abs(cal.energy(np.arange(nmax, dtype=float))
+                                        - st['ecal'].energy(np.arange(nmax, dtype=float)))))
+            log(u'   %-22s опор %2d, было %-18s стало %-24s max|ΔE| %.3f кэВ'
+                % (key, len(own), st['mode'], mode, shift))
+            st['ecal'] = cal
+            st['mode'] = mode
+            if st.get('bg_mode', '').startswith('как передний план'):
+                st['bg_ecal'] = cal
+    return result
+
+
 def collect_points(state, det, min_purity):
     pts = []
     for st in state.values():
@@ -1455,28 +1594,8 @@ def main():
         if not moved:
             break
 
-    # --- стадия 2б: слабые спектры наследуют калибровку сильного соседа ---
-    # Спектр вроде «Домик сутки 8192» (142 k отсчётов за 210 ks на 8192 каналах)
-    # своих опорных линий не набирает вовсе. Но если хранившаяся калибровка у
-    # него побайтно та же, что у сильного спектра той же группы, значит снимали
-    # на одной настройке усиления, и поправка, найденная по сильному, — лучшая
-    # оценка, какая есть. Тот же приём, что 'ref-cal' в calibrate.py.
-    for key, st in state.items():
-        if len(st['accepted']) >= 2:
-            continue
-        donors = [d for d in state.values()
-                  if d['det'] == st['det'] and len(d['accepted']) >= 4
-                  and len(d['sp'].ecal) == len(st['sp'].ecal)
-                  and np.allclose(d['sp'].ecal, st['sp'].ecal, rtol=0, atol=1e-12)]
-        if not donors:
-            continue
-        donor = max(donors, key=lambda d: len(d['accepted']))
-        st['ecal'] = donor['ecal']
-        st['r662'] = donor['r662']
-        st['mode'] = 'ref-cal(%s)' % donor['entry']['key']
-        if st['bg_mode'].startswith('как передний план'):
-            st['bg_ecal'] = donor['ecal']
-        print('%-20s наследует калибровку %s' % (key, donor['entry']['key']))
+    # --- стадия 2б: семья на одной поставочной шкале — общий фит (`V27`) ---
+    family_stage(state, res_a)
 
     # --- стадия 3: модель разрешения на группу ---
     # ⛔ РАЗМОРОЖЕНО решением Amber 16.08.2026: «размораживаю, перекалибровывай

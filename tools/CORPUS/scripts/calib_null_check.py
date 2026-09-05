@@ -30,6 +30,10 @@ u"""`V18`/`V19`: нулевое плечо и положительный кон�
         [--mode=margin|ftest] [--alpha=0.05] [--scope=all|poly] [--order=2|3] [--tag=имя]
         [--only=k1,k2] [--calib=<другой corpus_calib.py>] [--pipeline]
         [--family]                       # `V19`: сводная таблица семьи G1S
+    python calib_null_check.py --stage2 --raw=<копии> --out=<каталог> [--calib=…] [--tag=имя]
+                               [--family-scope=weak|all]
+                                         # `V27`: стадии 1+2а+2б, прежнее правило 2б
+                                         # против общего фита семьи, три контроля
     python calib_null_check.py --compare=A.json,B.json --out=<каталог>
                                          # режим до / после, max|ΔE| по спектрам
 
@@ -71,11 +75,11 @@ def _sha(path):
 def _args(argv):
     a = dict(raw=os.path.join(HERE, '_corpus_raw'), out=None, mode='margin',
              alpha=0.05, order=2, tag=None, only=None, calib=None, scope='all',
-             pipeline=False, family=False, compare=None)
+             pipeline=False, family=False, compare=None, stage2=False, family_scope=None)
     for x in argv:
         if x.startswith('--'):
             k, _, v = x[2:].partition('=')
-            if k in ('pipeline', 'family'):
+            if k in ('pipeline', 'family', 'stage2'):
                 a[k] = True
             elif k == 'alpha':
                 a[k] = float(v)
@@ -85,6 +89,8 @@ def _args(argv):
                 a[k] = set(v.split(','))
             elif k == 'compare':
                 a[k] = v.split(',')
+            elif k == 'family-scope':
+                a['family_scope'] = v
             else:
                 a[k] = v
     if a['out'] is None:
@@ -379,8 +385,246 @@ def _one_family(cc, bc, calibrate, state, log, fam, fit_peak, FWHM_SIGMA):
 
 
 # ---------------------------------------------------------------------------
+# `V27`: стадии 1+2а+2б на копиях — прежнее правило 2б против общего фита семьи
+# ---------------------------------------------------------------------------
+def working_ranges():
+    u"""Рабочий диапазон группы `e_lo…e_hi` из `corpus/detectors.csv` (читается
+    из дерева, только чтение)."""
+    out = {}
+    path = os.path.join(os.path.dirname(HERE), 'corpus', 'detectors.csv')
+    if os.path.isfile(path):
+        with io.open(path, encoding='utf-8-sig') as f:
+            for r in csv.DictReader(f):
+                try:
+                    out[r['det']] = (float(r['e_lo']), float(r['e_hi']))
+                except (KeyError, ValueError):
+                    pass
+    return out
+
+
+def donor_rule(state):
+    u"""Стадия 2б, как она была ДО 05.09.2026 (копия из `build_corpus.main`,
+    `60dd194c` … `13e0bb89`): слабый (< 2 опор) наследует калибровку сильнейшего
+    донора (≥ 4 опор) с побайтно той же поставочной. Плечо «как было»."""
+    for key, st in state.items():
+        if len(st['accepted']) >= 2:
+            continue
+        donors = [d for d in state.values()
+                  if d['det'] == st['det'] and len(d['accepted']) >= 4
+                  and len(d['sp'].ecal) == len(st['sp'].ecal)
+                  and np.allclose(d['sp'].ecal, st['sp'].ecal, rtol=0, atol=1e-12)]
+        if not donors:
+            continue
+        donor = max(donors, key=lambda d: len(d['accepted']))
+        st['ecal'] = donor['ecal']
+        st['r662'] = donor['r662']
+        st['mode'] = 'ref-cal(%s)' % donor['entry']['key']
+
+
+def dump_state(state, path, fam_lo=None):
+    u"""Ответ конвейера по спектру в формате `calib_<tag>.json` (для `--compare`)."""
+    out = {}
+    for key, st in sorted(state.items()):
+        es = sorted(x['e_ref'] for x in st['accepted'])
+        out[key] = dict(det=st['det'], nmax=st['sp'].n, coef=[float(c) for c in st['ecal'].coef],
+                        tag=st['mode'], n=len(st['accepted']),
+                        res_a=float(st['r662']) * np.sqrt(662.0),
+                        e_lo=es[0] if es else 0.0, e_hi=es[-1] if es else 0.0,
+                        fam_lo=(fam_lo or {}).get(key, 0.0),
+                        pairs=[dict(ch=round(x['ch'], 3), e=round(x['e_ref'], 3),
+                                    sig=round(x['sig'], 1)) for x in st['accepted']])
+    with io.open(path, 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+    return out
+
+
+def _delta(cal_a, cal_b, res_a, nmax, work):
+    grid = np.arange(0, nmax, dtype=float)
+    ea, eb = cal_a.energy(grid), cal_b.energy(grid)
+    d = np.abs(ea - eb)
+    fw = d / (res_a * np.sqrt(np.maximum(np.abs(ea), 5.0)))
+    inside = (ea >= work[0]) & (ea <= work[1]) if work else np.ones(nmax, dtype=bool)
+    dw = float(d[inside].max()) if np.any(inside) else 0.0
+    fww = float(fw[inside].max()) if np.any(inside) else 0.0
+    return float(d.max()), float(fw.max()), dw, fww
+
+
+def stage2(a, log):
+    u"""`--stage2`: стадии 1+2а (`ecal_extrapolation.build_state`, на копиях) и
+    два плеча стадии 2б — прежнее правило (`donor_rule`) и общий фит семьи
+    (`build_corpus.family_stage`). Артефакты: `calib2_<tag>_2a.json`,
+    `calib2_<tag>_donor.json`, `calib2_<tag>_family.json` (формат `--compare`),
+    `family_members_<tag>.csv`, `family_control_<tag>.csv`, `log_<tag>.txt`.
+
+    Положительные контроли:
+      1. плечо «как было» повторяет корпус: метки `ref-cal(...)` те же, что в
+         `corpus/manifest.csv` (иначе харнесс мерит не тот конвейер);
+      2. семья с опорами у одного члена ведёт себя как прежде — ответы обоих
+         плеч у её членов совпадают побитово;
+      3. подмена опоры у одного члена (сильнейшая опора старшего сдвинута на
+         +0.5 и +2 ПШПВ по каналу) меняет общий фит семьи.
+    """
+    cc = _load_calib(a['calib']) if a['calib'] else __import__('corpus_calib')
+    import build_corpus as bc
+    import ecal_extrapolation as ee
+    import corpus_def
+    ee.RAW = a['raw']
+    tag = a['tag']
+    if a['family_scope']:
+        bc.FAMILY_SCOPE = a['family_scope']
+    log(u'corpus_calib: %s (sha %s); build_corpus sha %s; FAMILY_SCOPE=%s; сырые копии: %s'
+        % (cc.__file__, _sha(cc.__file__), _sha(bc.__file__), bc.FAMILY_SCOPE, a['raw']))
+    entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
+               if a['only'] is None or e['key'] in a['only']]
+    t0 = time.time()
+    state = ee.build_state(entries)               # стадии 1 + 2а
+    log(u'стадии 1+2а: спектров %d, %.0f с' % (len(state), time.time() - t0))
+    dump_state(state, os.path.join(a['out'], 'calib2_%s_2a.json' % tag))
+
+    manifest = {}
+    mpath = os.path.join(os.path.dirname(HERE), 'corpus', 'manifest.csv')
+    with io.open(mpath, encoding='utf-8-sig') as f:
+        for r in csv.DictReader(f):
+            manifest[r['key']] = r['ecal_mode']
+    work = working_ranges()
+
+    # плечо «как было»
+    sd = {k: dict(st) for k, st in state.items()}
+    donor_rule(sd)
+    dump_state(sd, os.path.join(a['out'], 'calib2_%s_donor.json' % tag))
+    ref_h = sorted(k for k in sd if sd[k]['mode'].startswith('ref-cal'))
+    ref_m = sorted(k for k, m in manifest.items() if m.startswith('ref-cal') and k in sd)
+    same = sum(sd[k]['mode'] == manifest.get(k) for k in sd)
+    log(u'КОНТРОЛЬ 1 (плечо «как было» против manifest.csv, спектры стадии 1): ref-cal здесь %s; '
+        u'в корпусе %s; %s. Метки режима совпали у %d из %d'
+        % (', '.join('%s<-%s' % (k, sd[k]['mode'][8:-1]) for k in ref_h),
+           ', '.join('%s<-%s' % (k, manifest[k][8:-1]) for k in ref_m),
+           u'СОШЛОСЬ' if [(k, sd[k]['mode']) for k in ref_h] ==
+           [(k, manifest[k]) for k in ref_m] else u'РАЗОШЛОСЬ', same, len(sd)))
+
+    # плечо «семья»
+    sf = {k: dict(st) for k, st in state.items()}
+    fams = bc.family_stage(sf, None, log=log)
+    fam_lo = {}
+    for head, info in fams.items():
+        for k in info['members']:
+            if sf[k]['mode'].startswith('fam('):
+                fam_lo[k] = info['e_lo']
+    dump_state(sf, os.path.join(a['out'], 'calib2_%s_family.json' % tag), fam_lo)
+
+    rows = []
+    for head, info in sorted(fams.items()):
+        for k in info['members']:
+            st_d, st_f = sd[k], sf[k]
+            res_a = info['res_a']
+            dk, dfw, dwk, dwfw = _delta(st_f['ecal'], st_d['ecal'], res_a, st_f['sp'].n,
+                                        work.get(st_f['det']))
+            es = sorted(x['e_ref'] for x in st_f['accepted'])
+            rows.append(dict(family=head, det=st_f['det'], members=len(info['members']),
+                             anchors=info['n'], kept=info['keep'], family_fit=info['tag'],
+                             spectrum=k, n_own=len(st_f['accepted']),
+                             mode_donor=st_d['mode'], mode_family=st_f['mode'],
+                             d_max_kev=round(dk, 3), d_max_fwhm=round(dfw, 3),
+                             d_work_kev=round(dwk, 3), d_work_fwhm=round(dwfw, 3),
+                             e_lo_own=round(es[0], 1) if es else 0.0,
+                             e_lo_family=round(info['e_lo'], 1)))
+    fam_keys = {k for info in fams.values() for k in info['members']}
+    all_families = [f for f in bc.families(state) if len(f) >= 2]
+    single = [f for f in all_families if not any(k in fam_keys for k in f)]
+    same2 = sum(all(sd[k]['mode'] == sf[k]['mode']
+                    and np.array_equal(sd[k]['ecal'].coef, sf[k]['ecal'].coef)
+                    for k in f) for f in single)
+    log(u'')
+    log(u'семей (≥ 2 спектров на одной поставочной): %d; с общим фитом: %d; '
+        u'с опорами у одного члена или < %d опор: %d'
+        % (len(all_families), len(fams), bc.FAMILY_MIN_ANCHORS, len(single)))
+    log(u'КОНТРОЛЬ 2 (семья без второго вкладчика ведёт себя как прежде): %d из %d %s'
+        % (same2, len(single), u'СОШЛОСЬ' if same2 == len(single) else u'РАЗОШЛОСЬ'))
+    # 2б, синтетический: на живых данных вкладчик у каждой семьи не один (даже
+    # «слабый» с одной опорой — вкладчик), и ветка «единственный вкладчик →
+    # копия донора» иначе не проверяется. У всех членов, кроме старшего, опоры
+    # снимаются; ответ стадии обязан побитово совпасть с прежним правилом.
+    ok2b, n2b = 0, 0
+    for head, info in sorted(fams.items()):
+        sc = {k: dict(st) for k, st in state.items()}
+        for k in info['members']:
+            if k != head:
+                sc[k]['accepted'] = []
+        sd2 = {k: dict(st) for k, st in sc.items()}
+        donor_rule(sd2)
+        bc.family_stage(sc, None, log=lambda s: None)
+        n2b += 1
+        ok2b += all(sc[k]['mode'] == sd2[k]['mode']
+                    and np.array_equal(sc[k]['ecal'].coef, sd2[k]['ecal'].coef)
+                    for k in info['members']) and all(
+            sc[k]['mode'] == 'ref-cal(%s)' % head for k in info['members'] if k != head)
+    log(u'КОНТРОЛЬ 2б (синтетический: опоры сняты у всех, кроме старшего → копия донора, '
+        u'как прежде): %d из %d %s' % (ok2b, n2b, u'СОШЛОСЬ' if ok2b == n2b else u'РАЗОШЛОСЬ'))
+    changed = [r for r in rows if r['mode_donor'] != r['mode_family']]
+    moved = [r for r in rows if r['d_max_kev'] > 1e-6]
+    log(u'члены семей с общим фитом: %d; сменили метку %d; шкала сдвинулась %d; '
+        u'> 0.5 ПШПВ в рабочем диапазоне группы %d; > 0.5 ПШПВ где-либо %d'
+        % (len(rows), len(changed), len(moved),
+           sum(r['d_work_fwhm'] > 0.5 for r in rows), sum(r['d_max_fwhm'] > 0.5 for r in rows)))
+    if rows:
+        w = max(rows, key=lambda r: r['d_work_fwhm'])
+        log(u'   худший в рабочем диапазоне: %s %.3f кэВ = %.3f ПШПВ (%s -> %s)'
+            % (w['spectrum'], w['d_work_kev'], w['d_work_fwhm'], w['mode_donor'], w['mode_family']))
+    with io.open(os.path.join(a['out'], 'family_members_%s.csv' % tag), 'w', encoding='utf-8',
+                 newline='') as f:
+        cols = ['family', 'det', 'members', 'anchors', 'kept', 'family_fit', 'spectrum', 'n_own',
+                'mode_donor', 'mode_family', 'd_max_kev', 'd_max_fwhm', 'd_work_kev',
+                'd_work_fwhm', 'e_lo_own', 'e_lo_family']
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        w.writerows(rows)
+
+    # контроль 3: подмена опоры у одного члена меняет общий фит
+    ctl = []
+    for head, info in sorted(fams.items()):
+        strongest = max(state[head]['accepted'], key=lambda x: x['sig'])
+        for shift in (0.5, 2.0):
+            sc = {k: dict(st) for k, st in state.items()}
+            sc[head]['accepted'] = [dict(x) for x in state[head]['accepted']]
+            x = max(sc[head]['accepted'], key=lambda p: p['sig'])
+            cal0 = cc.Ecal(state[head]['sp'].ecal, state[head]['sp'].n)
+            fwhm_ch = (info['res_a'] * np.sqrt(max(x['e_ref'], 5.0))
+                       / max(abs(cal0.dEdch(x['ch'])), 1e-9))
+            x['ch'] += shift * fwhm_ch
+            got = bc.family_stage(sc, None, log=lambda s: None)
+            if head not in got:
+                ctl.append(dict(family=head, shift_fwhm=shift, anchor_kev=round(strongest['e_ref'], 1),
+                                fit_before=info['tag'], fit_after='(семьи нет)',
+                                kept_before=info['keep'], kept_after=0, d_max_kev=None,
+                                d_max_fwhm=None, reacted=True))
+                continue
+            dk, dfw, _, _ = _delta(got[head]['cal'], info['cal'], info['res_a'],
+                                   state[head]['sp'].n, None)
+            ctl.append(dict(family=head, shift_fwhm=shift, anchor_kev=round(strongest['e_ref'], 1),
+                            fit_before=info['tag'], fit_after=got[head]['tag'],
+                            kept_before=info['keep'], kept_after=got[head]['keep'],
+                            d_max_kev=round(dk, 4), d_max_fwhm=round(dfw, 4),
+                            reacted=dfw > NEUTRAL_FWHM))
+    log(u'КОНТРОЛЬ 3 (подмена сильнейшей опоры старшего): семей %d, отреагировали при +0.5 ПШПВ '
+        u'%d, при +2 ПШПВ %d' % (len(fams), sum(c['reacted'] for c in ctl if c['shift_fwhm'] == 0.5),
+                                 sum(c['reacted'] for c in ctl if c['shift_fwhm'] == 2.0)))
+    for c in ctl:
+        log(u'   %-22s +%.1f ПШПВ на %6.1f кэВ: %s -> %s, опор %d -> %d, max|ΔE| %s кэВ = %s ПШПВ'
+            % (c['family'], c['shift_fwhm'], c['anchor_kev'], c['fit_before'], c['fit_after'],
+               c['kept_before'], c['kept_after'], c['d_max_kev'], c['d_max_fwhm']))
+    if ctl:
+        with io.open(os.path.join(a['out'], 'family_control_%s.csv' % tag), 'w', encoding='utf-8',
+                     newline='') as f:
+            w = csv.DictWriter(f, fieldnames=list(ctl[0].keys()))
+            w.writeheader()
+            w.writerows(ctl)
+    log(u'время: %.0f с' % (time.time() - t0))
+
+
+# ---------------------------------------------------------------------------
 def compare(paths, out_dir):
-    u"""`--compare=A.json,B.json`: режим до/после и max|ΔE| между ответами."""
+    u"""`--compare=A.json,B.json`: режим до/после и max|ΔE| между ответами —
+    по всей шкале и в рабочем диапазоне группы (`corpus/detectors.csv`)."""
     a_path, b_path = paths
     A = json.load(io.open(a_path, encoding='utf-8'))
     B = json.load(io.open(b_path, encoding='utf-8'))
@@ -390,10 +634,11 @@ def compare(paths, out_dir):
         with io.open(summ, encoding='utf-8-sig') as f:
             for r in csv.DictReader(f):
                 corpus[r[u'спектр']] = r[u'калибровка']
+    work = working_ranges()
     name_a = os.path.basename(a_path)[6:-5]
     name_b = os.path.basename(b_path)[6:-5]
     rows = []
-    changed, moved = 0, 0
+    changed, moved, moved_work = 0, 0, 0
     for key in sorted(A):
         if key not in B:
             continue
@@ -408,21 +653,30 @@ def compare(paths, out_dir):
         i = int(np.argmax(d))
         lo = min(ra['e_lo'], rb['e_lo']) if ra['n'] and rb['n'] else 0.0
         below = fw[ea < lo].max() if ra['n'] and np.any(ea < lo) else 0.0
+        wr = work.get(ra['det'])
+        inside = (ea >= wr[0]) & (ea <= wr[1]) if wr else np.ones(nmax, dtype=bool)
+        dw = float(d[inside].max()) if np.any(inside) else 0.0
+        fww = float(fw[inside].max()) if np.any(inside) else 0.0
         rows.append(dict(spectrum=key, det=ra['det'], n=ra['n'], corpus_mode=corpus.get(key, ''),
                          mode_a=ra['tag'], mode_b=rb['tag'], d_max_kev=round(float(d[i]), 3),
                          d_max_fwhm=round(float(fw.max()), 3), ch_max=i,
                          e_at_max=round(float(ea[i]), 1),
+                         d_work_kev=round(dw, 3), d_work_fwhm=round(fww, 3),
                          d_below_lowest_fwhm=round(float(below), 3),
-                         e_lo=round(ra['e_lo'], 1), e_hi=round(ra['e_hi'], 1)))
+                         e_lo=round(ra['e_lo'], 1), e_hi=round(ra['e_hi'], 1),
+                         n_b=rb['n'], e_lo_b=round(rb['e_lo'], 1),
+                         fam_lo_b=round(rb.get('fam_lo', 0.0), 1)))
         changed += ra['tag'] != rb['tag']
         moved += d[i] > 1e-6
+        moved_work += fww > 0.5
     path = os.path.join(out_dir, 'modes_%s_vs_%s.csv' % (name_a, name_b))
     with io.open(path, 'w', encoding='utf-8', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
-    print(u'%s: спектров %d, режим сменили %d, шкала сдвинулась (>1e-6 кэВ) у %d → %s'
-          % (name_b, len(rows), changed, moved, path))
+    print(u'%s -> %s: спектров %d, режим сменили %d, шкала сдвинулась (>1e-6 кэВ) у %d, '
+          u'> 0.5 ПШПВ в рабочем диапазоне у %d -> %s'
+          % (name_a, name_b, len(rows), changed, moved, moved_work, path))
     return rows
 
 
@@ -440,6 +694,10 @@ def main(argv):
         log_f.write(s + u'\n')
         log_f.flush()
 
+    if a['stage2']:
+        stage2(a, log)
+        log_f.close()
+        return None
     cc = _load_calib(a['calib']) if a['calib'] else __import__('corpus_calib')
     import build_corpus as bc
     import calibrate
