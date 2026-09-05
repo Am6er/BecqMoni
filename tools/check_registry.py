@@ -95,6 +95,12 @@ CR с лишней `|` в описании, — и контроль требуе
 назван проверкой 1, а от CR и `|` не прибавилось ни строк, ни находок.
 Оригинал `TODO.md` при этом не открывается на запись вовсе.
 
+Проверка 2 покрыта тем же ключом с 06.09.2026 (`T223`): в описание ещё одной
+строки копии подсаживаются битая ссылка, ссылка на файл, который лежит
+только на диске, и имя из `OUTSIDE_ON_PURPOSE`; контроль требует, чтобы
+первая была названа в списке «нет в дереве», вторая — в списке «НЕТ В
+РЕПОЗИТОРИИ» с прибавкой к счёту ровно единицы, а третья не всплыла нигде.
+
 ⛔ Чтение реестра — ТОЛЬКО через `read_lines`: файл берётся нетронутым и режется
 по переводу строки LF руками. Построчное чтение Python режет строку и по одиночному CR, а он
 в описаниях реестра встречался: хвост строки терялся молча, номера строк после
@@ -109,8 +115,8 @@ CR с лишней `|` в описании, — и контроль требуе
 здесь его находки считаются в итог. ⛔ `DONE.md` правит ТОЛЬКО Amber: проверка
 называет строки, а замены текстом собирает тот, кто её позвал.
 
-Выход 1 — есть столкновение номеров внутри файла, имя из кода, которого нет в
-дереве, находка храповика двух копий `config/`, расхождение объявлений
+Выход 1 — есть столкновение номеров внутри файла, ссылка на файл, который лежит
+только на диске, а не в репозитории, имя из кода, которого нет в дереве, находка храповика двух копий `config/`, расхождение объявлений
 действующей базы, нечитаемая графа состояния, либо заголовок `DONE.md`,
 противоречащий своему телу. Остальное печатается к глазам.
 """
@@ -179,6 +185,20 @@ OUTSIDE_ON_PURPOSE = {
                  u"что правила «для всех» так хранить нельзя",
     "agents.md": u"личные указания сборки у сопровождающего, в .gitignore "
                  u"(CLAUDE.md, «Build»)",
+    # Три записи ниже — T223 (06.09.2026): до них проверка 2 краснела на
+    # десяти ссылках из пятнадцати, и все десять были на эти три имени.
+    ".appwd.json": u"отметка оснастки корпуса, которую пишет сам "
+                   u"appwd_plan.ps1 в каждый рабочий каталог "
+                   u"tools/CORPUS/scripts/wd_*/ (каталоги в .gitignore); "
+                   u"реестр ссылается на неё как на признак, а не на файл "
+                   u"проекта (T63, T66, T68, T80, T84)",
+    "settings.local.json": u"личный файл настроек агента Amber "
+                           u".claude/settings.local.json, в .gitignore "
+                           u"(T218)",
+    "effprobe.xml": u"конфигурация прибора, которую пробы EffMaker кладут в "
+                    u"свой рабочий каталог <wd>\\config\\device\\ "
+                    u"(tools/effmaker/probes/build_*/, в .gitignore); в "
+                    u"реестре стоит шаблоном пути `<wd>\\…` (T153)",
 }
 
 
@@ -206,6 +226,188 @@ def read_rows(path):
         if m:
             rows.append((m.group(1), m.group(2), n))
     return rows
+
+
+def file_targets(text):
+    u"""Цели проверки 2 в описании строки: ссылки `[…](путь)` и имена файлов
+    в обратных кавычках (по `FILEY`, без пробелов внутри)."""
+    targets = set()
+    for t in LINK.findall(text):
+        t = t.split("#")[0].strip()
+        if t and not t.startswith("http"):
+            targets.add(t)
+    for c in CODE.findall(text):
+        c = c.strip()
+        if FILEY.search(c) and " " not in c:
+            targets.add(c)
+    return targets
+
+
+def check_file_refs(root, out, files, index=None, tracked=None):
+    u"""Проверка 2: ссылки на файлы. Возвращает число НАХОДОК В СЧЁТ.
+
+    Два списка, и в счёт входит только второй (`T223`, 06.09.2026 — разбор
+    посылки: «шаблоны» вроде `*.resx` и `Foo.Designer.cs` попадают в первый
+    список, к глазам, и сторожа не красят):
+
+    1. «нет в дереве» — цели, которых нет ни у git, ни на диске: к глазам,
+       потому что строка может рассказывать об удалённом файле;
+    2. «НЕТ В РЕПОЗИТОРИИ» — цель есть на диске (по пути или по голому имени
+       в индексе дерева), а git её не знает: случай N8, считается.
+
+    `OUTSIDE_ON_PURPOSE` сверяется по имени файла (basename, нижний регистр)
+    и снимает цель с обоих списков; у каждой записи обязана быть причина.
+    `index` и `tracked` можно передать готовыми, чтобы не строить их дважды
+    (`--selftest` зовёт проверку на чистой и на подделанной копии).
+    """
+    if index is None:
+        index = build_index(root)
+    if tracked is None:
+        tracked = tracked_set(root)
+    tracked_paths, tracked_names = tracked
+    bad = 0
+    untracked = collections.defaultdict(set)
+    out.write(u"# Ссылки на файлы, которых нет в дереве\n\n")
+    missing_any = False
+    for name, rows in files.items():
+        for num, text, line in rows:
+            lost = []
+            for t in file_targets(text):
+                key = t.replace("\\", "/").lstrip("./").lower()
+                base = os.path.basename(t.replace("\\", "/")).lower()
+                known_to_git = key in tracked_paths or base in tracked_names
+                on_disk = (os.path.exists(os.path.join(root, t.replace("/", os.sep)))
+                           or base in index)
+                if known_to_git or base in OUTSIDE_ON_PURPOSE:
+                    continue
+                if on_disk:
+                    untracked[name].add((num, line, t))
+                    continue
+                lost.append(t)
+            if lost:
+                missing_any = True
+                out.write(u"  %-8s %-5s строка %-4d %s\n"
+                          % (name, num, line, u", ".join(sorted(lost))))
+    if not missing_any:
+        out.write(u"  нет\n")
+
+    out.write(u"\n# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)\n\n")
+    if untracked:
+        out.write(u"  Это случай N8: реестр ссылается на работу, которой из\n"
+                  u"  репозитория не видно. Либо закоммитить, либо не ссылаться.\n")
+        for name in sorted(untracked):
+            for num, line, t in sorted(untracked[name], key=lambda r: r[1]):
+                out.write(u"  %-8s %-5s строка %-4d %s\n" % (name, num, line, t))
+        bad += sum(len(v) for v in untracked.values())
+    else:
+        out.write(u"  нет\n")
+
+    out.write(u"\n# Вне репозитория НАРОЧНО\n\n")
+    for name in sorted(OUTSIDE_ON_PURPOSE):
+        out.write(u"  %-20s %s\n" % (name, OUTSIDE_ON_PURPOSE[name]))
+    out.write(u"\n")
+    return bad
+
+
+def selftest_file_refs(root, out):
+    u"""Положительный контроль проверки 2 (T223). Возвращает список провалов.
+
+    Во ВРЕМЕННУЮ копию `TODO.md` подсаживаются в описание одной чистой строки
+    три цели:
+      * битая ссылка на файл, которого нет нигде, — обязана быть названа в
+        списке «нет в дереве» ровно в этой строке;
+      * ссылка на файл, который контроль сам кладёт рядом с копией (на
+        диске есть, git не знает), — обязана быть названа в списке «НЕТ В
+        РЕПОЗИТОРИИ» и прибавить к счёту ровно единицу;
+      * имя из `OUTSIDE_ON_PURPOSE` — НЕ должно всплыть ни в одном списке
+        (иначе список исключений не работает, а это ровно то, чем лечится
+        T223).
+    Чистая копия обязана дать столько же, сколько чистая копия до подсадки
+    (сравнение не с нулём: реестр сегодня не безупречен, и сторож обязан
+    работать на нём таком).
+    """
+    failures = []
+    src = os.path.join(root, u"TODO.md")
+    out.write(u"# Положительный контроль проверки 2 (T223)\n\n")
+    if not os.path.exists(src):
+        return [u"TODO.md не найден — контроль проверки 2 не проведён"]
+    tmp = tempfile.mkdtemp(prefix=u"check_registry_selftest2_")
+    try:
+        dst = os.path.join(tmp, u"TODO.md")
+        shutil.copyfile(src, dst)
+        planted_file = os.path.join(tmp, u"g3_planted_untracked.md")
+        with io.open(planted_file, "w", encoding="utf-8") as f:
+            f.write(u"подсадка контроля проверки 2\n")
+        index = build_index(root)
+        tracked = tracked_set(root)
+        excluded = sorted(OUTSIDE_ON_PURPOSE)[0]
+        broken = u"g3-нет-такого-файла.md"
+
+        quiet = io.StringIO()
+        clean = check_file_refs(root, quiet, collections.OrderedDict(
+            [(u"копия", read_rows(dst))]), index, tracked)
+
+        lines = read_lines(dst)
+        planted_line = planted_num = None
+        for i, line in enumerate(lines):
+            m = ROW.match(line.rstrip(u"\r\n"))
+            if not m:
+                continue
+            cells = line.rstrip(u"\n").split(u"|")
+            if len(cells) < 5:
+                continue
+            cells[-2] = (cells[-2] + u" подсадка: `%s`, [есть только на диске](%s), `%s` "
+                         % (broken, planted_file.replace(u"\\", u"/"), excluded))
+            lines[i] = u"|".join(cells)
+            planted_line, planted_num = i + 1, m.group(1)
+            break
+        if planted_line is None:
+            return [u"не нашлось строки для подсадки проверки 2"]
+        with io.open(dst, "w", encoding="utf-8", newline=u"") as f:
+            f.write(u"\n".join(lines))
+
+        loud = io.StringIO()
+        dirty = check_file_refs(root, loud, collections.OrderedDict(
+            [(u"копия", read_rows(dst))]), index, tracked)
+        text = loud.getvalue()
+        sec_lost = text.split(u"# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ")[0]
+        sec_untr = text.split(u"# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ")[1]
+        row_re = u"копия\\s+%s\\s+строка %d .*%s" % (planted_num, planted_line, u"%s")
+        named_lost = re.search(row_re % re.escape(broken), sec_lost) is not None
+        named_untr = re.search(row_re % re.escape(
+            planted_file.replace(u"\\", u"/")), sec_untr) is not None
+        excl_seen = re.search(row_re % re.escape(excluded), text) is not None
+
+        out.write(u"  чистая копия: находок в счёт %d\n" % clean)
+        out.write(u"  подсажено в строку %s (строка %d): битая `%s`, "
+                  u"файл только на диске `%s`, исключение `%s`\n"
+                  % (planted_num, planted_line, broken, planted_file, excluded))
+        out.write(u"  подделанная копия: находок в счёт %d (ожидалось %d)\n"
+                  % (dirty, clean + 1))
+        out.write(u"    битая ссылка названа в «нет в дереве»: %s\n"
+                  % (u"да" if named_lost else u"НЕТ"))
+        out.write(u"    файл только на диске назван в «НЕТ В РЕПОЗИТОРИИ»: %s\n"
+                  % (u"да" if named_untr else u"НЕТ"))
+        out.write(u"    имя из OUTSIDE_ON_PURPOSE всплыло: %s\n"
+                  % (u"ДА" if excl_seen else u"нет"))
+        if dirty != clean + 1:
+            failures.append(u"проверка 2: находок %d вместо %d" % (dirty, clean + 1))
+        if not named_lost:
+            failures.append(u"проверка 2: битая ссылка `%s` не названа в строке %d"
+                            % (broken, planted_line))
+        if not named_untr:
+            failures.append(u"проверка 2: файл только на диске не назван в строке %d"
+                            % planted_line)
+        if excl_seen:
+            failures.append(u"проверка 2: исключение `%s` всплыло находкой" % excluded)
+        out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ ПРОВЕРКИ 2 СОШЁЛСЯ"
+                                  if not failures else
+                                  u"⛔ КОНТРОЛЬ ПРОВЕРКИ 2 ПРОВАЛЕН: " + u"; ".join(failures)))
+        if failures:
+            out.write(text)
+        return failures
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def check_numbers(out, files):
@@ -809,17 +1011,19 @@ def main():
     p.add_argument("--root", default=os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))))
     p.add_argument("--selftest", action="store_true",
-                   help=u"положительный контроль проверок 1 и 6 (T100): "
-                        u"подсадить во ВРЕМЕННУЮ копию TODO.md кривые графы, "
-                        u"задвоенный номер, CR и `|` — и убедиться, что "
-                        u"проверка краснеет ровно там, где надо")
+                   help=u"положительный контроль проверок 1, 2 и 6 (T100, "
+                        u"T223): подсадить во ВРЕМЕННУЮ копию TODO.md кривые "
+                        u"графы, задвоенный номер, CR и `|`, битую ссылку и "
+                        u"файл только на диске — и убедиться, что проверка "
+                        u"краснеет ровно там, где надо")
     a = p.parse_args()
 
     if a.selftest:
         out = io.open(1, "w", encoding="utf-8", closefd=False)
         rc = selftest_registry(a.root, out)
+        failures2 = selftest_file_refs(a.root, out)
         out.flush()
-        return rc
+        return 1 if (rc or failures2) else 0
 
     root = a.root
     out = io.open(1, "w", encoding="utf-8", closefd=False)
@@ -833,57 +1037,7 @@ def main():
     bad += check_numbers(out, files)
 
     # --- 2. ссылки на файлы ---------------------------------------------
-    index = build_index(root)
-    tracked_paths, tracked_names = tracked_set(root)
-    untracked = collections.defaultdict(set)
-    out.write(u"# Ссылки на файлы, которых нет в дереве\n\n")
-    missing_any = False
-    for name, rows in files.items():
-        for num, text, line in rows:
-            targets = set()
-            for t in LINK.findall(text):
-                t = t.split("#")[0].strip()
-                if t and not t.startswith("http"):
-                    targets.add(t)
-            for c in CODE.findall(text):
-                c = c.strip()
-                if FILEY.search(c) and " " not in c:
-                    targets.add(c)
-            lost = []
-            for t in targets:
-                key = t.replace("\\", "/").lstrip("./").lower()
-                base = os.path.basename(t).lower()
-                known_to_git = key in tracked_paths or base in tracked_names
-                on_disk = (os.path.exists(os.path.join(root, t.replace("/", os.sep)))
-                           or base in index)
-                if known_to_git or base in OUTSIDE_ON_PURPOSE:
-                    continue
-                if on_disk:
-                    untracked[name].add((num, line, t))
-                    continue
-                lost.append(t)
-            if lost:
-                missing_any = True
-                out.write(u"  %-8s %-5s строка %-4d %s\n"
-                          % (name, num, line, u", ".join(sorted(lost))))
-    if not missing_any:
-        out.write(u"  нет\n")
-
-    out.write(u"\n# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)\n\n")
-    if untracked:
-        out.write(u"  Это случай N8: реестр ссылается на работу, которой из\n"
-                  u"  репозитория не видно. Либо закоммитить, либо не ссылаться.\n")
-        for name in sorted(untracked):
-            for num, line, t in sorted(untracked[name], key=lambda r: r[1]):
-                out.write(u"  %-8s %-5s строка %-4d %s\n" % (name, num, line, t))
-        bad += sum(len(v) for v in untracked.values())
-    else:
-        out.write(u"  нет\n")
-
-    out.write(u"\n# Вне репозитория НАРОЧНО\n\n")
-    for name in sorted(OUTSIDE_ON_PURPOSE):
-        out.write(u"  %-12s %s\n" % (name, OUTSIDE_ON_PURPOSE[name]))
-    out.write(u"\n")
+    bad += check_file_refs(root, out, files)
 
     # --- 3. имена из кода -----------------------------------------------
     blob = tracked_text(root)

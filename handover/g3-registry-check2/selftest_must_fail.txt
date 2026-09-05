@@ -1,0 +1,164 @@
+# Положительный контроль проверки 2 (T223)
+
+  чистая копия: находок в счёт 0
+  подсажено в строку S61 (строка 165): битая `g3-нет-такого-файла.md`, файл только на диске `C:\Users\moroz\AppData\Local\Temp\check_registry_selftest2_df5tdew5\g3_planted_untracked.md`, исключение `.appwd.json`
+  подделанная копия: находок в счёт 0 (ожидалось 1)
+    битая ссылка названа в «нет в дереве»: НЕТ
+    файл только на диске назван в «НЕТ В РЕПОЗИТОРИИ»: НЕТ
+    имя из OUTSIDE_ON_PURPOSE всплыло: нет
+
+  ⛔ КОНТРОЛЬ ПРОВЕРКИ 2 ПРОВАЛЕН: проверка 2: находок 0 вместо 1; проверка 2: битая ссылка `g3-нет-такого-файла.md` не названа в строке 165; проверка 2: файл только на диске не назван в строке 165
+
+# Ссылки на файлы, которых нет в дереве
+
+  нет
+
+# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)
+
+  нет
+плечо 1 (заглушка): провалов 3 — проверка 2: находок 0 вместо 1; проверка 2: битая ссылка `g3-нет-такого-файла.md` не названа в строке 165; проверка 2: файл только на диске не назван в строке 165
+
+# Положительный контроль проверки 2 (T223)
+
+  чистая копия: находок в счёт 28
+  подсажено в строку S61 (строка 165): битая `g3-нет-такого-файла.md`, файл только на диске `C:\Users\moroz\AppData\Local\Temp\check_registry_selftest2_ligeqczs\g3_planted_untracked.md`, исключение `.appwd.json`
+  подделанная копия: находок в счёт 30 (ожидалось 29)
+    битая ссылка названа в «нет в дереве»: да
+    файл только на диске назван в «НЕТ В РЕПОЗИТОРИИ»: да
+    имя из OUTSIDE_ON_PURPOSE всплыло: ДА
+
+  ⛔ КОНТРОЛЬ ПРОВЕРКИ 2 ПРОВАЛЕН: проверка 2: находок 30 вместо 29; проверка 2: исключение `.appwd.json` всплыло находкой
+
+# Ссылки на файлы, которых нет в дереве
+
+  копия    S61   строка 165  g3-нет-такого-файла.md
+  копия    A23   строка 211  *.ru.resx
+  копия    A35   строка 223  Lu176.xml
+  копия    A49   строка 238  Th232(WT-20).xml
+  копия    A50   строка 240  *.xml, .resx
+  копия    A75   строка 264  corpus/spectra/<ключ>.xml
+  копия    A84   строка 273  --map=<ключ,guid>.csv
+  копия    A88   строка 277  *.resx, .ru.resx
+  копия    A91   строка 280  *.Designer.cs, ru.resx
+  копия    A95   строка 284  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+  копия    A98   строка 287  *.cs, .resx, Designer.cs
+  копия    A99   строка 288  *.ru.resx
+  копия    A107  строка 296  BecquerelMonitor/**/*.resx, ru.resx
+  копия    A115  строка 304  Designer.cs
+  копия    A118  строка 307  .resx, .ru.resx, Foo.Designer.cs, Foo.cs, Foo.resx
+  копия    A124  строка 313  *.Designer.cs, *.resx
+  копия    A126  строка 315  Designer.cs, ru.resx
+  копия    A145  строка 334  .cs/.Designer.cs/.resx/.ru.resx, .csproj, FsaOverlay.cs
+  копия    A167  строка 356  config/ROI/*.xml, config\ROI\*.xml
+  копия    A168  строка 357  .csproj
+  копия    A173  строка 362  *.cs, Designer.cs
+  копия    A187  строка 376  .ru.resx
+  копия    A188  строка 377  .resx, .ru.resx, Designer.cs
+  копия    A189  строка 378  check_resx*.py
+  копия    A201  строка 389  .ru.resx, Resources*.resx
+  копия    A202  строка 390  *.resx, Designer.cs
+  копия    A221  строка 409  config/device/*.xml
+  копия    A229  строка 417  *.resx, .ru.resx
+  копия    A244  строка 429  .Designer.cs, .resx, .ru.resx, DC*.cs, FSAReportView*.cs, Properties/Resources*.resx, ROI*.cs, XPTable/*.cs, tools/check_resx*.py
+  копия    A247  строка 432  .resx, .ru.resx
+  копия    A248  строка 433  .resx, .ru.resx
+  копия    A249  строка 434  .resx
+  копия    S3    строка 465  FullSpectrumAnalysis/*.cs
+  копия    S44   строка 474  BecquerelMonitor/**/*.cs, check_resx*.py
+  копия    E19   строка 475  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml
+  копия    S52   строка 477  !AS80x80\Lu-176.xml
+  копия    S109  строка 482  tools/pie/out_s109/s109_peaks_m*.csv
+  копия    W10   строка 554  BecquerelMonitor/**/*.cs
+  копия    E17   строка 564  .resx
+  копия    R1    строка 580  BecquerelMonitor/LibraryPeakFitter.cs, LineSetBuilder.cs
+  копия    C2    строка 589  *.resx, BecquerelMonitor/**/*.cs
+  копия    C4    строка 590  config/ROI/*.xml
+  копия    N17   строка 606  xray_widths.xml, xraydb.sqlite
+  копия    D7    строка 616  xray_widths.xml
+  копия    D35   строка 624  BecquerelMonitor/**/*.cs
+  копия    T43   строка 657  data.perfView.csv
+  копия    S137  строка 665  components.csv
+  копия    S143  строка 671  corpus-base-out-mini.md
+  копия    T21   строка 676  t21_co60_off.json, t21_sc_cyl_off.json, t21_sc_mar_off.json
+  копия    T63   строка 677  *_spline_components.csv, *_spline_limits.csv, *_spline_runs.csv, config\NuclideDefinition.OLD.xml
+  копия    T67   строка 680  runs.csv
+  копия    T68   строка 681  corpus-run-with-matrix.md, scripts/*.ps1
+  копия    T76   строка 683  *.md
+  копия    T79   строка 686  .sqlite, .xml
+  копия    T80   строка 687  Ghost.xml, config\NuclideDefinition.OLD.xml, config\device\*.xml
+  копия    T81   строка 688  *.sqlite
+  копия    T89   строка 694  .cs, tools\effmaker\*.cs, tools\effmaker\probes\*.cs
+  копия    T91   строка 695  corpus-base-out-v5.md, memory/corpus-base-out-v5.md
+  копия    T97   строка 699  *.ru.resx
+  копия    T113  строка 706  handover-*.md, scratchpad/f10/t113_scan.py
+  копия    T119  строка 711  .ps1, config\GeometryMaterials.xml
+  копия    T128  строка 718  corpus-base-<база>.md
+  копия    T137  строка 727  tools/**/*.py
+  копия    T139  строка 729  .resx, .ru.resx
+  копия    T145  строка 735  *.sqlite
+  копия    T149  строка 739  config\ROI\*.xml, config\device\*.xml
+  копия    T155  строка 745  .ps1, .py
+  копия    T156  строка 746  .resx, Foo.resx, check_resx*.py
+  копия    T157  строка 747  Designer.cs, ru.resx
+  копия    T158  строка 748  *.resx, .resx, .ru.resx
+  копия    T166  строка 756  .resx
+  копия    T174  строка 764  config/ROI/*.xml
+  копия    T177  строка 767  FsaOverlay.cs
+  копия    T182  строка 772  .cs
+  копия    T188  строка 778  *.md, tools/**/*.ps1
+  копия    T190  строка 780  config\ROI\*.xml, config\device\*.xml
+  копия    T194  строка 784  .cs
+  копия    T199  строка 789  tools/effmaker/**/*.cs
+  копия    T200  строка 790  *.cs, *.py, tools/**/*.ps1
+  копия    T203  строка 793  *.resx, <ключ>.xml, Designer.cs, config/ROI/*.xml, handover/*-2026-09-05-*.md
+  копия    T209  строка 799  *.sqlite
+  копия    T223  строка 813  !AS80x80\Lu-176.xml, *.resx, --map=<ключ,guid>.csv, .ru.resx, Designer.cs, Foo.Designer.cs, FsaOverlay.cs, check_resx*.py, config/ROI/*.xml, corpus/spectra/<ключ>.xml
+  копия    T226  строка 815  .cs, .csproj
+  копия    T229  строка 818  *.ru.resx
+  копия    T230  строка 819  .resx, .ru.resx
+  копия    T233  строка 822  .csproj
+  копия    T234  строка 823  *.ru.resx, Foo.Designer.cs
+  копия    T235  строка 824  *.resx, .resx
+  копия    T238  строка 827  *.Designer.cs, *.resx, add_keys*.py, tools/**/*.py
+
+# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)
+
+  Это случай N8: реестр ссылается на работу, которой из
+  репозитория не видно. Либо закоммитить, либо не ссылаться.
+  копия    S61   строка 165  lines_spline.csv
+  копия    S61   строка 165  .appwd.json
+  копия    S61   строка 165  C:/Users/moroz/AppData/Local/Temp/check_registry_selftest2_ligeqczs/g3_planted_untracked.md
+  копия    S61   строка 165  tools/pie/out_s60/lines_spline.csv
+  копия    A69   строка 258  CLAUDE.md
+  копия    A77   строка 266  CLAUDE.md
+  копия    A242  строка 427  CLAUDE.md
+  копия    S132  строка 503  CLAUDE.md
+  копия    T43   строка 657  CLAUDE.md
+  копия    T44   строка 659  CLAUDE.md
+  копия    S134  строка 662  tools/pie/out_s109/s109_peaks_m1.0.csv
+  копия    S134  строка 662  s109_peaks_m1.0.csv
+  копия    T63   строка 677  .appwd.json
+  копия    T66   строка 679  .appwd.json
+  копия    T68   строка 681  wd_app\.appwd.json
+  копия    T68   строка 681  .appwd.json
+  копия    T77   строка 684  CLAUDE.md
+  копия    T80   строка 687  .appwd.json
+  копия    T81   строка 688  AGENTS.md
+  копия    T84   строка 690  .appwd.json
+  копия    T120  строка 712  CLAUDE.md
+  копия    T124  строка 714  CLAUDE.md
+  копия    T134  строка 724  tools/effmaker/out/a85/band.py
+  копия    T149  строка 739  CLAUDE.md
+  копия    T153  строка 743  <wd>\config\device\effprobe.xml
+  копия    T199  строка 789  CLAUDE.md
+  копия    T218  строка 808  CLAUDE.md
+  копия    T218  строка 808  .claude/settings.local.json
+  копия    T223  строка 813  .claude/settings.local.json
+  копия    T223  строка 813  .appwd.json
+
+# Вне репозитория НАРОЧНО
+
+  .appwd.json          единственная запись, чтобы контроль выбрал её и подсадил
+
+плечо 2 (исключения не действуют): провалов 2 — проверка 2: находок 30 вместо 29; проверка 2: исключение `.appwd.json` всплыло находкой
+rc=0
