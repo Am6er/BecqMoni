@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Globalization;
 using System.Windows.Forms;
 using BecquerelMonitor.Properties;
 
@@ -129,6 +130,7 @@ namespace BecquerelMonitor.Utils
             if (this.peakType == FwhmCalibration.ExpGaussExpPeakType)
             {
                 return string.Format(
+                    CultureInfo.InvariantCulture,
                     "{0} ({1:0.0}, {2:0.0})",
                     peakName,
                     this.calibration.ExpGaussExpLeftTail,
@@ -138,6 +140,7 @@ namespace BecquerelMonitor.Utils
             if (this.peakType == FwhmCalibration.VoigtPeakType)
             {
                 return string.Format(
+                    CultureInfo.InvariantCulture,
                     "{0} ({1:0.0}, {2:0.0})",
                     peakName,
                     this.calibration.VoigtSigma,
@@ -187,7 +190,7 @@ namespace BecquerelMonitor.Utils
                     graphics.DrawLine(gridPen, x, plotBounds.Top, x, plotBounds.Bottom);
 
                     RectangleF xLabel = new RectangleF(x - 24.0f, plotBounds.Bottom + 4.0f, 48.0f, 18.0f);
-                    string xLabelText = sigmaIndex == 0 ? "0" : string.Format("{0}σ", sigmaIndex);
+                    string xLabelText = sigmaIndex == 0 ? "0" : string.Format(CultureInfo.InvariantCulture, "{0}σ", sigmaIndex);
                     graphics.DrawString(xLabelText, this.Font, textBrush, xLabel, centeredFormat);
                 }
 
@@ -198,7 +201,7 @@ namespace BecquerelMonitor.Utils
                     RectangleF yLabel = new RectangleF(4.0f, y - 8.0f, LeftMargin - 8.0f, 18.0f);
 
                     graphics.DrawLine(gridPen, plotBounds.Left, y, plotBounds.Right, y);
-                    graphics.DrawString(yValue.ToString("0.0"), this.Font, textBrush, yLabel, rightFormat);
+                    graphics.DrawString(yValue.ToString("0.0", CultureInfo.InvariantCulture), this.Font, textBrush, yLabel, rightFormat);
                 }
             }
         }
@@ -384,7 +387,7 @@ namespace BecquerelMonitor.Utils
                 Row(
                     Script(Txt("σ"), "g", null),
                     Txt(" = "),
-                    Txt(this.gaussianReferenceSigma.ToString("0.###")))
+                    Txt(this.gaussianReferenceSigma.ToString("0.###", CultureInfo.InvariantCulture)))
             };
         }
 
@@ -410,11 +413,11 @@ namespace BecquerelMonitor.Utils
                         Txt("t = "),
                         Fraction(Txt("x"), Txt("σ")),
                         Txt(",  σ = "),
-                        Txt(this.currentCurveSigma.ToString("0.###")),
+                        Txt(this.currentCurveSigma.ToString("0.###", CultureInfo.InvariantCulture)),
                         Txt(",  L = "),
-                        Txt(this.calibration.ExpGaussExpLeftTail.ToString("0.###")),
+                        Txt(this.calibration.ExpGaussExpLeftTail.ToString("0.###", CultureInfo.InvariantCulture)),
                         Txt(",  R = "),
-                        Txt(this.calibration.ExpGaussExpRightTail.ToString("0.###")))
+                        Txt(this.calibration.ExpGaussExpRightTail.ToString("0.###", CultureInfo.InvariantCulture)))
                 };
             }
 
@@ -455,28 +458,28 @@ namespace BecquerelMonitor.Utils
                                 Txt(")")))),
                     Row(
                         Txt("k = "),
-                        Txt(this.voigtScaleFactor.ToString("0.####"))),
+                        Txt(this.voigtScaleFactor.ToString("0.####", CultureInfo.InvariantCulture))),
                     Row(
                         Txt("σ = "),
                         Script(Txt("σ"), "rel", null),
                         Txt("·k = "),
-                        Txt(this.calibration.VoigtSigma.ToString("0.###")),
+                        Txt(this.calibration.VoigtSigma.ToString("0.###", CultureInfo.InvariantCulture)),
                         Txt("·"),
-                        Txt(this.voigtScaleFactor.ToString("0.####")),
+                        Txt(this.voigtScaleFactor.ToString("0.####", CultureInfo.InvariantCulture)),
                         Txt(" = "),
-                        Txt(this.voigtParameters.GaussianSigma.ToString("0.###"))),
+                        Txt(this.voigtParameters.GaussianSigma.ToString("0.###", CultureInfo.InvariantCulture))),
                     Row(
                         Txt("γ = "),
                         Script(Txt("γ"), "rel", null),
                         Txt("·k = "),
-                        Txt(this.calibration.VoigtGamma.ToString("0.###")),
+                        Txt(this.calibration.VoigtGamma.ToString("0.###", CultureInfo.InvariantCulture)),
                         Txt("·"),
-                        Txt(this.voigtScaleFactor.ToString("0.####")),
+                        Txt(this.voigtScaleFactor.ToString("0.####", CultureInfo.InvariantCulture)),
                         Txt(" = "),
-                        Txt(this.voigtParameters.LorentzGamma.ToString("0.###"))),
+                        Txt(this.voigtParameters.LorentzGamma.ToString("0.###", CultureInfo.InvariantCulture))),
                     Row(
                         Txt("η = "),
-                        Txt(this.voigtParameters.Eta.ToString("0.###")))
+                        Txt(this.voigtParameters.Eta.ToString("0.###", CultureInfo.InvariantCulture)))
                 };
             }
 
@@ -491,7 +494,7 @@ namespace BecquerelMonitor.Utils
                 Row(
                     Script(Txt("σ"), "g", null),
                     Txt(" = "),
-                    Txt(this.currentCurveSigma.ToString("0.###")))
+                    Txt(this.currentCurveSigma.ToString("0.###", CultureInfo.InvariantCulture)))
             };
         }
 
