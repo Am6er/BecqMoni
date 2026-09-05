@@ -45,6 +45,12 @@ namespace N42RoundTripProbe
     ///                    DocumentManager.ImportDocumentSpecUtils (`A175`):
     ///                    у двух дверей одного файла разные соглашения, и
     ///                    мерить надо обе.
+    ///   --mode=noconfig — ОБЕ двери при ПУСТОМ списке конфигураций приборов
+    ///                    (`A212`): первый запуск, испорченный профиль. Восемь
+    ///                    плеч — {список полон, список пуст} × {документ пробы,
+    ///                    документ приложения} × {дверь SpecUtils, дверь N42},
+    ///                    и полные плечи здесь ПОЛОЖИТЕЛЬНЫЙ контроль: без них
+    ///                    «упало» значило бы «проба не работает вовсе».
     ///
     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
     /// AppUi.HasWindows == false и мерится ОТКАЗНАЯ половина всех дверей.
@@ -129,6 +135,7 @@ namespace N42RoundTripProbe
             if (mode == "il") return Il();
             if (mode == "res") return Res();
             if (mode == "specutils") return SpecUtils();
+            if (mode == "noconfig") return NoConfig();
             Console.Error.WriteLine("неизвестный --mode: " + mode);
             return 2;
         }
@@ -777,6 +784,284 @@ namespace N42RoundTripProbe
             Console.WriteLine("=== ГОЛОСА SpecUtils ===");
             foreach (string v in voices) Console.WriteLine(v);
             return 0;
+        }
+
+        // ==================================================================
+        // ⛔ ПУСТОЙ СПИСОК КОНФИГУРАЦИЙ ПРИБОРОВ — ЭТО ВХОД, А НЕ ПОЛОМКА
+        //    ОСНАСТКИ (`A212`).
+        //
+        //    05.09.2026 полоса `C12` получила `NullReferenceException` на всех
+        //    входах ввоза через SpecUtils и списала его на свежий каталог проб
+        //    без `config\device`. Каталог был поправлен, замер выброшен — а
+        //    положение осталось достижимым и у человека: `LoadAllConfigFiles`
+        //    при пустом (но существующем) каталоге отдаёт ПУСТОЙ список молча,
+        //    и в окнах он же заводит пустой каталог сам, когда его нет вовсе.
+        //    То есть первый запуск и испорченный профиль дают ровно это.
+        //
+        //    Мерится ЧЕТЫРЬМЯ парами плеч, и полные плечи здесь не украшение:
+        //    без них «упало при пустом списке» неотличимо от «проба не умеет
+        //    ввозить вовсе». Второй разрез — КЕМ создан документ: проба до сих
+        //    пор строила `new DocEnergySpectrum()` (минуя `CheckDocument`), а
+        //    пункт меню зовёт `DocumentManager.CreateDocument()`. Это разные
+        //    пути, и приговор у них может разойтись — тогда «у человека упадёт
+        //    так же» окажется посылкой, а не измерением.
+        // ==================================================================
+        static int NoConfig()
+        {
+            if (outDir == null)
+            {
+                Console.Error.WriteLine("нужен --out=<каталог с файлами спектров>");
+                return 2;
+            }
+            string[] files = Directory.GetFiles(outDir, "*.n42");
+            Array.Sort(files, StringComparer.Ordinal);
+
+            DeviceConfigManager dcm = DeviceConfigManager.GetInstance();
+            ROIConfigManager rcm = ROIConfigManager.GetInstance();
+            List<DeviceConfigInfo> saved = new List<DeviceConfigInfo>(dcm.DeviceConfigList);
+
+            Console.WriteLine("=== ПУСТОЙ СПИСОК КОНФИГУРАЦИЙ ПРИБОРОВ, ОБЕ ДВЕРИ (`A212`) ===");
+            Console.WriteLine("  каталог: " + Path.GetFullPath(outDir));
+            Console.WriteLine("  файлов: " + files.Length);
+            Console.WriteLine("  конфигураций приборов загружено: " + saved.Count);
+            Console.WriteLine("  конфигураций ROI загружено: " + rcm.ROIConfigList.Count
+                              + "  (не трогаются: разрез идёт по ОДНОЙ величине)");
+            Console.WriteLine();
+
+            int rc = 0;
+            // Порядок нарочный: сперва полные плечи (положительный контроль),
+            // потом пустые. Список возвращается на место в finally.
+            try
+            {
+                rc |= Arm("СПИСОК ПОЛОН", "документ пробы", "SpecUtils", files);
+                rc |= Arm("СПИСОК ПОЛОН", "документ пробы", "N42", files);
+                rc |= Arm("СПИСОК ПОЛОН", "документ приложения", "SpecUtils", files);
+                rc |= Arm("СПИСОК ПОЛОН", "документ приложения", "N42", files);
+
+                dcm.DeviceConfigList.Clear();
+                Console.WriteLine("--- список конфигураций приборов ОПУСТОШЁН: "
+                                  + dcm.DeviceConfigList.Count + " ---");
+                Console.WriteLine();
+
+                rc |= Arm("СПИСОК ПУСТ", "документ пробы", "SpecUtils", files);
+                rc |= Arm("СПИСОК ПУСТ", "документ пробы", "N42", files);
+                rc |= Arm("СПИСОК ПУСТ", "документ приложения", "SpecUtils", files);
+                rc |= Arm("СПИСОК ПУСТ", "документ приложения", "N42", files);
+
+                // ⛔ ТРЕТЬЕ СОСТОЯНИЕ, И ОНО ЕДИНСТВЕННОЕ ДОСТАЁТ ЧЕЛОВЕКА ЗА
+                //    ЭКРАНОМ. Пустой список конфигураций пунктом меню не ловится:
+                //    `DocumentManager.CreateDocument` зовёт `CheckDocument`, а тот
+                //    достраивает ПШПВ умолчанием — это видно двумя плечами выше.
+                //    Но умолчание СТРОИТСЯ НЕ ВСЕГДА: `DefaultCalibration` кладёт
+                //    прямую через (0, FWHM_AT_0) и (Ch_Fwhm, Width_Fwhm) и отдаёт
+                //    null, если она не растёт (`ResultData.cs:470`).
+                //    ⚠ Формы у этих трёх чисел НЕТ: они приходят из
+                //    `config\device\*.xml` и из заготовок приборов, и во ВСЕХ
+                //    поставочных конфигурациях дерева прямая растёт. Плечо
+                //    изображает конфигурацию правленую руками, чужую или
+                //    переехавшую со старого извода (у такой нет и элемента
+                //    `FwhmCalibration`, иначе умолчание не считалось бы вовсе),
+                //    а не два щелчка.
+                //    ⚠ Правка живёт ТОЛЬКО в памяти: проба ничего не сохраняет,
+                //    прежние числа возвращаются в `finally`, и поставочный
+                //    `config\device\RC-103.xml` сверен с корневым после прогона —
+                //    совпал. Портить чужой конфиг замером нельзя.
+                dcm.DeviceConfigList.AddRange(saved);
+                FWHMPeakDetectionMethodConfig broken =
+                    (FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig;
+                double keepAt0 = broken.FWHM_AT_0, keepWidth = broken.Width_Fwhm;
+                FwhmCalibration keepCurve = broken.FwhmCalibration;
+                broken.FWHM_AT_0 = 40.0;
+                broken.Width_Fwhm = 1.0;
+                broken.FwhmCalibration = null;
+                Console.WriteLine("--- у конфигурации «" + dcm.DeviceConfigList[0].Name
+                                  + "» ПШПВ у нуля " + broken.FWHM_AT_0.ToString(CultureInfo.InvariantCulture)
+                                  + " > ПШПВ на канале " + broken.Ch_Fwhm.ToString(CultureInfo.InvariantCulture)
+                                  + " (" + broken.Width_Fwhm.ToString(CultureInfo.InvariantCulture)
+                                  + "): умолчание не строится ---");
+                Console.WriteLine("    проверка: FwhmCalibration.DefaultCalibration -> "
+                                  + (FwhmCalibration.DefaultCalibration(broken, new PolynomialEnergyCalibration()) == null
+                                     ? "null (кривая не растёт)" : "кривая построилась — ПЛЕЧО НЕ МЕРИТ"));
+                Console.WriteLine();
+                try
+                {
+                    rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "документ приложения", "SpecUtils", files);
+                    rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "документ приложения", "N42", files);
+                }
+                finally
+                {
+                    broken.FWHM_AT_0 = keepAt0;
+                    broken.Width_Fwhm = keepWidth;
+                    broken.FwhmCalibration = keepCurve;
+                }
+            }
+            finally
+            {
+                if (dcm.DeviceConfigList.Count == 0) dcm.DeviceConfigList.AddRange(saved);
+            }
+
+            Console.WriteLine("=== ИТОГ ===");
+            foreach (string s in armTotals) Console.WriteLine("  " + s);
+            return 0;
+        }
+
+        static readonly List<string> armTotals = new List<string>();
+
+        /// <summary>
+        /// Одно плечо: каждый файл каталога ввозится названной дверью в
+        /// документ, созданный названным способом. Печатается приговор, а у
+        /// отказа — ПЕРВЫЙ кадр следа внутри приложения: строка `A212` называет
+        /// место падения по чтению исходника, и подтвердить его обязан след, а
+        /// не чтение.
+        /// </summary>
+        static int Arm(string configState, string docWay, string door, string[] files)
+        {
+            string head = configState + " | " + docWay + " | дверь " + door;
+            Console.WriteLine("=== " + head + " ===");
+
+            int ok = 0, failed = 0, nullFwhm = 0, noDoc = 0;
+            Dictionary<string, int> byKind = new Dictionary<string, int>();
+
+            foreach (string f in files)
+            {
+                string name = Path.GetFileName(f);
+                DocEnergySpectrum doc = null;
+                string said = null;
+                string frame = "";
+                string fwhm = "?";
+
+                TextWriter realErr = Console.Error;
+                StringWriter caught = new StringWriter();
+                Console.SetError(caught);
+                try
+                {
+                    if (docWay == "документ приложения")
+                    {
+                        doc = DocumentManager.GetInstance().CreateDocument(name + ".xml");
+                    }
+                    else
+                    {
+                        doc = new DocEnergySpectrum();
+                    }
+                    if (doc == null)
+                    {
+                        noDoc++;
+                        throw new InvalidOperationException("документ НЕ СОЗДАН (CreateDocument вернул null)");
+                    }
+                    // ⚠ ДВЕ КРИВЫЕ, А НЕ ОДНА, и падение зависит от первой.
+                    //    `ResultData.FwhmCalibration` — модель РАЗРЕШЕНИЯ этого
+                    //    спектра; `PeakDetectionMethodConfig.FwhmCalibration` —
+                    //    та же величина в настройках поиска пиков. Отвечать надо
+                    //    обе: если вторая жива при мёртвой первой, у сторожа есть
+                    //    чем подставиться, если мертвы обе — подставляться нечем.
+                    fwhm = doc.ActiveResultData == null
+                           ? "нет активного спектра"
+                           : "спектр:" + (doc.ActiveResultData.FwhmCalibration == null ? "null" : "есть")
+                             + ", поиск пиков:" + PeakCfgFwhm(doc.ActiveResultData);
+                    if (doc.ActiveResultData != null && doc.ActiveResultData.FwhmCalibration == null) nullFwhm++;
+
+                    if (door == "SpecUtils")
+                    {
+                        DocumentManager.GetInstance().ImportDocumentSpecUtils(doc, f, 3600);
+                    }
+                    else
+                    {
+                        DocumentManager.GetInstance().ImportDocumentN42(doc, f);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    said = ex.GetType().Name + ": " + Flat(ex.Message);
+                    frame = TopAppFrame(ex);
+                    string kind = ex.GetType().Name + (frame.Length == 0 ? "" : " <- " + frame);
+                    int had;
+                    byKind.TryGetValue(kind, out had);
+                    byKind[kind] = had + 1;
+                }
+                finally
+                {
+                    Console.SetError(realErr);
+                }
+
+                // ⛔ «НЕ УПАЛО» — ЕЩЁ НЕ «ВВЕЗЛО». Сторож null мог бы увести ввоз
+                //    мимо спектров и молча отдать пустой документ, и по одному
+                //    приговору это неотличимо от удачи. Поэтому в строке стоит
+                //    СЛЕПОК: числа плеча со сломанным умолчанием обязаны совпасть
+                //    с числами полного плеча той же двери.
+                if (said == null)
+                {
+                    ok++;
+                    Console.WriteLine("  " + name + " | ВВЕЗЁН | " + fwhm + " | " + Print(doc));
+                }
+                else
+                {
+                    failed++;
+                    Console.WriteLine("  " + name + " | ОТКАЗ | " + fwhm + " | " + said
+                                      + (frame.Length == 0 ? "" : "   [" + frame + "]"));
+                }
+            }
+
+            StringBuilder kinds = new StringBuilder();
+            foreach (KeyValuePair<string, int> kv in byKind)
+            {
+                if (kinds.Length > 0) kinds.Append("; ");
+                kinds.Append(kv.Value).Append("× ").Append(kv.Key);
+            }
+            string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + failed
+                           + " (из " + files.Length + ")"
+                           + ", без ПШПВ у документа: " + nullFwhm
+                           + (noDoc > 0 ? ", документ не создан: " + noDoc : "")
+                           + (kinds.Length == 0 ? "" : "   |   " + kinds);
+            Console.WriteLine("  ИТОГ: " + total);
+            Console.WriteLine();
+            armTotals.Add(total);
+            return 0;
+        }
+
+        /// <summary>
+        /// Место падения — «файл:строка» САМОГО ГЛУБОКОГО исключения, а не
+        /// внешнего.
+        ///
+        /// ⚠ Внешнее врёт про место нарочно: <c>ImportDocumentSpecUtils</c>
+        /// ловит любую беду одним <c>catch</c> и без окон бросает свой
+        /// <c>InvalidOperationException</c> — след у него начинается со строки
+        /// ЭТОГО catch, и по нему место настоящего броска не найти вовсе.
+        /// Строка `A212` называет место чтением исходника; подтвердить его
+        /// обязан след, поэтому берётся внутреннее.
+        /// </summary>
+        static string TopAppFrame(Exception ex)
+        {
+            Exception e = ex;
+            Exception deepest = ex;
+            while (e != null) { deepest = e; e = e.InnerException; }
+
+            string name = deepest.GetType().Name;
+            string st = deepest.StackTrace;
+            if (!string.IsNullOrEmpty(st))
+            {
+                foreach (string raw in st.Split('\n'))
+                {
+                    string line = raw.Trim();
+                    if (line.IndexOf("BecquerelMonitor", StringComparison.Ordinal) < 0) continue;
+                    return name + " " + Flat(Tail(line));
+                }
+            }
+            return name + " (следа нет)";
+        }
+
+        /// <summary>Есть ли кривая ПШПВ в настройках поиска пиков спектра.</summary>
+        static string PeakCfgFwhm(ResultData rd)
+        {
+            FWHMPeakDetectionMethodConfig cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            if (cfg == null) return "настроек нет";
+            return cfg.FwhmCalibration == null ? "null" : "есть";
+        }
+
+        /// <summary>Хвост кадра «…\Файл.cs:строка N» — без пути дерева.</summary>
+        static string Tail(string frame)
+        {
+            int cut = frame.LastIndexOf('\\');
+            return cut < 0 ? frame : frame.Substring(cut + 1);
         }
 
         // ==================================================================
