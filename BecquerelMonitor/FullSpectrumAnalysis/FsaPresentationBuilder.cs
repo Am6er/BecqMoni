@@ -448,14 +448,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ПОЛОВИНЫ, знаки по чтению человека: ПЛЮС — модель ПРИПИСАЛА
             // лишнее, МИНУС — модели НЕ ХВАТИЛО. ε не снята — ею меряется
             // корпус (`FsaResult.ModelResidual`).
+            //
+            // ⛔ ФОРМАТ `f`, А НЕ `n` (`A244`, решение Amber 05.09.2026):
+            // `n` несёт разделитель РАЗРЯДОВ даже на инвариантной культуре
+            // (`1234.5` → `1,234.50`), а группировки разрядов нет вовсе. То же
+            // у χ²/ndf ниже и у доли слоя в <see cref="ShareText"/>.
             rows.Add(new FsaReportRow
             {
                 Kind = FsaReportRowKind.Residual,
                 Name = Resources.FSAModelResidualRow,
                 Value = string.Format(CultureInfo.InvariantCulture,
                                       Resources.FSAResidualCountsValue,
-                                      (100.0 * result.ResidualExcessShare).ToString("n1", CultureInfo.InvariantCulture),
-                                      (100.0 * result.ResidualMissingShare).ToString("n1", CultureInfo.InvariantCulture)),
+                                      (100.0 * result.ResidualExcessShare).ToString("f1", CultureInfo.InvariantCulture),
+                                      (100.0 * result.ResidualMissingShare).ToString("f1", CultureInfo.InvariantCulture)),
                 Swatch = FsaSwatchKind.ResidualCross,
                 Color = ResidualColor
             });
@@ -465,7 +470,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 Kind = FsaReportRowKind.Quality,
                 Name = presentation.QualityText,
-                Value = result.Chi2Ndf.ToString("n2", CultureInfo.InvariantCulture)
+                Value = result.Chi2Ndf.ToString("f2", CultureInfo.InvariantCulture)
             });
 
             return rows;
@@ -555,6 +560,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⛔ У обратного рассеяния доли НЕТ — печатается пометка о наличии
         /// (`S85`, решение Amber 24.08.2026): величина зависит от густоты узлов
         /// сплайна подложки сильнее, чем от самого рассеяния.
+        ///
+        /// ⛔ Формат `f2`, а не `n2`: группировки разрядов нет вовсе
+        /// (`A244`, решение Amber 05.09.2026) — доля слоя бывает ≥ 1000 %
+        /// у вырожденного разбора, и `n2` напечатал бы там `1,234.50`.
         /// </summary>
         public static string ShareText(FsaStackLayer layer)
         {
@@ -563,7 +572,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Resources.FSAPresentNoShare;
             }
 
-            return layer.SharePercent.ToString("n2", CultureInfo.InvariantCulture) + Resources.PercentCharacter;
+            return layer.SharePercent.ToString("f2", CultureInfo.InvariantCulture) + Resources.PercentCharacter;
         }
 
         /// <summary>Формат предела: три значащие цифры, как и прежде.</summary>
