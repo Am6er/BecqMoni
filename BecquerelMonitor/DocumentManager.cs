@@ -1204,7 +1204,7 @@ namespace BecquerelMonitor
                     }
 
                     bool importWithEmtyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
-                    bool channelMismatch = doc.ActiveResultData.EnergySpectrum.NumberOfChannels != Convert.ToInt32(NumOfChannels);
+                    bool channelMismatch = doc.ActiveResultData.EnergySpectrum.NumberOfChannels != int.Parse(NumOfChannels, NumberStyles.Integer, CultureInfo.InvariantCulture);
                     if (importWithEmtyConfig || channelMismatch)
                     {
                         if (!importWithEmtyConfig)
@@ -1220,7 +1220,7 @@ namespace BecquerelMonitor
                                 NumOfChannels), Resources.Warning, MessageBoxIcon.Warning);
                         }
 
-                        this.ResetSpectrumConfig(doc.ActiveResultData, Convert.ToInt32(NumOfChannels));
+                        this.ResetSpectrumConfig(doc.ActiveResultData, int.Parse(NumOfChannels, NumberStyles.Integer, CultureInfo.InvariantCulture));
                     }
                 }
                 if (!this.CheckDocument(doc.ResultDataFile))
@@ -1273,7 +1273,7 @@ namespace BecquerelMonitor
                         string Longitude = streamReader.ReadLine();
                         string SpectrumName = streamReader.ReadLine();
 
-                        TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1));
+                        TimeSpan time = TimeSpan.FromMilliseconds(double.Parse(Time1, NumberStyles.Float, CultureInfo.InvariantCulture));
                         DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
                         info.Time = dateTime.Add(time).ToLocalTime();
                         
@@ -1292,8 +1292,8 @@ namespace BecquerelMonitor
                         resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(ElapsedTime);
                         resultDataStatus.PresetTime = ElapsedTime;
 
-                        int NumberOfChanels = int.Parse(streamReader.ReadLine());
-                        int PolynomialOrder = int.Parse(streamReader.ReadLine());
+                        int NumberOfChanels = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+                        int PolynomialOrder = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
 
                         if (PolynomialOrder > 4)
                         {
@@ -1542,14 +1542,24 @@ namespace BecquerelMonitor
                     //FORMAT: 3
                     writer.WriteLine("FORMAT: 3");
                     //2022.02.04 14:21:15 +0300 Counts: 41129508, ~cps: 227.430, Time: 180845.00 s, Coord: 55°40'56.189" N 37°35'40.792" E at 2022.02.04 14:20:47 +0300
-                    string title = info.Time.ToLocalTime().ToString("yyyy.MM.dd HH:mm:ss zzzz");
-                    title += " Counts: " + energySpectrum.TotalPulseCount;
-                    title += ", ~cps: " + (energySpectrum.TotalPulseCount / energySpectrum.MeasurementTime).ToString("f3");
-                    title += ", Time: " + energySpectrum.MeasurementTime + " s";
+                    // ⛔ ВСЁ, ЧТО УХОДИТ В ФАЙЛ, — ИНВАРИАНТНОЙ КУЛЬТУРОЙ (`A242`).
+                    // Прежде здесь печаталась культура потока, и файл выходил с
+                    // точкой лишь потому, что `MainForm` подменяет разделитель
+                    // клоном культуры СВОЕМУ потоку. Свой же ввоз этих файлов
+                    // (`ImportDocumentAtomSpectra` выше) разбирает `XmlConvert`,
+                    // то есть ИНВАРИАНТОМ всегда, — и стоило вывозу уехать на
+                    // поток без подмены, как записанное «227,430» перестало бы
+                    // читаться собственным ввозом. Половина правки тут опаснее
+                    // целой, поэтому обе стороны сведены к точке разом.
+                    string title = info.Time.ToLocalTime().ToString("yyyy.MM.dd HH:mm:ss zzzz",
+                                                                    CultureInfo.InvariantCulture);
+                    title += " Counts: " + energySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
+                    title += ", ~cps: " + (energySpectrum.TotalPulseCount / energySpectrum.MeasurementTime).ToString("f3", CultureInfo.InvariantCulture);
+                    title += ", Time: " + energySpectrum.MeasurementTime.ToString(CultureInfo.InvariantCulture) + " s";
                     writer.WriteLine(title);
                     //1643973675060 Measurement time
                     double miliseconds = info.Time.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
-                    writer.WriteLine(Math.Round(miliseconds));
+                    writer.WriteLine(Math.Round(miliseconds).ToString(CultureInfo.InvariantCulture));
                     //1643973647530 GPS taken time
                     writer.WriteLine("0");
                     //55.682275
@@ -1566,20 +1576,24 @@ namespace BecquerelMonitor
                     } 
                     writer.WriteLine("BECQMONI: {0}", deviceName);
                     //180845.000000
-                    writer.WriteLine(energySpectrum.MeasurementTime);
+                    writer.WriteLine(energySpectrum.MeasurementTime.ToString(CultureInfo.InvariantCulture));
                     //8192
-                    writer.WriteLine(energySpectrum.NumberOfChannels);
+                    writer.WriteLine(energySpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture));
                     //4
-                    writer.WriteLine(polynomialEnergyCalibration.PolynomialOrder);
+                    writer.WriteLine(polynomialEnergyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture));
                     //Write coefficients
                     for (int i = 0; i <= polynomialEnergyCalibration.PolynomialOrder; i++)
                     {
-                        writer.WriteLine(polynomialEnergyCalibration.Coefficients[i]);
+                        // ⛔ КОЭФФИЦИЕНТЫ КАЛИБРОВКИ — самое дорогое число этого
+                        // файла: с запятой вместо точки шкала энергий уезжает
+                        // целиком, а отказа не будет ни при записи, ни при
+                        // чтении (`A242`).
+                        writer.WriteLine(polynomialEnergyCalibration.Coefficients[i].ToString(CultureInfo.InvariantCulture));
                     }
                     //Write Channels
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
-                        writer.WriteLine(energySpectrum.Spectrum[i]);
+                        writer.WriteLine(energySpectrum.Spectrum[i].ToString(CultureInfo.InvariantCulture));
                     }
                     writer.Flush();
                 }
@@ -1915,10 +1929,10 @@ namespace BecquerelMonitor
             {
                 using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
-                    streamWriter.WriteLine(String.Format("Channel,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
+                    streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
-                        streamWriter.WriteLine(i + "," + energySpectrum.Spectrum[i]);
+                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1}", i, energySpectrum.Spectrum[i]));
                     }
                 }
             }
@@ -1983,10 +1997,10 @@ namespace BecquerelMonitor
             {
                 using (StreamWriter streamWriter = new StreamWriter(fileName, false, Encoding.GetEncoding(65001)))
                 {
-                    streamWriter.WriteLine(String.Format("Channel,Energy,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
+                    streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "Channel,Energy,Counts (TotalTime={0:0.0}s)", energySpectrum.MeasurementTime));
                     for (int i = 0; i < energySpectrum.NumberOfChannels; i++)
                     {
-                        streamWriter.WriteLine(i + "," + cal.ChannelToEnergy(i) + "," + dSpectrum[i]);
+                        streamWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "{0},{1},{2}", i, cal.ChannelToEnergy(i), dSpectrum[i]));
                     }
                 }
             }
@@ -2031,7 +2045,7 @@ namespace BecquerelMonitor
                     {
                         totalTimeStartIndex += totalTimePrefix.Length;
                         string totalTimeStr = header[1].Substring(totalTimeStartIndex, totalTimeEndIndex - totalTimeStartIndex);
-                        if (!double.TryParse(totalTimeStr, out totalTime))
+                        if (!double.TryParse(totalTimeStr, NumberStyles.Float, CultureInfo.InvariantCulture, out totalTime))
                         {
                             throw new ArgumentException(string.Format("Wrong total time format: {0}", totalTimeStr));
                         }
@@ -2046,10 +2060,10 @@ namespace BecquerelMonitor
                         string[] array = streamReader.ReadLine().Split(new char[] { ',' });
                         if (array.Length >= 2)
                         {
-                            if (!int.TryParse(array[0], out int channel)) {
+                            if (!int.TryParse(array[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int channel)) {
                                 throw new ArgumentException(String.Format("Wrong channel format: {0}", array[0]));
                             }
-                            if (!int.TryParse(array[1], out int count))
+                            if (!int.TryParse(array[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
                             {
                                 throw new ArgumentException(String.Format("Wrong count format: {0}", array[1]));
                             }
@@ -2154,16 +2168,16 @@ namespace BecquerelMonitor
                         // TODO тут нужно давать внятные объяснения
                         if (dIndex != -1 && hIndex != -1 && mIndex != -1 && sIndex != -1)
                         {
-                            if (!int.TryParse(timeStr.Substring(0, dIndex), out days))
+                            if (!int.TryParse(timeStr.Substring(0, dIndex), NumberStyles.Integer, CultureInfo.InvariantCulture, out days))
                                 throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
 
-                            if (!int.TryParse(timeStr.Substring(dIndex + 1, hIndex - dIndex - 1), out hours))
+                            if (!int.TryParse(timeStr.Substring(dIndex + 1, hIndex - dIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out hours))
                                 throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
 
-                            if (!int.TryParse(timeStr.Substring(hIndex + 1, mIndex - hIndex - 1), out minutes))
+                            if (!int.TryParse(timeStr.Substring(hIndex + 1, mIndex - hIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out minutes))
                                 throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
 
-                            if (!int.TryParse(timeStr.Substring(mIndex + 1, sIndex - mIndex - 1), out seconds))
+                            if (!int.TryParse(timeStr.Substring(mIndex + 1, sIndex - mIndex - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out seconds))
                                 throw new ArgumentException(string.Format("Wrong total time format: {0}", timeStr));
 
                             totalTime = new TimeSpan(days, hours, minutes, seconds).TotalSeconds;
@@ -2187,12 +2201,12 @@ namespace BecquerelMonitor
 
                         if (array.Length >= 2)
                         {
-                            if (!decimal.TryParse(array[0], out decimal energy))
+                            if (!decimal.TryParse(array[0], NumberStyles.Float, CultureInfo.InvariantCulture, out decimal energy))
                             {
                                 throw new ArgumentException(String.Format("Wrong energy format: {0} at line {1}", array[0], channel + 1));
                             }
 
-                            if (!int.TryParse(array[1], out int count))
+                            if (!int.TryParse(array[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
                             {
                                 throw new ArgumentException(String.Format("Wrong count format: {0} at line {1}", array[1], channel + 1));
                             }

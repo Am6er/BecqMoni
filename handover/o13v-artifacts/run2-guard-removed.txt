@@ -1,0 +1,80 @@
+=== СБОРКА ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o13v_ctl\BecquerelMonitor.exe
+  собрана 2026-09-05 13:17:57
+  окна у приложения: False
+  плечо: КОНТРОЛЬНОЕ (сторож 894-899 снят в копии дерева) — ждём ПАДЕНИЕ на 923
+
+=== СЦЕНА «ЖИВАЯ» — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, ПЛЕЧО 1 ===
+  вопрос: доходит ли проба ДО САМИХ спорных строк, когда кривая на месте
+
+  ActiveResultData.FwhmCalibration: есть
+  поле вида fwhmCalibration:        есть
+  строк в таблице:                  3
+  панель calibrationProcessingPanel Visible: False
+  кнопки (Enabled/Visible):
+      addPeakButton             Enabled / скрыт
+      removePeakButton          Enabled / скрыт
+      cancelAddPeakButton       выкл    / скрыт
+      getAllPeaksButton         Enabled / скрыт
+      executeCalibrationButton  выкл    / скрыт
+      saveToDeviceCfgButton     Enabled / скрыт
+      viewCalibrationButton     Enabled / скрыт
+      CollectedPeaksTable       Enabled / скрыт
+
+  ДВЕРЬ 310  RemovePeakButton_Click
+      исход: БЕЗ ОТКАЗА
+      след:  точек было 3, стало 2
+      [КОНТРОЛЬ] СОШЁЛСЯ    строка 310 ИСПОЛНИЛАСЬ (точка снята)
+  ДВЕРЬ 396/413  EnergySpectrumView_PeakPickuped
+      исход: БЕЗ ОТКАЗА
+      след:  точек было 2, стало 3
+      [КОНТРОЛЬ] СОШЁЛСЯ    строки 396 и 413 ИСПОЛНИЛИСЬ (точка добавлена)
+  ДВЕРЬ 838  CollectedPeaksTable_EditingStopped
+      исход: БЕЗ ОТКАЗА
+      след:  ПШПВ первой точки 11 -> 17
+      [КОНТРОЛЬ] СОШЁЛСЯ    строка 838 ИСПОЛНИЛАСЬ (ПШПВ переписана)
+  ДВЕРЬ 923  GetAllPeaksButton_Click
+      исход: БЕЗ ОТКАЗА
+      след:  точек было 3, стало 4, чужая 777 притянута: True
+      [КОНТРОЛЬ] СОШЁЛСЯ    строка 923 ИСПОЛНИЛАСЬ (список очищен и пересобран)
+  ДВЕРЬ 950  FWHMCalibrationGraph.Init (952 стоит ЗА ShowDialog)
+      исход: БЕЗ ОТКАЗА
+      [КОНТРОЛЬ] СОШЁЛСЯ    строка 950 ИСПОЛНИЛАСЬ (окно кривой построено)
+
+=== СЦЕНА «ПУСТАЯ» — ЗАМЕР ДОСТИЖИМОСТИ ===
+  кривой нет, и умолчание НЕ СТРОИТСЯ: прямая конфигурации не растёт
+
+  ActiveResultData.FwhmCalibration: ПУСТА
+  поле вида fwhmCalibration:        ПУСТО
+  строк в таблице:                  0
+  панель calibrationProcessingPanel Visible: False
+  кнопки (Enabled/Visible):
+      addPeakButton             Enabled / скрыт
+      removePeakButton          Enabled / скрыт
+      cancelAddPeakButton       выкл    / скрыт
+      getAllPeaksButton         выкл    / скрыт
+      executeCalibrationButton  выкл    / скрыт
+      saveToDeviceCfgButton     выкл    / скрыт
+      viewCalibrationButton     Enabled / скрыт
+      CollectedPeaksTable       Enabled / скрыт
+
+      [КОНТРОЛЬ] СОШЁЛСЯ    после обновления вида кривая ВСЁ ЕЩЁ пуста
+  ДВЕРЬ 310  RemovePeakButton_Click
+      исход: ОТКАЗ  NullReferenceException @ DCFwhmCalibrationView.cs:303 (RemovePeakButton_Click)
+  ДВЕРЬ 396/413  EnergySpectrumView_PeakPickuped
+      исход: ОТКАЗ  NullReferenceException @ DCFwhmCalibrationView.cs:396 (EnergySpectrumView_PeakPickuped)
+  ДВЕРЬ 838  CollectedPeaksTable_EditingStopped (строка СОЧИНЕНА: в таблице их нет)
+      исход: ОТКАЗ  NullReferenceException @ DCFwhmCalibrationView.cs:838 (CollectedPeaksTable_EditingStopped)
+      след:  строк в таблице: 0
+  ДВЕРЬ 923  GetAllPeaksButton_Click
+      исход: ОТКАЗ  NullReferenceException @ DCFwhmCalibrationView.cs:918 (GetAllPeaksButton_Click)
+      [КОНТРОЛЬ] СОШЁЛСЯ    КОНТРОЛЬНОЕ ПЛЕЧО: снятый сторож дал ПАДЕНИЕ на 923
+  ДВЕРЬ 950  FWHMCalibrationGraph.Init (952 стоит ЗА ShowDialog)
+      исход: ОТКАЗ  NullReferenceException @ FWHMCalibrationGraph.cs:56 (Init)
+
+=== СЦЕНА «ВВОЗ-N42» — ПОСЫЛКА СТРОКИ `A236` ===
+  пропущена: не задан --n42=<каталог>
+
+
+=== ИТОГ КОНТРОЛЯ ===
+  ОБА ПЛЕЧА СОШЛИСЬ — замер действителен

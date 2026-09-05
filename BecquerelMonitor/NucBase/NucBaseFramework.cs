@@ -143,7 +143,7 @@ namespace BecquerelMonitor.NucBase
                     Decay dec = new Decay();
                     dec.NucName = reader.GetString(0);
                     dec.DecayPercent = reader.GetString(1);
-                    dec.DecayType = Convert.ToInt32(reader.GetString(2));
+                    dec.DecayType = Integer(reader.GetString(2));
                     nuc.Daughters.Add(dec);
                 }
 
@@ -154,7 +154,7 @@ namespace BecquerelMonitor.NucBase
                     Decay dec = new Decay();
                     dec.NucName = reader.GetString(0);
                     dec.DecayPercent = reader.GetString(1);
-                    dec.DecayType = Convert.ToInt32(reader.GetString(2));
+                    dec.DecayType = Integer(reader.GetString(2));
                     nuc.Parents.Add(dec);
                 }
             }
@@ -507,15 +507,29 @@ namespace BecquerelMonitor.NucBase
         /// <summary>
         /// Число из текста столбца; пусто и нечисло дают 0, а не исключение.
         ///
-        /// ⚠ Культура — ТЕКУЩАЯ, ровно как у прежнего <c>Convert.ToDouble</c>:
-        /// числа базы приходят с точкой, и приложение подменяет разделитель
-        /// при запуске (<c>MainForm</c>). Инвариантная культура здесь была бы
-        /// не «правильнее», а расхождением с остальными разборами этой базы.
+        /// ⛔ Культура — ИНВАРИАНТНАЯ (`A242`, правило Amber 05.09.2026:
+        /// «разделитель дробной части ВСЕГДА ТОЧКА»). Прежде здесь стояла
+        /// <c>CultureInfo.CurrentCulture</c> с объяснением «числа базы приходят
+        /// с точкой, а приложение подменяет разделитель при запуске
+        /// (<c>MainForm</c>)» — и это ровно то, чего делать нельзя: подмена
+        /// стоит на ОДНОМ потоке, том, который её сделал. Разбор базы идёт и из
+        /// задач (`FsaAnalyzer`, `PeakDetector`), а поток пула, вошедший БЕЗ
+        /// переноса контекста исполнения, культуры с подменой не получает —
+        /// измерено 05.09.2026 (`CultureProbeO14`: `1,5` против `1.5`).
+        ///
+        /// ⚠ Цена измерена, а не выдумана, и она РАЗНАЯ на разных культурах:
+        /// на `ru-RU` <c>TryParse</c> со <c>NumberStyles.Float</c> точку не
+        /// принимает вовсе — отказывает и оставляет НОЛЬ, без исключения и без
+        /// единого слова (период полураспада 0, выход линии 0); на `de-DE`
+        /// точка — законный разделитель тысяч, и «5.75» через
+        /// <c>Convert.ToDouble</c> становится 575, то есть в сто раз больше.
+        /// Обе беды беззвучны. Содержимое базы записано с точкой всегда, и
+        /// читатель обязан быть безразличен к культуре машины.
         /// </summary>
         static double Number(string text)
         {
             double value;
-            double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
             return value;
         }
 
@@ -523,7 +537,7 @@ namespace BecquerelMonitor.NucBase
         static int Integer(string text)
         {
             int value;
-            int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value);
+            int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
             return value;
         }
 
