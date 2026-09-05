@@ -182,7 +182,7 @@ namespace BecquerelMonitor
                 //    она ТЕМ ЖЕ выражением. Умножать на «кэВ-на-канал» нельзя:
                 //    калибровка нелинейна, половинки растягиваются по-разному.
                 peak.SetNuclideCandidates(MatchNuclides(peak, tol, nuclideSet,
-                                            FwhmKev(peak, energySpectrum.EnergyCalibration)));
+                                            peak.FwhmKev(energySpectrum.EnergyCalibration)));
                 if (peak.Nuclide == null && nuclideSet?.HideUnknownPeaks == true)
                 {
                     continue;
@@ -413,7 +413,7 @@ namespace BecquerelMonitor
             double[] fwhmKev = new double[peaks.Count];
             for (int i = 0; i < peaks.Count; i++)
             {
-                fwhmKev[i] = FwhmKev(peaks[i], cal);
+                fwhmKev[i] = peaks[i].FwhmKev(cal);
             }
 
             LabelAnnihilationSum(peaks, fwhmKev);
@@ -874,21 +874,10 @@ namespace BecquerelMonitor
         /// выходу их не берут по построению — различает такие пары только
         /// СОСТАВ ОСТАЛЬНОГО спектра, а он сюда не приходит.
         /// </summary>
-        /// <summary>
-        /// ПШПВ пика В КЭВ из ПШПВ в каналах — тем же выражением, каким её
-        /// читает панель поиска пиков (<c>DCPeakDetectionView</c>).
-        /// Ноль значит «не измерена»; отбор подписи тогда обходится без окна
-        /// по разрешению, а не подставляет выдуманную ширину.
-        /// </summary>
-        static double FwhmKev(Peak peak, EnergyCalibration calibration)
-        {
-            if (calibration == null || !(peak.FWHM > 0.0) || Double.IsNaN(peak.FWHM))
-            {
-                return 0.0;
-            }
-            return Math.Abs(calibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0)
-                            - calibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0));
-        }
+        // ⛔ `A211`, 05.09.2026: здесь стояла ЧАСТНАЯ КОПИЯ пересчёта ПШПВ в кэВ.
+        //    Она снята, и расчёт живёт ОДИН — <c>Peak.FwhmKev(EnergyCalibration)</c>,
+        //    рядом с самим полем: единица названа в имени, а два одинаковых
+        //    выражения в разных файлах — это два места, где их можно развести.
 
         NuclideDefinition MatchNuclide(Peak peak, double tol, NuclideSet nuclideSet, double fwhmKev)
         {
