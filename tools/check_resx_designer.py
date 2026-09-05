@@ -229,6 +229,69 @@ def members(root):
     return out
 
 
+def skip_literal(text, i):
+    u"""Индекс ПОСЛЕ строкового или символьного литерала, начатого в `i`.
+
+    Нужен обоим разборам ниже: скобка и запятая внутри `"…"` не должны считаться
+    разделителями. Понимает обычную строку с `\\`-экранированием, дословную
+    (`@"…"`, где кавычка удваивается) и символьный литерал.
+    """
+    n = len(text)
+    quote = text[i]
+    verbatim = quote == '"' and i > 0 and text[i - 1] == '@'
+    i += 1
+    while i < n:
+        ch = text[i]
+        if verbatim:
+            if ch == quote:
+                if i + 1 < n and text[i + 1] == quote:
+                    i += 2
+                    continue
+                return i + 1
+        else:
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == quote:
+                return i + 1
+            if ch == '\n' and quote == '"':
+                # Незакрытая строка: дальше идти нельзя, иначе разбор поедет.
+                return i
+        i += 1
+    return n
+
+
+def balanced_args(text, open_pos):
+    u"""Текст аргументов вызова: от открывающей скобки до ПАРНОЙ ей.
+
+    ⛔ `T228`, 05.09.2026: раньше аргументы брались выражением `\\(([^()]*)\\)`
+    по ОДНОЙ строке, и вызов, разнесённый на две строки
+    (`Text(` — перевод строки — `"Ключ", "запасное")`), не был виден ВОВСЕ, как и
+    вызов с вложенными скобками. Так записано большинство обращений в дереве:
+    сторож печатал «ключей, которых нет: 2» там, где их 26.
+    """
+    depth = 0
+    i, n = open_pos, len(text)
+    while i < n:
+        ch = text[i]
+        if ch in '"\'':
+            i = skip_literal(text, i)
+            continue
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                return text[open_pos + 1:i]
+        i += 1
+    return None
+
+
+def line_of(text, pos):
+    u"""Номер строки, в которой стоит смещение `pos` (текст уже с LF)."""
+    return text.count('\n', 0, pos) + 1
+
+
 def one_step(root):
     u"""Литералы, доезжающие до `GetString` через один шаг: [(файл, строка, ключ, откуда)]."""
     found = []
@@ -237,31 +300,50 @@ def one_step(root):
     if not wraps and not membs:
         return found, wraps, membs
 
-    calls = [(re.compile(r'\b%s\s*\(([^()]*)\)' % re.escape(name)), name, pos)
+    # ⚠ Разбор идёт по ТЕКСТУ ФАЙЛА ЦЕЛИКОМ, а не построчно: выражение находит
+    # только имя вызова и открывающую скобку, аргументы отрезает `balanced_args`.
+    calls = [(re.compile(r'\b%s\s*\(' % re.escape(name)), name, pos)
              for name, pos in sorted(wraps.items())]
+    # `\s` захватывает и перевод строки, поэтому присваивание члену тоже
+    # находится разнесённым на строки.
     sets = [(re.compile(r'\b%s\s*=\s*"([^"]*)"' % re.escape(name)), name)
             for name in sorted(membs)]
 
     for designer in (True, False):
         for path in sources(root, designer=designer):
-            for num, line in enumerate(read(path).replace('\r\n', '\n').split('\n'), 1):
-                for pattern, name, pos in calls:
-                    for args in pattern.findall(line):
-                        parts = split_args(args)
-                        if pos < len(parts):
-                            lit = re.match(r'^\s*"([^"]*)"\s*$', parts[pos])
-                            if lit:
-                                found.append((path, num, lit.group(1), name + '()'))
-                for pattern, name in sets:
-                    for lit in pattern.findall(line):
-                        found.append((path, num, lit, '.' + name))
+            text = read(path).replace('\r\n', '\n')
+            for pattern, name, pos in calls:
+                for match in pattern.finditer(text):
+                    args = balanced_args(text, match.end() - 1)
+                    if args is None:
+                        continue
+                    parts = split_args(args)
+                    if pos < len(parts):
+                        lit = re.match(r'\s*"([^"]*)"\s*\Z', parts[pos], re.S)
+                        if lit:
+                            found.append((path, line_of(text, match.start()),
+                                          lit.group(1), name + '()'))
+            for pattern, name in sets:
+                for match in pattern.finditer(text):
+                    found.append((path, line_of(text, match.start()),
+                                  match.group(1), '.' + name))
     return found, wraps, membs
 
 
 def split_args(text):
-    u"""Аргументы вызова по запятым верхнего уровня."""
-    out, depth, piece = [], 0, ''
-    for ch in text + ',':
+    u"""Аргументы вызова по запятым верхнего уровня.
+
+    ⚠ Запятая внутри строкового литерала разделителем не считается: иначе
+    `Text("Ключ", "нет, не вышло")` разрезается не там, где написано.
+    """
+    out, depth, piece, i, n = [], 0, '', 0, len(text)
+    while i <= n:
+        ch = text[i] if i < n else ','
+        if i < n and ch in '"\'':
+            end = skip_literal(text, i)
+            piece += text[i:end]
+            i = end
+            continue
         if ch in '<([':
             depth += 1
         elif ch in '>)]':
@@ -271,6 +353,7 @@ def split_args(text):
             piece = ''
         else:
             piece += ch
+        i += 1
     return out
 
 # Общие ресурсы приложения — то, к чему обращается рукописный код. Путь берётся

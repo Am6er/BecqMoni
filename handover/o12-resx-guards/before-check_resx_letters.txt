@@ -1,0 +1,8 @@
+
+английских resx просмотрено: 45, русских: 32
+генерируемых *.Designer.cs: 46, значений в них: 3725
+находок: 0
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 2
+РАЗОШЛОСЬ

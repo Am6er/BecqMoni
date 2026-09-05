@@ -88,6 +88,20 @@ System.Drawing"`), а подпись — нет.
 из которого его брали, не присваивалось никогда); `ResXNullRef` с пустым
 значением — русский файл не переводит строку, а ГАСИТ её; и строку, которой нет
 в английском файле, потому что её там не завели вовсе (заголовок `AboutForm`).
+
+## ⛔ ОПУСТОШЁННЫЙ ПЕРЕВОД — ТОЖЕ НЕПЕРЕВЕДЁННЫЙ (`T229`, 05.09.2026)
+
+Сверялось ТОЛЬКО наличие ключа, и `<value></value>` при живом ключе проходил
+молча: снятый ключ она называла («нет в ru: labelEffNote.Text», код 1), а тот
+же ключ с пустым значением давал код 0 и ни одной находки. Разряд тот же, что
+у ~~`T97`~~ — зелёный ответ читают как «переведено всё», а на экране в этом
+месте пусто: `ResourceManager` вернёт пустую строку, а не английский текст,
+потому что сателлит ключ ПЕРЕКРЫВАЕТ.
+
+Теперь непереведённым считается и ключ с пустым (или из одних пробелов)
+значением в `*.ru.resx`. Он попадает в тот же счёт «без перевода», а в `--list`
+называется отдельной строкой «пусто в ru», чтобы разбирать его не путая со
+снятым: снятый заводят, опустошённый — заполняют.
 Ключи, одинаковые по-русски и по-английски, заводятся в паре с тем же значением
 сознательно — это отметка «смотрели, по-русски так же» (решение Amber).
 
@@ -170,35 +184,45 @@ def main(argv):
     rest = [a for a in argv if not a.startswith('--')]
     root = rest[0] if rest else 'BecquerelMonitor'
 
-    rows, total, extra_total = [], 0, 0
+    rows, total, blank_total, extra_total = [], 0, 0, 0
     for ru in sorted(glob.glob(os.path.join(root, '**', '*.ru.resx'), recursive=True)):
         en = ru[:-len('.ru.resx')] + '.resx'
         if not os.path.exists(en):
-            rows.append((0, os.path.basename(ru), ['НЕТ АНГЛИЙСКОЙ ПАРЫ'], []))
+            rows.append((0, os.path.basename(ru), ['НЕТ АНГЛИЙСКОЙ ПАРЫ'], [], []))
             continue
         eng, rus = load(en), load(ru)
-        missing = sorted(k for k in eng
-                         if k not in rus and eng[k].strip()
-                         and not NUMERIC.fullmatch(eng[k].strip())
-                         and not placeholder(k, eng[k]))
+        # Ключи, у которых перевод ОБЯЗАН быть: значение непустое, не число и не
+        # заглушка конструктора.
+        wantable = [k for k in eng
+                    if eng[k].strip()
+                    and not NUMERIC.fullmatch(eng[k].strip())
+                    and not placeholder(k, eng[k])]
+        missing = sorted(k for k in wantable if k not in rus)
+        # `T229`: ключ есть, а значение пусто — это не перевод, а ГАШЕНИЕ строки.
+        blank = sorted(k for k in wantable if k in rus and not rus[k].strip())
         orphan = sorted(k for k in rus if k not in eng)
-        if missing or orphan:
-            rows.append((len(missing), os.path.basename(en), missing, orphan))
-            total += len(missing)
+        if missing or blank or orphan:
+            rows.append((len(missing) + len(blank), os.path.basename(en),
+                         missing, blank, orphan))
+            total += len(missing) + len(blank)
+            blank_total += len(blank)
             extra_total += len(orphan)
 
     rows.sort(reverse=True)
-    for count, name, missing, orphan in rows:
+    for count, name, missing, blank, orphan in rows:
         print('%-34s без перевода %3d, лишних в ru %2d' % (name, count, len(orphan)))
         if show:
             if missing:
                 print('      нет в ru: %s' % ', '.join(missing))
+            if blank:
+                print('      пусто в ru: %s' % ', '.join(blank))
             if orphan:
                 print('      нет в en: %s' % ', '.join(orphan))
 
     print()
     print('файлов с расхождением: %d' % len(rows))
     print('непереведённых осмысленных строк: %d' % total)
+    print('  из них ключ есть, а значение пусто: %d' % blank_total)
     print('ключей, которых нет в английской паре: %d' % extra_total)
 
     # Повторы ключей внутри файла: пока значения совпадают, это только лишний

@@ -1,0 +1,29 @@
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:323  GetString через Text()("DoseRateEnergyNotPositive")
+НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:340  GetString через Text()("DoseRateNoElement")
+
+обращений с литеральным именем проверено: 744
+  из них через ОДИН шаг (обёртка или член): 19
+ключей, которых нет в нейтральном resx: 2
+обращений с вычисляемым именем: 3, из них разобрано одним шагом: 3
+обращений с вычисляемым именем (проверке недоступны): 0
+      обёртки: GetResourceText(аргумент 1), Text(аргумент 1)
+      члены:   Resource
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:195
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:196
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:207
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:209
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:211
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:732
+      рукописное: BecquerelMonitor/DCFwhmCalibrationView.cs:734
+      рукописное: BecquerelMonitor/DeviceConfigForm.cs:740
+      рукописное: BecquerelMonitor/DeviceConfigForm.cs:741
+      рукописное: BecquerelMonitor/PeakDetector.cs:519
+      рукописное: BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:92
+      рукописное: BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:115
+      рукописное: BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:240
+      рукописное: BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:277
+      рукописное: BecquerelMonitor/Utils/PeakShapePreviewGraph.cs:542
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.resx: переводы строк LF, а не CRLF
+ФОРМАТ  BecquerelMonitor/EfficiencyMakerForm.ru.resx: переводы строк LF, а не CRLF
+файлов чужого формата (не BOM+CRLF): 2
+РАЗОШЛОСЬ
