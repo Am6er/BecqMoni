@@ -5772,5 +5772,266 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless..
+        /// </summary>
+        public static string DoseRateBadEfficiency {
+            get {
+                return ResourceManager.GetString("DoseRateBadEfficiency", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels)..
+        /// </summary>
+        public static string DoseRateBadScale {
+            get {
+                return ResourceManager.GetString("DoseRateBadScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve has a point at {0} keV..
+        /// </summary>
+        public static string DoseRateCurveBadEnergy {
+            get {
+                return ResourceManager.GetString("DoseRateCurveBadEnergy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f1} keV..
+        /// </summary>
+        public static string DoseRateCurveBadValue {
+            get {
+                return ResourceManager.GetString("DoseRateCurveBadValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve has {0} point(s), at least two are needed..
+        /// </summary>
+        public static string DoseRateCurveTooShort {
+            get {
+                return ResourceManager.GetString("DoseRateCurveTooShort", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV)..
+        /// </summary>
+        public static string DoseRateEmptyRange {
+            get {
+                return ResourceManager.GetString("DoseRateEmptyRange", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no channels..
+        /// </summary>
+        public static string DoseRateEmptySpectrum {
+            get {
+                return ResourceManager.GetString("DoseRateEmptySpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: energy {0} keV is not positive..
+        /// </summary>
+        public static string DoseRateEnergyNotPositive {
+            get {
+                return ResourceManager.GetString("DoseRateEnergyNotPositive", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against..
+        /// </summary>
+        public static string DoseRateEtalonEmpty {
+            get {
+                return ResourceManager.GetString("DoseRateEtalonEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time..
+        /// </summary>
+        public static string DoseRateFileUnusable {
+            get {
+                return ResourceManager.GetString("DoseRateFileUnusable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} does not start with the LSRM header "Energy, keV / Efficiency / Uncertainty, %" — the first line reads "{1}"..
+        /// </summary>
+        public static string DoseRateLsrmNoHeader {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmNoHeader", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty)..
+        /// </summary>
+        public static string DoseRateLsrmNoPoints {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmNoPoints", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): "{3}"..
+        /// </summary>
+        public static string DoseRateLsrmShortLine {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmShortLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV..
+        /// </summary>
+        public static string DoseRateNoCalibration {
+            get {
+                return ResourceManager.GetString("DoseRateNoCalibration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: no efficiency curve is selected..
+        /// </summary>
+        public static string DoseRateNoEfficiency {
+            get {
+                return ResourceManager.GetString("DoseRateNoEfficiency", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: element Z={0} is missing from the material database..
+        /// </summary>
+        public static string DoseRateNoElement {
+            get {
+                return ResourceManager.GetString("DoseRateNoElement", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the declared dose rate of the source must be positive..
+        /// </summary>
+        public static string DoseRateNoExpected {
+            get {
+                return ResourceManager.GetString("DoseRateNoExpected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the energy grid is empty..
+        /// </summary>
+        public static string DoseRateNoGrid {
+            get {
+                return ResourceManager.GetString("DoseRateNoGrid", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on..
+        /// </summary>
+        public static string DoseRateNoScale {
+            get {
+                return ResourceManager.GetString("DoseRateNoScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: no reference spectrum is selected..
+        /// </summary>
+        public static string DoseRateNoSpectrum {
+            get {
+                return ResourceManager.GetString("DoseRateNoSpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has zero measurement time..
+        /// </summary>
+        public static string DoseRateNoTime {
+            get {
+                return ResourceManager.GetString("DoseRateNoTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable..
+        /// </summary>
+        public static string DoseRateNotFinite {
+            get {
+                return ResourceManager.GetString("DoseRateNotFinite", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV)..
+        /// </summary>
+        public static string DoseRateOutsideCurve {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideCurve", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV)..
+        /// </summary>
+        public static string DoseRateOutsideIcrp {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideIcrp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV)..
+        /// </summary>
+        public static string DoseRateOutsideXcom {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideXcom", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to (covers {0:f0} % of counts).
+        /// </summary>
+        public static string DoseRatePartialCoverage {
+            get {
+                return ResourceManager.GetString("DoseRatePartialCoverage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: {1} of {2} imported spectra have no resolution model (FWHM calibration). Peak search cannot run on them. Reason: {3}.
+        /// </summary>
+        public static string ERRNoFwhmCalibrationImport {
+            get {
+                return ResourceManager.GetString("ERRNoFwhmCalibrationImport", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale..
+        /// </summary>
+        public static string ERRFwhmDefaultNotMonotonic {
+            get {
+                return ResourceManager.GetString("ERRFwhmDefaultNotMonotonic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the spectrum carries no FWHM calibration and none was built for it..
+        /// </summary>
+        public static string ERRFwhmCalibrationUnset {
+            get {
+                return ResourceManager.GetString("ERRFwhmCalibrationUnset", resourceCulture);
+            }
+        }
+
     }
 }

@@ -1,0 +1,4 @@
+﻿en-US  заведомо отсутствующий ключ -> @@ЗАПАСНОЕ@@
+en-US  живой ключ DoseRateNoGrid  -> Dose rate: the energy grid is empty.
+ru-RU  заведомо отсутствующий ключ -> @@ЗАПАСНОЕ@@
+ru-RU  живой ключ DoseRateNoGrid  -> Мощность дозы: сетка энергий пуста.

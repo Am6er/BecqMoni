@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -33,8 +35,48 @@ namespace BecquerelMonitor
             PowerFwhmCalibration
         }
 
+        /// <summary>
+        /// Умолчание модели разрешения по настройкам поиска пиков. Отдаёт
+        /// <c>null</c>, когда его построить нельзя, — и ПРИЧИНУ этого больше не
+        /// теряет: см. перегрузку с <c>out refusal</c>.
+        /// </summary>
         public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration)
         {
+            string refusal;
+            return DefaultCalibration(fwhmConfig, energyCalibration, out refusal);
+        }
+
+        /// <summary>
+        /// То же, но с ПРИЧИНОЙ ОТКАЗА СЛОВАМИ (`A235`, 05.09.2026).
+        ///
+        /// ⛔ Здесь стоял авторский <c>TODO</c> «может, чтобы избежать null,
+        /// влепить некую дефолтную кривую по аналогии с y = x». Подставлять её
+        /// НЕЛЬЗЯ, и это не осторожность, а арифметика: кривая разрешения
+        /// задаёт ширину окна поиска пиков и форму образа в полноспектральном
+        /// разборе, то есть выдуманная кривая даёт ЧИСЛА, неотличимые от
+        /// измеренных. Отказ остаётся отказом; чинится не он, а его немота.
+        ///
+        /// ⛔ Немота стоила падения: <c>null</c> расползался по документу без
+        /// единого слова и всплывал <c>NullReferenceException</c> в чужом месте
+        /// (`A212`, ввоз через SpecUtils). У отказа обязан быть читатель
+        /// (`A140`, `A22`, `A95`), и <c>refusal</c> заведён затем, чтобы этот
+        /// читатель у него был: обе двери ввоза его цитируют.
+        ///
+        /// ⚠ Причина называет ТРИ ЧИСЛА настроек, а не «не получилось»:
+        /// прямая через (0, <c>FWHM_AT_0</c>) и (<c>Ch_Fwhm</c>,
+        /// <c>Width_Fwhm</c>) не проходит <c>PerformCalibration</c> ровно
+        /// тогда, когда ширина вдоль шкалы УБЫВАЕТ
+        /// (<c>SimpleSqrtFwhmCalibration.CheckCalibration</c>). Без этих трёх
+        /// чисел человеку негде искать причину: на форме их нет вовсе, они
+        /// приходят из <c>config\device\*.xml</c>.
+        ///
+        /// ⚠ Прежняя подпись сохранена и ведёт сюда же: у неё в дереве
+        /// одиннадцать вызывающих (плюс пробы), и менять их всех разом —
+        /// значит смешать эту правку с чужими.
+        /// </summary>
+        public static SimpleSqrtFwhmCalibration DefaultCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration, out string refusal)
+        {
+            refusal = null;
             SimpleSqrtFwhmCalibration simpleSqrtFwhmCalibration = new SimpleSqrtFwhmCalibration();
             CalibrationPeak peak = new CalibrationPeak
             {
@@ -65,7 +107,14 @@ namespace BecquerelMonitor
             }
             else
             {
-                // TODO Может чтобы избежать null нужно тут влепить некую дефолтную кривую по аналогии с y = x? На подумать.
+                // ⛔ Кривая НЕ ВЫДУМЫВАЕТСЯ (см. заглавие метода). Возвращается
+                //    null, но теперь вместе с причиной, которую есть кому
+                //    прочесть.
+                refusal = string.Format(CultureInfo.CurrentCulture,
+                                        Resources.ERRFwhmDefaultNotMonotonic,
+                                        fwhmConfig.FWHM_AT_0,
+                                        fwhmConfig.Ch_Fwhm,
+                                        fwhmConfig.Width_Fwhm);
                 return null;
             }
         }

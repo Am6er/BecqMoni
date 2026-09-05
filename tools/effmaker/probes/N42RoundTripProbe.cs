@@ -883,10 +883,33 @@ namespace N42RoundTripProbe
                                   + (FwhmCalibration.DefaultCalibration(broken, new PolynomialEnergyCalibration()) == null
                                      ? "null (кривая не растёт)" : "кривая построилась — ПЛЕЧО НЕ МЕРИТ"));
                 Console.WriteLine();
+                // ⛔ ВХОД, НА КОТОРОМ ОБЕ ДВЕРИ ДОХОДЯТ ДО ОДНОГО СОСТОЯНИЯ
+                //    (`A234`, 05.09.2026). Двенадцать корпусных .n42 — это
+                //    спецификация 2012 года, и её разбор заводит СВОИ
+                //    `ResultData` (`N42\Util.cs:876`) с умолчанием настроек
+                //    поиска пиков; после такой двери кривая есть ВСЕГДА, и
+                //    молчание двери N42 на корпусе — не дефект, а ОТСУТСТВИЕ
+                //    состояния. ⚠ Отсюда следует, что посылка `A234` («дверь
+                //    N42 ввозит 12 из 12 с FwhmCalibration = null») была про
+                //    ЗАГОТОВКУ документа, а не про то, что дверь оставляет
+                //    человеку: замер ДО и ПОСЛЕ разводит эти два числа.
+                //    Разбор 2006 года пишет прочитанное ПРЯМО в
+                //    `doc.ActiveResultData` (о том же говорит `catch` самой
+                //    двери), то есть кривую документа оставляет как есть.
+                //    Один файл, обе двери, одно состояние — только так
+                //    сравнение «сказали ли они ОДНО И ТО ЖЕ» вообще имеет
+                //    предмет.
+                string spec2006 = Path.Combine(Path.GetTempPath(), "a234_2006");
+                Directory.CreateDirectory(spec2006);
+                File.WriteAllText(Path.Combine(spec2006, "a234_2006.n42"),
+                                  N42_2006("2026-09-05T12:00:00Z", 64), new UTF8Encoding(false));
+                string[] one = Directory.GetFiles(spec2006, "*.n42");
                 try
                 {
                     rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "документ приложения", "SpecUtils", files);
                     rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "документ приложения", "N42", files);
+                    rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ, файл 2006", "документ приложения", "SpecUtils", one);
+                    rc |= Arm("УМОЛЧАНИЕ НЕ СТРОИТСЯ, файл 2006", "документ приложения", "N42", one);
                 }
                 finally
                 {
@@ -894,6 +917,14 @@ namespace N42RoundTripProbe
                     broken.Width_Fwhm = keepWidth;
                     broken.FwhmCalibration = keepCurve;
                 }
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ЛОЖНОЙ ТРЕВОГИ: ТОТ ЖЕ ФАЙЛ 2006
+                //    года при ИСПРАВНОЙ конфигурации. Умолчание строится,
+                //    кривая у документа есть, и обе двери обязаны молчать.
+                //    Без этого плеча «дверь сказала слово» ничего не значит:
+                //    дверь, говорящая всегда, тоже даёт единицу.
+                rc |= Arm("КОНФИГУРАЦИЯ ИСПРАВНА, файл 2006", "документ приложения", "SpecUtils", one);
+                rc |= Arm("КОНФИГУРАЦИЯ ИСПРАВНА, файл 2006", "документ приложения", "N42", one);
             }
             finally
             {
@@ -913,14 +944,28 @@ namespace N42RoundTripProbe
         /// отказа — ПЕРВЫЙ кадр следа внутри приложения: строка `A212` называет
         /// место падения по чтению исходника, и подтвердить его обязан след, а
         /// не чтение.
+        ///
+        /// ⛔ ДВА ЗАМЕРА КРИВОЙ, ДО И ПОСЛЕ ВВОЗА (`A234`, 05.09.2026). Прежде
+        ///    мерилось только состояние ДО, и число «без ПШПВ у документа: 12»
+        ///    говорило про заготовку, а не про то, что дверь оставила человеку.
+        ///    Разница между этими двумя числами и есть предмет `A234`: у двери
+        ///    N42 ниже стоит <c>CheckDocument</c>, и он часть состояний
+        ///    достраивает умолчанием, а часть — нет.
+        ///
+        /// ⛔ ГОЛОС ДВЕРИ ПЕЧАТАЕТСЯ, А НЕ ВЫБРАСЫВАЕТСЯ. Поток ошибок и так
+        ///    перехватывался (иначе строки <c>AppUi.Report</c> лезли бы в
+        ///    середину таблицы), но перехваченное молча терялось — то есть
+        ///    проба по устройству не могла отличить дверь, сказавшую слово, от
+        ///    двери молчащей. Ровно это и требуется мерить.
         /// </summary>
         static int Arm(string configState, string docWay, string door, string[] files)
         {
             string head = configState + " | " + docWay + " | дверь " + door;
             Console.WriteLine("=== " + head + " ===");
 
-            int ok = 0, failed = 0, nullFwhm = 0, noDoc = 0;
+            int ok = 0, failed = 0, nullFwhm = 0, nullAfter = 0, noDoc = 0, spoke = 0;
             Dictionary<string, int> byKind = new Dictionary<string, int>();
+            List<string> voices = new List<string>();
 
             foreach (string f in files)
             {
@@ -929,6 +974,7 @@ namespace N42RoundTripProbe
                 string said = null;
                 string frame = "";
                 string fwhm = "?";
+                string fwhmAfter = "—";
 
                 TextWriter realErr = Console.Error;
                 StringWriter caught = new StringWriter();
@@ -983,6 +1029,33 @@ namespace N42RoundTripProbe
                     Console.SetError(realErr);
                 }
 
+                // Состояние ПОСЛЕ двери — то самое, что достаётся человеку.
+                // Считается по ВСЕМУ списку спектров документа, а не по одному
+                // активному: ввоз SpecUtils кладёт в документ до шестнадцати.
+                if (doc != null && doc.ResultDataFile != null && doc.ResultDataFile.ResultDataList != null)
+                {
+                    int had = 0, gone = 0;
+                    foreach (ResultData rd in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (rd == null) continue;
+                        had++;
+                        if (rd.FwhmCalibration == null) gone++;
+                    }
+                    fwhmAfter = "спектров " + had + ", без ПШПВ " + gone;
+                    if (gone > 0) nullAfter++;
+                }
+
+                string voice = caught.ToString().Trim();
+                if (voice.Length > 0)
+                {
+                    spoke++;
+                    foreach (string line in voice.Split('\n'))
+                    {
+                        string one = line.Trim();
+                        if (one.Length > 0 && !voices.Contains(one)) voices.Add(one);
+                    }
+                }
+
                 // ⛔ «НЕ УПАЛО» — ЕЩЁ НЕ «ВВЕЗЛО». Сторож null мог бы увести ввоз
                 //    мимо спектров и молча отдать пустой документ, и по одному
                 //    приговору это неотличимо от удачи. Поэтому в строке стоит
@@ -991,12 +1064,14 @@ namespace N42RoundTripProbe
                 if (said == null)
                 {
                     ok++;
-                    Console.WriteLine("  " + name + " | ВВЕЗЁН | " + fwhm + " | " + Print(doc));
+                    Console.WriteLine("  " + name + " | ВВЕЗЁН | до: " + fwhm
+                                      + " | после: " + fwhmAfter + " | " + Print(doc));
                 }
                 else
                 {
                     failed++;
-                    Console.WriteLine("  " + name + " | ОТКАЗ | " + fwhm + " | " + said
+                    Console.WriteLine("  " + name + " | ОТКАЗ | до: " + fwhm
+                                      + " | после: " + fwhmAfter + " | " + said
                                       + (frame.Length == 0 ? "" : "   [" + frame + "]"));
                 }
             }
@@ -1009,10 +1084,17 @@ namespace N42RoundTripProbe
             }
             string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + failed
                            + " (из " + files.Length + ")"
-                           + ", без ПШПВ у документа: " + nullFwhm
+                           + ", без ПШПВ ДО: " + nullFwhm
+                           + ", без ПШПВ ПОСЛЕ: " + nullAfter
+                           + ", дверь сказала слово: " + spoke
                            + (noDoc > 0 ? ", документ не создан: " + noDoc : "")
                            + (kinds.Length == 0 ? "" : "   |   " + kinds);
             Console.WriteLine("  ИТОГ: " + total);
+            if (voices.Count > 0)
+            {
+                Console.WriteLine("  ГОЛОСА ДВЕРИ:");
+                foreach (string v in voices) Console.WriteLine("    " + v);
+            }
             Console.WriteLine();
             armTotals.Add(total);
             return 0;

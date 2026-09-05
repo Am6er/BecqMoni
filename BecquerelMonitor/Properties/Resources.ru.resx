@@ -2141,4 +2141,91 @@ http://xptable.sourceforge.net/</value>
     <value>{0} (сумма 511+511)</value>
     <comment>Приборная подпись пика 1022 кэВ — суммы двух аннигиляционных квантов. {0} — имя библиотечной записи образа аннигиляции, чтобы подписи 511 и 1022 различались на графике. {0} обязан стоять первым, и сразу за ним обязан идти ПРОБЕЛ: имя нуклида читается как всё до первого пробела (NuclideDefinition.NuclideNameOf), ровно как у «Tl-208 SE».</comment>
   </data>
+  <data name="DoseRateBadEfficiency" xml:space="preserve">
+    <value>Мощность дозы: кривая эффективности даёт {0} на {1:f0} кэВ — делить на такое бессмысленно.</value>
+  </data>
+  <data name="DoseRateBadScale" xml:space="preserve">
+    <value>Мощность дозы: шкала энергии вырождена ({0}...{1} кэВ на {2} каналов).</value>
+  </data>
+  <data name="DoseRateCurveBadEnergy" xml:space="preserve">
+    <value>Мощность дозы: у кривой эффективности точка с негодной энергией {0} кэВ.</value>
+  </data>
+  <data name="DoseRateCurveBadValue" xml:space="preserve">
+    <value>Мощность дозы: кривая эффективности даёт негодное значение {0} на {1:f1} кэВ.</value>
+  </data>
+  <data name="DoseRateCurveTooShort" xml:space="preserve">
+    <value>Мощность дозы: у кривой эффективности точек: {0}, а нужно не меньше двух.</value>
+  </data>
+  <data name="DoseRateEmptyRange" xml:space="preserve">
+    <value>Мощность дозы: шкала прибора ({0:f0}...{1:f0} кэВ) не пересекается с областью, где заданы коэффициенты ({2:f0}...{3:f0} кэВ).</value>
+  </data>
+  <data name="DoseRateEmptySpectrum" xml:space="preserve">
+    <value>Мощность дозы: у эталонного спектра нет каналов.</value>
+  </data>
+  <data name="DoseRateEnergyNotPositive" xml:space="preserve">
+    <value>Мощность дозы: энергия {0} кэВ не положительна.</value>
+  </data>
+  <data name="DoseRateEtalonEmpty" xml:space="preserve">
+    <value>Мощность дозы: в диапазонах нет ни одного отсчёта эталонного спектра — калиброваться не по чему.</value>
+  </data>
+  <data name="DoseRateFileUnusable" xml:space="preserve">
+    <value>Мощность дозы: в {0} нет спектра с калибровкой энергии, каналами и ненулевым временем набора.</value>
+  </data>
+  <data name="DoseRateLsrmNoHeader" xml:space="preserve">
+    <value>Мощность дозы: {0} не начинается с заголовка ЛСРМ "Energy, keV / Efficiency / Uncertainty, %" — в первой строке стоит "{1}".</value>
+  </data>
+  <data name="DoseRateLsrmNoPoints" xml:space="preserve">
+    <value>Мощность дозы: из {0} получено точек кривой: {1}, а нужно не меньше {2} (ещё {3} отброшено с объявленной погрешностью больше {4:f0} %).</value>
+  </data>
+  <data name="DoseRateLsrmShortLine" xml:space="preserve">
+    <value>Мощность дозы: в {0} (строка {1}) столбцов: {2} вместо трёх (энергия, эффективность, погрешность): "{3}".</value>
+  </data>
+  <data name="DoseRateNoCalibration" xml:space="preserve">
+    <value>Мощность дозы: у эталонного спектра нет калибровки энергии — каналы не перевести в кэВ.</value>
+  </data>
+  <data name="DoseRateNoEfficiency" xml:space="preserve">
+    <value>Мощность дозы: кривая эффективности не выбрана.</value>
+  </data>
+  <data name="DoseRateNoElement" xml:space="preserve">
+    <value>Мощность дозы: элемента Z={0} нет в базе веществ.</value>
+  </data>
+  <data name="DoseRateNoExpected" xml:space="preserve">
+    <value>Мощность дозы: объявленная мощность дозы источника обязана быть положительной.</value>
+  </data>
+  <data name="DoseRateNoGrid" xml:space="preserve">
+    <value>Мощность дозы: сетка энергий пуста.</value>
+  </data>
+  <data name="DoseRateNoScale" xml:space="preserve">
+    <value>Мощность дозы: ни у конфигурации прибора, ни у спектра нет шкалы энергии — диапазоны строить не на чём.</value>
+  </data>
+  <data name="DoseRateNoSpectrum" xml:space="preserve">
+    <value>Мощность дозы: эталонный спектр не выбран.</value>
+  </data>
+  <data name="DoseRateNoTime" xml:space="preserve">
+    <value>Мощность дозы: у эталонного спектра нулевое время набора.</value>
+  </data>
+  <data name="DoseRateNotFinite" xml:space="preserve">
+    <value>Мощность дозы: сумма по диапазонам не конечное число — точки калибровки негодны.</value>
+  </data>
+  <data name="DoseRateOutsideCurve" xml:space="preserve">
+    <value>Мощность дозы: {0:f1} кэВ вне кривой эффективности ({1:f1}...{2:f1} кэВ).</value>
+  </data>
+  <data name="DoseRateOutsideIcrp" xml:space="preserve">
+    <value>Мощность дозы: {0} кэВ вне таблицы h*(10)/Ka ICRP 74 ({1}...{2} кэВ).</value>
+  </data>
+  <data name="DoseRateOutsideXcom" xml:space="preserve">
+    <value>Мощность дозы: {0} кэВ вне таблицы XCOM для Z={1} ({2}...{3} кэВ).</value>
+  </data>
+  <data name="DoseRatePartialCoverage" xml:space="preserve">
+    <value>(покрыто {0:f0} % отсчётов)</value>
+  </data>
+  <data name="ERRNoFwhmCalibrationImport" xml:space="preserve">
+    <value>{0}: у {1} из {2} ввезённых спектров нет модели разрешения (калибровки ПШПВ). Поиск пиков по ним работать не может. Причина: {3}</value>
+  </data>
+  <data name="ERRFwhmDefaultNotMonotonic" xml:space="preserve">
+    <value>умолчание по настройкам прибора не строится — прямая через (канал 0, ПШПВ {0}) и (канал {1}, ПШПВ {2}) не растёт, а ширина вдоль шкалы убывать не может.</value>
+  </data>
+  <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
+    <value>у спектра нет калибровки ПШПВ, и никто её ему не построил.</value>
+  </data>
 </root>

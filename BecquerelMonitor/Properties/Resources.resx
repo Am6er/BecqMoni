@@ -43392,4 +43392,91 @@ Turn it on in Windows settings and search again.</value>
     <value>{0} (sum 511+511)</value>
     <comment>Instrumental peak label for the 1022 keV sum of two annihilation quanta. {0} is the name of the annihilation-image record of the nuclide library, so that the 511 and 1022 labels can be told apart on the chart. Keep {0} first and keep a SPACE right after it: the nuclide token is read as everything before the first space (NuclideDefinition.NuclideNameOf), the way "Tl-208 SE" is.</comment>
   </data>
+  <data name="DoseRateBadEfficiency" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless.</value>
+  </data>
+  <data name="DoseRateBadScale" xml:space="preserve">
+    <value>Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels).</value>
+  </data>
+  <data name="DoseRateCurveBadEnergy" xml:space="preserve">
+    <value>Dose rate: the efficiency curve has a point at {0} keV.</value>
+  </data>
+  <data name="DoseRateCurveBadValue" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f1} keV.</value>
+  </data>
+  <data name="DoseRateCurveTooShort" xml:space="preserve">
+    <value>Dose rate: the efficiency curve has {0} point(s), at least two are needed.</value>
+  </data>
+  <data name="DoseRateEmptyRange" xml:space="preserve">
+    <value>Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV).</value>
+  </data>
+  <data name="DoseRateEmptySpectrum" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no channels.</value>
+  </data>
+  <data name="DoseRateEnergyNotPositive" xml:space="preserve">
+    <value>Dose rate: energy {0} keV is not positive.</value>
+  </data>
+  <data name="DoseRateEtalonEmpty" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against.</value>
+  </data>
+  <data name="DoseRateFileUnusable" xml:space="preserve">
+    <value>Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time.</value>
+  </data>
+  <data name="DoseRateLsrmNoHeader" xml:space="preserve">
+    <value>Dose rate: {0} does not start with the LSRM header "Energy, keV / Efficiency / Uncertainty, %" — the first line reads "{1}".</value>
+  </data>
+  <data name="DoseRateLsrmNoPoints" xml:space="preserve">
+    <value>Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty).</value>
+  </data>
+  <data name="DoseRateLsrmShortLine" xml:space="preserve">
+    <value>Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): "{3}".</value>
+  </data>
+  <data name="DoseRateNoCalibration" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.</value>
+  </data>
+  <data name="DoseRateNoEfficiency" xml:space="preserve">
+    <value>Dose rate: no efficiency curve is selected.</value>
+  </data>
+  <data name="DoseRateNoElement" xml:space="preserve">
+    <value>Dose rate: element Z={0} is missing from the material database.</value>
+  </data>
+  <data name="DoseRateNoExpected" xml:space="preserve">
+    <value>Dose rate: the declared dose rate of the source must be positive.</value>
+  </data>
+  <data name="DoseRateNoGrid" xml:space="preserve">
+    <value>Dose rate: the energy grid is empty.</value>
+  </data>
+  <data name="DoseRateNoScale" xml:space="preserve">
+    <value>Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on.</value>
+  </data>
+  <data name="DoseRateNoSpectrum" xml:space="preserve">
+    <value>Dose rate: no reference spectrum is selected.</value>
+  </data>
+  <data name="DoseRateNoTime" xml:space="preserve">
+    <value>Dose rate: the reference spectrum has zero measurement time.</value>
+  </data>
+  <data name="DoseRateNotFinite" xml:space="preserve">
+    <value>Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.</value>
+  </data>
+  <data name="DoseRateOutsideCurve" xml:space="preserve">
+    <value>Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV).</value>
+  </data>
+  <data name="DoseRateOutsideIcrp" xml:space="preserve">
+    <value>Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV).</value>
+  </data>
+  <data name="DoseRateOutsideXcom" xml:space="preserve">
+    <value>Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV).</value>
+  </data>
+  <data name="DoseRatePartialCoverage" xml:space="preserve">
+    <value>(covers {0:f0} % of counts)</value>
+  </data>
+  <data name="ERRNoFwhmCalibrationImport" xml:space="preserve">
+    <value>{0}: {1} of {2} imported spectra have no resolution model (FWHM calibration). Peak search cannot run on them. Reason: {3}</value>
+  </data>
+  <data name="ERRFwhmDefaultNotMonotonic" xml:space="preserve">
+    <value>the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale.</value>
+  </data>
+  <data name="ERRFwhmCalibrationUnset" xml:space="preserve">
+    <value>the spectrum carries no FWHM calibration and none was built for it.</value>
+  </data>
 </root>

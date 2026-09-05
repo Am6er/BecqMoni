@@ -1,0 +1,63 @@
+﻿сателлит ru: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_O11\ru\BecquerelMonitor.resources.dll  есть=True
+
+=== культура en-US
+DoseRateBadEfficiency	Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless.
+DoseRateBadScale	Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels).
+DoseRateCurveBadEnergy	Dose rate: the efficiency curve has a point at {0} keV.
+DoseRateCurveBadValue	Dose rate: the efficiency curve gives {0} at {1:f1} keV.
+DoseRateCurveTooShort	Dose rate: the efficiency curve has {0} point(s), at least two are needed.
+DoseRateEmptyRange	Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV).
+DoseRateEmptySpectrum	Dose rate: the reference spectrum has no channels.
+DoseRateEnergyNotPositive	Dose rate: energy {0} keV is not positive.
+DoseRateEtalonEmpty	Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against.
+DoseRateFileUnusable	Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time.
+DoseRateLsrmNoHeader	Dose rate: {0} does not start with the LSRM header "Energy, keV / Efficiency / Uncertainty, %" — the first line reads "{1}".
+DoseRateLsrmNoPoints	Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty).
+DoseRateLsrmShortLine	Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): "{3}".
+DoseRateNoCalibration	Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV.
+DoseRateNoEfficiency	Dose rate: no efficiency curve is selected.
+DoseRateNoElement	Dose rate: element Z={0} is missing from the material database.
+DoseRateNoExpected	Dose rate: the declared dose rate of the source must be positive.
+DoseRateNoGrid	Dose rate: the energy grid is empty.
+DoseRateNoScale	Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on.
+DoseRateNoSpectrum	Dose rate: no reference spectrum is selected.
+DoseRateNoTime	Dose rate: the reference spectrum has zero measurement time.
+DoseRateNotFinite	Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.
+DoseRateOutsideCurve	Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV).
+DoseRateOutsideIcrp	Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV).
+DoseRateOutsideXcom	Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV).
+DoseRatePartialCoverage	(covers {0:f0} % of counts)
+
+=== культура ru-RU
+DoseRateBadEfficiency	Мощность дозы: кривая эффективности даёт {0} на {1:f0} кэВ — делить на такое бессмысленно.
+DoseRateBadScale	Мощность дозы: шкала энергии вырождена ({0}...{1} кэВ на {2} каналов).
+DoseRateCurveBadEnergy	Мощность дозы: у кривой эффективности точка с негодной энергией {0} кэВ.
+DoseRateCurveBadValue	Мощность дозы: кривая эффективности даёт негодное значение {0} на {1:f1} кэВ.
+DoseRateCurveTooShort	Мощность дозы: у кривой эффективности точек: {0}, а нужно не меньше двух.
+DoseRateEmptyRange	Мощность дозы: шкала прибора ({0:f0}...{1:f0} кэВ) не пересекается с областью, где заданы коэффициенты ({2:f0}...{3:f0} кэВ).
+DoseRateEmptySpectrum	Мощность дозы: у эталонного спектра нет каналов.
+DoseRateEnergyNotPositive	Мощность дозы: энергия {0} кэВ не положительна.
+DoseRateEtalonEmpty	Мощность дозы: в диапазонах нет ни одного отсчёта эталонного спектра — калиброваться не по чему.
+DoseRateFileUnusable	Мощность дозы: в {0} нет спектра с калибровкой энергии, каналами и ненулевым временем набора.
+DoseRateLsrmNoHeader	Мощность дозы: {0} не начинается с заголовка ЛСРМ "Energy, keV / Efficiency / Uncertainty, %" — в первой строке стоит "{1}".
+DoseRateLsrmNoPoints	Мощность дозы: из {0} получено точек кривой: {1}, а нужно не меньше {2} (ещё {3} отброшено с объявленной погрешностью больше {4:f0} %).
+DoseRateLsrmShortLine	Мощность дозы: в {0} (строка {1}) столбцов: {2} вместо трёх (энергия, эффективность, погрешность): "{3}".
+DoseRateNoCalibration	Мощность дозы: у эталонного спектра нет калибровки энергии — каналы не перевести в кэВ.
+DoseRateNoEfficiency	Мощность дозы: кривая эффективности не выбрана.
+DoseRateNoElement	Мощность дозы: элемента Z={0} нет в базе веществ.
+DoseRateNoExpected	Мощность дозы: объявленная мощность дозы источника обязана быть положительной.
+DoseRateNoGrid	Мощность дозы: сетка энергий пуста.
+DoseRateNoScale	Мощность дозы: ни у конфигурации прибора, ни у спектра нет шкалы энергии — диапазоны строить не на чём.
+DoseRateNoSpectrum	Мощность дозы: эталонный спектр не выбран.
+DoseRateNoTime	Мощность дозы: у эталонного спектра нулевое время набора.
+DoseRateNotFinite	Мощность дозы: сумма по диапазонам не конечное число — точки калибровки негодны.
+DoseRateOutsideCurve	Мощность дозы: {0:f1} кэВ вне кривой эффективности ({1:f1}...{2:f1} кэВ).
+DoseRateOutsideIcrp	Мощность дозы: {0} кэВ вне таблицы h*(10)/Ka ICRP 74 ({1}...{2} кэВ).
+DoseRateOutsideXcom	Мощность дозы: {0} кэВ вне таблицы XCOM для Z={1} ({2}...{3} кэВ).
+DoseRatePartialCoverage	(покрыто {0:f0} % отсчётов)
+
+
+ключей: 26
+вернулось запасное (ключа нет в собранных ресурсах): 0
+русская строка не отличается от английской: 0
+СОШЛОСЬ
