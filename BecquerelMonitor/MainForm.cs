@@ -155,6 +155,21 @@ namespace BecquerelMonitor
             // разбирается метка «OS» — она НЕ имя культуры, хотя и принимается
             // за него молча. И то и другое с замером — в `Program.ApplyLanguage`.
             Program.ApplyLanguage(this.globalConfig.Language);
+            // ⛔ ЭТО КОСТЫЛЬ, И СНИМАТЬ ЕГО НАДО ПОСЛЕДНИМ, А НЕ ПЕРВЫМ (`A242`).
+            //
+            // Клон системной культуры с подменённым разделителем — подделка
+            // культуры: `CurrentCulture` управляет не только печатью, но и
+            // РАЗБОРОМ, и держится подмена ровно на ТОМ потоке, который её
+            // сделал. Поток пула, вошедший без переноса контекста исполнения,
+            // её не получает — измерено 05.09.2026 (`CultureProbeO14`: `1,5`
+            // против `1.5`), и это тот самый дефект, ради которого заведена
+            // `A242`.
+            //
+            // ⚠ Но убрать эти три строки СЕЙЧАС значит сделать хуже: на них
+            // держится точка у 1097 мест печати и разбора, ещё не переведённых
+            // на `CultureInfo.InvariantCulture` (счёт 05.09.2026, полоса О17:
+            // печать 923, разбор 174; таблица — `handover/o17-decimal-dot/`).
+            // Костыль уходит ПОСЛЕ них, а не вместо них.
             System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ".";
             System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
@@ -3275,7 +3290,15 @@ namespace BecquerelMonitor
                         {
                             double num6 = (double)energySpectrum.Spectrum[i] / energySpectrum.MeasurementTime;
                             num6 -= (double)(num2 - i) / (double)(num2 - num) * (num3 - num4);
-                            streamWriter.WriteLine(num5 + " " + num6);
+                            // ⛔ В ФАЙЛ — ИНВАРИАНТОМ (`A242`). Оба числа double,
+                            // и склейка со строкой зовёт `ToString()` по культуре
+                            // потока: на русской системе без подмены разделителя
+                            // строка вышла бы «662,3 1,7» — два числа, разделённые
+                            // пробелом, читаются как четыре.
+                            streamWriter.WriteLine(
+                                num5.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                + " "
+                                + num6.ToString(System.Globalization.CultureInfo.InvariantCulture));
                         }
                     }
                 }

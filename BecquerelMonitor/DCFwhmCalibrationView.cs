@@ -290,6 +290,14 @@ namespace BecquerelMonitor
 
         private void RemovePeakButton_Click(object sender, EventArgs e)
         {
+            // Кривая разрешения законно бывает пустой (`ResultData.cs:470`), а
+            // `UpdateCalibrateButtonState` эту кнопку не гасит — сторож по образцу
+            // `GetAllPeaksButton_Click`. См. `A236`.
+            if (fwhmCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
             int selectedItemIndex;
             if (CollectedPeaksTable.SelectedItems.Length >= 1)
             {
@@ -389,6 +397,17 @@ namespace BecquerelMonitor
         {
             if (!peakPickupProcessing)
             {
+                return;
+            }
+
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него
+            // подобранная точка падала `NullReferenceException` на пустой кривой.
+            ResultData pickupResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            EnsureFwhmCalibration(pickupResultData);
+            if (pickupResultData == null || pickupResultData.FwhmCalibration == null)
+            {
+                ClearPeakPickupState();
+                UpdateCalibrateButtonState();
                 return;
             }
 
@@ -835,7 +854,14 @@ namespace BecquerelMonitor
         {
             Cell cell = e.Cell;
             Row row = cell.Row;
-            List<CalibrationPeak> calibrationPeaks = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks;
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`).
+            ResultData editResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            if (editResultData == null || editResultData.FwhmCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
+            List<CalibrationPeak> calibrationPeaks = editResultData.FwhmCalibration.CalibrationPeaks;
             NumberCellEditor editor = (NumberCellEditor)e.Editor;
             string textvalue = editor.TextBox.Text;
 
@@ -943,6 +969,20 @@ namespace BecquerelMonitor
 
         private void ViewCalibrationButton_Click(object sender, EventArgs e)
         {
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него пустая
+            // кривая уезжала в `FWHMCalibrationGraph.Init` и валила ЧУЖОЙ класс.
+            // ⛔ Поле `fwhmCalibration` здесь НЕ переприсваивается: между обновлениями
+            // вида оно законно держит ещё не сохранённый выбор типа кривой (см. 223-235).
+            ResultData graphResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            EnsureFwhmCalibration(graphResultData);
+            if (fwhmCalibration == null || graphResultData == null
+                || graphResultData.FwhmCalibration == null
+                || graphResultData.EnergySpectrum == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
+
             FWHMCalibrationGraph graph = new FWHMCalibrationGraph(this.mainForm);
             graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
             DialogResult result = graph.ShowDialog();

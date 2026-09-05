@@ -34,6 +34,11 @@
 #   2 — нечем собирать (нет сборки приложения);
 #   3 — сторож `appwd_plan.ps1` недоступен, СМЕНИЛ ПОДПИСЬ, не отработал или
 #       провалил самопроверку; либо список исходников разошёлся с планом (`T83`);
+#   4 — ОПИСАНИЯ FSA разошлись с кодом: сторож `tools\check_fsa_docs.py`
+#       нашёл протухшее описание, не смог разобрать `FsaAnalyzer.cs` или
+#       провалил свою самопроверку (`T86`, читатель заведён 05.09.2026).
+#       Код СВОЙ нарочно: 1 значит «каталог проб негоден», а здесь каталог
+#       годен и собран — расходятся исходники приложения с их же описаниями;
 #   6 — план оснастки не строится вовсе (отказ `New-AppWdPlanOrDie`: нет
 #       собранных проб, нет `BecquerelMonitor.exe.config`).
 #
@@ -752,3 +757,76 @@ if ($script:BuildBad.Count) {
     Write-BuildFailBanner
     exit 1
 }
+
+# ⛔ ЧИТАТЕЛЬ СТОРОЖА ОПИСАНИЙ FSA (`T86`, решение Amber 05.09.2026).
+# `tools\check_fsa_docs.py` сличает XML-описания `FsaAnalyzer.cs` с тем, что
+# ставит конструктор. С 27.08 по 05.09.2026 его НЕ ЗВАЛ НИКТО — то есть сторож
+# был ровно тем, чем болеет всё дерево и что он сам заводился ловить: признак
+# без потребителя. Отсюда этот вызов, и он же — единственный его читатель.
+#
+# ⚠ Стоит ПОСЛЕ отказа сборки нарочно: несобравшаяся проба важнее протухшего
+# описания, и код 1 не должен теряться под кодом 4. К этому месту каталог уже
+# собран, разложен и сверен — отказ ниже НЕ означает «каталогом пользоваться
+# нельзя», и так прямо и написано в тексте отказа.
+#
+# ⚠ Гоняются ОБА прогона: сперва `--self-test` (положительный контроль самого
+# сторожа: порченые образцы и уведённые умолчания обязаны быть пойманы), потом
+# сверка дерева. Порядок не случаен — сторож, чью самопроверку никто не гоняет,
+# доказывает ровно столько же, сколько сторож без читателя.
+$fsaDocs = Join-Path $repo 'tools\check_fsa_docs.py'
+if (-not (Test-Path -LiteralPath $fsaDocs)) {
+    Write-Host ''
+    Write-Host '⛔⛔ ОТКАЗ: НЕТ СТОРОЖА ОПИСАНИЙ FSA (T86)' -ForegroundColor Red
+    Write-Host ("   Нет файла: {0}" -f $fsaDocs) -ForegroundColor Red
+    Write-Host '   Сверить описания FsaAnalyzer.cs с конструктором нечем.' -ForegroundColor Red
+    exit 4
+}
+# Толмач ищется с ПОЛОЖИТЕЛЬНЫМ контролем: в Windows на PATH висит заглушка
+# магазина приложений `python.exe`, которая находится, но не запускается.
+$fsaPy = $null
+$fsaPyArgs = @()
+foreach ($cand in @('python', 'py')) {
+    $found = @(Get-Command $cand -CommandType Application -ErrorAction SilentlyContinue)
+    if ($found.Count -eq 0) { continue }
+    $tryArgs = if ($cand -eq 'py') { @('-3') } else { @() }
+    $null = & $found[0].Source @tryArgs '--version' 2>&1
+    if ($LASTEXITCODE -eq 0) { $fsaPy = $found[0].Source; $fsaPyArgs = $tryArgs; break }
+}
+if (-not $fsaPy) {
+    Write-Host ''
+    Write-Host '⛔⛔ ОТКАЗ: НЕЧЕМ ЗАПУСТИТЬ СТОРОЖА ОПИСАНИЙ FSA (T86)' -ForegroundColor Red
+    Write-Host '   Ни python, ни py -3 не запускаются. Пропустить проверку — значит' -ForegroundColor Red
+    Write-Host '   вернуть сторожа без читателя, ради снятия которого он и заведён.' -ForegroundColor Red
+    exit 4
+}
+$fsaEnc = [Console]::OutputEncoding
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
+$env:PYTHONIOENCODING = 'utf-8'
+$fsaSelfOut  = & $fsaPy @fsaPyArgs $fsaDocs '--self-test' 2>&1
+$fsaSelfCode = $LASTEXITCODE
+$fsaOut      = & $fsaPy @fsaPyArgs $fsaDocs 2>&1
+$fsaCode     = $LASTEXITCODE
+try { [Console]::OutputEncoding = $fsaEnc } catch { }
+
+if ($fsaSelfCode -ne 0 -or $fsaCode -ne 0) {
+    $failOut  = if ($fsaSelfCode -ne 0) { $fsaSelfOut } else { $fsaOut }
+    $failCode = if ($fsaSelfCode -ne 0) { $fsaSelfCode } else { $fsaCode }
+    $failWhat = if ($fsaSelfCode -ne 0) { 'самопроверка сторожа (--self-test)' } else { 'сверка описаний с конструктором' }
+    Write-Host ''
+    Write-Host '⛔⛔ ОТКАЗ: ОПИСАНИЯ FSA РАЗОШЛИСЬ С КОДОМ (T86)' -ForegroundColor Red
+    Write-Host ('   Сторож: tools\check_fsa_docs.py, {0}, код {1}' -f $failWhat, $failCode) -ForegroundColor Red
+    Write-Host ''
+    foreach ($line in $failOut) { Write-Host ("   {0}" -f $line) -ForegroundColor Red }
+    Write-Host ''
+    Write-Host '   ⚠ ЭТО НЕ ПОЛОМКА СБОРКИ: пробы собраны, разложены и сверены,' -ForegroundColor Red
+    Write-Host ('     каталогом {0} пользоваться можно.' -f $Out) -ForegroundColor Red
+    Write-Host '     Отказ значит, что правка в BecquerelMonitor\FullSpectrumAnalysis\' -ForegroundColor Red
+    Write-Host '     FsaAnalyzer.cs сделала ЛОЖНЫМ описание в том же файле — чаще всего' -ForegroundColor Red
+    Write-Host '     уехало умолчание, а фраза про него осталась прежней.' -ForegroundColor Red
+    Write-Host '     Фразу искать ПО ТЕКСТУ, процитированному выше: номер строки' -ForegroundColor Red
+    Write-Host '     указывает на начало блока /// и под чужой правкой уезжает.' -ForegroundColor Red
+    exit 4
+}
+Write-Host ("описания FSA сверены с кодом (T86): {0} — код 0" -f 'tools\check_fsa_docs.py')
+foreach ($line in @($fsaSelfOut | Select-Object -Last 1)) { Write-Host ("  {0}" -f $line) }
+foreach ($line in @($fsaOut)) { Write-Host ("  {0}" -f $line) }

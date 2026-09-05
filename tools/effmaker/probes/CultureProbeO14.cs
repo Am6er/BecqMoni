@@ -34,6 +34,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.NucBase;
 using BecquerelMonitor.Properties;
 
 // ⛔ БЕЗ ЭТОЙ СТРОКИ ПРОБА МЕРИТ ДРУГОЙ ПРОЦЕСС, А НЕ ПРИЛОЖЕНИЕ. С .NET 4.6
@@ -73,6 +75,11 @@ static class CultureProbeO14
         }
 
 
+
+        // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`),
+        //    иначе раздел `A242` повиснет на модальном окне в `DocumentManager`.
+        ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
+        ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
 
         Say("== A238: язык строки ресурса вне UI-потока ==");
         Say("");
@@ -152,12 +159,417 @@ static class CultureProbeO14
         scratch.Start();
         scratch.Join(20000);
 
+        // ── `A242`: РАЗДЕЛИТЕЛЬ ДРОБНОЙ ЧАСТИ. Раздел идёт ПОСЛЕДНИМ и ставит
+        //    культуру потока сам: он мерит другую ручку (`CurrentCulture`,
+        //    не `CurrentUICulture`) и обязан оставить плечи выше нетронутыми.
+        A242();
+
         Say("");
         Say(failures == 0
-            ? "СОШЛОСЬ: строка ресурса вне UI-потока выходит по настройке во всех плечах"
+            ? "СОШЛОСЬ: строка ресурса вне UI-потока выходит по настройке во всех плечах;"
+              + " числа печатаются и разбираются точкой на любой культуре"
             : "РАСХОЖДЕНИЙ: " + failures);
         Finish(outPath);
         return failures == 0 ? 0 : 1;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  `A242`. «Разделитель дробной части у чисел ВСЕГДА ТОЧКА» — правило
+    //  Amber 05.09.2026. Мерится ОБЕ СТОРОНЫ: печать и разбор.
+    //
+    //  ⛔ Почему у каждого плеча стоит положительный контроль. Культура
+    //     потока задаётся здесь ПРИСВАИВАНИЕМ, и если бы оно не доезжало
+    //     (или платформа возвращала инвариант), все проверки «прошли» бы,
+    //     не измерив ничего. Поэтому первым делом на каждом плече печатается
+    //     `1.5` БЕЗ культуры: на ru-RU и de-DE обязано выйти «1,5», и не
+    //     вышло — плечо чужой культуры не воспроизводит, о чём говорится
+    //     прямо, а не замалчивается.
+    // ══════════════════════════════════════════════════════════════════════
+
+    static readonly string[] Foreign = { "ru-RU", "de-DE", "en-US" };
+
+    static void A242()
+    {
+        Say("");
+        Say("══════════════════════════════════════════════════════════════");
+        Say("`A242`: ЧИСЛО ПЕЧАТАЕТСЯ И РАЗБИРАЕТСЯ ТОЧКОЙ НА ЛЮБОЙ КУЛЬТУРЕ");
+        Say("══════════════════════════════════════════════════════════════");
+
+        // Языковая ручка соседних плеч отпускается: дальше речь только о числах.
+        CultureInfo.DefaultThreadCurrentUICulture = null;
+
+        string models = FindModels();
+        Say("геометрии дерева:  " + (models ?? "НЕ НАЙДЕНЫ — плечо «не сломано» не ставится"));
+
+        // Эталон снимается на ИНВАРИАНТЕ и служит меркой всем плечам.
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+        GeometryModel model = SampleGeometry();
+        string renderRef = null;
+        string stampRef = null;
+        try { renderRef = GeometryWriter.Render(model); }
+        catch (Exception ex) { Say("⛔ эталон текста `.in` не снят: " + ex.Message); failures++; }
+        stampRef = Stamp(model);
+
+        string crossFile = null;   // файл, записанный ПЕРВЫМ чужим плечом
+
+        foreach (string name in Foreign)
+        {
+            Say("");
+            Say("──────────────────────────────────────────────────────────────");
+            Say("ПЛЕЧО: системная культура потока " + name + " (подмены разделителя НЕТ)");
+            Say("──────────────────────────────────────────────────────────────");
+
+            CultureInfo os = CultureInfo.GetCultureInfo(name);
+            Thread.CurrentThread.CurrentCulture = os;
+
+            // ── Положительный контроль плеча.
+            string bare = (1.5).ToString();
+            string want = os.NumberFormat.NumberDecimalSeparator == "," ? "1,5" : "1.5";
+            bool comma = want == "1,5";
+            Say(string.Format(CultureInfo.InvariantCulture,
+                "  [положительный контроль] `(1.5).ToString()` без культуры = «{0}»  {1}",
+                bare, bare == want ? "— плечо воспроизводит культуру"
+                                   : "⛔ ОЖИДАЛОСЬ «" + want + "»: ПЛЕЧО НЕ МЕРИТ"));
+            if (bare != want) failures++;
+
+            // ══ ПЕЧАТЬ (прямое плечо). Текст `.in` — код приложения, и он же
+            //    ложится в клеймо матрицы отклика через `ComputeStamp`.
+            if (renderRef != null)
+            {
+                string here = null;
+                try { here = GeometryWriter.Render(model); }
+                catch (Exception ex) { Say("  ⛔ `GeometryWriter.Render` бросил: " + ex.Message); failures++; }
+                if (here != null)
+                {
+                    bool same = here == renderRef;
+                    Say("  ПЕЧАТЬ  текст `.in` совпал с эталоном инварианта: " + Verdict(same));
+                    if (!same)
+                    {
+                        failures++;
+                        Say("    первое расхождение: " + FirstDiff(renderRef, here));
+                    }
+                }
+            }
+
+            // ══ КЛЕЙМО. Оно строится из того же текста, и разойтись оно может
+            //    только вместе с ним; отдельная строка нужна потому, что цена
+            //    расхождения тут — пересчёт всех матриц.
+            string st = Stamp(model);
+            bool stampSame = st != null && st == stampRef;
+            Say("  КЛЕЙМО  `ResponseMatrix.ComputeStamp` совпало: "
+                + (st == null ? "не мерено (клеймо не построилось)" : Verdict(stampSame)));
+            if (st != null && !stampSame) failures++;
+
+            // ══ ОБРАТНОЕ ПЛЕЧО. Записано кодом приложения — прочитано кодом
+            //    приложения. Половина правки прошла бы незамеченной без этого.
+            string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                                                "o17-" + name + ".in");
+            try
+            {
+                GeometryWriter.Save(model, tmp);
+                GeometryModel back = GeometryModel.Load(tmp);
+                string diff = CompareDoubles(model, back);
+                Say("  ОБРАТНОЕ  записал и прочитал здесь же: "
+                    + (diff == null ? "числа те же" : "⛔ " + diff));
+                if (diff != null) failures++;
+
+                // Перекрёстно: файл ЧУЖОГО плеча читается на этом.
+                if (crossFile == null)
+                {
+                    crossFile = tmp;
+                }
+                else
+                {
+                    GeometryModel cross = GeometryModel.Load(crossFile);
+                    string d2 = CompareDoubles(model, cross);
+                    Say("  ОБРАТНОЕ  читаю файл, записанный плечом «"
+                        + System.IO.Path.GetFileNameWithoutExtension(crossFile).Substring(4) + "»: "
+                        + (d2 == null ? "числа те же" : "⛔ " + d2));
+                    if (d2 != null) failures++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Say("  ОБРАТНОЕ  ⛔ круг не замкнулся: " + ex.Message);
+                failures++;
+            }
+
+            // ══ РАЗБОР. Три двери, правленные полосой О17.
+            A242Parse("  РАЗБОР  `NucBaseFramework.Number(«0.0009»)` (из nucdb)",
+                      NumberFromBase("0.0009"), 0.0009);
+            A242Parse("  РАЗБОР  `NucBase.HalfLifeYearsFromCell(«5.75(Y)»)`",
+                      HalfLifeYears("5.75(Y)"), 5.75);
+
+            // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ НА ПРЕЖНИЙ КОД, и он снял посылку полосы.
+            //    Ждали «575» — то есть что точка сойдёт за разделитель тысяч.
+            //    Измерено 05.09.2026: выходит НОЛЬ. `NumberStyles.Float` не
+            //    несёт `AllowThousands`, точка на ru-RU/de-DE не разрешена
+            //    вовсе, и `TryParse` возвращает false, оставляя `out` нулём —
+            //    БЕЗ исключения и без единого слова. Значит прежняя цена была
+            //    не «число в сто раз больше», а «ноль вместо периода
+            //    полураспада»: тише и хуже.
+            //
+            //    Судится поэтому не конкретное число, а РАСХОЖДЕНИЕ с верным:
+            //    не разошлось — плечо дефекта не воспроизводит.
+            double was;
+            bool okOld = double.TryParse("5.75", NumberStyles.Float, CultureInfo.CurrentCulture, out was);
+            bool differs = !okOld || was != 5.75;
+            Say(string.Format(CultureInfo.InvariantCulture,
+                "    [положительный контроль] ПРЕЖНИЙ разбор «5.75» текущей культурой: {0}, значение {1}  {2}",
+                okOld ? "разобрал" : "ОТКАЗАЛ (out остаётся нулём)",
+                was.ToString("R", CultureInfo.InvariantCulture),
+                comma ? (differs ? "— дефект воспроизведён" : "⛔ ОЖИДАЛОСЬ РАСХОЖДЕНИЕ: ПЛЕЧО НЕ МЕРИТ")
+                      : "(культура с точкой — дефекта тут и не было)"));
+            if (comma && !differs) failures++;
+
+            // Вторая разновидность прежнего кода — `Convert.ToDouble`: та же
+            // культура, но отказ БРОСКОМ, а не нулём. Обе встречались в дереве.
+            string conv;
+            try { conv = Convert.ToDouble("5.75").ToString("R", CultureInfo.InvariantCulture); }
+            catch (FormatException) { conv = "FormatException"; }
+            Say("    [положительный контроль] ПРЕЖНИЙ `Convert.ToDouble(«5.75»)` = " + conv
+                + (comma ? "  — на культуре с запятой это отказ или другое число" : ""));
+
+            // ══ ВВОЗ CSV кодом приложения — вторая сторона вывоза CSV.
+            A242Csv(name);
+
+            // ══ «НЕ СЛОМАНО»: настоящие файлы дерева, ТОЛЬКО ЧТЕНИЕ.
+            if (models != null) A242Real(models, name);
+        }
+
+        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    static void A242Parse(string title, double got, double want)
+    {
+        bool ok = got == want;
+        Say(string.Format(CultureInfo.InvariantCulture,
+            "{0} = {1}  {2}", title, got.ToString("R", CultureInfo.InvariantCulture),
+            ok ? "по правилу" : "⛔ ОЖИДАЛОСЬ " + want.ToString("R", CultureInfo.InvariantCulture)));
+        if (!ok) failures++;
+    }
+
+    /// <summary>
+    /// Ввоз CSV кодом приложения. Файл пишется С ТОЧКОЙ — ровно так, как его
+    /// теперь пишет `DocumentManager.ExportDocumentToCsv`; вывоз сам вызвать
+    /// нельзя, он за `SaveFileDialog`, и это названо в отчёте.
+    /// </summary>
+    static void A242Csv(string culture)
+    {
+        string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "o17-" + culture + ".csv");
+        var sb = new StringBuilder();
+        sb.AppendLine("Channel,Counts (TotalTime=3600.3s)");
+        for (int i = 0; i < 8; i++) sb.AppendLine(i.ToString(CultureInfo.InvariantCulture) + "," + (i * 10));
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+
+        try
+        {
+            DocEnergySpectrum doc = new DocEnergySpectrum();
+            DocumentManager.GetInstance().ImportCsvToDocument(doc, 3600, path);
+            double t = doc.ActiveResultData.EnergySpectrum.MeasurementTime;
+            bool ok = Math.Abs(t - 3600.3) < 1e-9;
+            Say(string.Format(CultureInfo.InvariantCulture,
+                "  ВВОЗ CSV  время из шапки «TotalTime=3600.3s» = {0}  {1}",
+                t.ToString("R", CultureInfo.InvariantCulture),
+                ok ? "по правилу" : "⛔ ОЖИДАЛОСЬ 3600.3"));
+            if (!ok) failures++;
+        }
+        catch (Exception ex)
+        {
+            Say("  ВВОЗ CSV  ⛔ отказ: " + ex.Message);
+            failures++;
+        }
+
+        // Прежний ввоз звал `double.TryParse(totalTimeStr, out totalTime)` —
+        // без стиля и без культуры, то есть `NumberStyles.Float | AllowThousands`
+        // по ТЕКУЩЕЙ культуре. Здесь точка сойдёт за разделитель тысяч, и
+        // «3600.3» станет 36003 — в отличие от разбора со `NumberStyles.Float`,
+        // который просто отказывает. Обе разновидности есть в дереве, и обе
+        // печатаются, чтобы цена дефекта не выдумывалась по памяти.
+        double loose, strict;
+        bool okLoose = double.TryParse("3600.3", out loose);
+        bool okStrict = double.TryParse("3600.3", NumberStyles.Float, CultureInfo.CurrentCulture, out strict);
+        bool comma = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator == ",";
+        bool differs = !okLoose || loose != 3600.3;
+        Say(string.Format(CultureInfo.InvariantCulture,
+            "    [положительный контроль] ПРЕЖНИЙ `double.TryParse(«3600.3», out x)` = {0} ({1}); "
+            + "со `NumberStyles.Float` = {2} ({3})  {4}",
+            loose.ToString("R", CultureInfo.InvariantCulture), okLoose ? "разобрал" : "ОТКАЗАЛ",
+            strict.ToString("R", CultureInfo.InvariantCulture), okStrict ? "разобрал" : "ОТКАЗАЛ",
+            comma ? (differs ? "— дефект воспроизведён" : "⛔ ОЖИДАЛОСЬ РАСХОЖДЕНИЕ: ПЛЕЧО НЕ МЕРИТ")
+                  : "(культура с точкой)"));
+        if (comma && !differs) failures++;
+    }
+
+    /// <summary>
+    /// Плечо «не сломано»: настоящие геометрии дерева читаются кодом
+    /// приложения, и числа обязаны совпасть с тем, что дал инвариант.
+    /// ⛔ Файлы только ЧИТАЮТСЯ.
+    /// </summary>
+    static readonly Dictionary<string, Dictionary<string, double>> RealRef
+        = new Dictionary<string, Dictionary<string, double>>(StringComparer.Ordinal);
+
+    static void A242Real(string dir, string culture)
+    {
+        string[] files = Directory.GetFiles(dir, "*.in");
+        Array.Sort(files, StringComparer.Ordinal);
+        int judged = 0, off = 0;
+        foreach (string f in files)
+        {
+            Dictionary<string, double> here;
+            try { here = Doubles(GeometryModel.Load(f)); }
+            catch (Exception ex)
+            {
+                Say("  НЕ СЛОМАНО ⛔ " + System.IO.Path.GetFileName(f) + ": " + ex.Message);
+                off++;
+                continue;
+            }
+
+            string key = System.IO.Path.GetFileName(f);
+            Dictionary<string, double> was;
+            if (!RealRef.TryGetValue(key, out was))
+            {
+                RealRef[key] = here;
+                // ⛔ ЧИСЛА ПЕЧАТАЮТСЯ, А НЕ ТОЛЬКО СВЕРЯЮТСЯ МЕЖДУ СОБОЙ:
+                //    «совпало на трёх культурах» не отличает «разобрано верно»
+                //    от «одинаково неверно на всех трёх». Эти значения сверены
+                //    с самим файлом снаружи (см. журнал полосы О17).
+                if (RealRef.Count <= 2)
+                {
+                    Say(string.Format(CultureInfo.InvariantCulture,
+                        "  НЕ СЛОМАНО  {0}: диаметр {1} мм, высота {2} мм, ПШПВ@662 {3} %",
+                        key,
+                        here["CrystalDiameter"].ToString("R", CultureInfo.InvariantCulture),
+                        here["CrystalHeight"].ToString("R", CultureInfo.InvariantCulture),
+                        here["FwhmAt662Percent"].ToString("R", CultureInfo.InvariantCulture)));
+                }
+                continue;
+            }
+
+            judged++;
+            foreach (var kv in here)
+            {
+                double prev;
+                if (!was.TryGetValue(kv.Key, out prev)) continue;
+                if (!Same(prev, kv.Value))
+                {
+                    off++;
+                    Say(string.Format(CultureInfo.InvariantCulture,
+                        "  НЕ СЛОМАНО ⛔ {0}: {1} = {2} против {3}", key, kv.Key,
+                        kv.Value.ToString("R", CultureInfo.InvariantCulture),
+                        prev.ToString("R", CultureInfo.InvariantCulture)));
+                }
+            }
+        }
+        Say("  НЕ СЛОМАНО  геометрий дерева прочитано " + files.Length
+            + (judged == 0 ? " (эталон снят этим плечом, судятся следующие)"
+                           : ", сверено с первым плечом " + judged + ", расхождений " + off));
+        failures += off;
+    }
+
+    // ── подсобное ────────────────────────────────────────────────────────
+
+    static bool Same(double a, double b)
+    {
+        if (double.IsNaN(a) && double.IsNaN(b)) return true;
+        return a == b;
+    }
+
+    static string Verdict(bool ok) { return ok ? "да" : "⛔ НЕТ"; }
+
+    static string FirstDiff(string a, string b)
+    {
+        int n = Math.Min(a.Length, b.Length);
+        for (int i = 0; i < n; i++)
+        {
+            if (a[i] != b[i])
+            {
+                int from = Math.Max(0, i - 30);
+                return "…" + a.Substring(from, Math.Min(60, a.Length - from)).Replace("\r", "").Replace("\n", "⏎")
+                     + "… против …"
+                     + b.Substring(from, Math.Min(60, b.Length - from)).Replace("\r", "").Replace("\n", "⏎") + "…";
+            }
+        }
+        return "длина: " + a.Length + " против " + b.Length;
+    }
+
+    static GeometryModel SampleGeometry()
+    {
+        GeometryModel m = new GeometryModel();
+        m.Name = "o17";
+        m.IsScintillator = true;
+        m.CrystalDiameter = 63.5;
+        m.CrystalHeight = 63.5;
+        m.FwhmAt662Percent = 7.25;
+        return m;
+    }
+
+    /// <summary>Все `double`-поля модели — отражением, чтобы правка полей не
+    /// прошла мимо пробы молча.</summary>
+    static Dictionary<string, double> Doubles(GeometryModel m)
+    {
+        var d = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (FieldInfo f in typeof(GeometryModel).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (f.FieldType == typeof(double)) d[f.Name] = (double)f.GetValue(m);
+        }
+        return d;
+    }
+
+    static string CompareDoubles(GeometryModel a, GeometryModel b)
+    {
+        Dictionary<string, double> x = Doubles(a), y = Doubles(b);
+        foreach (var kv in x)
+        {
+            double other;
+            if (!y.TryGetValue(kv.Key, out other)) continue;
+            // `.in` пишется в сантиметрах и с ограниченной значностью, поэтому
+            // сверка ОТНОСИТЕЛЬНАЯ; запятая вместо точки даёт расхождение в
+            // разы, а не в знаках, и такой допуск её не прячет.
+            double scale = Math.Max(Math.Abs(kv.Value), 1e-9);
+            if (Math.Abs(kv.Value - other) / scale > 1e-6)
+            {
+                return string.Format(CultureInfo.InvariantCulture, "{0}: {1} → {2}", kv.Key,
+                                     kv.Value.ToString("R", CultureInfo.InvariantCulture),
+                                     other.ToString("R", CultureInfo.InvariantCulture));
+            }
+        }
+        return null;
+    }
+
+    static string Stamp(GeometryModel m)
+    {
+        try { return ResponseMatrix.ComputeStamp(m, new ResponseMatrixOptions()); }
+        catch { return null; }
+    }
+
+    /// <summary>`NucBaseFramework.Number` — метод закрытый, берётся отражением:
+    /// это ровно та дверь, через которую числа приходят из `nucdb.sqlite`.</summary>
+    static double NumberFromBase(string text)
+    {
+        MethodInfo mi = typeof(NucBaseFramework).GetMethod("Number",
+            BindingFlags.Static | BindingFlags.NonPublic, null, new[] { typeof(string) }, null);
+        if (mi == null) { Say("    ⛔ `NucBaseFramework.Number` не найден — сборка другая"); failures++; return double.NaN; }
+        return (double)mi.Invoke(null, new object[] { text });
+    }
+
+    static double HalfLifeYears(string cell)
+    {
+        // Годы: «5.75(Y)» → 5.75. Метод открытый и статический.
+        return BecquerelMonitor.NucBase.NucBase.HalfLifeYearsFromCell(cell);
+    }
+
+    static string FindModels()
+    {
+        string dir = AppDomain.CurrentDomain.BaseDirectory;
+        for (int i = 0; i < 8 && dir != null; i++)
+        {
+            string candidate = System.IO.Path.Combine(dir, "LSRM Geometries", "Models");
+            if (Directory.Exists(candidate)) return candidate;
+            DirectoryInfo up = Directory.GetParent(dir.TrimEnd('\\', '/'));
+            dir = up == null ? null : up.FullName;
+        }
+        return null;
     }
 
     /// <summary>

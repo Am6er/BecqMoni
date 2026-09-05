@@ -1,0 +1,185 @@
+================================================================
+О15: сторожа resx — плечи T234 и T236, 05.09.2026
+================================================================
+
+### 0. ЖИВОЕ ДЕРЕВО, версия HEAD (точка отсчёта ДО правки)
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+
+### 0'. ЖИВОЕ ДЕРЕВО, версия ПОСЛЕ правки
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+
+### 1. T234, копия дерева НЕТРОНУТАЯ (положительный контроль полигона)
+скопировано файлов: 624
+  -- версия HEAD:
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  -- версия ПОСЛЕ правки:
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+
+### 2. T234, копия с ОДНИМ испорченным *.ru.resx (NuclideSetForm.ru.resx -> LF)
+C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/poly/BecquerelMonitor/NuclideSetForm.ru.resx: CRLF 175 -> 0, LF-одиночных 0 -> 175, BOM True
+  -- версия HEAD (ДЕФЕКТ: zorder молчит):
+  check_resx -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_letters -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_designer -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  -- версия ПОСЛЕ правки (все четыре называют ОДНО число):
+  check_resx -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_letters -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_designer -> код 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 1
+  check_resx_zorder -> код 1
+      файлов чужого формата (не BOM+CRLF): 1
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+
+### 3. T234, три порчи трёх видов: ru->LF, английский БЕЗ пары Designer ->LF, ru без BOM
+C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/poly/BecquerelMonitor/XPTable/Models/Table.resx: CRLF 42 -> 0, LF-одиночных 0 -> 42, BOM True
+BOM снят у MainForm.ru.resx
+  -- версия HEAD:
+  check_resx -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_letters -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_designer -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  -- версия ПОСЛЕ правки:
+  check_resx -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_letters -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_designer -> код 1
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+      файлов чужого формата (не BOM+CRLF): 3
+  check_resx_zorder -> код 1
+      файлов чужого формата (не BOM+CRLF): 3
+      ФОРМАТ  BecquerelMonitor/MainForm.ru.resx: без BOM
+      ФОРМАТ  BecquerelMonitor/NuclideSetForm.ru.resx: переводы строк LF, а не CRLF
+      ФОРМАТ  BecquerelMonitor/XPTable/Models/Table.resx: переводы строк LF, а не CRLF
+  -- ключ --no-format снимает плечо (zorder, версия ПОСЛЕ):
+     код 0
+     файлов чужого формата (не BOM+CRLF): 0
+
+### 4. T234, копия ВОССТАНОВЛЕНА: все четыре снова 0
+скопировано файлов: 624
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+
+================================================================
+### 5. T236: три плеча на копии
+  A — чужой получатель  SomethingElse.Text("O15ForeignReceiverKey", ...)
+  B — свой получатель   DoseRateCoefficients.Text("O15MissingWithClassName", ...)
+  C — БЕЗ получателя изнутри DoseRateCoefficients: Text("O15MissingNoClassName", ...)
+================================================================
+плечи T236 поставлены: C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/poly/BecquerelMonitor\DoseRate.cs, C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/31b3afe8-e2e2-4084-9d4e-18c65f47af52/scratchpad/poly/BecquerelMonitor\O15Foreign.cs
+
+-- версия HEAD (ДЕФЕКТ: чужой получатель осуждён как ключ ресурса):
+   код 1
+   НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:545  GetString через Text()("O15MissingWithClassName")
+   НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:550  GetString через Text()("O15MissingNoClassName")
+   НЕТ КЛЮЧА  BecquerelMonitor/O15Foreign.cs:15  GetString через Text()("O15ForeignReceiverKey")
+     из них через ОДИН шаг (обёртка или член): 50
+   ключей, которых нет в нейтральном resx: 3
+         обёртки: GetResourceText(аргумент 1), Text(аргумент 1)
+
+-- версия ПОСЛЕ правки (A не осуждён и назван счётчиком; B и C осуждены):
+   код 1
+   НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:545  GetString через Text()("O15MissingWithClassName")
+   НЕТ КЛЮЧА  BecquerelMonitor/DoseRate.cs:550  GetString через Text()("O15MissingNoClassName")
+     из них через ОДИН шаг (обёртка или член): 49
+   ключей, которых нет в нейтральном resx: 2
+         обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1)
+   вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 11
+   тёзки (подброшенные):
+         тёзка: BecquerelMonitor/O15Foreign.cs:5  (без получателя).Text(), объемлющий класс SomethingElse
+         тёзка: BecquerelMonitor/O15Foreign.cs:15  SomethingElse.Text(), объемлющий класс O15ForeignCaller
+   тёзки (живые, были на дереве до плеча):
+     NucBaseFramework.Text: 9
+
+### 6. T236: 30 мест / 26 имён НЕ потеряны — 26 ключей сняты из копии Resources.resx
+скопировано файлов: 624
+ключей снято: 26 из 26; CRLF 43481 -> 43403; BOM True
+  -- версия head: код 1
+     находок всего:            56
+     из них через Text():      30
+     уникальных имён ключей:   26
+       из них через ОДИН шаг (обёртка или член): 47
+  -- версия now: код 1
+     находок всего:            56
+     из них через Text():      30
+     уникальных имён ключей:   26
+       из них через ОДИН шаг (обёртка или член): 47
+
+### 7. копия восстановлена, живое дерево не трогалось ни разу
+скопировано файлов: 624
+  check_resx -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_letters -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer -> код 0
+      файлов чужого формата (не BOM+CRLF): 0
+  check_resx_zorder -> код 0
+      файлов чужого формата (не BOM+CRLF): 0

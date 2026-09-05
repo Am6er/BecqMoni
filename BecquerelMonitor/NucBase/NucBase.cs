@@ -713,7 +713,12 @@ namespace BecquerelMonitor.NucBase
         {
             string[] parts = (cell ?? "").Split('(');
             double value;
-            double.TryParse(parts[0], NumberStyles.Float, CultureInfo.CurrentCulture, out value);
+            // ⛔ ИНВАРИАНТ (`A242`): ячейку пишет `AddDecayRadRow` выше, тоже
+            // инвариантом. Пара «печать → разбор» обязана меняться разом, иначе
+            // период полураспада меняется молча — измерено 05.09.2026: на
+            // `ru-RU` разбор ОТКАЗЫВАЕТ и оставляет ноль, на `de-DE` точка
+            // сходит за разделитель тысяч и «5.75» становится 575.
+            double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out value);
             // Take the full unit, not the first character: Substring(0,1) turned
             // "ms" into "m" (minutes, a x60000 error) and "us"/"ns" into unknown units.
             string unit = parts.Length > 1 ? parts[1].TrimEnd(')') : "s";
@@ -775,7 +780,15 @@ namespace BecquerelMonitor.NucBase
             // она у гамм и у рентгена ЭЛЕМЕНТА, когда искали именно его. Ветка
             // «если лишняя, снять» была бы кодом, который никогда не работает.
             string series = decrad.XrayType + (decrad.Redundant ? DecayRad.RedundantMark : "");
-            string hl = decrad.HalfLife.ToString() + "(" + decrad.HalfLifeUnit + ")";
+            // ⛔ ИНВАРИАНТНАЯ КУЛЬТУРА, И ВТОРАЯ ПОЛОВИНА ЭТОЙ ПРАВКИ —
+            // `HalfLifeYearsFromCell` (`A242`). Ячейка пишется ЗДЕСЬ, а
+            // разбирается ТАМ, при ввозе в набор нуклидов, и до 05.09.2026 обе
+            // стороны брали культуру потока: печать и разбор врали согласованно
+            // и потому были незаметны. Починить одну — значит записать «5.75» и
+            // прочитать ноль (`ru-RU`) или 575 (`de-DE`). Обе стороны сведены к
+            // точке разом.
+            string hl = decrad.HalfLife.ToString(CultureInfo.InvariantCulture)
+                        + "(" + decrad.HalfLifeUnit + ")";
             int index = this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, series, decrad.DecayTypeString, hl);
             if (decrad.Redundant)
             {

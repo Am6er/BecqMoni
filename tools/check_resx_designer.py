@@ -67,6 +67,17 @@ u"""Ключ, которого нет: `GetString("X")` без `X` в парно
 общий `Resources.ResourceManager` — у него известен resx. Лучше честный ноль,
 чем сверка не с тем файлом.
 
+**Тёзка обёртки — метод с тем же именем у ЧУЖОГО типа.** Обёртка опознаётся по
+паре (класс, имя метода), а не по одному имени (`T236`, 05.09.2026). Своим
+считается вызов у самого типа (`DoseRateCoefficients.Text(…)`) и вызов БЕЗ
+получателя изнутри этого же типа — так записаны четыре живых обращения внутри
+`DoseRateCoefficients`, и поиск строго по `DoseRateCoefficients.Text` потерял бы
+их молча. Всё остальное — `X.Text("литерал", …)` у чужого получателя и `Text(…)`
+из чужого класса — ключом ресурса НЕ считается, а печатается числом («вызовов с
+именем обёртки, но не её самой»), с перечнем по `--list`. Тёзка в дереве уже
+есть: `NucBaseFramework.Text(reader, column)` — 9 мест, и не судились они лишь
+потому, что первый аргумент там не литерал.
+
 **Ключ, который есть, но пуст.** Это забота `check_resx.py` (`ResXNullRef`).
 
 **Ключ, у которого нет читателя.** Обратное направление здесь сознательно не
@@ -170,6 +181,32 @@ DECL = re.compile(
     r'(?m)^[ \t]*(?:(?:public|private|protected|internal|static|virtual|override|sealed'
     r'|async|new|partial|extern|unsafe)\s+)*'
     r'[A-Za-z_][\w\.<>\[\],\s\?]*?\s+([A-Za-z_]\w*)\s*\(([^()]*)\)\s*(?:\r?\n)?\s*\{')
+# Объявление класса: модификаторы в любом порядке, затем имя (`T236`).
+CLASS_DECL = re.compile(
+    r'(?m)^[ \t]*(?:(?:public|private|protected|internal|static|sealed|abstract'
+    r'|partial|new|unsafe|readonly|ref)\s+)*(?:class|struct|record)\s+([A-Za-z_]\w*)')
+
+
+def class_index(text):
+    u"""[(смещение, имя)] объявлений классов файла, по возрастанию смещения."""
+    return [(m.start(), m.group(1)) for m in CLASS_DECL.finditer(text)]
+
+
+def enclosing_class(index, pos):
+    u"""Класс, в котором стоит смещение `pos`: последнее объявление ДО него.
+
+    ⚠ Конец тела не считается скобками — нарочно, ровно как у поиска объемлющего
+    МЕТОДА выше: следующее объявление и есть граница. У вложенного класса это
+    даёт имя вложенного, то есть граница выходит только УЖЕ, не шире, и лишнего
+    вызова к обёртке не припишет.
+    """
+    name = None
+    for start, cls in index:
+        if start < pos:
+            name = cls
+        else:
+            break
+    return name
 
 
 def split_params(text):
@@ -192,14 +229,22 @@ def split_params(text):
     return out
 
 
-def wrappers(root):
-    u"""Обёртки: {имя метода: номер параметра, который уходит в GetString}."""
+def wrappers_typed(root):
+    u"""Обёртки: {(класс, имя метода): номер параметра, уходящего в GetString}.
+
+    ⛔ Ключ — ПАРА (`T236`, 05.09.2026). Раньше обёртка звалась одним именем
+    метода, и вызов опознавался выражением `\\bText\\s*\\(` по всему дереву: любой
+    чужой `X.Text("литерал", …)` был бы осуждён как ключ ресурса. Тёзка у обёртки
+    в дереве уже есть — `NucBaseFramework.Text(reader, column)`, — и не судится он
+    только потому, что первый аргумент там не литерал.
+    """
     found = {}
     for path in sources(root, designer=False):
         text = read(path)
         decls = [(m.start(), m.group(1), split_params(m.group(2))) for m in DECL.finditer(text)]
         if not decls:
             continue
+        classes = class_index(text)
         for call in WRAP_CALL.finditer(text):
             # Объемлющий метод — последнее объявление ДО вызова. Конец тела не
             # считается скобками нарочно: следующее объявление и есть граница,
@@ -208,16 +253,27 @@ def wrappers(root):
             owner = None
             for start, name, params in decls:
                 if start < call.start():
-                    owner = (name, params)
+                    owner = (start, name, params)
                 else:
                     break
             if owner is None:
                 continue
-            name, params = owner
+            start, name, params = owner
             arg = call.group(1)
             if arg in params:
-                found[name] = params.index(arg)
+                found[(enclosing_class(classes, start) or u'', name)] = params.index(arg)
     return found
+
+
+def wrappers(root):
+    u"""Обёртки без типа: {имя метода: номер параметра}.
+
+    ⚠ Прежний вид возврата сохранён НАРОЧНО: `handover/o12-resx-guards/positive-guards.py`
+    зовёт `designer.wrappers()` и распаковывает `name, pos`, воспроизводя прежний
+    построчный разбор. Правка `T236` завела типы отдельной функцией
+    (`wrappers_typed`), чтобы чужой контроль остался работоспособным.
+    """
+    return dict((name, pos) for (_cls, name), pos in wrappers_typed(root).items())
 
 
 def members(root):
@@ -292,18 +348,37 @@ def line_of(text, pos):
     return text.count('\n', 0, pos) + 1
 
 
-def one_step(root):
-    u"""Литералы, доезжающие до `GetString` через один шаг: [(файл, строка, ключ, откуда)]."""
+# Вызов обёртки: необязательный получатель (`A.B.Text(`) и само имя. `(?<![\w.])`
+# держит начало матча: без получателя перед именем не должно быть ни буквы, ни
+# точки, иначе `GetResourceText(` сошло бы за `Text(`.
+CALL_TMPL = r'(?<![\w.])(?:(?P<recv>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\.)?%s\s*\('
+
+
+def one_step(root, foreign=None):
+    u"""Литералы, доезжающие до `GetString` через один шаг: [(файл, строка, ключ, откуда)].
+
+    `foreign` — необязательный список, куда складываются вызовы С ТЕМ ЖЕ ИМЕНЕМ,
+    но не этой обёртки: у чужого получателя либо из чужого класса без получателя
+    (`T236`). Они НЕ судятся как ключи ресурсов и печатаются числом.
+
+    ⚠ Список ПАРАМЕТРОМ, а не четвёртым возвратом, нарочно: тройка
+    `(found, wraps, membs)` распаковывается в `handover/o12-resx-guards/positive-guards.py`,
+    и менять её значило бы уронить чужой положительный контроль. Проверено — он
+    падал `ValueError: too many values to unpack`, пока возврат был четвёркой.
+    ⚠ `wraps` здесь возвращается С ТИПАМИ ({(класс, имя): позиция}); наружу его
+    берёт только `main`, и печать обёрток на него рассчитана.
+    """
     found = []
-    wraps = wrappers(root)
+    wraps = wrappers_typed(root)
     membs = members(root)
     if not wraps and not membs:
         return found, wraps, membs
 
     # ⚠ Разбор идёт по ТЕКСТУ ФАЙЛА ЦЕЛИКОМ, а не построчно: выражение находит
-    # только имя вызова и открывающую скобку, аргументы отрезает `balanced_args`.
-    calls = [(re.compile(r'\b%s\s*\(' % re.escape(name)), name, pos)
-             for name, pos in sorted(wraps.items())]
+    # только получателя, имя вызова и открывающую скобку, аргументы отрезает
+    # `balanced_args`.
+    calls = [(re.compile(CALL_TMPL % re.escape(name)), cls, name, pos)
+             for (cls, name), pos in sorted(wraps.items())]
     # `\s` захватывает и перевод строки, поэтому присваивание члену тоже
     # находится разнесённым на строки.
     sets = [(re.compile(r'\b%s\s*=\s*"([^"]*)"' % re.escape(name)), name)
@@ -312,8 +387,24 @@ def one_step(root):
     for designer in (True, False):
         for path in sources(root, designer=designer):
             text = read(path).replace('\r\n', '\n')
-            for pattern, name, pos in calls:
+            classes = class_index(text)
+            for pattern, cls, name, pos in calls:
                 for match in pattern.finditer(text):
+                    recv = match.group('recv')
+                    here = enclosing_class(classes, match.start())
+                    # Наша обёртка — это вызов у ТИПА, в котором она объявлена,
+                    # либо вызов БЕЗ получателя изнутри самого этого типа: так
+                    # записаны четыре живых обращения внутри
+                    # `DoseRateCoefficients`, и терять их нельзя.
+                    if recv is None or recv == 'this':
+                        ours = here == cls
+                    else:
+                        ours = recv.rsplit('.', 1)[-1] == cls
+                    if not ours:
+                        if foreign is not None:
+                            foreign.append((path, line_of(text, match.start()), name,
+                                            recv or u'(без получателя)', here or u'?'))
+                        continue
                     args = balanced_args(text, match.end() - 1)
                     if args is None:
                         continue
@@ -450,7 +541,8 @@ def main(argv):
                 bad.append((path, num, kind, name, bool(ru and name in ru)))
 
     # Плечо третье: литерал через ОДИН шаг — обёртка или член (`A108`).
-    step, wraps, membs = one_step(root)
+    foreign = []
+    step, wraps, membs = one_step(root, foreign)
     for path, num, key, via in step:
         checked += 1
         if names is None:
@@ -481,9 +573,19 @@ def main(argv):
           % max(dynamic_total - resolved, 0))
     if wraps:
         print(u'      обёртки: %s'
-              % u', '.join(u'%s(аргумент %d)' % (n, p + 1) for n, p in sorted(wraps.items())))
+              % u', '.join(u'%s.%s(аргумент %d)' % (c, n, p + 1)
+                           for (c, n), p in sorted(wraps.items())))
     if membs:
         print(u'      члены:   %s' % u', '.join(sorted(membs)))
+    # ⚠ Тёзки обёрток (`T236`): у чужого получателя либо из чужого класса. Ключами
+    # ресурсов они НЕ считаются — но и молчать о них нельзя, иначе не видно, что
+    # разбор их вообще заметил.
+    print(u'вызовов с именем обёртки, но не её самой (чужой получатель либо '
+          u'другой класс): %d' % len(foreign))
+    if show:
+        for path, num, name, recv, here in foreign:
+            print(u'      тёзка: %s:%d  %s.%s(), объемлющий класс %s'
+                  % (path.replace('\\', '/'), num, recv, name, here))
     if show:
         for path in sources(root, designer=False):
             for num, _kind, _name in scan(path, HAND)[0]:
