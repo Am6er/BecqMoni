@@ -1,0 +1,25 @@
+diff --git a/BecquerelMonitor/ResponseMatrixForm.Layout.cs b/BecquerelMonitor/ResponseMatrixForm.Layout.cs
+index 24a77ada..952bce1f 100644
+--- a/BecquerelMonitor/ResponseMatrixForm.Layout.cs
++++ b/BecquerelMonitor/ResponseMatrixForm.Layout.cs
+@@ -130,9 +130,17 @@ namespace BecquerelMonitor
+             this.historiesBox.Increment = 500000;
+             this.nodesBox.Increment = 10;
+ 
+-            // Разделитель тысяч — только у числа историй. У энергии он вреден:
+-            // «3,000 кэВ» читается как три.
+-            this.historiesBox.ThousandsSeparator = true;
++            // ⛔ РАЗДЕЛИТЕЛЯ ТЫСЯЧ НЕТ НИ У ОДНОГО ПОЛЯ (`A244`, решение Amber
++            // 05.09.2026: «группировки разрядов нет вовсе»). Здесь стояло
++            // `historiesBox.ThousandsSeparator = true` — единственная
++            // группировка этой формы, и она бралась у КУЛЬТУРЫ ПОТОКА: на
++            // русской системе «3 000 000» неразрывными пробелами, на
++            // английской «3,000,000». Довод прежнего комментария («у энергии
++            // разделитель вреден: 3,000 кэВ читается как три») правилом снят —
++            // он вреден везде. Все шесть полей — целые (`decimals = 0`),
++            // поэтому разделителя ДРОБНОЙ части в них не появляется вовсе, и
++            // `NumericUpDown`, который свою культуру подменить не даёт, правилу
++            // Amber теперь не противоречит ничем.
+ 
+             // Оценка времени пересчитывается на любое изменение: параметры и
+             // время связаны прямо, и человек должен видеть цену сразу, а не

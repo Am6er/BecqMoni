@@ -1,0 +1,96 @@
+diff --git a/tools/effmaker/probes/ResponseMatrixFormProbe.cs b/tools/effmaker/probes/ResponseMatrixFormProbe.cs
+index 473a3ec3..520724e2 100644
+--- a/tools/effmaker/probes/ResponseMatrixFormProbe.cs
++++ b/tools/effmaker/probes/ResponseMatrixFormProbe.cs
+@@ -29,8 +29,9 @@ namespace ResponseMatrixFormProbe
+     /// 5. **Сохранение кладёт файл туда, где его ищут,** и не трогает
+     ///    конфигурацию — иначе матрица уехала бы внутрь файлов спектров.
+     /// 6. **Матрица ПРЕЖНЕГО ФОРМАТА не отбрасывается молча** (`A50`): отказ
+-    ///    чтения называет себя, форма говорит «устарела: другое поколение», а
+-    ///    разбор заготавливает человеку сообщение с обоими номерами формата.
++    ///    чтения называет себя, форма называет ОБА номера формата («посчитана
++    ///    форматом 6, эта сборка читает 7 — пересчитайте», решение Amber
++    ///    05.09.2026), а разбор заготавливает человеку то же сообщение.
+     ///    Положительный контроль — у годного файла разбор молчит.
+     /// 7. **Число историй от БЕДНОЙ матрицы не наследуется** (дефект найден
+     ///    05.09.2026 разбором `A122`): над файлом с 4000 историй поле ждёт
+@@ -122,7 +123,7 @@ namespace ResponseMatrixFormProbe
+                 nominal = Histories(form);
+                 int optionsDefault = new ResponseMatrixOptions().Histories;
+                 bool same = nominal == optionsDefault;
+-                Report(same, "штатных историй в поле {0:N0}, умолчание ResponseMatrixOptions {1:N0}",
++                Report(same, "штатных историй в поле {0:F0}, умолчание ResponseMatrixOptions {1:F0}",
+                        nominal, optionsDefault);
+                 bad += same ? 0 : 1;
+             }
+@@ -171,14 +172,19 @@ namespace ResponseMatrixFormProbe
+                 // бедный счёт молча. Ровно так `a6ac85bb` 04.09 получила 300 000
+                 // при трёх соседях на 3 млн. Ждём в поле ШТАТНОЕ, а в
+                 // подробностях — строку про унаследованное число и штатное.
++                // ⛔ ОЖИДАНИЕ ПЕРЕПИСАНО 05.09.2026 (`A244`, полоса П8а): строка
++                // печатается форматом `F0` и ИНВАРИАНТОМ, а не `N0` по культуре
++                // потока. Решение Amber того же дня — «группировки разрядов нет
++                // вовсе», и `3 000 000` стало `3000000`. Ловушку поймал этот
++                // самый пункт: он искал в подробностях число С разделителем.
+                 decimal field = Histories(form);
++                string nominalText = nominal.ToString("F0", CultureInfo.InvariantCulture);
+                 bool raised = field == nominal
+-                              && details.Contains(nominal.ToString("N0", CultureInfo.CurrentCulture))
+-                              && details.Contains(options.Histories.ToString("N0", CultureInfo.CurrentCulture));
+-                Report(raised, "матрица на {0:N0} историй: в поле {1:N0} (ждём штатные {2:N0}), подробности {3}",
++                              && details.Contains(nominalText)
++                              && details.Contains(options.Histories.ToString("F0", CultureInfo.InvariantCulture));
++                Report(raised, "матрица на {0} историй: в поле {1} (ждём штатные {2}), подробности {3}",
+                        options.Histories, field, nominal,
+-                       details.Contains(nominal.ToString("N0", CultureInfo.CurrentCulture))
+-                           ? "называют штатное" : "штатное НЕ называют");
++                       details.Contains(nominalText) ? "называют штатное" : "штатное НЕ называют");
+                 bad += raised ? 0 : 1;
+             }
+ 
+@@ -203,7 +209,7 @@ namespace ResponseMatrixFormProbe
+                 bool kept = field == dense
+                             && TextOf(form, "stateLabel") == BecquerelMonitor.Properties.Resources.ResponseMatrixStateValid
+                             && !details.Contains("nominal") && !details.Contains("штатн");
+-                Report(kept, "матрица на {0:N0} историй (гуще штатного): в поле {1:N0}, строки про штатное {2}",
++                Report(kept, "матрица на {0:F0} историй (гуще штатного): в поле {1:F0}, строки про штатное {2}",
+                        dense, field, details.Contains("nominal") || details.Contains("штатн") ? "ЕСТЬ" : "нет");
+                 bad += kept ? 0 : 1;
+             }
+@@ -347,9 +353,20 @@ namespace ResponseMatrixFormProbe
+ 
+             using (var form = new ResponseMatrixForm(config))
+             {
++                // ⛔ ОЖИДАНИЕ ПЕРЕПИСАНО 05.09.2026 (`A50`, полоса П8а, решение
++                // Amber «матрица формата 6, нужен 7 — пересчитайте»). Здесь
++                // стояла общая `ResponseMatrixStateStaleVersions` — «устарела:
++                // посчитана другим поколением ПЕРЕНОСА», то есть про ФИЗИКУ, а
++                // у этого файла разошёлся ФОРМАТ, и номеров в предложении не
++                // было вовсе. Теперь форма называет оба номера.
+                 string state = TextOf(form, "stateLabel");
+-                bool ok = state == BecquerelMonitor.Properties.Resources.ResponseMatrixStateStaleVersions;
+-                Report(ok, "форма про старый формат: «{0}»", Short(state));
++                string want = string.Format(CultureInfo.InvariantCulture,
++                                            BecquerelMonitor.Properties.Resources.ResponseMatrixStateOldFormat,
++                                            oldFormat, ResponseMatrix.FormatVersion);
++                bool ok = state == want
++                          && state.Contains(oldFormat.ToString(CultureInfo.InvariantCulture))
++                          && state.Contains(ResponseMatrix.FormatVersion.ToString(CultureInfo.InvariantCulture));
++                Report(ok, "форма про старый формат назвала ОБА номера: «{0}»", Short(state));
+                 bad += ok ? 0 : 1;
+             }
+ 
+@@ -580,8 +597,12 @@ namespace ResponseMatrixFormProbe
+ 
+         static void Report(bool ok, string format, params object[] args)
+         {
++            // ⛔ ИНВАРИАНТ, а не культура потока (`A244`, полоса F18): журнал
++            // приёмки — тоже печать числа, и артефакт, в котором доказывают, что
++            // группировки разрядов нет, сам печатал «3,000,000». Форматы полей
++            // здесь `F0`/`F1` по той же причине.
+             Console.WriteLine("[{0}] {1}", ok ? "СОШЛОСЬ" : "ПРОВАЛ  ",
+-                              string.Format(CultureInfo.CurrentCulture, format, args));
++                              string.Format(CultureInfo.InvariantCulture, format, args));
+         }
+     }
+ }

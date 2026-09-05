@@ -42994,6 +42994,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ResponseMatrixStateStaleVersions" xml:space="preserve">
     <value>Out of date: computed by another generation of the transport code. Recompute it.</value>
   </data>
+  <data name="ResponseMatrixStateOldFormat" xml:space="preserve">
+    <value>Out of date: computed with file format {0}, while this build reads format {1}. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateUnreadable" xml:space="preserve">
+    <value>The file is ours and of the current format, but reading it broke off — the file is truncated. Recompute it.</value>
+  </data>
+  <data name="ResponseMatrixStateNotOurs" xml:space="preserve">
+    <value>There is a file where the matrix is kept, but it is not a response matrix. Computing will replace it.</value>
+  </data>
   <data name="ResponseMatrixVersionsCurrent" xml:space="preserve">
     <value>Current generation: physics {0}, file format {1}.</value>
   </data>

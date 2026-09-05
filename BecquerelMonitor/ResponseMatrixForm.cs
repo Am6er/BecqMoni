@@ -128,27 +128,16 @@ namespace BecquerelMonitor
                 return;
             }
 
-            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid);
+            // ⛔ (`A50`) ОТКАЗ ЧИТАТЬ МАТРИЦУ СПРАШИВАЕТСЯ У САМОГО ЧТЕНИЯ, а не
+            // угадывается по заголовку. Причину знает `Load`, и она называет
+            // себя (`MatrixRefusal`); форма обязана сказать её словами.
+            MatrixRefusal refusal;
+            int fileFormat;
+            ResponseMatrix existing = ResponseMatrixStore.Load(this.config.Guid,
+                                                              out refusal, out fileFormat);
             if (existing == null)
             {
-                // Файл может лежать, но быть другого поколения — Load для него
-                // молча возвращает null, и без заглядывания в заголовок форма
-                // говорила бы «не посчитана» про матрицу, которая посчитана,
-                // просто устарела. Различие пользователю важно.
-                int fileFormat, filePhysics;
-                if (ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid),
-                                                out fileFormat, out filePhysics))
-                {
-                    this.stateLabel.Text = Resources.ResponseMatrixStateStaleVersions;
-                    this.ShowVersions(filePhysics, fileFormat, true);
-                    this.computeButton.Text = Resources.ResponseMatrixRecompute;
-                }
-                else
-                {
-                    this.stateLabel.Text = Resources.ResponseMatrixStateMissing;
-                    this.ShowVersions(0, 0, false);
-                    this.computeButton.Text = Resources.ResponseMatrixCompute;
-                }
+                this.SayRefusal(refusal, fileFormat);
 
                 // E18. Матрицы ещё нет — а именно за первым расчётом форму и
                 // открывают. Раньше поля стояли на умолчаниях разметки, и
@@ -214,6 +203,68 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Назвать СЛОВАМИ, почему матрица не прочиталась (`A50`, решение Amber
+        /// 05.09.2026: «матрица формата 6, нужен 7 — пересчитайте»).
+        ///
+        /// Прежде форма причину не спрашивала, а ВЫВОДИЛА: заглядывала в
+        /// заголовок сама (<see cref="ResponseMatrix.PeekVersions"/>) и на любой
+        /// прочитанный заголовок говорила «устарела: посчитана другим
+        /// поколением ПЕРЕНОСА». Это неправда дважды. У файла прежнего ФОРМАТА
+        /// физика могла совпадать с нынешней — названа была не та причина, и
+        /// номеров формата в предложении не стояло вовсе (они уходили в серую
+        /// строку версий). У ОБРУБКА нынешнего формата совпадают и физика, и
+        /// формат, а форма всё равно говорила «устарела» и красила строку
+        /// версий красным — то есть указывала на согласные числа как на
+        /// причину.
+        ///
+        /// Теперь причину называет само чтение, а заголовок читается только
+        /// ради номера ФИЗИКИ для строки версий: в отказе его нет, а показать
+        /// поколение матрицы человеку всё равно надо.
+        /// </summary>
+        void SayRefusal(MatrixRefusal refusal, int fileFormat)
+        {
+            int headerFormat, headerPhysics;
+            bool header = ResponseMatrix.PeekVersions(ResponseMatrixStore.PathOf(this.config.Guid),
+                                                     out headerFormat, out headerPhysics);
+            switch (refusal)
+            {
+                case MatrixRefusal.OldFormat:
+                    this.stateLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                                                         Resources.ResponseMatrixStateOldFormat,
+                                                         fileFormat, ResponseMatrix.FormatVersion);
+                    this.ShowVersions(headerPhysics, fileFormat, true);
+                    this.computeButton.Text = Resources.ResponseMatrixRecompute;
+                    break;
+
+                case MatrixRefusal.Unreadable:
+                    // Файл наш и формат нынешний — чтение оборвалось на теле.
+                    // Красным строку версий красить не за что: подсветка
+                    // означает «поколения разошлись», а здесь они сошлись.
+                    this.stateLabel.Text = Resources.ResponseMatrixStateUnreadable;
+                    this.ShowVersions(headerPhysics, header ? headerFormat : 0,
+                                      header && (headerPhysics != ResponseMatrix.PhysicsVersion
+                                                 || headerFormat != ResponseMatrix.FormatVersion));
+                    this.computeButton.Text = Resources.ResponseMatrixRecompute;
+                    break;
+
+                case MatrixRefusal.NotOurs:
+                    // Метки `BQRM` нет — поколений у такого файла не бывает, и
+                    // печатать нечего, кроме нынешних.
+                    this.stateLabel.Text = Resources.ResponseMatrixStateNotOurs;
+                    this.ShowVersions(0, 0, false);
+                    this.computeButton.Text = Resources.ResponseMatrixCompute;
+                    break;
+
+                default:
+                    // `NoFile` — матрицу этой геометрии не считали вовсе.
+                    this.stateLabel.Text = Resources.ResponseMatrixStateMissing;
+                    this.ShowVersions(0, 0, false);
+                    this.computeButton.Text = Resources.ResponseMatrixCompute;
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Строка о том, что прежняя матрица посчитана РЕЖЕ штатного числа
         /// историй и поле поднято до штатного (`A122`). Пусто, когда матрица не
         /// беднее штатной: «поднято до 3 000 000» у матрицы на 3 000 000
@@ -234,10 +285,13 @@ namespace BecquerelMonitor
 
             bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
                                     StringComparison.OrdinalIgnoreCase);
+            // ⛔ `F0`, а не `N0` (`A244`, решение Amber 05.09.2026): группировки
+            // разрядов в приложении нет вовсе. `N0` на инварианте дал бы
+            // «3,000,000» — запятая в группах, чего быть не должно.
             string format = ru
-                ? "Посчитана {0:N0} историями на узел при штатных {1:N0}; поле поднято до штатного"
-                : "Computed with {0:N0} histories per node, nominal is {1:N0}; field raised to nominal";
-            return Environment.NewLine + string.Format(CultureInfo.CurrentCulture, format,
+                ? "Посчитана {0:F0} историями на узел при штатных {1:F0}; поле поднято до штатного"
+                : "Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal";
+            return Environment.NewLine + string.Format(CultureInfo.InvariantCulture, format,
                                                        matrix.Options.Histories, nominalHistories);
         }
 
@@ -304,7 +358,7 @@ namespace BecquerelMonitor
 
             SetClamped(this.minEnergyBox, (decimal)lo);
             SetClamped(this.maxEnergyBox, (decimal)hi);
-            return string.Format(CultureInfo.CurrentCulture,
+            return string.Format(CultureInfo.InvariantCulture,
                                  Resources.ResponseMatrixRangeFromCurve, lo, hi);
         }
 
@@ -329,7 +383,7 @@ namespace BecquerelMonitor
                 return "";
             }
 
-            return Environment.NewLine + string.Format(CultureInfo.CurrentCulture,
+            return Environment.NewLine + string.Format(CultureInfo.InvariantCulture,
                                                        Resources.ResponseMatrixRangeDiffers,
                                                        lo, hi, mlo, mhi);
         }
@@ -342,10 +396,10 @@ namespace BecquerelMonitor
         void ShowVersions(int matrixPhysics, int matrixFormat, bool mismatch)
         {
             this.versionsLabel.Text = matrixPhysics > 0 || matrixFormat > 0
-                ? string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsBoth,
+                ? string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsBoth,
                                 matrixPhysics, matrixFormat,
                                 ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion)
-                : string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixVersionsCurrent,
+                : string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixVersionsCurrent,
                                 ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion);
             this.versionsLabel.ForeColor = mismatch ? Color.Firebrick : SystemColors.GrayText;
         }
@@ -371,10 +425,10 @@ namespace BecquerelMonitor
             int made = matrix.NodeCount;
             if (matrix.Options == null || matrix.Options.NodeCount == made)
             {
-                return made.ToString(CultureInfo.CurrentCulture);
+                return made.ToString(CultureInfo.InvariantCulture);
             }
 
-            return string.Format(CultureInfo.CurrentCulture,
+            return string.Format(CultureInfo.InvariantCulture,
                                  Resources.ResponseMatrixNodesRequested,
                                  made, matrix.Options.NodeCount);
         }
@@ -382,7 +436,7 @@ namespace BecquerelMonitor
         string Describe(ResponseMatrix matrix)
         {
             long fileBytes = ResponseMatrixStore.FileSize(this.config.Guid);
-            return string.Format(CultureInfo.CurrentCulture, Resources.ResponseMatrixDetails,
+            return string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixDetails,
                                  this.DescribeNodes(matrix),
                                  matrix.Energies[0],
                                  matrix.Energies[matrix.NodeCount - 1],
@@ -390,6 +444,16 @@ namespace BecquerelMonitor
                                  matrix.Histories,
                                  matrix.DataBytes / 1024.0,
                                  fileBytes / 1024.0,
+                                 // ⚠ ЕДИНСТВЕННОЕ место файла, оставленное на
+                                 // культуре потока (`A244`): это ДАТА, а не
+                                 // число. Дробной части у неё нет, правило
+                                 // Amber про разделитель её не касается, а
+                                 // инвариант дал бы русскому пользователю
+                                 // американский порядок «09/05/2026». Обратной
+                                 // стороны у неё тоже нет: в файл время уходит
+                                 // тиками (`CreatedUtc.Ticks`), а не текстом,
+                                 // так что «записали точкой — прочли запятой»
+                                 // здесь невозможно.
                                  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
                                  matrix.BuildSeconds)
                    + DescribeFingerprint(matrix);
@@ -448,8 +512,8 @@ namespace BecquerelMonitor
 
             TimeSpan span = TimeSpan.FromSeconds(seconds);
             return span.TotalHours >= 1.0
-                ? string.Format(CultureInfo.CurrentCulture, "{0:%h}:{0:mm}:{0:ss}", span)
-                : string.Format(CultureInfo.CurrentCulture, "{0:%m}:{0:ss}", span);
+                ? string.Format(CultureInfo.InvariantCulture, "{0:%h}:{0:mm}:{0:ss}", span)
+                : string.Format(CultureInfo.InvariantCulture, "{0:%m}:{0:ss}", span);
         }
 
         // ------------------------------------------------------------------
@@ -486,7 +550,7 @@ namespace BecquerelMonitor
 
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
-                this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds));
 
                 // Континуум набирается аналоговой веткой полной сферой, и на
@@ -496,9 +560,10 @@ namespace BecquerelMonitor
                 // описывает пик (F23).
                 if (matrix.ContinuumWeightedError > ContinuumNoiseWarnPercent)
                 {
-                    this.progressLabel.Text += string.Format(CultureInfo.CurrentCulture,
+                    this.progressLabel.Text += string.Format(CultureInfo.InvariantCulture,
                         Resources.ResponseMatrixContinuumNoise,
-                        matrix.ContinuumWeightedError.ToString("n1", CultureInfo.CurrentCulture));
+                        // `f1`, а не `n1` (`A244`): группировки разрядов нет.
+                        matrix.ContinuumWeightedError.ToString("f1", CultureInfo.InvariantCulture));
                 }
 
                 this.SetDetails(this.Describe(matrix));
@@ -515,7 +580,7 @@ namespace BecquerelMonitor
             {
                 this.computed = null;
                 this.progressBar.Value = 0;
-                this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.ResponseMatrixFailed, ex.Message);
             }
             finally
@@ -551,7 +616,7 @@ namespace BecquerelMonitor
             // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно
             // постоянно, в отличие от числа прогонов, которое росло по ходу
             // (140 → 155 → 156 → 157 на снимках одного расчёта).
-            this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+            this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
                 Resources.ResponseMatrixProgress,
                 p.StartedNodes, p.TotalNodes, p.LastEnergyKev);
         }
@@ -574,7 +639,7 @@ namespace BecquerelMonitor
             try
             {
                 ResponseMatrixStore.Save(this.config.Guid, this.computed);
-                this.progressLabel.Text = string.Format(CultureInfo.CurrentCulture,
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.ResponseMatrixSaved, ResponseMatrixStore.PathOf(this.config.Guid));
                 this.saveButton.Enabled = false;
                 // Отпечаток тела появляется при ЗАПИСИ (`A121`) — подробности

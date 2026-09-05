@@ -1,0 +1,38 @@
+diff --git a/BecquerelMonitor/Properties/Resources.Designer.cs b/BecquerelMonitor/Properties/Resources.Designer.cs
+index 48ea36ea..075c988f 100644
+--- a/BecquerelMonitor/Properties/Resources.Designer.cs
++++ b/BecquerelMonitor/Properties/Resources.Designer.cs
+@@ -4770,6 +4770,33 @@ namespace BecquerelMonitor.Properties {
+             }
+         }
+ 
++        /// <summary>
++        ///   Looks up a localized string similar to ResponseMatrixStateOldFormat.
++        /// </summary>
++        public static string ResponseMatrixStateOldFormat {
++            get {
++                return ResourceManager.GetString("ResponseMatrixStateOldFormat", resourceCulture);
++            }
++        }
++
++        /// <summary>
++        ///   Looks up a localized string similar to ResponseMatrixStateUnreadable.
++        /// </summary>
++        public static string ResponseMatrixStateUnreadable {
++            get {
++                return ResourceManager.GetString("ResponseMatrixStateUnreadable", resourceCulture);
++            }
++        }
++
++        /// <summary>
++        ///   Looks up a localized string similar to ResponseMatrixStateNotOurs.
++        /// </summary>
++        public static string ResponseMatrixStateNotOurs {
++            get {
++                return ResourceManager.GetString("ResponseMatrixStateNotOurs", resourceCulture);
++            }
++        }
++
+         /// <summary>
+         ///   Looks up a localized string similar to ResponseMatrixVersionsCurrent.
+         /// </summary>

@@ -4771,6 +4771,33 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateOldFormat.
+        /// </summary>
+        public static string ResponseMatrixStateOldFormat {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateOldFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateUnreadable.
+        /// </summary>
+        public static string ResponseMatrixStateUnreadable {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateUnreadable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateNotOurs.
+        /// </summary>
+        public static string ResponseMatrixStateNotOurs {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateNotOurs", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixVersionsCurrent.
         /// </summary>
         public static string ResponseMatrixVersionsCurrent {
