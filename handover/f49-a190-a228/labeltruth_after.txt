@@ -1,0 +1,61 @@
+пороги подписи ИЗ СБОРКИ: выход ≥ 0.1 %, промах ≤ 1.5 ПШПВ пика
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f49\config\BecquerelMonitor.xml
+язык приложения: «» -> ожидаемый образец имени суммы: «{0} (sum 511+511)»
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f49\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f49\config\NuclideDefinition.xml: 152 entries
+библиотека: 152 записей, набор «(нет)»
+
+спектров разобрано 129, отказало 0; пиков 1522, из них с подписью 1261 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f49-a190-a228\labels_after.csv
+
+(`S64`) СПИСОК КАНДИДАТОВ В ПОДПИСИ
+  подписей со списком длиннее одного: 292 из 1261; самый длинный список: 3 имён
+  лексема надписи разошлась с лексемой победителя: 0
+
+(`A229`) ИМЕНА ОБРАЗА АННИГИЛЯЦИИ В ВЫГРУЗКЕ
+  запись образа: «Annihilation» 511.000 кэВ -> сумма 1022.000 кэВ
+
+  подписи СУММЫ (4 шт.), ждём «Annihilation (sum 511+511)»:
+    G1S16_Na22_P25         пик  1002.389 кэВ  получено «Annihilation (sum 511+511)» ✓
+    G1S16_Na22_P5          пик  1001.617 кэВ  получено «Annihilation (sum 511+511)» ✓
+    G1S24_Na22_P25         пик  1006.058 кэВ  получено «Annihilation (sum 511+511)» ✓
+    G1S24_Na22_P5          пик  1010.491 кэВ  получено «Annihilation (sum 511+511)» ✓
+
+  подписи САМОГО ОБРАЗА (36 шт.), ждём «Annihilation» без хвоста:
+    AS80_Lu176             пик   519.436 кэВ  получено «Annihilation» ✓
+    AS80_Th232WT20         пик   513.446 кэВ  получено «Annihilation» ✓
+    ASN16_Charoite         пик   510.709 кэВ  получено «Annihilation» ✓
+    ASN16_Lu176            пик   511.053 кэВ  получено «Annihilation» ✓
+    ASN16_Lu176_P0         пик   510.893 кэВ  получено «Annihilation» ✓
+    ASN16_Th232_Am241      пик   512.174 кэВ  получено «Annihilation» ✓
+    ASN8_Th232_4096        пик   510.574 кэВ  получено «Annihilation» ✓
+    ASN8_Th232_8192        пик   511.220 кэВ  получено «Annihilation» ✓
+    G1S16_Ce139_P5         пик   516.956 кэВ  получено «Annihilation» ✓
+    G1S16_K40_Mar          пик   511.343 кэВ  получено «Annihilation» ✓
+    G1S16_K40_Mar_2        пик   525.286 кэВ  получено «Annihilation» ✓
+    G1S16_Mix_Denta100     пик   511.308 кэВ  получено «Annihilation» ✓
+    G1S16_Mix_Mar          пик   513.426 кэВ  получено «Annihilation» ✓
+    G1S16_Mix_Petri        пик   514.101 кэВ  получено «Annihilation» ✓
+    G1S16_Na22_P25         пик   511.305 кэВ  получено «Annihilation» ✓
+    G1S16_Na22_P5          пик   513.022 кэВ  получено «Annihilation» ✓
+    G1S16_Th228_P25        пик   514.351 кэВ  получено «Annihilation» ✓
+    G1S16_Th228_P5         пик   510.621 кэВ  получено «Annihilation» ✓
+    G1S16_Th232_Denta100   пик   516.800 кэВ  получено «Annihilation» ✓
+    G1S16_Th232_Mar        пик   513.199 кэВ  получено «Annihilation» ✓
+    G1S16_Th232_Mar_2      пик   513.717 кэВ  получено «Annihilation» ✓
+    G1S16_Th232_Mar_3      пик   512.006 кэВ  получено «Annihilation» ✓
+    G1S16_Th232_Petri      пик   512.048 кэВ  получено «Annihilation» ✓
+    G1S16_Y88_P5           пик   521.841 кэВ  получено «Annihilation» ✓
+    G1S24_K40_Denta120_2   пик   514.499 кэВ  получено «Annihilation» ✓
+    G1S24_K40_Petri        пик   511.911 кэВ  получено «Annihilation» ✓
+    G1S24_Na22_P5          пик   519.302 кэВ  получено «Annihilation» ✓
+    G1S24_Th228_P25        пик   511.659 кэВ  получено «Annihilation» ✓
+    G1S24_Th228_P5         пик   512.927 кэВ  получено «Annihilation» ✓
+    G1S24_Th232_Denta120   пик   514.166 кэВ  получено «Annihilation» ✓
+    G1S24_Y88_P25          пик   515.453 кэВ  получено «Annihilation» ✓
+    G1S24_Zn65_P5          пик   510.615 кэВ  получено «Annihilation» ✓
+    HPGeGEM_Th232          пик   510.730 кэВ  получено «Annihilation» ✓
+    HPGeGMX_Th228          пик   510.731 кэВ  получено «Annihilation» ✓
+    HPGeGMX_Th232          пик   510.699 кэВ  получено «Annihilation» ✓
+    RC103_Lu176            пик   520.662 кэВ  получено «Annihilation» ✓
+
+  имена сошлись полностью
