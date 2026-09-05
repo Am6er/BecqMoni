@@ -384,8 +384,9 @@ namespace BecquerelMonitor
                 if (this.depth >= ReasonChainLimit)
                 {
                     // Предел звеньев — общий на всё дерево. Больше назвать
-                    // нечего, обход останавливается целиком.
-                    this.Guard();
+                    // нечего, обход останавливается целиком. Упёрся в
+                    // ветвь узла — ветвь названа номером (`A230`).
+                    this.Limit(mark);
                     this.stopped = true;
                     return;
                 }
@@ -427,7 +428,7 @@ namespace BecquerelMonitor
                 }
             }
 
-            const string GuardMark = " <- …";
+            const string GuardMark = " <- " + Ellipsis;
 
             /// <summary>
             /// Пометка ветви у УЖЕ НАЗВАННОГО звена — «&lt;- (i/n) = выше»
@@ -445,6 +446,30 @@ namespace BecquerelMonitor
             }
 
             const string AboveMark = "= выше";
+
+            /// <summary>
+            /// Знак предела. Предел, упёршийся в ветвь <c>AggregateException</c>,
+            /// печатал голый знак — читатель видел «(1/3)», «(2/3)» и
+            /// «&lt;- …» и не мог сказать, дошёл ли обход до третьей ветви
+            /// (`A230`, решение Amber 05.09.2026). Теперь у такой ветви знак
+            /// несёт её номер: «&lt;- (3/3) …» — как «= выше» у уже названной
+            /// ветви (`A219`). Предел на звене БЕЗ пометки (внутри цепочки
+            /// ветви) даёт прежний голый знак, байт в байт. Мерится плечом
+            /// <c>предел по дереву</c> пробы <c>ReasonProbe</c>: два дерева,
+            /// предел на ветви и предел внутри ветви.
+            /// </summary>
+            void Limit(string mark)
+            {
+                if (mark.Length > 0)
+                {
+                    this.Text += " <- " + mark + Ellipsis;
+                    return;
+                }
+
+                this.Guard();
+            }
+
+            const string Ellipsis = "…";
         }
 
         /// <summary>
