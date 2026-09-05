@@ -648,7 +648,14 @@ namespace BecquerelMonitor
                 return;
             }
 
-            AppUi.Report(string.Format(CultureInfo.CurrentCulture,
+            // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`, правило Amber
+            //    05.09.2026). Здесь числа целые, и разделителю дробной части
+            //    взяться неоткуда — но соглашение у двух половин одного
+            //    сообщения обязано быть ОДНО: причина (`why`) складывается
+            //    `FwhmCalibration.DefaultCalibration` инвариантной культурой, и
+            //    оправа, печатающая свои числа культурой потока, развела бы их
+            //    в одной строке.
+            AppUi.Report(string.Format(CultureInfo.InvariantCulture,
                                        Resources.ERRNoFwhmCalibrationImport,
                                        path, without, total, why),
                          "", MessageBoxIcon.None);
