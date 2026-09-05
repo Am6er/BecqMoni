@@ -88,6 +88,8 @@ if (-not (Test-Path (Join-Path $Bin 'BecquerelMonitor.exe'))) {
     exit 2
 }
 New-Item -ItemType Directory -Force $Out | Out-Null
+# Каталог, заверение которого снимается при отказе (`Revoke-Certificate`, `T226`).
+$script:CertifyOut = $Out
 
 # ⛔ СТОРОЖ БЕРЁТСЯ ГОТОВЫМ И ПОДКЛЮЧАЕТСЯ ЗДЕСЬ, ДО ВСЯКОЙ РАБОТЫ (`T69`).
 # Всё, чем этот скрипт себя проверяет, живёт в `tools\CORPUS\scripts\appwd_plan.ps1`
@@ -128,8 +130,14 @@ $contract = [ordered]@{
     'Invoke-AppWdPlan'   = @('Plan')
     'Get-AppWdExtra'     = @('Plan')
     'Test-AppWdPlan'     = @('Plan')
-    'Test-AppWdBuild'    = @('Plan')
+    # `T226`: `Certifying` — «пробы только что собраны мной, с прежней записью
+    # их не сверять»; отпечаток набора исходников пишет и читает отметку.
+    'Test-AppWdBuild'    = @('Plan', 'Certifying')
     'Test-AppWdLibrary'  = @('Plan')
+    'Get-AppWdSourceRecord' = @('Repo')
+    'Get-AppWdStampSources' = @('Wd')
+    'Write-AppWdStamp'   = @('Plan', 'Files')
+    'Remove-AppWdStamp'  = @('Wd')
 }
 $common = @([System.Management.Automation.PSCmdlet]::CommonParameters) +
           @([System.Management.Automation.PSCmdlet]::OptionalCommonParameters)
@@ -185,6 +193,11 @@ function Invoke-AppWdCheck {
 # консоли красным, и в перенаправленном логе, и `$?` после него ложно.
 $script:BuildBad = @()
 function Write-BuildFailBanner {
+    # ⛔ Снятие заверения — ПЕРЕД ранним выходом (`T226`): эта функция зовётся
+    #    со ВСЕХ отказных путей, в том числе тех, где `BuildBad` пуст (списки
+    #    исходников разошлись, план кладёт неизвестный род, раскладка
+    #    оборвалась). Заверение обязано сниматься и там.
+    Revoke-Certificate
     if ($script:BuildBad.Count -eq 0) { return }
     Write-Host ""
     Write-Host "⛔⛔ ОТКАЗ: ПРОБЫ НЕ СОБРАЛИСЬ (T144)" -ForegroundColor Red
@@ -194,8 +207,22 @@ function Write-BuildFailBanner {
     $Host.UI.WriteErrorLine("build_all.ps1: ОТКАЗ (T144) — " + ($script:BuildBad -join '; '))
 }
 
+# ⛔ ЗАВЕРЕНИЕ КАТАЛОГА СНИМАЕТСЯ ПРИ ЛЮБОМ ОТКАЗЕ (`T226`, правило `T80`).
+# Отметка `.appwd.json` этого каталога — не «когда собирали», а «из какого
+# НАБОРА исходников собраны лежащие здесь двоичные файлы». Отметка от удачного
+# прошлого прогона, пережившая неудачный, — ровно та щель, которую закрыли у
+# `mk_appwd.ps1` 26.08.2026: следующий сторож принял бы каталог за заверенный.
+# Снятая отметка не ослабляет сторожа, а УЖЕСТОЧАЕТ его: без записи он судит
+# прежним, более грубым правилом по времени (`T41`).
+function Revoke-Certificate {
+    if ($script:CertifyOut -and (Get-Command Remove-AppWdStamp -CommandType Function -ErrorAction SilentlyContinue)) {
+        Remove-AppWdStamp -Wd $script:CertifyOut
+    }
+}
+
 function Deny-Guard {
     param([Parameter(Mandatory)][string]$Why)
+    Revoke-Certificate
     Write-Host ""
     Write-Host "⛔⛔ ОТКАЗ: СТОРОЖ НЕ ДОКАЗАЛ, ЧТО СВЕРЯЛ (T79)" -ForegroundColor Red
     foreach ($line in ($Why -split "`n")) { Write-Host ("   " + $line) -ForegroundColor Red }
@@ -258,18 +285,54 @@ function Assert-GuardIsAlive {
         # самопроверка гоняет РОВНО тот план, которым этот скрипт обставляет.
         Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\device\podstava.xml') -Value '<DeviceConfigInfo/>'
         Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\config\ROI\podstava.xml')    -Value '<ROIConfigData/>'
-        Set-Content -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs') -Value '// podstava' -Encoding ascii
+        # ⚠ `Main` в подставном исходнике — НЕ УКРАШЕНИЕ (`T226`, поймано
+        # самопроверкой при заведении): по этому же образцу отделяются ДОВЕСКИ,
+        # и файл без `Main` считается довеском, а не пробой. Со строкой
+        # `// podstava` у стенда не было НИ ОДНОЙ пробы, и контроль подмены
+        # содержимого пробы молчал — не потому, что сторож слеп, а потому что
+        # стенду нечего было стеречь.
+        Set-Content -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs') -Encoding ascii `
+            -Value 'class Podstava { static int Main() { return 0; } }'
+        # `T226`: набор исходников ПРИЛОЖЕНИЯ сторож берёт из `.csproj`, а не
+        # обходом каталога, — значит на стенде нужен и проект, и файл из него.
+        # Без проекта сторож законно кричит «НЕТ ПРОЕКТА», и отрицательный
+        # контроль не сошёлся бы (мерено при заведении).
+        Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\BecquerelMonitor.csproj') `
+            -Value ('<?xml version="1.0"?><Project><ItemGroup>' +
+                    '<Compile Include="Podstava.cs" /></ItemGroup></Project>')
+        Set-Content -Encoding ascii -LiteralPath (Join-Path $fRepo 'BecquerelMonitor\Podstava.cs') -Value 'class Podstava {}'
         Set-Content -LiteralPath (Join-Path $fBin 'BecquerelMonitor.exe')        -Value 'app-podstava'     -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'BecquerelMonitor.exe.config') -Value '<configuration/>' -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'podstava.dll')                -Value 'dll'              -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'podstava.sqlite')             -Value 'baza'             -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'runtimes\win-x64\native\e_sqlite3.dll') -Value 'native'  -Encoding ascii
         Set-Content -LiteralPath (Join-Path $fBin 'ru\podstava.resources.dll')   -Value 'satellit'         -Encoding ascii
+        # ⛔ ВТОРАЯ ПРОБА И ДОВЕСОК НА СТЕНДЕ — НЕ УКРАШЕНИЕ (`T226`, F46
+        # 06.09.2026). Стенд с ОДНОЙ пробой и БЕЗ довеска не мог отличить
+        # «сторож судит пробы по содержимому» от «сторож судит их по времени»:
+        # чужой пробы на нём не было вовсе, а довеска — тем более. Правка
+        # 05.09.2026 починила набор ПРИЛОЖЕНИЯ и оставила пробы на времени, и
+        # самопроверка этого не увидела. Замер на теневом дереве: `Touch`
+        # чужого `.cs` без правки содержимого — отказ у 1 пробы, `Touch`
+        # довеска — у ВСЕХ 123.
+        Set-Content -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\VtoraiaProba.cs') -Encoding ascii `
+            -Value 'class Vtoraia { static int Main() { return 0; } }'
+        Set-Content -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\Dovesok.cs') -Encoding ascii `
+            -Value 'class Dovesok { }'
         Copy-Item -LiteralPath (Join-Path $fBin 'BecquerelMonitor.exe') -Destination (Join-Path $fProbes 'BecquerelMonitor.exe') -Force
-        Set-Content -LiteralPath (Join-Path $fProbes 'CorpusFsaProbe.exe') -Value 'proba' -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $fProbes 'CorpusFsaProbe.exe') -Value 'proba'  -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $fProbes 'VtoraiaProba.exe')   -Value 'proba2' -Encoding ascii
         # Исходник обязан быть СТАРШЕ пробы, иначе сторож законно скажет
         # «пробы старше своих исходников» и отрицательный контроль не сойдётся.
-        (Get-Item -LiteralPath (Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs')).LastWriteTime = (Get-Date).AddHours(-1)
+        # То же и для набора приложения (`T226`): проект и его файл — старше exe.
+        $old = (Get-Date).AddHours(-1)
+        foreach ($f in @('tools\effmaker\probes\CorpusFsaProbe.cs',
+                         'tools\effmaker\probes\VtoraiaProba.cs',
+                         'tools\effmaker\probes\Dovesok.cs',
+                         'BecquerelMonitor\BecquerelMonitor.csproj',
+                         'BecquerelMonitor\Podstava.cs')) {
+            (Get-Item -LiteralPath (Join-Path $fRepo $f)).LastWriteTime = $old
+        }
 
         $p = Get-AppWdPlan -Repo $fRepo -Bin $fBin -Wd $fWd -ProbeBuild $fProbes -ProbeCatalog
         Invoke-AppWdPlan -Plan $p | Out-Null
@@ -290,6 +353,145 @@ function Assert-GuardIsAlive {
         if (-not $fail -and ($n1 -or $n2 -or $n3)) {
             $fail = ("на ЦЕЛОЙ подставной оснастке сторож нашёл отказы: оснастка {0}, сборка {1}, библиотека {2} — должно быть 0/0/0." -f $n1, $n2, $n3) +
                     "`nСторож, который отказывает всегда, не отличает целый каталог от порченого."
+        }
+
+        # 1а. ⛔ КОНТРОЛИ ОТПЕЧАТКА НАБОРА ИСХОДНИКОВ (`T226`, 05.09.2026).
+        # Сторож стал судить свежесть по НАБОРУ, из которого собран данный
+        # двоичный файл, а не по крайним датам всего дерева. Правка обязана быть
+        # ТОЧНЕЕ прежней, а не терпимее, и это проверяется здесь — с обеих
+        # сторон сразу, потому что ослабление сторожа выглядит как его работа.
+        # Стенд свой (`Wd` = `ProbeBuild`, как в этом самом скрипте), чтобы
+        # отметка легла туда, откуда сторож её и читает.
+        if (-not $fail) {
+            $pc = Get-AppWdPlan -Repo $fRepo -Bin $fBin -Wd $fProbes -ProbeBuild $fProbes -ProbeCatalog
+            $csProj  = Join-Path $fRepo 'BecquerelMonitor\Podstava.cs'
+            $csProbe = Join-Path $fRepo 'tools\effmaker\probes\CorpusFsaProbe.cs'
+            $csAlien = Join-Path $fRepo 'BecquerelMonitor\VneProekta.cs'
+            $csSosed = Join-Path $fRepo 'tools\effmaker\probes\SosedProbe.cs'
+            $csOther = Join-Path $fRepo 'tools\effmaker\probes\VtoraiaProba.cs'
+            $csDoves = Join-Path $fRepo 'tools\effmaker\probes\Dovesok.cs'
+            $keepP   = (Get-Item -LiteralPath $csProj).LastWriteTime
+            $keepR   = (Get-Item -LiteralPath $csProbe).LastWriteTime
+            $keepO   = (Get-Item -LiteralPath $csOther).LastWriteTime
+            $keepD   = (Get-Item -LiteralPath $csDoves).LastWriteTime
+            $exeOther = Join-Path $fProbes 'VtoraiaProba.exe'
+            $keepE   = (Get-Item -LiteralPath $exeOther).LastWriteTime
+
+            Write-AppWdStamp -Plan $pc -Files 1
+            $rec0 = Get-AppWdStampSources -Wd $fProbes
+            if (-not $rec0) {
+                $fail = "отметка записана, но обратно как ЗАПИСЬ НАБОРА не читается — заверять каталог нечем (T226)."
+            } elseif (@((Test-AppWdBuild -Plan $pc).Bad).Count -ne 0) {
+                $fail = "на ЦЕЛОМ стенде С ЗАВЕРЕННОЙ ЗАПИСЬЮ сторож нашёл отказы — должно быть 0 (T226)."
+            }
+
+            # (а) СТОРОЖ НЕ КРАСНЕЕТ ОТ ЧУЖОГО. Три рода файлов, от которых
+            #     лежащие в каталоге двоичные файлы НЕ ЗАВИСЯТ; на каждом из
+            #     трёх прежний сторож отказывал — это и есть `T129`/`T165`/
+            #     `T182`/`T194`/`T226`.
+            $neutral = @(
+                @{ What = 'чужая НОВАЯ проба без собранного exe (T165/T182)'
+                   Do   = { Set-Content -LiteralPath $csSosed -Encoding ascii -Value 'class S { static int Main() { return 0; } }' }
+                   Undo = { Remove-Item -LiteralPath $csSosed -Force } }
+                @{ What = '.cs в BecquerelMonitor\ ВНЕ проекта (T226)'
+                   Do   = { Set-Content -LiteralPath $csAlien -Encoding ascii -Value 'class VneProekta {}' }
+                   Undo = { Remove-Item -LiteralPath $csAlien -Force } }
+                @{ What = 'файл ТРОНУТ без правки содержимого (T194/T226)'
+                   Do   = { (Get-Item -LiteralPath $csProj).LastWriteTime = (Get-Date).AddHours(1) }
+                   Undo = { (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP } }
+                # ⛔ Две строки ниже — ПРОБНАЯ сторона того же (`T226`, F46
+                #    06.09.2026). До них стенд мерил только набор приложения, и
+                #    пробы, оставшиеся на правиле времени, прошли самопроверку
+                #    незамеченными: чужой пробы на стенде не было вовсе.
+                @{ What = 'ЧУЖАЯ проба ТРОНУТА без правки содержимого (T182/T194)'
+                   Do   = { (Get-Item -LiteralPath $csOther).LastWriteTime = (Get-Date).AddHours(1) }
+                   Undo = { (Get-Item -LiteralPath $csOther).LastWriteTime = $keepO } }
+                # Довесок входит в набор КАЖДОЙ пробы: на дереве его касание
+                # красило разом все 123 — самый дорогой из ложных отказов.
+                @{ What = 'ДОВЕСОК ТРОНУТ без правки содержимого (T226)'
+                   Do   = { (Get-Item -LiteralPath $csDoves).LastWriteTime = (Get-Date).AddHours(1) }
+                   Undo = { (Get-Item -LiteralPath $csDoves).LastWriteTime = $keepD } }
+            )
+            foreach ($t in $neutral) {
+                if ($fail) { break }
+                & $t.Do
+                $k = @((Test-AppWdBuild -Plan $pc).Bad).Count
+                & $t.Undo
+                if ($k -ne 0) {
+                    $fail = ("сторож ОТКАЗАЛ на том, от чего каталог не зависит — {0}: находок {1}, должно быть 0 (T226)." -f $t.What, $k) +
+                            "`nСторож, красный от чужой правки, при волне полос выключается ключом -Force — и перестаёт стеречь вовсе."
+                }
+            }
+
+            # (б) СПРАВЕДЛИВЫЕ ОТКАЗЫ ЦЕЛЫ, И ДВА НОВЫХ ПРИБАВИЛИСЬ. Обе подмены
+            #     идут С ВОССТАНОВЛЕННЫМ `LastWriteTime`: по времени их не
+            #     видно вовсе (`T233`), и до 05.09.2026 они проходили насквозь.
+            $guilty = @(
+                @{ What = 'содержимое исходника ПРИЛОЖЕНИЯ подменено, время сохранено (T233)'
+                   Do   = { Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava { int x; }'
+                            (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP }
+                   Undo = { Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava {}'
+                            (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP } }
+                # ⚠ Обе строки несут `Main`: иначе проба перестала бы быть
+                #   пробой и стала довеском, и контроль мерил бы не то.
+                @{ What = 'содержимое исходника ПРОБЫ подменено, время сохранено (T233)'
+                   Do   = { Set-Content -LiteralPath $csProbe -Encoding ascii -Value 'class Podstava { static int Main() { return 1; } }'
+                            (Get-Item -LiteralPath $csProbe).LastWriteTime = $keepR }
+                   Undo = { Set-Content -LiteralPath $csProbe -Encoding ascii -Value 'class Podstava { static int Main() { return 0; } }'
+                            (Get-Item -LiteralPath $csProbe).LastWriteTime = $keepR } }
+                @{ What = 'исходник приложения НОВЕЕ сборки (T41, прежний отказ)'
+                   Do   = { Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava { int y; }'
+                            (Get-Item -LiteralPath $csProj).LastWriteTime = (Get-Date).AddHours(1) }
+                   Undo = { Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava {}'
+                            (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP } }
+                # ⛔ Довесок — обратная сторона своего же нейтрального случая
+                #    (`T226`, F46): ТРОНУТЫЙ он не значит ничего, ПРАВЛЕНЫЙ
+                #    обязан покрасить каждую пробу, в которую он вкомпилирован.
+                #    Без этой пары «сторож стал точнее» и «сторож ослеп на
+                #    довеске» выглядят одинаково.
+                @{ What = 'содержимое ДОВЕСКА подменено, время сохранено (T226/T233)'
+                   Do   = { Set-Content -LiteralPath $csDoves -Encoding ascii -Value 'class Dovesok { int q; }'
+                            (Get-Item -LiteralPath $csDoves).LastWriteTime = $keepD }
+                   Undo = { Set-Content -LiteralPath $csDoves -Encoding ascii -Value 'class Dovesok { }'
+                            (Get-Item -LiteralPath $csDoves).LastWriteTime = $keepD } }
+                # ⛔ Подмена САМОГО ДВОИЧНОГО ФАЙЛА ПРОБЫ (F46): исходники
+                #    сходятся с заверенными, время не старше — и до 06.09.2026
+                #    такое проходило насквозь. Это `A77` в чистом виде:
+                #    «положить файл мимо сторожа».
+                @{ What = 'сам <проба>.exe подменён, время сохранено (T138/T233)'
+                   Do   = { Set-Content -LiteralPath $exeOther -Encoding ascii -Value 'chuzhaia-proba'
+                            (Get-Item -LiteralPath $exeOther).LastWriteTime = $keepE }
+                   Undo = { Set-Content -LiteralPath $exeOther -Encoding ascii -Value 'proba2'
+                            (Get-Item -LiteralPath $exeOther).LastWriteTime = $keepE } }
+            )
+            foreach ($t in $guilty) {
+                if ($fail) { break }
+                & $t.Do
+                $k = @((Test-AppWdBuild -Plan $pc).Bad).Count
+                & $t.Undo
+                if ($k -lt 1) {
+                    $fail = ("сторож ПРОМОЛЧАЛ на настоящей подмене — {0}: находок {1}, должно быть >=1 (T226/T233)." -f $t.What, $k)
+                }
+            }
+
+            # (в) ОТПЕЧАТОК МЕНЯЕТСЯ РОВНО С НАБОРОМ. Иначе он ничего не значит:
+            #     постоянный отпечаток пропустит всё, случайный — отвергнет всё.
+            if (-not $fail) {
+                $f1 = (Get-AppWdSourceRecord -Repo $fRepo).App.Fp
+                (Get-Item -LiteralPath $csProj).LastWriteTime = (Get-Date).AddHours(2)
+                $f2 = (Get-AppWdSourceRecord -Repo $fRepo).App.Fp
+                (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP
+                Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava { int z; }'
+                (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP
+                $f3 = (Get-AppWdSourceRecord -Repo $fRepo).App.Fp
+                Set-Content -LiteralPath $csProj -Encoding ascii -Value 'class Podstava {}'
+                (Get-Item -LiteralPath $csProj).LastWriteTime = $keepP
+                $f4 = (Get-AppWdSourceRecord -Repo $fRepo).App.Fp
+                if ($f1 -ne $f2) { $fail = "отпечаток набора изменился от ОДНОГО ЛИШЬ ВРЕМЕНИ правки — он обязан считаться по содержимому (T226)." }
+                elseif ($f1 -eq $f3) { $fail = "отпечаток набора НЕ изменился при смене СОДЕРЖИМОГО файла — таким отпечатком ничего не проверить (T226)." }
+                elseif ($f1 -ne $f4) { $fail = "отпечаток набора не вернулся к прежнему после отката правки — он зависит не только от набора (T226)." }
+            }
+            Remove-AppWdStamp -Wd $fProbes
         }
 
         # 2. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: три подмены, каждая обязана быть найдена.
@@ -325,6 +527,7 @@ function Assert-GuardIsAlive {
     }
 
     if ($fail) {
+        Revoke-Certificate
         Write-Host ""
         Write-Host "⛔⛔ ОТКАЗ: СТОРОЖ ПРОВАЛИЛ САМОПРОВЕРКУ (T79)" -ForegroundColor Red
         foreach ($line in ($fail -split "`n")) { Write-Host ("   " + $line) -ForegroundColor Red }
@@ -659,8 +862,13 @@ try { Invoke-AppWdPlan -Plan $copyPlan | Out-Null } catch {
 # строку и код 0. Теперь сверяются все пары своей доли, и число сошедшихся
 # ОБЯЗАНО совпасть с числом положенных: пустой список находок при нулевом
 # числе сверенного — отказ (класс `T63`).
+# ⛔ `-Certifying` (`T226`): пробы в этот миг СОБРАНЫ ЭТИМ ЖЕ ПРОГОНОМ из
+#    текущего дерева, и сверять их с ПРЕЖНЕЙ записью набора бессмысленно — она
+#    устарела на один шаг по построению. Приложение в этом режиме, наоборот,
+#    судится строже: и по времени (`T41`), и по содержимому, потому что
+#    заверение ставится только на каталог, чья сборка не старше исходников.
 $chk   = Invoke-AppWdCheck 'оснастка'   { Test-AppWdPlan    -Plan $minePlan }
-$guard = Invoke-AppWdCheck 'сборка'     { Test-AppWdBuild   -Plan $plan }
+$guard = Invoke-AppWdCheck 'сборка'     { Test-AppWdBuild   -Plan $plan -Certifying }
 $lib   = Invoke-AppWdCheck 'библиотека' { Test-AppWdLibrary -Plan $plan }
 $bad   = @($chk.Bad) + @($guard.Bad) + @($lib.Bad)
 if ($bad.Count) {
@@ -718,6 +926,12 @@ foreach ($g in ($minePairs | Group-Object Why | Sort-Object Name)) {
 }
 Write-Host ("  (сверять не с чем ещё у {0} проб и {1} посторонних: их источник — сам этот каталог)" -f
             $selfPairs.Count, $extraLoad.Count)
+# Замечания сторожа сборки (`T226`): чем он судил свежесть и что в счёт НЕ
+# пошло — `.cs` вне проекта, исходники проб без собранного exe, отсутствие
+# заверенной записи. Признак без читателя — главная беда этого дерева.
+if ($guard.PSObject.Properties['Note']) {
+    foreach ($n in @($guard.Note)) { Write-Host ("⚠ {0}" -f $n) -ForegroundColor DarkYellow }
+}
 Write-Host ("приложение рядом с пробами сошлось со сборкой: {0}" -f $Bin)
 Write-Host ("библиотека нуклидов: {0} записей, sha {1} (поставочная)" -f $lib.Count, $lib.Sha)
 # Считаем СОБРАННОЕ, а не «всего минус один»: довески без `Main` не единственны,
@@ -757,6 +971,26 @@ if ($script:BuildBad.Count) {
     Write-BuildFailBanner
     exit 1
 }
+
+# ⛔ ЗАВЕРЕНИЕ КАТАЛОГА — ПОСЛЕДНИМ ДЕЙСТВИЕМ И ТОЛЬКО ПОСЛЕ УДАЧИ (`T226`,
+# решение Amber 05.09.2026; правило то же, что у `mk_appwd.ps1` с `T80`).
+# Отметка отвечает на вопрос, на который до сегодняшнего дня отвечать было
+# нечем: ИЗ КАКОГО НАБОРА ИСХОДНИКОВ собраны лежащие здесь двоичные файлы.
+# Пять строк реестра (`T129`, `T165`, `T182`, `T194`, `T226`) выросли из того,
+# что набора не различали вовсе и судили по крайним датам всего дерева.
+# ⚠ Отметка НЕ доказывает, что exe действительно скомпилирован из этого
+#   набора, — доказать это нечем. Она фиксирует набор В МИГ ЗАВЕРЕНИЯ, а
+#   заверение ставится только на каталог, прошедший ВСЕ проверки выше, в том
+#   числе «сборка не старше исходников». Дальше сторож ловит уже ДРЕЙФ: и
+#   правку по содержимому, и подмену с сохранением времени (`T233`).
+Write-AppWdStamp -Plan $plan -Files $minePairs.Count
+$stampNow = Get-AppWdStampSources -Wd $Out
+if (-not $stampNow) {
+    Deny-Guard "отметка .appwd.json записана, но не читается обратно как запись набора — заверять каталог нечем (T226)"
+}
+Write-Host ("каталог заверен (T226): наборы — приложение {0} ({1} файлов), пробы {2} ({3}), довесков {4}" -f
+            ([string]$stampNow.app.fp).Substring(0, 12), $stampNow.app.n,
+            ([string]$stampNow.probes.fp).Substring(0, 12), $stampNow.probes.n, $stampNow.comp.n)
 
 # ⛔ ЧИТАТЕЛЬ СТОРОЖА ОПИСАНИЙ FSA (`T86`, решение Amber 05.09.2026).
 # `tools\check_fsa_docs.py` сличает XML-описания `FsaAnalyzer.cs` с тем, что
