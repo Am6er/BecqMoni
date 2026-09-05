@@ -1,0 +1,18 @@
+довески: GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs  [БЕЗ _TargetFramework.cs]
+CSC CalibGraphProbeF35_before EXIT=0  exe 02:13:30  >  cs 05.09 21:16:00
+CSC CultureProbeO14_before EXIT=0  exe 02:13:30  >  cs 05.09 19:15:51
+CSC GraphCultureProbeF27_before EXIT=0  exe 02:13:30  >  cs 05.09 19:57:22
+CSC LabelPathProbeF49_before EXIT=0  exe 02:13:31  >  cs 06.09 01:07:21
+CSC MatrixRefusalProbeP8_before EXIT=0  exe 02:13:31  >  cs 05.09 17:17:19
+CSC ModalThreadProbeO25_before EXIT=0  exe 02:13:31  >  cs 05.09 15:53:14
+CSC PeakFwhmUnitsProbeF41_before EXIT=0  exe 02:13:32  >  cs 05.09 22:52:25
+CSC RestCultureProbeF28_before EXIT=0  exe 02:13:32  >  cs 05.09 20:51:50
+CSC RestCultureProbeF47_before EXIT=0  exe 02:13:32  >  cs 06.09 01:03:14
+CSC FsaBackgroundMarkProbeF48_before EXIT=0  exe 02:13:32  >  cs 06.09 00:55:36
+CSC LabelTruthProbe_before EXIT=0  exe 02:13:33  >  cs 05.09 19:20:49
+CSC ModalReachProbeF22_before EXIT=0  exe 02:13:33  >  cs 05.09 18:32:27
+CSC ReasonProbe_before EXIT=0  exe 02:13:33  >  cs 05.09 13:46:05
+CSC ResponseInterpProbe_before EXIT=0  exe 02:13:33  >  cs 06.08 01:00:02
+CSC ResponseShapeProbe_before EXIT=0  exe 02:13:34  >  cs 08.08 16:09:00
+CSC CultureProbeO14_noattr_before EXIT=0  exe 02:13:34  >  cs 06.09 02:12:59
+СБОРКА G4 ПРОШЛА: 16 проб

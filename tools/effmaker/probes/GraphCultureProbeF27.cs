@@ -49,11 +49,9 @@ using System.Threading;
 using BecquerelMonitor;
 using BecquerelMonitor.Utils;
 
-// ⛔ БЕЗ ЭТОЙ СТРОКИ ПРОБА МЕРИТ ДРУГОЙ ПРОЦЕСС: с .NET 4.6 правила течения
-//    культуры по задачам выбираются платформой по целевой платформе ВХОДНОЙ
-//    сборки, а у пробы, собранной голым `csc`, она не объявлена вовсе.
-[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",
-                                                     FrameworkDisplayName = ".NET Framework 4.8")]
+// Целевая платформа процесса (.NETFramework 4.8) объявлена ОБЩИМ довеском
+// `_TargetFramework.cs` — он компилируется в каждую пробу (`T237`, 06.09.2026);
+// свой атрибут здесь дал бы CS0579. Значение печатается в шапке.
 
 static class GraphCultureProbeF27
 {

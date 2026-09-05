@@ -41,11 +41,9 @@ using System.Text;
 using System.Threading;
 using BecquerelMonitor;
 
-// ⛔ БЕЗ ЭТОЙ СТРОКИ ПРОБА МЕРИТ ДРУГОЙ ПРОЦЕСС: правила совместимости платформа
-//    выбирает по целевой платформе ВХОДНОЙ сборки, а у пробы, собранной голым
-//    `csc`, её нет вовсе.
-[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",
-                                                     FrameworkDisplayName = ".NET Framework 4.8")]
+// Целевая платформа процесса (.NETFramework 4.8) объявлена ОБЩИМ довеском
+// `_TargetFramework.cs` — он компилируется в каждую пробу (`T237`, 06.09.2026);
+// свой атрибут здесь дал бы CS0579. Значение печатается в шапке.
 
 static class RestCultureProbeF47
 {

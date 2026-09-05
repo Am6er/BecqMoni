@@ -599,6 +599,33 @@ if ($companionPaths.Count -gt 0) {
     Write-Host ("довески без Main: " + (($companions | ForEach-Object { $_.Name }) -join ', '))
 }
 
+# ⛔ ЦЕЛЕВАЯ ПЛАТФОРМА КАЖДОЙ ПРОБЫ — ОБЩИМ ДОВЕСКОМ (`T237`, полоса G4, 06.09.2026).
+# Проба, собранная голым `csc`, не объявляет `TargetFrameworkAttribute`, и её
+# процесс живёт по правилам совместимости ДО .NET 4.6 (культура не течёт в
+# `Task.Run`/`new Thread`/`ThreadPool`, `NoAsyncCurrentCulture=True`) — не по
+# тем, по которым живёт приложение (`.NETFramework,Version=v4.8` из `.csproj`).
+# Мерено 05–06.09.2026: `CultureProbeO14` без атрибута даёт «дефект у 5 стартеров
+# из 6», с атрибутом — у 1 из 6; замер СОВПАЛ с посылкой строки и подозрений не
+# вызвал. Атрибут объявляет `_TargetFramework.cs` — файл без `Main`, он идёт
+# довеском в каждую пробу по правилу выше. Здесь — читатель этого признака:
+# нет довеска с атрибутом (удалили, переименовали, дали ему `Main`) — сборка
+# отказывает, а не собирает 120 проб по чужим правилам молча.
+# ⚠ Атрибут в сборке может быть ТОЛЬКО ОДИН: проба со СВОИМ атрибутом даст
+#   CS0579 — это законный отказ компилятора, названный ниже по имени, а не
+#   грабля скрипта. Лечение — снять частный атрибут, довесок объявляет за всех.
+$tfPattern = 'assembly:\s*(System\.Runtime\.Versioning\.)?TargetFramework\s*\('
+$tfCompanions = @($companions | Where-Object { Select-String -Path $_.FullName -Pattern $tfPattern -Quiet })
+if ($tfCompanions.Count -ne 1) {
+    Deny-Guard ('довесков с [assembly: TargetFramework] должно быть РОВНО ОДИН (_TargetFramework.cs), найдено {0}: {1} (T237)' -f
+                $tfCompanions.Count, (($tfCompanions | ForEach-Object { $_.Name }) -join ', '))
+}
+$tfOwn = @($sources | Where-Object { ($_.FullName -notin $companionPaths) -and (Select-String -Path $_.FullName -Pattern $tfPattern -Quiet) })
+if ($tfOwn.Count -gt 0) {
+    Write-Host ("⚠ свой [assembly: TargetFramework] сверх довеска $($tfCompanions[0].Name) — ждите CS0579, снимите его: " +
+                (($tfOwn | ForEach-Object { $_.Name }) -join ', ')) -ForegroundColor Yellow
+}
+Write-Host ("целевая платформа проб: довесок {0}" -f $tfCompanions[0].Name)
+
 foreach ($f in $sources) {
     if ($f.FullName -in $companionPaths) { continue }
     $extra = @($companionPaths)

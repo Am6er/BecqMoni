@@ -1,0 +1,6 @@
+довески без Main: GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+
+⛔⛔ ОТКАЗ: СТОРОЖ НЕ ДОКАЗАЛ, ЧТО СВЕРЯЛ (T79)
+   довесков с [assembly: TargetFramework] должно быть РОВНО ОДИН (_TargetFramework.cs), найдено 0:  (T237)
+   Пустой список находок при нулевом числе сверенного — это ОТКАЗ, а не «проверено».
+
