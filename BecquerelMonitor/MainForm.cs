@@ -149,16 +149,12 @@ namespace BecquerelMonitor
                 return;
             }
             //CustomCulture
-            try
-            {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this.globalConfig.Language);
-            }
-            catch (CultureNotFoundException)
-            {
-                // The default config value is the fake culture "OS"; on systems where
-                // GetCultureInfo throws for unknown names this used to crash before the
-                // main window appeared. Keep the system UI culture instead.
-            }
+            // (`A238`) Язык выставляется ВСЕМ потокам, а не одному этому: потоку,
+            // вошедшему без контекста исполнения, культура этого потока не
+            // достаётся, и строка ресурса выходила на языке ОС. Здесь же
+            // разбирается метка «OS» — она НЕ имя культуры, хотя и принимается
+            // за него молча. И то и другое с замером — в `Program.ApplyLanguage`.
+            Program.ApplyLanguage(this.globalConfig.Language);
             System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ".";
             System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;

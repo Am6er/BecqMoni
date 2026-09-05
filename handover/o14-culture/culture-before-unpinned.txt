@@ -1,0 +1,61 @@
+== A238: язык строки ресурса вне UI-потока ==
+
+сборка приложения: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o14_before\BecquerelMonitor.exe
+собрана:           05.09.2026 12:58:12
+культура ОС:       InstalledUICulture=ru-RU, CurrentUICulture главного потока при старте=ru-RU
+ресурс ChartHeaderChannel: инвариант=«Channel:», ru-RU=«Канал:»
+общий порядок:     МЕТОДА НЕТ — сборка ПРЕЖНЯЯ (плечо «после» не ставится)
+
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 1 (настоящее): настройка «» (English), ОС ru-RU
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке
+    Task.Run с UI-потока                          культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    поток, запущенный ПОСЛЕ настройки             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    Parallel.For (итерация на потоке пула)        культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ
+    [положительный контроль] дефект воспроизведён у стартеров: 6
+  путь ОБЩИЙ: метода нет в сборке — не мерен
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 2 (подставная ОС en-US): настройка «ru-RU»
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«ru-RU»)
+    DefaultThreadCurrentUICulture после: en-US
+    UI-поток (сам)                                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    Task.Run с UI-потока                          культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    поток, запущенный ПОСЛЕ настройки             культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    поток пула БЕЗ переноса контекста             культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    Parallel.For (итерация на потоке пула)        культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    поток, запущенный ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    Timer, заведённый ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    [положительный контроль] дефект воспроизведён у стартеров: 6
+  путь ОБЩИЙ: метода нет в сборке — не мерен
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 3 (настройка «OS» — не культура): ожидается язык ОС
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«OS»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=os          ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ
+    Task.Run с UI-потока                          культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    поток, запущенный ПОСЛЕ настройки             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    Parallel.For (итерация на потоке пула)        культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке
+    ⛔ прежний путь разошёлся с ожиданием у стартеров: 1
+  путь ОБЩИЙ: метода нет в сборке — не мерен
+
+РАСХОЖДЕНИЙ: 1

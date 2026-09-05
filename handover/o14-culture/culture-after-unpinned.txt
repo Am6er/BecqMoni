@@ -1,0 +1,110 @@
+== A238: язык строки ресурса вне UI-потока ==
+
+сборка приложения: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o14\BecquerelMonitor.exe
+собрана:           05.09.2026 13:03:59
+культура ОС:       InstalledUICulture=ru-RU, CurrentUICulture главного потока при старте=ru-RU
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+ресурс ChartHeaderChannel: инвариант=«Channel:», ru-RU=«Канал:»
+общий порядок:     BecquerelMonitor.Program.ApplyLanguage(string)
+
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 1 (настоящее): настройка «» (English), ОС ru-RU
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1,5»]
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1,5»]
+    [положительный контроль] дефект воспроизведён у стартеров: 3
+
+  путь ОБЩИЙ (`Program.ApplyLanguage` из сборки)
+    настройка: Program.ApplyLanguage(«»)
+    DefaultThreadCurrentUICulture после: (инвариант)
+    UI-поток (сам)                                культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    ⛔ общий путь оставил язык ОС у стартеров: 2
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 2 (подставная ОС en-US): настройка «ru-RU»
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«ru-RU»)
+    DefaultThreadCurrentUICulture после: en-US
+    UI-поток (сам)                                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    [положительный контроль] дефект воспроизведён у стартеров: 3
+
+  путь ОБЩИЙ (`Program.ApplyLanguage` из сборки)
+    настройка: Program.ApplyLanguage(«ru-RU»)
+    DefaultThreadCurrentUICulture после: ru-RU
+    UI-поток (сам)                                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=en-US       ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    ⛔ общий путь оставил язык ОС у стартеров: 2
+
+──────────────────────────────────────────────────────────────
+ПЛЕЧО 3 (настройка «OS» — не культура): ожидается язык ОС
+──────────────────────────────────────────────────────────────
+
+  путь ПРЕЖНИЙ (только `Thread.CurrentThread.CurrentUICulture`, MainForm:154)
+    настройка: Thread.CurrentThread.CurrentUICulture = GetCultureInfo(«OS»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=os          ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=os          ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=os          ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=os          ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    ⛔ прежний путь разошёлся с ожиданием у стартеров: 4
+
+  путь ОБЩИЙ (`Program.ApplyLanguage` из сборки)
+    настройка: Program.ApplyLanguage(«OS»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  по настройке   [число 1.5 → «1.5»]
+    общий путь: язык настройки у ВСЕХ стартеров
+
+──────────────────────────────────────────────────────────────
+СПРАВОЧНО (не судится): вторая дверь `CultureInfo.CurrentUICulture`
+──────────────────────────────────────────────────────────────
+
+  настройка «» (English), ОС ru-RU
+    настройка: CultureInfo.CurrentUICulture = GetCultureInfo(«»)
+    DefaultThreadCurrentUICulture после: не выставлена
+    UI-поток (сам)                                культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    Task.Run с UI-потока                          культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ПОСЛЕ настройки             культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток пула БЕЗ переноса контекста             культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1,5»]
+    Parallel.For (итерация на потоке пула)        культура=(инвариант) ChartHeaderChannel=«Channel:» ConfirmationDialogTitle=«Confirmation»  по настройке   [число 1.5 → «1.5»]
+    поток, запущенный ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+    Timer, заведённый ДО настройки                культура=ru-RU       ChartHeaderChannel=«Канал:» ConfirmationDialogTitle=«Подтверждение»  НЕ ПО НАСТРОЙКЕ   [число 1.5 → «1.5»]
+
+РАСХОЖДЕНИЙ: 5
