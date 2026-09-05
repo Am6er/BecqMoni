@@ -1,0 +1,38 @@
+=== 1. ЦЕЛАЯ оснастка (ждём код 0) ===
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\wd
+  сборка   : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\bin
+  пробы    : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\probes
+  собрана  : 2026-09-05 23:10:47 из C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\bin
+  наборы   : приложение 7150d39d5a3c (2 файлов), пробы 9a184e22fdf2 (1)
+  сверено  : 6 файлов по sha256 за 0,12 с
+  библиотека: 200 записей, sha 39c50ca28a27
+  перекладка: пропущено, нет: C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\probes\MatrixAuditProbe.exe
+  ОСНАСТКА СВЕЖАЯ: 6 файлов сошлись
+
+КОД: 0
+=== 2. правка приложения по СОДЕРЖИМОМУ с сохранением времени (ждём код > 0) ===
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\wd
+  сборка   : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\bin
+  пробы    : C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\probes
+  собрана  : 2026-09-05 23:10:47 из C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\bin
+  наборы   : приложение 7150d39d5a3c (2 файлов), пробы 9a184e22fdf2 (1)
+  сверено  : 6 файлов по sha256 за 0,06 с
+  библиотека: 200 записей, sha 39c50ca28a27
+  перекладка: пропущено, нет: C:\Users\moroz\AppData\Local\Temp\f40_guard_1ca53a3b\probes\MatrixAuditProbe.exe
+
+⛔⛔ ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ — ПРОГОН НЕ ЗАПУСКАЕТСЯ
+   1. НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 1, добавлено 0, удалено 0
+           becquerelmonitor\alpha.cs
+           отпечаток набора: заверено 7150d39d5a3c -> в дереве 2698cdad7f4f
+           ⛔ НИ ОДИН изменённый файл НЕ НОВЕЕ exe, а сам exe с заверения НЕ МЕНЯЛСЯ (T233):
+              содержимое подменено с сохранением LastWriteTime — по времени этого не видно.
+           Пересоберите приложение и перегоните build_all.ps1.
+
+  Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21).
+  Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1.
+
+КОД: 1
