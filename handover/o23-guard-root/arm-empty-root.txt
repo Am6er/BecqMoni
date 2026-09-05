@@ -1,0 +1,41 @@
+=== ПЛЕЧО: пустой корень -> отказ ===
+--- check_resx "/tmp/tmp.oNDnujcGtT"
+ПУСТОЙ КОРЕНЬ  C:/Users/moroz/AppData/Local/Temp/tmp.oNDnujcGtT: ни одного *.resx, *.ru.resx — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_letters "/tmp/tmp.oNDnujcGtT"
+ПУСТОЙ КОРЕНЬ  C:/Users/moroz/AppData/Local/Temp/tmp.oNDnujcGtT: ни одного *.resx — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_designer "/tmp/tmp.oNDnujcGtT"
+ПУСТОЙ КОРЕНЬ  C:/Users/moroz/AppData/Local/Temp/tmp.oNDnujcGtT: ни одного *.resx, *.cs — проверять нечего
+РАЗОШЛОСЬ
+код 1
+
+=== ПЛЕЧО: несуществующий корень -> отказ ===
+--- check_resx nowhere/at/all
+ПУСТОЙ КОРЕНЬ  nowhere/at/all: каталога нет — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_letters nowhere/at/all
+ПУСТОЙ КОРЕНЬ  nowhere/at/all: каталога нет — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_designer nowhere/at/all
+ПУСТОЙ КОРЕНЬ  nowhere/at/all: каталога нет — проверять нечего
+РАЗОШЛОСЬ
+код 1
+
+=== ПЛЕЧО: корень tools/ (файлы есть, resx нет) -> отказ ===
+--- check_resx tools
+ПУСТОЙ КОРЕНЬ  tools: ни одного *.resx, *.ru.resx — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_letters tools
+ПУСТОЙ КОРЕНЬ  tools: ни одного *.resx — проверять нечего
+РАЗОШЛОСЬ
+код 1
+--- check_resx_designer tools
+ПУСТОЙ КОРЕНЬ  tools: ни одного *.resx — проверять нечего
+РАЗОШЛОСЬ
+код 1
