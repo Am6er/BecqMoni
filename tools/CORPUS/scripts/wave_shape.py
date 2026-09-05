@@ -26,7 +26,8 @@
 
     python tools/CORPUS/scripts/wave_shape.py dump.csv [--from=60] [--to=450]
 
-Вход — csv пробы `FsaStackShot --dump=`: ch,keV,net,model,continuum,<слои>.
+Вход — csv пробы `FsaStackShot --dump=`: ch,keV,net,model,continuum_raw,<слои>
+(`continuum_raw` — сырой сплайн; слой стека «continuum» идёт среди <слои>, `T103`).
 """
 from __future__ import print_function
 
