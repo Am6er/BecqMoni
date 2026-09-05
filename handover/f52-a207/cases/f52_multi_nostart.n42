@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadInstrumentData xmlns="http://physics.nist.gov/N42/2011/N42" n42DocUUID="probe-a207-f52a">
+  <RadInstrumentInformation id="RadInstrument">
+    <RadInstrumentManufacturerName>PROBE</RadInstrumentManufacturerName>
+    <RadInstrumentModelName>A207</RadInstrumentModelName>
+    <RadInstrumentClassCode>Radionuclide Identifier</RadInstrumentClassCode>
+    <RadInstrumentVersion>
+      <RadInstrumentComponentName>Hardware</RadInstrumentComponentName>
+      <RadInstrumentComponentVersion>1</RadInstrumentComponentVersion>
+    </RadInstrumentVersion>
+  </RadInstrumentInformation>
+  <EnergyCalibration id="EC1">
+    <CoefficientValues>3.5 12.5</CoefficientValues>
+  </EnergyCalibration>
+  <RadMeasurement id="M1">
+    <MeasurementClassCode>Foreground</MeasurementClassCode>
+    <StartDateTime></StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M1" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+  <RadMeasurement id="M2">
+    <MeasurementClassCode>Foreground</MeasurementClassCode>
+    <StartDateTime></StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M2" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2 3 4 5 6 7 8 2</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+  <RadMeasurement id="M3">
+    <MeasurementClassCode>Foreground</MeasurementClassCode>
+    <StartDateTime></StartDateTime>
+    <RealTimeDuration>PT300S</RealTimeDuration>
+    <Spectrum id="S-M3" energyCalibrationReference="EC1">
+      <LiveTimeDuration>PT295S</LiveTimeDuration>
+      <ChannelData>3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3 4 5 6 7 8 9 3</ChannelData>
+    </Spectrum>
+  </RadMeasurement>
+</RadInstrumentData>

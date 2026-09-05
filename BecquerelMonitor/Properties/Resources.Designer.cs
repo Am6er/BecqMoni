@@ -1415,7 +1415,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the current time is used instead. Everything else in the spectrum is imported..
+        ///   Looks up a localized string similar to The file carries no start time for {0} measurement(s); the start time is set to 1970-01-01 to mark it as unknown, so that a made-up date is not taken for a measured one. Everything else in the spectrum is imported..
+        /// </summary>
+        public static string ERRMissingStartDateTime {
+            get {
+                return ResourceManager.GetString("ERRMissingStartDateTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the start time is set to 1970-01-01 to mark it as unknown. Everything else in the spectrum is imported..
         /// </summary>
         public static string ERRUnreadableStartDateTimeN42 {
             get {

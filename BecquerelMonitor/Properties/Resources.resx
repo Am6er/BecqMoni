@@ -41884,8 +41884,11 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="ERRSkippedMeasurementClassN42" xml:space="preserve">
     <value>The N42 file contains measurements of class {0}; they are skipped, because the application imports foreground and background spectra only. Spectra imported: {1}.</value>
   </data>
+  <data name="ERRMissingStartDateTime" xml:space="preserve">
+    <value>The file carries no start time for {0} measurement(s); the start time is set to 1970-01-01 to mark it as unknown, so that a made-up date is not taken for a measured one. Everything else in the spectrum is imported.</value>
+  </data>
   <data name="ERRUnreadableStartDateTimeN42" xml:space="preserve">
-    <value>The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the current time is used instead. Everything else in the spectrum is imported.</value>
+    <value>The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the start time is set to 1970-01-01 to mark it as unknown. Everything else in the spectrum is imported.</value>
   </data>
   <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
     <value>The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4.</value>
