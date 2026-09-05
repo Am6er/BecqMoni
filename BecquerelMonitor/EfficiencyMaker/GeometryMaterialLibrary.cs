@@ -460,7 +460,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Entry part = lookup == null ? null : lookup(component.Material);
                 if (part == null || !(part.Density > 0.0))
                 {
-                    problem = string.Format(CultureInfo.CurrentCulture,
+                    problem = string.Format(CultureInfo.InvariantCulture,
                                             Resources.GeometryMaterialsDensityNoPart,
                                             component.Material);
                     return false;
@@ -487,7 +487,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // как считалась: условие требует обеих крайностей сразу.
             if (lightest < 0.05 && heaviest > 1.0)
             {
-                problem = string.Format(CultureInfo.CurrentCulture,
+                problem = string.Format(CultureInfo.InvariantCulture,
                                         Resources.GeometryMaterialsDensityGasInSolid,
                                         gassy, lightest, 1.0 / inverse);
                 return false;

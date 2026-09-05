@@ -1,0 +1,68 @@
+СЧЁТ СКАНЕРОМ scan_culture.py (полоса П7, `A244`)
+
+по ВСЕМУ дереву BecquerelMonitor/**: было 1075, стало 1020
+мои 21 файл: печать 108 -> 53, разбор 0 -> 0
+
+ОСТАТОК ПО СКАНЕРУ РАЗОБРАН ПОИМЁННО — все места ЛОЖНЫЕ:
+
+   29  уже инвариант (сканер не видит имени `ci` и многострочный довод)
+   17  StringBuilder.ToString() — культура не участвует
+    6  многострочный довод, инвариант на следующей строке
+    1  Exception.ToString() — культура не участвует
+
+ФАКТИЧЕСКИХ мест печати без явной инвариантной культуры: 0
+ФАКТИЧЕСКИХ мест разбора: 20, ВСЕ до полосы уже были инвариантны (проверено построчно)
+
+EfficiencyMaker/BremsstrahlungData.cs              293  StringBuilder.ToString() — культура не участвует               | string cacheKey = key.ToString();
+EfficiencyMaker/EfficiencyCurveGraph.cs            150  уже инвариант (сканер не видит имени `ci` и многострочный довод) | g.DrawString("1e" + d.ToString(CultureInfo.InvariantCulture), this.Font, text, 2, y - 7);
+EfficiencyMaker/EfficiencySimulator.cs            5836  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string id = "m" + materialId.Count.ToString(ci);
+EfficiencyMaker/EfficiencySimulator.cs            5843  уже инвариант (сканер не видит имени `ci` и многострочный довод) | comp.Add(string.Format(ci, "{0}:{1:R}", f.Key, f.Value));
+EfficiencyMaker/EfficiencySimulator.cs            5847  уже инвариант (сканер не видит имени `ci` и многострочный довод) | lines.Add(string.Format(ci, "mat {0} {1:R} {2}", id,
+EfficiencyMaker/EfficiencySimulator.cs            5856  уже инвариант (сканер не видит имени `ci` и многострочный довод) | ? string.Format(ci, "region box {0} {1:R} {2:R} {3:R} {4:R} {5}",
+EfficiencyMaker/EfficiencySimulator.cs            5859  уже инвариант (сканер не видит имени `ci` и многострочный довод) | : string.Format(ci, "region tub {0} {1:R} {2:R} {3:R} {4:R} {5}",
+EfficiencyMaker/EstarCalculator.cs                 692  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_index";
+EfficiencyMaker/EstarCalculator.cs                 706  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "в estar_shells нет оболочек для Z=" + z.ToString(CultureInfo.InvariantCulture));
+EfficiencyMaker/EstarCalculator.cs                 731  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + " estar_radiative_stopping where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by energ
+EfficiencyMaker/EstarCalculator.cs                 745  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "estar_radiative_stopping: у Z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/GeometryMaterialLibrary.cs         772  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+EfficiencyMaker/GeometryModel.cs                  1270  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string zKey = prefix + "Z" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryModel.cs                  1271  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string fKey = prefix + "Fractions" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  373  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+EfficiencyMaker/GeometryWriter.cs                  450  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string index = "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  528  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string zKey = slot.ZPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  529  уже инвариант (сканер не видит имени `ci` и многострочный довод) | string fKey = slot.FractionsPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/MaterialDatabase.cs                736  уже инвариант (сканер не видит имени `ci` и многострочный довод) | throw Refuse("оболочечная модель фотоэффекта Z=" + z.ToString(CultureInfo.InvariantCulture), Databas
+EfficiencyMaker/MaterialDatabase.cs                756  многострочный довод, инвариант на следующей строке             | "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z="
+EfficiencyMaker/MaterialDatabase.cs                776  уже инвариант (сканер не видит имени `ci` и многострочный довод) | " from epics_photo_fit where z=" + z.ToString(CultureInfo.InvariantCulture) +
+EfficiencyMaker/MaterialDatabase.cs                847  уже инвариант (сканер не видит имени `ci` и многострочный довод) | " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_seq, energy_ev";
+EfficiencyMaker/ResponseMatrix.cs                  567  StringBuilder.ToString() — культура не участвует               | byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+EfficiencyMaker/ResponseMatrix.cs                  574  уже инвариант (сканер не видит имени `ci` и многострочный довод) | return "phys=" + PhysicsVersion.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ResponseMatrix.cs                 1066  StringBuilder.ToString() — культура не участвует               | return hex.ToString();
+EfficiencyMaker/ScatteringData.cs                  394  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "select x_percm, sf from epdl_scattering_function where z=" + z.ToString(CultureInfo.InvariantCultur
+EfficiencyMaker/ScatteringData.cs                  419  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "select x_percm, ff from epdl_form_factor where z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ScatteringData.cs                  495  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "select occupancy, potential_ev from compton_profile_shell where z=" + z.ToString(CultureInfo.Invari
+EfficiencyMaker/ScatteringData.cs                  522  уже инвариант (сканер не видит имени `ci` и многострочный довод) | "select shell_seq, p_idx, j_au from compton_profile where z=" + z.ToString(CultureInfo.InvariantCult
+EfficiencyMakerForm.cs                            1082  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+EfficiencyMakerForm.cs                            1286  Exception.ToString() — культура не участвует                   | AppendLog(args.Error.ToString());
+FullSpectrumAnalysis/AngularCorrelation.cs         515  многострочный довод, инвариант на следующей строке             | "select seq, jpi from g4_level where z="
+FullSpectrumAnalysis/AngularCorrelation.cs         517  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + " and a=" + a.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/AngularCorrelation.cs         530  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + " from g4_gamma where z=" + z.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/AngularCorrelation.cs         531  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + " and a=" + a.ToString(CultureInfo.InvariantCulture);
+FullSpectrumAnalysis/CascadeAtomicData.cs          339  StringBuilder.ToString() — культура не участвует               | data.Note = notes.ToString();
+FullSpectrumAnalysis/CascadeAtomicData.cs          385  уже инвариант (сканер не видит имени `ci` и многострочный довод) | notes.Append("нет ω_K для Z=" + z.ToString(CultureInfo.InvariantCulture) + "; ");
+FullSpectrumAnalysis/CascadeAtomicData.cs          388  StringBuilder.ToString() — культура не участвует               | data.Note = notes.ToString();
+FullSpectrumAnalysis/FsaAnalysisSession.cs         798  StringBuilder.ToString() — культура не участвует               | "|", peakStamp.ToString());
+FullSpectrumAnalysis/FsaAnalysisSession.cs         928  StringBuilder.ToString() — культура не участвует               | return sb.ToString();
+FullSpectrumAnalysis/FsaCalculationOptions.cs      170  StringBuilder.ToString() — культура не участвует               | return stamp.ToString();
+FullSpectrumAnalysis/FsaCascadeSummer.cs           593  StringBuilder.ToString() — культура не участвует               | return sb.ToString();
+FullSpectrumAnalysis/FsaCascadeSummer.cs           647  StringBuilder.ToString() — культура не участвует               | return sb.ToString();
+FullSpectrumAnalysis/FsaCompositionInference.cs     92  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+FullSpectrumAnalysis/FsaCompositionInference.cs    279  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+FullSpectrumAnalysis/FsaSampleLibrary.cs           474  StringBuilder.ToString() — культура не участвует               | return text.ToString();
+FullSpectrumAnalysis/FsaSampleLibrary.cs           992  многострочный довод, инвариант на следующей строке             | report.Notes.Add("ряд " + root + ": доли не сошлись за "
+FullSpectrumAnalysis/FsaSampleLibrary.cs           993  уже инвариант (сканер не видит имени `ci` и многострочный довод) | + MaxChainPasses.ToString(CultureInfo.InvariantCulture) + " проходов, остаток "
+FullSpectrumAnalysis/FsaSampleLibrary.cs          1303  многострочный довод, инвариант на следующей строке             | report.Notes.Add("рентген кристалла: Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs          1374  уже инвариант (сканер не видит имени `ci` и многострочный довод) | report.Notes.Add("нет K-серии для Z=" + z.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/FsaSampleLibrary.cs          1675  многострочный довод, инвариант на следующей строке             | report.Notes.Add("вылет: нет данных для Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs          1700  многострочный довод, инвариант на следующей строке             | report.Notes.Add("вылет: Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs          1743  StringBuilder.ToString() — культура не участвует               | ? name.ToString() : spec.CrystalName;

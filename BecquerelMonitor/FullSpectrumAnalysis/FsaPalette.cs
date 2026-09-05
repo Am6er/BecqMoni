@@ -268,14 +268,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // другое» задан по снимку и был законным.
             if (component.StartsWith("Xray-", StringComparison.OrdinalIgnoreCase))
             {
-                return string.Format(CultureInfo.CurrentCulture,
+                return string.Format(CultureInfo.InvariantCulture,
                                      Properties.Resources.FSAXrayName,
                                      component.Substring(5));
             }
 
             if (component.StartsWith("Esc-", StringComparison.OrdinalIgnoreCase))
             {
-                return string.Format(CultureInfo.CurrentCulture,
+                return string.Format(CultureInfo.InvariantCulture,
                                      Properties.Resources.FSAEscapeName,
                                      component.Substring(4));
             }

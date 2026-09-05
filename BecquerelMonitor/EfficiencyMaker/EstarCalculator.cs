@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -688,7 +689,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText = "select occupation, binding_ev from estar_shells"
-                        + " where z=" + z + " order by shell_index";
+                        + " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_index";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -702,7 +703,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (occ.Count == 0)
                 {
                     throw new InvalidOperationException(
-                        "в estar_shells нет оболочек для Z=" + z);
+                        "в estar_shells нет оболочек для Z=" + z.ToString(CultureInfo.InvariantCulture));
                 }
 
                 occupation = occ.ToArray();
@@ -727,7 +728,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText = "select stopping_mev_cm2_g from"
-                        + " estar_radiative_stopping where z=" + z + " order by energy_mev";
+                        + " estar_radiative_stopping where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by energy_mev";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -741,8 +742,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (values.Count != grid.Length)
                 {
                     throw new InvalidOperationException(
-                        "estar_radiative_stopping: у Z=" + z + " " + values.Count
-                        + " точек против " + grid.Length + " в сетке");
+                        "estar_radiative_stopping: у Z=" + z.ToString(CultureInfo.InvariantCulture)
+                        + " " + values.Count.ToString(CultureInfo.InvariantCulture)
+                        + " точек против " + grid.Length.ToString(CultureInfo.InvariantCulture)
+                        + " в сетке");
                 }
 
                 cached = values.ToArray();

@@ -512,7 +512,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     using (SqliteCommand command = connection.CreateCommand())
                     {
                         command.CommandText =
-                            "select seq, jpi from g4_level where z=" + z + " and a=" + a
+                            "select seq, jpi from g4_level where z="
+                            + z.ToString(CultureInfo.InvariantCulture)
+                            + " and a=" + a.ToString(CultureInfo.InvariantCulture)
                             + " and jpi is not null";
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
@@ -525,7 +527,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         command.CommandText =
                             "select from_seq, to_seq, energy_ev, multipolarity, mixing_ratio,"
                             + " intensity_ppm"
-                            + " from g4_gamma where z=" + z + " and a=" + a;
+                            + " from g4_gamma where z=" + z.ToString(CultureInfo.InvariantCulture)
+                            + " and a=" + a.ToString(CultureInfo.InvariantCulture);
                         using (SqliteDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())

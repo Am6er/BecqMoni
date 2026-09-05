@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -390,7 +391,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select x_percm, sf from epdl_scattering_function where z=" + z
+                        "select x_percm, sf from epdl_scattering_function where z=" + z.ToString(CultureInfo.InvariantCulture)
                         + " order by x_percm";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
@@ -415,7 +416,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteCommand command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "select x_percm, ff from epdl_form_factor where z=" + z
+                        "select x_percm, ff from epdl_form_factor where z=" + z.ToString(CultureInfo.InvariantCulture)
                         + " order by x_percm";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
@@ -491,7 +492,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             using (SqliteCommand command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "select occupancy, potential_ev from compton_profile_shell where z=" + z
+                    "select occupancy, potential_ev from compton_profile_shell where z=" + z.ToString(CultureInfo.InvariantCulture)
                     + " order by shell_seq";
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
@@ -518,7 +519,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             using (SqliteCommand command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "select shell_seq, p_idx, j_au from compton_profile where z=" + z;
+                    "select shell_seq, p_idx, j_au from compton_profile where z=" + z.ToString(CultureInfo.InvariantCulture);
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())

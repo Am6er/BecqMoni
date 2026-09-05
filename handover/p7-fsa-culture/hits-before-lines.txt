@@ -1,0 +1,150 @@
+
+===== BecquerelMonitor/EfficiencyMaker/BremsstrahlungData.cs =====
+  293 ToString       UNK   | string cacheKey = key.ToString();
+
+===== BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs =====
+  425 string.Format  UNK   | result.Error = string.Format(Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
+
+===== BecquerelMonitor/EfficiencyMaker/EfficiencyCurveGraph.cs =====
+  150 concat         NUM   | g.DrawString("1e" + d.ToString(CultureInfo.InvariantCulture), this.Font, text, 2, y - 7);
+
+===== BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs =====
+  101 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerNoSetForSpectrum,
+  113 string.Format  UNK   | log(string.Format("{0}: {1}", Path.GetFileNameWithoutExtension(file), ex.Message));
+  120 string.Format  UNK   | result.Error = string.Format(Resources.EfficiencyMakerTooFewLines, used.Count);
+  147 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerNoLiveTime, name));
+  231 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerSpectrumDone, name, measured, liveTime));
+  375 string.Format  UNK   | observation.Reason = string.Format(Resources.EfficiencyMakerReasonBlend,
+  450 string.Format  UNK   | observation.Reason = string.Format(Resources.EfficiencyMakerReasonWeak,
+  685 string.Format  UNK   | result.Error = string.Format(Resources.EfficiencyMakerTooFewLines, used.Count);
+  735 string.Format  UNK   | : string.Format(Resources.EfficiencyMakerReasonSeriesScatter,
+  742 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerSeriesDropped,
+  751 string.Format  UNK   | o.Reason = string.Format(Resources.EfficiencyMakerReasonOutlier,
+  961 string.Format  UNK   | o.Reason = string.Format(Resources.EfficiencyMakerReasonImpossible,
+  964 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerReasonImpossibleLog,
+ 1014 string.Format  UNK   | result.Error = string.Format(Resources.EfficiencyMakerImpossibleCurve,
+ 1021 string.Format  UNK   | log(string.Format(Resources.EfficiencyMakerFitDone,
+ 1286 string.Format  UNK   | throw new InvalidOperationException(string.Format(
+
+===== BecquerelMonitor/EfficiencyMaker/EfficiencyModel.cs =====
+  347 string.Format  UNK   | ? string.Format(Resources.EfficiencyMakerSetNoIntensity,
+  351 string.Format  UNK   | : string.Format(Resources.EfficiencyMakerSetTooFewLines, lines.Count);
+  354 string.Format  UNK   | reason += " " + string.Format(Resources.EfficiencyMakerSetElementXray,
+
+===== BecquerelMonitor/EfficiencyMaker/EfficiencySimulator.cs =====
+ 5836 ToString       UNK   | string id = "m" + materialId.Count.ToString(ci);
+ 5843 string.Format  UNK   | comp.Add(string.Format(ci, "{0}:{1:R}", f.Key, f.Value));
+ 5847 string.Format  UNK   | lines.Add(string.Format(ci, "mat {0} {1:R} {2}", id,
+ 5856 string.Format  UNK   | ? string.Format(ci, "region box {0} {1:R} {2:R} {3:R} {4:R} {5}",
+ 5859 string.Format  UNK   | : string.Format(ci, "region tub {0} {1:R} {2:R} {3:R} {4:R} {5}",
+
+===== BecquerelMonitor/EfficiencyMaker/EstarCalculator.cs =====
+  691 concat         NUM   | + " where z=" + z + " order by shell_index";
+  691 concat         NUM   | + " where z=" + z + " order by shell_index";
+  705 concat         NUM   | "в estar_shells нет оболочек для Z=" + z);
+  730 concat         NUM   | + " estar_radiative_stopping where z=" + z + " order by energy_mev";
+  730 concat         NUM   | + " estar_radiative_stopping where z=" + z + " order by energy_mev";
+  744 concat         NUM   | "estar_radiative_stopping: у Z=" + z + " " + values.Count
+  744 concat         NUM   | "estar_radiative_stopping: у Z=" + z + " " + values.Count
+
+===== BecquerelMonitor/EfficiencyMaker/GeometryMaterialLibrary.cs =====
+  772 ToString       UNK   | return text.ToString();
+
+===== BecquerelMonitor/EfficiencyMaker/GeometryModel.cs =====
+ 1270 concat         NUM   | string zKey = prefix + "Z" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+ 1271 concat         NUM   | string fKey = prefix + "Fractions" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+
+===== BecquerelMonitor/EfficiencyMaker/GeometryWriter.cs =====
+  373 ToString       UNK   | return text.ToString();
+  450 concat         NUM   | string index = "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+  528 concat         NUM   | string zKey = slot.ZPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+  529 concat         NUM   | string fKey = slot.FractionsPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+
+===== BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs =====
+  736 concat         NUM   | throw Refuse("оболочечная модель фотоэффекта Z=" + z, DatabasePath(), ex);
+  756 concat         NUM   | "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z=" + z;
+  775 concat         NUM   | " from epics_photo_fit where z=" + z +
+  775 concat         NUM   | " from epics_photo_fit where z=" + z +
+  846 concat         NUM   | " where z=" + z + " order by shell_seq, energy_ev";
+  846 concat         NUM   | " where z=" + z + " order by shell_seq, energy_ev";
+
+===== BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs =====
+  559 ToString       UNK   | byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+  566 concat         NUM   | return "phys=" + PhysicsVersion.ToString(CultureInfo.InvariantCulture)
+ 1058 ToString       UNK   | return hex.ToString();
+
+===== BecquerelMonitor/EfficiencyMaker/ScatteringData.cs =====
+  393 concat         NUM   | "select x_percm, sf from epdl_scattering_function where z=" + z
+  393 concat         NUM   | "select x_percm, sf from epdl_scattering_function where z=" + z
+  418 concat         NUM   | "select x_percm, ff from epdl_form_factor where z=" + z
+  418 concat         NUM   | "select x_percm, ff from epdl_form_factor where z=" + z
+  494 concat         NUM   | "select occupancy, potential_ev from compton_profile_shell where z=" + z
+  494 concat         NUM   | "select occupancy, potential_ev from compton_profile_shell where z=" + z
+  521 concat         NUM   | "select shell_seq, p_idx, j_au from compton_profile where z=" + z;
+
+===== BecquerelMonitor/EfficiencyMakerForm.cs =====
+  485 string.Format  UNK   | AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+  741 string.Format  UNK   | : string.Format("{0} - {1}",
+  878 string.Format  UNK   | AppendLog(string.Format(Resources.EfficiencyMakerSetGone, chosen[i]));
+  894 string.Format  UNK   | AppendLog(string.Format(Resources.EfficiencyMakerSetSkipped,
+ 1080 ToString       UNK   | return text.ToString();
+ 1280 ToString       UNK   | AppendLog(args.Error.ToString());
+ 1475 string.Format  UNK   | ? string.Format(Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
+ 1477 string.Format  UNK   | : string.Format(Resources.EfficiencyMakerStatus,
+ 1519 string.Format  UNK   | AppendLog(string.Format(Resources.EfficiencyMakerSavedToConfig,
+ 1543 string.Format  UNK   | this.statusLabel.Text = string.Format(Resources.EfficiencyMakerSaved, dialog.FileName);
+
+===== BecquerelMonitor/FullSpectrumAnalysis/AngularCorrelation.cs =====
+  515 concat         NUM   | "select seq, jpi from g4_level where z=" + z + " and a=" + a
+  515 concat         NUM   | "select seq, jpi from g4_level where z=" + z + " and a=" + a
+  515 concat         NUM   | "select seq, jpi from g4_level where z=" + z + " and a=" + a
+  515 concat         NUM   | "select seq, jpi from g4_level where z=" + z + " and a=" + a
+  528 concat         NUM   | + " from g4_gamma where z=" + z + " and a=" + a;
+  528 concat         NUM   | + " from g4_gamma where z=" + z + " and a=" + a;
+  528 concat         NUM   | + " from g4_gamma where z=" + z + " and a=" + a;
+
+===== BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs =====
+  339 ToString       UNK   | data.Note = notes.ToString();
+  385 concat         NUM   | notes.Append("нет ω_K для Z=" + z + "; ");
+  385 concat         NUM   | notes.Append("нет ω_K для Z=" + z + "; ");
+  388 ToString       UNK   | data.Note = notes.ToString();
+
+===== BecquerelMonitor/FullSpectrumAnalysis/FsaAnalysisSession.cs =====
+  770 ToString       UNK   | resultData.GetHashCode().ToString(),
+  771 ToString       UNK   | "|", spectrum.NumberOfChannels.ToString(),
+  772 ToString       UNK   | "|", spectrum.TotalPulseCount.ToString(),
+  773 ToString       UNK   | "|", spectrum.MeasurementTime.ToString("F1"),
+  775 ToString       UNK   | "|", background != null ? background.TotalPulseCount.ToString() : "-",
+  790 ToString       UNK   | "|", peakStamp.ToString());
+  826 ToString       NUM   | return string.Concat(active.Name, ":", members.ToString(),
+  857 ToString       UNK   | ? file.LastWriteTimeUtc.Ticks.ToString() + ":" + file.Length.ToString()
+  857 ToString       UNK   | ? file.LastWriteTimeUtc.Ticks.ToString() + ":" + file.Length.ToString()
+  883 ToString       UNK   | ":", efficiency.LastUpdated.Ticks.ToString(),
+  884 ToString       UNK   | ":", efficiency.Curve != null ? efficiency.Curve.Count.ToString() : "0");
+  900 ToString       UNK   | sb.Append(energy.ChannelToEnergy(0.0).ToString("R"));
+  901 ToString       UNK   | sb.Append(',').Append(energy.ChannelToEnergy(channels / 2.0).ToString("R"));
+  902 ToString       UNK   | sb.Append(',').Append(energy.ChannelToEnergy(channels - 1.0).ToString("R"));
+  910 ToString       UNK   | sb.Append(';').Append(coefficient.ToString("R"));
+  914 ToString       UNK   | return sb.ToString();
+
+===== BecquerelMonitor/FullSpectrumAnalysis/FsaCalculationOptions.cs =====
+  170 ToString       UNK   | return stamp.ToString();
+
+===== BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs =====
+  593 ToString       UNK   | return sb.ToString();
+  647 ToString       UNK   | return sb.ToString();
+
+===== BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs =====
+   92 ToString       UNK   | return text.ToString();
+  279 ToString       UNK   | return text.ToString();
+
+===== BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs =====
+  474 ToString       NONUM | return text.ToString();
+  992 concat         NUM   | report.Notes.Add("ряд " + root + ": доли не сошлись за "
+  993 concat         NUM   | + MaxChainPasses + " проходов, остаток "
+  993 concat         NUM   | + MaxChainPasses + " проходов, остаток "
+ 1303 concat         NUM   | report.Notes.Add("рентген кристалла: Z="
+ 1374 concat         NUM   | report.Notes.Add("нет K-серии для Z=" + z.ToString(CultureInfo.InvariantCulture)
+ 1675 concat         NUM   | report.Notes.Add("вылет: нет данных для Z="
+ 1700 concat         NUM   | report.Notes.Add("вылет: Z="
+ 1743 ToString       UNK   | ? name.ToString() : spec.CrystalName;

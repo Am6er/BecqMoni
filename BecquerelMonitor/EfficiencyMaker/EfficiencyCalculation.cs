@@ -276,7 +276,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     added.Add(above);
                     if (notes != null)
                     {
-                        notes.Add(string.Format(CultureInfo.CurrentCulture,
+                        notes.Add(string.Format(CultureInfo.InvariantCulture,
                             Resources.EfficiencyMakerGridEdge, pair.Key, f.KEdgeKev,
                             muAbove / muBelow, material.Name));
                     }
@@ -422,7 +422,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             int missingZ;
             if (!geometry.Crystal.IsKnown(out missingZ))
             {
-                result.Error = string.Format(Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
+                result.Error = string.Format(CultureInfo.InvariantCulture,
+                                             Resources.EfficiencyMakerGeometryUnknownElement, missingZ);
                 return result;
             }
 
@@ -464,7 +465,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Сетка и потоки — в журнал вместе со всем прочим, чем посчитано:
             // кривая уходит в конфигурацию прибора одними числами, и по ней
             // самой уже не сказать, на скольких узлах она получена.
-            log(string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyMakerGridSummary,
+            log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerGridSummary,
                               energies.Length, energies[0], energies[energies.Length - 1],
                               options.GridMode == EfficiencyGridMode.Standard
                                   ? Resources.EfficiencyMakerGridStandard

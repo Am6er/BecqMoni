@@ -1,0 +1,56 @@
+всего по дереву: 1020
+мои: печать 53, разбор 0, файлов 18
+
+EfficiencyMaker/BremsstrahlungData.cs              ToString       UNK     293 | string cacheKey = key.ToString();
+EfficiencyMaker/EfficiencyCurveGraph.cs            concat         NUM     150 | g.DrawString("1e" + d.ToString(CultureInfo.InvariantCulture), this.Font, text, 2, y - 7);
+EfficiencyMaker/EfficiencySimulator.cs             ToString       UNK    5836 | string id = "m" + materialId.Count.ToString(ci);
+EfficiencyMaker/EfficiencySimulator.cs             string.Format  UNK    5843 | comp.Add(string.Format(ci, "{0}:{1:R}", f.Key, f.Value));
+EfficiencyMaker/EfficiencySimulator.cs             string.Format  UNK    5847 | lines.Add(string.Format(ci, "mat {0} {1:R} {2}", id,
+EfficiencyMaker/EfficiencySimulator.cs             string.Format  UNK    5856 | ? string.Format(ci, "region box {0} {1:R} {2:R} {3:R} {4:R} {5}",
+EfficiencyMaker/EfficiencySimulator.cs             string.Format  UNK    5859 | : string.Format(ci, "region tub {0} {1:R} {2:R} {3:R} {4:R} {5}",
+EfficiencyMaker/EstarCalculator.cs                 concat         NUM     692 | + " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_index";
+EfficiencyMaker/EstarCalculator.cs                 concat         NUM     706 | "в estar_shells нет оболочек для Z=" + z.ToString(CultureInfo.InvariantCulture));
+EfficiencyMaker/EstarCalculator.cs                 concat         NUM     731 | + " estar_radiative_stopping where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by energy_mev";
+EfficiencyMaker/EstarCalculator.cs                 concat         NUM     745 | "estar_radiative_stopping: у Z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/GeometryMaterialLibrary.cs         ToString       UNK     772 | return text.ToString();
+EfficiencyMaker/GeometryModel.cs                   concat         NUM    1270 | string zKey = prefix + "Z" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryModel.cs                   concat         NUM    1271 | string fKey = prefix + "Fractions" + part + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  ToString       UNK     373 | return text.ToString();
+EfficiencyMaker/GeometryWriter.cs                  concat         NUM     450 | string index = "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  concat         NUM     528 | string zKey = slot.ZPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/GeometryWriter.cs                  concat         NUM     529 | string fKey = slot.FractionsPart + "[" + i.ToString(CultureInfo.InvariantCulture) + "]";
+EfficiencyMaker/MaterialDatabase.cs                concat         NUM     736 | throw Refuse("оболочечная модель фотоэффекта Z=" + z.ToString(CultureInfo.InvariantCulture), DatabasePath(), ex);
+EfficiencyMaker/MaterialDatabase.cs                concat         NUM     756 | "select n_shells, high_from_ev, low_from_ev from epics_photo_meta where z="
+EfficiencyMaker/MaterialDatabase.cs                concat         NUM     776 | " from epics_photo_fit where z=" + z.ToString(CultureInfo.InvariantCulture) +
+EfficiencyMaker/MaterialDatabase.cs                concat         NUM     847 | " where z=" + z.ToString(CultureInfo.InvariantCulture) + " order by shell_seq, energy_ev";
+EfficiencyMaker/ResponseMatrix.cs                  ToString       UNK     567 | byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+EfficiencyMaker/ResponseMatrix.cs                  concat         NUM     574 | return "phys=" + PhysicsVersion.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ResponseMatrix.cs                  ToString       UNK    1066 | return hex.ToString();
+EfficiencyMaker/ScatteringData.cs                  concat         NUM     394 | "select x_percm, sf from epdl_scattering_function where z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ScatteringData.cs                  concat         NUM     419 | "select x_percm, ff from epdl_form_factor where z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ScatteringData.cs                  concat         NUM     495 | "select occupancy, potential_ev from compton_profile_shell where z=" + z.ToString(CultureInfo.InvariantCulture)
+EfficiencyMaker/ScatteringData.cs                  concat         NUM     522 | "select shell_seq, p_idx, j_au from compton_profile where z=" + z.ToString(CultureInfo.InvariantCulture);
+EfficiencyMakerForm.cs                             ToString       UNK    1082 | return text.ToString();
+EfficiencyMakerForm.cs                             ToString       UNK    1286 | AppendLog(args.Error.ToString());
+FullSpectrumAnalysis/AngularCorrelation.cs         concat         NUM     515 | "select seq, jpi from g4_level where z="
+FullSpectrumAnalysis/AngularCorrelation.cs         concat         NUM     517 | + " and a=" + a.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/AngularCorrelation.cs         concat         NUM     530 | + " from g4_gamma where z=" + z.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/AngularCorrelation.cs         concat         NUM     531 | + " and a=" + a.ToString(CultureInfo.InvariantCulture);
+FullSpectrumAnalysis/CascadeAtomicData.cs          ToString       UNK     339 | data.Note = notes.ToString();
+FullSpectrumAnalysis/CascadeAtomicData.cs          concat         NUM     385 | notes.Append("нет ω_K для Z=" + z.ToString(CultureInfo.InvariantCulture) + "; ");
+FullSpectrumAnalysis/CascadeAtomicData.cs          ToString       UNK     388 | data.Note = notes.ToString();
+FullSpectrumAnalysis/FsaAnalysisSession.cs         ToString       UNK     798 | "|", peakStamp.ToString());
+FullSpectrumAnalysis/FsaAnalysisSession.cs         ToString       UNK     928 | return sb.ToString();
+FullSpectrumAnalysis/FsaCalculationOptions.cs      ToString       UNK     170 | return stamp.ToString();
+FullSpectrumAnalysis/FsaCascadeSummer.cs           ToString       UNK     593 | return sb.ToString();
+FullSpectrumAnalysis/FsaCascadeSummer.cs           ToString       UNK     647 | return sb.ToString();
+FullSpectrumAnalysis/FsaCompositionInference.cs    ToString       UNK      92 | return text.ToString();
+FullSpectrumAnalysis/FsaCompositionInference.cs    ToString       UNK     279 | return text.ToString();
+FullSpectrumAnalysis/FsaSampleLibrary.cs           ToString       NONUM   474 | return text.ToString();
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM     992 | report.Notes.Add("ряд " + root + ": доли не сошлись за "
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM     993 | + MaxChainPasses.ToString(CultureInfo.InvariantCulture) + " проходов, остаток "
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM    1303 | report.Notes.Add("рентген кристалла: Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM    1374 | report.Notes.Add("нет K-серии для Z=" + z.ToString(CultureInfo.InvariantCulture)
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM    1675 | report.Notes.Add("вылет: нет данных для Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs           concat         NUM    1700 | report.Notes.Add("вылет: Z="
+FullSpectrumAnalysis/FsaSampleLibrary.cs           ToString       UNK    1743 | ? name.ToString() : spec.CrystalName;

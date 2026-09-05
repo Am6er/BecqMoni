@@ -990,7 +990,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // сошедшийся за отведённые проходы, означает кольцо в
                     // поставке, и молчать об этом нельзя.
                     report.Notes.Add("ряд " + root + ": доли не сошлись за "
-                                     + MaxChainPasses + " проходов, остаток "
+                                     + MaxChainPasses.ToString(CultureInfo.InvariantCulture) + " проходов, остаток "
                                      + drift.ToString("E2", CultureInfo.InvariantCulture));
                 }
             }

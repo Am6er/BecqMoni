@@ -348,7 +348,7 @@ namespace BecquerelMonitor
                     SetClamped(this.calcPointsBox, (decimal)nodes);
                 }
 
-                return string.Format(CultureInfo.CurrentCulture,
+                return string.Format(CultureInfo.InvariantCulture,
                                      Resources.EfficiencyMakerCalcRestored, config.ComputeStamp);
             }
 
@@ -359,7 +359,7 @@ namespace BecquerelMonitor
 
             SetClamped(this.calcMinEnergyBox, (decimal)lo);
             SetClamped(this.calcMaxEnergyBox, (decimal)hi);
-            return string.Format(CultureInfo.CurrentCulture,
+            return string.Format(CultureInfo.InvariantCulture,
                                  Resources.EfficiencyMakerRangeFromCurve, lo, hi);
         }
 
@@ -482,7 +482,8 @@ namespace BecquerelMonitor
                     this.geometryPanel.SetModel(model);
                     this.geometry = model;
                     this.calculateButton.Enabled = true;
-                    AppendLog(string.Format(Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture,
+                                            Resources.EfficiencyMakerGeometryLoaded, model.Describe()));
                     foreach (string warning in model.Warnings)
                     {
                         AppendLog(warning);
@@ -738,7 +739,7 @@ namespace BecquerelMonitor
         {
             string title = this.boundConfig == null
                 ? Resources.EfficiencyMakerTitle
-                : string.Format("{0} - {1}",
+                : string.Format(CultureInfo.InvariantCulture, "{0} - {1}",
                                 this.boundDevice == null ? "" : this.boundDevice.Name,
                                 this.boundConfig.Name);
             if (this.dirty)
@@ -875,7 +876,8 @@ namespace BecquerelMonitor
                     known ? chosen[i] : Resources.EfficiencyMakerWholeLibrary;
                 if (!known && !string.IsNullOrEmpty(chosen[i]))
                 {
-                    AppendLog(string.Format(Resources.EfficiencyMakerSetGone, chosen[i]));
+                    AppendLog(string.Format(CultureInfo.InvariantCulture,
+                                            Resources.EfficiencyMakerSetGone, chosen[i]));
                 }
             }
 
@@ -891,7 +893,7 @@ namespace BecquerelMonitor
 
             foreach (EfficiencyLibrary.SetReject reject in rejected)
             {
-                AppendLog(string.Format(Resources.EfficiencyMakerSetSkipped,
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerSetSkipped,
                                         reject.Name, reject.Reason));
             }
         }
@@ -1000,7 +1002,7 @@ namespace BecquerelMonitor
                 Add(geometries, eff != null && eff.HasGeometry ? eff.Geometry.Describe() : "", shown);
 
                 Add(amounts, data.SampleInfo == null ? "" : string.Format(
-                    CultureInfo.CurrentCulture, "{0:0.###} г / {1:0.###} мл",
+                    CultureInfo.InvariantCulture, "{0:0.###} г / {1:0.###} мл",
                     data.SampleInfo.Weight, data.SampleInfo.Volume), shown);
             }
 
@@ -1037,11 +1039,11 @@ namespace BecquerelMonitor
             var parts = new List<string>();
             foreach (KeyValuePair<string, List<string>> pair in map)
             {
-                parts.Add(string.Format(CultureInfo.CurrentCulture, "{0} ({1})",
+                parts.Add(string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
                                         pair.Key, string.Join(", ", pair.Value.ToArray())));
             }
 
-            complaints.Add(string.Format(CultureInfo.CurrentCulture, caption,
+            complaints.Add(string.Format(CultureInfo.InvariantCulture, caption,
                                          map.Count, string.Join("; ", parts.ToArray())));
         }
 
@@ -1239,9 +1241,13 @@ namespace BecquerelMonitor
             // Язык интерфейса выставлен только на потоке формы (MainForm), а
             // счёт идёт на потоке BackgroundWorker: без переноса культуры все
             // строки прогона — причины отбраковки, итог фита, ошибки — брались
-            // бы из нейтрального ресурса вместо выбранного языка. Культура
-            // счёта переносится вместе с ней: MainForm подменяет в ней
-            // десятичный разделитель на точку, а числа в лог печатает фиттер.
+            // бы из нейтрального ресурса вместо выбранного языка.
+            //
+            // ⚠ (`A244`) Культура СЧЁТА переносится уже НЕ ради чисел: числа
+            // фиттера печатаются инвариантом сами (05.09.2026), и подмена
+            // разделителя в `MainForm` им больше не нужна. Перенос оставлен
+            // потому, что из фита зовётся и код вне этой полосы; снимается он
+            // вместе с самим костылём `MainForm`, последней полосой `A244`.
             CultureInfo ui = CultureInfo.CurrentUICulture;
             CultureInfo formatting = CultureInfo.CurrentCulture;
 
@@ -1406,7 +1412,7 @@ namespace BecquerelMonitor
             missing.CopyTo(names);
             DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
                 Resources.EfficiencyMakerDeviceGoneTitle,
-                string.Format(CultureInfo.CurrentCulture, Resources.EfficiencyMakerDeviceGoneQuestion,
+                string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerDeviceGoneQuestion,
                               count, string.Join(", ", names)),
                 devices.ConvertAll<object>(d => d), null);
             if (chosen == null)
@@ -1415,7 +1421,7 @@ namespace BecquerelMonitor
             }
 
             input.FallbackDeviceGuid = chosen.Guid;
-            AppendLog(string.Format(CultureInfo.CurrentCulture,
+            AppendLog(string.Format(CultureInfo.InvariantCulture,
                                     Resources.EfficiencyMakerDeviceGoneQuestion, count,
                                     string.Join(", ", names)) + " " + chosen.Name);
             return true;
@@ -1472,9 +1478,9 @@ namespace BecquerelMonitor
             // У расчёта из геометрии нет ни серий, ни χ²: там нечего подгонять,
             // и итог другой — сколько точек и в каком диапазоне.
             this.statusLabel.Text = result.LevelSource == EfficiencyLevelSource.Simulation
-                ? string.Format(Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
+                ? string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
                                 (int)result.MinEnergy, (int)result.MaxEnergy, level)
-                : string.Format(Resources.EfficiencyMakerStatus,
+                : string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerStatus,
                                 result.AcceptedCount, result.SeriesKeys.Count,
                                 result.Chi2Ndf, level);
 
@@ -1516,7 +1522,7 @@ namespace BecquerelMonitor
 
             if (this.SaveIntoConfig())
             {
-                AppendLog(string.Format(Resources.EfficiencyMakerSavedToConfig,
+                AppendLog(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerSavedToConfig,
                                         this.boundConfig.Name));
             }
         }
@@ -1540,7 +1546,8 @@ namespace BecquerelMonitor
                 try
                 {
                     EfficiencyFitter.ExportCsv(dialog.FileName, this.lastResult);
-                    this.statusLabel.Text = string.Format(Resources.EfficiencyMakerSaved, dialog.FileName);
+                    this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                                                          Resources.EfficiencyMakerSaved, dialog.FileName);
                 }
                 catch (Exception ex)
                 {
