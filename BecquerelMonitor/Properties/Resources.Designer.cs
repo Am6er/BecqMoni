@@ -5763,5 +5763,14 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (sum 511+511).
+        /// </summary>
+        public static string PeakLabelAnnihilationSum {
+            get {
+                return ResourceManager.GetString("PeakLabelAnnihilationSum", resourceCulture);
+            }
+        }
+
     }
 }

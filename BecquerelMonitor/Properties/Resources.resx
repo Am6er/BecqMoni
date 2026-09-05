@@ -43388,4 +43388,8 @@ Turn it on in Windows settings and search again.</value>
   <data name="FSAReportTipMatrixExtra" xml:space="preserve">
     <value>With a response matrix this switch controls only the separate additional component; the contribution already inside the matrix stays.</value>
   </data>
+  <data name="PeakLabelAnnihilationSum" xml:space="preserve">
+    <value>{0} (sum 511+511)</value>
+    <comment>Instrumental peak label for the 1022 keV sum of two annihilation quanta. {0} is the name of the annihilation-image record of the nuclide library, so that the 511 and 1022 labels can be told apart on the chart. Keep {0} first and keep a SPACE right after it: the nuclide token is read as everything before the first space (NuclideDefinition.NuclideNameOf), the way "Tl-208 SE" is.</comment>
+  </data>
 </root>

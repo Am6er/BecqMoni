@@ -34,6 +34,13 @@ namespace LabelTruthProbe
     ///
     ///     LabelTruthProbe --spectra=&lt;…\CORPUS\corpus\spectra&gt; [--csv=labels.csv]
     ///     LabelTruthProbe --selftest
+    ///     …  [--culture=ru-RU|en-US] [--expect-sum=&lt;образец&gt;]
+    ///
+    /// `--culture=` задаёт ЯЗЫК ПРИЛОЖЕНИЯ — тем же полем настройки, каким его
+    /// задаёт меню языка (`GlobalConfigInfo.Language`), а не только культурой
+    /// потока: подпись собирается в рабочем потоке, и культура потока ей не
+    /// указ (`A229`). Без ключа берётся «» — первичные английские ресурсы,
+    /// чтобы выгрузка не зависела от языка Windows, на которой её считали.
     ///
     /// `--selftest` — ПОЛОЖИТЕЛЬНЫЙ И ОТРИЦАТЕЛЬНЫЙ КОНТРОЛЬ отбора: пять
     /// подставных входов подаются прямо в `PeakDetector.MatchNuclide`
@@ -44,6 +51,22 @@ namespace LabelTruthProbe
     /// </summary>
     static class Program
     {
+        /// <summary>
+        /// Язык приложения на этот прогон. «» — первичные английские ресурсы;
+        /// умолчание нарочно НЕ «как в настройке» и не «как у Windows»: иначе
+        /// выгрузка на русской машине и на английской различалась бы текстом
+        /// приборной подписи, а сравнивать плечи стало бы нечем.
+        /// </summary>
+        static string language = "";
+
+        /// <summary>
+        /// ⛔ ТОЛЬКО ДЛЯ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ. Подменяет ОЖИДАНИЕ, а не то,
+        /// что считает приложение: прогон с заведомо неверным образцом обязан
+        /// ОТКАЗАТЬ. Ключ ничего не ослабляет — без него ожидание берётся из
+        /// таблицы ниже и проверка идёт ВСЕГДА.
+        /// </summary>
+        static string expectSumOverride;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -59,6 +82,8 @@ namespace LabelTruthProbe
                 if (a.StartsWith("--spectra=", StringComparison.Ordinal)) spectraDir = a.Substring(10);
                 else if (a.StartsWith("--csv=", StringComparison.Ordinal)) csvPath = a.Substring(6);
                 else if (a.StartsWith("--rivals=", StringComparison.Ordinal)) rivalsPath = a.Substring(9);
+                else if (a.StartsWith("--culture=", StringComparison.Ordinal)) language = a.Substring(10);
+                else if (a.StartsWith("--expect-sum=", StringComparison.Ordinal)) expectSumOverride = a.Substring(13);
                 else if (a == "--selftest") selftest = true;
                 else
                 {
@@ -68,6 +93,7 @@ namespace LabelTruthProbe
             }
 
             PrintGates();
+            ApplyLanguage();
 
             if (selftest)
             {
@@ -121,6 +147,11 @@ namespace LabelTruthProbe
             }
             const double RivalWindowFwhm = 2.0;
 
+            // (`A229`) Материал приговора по ИМЕНАМ образа аннигиляции. Копится
+            // тут же, чтобы приговор шёл по тем же строкам, что и выгрузка, а
+            // не по перечитанному файлу.
+            var labelRows = new List<LabelRow>();
+
             int spectra = 0, failed = 0, peaksTotal = 0, labelled = 0;
             foreach (string file in Directory.GetFiles(spectraDir, "*.xml")
                                              .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
@@ -171,6 +202,18 @@ namespace LabelTruthProbe
                         F(miss, "F3"), F(missFwhm, "F4"),
                         F(tol, "G6"), F(rangeMin, "F3"), F(rangeMax, "F3")));
 
+                    if (nd != null)
+                    {
+                        labelRows.Add(new LabelRow
+                        {
+                            Spectrum = name,
+                            PeakKev = peak.Energy,
+                            Name = nd.Name,
+                            LineKev = nd.Energy,
+                            Intensity = nd.Intencity
+                        });
+                    }
+
                     if (rivals != null && fwhmKev > 0.0)
                     {
                         double window = RivalWindowFwhm * fwhmKev;
@@ -199,7 +242,9 @@ namespace LabelTruthProbe
             }
             Console.WriteLine("спектров разобрано {0}, отказало {1}; пиков {2}, из них с подписью {3} -> {4}",
                               spectra, failed, peaksTotal, labelled, csvPath);
-            return failed > 0 ? 1 : 0;
+
+            int badNames = JudgeSumNames(labelRows, AnnihilationLine(nuclides.NuclideDefinitions));
+            return failed > 0 || badNames > 0 ? 1 : 0;
         }
 
         // ------------------------------------------------------------------
@@ -227,6 +272,208 @@ namespace LabelTruthProbe
                                   y == null ? "(нет)" : y.Value.ToString("G6", CultureInfo.InvariantCulture),
                                   w == null ? "(нет)" : w.Value.ToString("G6", CultureInfo.InvariantCulture));
             }
+        }
+
+        // ------------------------------------------------------------------
+        // (`A229`) ИМЯ приборной подписи суммы 511+511 — ожидание ДОСЛОВНО
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ ОЖИДАЕМЫЙ ОБРАЗЕЦ ИМЕНИ, ВЫПИСАННЫЙ ЗДЕСЬ ДОСЛОВНО, — это и есть
+        /// проверка. Спроси проба то же имя у приложения (`Resources`,
+        /// `AnnihilationSumName`), и она напечатала бы «сошлось» при ЛЮБОМ
+        /// имени, в том числе при пустом хвосте, то есть при том самом дефекте
+        /// `A229`, ради которого заведена.
+        ///
+        /// Ключ — двухбуквенный код языка; всё, что не `ru`, — первичный
+        /// английский ресурс (`Resources.resx`), потому что спутника у такой
+        /// культуры нет и `ResourceManager` откатывается на нейтральный.
+        /// `{0}` — имя библиотечной записи образа аннигиляции.
+        /// </summary>
+        static readonly Dictionary<string, string> ExpectedSumFormat =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "ru", "{0} (сумма 511+511)" },
+                { "",   "{0} (sum 511+511)" }
+            };
+
+        /// <summary>
+        /// Язык приложения выставляется ТЕМ ЖЕ полем настройки, каким его
+        /// выставляет меню языка. Культура потока тоже двигается — но одной её
+        /// мало: `DetectPeak` крутится в `Task.Run`, и подпись читает ресурс не
+        /// в этом потоке (`A229`).
+        ///
+        /// ⚠ Настройка правится ТОЛЬКО В ПАМЯТИ: `SaveGlobalConfig` проба не
+        /// зовёт, конфиг Amber остаётся нетронутым.
+        /// </summary>
+        static void ApplyLanguage()
+        {
+            try
+            {
+                GlobalConfigManager.GetInstance().GlobalConfig.Language = language;
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("⛔ язык приложения не выставлен: {0}", e.Message);
+            }
+            try
+            {
+                System.Threading.Thread.CurrentThread.CurrentUICulture =
+                    language.Length == 0 ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(language);
+            }
+            catch (CultureNotFoundException)
+            {
+            }
+            Console.WriteLine("язык приложения: «{0}» -> ожидаемый образец имени суммы: «{1}»",
+                              language, ExpectedFormat());
+        }
+
+        /// <summary>Ожидаемый образец на выставленный язык (или подмена контроля).</summary>
+        static string ExpectedFormat()
+        {
+            if (expectSumOverride != null)
+            {
+                return expectSumOverride;
+            }
+            string two;
+            try
+            {
+                two = language.Length == 0 ? "" : CultureInfo.GetCultureInfo(language).TwoLetterISOLanguageName;
+            }
+            catch (CultureNotFoundException)
+            {
+                two = "";
+            }
+            string fmt;
+            return ExpectedSumFormat.TryGetValue(two, out fmt) ? fmt : ExpectedSumFormat[""];
+        }
+
+        /// <summary>Ожидаемое ИМЯ подписи суммы при данном имени записи образа.</summary>
+        static string ExpectedSumName(string imageName)
+        {
+            return ExpectedFormat().Replace("{0}", imageName);
+        }
+
+        /// <summary>
+        /// Есть ли в собранном приложении сама правка `A229`. Спрашивается
+        /// ОТРАЖЕНИЕМ, чтобы одна и та же проба годилась обоим плечам замера:
+        /// на сборке без правки приговор не выносится, как и с порогами
+        /// (см. <see cref="PrintGates"/>).
+        /// </summary>
+        static bool HasSumNaming()
+        {
+            return typeof(PeakDetector).GetMethod(
+                "AnnihilationSumName",
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static) != null;
+        }
+
+        /// <summary>
+        /// Запись образа аннигиляции — тем же правилом, что у
+        /// <c>PeakDetector.AnnihilationLine</c>: видимая, БЕЗ проставленного
+        /// выхода, у энергии кванта. Повтор нарочен — проба обязана считаться и
+        /// на сборке БЕЗ правки.
+        /// </summary>
+        static NuclideDefinition AnnihilationLine(List<NuclideDefinition> defs)
+        {
+            NuclideDefinition best = null;
+            double bestMiss = 2.0;
+            foreach (NuclideDefinition nd in defs)
+            {
+                if (nd == null || !nd.Visible || nd.Intencity > 0.0) continue;
+                double miss = Math.Abs(nd.Energy - PeakDetector.AnnihilationKev);
+                if (miss <= bestMiss)
+                {
+                    bestMiss = miss;
+                    best = nd;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// ПРИГОВОР ПО ИМЕНАМ ОБРАЗА АННИГИЛЯЦИИ, собранный по всей выгрузке.
+        ///
+        /// Подпись суммы узнаётся НЕ ПО ТЕКСТУ (текст и есть предмет спора), а
+        /// по записи: энергия ровно вдвое против записи образа, выход не
+        /// проставлен. Подпись самого образа — по энергии кванта.
+        ///
+        /// Три условия, и все три обязательны:
+        ///  * подписи суммы вообще ЕСТЬ (ноль — это не «сошлось», а «нечего
+        ///    проверять», и такой прогон принят быть не может);
+        ///  * у каждой из них имя РОВНО ожидаемое;
+        ///  * у подписей на 511 имя ПРЕЖНЕЕ, без хвоста, — иначе хвост уехал бы
+        ///    и на образ, а различать было бы снова нечего.
+        /// </summary>
+        static int JudgeSumNames(List<LabelRow> rows, NuclideDefinition ann)
+        {
+            Console.WriteLine();
+            Console.WriteLine("(`A229`) ИМЕНА ОБРАЗА АННИГИЛЯЦИИ В ВЫГРУЗКЕ");
+            if (ann == null)
+            {
+                Console.WriteLine("  ⚠ записи образа аннигиляции в библиотеке НЕТ — правило суммы не работает,");
+                Console.WriteLine("    и проверять имя не на чем");
+                return 0;
+            }
+            double sumKev = 2.0 * ann.Energy;
+            Console.WriteLine("  запись образа: «{0}» {1:F3} кэВ -> сумма {2:F3} кэВ",
+                              ann.Name, ann.Energy, sumKev);
+
+            var sums = rows.Where(r => r.LineKev.HasValue
+                                       && Math.Abs(r.LineKev.Value - sumKev) < 1e-6
+                                       && r.Intensity == 0.0).ToList();
+            var images = rows.Where(r => r.LineKev.HasValue
+                                         && Math.Abs(r.LineKev.Value - ann.Energy) < 1e-6
+                                         && r.Intensity == 0.0).ToList();
+
+            string want = ExpectedSumName(ann.Name);
+            Console.WriteLine();
+            Console.WriteLine("  подписи СУММЫ ({0} шт.), ждём «{1}»:", sums.Count, want);
+            int bad = 0;
+            foreach (LabelRow r in sums.OrderBy(r => r.Spectrum, StringComparer.OrdinalIgnoreCase))
+            {
+                bool ok = string.Equals(r.Name, want, StringComparison.Ordinal);
+                if (!ok) bad++;
+                Console.WriteLine("    {0,-22} пик {1,9:F3} кэВ  получено «{2}» {3}",
+                                  r.Spectrum, r.PeakKev, r.Name,
+                                  ok ? "✓" : "⛔ РАСХОЖДЕНИЕ, ждали «" + want + "»");
+            }
+            Console.WriteLine();
+            Console.WriteLine("  подписи САМОГО ОБРАЗА ({0} шт.), ждём «{1}» без хвоста:", images.Count, ann.Name);
+            foreach (LabelRow r in images.OrderBy(r => r.Spectrum, StringComparer.OrdinalIgnoreCase))
+            {
+                bool ok = string.Equals(r.Name, ann.Name, StringComparison.Ordinal);
+                if (!ok) bad++;
+                Console.WriteLine("    {0,-22} пик {1,9:F3} кэВ  получено «{2}» {3}",
+                                  r.Spectrum, r.PeakKev, r.Name,
+                                  ok ? "✓" : "⛔ РАСХОЖДЕНИЕ, ждали «" + ann.Name + "»");
+            }
+
+            Console.WriteLine();
+            if (!HasSumNaming())
+            {
+                Console.WriteLine("  сборка БЕЗ правки `A229` — исходы напечатаны, приговор не выносится");
+                return 0;
+            }
+            if (sums.Count == 0)
+            {
+                Console.WriteLine("  ⛔ ОТКАЗ: подписей суммы в корпусе НЕТ ВОВСЕ — проверять имя не на чем,");
+                Console.WriteLine("     «сошлось» здесь означало бы ровно ничего");
+                return 1;
+            }
+            Console.WriteLine(bad == 0
+                ? "  имена сошлись полностью"
+                : ("  ⛔ расхождений по имени: " + bad));
+            return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>Строка выгрузки, нужная приговору по именам.</summary>
+        class LabelRow
+        {
+            public string Spectrum;
+            public double PeakKev;
+            public string Name;
+            public double? LineKev;
+            public double Intensity;
         }
 
         // ------------------------------------------------------------------
@@ -349,6 +596,11 @@ namespace LabelTruthProbe
                 return 0;
             }
 
+            // (`A229`) Имя подписи суммы ждётся ДОСЛОВНОЕ, из таблицы образцов,
+            // а не спрашивается у приложения: спроси — и опыт принял бы любое
+            // имя, включая прежнее одинаковое с образом.
+            string sumLabel = (HasSumNaming() ? ExpectedSumName("Образ") : "Образ") + "@1022";
+
             var cases = new List<ConfirmCase>
             {
                 // --- подтверждение слабой линии (`A197`) ---
@@ -377,7 +629,7 @@ namespace LabelTruthProbe
                         new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
                                 Line("Нуклид", 766.0, 0.317) },
                         new[] { P(511.0, 40, 300, "Образ", 511.0), P(1002.0, 90, 16, "Нуклид", 1001.0) },
-                        new[] { "Образ@511", "Образ@1022" }),
+                        new[] { "Образ@511", sumLabel }),
                 Confirm("суммы нет: пика 511 в спектре НЕТ", 3000,
                         new[] { Line("Образ", 511.0, 0.0), Line("Нуклид", 1001.0, 0.842),
                                 Line("Нуклид", 766.0, 0.317) },
