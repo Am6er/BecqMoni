@@ -1,0 +1,117 @@
+ДВА РЯДА СТОРОЖЕЙ RESX — полоса О24, остаток T238
+python: 3.14.6
+
+--- РЯД 1: полное дерево приложения
+    корень: C:/Users/moroz/source/repos/BQ Eng res .NET 4.8\BecquerelMonitor
+  check_resx             код 0
+        | русских resx просмотрено: 32, из них с английской парой: 32
+        | файлов с расхождением: 0
+        | непереведённых осмысленных строк: 0
+        |   из них ключ есть, а значение пусто: 0
+  check_resx_letters     код 0
+        | английских resx просмотрено: 45, русских: 32
+        | генерируемых *.Designer.cs: 46, значений в них: 3785
+        | находок: 0
+        | файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer    код 0
+        | обращений с литеральным именем проверено: 802
+        |   из них через ОДИН шаг (обёртка или член): 47
+        | ключей, которых нет в нейтральном resx: 0
+        | обращений с вычисляемым именем: 4, из них разобрано одним шагом: 3
+  check_resx_zorder      код 0
+        | пар Foo.Designer.cs / Foo.resx: 43
+        | контейнеров проверено: 87, с расхождением: 0
+        | файлов чужого формата (не BOM+CRLF): 0
+        | ==========================================================================
+
+--- РЯД 2: ПУСТОЙ КОРЕНЬ (существующий пустой каталог)
+    корень: C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\BecquerelMonitor
+  check_resx             код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\BecquerelMonitor: ни одного *.resx, *.ru.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_letters     код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\BecquerelMonitor: ни одного *.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_designer    код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\BecquerelMonitor: ни одного *.resx, *.cs — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_zorder      код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\BecquerelMonitor: ни одного *.resx, *.Designer.cs — проверять нечего
+
+--- РЯД 3: НЕСУЩЕСТВУЮЩИЙ ПУТЬ
+    корень: C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\NoSuchDirectory
+  check_resx             код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\NoSuchDirectory: каталога нет — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_letters     код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\NoSuchDirectory: каталога нет — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_designer    код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\NoSuchDirectory: каталога нет — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_zorder      код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\NoSuchDirectory: каталога нет — проверять нечего
+
+--- РЯД 4: есть только *.resx (нет *.ru.resx, *.cs, *.Designer.cs)
+    корень: C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_resx
+  check_resx             код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_resx: ни одного *.ru.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_letters     код 0
+        | английских resx просмотрено: 1, русских: 0
+        | генерируемых *.Designer.cs: 0, значений в них: 0
+        | находок: 0
+        | файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer    код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_resx: ни одного *.cs — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_zorder      код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_resx: ни одного *.Designer.cs — проверять нечего
+
+--- РЯД 5: есть только *.Designer.cs (нет ни одного *.resx)
+    корень: C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_designer
+  check_resx             код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_designer: ни одного *.resx, *.ru.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_letters     код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_designer: ни одного *.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_designer    код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_designer: ни одного *.resx — проверять нечего
+        | РАЗОШЛОСЬ
+  check_resx_zorder      код 1
+        | ПУСТОЙ КОРЕНЬ  C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\only_designer: ни одного *.resx — проверять нечего
+
+--- РЯД 6: искусственное дерево со ВСЕМ нужным (ложной тревоги быть не должно)
+    корень: C:\Users\moroz\AppData\Local\Temp\o24-empty-m57quk22\full
+  check_resx             код 0
+        | русских resx просмотрено: 1, из них с английской парой: 1
+        | файлов с расхождением: 0
+        | непереведённых осмысленных строк: 0
+        |   из них ключ есть, а значение пусто: 0
+  check_resx_letters     код 0
+        | английских resx просмотрено: 1, русских: 1
+        | генерируемых *.Designer.cs: 1, значений в них: 12
+        | находок: 0
+        | файлов чужого формата (не BOM+CRLF): 0
+  check_resx_designer    код 0
+        | обращений с литеральным именем проверено: 0
+        |   из них через ОДИН шаг (обёртка или член): 0
+        | ключей, которых нет в нейтральном resx: 0
+        | обращений с вычисляемым именем: 0, из них разобрано одним шагом: 0
+  check_resx_zorder      код 0
+        | пар Foo.Designer.cs / Foo.resx: 1
+        | контейнеров проверено: 1, с расхождением: 0
+        | файлов чужого формата (не BOM+CRLF): 0
+        | ==========================================================================
+
+--- РЯД 7: ключ --form у check_resx_zorder на ПОЛНОМ дереве
+  опечатка в имени формы     код 1
+        | ПУСТОЙ КОРЕНЬ  C:/Users/moroz/source/repos/BQ Eng res .NET 4.8\BecquerelMonitor: ни одного NoSuchFormAtAll.resx, NoSuchFormAtAll.Designer.cs — проверять нечего
+  живая форма NucBase        код 0
+        | пар Foo.Designer.cs / Foo.resx: 1
+        | контейнеров проверено: 4, с расхождением: 0
+  живая форма + --no-format  код 0
+        | пар Foo.Designer.cs / Foo.resx: 1
+        | контейнеров проверено: 13, с расхождением: 0
+
