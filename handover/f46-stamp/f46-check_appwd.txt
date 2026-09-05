@@ -1,0 +1,12 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f46
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F46
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f46
+  собрана  : 2026-09-06 00:18:02 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F46
+  наборы   : приложение c6cd73028021 (548 файлов), пробы cfa0b62cb822 (126)
+  сверено  : 342 файлов по sha256 за 2,34 с
+  библиотека: 152 записей, sha 7aaa0b01c9bd
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 342 файлов сошлись
+

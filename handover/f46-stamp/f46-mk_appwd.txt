@@ -1,0 +1,19 @@
+  положено файлов: 342
+
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f46
+  конфигураций приборов: 24, матриц: 44
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f46
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_F46
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f46
+  сверено  : 342 файлов по sha256 за 2,16 с
+  библиотека: 152 записей, sha 7aaa0b01c9bd
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 342 файлов сошлись
+
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f46' -Out 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_f46'
