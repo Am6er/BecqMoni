@@ -523,7 +523,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                   double energyKev, int index, int histories,
                                   out double achieved)
         {
-            EfficiencySimulator sim = MakeSimulator(geometry, options, index);
+            EfficiencySimulator sim = MakeSimulator(geometry, options, index, energyKev);
             sim.Histories = Math.Max(1, histories);
             double relativeError;
             double[][] histograms = sim.ResponseByChannel(energyKev, options.BinKev,
@@ -615,7 +615,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// симулятора по модели, и делить одну модель между потоками — значит
         /// однажды поймать её правку из другого места.
         /// </summary>
-        static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options, int index)
+        static EfficiencySimulator MakeSimulator(GeometryModel geometry, ResponseMatrixOptions options,
+                                                 int index, double energyKev)
         {
             var sim = new EfficiencySimulator(geometry.Clone())
             {
@@ -644,7 +645,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ⛔ (`A57`) Оценщик континуума — тем же путём, что физика:
                 // не доехав до построителя, ключ мёртв.
                 AnalogConeSampling = options.AnalogConeSampling,
-                PeakHalfWidthKev = 0.0
+                // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
+                // запирало поправку на однократное рассеяние: `InPeak` требует
+                // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
+                // положителен всегда. Решение Amber 02.09.2026 — ветка «б»:
+                // поправка обязана входить в пик, дефект — нулевой допуск.
+                // Ключ выключен умолчанием, чтобы ни одна посчитанная матрица
+                // не устарела; см.
+                // <see cref="ResponseMatrixOptions.PeakToleranceFromGeometry"/>.
+                //
+                // ⚠ Допуск берётся ТЕМ ЖЕ выражением, что на пути кривой
+                // эффективности (`EfficiencyCalculation.cs`): второе правило
+                // для одной величины однажды разъехалось бы молча (`S37`).
+                PeakHalfWidthKev = options.PeakToleranceFromGeometry
+                    ? geometry.PeakHalfWidthKev(energyKev)
+                    : 0.0
             };
 
             // Зерно от номера узла: результат не должен зависеть от того, какой
