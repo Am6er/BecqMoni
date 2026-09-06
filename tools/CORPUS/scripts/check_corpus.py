@@ -500,6 +500,116 @@ def check_fwhm_node():
     return ok
 
 
+#: Значения колонки `source` в `corpus/materials.csv` (пишет `mk_materials.py`).
+MAT_FROM_GEOMETRY = u'из геометрии спектра'
+MAT_FROM_TABLE = u'таблица mk_materials.py'
+
+#: Узел геометрии внутри самой рабочей копии спектра — из него потребитель
+#: (`CorpusFsaProbe.SpecOf`) берёт кристалл и пробу, когда клетка `materials.csv`
+#: пуста. Ищем именно вещество кристалла с долями, а не слово `<Geometry>`:
+#: узел без `<Crystal><Fractions>` не даёт НИ ОДНОГО элемента, и пустая клетка
+#: при нём действительно означала бы пустую сцену.
+GEOM_CRYSTAL = re.compile(
+    r'<Geometry>.*?<Crystal>\s*<Name>[^<]*</Name>.*?<Element\s+Z="\d+"', re.S)
+
+
+def check_materials(corpus_dir=None, spectra_dir=None):
+    u"""Вещества вокруг кванта (`S142`): пустая клетка обязана быть РАЗРЕШИМОЙ.
+
+    ⛔ Пустая клетка у части `known` — НЕ дефект, а устройство таблицы, и
+    заполнять её из геометрии нельзя (замер 06.09.2026, полоса F75,
+    `handover/handover-2026-09-06-f75-corpus.md`): у всех 82 спектров `known`
+    кристалл и проба приходят из узла `<Geometry>` самой рабочей копии, а
+    вторая запись тех же веществ в csv — второй источник правды, расхождение
+    которого ДВИГАЕТ линии (энергия пика вылета = E − Kα кристалла).
+
+    Сторожится поэтому не «клетка пуста», а то, чем она разрешается:
+
+    * состав строк совпадает с `parts.csv`, и колонка `part` — тоже
+      (06.09.2026 разошлась ровно одна строка, `ASN16_Lu176_P0`: таблица
+      считала её `unknown` и держала свой `Cs;I` при уже назначенной геометрии);
+    * `source` = «из геометрии спектра» ⟺ в `parts.csv` геометрия названа;
+    * у строки «из геометрии спектра» клетка `crystal` ПУСТА (иначе второй
+      источник правды), и у самого спектра есть узел `<Geometry>` с веществом
+      кристалла (иначе разрешать пустоту нечем);
+    * у строки «таблица mk_materials.py» клетка `crystal` НЕ пуста: геометрии
+      нет, спросить некого, и пустота означала бы «мы не знаем» под видом
+      «ничего нет». Так молча выйдет у любой новой группы: `mk_materials.CRYSTAL`
+      отдаёт ей пустое вещество через `.get(det, ('', False, …))`.
+
+    Пути — параметрами, чтобы отказ можно было ПРОВЕРИТЬ подбросом на копии
+    таблиц (`handover/f75-corpus/s142_guard_test.py`), а не «на глаз».
+    """
+    import csv
+    corpus_dir = corpus_dir or os.path.join(LAB, 'corpus')
+    spectra_dir = spectra_dir or SPECTRA
+    parts_path = os.path.join(corpus_dir, 'parts.csv')
+    mat_path = os.path.join(corpus_dir, 'materials.csv')
+    print(u'\n== вещества вокруг кванта (S142) ==')
+    for path in (parts_path, mat_path):
+        if not os.path.isfile(path):
+            print(u'  НЕТ %s — прогоните scripts/mk_materials.py' % path)
+            return False
+
+    def read(path):
+        with open(path, encoding='utf-8-sig', newline='') as fh:
+            return list(csv.DictReader(fh))
+
+    parts = {r['spectrum']: r for r in read(parts_path)}
+    mats = read(mat_path)
+    named = {r['spectrum'] for r in mats}
+    missing = sorted(set(parts) - named)
+    extra = sorted(named - set(parts))
+    bad = []
+    empty_known = 0
+    for r in mats:
+        key = r['spectrum']
+        p = parts.get(key)
+        if p is None:
+            continue
+        has_geom = bool((p['geometry'] or '').strip())
+        src = (r['source'] or '').strip()
+        crystal = (r['crystal'] or '').strip()
+        if (r['part'] or '').strip() != p['part']:
+            bad.append(u'%s: part «%s», а в parts.csv «%s»'
+                       % (key, r['part'], p['part']))
+        if has_geom != (src == MAT_FROM_GEOMETRY):
+            bad.append(u'%s: source «%s», а геометрия %s'
+                       % (key, src, u'НАЗНАЧЕНА' if has_geom else u'не назначена'))
+        if src == MAT_FROM_GEOMETRY:
+            if crystal:
+                bad.append(u'%s: кристалл «%s» записан и в csv, и в геометрии — '
+                           u'второй источник правды' % (key, crystal))
+            path = os.path.join(spectra_dir, key + '.xml')
+            if not os.path.isfile(path):
+                bad.append(u'%s: нет рабочей копии, разрешать пустые клетки нечем' % key)
+            else:
+                with open(path, encoding='utf-8-sig') as fh:
+                    text = fh.read()
+                if not GEOM_CRYSTAL.search(text):
+                    bad.append(u'%s: клетки пусты, а в спектре нет геометрии '
+                               u'с веществом кристалла — сцена молча пуста' % key)
+                else:
+                    empty_known += 1
+        elif not crystal:
+            bad.append(u'%s: геометрии нет И кристалл в таблице пуст — '
+                       u'«не знаем» неотличимо от «ничего нет»' % key)
+
+    print(u'  строк %d; пустых клеток, разрешаемых геометрией: %d'
+          % (len(mats), empty_known))
+    if missing:
+        print(u'  БЕЗ СТРОКИ В materials.csv: %s' % ', '.join(missing))
+    if extra:
+        print(u'  ЛИШНИЕ В materials.csv: %s' % ', '.join(extra))
+    for line in bad:
+        print(u'  %s' % line)
+    ok = not (missing or extra or bad)
+    print(u'  %s' % (u'СОШЛОСЬ' if ok else u'РАЗОШЛОСЬ'))
+    if not ok:
+        print(u'     пересоберите таблицу: python tools/CORPUS/scripts/mk_materials.py')
+    return ok
+
+
 def check_parts():
     """Раздел корпуса (B1): у каждого спектра назван part, у понятного —
     существующая геометрия и посчитанная под неё матрица.
@@ -692,6 +802,9 @@ def main():
     # нарушение целостности: пропавшая строка parts.csv, лишняя строка,
     # отсутствующая геометрия, потерянный узел `<Efficiency>`.
     ok = check_parts()
+    # `S142` — ОТКАЗ: таблица веществ, разошедшаяся с разделом корпуса, отдаёт
+    # разбору пустую сцену под видом заполненной, и увидеть это нечем.
+    ok &= check_materials()
     # `B14` — ОТКАЗ и входит в код возврата: спектр понятной части без матрицы
     # называет себя понятным, а это порча самой сводки, не «числа сдвинутся».
     ok &= check_response_store()

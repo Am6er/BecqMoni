@@ -37,7 +37,7 @@ RC103_K40,RC103,known,,,,из геометрии спектра,,
 AS80_Cs137_0cm,AS80x80,known,,,,из геометрии спектра,,
 RC103_Cs137_0cm,RC103,known,,,,из геометрии спектра,,
 ASN16_Lu176,ASN16,known,,,,из геометрии спектра,,
-ASN16_Lu176_P0,ASN16,known,,,,из геометрии спектра,,
+ASN16_Lu176_P0,ASN16,unknown,Cs;I,,,таблица mk_materials.py,,геометрия ASN16_lu_side: Cesium iodide
 AS80_Lu176,AS80x80,known,,,,из геометрии спектра,,
 RC103_K40Village,RC103,unknown,Cs;I,,,таблица mk_materials.py,,геометрия RC103_lu_front: Cesium iodide
 RC103_Th232Village,RC103,unknown,Cs;I,,,таблица mk_materials.py,,геометрия RC103_lu_front: Cesium iodide

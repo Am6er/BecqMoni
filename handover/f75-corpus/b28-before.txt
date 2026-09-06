@@ -1,0 +1,30 @@
+========================================================================
+ПЛЕЧО 1: штатное окружение
+  APPDATA_DEV = C:\Users\moroz\AppData\Roaming\BecqMoni\config\device
+  AS80x80     файл да   СОВПАЛ
+  ASN16       файл да   СОВПАЛ
+  ASN8_1024   файл да   СОВПАЛ
+  ASN8_2048   файл да   СОВПАЛ
+  ASN8_3000   файл да   СОВПАЛ
+  ASN8_4096   файл да   СОВПАЛ
+  ASN8_8192   файл да   СОВПАЛ
+  OBS         файл да   СОВПАЛ
+  RC101       файл да   СОВПАЛ
+  RC103       файл да   СОВПАЛ
+  ИТОГО: совпало 10, разошлось 0, отказов 0
+========================================================================
+ПЛЕЧО 2: положительный контроль — APPDATA в несуществующий каталог
+  APPDATA_DEV = C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f75-corpus\net-takogo-kataloga\BecqMoni\config\device
+  AS80x80     файл НЕТ  ОТКАЗ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moroz\\sour
+  ASN16       файл НЕТ  ОТКАЗ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moroz\\sour
+  ASN8_1024   файл да   СОВПАЛ
+  ASN8_2048   файл да   СОВПАЛ
+  ASN8_3000   файл да   СОВПАЛ
+  ASN8_4096   файл да   СОВПАЛ
+  ASN8_8192   файл да   СОВПАЛ
+  OBS         файл НЕТ  ОТКАЗ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moroz\\sour
+  RC101       файл НЕТ  ОТКАЗ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moroz\\sour
+  RC103       файл НЕТ  ОТКАЗ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moroz\\sour
+  ИТОГО: совпало 5, разошлось 0, отказов 5
+
+ПРИГОВОР: плечо 1 (10, 0, 0); плечо 2 (5, 0, 5)
