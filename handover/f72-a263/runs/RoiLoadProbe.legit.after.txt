@@ -1,0 +1,23 @@
+=== разбор конфигураций ROI ===
+каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\ROI, файлов: 12
+  ok   Atom Nano 3.xml                            зон  8, примитивов  8
+  ok   Atom Nano 8.xml                            зон  8, примитивов  8
+  ok   Atom Spectra 2 Маринелли 40х40.xml         зон  5, примитивов  5
+  ok   Atom Spectra 2.xml                         зон 12, примитивов 12
+  ok   Cs134,Cs137,K40.xml                        зон  5, примитивов  6
+  ok   Obsidian Marinelli 0.5.xml                 зон  2, примитивов  2
+  ok   Ra-226 Intensities.xml                     зон 16, примитивов  0
+  ok   Ra226 + K40.xml                            зон 12, примитивов 23
+  ok   RadiaCode Cs-137.xml                       зон  5, примитивов  5
+  ok   RadiaCode Marinelli 0.5.xml                зон  1, примитивов  1
+  ok   Th-232 Intensities.xml                     зон 11, примитивов  0
+  ok   Th-232.xml                                 зон 10, примитивов  0
+
+разобрались все 12
+
+=== та же загрузка кодом приложения ===
+каталог менеджера: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\ROI
+взято конфигураций: 12, сказано человеку строк: 0
+  (отказавших файлов нет — проверять нечего; испортить конфиг и повторить)
+
+СОШЛИСЬ: причина отказа доезжает до человека

@@ -63,6 +63,12 @@ static class PeakFwhmUnitsProbeF41
         {
             if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
             else if (a.StartsWith("--spectra=", StringComparison.Ordinal)) spectraDir = a.Substring(10);
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         Console.WriteLine("=== ПРОБА F41 — `A211`: единица ширины пика ===");

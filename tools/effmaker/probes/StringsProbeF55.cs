@@ -110,6 +110,12 @@ static class StringsProbeF55
             {
                 outPath = a.Substring(6);
             }
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         Say("=== A184 + A187: служебные строки экрана — из ресурсов или из кода ===");

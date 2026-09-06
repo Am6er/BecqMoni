@@ -61,6 +61,13 @@ namespace DecayReadersProbe
                     limit = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (!a.StartsWith("--", StringComparison.Ordinal))
                     show.Add(a);
+                // `A263`: неизвестное ИМЯ ключа — отказ. Ветка выше (имена
+                // нуклидов позиционно) стоит ПЕРЕД этой нарочно.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             string db = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");

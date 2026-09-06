@@ -47,6 +47,15 @@ static class Real
                 window = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--hw="))
                 halfWidthFactor = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Условие
+            // именно на `--`, а не голое `else`: четыре довода здесь ПОЗИЦИОННЫЕ
+            // (спектр, активность, геометрия, расстояние) и читаются по индексу,
+            // а цикл идёт по ВСЕМ доводам — голый `else` отказал бы на args[0].
+            else if (a.StartsWith("--"))
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                Environment.Exit(2);
+            }
         }
 
         ResultData rd = EfficiencyFitter.LoadResultData(path, 0);

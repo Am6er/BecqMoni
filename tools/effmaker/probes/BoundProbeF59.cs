@@ -68,6 +68,13 @@ namespace BoundProbeF59
                 if (a.StartsWith("--repo=", StringComparison.Ordinal)) repo = a.Substring(7);
                 else if (a.StartsWith("--break=", StringComparison.Ordinal)) breakage = a.Substring(8);
                 else if (a.StartsWith("--report=", StringComparison.Ordinal)) reportPath = a.Substring(9);
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Опечатка
+                // молча меняла прогон, ничем этого не показывая.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             Say("=== BoundProbeF59: A222 (граница эффективности), A183 (кодировка записи), A120 (умолчания OPTF) ===");

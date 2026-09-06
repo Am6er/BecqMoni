@@ -105,6 +105,12 @@ namespace BecquerelMonitor.Probes
                 {
                     window = double.Parse(arg.Substring(9), CultureInfo.InvariantCulture);
                 }
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + arg);
+                    return 2;
+                }
             }
 
             Console.OutputEncoding = System.Text.Encoding.UTF8;

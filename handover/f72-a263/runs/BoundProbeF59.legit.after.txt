@@ -1,0 +1,17 @@
+=== BoundProbeF59: A222 (граница эффективности), A183 (кодировка записи), A120 (умолчания OPTF) ===
+дерево: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c
+
+-- A222.1: колонка `Efficiency` экспорта против поставочной кривой той же сцены --
+⛔ ПРОБА УПАЛА: System.IO.DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\LSRM Geometries\Exported Curves\Obsidian - marinelli 0.5.txt".
+   в System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   в System.IO.FileStream.Init(String path, FileMode mode, FileAccess access, Int32 rights, Boolean useRights, FileShare share, Int32 bufferSize, FileOptions options, SECURITY_ATTRIBUTES secAttrs, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   в System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   в System.IO.StreamReader..ctor(String path, Encoding encoding, Boolean detectEncodingFromByteOrderMarks, Int32 bufferSize, Boolean checkHost)
+   в System.IO.StreamReader..ctor(String path, Encoding encoding)
+   в System.IO.File.InternalReadAllLines(String path, Encoding encoding)
+   в BoundProbeF59.Program.RawLsrm(String path)
+   в BoundProbeF59.Program.A222_WhatIsInTheColumn()
+   в BoundProbeF59.Program.Main(String[] args)
+
+=== проверок 1, отказов 1 ===
+отчёт: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\f72-a263\runs\f59.txt

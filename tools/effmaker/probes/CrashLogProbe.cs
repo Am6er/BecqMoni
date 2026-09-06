@@ -184,6 +184,16 @@ namespace CrashLogProbe
                 return Child(args);
             }
 
+            // `A263`: штатный вызов — `crashlogprobe` БЕЗ ключей; `--mark=` и
+            // `--no-subscribe` понимает только ребёнок, и родитель составляет их
+            // сам. Прежде родитель молча глотал ЛЮБОЙ довод, и «--no-subscrib»
+            // с опечаткой выглядел как рабочий вызов, ничего не отключая.
+            foreach (string arg in args)
+            {
+                Console.WriteLine("не знаю ключа: " + arg);
+                return 2;
+            }
+
             string log = LogFile();
             Wipe(log);
 
@@ -471,9 +481,24 @@ namespace CrashLogProbe
                 {
                     mark = arg.Substring(7);
                 }
-                if (arg == "--no-subscribe")
+                // `A263`: второе условие было ОТДЕЛЬНЫМ `if`, а не звеном цепочки;
+                // сведено в цепочку, чтобы у неё был хвост. Довод не может быть
+                // разом `--mark=…` и `--no-subscribe`, поведение то же.
+                else if (arg == "--no-subscribe")
                 {
                     subscribe = false;
+                }
+                // `--crash-thread` — ЗАКОННЫЙ ключ: им `Main` и отличает ребёнка
+                // от родителя (`Array.IndexOf` выше), сюда он доезжает вместе с
+                // остальными. Без этой ветки хвост отказывал бы СВОЕМУ же
+                // ребёнку — поймано плечом 2 приёмки `A263`, а не чтением кода.
+                else if (arg == "--crash-thread")
+                {
+                }
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + arg);
+                    return 2;
                 }
             }
 

@@ -1,0 +1,3 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\BecquerelMonitor.xml
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\NuclideDefinition.xml: 152 entries
+BecqMoni: Матрица отклика кривой «проба» посчитана форматом файла 6, а эта сборка читает формат 7. Разложение считается БЕЗ матрицы.  Пересчитайте её: конфигурация прибора → «Эффективность» → «Матрица отклика...».  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\device\response\probe-339858b5550b4c14b39afb70495080f6.rmx

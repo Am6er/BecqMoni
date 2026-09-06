@@ -70,6 +70,12 @@ namespace PeakOriginProbe
                 else if (a.StartsWith("--nucdb=", StringComparison.Ordinal)) nucdbPath = a.Substring(8);
                 else if (a.StartsWith("--csv=", StringComparison.Ordinal)) csvPath = a.Substring(6);
                 else if (a.StartsWith("--group=", StringComparison.Ordinal)) group = a.Substring(8);
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
             if (nucdbPath == null)
                 nucdbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");

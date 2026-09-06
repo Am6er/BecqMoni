@@ -1,0 +1,26 @@
+
+Проба             плечо             ДО         ПОСЛЕ      первая строка ПОСЛЕ                                                         сказал «не знаю ключа»
+-----             -----             --         -----      -------------------                                                         ----------------------
+GadrasProbe       позиц. ВЕРНЫЙ     0          0          === HPGe 10%: HPGe, D 4,90 см, H 2,20 см, окно 1,10 г/см2 (Z 13), расстоян… -
+GadrasProbe       позиц. НЕТ ТАКОГО 2          2          нет каталога C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmake… -
+GadrasProbe       неизв. КЛЮЧ       0          2          не знаю ключа: --nn=1                                                       да
+ResponseProbe     позиц. ВЕРНЫЙ     0          0          === LaBr 10%: LaBr3, D 3,50 см, H 3,20 см, Ω/4π 2,941E-004                  -
+ResponseProbe     позиц. НЕТ ТАКОГО 2          2          нет каталога C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmake… -
+ResponseProbe     неизв. КЛЮЧ       ОБОРВАН    2          не знаю ключа: --no-xrays                                                   да
+RoundTrip         позиц. ВЕРНЫЙ     0          ОБОРВАН    ### каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker… -
+RoundTrip         позиц. НЕТ ТАКОГО 1          1          НЕТ КАТАЛОГА: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmak… -
+RoundTrip         неизв. КЛЮЧ       0          2          не знаю ключа: --brake=order                                                да
+MeasuredPoint     позиц. ВЕРНЫЙ     0          0          Спектр: AS80_Cs137_0cm.xml                                                  -
+MeasuredPoint     позиц. НЕТ ТАКОГО -532462766 -532462766 Необработанное исключение: System.IO.FileNotFoundException: Файл 'C:\Users… -
+MeasuredPoint     неизв. КЛЮЧ       0          2          не знаю ключа: --windo=4                                                    да
+DecayReadersProbe позиц. ВЕРНЫЙ     0          0          === Cs-137 ===                                                              -
+DecayReadersProbe позиц. НЕТ ТАКОГО 0          0          === Xx-999 ===                                                              -
+DecayReadersProbe неизв. КЛЮЧ       0          2          не знаю ключа: --limi=3                                                     да
+EffDipProbe       позиц. ВЕРНЫЙ     1          1          прибор: AtomSpectraVCP                                                      -
+EffDipProbe       позиц. НЕТ ТАКОГО 1          1          прибор: AtomSpectraVCP                                                      -
+EffDipProbe       неизв. КЛЮЧ       1          2          не знаю ключа: --hist2=200                                                  да
+OrderProbe        позиц. ВЕРНЫЙ     0          0          наборов: 5, линий: 152, из них с выходом: 128, цепочек собрано: 5           -
+OrderProbe        позиц. НЕТ ТАКОГО 0          0          наборов: 5, линий: 152, из них с выходом: 128, цепочек собрано: 5           -
+OrderProbe        неизв. КЛЮЧ       0          2          не знаю ключа: --reff=x                                                     да
+
+
