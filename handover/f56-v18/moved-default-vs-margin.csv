@@ -1,0 +1,7 @@
+variant,spectrum,det,mode_base,mode_new,d_max_kev,d_max_fwhm,lines,worst_base,worst_new,sum_base,sum_new,verdict
+snap_dfpoly_1_5.json,G1S16_Th228_P5,G1S16,poly2/grp,poly2/grp,0.865,0.153,8,0.945,0.934,1.579,1.554,ровно
+snap_dfpoly_1_5.json,G1S24_Cs137_Petri,G1S24,poly2,gain/grp,69.263,0.969,5,-0.97,-1.113,2.169,2.497,ХУЖЕ
+snap_dfpoly_1_5.json,G1S24_Eu152_P5,G1S24,gain/grp,gain/grp,0.725,0.008,11,-1.117,-1.122,3.011,3.015,ровно
+snap_dfpoly_1_5.json,G1S24_K40_Denta120_2,G1S24,poly2,gain/grp,30.951,0.494,7,-1.115,-1.127,2.463,2.612,ровно
+snap_dfpoly_1_5.json,G1S24_Th232_Denta120_2,G1S24,gain/robust/grp,gain/robust/grp,6.599,0.072,12,-0.808,-0.867,1.645,1.724,ХУЖЕ
+snap_dfpoly_1_5.json,G1S24_Zn65_P5,G1S24,affine/grp,gain,5.109,1.079,3,-0.367,-0.509,0.461,0.544,ХУЖЕ

@@ -1,0 +1,8 @@
+rule,spectra,neutral,moved_by_null,null_arms_bad,worst_null_kev,worst_null_fwhm,worst_null_at,causes,control_reacted,control_frozen,changed_vs_base,moved_vs_base
+margin:0/nu1,120,100,20,37,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=100; rank:margin=2; unlock=12,114,6,0,0
+margin:0/nu2,120,90,30,66,173.1225,3.9759,GS4000_Lu176,gate:extrap_below=2; neutral=90; rank:margin=6; unlock=22,113,7,21,21
+margin:0/nu3,120,96,24,48,175.478,7.2341,ASN16_Lu176_P0,neutral=96; rank:margin=6; unlock=18,100,20,32,32
+df:1/nu2,120,90,30,55,150.407,3.9759,G1S16_Ba133_P25,gate:extrap_below=2; neutral=90; rank:margin=9; unlock=19,110,10,26,26
+df:2/nu2,120,93,27,44,135.9749,3.9759,G1S16_Cd109_P5,gate:extrap_below=1; neutral=93; rank:margin=11; unlock=15,88,32,37,37
+df:1/nu1,120,98,22,32,150.407,9.0307,G1S16_Ba133_P25,gate:drift>5%=1; gate:extrap_below=2; gate:fit=1; neutral=98; rank:margin=7; unlock=11,114,6,10,10
+ftest:0.05/nu2,120,105,15,27,135.9749,5.9983,G1S16_Cd109_P5,neutral=105; rank:ftest=9; rank:margin=4; unlock=2,52,68,59,59
