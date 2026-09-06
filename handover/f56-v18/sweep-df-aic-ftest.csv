@@ -1,0 +1,14 @@
+rule,spectra,neutral,moved_by_null,null_arms_bad,worst_null_kev,worst_null_fwhm,worst_null_at,causes,control_reacted,control_frozen,changed_vs_base,moved_vs_base
+margin:0,120,100,20,37,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=100; rank:margin=2; unlock=12,114,6,0,0
+df:0.25,120,100,20,37,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=100; rank:margin=2; unlock=12,114,6,0,0
+df:0.5,120,99,21,35,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=99; rank:margin=2; unlock=13,114,6,2,2
+df:0.75,120,98,22,32,175.478,9.0307,ASN16_Lu176_P0,gate:drift>5%=1; gate:extrap_below=2; gate:fit=1; neutral=98; rank:margin=6; unlock=12,114,6,6,6
+df:1,120,98,22,32,150.407,9.0307,G1S16_Ba133_P25,gate:drift>5%=1; gate:extrap_below=2; gate:fit=1; neutral=98; rank:margin=7; unlock=11,114,6,10,10
+df:1.5,120,102,18,24,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=1; gate:extrap_below=1; gate:fit=1; neutral=102; rank:margin=4; unlock=11,107,13,15,15
+df:2,120,98,22,28,139.6845,3.9759,G1S24_Am241_P5,gate:drift>5%=1; gate:extrap_below=1; gate:fit=1; neutral=98; rank:margin=11; unlock=8,93,27,27,27
+df:3,120,102,18,20,139.6845,7.2341,G1S24_Am241_P5,gate:drift>5%=1; gate:fit=1; neutral=102; rank:margin=12; unlock=4,68,52,46,46
+df:6,120,115,5,7,139.6845,2.6988,G1S24_Am241_P5,gate:drift>5%=1; neutral=115; rank:margin=4,34,86,71,71
+aic:2,120,100,20,28,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=1; gate:extrap_below=1; gate:fit=1; neutral=100; rank:margin=5; unlock=12,104,16,15,15
+aic:6,120,114,6,9,139.6845,4.7165,G1S24_Am241_P5,gate:drift>5%=1; neutral=114; rank:margin=3; unlock=2,42,78,65,65
+aic:12,120,116,4,6,139.6845,2.0184,G1S24_Am241_P5,gate:drift>5%=1; neutral=116; rank:margin=3,14,106,87,87
+ftest:0.05,120,108,12,16,139.6845,5.9983,G1S24_Am241_P5,gate:drift>5%=1; neutral=108; rank:ftest=10; unlock=1,52,68,58,58

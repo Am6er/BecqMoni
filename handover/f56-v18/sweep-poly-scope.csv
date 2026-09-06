@@ -1,0 +1,9 @@
+rule,spectra,neutral,moved_by_null,null_arms_bad,worst_null_kev,worst_null_fwhm,worst_null_at,causes,control_reacted,control_frozen,changed_vs_base,moved_vs_base
+margin:0/nu1,120,100,20,37,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=100; rank:margin=2; unlock=12,114,6,0,0
+df:0.5/nu1,120,100,20,36,173.1225,9.0307,GS4000_Lu176,gate:drift>5%=2; gate:extrap_below=2; gate:fit=2; neutral=100; rank:margin=2; unlock=12,114,6,0,0
+df:1/nu1,120,100,20,35,150.407,9.0307,G1S16_Ba133_P25,gate:drift>5%=2; gate:extrap_below=2; gate:fit=1; neutral=100; rank:margin=4; unlock=11,114,6,4,4
+df:1.5/nu1,120,102,18,32,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=2; gate:extrap_below=2; gate:fit=1; neutral=102; rank:margin=2; unlock=11,114,6,4,4
+df:2/nu1,120,102,18,32,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=2; gate:extrap_below=2; gate:fit=1; neutral=102; rank:margin=2; unlock=11,114,6,4,4
+df:3/nu1,120,101,19,33,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=2; gate:extrap_below=2; gate:fit=1; neutral=101; rank:margin=3; unlock=11,113,7,8,8
+df:4/nu1,120,102,18,32,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=2; gate:extrap_below=2; neutral=102; rank:margin=3; unlock=11,113,7,9,9
+df:8/nu1,120,104,16,30,139.6845,9.0307,G1S24_Am241_P5,gate:drift>5%=2; gate:extrap_below=2; neutral=104; rank:margin=1; unlock=11,113,7,9,9

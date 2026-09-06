@@ -1,0 +1,13 @@
+corpus_calib: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\corpus_calib.py (sha 1dfd002ca4d8); build_corpus sha 0cca236eae06; режим df, α=0.05, степень 2, плата с poly
+сырые копии: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\_corpus_raw
+спектров стадии 1: 3 (семёрка LEGACY копируется побайтно и стадию 1 не проходит)
+G1S16_Cd109_P25        n= 3 stored           choose:affine         ноль:   0.0000 кэВ neutral   контроль: 1.004 ПШПВ reacted
+G1S16_Cd109_P5         n= 1 gain             choose:gain           ноль:   0.0000 кэВ neutral   контроль: 2.244 ПШПВ reacted
+G1S24_Cd109_P5         n= 2 gain             choose:gain           ноль:  20.5373 кэВ unlock    контроль: 1.369 ПШПВ reacted
+время: 21 с
+
+НУЛЕВОЕ ПЛЕЧО (choose): спектров с опорами 3, нейтральных 2, сдвинулись 1
+   причины: {'neutral': 2, 'unlock': 1}
+   худший сдвиг: 20.5373 кэВ (G1S24_Cd109_P5)
+ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (choose): проверено 3, отреагировали 3, заморожены 0
+НУЛЕВОЕ ПЛЕЧО (pipeline): проверено 3, нейтральных 1, худший 23.668 кэВ
