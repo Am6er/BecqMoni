@@ -400,6 +400,13 @@ namespace BecquerelMonitor
         /// есть. Два правила, оба поверх уже собранного списка пиков:
         /// приборная подпись суммы 511+511 (впереди нуклидных) и подтверждение
         /// слабой линии ДРУГОЙ линией того же имени.
+        ///
+        ///  3. (`A252`) третий случай — не о самой линии, а о СОПЕРНИКЕ: пик
+        ///     73…75 кэВ, на котором стоит свинцовый рентген домика,
+        ///     подписывался `Am-243` 74.66 в 13 спектрах корпуса, где америция
+        ///     нет. Линия там и яркая, и точно в пике, поэтому ни повод 1
+        ///     (`A197`), ни повод 2 (`A227`) её не берут — берёт третий, см.
+        ///     <see cref="UnfalsifiableAgainstImage"/>.
         /// </summary>
         void ConfirmLabels(List<Peak> peaks, EnergySpectrum energySpectrum,
                            FWHMPeakDetectionMethodConfig peakConfig, NuclideSet nuclideSet)
@@ -451,11 +458,17 @@ namespace BecquerelMonitor
                 bool farLine = fwhmKev[i] > 0.0
                                && missKev > LabelMissConfirmInFwhm * fwhmKev[i]
                                && missKev > LabelMissConfirmFloorKev;
-                if (!weakLine && !farLine)
+                // Третий повод (`A252`) — не о самой линии, а о СОПЕРНИКЕ: тот
+                // же пик объясняет ПРИБОРНЫЙ ОБРАЗ, спор с которым положением
+                // не решён, а подтвердить подпись нечем И НИКОГДА НЕ БУДЕТ ЧЕМ.
+                bool unfalsifiable = UnfalsifiableAgainstImage(nd, peaks[i]);
+                if (!weakLine && !farLine && !unfalsifiable)
                 {
                     continue;
                 }
-                if (OwnLineSeen(nd, peaks, fwhmKev, i, rangeMin, rangeMax))
+                // ⛔ Оправдание «подтверждать нечем» (см. OwnLineSeen) на третий
+                //    повод НЕ РАСПРОСТРАНЯЕТСЯ, и это его суть: он им и создан.
+                if (!unfalsifiable && OwnLineSeen(nd, peaks, fwhmKev, i, rangeMin, rangeMax))
                 {
                     continue;
                 }
@@ -504,6 +517,11 @@ namespace BecquerelMonitor
         /// Нуклид, у которого ДРУГИХ пригодных линий в полосе прибора нет
         /// вовсе, подтверждать нечем — и он НЕ СУДИТСЯ (`Cs-137` 661.7,
         /// `K-40` 1460.8, `Am-241` 59.5 в поставочной библиотеке именно таковы).
+        /// ⛔ У этого оправдания есть ровно одно изъятие, и оно измерено:
+        /// подпись, которую нечем подтвердить, против ПРИБОРНОГО ОБРАЗА на том
+        /// же пике не выстаивает — см. <see cref="UnfalsifiableAgainstImage"/>
+        /// (`A252`). Сюда такая подпись не доходит вовсе: третий повод обходит
+        /// эту проверку.
         /// </summary>
         bool OwnLineSeen(NuclideDefinition nuclide, List<Peak> peaks, double[] fwhmKev,
                          int self, double rangeMin, double rangeMax)
@@ -511,10 +529,7 @@ namespace BecquerelMonitor
             bool anyOther = false;
             foreach (NuclideDefinition other in this.nuclideDefinitions)
             {
-                if (other == null || !other.Visible || other.Energy == 0.0) continue;
-                if (!string.Equals(other.Name, nuclide.Name, StringComparison.Ordinal)) continue;
-                if (Math.Abs(other.Energy - nuclide.Energy) < 1e-9) continue;
-                if (other.Intencity > 0.0 && other.Intencity < MinimumLabelYieldPercent) continue;
+                if (!IsOtherOwnLine(other, nuclide)) continue;
                 if (other.Energy < rangeMin || other.Energy > rangeMax) continue;
 
                 anyOther = true;
@@ -536,6 +551,103 @@ namespace BecquerelMonitor
                 }
             }
             return !anyOther;
+        }
+
+        /// <summary>
+        /// ГОДИТСЯ ЛИ ЗАПИСЬ В УЛИКИ ЗА ЭТО ЖЕ ИМЯ — «своя другая линия».
+        ///
+        /// ⛔ Отбор ОДИН на обоих читателей (<see cref="OwnLineSeen"/> и
+        /// <see cref="UnfalsifiableAgainstImage"/>) нарочно: два одинаковых
+        /// перечня условий в разных местах — это два места, где их можно
+        /// развести, и тогда «улику найти нельзя» и «улики не существует»
+        /// стали бы отвечать про разные множества линий (то же правило, что у
+        /// <c>Peak.FwhmKev</c>, `A211`).
+        ///
+        /// ⛔ «Своя» — запись с ТЕМ ЖЕ ИМЕНЕМ, не «тот же элемент» и не «тот же
+        /// ряд»: ряд подтверждал бы `Pa-234m` калием через полкорпуса.
+        /// Невидимая запись, запись без энергии и линия с выходом ниже порога
+        /// подписи (<see cref="MinimumLabelYieldPercent"/>) уликой не бывают —
+        /// ими и пик-то подписать нельзя.
+        /// </summary>
+        static bool IsOtherOwnLine(NuclideDefinition other, NuclideDefinition nuclide)
+        {
+            if (other == null || !other.Visible || other.Energy == 0.0) return false;
+            if (!string.Equals(other.Name, nuclide.Name, StringComparison.Ordinal)) return false;
+            if (Math.Abs(other.Energy - nuclide.Energy) < 1e-9) return false;
+            if (other.Intencity > 0.0 && other.Intencity < MinimumLabelYieldPercent) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// (`A252`) ПОДПИСЬ, КОТОРУЮ НЕЧЕМ ПОДТВЕРДИТЬ И НЕЧЕМ ОПРОВЕРГНУТЬ,
+        /// ПРОТИВ ПРИБОРНОГО ОБРАЗА НА ТОМ ЖЕ ПИКЕ.
+        ///
+        /// ⛔ Что это лечит. Свинцовый рентген домика (`Pb x-ray` 72.804 и
+        /// 74.969) в поставочной библиотеке неотличим по положению от гаммы
+        /// `Am-243` 74.66, и у сцинтиллятора с ПШПВ 9…26 кэВ спор между ними
+        /// положением НЕ РЕШАЕТСЯ — оба стоят в списке кандидатов пика
+        /// (`S64`). Побеждает при этом америций, потому что промах у него
+        /// случайно меньше, и над спектрами калия, тория и цезия оказывается
+        /// написан трансурановый нуклид. Мерено по корпусу: 13 подписей
+        /// `Am-243` на 13 спектрах, америция нет НИ В ОДНОМ.
+        ///
+        /// ⛔ Прежние два повода потребовать вторую линию (`A197` — линия
+        /// слабая, `A227` — линия далеко) сюда не достают ПО ПОСТРОЕНИЮ, и это
+        /// измерено: у `Am-243` 74.66 выход 67.2 % (ярче порога в 13 раз), а
+        /// промах 0.004…0.804 кэВ — меньше пола в 1.5 кэВ на всех тринадцати.
+        /// Линия и яркая, и точно в пике; неверна не она, а УТВЕРЖДЕНИЕ.
+        ///
+        /// ⚠ РАЗНИЦА МЕЖДУ СОПЕРНИКАМИ НЕ В ПОЛОЖЕНИИ, А В ЦЕНЕ. Приборный
+        /// рентген — образ ВЕЩЕСТВА ПРИБОРА (свинец домика, вольфрам
+        /// коллиматора): он в спектре есть независимо от пробы и не требует от
+        /// её состава ничего. Подпись нуклидом — утверждение О ПРОБЕ, и она
+        /// обязана чем-то держаться. Однолинейный нуклид не держится ничем: у
+        /// него в библиотеке нет второй линии ВООБЩЕ, то есть подтвердить его
+        /// нельзя никаким спектром и никаким прибором. Такая подпись против
+        /// образа, которому улики не нужны, не выстаивает — и снимается.
+        ///
+        /// ⛔ УСЛОВИЕ «второй линии нет ВООБЩЕ» — не «второй линии не видно» и
+        /// не «вторая линия вне полосы прибора», и подменять его нельзя. Это
+        /// ровно то, чем `Am-241` отличается от `Am-243`: у америция-241 в
+        /// библиотеке ДВЕ линии (26.345 и 59.541), и его подпись `W x-ray`
+        /// этим правилом не трогается — измерено на положительном контроле
+        /// `G1S16_Am241_P25` @60.691 и `ASN16_Am241` @59.491, обе ИСТИНА, обе
+        /// целы. Считай правило по полосе поиска — и обе бы упали: 26.345 кэВ
+        /// лежит НИЖЕ нижнего края полосы (29.7 кэВ) у первого из них, то есть
+        /// прибор эту улику не смотрел вовсе. «Улику не смотрели» — ограничение
+        /// ИЗМЕРЕНИЯ, «улики не существует» — свойство САМОГО УТВЕРЖДЕНИЯ, и
+        /// сносить подпись можно только за второе.
+        ///
+        /// ⚠ Собственного числа у правила НЕТ НИ ОДНОГО: обе половины — «спор не
+        /// решён положением» и «выход достаточен» — считаны теми же окнами, что
+        /// у списка кандидатов (<see cref="CandidateHandicapInFwhm"/>) и у
+        /// подписи (<see cref="MinimumLabelYieldPercent"/>). Настраивать здесь
+        /// нечего, и развёртки по порогу поэтому нет.
+        ///
+        /// ⚠ ЧЕГО ПРАВИЛО НЕ ДЕЛАЕТ: оно НЕ отдаёт пик рентгену. Снятая
+        /// подпись оставляет пик без имени, а не подписывает его образом —
+        /// «мы не знаем, что это» честнее, чем «это свинец домика»: рентген
+        /// спор тоже не выиграл, он лишь не проиграл.
+        /// </summary>
+        bool UnfalsifiableAgainstImage(NuclideDefinition nuclide, Peak peak)
+        {
+            // Сам приборный образ этим правилом не судится: он и есть тот
+            // соперник, ради которого правило написано.
+            if (nuclide == null || nuclide.IsElementXray) return false;
+
+            bool imageRival = false;
+            foreach (NuclideDefinition candidate in peak.NuclideCandidates)
+            {
+                if (candidate == null || candidate == nuclide) continue;
+                if (candidate.IsElementXray) { imageRival = true; break; }
+            }
+            if (!imageRival) return false;
+
+            foreach (NuclideDefinition other in this.nuclideDefinitions)
+            {
+                if (IsOtherOwnLine(other, nuclide)) return false;
+            }
+            return true;
         }
 
         /// <summary>
