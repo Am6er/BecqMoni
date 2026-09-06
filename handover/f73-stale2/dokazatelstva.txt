@@ -1,0 +1,114 @@
+# Выводы команд полосы F73 (второй проход чистильщика), 06.09.2026
+
+Вершина: b9041b2a   ветка: pie
+
+## Правило захода: приговор о СДЕЛАННОСТИ снимался с git show HEAD:<файл>,
+## рабочая копия — только там, где git status по файлу пуст.
+
+### S129 — концы строк, ЗАМЕР БАЙТАМИ + git ls-files --eol
+ДО:    i/lf  w/mixed  FsaLineAudit.cs   (CRLF 403, одиночных LF 2, байт 22707)
+       i/lf  w/crlf   FsaAnalyzer.cs    (CRLF 6034, одиночных LF 0)
+ПОСЛЕ: 
+i/lf    w/crlf  attr/                 	BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+i/lf    w/crlf  attr/                 	BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs
+git diff --quiet по файлу: код
+0
+git status по файлу (пусто = чисто):
+положительный контроль (соседний реально изменённый файл виден):
+
+### S142 — corpus/materials.csv (из HEAD, файл не тронут соседями)
+known     всего  81  заполнено   0  пусто  81
+unknown   всего  40  заполнено  40  пусто   0
+excluded  всего   8  заполнено   8  пусто   0
+=> строка обещала 81 пустую из 129 — ВЕРНО; но её «Сделать» просит
+   «посчитать, сколько из 81 — known» (ответ: ВСЕ 81) и «у unknown писать
+   явное неизвестно» (у unknown пустых НОЛЬ — работы нет вовсе).
+
+### E41 — чертежи
+файлов after_*.png: 30 (в git 30), различных md5: 24
+тождественны по 4: borehole_det / boxcrystal / detector / ground_det на 420x460 и на 232x440
+28 = 30 − 2 overview ; 22 = 24 − 2 overview  => посылка строки ТОЧНА
+
+### S97 — README указывает на удалённый спектр
+git show HEAD:tools/CORPUS/README.md | grep -n OBS_Th232WT20  ->  3136 (строка обещала 3135)
+OBS_Th232WT20 в corpus/spectra: 0 файлов; положительный контроль OBS_UGlass: 1
+
+### E35 — «на него не ссылается ничто»
+ссылок на `E35` вне TODO.md: 2 (обе служебные — DONE.md про сам развод и таблица F42)
+положительный контроль `E34`: 13
+GeometrySceneKind (HEAD GeometryModel.cs:403-413) = None, Ground, Borehole — однородного поля нет
+
+### V15 — ЛОВУШКА: наивный grep даёт ложное «сделано»
+grep 'ecal_extrapolation' build_corpus.py -> 2 совпадения, 'ecal_accept_check' -> 2, 'ecal_compare' -> 1
+НО все пять — КОММЕНТАРИИ (:476, :502, :512, :559, :1564); связь ОБРАТНАЯ:
+   :559 «Функция ОДНА на двоих: её же зовёт ecal_extrapolation.build_state»
+Положительный контроль — STEPS конвейера rebuild_corpus.py:52-60:
+   build_corpus.py, restore_eff_nodes.py, res_apply.py, check_corpus.py — трёх мерок НЕТ.
+Вторая половина строки жива числом: слово «охват» в ecal_extrapolation.py — 0,
+   в gaussfit_check.py — 15, в ecal_accept_check.py — 9.
+
+### S42 — Downgrade СУЩЕСТВУЕТ и у него ЧЕТЫРЕ места вызова
+ЛОВУШКА ШАБЛОНА: git grep -- 'BecquerelMonitor/**/*.cs' даёт 0 (не ловит верхний уровень);
+   тот же поиск по 'BecquerelMonitor/' даёт:
+   DCEnergyCalibrationView.cs:368, DeviceConfigForm.cs:1075, DocumentManager.cs:196 и :269
+PolynomialEnergyCalibration (HEAD) — публичного, кроме PolynomialOrder и Coefficients, нет:
+   опорных точек и погрешностей коэффициентов в классе НЕТ (посылка строки верна)
+
+### E34 — координаты уехали
+ResponseMatrixBuilder.MakeSimulator PeakHalfWidthKev = 0.0 — HEAD строка 647 (строка обещала 429)
+EfficiencyCalculation PeakHalfWidthKev из геометрии — HEAD строка 619 (строка обещала 517)
+SingleScatter в сборщик ДОХОДИТ (ResponseMatrixBuilder.cs:628, клеймо ResponseMatrix.cs:484)
+
+### M2 — средство, которое предлагает строка, УЖЕ МЕРЕНО И ОТВЕРГНУТО
+HEAD EfficiencySimulator.cs:3376-3382, дословно:
+   «Прежние модели не прошли сверку ОБЕ: изотропная с полным CSDA — верхняя оценка,
+    снимала 6–14 % на 662 …; НАПРАВЛЕННАЯ ПО РОДИВШЕМУ КВАНТУ с detour — не та форма
+    по энергии (на 662 вшестеро больше Geant4, на 2000 — мало …)»
+database/scheme.md:1194: «угол вылета фотоэлектрона (B-2 / TODO M2) — таблиц нет ни у кого»
+
+### B28 — выбор источника данных СДЕЛАН в коде почти целиком
+1) пять конфигов ФИЗИЧЕСКИ в git: corpus/devices/{1.Atom Spectra Nano 16 Pro…,
+   Atom Spectra 80x80, RC-103, RC-101, Obsidian}.xml — по 1 файлу каждый (всего 24)
+2) личность прибора берётся из DEVICE_IDENTITY (build_corpus.py:99-112), %AppData% только
+   СВЕРЯЕТСЯ, расхождение печатается вслух (:1016-1027, «взято ЗАКРЕПЛЁННОЕ»)
+3) настройки поиска пиков — из PEAK_CONFIG_DEFAULTS и счёта (:1665-1676), %AppData% не читается
+⚠ ОДИН живой читатель %AppData% остался: device_guid (:178-182) делает ET.parse по
+   COPY_DEVICE[det] и зовётся на КАЖДОЙ копии спектра (:419).
+⛔ Два комментария того же файла ПРОТИВОРЕЧАТ коду:
+   :116 «Отсутствие файла больше не мешает» — device_guid на отсутствии упадёт ET.parse;
+   :1037-1041 «пять групп берут имя, guid и НАСТРОЙКИ ПОИСКА ПИКОВ из рабочего каталога» —
+   настройки берутся из PEAK_CONFIG_DEFAULTS двадцатью строками выше по потоку.
+
+### V23 — цитат нет там, куда строка посылает
+'71.2' / '73.4' / '75.9' в tools/CORPUS/README.md: 0 ; в corpus/SUMMARY.md: 0
+положительный контроль: 'V14' в README — 3 совпадения, 'вершин' — 2 (обе о другом)
+цитаты живут в САМОЙ TODO.md, строка V14 — три места
+
+### S135 — названная преграда снята
+python tools/check_all.py -> код 0, ВСЕ ЗЕЛЕНЫ: 13 из 13
+четыре названных строкой файла (ResponseMatrix.cs, Resources.Designer.cs, RoiLoadProbe.cs,
+   ChainProbe.cs) сейчас ЧИСТЫ; но probes/** правит соседняя полоса — 14 файлов ' M'
+ключ --band-audit= жив: CorpusFsaProbe.cs:444 (описание :110), lines_below — 2 вхождения
+
+### Подтверждено деревом без поправок (посылка верна, работа НЕ отменяется)
+S3   DeviceConfigForm.Efficiency.cs CheckBox=0 (контроль DeviceConfigForm.cs=4);
+     DCResultView.cs 'Fsa|FSA'=0 (контроль EnergySpectrumView.Fsa.cs=102) — ОБА из HEAD
+S43  NoiseGamma жив: FsaAnalyzer.cs:820,1732,1734 + ключ CorpusFsaProbe.cs:539
+S58  FsaCascadeSummer.cs:73 — «L-серии рентгена — у неё своя бухгалтерия вакансий, TODO S58»
+S106 ComputeCharacteristicLimits — 2 вхождения; --limits-mc — 5
+S107 FsaCalculationOptions.cs:66-67 PileUp = true (умолчание ВКЛ)
+S112 --joint= только в CorpusFsaProbe.cs:195; в ResponseMatrix.cs слова Joint нет
+S113 SumPeakFloor = 1.0E-4 один на всех (FsaCascadeSummer.cs:269, применяется :823);
+     отдельного порога троек нет; LogTriples :283
+S126/S127 ключи PositronTransport / PositronOffset / RayleighToCrystal живы в приложении и пробах
+S140 ContinuumErrorTarget = 3.0 (ResponseMatrix.cs:1745), ключ --target= (CorpusMatrixProbe.cs:101)
+V20  --band-audit= есть (см. S135) — строка про ЗАМЕР, не про оснастку
+V21  читателя признака нет: 0 из 7 питонов tools/tccfcalc2 знают 'кроссовер/crossover'
+     (положительный контроль: те же файлы grep-ом читаются, 'def ' находится)
+V25  corpus_calib.py: choose :582, match_lines :760/:776/:794, «дальше полуширины» :780
+E29  CylinderSampler :1685 / MarinelliSampler :1714, слова importance/важностн нет
+E30  GeometryMaterialLibrary.cs:331 fill("","Soil",1.5, …) — состав задан числами, ρ 1.5
+E39  GeometryScenes.cs:144 g.BeakerHeight = g.SourceHeight ; GeometrySketch.cs:697 подпись "BeakerHeight"
+E40  GeometrySketch.Place :1037 — при bestCost>0 печатает молча, счётчика в классе НЕТ
+M6   ablate_phys.py и ablate_stat.py на месте
+M9   EfficiencySimulator.cs:36 «L-флуоресценция не моделируется» — дословно в шапке класса
