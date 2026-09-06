@@ -1,0 +1,161 @@
+§1 БИБЛИОТЕКА
+  файл C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f69\config\GeometryMaterials.xml (НЕТ → действует вшитый засев)
+  веществ действующих 305, в засеве 305, поколение засева 6
+  ОИСН-06: ro=0.6 [1:0.0813492063492 6:0.609126984127 7:0.0714285714286 8:0.238095238095]
+  ОИСН-06 (2024): ro=0.6 [1:0.0640640640641 6:0.612612612613 7:0.021021021021 8:0.151151151151 26:0.151151151151]
+  ОИСН-10: ro=1 [1:0.041 6:0.39 7:0.016 8:0.094 26:0.459]
+  ОИСН-16: ro=1.6 [1:0.0248262164846 6:0.218470705065 7:0.0228401191658 8:0.0784508440914 26:0.655412115194]
+  ОИСН-16 (2024): ro=1.6 [1:0.022 6:0.206 7:0.009 8:0.049 26:0.714]
+  РИСН-379: ro=1 [1:0.043043043043 6:0.33033033033 7:0.012012012012 8:0.348348348348 11:0.041041041041 12:0.022022022022 20:0.203203203203]
+
+§2 ОСЛАБЛЕНИЕ В ПРОБЕ (массовый коэффициент, см²/г)
+  вещество                         46.5        59.5          88       186.2       351.9       661.7      1460.8
+  ОИСН-06                       0.21433     0.19235     0.17015     0.13597     0.10837     0.08330     0.05672
+  ОИСН-06 (2024)                0.54058     0.34768     0.21692     0.13851     0.10671     0.08143     0.05536
+  ОИСН-10                       1.21222     0.66842     0.31481     0.14531     0.10457     0.07855     0.05324
+  ОИСН-16                       1.64136     0.87324     0.37720     0.14950     0.10307     0.07661     0.05181
+  ОИСН-16 (2024)                1.76860     0.93414     0.39592     0.15096     0.10281     0.07618     0.05149
+  РИСН-379                      0.43180     0.29263     0.19821     0.13509     0.10516     0.08041     0.05470
+  --- ОИСН-06
+  во сколько раз 2024/2016        2.522       1.808       1.275       1.019       0.985       0.978       0.976
+  --- ОИСН-16
+  во сколько раз 2024/2016        1.078       1.070       1.050       1.010       0.997       0.994       0.994
+
+§3 РАЗВЁРТКА: «ОК» БЕЗ ПРАВКИ
+
+  каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\models
+    сцен 14; клеймо двигает СТАРОЕ плечо (все пять слотов) у 10 (без отбора по виду вещества — у 10); НОВОЕ плечо — у 0
+      ASN16_Lu176_jar.in
+      Nano16Pro.in
+      Nano16Pro_box.in
+      Nano16Pro_Marinelli.in
+      Nano16Pro_point10.in
+      Nano16Pro_tube.in
+      Obsidian Marinelli 0.5.in
+      RadiaCode_AuthorMarinelli0.2.in
+      RadiaCode_AuthorMarinelli0.5.in
+      RadiaCode_Marinelli0.5.in
+
+  каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\LSRM Geometries\Models
+    сцен 7; клеймо двигает СТАРОЕ плечо (все пять слотов) у 7 (без отбора по виду вещества — у 7); НОВОЕ плечо — у 0
+      Nano16Pro.in
+      Nano16Pro_Marinelli.in
+      Nano16Pro_tube.in
+      Obsidian Marinelli 0.5.in
+      RadiaCode_AuthorMarinelli0.2.in
+      RadiaCode_AuthorMarinelli0.5.in
+      RadiaCode_Marinelli0.5.in
+
+  каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+    сцен 44; клеймо двигает СТАРОЕ плечо (все пять слотов) у 23 (без отбора по виду вещества — у 23); НОВОЕ плечо — у 0
+      G1S_denta120_oisn06_057_p24.in
+      G1S_denta120_oisn06_062_p24.in
+      G1S_denta120_oisn06_064_p24.in
+      G1S_denta120_oisn06_066_p24.in
+      G1S_denta120_oisn16_155_p24.in
+      G1S_denta120_oisn16_160_p24.in
+      G1S_denta120_oisn16_166_p24.in
+      G1S_denta120_oisn16_167_p24.in
+      G1S_mar1l_oisn06_057_p24.in
+      G1S_mar1l_oisn06_062_p24.in
+      G1S_mar1l_oisn06_064_p24.in
+      G1S_mar1l_oisn06_066_p24.in
+      G1S_mar1l_oisn16_155_p24.in
+      G1S_mar1l_oisn16_160_p24.in
+      G1S_mar1l_oisn16_166_p24.in
+      G1S_mar1l_oisn16_167_p24.in
+      G1S_petri60_oisn06_057_p24.in
+      G1S_petri60_oisn06_062_p24.in
+      G1S_petri60_oisn06_064_p24.in
+      G1S_petri60_oisn06_067_p24.in
+      G1S_petri60_oisn16_155_p24.in
+      G1S_petri60_oisn16_160_p24.in
+      G1S_petri60_oisn16_167_p24.in
+
+§4 ПОЛОЖИТЕЛЬНЫЕ КОНТРОЛИ
+  сцена ASN16_Lu176_jar.in
+  К1 «ОК» без единой правки, плечо СТАРОЕ (сам дефект A262): клеймо разошлось, ждали расхождения — верно
+  К2 «ОК» без единой правки, плечо НОВОЕ: клеймо совпало, ждали совпадения — верно
+  К3 правлено вещество ПРОБЫ (Lutetium oxide), плечо НОВОЕ: клеймо разошлось, ждали расхождения — верно
+  К4 правлено ЧУЖОЕ вещество (Sodium iodide), плечо НОВОЕ: клеймо совпало, ждали совпадения — верно
+  К5 кристалл +1 мм: клеймо разошлось, ждали расхождения — верно
+
+§5 КЛЕЙМА СЦЕН (файл, sha256 текста Render, клеймо)
+  --- C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\models
+  AS80_bare.in                                 51592b5c2a13b79d phys=16;cf1eeb8b09b09744ab306cf382252b236c3ae3638135fa5ac8cee9ff7f7ccc49
+  AS80_bare_gap5.in                            557fc34f1bceb808 phys=16;2a0c3daf5fb49e24c0cf216d69971c73f5431f19e00a0389a7bcc76ef22f1550
+  AS80_point5.in                               a52d9ecc6a8acd27 phys=16;28b796d12079d0f131173eb0f494498e118e877595020bc099f47f73e8c07995
+  ASN16_Lu176_jar.in                           6a00cb68a2b071da phys=16;8ef1bc5f35538ab0396075c4dfa3d6822eb8f0aec67ca7920a265178ad140efa
+  Nano16Pro.in                                 6563b2983c8a552c phys=16;fbc31adfe9c1ab0ce0af76eb99cf623d3650bc8e428f5ced473ddd21e7ece8c4
+  Nano16Pro_box.in                             df2e1d347ab89d4d phys=16;0badd241e18ec15ba401cc7c719e5b904dfd53502699a2249aae98f32664555a
+  Nano16Pro_cyl50.in                           eb2aa1d74b7d0bad phys=16;52fcfd65b376c7fb34d6a309d03d89b79132b03101d733d59a85999a06780d6d
+  Nano16Pro_Marinelli.in                       58e30e0141d8f9a8 phys=16;605389f75e33b203288a067c74ace67d753d0ea83ff2260de5abb83de1064db3
+  Nano16Pro_point10.in                         156510e477069236 phys=16;fdcbeaadbb3a462b2a207c119d09cacc487b0ae9b286d56448b9b01819b12036
+  Nano16Pro_tube.in                            7e125d37b74bca4d phys=16;14d0e8c334f462085f329b709dc6e7be386a0f9877e3553c30e09596d1e64a49
+  Obsidian Marinelli 0.5.in                    9a7cce6b29dd4d75 phys=16;f328d6c5d0bfa2860f94b6a108fc6cdf7bb2547949b4f2f4a6e09ac5a8fb9fee
+  RadiaCode_AuthorMarinelli0.2.in              52f4e0a44e6a0d6d phys=16;d91d8ac95cf1550c0469db9ee0cd5cca69ac65b85b87ff995ce91db3a85bf665
+  RadiaCode_AuthorMarinelli0.5.in              cb784a58cf794806 phys=16;4619b157fb5257aa501f54d01936a4fb2464376c5cb414b19c8ecc8a42945700
+  RadiaCode_Marinelli0.5.in                    dff808439717f759 phys=16;19d499721bebafa850b04b4aa5a0294a716e8d1cf15462ee6193a1ec74ed7e33
+  --- C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\LSRM Geometries\Models
+  Nano16Pro.in                                 8f6f2e7a2633e5c3 phys=16;a3659640f3ac39a0e4a521a753c7f027e1df60174949646b10ec4a61194af580
+  Nano16Pro_Marinelli.in                       10bfd8e3349e0d77 phys=16;00c05f24c72debfbf170d8fe2168dc52b4796a5605fe36ce555e8d64fd383b99
+  Nano16Pro_tube.in                            5739efad81d31079 phys=16;0dd974666d0f4050cf72fd9cb7f588947b9bc069e4763562e92e1f53f4b0bc54
+  Obsidian Marinelli 0.5.in                    35b92b1fb842f475 phys=16;d216a533b0064525adbd2366561511cdb1471c14a38745555532579fb9951c21
+  RadiaCode_AuthorMarinelli0.2.in              acc9ca5c31ad2678 phys=16;d7666038908fd1471e0b4338bbf048c56b9846e7fd59f8876b415bef7a03a106
+  RadiaCode_AuthorMarinelli0.5.in              7f902126582603c9 phys=16;5e53fa12f6b806d33567576ce57399a051f97495818f1b2af1f5ffdbf890de5b
+  RadiaCode_Marinelli0.5.in                    dc05e8013bcc1333 phys=16;34e3475bd158dbb8e7f916441970789aa04026955e0cb86a18b0601002285544
+  --- C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  AS80_lu_front.in                             63da4d44bdc5e33e phys=16;d7e994b23a5fcd3e44a0c443f3b44d82ec16bddbdd74e14d2877e65e2489c7b1
+  AS80_point0.in                               d4975eb5e38fc740 phys=16;815b2cb608a1b70425e76c79510561ad28df06d366c3e5fa23ed0be4ece459e4
+  ASN16_lu_side.in                             c2e1bbb10b3eee58 phys=16;c4ff44d30b5efa22f35b8112bc8f208f4a2a31977a6743fc3120bea22ac96fa3
+  G1S_denta100_oisn10_100_p16.in               8752bd8f01dd0bf0 phys=16;4028326c647a791d4ddfa33a5db0fe9652d02adfe52f6a0fdd60e81ad17615f1
+  G1S_denta100_risn379_100_p16.in              2d27bb0257d38ac6 phys=16;a44ba5d002c716eebe492b21b9a74a392e5c722da80467d1890b47631beeccdb
+  G1S_denta120_oisn06_057_p24.in               11e500254936e4ee phys=16;f38dceb9837d9ce22d2a79b13238bc469ea96fc963f30a2111c87db94b0f6e2e
+  G1S_denta120_oisn06_062_p24.in               4841a1cc3a31ef6c phys=16;8c96f3c8bad3be65bc4531455510feca7df4145441e17902bdf35757149cdbf1
+  G1S_denta120_oisn06_064_p24.in               bbdad8369b011de0 phys=16;cf73ab074da73dd22bbd3571ac6d450854e2b616d04756660927299893f77840
+  G1S_denta120_oisn06_066_p24.in               0c31e88525da7373 phys=16;f97ac08a707b40da749e8c2dd809197f637c543f5447f02161da17636de6c35b
+  G1S_denta120_oisn16_155_p24.in               9cc9e8b72b691fb6 phys=16;7774eaacef29b79bdafad8b976f3b26423fb8ba4d40b617bc557011dc1b5b328
+  G1S_denta120_oisn16_160_p24.in               d625f5d4fc75e5d4 phys=16;eb23cf35f762baf2ded6a0e42913d40722d83bc8f391fee0843bc05e514320a3
+  G1S_denta120_oisn16_166_p24.in               fa2da8ad41b4f73e phys=16;f5cf593f9dcb46d9ab56c729aed5a99dc94eac961d8d31b968eb121692b0fcad
+  G1S_denta120_oisn16_167_p24.in               e246b97d978497d9 phys=16;8660b2f8c432ac2d31039b0de9071154c9aa40bdb3788cb452b2264eb67b532d
+  G1S_mar1l_oisn06_055_p16.in                  891e1ae7a71317fe phys=16;815cf1be9f2a5c411f2802d6ffeb2c805cdaa901214e7f37dc53777a54afdf80
+  G1S_mar1l_oisn06_057_p16.in                  4cd1252fdd61f247 phys=16;66ba0500c58f448ea7db07f32eb4d8abee85a060432d1c5314054b0b2509f1b9
+  G1S_mar1l_oisn06_057_p24.in                  c0667eb028645aa9 phys=16;b63f278c4f823aa8c2505bc4af49b0480819299588b0b3c1d9193ceacd56f53e
+  G1S_mar1l_oisn06_062_p16.in                  6d37584478741145 phys=16;0fa0819428d9c390faf3efefb2fcd3e4d50bd61717d9eab704c6a2fb44b71312
+  G1S_mar1l_oisn06_062_p24.in                  7a08ea2b1f2b2101 phys=16;1a0522a09d0b563f63058d430c4d5b236c80f5e96ee85c07e3de56de70e4aa20
+  G1S_mar1l_oisn06_064_p24.in                  c85ad26e2d765c43 phys=16;36db72cdf78d4122df8ad2be672d99a91a649293b7fb1ed8bd5b3e07721ad1f7
+  G1S_mar1l_oisn06_066_p16.in                  ee8c460b47771cb9 phys=16;d944b0ad3344388cba854b4ba612f31c9de0ecf24266f2fd9d7faea53c537f13
+  G1S_mar1l_oisn06_066_p24.in                  1f09e6cf877f480b phys=16;27f7cffa705a134609b54b4fa02d58a00c55148ede896a4c3d3d7ffdc81916ca
+  G1S_mar1l_oisn16_155_p16.in                  73c3c286579fb8b3 phys=16;d58c9e1f0673cf35143dd6daf09b00f8a3ec9609a975bd6a9261fc95f9472e22
+  G1S_mar1l_oisn16_155_p24.in                  8f3fd4d8e1d167ea phys=16;c1fbc80b14c3aced9ab2e2dccbb374ce28e6eb0e5c9254ea364e0d769e6914a8
+  G1S_mar1l_oisn16_160_p16.in                  75340264eb30c6e8 phys=16;f5a94fc787dd5024fb90226d8b10863db45602881aa78c4abad2ab1652d17364
+  G1S_mar1l_oisn16_160_p24.in                  1c3d31d6f73e7918 phys=16;3ae20f004655ae76f3cac5509fca1f664674187ccd1ccb9ecb3f22f5f20b2afc
+  G1S_mar1l_oisn16_166_p16.in                  c49b067371612b37 phys=16;b99d00e3a0a7e04d9ef0fbec0608fa2d9ccff25e1e67b27855af5dcbc94e5ba0
+  G1S_mar1l_oisn16_166_p24.in                  ab357e4752edd429 phys=16;3756585929289683a9707abefd80a60c832bc4db60acf45e3720c39a44447a45
+  G1S_mar1l_oisn16_167_p16.in                  d996ff10611145c3 phys=16;52f83660f5e8392557c67cad6271ca7b7a9863ae754ffe89d9c2b0c6da853f41
+  G1S_mar1l_oisn16_167_p24.in                  ed2757ade68cf11e phys=16;674c1496b483c72b1d665d80b257c8685f079ac84ac935addda8950fc216fd43
+  G1S_mar1l_risn379_100_p16.in                 acdabed986f7e73a phys=16;dae0db029d36f9e4f7a853def6d15dddc51d1f88699376cc1fd9cdd1664a973b
+  G1S_petri60_oisn06_057_p24.in                08362c7d776b1618 phys=16;ede34bce104a69a49cf57dbe3befef332f4fcfbc889729fbc2b92449a9cc88af
+  G1S_petri60_oisn06_062_p24.in                66a45ad24afbc4f1 phys=16;90de8ef0d8458c1beb02df428322a80ae8228c2c442a7613accd132960db3413
+  G1S_petri60_oisn06_064_p24.in                14fe3c068bfe31b0 phys=16;dba46b2faddf76dddaf12d027c076600bb101cf1fe882cb1a4a5ca6ab7b7ee89
+  G1S_petri60_oisn06_067_p24.in                463cadb2cc7991af phys=16;fc6f0e6fc682d40617c6f6f2425c0bd4ab0785ba35819ceb45d70014e8bcec8c
+  G1S_petri60_oisn10_100_p16.in                48f63d197ea4d949 phys=16;44d19ff9bdab2028a1649070977c5008ee424663845be9f5ddc454a78f850ffa
+  G1S_petri60_oisn16_155_p24.in                ddc3d0563033f61e phys=16;bc2ee2d8c12c663361fbd1dfcb45c4957944a00281de17f649b5a5349c9e063b
+  G1S_petri60_oisn16_160_p24.in                821273023bb1a41b phys=16;6023deaba89c02ccf44b5c64aed99a87ca6a21cea034a1749d4afbee54ea80d0
+  G1S_petri60_oisn16_167_p24.in                8e464ca5ed2e874c phys=16;2c107ee57bc5ec90b5d81f32202e5153b242d0e332e87986beaad8281de0f07c
+  G1S_petri60_risn379_100_p16.in               946eeb37035a5eb0 phys=16;3eaf13b8b619bd0be9c3071984a2c94862f420a2ae27f2e0e3afba189bacbe66
+  G1S_point25.in                               5e93694af1bc407a phys=16;d11b97f8bc40620df754d5849372bfa4449b7d6f08ca2f7bf561899c8c140abc
+  G1S_point5.in                                8b9244d97e435805 phys=16;5bd0e88b5de19d3916fd2dc93da8e68d7e946526acf0b64219fd7956efb5fea1
+  RC103_lu_front.in                            87dbef6efd42c5d1 phys=16;6a3d6205c2427d5cf4fc15db2c0b73b3e761cbb4fdbd4b58689d08db5454d0cd
+  RC103_marinelli05_kcl.in                     942d6e25899c9c9c phys=16;5813f577c951797ed0e844575671fadf5393de457da63bb0d79743cd7d84a8f1
+  RC103_point0.in                              347c2dcee867d15c phys=16;e1af69ff4fbdeec691df3910db9b03f68b7263e6cbeba1f90775dc4355afe1c5
+  всего сцен 65
+
+§6 СПИСОК СЛОТА ПРОБЫ (что видно в редакторе геометрии)
+  веществ вида «проба» 14
+  ОИСН-06: в списке ЕСТЬ
+  ОИСН-06 (2024): в списке ЕСТЬ
+  ОИСН-10: в списке ЕСТЬ
+  ОИСН-16: в списке ЕСТЬ
+  ОИСН-16 (2024): в списке ЕСТЬ
+  РИСН-379: в списке ЕСТЬ
