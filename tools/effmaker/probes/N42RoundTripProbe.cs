@@ -1119,7 +1119,8 @@ namespace N42RoundTripProbe
                 broken.FwhmCalibration = keepCurve;
             }
 
-            rc |= ResetKeepsCurve(Path.Combine(dir, "g11_reset.xml"));
+            rc |= ResetWipesCurve(dir);
+            rc |= QuietDoors(dir);
 
             Console.WriteLine("=== ИТОГ ===");
             foreach (string s in armTotals) Console.WriteLine("  " + s);
@@ -1127,93 +1128,442 @@ namespace N42RoundTripProbe
         }
 
         /// <summary>
-        /// ⛔ ЗАМЕР ПОПУТНОЙ НАХОДКИ (полоса F66, 06.09.2026), в отказ пробы не идёт.
+        /// ⛔ `A260` (полоса F71, 06.09.2026), решение Amber вопросником,
+        /// дословно: «СНЯТЬ КРИВУЮ ВМЕСТЕ С ПРИБОРОМ».
         ///
-        /// `DocumentManager.ResetSpectrumConfig` — сброс настройки спектра, которым
-        /// обе двери ввоза встречают файл с ДРУГИМ числом каналов (и любой файл
-        /// при настройке «ввозить с пустой конфигурацией»), — заводит новый
-        /// `EnergySpectrum`, стирает фон, ROI и ПРИБОР (`DeviceConfig = new
-        /// DeviceConfigInfo()`), но НЕ трогает ни `FwhmCalibration`, ни
-        /// `PeakDetectionMethodConfig`. `CheckDocument` следом кривую тоже не
-        /// трогает: он строит умолчание ТОЛЬКО когда кривой нет.
+        /// `DocumentManager.ResetSpectrumConfig` — сброс настройки спектра,
+        /// которым двери ввоза встречают файл с ДРУГИМ числом каналов (и любой
+        /// файл при настройке «ввозить с пустой конфигурацией»), — стирал фон,
+        /// ROI и ПРИБОР, но кривую разрешения и настройки поиска пиков оставлял
+        /// (замер полосы F66). Теперь снимает и их, а следом звучит УЖЕ ГОТОВЫЙ
+        /// голос «кривой нет» (~~`A234`~~, `ReportMissingFwhmCalibration`).
         ///
-        /// Цена, если это так: кривая разрешения задана В КАНАЛАХ, а число
-        /// каналов только что сменилось — и поиск пиков идёт по ширинам, взятым
-        /// с прежней шкалы прежнего прибора, которого у документа больше нет.
-        /// Родня — ~~`A239`~~ / ~~`A257`~~ («модель разрешения выдуманного
-        /// прибора»), но там кривую ВЫДУМЫВАЛИ, а здесь её УНАСЛЕДОВАЛИ.
+        /// ⛔ ТРИ ПЛЕЧА, И ТРЕТЬЕ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ. Без него «кривой
+        /// после ввоза нет» значило бы всего лишь «проба умеет её обнулять»:
+        ///   1. сброс по ЧИСЛУ КАНАЛОВ (файл другой длины, настройка снята);
+        ///   2. сброс по НАСТРОЙКЕ «ввозить с пустой конфигурацией» (длина та
+        ///      же) — второй путь к тому же сбросу, и он тоже обязан снимать;
+        ///   3. СБРОСА НЕТ (длина та же, настройка снята) — ни кривая, ни
+        ///      настройки поиска, ни фон, ни ROI, ни прибор не двигаются НИ НА
+        ///      ОДНО ПОЛЕ, и голоса «кривой нет» не звучит.
         ///
-        /// Проба это ИЗМЕРЯЕТ и печатает числами; отказом не считает — чем это
-        /// заменить (снять кривую, чтобы прозвучал голос ~~`A234`~~, либо
-        /// перестроить её по прибору документа), решением Amber не покрыто, а
-        /// сочинять поведение полоса не вправе.
+        /// ⚠ Голос считается ИМЕННО ТОТ, а не всякий: у первого плеча рядом
+        /// звучит предупреждение о числе каналов, и счёт «строк BecqMoni:»
+        /// смешал бы их. Примета берётся из САМОГО ресурса
+        /// `ERRNoFwhmCalibrationImport` собранной сборки — кусок текста между
+        /// подстановками {2} и {3}, — поэтому не зависит ни от культуры, ни от
+        /// правки текста.
+        ///
+        /// ⚠ Печатается ПОЛНАЯ опись спектра до и после, а не одна кривая:
+        /// строка `A260` называла кривую и настройки поиска, но считала их не
+        /// та же полоса, что писала строку. Всё, что пережило сброс, помечается
+        /// в описи словом ОСТАЛОСЬ.
         /// </summary>
-        static int ResetKeepsCurve(string path)
+        static int ResetWipesCurve(string dir)
         {
-            Console.WriteLine("=== ЧТО ОСТАЁТСЯ ОТ ПРЕЖНЕГО ПРИБОРА ПОСЛЕ СБРОСА НАСТРОЙКИ СПЕКТРА (F66) ===");
+            Console.WriteLine("=== ЧТО ОСТАЁТСЯ ОТ ПРЕЖНЕГО ПРИБОРА ПОСЛЕ СБРОСА НАСТРОЙКИ СПЕКТРА (`A260`) ===");
+            Console.WriteLine("  примета голоса «кривой нет»: «" + CurveVoiceMark() + "»");
+            Console.WriteLine();
+            int rc = 0;
+            rc |= ResetArm("СБРОС ПО ЧИСЛУ КАНАЛОВ", Path.Combine(dir, "g11_reset.xml"), false, true);
+            rc |= ResetArm("СБРОС ПО НАСТРОЙКЕ «ввозить с пустой конфигурацией»", Path.Combine(dir, "f71_emptycfg.xml"), true, true);
+            rc |= ResetArm("СБРОСА НЕТ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ", Path.Combine(dir, "f71_noreset.xml"), false, false);
+            return rc;
+        }
+
+        /// <summary>
+        /// Примета голоса «кривой нет»: кусок текста ресурса
+        /// `ERRNoFwhmCalibrationImport` между подстановками {2} и {3}. Ресурс
+        /// спрашивается у СОБРАННОЙ сборки тем же ResourceManager, каким
+        /// пользуется приложение (`A154`), и в той же культуре, в которой идёт
+        /// прогон, — иначе примета не совпала бы с тем, что напечатала дверь.
+        /// </summary>
+        static string CurveVoiceMark()
+        {
+            try
+            {
+                ResourceManager rm = new ResourceManager("BecquerelMonitor.Properties.Resources",
+                                                         typeof(DocumentManager).Assembly);
+                string fmt = rm.GetString("ERRNoFwhmCalibrationImport", Thread.CurrentThread.CurrentUICulture);
+                if (string.IsNullOrEmpty(fmt)) return "(ресурс не найден)";
+                int a = fmt.IndexOf("{2}", StringComparison.Ordinal);
+                int b = fmt.IndexOf("{3}", StringComparison.Ordinal);
+                if (a < 0 || b < 0 || b <= a) return "(в тексте нет {2}…{3})";
+                return fmt.Substring(a + 3, b - a - 3).Trim();
+            }
+            catch (Exception ex)
+            {
+                return "(ресурс не читается: " + ex.Message + ")";
+            }
+        }
+
+        /// <summary>
+        /// Опись спектра — то, из чего видно, ЧТО ИМЕННО пережило сброс.
+        /// Порядок строк постоянный: два снимка сличаются построчно.
+        /// </summary>
+        static List<string> Inventory(ResultData rd)
+        {
+            List<string> v = new List<string>();
+            if (rd == null) { v.Add("спектра нет"); return v; }
+            v.Add("каналов                = " + (rd.EnergySpectrum == null ? "(нет спектра)"
+                    : rd.EnergySpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)));
+            v.Add("прибор.имя             = " + (rd.DeviceConfig == null ? "(нет)" : "«" + rd.DeviceConfig.Name + "»"));
+            v.Add("прибор.guid            = " + (rd.DeviceConfig == null ? "(нет)" : Nz(rd.DeviceConfig.Guid)));
+            v.Add("ссылка на прибор.имя   = " + (rd.DeviceConfigReference == null ? "(нет)" : "«" + Nz(rd.DeviceConfigReference.Name) + "»"));
+            v.Add("ссылка на прибор.guid  = " + (rd.DeviceConfigReference == null ? "(нет)" : Nz(rd.DeviceConfigReference.Guid)));
+            FWHMPeakDetectionMethodConfig cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            v.Add("настройки поиска пиков = " + Cfg3(cfg)
+                  + (cfg == null ? "" : " SNR " + cfg.Min_SNR.ToString("0.###", CultureInfo.InvariantCulture)
+                                        + ", допуск " + cfg.Tolerance.ToString("0.###", CultureInfo.InvariantCulture)));
+            v.Add("кривая настроек        = " + (cfg == null ? "(настроек нет)" : Curve(cfg.FwhmCalibration)));
+            v.Add("кривая разрешения      = " + Curve(rd.FwhmCalibration));
+            v.Add("ROI                    = " + (rd.ROIConfig == null ? "(нет)" : "«" + Nz(rd.ROIConfig.Name) + "»"));
+            v.Add("ссылка на ROI          = " + (rd.ROIConfigReference == null ? "(нет)" : Nz(rd.ROIConfigReference.Guid)));
+            v.Add("фон.спектр             = " + (rd.BackgroundEnergySpectrum == null ? "(нет)" : "есть"));
+            v.Add("фон.файл               = " + Nz(rd.BackgroundSpectrumFile));
+            v.Add("фон.путь               = " + Nz(rd.BackgroundSpectrumPathname));
+            v.Add("кривая эффективности   = " + (rd.Efficiency == null ? "(нет)" : "«" + Nz(rd.Efficiency.Name) + "»"));
+            v.Add("родная из файла        = " + (rd.FileEfficiency == null ? "(нет)" : "«" + Nz(rd.FileEfficiency.Name) + "»"));
+            v.Add("примета детектора      = " + Nz(rd.DetectorFeature));
+            v.Add("найденных пиков        = " + Peaks(rd.DetectedPeaks));
+            v.Add("пиков калибровки       = " + Peaks(rd.CalibrationPeaks));
+            v.Add("точек калибровки       = " + (rd.CalibrationPoints == null ? "(нет)"
+                    : rd.CalibrationPoints.Count.ToString(CultureInfo.InvariantCulture)
+                      + (rd.CalibrationPoints.Count == 0 ? "" : ", первая на канале "
+                          + rd.CalibrationPoints[0].Channel.ToString(CultureInfo.InvariantCulture))));
+            return v;
+        }
+
+        /// <summary>Сколько пиков и на каком канале первый: по номеру видно, что он вне новой шкалы.</summary>
+        static string Peaks(List<Peak> list)
+        {
+            if (list == null) return "(нет)";
+            if (list.Count == 0) return "0";
+            return list.Count.ToString(CultureInfo.InvariantCulture)
+                   + ", первый на канале " + list[0].Channel.ToString(CultureInfo.InvariantCulture);
+        }
+
+        static string Nz(string s)
+        {
+            if (s == null) return "(null)";
+            if (s.Length == 0) return "(пусто)";
+            return s;
+        }
+
+        /// <summary>
+        /// Одно плечо сброса. <paramref name="emptyConfig"/> — настройка
+        /// «ввозить с пустой конфигурацией» на время плеча;
+        /// <paramref name="expectReset"/> — обязан ли сброс сработать.
+        /// Файл ввоза сочиняется той же длины, что у документа, когда сброса
+        /// быть не должно, и вчетверо короче — когда должен.
+        /// </summary>
+        static int ResetArm(string state, string path, bool emptyConfig, bool expectReset)
+        {
+            Console.WriteLine("=== " + state + " | " + Path.GetFileName(path) + " ===");
             DocumentManager dm = DocumentManager.GetInstance();
+            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+            bool keepEmptyConfig = gc.ImportSpectrumWithEmptyConfig;
             if (File.Exists(path)) File.Delete(path);
             DocEnergySpectrum doc = dm.CreateDocument(path);
             if (doc == null)
             {
                 Console.WriteLine("  документ НЕ СОЗДАН — мерить нечего");
                 Console.WriteLine();
-                return 0;
+                armTotals.Add(state + " -> документ не создан — НЕ СОШЛОСЬ");
+                return 1;
             }
             ResultData rd = doc.ActiveResultData;
-            int chBefore = rd.EnergySpectrum.NumberOfChannels;
-            string curveBefore = CurveState(rd);
-            string devBefore = rd.DeviceConfig == null ? "(нет)" : "«" + rd.DeviceConfig.Name + "»";
-            string cfgBefore = Cfg3(rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
 
-            // Число каналов в файле НАРОЧНО другое — только так дверь зовёт
-            // `ResetSpectrumConfig` при выключенной настройке «пустая конфигурация».
-            int chFile = chBefore == 1024 ? 2048 : 1024;
-            string atomPath = Path.Combine(Path.GetDirectoryName(path), "g11_reset_ats.txt");
+            // Приметы, которых у свежего документа нет: без них опись молчала
+            // бы о половине полей, и «пережило сброс» было бы нечем измерить.
+            rd.DetectorFeature = "F71-примета детектора";
+            rd.Efficiency = new EfficiencyConfigData { Name = "F71-кривая эффективности", Guid = "f71-eff-guid" };
+            rd.FileEfficiency = rd.Efficiency;
+            rd.BackgroundSpectrumFile = "f71-фон.xml";
+            rd.BackgroundSpectrumPathname = Path.Combine(Path.GetDirectoryName(path), "f71-фон.xml");
+            // Пики и точки калибровки — на каналах, которых на новой шкале
+            //   (1024) нет вовсе. Пустые списки сброс НЕ МЕРЯЛИ: ноль равен
+            //   нулю и до, и после, и «ОСТАЛОСЬ» ничего не значило бы.
+            rd.DetectedPeaks = new List<Peak> { new Peak { Channel = 5000, Energy = 1460.8, SNR = 42.0 } };
+            rd.CalibrationPeaks = new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } };
+            rd.CalibrationPoints = new List<CalibrationPoint> { new CalibrationPoint(5000, 1460.8m, 123) };
+
+            int chBefore = rd.EnergySpectrum == null ? 0 : rd.EnergySpectrum.NumberOfChannels;
+            List<string> before = Inventory(rd);
+            int chFile = expectReset && !emptyConfig ? (chBefore == 1024 ? 2048 : 1024) : chBefore;
+            string atomPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + "_ats.txt");
             WriteAtomSpectra(atomPath, chFile);
 
             List<string> voices = new List<string>();
             TextWriter realErr = Console.Error;
             StringWriter caught = new StringWriter();
+            string trouble = null;
+            gc.ImportSpectrumWithEmptyConfig = emptyConfig;
             Console.SetError(caught);
-            int v;
             try
             {
                 dm.ImportDocumentAtomSpectra(doc, atomPath);
             }
+            catch (Exception ex)
+            {
+                trouble = "ввоз оборвался: " + ex.Message;
+            }
             finally
             {
-                v = Voices(caught, voices);
+                Voices(caught, voices);
                 Console.SetError(realErr);
+                gc.ImportSpectrumWithEmptyConfig = keepEmptyConfig;
             }
 
             ResultData after = doc.ActiveResultData;
-            string curveAfter = CurveState(after);
-            Console.WriteLine("  ДО ввоза:    каналов " + chBefore.ToString(CultureInfo.InvariantCulture)
-                              + ", прибор " + devBefore + ", настройки " + cfgBefore + ", " + curveBefore);
-            Console.WriteLine("  файл ввоза:  каналов " + chFile.ToString(CultureInfo.InvariantCulture)
-                              + " (нарочно другое — иначе сброса нет)");
-            Console.WriteLine("  ПОСЛЕ ввоза: каналов " + after.EnergySpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
-                              + ", прибор " + (after.DeviceConfig == null ? "(нет)" : "«" + after.DeviceConfig.Name + "»")
-                              + ", настройки " + Cfg3(after.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig)
-                              + ", " + curveAfter);
-            Console.WriteLine("  голосов при ввозе: " + v);
-            foreach (string s in voices) Console.WriteLine("    " + s);
-            bool curveKept = after.FwhmCalibration != null && curveAfter == curveBefore;
-            bool devWiped = after.DeviceConfig == null || string.IsNullOrEmpty(after.DeviceConfig.Name);
-            bool chChanged = after.EnergySpectrum.NumberOfChannels != chBefore;
-            Console.WriteLine("  ВЫВОД: кривая прежняя — " + (curveKept ? "ДА" : "нет")
-                              + "; прибор стёрт — " + (devWiped ? "ДА" : "нет")
-                              + "; число каналов сменилось — " + (chChanged ? "ДА" : "нет"));
-            if (curveKept && devWiped && chChanged)
+            List<string> now = Inventory(after);
+
+            Console.WriteLine("  настройка «ввозить с пустой конфигурацией»: " + (emptyConfig ? "ВКЛ" : "выкл")
+                              + ";  каналов у документа " + chBefore.ToString(CultureInfo.InvariantCulture)
+                              + ", в файле " + chFile.ToString(CultureInfo.InvariantCulture)
+                              + (chFile == chBefore ? " (то же)" : " (другое)"));
+            Console.WriteLine("  ОПИСЬ СПЕКТРА (снято = поле изменилось сбросом, ОСТАЛОСЬ = пережило):");
+            int survived = 0, wiped = 0;
+            for (int i = 0; i < before.Count && i < now.Count; i++)
             {
-                Console.WriteLine("  ⚠ НАХОДКА ПОДТВЕРЖДЕНА ЗАМЕРОМ: шкала каналов сменилась, прибор стёрт,");
-                Console.WriteLine("    а модель разрешения осталась прежняя — поиск пиков считает ширины");
-                Console.WriteLine("    по кривой прибора, которого у документа больше нет (в отчёт полосы,");
-                Console.WriteLine("    не в отказ пробы: чем это заменить — решение Amber).");
+                bool same = before[i] == now[i];
+                if (same) survived++; else wiped++;
+                Console.WriteLine("    " + (same ? "ОСТАЛОСЬ  " : "изменилось") + "  " + before[i]);
+                if (!same) Console.WriteLine("                          -> " + now[i].Substring(now[i].IndexOf('=') + 2));
             }
+            Console.WriteLine("  полей всего " + before.Count.ToString(CultureInfo.InvariantCulture)
+                              + ": изменилось " + wiped.ToString(CultureInfo.InvariantCulture)
+                              + ", осталось " + survived.ToString(CultureInfo.InvariantCulture));
+
+            string mark = CurveVoiceMark();
+            int curveVoices = 0;
+            foreach (string one in voices)
+            {
+                if (mark.Length > 0 && one.IndexOf(mark, StringComparison.Ordinal) >= 0) curveVoices++;
+            }
+            Console.WriteLine("  голосов всего " + voices.Count.ToString(CultureInfo.InvariantCulture)
+                              + ", из них «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture));
+            foreach (string one in voices) Console.WriteLine("    " + one);
+
+            // --- приговор ---------------------------------------------------
+            bool devWiped = after.DeviceConfig == null || string.IsNullOrEmpty(after.DeviceConfig.Name);
+            bool curveGone = after.FwhmCalibration == null;
+            bool chChanged = after.EnergySpectrum != null && after.EnergySpectrum.NumberOfChannels != chBefore;
+            List<string> fail = new List<string>();
+            if (trouble != null) fail.Add(trouble);
+            if (expectReset)
+            {
+                // Плечо мерит только тогда, когда сброс И ПРАВДА сработал.
+                if (!devWiped) fail.Add("прибор НЕ стёрт — сброса не было, плечо не мерит");
+                if (!emptyConfig && !chChanged) fail.Add("число каналов не сменилось — сброса не было, плечо не мерит");
+                if (!curveGone) fail.Add("кривая разрешения ОСТАЛАСЬ: " + Curve(after.FwhmCalibration));
+                if (curveVoices != 1) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидался ровно 1");
+            }
+            else
+            {
+                if (devWiped) fail.Add("прибор стёрт, хотя сброса быть не должно");
+                if (chChanged) fail.Add("число каналов сменилось, хотя сброса быть не должно");
+                if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
+                if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
+                if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
+            }
+            bool ok = fail.Count == 0;
+            string total = state + " -> прибор стёрт " + (devWiped ? "ДА" : "нет")
+                           + ", кривая снята " + (curveGone ? "ДА" : "нет")
+                           + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
+                           + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
+                           + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ: " + string.Join("; ", fail.ToArray()));
+            Console.WriteLine("  ИТОГ: " + total);
             Console.WriteLine();
-            return 0;
+            armTotals.Add(total);
+            return ok ? 0 : 1;
+        }
+
+        /// <summary>
+        /// ⛔ ДВЕ ДВЕРИ, КОТОРЫЕ МОЛЧАЛИ (`A260`, полоса F71, 06.09.2026).
+        ///
+        /// `ImportDocumentGBS` и `ImportCsvToDocument` тоже зовут сброс
+        /// настройки спектра, но <c>CheckDocument</c> и голос
+        /// <c>ReportMissingFwhmCalibration</c> у них до 06.09.2026 не звучали
+        /// вовсе — и были не нужны: сброс кривую ОСТАВЛЯЛ. Теперь он её СНИМАЕТ,
+        /// и без читателя обе двери отдавали бы документ без модели разрешения
+        /// молча — та самая немота, ради которой заведён ~~`A234`~~. По строке в
+        /// каждую дверь; здесь они меряются.
+        ///
+        /// Сброс здесь вызывается НАСТРОЙКОЙ «ввозить с пустой конфигурацией»,
+        /// а не числом каналов: у обеих дверей длина файла берётся из него
+        /// самого, и держать её равной документу проще, чем подгонять.
+        /// Положительный контроль у каждой двери свой — то же плечо с настройкой
+        /// СНЯТОЙ: опись не двигается ни на одно поле, голоса нет.
+        /// </summary>
+        static int QuietDoors(string dir)
+        {
+            Console.WriteLine("=== ДВЕ ДВЕРИ БЕЗ ЧИТАТЕЛЯ ПРИЧИНЫ: GBS И CSV СО СЧЁТОМ (`A260`) ===");
+            Console.WriteLine();
+            int rc = 0;
+            rc |= QuietDoorArm("GBS", "СБРОС ПО НАСТРОЙКЕ", Path.Combine(dir, "f71_gbs_on.xml"), true);
+            rc |= QuietDoorArm("GBS", "СБРОСА НЕТ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ", Path.Combine(dir, "f71_gbs_off.xml"), false);
+            rc |= QuietDoorArm("CSV", "СБРОС ПО НАСТРОЙКЕ", Path.Combine(dir, "f71_csv_on.xml"), true);
+            rc |= QuietDoorArm("CSV", "СБРОСА НЕТ — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ", Path.Combine(dir, "f71_csv_off.xml"), false);
+            return rc;
+        }
+
+        static int QuietDoorArm(string door, string state, string path, bool emptyConfig)
+        {
+            string head = "ДВЕРЬ " + door + " | " + state;
+            Console.WriteLine("=== " + head + " | " + Path.GetFileName(path) + " ===");
+            DocumentManager dm = DocumentManager.GetInstance();
+            GlobalConfigInfo gc = GlobalConfigManager.GetInstance().GlobalConfig;
+            bool keepEmptyConfig = gc.ImportSpectrumWithEmptyConfig;
+            if (File.Exists(path)) File.Delete(path);
+            DocEnergySpectrum doc = dm.CreateDocument(path);
+            if (doc == null)
+            {
+                Console.WriteLine("  документ НЕ СОЗДАН — мерить нечего");
+                Console.WriteLine();
+                armTotals.Add(head + " -> документ не создан — НЕ СОШЛОСЬ");
+                return 1;
+            }
+            ResultData rd = doc.ActiveResultData;
+            rd.DetectorFeature = "F71-примета детектора";
+            int chBefore = rd.EnergySpectrum == null ? 0 : rd.EnergySpectrum.NumberOfChannels;
+            List<string> before = Inventory(rd);
+
+            string input = Path.Combine(Path.GetDirectoryName(path),
+                                        Path.GetFileNameWithoutExtension(path) + (door == "GBS" ? ".spe" : ".csv"));
+            if (door == "GBS") WriteGbs(input, chBefore); else WriteCsvCounts(input, chBefore);
+
+            List<string> voices = new List<string>();
+            TextWriter realErr = Console.Error;
+            StringWriter caught = new StringWriter();
+            string trouble = null;
+            gc.ImportSpectrumWithEmptyConfig = emptyConfig;
+            Console.SetError(caught);
+            try
+            {
+                if (door == "GBS") dm.ImportDocumentGBS(doc, input);
+                else dm.ImportCsvToDocument(doc, 600, input);
+            }
+            catch (Exception ex)
+            {
+                trouble = "ввоз оборвался: " + ex.Message;
+            }
+            finally
+            {
+                Voices(caught, voices);
+                Console.SetError(realErr);
+                gc.ImportSpectrumWithEmptyConfig = keepEmptyConfig;
+            }
+
+            ResultData after = doc.ActiveResultData;
+            List<string> now = Inventory(after);
+            int wiped = 0;
+            for (int i = 0; i < before.Count && i < now.Count; i++)
+            {
+                if (before[i] != now[i])
+                {
+                    wiped++;
+                    Console.WriteLine("    изменилось  " + before[i]);
+                    Console.WriteLine("                          -> " + now[i].Substring(now[i].IndexOf('=') + 2));
+                }
+            }
+            string mark = CurveVoiceMark();
+            int curveVoices = 0;
+            foreach (string one in voices)
+            {
+                if (mark.Length > 0 && one.IndexOf(mark, StringComparison.Ordinal) >= 0) curveVoices++;
+            }
+            Console.WriteLine("  полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
+                              + " из " + before.Count.ToString(CultureInfo.InvariantCulture)
+                              + "; голосов всего " + voices.Count.ToString(CultureInfo.InvariantCulture)
+                              + ", из них «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture));
+            foreach (string one in voices) Console.WriteLine("    " + one);
+
+            bool curveGone = after.FwhmCalibration == null;
+            List<string> fail = new List<string>();
+            if (trouble != null) fail.Add(trouble);
+            if (emptyConfig)
+            {
+                if (after.DeviceConfig != null && !string.IsNullOrEmpty(after.DeviceConfig.Name))
+                    fail.Add("прибор НЕ стёрт — сброса не было, плечо не мерит");
+                if (!curveGone) fail.Add("кривая разрешения ОСТАЛАСЬ: " + Curve(after.FwhmCalibration));
+                if (curveVoices != 1) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидался ровно 1");
+            }
+            else
+            {
+                if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
+                if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
+                if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
+            }
+            bool ok = fail.Count == 0;
+            string total = head + " -> кривая снята " + (curveGone ? "ДА" : "нет")
+                           + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
+                           + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
+                           + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ: " + string.Join("; ", fail.ToArray()));
+            Console.WriteLine("  ИТОГ: " + total);
+            Console.WriteLine();
+            armTotals.Add(total);
+            return ok ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Файл GBS (`Ritecdat`) — вход двери `ImportDocumentGBS`. Разделы
+        /// читаются по порядку: `$SPEC_ID:`, `$DATE_MEA:`, `$MEAS_TIM:`,
+        /// `$DATA:` (вторым числом строки идёт НОМЕР ПОСЛЕДНЕГО канала, дверь
+        /// прибавляет единицу), отсчёты, `$ENER_DATA_X:` (число точек, потом
+        /// «канал энергия») и `$COUNTS:`.
+        ///
+        /// ⚠ ТОЧЕК РОВНО ДВЕ, И ЭТО НЕ ЛЕНЬ: дверь берёт порядок
+        /// многочлена `Math.Min(4, numpoints - 1)`. На пяти точках это
+        /// ЧЕТВЁРТЫЙ порядок, и подгонка через СТРОГО ПРЯМЫЕ точки
+        /// выходит немонотонной от шума в старших коэффициентах — измерено:
+        /// ввоз обрывался отказом «функция калибровки должна монотонно
+        /// возрастать», к кривой разрешения отношения не имеющим. Две точки
+        /// дают первый порядок, а прямая монотонна по построению.
+        /// </summary>
+        static void WriteGbs(string path, int channels)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("$SPEC_ID:");
+            sb.AppendLine("проба F71: вход двери GBS");
+            sb.AppendLine("$DATE_MEA:");
+            sb.AppendLine("09/06/2026 12:00:00");
+            sb.AppendLine("$MEAS_TIM:");
+            sb.AppendLine("600  600");
+            sb.AppendLine("$DATA:");
+            sb.AppendLine("0 " + (channels - 1).ToString(CultureInfo.InvariantCulture));
+            for (int i = 0; i < channels; i++)
+            {
+                sb.AppendLine(((i % 7) + 1).ToString(CultureInfo.InvariantCulture));
+            }
+            sb.AppendLine("$ENER_DATA_X:");
+            sb.AppendLine("2");
+            int[] chs = { 100, channels - 100 };
+            for (int i = 0; i < chs.Length; i++)
+            {
+                sb.AppendLine(chs[i].ToString(CultureInfo.InvariantCulture) + " "
+                              + (0.5 * chs[i]).ToString("F4", CultureInfo.InvariantCulture));
+            }
+            sb.AppendLine("$COUNTS:");
+            sb.AppendLine("4096");
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+        }
+
+        /// <summary>
+        /// CSV «канал, отсчёты» — вход двери `ImportCsvToDocument`. Шапка ровно
+        /// из двух полей, и во втором обязана стоять длительность видом
+        /// `(TotalTime=600s)`: без неё дверь бросает «Wrong header format».
+        /// </summary>
+        static void WriteCsvCounts(string path, int channels)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Channel,Count (TotalTime=600s)");
+            for (int i = 0; i < channels; i++)
+            {
+                sb.AppendLine(i.ToString(CultureInfo.InvariantCulture) + ","
+                              + ((i % 5) + 2).ToString(CultureInfo.InvariantCulture));
+            }
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
         }
 
         /// <summary>Сколько строк `BecqMoni:` (голосов `AppUi.Report` без окон) в перехваченном потоке ошибок.</summary>
