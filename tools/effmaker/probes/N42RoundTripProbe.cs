@@ -1158,6 +1158,17 @@ namespace N42RoundTripProbe
         /// строка `A260` называла кривую и настройки поиска, но считала их не
         /// та же полоса, что писала строку. Всё, что пережило сброс, помечается
         /// в описи словом ОСТАЛОСЬ.
+        ///
+        /// ⛔ ОСТАТОК `A260` (полоса F74, 06.09.2026), второе решение Amber
+        /// вопросником, дословно: «Снять пики и точки калибровки». Опись
+        /// показала, что сброс переживали <c>DetectedPeaks</c>,
+        /// <c>CalibrationPeaks</c> и <c>CalibrationPoints</c> на каналах 5000 и
+        /// 6000 при новой шкале в 1024. Плечи судят их поимённо, и рядом стоит
+        /// ВТОРОЙ КОНТРОЛЬ — НА ГРАНИЦЫ РЕШЕНИЯ: ссылка на прибор, кривая
+        /// эффективности с родной из файла и примета детектора обязаны
+        /// ОСТАТЬСЯ (Amber велела их не трогать, назвав цену: ссылка сегодня
+        /// единственный след стёртого прибора). Без этого ряда «снято» было бы
+        /// неотличимо от «снесено лишнее».
         /// </summary>
         static int ResetWipesCurve(string dir)
         {
@@ -1250,6 +1261,18 @@ namespace N42RoundTripProbe
             return s;
         }
 
+        /// <summary>Длина списка, −1 у отсутствующего: null и пустой список — разные состояния.</summary>
+        static int Cnt(System.Collections.ICollection c)
+        {
+            return c == null ? -1 : c.Count;
+        }
+
+        static string CntS(System.Collections.ICollection c)
+        {
+            int n = Cnt(c);
+            return n < 0 ? "(нет списка)" : n.ToString(CultureInfo.InvariantCulture);
+        }
+
         /// <summary>
         /// Одно плечо сброса. <paramref name="emptyConfig"/> — настройка
         /// «ввозить с пустой конфигурацией» на время плеча;
@@ -1287,6 +1310,16 @@ namespace N42RoundTripProbe
             rd.DetectedPeaks = new List<Peak> { new Peak { Channel = 5000, Energy = 1460.8, SNR = 42.0 } };
             rd.CalibrationPeaks = new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } };
             rd.CalibrationPoints = new List<CalibrationPoint> { new CalibrationPoint(5000, 1460.8m, 123) };
+            // ⛔ Посадка ПРОВЕРЯЕТСЯ (полоса F74): не сядь она, «после сброса
+            //   пусто» значило бы «нечего было снимать», и плечо подтвердило бы
+            //   правку, которой нет. Три числа берутся здесь и печатаются ниже
+            //   как «посажено».
+            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(rd.CalibrationPeaks), seedPt = Cnt(rd.CalibrationPoints);
+            string seedRefName = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Name;
+            string seedRefGuid = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Guid;
+            string seedEff = rd.Efficiency == null ? null : rd.Efficiency.Name;
+            string seedFileEff = rd.FileEfficiency == null ? null : rd.FileEfficiency.Name;
+            string seedFeature = rd.DetectorFeature;
 
             int chBefore = rd.EnergySpectrum == null ? 0 : rd.EnergySpectrum.NumberOfChannels;
             List<string> before = Inventory(rd);
@@ -1345,14 +1378,66 @@ namespace N42RoundTripProbe
                               + ", из них «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture));
             foreach (string one in voices) Console.WriteLine("    " + one);
 
+            // --- `A260`, ОСТАТОК (полоса F74): что снимается и что ОСТАЁТСЯ ---
+            //   Решение Amber 06.09.2026, вопросником, дословно: «Снять пики и
+            //   точки калибровки». Ссылку на прибор, кривую эффективности и
+            //   примету детектора — ОСТАВИТЬ как есть; цена второго варианта
+            //   названа Amber и отвергнута («вернуть прибор после ввоза будет
+            //   нечем, ссылка — единственный его след в файле»).
+            //   ⛔ Второй ряд — не украшение отчёта, а КОНТРОЛЬ НА ГРАНИЦЫ
+            //   решения: без него «снято» не отличается от «снесено лишнее».
+            Console.WriteLine("  `A260` ОСТАТОК — ОБЯЗАНО СНЯТЬСЯ (посажено -> после сброса):");
+            Console.WriteLine("    найденных пиков   : " + seedDet.ToString(CultureInfo.InvariantCulture)
+                              + " -> " + CntS(after.DetectedPeaks));
+            Console.WriteLine("    пиков калибровки  : " + seedCal.ToString(CultureInfo.InvariantCulture)
+                              + " -> " + CntS(after.CalibrationPeaks));
+            Console.WriteLine("    точек калибровки  : " + seedPt.ToString(CultureInfo.InvariantCulture)
+                              + " -> " + CntS(after.CalibrationPoints));
+            Console.WriteLine("  `A260` ОСТАТОК — ОБЯЗАНО ОСТАТЬСЯ (решение Amber «оставить как есть»):");
+            Console.WriteLine("    ссылка на прибор  : «" + Nz(seedRefName) + "» / " + Nz(seedRefGuid) + " -> «"
+                              + (after.DeviceConfigReference == null ? "(нет)" : Nz(after.DeviceConfigReference.Name))
+                              + "» / " + (after.DeviceConfigReference == null ? "(нет)" : Nz(after.DeviceConfigReference.Guid)));
+            Console.WriteLine("    кривая эффект-ти  : «" + Nz(seedEff) + "» -> «"
+                              + (after.Efficiency == null ? "(нет)" : Nz(after.Efficiency.Name)) + "»");
+            Console.WriteLine("    родная из файла   : «" + Nz(seedFileEff) + "» -> «"
+                              + (after.FileEfficiency == null ? "(нет)" : Nz(after.FileEfficiency.Name)) + "»");
+            Console.WriteLine("    примета детектора : «" + Nz(seedFeature) + "» -> «"
+                              + (after.DetectorFeature == null ? "(нет)" : Nz(after.DetectorFeature)) + "»");
+
             // --- приговор ---------------------------------------------------
             bool devWiped = after.DeviceConfig == null || string.IsNullOrEmpty(after.DeviceConfig.Name);
             bool curveGone = after.FwhmCalibration == null;
             bool chChanged = after.EnergySpectrum != null && after.EnergySpectrum.NumberOfChannels != chBefore;
             List<string> fail = new List<string>();
             if (trouble != null) fail.Add(trouble);
+            // Посадка примет — сначала: без неё плечо не мерит вовсе.
+            if (seedDet != 1 || seedCal != 1 || seedPt != 1)
+                fail.Add("приметы НЕ СЕЛИ (пиков " + seedDet + ", пиков калибровки " + seedCal
+                         + ", точек " + seedPt + ") — плечо не мерит");
+            if (string.IsNullOrEmpty(seedFeature) || seedEff == null || seedFileEff == null)
+                fail.Add("приметы прибора НЕ СЕЛИ (примета «" + Nz(seedFeature) + "», кривая «"
+                         + Nz(seedEff) + "») — плечо не мерит");
             if (expectReset)
             {
+                // `A260`, остаток: три списка обязаны стать ПУСТЫМИ — именно
+                //   пустыми, а не null: к ним приводят без проверки и
+                //   `PeakStabilizer`, и `DCEnergyCalibrationView`.
+                if (Cnt(after.DetectedPeaks) != 0)
+                    fail.Add("найденные пики НЕ сняты: " + CntS(after.DetectedPeaks));
+                if (Cnt(after.CalibrationPeaks) != 0)
+                    fail.Add("пики калибровки НЕ сняты: " + CntS(after.CalibrationPeaks));
+                if (Cnt(after.CalibrationPoints) != 0)
+                    fail.Add("точки калибровки НЕ сняты: " + CntS(after.CalibrationPoints));
+                // Контроль на ГРАНИЦЫ решения: сверх названного не снято ничего.
+                if (after.DeviceConfigReference == null || after.DeviceConfigReference.Name != seedRefName
+                        || after.DeviceConfigReference.Guid != seedRefGuid)
+                    fail.Add("ссылка на прибор СДВИНУЛАСЬ, а Amber велела оставить её как есть");
+                if (after.Efficiency == null || after.Efficiency.Name != seedEff)
+                    fail.Add("кривая эффективности СНЯТА, а Amber велела оставить её как есть");
+                if (after.FileEfficiency == null || after.FileEfficiency.Name != seedFileEff)
+                    fail.Add("родная кривая из файла СНЯТА, а Amber велела оставить её как есть");
+                if (after.DetectorFeature != seedFeature)
+                    fail.Add("примета детектора СНЯТА, а Amber велела оставить её как есть");
                 // Плечо мерит только тогда, когда сброс И ПРАВДА сработал.
                 if (!devWiped) fail.Add("прибор НЕ стёрт — сброса не было, плечо не мерит");
                 if (!emptyConfig && !chChanged) fail.Add("число каналов не сменилось — сброса не было, плечо не мерит");
@@ -1366,12 +1451,33 @@ namespace N42RoundTripProbe
                 if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
                 if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
                 if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
+                // Ввоз без сброса не трогает и пиков с точками — по каждому
+                //   полю отдельно, а не одним счётом сдвинутых полей.
+                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(after.CalibrationPeaks) != seedCal
+                        || Cnt(after.CalibrationPoints) != seedPt)
+                    fail.Add("пики или точки сдвинулись (" + CntS(after.DetectedPeaks) + "/"
+                             + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
+                             + "), хотя сброса быть не должно");
             }
+            // Четыре поля, которые решение Amber велело ОСТАВИТЬ, — одним словом
+            //   в итоговой строке; порознь они напечатаны выше.
+            bool kept = after.DeviceConfigReference != null
+                        && after.DeviceConfigReference.Name == seedRefName
+                        && after.DeviceConfigReference.Guid == seedRefGuid
+                        && after.Efficiency != null && after.Efficiency.Name == seedEff
+                        && after.FileEfficiency != null && after.FileEfficiency.Name == seedFileEff
+                        && after.DetectorFeature == seedFeature;
             bool ok = fail.Count == 0;
             string total = state + " -> прибор стёрт " + (devWiped ? "ДА" : "нет")
                            + ", кривая снята " + (curveGone ? "ДА" : "нет")
                            + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
                            + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
+                           + ", пики/пики калибровки/точки " + CntS(after.DetectedPeaks) + "/"
+                           + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
+                           + " (посажено " + seedDet.ToString(CultureInfo.InvariantCulture) + "/"
+                           + seedCal.ToString(CultureInfo.InvariantCulture) + "/"
+                           + seedPt.ToString(CultureInfo.InvariantCulture) + ")"
+                           + ", ссылка+эфф-ть+примета " + (kept ? "ОСТАЛИСЬ" : "СДВИНУЛИСЬ")
                            + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ: " + string.Join("; ", fail.ToArray()));
             Console.WriteLine("  ИТОГ: " + total);
             Console.WriteLine();
@@ -1426,6 +1532,19 @@ namespace N42RoundTripProbe
             }
             ResultData rd = doc.ActiveResultData;
             rd.DetectorFeature = "F71-примета детектора";
+            // Полоса F74: те же приметы, что у плеч `ResetArm`, — пики и точки
+            //   на каналах ВНЕ будущей шкалы, кривая эффективности. Без них
+            //   двери GBS и CSV мерили бы остаток `A260` пустыми списками, то
+            //   есть не мерили бы вовсе.
+            rd.Efficiency = new EfficiencyConfigData { Name = "F71-кривая эффективности", Guid = "f71-eff-guid" };
+            rd.FileEfficiency = rd.Efficiency;
+            rd.DetectedPeaks = new List<Peak> { new Peak { Channel = 5000, Energy = 1460.8, SNR = 42.0 } };
+            rd.CalibrationPeaks = new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } };
+            rd.CalibrationPoints = new List<CalibrationPoint> { new CalibrationPoint(5000, 1460.8m, 123) };
+            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(rd.CalibrationPeaks), seedPt = Cnt(rd.CalibrationPoints);
+            string seedRefName = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Name;
+            string seedEff = rd.Efficiency == null ? null : rd.Efficiency.Name;
+            string seedFeature = rd.DetectorFeature;
             int chBefore = rd.EnergySpectrum == null ? 0 : rd.EnergySpectrum.NumberOfChannels;
             List<string> before = Inventory(rd);
 
@@ -1480,25 +1599,52 @@ namespace N42RoundTripProbe
             foreach (string one in voices) Console.WriteLine("    " + one);
 
             bool curveGone = after.FwhmCalibration == null;
+            Console.WriteLine("  `A260` ОСТАТОК: пики/пики калибровки/точки посажено "
+                              + seedDet.ToString(CultureInfo.InvariantCulture) + "/"
+                              + seedCal.ToString(CultureInfo.InvariantCulture) + "/"
+                              + seedPt.ToString(CultureInfo.InvariantCulture) + " -> после "
+                              + CntS(after.DetectedPeaks) + "/" + CntS(after.CalibrationPeaks) + "/"
+                              + CntS(after.CalibrationPoints)
+                              + ";  ОБЯЗАНО ОСТАТЬСЯ: ссылка «"
+                              + (after.DeviceConfigReference == null ? "(нет)" : Nz(after.DeviceConfigReference.Name))
+                              + "», эфф-ть «" + (after.Efficiency == null ? "(нет)" : Nz(after.Efficiency.Name))
+                              + "», примета «" + Nz(after.DetectorFeature) + "»");
             List<string> fail = new List<string>();
             if (trouble != null) fail.Add(trouble);
+            if (seedDet != 1 || seedCal != 1 || seedPt != 1)
+                fail.Add("приметы НЕ СЕЛИ (" + seedDet + "/" + seedCal + "/" + seedPt + ") — плечо не мерит");
             if (emptyConfig)
             {
                 if (after.DeviceConfig != null && !string.IsNullOrEmpty(after.DeviceConfig.Name))
                     fail.Add("прибор НЕ стёрт — сброса не было, плечо не мерит");
                 if (!curveGone) fail.Add("кривая разрешения ОСТАЛАСЬ: " + Curve(after.FwhmCalibration));
                 if (curveVoices != 1) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидался ровно 1");
+                // `A260`, остаток: снимаются пики и точки — и только они.
+                if (Cnt(after.DetectedPeaks) != 0) fail.Add("найденные пики НЕ сняты: " + CntS(after.DetectedPeaks));
+                if (Cnt(after.CalibrationPeaks) != 0) fail.Add("пики калибровки НЕ сняты: " + CntS(after.CalibrationPeaks));
+                if (Cnt(after.CalibrationPoints) != 0) fail.Add("точки калибровки НЕ сняты: " + CntS(after.CalibrationPoints));
+                if (after.DeviceConfigReference == null || after.DeviceConfigReference.Name != seedRefName)
+                    fail.Add("ссылка на прибор СДВИНУЛАСЬ, а Amber велела оставить её как есть");
+                if (after.Efficiency == null || after.Efficiency.Name != seedEff)
+                    fail.Add("кривая эффективности СНЯТА, а Amber велела оставить её как есть");
+                if (after.DetectorFeature != seedFeature)
+                    fail.Add("примета детектора СНЯТА, а Amber велела оставить её как есть");
             }
             else
             {
                 if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
                 if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
                 if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
+                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(after.CalibrationPeaks) != seedCal
+                        || Cnt(after.CalibrationPoints) != seedPt)
+                    fail.Add("пики или точки сдвинулись, хотя сброса быть не должно");
             }
             bool ok = fail.Count == 0;
             string total = head + " -> кривая снята " + (curveGone ? "ДА" : "нет")
                            + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
                            + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
+                           + ", пики/пики калибровки/точки " + CntS(after.DetectedPeaks) + "/"
+                           + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
                            + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ: " + string.Join("; ", fail.ToArray()));
             Console.WriteLine("  ИТОГ: " + total);
             Console.WriteLine();
