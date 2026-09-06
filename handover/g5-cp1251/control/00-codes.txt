@@ -1,0 +1,2 @@
+== ctrl_fixed: код 0  UnicodeEncodeError=0  строка НАХОДОК=1
+== ctrl_broken: код 1  UnicodeEncodeError=1  строка НАХОДОК=0

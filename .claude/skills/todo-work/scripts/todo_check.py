@@ -25,6 +25,13 @@ import io
 import re
 import sys
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 ROW = re.compile(r'\| \*\*([AT]\d+)\*\* \|')
 CLOSED = ('~~открыто~~', 'ЗАКРЫТА', 'ОТМЕНЕНА')
 

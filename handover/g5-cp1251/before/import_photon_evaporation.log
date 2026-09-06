@@ -1,0 +1,9 @@
+usage: import_photon_evaporation.py [-h] [--db DB] [--source SOURCE] [--dry]
+                                    [--no-fill]
+
+options:
+  -h, --help       show this help message and exit
+  --db DB
+  --source SOURCE
+  --dry
+  --no-fill

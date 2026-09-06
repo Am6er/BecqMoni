@@ -1,0 +1,9 @@
+usage: link_isomer_parents.py [-h] [--nucdb NUCDB] [--schemedb SCHEMEDB]
+                              [--state STATE] [--apply]
+
+options:
+  -h, --help           show this help message and exit
+  --nucdb NUCDB
+  --schemedb SCHEMEDB
+  --state STATE
+  --apply

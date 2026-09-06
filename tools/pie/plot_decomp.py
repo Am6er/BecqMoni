@@ -19,6 +19,14 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+import sys
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 # Цвет закреплён за компонентом (не за рангом в конкретном спектре), чтобы
 # картинки разных спектров читались одной легендой. База — Окабе-Ито
 # (CVD-safe); идентичность дублируется прямыми подписями.

@@ -1,0 +1,41 @@
+| скрипт | доводы | код | UnicodeEncodeError | трассировка | строк | с | чем мерен |
+|---|---|---|---|---|---|---|---|
+| `tools/check_corpus_library.py` | `` | 1 | ДА | да | 13 | 0.2 | штатный прогон |
+| `tools/check_done_headers.py` | `` | 1 | нет | нет | 19 | 0.2 | штатный прогон (KNOWN_RED, код 1 — приговор) |
+| `tools/check_fsa_docs.py` | `` | 0 | нет | нет | 2 | 0.2 | штатный прогон |
+| `tools/check_headless.py` | `` | 0 | нет | нет | 10 | 3.0 | штатный прогон |
+| `tools/check_registry.py` | `` | 1 | нет | нет | 224 | 97.4 | штатный прогон (KNOWN_RED, код 1 — приговор) |
+| `tools/check_resx.py` | `` | 0 | нет | нет | 8 | 4.0 | штатный прогон |
+| `tools/check_resx_designer.py` | `` | 0 | нет | нет | 11 | 8.9 | штатный прогон |
+| `tools/check_resx_letters.py` | `` | 0 | нет | нет | 6 | 3.3 | штатный прогон |
+| `tools/check_scheme_gaps.py` | `` | 0 | нет | нет | 19 | 0.2 | штатный прогон |
+| `tools/check_all.py` | `--quiet` | 0 | нет | нет | 50 | 25.1 | читатель, штатный прогон |
+| `.claude/skills/todo-work/scripts/todo_check.py` | `--help` | 0 | нет | нет | 10 | 0.2 | --help |
+| `.claude/skills/todo-work/scripts/todo_edit.py` | `--help` | 0 | нет | нет | 8 | 0.2 | --help |
+| `tools/CORPUS/scripts/split_corpus.py` | `--check` | 2 | нет | нет | 6 | 0.1 | отказ снятого ключа --check (T164), файл не пишется |
+| `tools/CORPUS/scripts/rebuild_corpus.py` | `` | 1 | ДА | да | 11 | 0.2 | отказ без --from-library |
+| `tools/CORPUS/scripts/ecal_compare.py` | `` | 1 | ДА | да | 11 | 0.3 | без доводов печатает __doc__ |
+| `tools/CORPUS/scripts/mx_noise.py` | `--help` | 0 | нет | нет | 7 | 0.3 | --help |
+| `tools/CORPUS/scripts/mx_swap.py` | `--help` | 0 | нет | нет | 8 | 0.2 | --help |
+| `tools/CORPUS/scripts/peakshape.py` | `--help` | 0 | нет | нет | 9 | 0.3 | --help |
+| `tools/CORPUS/scripts/res_apply.py` | `--help` | 0 | нет | нет | 15 | 0.3 | --help |
+| `tools/CORPUS/scripts/res_form.py` | `--help` | 0 | нет | нет | 6 | 0.3 | --help |
+| `tools/CORPUS/scripts/res_low.py` | `--help` | 0 | нет | нет | 6 | 0.3 | --help |
+| `tools/nucdb/check_edges.py` | `--help` | 0 | нет | нет | 5 | 0.2 | --help |
+| `tools/nucdb/check_interpolation.py` | `--help` | 0 | нет | нет | 6 | 0.2 | --help |
+| `tools/nucdb/compare_copies.py` | `--help` | 0 | нет | нет | 12 | 0.2 | --help |
+| `tools/nucdb/compare_intensities.py` | `--help` | 0 | нет | нет | 8 | 0.2 | --help |
+| `tools/nucdb/compare_photo.py` | `--help` | 0 | нет | нет | 9 | 0.2 | --help |
+| `tools/nucdb/db_hygiene.py` | `--help` | 0 | нет | нет | 7 | 0.2 | --help |
+| `tools/nucdb/import_photon_evaporation.py` | `--help` | 0 | нет | нет | 9 | 0.2 | --help |
+| `tools/nucdb/link_isomer_parents.py` | `--help` | 0 | нет | нет | 9 | 0.2 | --help |
+| `tools/nucdb/fill_intensity.py` | `` | 1 | нет | нет | 76 | 0.2 | отказ без доводов (usage) |
+| `tools/nucdb/import_geant4.py` | `` | 1 | нет | нет | 66 | 0.2 | отказ без доводов (usage) |
+| `tools/nucdb/import_light_yield.py` | `` | 1 | нет | нет | 78 | 0.2 | отказ без доводов (usage) |
+| `tools/nucdb/import_sandia_coincidence.py` | `` | 1 | нет | нет | 1 | 0.2 | отказ без доводов (usage) |
+| `tools/nucdb/import_fluor_yield.py` | `` | 1 | нет | нет | 1 | 0.2 | отказ без доводов (usage) |
+| `tools/nucdb/split_db.py` | `` | 1 | нет | нет | 48 | 0.2 | отказ без доводов (usage) |
+| `tools/pie/compare.py` | `--help` | 0 | нет | нет | 15 | 0.2 | --help |
+| `tools/pie/plot_decomp.py` | `--help` | 0 | нет | нет | 23 | 0.7 | --help |
+| `tools/pie/score.py` | `--help` | 0 | нет | нет | 22 | 0.2 | --help |
+| `tools/pie/sweep_sthr.py` | `--help` | 0 | нет | нет | 10 | 0.2 | --help |

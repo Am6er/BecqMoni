@@ -23,6 +23,13 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 ATTESTED = os.path.join(ROOT, 'data', 'eff_curve_g1s.csv')
 SPECTRA = os.path.join(ROOT, 'corpus', 'spectra')

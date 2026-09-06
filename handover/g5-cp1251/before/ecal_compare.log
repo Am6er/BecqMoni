@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\ecal_compare.py", line 160, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\ecal_compare.py", line 114, in main
+    print(__doc__)
+    ~~~~~^^^^^^^^^
+  File "C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u26d4' in position 77: character maps to <undefined>

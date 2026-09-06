@@ -19,6 +19,13 @@ import os
 import sqlite3
 import sys
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir, os.pardir))
 DB = os.path.join(REPO, 'BecquerelMonitor', 'matdb.sqlite')

@@ -1,0 +1,8 @@
+usage: compare_intensities.py [-h] [--nucdb NUCDB] [--schemedb SCHEMEDB]
+                              [--worst WORST]
+
+options:
+  -h, --help           show this help message and exit
+  --nucdb NUCDB
+  --schemedb SCHEMEDB
+  --worst WORST

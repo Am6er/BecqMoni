@@ -85,6 +85,13 @@ import corpus_calib
 from res_low import measured_points
 from spectrum import Spectrum
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 CORPUS = os.path.abspath(os.path.join(HERE, os.pardir, 'corpus'))
 
 #: Ниже этой энергии модель никем не спрашивается (самая низкая линия корпуса —

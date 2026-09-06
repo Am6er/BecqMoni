@@ -1,0 +1,224 @@
+# Номера
+
+TODO.md  строк 549, столкновений внутри файла: нет
+DONE.md  строк 329, столкновений внутри файла: нет
+переиспользовано между файлами: N12, N13
+  (T25: оставлено сознательно, новых так заводить нельзя —
+   номер берётся максимальным по обоим файлам)
+следующий свободный номер: A253, B29, C5, D49, E42, F31, M12, N19, P7, R10, S144, T239, V28, W31, X3
+
+# Ссылки на файлы, которых нет в дереве
+
+  TODO.md  A23   строка 211  *.ru.resx
+  TODO.md  A35   строка 223  Lu176.xml
+  TODO.md  A49   строка 238  Th232(WT-20).xml
+  TODO.md  A50   строка 240  *.xml, .resx
+  TODO.md  A75   строка 264  corpus/spectra/<ключ>.xml
+  TODO.md  A84   строка 273  --map=<ключ,guid>.csv
+  TODO.md  A88   строка 277  *.resx, .ru.resx
+  TODO.md  A91   строка 280  *.Designer.cs, ru.resx
+  TODO.md  A95   строка 284  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+  TODO.md  A98   строка 287  *.cs, .resx, Designer.cs
+  TODO.md  A99   строка 288  *.ru.resx
+  TODO.md  A107  строка 296  BecquerelMonitor/**/*.resx, ru.resx
+  TODO.md  A115  строка 304  Designer.cs
+  TODO.md  A118  строка 307  .resx, .ru.resx, Foo.Designer.cs, Foo.cs, Foo.resx
+  TODO.md  A124  строка 313  *.Designer.cs, *.resx
+  TODO.md  A126  строка 315  Designer.cs, ru.resx
+  TODO.md  A145  строка 334  .cs/.Designer.cs/.resx/.ru.resx, .csproj, FsaOverlay.cs
+  TODO.md  A167  строка 356  config/ROI/*.xml, config\ROI\*.xml
+  TODO.md  A168  строка 357  .csproj
+  TODO.md  A173  строка 362  *.cs, Designer.cs
+  TODO.md  A187  строка 376  .ru.resx
+  TODO.md  A188  строка 377  .resx, .ru.resx, Designer.cs
+  TODO.md  A189  строка 378  check_resx*.py
+  TODO.md  A201  строка 389  .ru.resx, Resources*.resx
+  TODO.md  A202  строка 390  *.resx, Designer.cs
+  TODO.md  A205  строка 393  .resx
+  TODO.md  A207  строка 395  .xml, check_resx*.py
+  TODO.md  A221  строка 409  config/device/*.xml
+  TODO.md  A229  строка 417  *.resx, .ru.resx
+  TODO.md  A244  строка 429  .Designer.cs, .resx, .ru.resx, DC*.cs, FSAReportView*.cs, Properties/Resources*.resx, ROI*.cs, XPTable/*.cs, tools/check_resx*.py
+  TODO.md  A247  строка 432  .resx, .ru.resx
+  TODO.md  A248  строка 433  .resx, .ru.resx
+  TODO.md  A249  строка 434  .resx
+  TODO.md  S3    строка 466  FullSpectrumAnalysis/*.cs
+  TODO.md  S44   строка 475  BecquerelMonitor/**/*.cs, check_resx*.py
+  TODO.md  E19   строка 476  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml
+  TODO.md  S52   строка 478  !AS80x80\Lu-176.xml
+  TODO.md  S109  строка 483  tools/pie/out_s109/s109_peaks_m*.csv
+  TODO.md  W10   строка 555  BecquerelMonitor/**/*.cs
+  TODO.md  E17   строка 565  .resx
+  TODO.md  R1    строка 581  BecquerelMonitor/LibraryPeakFitter.cs, LineSetBuilder.cs
+  TODO.md  C2    строка 590  *.resx, BecquerelMonitor/**/*.cs
+  TODO.md  C4    строка 591  config/ROI/*.xml
+  TODO.md  N17   строка 607  xray_widths.xml, xraydb.sqlite
+  TODO.md  D7    строка 617  xray_widths.xml
+  TODO.md  D35   строка 625  BecquerelMonitor/**/*.cs
+  TODO.md  T43   строка 658  data.perfView.csv
+  TODO.md  S137  строка 666  components.csv
+  TODO.md  S143  строка 672  corpus-base-out-mini.md
+  TODO.md  T21   строка 677  t21_co60_off.json, t21_sc_cyl_off.json, t21_sc_mar_off.json
+  TODO.md  T63   строка 678  *_spline_components.csv, *_spline_limits.csv, *_spline_runs.csv, config\NuclideDefinition.OLD.xml
+  TODO.md  T67   строка 681  runs.csv
+  TODO.md  T68   строка 682  corpus-run-with-matrix.md, scripts/*.ps1
+  TODO.md  T76   строка 684  *.md
+  TODO.md  T79   строка 687  .sqlite, .xml
+  TODO.md  T80   строка 688  Ghost.xml, config\NuclideDefinition.OLD.xml, config\device\*.xml
+  TODO.md  T81   строка 689  *.sqlite
+  TODO.md  T89   строка 695  .cs, tools\effmaker\*.cs, tools\effmaker\probes\*.cs
+  TODO.md  T91   строка 696  corpus-base-out-v5.md, memory/corpus-base-out-v5.md
+  TODO.md  T97   строка 700  *.ru.resx
+  TODO.md  T113  строка 707  handover-*.md, scratchpad/f10/t113_scan.py
+  TODO.md  T119  строка 712  .ps1, config\GeometryMaterials.xml
+  TODO.md  T128  строка 719  corpus-base-<база>.md
+  TODO.md  T137  строка 728  tools/**/*.py
+  TODO.md  T139  строка 730  .resx, .ru.resx
+  TODO.md  T145  строка 736  *.sqlite
+  TODO.md  T149  строка 740  config\ROI\*.xml, config\device\*.xml
+  TODO.md  T155  строка 746  .ps1, .py
+  TODO.md  T156  строка 747  .resx, Foo.resx, check_resx*.py
+  TODO.md  T157  строка 748  Designer.cs, ru.resx
+  TODO.md  T158  строка 749  *.resx, .resx, .ru.resx
+  TODO.md  T166  строка 757  .resx
+  TODO.md  T174  строка 765  config/ROI/*.xml
+  TODO.md  T177  строка 768  FsaOverlay.cs
+  TODO.md  T182  строка 773  .cs
+  TODO.md  T188  строка 779  *.md, tools/**/*.ps1
+  TODO.md  T190  строка 781  config\ROI\*.xml, config\device\*.xml
+  TODO.md  T194  строка 785  .cs
+  TODO.md  T199  строка 790  tools/effmaker/**/*.cs
+  TODO.md  T200  строка 791  *.cs, *.py, tools/**/*.ps1
+  TODO.md  T203  строка 794  *.resx, <ключ>.xml, Designer.cs, config/ROI/*.xml, handover/*-2026-09-05-*.md
+  TODO.md  T209  строка 800  *.sqlite
+  TODO.md  T220  строка 811  .ps1, tools/check_*.py
+  TODO.md  T223  строка 814  !AS80x80\Lu-176.xml, *.resx, --map=<ключ,guid>.csv, .ru.resx, Designer.cs, Foo.Designer.cs, FsaOverlay.cs, check_resx*.py, config/ROI/*.xml, corpus/spectra/<ключ>.xml
+  TODO.md  T226  строка 816  .cs, .csproj
+  TODO.md  T229  строка 819  *.ru.resx
+  TODO.md  T230  строка 820  .resx, .ru.resx
+  TODO.md  T233  строка 823  .csproj
+  TODO.md  T234  строка 824  *.ru.resx, Foo.Designer.cs
+  TODO.md  T235  строка 825  *.resx, .resx
+  TODO.md  T238  строка 828  *.Designer.cs, *.resx, add_keys*.py, tools/**/*.py
+  DONE.md  E20   строка 72   config\GeometryMaterials.xml, tools/effmaker/probes/MaterialLibraryProbe.cs
+  DONE.md  B15   строка 75   !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+  DONE.md  B9    строка 76   !AS80x80\Lu-176.xml, !ASN16\Lu176.xml
+  DONE.md  S81   строка 86   Th232_29.07.2022.xml
+  DONE.md  S80   строка 87   Th232_29.07.2022.xml
+  DONE.md  S69   строка 88   Th232_29.07.2022.xml, limits.csv
+  DONE.md  S68   строка 89   .ru.resx, Th232_29.07.2022.xml, limits.csv
+  DONE.md  S71   строка 90   Th232_29.07.2022.xml
+  DONE.md  S70   строка 91   .ru.resx, Th232_29.07.2022.xml
+  DONE.md  B12   строка 94   .xml, …_Точечная-5см_5cm.xml
+  DONE.md  B10   строка 97   !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+  DONE.md  S60   строка 103  lines_<режим>.csv
+  DONE.md  S72   строка 105  Th232_29.07.2022.xml
+  DONE.md  S78   строка 106  Th232_29.07.2022.xml, components.csv
+  DONE.md  S79   строка 107  Th232_29.07.2022.xml
+  DONE.md  S85   строка 108  Th232_29.07.2022.xml
+  DONE.md  A10   строка 130  ru.resx
+  DONE.md  A11   строка 131  .ru.resx
+  DONE.md  A12   строка 132  *.ru.resx, PulseView.ru.resx
+  DONE.md  A15   строка 135  *.cs
+  DONE.md  S49   строка 169  components.csv
+  DONE.md  S47   строка 170  !AS80x80\Lu-176.xml
+  DONE.md  S46   строка 174  !AS80x80\Lu-176.xml, Lu176.xml
+  DONE.md  S77   строка 183  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+  DONE.md  S32   строка 204  gainscan.py, xray_widths.xml
+  DONE.md  S51   строка 211  runs.csv
+  DONE.md  S67   строка 214  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+  DONE.md  S36   строка 219  out_v5/*_spline_components.csv
+  DONE.md  S102  строка 221  .ps1
+  DONE.md  S9    строка 223  components.csv, limits.csv
+  DONE.md  S98   строка 225  *_runs.csv, runs.csv
+  DONE.md  S99   строка 226  .resx
+  DONE.md  S103  строка 228  runs.csv
+  DONE.md  S104  строка 229  DC*.cs, EnergySpectrumView*.cs, MainForm*.cs, components.csv
+  DONE.md  S110  строка 231  runs.csv
+  DONE.md  S111  строка 232  --dump=curves.csv, BecquerelMonitor/FWHMPeakDetector.cs, runs.csv
+  DONE.md  S101  строка 235  *_runs.csv
+  DONE.md  T33   строка 246  config\device\*.xml
+  DONE.md  T34   строка 247  !ASN16\Lu176.xml
+  DONE.md  B23   строка 255  tools/CORPUS/corpus/spectra/*.xml
+  DONE.md  B8    строка 261  !AS80x80\Lu-176.xml
+  DONE.md  W21   строка 268  .resx
+  DONE.md  E31   строка 315  tools/pie/out_v5/*_spline_runs.csv
+  DONE.md  R3    строка 326  gainscan.py, gainscan_stub.py
+  DONE.md  C3    строка 333  Designer.cs
+  DONE.md  N15   строка 349  xraydb.sqlite
+  DONE.md  N18   строка 384  *_components.csv, *_limits.csv, *_runs.csv, runs.csv
+  DONE.md  T57   строка 404  *.cs
+  DONE.md  T38   строка 429  runs.csv
+  DONE.md  T40   строка 432  .md
+  DONE.md  T45   строка 439  *.sqlite
+  DONE.md  T41   строка 441  **/*.cs, BecquerelMonitor/**/*.cs
+  DONE.md  T75   строка 444  *.sqlite, memory/msbuild-through-powershell-only.md
+  DONE.md  T60   строка 450  Nano.xml, config\ROI\Nano.xml
+  DONE.md  T65   строка 451  *_components.csv, *_limits.csv, *_runs.csv
+  DONE.md  T88   строка 453  .cs, config\ROI\*.xml, config\chuzhoy.xml
+  DONE.md  T72   строка 459  bin\Debug\config\*.xml
+  DONE.md  T83   строка 460  .cs
+  DONE.md  T105  строка 463  *.cs, runs.csv
+  DONE.md  T2    строка 466  docs/rules.md
+  DONE.md  T62   строка 467  BecquerelMonitor/EfficiencyMakerForm*.cs
+  DONE.md  T27   строка 469  xray_widths.xml
+
+# Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)
+
+  Это случай N8: реестр ссылается на работу, которой из
+  репозитория не видно. Либо закоммитить, либо не ссылаться.
+  TODO.md  S61   строка 165  lines_spline.csv
+  TODO.md  S61   строка 165  tools/pie/out_s60/lines_spline.csv
+  TODO.md  S134  строка 663  s109_peaks_m1.0.csv
+  TODO.md  S134  строка 663  tools/pie/out_s109/s109_peaks_m1.0.csv
+  TODO.md  T134  строка 725  tools/effmaker/out/a85/band.py
+  TODO.md  T223  строка 814  tools/effmaker/out/a85/band.py
+  TODO.md  T223  строка 814  tools/pie/out_s60/lines_spline.csv
+  TODO.md  T223  строка 814  tools/pie/out_s109/s109_peaks_m1.0.csv
+
+# Вне репозитория НАРОЧНО
+
+  .appwd.json          отметка оснастки корпуса, которую пишет сам appwd_plan.ps1 в каждый рабочий каталог tools/CORPUS/scripts/wd_*/ (каталоги в .gitignore); реестр ссылается на неё как на признак, а не на файл проекта (T63, T66, T68, T80, T84)
+  agents.md            личные указания сборки у сопровождающего, в .gitignore (CLAUDE.md, «Build»)
+  claude.md            личные указания агенту, в .gitignore; T2 как раз про то, что правила «для всех» так хранить нельзя
+  effprobe.xml         конфигурация прибора, которую пробы EffMaker кладут в свой рабочий каталог <wd>\config\device\ (tools/effmaker/probes/build_*/, в .gitignore); в реестре стоит шаблоном пути `<wd>\…` (T153)
+  settings.local.json  личный файл настроек агента Amber .claude/settings.local.json, в .gitignore (T218)
+
+# Имена из кода, которых нет в дереве
+
+  нет
+# Две копии `config/` (T66)
+
+  config                   25 файлов в git, на диске нет: 0
+  BecquerelMonitor/config  25 файлов в git, на диске нет: 0
+  совпадают побайтно: 22, расходятся: 3, есть только в одной: 0
+
+  известно (T66): NuclideDefinition.xml
+  известно (T66): ROI/Obsidian Marinelli 0.5.xml
+  известно (T66): ROI/RadiaCode Marinelli 0.5.xml
+
+# Действующая база корпуса — объявлена ли в ТРЁХ местах
+
+  TODO.md                  out_mini, 04.09.2026 (строка 119)
+  tools/CORPUS/README.md   out_mini, 04.09.2026 (строка 77)
+  память агента            corpus-base-out-mini.md
+      рядом лежат памятки СНЯТЫХ баз (corpus-base-out-b13.md, corpus-base-out-k128.md, corpus-base-out-v10.md, corpus-base-out-v11.md, corpus-base-out-v2.md, corpus-base-out-v5.md) — какая из них
+      действующая, машинно НЕ проверяется, только наличие
+
+# Форма графы состояния (T100)
+
+  TODO.md  строк 549, графа слита с задачей: 6, состояния не называют: 0
+  DONE.md  строк 329, графа слита с задачей: 0, состояния не называют: 0
+
+  положительный контроль этой проверки: python tools/check_registry.py --selftest
+# Заголовки DONE.md против их тел (T102)
+
+  DONE.md  строк 329, заголовков со словами незнания: 5, противоречий: 2
+  ⛔ DONE.md  S82   строка 85   заголовок: Стенд на настоящих спектрах Amber не воспроизводит её экран, и причина неизвестна.
+      тело: блок ✅ в той же ячейке, «СДЕЛАНО»
+  ⛔ DONE.md  T112  строка 449  заголовок: МАТРИЦЫ ОТКЛИКА КОРПУСА НЕ ВОСПРОИЗВОДЯТСЯ ИЗ ТОГО, ЧТО ЛЕЖИТ В РЕПОЗИТОРИИ.
+      тело: «СНЯТА», «НАХОДКИ НЕТ», «воспроизводится» без «не»
+  положительный контроль этой проверки: python tools/check_done_headers.py --selftest
+
+
+НАХОДОК: 10

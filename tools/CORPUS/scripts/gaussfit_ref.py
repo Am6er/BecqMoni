@@ -11,6 +11,14 @@ u"""⛔ ЭТО НЕ РАБОЧИЙ КОД. Прежний (до `V13`, 25.08.202
 
 import numpy as np
 
+import sys
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 FWHM_SIGMA = 2.0 * np.sqrt(2.0 * np.log(2.0))
 
 

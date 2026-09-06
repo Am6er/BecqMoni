@@ -21,6 +21,14 @@ import uuid
 import numpy as np
 from chains import chain_lines, CHAINS, ANCHORS
 
+import sys
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Detector resolution models fitted by calibrate.py: FWHM[keV] = sqrt(a+b*E+c*E^2)
