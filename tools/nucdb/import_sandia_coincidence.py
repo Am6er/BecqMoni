@@ -74,6 +74,13 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 NS = "{sandia.decay.xsd}"
 
 #: Минимальный выход линии, % на распад родителя.

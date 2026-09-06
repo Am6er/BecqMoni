@@ -40,6 +40,13 @@ import corpus_calib                                  # noqa: E402
 import corpus_def                                    # noqa: E402
 from spectrum import Spectrum                        # noqa: E402
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 SPECTRA = os.path.join(os.path.dirname(HERE), 'corpus', 'spectra')
 ENERGIES = (60.0, 300.0, 662.0, 1461.0, 2615.0)
 

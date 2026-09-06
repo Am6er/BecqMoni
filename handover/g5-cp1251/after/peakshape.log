@@ -1,0 +1,9 @@
+usage: peakshape.py [-h] [--restore RESTORE] [--shape SHAPE] [--anchor ANCHOR]
+                    [--report REPORT]
+
+options:
+  -h, --help         show this help message and exit
+  --restore RESTORE  группы через запятую (или all)
+  --shape SHAPE      группы через запятую (или all)
+  --anchor ANCHOR    ГРУППА=E:FWHM в кэВ, например ASN16=58.4:16.1
+  --report REPORT    группы через запятую (или all)

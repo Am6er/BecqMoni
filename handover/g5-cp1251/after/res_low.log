@@ -1,0 +1,6 @@
+usage: res_low.py [-h] [--below BELOW] [--det DET]
+
+options:
+  -h, --help     show this help message and exit
+  --below BELOW  порог, кэВ
+  --det DET      только эта группа

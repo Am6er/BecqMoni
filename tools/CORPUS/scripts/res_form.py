@@ -45,6 +45,13 @@ sys.path.insert(0, HERE)
 
 from res_low import measured_points
 
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
+
 GRID = np.linspace(20.0, 3000.0, 400)
 
 

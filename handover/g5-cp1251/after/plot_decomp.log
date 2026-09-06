@@ -1,0 +1,23 @@
+usage: plot_decomp.py [-h] [--style {stacked,lines}]
+                      [--scale {pow2,log,linear}] [--linear] [--ymax YMAX]
+                      [--lang {ru,en}]
+                      model_csv comp_csv spectrum out_png [title]
+
+positional arguments:
+  model_csv
+  comp_csv
+  spectrum
+  out_png
+  title
+
+options:
+  -h, --help            show this help message and exit
+  --style {stacked,lines}
+  --scale {pow2,log,linear}
+                        pow2 — ось в sqrt(N): ноль на месте, верх сжат, ничего
+                        не режется (по умолчанию); linear — с обрезанным
+                        верхом, как в классических пакетах
+  --linear              синоним --scale=linear
+  --ymax YMAX           верх линейной шкалы (авто: пик спектра вне
+                        низкоэнергетической зоны)
+  --lang {ru,en}

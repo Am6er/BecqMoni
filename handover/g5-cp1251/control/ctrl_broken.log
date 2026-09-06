@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\g5-cp1251\control\ctrl_broken.py", line 132, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\g5-cp1251\control\ctrl_broken.py", line 121, in main
+    print("\u26d4  ќЌ“–ќЋ№ G5 (подброшено в копию): знаки вне cp1251 \u2705 \u279c \u03c3 \U0001d11e")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u26d4' in position 0: character maps to <undefined>

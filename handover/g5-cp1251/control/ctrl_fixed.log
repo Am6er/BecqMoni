@@ -1,0 +1,5 @@
+⛔ КОНТРОЛЬ G5 (подброшено в копию): знаки вне cp1251 ✅ ➜ σ 𝄞
+⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026)
+  ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+  ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+НАХОДОК: 0

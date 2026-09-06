@@ -1,0 +1,6 @@
+usage: res_form.py [-h] [--min-points MIN_POINTS] [--split SPLIT]
+
+options:
+  -h, --help            show this help message and exit
+  --min-points MIN_POINTS
+  --split SPLIT         граница низа, кэВ

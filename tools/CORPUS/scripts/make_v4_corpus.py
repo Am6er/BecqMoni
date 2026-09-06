@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""V4: временная копия корпуса с ОДНИМ спектром ASN16_Th232, которому дана
+r"""V4: временная копия корпуса с ОДНИМ спектром ASN16_Th232, которому дана
 кривая эффективности из поставки (форма ЛСРМ-цилиндра; по V1 одной кривой на
 модель достаточно выше 200 кэВ). Сам корпус НЕ трогается.
 
@@ -18,6 +18,14 @@ import csv
 import io
 import os
 import shutil
+
+import sys
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
 
 repo = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      '..', '..', '..'))

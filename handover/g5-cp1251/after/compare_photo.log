@@ -1,0 +1,9 @@
+usage: compare_photo.py [-h] [--matdb MATDB] [--elements ELEMENTS]
+                        [--edge-window EDGE_WINDOW]
+
+options:
+  -h, --help            show this help message and exit
+  --matdb MATDB
+  --elements ELEMENTS
+  --edge-window EDGE_WINDOW
+                        полуширина окна вокруг края, доля энергии
