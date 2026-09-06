@@ -847,10 +847,21 @@ namespace BecquerelMonitor
                                     // `BqActivityProbe`: обе границы кривой — «молча ничего».
                                     // Теперь причина называется словами, как у зон в
                                     // `BecquerelCoefficient.Resolve`.
-                                    analytics.ActivityRefusal = ActivityCurveRefusal(detectedPeak.Energy, coeff);
+                                    analytics.ActivityRefusal = ActivityCurveRefusal(
+                                        detectedPeak.Energy, coeff, this.activeResultData.Efficiency == null);
                                 }
                             }
                         }
+                    }
+                    else
+                    {
+                        // ⛔ (`A193`, решение Amber 06.09.2026) Нетто ≤ 0 при фоне:
+                        // Lc/Ld выше не считаются вовсе, число — тоже; так было и
+                        // раньше, но панель молчала, как и при «кривой нет». Текст
+                        // нарочно не спорит с порогом обнаружения: строк Lc/Ld на
+                        // панели в этом состоянии нет (они под `Lc > 0`), а нетто
+                        // человек видит строкой выше. Само поведение числа не менялось.
+                        this.RefuseActivity(analytics, Resources.ActivityNetNotPositiveRefused);
                     }
                 }
                 else
@@ -864,15 +875,8 @@ namespace BecquerelMonitor
                     // же, как при отсутствующей кривой (измерено `BqActivityProbe`).
                     // Само поведение НЕ менялось: считать ли активность без фона —
                     // решение Amber, а не полосы; здесь только причина словами.
-                    Peak detectedPeak = this.FindActivityPeak(analytics);
-                    if (detectedPeak != null)
-                    {
-                        this.AssignActivityLabel(detectedPeak, analytics);
-                        if (analytics.ActivityRefusal == null)
-                        {
-                            analytics.ActivityRefusal = Resources.ActivityNoBackgroundRefused;
-                        }
-                    }
+                    // (`A193`) «Кривой нет» идёт впереди — см. `RefuseActivity`.
+                    this.RefuseActivity(analytics, Resources.ActivityNoBackgroundRefused);
                 }
 
                 analytics.NetCps = analytics.NetCounts / fgTime;
@@ -887,18 +891,22 @@ namespace BecquerelMonitor
         /// пик внутри выделения, и он подписан линией с выходом. Null — ветки
         /// активности нет: пиков в выделении нет или больше одного, подписи нет,
         /// режим пиков не Visible, ПШПВ выделения не измерена, спектр снят с
-        /// показа, кривой эффективности у спектра нет.
+        /// показа.
         ///
         /// Один на обе ветки — с фоновым спектром и без него (05.09.2026): до
         /// этого отбор жил внутри ветки с фоном, и без фона панель молчала.
+        ///
+        /// ⛔ (`A193`, решение Amber 06.09.2026) ОТСУТСТВИЕ КРИВОЙ ЗДЕСЬ БОЛЬШЕ
+        /// НЕ ВОРОТА: раньше `Efficiency == null` возвращал null, ветка не
+        /// начиналась, и человек без кривой у прибора видел пустое место — то
+        /// же, что видел до ~~`A189`~~ при энергии за краем. Теперь пик находится,
+        /// подпись ставится, а «кривой нет» называет `BecquerelCoefficient.ForLine`
+        /// (`LineProblem.NoCurve`) — тем же правилом, что и путь зон.
         /// </summary>
         Peak FindActivityPeak(SelectionAnalytics analytics)
         {
-            // Кривая берётся у САМОГО СПЕКТРА. Раньше её искали в
-            // наборе зон — там она больше не живёт.
             if (this.peakMode != PeakMode.Visible || !(analytics.SelectionFWHM > 0.0) ||
-                !this.activeResultData.Visible ||
-                this.activeResultData.Efficiency == null)
+                !this.activeResultData.Visible)
             {
                 return null;
             }
@@ -1101,10 +1109,19 @@ namespace BecquerelMonitor
         /// Отказ словами, когда коэффициент по кривой не получен (05.09.2026).
         /// ⛔ Не `BqCoeffOutOfRange` дословно: та строка кончается «Взято
         /// сохранённое значение», а у выделения сохранённого значения нет вовсе.
-        /// Причины, кроме «за краем», сводятся к одной: кривая не даёт числа на
-        /// этой энергии (пустая кривая, неположительная эффективность).
+        ///
+        /// (`A193`, 06.09.2026) «Кривой нет» — своим словом `ActivityNoCurveRefused`:
+        /// первая фраза та же, что у панели зон (`BqCoeffNoCurve`), а хвост
+        /// «взято сохранённое значение» снят по той же причине, что и у
+        /// `BqCoeffOutOfRange`. ⚠ Только когда кривой НЕТ (<paramref name="noCurve"/>,
+        /// то есть `Efficiency == null`): `ForLine` отвечает `NoCurve` и на кривую
+        /// без двух годных точек (`FsaEfficiency.FromConfig` их не различает), а
+        /// человеку, у которого кривая ВЫБРАНА, говорить «не выбрана» нельзя — для
+        /// него остаётся отказ ~~`A189`~~ «кривая не даёт значения» (плечо «нет ε»
+        /// `BqActivityProbe` этим и держится). Остальное сводится к тому же:
+        /// кривая не даёт числа на этой энергии.
         /// </summary>
-        static string ActivityCurveRefusal(double energyKev, BecquerelCoefficient.LineResult coeff)
+        static string ActivityCurveRefusal(double energyKev, BecquerelCoefficient.LineResult coeff, bool noCurve)
         {
             if (coeff.Problem == BecquerelCoefficient.LineProblem.OutOfRange)
             {
@@ -1112,7 +1129,60 @@ namespace BecquerelMonitor
                                      energyKev, coeff.CurveMin, coeff.CurveMax);
             }
 
+            if (coeff.Problem == BecquerelCoefficient.LineProblem.NoCurve && noCurve)
+            {
+                return Resources.ActivityNoCurveRefused;
+            }
+
             return string.Format(CultureInfo.InvariantCulture, Resources.ActivityNoEpsilonRefused, energyKev);
+        }
+
+        /// <summary>
+        /// Высота строки отказа на панели выделения: 16 px на каждую строку, на
+        /// которые GDI+ переносит текст в ширину панели. Меряется тем же
+        /// <see cref="Graphics.MeasureString(string, Font, int, StringFormat)"/>,
+        /// которым текст и рисуется, — своя оценка «влезет ли» разошлась бы с ним.
+        /// </summary>
+        int RefusalHeight(Graphics g, string text, int width)
+        {
+            float lineHeight = this.Font.GetHeight(g);
+            SizeF size = g.MeasureString(text, this.Font, width, this.centerFormat);
+            int lines = Math.Max(1, (int)Math.Round(size.Height / lineHeight));
+            return 16 * lines;
+        }
+
+        /// <summary>
+        /// (`A193`, решение Amber 06.09.2026 «оба, отказом на панели») Отказ вслух
+        /// в состоянии, где число НЕ СЧИТАЕТСЯ ВОВСЕ — фонового спектра нет либо
+        /// нетто ≤ 0 при фоне. Порядок тот же, что на пути с числом: подпись и её
+        /// отказы (рентген, выход ниже порога) первыми, затем «кривой нет» — тем
+        /// же `ForLine`, что и там, — и только потом причина состояния. Иначе
+        /// человек без кривой у прибора и без фона видел бы ДВА разных молчания.
+        /// Само поведение числа не менялось.
+        /// </summary>
+        void RefuseActivity(SelectionAnalytics analytics, string stateRefusal)
+        {
+            Peak detectedPeak = this.FindActivityPeak(analytics);
+            if (detectedPeak == null)
+            {
+                return;
+            }
+
+            this.AssignActivityLabel(detectedPeak, analytics);
+            if (analytics.ActivityRefusal != null)
+            {
+                return;
+            }
+
+            // Только «кривой НЕТ» идёт впереди причины состояния; кривая, которая
+            // есть, но пуста или не покрывает энергию, судится, когда число
+            // считается вообще (с фоном и нетто > 0) — как и до `A193`.
+            bool noCurve = this.activeResultData.Efficiency == null;
+            BecquerelCoefficient.LineResult coeff = BecquerelCoefficient.ForLine(
+                detectedPeak.Energy, detectedPeak.Nuclide.Intencity, this.activeResultData.Efficiency);
+            analytics.ActivityRefusal = noCurve && coeff.Problem == BecquerelCoefficient.LineProblem.NoCurve
+                ? ActivityCurveRefusal(detectedPeak.Energy, coeff, true)
+                : stateRefusal;
         }
 
         /// <summary>
@@ -4741,7 +4811,11 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 48;
                 }
-                if (this.selectionFWHM > 0.0 && activity > 0.0)
+                // (`A195`, 06.09.2026) Тем же условием, что и отрисовка числа ниже
+                // (`Lc > 0 && selectionFWHM > 0 && activity > 0`): без `Lc > 0`
+                // при Lc = 0 (фон есть, но в выделении у него нет отсчётов) 54 px
+                // резервировались, а число не рисовалось — пустое место.
+                if (Lc > 0 && this.selectionFWHM > 0.0 && activity > 0.0)
                 {
                     infopanel_height += 54;
                 }
@@ -4762,10 +4836,31 @@ namespace BecquerelMonitor
                     {
                         infopanel_height += 16;
                     }
+                    // (`A195`-родня, полоса G10 06.09.2026) Отступ 6 px перед
+                    // блоком ПШПВ ставится ниже при `Lc > 0 || activityLabelShown`;
+                    // при Lc > 0 он уже внутри 88/72, а при Lc = 0 с подписью (отказ
+                    // «фона нет», «нетто ≤ 0») не резервировался — последняя строка
+                    // панели свисала с заливки на 6 px. Найдено `SelectionPanelProbeG10`
+                    // контролем «вне панели кадр тот же» (154 точки вне заливки).
+                    if (!(Lc > 0))
+                    {
+                        infopanel_height += 6;
+                    }
                 }
+                // (полоса G10, 06.09.2026) Отказ длиннее ширины панели GDI+ переносит
+                // на вторую строку, а высота считалась ОДНОЙ строкой (32 = строка
+                // «Activity Bq: no K» + строка отказа): вторая строка ложилась поверх
+                // черты и «Peak Counts». Найдено `SelectionPanelProbeG10` на отказе
+                // «no efficiency curve is chosen for this spectrum: activity not shown»;
+                // отказы ~~`A189`~~ («… is outside the efficiency curve (… to … keV): …»)
+                // ещё длиннее и переносились так же с 05.09.2026. Строк — той же
+                // меркой GDI+, которой текст и переносится (`RefusalHeight`).
+                int refusalHeight = activityRefused
+                    ? this.RefusalHeight(g, selection.ActivityRefusal, table_width_origin - 12)
+                    : 0;
                 if (activityRefused)
                 {
-                    infopanel_height += 32;
+                    infopanel_height += 16 + refusalHeight;
                 }
                 g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
@@ -4943,8 +5038,11 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
                     g.DrawString(Resources.ResultNoCoefficient, this.Font, Brushes.DarkRed, r2, this.farFormat);
                     r2.Y += 16;
-                    g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed, r2, this.centerFormat);
-                    r2.Y += 16;
+                    // Прямоугольник — в высоту всех строк отказа (см. `RefusalHeight`):
+                    // r2 высотой 32 вмещал две строки, но шаг вниз был 16.
+                    g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed,
+                                 new Rectangle(r2.X, r2.Y, r2.Width, refusalHeight), this.centerFormat);
+                    r2.Y += refusalHeight;
                 }
 
                 if (Lc > 0 || activityLabelShown)

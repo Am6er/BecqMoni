@@ -1,0 +1,192 @@
+diff --git a/BecquerelMonitor/DocumentManager.cs b/BecquerelMonitor/DocumentManager.cs
+index ef612806..74c247de 100644
+--- a/BecquerelMonitor/DocumentManager.cs
++++ b/BecquerelMonitor/DocumentManager.cs
+@@ -6,6 +6,7 @@ using System.Collections.Generic;
+ using System.Globalization;
+ using System.IO;
+ using System.Linq;
++using System.Runtime.CompilerServices;
+ using System.Runtime.InteropServices;
+ using System.Runtime.InteropServices.ComTypes;
+ using System.Runtime.Remoting.Channels;
+@@ -286,7 +287,20 @@ namespace BecquerelMonitor
+                     if (data.FwhmCalibration == null)
+                     {
+                         FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)data.PeakDetectionMethodConfig;
+-                        data.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, data.EnergySpectrum.EnergyCalibration);
++                        // `A240`, восьмое место (полоса G11, 06.09.2026): причина
++                        //   отказа (`A235`) здесь СПРАШИВАЕТСЯ, но НЕ ЗВУЧИТ.
++                        //   Точка служебная: сюда ведут CreateDocument, OpenDocument,
++                        //   LoadDocument, ImportDocumentAtomSpectra, ImportDocumentN42,
++                        //   LoadBackgroundSpectrum и ImportCsvEnergyToDocument, и голос
++                        //   у каждой двери свой — ReportMissingFwhmCalibration, один
++                        //   на событие. Причина кладётся в поле рядом со спектром
++                        //   (fwhmRefusals) и читается оттуда WhyNoFwhmCalibration:
++                        //   дверь говорит то, что увидела ЭТА попытка построить
++                        //   кривую, а не переспрашивает. Второго голоса здесь быть
++                        //   не должно: замер `N42RoundTripProbe --mode=onevoice`.
++                        string refusal;
++                        data.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
++                        RememberFwhmRefusal(data, refusal);
+                     }
+                 }
+             }
+@@ -348,6 +362,19 @@ namespace BecquerelMonitor
+                     docEnergySpectrum2.ResultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
+                 }
+ 
++                // ⛔ НАСТРОЙКИ ПРИБОРА — ДО ПРОВЕРКИ (`A240`, восьмое место, G11,
++                //    06.09.2026). PeakDetectionMethodConfig в файл не пишется
++                //    ([XmlIgnore]), и после разбора у каждого спектра стоят
++                //    ВСТРОЕННЫЕ умолчания (15/3756/103). CheckDocument строил
++                //    кривую разрешения по ним, и лишь потом PrepareDeviceConfig
++                //    подставлял настройки прибора: документ без сохранённой кривой
++                //    открывался с моделью разрешения выдуманного прибора, молча
++                //    (то же, что `A239` у дверей ввоза). Измерено
++                //    `N42RoundTripProbe --mode=onevoice`: при конфигурации, у
++                //    которой умолчание не строится, открытие давало «кривая
++                //    есть [0:15 3756:103]» и 0 голосов; после — «без кривой»
++                //    и 1 голос.
++                this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+                 if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
+                 {
+                     string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+@@ -376,7 +403,6 @@ namespace BecquerelMonitor
+             Cursor.Current = Cursors.Default;
+             docEnergySpectrum2.IsNamed = true;
+             this.documentList.Add(docEnergySpectrum2);
+-            this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+             this.PrepareEfficiency(docEnergySpectrum2.ResultDataFile);
+             this.PrepareROIConfig(docEnergySpectrum2.ResultDataFile);
+             foreach (ResultData resultData2 in docEnergySpectrum2.ResultDataFile.ResultDataList)
+@@ -431,9 +457,11 @@ namespace BecquerelMonitor
+             //    ВСЕ. `A234` научила говорить ввоз N42 и ввоз через SpecUtils, а
+             //    ОТКРЫТИЕ СОХРАНЁННОГО документа осталось немым: через
+             //    CheckDocument проходят и OpenDocument, и CreateDocument, а он
+-            //    зовёт FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
+-            //    получает null, ПРИЧИНУ выбрасывает и всё равно возвращает true,
+-            //    то есть объявляет документ проверенным без кривой разрешения.
++            //    звал FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
++            //    получал null, ПРИЧИНУ выбрасывал и всё равно возвращал true,
++            //    то есть объявлял документ проверенным без кривой разрешения
++            //    (с 06.09.2026, G11, причина хранится рядом со спектром и
++            //    читается здесь через WhyNoFwhmCalibration).
+             //    Тот же спектр при той же конфигурации прибора ввозом ГОВОРИЛ, а
+             //    открытием МОЛЧАЛ; исход зависел от пункта меню, а это ровно то,
+             //    что сводили `A160`, `A175` и `A234`.
+@@ -459,6 +487,9 @@ namespace BecquerelMonitor
+                     resultDataFile = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
+                 }
+ 
++                // Настройки прибора — ДО проверки, по той же причине, что в
++                // OpenDocument (`A240`, восьмое место, G11).
++                this.PrepareDeviceConfig(resultDataFile);
+                 if (!this.CheckDocument(resultDataFile))
+                 {
+                     string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+@@ -482,7 +513,6 @@ namespace BecquerelMonitor
+                 return null;
+             }
+             Cursor.Current = Cursors.Default;
+-            this.PrepareDeviceConfig(resultDataFile);
+             this.PrepareEfficiency(resultDataFile);
+             this.PrepareROIConfig(resultDataFile);
+             foreach (ResultData resultData2 in resultDataFile.ResultDataList)
+@@ -611,9 +641,11 @@ namespace BecquerelMonitor
+             //    ВСЕ. `A234` научила говорить ввоз N42 и ввоз через SpecUtils, а
+             //    ОТКРЫТИЕ СОХРАНЁННОГО документа осталось немым: через
+             //    CheckDocument проходят и OpenDocument, и CreateDocument, а он
+-            //    зовёт FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
+-            //    получает null, ПРИЧИНУ выбрасывает и всё равно возвращает true,
+-            //    то есть объявляет документ проверенным без кривой разрешения.
++            //    звал FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
++            //    получал null, ПРИЧИНУ выбрасывал и всё равно возвращал true,
++            //    то есть объявлял документ проверенным без кривой разрешения
++            //    (с 06.09.2026, G11, причина хранится рядом со спектром и
++            //    читается здесь через WhyNoFwhmCalibration).
+             //    Тот же спектр при той же конфигурации прибора ввозом ГОВОРИЛ, а
+             //    открытием МОЛЧАЛ; исход зависел от пункта меню, а это ровно то,
+             //    что сводили `A160`, `A175` и `A234`.
+@@ -698,6 +730,24 @@ namespace BecquerelMonitor
+                          "", MessageBoxIcon.None);
+         }
+ 
++        /// <summary>
++        /// Причина отказа умолчания кривой разрешения — по спектру, у которого
++        /// CheckDocument её строил и не построил (`A240`, восьмое место, G11).
++        /// Слабая таблица: спектр, ушедший из документа, уносит запись с собой.
++        /// Построилась — запись снимается, чтобы дверь не назвала причину,
++        /// которой уже нет.
++        /// </summary>
++        readonly ConditionalWeakTable<ResultData, string> fwhmRefusals = new ConditionalWeakTable<ResultData, string>();
++
++        void RememberFwhmRefusal(ResultData data, string refusal)
++        {
++            fwhmRefusals.Remove(data);
++            if (data.FwhmCalibration == null && !string.IsNullOrEmpty(refusal))
++            {
++                fwhmRefusals.Add(data, refusal);
++            }
++        }
++
+         /// <summary>
+         /// ПОЧЕМУ у спектра нет модели разрешения — словами и с числами.
+         /// Причин ровно две, и они разные для человека: умолчание НЕ СТРОИТСЯ
+@@ -706,6 +756,14 @@ namespace BecquerelMonitor
+         /// </summary>
+         string WhyNoFwhmCalibration(ResultData data)
+         {
++            // `A240` (G11): причина, которую УЖЕ назвал CheckDocument при своей
++            //   попытке, — первой; переспрашивать DefaultCalibration только там,
++            //   где CheckDocument спектр не проходил (дверь SpecUtils).
++            string remembered;
++            if (fwhmRefusals.TryGetValue(data, out remembered) && !string.IsNullOrEmpty(remembered))
++            {
++                return remembered;
++            }
+             try
+             {
+                 FWHMPeakDetectionMethodConfig cfg = data.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+@@ -788,17 +846,19 @@ namespace BecquerelMonitor
+         {
+             for (int i = 0; i < energies.Length; i++)
+             {
++                // Наполнитель голоса `ERRChannelEdgesInvalidSpecUtils` — тоже ключами
++                // (полоса G10, 06.09.2026): русский литерал внутри английской фразы
++                // измерен `N42DoorsProbeF54 --culture=en-US` на `case34`.
+                 if (float.IsNaN(energies[i]) || float.IsInfinity(energies[i]))
+                 {
+-                    return "граница №" + i.ToString(CultureInfo.InvariantCulture)
+-                           + " — не конечное число: " + energies[i].ToString("R", CultureInfo.InvariantCulture);
++                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRChannelEdgeNotFinite,
++                                         i, energies[i].ToString("R", CultureInfo.InvariantCulture));
+                 }
+                 if (i > 0 && energies[i] <= energies[i - 1])
+                 {
+-                    return "границы не возрастают: №" + (i - 1).ToString(CultureInfo.InvariantCulture)
+-                           + " = " + energies[i - 1].ToString("R", CultureInfo.InvariantCulture)
+-                           + ", №" + i.ToString(CultureInfo.InvariantCulture)
+-                           + " = " + energies[i].ToString("R", CultureInfo.InvariantCulture);
++                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRChannelEdgesNotIncreasing,
++                                         i - 1, energies[i - 1].ToString("R", CultureInfo.InvariantCulture),
++                                         i, energies[i].ToString("R", CultureInfo.InvariantCulture));
+                 }
+             }
+             return null;
+@@ -1315,10 +1375,11 @@ namespace BecquerelMonitor
+                     if (badEdgesScale > 0)
+                     {
+                         // `A254`: пятое положение, и оно первым — у него единственного
+-                        //   названа причина по числам файла.
+-                        scaleTrouble.Add("границы энергий каналов в файле негодны (" + badEdgesSample
+-                                         + "), в шкалу они не взяты, и осталась y = x, то есть номер канала объявлен энергией (измерений: "
+-                                         + badEdgesScale.ToString(CultureInfo.InvariantCulture) + ")");
++                        //   названа причина по числам файла. Голос — ключом ресурса
++                        //   (остаток `A254`, полоса G10 06.09.2026), обе культуры.
++                        scaleTrouble.Add(string.Format(CultureInfo.InvariantCulture,
++                                                       Resources.ERRChannelEdgesInvalidSpecUtils,
++                                                       badEdgesSample, badEdgesScale));
+                     }
+                     if (substitutedScale > 0)
+                     {

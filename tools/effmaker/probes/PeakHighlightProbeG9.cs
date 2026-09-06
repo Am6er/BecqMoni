@@ -18,8 +18,14 @@ namespace PeakHighlightProbeG9
     /// метка сверху и полоса шириной в ПШПВ — решение Amber 06.09.2026) —
     /// полоса G9, 06.09.2026.
     ///
-    ///     peakhighlightprobeg9 --spectrum=&lt;файл&gt; --other=&lt;файл&gt; [--out=&lt;каталог снимков&gt;]
+    ///     peakhighlightprobeg9 --spectrum=&lt;файл&gt; --other=&lt;файл&gt; [--shots=&lt;каталог снимков&gt;]
     ///                          [--row=&lt;строка таблицы&gt;] [--width=] [--height=]
+    ///
+    /// ⛔ Снимки `g9-*.png` идут в каталог ключа `--shots=` (как у `DoseRateProbe`),
+    ///    а без ключа — в `%TEMP%\peakhighlight-shots`, и каталог печатается
+    ///    ПЕРВОЙ строкой. Умолчанием «текущий каталог» проба трижды за заход
+    ///    оставляла кадры в корне дерева (полоса G10, 06.09.2026); `--out=`
+    ///    принимается как прежнее имя того же ключа.
     ///
     /// ⛔ ОКНО ПРИЛОЖЕНИЯ НЕ ЗАПУСКАЕТСЯ. `MainForm` заводится, но не показывается
     /// (образец — `NuclideSetMemoryProbe`); документ — НАСТОЯЩИЙ
@@ -51,7 +57,7 @@ namespace PeakHighlightProbeG9
     static class Program
     {
         static int bad;
-        static string outDir = ".";
+        static string outDir = null;
         static bool fixedBuild;
 
         const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -61,7 +67,6 @@ namespace PeakHighlightProbeG9
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-            ProbeTargetFramework.Assert();
 
             string spectrumPath = null, otherPath = null;
             int width = 1200, height = 620, row = -1;
@@ -69,6 +74,7 @@ namespace PeakHighlightProbeG9
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--other=", StringComparison.Ordinal)) otherPath = a.Substring(8);
+                else if (a.StartsWith("--shots=", StringComparison.Ordinal)) outDir = a.Substring(8);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
                 else if (a.StartsWith("--row=", StringComparison.Ordinal)) row = int.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
@@ -80,7 +86,18 @@ namespace PeakHighlightProbeG9
                 Console.Error.WriteLine("нужны --spectrum=<файл> и --other=<файл>");
                 return 2;
             }
+            // Каталог снимков — ПЕРВОЙ строкой, чтобы кадры не искали по дереву.
+            bool shotsGiven = !string.IsNullOrEmpty(outDir);
+            if (!shotsGiven)
+            {
+                outDir = Path.Combine(Path.GetTempPath(), "peakhighlight-shots");
+            }
+            outDir = Path.GetFullPath(outDir);
             Directory.CreateDirectory(outDir);
+            Console.WriteLine(shotsGiven
+                ? "снимки: " + outDir + " (ключ --shots=)"
+                : "снимки: " + outDir + " (ключ --shots= не задан, каталог по умолчанию)");
+            ProbeTargetFramework.Assert();
 
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`):
             // иначе безоконный прогон встаёт на модальном окне.
