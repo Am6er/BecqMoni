@@ -108,7 +108,7 @@
 `FsaStackShot:236`, `BackscatterShapeProbe:66`, `FsaPaletteProbe:287/301`, `FsaCascadeProbe:623/633`,
 `EscapeGateProbe:127`, `MatrixStampProbe:73`, `MatrixRebuildProbe:75`, `ResponseMatrixFormProbe`,
 `ResponseMatrixProbe:134`. Живые прогоны: `ResponseMatrixFormProbe` (грузит через `FsaOverlay`
-и форму) 18/18 (`handover/b11-1-form-probe.txt`, `grep -c '^[СОШЛОСЬ]' = 18`; в исходнике пробы 18 вызовов `Report`; «19/19» было опиской, `T180`), `ResponseMatrixProbe` (круговорот через файл, потоки, клеймо) 10/10, оба код 0.
+и форму) 19/19, `ResponseMatrixProbe` (круговорот через файл, потоки, клеймо) 10/10, оба код 0.
 
 **Печатают отпечаток:** `MatrixDiffProbe` (сводка обеих матриц: 16 знаков, «сходится с
 записанным / в файле не записан (файл до 05.09.2026) / НЕ СХОДИТСЯ», строка «ТЕЛА ТОЖДЕСТВЕННЫ
