@@ -867,7 +867,8 @@ namespace BecquerelMonitor
             FwhmCalibration fwhmCalibration = FWHMPeakDetectionMethodConfig.FwhmCalibration;
             if (fwhmCalibration == null)
             {
-                activeResultData.FwhmCalibration = FwhmCalibration.DefaultCalibration(FWHMPeakDetectionMethodConfig, activeResultData.EnergySpectrum.EnergyCalibration);
+                activeResultData.FwhmCalibration =
+                    this.DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig, activeResultData);
             } else
             {
                 activeResultData.FwhmCalibration = fwhmCalibration.Clone();
@@ -895,6 +896,66 @@ namespace BecquerelMonitor
                 activeDocument.EnergySpectrumView.FitHorizontalScale();
             }
             return true;
+        }
+
+        /// <summary>
+        /// УМОЛЧАНИЕ МОДЕЛИ РАЗРЕШЕНИЯ ДЛЯ СПЕКТРА — А НЕ ВЫШЛО, ТАК СКАЗАТЬ
+        /// ПОЧЕМУ (`A240`, полоса F62, 06.09.2026).
+        ///
+        /// ⛔ ЧЕЛОВЕК ЗДЕСЬ ЕСТЬ, И ОН ТОЛЬКО ЧТО НАЖАЛ. Зовущий один —
+        /// <see cref="ApplyDeviceConfigChange"/>, а в него приходят ровно двумя
+        /// движениями: кнопкой «Применить» (<c>button5_Click</c>) и сменой
+        /// прибора в выпадающем списке панели
+        /// (<c>comboBox1_SelectedIndexChanged</c>, и то лишь при ДРУГОМ Guid и
+        /// вне <c>formUpdating</c>). То есть это не служебный проход, а ответ
+        /// на действие — и до этой правки ответом было МОЛЧАНИЕ: кривая
+        /// разрешения спектра становилась <c>null</c>, вкладка ПШПВ пустела,
+        /// поиск пиков и полноспектральный разбор на этом спектре работать
+        /// переставали, а причины не называл никто.
+        ///
+        /// ⚠ ДВОЙНОГО ГОЛОСА НЕТ, и это проверено путями, а не на глаз: голос
+        /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~)
+        /// звучит при ОТКРЫТИИ и СОЗДАНИИ документа, а сюда попадают только
+        /// сменой конфигурации у УЖЕ открытого. Событие разное — значит и голос
+        /// не второй, а первый. Мерит <c>FwhmReaderProbeF62 --mode=apply</c>.
+        ///
+        /// ⛔ ПОЧЕМУ ЭТО ОТДЕЛЬНЫЙ МЕТОД, А НЕ ТРИ СТРОКИ НА МЕСТЕ. Чтобы голос
+        /// БЫЛО ЧЕМ ИЗМЕРИТЬ. Внутри <see cref="ApplyDeviceConfigChange"/>
+        /// стоит модальное окно (<c>MSGInitializingSpectrum</c>, OK/Отмена — у
+        /// спектра не сходятся число каналов и шаг), и проба, дёрнувшая тот
+        /// метод отражением, делает окно достижимым БЕЗ ОКОН: сторож
+        /// <c>tools\check_headless.py</c> краснеет, а безоконный прогон рискует
+        /// повиснуть (`S100`). Голос, вынесенный сюда, меряется обоими плечами
+        /// и модального окна на своём пути не имеет вовсе. ⚠ Само окно НЕ
+        /// тронуто нарочно: перевести его на <c>AppUi.AskYesNo</c> значит
+        /// сменить кнопки OK/Отмена на Да/Нет у сообщения, написанного
+        /// утверждением, — это решение Amber, а не полосы.
+        ///
+        /// ⚠ Текст СОБРАН ИЗ ГОТОВОГО РЕСУРСА, новой строки не заведено:
+        /// причина уже переведена (<c>ERRFwhmDefaultNotMonotonic</c>) и уже
+        /// назвала три числа настроек, а имя конфигурации — данные, не текст;
+        /// оправа «имя: причина» переводу не подлежит. Когда ресурсы
+        /// освободятся, готовая пара ключей для полной фразы —
+        /// <c>ERRFwhmDeviceApplyNoCurve</c> в <c>Resources.resx</c> и в
+        /// <c>Resources.ru.resx</c>, подстановки {0} имя прибора, {1} причина.
+        /// </summary>
+        FwhmCalibration DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig cfg, ResultData data)
+        {
+            string refusal;
+            FwhmCalibration curve = FwhmCalibration.DefaultCalibration(
+                cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
+            if (curve == null && !string.IsNullOrEmpty(refusal))
+            {
+                // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`): три числа
+                //    внутри `refusal` напечатаны точкой, и оправа обязана
+                //    держать то же соглашение, иначе две половины одной строки
+                //    разойдутся разделителем.
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, "{0}: {1}",
+                                           data.DeviceConfig == null ? "" : data.DeviceConfig.Name,
+                                           refusal),
+                             "", MessageBoxIcon.None);
+            }
+            return curve;
         }
 
         // Token: 0x060002A2 RID: 674 RVA: 0x0000C1E8 File Offset: 0x0000A3E8

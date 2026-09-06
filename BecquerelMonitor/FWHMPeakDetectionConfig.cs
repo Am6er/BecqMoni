@@ -322,6 +322,22 @@ namespace BecquerelMonitor
         [XmlElement(typeof(PowerFwhmCalibration))]
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
 
+        /// <summary>
+        /// ⛔ ПРИЧИНА ОТКАЗА ЗДЕСЬ НЕДОСТИЖИМА, И ЭТО НЕ ДОГАДКА (`A240`,
+        /// полоса F62, 06.09.2026). Умолчание строится по ТРЁМ ЧИСЛАМ этого же
+        /// объекта, а в конструкторе они ещё ничьи — это начальные значения
+        /// полей класса, постоянные: <c>fwhm_at_0 = 15</c>,
+        /// <c>ch_fwhm = 3756</c>, <c>width_fwhm = 103</c>. Прямая через
+        /// (0, 15) и (3756, 103) РАСТЁТ, значит
+        /// <c>SimpleSqrtFwhmCalibration.CheckCalibration</c> её принимает
+        /// всегда, и <c>refusal</c> здесь взяться неоткуда: чтобы он появился,
+        /// пришлось бы править сам этот файл. Спрашивать причину, которой не
+        /// бывает, значило бы завести признак без события — а не только без
+        /// читателя. Мерит <c>FwhmReaderProbeF62</c>, плечо
+        /// <c>--mode=unreachable</c>: свежая настройка обязана дать кривую, и
+        /// та же настройка с испорченной шириной — отказ (положительный
+        /// контроль, иначе первая половина ничего не значит).
+        /// </summary>
         public FWHMPeakDetectionMethodConfig()
         {
             this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
@@ -355,6 +371,24 @@ namespace BecquerelMonitor
             }
             else
             {
+                // ⛔ А ВОТ ЗДЕСЬ ОТКАЗ ДОСТИЖИМ — три числа уже переписаны из
+                //    `config` строками выше, и они бывают любыми (конфигурация
+                //    прибора правится файлом). Причина всё равно НЕ
+                //    спрашивается, и это решение (`A240`, полоса F62,
+                //    06.09.2026): это конструктор КОПИИ, человека в нём нет, а
+                //    зовут его на каждом `Clone()` — из панели управления, из
+                //    `CreateResultData`, из копии конфигурации прибора, из
+                //    `AdoptFrom`. Голос отсюда был бы очередью одинаковых окон.
+                //    ⚠ Причина не теряется: `DefaultCalibration` ничего не
+                //    меняет и зависит только от этих трёх чисел и
+                //    энергетической кривой, поэтому её спрашивает заново тот,
+                //    у кого есть человек, — двери открытия и ввоза
+                //    (`DocumentManager.WhyNoFwhmCalibration`, ~~`A234`~~),
+                //    панель управления при смене прибора и вкладка ПШПВ
+                //    (`DCFwhmCalibrationView.ApplyFwhmRefusalHint`).
+                //    ⛔ Кривая при отказе НЕ ВЫДУМЫВАЕТСЯ: null здесь —
+                //    законное состояние (~~`A212`~~), а подставленная ширина
+                //    дала бы числа, неотличимые от измеренных.
                 this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
             }
         }

@@ -1351,6 +1351,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 polynomial.CheckCalibration(data.EnergySpectrum.NumberOfChannels);
             }
 
+            string fwhmRefusal = null;
             if (data.FwhmCalibration == null)
             {
                 List<DeviceConfigInfo> devices = DeviceConfigManager.GetInstance().DeviceConfigList;
@@ -1370,14 +1371,29 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 FWHMPeakDetectionMethodConfig peakConfig =
                     (FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig;
+                // ⛔ ПРИЧИНА ЕДЕТ НАВЕРХ ВМЕСТЕ С ОТКАЗОМ (`A240`, полоса F62,
+                //    06.09.2026). Человека в этой точке нет — это загрузчик, —
+                //    но у отказа тут ЕСТЬ готовый читатель: бросок трёмя
+                //    строками ниже, чей текст показывает вызывающий
+                //    (`EfficiencyMakerForm`). До правки этот текст говорил
+                //    только «у спектра нет ПШПВ-калибровки», то есть повторял
+                //    видимое; три числа настроек прибора (`FWHM_AT_0`,
+                //    `Ch_Fwhm`, `Width_Fwhm`) называют, ЧТО именно чинить, и
+                //    взять их человеку больше негде — на формах их нет.
+                //    ⚠ Голос не добавлен, а дополнен: окно по-прежнему одно.
                 data.FwhmCalibration = peakConfig.FwhmCalibration != null
                     ? peakConfig.FwhmCalibration.Clone()
-                    : FwhmCalibration.DefaultCalibration(peakConfig, data.EnergySpectrum.EnergyCalibration);
+                    : FwhmCalibration.DefaultCalibration(peakConfig, data.EnergySpectrum.EnergyCalibration, out fwhmRefusal);
             }
 
             if (data.FwhmCalibration == null)
             {
-                throw new InvalidOperationException(Resources.EfficiencyMakerNoFwhm);
+                // Оправа «что: почему» переводу не подлежит — переведены обе её
+                // половины по отдельности (`EfficiencyMakerNoFwhm` и
+                // `ERRFwhmDefaultNotMonotonic`).
+                throw new InvalidOperationException(string.IsNullOrEmpty(fwhmRefusal)
+                    ? Resources.EfficiencyMakerNoFwhm
+                    : Resources.EfficiencyMakerNoFwhm + " " + fwhmRefusal);
             }
 
             return data;

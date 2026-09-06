@@ -1,0 +1,17 @@
+=== C:/Users/moroz/AppData/Local/Temp/claude/C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8/0dfa526c-1c92-45cd-b97b-70d6b9e6b585/scratchpad/head\BecquerelMonitor ===
+объявлений метода: 2
+    BecquerelMonitor/FwhmCalibration.cs:43
+    BecquerelMonitor/FwhmCalibration.cs:77
+вызовов НОВОЙ подписью (out refusal): 2
+    BecquerelMonitor/DocumentManager.cs:716
+    BecquerelMonitor/FwhmCalibration.cs:46
+вызовов СТАРОЙ подписью: 9
+    BecquerelMonitor/DCControlPanel.cs:870
+    BecquerelMonitor/DCFwhmCalibrationView.cs:88
+    BecquerelMonitor/DeviceConfigInfo.cs:484
+    BecquerelMonitor/DocEnergySpectrum.cs:499
+    BecquerelMonitor/DocEnergySpectrum.cs:1105
+    BecquerelMonitor/DocumentManager.cs:289
+    BecquerelMonitor/FWHMPeakDetectionConfig.cs:327
+    BecquerelMonitor/FWHMPeakDetectionConfig.cs:358
+    BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:1375
