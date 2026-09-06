@@ -1861,6 +1861,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (`A49`). У пути по пикам полосы библиотеки нет вовсе, и переносить
         /// сюда её отсутствие было бы не «тем же правилом», а отказом от
         /// здешнего.
+        ///
+        /// ⛔ Отбор родителей починен 06.09.2026 (`A271`, решение Amber). Именно
+        /// ЗДЕСЬ правка `S141` и била: библиотекой из баз идёт весь корпус, а у
+        /// спектра без геометрии массовых долей кристалла нет, и отсев по доле
+        /// рождения пар молчал целиком — родителем становилась `Bi-214` 1120,
+        /// чей образ `SE-1120` садился на 609.0 поверх настоящей `Bi-214`
+        /// 609.3. Починка двойная и обе половины нужны:
+        /// <see cref="CrystalFractionsOf"/> восстанавливает вещество по
+        /// названным элементам кристалла, а
+        /// <see cref="FsaLibrary.EscapeParentMarginKev"/> держит запас над
+        /// порогом пар там, где вещества не опознать.
         /// </summary>
         static void AddEscapeImages(FsaSampleSpec spec, List<FsaComponent> result, Report report)
         {
@@ -1869,8 +1880,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
+            Dictionary<int, double> fractions = CrystalFractionsOf(spec);
             List<FsaComponent> images = FsaLibrary.EscapeImages(
-                result, spec.CrystalFractions.Count > 0 ? spec.CrystalFractions : null);
+                result, fractions.Count > 0 ? fractions : null);
             var names = new List<string>();
             int outOfBand = 0;
             foreach (FsaComponent image in images)
@@ -2130,6 +2142,96 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 spec.CrystalFractions[pair.Key] = pair.Value;
             }
+        }
+
+        /// <summary>
+        /// Массовые доли элементов кристалла для физического отсева — те, что
+        /// лежат в спецификации, а если их там нет, то ВОССТАНОВЛЕННЫЕ по
+        /// названным элементам (`A271`, 06.09.2026).
+        ///
+        /// Зачем. Доли кладёт <see cref="DescribeCrystal"/>, и кладёт только из
+        /// ГЕОМЕТРИИ. У спектра без геометрии их нет — а отбор родителей
+        /// образов вылета (<see cref="FsaLibrary.EscapeImages"/>) без них
+        /// оставался без единого физического ограничителя и брал родителем
+        /// линию в 98 кэВ над порогом рождения пар. При этом сам КРИСТАЛЛ
+        /// известен и без геометрии: его элементы называет конфигурация прибора
+        /// (в корпусном замере — колонка `crystal` таблицы `materials.csv`), и
+        /// они лежат в <see cref="FsaSampleSpec.CrystalElements"/>.
+        ///
+        /// ⛔ Восстановление — ОДНОЗНАЧНОЕ СОВПАДЕНИЕ, а не догадка. Набор
+        /// элементов сверяется с составом каждого вещества-кристалла библиотеки
+        /// (<see cref="GeometryMaterialLibrary.MaterialKind.Crystal"/>); доли
+        /// берутся только тогда, когда подходит РОВНО ОДНО вещество. Ни одного
+        /// или больше одного — возвращается пусто, и дальше судит запас по
+        /// энергии (<see cref="FsaLibrary.EscapeParentMarginKev"/>). Равными
+        /// доли не считаются: у NaI натрий и иод дают по массе 0.153 и 0.847, и
+        /// «поровну» ошиблось бы в долю пар в полтора раза.
+        ///
+        /// ⚠ Имён веществ в коде при этом не появляется (решение Amber
+        /// 01.09.2026): вещество опознаётся СОСТАВОМ, а список составов — данные
+        /// библиотеки, которую человек и правит.
+        /// </summary>
+        public static Dictionary<int, double> CrystalFractionsOf(FsaSampleSpec spec)
+        {
+            var fractions = new Dictionary<int, double>();
+            if (spec == null)
+            {
+                return fractions;
+            }
+
+            if (spec.CrystalFractions.Count > 0)
+            {
+                foreach (KeyValuePair<int, double> pair in spec.CrystalFractions)
+                {
+                    fractions[pair.Key] = pair.Value;
+                }
+
+                return fractions;
+            }
+
+            if (spec.CrystalElements.Count == 0)
+            {
+                return fractions;
+            }
+
+            // Тот же порог доли, с каким элементы кристалла и отбирались
+            // (`DescribeCrystal`, 1 %): ниже него элемент — примесь, и вещество
+            // по нему не опознаётся.
+            const double MinFraction = 0.01;
+            var want = new HashSet<int>(spec.CrystalElements);
+            Dictionary<int, double> found = null;
+            foreach (GeometryMaterialLibrary.Entry entry in
+                     GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Crystal))
+            {
+                GeometryMaterial material = GeometryMaterialLibrary.Make(entry, entry.Density);
+                if (material == null)
+                {
+                    continue;
+                }
+
+                var have = new HashSet<int>();
+                foreach (KeyValuePair<int, double> pair in material.Fractions)
+                {
+                    if (pair.Value >= MinFraction)
+                    {
+                        have.Add(pair.Key);
+                    }
+                }
+
+                if (!have.SetEquals(want))
+                {
+                    continue;
+                }
+
+                if (found != null)
+                {
+                    return new Dictionary<int, double>();   // двое — значит не опознано
+                }
+
+                found = new Dictionary<int, double>(material.Fractions);
+            }
+
+            return found ?? fractions;
         }
 
         /// <summary>

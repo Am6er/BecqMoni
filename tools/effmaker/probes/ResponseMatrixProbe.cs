@@ -108,7 +108,9 @@ namespace ResponseMatrixProbe
             bool thinGrid = options.NodeCount < 34 || options.Histories < 20000;
             if (thinGrid)
             {
-                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (34 узла, 20 000 историй):");
+                // ⛔ `T246`: «20 000» ТЕКСТОМ — та же группировка разрядов, только
+                // руками. Ни запятой, ни пробела в группах (решение Amber 05.09.2026).
+                Console.WriteLine("⚠ сетка/статистика НИЖЕ умолчаний (34 узла, 20000 историй):");
                 Console.WriteLine("  проверки 6–8 (пик против кривой, интерполяция) при этом валятся");
                 Console.WriteLine("  ЗАКОННО — это разрешение сетки и шум ГСЧ, а не дефект матрицы (T47).");
             }
@@ -158,9 +160,13 @@ namespace ResponseMatrixProbe
                              && SameLongs(loaded.NodeHistories, parallel.NodeHistories)
                              && SameDoubles(loaded.NodeErrors, parallel.NodeErrors)
                              && SameDoubles(loaded.NodeSeconds, parallel.NodeSeconds);
-            Report(noiseKept, "достигнутый шум пережил файл: взвешенный {0:P2}, худший {1:P2}, историй {2}",
-                   loaded == null ? 0.0 : loaded.ContinuumWeightedError,
-                   loaded == null ? 0.0 : loaded.ContinuumRelativeError,
+            // ⛔ `T246`: ни `N`, ни `P` — они несут ГРУППИРОВКУ РАЗРЯДОВ, которой
+            // по решению Amber 05.09.2026 не должно быть вовсе. `P2` печатал
+            // «худший 10,000.00 %». Проценты — множитель 100 и `F`, знак `%`
+            // текстом.
+            Report(noiseKept, "достигнутый шум пережил файл: взвешенный {0:F2} %, худший {1:F2} %, историй {2}",
+                   loaded == null ? 0.0 : 100.0 * loaded.ContinuumWeightedError,
+                   loaded == null ? 0.0 : 100.0 * loaded.ContinuumRelativeError,
                    loaded == null ? 0L : loaded.HistoriesSpent);
             bad += noiseKept ? 0 : 1;
 
@@ -262,9 +268,9 @@ namespace ResponseMatrixProbe
             double peakSigmaCurve = Sigma(curve, peak, options.Histories);
             double peakLimitCurve = Math.Max(0.02, 3.0 * peakSigmaCurve);
             bool peakOk = diff < peakLimitCurve;
-            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:P2}"
-                           + "  [порог {4:P1}; 1σ {5:P1}]{6}",
-                   energy, peak, curve, diff, peakLimitCurve, peakSigmaCurve,
+            Report(peakOk, "пик матрицы против кривой на {0:F0} кэВ: {1:E4} против {2:E4}, расхождение {3:F2} %"
+                           + "  [порог {4:F1} %; 1σ {5:F1} %]{6}",
+                   energy, peak, curve, 100.0 * diff, 100.0 * peakLimitCurve, 100.0 * peakSigmaCurve,
                    thinGrid && !peakOk ? "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)" : "");
             bad += (peakOk || thinGrid) ? 0 : 1;
 
@@ -340,15 +346,17 @@ namespace ResponseMatrixProbe
                 double peakLimit = Math.Max(0.08, 3.0 * peakSigma);
                 bool ok = sumDiff < sumLimit && peakDiff < peakLimit;
                 string why = string.Format(CultureInfo.InvariantCulture,
-                                           "  [порог суммы {0:P1}, пика {1:P1}; 1σ {2:P1} и {3:P1}]",
-                                           sumLimit, peakLimit, sumSigma, peakSigma);
+                                           "  [порог суммы {0:F1} %, пика {1:F1} %; 1σ {2:F1} % и {3:F1} %]",
+                                           100.0 * sumLimit, 100.0 * peakLimit,
+                                           100.0 * sumSigma, 100.0 * peakSigma);
                 if (thinGrid && !ok)
                 {
                     why += "  — НЕ ПОКАЗАТЕЛЬНО (редкая сетка/мало историй)";
                 }
 
-                Report(ok, "интерполяция на {0:F0} кэВ (шаг сетки {1:F0} кэВ): сумма {2:P2}, пик {3:P2}{4}",
-                       middle, parallel.Energies[left + 1] - parallel.Energies[left], sumDiff, peakDiff, why);
+                Report(ok, "интерполяция на {0:F0} кэВ (шаг сетки {1:F0} кэВ): сумма {2:F2} %, пик {3:F2} %{4}",
+                       middle, parallel.Energies[left + 1] - parallel.Energies[left],
+                       100.0 * sumDiff, 100.0 * peakDiff, why);
                 bad += (ok || thinGrid) ? 0 : 1;
             }
 
@@ -451,10 +459,14 @@ namespace ResponseMatrixProbe
             double needNode = needPeak / eps;
             int taken = (int)Math.Min(maxAuto, Math.Max(options.Histories, Math.Ceiling(needNode)));
             bool capped = needNode > maxAuto + 0.5;
-            Console.WriteLine("статистика от геометрии: пилот ε_пик = {0:E3} на {1:F0} кэВ,"
-                              + " допуску нужно {2:N0} историй на узел, берём {3:N0}{4}",
+            // ⛔ `T246`: `F0`, а не `N0` — группировки разрядов быть не должно
+            // (решение Amber 05.09.2026). Печать — явной инвариантной культурой,
+            // а не культурой потока.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "статистика от геометрии: пилот ε_пик = {0:E3} на {1:F0} кэВ,"
+                              + " допуску нужно {2:F0} историй на узел, берём {3:F0}{4}",
                               eps, energy, needNode, taken,
-                              capped ? "  — ПОТОЛОК, проверки 6–7 останутся шумовыми" : "");
+                              capped ? "  — ПОТОЛОК, проверки 6–7 останутся шумовыми" : ""));
             if (capped)
             {
                 Console.WriteLine("  (снять потолок: --maxn=<историй>; счёт растёт линейно по числу историй)");
@@ -547,8 +559,9 @@ namespace ResponseMatrixProbe
 
         static void Report(bool ok, string format, params object[] args)
         {
+            // ⛔ `T246`/`A242`: ЯВНАЯ инвариантная культура, а не культура потока.
             Console.WriteLine("[{0}] {1}", ok ? "СОШЛОСЬ" : "ПРОВАЛ  ",
-                              string.Format(CultureInfo.CurrentCulture, format, args));
+                              string.Format(CultureInfo.InvariantCulture, format, args));
         }
     }
 }

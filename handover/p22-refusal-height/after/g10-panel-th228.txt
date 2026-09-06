@@ -1,0 +1,11 @@
+#	g10=1	a259=1
+honest	en	356	1cd4fe4f318abfe40fd3fee65f3907d4f0b9b86f471bc1c639b119b1ab5a0682		0	1	3
+nocurve	en	350	6ddda188f7630acae8ca068e51da14fdb9d84aa67fbda0b26a1a93e8bd57a149	no efficiency curve is chosen for this spectrum: activity not shown	2	1	3
+netneg	en	284	bc5bb426e7cf9069c628cc6474d250ef6172534aa8488e61c3e3e34e2bfeb18f	net count is not above zero: activity not shown	2	0	3
+lczero	en	236	c682de2f2c9109f3b76336cf66ca39e6a16a4f15cabdcfb401aeed8a21a41374	the background is empty in the selection: the detection limit is undefined	2	0	3
+nobg	en	236	cdb3d615f168c9b9fb6a8f6be5f60160dbe1d2ade71fbfea44745a14d24a2166	no background spectrum: activity not shown	2	0	3
+honest	ru	356	1b44d105afa21d20d430a17ef2f1924fd45af9bb13517c27a4a4ee328a2a1b19		0	1	3
+nocurve	ru	366	d42f8235554ce6311638c2f946a97ed4e80de72edfa777126262ef724993a205	для спектра не выбрана кривая эффективности: активность не показана	3	1	3
+netneg	ru	284	785d0cd0a3fdc0d3d449900dce7627ad87c7fb9cb056d2112e90e5882b1b6800	нетто не выше нуля: активность не показана	2	0	3
+lczero	ru	236	a303dc3bd30192b839b5fd1dfd8fed4d5d2952e264adeeafa0cc3c65f8e6cb2b	фон в выделении пуст: порог обнаружения не определён	2	0	3
+nobg	ru	236	fa68f5d0d07e6a2c1f4f772fa63bcb2739a1f7fceb14a02dc7f137f38334cb5a	фонового спектра нет: активность не показана	2	0	3

@@ -535,7 +535,8 @@ namespace GridStampProbeF45
             }
 
             Say("  сцена: цилиндр Ø40×20 мм на 5 мм от торца, детектор — "
-                + GeometryPresets.Items[0].Name + ", 200 000 историй на узел");
+                // ⛔ `T246`: группировки разрядов нет вовсе — «200000», не «200 000».
+                + GeometryPresets.Items[0].Name + ", 200000 историй на узел");
             Say("");
             Say("    кэВ   воздух      Lu₂O₃ ρ=2.5   ×      Lu₂O₃ ρ=4.5   ×");
             for (int i = 0; i < air.Curve.Count && i < lu25.Curve.Count && i < lu45.Curve.Count; i++)

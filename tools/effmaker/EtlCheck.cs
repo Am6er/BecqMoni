@@ -631,11 +631,13 @@ namespace EtlCheck
                     : 0.0;
                 double k = o.NetCounts / area;
                 ratios.Add(k);
-                Console.WriteLine("    {0,9:F2} {1,12:N0} {2,12:N0} {3,7:F3}   {4,10:E3} {5,10:E3} {6,7}  {8} ({7})",
+                // ⛔ `T246`: `F0`, а не `N0` — группировки разрядов быть не должно.
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "    {0,9:F2} {1,12:F0} {2,12:F0} {3,7:F3}   {4,10:E3} {5,10:E3} {6,7}  {8} ({7})",
                                   o.Energy, o.NetCounts, area, k, ourEps, eps,
                                   eps > 0.0 && ourEps > 0.0
                                       ? (ourEps / eps).ToString("F3", CultureInfo.InvariantCulture) : "-",
-                                  o.Nuclide, s.Source);
+                                  o.Nuclide, s.Source));
             }
 
             if (ratios.Count > 0)

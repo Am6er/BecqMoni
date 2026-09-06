@@ -22,8 +22,9 @@ namespace BecquerelMonitor
             this.sourceFlow = new System.Windows.Forms.FlowLayoutPanel();
             this.sourcePeaksRadio = new System.Windows.Forms.RadioButton();
             this.sourceNucBaseRadio = new System.Windows.Forms.RadioButton();
-            this.groupingGroupBox = new System.Windows.Forms.GroupBox();
-            this.groupingFlow = new System.Windows.Forms.FlowLayoutPanel();
+            this.displayGroupBox = new System.Windows.Forms.GroupBox();
+            this.displayFlow = new System.Windows.Forms.FlowLayoutPanel();
+            this.groupingLabel = new System.Windows.Forms.Label();
             this.parentsRadio = new System.Windows.Forms.RadioButton();
             this.daughtersRadio = new System.Windows.Forms.RadioButton();
             this.chainGroupBox = new System.Windows.Forms.GroupBox();
@@ -45,8 +46,8 @@ namespace BecquerelMonitor
             this.tableModel = new XPTable.Models.TableModel();
             this.sourceGroupBox.SuspendLayout();
             this.sourceFlow.SuspendLayout();
-            this.groupingGroupBox.SuspendLayout();
-            this.groupingFlow.SuspendLayout();
+            this.displayGroupBox.SuspendLayout();
+            this.displayFlow.SuspendLayout();
             this.chainGroupBox.SuspendLayout();
             this.chainFlow.SuspendLayout();
             this.extrasGroupBox.SuspendLayout();
@@ -86,21 +87,38 @@ namespace BecquerelMonitor
             this.sourceNucBaseRadio.UseVisualStyleBackColor = true;
             this.sourceNucBaseRadio.CheckedChanged += new System.EventHandler(this.sourceRadio_CheckedChanged);
             //
-            // groupingGroupBox
+            // displayGroupBox
             //
-            resources.ApplyResources(this.groupingGroupBox, "groupingGroupBox");
-            this.groupingGroupBox.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.groupingGroupBox.Controls.Add(this.groupingFlow);
-            this.groupingGroupBox.Name = "groupingGroupBox";
-            this.groupingGroupBox.TabStop = false;
+            // (`A265`) ГРУППА ОТРИСОВКИ. Здесь лежит всё, что правит только
+            // ПОКАЗ и до счёта не доходит: группировка родители/дочерние и
+            // лента невязки. Расчётное — в трёх группах выше, и ни одна
+            // галка не стоит в чужом роде. Граница между двумя родами
+            // переключателей обязана быть видна БЕЗ НАВЕДЕНИЯ (решение
+            // Amber 06.09.2026) — потому она проведена рамкой группы, а не
+            // одной лишь подсказкой, как было до 06.09.2026.
             //
-            // groupingFlow
+            resources.ApplyResources(this.displayGroupBox, "displayGroupBox");
+            this.displayGroupBox.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.displayGroupBox.Controls.Add(this.displayFlow);
+            this.displayGroupBox.Name = "displayGroupBox";
+            this.displayGroupBox.TabStop = false;
             //
-            resources.ApplyResources(this.groupingFlow, "groupingFlow");
-            this.groupingFlow.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.groupingFlow.Controls.Add(this.parentsRadio);
-            this.groupingFlow.Controls.Add(this.daughtersRadio);
-            this.groupingFlow.Name = "groupingFlow";
+            // displayFlow
+            //
+            resources.ApplyResources(this.displayFlow, "displayFlow");
+            this.displayFlow.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.displayFlow.Controls.Add(this.groupingLabel);
+            this.displayFlow.Controls.Add(this.parentsRadio);
+            this.displayFlow.Controls.Add(this.daughtersRadio);
+            this.displayFlow.Controls.Add(this.residualBandCheckBox);
+            this.displayFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.displayFlow.Name = "displayFlow";
+            this.displayFlow.WrapContents = false;
+            //
+            // groupingLabel
+            //
+            resources.ApplyResources(this.groupingLabel, "groupingLabel");
+            this.groupingLabel.Name = "groupingLabel";
             //
             // parentsRadio
             //
@@ -159,7 +177,6 @@ namespace BecquerelMonitor
             this.extrasFlow.Controls.Add(this.backscatterCheckBox);
             this.extrasFlow.Controls.Add(this.escapeCheckBox);
             this.extrasFlow.Controls.Add(this.pileUpCheckBox);
-            this.extrasFlow.Controls.Add(this.residualBandCheckBox);
             this.extrasFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.extrasFlow.Name = "extrasFlow";
             this.extrasFlow.WrapContents = false;
@@ -264,9 +281,9 @@ namespace BecquerelMonitor
             //
             resources.ApplyResources(this, "$this");
             this.Controls.Add(this.reportTable);
+            this.Controls.Add(this.displayGroupBox);
             this.Controls.Add(this.extrasGroupBox);
             this.Controls.Add(this.chainGroupBox);
-            this.Controls.Add(this.groupingGroupBox);
             this.Controls.Add(this.sourceGroupBox);
             this.HideOnClose = true;
             this.Name = "FSAReportView";
@@ -274,10 +291,10 @@ namespace BecquerelMonitor
             this.sourceGroupBox.PerformLayout();
             this.sourceFlow.ResumeLayout(false);
             this.sourceFlow.PerformLayout();
-            this.groupingGroupBox.ResumeLayout(false);
-            this.groupingGroupBox.PerformLayout();
-            this.groupingFlow.ResumeLayout(false);
-            this.groupingFlow.PerformLayout();
+            this.displayGroupBox.ResumeLayout(false);
+            this.displayGroupBox.PerformLayout();
+            this.displayFlow.ResumeLayout(false);
+            this.displayFlow.PerformLayout();
             this.chainGroupBox.ResumeLayout(false);
             this.chainGroupBox.PerformLayout();
             this.chainFlow.ResumeLayout(false);
@@ -298,8 +315,9 @@ namespace BecquerelMonitor
         private System.Windows.Forms.FlowLayoutPanel sourceFlow;
         private System.Windows.Forms.RadioButton sourcePeaksRadio;
         private System.Windows.Forms.RadioButton sourceNucBaseRadio;
-        private System.Windows.Forms.GroupBox groupingGroupBox;
-        private System.Windows.Forms.FlowLayoutPanel groupingFlow;
+        private System.Windows.Forms.GroupBox displayGroupBox;
+        private System.Windows.Forms.FlowLayoutPanel displayFlow;
+        private System.Windows.Forms.Label groupingLabel;
         private System.Windows.Forms.RadioButton parentsRadio;
         private System.Windows.Forms.RadioButton daughtersRadio;
         private System.Windows.Forms.GroupBox chainGroupBox;

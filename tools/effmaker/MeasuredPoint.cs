@@ -66,8 +66,11 @@ static class Real
         double live = spec.LiveTime > 0 ? spec.LiveTime : spec.MeasurementTime;
 
         Console.WriteLine("Спектр: {0}", System.IO.Path.GetFileName(path));
-        Console.WriteLine("каналов {0}, живое время {1:F0} с, всего отсчётов {2:N0}",
-                          nch, live, Sum(spec.Spectrum, 0, nch - 1));
+        // ⛔ `T246`: `F0`, а не `N0` — группировки разрядов быть не должно
+        // (решение Amber 05.09.2026); печать — явной инвариантной культурой.
+        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                          "каналов {0}, живое время {1:F0} с, всего отсчётов {2:F0}",
+                          nch, live, (double)Sum(spec.Spectrum, 0, nch - 1)));
 
         double center = cal.EnergyToChannel(Energy);
         double fwhm = fwhmCal.ChannelToFwhm(center);
@@ -113,11 +116,13 @@ static class Real
 
         Console.WriteLine("центр фита: канал {0:F1} (калибровка даёт {1:F1}, сдвиг {2:F2} ПШПВ)",
                           bestCenter, center, (bestCenter - center) / fwhm);
-        Console.WriteLine("площадь пика {0:N0} +/- {1:N0} ({2:F2} %)", area, sigma, 100.0 * sigma / area);
+        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                          "площадь пика {0:F0} +/- {1:F0} ({2:F2} %)", area, sigma, 100.0 * sigma / area));
 
         double eps = area / (live * activity * Intensity);
         Console.WriteLine();
-        Console.WriteLine("ИЗМЕРЕНО:  eps({2:F0}) = {0:E4}   при активности {1:N0} Бк", eps, activity, Energy);
+        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                          "ИЗМЕРЕНО:  eps({2:F0}) = {0:E4}   при активности {1:F0} Бк", eps, activity, Energy));
 
         if (args.Length >= 4)
         {
