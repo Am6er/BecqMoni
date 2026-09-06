@@ -744,7 +744,9 @@ namespace BecquerelMonitor.NucBase
         ///   большим номером описывают распад возбуждённого уровня и дублируют
         ///   тот же переход с другим ветвлением — у Bi-212 на Tl-208 есть
         ///   35.94 % при уровне 0 и 67 % при уровне 5. Изомер, если он живёт
-        ///   сам по себе, имеет собственный nucid (234PAM1);
+        ///   сам по себе, имеет собственный nucid (234PAM1). Само выражение —
+        ///   <see cref="DecayParentRule.ChainLevelClause"/>, одно на проект
+        ///   (`A218`), своей копии здесь больше нет;
         /// * пропускать петлю на себя: у 238U в базе есть такая строка.
         /// </summary>
         public Dictionary<string, double> GetChainBranches(string rootNucid, double minFraction = 1e-6)
@@ -775,16 +777,17 @@ namespace BecquerelMonitor.NucBase
                     List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
                     // Строки вычитываются целиком до следующего запроса: обходу
                     // нужен ещё один читатель на том же соединении.
-                    // Минимальный l_seqno ищется среди строк С ЧИСЛОМ: если у
-                    // самой ранней записи perc пуст, дочка бралась бы из неё и
-                    // выпадала из ряда целиком, хотя число есть строкой ниже.
+                    // Зажим по уровню — общий, из `DecayParentRule` (`A218`):
+                    // здесь стоял свой текст, в котором минимум искался среди
+                    // строк С ЧИСЛОМ (`x.perc not null`). Замер на всей
+                    // поставке показал, что этот довесок не меняет НИ ОДНОЙ
+                    // тройки, и он снят вместе с копией; станет он значимым —
+                    // возвращать его надо в само правило, всем сразу.
                     // Имя — параметром: оно приходит из базы и из поля ввода, а
                     // апостроф в нём закрывал литерал и ронял обход (`D45`).
                     SqliteDataReader reader = db.ReadData(
                         "select daughter_nucid, perc from decay_chain d where nucid = $n" +
-                        " and perc not null and l_seqno = (select min(l_seqno) from decay_chain x " +
-                        "where x.nucid = d.nucid and x.daughter_nucid = d.daughter_nucid " +
-                        "and x.dec_type = d.dec_type and x.perc not null)",
+                        " and perc not null" + DecayParentRule.ChainLevelClause,
                         DataBase.Param("$n", current));
                     while (reader.Read())
                     {

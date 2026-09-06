@@ -92,6 +92,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double OmegaK;
 
         /// <summary>
+        /// Дочерний нуклид, которому принадлежит K-рентген: та ветвь распада,
+        /// у которой `perc` наибольший, петли `daughter = nucid` сняты.
+        /// Пусто — ветвей не нашлось.
+        ///
+        /// ⚠ Открыто наружу РАДИ ЧИТАТЕЛЯ (`A218`), как и `DecayParentRule`:
+        /// без него «правило выбрало не тот атом» и «у атома нет ω_K» с виду
+        /// одно и то же, а именно этим и различаются старое правило и новое.
+        /// Читает `tools/effmaker/probes/ChainRuleProbeF58.cs`.
+        /// </summary>
+        public string Daughter;
+
+        /// <summary>
         /// Число K-вакансий на распад, рождённых МГНОВЕННО (захват). Именно
         /// они совпадают с любой гаммой каскада.
         /// </summary>
@@ -283,10 +295,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // бывает несколько (у Eu-152 захват и β⁻ сразу), берём самую
                 // сильную: K-рентген принадлежит атому, в который распад
                 // ПРИШЁЛ, и у слабой ветви он тонет в выходе.
+                //
+                // (`A218`) Зажим по уровню — общий, из `DecayParentRule`. Здесь
+                // стоял свой текст `l_seqno = 0`, и он был НЕ той же строгости:
+                // у 30 родителей дочернего не находилось вовсе (`234PAm1`
+                // лежит на уровне 2, а не на нуле), а ещё у четырёх выбирался
+                // не тот — у `183HF` дочерним атомом выходил САМ ГАФНИЙ.
+                //
+                // ⛔ ПЕТЛИ СНИМАЕМ ЗДЕСЬ, ЯВНО. Правило их не снимает нарочно —
+                // обходу ряда они нужны как изомерный переход, — а нам они
+                // означали бы «атом сам себе дочерний». В выборку они попадают
+                // у 511 родителей из 2535 и у 123 из них побеждают по `perc`.
                 command.Parameters.Clear();
                 command.CommandText =
-                    "select daughter_nucid, perc from decay_chain"
-                    + " where nucid = $n and l_seqno = 0";
+                    "select daughter_nucid, perc from decay_chain d"
+                    + " where nucid = $n"
+                    + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", nucid);
                 double best = -1.0;
                 using (SqliteDataReader reader = command.ExecuteReader())
@@ -294,6 +318,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     while (reader.Read())
                     {
                         string name = reader.IsDBNull(0) ? null : reader.GetString(0);
+                        if (string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
                         double perc;
                         if (string.IsNullOrEmpty(name)
                             || !double.TryParse(reader.IsDBNull(1) ? "" : reader.GetString(1),
@@ -311,6 +340,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
+
+            data.Daughter = daughter;
 
             // K-серия: Kα целиком плюс ОДНО из двух представлений Kβ.
             data.KLines.AddRange(kAlpha);
