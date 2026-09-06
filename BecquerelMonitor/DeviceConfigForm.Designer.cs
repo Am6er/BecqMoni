@@ -64,6 +64,8 @@ namespace BecquerelMonitor
             this.label25 = new System.Windows.Forms.Label();
             this.textBox18 = new System.Windows.Forms.TextBox();
             this.label24 = new System.Windows.Forms.Label();
+            this.crystalMaterialLabel = new System.Windows.Forms.Label();
+            this.crystalMaterialCombo = new System.Windows.Forms.ComboBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.tabPage6 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -313,6 +315,8 @@ namespace BecquerelMonitor
             this.tabPage1.Controls.Add(this.textBox1);
             this.tabPage1.Controls.Add(this.label18);
             this.tabPage1.Controls.Add(this.label4);
+            this.tabPage1.Controls.Add(this.crystalMaterialLabel);
+            this.tabPage1.Controls.Add(this.crystalMaterialCombo);
             resources.ApplyResources(this.tabPage1, "tabPage1");
             this.tabPage1.Name = "tabPage1";
             // 
@@ -402,7 +406,20 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.label24, "label24");
             this.label24.Name = "label24";
-            // 
+            //
+            // crystalMaterialLabel
+            //
+            resources.ApplyResources(this.crystalMaterialLabel, "crystalMaterialLabel");
+            this.crystalMaterialLabel.Name = "crystalMaterialLabel";
+            //
+            // crystalMaterialCombo
+            //
+            this.crystalMaterialCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.crystalMaterialCombo.FormattingEnabled = true;
+            resources.ApplyResources(this.crystalMaterialCombo, "crystalMaterialCombo");
+            this.crystalMaterialCombo.Name = "crystalMaterialCombo";
+            this.crystalMaterialCombo.SelectedIndexChanged += new System.EventHandler(this.crystalMaterialCombo_SelectedIndexChanged);
+            //
             // tabPage3
             // 
             this.tabPage3.BackColor = System.Drawing.SystemColors.Control;
@@ -1360,6 +1377,14 @@ namespace BecquerelMonitor
 
 		// Token: 0x04000274 RID: 628
 		System.Windows.Forms.Label label24;
+
+		// ВЕЩЕСТВО КРИСТАЛЛА (`A276`, решение Amber 06.09.2026). Имена
+		// осмысленные, а не `label53`/`comboBox5`: номерные достались от
+		// декомпилятора, и продолжать ряд значило бы прятать новое поле среди
+		// восемнадцати безымянных.
+		System.Windows.Forms.Label crystalMaterialLabel;
+
+		System.Windows.Forms.ComboBox crystalMaterialCombo;
 
 		// Token: 0x04000275 RID: 629
 		System.Windows.Forms.Label label26;

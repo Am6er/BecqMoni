@@ -92,6 +92,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public string CrystalName = "";
 
+        /// <summary>
+        /// ИМЯ ВЕЩЕСТВА КРИСТАЛЛА В БИБЛИОТЕКЕ — ссылка, а не подпись
+        /// (`A276`, решение Amber 06.09.2026). Ставится тем, кто про прибор это
+        /// знает: в приложении — полем конфигурации прибора
+        /// (<c>DeviceConfigInfo.CrystalMaterialName</c>), в корпусном замере не
+        /// ставится вовсе — там кристалл приходит геометрией.
+        ///
+        /// ⛔ Это НЕ <see cref="CrystalName"/>. То — короткая подпись образа
+        /// («CsI»), собираемая в том числе из символов элементов; это — имя
+        /// строки библиотеки веществ («Cesium iodide»), по которому берётся
+        /// состав. Свести их в одно поле нельзя: подпись бывает выдумана
+        /// самим сборщиком, а по выдуманному имени состава не найти.
+        ///
+        /// ⛔ ГЕОМЕТРИЯ ПЕРВИЧНА: пока <see cref="CrystalFractions"/> непусты,
+        /// это поле не читается вовсе (<see cref="FsaSampleLibrary.CrystalFractionsOf"/>).
+        /// </summary>
+        public string CrystalMaterialName = "";
+
         /// <summary>Z элементов ЗАЩИТЫ И ОБВЯЗКИ — свинец домика, железо корпуса.</summary>
         public readonly List<int> ShieldElements = new List<int>();
 
@@ -2145,9 +2163,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Массовые доли элементов кристалла для физического отсева — те, что
-        /// лежат в спецификации, а если их там нет, то ВОССТАНОВЛЕННЫЕ по
-        /// названным элементам (`A271`, 06.09.2026).
+        /// Массовые доли элементов кристалла для физического отсева. Источников
+        /// ТРИ, и они спрашиваются строго по старшинству (`A271` и `A276`,
+        /// 06.09.2026):
+        ///
+        ///   1. ГЕОМЕТРИЯ — доли, уже лежащие в спецификации
+        ///      (<see cref="DescribeCrystal"/>). Первичны всегда;
+        ///   2. ВЕЩЕСТВО, НАЗВАННОЕ ЧЕЛОВЕКОМ у прибора
+        ///      (<see cref="FsaSampleSpec.CrystalMaterialName"/> ←
+        ///      <c>DeviceConfigInfo.CrystalMaterialName</c>, `A276`);
+        ///   3. ВОССТАНОВЛЕНИЕ по названным элементам кристалла (`A271`).
+        ///
+        /// ⛔ Порядок держится ЗДЕСЬ И БОЛЬШЕ НИГДЕ. Второй источник заведён
+        /// решением Amber ровно потому, что первый есть не у всех: у прибора без
+        /// геометрии долей нет, а вещество кристалла человек знает всегда. Что
+        /// геометрия при этом ничего не теряет, проверяется замером, а не
+        /// рассуждением: у сцены с геометрией результат обязан не измениться ни
+        /// в одной ячейке, даже когда поле прибора названо ДРУГИМ веществом
+        /// (плечо «первенство геометрии» пробы `CrystalMaterialProbe`).
         ///
         /// Зачем. Доли кладёт <see cref="DescribeCrystal"/>, и кладёт только из
         /// ГЕОМЕТРИИ. У спектра без геометрии их нет — а отбор родителей
@@ -2187,6 +2220,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 return fractions;
+            }
+
+            // Второй источник — вещество, названное человеком у прибора
+            // (`A276`). Спрашивается ПОСЛЕ геометрии и ДО восстановления по
+            // элементам: названное прямо старше выведенного, но обоих старше
+            // измеренная сцена.
+            Dictionary<int, double> named = FractionsOfMaterial(spec.CrystalMaterialName);
+            if (named.Count > 0)
+            {
+                return named;
             }
 
             if (spec.CrystalElements.Count == 0)
@@ -2232,6 +2275,61 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return found ?? fractions;
+        }
+
+        /// <summary>
+        /// Массовые доли вещества библиотеки ПО ЕГО ИМЕНИ (`A276`). Пусто —
+        /// имя не названо, такого имени в библиотеке нет или состав у него
+        /// пуст; ни одно из трёх не отказ, а «источника нет», и дальше судит
+        /// следующий источник или запас по энергии
+        /// (<see cref="FsaLibrary.EscapeParentMarginKev"/>).
+        ///
+        /// ⛔ ИМЁН ВЕЩЕСТВ В КОДЕ НЕ ПОЯВЛЯЕТСЯ (решение Amber 01.09.2026):
+        /// здесь только ОБРАЩЕНИЕ по имени, которое пришло из конфигурации
+        /// прибора, а сам список веществ и их составы — данные библиотеки,
+        /// которые правит человек (<c>GeometryMaterialStore</c>). Ни одного
+        /// разбора имени, ни одной таблицы «CsI → цезий и иод».
+        ///
+        /// ⚠ Вид вещества (<c>MaterialKind.Crystal</c>) здесь НЕ требуется, и
+        /// это решение. Вид — свойство СПИСКА ВЫБОРА, а не физики: он говорит,
+        /// в каком месте сцены вещество предлагать. Прибор, у которого вещество
+        /// названо, а человек потом сменил ему вид в редакторе, обязан считать
+        /// по-прежнему, а не онеметь молча — состав от вида не зависит.
+        /// Список же на форме прибора берёт именно кристаллы, и выбрать оттуда
+        /// свинец нельзя.
+        ///
+        /// ⚠ Плотность спрашивается У САМОЙ ЗАПИСИ (<c>entry.Density</c>): доли
+        /// МАССОВЫЕ и от плотности не зависят вовсе, а ноль вместо неё увёл бы
+        /// <see cref="GeometryMaterialLibrary.Make"/> в ту же ветку окольным
+        /// путём. Потребитель долей — доля рождения пар, отношение, и плотность
+        /// в него не входит (`S122`).
+        /// </summary>
+        public static Dictionary<int, double> FractionsOfMaterial(string materialName)
+        {
+            var fractions = new Dictionary<int, double>();
+            if (string.IsNullOrEmpty(materialName))
+            {
+                return fractions;
+            }
+
+            GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(materialName);
+            if (entry == null)
+            {
+                return fractions;
+            }
+
+            GeometryMaterial material = GeometryMaterialLibrary.Make(entry, entry.Density);
+            if (material == null)
+            {
+                return fractions;
+            }
+
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                fractions[pair.Key] = pair.Value;
+            }
+
+            return fractions;
         }
 
         /// <summary>

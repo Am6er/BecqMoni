@@ -412,6 +412,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`CorpusFsaProbe.SpecOf`): второй источник правды двигал бы
             // энергию пика вылета, а она есть разность с Kα кристалла.
             EfficiencyConfigData efficiencyConfig = resultData.Efficiency;
+
+            // ⛔ `A276`: вещество кристалла, названное человеком у ПРИБОРА, —
+            // запасной источник массовых долей там, где геометрии нет. Здесь
+            // ТОЛЬКО присваивание ссылки: старшинство источников держит
+            // `FsaSampleLibrary.CrystalFractionsOf` и больше никто, поэтому
+            // условия «а есть ли геометрия» тут нет и быть не должно — второе
+            // место, решающее тот же вопрос, разошлось бы с первым.
+            if (resultData.DeviceConfig != null)
+            {
+                spec.CrystalMaterialName = resultData.DeviceConfig.CrystalMaterialName;
+            }
+
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry)
             {
                 GeometryModel geometry = efficiencyConfig.Geometry;
