@@ -37,19 +37,19 @@
             this.label85 = new System.Windows.Forms.Label();
             this.label86 = new System.Windows.Forms.Label();
             this.label87 = new System.Windows.Forms.Label();
-            this.numericUpDown8 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown9 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown8 = new InvariantNumericUpDown();
+            this.numericUpDown9 = new InvariantNumericUpDown();
             this.confidenceLevelcomboBox = new System.Windows.Forms.ComboBox();
             this.confidenceLevelLabel = new System.Windows.Forms.Label();
-            this.numericUpDown13 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown13 = new InvariantNumericUpDown();
             this.progressiveSmoothCheckbox = new System.Windows.Forms.CheckBox();
             this.label90 = new System.Windows.Forms.Label();
             this.label28 = new System.Windows.Forms.Label();
             this.label27 = new System.Windows.Forms.Label();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown2 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
+            this.numericUpDown2 = new InvariantNumericUpDown();
             this.label26 = new System.Windows.Forms.Label();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown1 = new InvariantNumericUpDown();
             this.label24 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.comboBox10 = new System.Windows.Forms.ComboBox();
@@ -72,15 +72,15 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
-            this.numericUpDown14 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown14 = new InvariantNumericUpDown();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.label64 = new System.Windows.Forms.Label();
             this.comboBox15 = new System.Windows.Forms.ComboBox();
             this.label55 = new System.Windows.Forms.Label();
             this.label51 = new System.Windows.Forms.Label();
-            this.numericUpDown7 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown6 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown7 = new InvariantNumericUpDown();
+            this.numericUpDown6 = new InvariantNumericUpDown();
             this.label58 = new System.Windows.Forms.Label();
             this.label59 = new System.Windows.Forms.Label();
             this.label60 = new System.Windows.Forms.Label();
@@ -209,7 +209,7 @@
             this.groupBox6 = new System.Windows.Forms.GroupBox();
             this.label91 = new System.Windows.Forms.Label();
             this.label92 = new System.Windows.Forms.Label();
-            this.numericUpDown10 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown10 = new InvariantNumericUpDown();
             this.autoSaveDefaultPolicyCheckBox = new System.Windows.Forms.CheckBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
@@ -222,8 +222,8 @@
             this.label47 = new System.Windows.Forms.Label();
             this.label49 = new System.Windows.Forms.Label();
             this.label48 = new System.Windows.Forms.Label();
-            this.numericUpDown5 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown4 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown5 = new InvariantNumericUpDown();
+            this.numericUpDown4 = new InvariantNumericUpDown();
             this.comboBox13 = new System.Windows.Forms.ComboBox();
             this.comboBox12 = new System.Windows.Forms.ComboBox();
             this.miscSettingsGroupBox = new System.Windows.Forms.GroupBox();
@@ -2316,7 +2316,7 @@
 		global::System.Windows.Forms.Label label23;
 
 		// Token: 0x04000631 RID: 1585
-		global::System.Windows.Forms.NumericUpDown numericUpDown1;
+		InvariantNumericUpDown numericUpDown1;
 
 		// Token: 0x04000632 RID: 1586
 		global::ColorComboBox.ColorComboBox colorComboBox16;
@@ -2325,7 +2325,7 @@
 		global::System.Windows.Forms.Label label25;
 
 		// Token: 0x04000634 RID: 1588
-		global::System.Windows.Forms.NumericUpDown numericUpDown2;
+		InvariantNumericUpDown numericUpDown2;
 
 		// Token: 0x04000635 RID: 1589
 		global::System.Windows.Forms.Label label26;
@@ -2334,7 +2334,7 @@
 		global::System.Windows.Forms.Label label27;
 
 		// Token: 0x04000637 RID: 1591
-		global::System.Windows.Forms.NumericUpDown numericUpDown3;
+		InvariantNumericUpDown numericUpDown3;
 
 		// Token: 0x04000638 RID: 1592
 		global::System.Windows.Forms.Label label28;
@@ -2460,9 +2460,9 @@
 		global::System.Windows.Forms.Label label49;
 
 		// Token: 0x04000661 RID: 1633
-		global::System.Windows.Forms.NumericUpDown numericUpDown5;
+		InvariantNumericUpDown numericUpDown5;
 
-        global::System.Windows.Forms.NumericUpDown numericUpDown10;
+        InvariantNumericUpDown numericUpDown10;
 
         // Token: 0x04000662 RID: 1634
         global::System.Windows.Forms.ComboBox comboBox13;
@@ -2471,7 +2471,7 @@
 		global::System.Windows.Forms.ComboBox comboBox12;
 
 		// Token: 0x04000664 RID: 1636
-		global::System.Windows.Forms.NumericUpDown numericUpDown4;
+		InvariantNumericUpDown numericUpDown4;
 
 		// Token: 0x04000665 RID: 1637
 		global::System.Windows.Forms.GroupBox groupBox6;
@@ -2545,19 +2545,19 @@
         global::ColorComboBox.ColorComboBox colorComboBox29;
 
 		// Token: 0x0400067A RID: 1658
-		global::System.Windows.Forms.NumericUpDown numericUpDown7;
+		InvariantNumericUpDown numericUpDown7;
 
-		global::System.Windows.Forms.NumericUpDown numericUpDown8;
+		InvariantNumericUpDown numericUpDown8;
 
-		global::System.Windows.Forms.NumericUpDown numericUpDown9;
+		InvariantNumericUpDown numericUpDown9;
 
-        global::System.Windows.Forms.NumericUpDown numericUpDown13;
+        InvariantNumericUpDown numericUpDown13;
 
         global::System.Windows.Forms.CheckBox progressiveSmoothCheckbox;
         global::System.Windows.Forms.ToolTip progressiveSmoothTooltip;
 
         // Token: 0x0400067B RID: 1659
-        global::System.Windows.Forms.NumericUpDown numericUpDown6;
+        InvariantNumericUpDown numericUpDown6;
 
 		// Token: 0x0400067C RID: 1660
 		global::System.Windows.Forms.Label label53;
@@ -2738,7 +2738,7 @@
 		// Token: 0x040006B3 RID: 1715
 		global::System.Windows.Forms.Button button7;
 
-		global::System.Windows.Forms.NumericUpDown numericUpDown14;
+		InvariantNumericUpDown numericUpDown14;
 		global::System.Windows.Forms.CheckBox autoSaveDefaultPolicyCheckBox;
         global::System.Windows.Forms.ComboBox confidenceLevelcomboBox;
         global::System.Windows.Forms.Label confidenceLevelLabel;

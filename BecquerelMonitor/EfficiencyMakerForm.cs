@@ -135,7 +135,7 @@ namespace BecquerelMonitor
 
         GroupBox calcOptionsGroup;
 
-        NumericUpDown calcMinEnergyBox, calcMaxEnergyBox, calcPointsBox,
+        InvariantNumericUpDown calcMinEnergyBox, calcMaxEnergyBox, calcPointsBox,
                       calcHistoriesBox, calcThreadsBox;
 
         ComboBox calcGridBox;
@@ -215,7 +215,15 @@ namespace BecquerelMonitor
                                             1, 64, Math.Max(1, Environment.ProcessorCount - 1));
 
             this.calcHistoriesBox.Increment = 50000;
-            this.calcHistoriesBox.ThousandsSeparator = true;
+
+            // ⛔ ГРУППИРОВКИ РАЗРЯДОВ НЕТ ВОВСЕ (`A244`, решение Amber
+            // 05.09.2026). Здесь стояло `calcHistoriesBox.ThousandsSeparator =
+            // true` — последняя группировка приложения, и бралась она у
+            // КУЛЬТУРЫ ПОТОКА: на русской системе «200 000» неразрывными
+            // пробелами, на английской «200,000». Ту же строку сняли у формы
+            // матрицы отклика (`ResponseMatrixForm.Layout.cs`), и она осталась
+            // здесь одна: замер `NumericCultureProbeF68` нашёл её как
+            // единственную запятую печати под `en-US` (`A261`).
 
             // Число точек штатная сетка считает сама — поле при ней заперто, а
             // не игнорируется молча: выставленное и ни на что не влияющее число
@@ -236,7 +244,7 @@ namespace BecquerelMonitor
                 new System.Drawing.Point(13, this.calcOptionsGroup.Bottom + 12);
         }
 
-        NumericUpDown CalcField(string caption, int x, int y,
+        InvariantNumericUpDown CalcField(string caption, int x, int y,
                                 decimal min, decimal max, decimal value)
         {
             this.calcOptionsGroup.Controls.Add(new Label
@@ -247,7 +255,7 @@ namespace BecquerelMonitor
                 TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
             });
 
-            NumericUpDown box = new NumericUpDown
+            InvariantNumericUpDown box = new InvariantNumericUpDown
             {
                 Location = new System.Drawing.Point(x + CalcLabelWidth, y),
                 Size = new System.Drawing.Size(CalcFieldWidth, 20),
@@ -295,7 +303,7 @@ namespace BecquerelMonitor
             }
         }
 
-        static void SetClamped(NumericUpDown box, decimal value)
+        static void SetClamped(InvariantNumericUpDown box, decimal value)
         {
             box.Value = Math.Min(box.Maximum, Math.Max(box.Minimum, value));
         }

@@ -416,6 +416,9 @@
     <Compile Include="IntegerTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="InvariantNumericUpDown.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
     <Compile Include="MagnificationReference.cs" />

@@ -76,7 +76,7 @@
             this.label16 = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.label24 = new System.Windows.Forms.Label();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown1 = new InvariantNumericUpDown();
             this.label23 = new System.Windows.Forms.Label();
             this.label22 = new System.Windows.Forms.Label();
             this.button9 = new System.Windows.Forms.Button();
@@ -964,7 +964,7 @@
 		global::System.Windows.Forms.Label label24;
 
 		// Token: 0x04000502 RID: 1282
-		global::System.Windows.Forms.NumericUpDown numericUpDown1;
+		InvariantNumericUpDown numericUpDown1;
 
 		// Token: 0x04000503 RID: 1283
 		global::System.Windows.Forms.Label label23;
