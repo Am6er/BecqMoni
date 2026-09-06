@@ -1028,6 +1028,9 @@
   <data name="GeometryDescription" xml:space="preserve">
     <value>{0}: кристалл {1} {2} мм, ро {3:F3}; источник — {4}, {5}</value>
   </data>
+  <data name="GeometryWriterUnrepresentable" xml:space="preserve">
+    <value>{0}: знак «{1}» (U+{2:X4}) в кодовую страницу 1251 не ложится, а файл геометрии пишется только ею — строка {3}: {4}</value>
+  </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Остановлено пользователем.</value>
   </data>
@@ -1159,6 +1162,9 @@
   </data>
   <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
     <value>{0}: {1:F1} кэВ снята, ε={2:F2} &gt; 1</value>
+  </data>
+  <data name="EfficiencyMakerReferenceImpossibleLog" xml:space="preserve">
+    <value>Опорная кривая: {0:F1} кэВ снята, ε={1:G3} — эффективность есть доля зарегистрированных из испущенных квантов и больше единицы быть не может.</value>
   </data>
   <data name="GeometryEditorTitle" xml:space="preserve">
     <value>Конструктор геометрии</value>
@@ -2204,6 +2210,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DoseRateBadScale" xml:space="preserve">
     <value>Мощность дозы: шкала энергии вырождена ({0}...{1} кэВ на {2} каналов).</value>
+  </data>
+  <data name="DoseRateCurveAboveOne" xml:space="preserve">
+    <value>Мощность дозы: кривая эффективности даёт {0} на {1:f1} кэВ. Эффективность — это доля зарегистрированных из испущенных квантов, больше единицы быть не может.</value>
   </data>
   <data name="DoseRateCurveBadEnergy" xml:space="preserve">
     <value>Мощность дозы: у кривой эффективности точка с негодной энергией {0} кэВ.</value>
