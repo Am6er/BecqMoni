@@ -88,11 +88,15 @@ PARTS = os.path.join(LAB, 'corpus', 'parts.csv')
 DETECTORS = os.path.join(LAB, 'corpus', 'detectors.csv')
 sys.path.insert(0, HERE)
 
-# Мерка печатает ⛔ и ⚠; консоль сопровождающего бывает не в UTF-8.
-try:
-    sys.stdout.reconfigure(errors='backslashreplace')
-except Exception:
-    pass
+# T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+# Кодировка utf-8, а не `backslashreplace` при cp1251: по замеру G5 06.09.2026
+# (handover/g5-cp1251/04-readers.md) оба канала агента и check_all.py декодируют utf-8, и при
+# cp1251 ВЕСЬ русский приходит как ������. Решение Amber 06.09.2026 — utf-8 тем же блоком (G7).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+        pass
 
 import corpus_def                                       # noqa: E402
 import corpus_calib                                     # noqa: E402

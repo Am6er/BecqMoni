@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\_g7ctrl_gaussfit_check_broken.py", line 671, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\_g7ctrl_gaussfit_check_broken.py", line 436, in main
+    print(u"\u26d4  ќЌ“–ќЋ№ G7 Ч знак вне cp1251 первой строкой main(): \u2705 \u279c \u03c3 \U0001d11e")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u26d4' in position 0: character maps to <undefined>

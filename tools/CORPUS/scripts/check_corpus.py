@@ -19,29 +19,6 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
-# ⛔ ПРИЁМКА ОБЯЗАНА ДОЙТИ ДО ВЕРДИКТА В ЛЮБОЙ КОНСОЛИ (`A71`, 02.09.2026).
-#
-# В отчёте пять знаков, которых нет в cp1251: ⚠ ⛔ ² χ σ. Пока `sys.stdout`
-# отдаёт utf-8, они печатаются; но стоит выключить режим UTF-8
-# (`PYTHONUTF8=0` — а это ещё и умолчание питонов до 3.15), как кодировкой
-# потока становится cp1251, и ПЕРВЫЙ же такой знак роняет приёмку
-# `UnicodeEncodeError`. Проверено прямым вызовом: `sys.stdout.write(chr(0x26A0))`
-# при `enc=cp1251` даёт трассу, а не строку.
-#
-# Цена — не косметика: отказ приходит ПОСЕРЕДИНЕ отчёта, вердикта и кода
-# возврата не видно вовсе, и «приёмка упала» неотличимо от «корпус не сошёлся».
-#
-# ⚠ Меняется ТОЛЬКО политика ошибок, а НЕ кодировка. Соседние скрипты пишут
-# `reconfigure(encoding="utf-8")`, и здесь это было бы хуже: в cp1251-консоли
-# utf-8 превращает в кашу ВЕСЬ русский текст, а не пять знаков. С `replace`
-# кириллица остаётся читаемой (она в cp1251 есть), а пять знаков становятся
-# знаком вопроса.
-for _stream in (sys.stdout, sys.stderr):
-    try:
-        _stream.reconfigure(errors='replace')
-    except (AttributeError, ValueError):        # поток не текстовый или подменён
-        pass
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 LAB = os.path.dirname(HERE)
 SPECTRA = os.path.join(LAB, 'corpus', 'spectra')
@@ -734,4 +711,16 @@ def main():
 
 
 if __name__ == '__main__':
+    # `A71` (02.09.2026): приёмка обязана дойти до вердикта в любой консоли.
+    # T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+    # Кодировка utf-8, а не «replace/backslashreplace при cp1251»: по замеру G5 06.09.2026
+    # (handover/g5-cp1251/04-readers.md) оба канала агента и check_all.py декодируют utf-8, и
+    # при cp1251 ВЕСЬ русский приходит как ������. Решение Amber 06.09.2026 — utf-8 тем же
+    # блоком (G7). Блок в теле __main__, а не у импортов: модуль импортируют, и потоки
+    # импортёра трогать нельзя.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+            pass
     sys.exit(main())

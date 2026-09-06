@@ -70,14 +70,6 @@ import importlib.util
 
 import numpy as np
 
-# Мерка печатает ⛔ и ⚠, а консоль сопровождающего бывает не в UTF-8: на cp1251
-# прогон падал `UnicodeEncodeError` в самом конце, ПОСЛЕ всех вычислений и до
-# сводки. Признак, который не доехал до бумаги, признаком не является.
-try:
-    sys.stdout.reconfigure(errors='backslashreplace')
-except Exception:
-    pass
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
@@ -667,4 +659,17 @@ def main():
 
 
 if __name__ == '__main__':
+    # Мерка печатает ⛔ и ⚠: на cp1251 прогон падал `UnicodeEncodeError` в самом конце,
+    # ПОСЛЕ всех вычислений и до сводки. Признак, не доехавший до бумаги, признаком не является.
+    # T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
+    # Кодировка utf-8, а не «replace/backslashreplace при cp1251»: по замеру G5 06.09.2026
+    # (handover/g5-cp1251/04-readers.md) оба канала агента и check_all.py декодируют utf-8, и
+    # при cp1251 ВЕСЬ русский приходит как ������. Решение Amber 06.09.2026 — utf-8 тем же
+    # блоком (G7). Блок в теле __main__, а не у импортов: модуль импортируют, и потоки
+    # импортёра трогать нельзя.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
+            pass
     sys.exit(main())
