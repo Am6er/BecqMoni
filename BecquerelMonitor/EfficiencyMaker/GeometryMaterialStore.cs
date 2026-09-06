@@ -117,7 +117,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 5 (16.08.2026) — грунт (`Soil`) по решению Amber: без него двум
         ///     готовым сценам съёмки в поле (`E27`) нечем считать свободный
         ///     пробег, а по воздуху сцена выходит в сорок метров.
-        public const int CurrentSeedVersion = 5;
+        /// 6 (06.09.2026) — набивки ВТОРОЙ ПОВЕРКИ, `ОИСН-06 (2024)` и
+        ///     `ОИСН-16 (2024)`, по решению Amber (`A181`, `B13`): поставка
+        ///     переобъявила состав, не сменив имени, и 23 из 44 корпусных
+        ///     геометрий несут набивку, которой в засеве не было вовсе.
+        public const int CurrentSeedVersion = 6;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();
