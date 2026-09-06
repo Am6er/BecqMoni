@@ -205,9 +205,9 @@ SC_FractionsSource[0] = 0.87937
 SC_ZSource[1] = 8
 SC_FractionsSource[1] = 0.12063
 SC_FractionTypeSource = MASS
-M_SC_Source.MName = Water, liquid
+M_SC_Source.MName = Lutetium oxide
 M_SC_Source.Nmaterials = 1
-M_SC_Source.Name[0] = Water, liquid                            
+M_SC_Source.Name[0] = Lutetium oxide                           
 M_SC_Source.MatRelWeight[0] = 1
 
 

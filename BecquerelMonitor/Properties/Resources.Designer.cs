@@ -4472,6 +4472,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ActivityLcZeroRefused {
+            get {
+                return ResourceManager.GetString("ActivityLcZeroRefused", resourceCulture);
+            }
+        }
+
         public static string BqCoeffTipAuto {
             get {
                 return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
