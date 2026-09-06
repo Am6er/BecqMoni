@@ -1,0 +1,2 @@
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g11\config\device: 24 loaded
+BecqMoni: Ошибка: Не удалось загрузить конфигурационный файл ROI. C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g11\config\ROI Причина: DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g11\config\ROI".

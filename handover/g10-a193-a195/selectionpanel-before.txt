@@ -1,0 +1,95 @@
+снимки: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\g10-a193-a195\before (ключ --shots=)
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\config\NuclideDefinition.xml: 152 entries
+SETUP	сборка: БЕЗ ПРАВКИ (плечо «до») — ждём молчание и +54 px при Lc = 0
+SETUP	приложение: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\BecquerelMonitor.exe
+SETUP	ASN16_Cs137.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+BecqMoni: Ошибка: Не удалось загрузить конфигурационный файл ROI. C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\config\ROI Причина: DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g10ref\config\ROI".
+SETUP	пик 657.96 кэВ, канал 1718, ПШПВ 113.3 каналов, подпись «Cs-137» 662.00 кэВ I = 85.1 %; выделение каналы 1605…1831
+
+=== культура en ===
+
+--- honest ---
+  нетто 59549714.0, Lc 5984.11, A 193003.05, подпись «Cs-137», отказ «»
+  панель: 230×340 в (926,10); кадр sha256 a74889fc6555c5a7…; строк отказа по мерке GDI+: 0
+  ok   число посчитано (A > 0)                                                  True
+  ok   Lc > 0                                                                   True
+  ok   отказа нет                                                               True
+  ok   подпись поставлена                                                       True
+
+--- nocurve ---
+  нетто 59549714.0, Lc 5984.11, A 0.00, подпись «», отказ «»
+  панель: 230×270 в (926,10); кадр sha256 cb27bdc7ba2c626d…; строк отказа по мерке GDI+: 0
+  ok   плечо «до»: подписи нет                                                  True
+  ok   плечо «до»: отказа нет (молчание, дефект A193 числом)                    True
+
+--- netneg ---
+  нетто -66166346.0, Lc 0.00, A 0.00, подпись «», отказ «»
+  панель: 230×198 в (926,10); кадр sha256 ac48f71bd5917cd3…; строк отказа по мерке GDI+: 0
+  ok   плечо «до»: подписи нет                                                  True
+  ok   плечо «до»: отказа нет (молчание, дефект A193 числом)                    True
+
+--- lczero ---
+  нетто 66166346.0, Lc 0.00, A 214447.82, подпись «Cs-137», отказ «»
+  панель: 230×204 в (926,10); кадр sha256 99a35241ce820a32…; строк отказа по мерке GDI+: 0
+  ok   Lc = 0 (фон в выделении пуст)                                            True
+  ok   число посчитано (A > 0)                                                  True
+  ok   отказа нет                                                               True
+  ⚠ число посчитано, а на панели ни числа, ни отказа — решения Amber по этому нет (в отчёт полосы)
+
+--- nobg ---
+  нетто 66166346.0, Lc 0.00, A 0.00, подпись «Cs-137», отказ «no background spectrum: activity not shown»
+  панель: 230×198 в (926,10); кадр sha256 8f48455fb3675342…; строк отказа по мерке GDI+: 2
+  ok   отказ словами = ресурс «ActivityNoBackgroundRefused» [en]                no background spectrum: activity not shown
+  ok   подпись поставлена (отказ занимает место числа)                          True
+  ok   числа нет                                                                0
+  контроль «как рисовал прежний код»: панель 150 px против 198 px; изменилось точек в области панели 8109, вне её 0
+  ok   отказ виден: точек изменилось в области панели > 0                       True
+  ok   панель с отказом выше на 48 px (прежний код: 48 всегда)                  48
+
+=== культура ru ===
+
+--- honest ---
+  нетто 59549714.0, Lc 5984.11, A 193003.05, подпись «Cs-137», отказ «»
+  панель: 230×340 в (926,10); кадр sha256 7aae52564a5aad70…; строк отказа по мерке GDI+: 0
+  ok   число посчитано (A > 0)                                                  True
+  ok   Lc > 0                                                                   True
+  ok   отказа нет                                                               True
+  ok   подпись поставлена                                                       True
+
+--- nocurve ---
+  нетто 59549714.0, Lc 5984.11, A 0.00, подпись «», отказ «»
+  панель: 230×270 в (926,10); кадр sha256 af6ee0eaca0a6cf9…; строк отказа по мерке GDI+: 0
+  ok   плечо «до»: подписи нет                                                  True
+  ok   плечо «до»: отказа нет (молчание, дефект A193 числом)                    True
+
+--- netneg ---
+  нетто -66166346.0, Lc 0.00, A 0.00, подпись «», отказ «»
+  панель: 230×198 в (926,10); кадр sha256 7b8ef969344f7814…; строк отказа по мерке GDI+: 0
+  ok   плечо «до»: подписи нет                                                  True
+  ok   плечо «до»: отказа нет (молчание, дефект A193 числом)                    True
+
+--- lczero ---
+  нетто 66166346.0, Lc 0.00, A 214447.82, подпись «Cs-137», отказ «»
+  панель: 230×204 в (926,10); кадр sha256 150ca0ba91d67830…; строк отказа по мерке GDI+: 0
+  ok   Lc = 0 (фон в выделении пуст)                                            True
+  ok   число посчитано (A > 0)                                                  True
+  ok   отказа нет                                                               True
+  ⚠ число посчитано, а на панели ни числа, ни отказа — решения Amber по этому нет (в отчёт полосы)
+
+--- nobg ---
+  нетто 66166346.0, Lc 0.00, A 0.00, подпись «Cs-137», отказ «фонового спектра нет: активность не показана»
+  панель: 230×198 в (926,10); кадр sha256 a93525d34d0475e2…; строк отказа по мерке GDI+: 2
+  ok   отказ словами = ресурс «ActivityNoBackgroundRefused» [ru]                фонового спектра нет: активность не показана
+  ok   подпись поставлена (отказ занимает место числа)                          True
+  ok   числа нет                                                                0
+  ok   русский текст отличается от английского (сателлит ru рядом)              True
+  контроль «как рисовал прежний код»: панель 150 px против 198 px; изменилось точек в области панели 8268, вне её 0
+  ok   отказ виден: точек изменилось в области панели > 0                       True
+  ok   панель с отказом выше на 48 px (прежний код: 48 всегда)                  48
+
+сводка прогона: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\g10-a193-a195\before\g10-panel.txt
+
+ВСЕ СОШЛИСЬ

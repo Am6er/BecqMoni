@@ -616,8 +616,14 @@
   <data name="ERRReadDataFromPort_Empty" xml:space="preserve">
     <value>Не могу прочитать данные с устройства по COM порту!</value>
   </data>
-  <data name="ERRUnsupportedEnergyBoundaryN42" xml:space="preserve">
-    <value>Объект спецификации N42 - EnergyBoundaryValues не поддерживается: читаются только коэффициенты полинома. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
+  <data name="ERRChannelEdgeNotFinite" xml:space="preserve">
+    <value>граница №{0} — не конечное число: {1}</value>
+  </data>
+  <data name="ERRChannelEdgesNotIncreasing" xml:space="preserve">
+    <value>границы не возрастают: №{0} = {1}, №{2} = {3}</value>
+  </data>
+  <data name="ERRChannelEdgesInvalidSpecUtils" xml:space="preserve">
+    <value>границы энергий каналов в файле негодны ({0}), в шкалу они не взяты, и осталась y = x, то есть номер канала объявлен энергией (измерений: {1})</value>
   </data>
   <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
     <value>В файле N42 нет объекта EnergyCalibration. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
@@ -1471,6 +1477,12 @@
   </data>
   <data name="ActivityNoBackgroundRefused" xml:space="preserve">
     <value>фонового спектра нет: активность не показана</value>
+  </data>
+  <data name="ActivityNoCurveRefused" xml:space="preserve">
+    <value>для спектра не выбрана кривая эффективности: активность не показана</value>
+  </data>
+  <data name="ActivityNetNotPositiveRefused" xml:space="preserve">
+    <value>нетто не выше нуля: активность не показана</value>
   </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>

@@ -54,6 +54,16 @@ namespace BqActivityProbe
     ///    доехал, и это тоже отказ. На сборке ДО правки все четыре плеча
     ///    отказывают — это и есть положительный контроль самой проверки.
     ///
+    ///    ⛔ (`A193`, решение Amber 06.09.2026 «оба, отказом на панели») Ещё два
+    ///    плеча ждут ОТКАЗ СЛОВАМИ: «кривой эффективности нет» (ключ
+    ///    `ActivityNoCurveRefused`, первая фраза та же, что у панели зон) и
+    ///    «нетто ≤ 0 при фоне» (`ActivityNetNotPositiveRefused`). На сборке до
+    ///    правки оба молчат — ветка не начиналась вовсе. Плечо «Lc = 0» (фон
+    ///    есть, но в выделении у него нет отсчётов) печатается ради `A195`:
+    ///    число там считается, а на панели нет ни числа, ни отказа — это
+    ///    состояние НЕ решено Amber и в счёт отказов пробы не идёт, только
+    ///    называется вслух.
+    ///
     ///     BqActivityProbe [--spectra=&lt;…\CORPUS\corpus\spectra&gt;]
     ///                     [--res=7] [--top=8] [--csv=bqactivity.csv]
     ///
@@ -771,9 +781,32 @@ namespace BqActivityProbe
             s = Scene.Standard(); s.SetLabel("Cs-137", 661.657, -5.0);
             Verdict("выход I < 0", s.Run(), mustBeSilentNumber: false);
 
-            // (в) кривой нет
-            s = Scene.Standard(); s.SetLabel("Cs-137", 661.657, 85.1); s.Result.Efficiency = null;
-            Verdict("кривой эффективности нет", s.Run(), mustBeSilentNumber: false);
+            // (в) кривой нет — ОТКАЗ СЛОВАМИ (`A193`, 06.09.2026): раньше ветка
+            //     не начиналась вовсе (подписи нет, «ничего»), и человек без
+            //     кривой у прибора видел пустое место.
+            Refusal("кривой эффективности нет",
+                    () => { Scene x = Scene.Standard(); x.SetLabel("Cs-137", 661.657, 85.1); x.Result.Efficiency = null; return x; },
+                    "ActivityNoCurveRefused");
+
+            // (в2) нетто ≤ 0 при фоне — ОТКАЗ СЛОВАМИ (`A193`): фон вдвое выше
+            //      спектра за то же время; Lc/Ld не считаются, числа нет — так и
+            //      было, новое — что причина названа.
+            Refusal("нетто ≤ 0 при фоне",
+                    () => { Scene x = Scene.Standard(); x.SetLabel("Cs-137", 661.657, 85.1); x.BackgroundAboveForeground(); return x; },
+                    "ActivityNetNotPositiveRefused");
+
+            // (в3) кривой нет И фона нет — впереди «кривой нет», как у панели зон.
+            Refusal("кривой нет и фона нет",
+                    () => { Scene x = Scene.Standard(); x.SetLabel("Cs-137", 661.657, 85.1); x.Result.Efficiency = null; x.DropBackground(); return x; },
+                    "ActivityNoCurveRefused");
+
+            // (в4) Lc = 0: фон есть, но в выделении у него ни одного отсчёта.
+            //      `A195` меняет только ВЫСОТУ панели (её меряет кадром
+            //      `SelectionPanelProbeG10`); само состояние — число посчитано,
+            //      а на панели ни числа, ни отказа — печатается вслух и в счёт
+            //      отказов НЕ идёт: решения Amber по нему нет.
+            s = Scene.Standard(); s.SetLabel("Cs-137", 661.657, 85.1); s.ZeroBackground();
+            LcZero("Lc = 0 (фон без отсчётов в выделении)", s.Run());
 
             // (г) энергия за краем кривой — ОТКАЗ СЛОВАМИ на обоих языках.
             //     Кривая сцены 50…2000 кэВ; края берутся ИЗ НЕЁ, а не из
@@ -932,6 +965,29 @@ namespace BqActivityProbe
         }
 
         static int silentAbsences;
+
+        /// <summary>
+        /// Плечо «Lc = 0»: ожидание — число посчитано (A &gt; 0), Lc = 0, отказа
+        /// нет, на панели НЕ видно. Любое другое сочетание — отказ пробы: значит,
+        /// поведение сдвинулось, а строки на это нет. Само молчание — находка
+        /// полосы G10, решение за Amber; здесь оно только называется.
+        /// </summary>
+        static void LcZero(string what, Scene.Answer a)
+        {
+            Console.WriteLine("  {0,-34} {1,-46} {2,-14} {3}", what,
+                              a.Ok && a.Refusal == null && a.Lc == 0.0 ? "⚠ число посчитано, Lc = 0, НЕ показано" : "?",
+                              a.Ok ? N(a.Activity) : "-",
+                              a.Shown ? "да" : "нет");
+            if (!(a.Ok && a.Refusal == null && a.Lc == 0.0 && !a.Shown))
+            {
+                Console.WriteLine("     !! ждали: A > 0, Lc = 0, отказа нет, на панели не видно; получили A={0}, Lc={1}, отказ «{2}», видно={3}",
+                                  N(a.Activity), N(a.Lc), a.Refusal ?? "(нет)", a.Shown);
+                bad++;
+                return;
+            }
+            Console.WriteLine("     ⚠ молчание того же рода, что `A193`, но НЕ решённое Amber: число есть,");
+            Console.WriteLine("        ни числа, ни отказа на панели нет (в отчёт полосы, не в отказ пробы)");
+        }
 
         // ------------------------------------------------------------------
         //  4. Корпус: часто ли пара «два настоящих нуклида» встречается вживую
@@ -1462,6 +1518,34 @@ namespace BqActivityProbe
             {
                 this.Result.BackgroundEnergySpectrum = null;
                 this.bg = null;
+            }
+
+            /// <summary>
+            /// (`A193`) Фон ВДВОЕ выше спектра за то же время — нетто в выделении
+            /// отрицательно, порог обнаружения не считается.
+            /// </summary>
+            public void BackgroundAboveForeground()
+            {
+                int[] heavy = new int[this.fg.Spectrum.Length];
+                for (int i = 0; i < heavy.Length; i++) heavy[i] = 2 * this.fg.Spectrum[i];
+                this.BgTime = this.FgTime;
+                this.bg = MakeSpectrum(heavy, this.cal, this.BgTime);
+                this.Result.BackgroundEnergySpectrum = this.bg;
+                this.BgCounts = 0.0;
+                for (int i = this.StartChannel; i <= this.EndChannel; i++) this.BgCounts += heavy[i];
+                this.NetCounts = this.FgCounts - this.BgCounts * this.FgTime / this.BgTime;
+            }
+
+            /// <summary>
+            /// (`A195`) Фон есть, но без единого отсчёта: Lc = Ld = 0, нетто = спектр,
+            /// число считается.
+            /// </summary>
+            public void ZeroBackground()
+            {
+                this.bg = MakeSpectrum(new int[this.fg.Spectrum.Length], this.cal, this.BgTime);
+                this.Result.BackgroundEnergySpectrum = this.bg;
+                this.BgCounts = 0.0;
+                this.NetCounts = this.FgCounts;
             }
 
             /// <summary>

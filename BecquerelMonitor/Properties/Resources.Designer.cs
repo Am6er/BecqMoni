@@ -1379,11 +1379,29 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Only calibration coefficients are supported. Using the default calibration y=x: the channel number is taken as the energy..
+        ///   Looks up a localized string similar to channel energy boundaries in the file are invalid ({0}); they were not used, and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {1}).
         /// </summary>
-        public static string ERRUnsupportedEnergyBoundaryN42 {
+        public static string ERRChannelEdgesInvalidSpecUtils {
             get {
-                return ResourceManager.GetString("ERRUnsupportedEnergyBoundaryN42", resourceCulture);
+                return ResourceManager.GetString("ERRChannelEdgesInvalidSpecUtils", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to boundary #{0} is not a finite number: {1}.
+        /// </summary>
+        public static string ERRChannelEdgeNotFinite {
+            get {
+                return ResourceManager.GetString("ERRChannelEdgeNotFinite", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to boundaries do not increase: #{0} = {1}, #{2} = {3}.
+        /// </summary>
+        public static string ERRChannelEdgesNotIncreasing {
+            get {
+                return ResourceManager.GetString("ERRChannelEdgesNotIncreasing", resourceCulture);
             }
         }
         
@@ -4439,6 +4457,18 @@ namespace BecquerelMonitor.Properties {
         public static string ActivityNoBackgroundRefused {
             get {
                 return ResourceManager.GetString("ActivityNoBackgroundRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNetNotPositiveRefused {
+            get {
+                return ResourceManager.GetString("ActivityNetNotPositiveRefused", resourceCulture);
             }
         }
 

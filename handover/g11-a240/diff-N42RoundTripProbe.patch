@@ -1,0 +1,217 @@
+diff --git a/tools/effmaker/probes/N42RoundTripProbe.cs b/tools/effmaker/probes/N42RoundTripProbe.cs
+index 091701f9..77794369 100644
+--- a/tools/effmaker/probes/N42RoundTripProbe.cs
++++ b/tools/effmaker/probes/N42RoundTripProbe.cs
+@@ -51,6 +51,16 @@ namespace N42RoundTripProbe
+     ///                    документ приложения} × {дверь SpecUtils, дверь N42},
+     ///                    и полные плечи здесь ПОЛОЖИТЕЛЬНЫЙ контроль: без них
+     ///                    «упало» значило бы «проба не работает вовсе».
++    ///   --mode=onevoice — РОВНО ОДИН ГОЛОС НА СОБЫТИЕ у восьмого места `A240`
++    ///                    (полоса G11, 06.09.2026): `CheckDocument` строит
++    ///                    умолчание кривой разрешения через `CreateDocument`,
++    ///                    `OpenDocument` и `LoadBackgroundSpectrum`; при
++    ///                    умолчании, которое НЕ строится, каждое из трёх
++    ///                    событий считается по строкам `BecqMoni:` в потоке
++    ///                    ошибок. Ожидание: создание — 1, открытие — 1, фон — 0
++    ///                    (у кривой фона читателя нет: фон вычитается по
++    ///                    отсчётам); исправная конфигурация — 0/0/0
++    ///                    (положительный контроль ложной тревоги).
+     ///
+     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
+     /// AppUi.HasWindows == false и мерится ОТКАЗНАЯ половина всех дверей.
+@@ -137,6 +147,7 @@ namespace N42RoundTripProbe
+             if (mode == "specutils") return SpecUtils();
+             if (mode == "noconfig") return NoConfig();
+             if (mode == "origin") return Origin();
++            if (mode == "onevoice") return OneVoice();
+             Console.Error.WriteLine("неизвестный --mode: " + mode);
+             return 2;
+         }
+@@ -1018,6 +1029,187 @@ namespace N42RoundTripProbe
+             return rc;
+         }
+ 
++        // ==================================================================
++        // ⛔ ВОСЬМОЕ МЕСТО `A240` — `DocumentManager.CheckDocument` (полоса G11,
++        //    06.09.2026). Семь мест-читателей причины `A235` чинит полоса F62;
++        //    здесь меряется то, куда причина из `CheckDocument` уходит и
++        //    сколько раз человек её слышит. `CheckDocument` — точка служебная
++        //    (`bool`, зовётся семью методами), голоса у неё быть не должно:
++        //    голос — у двери, которая привела к нему (`ReportMissingFwhmCalibration`,
++        //    ~~`A234`~~/F54), и ровно один на событие.
++        //
++        //    Три пути к `CheckDocument`, у которых состояние «кривая не
++        //    строится» достижимо без ввоза: `CreateDocument` (пункт «Новый»),
++        //    `OpenDocument` (сохранённый документ без кривой при той же
++        //    конфигурации) и `LoadBackgroundSpectrum` (файл фона). Каждое
++        //    событие считается ОТДЕЛЬНО, строками `BecqMoni:` в потоке ошибок
++        //    (`AppUi.Report` без окон пишет ровно одну строку на голос).
++        //    Двери ввоза (`ImportDocumentN42`, `ImportDocumentAtomSpectra`)
++        //    сюда не входят — они меряются `--mode=noconfig`.
++        //
++        //    Ожидание после правки: создание 1, открытие 1, фон 0; исправная
++        //    конфигурация — 0/0/0. Замер ДО и ПОСЛЕ обязан дать ОДНИ числа:
++        //    полоса не добавляет и не убирает голоса, она ведёт причину.
++        // ==================================================================
++        static int OneVoice()
++        {
++            DeviceConfigManager dcm = DeviceConfigManager.GetInstance();
++            if (dcm.DeviceConfigList.Count == 0)
++            {
++                Console.Error.WriteLine("конфигураций приборов не загружено — мерить не с чем");
++                return 2;
++            }
++            string dir = Path.Combine(Path.GetTempPath(), "g11_onevoice");
++            Directory.CreateDirectory(dir);
++            Console.WriteLine("=== РОВНО ОДИН ГОЛОС НА СОБЫТИЕ У CheckDocument (`A240`, восьмое место) ===");
++            Console.WriteLine("  конфигурация документа: «" + dcm.DeviceConfigList[0].Name + "», настройки поиска пиков "
++                              + Cfg3((FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig));
++            Console.WriteLine("  каталог документов: " + dir);
++            Console.WriteLine();
++
++            // Прогрев: первое обращение к менеджерам пишет в поток ошибок свои
++            // строки (библиотека нуклидов, главный конфиг, каталог ROI) — это
++            // не голоса двери. Измерено на плече ДО: без прогрева «создание 3».
++            {
++                TextWriter warmErr = Console.Error;
++                Console.SetError(new StringWriter());
++                try
++                {
++                    DocEnergySpectrum warm = DocumentManager.GetInstance().CreateDocument(Path.Combine(dir, "g11_warm.xml"));
++                    if (warm != null) DocumentManager.GetInstance().CloseDocument(warm);
++                }
++                finally { Console.SetError(warmErr); }
++            }
++
++            int rc = 0;
++            rc |= OneVoiceArm("КОНФИГУРАЦИЯ ИСПРАВНА", Path.Combine(dir, "g11_ok.xml"), 0, 0, 0);
++
++            FWHMPeakDetectionMethodConfig broken =
++                (FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig;
++            double keepAt0 = broken.FWHM_AT_0, keepWidth = broken.Width_Fwhm;
++            FwhmCalibration keepCurve = broken.FwhmCalibration;
++            broken.FWHM_AT_0 = 40.0;
++            broken.Width_Fwhm = 1.0;
++            broken.FwhmCalibration = null;
++            try
++            {
++                Console.WriteLine("--- у конфигурации «" + dcm.DeviceConfigList[0].Name + "» умолчание не строится: "
++                                  + Cfg3(broken) + "; проверка DefaultCalibration -> "
++                                  + (FwhmCalibration.DefaultCalibration(broken, new PolynomialEnergyCalibration()) == null
++                                     ? "null" : "кривая построилась — ПЛЕЧО НЕ МЕРИТ") + " ---");
++                Console.WriteLine();
++                rc |= OneVoiceArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", Path.Combine(dir, "g11_broken.xml"), 1, 1, 0);
++            }
++            finally
++            {
++                broken.FWHM_AT_0 = keepAt0;
++                broken.Width_Fwhm = keepWidth;
++                broken.FwhmCalibration = keepCurve;
++            }
++
++            Console.WriteLine("=== ИТОГ ===");
++            foreach (string s in armTotals) Console.WriteLine("  " + s);
++            return rc;
++        }
++
++        /// <summary>Сколько строк `BecqMoni:` (голосов `AppUi.Report` без окон) в перехваченном потоке ошибок.</summary>
++        static int Voices(StringWriter caught, List<string> into)
++        {
++            int n = 0;
++            foreach (string line in caught.ToString().Split('\n'))
++            {
++                string one = line.Trim();
++                if (one.Length == 0) continue;
++                into.Add(one);
++                if (one.StartsWith("BecqMoni:")) n++;
++            }
++            return n;
++        }
++
++        static string CurveState(ResultData rd)
++        {
++            if (rd == null) return "спектра нет";
++            return rd.FwhmCalibration == null ? "без кривой" : "кривая есть " + Curve(rd.FwhmCalibration);
++        }
++
++        /// <summary>
++        /// Одно плечо: создать документ (CreateDocument), записать (SaveDocument),
++        /// закрыть, открыть (OpenDocument), подгрузить его же как фон
++        /// (LoadBackgroundSpectrum). Три числа голосов — три события. Код
++        /// возврата 1, если хоть одно число разошлось с ожиданием.
++        /// </summary>
++        static int OneVoiceArm(string state, string path, int expectCreate, int expectOpen, int expectBg)
++        {
++            string head = state + " | " + Path.GetFileName(path);
++            Console.WriteLine("=== " + head + " ===");
++            DocumentManager dm = DocumentManager.GetInstance();
++            List<string> voices = new List<string>();
++            int vCreate = -1, vOpen = -1, vBg = -1;
++            string sCreate = "?", sOpen = "?", sBg = "?";
++            string trouble = null;
++
++            if (File.Exists(path)) File.Delete(path);
++            TextWriter realErr = Console.Error;
++            StringWriter caught = new StringWriter();
++            Console.SetError(caught);
++            try
++            {
++                // 1. Создание — пункт «Новый»: CreateDocument -> CheckDocument.
++                DocEnergySpectrum doc = dm.CreateDocument(path);
++                vCreate = Voices(caught, voices);
++                if (doc == null) throw new InvalidOperationException("документ НЕ СОЗДАН (CreateDocument вернул null)");
++                sCreate = CurveState(doc.ActiveResultData);
++
++                // 2. Запись и закрытие — состояние без кривой уходит в файл.
++                if (!dm.SaveDocument(doc)) throw new InvalidOperationException("документ НЕ ЗАПИСАН");
++                dm.CloseDocument(doc);
++
++                // 3. Открытие сохранённого — OpenDocument -> CheckDocument.
++                caught = new StringWriter();
++                Console.SetError(caught);
++                DocEnergySpectrum doc2 = dm.OpenDocument(path);
++                vOpen = Voices(caught, voices);
++                if (doc2 == null) throw new InvalidOperationException("документ НЕ ОТКРЫТ (OpenDocument вернул null)");
++                sOpen = CurveState(doc2.ActiveResultData);
++
++                // 4. Тот же файл как фон — LoadBackgroundSpectrum -> CheckDocument.
++                caught = new StringWriter();
++                Console.SetError(caught);
++                ResultData rd = doc2.ActiveResultData;
++                rd.BackgroundSpectrumPathname = path;
++                dm.LoadBackgroundSpectrum(rd);
++                vBg = Voices(caught, voices);
++                sBg = rd.BackgroundEnergySpectrum == null ? "фон НЕ загружен" : "фон загружен";
++                dm.CloseDocument(doc2);
++            }
++            catch (Exception ex)
++            {
++                trouble = ex.GetType().Name + ": " + Flat(ex.Message);
++            }
++            finally
++            {
++                Console.SetError(realErr);
++            }
++
++            Console.WriteLine("  создание: голосов " + vCreate + ", " + sCreate);
++            Console.WriteLine("  открытие: голосов " + vOpen + ", " + sOpen);
++            Console.WriteLine("  фон:      голосов " + vBg + ", " + sBg);
++            if (trouble != null) Console.WriteLine("  ОТКАЗ: " + trouble);
++            if (voices.Count > 0)
++            {
++                Console.WriteLine("  ГОЛОСА:");
++                foreach (string v in voices) Console.WriteLine("    " + v);
++            }
++            bool ok = trouble == null && vCreate == expectCreate && vOpen == expectOpen && vBg == expectBg;
++            string total = head + " -> создание " + vCreate + " (ожидалось " + expectCreate + "), открытие "
++                           + vOpen + " (ожидалось " + expectOpen + "), фон " + vBg + " (ожидалось " + expectBg + ")"
++                           + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ") + (trouble == null ? "" : "; " + trouble);
++            Console.WriteLine("  ИТОГ: " + total);
++            Console.WriteLine();
++            armTotals.Add(total);
++            return ok ? 0 : 1;
++        }
++
+         static string Cfg3(FWHMPeakDetectionMethodConfig cfg)
+         {
+             if (cfg == null) return "(настроек нет)";
