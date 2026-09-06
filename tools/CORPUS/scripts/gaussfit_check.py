@@ -436,9 +436,18 @@ def main():
     only = None
     csv_out = None
     raw_dir = RAW
+    # `T76`: у кода возврата 3 появился читатель (`tools/check_corpus_coverage.py`),
+    # и звать ради него ПОЛНУЮ мерку нельзя — она идёт минуты, а сторож обязан
+    # укладываться в приёмку коммита. `--coverage-only` останавливает мерку сразу
+    # после стадии чтения, то есть ровно там, где считается `hard=True`-стадия
+    # охвата. ⛔ Второй копии правила чтения при этом НЕ ЗАВОДИТСЯ: это тот же
+    # цикл по `corpus_def.ALL` и тот же `Spectrum(raw)`, просто без фитов.
+    coverage_only = False
     ref_path = os.path.join(HERE, 'gaussfit_ref.py')
     for a in sys.argv[1:]:
-        if a.startswith('--only='):
+        if a == '--coverage-only':
+            coverage_only = True
+        elif a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
         elif a.startswith('--csv='):
             csv_out = a.split('=', 1)[1]
@@ -495,6 +504,8 @@ def main():
             print(u'%-24s ОШИБКА чтения: %s' % (key, ex))
             continue
         read_ok.append(key)
+        if coverage_only:
+            continue
         cal = corpus_calib.Ecal(sp.ecal, sp.n)
         lines = lines_of(e, sp, res_a)
         if not lines:
@@ -568,6 +579,13 @@ def main():
     # `T76`: охват идёт ПЕРЕД числами, а не после, и знаменатель у него из
     # `parts.csv`, а не из того, что удалось прочитать.
     cov.add(u'прочитано из _corpus_raw', read_ok, hard=True)
+    if coverage_only:
+        # Стадия «в сводке» не считалась — печатать её нулём было бы ложью
+        # о неполном охвате там, где мерка просто не работала.
+        bad = cov.report()
+        print(u'')
+        print(u'--coverage-only: считана ТОЛЬКО стадия чтения; чисел мерки нет.')
+        return 3 if bad else 0
     cov.add(u'в сводке (есть курированные линии)', [r['key'] for r in rows])
     bad = cov.report()
 

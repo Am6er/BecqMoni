@@ -63,6 +63,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     С СОБОЙ — `IsValidFor` отвечал «нет» навсегда, разбор печатал
         //     «БЕЗ МАТРИЦЫ» у всех спектров сцены. Подъём версии решением
         //     Amber 31.08.2026: все матрицы корпуса пересчитаны заново.
+        //
+        // ⚠ ЧЕТВЁРТЫЙ И ПЯТЫЙ СЛУЧАИ ТОЙ ЖЕ ОШИБКИ ВЕРСИЮ НЕ ПОДНЯЛИ, и это
+        //     нарочно: `OPTF` (`A66`), `PKWT` (`E34`) и `RLFL` (`T242`) лежат
+        //     ХВОСТАМИ за данными, а не в блоке параметров, поэтому старый файл
+        //     читается прежним кодом побайтно и ни одна посчитанная матрица не
+        //     объявляется негодной. Разбор, какой случай чинится каким хвостом,
+        //     стоит у самих хвостов в `Save`.
         public const int FormatVersion = 7;
 
         /// <summary>
@@ -410,6 +417,65 @@ namespace BecquerelMonitor.EfficiencyMaker
             return true;
         }
 
+        /// <summary>
+        /// ⛔ (`E34`, решение Amber 06.09.2026, ветка «а») ВЫХОД ПОПРАВКИ НА
+        /// ОДНОКРАТНОЕ РАССЕЯНИЕ У МАТРИЦЫ ЗАВЕДОМО СТИРАЕТСЯ — считать её
+        /// незачем.
+        ///
+        /// У ветки <see cref="EfficiencySimulator.SingleScatter"/> два выхода, и
+        /// на пути сборки матрицы оба бывают пустыми ОДНОВРЕМЕННО:
+        ///
+        /// 1. **Пиковый счёт.** `ScatteredRun` возвращает вклад только при
+        ///    <see cref="EfficiencySimulator.InPeak"/>, а тот требует
+        ///    `E − deposited ≤ PeakHalfWidthKev`. У рассеявшегося по дороге
+        ///    кванта недобор положителен всегда, поэтому при НУЛЕВОМ допуске
+        ///    вклад ноль при любой истории. (Матрица этот счёт и так
+        ///    выбрасывает — см. шапку `Run`, — но условие честнее писать по
+        ///    самой ветке, а не по её читателю.)
+        /// 2. **Гистограмма.** Всё, что ветка кладёт, ложится в бины НИЖЕ пика
+        ///    (`Deposit` сдвигает не попавшее в пик в `peak−1`), а
+        ///    `AnalogContinuumRun` перезаписывает бины `0…peak−1` целиком —
+        ///    вместе с каналами и светом.
+        ///
+        /// Значит при «допуск нулевой И аналоговый континуум включён» ветка
+        /// считает то, что будет стёрто, а стоит она 1.45…1.96× всего счёта
+        /// узла (замер полосы `F76` 06.09.2026, физика 16, 3 млн историй;
+        /// полоса П1 того же дня намерила на полной сцене 1.54× и 1.65×).
+        ///
+        /// ⛔ **Условие обязано НЕ ЗАДЕТЬ путь кривой эффективности**
+        /// (`EfficiencyCalculation.cs`): там допуск берётся из геометрии и
+        /// ветка работает по-настоящему. Поэтому решение стоит В СБОРЩИКЕ
+        /// МАТРИЦЫ (<see cref="ResponseMatrixBuilder"/>, `MakeSimulator`), куда
+        /// кривая не заходит вовсе, а не внутри симулятора: правило, спрятанное
+        /// в общий код, однажды сработало бы и там.
+        ///
+        /// ⛔ **Ответ идёт и в клеймо** (`scat=`), иначе повторяется беда
+        /// `A77`/`T114`: числа другие, клеймо прежнее. Матрица, посчитанная с
+        /// погашенной веткой, побитово равна посчитанной ключом `--scat=0` — и
+        /// клеймо у них теперь тоже одно.
+        ///
+        /// Допуск нулевой у ВСЕХ узлов сразу: он либо не берётся из геометрии
+        /// вовсе, либо геометрия не знает своего разрешения (`DS_Fwhm662`
+        /// отсутствует — файлы LSRM его не содержат), и тогда
+        /// <see cref="GeometryModel.PeakHalfWidthKev"/> отдаёт ноль на любой
+        /// энергии. Поэтому вопрос решается один раз на матрицу.
+        ///
+        /// ⚠ Оговорка об одном крае: у узла из ОДНОГО бина
+        /// `AnalogContinuumRun` не зовётся (`histogram.Length > 1`), и там
+        /// стирания не было бы. Такой узел означает `E &lt; BinKev/2`; при
+        /// нижнем узле сетки 5 кэВ и шаге 2 кэВ он недостижим, замера на нём
+        /// нет.
+        /// </summary>
+        public static bool SingleScatterErased(GeometryModel geometry, ResponseMatrixOptions options)
+        {
+            if (geometry == null || options == null || !options.AnalogContinuum)
+            {
+                return false;
+            }
+
+            return !options.PeakToleranceFromGeometry || !(geometry.FwhmAt662Percent > 0.0);
+        }
+
         public static string ComputeStamp(GeometryModel geometry, ResponseMatrixOptions options)
         {
             if (geometry == null)
@@ -481,7 +547,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append("xray=").Append(options.XrayEscape ? "1" : "0").Append(';');
                 sb.Append("coh=").Append(options.CoherentPassesThrough ? "1" : "0").Append(';');
                 sb.Append("brem=").Append(options.Bremsstrahlung ? "1" : "0").Append(';');
-                sb.Append("scat=").Append(options.SingleScatter ? "1" : "0").Append(';');
+                // ⛔ (`E34`) Клеймо называет ветку ТАК, КАК ОНА СЧИТАЛАСЬ, а не
+                // так, как стоит ключ: при погашенном выходе (см.
+                // <see cref="SingleScatterErased"/>) сборщик ветку не считает
+                // вовсе, и матрица выходит побитово равной посчитанной с
+                // `--scat=0`. Написать здесь «1» значило бы отдать двум разным
+                // числам одно клеймо — ровно `A77`/`T114`.
+                sb.Append("scat=")
+                  .Append(options.SingleScatter && !SingleScatterErased(geometry, options) ? "1" : "0")
+                  .Append(';');
                 sb.Append("npl=").Append(options.LightNonproportionality ? "1" : "0").Append(';');
                 sb.Append("acont=").Append(options.AnalogContinuum ? "1" : "0").Append(';');
                 sb.Append("bound=").Append(options.BoundScattering ? "1" : "0").Append(';');
@@ -1030,6 +1104,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // считался), а прежний exe до хвоста не доходит.
                 writer.Write(Encoding.ASCII.GetBytes("PKWT"));
                 writer.Write(flags.PeakToleranceFromGeometry);
+
+                // ⛔ ПЯТЫЙ ХВОСТ, `RLFL` — РУЛЕТКА И ФЛУОРЕСЦЕНЦИЯ ПРОБЫ
+                // (`T242`, сводка ключей обоих путей 06.09.2026).
+                //
+                // Четвёртый случай ОДНОЙ И ТОЙ ЖЕ беды, после зерна (`T114`),
+                // пятёрки `OPTF` (`A66`) и допуска пика (`PKWT`, `E34`):
+                // `ScatterRoulette` и `SampleFluorescence` входят в КЛЕЙМО
+                // (`roul=`, `nofluo=1`), а `WriteOptions` их не пишет. Матрица,
+                // посчитанная `--roulette=0.125` или `--fluo=0`, после чтения с
+                // диска получала умолчания (0 и `true`), пересчитывала клеймо
+                // БЕЗ этих строк и не сходилась САМА С СОБОЙ: `IsValidFor`
+                // отвечал «нет» навсегда, а разбор печатал «БЕЗ МАТРИЦЫ».
+                //
+                // ⚠ Найдено СВОДКОЙ, а не прогоном, и иначе не находилось:
+                // оба ключа абляционные, штатный склад считается умолчаниями, а
+                // при умолчаниях клеймо молчит об обоих и сходится. То есть
+                // дыра ждала первого же замера рулетки или флуоресценции.
+                //
+                // Совместимость та же, что у хвостов выше: у прежнего файла
+                // хвоста нет, поля остаются умолчаниями — ровно тем, чем они и
+                // были при его счёте, — и клеймо сходится побайтно. Ни одна из
+                // 44 корпусных матриц не устарела.
+                writer.Write(Encoding.ASCII.GetBytes("RLFL"));
+                writer.Write(flags.ScatterRoulette);
+                writer.Write(flags.SampleFluorescence);
             }
 
             if (File.Exists(path))
@@ -1445,6 +1544,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "PKWT")
                                     {
                                         matrix.Options.PeakToleranceFromGeometry = reader.ReadBoolean();
+
+                                        // Пятый хвост, `RLFL` (`T242`): рулетка
+                                        // и флуоресценция пробы. У файлов до
+                                        // 06.09.2026 его нет — поля остаются
+                                        // умолчаниями (0 и `true`), то есть тем,
+                                        // чем они были при их счёте, и клеймо
+                                        // сходится само с собой.
+                                        if (stream.Length - stream.Position >= 13
+                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "RLFL")
+                                        {
+                                            matrix.Options.ScatterRoulette = reader.ReadDouble();
+                                            matrix.Options.SampleFluorescence = reader.ReadBoolean();
+                                        }
                                     }
                                 }
                             }

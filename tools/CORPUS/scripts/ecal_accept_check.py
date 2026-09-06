@@ -381,7 +381,7 @@ def score(cal, fixed, res_a):
 # ---------------------------------------------------------------------------
 # C. управляемый опыт: кандидату НЕ меняют кривую, а лишь прячут нижнюю линию
 # ---------------------------------------------------------------------------
-def pairs_stage12(entries):
+def pairs_stage12(entries, coverage_only=False):
     u"""Пары (старая калибровка, кандидат второго прохода) — без приёмки.
 
     Стадия 1 у всех, по её опорам строится модель разрешения группы (как в
@@ -406,6 +406,11 @@ def pairs_stage12(entries):
             print(u'%-24s ОШИБКА стадии 1: %s' % (e['key'], ex))
             continue
         read_ok.append(e['key'])
+        if coverage_only:
+            # `T76`: стадия охвата — это ЧТЕНИЕ плюс стадия 1, и обе уже
+            # позади. Пары, траектории и разделы A–D к охвату отношения не
+            # имеют, и считать их ради кода возврата 3 нет причины.
+            continue
         state[e['key']] = dict(entry=e, det=e['det'], sp=sp, ecal=cal,
                                accepted=acc, r662=r662)
     res_a = {}
@@ -521,6 +526,9 @@ def main():
     band = BAND_KEV
     min_sig = MIN_SIG
     out_csv = None
+    # `T76`: вход читателя кодов возврата (`tools/check_corpus_coverage.py`).
+    # Останавливает мерку сразу после стадии 1 — там, где считается охват.
+    coverage_only = False
     for a in sys.argv[1:]:
         if a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
@@ -532,6 +540,8 @@ def main():
             pass
         elif a.startswith('--csv='):
             out_csv = a.split('=', 1)[1]
+        elif a == '--coverage-only':
+            coverage_only = True
 
     # ⛔ `T76`: семёрка `corpus_def.LEGACY` не отсеивается «сама собой» — она
     # ЗАМОРОЖЕНА по построению корпуса (`gaussfit_check.frozen_keys`: в корпус
@@ -554,8 +564,14 @@ def main():
 
     # C и D идут ПЕРВЫМИ: они не зависят от траектории и потому не могут быть
     # испорчены её выбором.
-    prs, read_ok = pairs_stage12(entries)
+    prs, read_ok = pairs_stage12(entries, coverage_only=coverage_only)
     cov.add(u'стадия 1 прочитана из _corpus_raw', read_ok, hard=True)
+    if coverage_only:
+        bad = cov.report(u'ОХВАТ МЕРКИ V12')
+        print(u'')
+        print(u'--coverage-only: посчитаны ТОЛЬКО стадии охвата; разделов A–D '
+              u'и чисел приёмки `V12` тут нет.')
+        return 3 if bad else 0
     cov.add(u'пары (старая, кандидат): разделы C и D',
             [k for k, _st, _c, _a, _r in prs])
     print(u'пар (старая, кандидат): %d' % len(prs))

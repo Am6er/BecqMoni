@@ -127,6 +127,10 @@ namespace FsaPaletteProbe
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+            // отражение её не видит, и снятая позже она уже могла быть уведена.
+            FsaTuningReport.Snapshot();
+
             string spectrumPath = null, backgroundPath = null, outDir = ".", geometryPath = null;
             string efficiencyName = null;
             int width = 1400, height = 760;
@@ -210,6 +214,13 @@ namespace FsaPaletteProbe
             }
 
             FsaAnalyzer analyzer = new FsaAnalyzer();
+
+            // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ. ⛔ Печатается ОДИН раз и
+            // ПЕРЕД первым `Analyze`: дальше проба двигает ТОТ ЖЕ анализатор
+            // (плечо «с матрицей»), а после разбора у него есть состояние
+            // прогона (`RefitZState`, `T240`), и второй отчёт называл бы
+            // исходом то, что обязан называть настройками.
+            FsaTuningReport.Print(analyzer);
 
             // Сравнение «с матрицей и без»: библиотека, спектр и фон одни и те
             // же, разница только в том, есть ли у образа компонента континуум.

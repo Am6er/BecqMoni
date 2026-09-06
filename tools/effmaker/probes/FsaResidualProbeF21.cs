@@ -77,6 +77,10 @@ namespace FsaResidualProbeF21
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+            // отражение её не видит, и снятая позже она уже могла быть уведена.
+            FsaTuningReport.Snapshot();
+
             string spectrumPath = null, numbersPath = null, againstDir = null;
             int width = 1200, height = 620, panel = 460;
             foreach (string a in args)
@@ -859,6 +863,11 @@ namespace FsaResidualProbeF21
             // ЭКРАНА это законно — числа отсюда в журнал разбора не идут, — но
             // сказать об этом обязано.
             Console.WriteLine("SETUP\t⚠ числа годны только для мерки экрана, в журнал разбора не идут");
+
+            // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ: часть настроек взята у
+            // КОНФИГУРАЦИИ ПРИБОРА (полоса поиска пиков, окно совпадения), и
+            // по выводу этого не было видно ни строки.
+            FsaTuningReport.Print(analyzer);
             return analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum, rd.FwhmCalibration,
                                     library, FsaEfficiency.FromConfig(rd.Efficiency));
         }

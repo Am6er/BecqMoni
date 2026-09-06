@@ -33,15 +33,25 @@ using System.Threading;
 // предупреждает о шуме. Порог там 5 %.
 //
 //   corpusmatrixprobe [--dir=tools\CORPUS\corpus\geometries] [--only=<ключ>]
-//                     [--n=3000000] [--nodes=140] [--threads=N] [--force]
+//                     [--n=3000000] [--nodes=140] [--bin=2] [--threads=N] [--force]
 //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
 //                     [--cone=1] [--peakw=1]
+//                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
 //
 // `--peakw=1` (`E34`) — допуск пика сборщика из геометрии вместо нуля; тоже
 // выключен умолчанием и тоже входит в клеймо.
 //
-// Четыре последних — рычаги физики 02.09.2026 (`S130`); умолчанием все
+// Четыре перед ними — рычаги физики 02.09.2026 (`S130`); умолчанием все
 // выключены, включённый входит в клеймо и честно гонит матрицу в пересчёт.
+//
+// ⛔ ПОСЛЕДНИЕ ПЯТЬ ЗАВЕДЕНЫ 06.09.2026 СВОДКОЙ `T242`, и завелись они потому,
+// что сводка их НЕДОСЧИТАЛАСЬ. `BinKev`, `XrayEscape`, `CoherentPassesThrough`,
+// `Bremsstrahlung` и `BremFromData` объявлены в `ResponseMatrixOptions`, входят
+// в клеймо и сохраняются в файл матрицы — а сдвинуть их было НЕЧЕМ: ни ключа
+// пробы, ни поля формы (у `BinKev` поле формы есть, ключа не было). То есть
+// абляция четырёх ключей физики была невыполнима, как были невыполнимы замеры
+// `S125`–`S127` до `S130`. Умолчания не тронуты, клеймо прежнее: ключ, оставленный
+// в покое, не меняет ни бита.
 class CorpusMatrixProbe
 {
     /// <summary>
@@ -96,6 +106,12 @@ class CorpusMatrixProbe
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--nodes=", StringComparison.Ordinal))
                 options.NodeCount = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--bin=", StringComparison.Ordinal))
+                // `T242`: ширина бина строки матрицы. Поле формы у неё есть с
+                // рождения, ключа пробы не было — то есть сравнить корпусный
+                // счёт с UI на НЕумолчательном бине было нечем. Входит в клеймо
+                // (`bin=`) и в файл, так что матрица с другим бином честно другая.
+                options.BinKev = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--threads=", StringComparison.Ordinal))
                 // T35, дешёвый выигрыш №4: параллелить ПО СЦЕНАМ, а не внутри
                 // сцены. Ключ нужен, чтобы запустить несколько процессов по
@@ -214,6 +230,32 @@ class CorpusMatrixProbe
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только
                 // так и меряется, что она даёт, без смены версии физики.
                 options.SampleFluorescence = Flag(a, 7);
+            else if (a.StartsWith("--xray=", StringComparison.Ordinal))
+                // ⛔ ЧЕТЫРЕ АБЛЯЦИИ, ЗАВЕДЁННЫЕ СВОДКОЙ `T242` 06.09.2026.
+                // Все четыре поля были в `ResponseMatrixOptions`, в клейме и в
+                // файле матрицы — и НИ ОДНИМ рычагом не двигались: ни ключа
+                // пробы, ни поля формы. Это тот же разряд, что `S130` («ключ,
+                // не доехавший до построителя, мёртв»), только с другого конца:
+                // здесь мёртв был не путь до симулятора, а путь до человека.
+                //
+                // `--xray=0` — вылет K-рентгена кристалла (`XrayEscape`); журнал
+                // говорит, что он поднял 40 кэВ с 1.37 до 1.07 от Geant4, но
+                // перемерить это штатной пробой было нельзя.
+                options.XrayEscape = Flag(a, 7);
+            else if (a.StartsWith("--coh=", StringComparison.Ordinal))
+                // `--coh=0` — считать когерентное рассеяние НЕ проходящим
+                // насквозь (`CoherentPassesThrough`).
+                options.CoherentPassesThrough = Flag(a, 6);
+            else if (a.StartsWith("--brem=", StringComparison.Ordinal))
+                // `--brem=0` — тормозное излучение электронов целиком выключено.
+                // ⚠ Не путать с `--bremsb=`: этот гасит ветку, тот выбирает,
+                // чем считать её спектр.
+                options.Bremsstrahlung = Flag(a, 7);
+            else if (a.StartsWith("--bremsb=", StringComparison.Ordinal))
+                // `--bremsb=0` — спектр тормозного приближением Крамерса
+                // dN/dk = C/k вместо сечений Зельцера — Бергера (физика 8).
+                // Действует только при `--brem=1`.
+                options.BremFromData = Flag(a, 9);
             else if (a == "--recollect")
                 // `T43`, ЗАМЕР: разбирать луч заново на каждом шаге. Считается
                 // то же самое, но разборов становится столько же, сколько шагов;

@@ -33,6 +33,11 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 ROW = re.compile(r'\| \*\*([AT]\d+)\*\* \|')
+# `T127`: раздел «Отложенные прогоны» СОБИРАЕТСЯ из строк реестра и повторяет
+# их номера в той же разметке. Всё, что ниже его заголовка, — сводка о строках,
+# а не сами строки; сверяет её `tools/check_pending_runs.py`. Без обрезки сторож
+# печатает «задвоено» на исправном файле — поймано 06.09.2026.
+TAIL = u'## Отложенные прогоны'
 CLOSED = ('~~открыто~~', 'ЗАКРЫТА', 'ОТМЕНЕНА')
 
 
@@ -45,6 +50,8 @@ def rows(lines):
     out = {}
     dup = collections.Counter()
     for ln in lines:
+        if ln.startswith(TAIL):
+            break
         m = ROW.match(ln)
         if m:
             dup[m.group(1)] += 1
@@ -78,6 +85,8 @@ def main():
     new = sorted(set(rb) - set(ra), key=key)
 
     # Текст вне строк реестра — мешком, а не построчно.
+    a = a[:next((i for i, x in enumerate(a) if x.startswith(TAIL)), len(a))]
+    b = b[:next((i for i, x in enumerate(b) if x.startswith(TAIL)), len(b))]
     na = collections.Counter(x for x in a if not ROW.match(x))
     nb = collections.Counter(x for x in b if not ROW.match(x))
     drift = sum(((na - nb) + (nb - na)).values())

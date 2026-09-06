@@ -30,6 +30,10 @@ class TrustFloorProbe
     static int Main(string[] args)
     {
         Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
+        // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+        // отражение её не видит, и снятая позже она уже могла быть уведена.
+        FsaTuningReport.Snapshot();
         string spectrumPath = null, efficiencyName = null, geometryPath = null;
         double[] floors = { 0.0, 80.0, 100.0, 120.0, 150.0 };
         int histories = 300000;
@@ -87,6 +91,7 @@ class TrustFloorProbe
 
         // Опора: без матрицы вовсе — с чем сравнивать выигрыш.
         var plainAnalyzer = new FsaAnalyzer();
+        FsaTuningReport.Print(plainAnalyzer, "без матрицы");
         FsaResult plain = plainAnalyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration,
                                                 library, efficiency);
         Console.WriteLine();
@@ -100,6 +105,8 @@ class TrustFloorProbe
                 ResponseMatrix = matrix,
                 ResponseContinuumTrustFloorKev = floor,
             };
+            FsaTuningReport.Print(analyzer, string.Format(CultureInfo.InvariantCulture,
+                                                          "порог {0:F0} кэВ", floor));
             FsaResult r = analyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration,
                                            library, efficiency);
             results.Add(Tuple.Create(floor, r));

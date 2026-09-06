@@ -118,6 +118,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static List<FsaComponent> EscapeAndAnnihilation(
             List<FsaComponent> composition, IDictionary<int, double> crystalFractions)
         {
+            List<FsaComponent> extra = EscapeImages(composition, crystalFractions);
+
+            // Аннигиляция — только когда есть чему рождать пары.
+            if (PairsPossible(composition))
+            {
+                extra.Add(OneLine(FsaResult.AnnihilationComponentName, 511.0));
+            }
+
+            return extra;
+        }
+
+        /// <summary>
+        /// ТОЛЬКО образы вылета — одиночного и двойного, без `Ann-511`.
+        ///
+        /// ⛔ Вынесено 06.09.2026 (`S141`), и вынесено потому, что правило
+        /// понадобилось ВТОРОМУ собирателю: библиотека из баз
+        /// (<see cref="FsaSampleLibrary.Build"/>, ею идёт весь корпус)
+        /// строила `Ann-511` своим местом, а SE/DE не строила вовсе — то есть
+        /// на спектре без матрицы образов вылета в модели не было. Копия
+        /// правила там завела бы вторую редакцию отбора родителей; поэтому
+        /// половины разведены, а не размножены.
+        ///
+        /// `Ann-511` сюда не входит по существу, а не для удобства: он не
+        /// образ ВЫЛЕТА (квант 511 влетает в кристалл снаружи), у него своё
+        /// условие и свой ключ в анализаторе, и собиратель из баз ставит его
+        /// сам.
+        /// </summary>
+        public static List<FsaComponent> EscapeImages(
+            List<FsaComponent> composition, IDictionary<int, double> crystalFractions)
+        {
             var extra = new List<FsaComponent>();
             if (composition == null || composition.Count == 0)
             {
@@ -127,7 +157,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Родители вылета: линии состава выше порога пар, впереди те, у
             // кого ожидаемая площадь вылета больше.
             var parents = new List<EscapeParent>();
-            bool anyAboveThreshold = false;
             foreach (FsaComponent component in composition)
             {
                 if (component.Kind == FsaComponentKind.Nuisance)
@@ -145,12 +174,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    // Аннигиляционный образ живёт по СВОЕМУ правилу и
-                    // физического отсева ниже не касается: квант 511 родится
-                    // в защите и обвязке, а не в кристалле (см. описание
-                    // `Ann-511` выше).
-                    anyAboveThreshold = true;
-
                     double share = PairShare(crystalFractions, line.Energy);
                     if (!double.IsNaN(share) && !(share >= EscapeMinPairShare))
                     {
@@ -160,11 +183,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     parents.Add(new EscapeParent(line,
                         double.IsNaN(share) ? line.Intensity : line.Intensity * share));
                 }
-            }
-
-            if (!anyAboveThreshold)
-            {
-                return extra;
             }
 
             // Порядок ДЕТЕРМИНИРОВАН: при равных весах решает энергия. У
@@ -199,9 +217,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0));
             }
 
-            // Аннигиляция — только когда есть чему рождать пары.
-            extra.Add(OneLine(FsaResult.AnnihilationComponentName, 511.0));
             return extra;
+        }
+
+        /// <summary>
+        /// Есть ли в составе чему рождать пары: линия выше
+        /// <see cref="PairThresholdKev"/> с выходом не ниже
+        /// <see cref="EscapeMinIntensity"/>.
+        ///
+        /// ⚠ Отсев по ДОЛЕ рождения пар в веществе кристалла
+        /// (<see cref="EscapeMinPairShare"/>) сюда не входит намеренно:
+        /// аннигиляционный квант рождается в защите и обвязке, а не в
+        /// кристалле, и вещество кристалла о нём ничего не говорит.
+        ///
+        /// ⛔ Открыто ради ВТОРОГО собирателя (`S141`): у
+        /// <see cref="FsaSampleLibrary"/> стояла своя копия этого же условия,
+        /// и двум копиям одного физического порога расходиться незачем.
+        /// </summary>
+        public static bool PairsPossible(List<FsaComponent> composition)
+        {
+            if (composition == null)
+            {
+                return false;
+            }
+
+            foreach (FsaComponent component in composition)
+            {
+                if (component.Kind == FsaComponentKind.Nuisance)
+                {
+                    continue;
+                }
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > PairThresholdKev
+                        && line.Intensity >= EscapeMinIntensity)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>Линия-родитель вылета и её ожидаемый вес.</summary>
@@ -378,6 +435,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 string nuclide = NuclideToken(peak.Nuclide.Name);
+
+                // ⛔ ПОДПИСЬ «ВЫЛЕТ» НУКЛИДОМ НЕ ЯВЛЯЕТСЯ (`S141`, 06.09.2026).
+                // Признак нуклидного имени — массовое число
+                // (<see cref="NuclideDefinition.IsElementXrayName"/>), и
+                // «SE-2615» ему отвечает: цифры в имени есть. Оттого подпись
+                // вылета становилась ОБЫЧНЫМ компонентом вида `Single` — с
+                // долей в «пироге» активностей и с линией 2103.5 кэВ, которая
+                // сама выше порога пар и родила бы вылет вылета.
+                //
+                // Раньше этого случиться не могло: имена `SE-`/`DE-` в подписи
+                // брались только из общей библиотеки приложения, где их нет.
+                // Сегодня их даёт `FsaSampleLibrary.AsDefinitions` — корпусный
+                // путь подписывает пики СВОЕЙ библиотекой, а в ней вылет уже
+                // есть. Измерено в тот же день: библиотека по пикам выросла с
+                // 9 образов до 11, SE/DE с 4 до 6.
+                //
+                // Образы вылета от этого не теряются: ниже их СТРОИТ
+                // <see cref="EscapeAndAnnihilation"/> — от линий состава и по
+                // физике, а не по тому, что финдер подписал.
+                if (IsEscapeImage(nuclide))
+                {
+                    continue;
+                }
+
                 if (nuclide.Length > 0 && seen.Add(nuclide))
                 {
                     order.Add(nuclide);

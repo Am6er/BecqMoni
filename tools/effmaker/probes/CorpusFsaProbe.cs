@@ -117,6 +117,7 @@ namespace CorpusFsaProbe
     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
+    ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
     ///                  [--bg-rebin]
@@ -180,12 +181,9 @@ namespace CorpusFsaProbe
             // Это ровно дефект, который чинила `T65`: абляция, неотличимая в
             // журнале от умолчания. Поймано на себе 26.08.2026, первым же
             // прогоном `--band=whole`.
-            StockBandMode = FsaBand.DefaultMode;
-            StockBandFloor = FsaBand.DefaultFloor;
-            StockBandFraction = FsaBand.DefaultFloorFraction;
-            StockShareThreshold = FsaBand.DefaultShareThreshold;
-            StockNoCurveFloor = FsaBand.DefaultNoCurveFloor;
-            StockNoCurveFloorKev = FsaBand.DefaultNoCurveFloorKev;
+            // (`T243`) Само правило живёт ОДНИМ местом — довеском
+            // `FsaTuningReport.cs`; здесь только два вызова.
+            FsaTuningReport.Snapshot();
 
             var o = new Options();
             foreach (string a in args)
@@ -344,9 +342,9 @@ namespace CorpusFsaProbe
                 // `FsaSampleSpec.CurveFloorKev`, который режет линии, и
                 // заверение анализатора. Ставить долю одному концу значило бы
                 // повторить `S101`.
-                // ⛔ Ключ разбирается ПОСЛЕ снятия эталона (см. `StockBandFraction`
-                // выше): эталон, снятый уже сдвинутым, показал бы «НИЧЕГО»
-                // (`T65`).
+                // ⛔ Ключ разбирается ПОСЛЕ снятия эталона
+                // (`FsaTuningReport.Snapshot()` выше): эталон, снятый уже
+                // сдвинутым, показал бы «НИЧЕГО» (`T65`).
                 if (a.StartsWith("--floor-frac=", StringComparison.Ordinal))
                 {
                     o.FloorFraction = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
@@ -525,6 +523,16 @@ namespace CorpusFsaProbe
                     // выключен — снимаются отдельные SE/DE (без матрицы) и
                     // `Ann-511`. Гейт `EscapeGate` этим ключом НЕ трогается.
                     o.Escape = false;
+                }
+                else if (a.StartsWith("--refit-z-rel=", StringComparison.Ordinal))
+                {
+                    // (`A268`) Доля вершины в пороге отсева: сравнивается
+                    // ПЕРЕД `--refit-z=`, чтобы более длинное имя ключа не
+                    // осталось за более коротким. Сегодня порядок не решает
+                    // (у `--refit-z=` на десятом знаке требуется `=`, а здесь
+                    // стоит `-`), но пара «длинный/короткий» тем и опасна,
+                    // что молчит: разбор просто взял бы не тот кусок строки.
+                    o.RefitZRelative = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
                 }
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                 {
@@ -914,7 +922,7 @@ namespace CorpusFsaProbe
             // прогон `--band=whole` давал побитово поставочный результат и в
             // журнале был неотличим от него.
             PrintBand(head, o);
-            PrintTuning(head);
+            FsaTuningReport.Print(head);
             Console.WriteLine();
         }
 
@@ -977,6 +985,16 @@ namespace CorpusFsaProbe
             if (o.RefitZ >= 0.0)
             {
                 analyzer.RefitZ = o.RefitZ;
+            }
+
+            // (`A268`) Ключ обязан ДОЕХАТЬ до анализатора: заведённый в разборе
+            // и не применённый здесь, он дал бы плечо, побитово совпадающее с
+            // поставочным, и правка выглядела бы «ничего не меняющей». Читатель
+            // у него один — строка `FsaTuningReport.Print` («RefitZRelative 0 → 0.3»,
+            // ~~`T101`~~/`T65`, отражением), и она видит ИМЕННО это поле.
+            if (o.RefitZRelative >= 0.0)
+            {
+                analyzer.RefitZRelative = o.RefitZRelative;
             }
 
             analyzer.EscapeGate = o.EscapeGate;
@@ -1056,66 +1074,6 @@ namespace CorpusFsaProbe
                 ? "шаг " + (2.0 * range / (steps - 1)).ToString(format, CultureInfo.InvariantCulture) + unit
                 : "один узел, дрейф не ищется";
         }
-
-        /// <summary>
-        /// (`T65`) Чем ЭТОТ прогон отличается от поставочного разбора —
-        /// сличением настроенного анализатора с нетронутым
-        /// <c>new FsaAnalyzer()</c>, поле за полем, отражением.
-        ///
-        /// ⛔ Затем, что первой половины `T65` мало. Печатать поля у
-        /// анализатора вместо своих констант — это перестать ВРАТЬ; но
-        /// шапка молчала и о том, что ключ вообще был задан: `--huber=0`,
-        /// `--knots=`, `--no-escape-gate`, `--refit-z=`, `--roughness=`,
-        /// `--knot-fwhm=`, `--gamma=`, `--beta=`, `--partial`, `--no-pr-gate`,
-        /// `--no-bg-rebin` не печатались ВОВСЕ, и прогон-абляция выглядел в
-        /// журнале в точности как прогон умолчанием. Это тот же отказ,
-        /// другой стороной: по шапке нельзя было сказать, что считали.
-        /// (Ключи, не доходящие до анализатора, — `--no-equilibrium`,
-        /// `--no-atomic`, `--no-matrix`, `--no-background` —
-        /// печатает шапка своими строками, каждая ТОЙ ЖЕ переменной, что
-        /// уходит в дело.)
-        ///
-        /// Отражение здесь НЕ ради краткости, а ради того, чтобы список не
-        /// пришлось вести руками: ровно ведение второго списка и есть
-        /// болезнь, от которой лечится строка. Новое поле, выставленное в
-        /// <c>NewAnalyzer</c>, попадает сюда само; ошибиться местом можно
-        /// только удалив вызов.
-        ///
-        /// ⚠ Читается это как «ключами изменено», а не «отличается от
-        /// приложения»: <see cref="FsaAnalyzer.MinEnergy"/> и
-        /// <c>MaxEnergy</c> ставит <c>RunOne</c> по рабочей полосе ПРИБОРА,
-        /// и здесь их ещё нет. Матрицы и материала сцинтиллятора тоже нет —
-        /// они свои у каждого спектра.
-        /// </summary>
-        /// <summary>Поставочная полоса, снятая ДО разбора ключей (`S101`).</summary>
-        static FsaBandMode StockBandMode;
-
-        /// <summary>Поставочный пол полосы, снятый ДО разбора ключей (`S101`).</summary>
-        static double StockBandFloor;
-
-        /// <summary>
-        /// Поставочная ДОЛЯ пола, снятая ДО разбора ключей (`S101`). Нужна той
-        /// же цели, что <see cref="StockBandMode"/>: эталон для строки «ключами
-        /// изменено» обязан родиться с поставочной долей, иначе `--floor-frac=`
-        /// в журнале не виден и абляционный прогон неотличим от умолчательного
-        /// (`T65`).
-        /// </summary>
-        static double StockBandFraction;
-
-        /// <summary>
-        /// (`S103`) Поставочный порог доли континуума, снятый ДО разбора
-        /// ключей, — той же цели, что <see cref="StockBandFraction"/>.
-        /// </summary>
-        static double StockShareThreshold;
-
-        /// <summary>
-        /// (`A73`) Поставочная запасная ветвь пола, снятая ДО разбора
-        /// ключей, — той же цели, что <see cref="StockShareThreshold"/>.
-        /// </summary>
-        static FsaNoCurveFloor StockNoCurveFloor;
-
-        /// <summary>(`A73`) Поставочное число запасной ветви, кэВ.</summary>
-        static double StockNoCurveFloorKev;
 
         /// <summary>
         /// ⛔ ПОЛОСА ОБОИМИ КОНЦАМИ И ВСЛУХ (`S101`). Печатается не «что заказано
@@ -1245,146 +1203,6 @@ namespace CorpusFsaProbe
             return 0;
         }
 
-        static void PrintTuning(FsaAnalyzer tuned)
-        {
-            // Эталон обязан родиться с ПОСТАВОЧНОЙ полосой, а не с той, что уже
-            // выставил ключ, — иначе `--band=` в журнале не виден вовсе.
-            FsaBandMode liveMode = FsaBand.DefaultMode;
-            double liveFloor = FsaBand.DefaultFloor;
-            double liveFraction = FsaBand.DefaultFloorFraction;
-            double liveThreshold = FsaBand.DefaultShareThreshold;
-            FsaNoCurveFloor liveNoCurve = FsaBand.DefaultNoCurveFloor;
-            double liveNoCurveKev = FsaBand.DefaultNoCurveFloorKev;
-            FsaAnalyzer stock;
-            FsaBand.DefaultMode = StockBandMode;
-            FsaBand.DefaultFloor = StockBandFloor;
-            FsaBand.DefaultFloorFraction = StockBandFraction;
-            FsaBand.DefaultShareThreshold = StockShareThreshold;
-            FsaBand.DefaultNoCurveFloor = StockNoCurveFloor;
-            FsaBand.DefaultNoCurveFloorKev = StockNoCurveFloorKev;
-            try
-            {
-                stock = new FsaAnalyzer();
-            }
-            finally
-            {
-                FsaBand.DefaultMode = liveMode;
-                FsaBand.DefaultFloor = liveFloor;
-                FsaBand.DefaultFloorFraction = liveFraction;
-                FsaBand.DefaultShareThreshold = liveThreshold;
-                FsaBand.DefaultNoCurveFloor = liveNoCurve;
-                FsaBand.DefaultNoCurveFloorKev = liveNoCurveKev;
-            }
-
-            var changed = new List<string>();
-            Type t = typeof(FsaAnalyzer);
-            foreach (System.Reflection.PropertyInfo p in t.GetProperties(
-                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-            {
-                if (!p.CanRead || p.GetIndexParameters().Length > 0)
-                {
-                    continue;
-                }
-
-                Differs(changed, p.Name, Read(p.GetValue, tuned), Read(p.GetValue, stock));
-            }
-
-            foreach (System.Reflection.FieldInfo f in t.GetFields(
-                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
-            {
-                Differs(changed, f.Name, Read(f.GetValue, tuned), Read(f.GetValue, stock));
-            }
-
-            // ⛔ ПОЛОСУ ОТРАЖЕНИЕ НЕ ВИДИТ, И ЭТО НЕ МЕЛОЧЬ (`S101` + `T65`).
-            // После связывания рычага оба конца читают статику В МОМЕНТ
-            // ОБРАЩЕНИЯ, а не хранят копию, — значит `tuned` и `stock`
-            // отдают ОДНО И ТО ЖЕ, что бы ключ ни сделал, и цикл выше
-            // честно находит «НИЧЕГО». Поймано прогоном `--band=whole`
-            // 27.08.2026: состав разошёлся у 5 групп из 16, а шапка
-            // печатала «НИЧЕГО» — абляционный прогон был в журнале
-            // неотличим от умолчательного. Поэтому полоса сличается ЗДЕСЬ,
-            // поимённо и по СТАТИКЕ, с эталоном, снятым до разбора ключей.
-            if (FsaBand.DefaultMode != StockBandMode)
-            {
-                changed.Add(string.Format(CultureInfo.InvariantCulture,
-                    "Band: {0} (поставка {1})", FsaBand.DefaultMode, StockBandMode));
-            }
-
-            if (Math.Abs(FsaBand.DefaultFloor - StockBandFloor) > 1e-9)
-            {
-                changed.Add(string.Format(CultureInfo.InvariantCulture,
-                    "LibraryFloorKev: {0:F2} (поставка {1:F2})", FsaBand.DefaultFloor, StockBandFloor));
-            }
-
-            if (Math.Abs(FsaBand.DefaultFloorFraction - StockBandFraction) > 1e-12)
-            {
-                changed.Add(string.Format(CultureInfo.InvariantCulture,
-                    "FloorFraction: {0:P3} (поставка {1:P3})",
-                    FsaBand.DefaultFloorFraction, StockBandFraction));
-            }
-
-            // (`S103`) Порог опоры по столбцу — та же статика и та же слепота
-            // отражения, что у полосы и доли: сличается поимённо.
-            if (Math.Abs(FsaBand.DefaultShareThreshold - StockShareThreshold) > 1e-12)
-            {
-                changed.Add(string.Format(CultureInfo.InvariantCulture,
-                    "ShareThreshold: {0:F3} (поставка {1:F3})",
-                    FsaBand.DefaultShareThreshold, StockShareThreshold));
-            }
-
-            // (`A73`) Запасная ветвь пола — та же статика и та же слепота
-            // отражения: сличается поимённо, с эталоном, снятым до ключей.
-            if (FsaBand.DefaultNoCurveFloor != StockNoCurveFloor
-                || (FsaBand.DefaultNoCurveFloor == FsaNoCurveFloor.Fixed
-                    && Math.Abs(FsaBand.DefaultNoCurveFloorKev - StockNoCurveFloorKev) > 1e-9))
-            {
-                changed.Add(string.Format(CultureInfo.InvariantCulture,
-                    "NoCurveFloor: {0}{1} (поставка {2})",
-                    FsaBand.DefaultNoCurveFloor,
-                    FsaBand.DefaultNoCurveFloor == FsaNoCurveFloor.Fixed
-                        ? string.Format(CultureInfo.InvariantCulture, " {0:F2} кэВ",
-                                        FsaBand.DefaultNoCurveFloorKev)
-                        : "",
-                    StockNoCurveFloor));
-            }
-
-            changed.Sort(StringComparer.Ordinal);
-            Console.WriteLine("ключами изменено против поставочного разбора: {0}",
-                              changed.Count == 0
-                                  ? "НИЧЕГО (все настройки анализатора — умолчания приложения)"
-                                  : string.Join("; ", changed.ToArray()));
-        }
-
-        /// <summary>
-        /// Значение поля словами. Отказ геттера — тоже ЗНАЧЕНИЕ, а не повод
-        /// пропустить поле: свойство, кидающее у настроенного и молчащее у
-        /// нетронутого (или наоборот), попадёт в строку различий и будет
-        /// видно. ⚠ Отказ ОДИНАКОВЫЙ у обоих различием не является и не
-        /// печатается — ключами такое поле и правда не тронуто.
-        /// </summary>
-        static string Read(Func<object, object> getter, FsaAnalyzer a)
-        {
-            try
-            {
-                object v = getter(a);
-                return v == null
-                    ? "нет"
-                    : Convert.ToString(v, CultureInfo.InvariantCulture);
-            }
-            catch (Exception e)
-            {
-                return "ЧИТАТЕЛЬ ОТКАЗАЛ: " + e.GetType().Name;
-            }
-        }
-
-        static void Differs(List<string> to, string name, string tuned, string stock)
-        {
-            if (!string.Equals(tuned, stock, StringComparison.Ordinal))
-            {
-                to.Add(name + " " + stock + " → " + tuned);
-            }
-        }
-
         /// <summary>
         /// (`T85`) Что стало с матрицей отклика у ОДНОГО спектра — до разбора.
         ///
@@ -1422,6 +1240,59 @@ namespace CorpusFsaProbe
 
             /// <summary>Найдена, проверена и подана анализатору.</summary>
             Found
+        }
+
+        /// <summary>
+        /// (`T85`) СКОЛЬКО ОБРАЗОВ ОТЧЁТНОГО ФИТА МАТРИЦА ИМЕЛА ПРАВО СТРОИТЬ.
+        ///
+        /// ⛔ Заведено потому, что на расхождении «найдена, но не применена»
+        /// отчёт ПЕЧАТАЛ УТВЕРЖДЕНИЕ, которого не проверял: «матрица исправна и
+        /// работала на проходах до отсева». Оно успокаивает ровно там, где надо
+        /// кричать, — а один раз за этим расхождением уже стояла настоящая
+        /// поломка. Теперь на месте утверждения стоит ЧИСЛО.
+        ///
+        /// Правило то же, по которому судит `FsaAnalyzer.FitOnce`
+        /// (`FixedTemplate != null` — готовый образ; `WeightsAreFinal` — образ
+        /// матрицей не строится): у кого нет ни того, ни другого, того матрица
+        /// строит, и `fromMatrix` поднимается.
+        ///
+        /// ⚠ Считаются ТОЛЬКО компоненты предъявленной библиотеки. Того, кого
+        /// анализатор завёл сам (наложения, обратное рассеяние), тут нет и быть
+        /// не должно: он матрицу не трогает по построению, и записать его сюда
+        /// значило бы объявить отказом законное состояние.
+        /// </summary>
+        static int MatrixEligibleInReport(FsaResult result, List<FsaComponent> library)
+        {
+            if (result == null || result.Components == null || library == null)
+            {
+                return -1;
+            }
+
+            var known = new Dictionary<string, FsaComponent>(StringComparer.Ordinal);
+            foreach (FsaComponent c in library)
+            {
+                if (c != null && c.Name != null)
+                {
+                    known[c.Name] = c;
+                }
+            }
+
+            int n = 0;
+            foreach (FsaComponentResult r in result.Components)
+            {
+                FsaComponent c;
+                if (r == null || r.Name == null || !known.TryGetValue(r.Name, out c))
+                {
+                    continue;
+                }
+
+                if (c.FixedTemplate == null && !c.WeightsAreFinal)
+                {
+                    n++;
+                }
+            }
+
+            return n;
         }
 
         /// <summary>Матрица НАЙДЕНА и подана анализатору.</summary>
@@ -1468,11 +1339,26 @@ namespace CorpusFsaProbe
                     // ⚠ Упавший спектр про ПРИМЕНЕНИЕ не говорит ничего: до
                     // результата разбор не дошёл, и «не применена» тут было бы
                     // утверждением, которого никто не проверял.
-                    return row.Error != null
-                        ? "НАЙДЕНА (разбор не дошёл)"
-                        : row.MatrixApplied
-                            ? "НАЙДЕНА, применена"
-                            : "НАЙДЕНА, НЕ ПРИМЕНЕНА (в отчёте одни производные образы)";
+                    if (row.Error != null)
+                    {
+                        return "НАЙДЕНА (разбор не дошёл)";
+                    }
+
+                    if (row.MatrixApplied)
+                    {
+                        return "НАЙДЕНА, применена";
+                    }
+
+                    // ⛔ (`T85`) ПОМЕТКА БОЛЬШЕ НЕ УТВЕРЖДАЕТ ПРИЧИНУ, А НАЗЫВАЕТ
+                    // ИЗМЕРЕННОЕ. Прежде здесь всегда стояло «в отчёте одни
+                    // производные образы» — объяснение, которое никто не
+                    // проверял и которое ЛОЖНО ровно в том случае, ради
+                    // которого колонка и заведена: когда в отчёте есть образ,
+                    // который матрица имела право строить.
+                    return row.MatrixImages > 0
+                        ? "НАЙДЕНА, НЕ ПРИМЕНЕНА ⛔ а образов под неё в отчёте "
+                          + row.MatrixImages.ToString(CultureInfo.InvariantCulture)
+                        : "НАЙДЕНА, НЕ ПРИМЕНЕНА (образов под неё в отчёте нет)";
                 default: return "";
             }
         }
@@ -1783,6 +1669,19 @@ namespace CorpusFsaProbe
                 row.Ms = clock.Elapsed.TotalMilliseconds;
                 row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
                              - cpuBefore).TotalMilliseconds;
+
+                // (`A268`, разряд ~~`T240`~~) ИСХОД ОТСЕВА снимается здесь и
+                // сводится одной строкой в конце прогона. Затем, что ~~`T240`~~
+                // закрыта «состояние названо вслух» ТОЛЬКО у `FsaStackShot`, а
+                // молчал и корпусный прогон: `AllBelow` (порог выше значимости
+                // ВСЕХ судимых) отключает отсев целиком, и по корпусному отчёту
+                // этого не видно НИ ОДНОЙ цифрой — при том что решать, брать ли
+                // относительный порог умолчанием, будут именно по корпусу.
+                // Читатель признака заводится вместе с признаком, иначе это
+                // опять «сигнал без читателя».
+                row.RefitZState = analyzer.RefitZState;
+                row.RefitZUsed = analyzer.RefitZUsed;
+                row.RefitZTopZ = analyzer.RefitZTopZ;
                 // ⛔ `T105`. `FsaAnalyzer.BandNote` — заверение анализатора о
                 // полосе, которую фит взял НА ДЕЛЕ (режим, каналы, кэВ), — до
                 // сих пор не имело во всём дереве НИ ОДНОГО читателя. Шапка
@@ -1888,6 +1787,7 @@ namespace CorpusFsaProbe
                 // построению, поэтому фит, где уцелели только они, вернёт здесь
                 // ложь при живой матрице.
                 row.MatrixApplied = result.ResponseMatrixUsed;
+                row.MatrixImages = MatrixEligibleInReport(result, library);
                 row.CascadeUsed = result.CascadeSummingUsed;
                 row.EfficiencyUsed = result.EfficiencyUsed;
 
@@ -2715,6 +2615,9 @@ namespace CorpusFsaProbe
                 // называет спектры, у которых они разошлись.
                 int noFile = 0;
                 var foundNotApplied = new List<string>();
+                // (`T85`) Те из них, у кого матрице БЫЛО ЧТО строить в отчётном
+                // фите: это уже не «уцелели одни производные образы», а отказ.
+                var foundNotAppliedRed = new List<string>();
                 var chi = new List<double>();
                 foreach (Row r in of)
                 {
@@ -2734,6 +2637,11 @@ namespace CorpusFsaProbe
                         else
                         {
                             foundNotApplied.Add(r.Key);
+                            if (r.MatrixImages > 0)
+                            {
+                                foundNotAppliedRed.Add(r.Key + " (образов "
+                                    + r.MatrixImages.ToString(CultureInfo.InvariantCulture) + ")");
+                            }
                         }
                     }
                     else if (MatrixFailed(r))
@@ -2801,11 +2709,32 @@ namespace CorpusFsaProbe
                     Console.WriteLine("{0,-10} ⚠ НАЙДЕНА, НО НЕ ПРИМЕНЕНА: {1} — {2}", "",
                                       foundNotApplied.Count,
                                       string.Join(", ", foundNotApplied.ToArray()));
-                    Console.WriteLine("{0,-10}   в отчётном фите уцелели только производные образы"
-                                      + " (обратное рассеяние, наложения); матрица исправна и"
-                                      + " работала на проходах до отсева", "");
+                    // ⛔ ЗДЕСЬ СТОЯЛО УТВЕРЖДЕНИЕ, КОТОРОГО НИКТО НЕ ПРОВЕРЯЛ:
+                    // «матрица исправна и работала на проходах до отсева». Оно
+                    // переводило красный флаг в зелёный, и один раз за этим
+                    // расхождением стояла настоящая поломка. Теперь печатается
+                    // ИЗМЕРЕННОЕ число `matrix_images` — сколько образов
+                    // отчётного фита матрица имела право строить.
+                    if (foundNotAppliedRed.Count > 0)
+                    {
+                        foundNotAppliedRed.Sort(StringComparer.Ordinal);
+                        Console.WriteLine("{0,-10} ⛔⛔ И ЭТО ОТКАЗ, А НЕ НОРМА: у {1} из них в отчётном"
+                                          + " фите ЕСТЬ образ, который матрица имела право строить,"
+                                          + " — {2}", "", foundNotAppliedRed.Count,
+                                          string.Join(", ", foundNotAppliedRed.ToArray()));
+                        Console.WriteLine("{0,-10}    матрица найдена, кандидат уцелел, образа ею не"
+                                          + " построено. Числа этих спектров считаны БЕЗ матрицы.", "");
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0,-10}   измерено (matrix_images = 0 у всех): в отчётном фите"
+                                          + " уцелели одни производные образы (обратное рассеяние,"
+                                          + " наложения), строить матрице было нечего", "");
+                    }
                 }
             }
+
+            PrintRefitZCensus(rows);
 
             Console.WriteLine();
             Console.WriteLine("⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;");
@@ -2813,6 +2742,88 @@ namespace CorpusFsaProbe
             Console.WriteLine("Фантомы и recall — {0}\\..\\score.py по этим же файлам:", o.Out);
             Console.WriteLine("  python tools/pie/score.py --mode={0} --out-dir={1} --part={2}",
                               o.Mode, o.Out, o.Part);
+        }
+
+        /// <summary>
+        /// (`A268`, разряд ~~`T240`~~) ПЕРЕПИСЬ ИСХОДОВ ОТСЕВА ПО ЗНАЧИМОСТИ —
+        /// одной строкой на весь прогон.
+        ///
+        /// ⛔ Затем, что ~~`T240`~~ («порог выше значимости ВСЕХ судимых
+        /// ОТКЛЮЧАЕТ отсев, а не ужесточает его, и делает это молча») закрыта
+        /// названием состояния вслух ТОЛЬКО у `FsaStackShot`. Корпусный прогон
+        /// об этом молчал по-прежнему, а решение «брать ли относительный порог
+        /// умолчанием» (`A266`) принимается по КОРПУСУ: без переписи «доля
+        /// ничего не меняет» неотличимо от «доля не работала», и это ровно тот
+        /// разряд ошибки, которым `A268` и заведена.
+        ///
+        /// Печатается СВОДКОЙ, а не на каждый спектр: на 129 спектрах вторая
+        /// форма была бы шумом, а вопрос один — на скольких сценах отсев
+        /// отключился сам. Спектры разряда `AllBelow` называются поимённо
+        /// (до десяти), потому что «их семь» без имён не проверяемо.
+        ///
+        /// ⚠ Строка молчит целиком, когда отсев не заказан НИ НА ОДНОМ спектре
+        /// (`--refit-z=0`): переписи там нет предмета.
+        /// </summary>
+        static void PrintRefitZCensus(List<Row> rows)
+        {
+            int applied = 0, allBelow = 0, nothingBelow = 0, notRequested = 0;
+            double topMin = double.NaN, topMax = double.NaN;
+            var below = new List<string>();
+            foreach (Row r in rows)
+            {
+                switch (r.RefitZState)
+                {
+                    case FsaAnalyzer.RefitZOutcome.Applied: applied++; break;
+                    case FsaAnalyzer.RefitZOutcome.NothingBelow: nothingBelow++; break;
+                    case FsaAnalyzer.RefitZOutcome.AllBelow:
+                        allBelow++;
+                        below.Add(r.Key);
+                        break;
+                    default: notRequested++; break;
+                }
+
+                if (!double.IsNaN(r.RefitZTopZ))
+                {
+                    if (double.IsNaN(topMin) || r.RefitZTopZ < topMin)
+                    {
+                        topMin = r.RefitZTopZ;
+                    }
+
+                    if (double.IsNaN(topMax) || r.RefitZTopZ > topMax)
+                    {
+                        topMax = r.RefitZTopZ;
+                    }
+                }
+            }
+
+            if (applied + allBelow + nothingBelow == 0)
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("отсев по значимости (~~`T240`~~): ПРИМЕНЁН у {0}, отключился сам"
+                              + " (порог выше значимости ВСЕХ судимых) у {1}, выбрасывать было"
+                              + " некого у {2}, не заказан у {3}",
+                              applied, allBelow, nothingBelow, notRequested);
+            if (!double.IsNaN(topMin))
+            {
+                Console.WriteLine("  наибольшая значимость первого прохода: от {0} до {1}"
+                                  + " — с ней и сличается доля `RefitZRelative`",
+                                  topMin.ToString("F2", CultureInfo.InvariantCulture),
+                                  topMax.ToString("F2", CultureInfo.InvariantCulture));
+            }
+
+            if (below.Count > 0)
+            {
+                below.Sort(StringComparer.Ordinal);
+                Console.WriteLine("  ⚠ отсев отключился сам у: {0}{1}",
+                                  string.Join(", ", below.GetRange(0, Math.Min(10, below.Count)).ToArray()),
+                                  below.Count > 10
+                                      ? string.Format(CultureInfo.InvariantCulture,
+                                                      " … и ещё {0}", below.Count - 10)
+                                      : "");
+            }
         }
 
         /// <summary>Файлы того же вида, что пишет `tools/pie`, — для `score.py`.</summary>
@@ -2849,7 +2860,7 @@ namespace CorpusFsaProbe
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
                                    + "model_residual_pct,library,library_note,matrix_found,"
-                                   + "share_dropped_lines,share_offered_lines");
+                                   + "share_dropped_lines,share_offered_lines,matrix_images");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -2918,7 +2929,8 @@ namespace CorpusFsaProbe
                             Csv(o.Library), Csv(r.LibraryNote),
                             MatrixFound(r) ? "1" : "0",
                             r.ShareDropped.ToString(CultureInfo.InvariantCulture),
-                            r.ShareOffered.ToString(CultureInfo.InvariantCulture)));
+                            r.ShareOffered.ToString(CultureInfo.InvariantCulture),
+                            r.MatrixImages.ToString(CultureInfo.InvariantCulture)));
 
                         if (r.Result == null)
                         {
@@ -3420,6 +3432,20 @@ namespace CorpusFsaProbe
             /// </summary>
             public double RefitZ = -1.0;
 
+            /// <summary>
+            /// (`A268`, родитель `A266`) ДОЛЯ наибольшей значимости первого
+            /// прохода в пороге отсева: порог = min(RefitZ, доля · z_max).
+            /// Отрицательное — умолчание анализатора (`T65`: число здесь не
+            /// повторяется), НОЛЬ — чисто абсолютный порог.
+            ///
+            /// ⛔ Умолчание обязано быть именно отрицательным, а не нулём:
+            /// когда доля станет поставочной, `--refit-z-rel=0` — это
+            /// единственное плечо «без доли», которым цену правки на корпусе
+            /// и меряют. При умолчании 0 такое плечо было бы неотличимо от
+            /// «ключ не задан», и абляция замолчала бы (`A266` §6).
+            /// </summary>
+            public double RefitZRelative = -1.0;
+
             /// <summary>(S47) Гейт образов вылета при матрице; A-сторона — `--no-escape-gate`.</summary>
             public bool EscapeGate = true;
 
@@ -3682,6 +3708,19 @@ namespace CorpusFsaProbe
             public int ShareDropped;
 
             public int ShareOffered;
+
+            /// <summary>
+            /// (`A268`, разряд ~~`T240`~~) ЧТО СДЕЛАЛ ОТСЕВ ПО ЗНАЧИМОСТИ на
+            /// этом спектре: исход, фактический порог и наибольшая значимость
+            /// первого прохода. Сводятся ОДНОЙ строкой в конце прогона, а не
+            /// печатаются на каждый спектр: на 129 спектрах вторая была бы
+            /// шумом, а вопрос-то один — на скольких сценах порог оказался выше
+            /// значимости ВСЕХ судимых и отсев отключился молча.
+            /// </summary>
+            public FsaAnalyzer.RefitZOutcome RefitZState = FsaAnalyzer.RefitZOutcome.NotRequested;
+
+            public double RefitZUsed = double.NaN;
+            public double RefitZTopZ = double.NaN;
             public double MinRangeKev = double.NaN;
             public double CurveFloorKev = double.NaN;
 
@@ -3736,6 +3775,19 @@ namespace CorpusFsaProbe
             /// состояние, а не отказ: см. <see cref="Program.MatrixNote"/>.
             /// </summary>
             public bool MatrixApplied;
+
+            /// <summary>
+            /// (`T85`) Сколько образов ОТЧЁТНОГО фита матрица имела право
+            /// строить: компонент предъявленной библиотеки, у которого нет
+            /// готового образа (`FixedTemplate`) и не выставлен
+            /// `WeightsAreFinal`. ⛔ Это не украшение колонки «применена», а её
+            /// РАЗЛИЧИТЕЛЬ: «применена = 0» законно ровно тогда, когда и это
+            /// число ноль (в отчёте уцелели одни производные образы), и есть
+            /// ОТКАЗ, когда оно больше нуля — матрица была, кандидат был,
+            /// образа матрицей не построено. −1 — не считалось (разбор до
+            /// результата не дошёл).
+            /// </summary>
+            public int MatrixImages = -1;
             public bool CascadeUsed;
             public bool EfficiencyUsed;
             public bool HasBackground;

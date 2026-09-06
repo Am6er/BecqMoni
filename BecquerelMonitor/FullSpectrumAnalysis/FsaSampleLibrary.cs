@@ -720,6 +720,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 report.AtomicComponents = result.Count - before;
             }
 
+            AddEscapeImages(spec, result, report);
             AddAnnihilation(result, report);
 
             // S98: полоса библиотеки — в отчёт, и он её печатает. Считается
@@ -1459,8 +1460,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⛔ На спектрах С МАТРИЦЕЙ этот образ спорит с ней за одни и те же
         /// отсчёты — то самое «второе счётоведение», ради прекращения которого
         /// заведён гейт `S47` (<see cref="FsaAnalyzer.EscapeGate"/>). Гейт судит
-        /// по имени и снимает только `SE-2614`/`DE-2614`, поэтому здешние
-        /// `Esc-*` он не тронет. Так решено 18.08.2026 (Amber, «клади везде»):
+        /// по имени и снимает только приставки `SE-`/`DE-` (с 06.09.2026 их
+        /// строит и эта библиотека, `S141`), поэтому здешние `Esc-*` он не
+        /// тронет. Так решено 18.08.2026 (Amber, «клади везде»):
         /// образ нужен как опора кросс-проверки матрицы (`S60`). Цена снимается
         /// ключом `AtomicXray`, а не догадкой.
         /// </summary>
@@ -1837,6 +1839,72 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// Пики ОДИНОЧНОГО и ДВОЙНОГО вылета — от линий состава выше порога
+        /// рождения пар, тем же правилом, каким их строит путь по подписям
+        /// пиков (<see cref="FsaLibrary.EscapeImages"/>).
+        ///
+        /// ⛔ Заведено 06.09.2026 (`S141`). До этого дня библиотека из баз —
+        /// та, которой идёт ВЕСЬ корпус, — строила `Ann-511` и K-вылет
+        /// кристалла `Esc-*`, а SE/DE не строила вовсе: на спектре без матрицы
+        /// отсчёты пиков вылета выражать было нечем, и NNLS вешал их на
+        /// ближайшую линию.
+        ///
+        /// Правило НЕ переписано, а спрошено: отбор родителей (порог пар, доля
+        /// рождения пар в веществе кристалла, три сильнейших по ожидаемой
+        /// площади) живёт одним местом на проект.
+        ///
+        /// ⚠ ОДНО отличие от пути по пикам, и оно намеренное: здесь образ
+        /// обязан лечь в ПОЛОСУ БИБЛИОТЕКИ (`S98`), как всякий здешний образ.
+        /// Двойной вылет стоит на E − 1022, и у родителя чуть выше порога он
+        /// уходит под пол АЦП — а образ, чья единственная линия ниже первого
+        /// узла матрицы, не «неполон», он забирает чужую эффективность
+        /// (`A49`). У пути по пикам полосы библиотеки нет вовсе, и переносить
+        /// сюда её отсутствие было бы не «тем же правилом», а отказом от
+        /// здешнего.
+        /// </summary>
+        static void AddEscapeImages(FsaSampleSpec spec, List<FsaComponent> result, Report report)
+        {
+            if (result.Count == 0)
+            {
+                return;
+            }
+
+            List<FsaComponent> images = FsaLibrary.EscapeImages(
+                result, spec.CrystalFractions.Count > 0 ? spec.CrystalFractions : null);
+            var names = new List<string>();
+            int outOfBand = 0;
+            foreach (FsaComponent image in images)
+            {
+                if (image.Lines.Count == 0)
+                {
+                    continue;
+                }
+
+                double energy = image.Lines[0].Energy;
+                if (energy < spec.LineFloorKev || energy > spec.MaxEnergyKev)
+                {
+                    outOfBand++;
+                    continue;
+                }
+
+                result.Add(image);
+                report.Lines += image.Lines.Count;
+                names.Add(image.Name);
+            }
+
+            if (names.Count > 0)
+            {
+                report.Notes.Add("вылет от линий состава: " + string.Join(", ", names));
+            }
+
+            if (outOfBand > 0)
+            {
+                report.Notes.Add("образов вылета вне полосы библиотеки "
+                                 + outOfBand.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
         /// Аннигиляционная линия 511 кэВ: рождение пар жёсткими квантами в
         /// защите и обвязке плюс β⁺-примеси. Нуклиду она не принадлежит, доля
         /// зависит от домика и геометрии — поэтому свободный мешающий образ.
@@ -1854,31 +1922,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // пункт 2): аннигиляционный квант рождается парой, а пары — только
             // от квантов выше 1022 кэВ. Состав без единой такой линии рождать
             // их нечем, и свободный образ на 511 стал бы там подгонкой.
-            bool pairsPossible = false;
-            foreach (FsaComponent component in result)
-            {
-                if (component.Kind == FsaComponentKind.Nuisance)
-                {
-                    continue;
-                }
-
-                foreach (FsaLine line in component.Lines)
-                {
-                    if (line.Energy > FsaLibrary.PairThresholdKev
-                        && line.Intensity >= FsaLibrary.EscapeMinIntensity)
-                    {
-                        pairsPossible = true;
-                        break;
-                    }
-                }
-
-                if (pairsPossible)
-                {
-                    break;
-                }
-            }
-
-            if (!pairsPossible)
+            //
+            // ⚠ Условие СПРАШИВАЕТСЯ у `FsaLibrary`, а не повторяется здесь
+            // (`S141`, 06.09.2026): дословная копия того же порога стояла в
+            // этом методе, и двум редакциям одного физического правила
+            // расходиться незачем.
+            if (!FsaLibrary.PairsPossible(result))
             {
                 report.Notes.Add("аннигиляционный образ НЕ взят: в составе нет линии выше "
                                  + FsaLibrary.PairThresholdKev.ToString("0", CultureInfo.InvariantCulture)

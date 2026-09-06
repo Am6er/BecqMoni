@@ -30,6 +30,10 @@ namespace FsaRobustnessProbe
             culture.NumberFormat.NumberDecimalSeparator = ".";
             Thread.CurrentThread.CurrentCulture = culture;
 
+            // (`T243`) Эталон настроек — ДО всего: полоса это статика,
+            // отражение её не видит, и снятая позже она уже могла быть уведена.
+            FsaTuningReport.Snapshot();
+
             Console.WriteLine("=== надёжность FSA (S114/S115/S117/S118) ===");
             CheckEfficiencyInput();
             CheckMatrixFloor();
@@ -172,6 +176,10 @@ namespace FsaRobustnessProbe
                 RefitZ = 0.0,
                 HuberM = 0.0
             };
+            // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ. Настройки здесь
+            // выставлены НАБОРОМ ПОЛЕЙ (гейты сняты, `RefitZ` и `HuberM`
+            // обнулены), и по выводу этого не было видно ни строки.
+            FsaTuningReport.Print(analyzer);
             return analyzer.Analyze(spectrum, null, fwhm,
                                     new List<FsaComponent> { component }, null);
         }

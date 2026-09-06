@@ -19,6 +19,18 @@ u"""Вернуть узлы `<Efficiency>` в спектры корпуса ИЗ
 
 Матрицы при этом не нужны — они лежат отдельными файлами `.rmx` и ищутся по
 Guid, который внутри узла и записан.
+
+⛔ ИМЕНА ВЕЩЕСТВ ВОССТАНАВЛИВАЮТСЯ ПО `.in` (`A269`, остаток `A161`). Узел
+приезжает из git, то есть замороженным, — а вместе с ним и геометрия внутри
+него. С 23.08.2026 в ней лежало ПОРЧЕНОЕ имя вещества пробы (`����-06`
+вместо `ОИСН-06`): тогда `.in` читался не своей кодировкой. Пока обе стороны
+портили имя одинаково, клейма сходились; после починки чтения (`ed398e09`,
+05.09.2026) склад стал считаться по правильному имени, а спектр остался с
+порченым — и 37 спектров из 129 перестали получать матрицу, ровно те 37, что
+несли знаки замены. Поэтому последним делом этот скрипт проходит по всем
+спектрам с узлом и берёт имена веществ из `corpus/geometries/<сцена>.in`. Это
+детерминированная правка текста, Монте-Карло не запускается. Сторож —
+`tools/check_geometry_names.py`.
 """
 import argparse
 import glob
@@ -31,6 +43,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, os.pardir, os.pardir, os.pardir))
 SPECTRA = os.path.join(HERE, os.pardir, 'corpus', 'spectra')
+
+sys.path.insert(0, HERE)
+import geom_names                                          # noqa: E402
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -121,6 +136,45 @@ def from_git(rev, rel):
     if out.returncode != 0:
         return None
     return out.stdout.decode('utf-8-sig', 'replace')
+
+
+def repair_names(spectra_dir, geom_dir, apply):
+    u"""Имена веществ в узле `<Efficiency>` — из `.in` (`A269`).
+
+    Отдельным проходом по ВСЕМ спектрам с узлом, а не внутри возврата, нарочно:
+    узел бывает и не возвращён (он «уже на месте»), а разойтись с `.in` может
+    всё равно — именно так болезнь и прожила две недели.
+
+    Возвращает `(починено спектров, отказы)`.
+    """
+    fixed, refusals, seen = 0, [], 0
+    for path in sorted(glob.glob(os.path.join(spectra_dir, '*.xml'))):
+        key = os.path.splitext(os.path.basename(path))[0]
+        text = geom_names.read_spectrum(path)
+        node = geom_names.node_of(text)
+        if node is None:
+            continue
+        seen += 1
+        new, diffs, refusal = geom_names.repair(node, geom_dir)
+        if refusal is not None:
+            refusals.append(u'%s: %s' % (key, refusal))
+            continue
+        if not diffs:
+            continue
+        for tag, have, want in diffs:
+            print(u'%-24s имя вещества %s: «%s» -> «%s» (из .in)'
+                  % (key, tag, have, want))
+        fixed += 1
+        if apply:
+            geom_names.write_spectrum(path, text.replace(node, new, 1),
+                                      geom_names.has_bom(path))
+
+    print()
+    print(u'имена веществ по .in: узлов просмотрено %d, поправлено спектров %d%s'
+          % (seen, fixed, u'' if apply else u'  (--apply не задан, файлы не тронуты)'))
+    for line in refusals:
+        print(u'   СВЕРИТЬ НЕ УДАЛОСЬ: %s' % line)
+    return fixed, refusals
 
 
 def main():
@@ -297,6 +351,24 @@ def main():
         print(u'      кривой), либо из прошлого коммита. Снять — решение Amber:')
         print(u'      это меняет числа непонятной части, то есть базу корпуса.')
 
+    # `A269`: последним делом — имена веществ по `.in`. Именно последним: к
+    # этому мгновению все узлы уже вставлены, и проход видит их все.
+    print()
+    _fixed, refusals = repair_names(
+        args.spectra, os.path.join(args.spectra, os.pardir, 'geometries'), args.apply)
+
+    # ⛔ ДО 06.09.2026 ЭТОТ ШАГ НЕ УМЕЛ ОТКАЗЫВАТЬ ВОВСЕ: `main()` ничего не
+    # возвращала, `sys.exit` не звался, и код возврата был 0 при любом исходе —
+    # включая «НЕКУДА вставить». Пересборка (`rebuild_corpus.py`) судит шаги
+    # ровно по коду возврата и объявляет: «половина пересобранного корпуса хуже
+    # непересобранного, потому что выглядит целой». Шаг, который не может
+    # сказать «нет», делает это правило пустым.
+    if refusals:
+        return 4
+    if missing:
+        return 5
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

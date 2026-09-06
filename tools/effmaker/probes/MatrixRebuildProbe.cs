@@ -35,14 +35,20 @@ namespace MatrixRebuildProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null;
-            int histories = 3000000, nodes = 0, threads = 0, estimateOnly = 0;
+            // ⛔ `--estimate=` СНЯТ 06.09.2026 сводкой `T242`. Он разбирался в
+            // переменную, которую никто не читал: предварительная оценка
+            // времени убрана из построителя решением Amber 02.09.2026 («убирай
+            // ETA, оно всегда врёт», `A46`), а ключ остался. Мёртвый ключ хуже
+            // отсутствующего — он молча принимает значение и делает вид, что
+            // что-то настроил; теперь `--estimate=1` честно отказывает
+            // «неизвестный ключ».
+            int histories = 3000000, nodes = 0, threads = 0;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--nodes=", StringComparison.Ordinal)) nodes = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--threads=", StringComparison.Ordinal)) threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
-                else if (a.StartsWith("--estimate=", StringComparison.Ordinal)) estimateOnly = int.Parse(a.Substring(11), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
