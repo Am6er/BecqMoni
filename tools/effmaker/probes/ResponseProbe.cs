@@ -78,6 +78,14 @@ namespace ResponseProbe
                 else if (a.StartsWith("--geometry=", StringComparison.Ordinal))
                     geometryFiles.Add(a.Substring(11));
                 else if (!a.StartsWith("--", StringComparison.Ordinal)) dir = a;
+                // `A263`: неизвестное ИМЯ ключа — отказ. Ветка выше (позиционный
+                // каталог моделей) стоит ПЕРЕД этой нарочно: довод без `--`
+                // по-прежнему каталог, отказ достаётся только ключам.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             // Свои геометрии из файлов `.in` — для вопроса «одна матрица на

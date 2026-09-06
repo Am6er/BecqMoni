@@ -1,0 +1,117 @@
+файлов с разбором --ключей: 108
+  ОТКАЗЫВАЮТ на неизвестное ИМЯ: 106
+  ГЛОТАЮТ МОЛЧА                : 2   из них тяжёлых: 0
+
+--- глотают молча, ТЯЖЁЛЫЕ (0) ---
+
+--- глотают молча, прочие (2) ---
+  handover/f44-headless/HeadlessButton1ProbeF44.cs           поз=-  ключей=2
+  tools/tccfcalc2/TccfProbe2.cs                              поз=-  ключей=8
+
+--- ОТКАЗЫВАЮТ (106) ---
+  tools/effmaker/MeasuredPoint.cs
+  tools/effmaker/probes/AngularProbe.cs
+  tools/effmaker/probes/BackscatterShapeProbe.cs
+  tools/effmaker/probes/BoundProbeF59.cs
+  tools/effmaker/probes/BoundScatterProbe.cs
+  tools/effmaker/probes/BoxDeadFieldsProbe.cs
+  tools/effmaker/probes/BoxSourceProbe.cs
+  tools/effmaker/probes/BqActivityProbe.cs
+  tools/effmaker/probes/BremSpectrumProbe.cs
+  tools/effmaker/probes/CalibGraphProbeF35.cs
+  tools/effmaker/probes/CalibrationNanProbeF48.cs
+  tools/effmaker/probes/CascadeJointProbe.cs
+  tools/effmaker/probes/CascadeXrayProbe.cs
+  tools/effmaker/probes/ChainRuleProbeF58.cs
+  tools/effmaker/probes/CorpusEffProbe.cs
+  tools/effmaker/probes/CorpusFsaProbe.cs
+  tools/effmaker/probes/CorpusGeomProbe.cs
+  tools/effmaker/probes/CorpusMatrixProbe.cs
+  tools/effmaker/probes/CrashLogProbe.cs
+  tools/effmaker/probes/CultureProbeO14.cs
+  tools/effmaker/probes/CylinderGeomProbe.cs
+  tools/effmaker/probes/DecayReadersProbe.cs
+  tools/effmaker/probes/DoseAirProbeF63.cs
+  tools/effmaker/probes/DoseBoundProbeF65.cs
+  tools/effmaker/probes/DoseCoefProbeO2.cs
+  tools/effmaker/probes/DosePointsProbeF9.cs
+  tools/effmaker/probes/DoseRateProbe.cs
+  tools/effmaker/probes/EditorShot.cs
+  tools/effmaker/probes/EffDipProbe.cs
+  tools/effmaker/probes/EscapeGateProbe.cs
+  tools/effmaker/probes/FsaCascadeProbe.cs
+  tools/effmaker/probes/FsaDeterminismProbeF29.cs
+  tools/effmaker/probes/FsaDoubleCountProbe.cs
+  tools/effmaker/probes/FsaInferProbeF51.cs
+  tools/effmaker/probes/FsaPaletteProbe.cs
+  tools/effmaker/probes/FsaReportViewProbe.cs
+  tools/effmaker/probes/FsaResidualProbeF21.cs
+  tools/effmaker/probes/FsaSelectionProbeF16.cs
+  tools/effmaker/probes/FsaSessionProbe.cs
+  tools/effmaker/probes/FsaStackShot.cs
+  tools/effmaker/probes/FsaStampProbe.cs
+  tools/effmaker/probes/FwhmReaderProbeF62.cs
+  tools/effmaker/probes/FwhmViewReachProbeO13.cs
+  tools/effmaker/probes/FwhmVoiceProbeF54.cs
+  tools/effmaker/probes/G4CompareProbe.cs
+  tools/effmaker/probes/G4RawProbe.cs
+  tools/effmaker/probes/GadrasProbe.cs
+  tools/effmaker/probes/GeomEncodingProbe.cs
+  tools/effmaker/probes/GraphCultureProbeF27.cs
+  tools/effmaker/probes/GridStampProbeF45.cs
+  tools/effmaker/probes/GroundScenesProbe.cs
+  tools/effmaker/probes/ImportEmptyConfigProbeF23.cs
+  tools/effmaker/probes/LSeriesProbe.cs
+  tools/effmaker/probes/LabelFitProbe.cs
+  tools/effmaker/probes/LabelPathProbeF49.cs
+  tools/effmaker/probes/LabelTruthProbe.cs
+  tools/effmaker/probes/LayerProbe.cs
+  tools/effmaker/probes/LightScaleProbe.cs
+  tools/effmaker/probes/MaterialNameProbeF67.cs
+  tools/effmaker/probes/MaterialOrderProbe.cs
+  tools/effmaker/probes/MatrixAuditProbe.cs
+  tools/effmaker/probes/MatrixDiffProbe.cs
+  tools/effmaker/probes/MatrixPeakProbeF76.cs
+  tools/effmaker/probes/MatrixRebuildProbe.cs
+  tools/effmaker/probes/MatrixRefusalProbeP8.cs
+  tools/effmaker/probes/MatrixStampProbe.cs
+  tools/effmaker/probes/ModalReachProbeF22.cs
+  tools/effmaker/probes/ModalThreadProbeO25.cs
+  tools/effmaker/probes/N42BoundaryProbeG6.cs
+  tools/effmaker/probes/N42DoorsProbeF54.cs
+  tools/effmaker/probes/N42RoundTripProbe.cs
+  tools/effmaker/probes/NumericCultureProbeF68.cs
+  tools/effmaker/probes/OmegaProbe.cs
+  tools/effmaker/probes/OrderProbe.cs
+  tools/effmaker/probes/PairThresholdProbe.cs
+  tools/effmaker/probes/PeakAgreeProbe.cs
+  tools/effmaker/probes/PeakFwhmUnitsProbeF41.cs
+  tools/effmaker/probes/PeakHighlightProbeG9.cs
+  tools/effmaker/probes/PeakOriginProbe.cs
+  tools/effmaker/probes/RawCarryProbe.cs
+  tools/effmaker/probes/ReasonProbe.cs
+  tools/effmaker/probes/RefusalWordsProbe.cs
+  tools/effmaker/probes/ResponseChannelProbe.cs
+  tools/effmaker/probes/ResponseInterpProbe.cs
+  tools/effmaker/probes/ResponseMatrixFormProbe.cs
+  tools/effmaker/probes/ResponseMatrixProbe.cs
+  tools/effmaker/probes/ResponseNoiseProbe.cs
+  tools/effmaker/probes/ResponseProbe.cs
+  tools/effmaker/probes/ResponseShapeProbe.cs
+  tools/effmaker/probes/RestCultureProbeF28.cs
+  tools/effmaker/probes/RestCultureProbeF47.cs
+  tools/effmaker/probes/RoiActivityProbe.cs
+  tools/effmaker/probes/RoiLoadProbe.cs
+  tools/effmaker/probes/RoiSupplyProbe.cs
+  tools/effmaker/probes/RoundTrip.cs
+  tools/effmaker/probes/S109ActivityProbe.cs
+  tools/effmaker/probes/SbKeysProbe.cs
+  tools/effmaker/probes/SceneOfSpectrumProbe.cs
+  tools/effmaker/probes/SeedStampProbeF69.cs
+  tools/effmaker/probes/SelectionPanelProbeG10.cs
+  tools/effmaker/probes/StartTimeProbeF52.cs
+  tools/effmaker/probes/StringsProbeF55.cs
+  tools/effmaker/probes/TrustFloorProbe.cs
+  tools/effmaker/probes/UnitsProbe.cs
+  tools/effmaker/probes/XrayLabelProbeF53.cs
+  tools/estar/EstarCheck.cs

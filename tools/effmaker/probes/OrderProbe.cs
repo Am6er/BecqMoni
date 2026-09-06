@@ -31,7 +31,14 @@ namespace OrderProbe
             {
                 if (arg.StartsWith("--ref=")) reference = arg.Substring(6);
                 else if (arg.StartsWith("--chain=")) chain = arg.Substring(8);
-                else files.Add(arg);
+                // `A263`: позиционный довод — это ФАЙЛ, а не «всё остальное».
+                // Прежде опечатка `--reff=…` молча становилась именем файла.
+                else if (!arg.StartsWith("--", StringComparison.Ordinal)) files.Add(arg);
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + arg);
+                    return 2;
+                }
             }
 
             if (files.Count == 0 || chain == null)

@@ -57,6 +57,13 @@ namespace ResponseMatrixProbe
                 // на месте пришлось бы принимать вслепую.
                 else if (a.StartsWith("--emin=", StringComparison.Ordinal)) options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--emax=", StringComparison.Ordinal)) options.MaxEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Опечатка
+                // `--node=140` вместо `--nodes=140` молча считала не то, что просили.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             if (geometryPath == null || !File.Exists(geometryPath))

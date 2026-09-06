@@ -70,6 +70,14 @@ namespace GadrasProbe
                     csvPath = a.Substring(6);
                 else if (!a.StartsWith("--", StringComparison.Ordinal))
                     dir = a;
+                // `A263`: неизвестное ИМЯ ключа — отказ. Ветка выше (позиционный
+                // каталог поставки GADRAS) стоит ПЕРЕД этой нарочно: довод без
+                // `--` по-прежнему каталог, отказ достаётся только ключам.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
             if (dir == null)
                 dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,

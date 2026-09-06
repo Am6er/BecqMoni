@@ -55,6 +55,12 @@ namespace ResponseChannelProbe
                         energies[i] = double.Parse(parts[i].Trim(), CultureInfo.InvariantCulture);
                     }
                 }
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             if (geometryPath == null || !File.Exists(geometryPath))

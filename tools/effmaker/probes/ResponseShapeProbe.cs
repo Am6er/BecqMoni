@@ -75,6 +75,14 @@ namespace ResponseShapeProbe
                         energies.Add(double.Parse(part.Trim(), CultureInfo.InvariantCulture));
                     }
                 }
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Здесь это
+                // особенно дорого: опечатка в ключе аблации (`--no-xray`) молча
+                // оставляла физику включённой по ОБЕ стороны сравнения.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             if (geometryPath == null || !File.Exists(geometryPath))

@@ -70,6 +70,14 @@ static class CalibrationNanProbeF48
         {
             if (a.StartsWith("--corpus=", StringComparison.Ordinal)) corpus = a.Substring(9);
             else if (a == "--expect-broken") expectBroken = true;
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Здесь особенно
+            // дорого: `--expect-broken` — ключ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ, и опечатка
+            // в нём молча превращала контроль в обычный прогон.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         Console.WriteLine("сборка приложения: " + typeof(PolynomialEnergyCalibration).Assembly.Location);

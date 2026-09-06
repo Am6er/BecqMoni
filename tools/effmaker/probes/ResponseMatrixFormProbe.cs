@@ -83,6 +83,12 @@ namespace ResponseMatrixFormProbe
                 else if (a.StartsWith("--bin=", StringComparison.Ordinal)) wBin = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--emin=", StringComparison.Ordinal)) wMin = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--emax=", StringComparison.Ordinal)) wMax = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             if (geometryPath == null || !File.Exists(geometryPath))

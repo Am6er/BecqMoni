@@ -1,0 +1,120 @@
+
+### каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\models
+=== 000_AS80_bare.in
+    было : AS80_bare: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 0.0 мм, Air, dry
+    стало: 000_AS80_bare: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 0.0 мм, Air, dry
+    кривая совпала точно
+=== 001_AS80_bare_gap5.in
+    было : AS80_bare_gap5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    стало: 001_AS80_bare_gap5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    кривая совпала точно
+=== 002_AS80_point5.in
+    было : AS80_point5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    стало: 002_AS80_point5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    кривая совпала точно
+=== 003_ASN16_Lu176_jar.in
+    было : ASN16_Lu176_jar: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=15.0 на 1.0 мм, Lutetium oxide
+    стало: 003_ASN16_Lu176_jar: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=15.0 на 1.0 мм, Lutetium oxide
+    кривая совпала точно
+=== 004_Nano16Pro.in
+    было : Nano16Pro: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=6.0 на 50.3 мм, Water, liquid
+    стало: 004_Nano16Pro: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=6.0 на 50.3 мм, Water, liquid
+    кривая совпала точно
+=== 005_Nano16Pro_Marinelli.in
+    было : Nano16Pro_Marinelli: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 1.0 мм, Water, liquid
+    стало: 005_Nano16Pro_Marinelli: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 1.0 мм, Water, liquid
+    кривая совпала точно
+=== 006_Nano16Pro_box.in
+    было : Nano16Pro_box: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — кювета 35.4x35.4 H=6.0 на 50.3 мм, Water, liquid
+    стало: 006_Nano16Pro_box: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — кювета 35.4x35.4 H=6.0 на 50.3 мм, Water, liquid
+    кривая совпала точно
+=== 007_Nano16Pro_cyl50.in
+    было : Nano16Pro_cyl50: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=20.0 на 50.0 мм, Air, dry
+    стало: 007_Nano16Pro_cyl50: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=40.0 H=20.0 на 50.0 мм, Air, dry
+    кривая совпала точно
+=== 008_Nano16Pro_point10.in
+    было : Nano16Pro_point10: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — точка, 100.0 мм, Water, liquid
+    стало: 008_Nano16Pro_point10: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — точка, 100.0 мм, Water, liquid
+    кривая совпала точно
+=== 009_Nano16Pro_tube.in
+    было : Nano16Pro_tube: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=25.0 H=6.0 на 2.0 мм, Water, liquid
+    стало: 009_Nano16Pro_tube: кристалл Cesium iodide брусок 15.0x18.0x60.0 мм, ро 4.510; источник — цилиндр D=25.0 H=6.0 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 010_Obsidian Marinelli 0.5.in
+    было : Obsidian Marinelli 0.5: кристалл Cesium iodide брусок 7.0x7.0x30.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 5.0 мм, Water, liquid
+    стало: 010_Obsidian Marinelli 0.5: кристалл Cesium iodide брусок 7.0x7.0x30.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 5.0 мм, Water, liquid
+    кривая совпала точно
+=== 011_RadiaCode_AuthorMarinelli0.2.in
+    было : RadiaCode_AuthorMarinelli0.2: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=68.9 Dhole=20.0 H=67.7 на 2.0 мм, Water, liquid
+    стало: 011_RadiaCode_AuthorMarinelli0.2: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=68.9 Dhole=20.0 H=67.7 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 012_RadiaCode_AuthorMarinelli0.5.in
+    было : RadiaCode_AuthorMarinelli0.5: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=92.8 Dhole=20.0 H=89.0 на 2.0 мм, Water, liquid
+    стало: 012_RadiaCode_AuthorMarinelli0.5: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=92.8 Dhole=20.0 H=89.0 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 013_RadiaCode_Marinelli0.5.in
+    было : RadiaCode_Marinelli0.5: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 8.0 мм, Water, liquid
+    стало: 013_RadiaCode_Marinelli0.5: кристалл Cesium iodide брусок 10.0x10.0x10.0 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 8.0 мм, Water, liquid
+    кривая совпала точно
+
+### та же проверка с принудительно цилиндрическим кристаллом
+=== 014_cyl_AS80_bare.in
+    было : AS80_bare: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 0.0 мм, Air, dry
+    стало: 014_cyl_AS80_bare: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 0.0 мм, Air, dry
+    кривая совпала точно
+=== 015_cyl_AS80_bare_gap5.in
+    было : AS80_bare_gap5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    стало: 015_cyl_AS80_bare_gap5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    кривая совпала точно
+=== 016_cyl_AS80_point5.in
+    было : AS80_point5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    стало: 016_cyl_AS80_point5: кристалл Sodium iodide цилиндр 80.00x80.00 мм, ро 3.667; источник — точка, 5.0 мм, Air, dry
+    кривая совпала точно
+=== 017_cyl_ASN16_Lu176_jar.in
+    было : ASN16_Lu176_jar: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=15.0 на 1.0 мм, Lutetium oxide
+    стало: 017_cyl_ASN16_Lu176_jar: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=15.0 на 1.0 мм, Lutetium oxide
+    кривая совпала точно
+=== 018_cyl_Nano16Pro.in
+    было : Nano16Pro: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=6.0 на 50.3 мм, Water, liquid
+    стало: 018_cyl_Nano16Pro: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=6.0 на 50.3 мм, Water, liquid
+    кривая совпала точно
+=== 019_cyl_Nano16Pro_Marinelli.in
+    было : Nano16Pro_Marinelli: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 1.0 мм, Water, liquid
+    стало: 019_cyl_Nano16Pro_Marinelli: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 1.0 мм, Water, liquid
+    кривая совпала точно
+=== 020_cyl_Nano16Pro_box.in
+    было : Nano16Pro_box: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — кювета 35.4x35.4 H=6.0 на 50.3 мм, Water, liquid
+    стало: 020_cyl_Nano16Pro_box: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — кювета 35.4x35.4 H=6.0 на 50.3 мм, Water, liquid
+    кривая совпала точно
+=== 021_cyl_Nano16Pro_cyl50.in
+    было : Nano16Pro_cyl50: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=20.0 на 50.0 мм, Air, dry
+    стало: 021_cyl_Nano16Pro_cyl50: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=40.0 H=20.0 на 50.0 мм, Air, dry
+    кривая совпала точно
+=== 022_cyl_Nano16Pro_point10.in
+    было : Nano16Pro_point10: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — точка, 100.0 мм, Water, liquid
+    стало: 022_cyl_Nano16Pro_point10: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — точка, 100.0 мм, Water, liquid
+    кривая совпала точно
+=== 023_cyl_Nano16Pro_tube.in
+    было : Nano16Pro_tube: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=25.0 H=6.0 на 2.0 мм, Water, liquid
+    стало: 023_cyl_Nano16Pro_tube: кристалл Cesium iodide цилиндр 18.54x60.00 мм, ро 4.510; источник — цилиндр D=25.0 H=6.0 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 024_cyl_Obsidian Marinelli 0.5.in
+    было : Obsidian Marinelli 0.5: кристалл Cesium iodide цилиндр 7.90x30.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 5.0 мм, Water, liquid
+    стало: 024_cyl_Obsidian Marinelli 0.5: кристалл Cesium iodide цилиндр 7.90x30.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 5.0 мм, Water, liquid
+    кривая совпала точно
+=== 025_cyl_RadiaCode_AuthorMarinelli0.2.in
+    было : RadiaCode_AuthorMarinelli0.2: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=68.9 Dhole=20.0 H=67.7 на 2.0 мм, Water, liquid
+    стало: 025_cyl_RadiaCode_AuthorMarinelli0.2: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=68.9 Dhole=20.0 H=67.7 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 026_cyl_RadiaCode_AuthorMarinelli0.5.in
+    было : RadiaCode_AuthorMarinelli0.5: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=92.8 Dhole=20.0 H=89.0 на 2.0 мм, Water, liquid
+    стало: 026_cyl_RadiaCode_AuthorMarinelli0.5: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=92.8 Dhole=20.0 H=89.0 на 2.0 мм, Water, liquid
+    кривая совпала точно
+=== 027_cyl_RadiaCode_Marinelli0.5.in
+    было : RadiaCode_Marinelli0.5: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 8.0 мм, Water, liquid
+    стало: 027_cyl_RadiaCode_Marinelli0.5: кристалл Cesium iodide цилиндр 11.28x10.00 мм, ро 4.510; источник — Маринелли D=114.0 Dhole=61.0 H=85.0 на 8.0 мм, Water, liquid
+    кривая совпала точно
+
+### итог каталога C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\models: проверок 28, расхождений 0
+
+ВСЕ СОШЛИСЬ

@@ -109,7 +109,15 @@ static class ModalThreadProbeO25
         foreach (string a in args)
         {
             if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
-            if (a == "--negative") negative = true;
+            // `A263`: второе условие было ОТДЕЛЬНЫМ `if`; сведено в цепочку, чтобы
+            // у неё был хвост. `--negative` — ключ ПОЛОЖИТЕЛЬНОГО КОНТРОЛЯ, и
+            // опечатка в нём молча превращала контроль в обычный прогон.
+            else if (a == "--negative") negative = true;
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         Say("== A241: чей поток поднимает модальное окно ==");

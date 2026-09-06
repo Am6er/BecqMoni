@@ -79,6 +79,12 @@ static class CalibGraphProbeF35
             if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
             else if (a.StartsWith("--show=", StringComparison.Ordinal)) showCulture = a.Substring(7);
             else if (a == "--modal-control") modalControl = true;
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         ModalWatchStart();

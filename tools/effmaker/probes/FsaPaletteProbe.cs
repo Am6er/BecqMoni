@@ -143,6 +143,12 @@ namespace FsaPaletteProbe
                 // кривая по имени из живой конфигурации прибора — для спектров,
                 // в файле которых кривой нет (как выбор в панели измерения)
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
+                // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
             if (spectrumPath == null)
             {

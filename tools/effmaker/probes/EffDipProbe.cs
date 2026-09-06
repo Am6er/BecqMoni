@@ -53,9 +53,18 @@ static class EffDipProbe
                     fineHi = double.Parse(parts[1], CultureInfo.InvariantCulture);
                 }
             }
-            else
+            // `A263`: позиционный довод — это ИМЯ КРИВОЙ, а не «всё остальное».
+            // Прежде опечатка `--hits=1000` молча становилась именем кривой,
+            // такой не находилось, и бралась первая с геометрией — прогон шёл
+            // не по той кривой и не по тому числу историй, ничего не сказав.
+            else if (!args[i].StartsWith("--", StringComparison.Ordinal))
             {
                 want = args[i];
+            }
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + args[i]);
+                return 2;
             }
         }
 

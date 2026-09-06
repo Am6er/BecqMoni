@@ -61,6 +61,14 @@ static class RestCultureProbeF28
         {
             if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
             else if (a == "--modal-control") modalControl = true;
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. ⚠ Перепись
+            // F70 числила эту пробу ОТКАЗЫВАЮЩЕЙ по слову «Неизвестный» в
+            // комментарии про тип распада — слово было, ветки не было.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         ModalWatchStart();

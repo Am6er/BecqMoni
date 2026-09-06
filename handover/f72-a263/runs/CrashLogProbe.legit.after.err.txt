@@ -1,0 +1,1 @@
+BecqMoni: необработанное исключение: InvalidOperationException: CrashLogProbe: упал обработчик события окна; подробности в журнале C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\becqmoni.log

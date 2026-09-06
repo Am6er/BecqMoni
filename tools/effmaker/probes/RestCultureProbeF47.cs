@@ -65,6 +65,12 @@ static class RestCultureProbeF47
             else if (a.StartsWith("--os=", StringComparison.Ordinal)) osCulture = a.Substring(5);
             else if (a == "--modal-control") modalControl = true;
             else if (a == "--sweep") sweep = true;
+            // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
+            else
+            {
+                Console.WriteLine("не знаю ключа: " + a);
+                return 2;
+            }
         }
 
         // ⛔ Плечи выставляют культуру ПОТОКА сами, но «код 0 на трёх культурах»

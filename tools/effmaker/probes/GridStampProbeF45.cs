@@ -60,7 +60,14 @@ namespace GridStampProbeF45
             foreach (string a in args)
             {
                 if (a == "--modal-control") modalControl = true;
-                if (a == "--fast") fast = true;
+                // `A263`: второе условие было ОТДЕЛЬНЫМ `if`; сведено в цепочку,
+                // чтобы у неё был хвост. Довод не может быть разом обоими.
+                else if (a == "--fast") fast = true;
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
+                }
             }
 
             try

@@ -50,9 +50,18 @@ namespace RoundTrip
                 {
                     breakage = a.Substring(8);
                 }
-                else
+                // `A263`: позиционный довод — это КАТАЛОГ, а не «всё остальное».
+                // Прежде опечатка `--brake=order` молча уезжала в `free` и
+                // становилась каталогом (или сдвигала их по местам), а проба
+                // честно отказывала «нет каталога» — не про то, чем занимались.
+                else if (!a.StartsWith("--", StringComparison.Ordinal))
                 {
                     free.Add(a);
+                }
+                else
+                {
+                    Console.WriteLine("не знаю ключа: " + a);
+                    return 2;
                 }
             }
 
