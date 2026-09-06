@@ -2789,6 +2789,20 @@ namespace BecquerelMonitor
         /// <see cref="ResultData.DeviceConfigWiped"/>: без пометки
         /// <c>CheckDocument</c> тут же выдумал бы кривую по трём числам свежих
         /// настроек, и снятие обернулось бы подменой.
+        ///
+        /// ⛔ ПИКИ И ТОЧКИ КАЛИБРОВКИ СНИМАЮТСЯ ТОЖЕ (`A260`, остаток; решение
+        /// Amber 06.09.2026, дословно: «Снять пики и точки калибровки»). Опись
+        /// спектра из 19 полей показала, что от прежнего прибора сброс
+        /// переживали ещё <c>DetectedPeaks</c>, <c>CalibrationPeaks</c> и
+        /// <c>CalibrationPoints</c> — измерено на каналах 5000 и 6000 при новой
+        /// шкале в 1024, то есть ВНЕ шкалы, ровно как кривая.
+        ///
+        /// ⚠ А вот <c>DeviceConfigReference</c>, <c>Efficiency</c> с
+        /// <c>FileEfficiency</c> и <c>DetectorFeature</c> сброс НЕ трогает — то
+        /// же решение Amber, с названной ценой: ссылка на прибор
+        /// (в отличие от <c>DeviceConfig</c>) СОХРАНЯЕТСЯ В ФАЙЛ и сегодня
+        /// единственный след стёртого прибора, вернуть его после ввоза больше
+        /// нечем.
         /// </summary>
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
         {
@@ -2808,6 +2822,25 @@ namespace BecquerelMonitor
             data.FwhmCalibration = null;
             data.PeakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
             data.DeviceConfigWiped = true;
+            // `A260`, остаток: решение Amber 06.09.2026, вопросником, дословно —
+            //   «Снять пики и точки калибровки». Спектр заведён новый и другой
+            //   длины, а найденные пики, пики и точки калибровки остались от
+            //   ПРЕЖНЕГО: измерено на канале 5000 при новой шкале в 1024 —
+            //   ровно та же беда, что была с кривой разрешения. Точки
+            //   калибровки к тому же поехали бы в подгонку шкалы энергий.
+            //   ⛔ Списки заводятся ПУСТЫЕ, а не null: к ним приводят без
+            //   проверки на null и `PeakStabilizer` (`Clear`/`Add`), и
+            //   `DCEnergyCalibrationView` (`Count`, `Sort`, `Add`), и
+            //   `EnergySpectrumView.ShowCalibrationPeaks` (`foreach`) — null
+            //   был бы новым падением сразу после ввоза.
+            //   ⚠ Ссылка на прибор `DeviceConfigReference`, кривая
+            //   эффективности (`Efficiency`/`FileEfficiency`) и
+            //   `DetectorFeature` сбросом НЕ трогаются — решение Amber того же
+            //   вопросника: ссылка сегодня единственный след стёртого прибора
+            //   в файле, и вернуть его после ввоза больше нечем.
+            data.DetectedPeaks = new List<Peak>();
+            data.CalibrationPeaks = new List<Peak>();
+            data.CalibrationPoints = new List<CalibrationPoint>();
         }
 
         string ReadUntilSection(StreamReader streamReader, string sectionHeader)
