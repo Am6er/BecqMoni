@@ -1188,25 +1188,41 @@ namespace BecquerelMonitor.N42
                 {
                     resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
 
-                    // ⛔ `A136`: ШКАЛА, ЗАДАННАЯ ГРАНИЦАМИ КАНАЛОВ, — ОТДЕЛЬНАЯ
-                    //    ПРИЧИНА, а не «что-то с калибровкой». В N42-2011/2012
-                    //    объект EnergyCalibration несёт ЛИБО CoefficientValues,
-                    //    ЛИБО EnergyBoundaryValues — список энергий границ каналов;
-                    //    приложение умеет только полином, и это не меняется.
-                    //    ⚠ До 05.09.2026 разбор этого положения НЕ РАЗЛИЧАЛ вовсе:
-                    //    поля EnergyBoundaryValues в модели не было, XmlSerializer
-                    //    пропускал элемент МОЛЧА, CoefficientValues приходил пустым —
-                    //    и файл попадал в тот же catch, что нечисло в коэффициентах и
-                    //    порядок полинома больше четырёх. Один текст на три разные
-                    //    беды: человеку называлась причина, которой могло не быть.
+                    // ⛔ `A136` → `A253`: ШКАЛА, ЗАДАННАЯ ГРАНИЦАМИ КАНАЛОВ, —
+                    //    ЗАКОННОЕ ПОЛОЖЕНИЕ N42-2012, И ОНА ЧИТАЕТСЯ. Объект
+                    //    EnergyCalibration несёт ЛИБО CoefficientValues, ЛИБО
+                    //    EnergyBoundaryValues — список энергий границ каналов.
+                    //    ⚠ До 05.09.2026 (`A136`) разбор этого положения НЕ
+                    //    РАЗЛИЧАЛ вовсе: поля EnergyBoundaryValues в модели не было,
+                    //    XmlSerializer пропускал элемент МОЛЧА, и файл попадал в
+                    //    один catch с нечислом в коэффициентах. `A136` завела поле
+                    //    и ОТКАЗЫВАЛА словами. Но измерено 06.09.2026 (`A216`):
+                    //    вторая дверь приложения, ImportDocumentSpecUtils, тот же
+                    //    файл ЧИТАЕТ и восстанавливает настоящую шкалу — то есть
+                    //    приложение умело открыть файл, а обычным пунктом меню
+                    //    его не открывало. Решение Amber 06.09.2026: «читать
+                    //    границы, отказ снять» (`A253`).
+                    //
+                    //    Приём взят у соседей целиком, а не заведён свой: границы
+                    //    читаются как список ChannelEnergies в разборе
+                    //    RadiologicalInstrumentData выше — точка на канал,
+                    //    полином 4-го порядка подгоняется CalibrationSolver.Solve,
+                    //    и он же проверяется CheckCalibration ниже. Ровно так же
+                    //    считает и дверь SpecUtils (DocumentManager, ветвь
+                    //    LowerChannelEdge), поэтому у двух дверей на одном файле
+                    //    ОДНА шкала — сверено побайтно на case1_boundary.
+                    //    Отказы ОСТАЮТСЯ там, где границ нет или они негодны:
+                    //    число не сходится с каналами, нечисло, не возрастают —
+                    //    см. FitEnergyBoundaryValues.
+                    int PolynomialOrder;
+                    double[] coefficients;
                     if (HasEnergyBoundaryValues(radCalibration))
                     {
-                        throw new Exception(
-                            "шкала в файле N42 задана границами энергий каналов "
-                            + "(EnergyBoundaryValues), а приложение читает только "
-                            + "коэффициенты полинома (CoefficientValues)");
+                        coefficients = FitEnergyBoundaryValues(radCalibration.EnergyBoundaryValues, n42Spectrum, filename);
+                        PolynomialOrder = coefficients.Length - 1;
                     }
-
+                    else
+                    {
                     string[] n42CalibrationCoeff = radCalibration.CoefficientValues.Replace("\n", " ").Split(new string[] { " " }, StringSplitOptions.None);
                     n42CalibrationCoeff = Array.FindAll(n42CalibrationCoeff, isNotN42SpectrumValid);
                     if (n42CalibrationCoeff.Length == 0)
@@ -1219,7 +1235,7 @@ namespace BecquerelMonitor.N42
                             "в объекте EnergyCalibration файла N42 пуст список "
                             + "коэффициентов CoefficientValues — энергетической шкалы нет");
                     }
-                    int PolynomialOrder = n42CalibrationCoeff.Length - 1;
+                    PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
                     // Max supported order is 4 (see PolynomialEnergyCalibration).
                     // `A151`: тот же ключ, что и у разбора 2006 года выше, — беда
@@ -1229,7 +1245,7 @@ namespace BecquerelMonitor.N42
                         throw new Exception(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
                     }
 
-                    double[] coefficients = new double[PolynomialOrder + 1];
+                    coefficients = new double[PolynomialOrder + 1];
 
                     for (int k = 0; k < coefficients.Length; k++)
                     {
@@ -1245,7 +1261,8 @@ namespace BecquerelMonitor.N42
                         //    сделанной в другом месте и по другому поводу.
                         coefficients[k] = double.Parse(n42CalibrationCoeff[k], CultureInfo.InvariantCulture);
                     }
-                    
+                    }
+
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
                     energyCalibration.PolynomialOrder = PolynomialOrder;
                     energyCalibration.Coefficients = coefficients;
@@ -1283,14 +1300,16 @@ namespace BecquerelMonitor.N42
                     // лежало в ru.resx без читателя. ⚠ Значение ключа тем же
                     // движением приведено к поведению (`A138`): оно говорило
                     // «Using current calibration», а код подставляет y = x.
-                    // `A136`: ПРИЧИНЫ РАЗВЕДЕНЫ. Границы энергий — законное
-                    // положение N42 и своя причина, у неё свой переведённый
-                    // текст. Всё остальное — нечисло в коэффициентах, пустой
-                    // список (`A140`), порядок полинома больше четырёх —
-                    // называет себя САМО, сообщением своего исключения.
-                    string text = HasEnergyBoundaryValues(radCalibration)
-                                  ? Resources.ERRUnsupportedEnergyBoundaryN42
-                                  : ex.Message;
+                    // `A136`: ПРИЧИНЫ РАЗВЕДЕНЫ — каждая называет себя САМА,
+                    // сообщением своего исключения: нечисло в коэффициентах,
+                    // пустой список (`A140`), порядок полинома больше четырёх
+                    // (`A151`), негодные границы энергий каналов (`A253`:
+                    // число не сходится с каналами, нечисло, не возрастают).
+                    // ⚠ `A253`: переведённый текст ERRUnsupportedEnergyBoundaryN42
+                    // здесь БОЛЬШЕ НЕ ЧИТАЕТСЯ — он говорил «границы не
+                    // поддерживаются», а они читаются; годные границы сюда не
+                    // попадают вовсе, а негодные называют, ЧТО в них негодно.
+                    string text = ex.Message;
                     if (!AppUi.HasWindows)
                     {
                         throw new InvalidOperationException(
@@ -1405,18 +1424,98 @@ namespace BecquerelMonitor.N42
         }
 
         /// <summary>
-        /// Задана ли шкала ГРАНИЦАМИ ЭНЕРГИЙ КАНАЛОВ (`A136`).
+        /// Задана ли шкала ГРАНИЦАМИ ЭНЕРГИЙ КАНАЛОВ (`A136`, `A253`).
         ///
-        /// Спрашивается ДВАЖДЫ и нарочно одним местом: сначала в try — чтобы
-        /// бросок назвал причину словами, — потом в catch, чтобы выбрать
-        /// переведённый текст. Два разных условия об одном положении уже
-        /// расходились в этом дереве молча.
+        /// Одно условие на одно положение, нарочно одним местом: до `A253` оно
+        /// спрашивалось дважды (в try — чтобы отказать, в catch — чтобы выбрать
+        /// текст); теперь по нему ВЫБИРАЕТСЯ ЧТЕНИЕ, а текст отказа даёт само
+        /// исключение. Два разных условия об одном положении уже расходились в
+        /// этом дереве молча.
         /// </summary>
         private static bool HasEnergyBoundaryValues(EnergyCalibration radCalibration)
         {
             return radCalibration != null
                    && radCalibration.EnergyBoundaryValues != null
                    && radCalibration.EnergyBoundaryValues.Trim().Length > 0;
+        }
+
+        /// <summary>
+        /// `A253`: шкала из ГРАНИЦ ЭНЕРГИЙ КАНАЛОВ (EnergyBoundaryValues,
+        /// N42-2012) — полином 4-го порядка, подогнанный по точке на канал.
+        ///
+        /// ⛔ ТРАКТОВКА ГРАНИЦ ВЗЯТА У ВТОРОЙ ДВЕРИ, ЧТОБЫ ШКАЛА БЫЛА ОДНА.
+        /// По N42-2012 список несёт границы каналов, и их на одну больше, чем
+        /// каналов: значение i — НИЖНЯЯ граница канала i, последнее — верхняя
+        /// граница последнего. SpecUtils (дверь ImportDocumentSpecUtils, ветвь
+        /// LowerChannelEdge в DocumentManager) кладёт точку (i, граница i) на
+        /// каждый из первых N значений и подгоняет 4-й порядок тем же
+        /// CalibrationSolver.Solve — здесь сделано в точности то же, и на
+        /// case1_boundary обе двери дают одни коэффициенты побайтно. Центры
+        /// каналов НЕ берутся: это дало бы второе соглашение о шкале одного
+        /// файла в одном приложении, сдвинутое на полканала.
+        ///
+        /// ⛔ ОТКАЗЫ СЛОВАМИ, а не подстановка: список короче или длиннее
+        /// каналов (принимается N+1 по спецификации; ровно N — без верхней
+        /// границы — тоже, её для подгонки не нужно), нечисло, границы не
+        /// возрастают, каналов меньше пяти (полином 4-го порядка не
+        /// подогнать). Всё это — исключения с причиной, их ловит catch
+        /// вызывающего: без окон отказ с кодом возврата, в окнах — вслух.
+        /// ⚠ Убывающий, но численно годный список отвергается ЗДЕСЬ, а не
+        /// CheckCalibration ниже: подогнанный полином мог бы оказаться
+        /// монотонным при немонотонных границах, и файл прошёл бы молча.
+        ///
+        /// Числа — инвариантной культурой (`A142`), в decimal, как в разборе
+        /// ChannelEnergies выше: (decimal)double округляет до 15 знаков, а
+        /// прямой разбор текста ничего не теряет.
+        /// </summary>
+        private static double[] FitEnergyBoundaryValues(string boundaryText, int[] spectrum, string filename)
+        {
+            int channels = spectrum.Length;
+            string[] tokens = boundaryText.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ")
+                                          .Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length != channels + 1 && tokens.Length != channels)
+            {
+                throw new Exception(
+                    "в файле N42 (" + AppUi.Where(filename) + ") список границ энергий каналов "
+                    + "EnergyBoundaryValues содержит " + tokens.Length.ToString(CultureInfo.InvariantCulture)
+                    + " чисел, а каналов в спектре " + channels.ToString(CultureInfo.InvariantCulture)
+                    + " — по N42-2012 границ должно быть на одну больше, чем каналов, "
+                    + "и достраивать недостающие или отбрасывать лишние нельзя: шкала стала бы выдуманной");
+            }
+            if (channels < 5)
+            {
+                throw new Exception(
+                    "в файле N42 (" + AppUi.Where(filename) + ") шкала задана границами энергий каналов, "
+                    + "а каналов всего " + channels.ToString(CultureInfo.InvariantCulture)
+                    + " — полином 4-го порядка по ним не подогнать");
+            }
+            decimal[] edges = new decimal[tokens.Length];
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                if (!decimal.TryParse(tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out edges[i]))
+                {
+                    throw new Exception(
+                        "в файле N42 (" + AppUi.Where(filename) + ") граница энергии канала №"
+                        + i.ToString(CultureInfo.InvariantCulture) + " в списке EnergyBoundaryValues — не число: «"
+                        + tokens[i] + "»");
+                }
+                if (i > 0 && edges[i] <= edges[i - 1])
+                {
+                    throw new Exception(
+                        "в файле N42 (" + AppUi.Where(filename) + ") границы энергий каналов "
+                        + "EnergyBoundaryValues не возрастают: №" + (i - 1).ToString(CultureInfo.InvariantCulture)
+                        + " = " + edges[i - 1].ToString(CultureInfo.InvariantCulture)
+                        + ", №" + i.ToString(CultureInfo.InvariantCulture)
+                        + " = " + edges[i].ToString(CultureInfo.InvariantCulture)
+                        + " — такой шкалы у спектра быть не может");
+                }
+            }
+            List<CalibrationPoint> points = new List<CalibrationPoint>();
+            for (int ch = 0; ch < channels; ch++)
+            {
+                points.Add(new CalibrationPoint(ch, edges[ch], spectrum[ch]));
+            }
+            return CalibrationSolver.Solve(points, 4);
         }
 
         private bool isNotN42SpectrumValid(string str)

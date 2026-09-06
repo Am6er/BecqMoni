@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadiologicalInstrumentData xmlns="http://physics.nist.gov/N42/2006/N42">
+  <MeasurementGroup>
+    <Measurement>
+      <Spectrum>
+        <InstrumentInformation>
+          <Manufacturer>PROBE</Manufacturer>
+          <Model>A141</Model>
+          <SerialNumber>4</SerialNumber>
+        </InstrumentInformation>
+        <EnergyCalibration>
+          <CalibrationEquation>List</CalibrationEquation>
+          <ChannelEnergies>5 5.500001 6.000004 6.500009</ChannelEnergies>
+        </EnergyCalibration>
+        <ChannelData NumberOfChannels="4">1 2 3 4</ChannelData>
+        <LiveTime>295</LiveTime>
+        <SpectrumType>Item</SpectrumType>
+      </Spectrum>
+    </Measurement>
+  </MeasurementGroup>
+</RadiologicalInstrumentData>
