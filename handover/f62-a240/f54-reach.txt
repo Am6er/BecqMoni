@@ -1,0 +1,20 @@
+=== СБОРКА ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f62\BecquerelMonitor.exe
+  собрана 2026-09-06 07:10:24
+  окна у приложения: False
+
+=== ДОСТИЖИМОСТЬ ОТКАЗА DefaultCalibration ===
+  конфигураций приборов: 10
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f62\config\device: 10 loaded
+  строится: 10   ОТКАЗ: 0   без раздела ПШПВ: 0
+
+=== ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: заведомо убывающая настройка ===
+  кривая: НЕ ПОСТРОЕНА
+  причина: умолчание по настройкам прибора не строится — прямая через (канал 0, ПШПВ 40.5) и (канал 1000, ПШПВ 1.25) не растёт, а ширина вдоль шкалы убывать не может.
+
+=== ГОЛОС ДВЕРИ НА ЭТОМ ЖЕ СОСТОЯНИИ ===
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f62\config\NuclideDefinition.xml: 152 entries
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f62\config\BecquerelMonitor.xml
+  сказано: BecqMoni: проба-A240.xml: у 1 из 1 ввезённых спектров нет модели разрешения (калибровки ПШПВ). Поиск пиков по ним работать не может. Причина: умолчание по настройкам прибора не строится — прямая через (канал 0, ПШПВ 40.5) и (канал 1000, ПШПВ 1.25) не растёт, а ширина вдоль шкалы убывать не может.
+
+ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ СОШЁЛСЯ.

@@ -1,0 +1,17 @@
+=== .\BecquerelMonitor ===
+объявлений метода: 2
+    BecquerelMonitor/FwhmCalibration.cs:43
+    BecquerelMonitor/FwhmCalibration.cs:92
+вызовов НОВОЙ подписью (out refusal): 6
+    BecquerelMonitor/DCControlPanel.cs:945
+    BecquerelMonitor/DCFwhmCalibrationView.cs:120
+    BecquerelMonitor/DocEnergySpectrum.cs:1134
+    BecquerelMonitor/DocumentManager.cs:716
+    BecquerelMonitor/FwhmCalibration.cs:46
+    BecquerelMonitor/EfficiencyMaker/EfficiencyFitter.cs:1386
+вызовов СТАРОЙ подписью: 5
+    BecquerelMonitor/DeviceConfigInfo.cs:500
+    BecquerelMonitor/DocEnergySpectrum.cs:518
+    BecquerelMonitor/DocumentManager.cs:289
+    BecquerelMonitor/FWHMPeakDetectionConfig.cs:343
+    BecquerelMonitor/FWHMPeakDetectionConfig.cs:392

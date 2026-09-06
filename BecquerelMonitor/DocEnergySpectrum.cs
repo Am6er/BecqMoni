@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
@@ -496,6 +497,24 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
                 if (cfg.FwhmCalibration == null)
                 {
+                    // ⛔ ЗДЕСЬ ПРИЧИНА НЕ СПРАШИВАЕТСЯ, И ЭТО РЕШЕНИЕ, А НЕ
+                    //    НЕДОСМОТР (`A240`, полоса F62, 06.09.2026). Оба пути
+                    //    сюда УЖЕ имеют своего читателя, и второй был бы вторым
+                    //    голосом об одной беде:
+                    //    * из конструктора `DocEnergySpectrum` (строка 396) —
+                    //      то есть внутри `DocumentManager.CreateDocument` и
+                    //      `OpenDocument`, которые следом зовут общую дверь
+                    //      `ReportMissingFwhmCalibration` (~~`A234`~~, `A240`
+                    //      полоса F54). Голос там ОДИН НА ФАЙЛ и с числами;
+                    //    * из `MainForm.AddNewSpectrum` — человек добавил спектр
+                    //      в открытый документ, и тот же метод следом зовёт
+                    //      `UpdateFwhmCalibrationView`, а вид ПОКАЗЫВАЕТ причину
+                    //      на месте пустой таблицы (`ApplyFwhmRefusalHint`).
+                    //    ⚠ Причину при этом ничего не теряет: `DefaultCalibration`
+                    //    ничего не меняет и зависит только от трёх чисел
+                    //    настроек и энергетической кривой, поэтому читатель
+                    //    спрашивает её заново там, где он есть, — ровно так
+                    //    устроен `DocumentManager.WhyNoFwhmCalibration`.
                     cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, resultData.EnergySpectrum.EnergyCalibration);
                 }
                 if (resultData.FwhmCalibration == null)
@@ -1098,12 +1117,22 @@ namespace BecquerelMonitor
 
             FWHMPeakDetectionMethodConfig peakConfig =
                 chosen.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            // ⛔ ПРИЧИНА ГОВОРИТСЯ ВМЕСТЕ С ОТКАЗОМ (`A240`, полоса F62,
+            //    06.09.2026). Голос тут стоял и раньше, но говорил ЧТО, не
+            //    говоря ПОЧЕМУ: «у конфигурации прибора „X“ калибровки ПШПВ
+            //    тоже нет». Человек только что выбрал эту конфигурацию из
+            //    списка своей рукой, и следующий его вопрос — «а почему её там
+            //    нет»; три числа настроек (`FWHM_AT_0`, `Ch_Fwhm`,
+            //    `Width_Fwhm`) отвечают на него, и взять их больше негде: ни на
+            //    одной форме их нет, они приходят из `config\device\*.xml`.
+            //    Голос при этом ОСТАЁТСЯ ОДИН — не добавлен, а дополнен.
+            string fwhmRefusal = null;
             FwhmCalibration calibration = peakConfig == null
                 ? null
                 : (peakConfig.FwhmCalibration != null
                     ? peakConfig.FwhmCalibration.Clone()
                     : FwhmCalibration.DefaultCalibration(peakConfig,
-                        active.EnergySpectrum.EnergyCalibration));
+                        active.EnergySpectrum.EnergyCalibration, out fwhmRefusal));
             if (calibration == null)
             {
                 // Выбранная конфигурация не помогла — сказать об этом, а не
@@ -1117,8 +1146,21 @@ namespace BecquerelMonitor
                 // ⚠ Дойти сюда без окон можно только мимо `PickOneForm.Ask`
                 // выше — то есть никогда; строка написана на случай, когда
                 // выбор станет возможен без окна.
-                AppUi.Report(
-                    string.Format(Properties.Resources.FsaNoFwhmSource, chosen.Name),
+                // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`): причина
+                //    приходит из `DefaultCalibration` с тремя числами,
+                //    напечатанными ТОЧКОЙ, и оправа обязана держать то же
+                //    соглашение — иначе две половины одной строки разойдутся
+                //    разделителем. Прежде здесь стоял `string.Format` без
+                //    культуры вовсе.
+                string text = string.Format(CultureInfo.InvariantCulture,
+                                            Properties.Resources.FsaNoFwhmSource, chosen.Name);
+                if (!string.IsNullOrEmpty(fwhmRefusal))
+                {
+                    // Оправа «что: почему» переводу не подлежит — переведены
+                    // обе её половины по отдельности.
+                    text = text + " " + fwhmRefusal;
+                }
+                AppUi.Report(text,
                     Properties.Resources.FsaNoFwhmTitle, MessageBoxIcon.Information);
                 return false;
             }

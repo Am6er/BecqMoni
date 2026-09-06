@@ -31,6 +31,26 @@ namespace BecquerelMonitor
         string expGaussExpLeftParameterLabelText;
         string expGaussExpRightParameterLabelText;
 
+        /// <summary>
+        /// ПРИЧИНА, ПО КОТОРОЙ КРИВОЙ РАЗРЕШЕНИЯ У СПЕКТРА НЕТ (`A240`, полоса
+        /// F62, 06.09.2026), — словами и с тремя числами настроек. Заполняется
+        /// последней попыткой <see cref="EnsureFwhmCalibration"/>, читается
+        /// <see cref="ApplyFwhmRefusalHint"/>. <c>null</c> — причины нет, то
+        /// есть кривая построилась либо о ней не спрашивали.
+        /// </summary>
+        string fwhmRefusal;
+
+        /// <summary>
+        /// Подпись пустой таблицы, какой её положил конструктор форм. Хранится
+        /// затем, что причина отказа пишется НА ЕЁ МЕСТО, а по исчезновении
+        /// причины подпись обязана вернуться ПЕРЕВЕДЁННОЙ: она приходит из
+        /// `DCFwhmCalibrationView.resx` / `.ru.resx`
+        /// (<c>CollectedPeaksTable.NoItemsText</c>), и подставить вместо неё
+        /// строку из кода значило бы потерять перевод. Приём тот же, что двумя
+        /// полями выше у подписей формы пика.
+        /// </summary>
+        string collectedPeaksNoItemsText;
+
         public DCFwhmCalibrationView(MainForm mainForm)
         {
             this.mainForm = mainForm;
@@ -41,6 +61,10 @@ namespace BecquerelMonitor
             executeCalibrationButton.Enabled = false;
             expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;
             expGaussExpRightParameterLabelText = peakShapeSecondParameterLabel.Text;
+            // ⚠ Пустой строкой, а не null: сеттер `Table.NoItemsText` сравнивает
+            //    ЧЕРЕЗ СТАРОЕ значение (`this.noItemsText.Equals(value)`), и
+            //    однажды положенный туда null уронил бы следующее присваивание.
+            collectedPeaksNoItemsText = CollectedPeaksTable.NoItemsText ?? string.Empty;
         }
 
         public void UpdateFwhmCalibration(bool reset_state = false)
@@ -58,6 +82,7 @@ namespace BecquerelMonitor
                 ResultData activeResultData = mainForm.ActiveDocument.ActiveResultData;
                 EnsureFwhmCalibration(activeResultData);
                 fwhmCalibration = activeResultData != null ? activeResultData.FwhmCalibration : null;
+                ApplyFwhmRefusalHint();
                 if (fwhmCalibration == null)
                 {
                     tableModel1.Rows.Clear();
@@ -71,6 +96,12 @@ namespace BecquerelMonitor
 
         void EnsureFwhmCalibration(ResultData resultData)
         {
+            // ⛔ ПРИЧИНА ОТКАЗА НЕ ВЫБРАСЫВАЕТСЯ (`A240`, полоса F62,
+            //    06.09.2026). Сбрасывается она ЗДЕСЬ, а не у читателя: метод
+            //    зовут четыре места вида, и причина, оставшаяся от прошлого
+            //    спектра, была бы хуже молчания — она называет три числа ЧУЖИХ
+            //    настроек, и человек искал бы беду не там.
+            fwhmRefusal = null;
             if (resultData == null || resultData.FwhmCalibration != null)
             {
                 return;
@@ -85,13 +116,53 @@ namespace BecquerelMonitor
 
             if (cfg.FwhmCalibration == null)
             {
-                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration);
+                string refusal;
+                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration, out refusal);
+                if (cfg.FwhmCalibration == null)
+                {
+                    fwhmRefusal = refusal;
+                }
             }
 
             if (cfg.FwhmCalibration != null)
             {
                 resultData.FwhmCalibration = cfg.FwhmCalibration.Clone();
             }
+        }
+
+        /// <summary>
+        /// ЧИТАТЕЛЬ ПРИЧИНЫ — НА МЕСТЕ, А НЕ ОКНОМ (`A240`, полоса F62,
+        /// 06.09.2026).
+        ///
+        /// ⛔ ПОЧЕМУ НЕ <c>AppUi.Report</c>. Голос о том, что у спектра нет
+        /// модели разрешения, УЖЕ звучит — один раз на файл, у общей двери
+        /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~,
+        /// открытие, создание и оба ввоза). Этот же вид обновляется на КАЖДОЕ
+        /// событие: смену документа, смену спектра, правку калибровки, выбор
+        /// пика — <c>MainForm.UpdateFwhmCalibrationView</c> зовут девять мест.
+        /// Модальное окно отсюда значило бы не «ещё один читатель», а второй,
+        /// третий и десятый голос об ОДНОЙ беде, о которой человеку уже
+        /// сказали. Соглашение «ровно один голос на событие» тут соблюдается
+        /// тем, что вид не говорит вовсе, а ПОКАЗЫВАЕТ.
+        ///
+        /// ⛔ ПОЧЕМУ ИМЕННО ПУСТАЯ ТАБЛИЦА. Без кривой вид пустеет весь:
+        /// строки очищаются, панель подгонки прячется — и на месте таблицы
+        /// остаётся ровно то поле, куда <c>XPTable</c> сам рисует
+        /// <c>NoItemsText</c>. Человек, пришедший на вкладку ПШПВ за причиной,
+        /// читает её там, где он и смотрит, без наведения мыши и без нового
+        /// места на форме. Подсказка на таблице и на подписи — вдобавок, для
+        /// длинного текста, который в поле таблицы может не поместиться.
+        ///
+        /// ⚠ Новой строки ресурсов не заведено: причина приходит уже
+        /// переведённой (<c>ERRFwhmDefaultNotMonotonic</c>), а подпись пустой
+        /// таблицы возвращается СВОЯ, из resx вида.
+        /// </summary>
+        void ApplyFwhmRefusalHint()
+        {
+            bool refused = !string.IsNullOrEmpty(fwhmRefusal);
+            CollectedPeaksTable.NoItemsText = refused ? fwhmRefusal : collectedPeaksNoItemsText;
+            toolTip1.SetToolTip(CollectedPeaksTable, refused ? fwhmRefusal : string.Empty);
+            toolTip1.SetToolTip(label1, refused ? fwhmRefusal : string.Empty);
         }
 
         private void DCFwhmCalibrationView_FormLoad(object sender, EventArgs e)
