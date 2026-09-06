@@ -97,7 +97,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 RequestedGrouping = grouping,
                 MatrixOldFormat = matrixOldFormat,
                 ParentGroupingAllowed = result.ParentGroupingAllowed,
-                ParentGroupingRefusal = result.ParentGroupingRefusal
+                // ⛔ КОД причины, а не служебная строка результата (`A184`):
+                // текст подсказки собирает вид из своих ресурсов, в обеих
+                // культурах.
+                ParentGroupingRefusalReason = result.ParentGroupingRefusalReason
             };
 
             // Родители — только при связанном ряде (`A145`, «Семантика

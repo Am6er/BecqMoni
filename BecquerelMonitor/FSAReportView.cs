@@ -1351,9 +1351,10 @@ namespace BecquerelMonitor
                 ? Resources.FSAReportTipGrouping
                 : !parentsPossible
                     ? Resources.FSAReportTipParentsNeedNucBase
-                    : this.presentation != null && this.presentation.ParentGroupingRefusal != null
+                    : this.presentation != null
+                      && this.presentation.ParentGroupingRefusalReason != FsaParentGroupingRefusal.None
                         ? string.Format(CultureInfo.CurrentCulture, Resources.FSAReportTipParentsRefused,
-                                        this.presentation.ParentGroupingRefusal)
+                                        RefusalText(this.presentation.ParentGroupingRefusalReason))
                         : Resources.FSAReportTipGrouping;
             this.toolTip.SetToolTip(this.parentsRadio, parentsTip);
 
@@ -1377,6 +1378,33 @@ namespace BecquerelMonitor
             finally
             {
                 this.loading = false;
+            }
+        }
+
+        /// <summary>
+        /// (`A184`) ЧИТАТЕЛЬ КОДА ПРИЧИНЫ: превращает
+        /// <see cref="FsaParentGroupingRefusal"/> в подпись НА ЯЗЫКЕ
+        /// ИНТЕРФЕЙСА. Единственное место, где у причины появляется текст для
+        /// человека; модель отдаёт только код (её служебная строка
+        /// <c>FsaResult.ParentGroupingRefusal</c> всегда русская и предназначена
+        /// журналу и пробам).
+        ///
+        /// <see cref="FsaParentGroupingRefusal.None"/> сюда не приходит — вызов
+        /// стоит под проверкой «причина есть», — но пустая строка на нём лучше
+        /// отказа: подсказка не то место, где стоит падать.
+        /// </summary>
+        static string RefusalText(FsaParentGroupingRefusal reason)
+        {
+            switch (reason)
+            {
+                case FsaParentGroupingRefusal.FreeChainMembers:
+                    return Resources.FSAReportRefusalFreeChainMembers;
+
+                case FsaParentGroupingRefusal.NoDecayChain:
+                    return Resources.FSAReportRefusalNoDecayChain;
+
+                default:
+                    return "";
             }
         }
 

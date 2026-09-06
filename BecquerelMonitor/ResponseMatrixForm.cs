@@ -270,10 +270,15 @@ namespace BecquerelMonitor
         /// беднее штатной: «поднято до 3 000 000» у матрицы на 3 000 000
         /// объясняло бы то, чего не происходило.
         ///
-        /// ⚠ Текст ЗДЕСЬ, а не в `Resources.resx`: 05.09.2026 ресурсы правит
-        /// другая полоса, и общий файл трогать нельзя. Перенос в ресурсы —
-        /// отдельной строкой реестра; язык выбирается по культуре интерфейса,
-        /// как это делают сами ресурсы.
+        /// ✅ Текст — В РЕСУРСАХ (`A187`, 06.09.2026). До этого дня он выбирался
+        /// здесь по <c>CurrentUICulture</c> своей парой литералов: 05.09.2026
+        /// общий `Resources.resx` правила другая полоса, и трогать его было
+        /// нельзя. Ключ — `ResponseMatrixInheritedHistories`, обе культуры.
+        ///
+        /// ⛔ `F0`, а не `N0` (`A244`, решение Amber 05.09.2026): группировки
+        /// разрядов в приложении нет вовсе — `N0` на инварианте дал бы
+        /// «3,000,000», запятую в группах. Формат живёт В ЗНАЧЕНИИ ресурса, и
+        /// перевод обязан его сохранить.
         /// </summary>
         static string DescribeInheritedHistories(ResponseMatrix matrix, decimal nominalHistories)
         {
@@ -283,16 +288,10 @@ namespace BecquerelMonitor
                 return "";
             }
 
-            bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
-                                    StringComparison.OrdinalIgnoreCase);
-            // ⛔ `F0`, а не `N0` (`A244`, решение Amber 05.09.2026): группировки
-            // разрядов в приложении нет вовсе. `N0` на инварианте дал бы
-            // «3,000,000» — запятая в группах, чего быть не должно.
-            string format = ru
-                ? "Посчитана {0:F0} историями на узел при штатных {1:F0}; поле поднято до штатного"
-                : "Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal";
-            return Environment.NewLine + string.Format(CultureInfo.InvariantCulture, format,
-                                                       matrix.Options.Histories, nominalHistories);
+            return Environment.NewLine
+                   + string.Format(CultureInfo.InvariantCulture,
+                                   Resources.ResponseMatrixInheritedHistories,
+                                   matrix.Options.Histories, nominalHistories);
         }
 
         static void SetClamped(NumericUpDown box, decimal value)
@@ -468,30 +467,37 @@ namespace BecquerelMonitor
         /// видеть. У только что посчитанной и ещё не сохранённой матрицы
         /// отпечатка нет вовсе — он снимается с байтов файла.
         ///
-        /// ⚠ Текст здесь, а не в ресурсах, по той же причине, что у
-        /// <see cref="DescribeInheritedHistories"/>.
+        /// ✅ Текст — В РЕСУРСАХ (`A187`, 06.09.2026), четырьмя ключами
+        /// `ResponseMatrixFingerprint*`: подпись строки и три её состояния.
+        /// Раньше выбирался здесь по <c>CurrentUICulture</c> — по той же
+        /// причине, что у <see cref="DescribeInheritedHistories"/>.
+        ///
+        /// ⚠ Три состояния — три ОТДЕЛЬНЫХ ключа, а не склейка подписи с
+        /// хвостом: в другом языке хвост может стоять перед числом, и склейка
+        /// связала бы переводчику руки.
         /// </summary>
         static string DescribeFingerprint(ResponseMatrix matrix)
         {
-            bool ru = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, "ru",
-                                    StringComparison.OrdinalIgnoreCase);
             string value;
             if (matrix == null || string.IsNullOrEmpty(matrix.BodyFingerprint))
             {
-                value = ru ? "нет (снимается с файла)" : "none (taken from the file)";
+                value = Resources.ResponseMatrixFingerprintNone;
             }
             else
             {
                 string head = matrix.BodyFingerprint.Substring(0, 16) + "…";
                 value = matrix.StoredBodyFingerprint == null
-                    ? head + (ru ? " (в файле не записан)" : " (not stored in the file)")
+                    ? string.Format(CultureInfo.InvariantCulture,
+                                    Resources.ResponseMatrixFingerprintNotStored, head)
                     : matrix.BodyFingerprintMatches
                         ? head
-                        : head + (ru ? " ⚠ НЕ СХОДИТСЯ с записанным в файле"
-                                     : " ⚠ DOES NOT MATCH the one stored in the file");
+                        : string.Format(CultureInfo.InvariantCulture,
+                                        Resources.ResponseMatrixFingerprintMismatch, head);
             }
 
-            return Environment.NewLine + (ru ? "Отпечаток тела: " : "Body fingerprint: ") + value;
+            return Environment.NewLine
+                   + string.Format(CultureInfo.InvariantCulture,
+                                   Resources.ResponseMatrixFingerprint, value);
         }
 
         // ⛔ (`A46`) ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ ВРЕМЕНИ БОЛЬШЕ НЕТ — решение Amber
