@@ -19,8 +19,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DCSampleInfoView));
             this.label9 = new System.Windows.Forms.Label();
             this.dateTimePicker2 = new System.Windows.Forms.DateTimePicker();
-            this.numericUpDownVolume = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDownWeight = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDownVolume = new InvariantNumericUpDown();
+            this.numericUpDownWeight = new InvariantNumericUpDown();
             this.label8 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.textBoxLocation = new System.Windows.Forms.TextBox();
@@ -206,10 +206,10 @@
 		global::System.Windows.Forms.Label label8;
 
 		// Token: 0x04000526 RID: 1318
-		global::System.Windows.Forms.NumericUpDown numericUpDownWeight;
+		InvariantNumericUpDown numericUpDownWeight;
 
 		// Token: 0x04000527 RID: 1319
-		global::System.Windows.Forms.NumericUpDown numericUpDownVolume;
+		InvariantNumericUpDown numericUpDownVolume;
 
 		// Token: 0x04000528 RID: 1320
 		global::System.Windows.Forms.DateTimePicker dateTimePicker2;

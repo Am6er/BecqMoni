@@ -106,18 +106,18 @@ namespace BecquerelMonitor
             this.textBox16 = new System.Windows.Forms.TextBox();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.peakSpecgroupBox = new System.Windows.Forms.GroupBox();
-            this.rightSkewnumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.rightSkewnumericUpDown = new InvariantNumericUpDown();
             this.rightSkewlabel = new System.Windows.Forms.Label();
-            this.leftSkewnumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.leftSkewnumericUpDown = new InvariantNumericUpDown();
             this.leftSkewlabel = new System.Windows.Forms.Label();
             this.peakTypecomboBox = new System.Windows.Forms.ComboBox();
             this.peakTypelabel = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.label40 = new System.Windows.Forms.Label();
             this.label42 = new System.Windows.Forms.Label();
-            this.numericUpDown4 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown6 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown4 = new InvariantNumericUpDown();
+            this.numericUpDown6 = new InvariantNumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
             this.label41 = new System.Windows.Forms.Label();
             this.label39 = new System.Windows.Forms.Label();
             this.label47 = new System.Windows.Forms.Label();
@@ -125,12 +125,12 @@ namespace BecquerelMonitor
             this.label50 = new System.Windows.Forms.Label();
             this.label51 = new System.Windows.Forms.Label();
             this.label52 = new System.Windows.Forms.Label();
-            this.numericUpDown12 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown13 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown14 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown15 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown16 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDownWidenFactor = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown12 = new InvariantNumericUpDown();
+            this.numericUpDown13 = new InvariantNumericUpDown();
+            this.numericUpDown14 = new InvariantNumericUpDown();
+            this.numericUpDown15 = new InvariantNumericUpDown();
+            this.numericUpDown16 = new InvariantNumericUpDown();
+            this.numericUpDownWidenFactor = new InvariantNumericUpDown();
             this.labelWidenFactor = new System.Windows.Forms.Label();
             this.centroidComCheckBox = new System.Windows.Forms.CheckBox();
             this.tabPage4 = new System.Windows.Forms.TabPage();
@@ -153,7 +153,7 @@ namespace BecquerelMonitor
             this.comboDoseRateSpectrum = new System.Windows.Forms.ComboBox();
             this.buttonEstimateDRConf = new System.Windows.Forms.Button();
             this.labelDoseRateValue = new System.Windows.Forms.Label();
-            this.upDownDoseRateValue = new System.Windows.Forms.NumericUpDown();
+            this.upDownDoseRateValue = new InvariantNumericUpDown();
             this.labelEffNote = new System.Windows.Forms.Label();
             this.buttonLoadEff = new System.Windows.Forms.Button();
             this.labelSpectrumNote = new System.Windows.Forms.Label();
@@ -1401,22 +1401,22 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label label40;
 
 		// Token: 0x04000283 RID: 643
-		System.Windows.Forms.NumericUpDown numericUpDown3;
+		InvariantNumericUpDown numericUpDown3;
 
 		// Token: 0x04000284 RID: 644
-		System.Windows.Forms.NumericUpDown numericUpDown4;
+		InvariantNumericUpDown numericUpDown4;
 
-		System.Windows.Forms.NumericUpDown numericUpDown12;
+		InvariantNumericUpDown numericUpDown12;
 
-		System.Windows.Forms.NumericUpDown numericUpDown13;
+		InvariantNumericUpDown numericUpDown13;
 
-		System.Windows.Forms.NumericUpDown numericUpDown14;
+		InvariantNumericUpDown numericUpDown14;
 
-		System.Windows.Forms.NumericUpDown numericUpDown15;
+		InvariantNumericUpDown numericUpDown15;
 
-        System.Windows.Forms.NumericUpDown numericUpDown16;
+        InvariantNumericUpDown numericUpDown16;
 
-        System.Windows.Forms.NumericUpDown numericUpDownWidenFactor;
+        InvariantNumericUpDown numericUpDownWidenFactor;
 
         System.Windows.Forms.Label labelWidenFactor;
 
@@ -1426,7 +1426,7 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Label label42;
 
 		// Token: 0x04000287 RID: 647
-		System.Windows.Forms.NumericUpDown numericUpDown6;
+		InvariantNumericUpDown numericUpDown6;
 
 		// Token: 0x04000288 RID: 648
 		System.Windows.Forms.Label label41;
@@ -1605,7 +1605,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Button buttonLoadEff;
         private System.Windows.Forms.Button buttonEstimateDRConf;
         private System.Windows.Forms.Label labelDoseRateValue;
-        private System.Windows.Forms.NumericUpDown upDownDoseRateValue;
+        private InvariantNumericUpDown upDownDoseRateValue;
         private System.Windows.Forms.ComboBox comboDoseRateEfficiency;
         private System.Windows.Forms.ComboBox comboDoseRateSpectrum;
         private System.Windows.Forms.Label labelDREstimateTitle;
@@ -1613,9 +1613,9 @@ namespace BecquerelMonitor
         private GroupBox peakSpecgroupBox;
         private ComboBox peakTypecomboBox;
         private Label peakTypelabel;
-        private NumericUpDown rightSkewnumericUpDown;
+        private InvariantNumericUpDown rightSkewnumericUpDown;
         private Label rightSkewlabel;
-        private NumericUpDown leftSkewnumericUpDown;
+        private InvariantNumericUpDown leftSkewnumericUpDown;
         private Label leftSkewlabel;
     }
 }

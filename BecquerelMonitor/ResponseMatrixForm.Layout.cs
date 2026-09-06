@@ -137,10 +137,17 @@ namespace BecquerelMonitor
             // русской системе «3 000 000» неразрывными пробелами, на
             // английской «3,000,000». Довод прежнего комментария («у энергии
             // разделитель вреден: 3,000 кэВ читается как три») правилом снят —
-            // он вреден везде. Все шесть полей — целые (`decimals = 0`),
-            // поэтому разделителя ДРОБНОЙ части в них не появляется вовсе, и
-            // `NumericUpDown`, который свою культуру подменить не даёт, правилу
-            // Amber теперь не противоречит ничем.
+            // он вреден везде.
+            //
+            // ⚠ Прежде здесь стояло, что целые поля (`decimals = 0`) правилу
+            // Amber «не противоречат ничем», раз разделителя ДРОБНОЙ части в
+            // них не появляется. Замер это снял (`A261`, полоса F68): у целого
+            // поля культура потока правит не печать, а ВВОД — штатный
+            // `NumericUpDown` съедает набранную точку своим фильтром знаков и
+            // разбирает содержимое `Decimal.Parse(Text, CurrentCulture)`.
+            // Поля этой формы переведены на общий `InvariantNumericUpDown`,
+            // который подменить культуру как раз даёт; сторож против отката —
+            // `tools/check_numeric_updown.py`.
 
             // Оценка времени пересчитывается на любое изменение: параметры и
             // время связаны прямо, и человек должен видеть цену сразу, а не
@@ -310,7 +317,7 @@ namespace BecquerelMonitor
 
         }
 
-        NumericUpDown Field(Control parent, string caption, int x, int y,
+        InvariantNumericUpDown Field(Control parent, string caption, int x, int y,
                             decimal min, decimal max, int decimals, decimal value)
         {
             parent.Controls.Add(new Label
@@ -321,7 +328,7 @@ namespace BecquerelMonitor
                 TextAlign = ContentAlignment.MiddleLeft
             });
 
-            var box = new NumericUpDown
+            var box = new InvariantNumericUpDown
             {
                 Location = new Point(x + LabelWidth, y),
                 Size = new Size(FieldWidth, 20),

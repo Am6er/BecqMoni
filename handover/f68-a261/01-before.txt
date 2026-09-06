@@ -1,0 +1,229 @@
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+культура ОС:       ru-RU; культура потока при старте: ru-RU
+общий приём:       ⛔ типа BecquerelMonitor.InvariantNumericUpDown в сборке НЕТ (замер «до»)
+одиночки заведены: приборы, термометры, ROI, конфигурация, нуклиды
+
+══ КУЛЬТУРА ПОТОКА en-US ═════════════════════════════════════════════
+    (ПОДБРОШЕННЫЙ)                     подброшенный                 dp=2 печать «0.50»  подано «50.01» → 50.01
+
+  AudioInputDeviceForm: полей со стрелками — 2
+
+  DCCountRateView: полей со стрелками — 1
+
+  DCEnergyCalibrationView: полей со стрелками — 1
+
+  DCPeakDetectionView: полей со стрелками — 2
+
+  DCSampleInfoView: полей со стрелками — 2
+
+  DeviceConfigForm: полей со стрелками — 12
+
+  EfficiencyMakerForm: полей со стрелками — 8
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «200,000»  подано «1500» → 1500  ⛔ЗАПЯТАЯ
+
+  GlobalConfigForm: полей со стрелками — 12
+
+  ROIConfigForm: полей со стрелками — 1
+
+  ToolStripEnergyCalibrationControl: полей со стрелками — 3
+
+  ToolStripNumericUpdown: полей со стрелками — 1
+
+  ResponseMatrixForm: полей со стрелками — 6
+
+══ КУЛЬТУРА ПОТОКА ru-RU ═════════════════════════════════════════════
+    (ПОДБРОШЕННЫЙ)                     подброшенный                 dp=2 печать «0,50»  подано «50.01» → 0.5  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  AudioInputDeviceForm: полей со стрелками — 2
+    AudioInputDeviceForm               numericUpDown2               dp=0 печать «0»  подано «32» → 32  ⛔ТОЧКА СЪЕДЕНА
+    AudioInputDeviceForm               numericUpDown1               dp=0 печать «8»  подано «132» → 132  ⛔ТОЧКА СЪЕДЕНА
+
+  DCCountRateView: полей со стрелками — 1
+    DCCountRateView                    windowControl                dp=2 печать «3,00»  подано «60.01» → 3  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  DCEnergyCalibrationView: полей со стрелками — 1
+    DCEnergyCalibrationView            numericUpDown6               dp=0 печать «0»  подано «2» → 2  ⛔ТОЧКА СЪЕДЕНА
+
+  DCPeakDetectionView: полей со стрелками — 2
+    DCPeakDetectionView                numericUpDown3               dp=1 печать «1,0»  подано «50.1» → 1  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DCPeakDetectionView                numericUpDown1               dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+
+  DCSampleInfoView: полей со стрелками — 2
+    DCSampleInfoView                   numericUpDownVolume          dp=3 печать «0,000»  подано «50.001» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DCSampleInfoView                   numericUpDownWeight          dp=3 печать «0,000»  подано «50.001» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  DeviceConfigForm: полей со стрелками — 12
+    DeviceConfigForm                   rightSkewnumericUpDown       dp=1 печать «1,0»  подано «2.1» → 1  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   leftSkewnumericUpDown        dp=1 печать «1,0»  подано «2.1» → 1  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown4               dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown6               dp=1 печать «0,0»  подано «50.1» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown3               dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown12              dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown13              dp=0 печать «51»  подано «50» → 51  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown14              dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown15              dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDown16              dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   numericUpDownWidenFactor     dp=2 печать «0,00»  подано «50.01» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    DeviceConfigForm                   upDownDoseRateValue          dp=2 печать «0,50»  подано «50.01» → 0.5  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  EfficiencyMakerForm: полей со стрелками — 8
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «5»  подано «501» → 501  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «3000»  подано «510» → 510  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «34»  подано «251» → 251  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «200 000»  подано «1500» → 1500  ⛔ПЕЧАТЬ≠en  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                (без имени)                  dp=0 печать «15»  подано «33» → 33  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                orderNumericUpDown           dp=0 печать «3»  подано «4» → 4  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                minIntensityNumericUpDown    dp=1 печать «1,0»  подано «50.1» → 1.0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    EfficiencyMakerForm                minSignificanceNumericUpDown dp=1 печать «4,0»  подано «50.1» → 4.0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  GlobalConfigForm: полей со стрелками — 12
+    GlobalConfigForm                   numericUpDown8               dp=0 печать «5»  подано «51» → 51  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown9               dp=0 печать «1»  подано «25» → 25  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown13              dp=0 печать «100»  подано «500» → 500  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown3               dp=0 печать «100»  подано «600» → 600  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown2               dp=0 печать «1»  подано «51» → 51  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown1               dp=0 печать «1»  подано «51» → 51  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown14              dp=4 печать «0,0000»  подано «500.0001» → 0.000001  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown7               dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown6               dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown10              dp=0 печать «1»  подано «501» → 501  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown5               dp=2 печать «1,00»  подано «50.01» → 1  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    GlobalConfigForm                   numericUpDown4               dp=2 печать «1,00»  подано «50.01» → 1  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  ROIConfigForm: полей со стрелками — 1
+    ROIConfigForm                      numericUpDown1               dp=1 печать «5,0»  подано «50.1» → 5  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  ToolStripEnergyCalibrationControl: полей со стрелками — 3
+    ToolStripEnergyCalibrationControl  numericUpDown3               dp=4 печать «0,0000»  подано «-9499.9999» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    ToolStripEnergyCalibrationControl  numericUpDown2               dp=4 печать «0,0100»  подано «500.0001» → 0.01  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+    ToolStripEnergyCalibrationControl  numericUpDown1               dp=7 печать «0,0000000»  подано «0.0000001» → 0  ⛔ЗАПЯТАЯ  ⛔ПЕЧАТЬ≠en  ⛔РАЗБОР≠en  ⛔ТОЧКА СЪЕДЕНА
+
+  ToolStripNumericUpdown: полей со стрелками — 1
+    ToolStripNumericUpdown             (без имени)                  dp=0 печать «0»  подано «50» → 50  ⛔ТОЧКА СЪЕДЕНА
+
+  ResponseMatrixForm: полей со стрелками — 6
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «5»  подано «253» → 253  ⛔ТОЧКА СЪЕДЕНА
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «3000»  подано «1000» → 1000  ⛔ТОЧКА СЪЕДЕНА
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «140»  подано «254» → 254  ⛔ТОЧКА СЪЕДЕНА
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «2»  подано «11» → 11  ⛔ТОЧКА СЪЕДЕНА
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «3000000»  подано «1500» → 1500  ⛔ТОЧКА СЪЕДЕНА
+    ResponseMatrixForm                 (без имени)                  dp=0 печать «15»  подано «33» → 33  ⛔ТОЧКА СЪЕДЕНА
+
+══ ИТОГ ══════════════════════════════════════════════════════════════
+сцен построено: 24, не построилось: 0
+полей формы НЕ общего типа InvariantNumericUpDown: 51 (после правки обязано быть 0)
+
+положительный контроль: подброшенный голый NumericUpDown найден по всем трём признакам (печать, разбор, набор) — проба мерит
+
+ПОЛЯ ФОРМ, найдено: 51
+  en-US: с запятой в печати 1 (запятая под английской культурой — это ГРУППИРОВКА разрядов, `A244`)
+  ru-RU: с запятой в печати 18, печать разошлась с en-US 19, разбор разошёлся с en-US 18, съело набранную точку 51
+
+модальных окон за прогон: 0 (обязано быть 0; контроль сторожа — ключ --modal-control)
+
+══ ТАБЛИЦА ══
+культура	сцена	имя	тип	dp	группы	печать	подано	разобрано	запятая	печать≠en	разбор≠en	набор
+en-US	(ПОДБРОШЕННЫЙ)	подброшенный	NumericUpDown	2	-	0.50	50.01	50.01	-	-	-	-
+en-US	AudioInputDeviceForm	numericUpDown2	NumericUpDown	0	-	0	32	32	-	-	-	-
+en-US	AudioInputDeviceForm	numericUpDown1	NumericUpDown	0	-	8	132	132	-	-	-	-
+en-US	DCCountRateView	windowControl	NumericUpDown	2	-	3.00	60.01	60.01	-	-	-	-
+en-US	DCEnergyCalibrationView	numericUpDown6	NumericUpDown	0	-	0	2	2	-	-	-	-
+en-US	DCPeakDetectionView	numericUpDown3	NumericUpDown	1	-	1.0	50.1	50.1	-	-	-	-
+en-US	DCPeakDetectionView	numericUpDown1	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DCSampleInfoView	numericUpDownVolume	NumericUpDown	3	-	0.000	50.001	50.001	-	-	-	-
+en-US	DCSampleInfoView	numericUpDownWeight	NumericUpDown	3	-	0.000	50.001	50.001	-	-	-	-
+en-US	DeviceConfigForm	rightSkewnumericUpDown	NumericUpDown	1	-	1.0	2.1	2.1	-	-	-	-
+en-US	DeviceConfigForm	leftSkewnumericUpDown	NumericUpDown	1	-	1.0	2.1	2.1	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown4	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown6	NumericUpDown	1	-	0.0	50.1	50.1	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown3	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown12	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown13	NumericUpDown	0	-	51	50	51	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown14	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown15	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDown16	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	DeviceConfigForm	numericUpDownWidenFactor	NumericUpDown	2	-	0.00	50.01	50.01	-	-	-	-
+en-US	DeviceConfigForm	upDownDoseRateValue	NumericUpDown	2	-	0.50	50.01	50.01	-	-	-	-
+en-US	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	5	501	501	-	-	-	-
+en-US	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	3000	510	510	-	-	-	-
+en-US	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	34	251	251	-	-	-	-
+en-US	EfficiencyMakerForm	(без имени)	NumericUpDown	0	групп	200,000	1500	1500	ЗАПЯТАЯ	-	-	-
+en-US	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	15	33	33	-	-	-	-
+en-US	EfficiencyMakerForm	orderNumericUpDown	NumericUpDown	0	-	3	4	4	-	-	-	-
+en-US	EfficiencyMakerForm	minIntensityNumericUpDown	NumericUpDown	1	-	1.0	50.1	50.1	-	-	-	-
+en-US	EfficiencyMakerForm	minSignificanceNumericUpDown	NumericUpDown	1	-	4.0	50.1	50.1	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown8	NumericUpDown	0	-	5	51	51	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown9	NumericUpDown	0	-	1	25	25	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown13	NumericUpDown	0	-	100	500	500	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown3	NumericUpDown	0	-	100	600	600	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown2	NumericUpDown	0	-	1	51	51	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown1	NumericUpDown	0	-	1	51	51	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown14	NumericUpDown	4	-	0.0000	500.0001	500.0001	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown7	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown6	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown10	NumericUpDown	0	-	1	501	501	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown5	NumericUpDown	2	-	1.00	50.01	50.01	-	-	-	-
+en-US	GlobalConfigForm	numericUpDown4	NumericUpDown	2	-	1.00	50.01	50.01	-	-	-	-
+en-US	ROIConfigForm	numericUpDown1	NumericUpDown	1	-	5.0	50.1	50.1	-	-	-	-
+en-US	ToolStripEnergyCalibrationControl	numericUpDown3	NumericUpDown	4	-	0.0000	-9499.9999	-9499.9999	-	-	-	-
+en-US	ToolStripEnergyCalibrationControl	numericUpDown2	NumericUpDown	4	-	0.0100	500.0001	500.0001	-	-	-	-
+en-US	ToolStripEnergyCalibrationControl	numericUpDown1	NumericUpDown	7	-	0.0000000	0.0000001	0.0000001	-	-	-	-
+en-US	ToolStripNumericUpdown	(без имени)	NumericUpDown	0	-	0	50	50	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	5	253	253	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	3000	1000	1000	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	140	254	254	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	2	11	11	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	3000000	1500	1500	-	-	-	-
+en-US	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	15	33	33	-	-	-	-
+ru-RU	(ПОДБРОШЕННЫЙ)	подброшенный	NumericUpDown	2	-	0,50	50.01	0.5	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	AudioInputDeviceForm	numericUpDown2	NumericUpDown	0	-	0	32	32	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	AudioInputDeviceForm	numericUpDown1	NumericUpDown	0	-	8	132	132	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DCCountRateView	windowControl	NumericUpDown	2	-	3,00	60.01	3	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DCEnergyCalibrationView	numericUpDown6	NumericUpDown	0	-	0	2	2	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DCPeakDetectionView	numericUpDown3	NumericUpDown	1	-	1,0	50.1	1	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DCPeakDetectionView	numericUpDown1	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DCSampleInfoView	numericUpDownVolume	NumericUpDown	3	-	0,000	50.001	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DCSampleInfoView	numericUpDownWeight	NumericUpDown	3	-	0,000	50.001	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	rightSkewnumericUpDown	NumericUpDown	1	-	1,0	2.1	1	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	leftSkewnumericUpDown	NumericUpDown	1	-	1,0	2.1	1	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown4	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown6	NumericUpDown	1	-	0,0	50.1	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown3	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown12	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown13	NumericUpDown	0	-	51	50	51	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown14	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown15	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDown16	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	numericUpDownWidenFactor	NumericUpDown	2	-	0,00	50.01	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	DeviceConfigForm	upDownDoseRateValue	NumericUpDown	2	-	0,50	50.01	0.5	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	5	501	501	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	3000	510	510	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	34	251	251	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	(без имени)	NumericUpDown	0	групп	200 000	1500	1500	-	ПЕЧАТЬ≠en	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	(без имени)	NumericUpDown	0	-	15	33	33	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	orderNumericUpDown	NumericUpDown	0	-	3	4	4	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	minIntensityNumericUpDown	NumericUpDown	1	-	1,0	50.1	1.0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	EfficiencyMakerForm	minSignificanceNumericUpDown	NumericUpDown	1	-	4,0	50.1	4.0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown8	NumericUpDown	0	-	5	51	51	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown9	NumericUpDown	0	-	1	25	25	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown13	NumericUpDown	0	-	100	500	500	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown3	NumericUpDown	0	-	100	600	600	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown2	NumericUpDown	0	-	1	51	51	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown1	NumericUpDown	0	-	1	51	51	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown14	NumericUpDown	4	-	0,0000	500.0001	0.000001	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown7	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown6	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown10	NumericUpDown	0	-	1	501	501	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown5	NumericUpDown	2	-	1,00	50.01	1	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	GlobalConfigForm	numericUpDown4	NumericUpDown	2	-	1,00	50.01	1	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	ROIConfigForm	numericUpDown1	NumericUpDown	1	-	5,0	50.1	5	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	ToolStripEnergyCalibrationControl	numericUpDown3	NumericUpDown	4	-	0,0000	-9499.9999	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	ToolStripEnergyCalibrationControl	numericUpDown2	NumericUpDown	4	-	0,0100	500.0001	0.01	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	ToolStripEnergyCalibrationControl	numericUpDown1	NumericUpDown	7	-	0,0000000	0.0000001	0	ЗАПЯТАЯ	ПЕЧАТЬ≠en	РАЗБОР≠en	ТОЧКА-СЪЕДЕНА
+ru-RU	ToolStripNumericUpdown	(без имени)	NumericUpDown	0	-	0	50	50	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	5	253	253	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	3000	1000	1000	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	140	254	254	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	2	11	11	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	3000000	1500	1500	-	-	-	ТОЧКА-СЪЕДЕНА
+ru-RU	ResponseMatrixForm	(без имени)	NumericUpDown	0	-	15	33	33	-	-	-	ТОЧКА-СЪЕДЕНА

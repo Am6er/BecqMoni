@@ -51,10 +51,10 @@ namespace BecquerelMonitor
             this.label6 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.label8 = new System.Windows.Forms.Label();
-            this.numericUpDown2 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown2 = new InvariantNumericUpDown();
             this.label7 = new System.Windows.Forms.Label();
             this.textBox11 = new System.Windows.Forms.TextBox();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown1 = new InvariantNumericUpDown();
             this.label17 = new System.Windows.Forms.Label();
             this.standardPulseView1 = new BecquerelMonitor.StandardPulseView();
             this.button1 = new System.Windows.Forms.Button();
@@ -459,10 +459,10 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.NumericUpDown numericUpDown2;
+        private InvariantNumericUpDown numericUpDown2;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.TextBox textBox11;
-        private System.Windows.Forms.NumericUpDown numericUpDown1;
+        private InvariantNumericUpDown numericUpDown1;
         private System.Windows.Forms.Label label17;
         private BecquerelMonitor.StandardPulseView standardPulseView1;
         private System.Windows.Forms.Button button1;

@@ -51,6 +51,7 @@ GUARDS = [
     (u'resx_zorder', [], u'>>X.Parent / >>X.ZOrder против designer-кода'),
     (u'headless', [], u'окна на безоконном пути'),
     (u'menu_accelerators', [], u'столкновения ускорителей главного меню'),
+    (u'numeric_updown', [], u'поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов'),
     (u'fsa_docs', [], u'XML-описания настроек разбора против конструктора'),
     (u'scheme_gaps', [], u'раздел «чего не хватает» scheme.md против реестра'),
     (u'corpus_library', [], u'корпус не читает поставочную библиотеку'),

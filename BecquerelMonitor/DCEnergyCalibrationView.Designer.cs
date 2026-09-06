@@ -44,7 +44,7 @@ namespace BecquerelMonitor
             this.numericUpDown1 = new System.Windows.Forms.TextBox();
             this.numericUpDown4 = new System.Windows.Forms.TextBox();
             this.numericUpDown5 = new System.Windows.Forms.TextBox();
-            this.numericUpDown6 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown6 = new InvariantNumericUpDown();
             this.numericUpDown3 = new System.Windows.Forms.TextBox();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
@@ -436,7 +436,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.TextBox numericUpDown1;
         private System.Windows.Forms.TextBox numericUpDown4;
         private System.Windows.Forms.TextBox numericUpDown5;
-        private System.Windows.Forms.NumericUpDown numericUpDown6;
+        private InvariantNumericUpDown numericUpDown6;
         private System.Windows.Forms.TextBox numericUpDown3;
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button5;

@@ -42,13 +42,13 @@
             this.textColumn5 = new XPTable.Models.NumberColumn();
             this.textColumn6 = new XPTable.Models.TextColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown1 = new InvariantNumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
             this.button1 = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
@@ -263,10 +263,10 @@
         private XPTable.Models.NumberColumn textColumn2;
         private XPTable.Models.NumberColumn textColumn5;
         private XPTable.Models.TextColumn textColumn6;
-        private System.Windows.Forms.NumericUpDown numericUpDown1;
+        private InvariantNumericUpDown numericUpDown1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.NumericUpDown numericUpDown3;
+        private InvariantNumericUpDown numericUpDown3;
         private XPTable.Models.TextColumn textColumn4;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Label label4;
