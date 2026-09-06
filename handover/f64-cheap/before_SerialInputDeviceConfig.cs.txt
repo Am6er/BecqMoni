@@ -49,9 +49,7 @@ namespace BecquerelMonitor
         /// — константу 5 мкс). Читатели этого нуля уже есть и он им понятен:
         /// счётчик загрузки делит на <c>1 − τ·n</c> только при τ &gt; 0
         /// (<c>CountsRateManager.cs:70</c>), а каскадный суммирователь берёт при
-        /// нуле своё умолчание окна совпадения
-        /// (<c>FsaAnalysisSession.DeadTimeOf</c>, <c>FsaAnalysisSession.cs:991</c>,
-        /// зовётся с <c>:546</c>; S27).
+        /// нуле своё умолчание окна совпадения (<c>FsaOverlay.DeadTimeOf</c>, S27).
         /// </summary>
         public override double DeadTime()
         {

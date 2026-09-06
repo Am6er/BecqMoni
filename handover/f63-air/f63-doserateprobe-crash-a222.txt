@@ -1,0 +1,9 @@
+  сетка: старая 40...3000 кэВ, 15 диапазонов; новая 10.0...3453 кэВ, 21 диапазонов
+!! проба сорвалась: BecquerelMonitor.DoseRateRefusalException: Мощность дозы: кривая эффективности даёт 1.29 на 40.0 кэВ. Эффективность — это доля зарегистрированных из испущенных квантов, больше единицы быть не может.
+   в BecquerelMonitor.DoseRateEstimator.CurveOf(IList`1 points) в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\DoseRate.cs:строка 1141
+   в DoseRateProbe.Program.TableCurve(Double[] x, Double[] y)
+   в DoseRateProbe.Program.OldEstimate(EnergySpectrum spectrum, DoseRateCurve efficiency, Double expectedDoseRate)
+   в DoseRateProbe.Program.Measure(String curveName, DeviceConfigInfo device, Double deviceMin, Double deviceMax, ResultData etalon, ResultData americium, ResultData nuts, List`1 curvePoints)
+   в DoseRateProbe.Program.TruncationPrice()
+   в DoseRateProbe.Program.Main(String[] args)
+DR=3

@@ -11,16 +11,7 @@
 # приходят строками, `@(...)` не вычисляется, и список порогов расползается по
 # соседним параметрам (первый прогон уехал искать каталог `…\0.2\0.25`).
 #
-# ⛔ И ХВОСТ `; exit $LASTEXITCODE` ОБЯЗАТЕЛЕН (`T188`, замер 06.09.2026): у
-# формы `-Command` свой код возврата — 0/1 по `$?`, а не разряд скрипта. Без
-# хвоста сторож видит 1 и слепнет к тому, ЧТО отказало: `run_appwd.ps1`
-# различает 64 (лишние аргументы), 65 (склеенный ключ), 2 (протухшая оснастка)
-# и собственный код пробы. ⚠ Одного хвоста МАЛО, нужны обе половины: пока
-# `Run-One` отдавал разряд через `throw`, хвост не выполнялся вовсе и код
-# оставался 1 при любом отказе — измерено обоими плечами. Вторая половина
-# стоит на `Run-One` ниже.
-#
-#   pwsh -Command "& 'tools\CORPUS\scripts\sweep_s57.ps1' -Theta 0.25,0.30,0.35; exit $LASTEXITCODE"
+#   pwsh -Command "& 'tools\CORPUS\scripts\sweep_s57.ps1' -Theta 0.25,0.30,0.35"
 #
 param(
     [string] $Repo   = 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8',
@@ -45,15 +36,7 @@ function Run-One([string] $out, [string[]] $extra) {
     #    протухшей или несобранной оснастке (код 2, ни файла в `-Out`), а ключи
     #    пробы принимает массивом `-Extra`; оператор вызова `&` — правило `T84`.
     & $runner -Out $out -Wd (Join-Path $Repo $Wd) -Corpus $corpus -Extra (@('--quiet') + $extra) | Out-Null
-    # ⛔ РАЗРЯД ОТКАЗА ОТДАЁТСЯ `exit`, А НЕ `throw` (`T188`, 06.09.2026). При
-    #    `throw` разряд `run_appwd.ps1` (64/65/2/код пробы) умирал ЗДЕСЬ, ещё до
-    #    обёртки: `-Command` отдаёт наружу 0/1 по `$?`, и хвост
-    #    `; exit $LASTEXITCODE` из шапки не выполнялся вовсе. `exit` внутри
-    #    функции выходит из ВСЕГО скрипта — проверено вторым плечом.
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "⛔ прогон вернул $LASTEXITCODE для $out" -ForegroundColor Red
-        exit $LASTEXITCODE
-    }
+    if ($LASTEXITCODE -ne 0) { throw "прогон вернул $LASTEXITCODE для $out" }
 
     $row = @{}
     foreach ($part in @('known', 'unknown')) {
