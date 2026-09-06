@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -1375,8 +1375,8 @@ namespace DoseRateProbe
         {
             // Те же CubicSplineMonotone на тех же шестнадцати узлах, что и в
             // старом коде: DoseRateEstimator.CurveOf строит ровно её.
-            DoseRateCurve muCurve = TableCurve(OldEnergies, OldMu);
-            DoseRateCurve rToSvCurve = TableCurve(OldEnergies, OldRToSv);
+            ShapeCurve muCurve = TableCurve(OldEnergies, OldMu);
+            ShapeCurve rToSvCurve = TableCurve(OldEnergies, OldRToSv);
 
             double doseRate = 0;
             var rangeCpsList = new List<double>();
@@ -1505,16 +1505,88 @@ namespace DoseRateProbe
             return DoseRateEstimator.CurveOf(FlatCurvePoints());
         }
 
-        /// <summary>Табличная кривая из пары массивов — тем же сплайном, что у приложения.</summary>
-        static DoseRateCurve TableCurve(double[] x, double[] y)
+        /// <summary>
+        /// Табличная ФОРМА из пары массивов — тем же сплайном, что у приложения,
+        /// но для величины, которая эффективностью НЕ ЯВЛЯЕТСЯ (`A258`).
+        ///
+        /// ⛔ Через неё проходят прежние вшитые таблицы старого расчёта: μ
+        /// (0.002…0.0067) и «RToSv» (0.98…1.52 бэр/Р). Второй ряд выше единицы,
+        /// и граница ε ≤ 1 в `DoseRateEstimator.CurveOf` (~~`A222`~~) отвергает
+        /// его СПРАВЕДЛИВО: эффективность — доля зарегистрированных квантов,
+        /// больше единицы не бывает. Граница ВЕРНА и здесь НЕ ОСЛАБЛЯЕТСЯ —
+        /// разведены случаи: пробе эти таблицы нужны одной лишь формой, чтобы
+        /// повторить старый расчёт дословно.
+        ///
+        /// ⚠ Нормировка стоит ровно ноль: делится на наименьшую степень двойки,
+        /// не меньшую наибольшего значения, а <see cref="ShapeCurve.At"/>
+        /// умножает обратно. Обе операции точны в двоичной плавающей точке,
+        /// монотонный сплайн однороден по значениям первой степени — кривая
+        /// прежняя до последнего бита. Мерит это `DoseBoundProbeF65`, он же
+        /// сторожит, что настоящая кривая с ε &gt; 1 по-прежнему отвергается.
+        /// </summary>
+        static ShapeCurve TableCurve(double[] x, double[] y)
         {
-            var points = new List<ROIEfficiencyData>();
-            for (int i = 0; i < x.Length; i++)
+            return ShapeCurve.Of(x, y);
+        }
+
+        /// <summary>Кривая-ФОРМА: сплайн приложения на величине, не ограниченной единицей.</summary>
+        sealed class ShapeCurve
+        {
+            readonly DoseRateCurve curve;
+            readonly double scale;
+
+            ShapeCurve(DoseRateCurve curve, double scale)
             {
-                points.Add(new ROIEfficiencyData { Energy = x[i], Efficiency = y[i], ErrorPercent = 1.0 });
+                this.curve = curve;
+                this.scale = scale;
             }
 
-            return DoseRateEstimator.CurveOf(points);
+            public double MinKev { get { return this.curve.MinKev; } }
+
+            public double MaxKev { get { return this.curve.MaxKev; } }
+
+            public double At(double energyKev)
+            {
+                return this.curve.At(energyKev) * this.scale;
+            }
+
+            /// <summary>Наименьшая степень двойки, не меньшая наибольшего значения.</summary>
+            public static double ScaleFor(double[] y)
+            {
+                double max = 0.0;
+                for (int i = 0; i < y.Length; i++)
+                {
+                    if (y[i] > max)
+                    {
+                        max = y[i];
+                    }
+                }
+
+                double scale = 1.0;
+                while (scale < max)
+                {
+                    scale *= 2.0;
+                }
+
+                return scale;
+            }
+
+            public static ShapeCurve Of(double[] x, double[] y)
+            {
+                double scale = ScaleFor(y);
+                var points = new List<ROIEfficiencyData>();
+                for (int i = 0; i < x.Length; i++)
+                {
+                    points.Add(new ROIEfficiencyData
+                    {
+                        Energy = x[i],
+                        Efficiency = y[i] / scale,
+                        ErrorPercent = 1.0,
+                    });
+                }
+
+                return new ShapeCurve(DoseRateEstimator.CurveOf(points), scale);
+            }
         }
 
         /// <summary>
