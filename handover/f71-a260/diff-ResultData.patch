@@ -1,0 +1,74 @@
+diff --git a/BecquerelMonitor/ResultData.cs b/BecquerelMonitor/ResultData.cs
+index ac62f1c9..6c8f140f 100644
+--- a/BecquerelMonitor/ResultData.cs
++++ b/BecquerelMonitor/ResultData.cs
+@@ -418,6 +418,47 @@ namespace BecquerelMonitor
+         [XmlElement(typeof(PowerFwhmCalibration))]
+         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
+ 
++        /// <summary>
++        /// ПРИБОР У СПЕКТРА СНЯТ СБРОСОМ НАСТРОЙКИ, И УМОЛЧАНИЕ КРИВОЙ
++        /// РАЗРЕШЕНИЯ ПО НЕМУ НЕ СТРОИТСЯ (`A260`, решение Amber
++        /// 06.09.2026: «Снять кривую вместе с прибором»).
++        ///
++        /// Ставится <c>DocumentManager.ResetSpectrumConfig</c> — сбросом,
++        /// которым обе двери ввоза встречают файл с другим числом каналов
++        /// (и любой файл при настройке «ввозить с пустой конфигурацией»).
++        /// Читается <c>DocumentManager.CheckDocument</c>: у помеченного
++        /// спектра он кривую НЕ достраивает.
++        ///
++        /// ⛔ Признак нужен именно отдельный, и вот почему его нельзя
++        /// вывести из соседних полей. Сброс ставит спектру СВЕЖИЕ настройки
++        /// поиска пиков, а у них встроенные 15/3756/103, по которым прямая
++        /// растёт всегда, — то есть умолчание по ним строится, и получилась
++        /// бы модель разрешения ВЫДУМАННОГО прибора (~~`A257`~~). Пустыми
++        /// настройками (null) обойтись тоже нельзя: к типу их приводят без
++        /// проверки в четырёх местах панели графика.
++        ///
++        /// Снимается, когда прибор у спектра снова появляется
++        /// (<c>DocumentManager.PrepareDeviceConfig</c>), и наследуется
++        /// спектрами, которые дверь ввоза заводит по образцу документа
++        /// (<c>DocumentManager.NewResultDataLike</c>).
++        ///
++        /// В файл не пишется: это состояние ОДНОГО ввоза, а не свойство
++        /// спектра. Сохранённый и открытый заново документ получает прибор
++        /// по ссылке, и тогда признак взяться неоткуда.
++        /// </summary>
++        [XmlIgnore]
++        public bool DeviceConfigWiped
++        {
++            get
++            {
++                return this.deviceConfigWiped;
++            }
++            set
++            {
++                this.deviceConfigWiped = value;
++            }
++        }
++
+         public ResultData()
+         {
+         }
+@@ -501,7 +542,11 @@ namespace BecquerelMonitor
+                 PulseCollection = this.PulseCollection.Clone(),
+                 // FwhmCalibration can legitimately be null (DefaultCalibration may fail
+                 // on a non-monotonic default curve).
+-                FwhmCalibration = this.FwhmCalibration != null ? this.FwhmCalibration.Clone() : null
++                FwhmCalibration = this.FwhmCalibration != null ? this.FwhmCalibration.Clone() : null,
++                // `A260`: копия спектра, у которого прибор снят сбросом, тоже без
++                //   прибора — иначе `CheckDocument` достроил бы ЕЙ кривую по
++                //   встроенным умолчаниям, и снятие обходилось бы дублированием.
++                DeviceConfigWiped = this.DeviceConfigWiped
+             };
+ 
+             copy.FileEfficiency = object.ReferenceEquals(this.Efficiency, this.FileEfficiency)
+@@ -560,6 +605,8 @@ namespace BecquerelMonitor
+ 
+         FwhmCalibration fwhmCalibration = null;
+ 
++        bool deviceConfigWiped;
++
+         List<Peak> calibrationPeaks = new List<Peak>();
+ 
+         List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();

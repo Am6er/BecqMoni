@@ -284,7 +284,21 @@ namespace BecquerelMonitor
                         }
                     }
                     // Add fwhm calibration if it doesn't exist
-                    if (data.FwhmCalibration == null)
+                    if (data.FwhmCalibration == null && data.DeviceConfigWiped)
+                    {
+                        // ⛔ `A260` (решение Amber 06.09.2026): у спектра, которому
+                        //   сброс настройки снял прибор, умолчание НЕ СТРОИТСЯ.
+                        //   Настройки поиска пиков рядом — свежие встроенные
+                        //   (15/3756/103), и построенная по ним кривая была бы
+                        //   моделью разрешения выдуманного прибора: ровно то, что
+                        //   закрыто ~~`A257`~~. Причина остаётся неназванной
+                        //   нарочно — WhyNoFwhmCalibration отдаст готовое
+                        //   `ERRFwhmCalibrationUnset` («кривая не задана»), а
+                        //   называть три числа настроек, которые ничьи, значило бы
+                        //   отправить человека искать причину не там.
+                        RememberFwhmRefusal(data, null);
+                    }
+                    else if (data.FwhmCalibration == null)
                     {
                         FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)data.PeakDetectionMethodConfig;
                         // `A240`, восьмое место (полоса G11, 06.09.2026): причина
@@ -832,6 +846,13 @@ namespace BecquerelMonitor
                 data.PeakDetectionMethodConfig = template.PeakDetectionMethodConfig.Clone();
             }
             data.FwhmCalibration = template.FwhmCalibration != null ? template.FwhmCalibration.Clone() : null;
+            // `A260`: пометка «прибор снят сбросом» наследуется вместе с
+            //   остальным. Без этой строки разбор N42-2012, который заводит свои
+            //   спектры ЭТИМ методом, отдавал бы им свежие настройки поиска пиков
+            //   без пометки — и `CheckDocument` строил бы по ним кривую
+            //   выдуманного прибора, то есть снятие кривой обходилось бы
+            //   на самом частом из путей ввоза.
+            data.DeviceConfigWiped = template.DeviceConfigWiped;
             return data;
         }
 
@@ -1574,6 +1595,16 @@ namespace BecquerelMonitor
 
                     streamReader.Close();
                 }
+
+                // `A260`: ЧИТАТЕЛЬ у пятой двери. До 06.09.2026 голоса тут не
+                //   было, и он был не нужен: сброс настройки спектра кривую
+                //   оставлял. Теперь сброс её СНИМАЕТ, и без этой строки дверь
+                //   молча отдавала бы документ без модели разрешения — та самая
+                //   немота, ради которой заведён `ReportMissingFwhmCalibration`
+                //   (~~`A234`~~). Метод и текст те же, что у четырёх соседних
+                //   дверей (соглашение `A160`/`A175`), место — конец разбора:
+                //   на брошенном на полпути ввозе голос не звучит.
+                this.ReportMissingFwhmCalibration(doc, filePath);
             }
             catch (Exception ex)
             {
@@ -2192,6 +2223,11 @@ namespace BecquerelMonitor
                         resultData.DeviceConfig = deviceConfigInfo;
                         FWHMPeakDetectionMethodConfig simplePeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)deviceConfigInfo.PeakDetectionMethodConfig;
                         resultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
+                        // `A260`: прибор у спектра снова есть, и настройки поиска
+                        //   пиков теперь ЕГО — значит запрет строить умолчание
+                        //   снимается вместе с пометкой. Иначе спектр, однажды
+                        //   прошедший сброс, остался бы без кривой навсегда.
+                        resultData.DeviceConfigWiped = false;
                         break;
                     }
                 }
@@ -2544,6 +2580,13 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+
+            // `A260`: ЧИТАТЕЛЬ у двери «CSV со счётом». Довод тот же, что у
+            //   двери GBS строками выше: сброс настройки спектра теперь снимает
+            //   кривую разрешения, и молчать об этом дверь не вправе. Сброс
+            //   здесь зовётся только под галкой «ввозить с пустой
+            //   конфигурацией»; без неё кривая цела, и метод молчит сам.
+            this.ReportMissingFwhmCalibration(doc, fileName);
         }
 
         // csv format energy, channel
@@ -2716,6 +2759,37 @@ namespace BecquerelMonitor
             this.ReportMissingFwhmCalibration(doc, fileName);
         }
 
+        /// <summary>
+        /// СБРОС НАСТРОЙКИ СПЕКТРА — им обе двери ввоза встречают файл с ДРУГИМ
+        /// числом каналов (и любой файл при настройке «ввозить с пустой
+        /// конфигурацией»).
+        ///
+        /// ⛔ КРИВАЯ РАЗРЕШЕНИЯ СНИМАЕТСЯ ВМЕСТЕ С ПРИБОРОМ (`A260`, решение
+        /// Amber 06.09.2026, дословно: «Снять кривую вместе с прибором»).
+        /// До этого сброс стирал фон, ROI и прибор, но <c>FwhmCalibration</c> и
+        /// настройки поиска пиков оставлял, и <c>CheckDocument</c> следом их не
+        /// трогал (он строит умолчание только когда кривой нет вовсе).
+        /// Измерено 06.09.2026 полосой F66: до ввоза 8192 канала, прибор
+        /// «1.Atom Spectra Nano 16 Pro RadiaScan 701A», кривая
+        /// <c>SimpleSqrtFwhmCalibration[0:15 3756:103]</c>; после ввоза 1024
+        /// канала, прибор «», а кривая ТА ЖЕ — с опорой на канал 3756, которого
+        /// на новой шкале нет вовсе. Поиск пиков считал ширины окна по кривой
+        /// прибора, которого у документа больше нет.
+        ///
+        /// Цена решения названа Amber и принята: после такого ввоза поиск пиков
+        /// не работает, пока человек не выберет прибор, — зато ничего не
+        /// считается по чужой модели с опорой вне шкалы. О снятой кривой
+        /// говорит УЖЕ ГОТОВЫЙ голос <see cref="ReportMissingFwhmCalibration"/>
+        /// (~~`A234`~~), нового текста не заводится.
+        ///
+        /// ⛔ Вариант «перестроить кривую по прибору документа» отвергнут: к
+        /// этому мгновению прибор уже стёрт, и строить пришлось бы по
+        /// встроенным умолчаниям 15/3756/103 — ровно та беда, что закрыта
+        /// ~~`A257`~~. Поэтому же спектр помечается
+        /// <see cref="ResultData.DeviceConfigWiped"/>: без пометки
+        /// <c>CheckDocument</c> тут же выдумал бы кривую по трём числам свежих
+        /// настроек, и снятие обернулось бы подменой.
+        /// </summary>
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)
         {
             data.EnergySpectrum = new EnergySpectrum(1.0, numberOfChannels);
@@ -2726,6 +2800,14 @@ namespace BecquerelMonitor
             data.ROIConfig = null;
             data.ROIConfigReference = null;
             data.DeviceConfig = new DeviceConfigInfo();
+            // `A260`: прибор снят — снимаются и его модель разрешения, и его
+            //   настройки поиска пиков. Настройки заводятся свежие, а НЕ null:
+            //   null в них ловится не всюду (`DocEnergySpectrum`, кнопка пиков
+            //   на панели графика приводит его к типу без проверки), а пометка
+            //   ниже и без того держит `CheckDocument` от выдумывания кривой.
+            data.FwhmCalibration = null;
+            data.PeakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
+            data.DeviceConfigWiped = true;
         }
 
         string ReadUntilSection(StreamReader streamReader, string sectionHeader)
