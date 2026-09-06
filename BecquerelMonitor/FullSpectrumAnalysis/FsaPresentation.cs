@@ -17,7 +17,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Члены одного <see cref="FsaStackLayer.DecayChainRoot"/> слиты в
         /// одну строку корня. Допустимо только при связанном ряде
         /// (<see cref="FsaResult.ParentGroupingAllowed"/>); иначе показываются
-        /// дочерние, а причина — в <see cref="FsaPresentation.ParentGroupingRefusal"/>.
+        /// дочерние, а причина — в <see cref="FsaPresentation.ParentGroupingRefusalReason"/>.
         /// </summary>
         Parents
     }
@@ -136,8 +136,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         public bool ParentGroupingAllowed { get; set; }
 
-        /// <summary>Почему родители недоступны; null — доступны.</summary>
-        public string ParentGroupingRefusal { get; set; }
+        /// <summary>
+        /// Почему родители недоступны, КОДОМ (`A184`);
+        /// <see cref="FsaParentGroupingRefusal.None"/> — доступны. Текста здесь
+        /// нет нарочно: подпись собирает вид из `Resources.*`, в культуре
+        /// интерфейса. Служебная русская фраза для журнала и проб осталась у
+        /// модели — <see cref="FsaResult.ParentGroupingRefusal"/>.
+        /// </summary>
+        public FsaParentGroupingRefusal ParentGroupingRefusalReason { get; set; }
 
         /// <summary>Признак «старая матрица» на момент сборки (`A50`).</summary>
         public bool MatrixOldFormat { get; set; }

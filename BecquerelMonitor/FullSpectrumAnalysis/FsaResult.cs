@@ -368,6 +368,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool Degenerate { get; set; }
     }
 
+    /// <summary>
+    /// (`A184`) КОД ПРИЧИНЫ, по которой родительская группировка строк
+    /// недопустима — то, что модель отдаёт виду вместо текста.
+    ///
+    /// ⛔ Причину нельзя отдавать строкой. До 06.09.2026
+    /// <see cref="FsaResult.ParentGroupingRefusal"/> был единственным её
+    /// носителем, и вид (<c>FSAReportView</c>) мог только подставить эту
+    /// русскую служебную фразу в подсказку — на английском экране человек
+    /// видел бы русский текст, мимо `Resources.*`. Это разряд `A151`
+    /// «два языка в одной двери». Текст живёт у ВИДА, в обеих культурах;
+    /// у модели — код, а строка остаётся служебным описанием для журнала
+    /// и проб.
+    /// </summary>
+    public enum FsaParentGroupingRefusal
+    {
+        /// <summary>Причины нет: родительская группировка допустима.</summary>
+        None,
+
+        /// <summary>
+        /// Ряд в составе есть, но амплитуды его членов СВОБОДНЫ (равновесие
+        /// выключено): предел обнаружения родителя не определён — складывать
+        /// пределы свободных дочерних нельзя.
+        /// </summary>
+        FreeChainMembers,
+
+        /// <summary>Ряда распада в составе нет вовсе — группировать нечего.</summary>
+        NoDecayChain
+    }
+
     /// <summary>Результат полноспектральной декомпозиции одного спектра.</summary>
     public sealed class FsaResult
     {
@@ -593,22 +622,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `handover/a145-fsa-display-groups.md`, «Семантика группировки»).
         ///
         /// <c>false</c> — «родительский режим недопустим»: причину называет
-        /// <see cref="ParentGroupingRefusal"/>. Это свойство РЕЗУЛЬТАТА (что
-        /// реально получилось), условие настроек —
+        /// КОДОМ <see cref="ParentGroupingRefusalReason"/>. Это свойство
+        /// РЕЗУЛЬТАТА (что реально получилось), условие настроек —
         /// <see cref="FsaCalculationOptions.ParentGroupingPossible"/>; форма
         /// обязана спрашивать оба.
         /// </summary>
         public bool ParentGroupingAllowed
         {
-            get { return this.ParentGroupingRefusal == null; }
+            get { return this.ParentGroupingRefusalReason == FsaParentGroupingRefusal.None; }
         }
 
         /// <summary>
-        /// (`A169`) Почему родительская группировка недопустима; null —
-        /// допустима. Текст служебный, для журнала и проб; форма переводит
-        /// его своими ресурсами по коду причины, а не по этой строке.
+        /// (`A169`, код заведён `A184`) ПОЧЕМУ родительская группировка
+        /// недопустима — <see cref="FsaParentGroupingRefusal.None"/> значит
+        /// «допустима». Единственное место, где причина ВЫЧИСЛЯЕТСЯ; и
+        /// служебная строка <see cref="ParentGroupingRefusal"/>, и подсказка
+        /// формы читают этот код, каждый на своём языке.
         /// </summary>
-        public string ParentGroupingRefusal
+        public FsaParentGroupingRefusal ParentGroupingRefusalReason
         {
             get
             {
@@ -624,7 +655,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         if (!string.IsNullOrEmpty(component.ChainRoot))
                         {
-                            return null;
+                            return FsaParentGroupingRefusal.None;
                         }
 
                         if (!string.IsNullOrEmpty(component.DecayChainRoot))
@@ -635,8 +666,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 return anyMember
-                    ? "члены ряда со свободными амплитудами: предел родителя не определён"
-                    : "в составе нет ряда распада";
+                    ? FsaParentGroupingRefusal.FreeChainMembers
+                    : FsaParentGroupingRefusal.NoDecayChain;
+            }
+        }
+
+        /// <summary>
+        /// (`A169`) Почему родительская группировка недопустима, СЛОВАМИ; null —
+        /// допустима.
+        ///
+        /// ⛔ Экрану это НЕ ПРЕДНАЗНАЧЕНО (`A184`): текст служебный, всегда
+        /// русский, для журнала и проб. Вид берёт
+        /// <see cref="ParentGroupingRefusalReason"/> и переводит код своими
+        /// ресурсами в обеих культурах.
+        /// </summary>
+        public string ParentGroupingRefusal
+        {
+            get
+            {
+                switch (this.ParentGroupingRefusalReason)
+                {
+                    case FsaParentGroupingRefusal.FreeChainMembers:
+                        return "члены ряда со свободными амплитудами: предел родителя не определён";
+
+                    case FsaParentGroupingRefusal.NoDecayChain:
+                        return "в составе нет ряда распада";
+
+                    default:
+                        return null;
+                }
             }
         }
 

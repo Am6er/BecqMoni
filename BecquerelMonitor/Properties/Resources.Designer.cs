@@ -5131,6 +5131,51 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal.
+        /// </summary>
+        public static string ResponseMatrixInheritedHistories {
+            get {
+                return ResourceManager.GetString("ResponseMatrixInheritedHistories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Body fingerprint: {0}.
+        /// </summary>
+        public static string ResponseMatrixFingerprint {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to none (taken from the file).
+        /// </summary>
+        public static string ResponseMatrixFingerprintNone {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (not stored in the file).
+        /// </summary>
+        public static string ResponseMatrixFingerprintNotStored {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintNotStored", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ⚠ DOES NOT MATCH the one stored in the file.
+        /// </summary>
+        public static string ResponseMatrixFingerprintMismatch {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to GeometryEditorMaterialsEdit.
         /// </summary>
         public static string GeometryEditorMaterialsEdit {
@@ -5838,6 +5883,24 @@ namespace BecquerelMonitor.Properties {
         public static string FSAReportTipParentsRefused {
             get {
                 return ResourceManager.GetString("FSAReportTipParentsRefused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to chain members have free amplitudes, the parent detection limit is undefined.
+        /// </summary>
+        public static string FSAReportRefusalFreeChainMembers {
+            get {
+                return ResourceManager.GetString("FSAReportRefusalFreeChainMembers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to there is no decay chain in the composition.
+        /// </summary>
+        public static string FSAReportRefusalNoDecayChain {
+            get {
+                return ResourceManager.GetString("FSAReportRefusalNoDecayChain", resourceCulture);
             }
         }
 

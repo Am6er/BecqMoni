@@ -43122,6 +43122,21 @@ Computed: {7}, took {8:F0} s</value>
 
 The matrix is stored next to the device configuration, one file per geometry, and does not travel inside spectrum files.</value>
   </data>
+  <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
+    <value>Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal</value>
+  </data>
+  <data name="ResponseMatrixFingerprint" xml:space="preserve">
+    <value>Body fingerprint: {0}</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNone" xml:space="preserve">
+    <value>none (taken from the file)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNotStored" xml:space="preserve">
+    <value>{0} (not stored in the file)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintMismatch" xml:space="preserve">
+    <value>{0} ⚠ DOES NOT MATCH the one stored in the file</value>
+  </data>
   <data name="NuclideSetAllNuclides" xml:space="preserve">
     <value>--- All Nuclides ---</value>
   </data>
@@ -43414,6 +43429,12 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="FSAReportTipParentsRefused" xml:space="preserve">
     <value>Parent nuclides are not available for this result: {0}</value>
+  </data>
+  <data name="FSAReportRefusalFreeChainMembers" xml:space="preserve">
+    <value>chain members have free amplitudes, the parent detection limit is undefined</value>
+  </data>
+  <data name="FSAReportRefusalNoDecayChain" xml:space="preserve">
+    <value>there is no decay chain in the composition</value>
   </data>
   <data name="FSAReportTipEquilibriumNeedsNucBase" xml:space="preserve">
     <value>Chain equilibrium works only when the composition comes from NucBase; the peak-label path knows nothing about decay chains.</value>

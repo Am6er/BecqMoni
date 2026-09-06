@@ -1,0 +1,80 @@
+=== A184 + A187: служебные строки экрана — из ресурсов или из кода ===
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+сборка приложения: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f55\BecquerelMonitor.exe
+
+--- 1. Семь ключей в обеих культурах ---
+ok      ResponseMatrixInheritedHistories: есть в обеих, переведён
+ОТКАЗ   ResponseMatrixFingerprint: ru СОВПАЛ с en (перевода нет)
+ok      ResponseMatrixFingerprintNone: есть в обеих, переведён
+ok      ResponseMatrixFingerprintNotStored: есть в обеих, переведён
+ok      ResponseMatrixFingerprintMismatch: есть в обеих, переведён
+ok      FSAReportRefusalFreeChainMembers: есть в обеих, переведён
+ok      FSAReportRefusalNoDecayChain: есть в обеих, переведён
+
+--- 2. `A187`: подписи `ResponseMatrixForm` ---
+ok      DescribeInheritedHistories / en-US: «Computed with 300000 histories per node, nominal is 3000000; field raised to nominal»
+ok      DescribeInheritedHistories / ru-RU: «Посчитана 300000 историями на узел при штатных 3000000; поле поднято до штатного»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+ok      штатная матрица, en-US: подписи нет — «»
+ok      штатная матрица, ru-RU: подписи нет — «»
+ok      DescribeFingerprint / нет вовсе / en-US: «Body fingerprint: none (taken from the file)»
+ОТКАЗ   DescribeFingerprint / нет вовсе / ru-RU: «Body fingerprint: нет (снимается с файла)»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+ok      DescribeFingerprint / не записан / en-US: «Body fingerprint: 0123456789abcdef… (not stored in the file)»
+ОТКАЗ   DescribeFingerprint / не записан / ru-RU: «Body fingerprint: 0123456789abcdef… (в файле не записан)»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+ok      DescribeFingerprint / сходится / en-US: «Body fingerprint: 0123456789abcdef…»
+ОТКАЗ   DescribeFingerprint / сходится / ru-RU: «Body fingerprint: 0123456789abcdef…»
+ok        английская подпись без кириллицы
+ОТКАЗ     русская подпись с кириллицей
+ОТКАЗ     подписи РАЗНЫЕ
+ok      DescribeFingerprint / НЕ сходится / en-US: «Body fingerprint: 0123456789abcdef… ⚠ DOES NOT MATCH the one stored in the file»
+ОТКАЗ   DescribeFingerprint / НЕ сходится / ru-RU: «Body fingerprint: 0123456789abcdef… ⚠ НЕ СХОДИТСЯ с записанным в файле»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+
+--- 3. `A184`: модель отдаёт КОД причины ---
+ok      связанный ряд (равновесие вкл): код None (ждали None)
+ok        родители допустимы
+ok        служебная строка модели: «(null)»
+ok      свободные члены ряда (равновесие выкл): код FreeChainMembers (ждали FreeChainMembers)
+ok        родители НЕДОПУСТИМЫ
+ok        служебная строка модели: «члены ряда со свободными амплитудами: предел родителя не определён»
+ok      ряда нет вовсе: код NoDecayChain (ждали NoDecayChain)
+ok        родители НЕДОПУСТИМЫ
+ok        служебная строка модели: «в составе нет ряда распада»
+ok      у `FsaPresentation` НЕТ строкового `ParentGroupingRefusal`
+ok      у `FsaPresentation` есть `ParentGroupingRefusalReason` типа `FsaParentGroupingRefusal`
+ok      построитель донёс код до снимка: FreeChainMembers
+ok      недопустимый запрос показан дочерними: Daughters
+
+--- 4. `A184`: читатель кода — `FSAReportView.RefusalText` ---
+ok      RefusalText(FreeChainMembers) / en-US: «chain members have free amplitudes, the parent detection limit is undefined»
+ok      RefusalText(FreeChainMembers) / ru-RU: «члены ряда со свободными амплитудами, предел родителя не определён»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+ok      RefusalText(NoDecayChain) / en-US: «there is no decay chain in the composition»
+ok      RefusalText(NoDecayChain) / ru-RU: «в составе нет ряда распада»
+ok        английская подпись без кириллицы
+ok        русская подпись с кириллицей
+ok        подписи РАЗНЫЕ
+ok      подсказка переключателя, en-US: Parent nuclides are not available for this result: chain members have free amplitudes, the parent detection limit is undefined
+ok      подсказка переключателя, ru-RU: Родительские нуклиды для этого результата недоступны: члены ряда со свободными амплитудами, предел родителя не определён
+
+--- 5. Положительные контроли ---
+ok      К1: сито кириллицы ЛОВИТ русскую подпись, поданную как английскую
+ok      К1: и молчит на английской
+ok      F55НетТакогоКлюча: НЕТ В en
+ok      К2: проверка ключа отказала на несуществующем ключе
+ok      К3: культура без сателлита (de-DE) даёт английское значение — «Body fingerprint: {0}»
+ok      К4: `RefusalText(None)` пуст — код без причины не становится подписью
+
+ОТКАЗ: расхождений 7.

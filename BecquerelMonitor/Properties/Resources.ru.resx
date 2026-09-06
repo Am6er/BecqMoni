@@ -1747,6 +1747,21 @@
 
 Матрица лежит рядом с конфигурацией устройства, отдельным файлом на геометрию, и внутрь файлов спектров не едет.</value>
   </data>
+  <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
+    <value>Посчитана {0:F0} историями на узел при штатных {1:F0}; поле поднято до штатного</value>
+  </data>
+  <data name="ResponseMatrixFingerprint" xml:space="preserve">
+    <value>Отпечаток тела: {0}</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNone" xml:space="preserve">
+    <value>нет (снимается с файла)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintNotStored" xml:space="preserve">
+    <value>{0} (в файле не записан)</value>
+  </data>
+  <data name="ResponseMatrixFingerprintMismatch" xml:space="preserve">
+    <value>{0} ⚠ НЕ СХОДИТСЯ с записанным в файле</value>
+  </data>
   <data name="2Sigma" xml:space="preserve">
     <value>2σ</value>
   </data>
@@ -2163,6 +2178,12 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="FSAReportTipParentsRefused" xml:space="preserve">
     <value>Родительские нуклиды для этого результата недоступны: {0}</value>
+  </data>
+  <data name="FSAReportRefusalFreeChainMembers" xml:space="preserve">
+    <value>члены ряда со свободными амплитудами, предел родителя не определён</value>
+  </data>
+  <data name="FSAReportRefusalNoDecayChain" xml:space="preserve">
+    <value>в составе нет ряда распада</value>
   </data>
   <data name="FSAReportTipEquilibriumNeedsNucBase" xml:space="preserve">
     <value>Равновесие ряда работает только при составе из NucBase: путь по меткам пиков о рядах распада не знает.</value>
