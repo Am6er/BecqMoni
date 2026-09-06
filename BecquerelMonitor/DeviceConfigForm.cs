@@ -1927,16 +1927,30 @@ namespace BecquerelMonitor
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
             }
+            int deviceChannels = this.activeDeviceConfig.NumberOfChannels > 1
+                               ? this.activeDeviceConfig.NumberOfChannels : 8192;
             try
             {
-                if (this.calibrationPoints.Count >= 5)
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, 4);
-                }
-                else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, points.Count - 1);
-                }
+                // ⛔ `S42` (полоса F77, 06.09.2026): степень запрашивается прежняя,
+                //    но принимается только та, чья кривая не гнётся сверх меры за
+                //    своими опорами (`CalibrationSolver.SolveGuarded`, перенос
+                //    сторожа `bend_ok` из конвейера корпуса). Здесь это заметнее
+                //    всего в дереве: пять точек и БОЛЬШЕ означали четвёртую
+                //    степень ВСЕГДА, то есть интерполяцию через все опоры без
+                //    единой свободной степени — ровно та кривая, что проходит
+                //    через все точки и врёт между ними и за ними.
+                //    ⚠ Судить сторожу НАДО по числу каналов ПРИБОРА, а не по
+                //    умолчанию 8192: измерено на корпусе (полоса F77) — тот же
+                //    сторож, судящий 1024-канальные шкалы до канала 8191,
+                //    понижает степень у 86 спектров из 118 вместо 37, и у 65 из
+                //    них внешняя мерка становится хуже. Число каналов у формы
+                //    ЕСТЬ (`activeDeviceConfig.NumberOfChannels`) — им же судит
+                //    соседний обработчик (`:987`) и менеджер настроек при
+                //    сохранении (`DeviceConfigManager.cs:237`).
+                int usedOrder;
+                matrix = Utils.CalibrationSolver.SolveGuarded(
+                    points, this.calibrationPoints.Count >= 5 ? 4 : points.Count - 1,
+                    deviceChannels, false, out usedOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)
@@ -1961,7 +1975,12 @@ namespace BecquerelMonitor
             energyCalibration.PolynomialOrder = matrix.Length - 1;
             energyCalibration.Coefficients = matrix;
 
-            if (!energyCalibration.CheckCalibration())
+            // ⚠ Число каналов ПРИБОРА, а не умолчание 8192 (полоса F77,
+            //   06.09.2026): по нему судит и соседний обработчик (`:987`), и
+            //   менеджер настроек при сохранении (`DeviceConfigManager.cs:237`).
+            //   Прежде форма отвергала шкалу за поведение на каналах, которых у
+            //   прибора нет.
+            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
             {
                 // ⛔ `A245`, полоса F44 05.09.2026 — то же, что соседом выше:
                 //    голое модальное окно на безоконном пути. Тот же ресурс
@@ -1990,7 +2009,7 @@ namespace BecquerelMonitor
             }
             this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
             this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
-            if (!energyCalibration.CheckCalibration())
+            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
             {
                 // ⛔ `A245`, полоса F44 05.09.2026. Третье голое окно того же
                 //    обработчика: проверка повторяется после того, как

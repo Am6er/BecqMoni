@@ -809,13 +809,21 @@ namespace BecquerelMonitor
             }
             try
             {
-                if (this.checkBox2.Checked)
-                {
-                    matrix = Utils.CalibrationSolver.SolveWeighted(points, PolynomOrder);
-                } else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, PolynomOrder);
-                }
+                // ⛔ `S42` (полоса F77, 06.09.2026): степень, которую человек
+                //    поставил крутилкой, теперь ЗАПРАШИВАЕТСЯ, а не берётся
+                //    силой. Принимается наибольшая степень, чья кривая годна
+                //    (`CheckCalibration`) и не гнётся за своими опорами дальше
+                //    допустимого (`CalibrationSolver.BendOk`); иначе степень
+                //    понижается и подгонка повторяется. Перенос сторожа
+                //    `bend_ok` + понижения порядка из конвейера корпуса
+                //    (`tools/CORPUS/scripts/calibrate.py`, `fit_ecal`).
+                //    Понижение видно человеку сразу: старший коэффициент в
+                //    полях ниже остаётся нулём.
+                int usedOrder;
+                matrix = Utils.CalibrationSolver.SolveGuarded(
+                    points, PolynomOrder,
+                    this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels,
+                    this.checkBox2.Checked, out usedOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)

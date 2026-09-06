@@ -177,6 +177,154 @@ namespace BecquerelMonitor.Utils
             return retvalue;
         }
 
+        /// <summary>
+        /// Наибольший допустимый ИЗГИБ подгонки относительно прямой, проведённой
+        /// по тем же опорным точкам, в долях энергии этой прямой (`S42`).
+        /// Значение перенесено из конвейера корпуса
+        /// (`tools/CORPUS/scripts/calibrate.py`, <c>fit_ecal(max_bend=0.15)</c>),
+        /// а не назначено заново.
+        /// </summary>
+        public const double MaxBend = 0.15;
+
+        /// <summary>
+        /// Пол допуска изгиба, кэВ: у самого низа шкалы 15 % от энергии прямой —
+        /// это единицы кэВ, и без пола сторож отвергал бы честную квадратичную
+        /// из-за пары кэВ на пятом канале. Тоже перенос из `calibrate.py`
+        /// (<c>tol = np.maximum(40.0, max_bend * |straight|)</c>).
+        /// </summary>
+        public const double BendFloorKeV = 40.0;
+
+        static double Poly(double[] coefficients, double x)
+        {
+            double value = 0.0;
+            for (int i = coefficients.Length - 1; i >= 0; i--)
+            {
+                value = value * x + coefficients[i];
+            }
+            return value;
+        }
+
+        static bool AllFinite(double[] v)
+        {
+            if (v == null) return false;
+            for (int i = 0; i < v.Length; i++)
+            {
+                if (double.IsNaN(v[i]) || double.IsInfinity(v[i])) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// ⛔ Сторож ИЗГИБА: подгонка не имеет права уйти от прямой, проведённой
+        /// по её же опорным точкам, дальше чем на <see cref="MaxBend"/> (но не
+        /// менее <see cref="BendFloorKeV"/> кэВ) НИ В ОДНОМ канале шкалы.
+        ///
+        /// Перенос <c>bend_ok</c> из `tools/CORPUS/scripts/calibrate.py` — там
+        /// он написан по живому дефекту: квадратичная, подогнанная по пяти
+        /// опорам между каналами 689 и 2510, проходит через все пять и при этом
+        /// даёт 5133 кэВ на канале 8191, процентов на семьдесят выше того, что
+        /// говорит усиление. Опоры такую кривую не ловят по построению —
+        /// невязка подгонки на них нулевая, — а человек видит неверную шкалу
+        /// ровно там, где опор нет.
+        ///
+        /// ⚠ Сравнение идёт с прямой ПО ТЕМ ЖЕ ТОЧКАМ, а не с прежней
+        /// (хранимой) калибровкой: в корпусе пробовали второе, и оно не
+        /// работает — хранимые кривые высоких степеней сами гуляют на концах и
+        /// штрафуют за это хорошие переподгонки.
+        ///
+        /// ⚠ Проверка идёт от <paramref name="lo"/> = половины самой нижней
+        /// опоры, а не от нулевого канала: ниже этого прямая уходит в минус и
+        /// сравнение теряет смысл (в корпусе это стоило RC-103 правильной
+        /// квадратичной, отвергнутой из-за 1.8 кэВ на пятом канале).
+        /// </summary>
+        /// <param name="coefficients">коэффициенты испытуемой подгонки, младший первым</param>
+        /// <param name="line">прямая по тем же точкам (два коэффициента); null — сторож пропускает</param>
+        /// <param name="channels">число каналов шкалы</param>
+        /// <param name="lo">канал, с которого начинается проверка</param>
+        public static bool BendOk(double[] coefficients, double[] line, int channels, double lo)
+        {
+            if (line == null || line.Length < 2) return true;
+            if (!AllFinite(coefficients) || !AllFinite(line)) return false;
+            int step = Math.Max(1, channels / 400);
+            for (double ch = lo; ch < channels; ch += step)
+            {
+                double straight = line[0] + line[1] * ch;
+                double tol = Math.Max(BendFloorKeV, MaxBend * Math.Abs(straight));
+                if (Math.Abs(Poly(coefficients, ch) - straight) > tol) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Подгонка энергетической шкалы по опорным точкам, ЗАЩИЩЁННАЯ от
+        /// дикой экстраполяции: степень понижается до тех пор, пока кривая не
+        /// станет годной (<see cref="PolynomialEnergyCalibration.CheckCalibration"/>
+        /// — монотонность и вменяемость энергий) и не перестанет гнуться
+        /// сверх меры (<see cref="BendOk"/>). Перенос <c>fit_ecal</c> из
+        /// `tools/CORPUS/scripts/calibrate.py` (`S42`).
+        ///
+        /// Возвращает коэффициенты принятой подгонки и её степень в
+        /// <paramref name="usedOrder"/>; <c>null</c>, если годной не нашлось ни
+        /// на какой степени — вызывающий сообщает об этом ровно так же, как
+        /// сообщал о неудаче обычного решения.
+        ///
+        /// ⚠ Степень не «отбрасывается» (<c>Downgrade</c>), а ПЕРЕПОДГОНЯЕТСЯ:
+        /// отбрасывание старшего члена оставляет остальные посчитанными для
+        /// другой степени, и полученная кривая не проходит через собственные
+        /// опоры.
+        /// </summary>
+        public static double[] SolveGuarded(List<CalibrationPoint> points, int polynomialOrder,
+                                            int channels, bool weighted, out int usedOrder)
+        {
+            usedOrder = 0;
+            if (points == null || points.Count == 0) return null;
+
+            // Столько же степеней, сколько позволяют точки: у питона корпуса
+            // order = min(order, len(ch) - 1).
+            int order = Math.Min(polynomialOrder, points.Count - 1);
+            if (order < 1) order = 1;
+
+            double[] line = null;
+            if (points.Count >= 2)
+            {
+                try
+                {
+                    line = weighted ? SolveWeighted(points, 1) : Solve(points, 1);
+                }
+                catch (Exception) { line = null; }
+                if (!AllFinite(line)) line = null;
+            }
+
+            double chMin = points.Min(p => (double)p.Channel);
+            double lo = Math.Max(5.0, 0.5 * chMin);
+
+            while (order >= 1)
+            {
+                double[] coefficients = null;
+                try
+                {
+                    coefficients = weighted ? SolveWeighted(points, order) : Solve(points, order);
+                }
+                catch (Exception) { coefficients = null; }
+
+                if (AllFinite(coefficients) && coefficients.Length == order + 1)
+                {
+                    PolynomialEnergyCalibration candidate = new PolynomialEnergyCalibration
+                    {
+                        Coefficients = (double[])coefficients.Clone(),
+                        PolynomialOrder = order
+                    };
+                    if (candidate.CheckCalibration(channels) && BendOk(coefficients, line, channels, lo))
+                    {
+                        usedOrder = order;
+                        return coefficients;
+                    }
+                }
+                order--;
+            }
+            return null;
+        }
+
         public static double MSE(double[] coefficients, List<CalibrationPoint> points)
         {
             try

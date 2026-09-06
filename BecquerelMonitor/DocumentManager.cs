@@ -1564,7 +1564,24 @@ namespace BecquerelMonitor
                     // Clamp the polynomial order to 4 (the maximum PolynomialEnergyCalibration
                     // supports): "order = number of points - 1" without a limit produced a
                     // calibration that crashed later at draw time.
-                    double[] matrix = Utils.CalibrationSolver.Solve(points, Math.Min(4, numpoints - 1));
+                    //
+                    // ⛔ `S42` (полоса F77, 06.09.2026): степень ещё и ЗАПРАШИВАЕТСЯ, а
+                    //    не берётся силой. Точки здесь — настоящие опоры из файла GBS
+                    //    ($ENER_DATA_X), и «степень = число точек − 1» означало
+                    //    интерполяцию через все опоры: кривая проходит через каждую
+                    //    точку и врёт там, где точек нет. Принимается наибольшая
+                    //    степень, чья кривая годна и не гнётся за своими опорами сверх
+                    //    меры (`CalibrationSolver.SolveGuarded`, перенос `bend_ok` из
+                    //    конвейера корпуса). Отказ ниже (`CheckCalibration`) остаётся на
+                    //    месте: сторож ищет ГОДНУЮ степень, а не выдаёт негодную.
+                    int usedCalibrationOrder;
+                    double[] matrix = Utils.CalibrationSolver.SolveGuarded(
+                        points, Math.Min(4, numpoints - 1), energySpectrum.NumberOfChannels,
+                        false, out usedCalibrationOrder);
+                    if (matrix == null)
+                    {
+                        matrix = Utils.CalibrationSolver.Solve(points, Math.Min(4, numpoints - 1));
+                    }
                     PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)energySpectrum.EnergyCalibration;
                     energyCalibration.Coefficients = new double[matrix.Length];
                     energyCalibration.PolynomialOrder = matrix.Length - 1;
