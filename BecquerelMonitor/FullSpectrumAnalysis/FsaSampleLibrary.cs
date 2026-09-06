@@ -847,12 +847,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// {nucid → накопленная доля ветвления от корня}, только основные
         /// состояния родителя.
         ///
-        /// Правило `l_seqno` — то же, что в `tools/CORPUS/scripts/chains.py`, и
-        /// оно не косметическое: строки с `l_seqno` больше минимального
-        /// описывают распад ВОЗБУЖДЁННОГО уровня и дублируют переход с другим
-        /// ветвлением (у 212BI это 35.94 % при нуле и 67 % при пяти). Изомер
-        /// при этом имеет собственный `nucid` (234PAm1), поэтому наименьший
-        /// присутствующий уровень и есть физический распад.
+        /// Правило `l_seqno` — <see cref="DecayParentRule.ChainLevelClause"/>,
+        /// одно на весь проект (`A218`); `tools/CORPUS/scripts/chains.py`
+        /// читает ЕГО ЖЕ, прямо из исходника. Оно не косметическое: строки с
+        /// `l_seqno` больше минимального описывают распад ВОЗБУЖДЁННОГО уровня
+        /// и дублируют переход с другим ветвлением (у 212BI это 35.94 % при
+        /// нуле и 67 % при пяти). Изомер при этом имеет собственный `nucid`
+        /// (234PAm1), поэтому наименьший присутствующий уровень и есть
+        /// физический распад.
         ///
         /// ⚠ Метод ОТКРЫТ ради проб, а не ради приложения: обходов ряда в
         /// дереве три (здесь, `NucBase.NucBaseFramework.GetChainBranches` и
@@ -883,13 +885,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
                 using (SqliteCommand command = connection.CreateCommand())
                 {
+                    // (`A218`) Зажим по уровню — из `DecayParentRule`, как и у
+                    // `parent_l_seqno`: второго соглашения о том, что считать
+                    // ребром ряда, в проекте быть не должно.
                     command.CommandText =
                         "select daughter_nucid, perc from decay_chain d"
                         + " where nucid = $n and perc not null"
-                        + " and l_seqno = (select min(l_seqno) from decay_chain x"
-                        + "                where x.nucid = d.nucid"
-                        + "                  and x.daughter_nucid = d.daughter_nucid"
-                        + "                  and x.dec_type = d.dec_type)";
+                        + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);
                     for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {
@@ -1046,10 +1048,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     command.CommandText =
                         "select daughter_nucid, perc from decay_chain d"
                         + " where nucid = $n and perc not null"
-                        + " and l_seqno = (select min(l_seqno) from decay_chain x"
-                        + "                where x.nucid = d.nucid"
-                        + "                  and x.daughter_nucid = d.daughter_nucid"
-                        + "                  and x.dec_type = d.dec_type)";
+                        + DecayParentRule.ChainLevelClause;
                     command.Parameters.AddWithValue("$n", root);
                     for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {

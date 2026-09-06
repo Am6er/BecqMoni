@@ -1,0 +1,18 @@
+A218 / T78 — зажим по уровню в decay_chain
+  дерево: C:\Users\moroz\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\0dfa526c-1c92-45cd-b97b-70d6b9e6b585\scratchpad\f58\ctl
+  база:   C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f58\nucdb.sqlite
+
+РАЗДЕЛ 1. СВОДИМОСТЬ ПО ДЕРЕВУ ПРИЛОЖЕНИЯ
+  объявлений ChainLevelClause: 1 (ждём 1)
+  обращений к правилу:         3 (ждём 4)
+  копий зажима в приложении:   1 (ждём 0) — BecquerelMonitor\FullSpectrumAnalysis\FsaSampleLibrary.cs:894
+  чтений decay_chain БЕЗ зажима: 2 — BecquerelMonitor\NucBase\NucBaseFramework.cs:139, BecquerelMonitor\NucBase\NucBaseFramework.cs:150
+      (это показ «как есть» в карточке NucBase, не копия правила;
+       у них зажима нет вовсе, и `l_seqno` в них не встречается)
+  ⛔ ОТКАЗ: в приложении осталась вторая запись зажима
+  ⛔ ОТКАЗ: обращений к правилу 3, а запросов с зажимом 4 — одно место разошлось с общим правилом
+
+
+=== коды возврата ===
+  копия дерева с ОДНИМ возвращённым местом: 1
+  та же копия, место возвращено на место:  0
