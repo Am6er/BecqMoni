@@ -3568,7 +3568,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryDescription", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: the character "{1}" (U+{2:X4}) does not fit code page 1251, and the geometry file is written in that page only - line {3}: {4}.
+        /// </summary>
+        public static string GeometryWriterUnrepresentable {
+            get {
+                return ResourceManager.GetString("GeometryWriterUnrepresentable", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerCancelled {
             get {
                 return ResourceManager.GetString("EfficiencyMakerCancelled", resourceCulture);
@@ -3832,6 +3841,15 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyMakerReasonImpossibleLog {
             get {
                 return ResourceManager.GetString("EfficiencyMakerReasonImpossibleLog", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reference curve: {0:F1} keV dropped, eps={1:G3} - efficiency is the fraction of the emitted photons registered and cannot exceed 1..
+        /// </summary>
+        public static string EfficiencyMakerReferenceImpossibleLog {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerReferenceImpossibleLog", resourceCulture);
             }
         }
 
@@ -5949,6 +5967,15 @@ namespace BecquerelMonitor.Properties {
         public static string DoseRateBadScale {
             get {
                 return ResourceManager.GetString("DoseRateBadScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f1} keV. Efficiency is the fraction of the emitted photons registered and cannot exceed 1..
+        /// </summary>
+        public static string DoseRateCurveAboveOne {
+            get {
+                return ResourceManager.GetString("DoseRateCurveAboveOne", resourceCulture);
             }
         }
 

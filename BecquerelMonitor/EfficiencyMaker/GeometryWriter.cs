@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -140,7 +141,112 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Кодировка та же, что у файлов LSRM: однобайтная кириллица в
             // комментариях. UTF-8 их программа не ждёт.
-            File.WriteAllText(path, Render(model), Encoding.GetEncoding(1251));
+            //
+            // ⛔ ЗНАК, КОТОРОГО В 1251 НЕТ, — ОТКАЗ, А НЕ `?` (`A183`).
+            //
+            // Прежде здесь стоял `File.WriteAllText(..., Encoding.GetEncoding(1251))`
+            // с обычной заменой. Та же болезнь, что чинилась со стороны ЧТЕНИЯ
+            // (`A161`), только вторая её половина.
+            //
+            // ⚠ И ПОРТИЛОСЬ ОНО НЕ ТАК, как гласила строка `A183` («станет `?`»)
+            // — замер 06.09.2026, `BoundProbeF59`. `Encoding.GetEncoding(1251)`
+            // подставляет ЛУЧШЕЕ СООТВЕТСТВИЕ, и вопросительный знак получают
+            // только знаки, у которых двойника нет: `中` (U+4E2D) → `?`, а вот
+            // `Å` (U+00C5) → `A`. Второй случай ХУЖЕ первого: `NaIATl` выглядит
+            // как имя вещества и не вызывает вопросов, `NaI?Tl` хотя бы кричит.
+            // Отсюда и выбор — отказ, а не «более уместная» замена.
+            //
+            // ⚠ ЧЕЙ ЭТО КРУГ — СЧИТАНО 06.09.2026, и не так, как гласила
+            // строка: у `Save` НЕТ НИ ОДНОГО вызова из приложения. Все девять
+            // зовущих — пробы (`CorpusGeomProbe`, `CultureProbeO14`,
+            // `CylinderGeomProbe`, `FacingProbe`, `FsaCascadeProbe`,
+            // `GeomEncodingProbe`, `MaterialOrderProbe`, `RawCarryProbe` и
+            // `BoxSourceProbe` через `Render`); приложение зовёт только
+            // `Render` — в <see cref="ResponseMatrix.ComputeStamp"/>. Значит
+            // круг «сохранил — прочитал», который двигал бы отпечаток при
+            // неизменной сцене, сегодня проходит по ОСНАСТКЕ, а не по экрану
+            // человека. Порча от этого не перестаёт быть порчей — писатель
+            // общий, и первый же вызов из формы получил бы её целиком, — но
+            // называть её дефектом того, что видит человек, было бы неправдой.
+            //
+            // ⚠ Почему отказ, а не «писать в кодировке, в которой прочитано».
+            // Второе лечит лишь половину случаев: у модели, собранной в полях
+            // редактора, исходного файла нет вовсе, и её непредставимый знак
+            // так и остался бы `?`. Отказ закрывает оба случая и НАЗЫВАЕТ знак.
+            //
+            // ⚠ Байты годного файла прежние: `GetBytes` кодировки 1251 даёт
+            // ровно то, что писал `WriteAllText` (преамбулы у 1251 нет).
+            // Измерено `BoundProbeF59` на ВСЕХ геометриях дерева — байт в байт.
+            string text = Render(model);
+            byte[] bytes;
+            try
+            {
+                bytes = Strict1251.GetBytes(text);
+            }
+            catch (EncoderFallbackException ex)
+            {
+                throw new IOException(Unrepresentable(text, ex, path), ex);
+            }
+
+            File.WriteAllBytes(path, bytes);
+        }
+
+        /// <summary>
+        /// Та же кодовая страница 1251, но БЕЗ молчаливой замены: знак, которого
+        /// в ней нет, бросает <see cref="EncoderFallbackException"/> вместо
+        /// подстановки «лучшего соответствия».
+        /// Держится готовой — `GetEncoding` ходит в таблицу кодовых страниц, а
+        /// запись зовётся на каждую сцену пачки.
+        /// </summary>
+        static readonly Encoding Strict1251 = Encoding.GetEncoding(
+            1251, EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
+
+        /// <summary>
+        /// Текст отказа: САМ ЗНАК, его код, номер строки и сама строка. Без места
+        /// отказ бесполезен — в файле геометрии полторы сотни строк, и «какой-то
+        /// знак не лёг в 1251» не говорит, что править.
+        ///
+        /// ⚠ Строка берётся из ресурсов, а не пишется здесь по-русски: у
+        /// приложения английский первичен, русский второй (`Resources.resx` +
+        /// `Resources.ru.resx`), и отказ, который однажды выйдет в окно, обязан
+        /// говорить на языке человека, а не на языке того, кто его писал.
+        /// </summary>
+        static string Unrepresentable(string text, EncoderFallbackException ex, string path)
+        {
+            bool pair = ex.IsUnknownSurrogate();
+            string sign = pair
+                ? new string(new[] { ex.CharUnknownHigh, ex.CharUnknownLow })
+                : ex.CharUnknown.ToString(CultureInfo.InvariantCulture);
+            int code = pair
+                ? char.ConvertToUtf32(ex.CharUnknownHigh, ex.CharUnknownLow)
+                : ex.CharUnknown;
+
+            int index = ex.Index;
+            if (index < 0 || index > text.Length)
+            {
+                index = 0;
+            }
+
+            int line = 1;
+            int lineStart = 0;
+            for (int i = 0; i < index; i++)
+            {
+                if (text[i] == '\n')
+                {
+                    line++;
+                    lineStart = i + 1;
+                }
+            }
+
+            int lineEnd = text.IndexOf('\n', lineStart);
+            string body = (lineEnd < 0
+                    ? text.Substring(lineStart)
+                    : text.Substring(lineStart, lineEnd - lineStart))
+                .TrimEnd('\r');
+
+            return string.Format(CultureInfo.InvariantCulture,
+                                 Resources.GeometryWriterUnrepresentable,
+                                 path, sign, code, line, body);
         }
 
         public static string Render(GeometryModel model)

@@ -42403,6 +42403,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryDescription" xml:space="preserve">
     <value>{0}: crystal {1} {2} mm, rho {3:F3}; source - {4}, {5}</value>
   </data>
+  <data name="GeometryWriterUnrepresentable" xml:space="preserve">
+    <value>{0}: the character "{1}" (U+{2:X4}) does not fit code page 1251, and the geometry file is written in that page only - line {3}: {4}</value>
+  </data>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Stopped by user.</value>
   </data>
@@ -42534,6 +42537,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
     <value>{0}: {1:F1} keV dropped, eps={2:F2} &gt; 1</value>
+  </data>
+  <data name="EfficiencyMakerReferenceImpossibleLog" xml:space="preserve">
+    <value>Reference curve: {0:F1} keV dropped, eps={1:G3} - efficiency is the fraction of the emitted photons registered and cannot exceed 1.</value>
   </data>
   <data name="GeometryEditorTitle" xml:space="preserve">
     <value>Geometry editor</value>
@@ -43455,6 +43461,9 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="DoseRateBadScale" xml:space="preserve">
     <value>Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels).</value>
+  </data>
+  <data name="DoseRateCurveAboveOne" xml:space="preserve">
+    <value>Dose rate: the efficiency curve gives {0} at {1:f1} keV. Efficiency is the fraction of the emitted photons registered and cannot exceed 1.</value>
   </data>
   <data name="DoseRateCurveBadEnergy" xml:space="preserve">
     <value>Dose rate: the efficiency curve has a point at {0} keV.</value>

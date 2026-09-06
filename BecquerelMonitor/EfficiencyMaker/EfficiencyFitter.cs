@@ -881,6 +881,54 @@ namespace BecquerelMonitor.EfficiencyMaker
             return true;
         }
 
+        /// <summary>
+        /// Опорная кривая без НЕВОЗМОЖНЫХ точек (`A222`).
+        ///
+        /// Эффективность — доля: сколько квантов из испущенных пробой попало в
+        /// пик полного поглощения. Больше единицы она быть не может, и фиттер
+        /// уже трижды на это опирается (снятие наблюдений с ε &gt; 1, обрезка
+        /// выходной кривой по единице, отказ на упоре в потолок) — не опиралась
+        /// только сама опорная кривая.
+        ///
+        /// ⚠ Условие написано ОТРИЦАНИЕМ (`!(ε &lt;= 1)`), и это не украшение:
+        /// так снимается и `NaN`, для которого ЛЮБОЕ сравнение ложно, и
+        /// бесконечность. Прямое `ε &gt; 1` пропустило бы `NaN` дальше, а
+        /// `Math.Log(NaN)` уносит в `NaN` весь уровень целиком.
+        ///
+        /// ⚠ Неположительные точки здесь НЕ трогаются: их и раньше снимал сам
+        /// цикл уровня, а <see cref="Evaluate"/> для них уже держит свою
+        /// проверку `atPoint &gt; 0`. Убрать их отсюда значило бы сшивать
+        /// экстраполяцию через дырку — правка не о том.
+        /// </summary>
+        static List<ROIEfficiencyData> Believable(List<ROIEfficiencyData> reference, Action<string> log)
+        {
+            if (reference == null)
+            {
+                return null;
+            }
+
+            var kept = new List<ROIEfficiencyData>(reference.Count);
+            foreach (ROIEfficiencyData point in reference)
+            {
+                if (point == null)
+                {
+                    continue;
+                }
+
+                if (!(point.Efficiency <= 1.0))
+                {
+                    log(string.Format(CultureInfo.InvariantCulture,
+                                      Resources.EfficiencyMakerReferenceImpossibleLog,
+                                      point.Energy, point.Efficiency));
+                    continue;
+                }
+
+                kept.Add(point);
+            }
+
+            return kept;
+        }
+
         static void Finalize(List<EfficiencyObservation> used, EfficiencyFitInput input,
                              EfficiencyFitResult result, Action<string> log)
         {
@@ -889,8 +937,34 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            result.ReferenceCurve = input.Reference != null && input.Reference.Count >= 2
-                ? input.Reference : null;
+            // ⛔ ОПОРНАЯ КРИВАЯ ПРОСЕИВАЕТСЯ ПО ЕДИНИЦЕ (`A222`, 06.09.2026).
+            //
+            // Опорная кривая — это ВХОД, и ей верят дважды: по ней снимается
+            // УРОВЕНЬ (цикл ниже) и по ней же <see cref="Evaluate"/> продолжает
+            // кривую ЗА пределы измеренных линий (`atPoint / atEdge`). Ни там,
+            // ни там верхней границы не было: отсеивались только неположительные
+            // и вышедшие из диапазона.
+            //
+            // ⚠ Это не выдуманный случай. Поставочная `Obsidian Marinelli 0.5`
+            // несёт на 20 кэВ эффективность 1471.85 — единственную точку больше
+            // единицы среди 35826 точек всех кривых дерева (счёт 06.09.2026), —
+            // и, попав в диапазон, она сдвинула бы уровень на `ln 1471.85` ≈ 7.3
+            // натуральных логарифма, то есть в полторы тысячи раз. Ниже
+            // диапазона она и сегодня в работе: `Evaluate` берёт её как `atPoint`
+            // и множит на неё всю экстраполяцию вниз.
+            //
+            // ⚠ Снятие, а не отказ: рядом уже стоит такое же тихое снятие
+            // неположительных точек, а кривая с одной негодной точкой в целом
+            // годна — в отличие от кривой ДОЗИМЕТРА (`DoseRateEstimator.CurveOf`),
+            // где отказ и вправду отказ, потому что делят там на неё. Точка не
+            // теряется молча: каждая снятая называется в журнале прогона.
+            //
+            // ⚠ Сетку выходной кривой (<see cref="BuildCurve"/>) это НЕ трогает:
+            // там от опорной кривой берутся только ЭНЕРГИИ, и файл остаётся
+            // сравнимым с прежним точка в точку.
+            List<ROIEfficiencyData> reference = Believable(input.Reference, log);
+            result.ReferenceCurve = reference != null && reference.Count >= 2
+                ? reference : null;
 
             // Уровень. Система вырождена на общий сдвиг: он либо снимается с
             // исходной кривой, либо задаётся опорной точкой. Третьего нет.
@@ -902,11 +976,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // файл шёл уровень, посчитанный со старыми коэффициентами.
             result.Level = 0.0;
             result.LevelSource = EfficiencyLevelSource.None;
-            if (input.Reference != null && input.Reference.Count >= 2)
+            if (result.ReferenceCurve != null)
             {
                 double num = 0.0;
                 int count = 0;
-                foreach (ROIEfficiencyData point in input.Reference)
+                foreach (ROIEfficiencyData point in result.ReferenceCurve)
                 {
                     if (point.Energy < result.MinEnergy || point.Energy > result.MaxEnergy
                         || point.Efficiency <= 0.0)

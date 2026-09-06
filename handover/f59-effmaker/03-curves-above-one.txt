@@ -1,0 +1,72 @@
+Сплошной перебор кривых эффективности дерева (F59, 06.09.2026):
+все *.xml вне bin/obj/packages, у которых есть <Efficiency>.
+
+файлов с кривой: 626; точек всего: 37162; файлов, где есть точка ε>1: 63
+
+BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml                         точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\out\ASN16_all_noref_roi.xml                                     точек  121, ε>1  80, максимум 18.3261
+tools\effmaker\out\ASN16_noref_roi.xml                                         точек  121, ε>1  80, максимум 1.78043
+tools\effmaker\out\ASN16_user_noref_roi.xml                                    точек  121, ε>1  80, максимум 10.2592
+tools\effmaker\probes\build_a134\config\ROI\Obsidian Marinelli 0.5.xml         точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_a134_before\config\ROI\Obsidian Marinelli 0.5.xml  точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_b7\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_b7_old\config\ROI\Obsidian Marinelli 0.5.xml       точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_c4\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_c4_before\config\ROI\Obsidian Marinelli 0.5.xml    точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_chk11\config\ROI\Obsidian Marinelli 0.5.xml        точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_chk14\config\ROI\Obsidian Marinelli 0.5.xml        точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_chk15\config\ROI\Obsidian Marinelli 0.5.xml        точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f1\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f1_fresh\config\ROI\Obsidian Marinelli 0.5.xml     точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f10\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f11\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f13\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f18\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f36\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f37\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f4\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f40\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f46\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f51rel\config\ROI\Obsidian Marinelli 0.5.xml       точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f53m\config\ROI\Obsidian Marinelli 0.5.xml         точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f54\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f54_pre217\config\ROI\Obsidian Marinelli 0.5.xml   точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f55\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f57\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f58\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f58_before\config\ROI\Obsidian Marinelli 0.5.xml   точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f59\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f8\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_f9\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_g1\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_g4\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_g6\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_g8\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o1\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o10\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o11\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o13\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o13b\config\ROI\Obsidian Marinelli 0.5.xml         точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o13v\config\ROI\Obsidian Marinelli 0.5.xml         точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o13v_ctl\config\ROI\Obsidian Marinelli 0.5.xml     точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o14\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o14_before\config\ROI\Obsidian Marinelli 0.5.xml   точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o17\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o18\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o2\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o21\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o22\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o25\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o3\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o7\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o8\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o9\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_o9b\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_p1\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_p2\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_p7\config\ROI\Obsidian Marinelli 0.5.xml           точек  150, ε>1   1, максимум 1471.85
+tools\effmaker\probes\build_p8a\config\ROI\Obsidian Marinelli 0.5.xml          точек  150, ε>1   1, максимум 1471.85
+
+Разбор: единственный НЕ-каталог-сборки случай поставки — BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml
+(ровно та же точка 1471.85 на 20 кэВ, что и в экспорте ЛСРМ; 57 копий той же кривой лежат в каталогах проб build_*).
+tools\effmaker\out\ASN16_*_noref_roi.xml — выход фиттера в режиме "только форма": уровень условный, кривая выше единицы по построению.
