@@ -106,6 +106,28 @@ namespace DoseCoefProbeO2
         // ------------------------------------------------------------------
         // ICRP 119 (2012), приложение I, таблица I.1, колонка K_a/Φ, пГр·см².
         // Взято сводкой ICRP по Publication 74; это E·μ_tr/ρ воздуха.
+        //
+        // ✅ СВЕРЕНО С САМОЙ ПУБЛИКАЦИЕЙ 06.09.2026 (полоса F65, `A224`) —
+        // прежде числа стояли транскрипцией без источника на руках.
+        // Файл: icrp.org, «p 119 jaicrp 41(s) compendium of dose coefficients
+        // based on icrp publication 60.pdf», 655 207 байт,
+        // sha256 5b891dd8a17a85fbfd60324eea6bb32e552284ae48b70eebabeb251c6c679516;
+        // таблица — страница 125 файла (печатная 123), колонка ВТОРАЯ, по
+        // заголовку «Ka/Φ (pGy cm2)» (первая — «Photon energy (MeV)», дальше
+        // идут шесть колонок E/Ka по геометриям AP…ISO).
+        //
+        // Все 23 числа и все 23 узла совпали ДОСЛОВНО, четырьмя разборами PDF
+        // (`pdftotext` по умолчанию, `-layout`, `-table`, `-raw`) — в том числе
+        // спорный узел 70 кэВ: у публикации там 2.97E−01, то есть 0.297, а не
+        // 0.2918. ⚠ Разбор PDF при этом НЕ безошибочен, и это видно на той же
+        // странице: в колонке LLAT на 0.03 МэВ все четыре способа теряют знак
+        // порядка и печатают «9.08E+00» вместо 9.08E−02 (сосед RLAT — 9.04E−02).
+        // Поэтому колонка проверена не только чтением: K_a/Φ = E·μ_en/ρ, и на
+        // КАЖДОМ узле, который есть в сетке NIST, она воспроизводит табличную
+        // μ_en/ρ сухого воздуха до третьей значащей — 30 кэВ 0.1537, 40 кэВ
+        // 0.06833, 50 кэВ 0.04098, 60 кэВ 0.03041, 80 кэВ 0.02407, 100 кэВ
+        // 0.02325, 150 кэВ 0.02496 см²/г. Узел 70 кэВ — единственный вне сетки
+        // NIST, и своей опоры такого рода у него нет.
         // ------------------------------------------------------------------
         static readonly double[] KaPhiEnergyKev =
             { 10, 15, 20, 30, 40, 50, 60, 70, 80, 100, 150, 200, 300, 400, 500,
@@ -462,6 +484,104 @@ namespace DoseCoefProbeO2
             return y[lo] + t * (y[hi] - y[lo]);
         }
 
+        // ==================================================================
+        // ФОРМА, А НЕ КРИВАЯ ЭФФЕКТИВНОСТИ (`A258`)
+        // ==================================================================
+
+        /// <summary>
+        /// Табличная кривая ТЕМ ЖЕ монотонным сплайном, каким её строит
+        /// приложение, — но для величины, которая эффективностью НЕ ЯВЛЯЕТСЯ.
+        ///
+        /// ⛔ Зачем понадобилось разводить. С 06.09.2026 (~~`A222`~~)
+        /// `DoseRateEstimator.CurveOf` отказывает на точке ε &gt; 1:
+        /// эффективность — доля испущенных квантов, попавших в пик, и больше
+        /// единицы быть не может. Граница ВЕРНА и здесь НЕ ОСЛАБЛЯЕТСЯ. А
+        /// проба гоняет через тот же сплайн совсем другие величины: h*(10)/K_air
+        /// в Зв/Гр (0.008…1.74) и прежнюю таблицу «RToSv»/0.876 (1.47…1.74).
+        /// Они нужны ей одной лишь ФОРМОЙ — сравнить схему интерполяции со
+        /// схемой, — и единицей не ограничены ничем. Дефект был у пробы: она
+        /// называла кривой эффективности то, что ею не является.
+        ///
+        /// ⚠ Разведено НОРМИРОВКОЙ, и она стоит ровно ноль: значения делятся на
+        /// наименьшую степень двойки, не меньшую наибольшего из них, а
+        /// <see cref="At"/> умножает обратно. Обе операции в двоичной плавающей
+        /// точке точны, а монотонный сплайн однороден по значениям первой
+        /// степени, — так что кривая выходит прежней ДО ПОСЛЕДНЕГО БИТА, а не
+        /// «в пределах допуска». Это не рассуждение: `DoseBoundProbeF65`
+        /// меряет обе половины — что граница ε ≤ 1 по-прежнему отвергает
+        /// НАСТОЯЩУЮ кривую, и что нормировка не двигает чисел.
+        /// </summary>
+        sealed class ShapeCurve
+        {
+            readonly DoseRateCurve curve;
+            readonly double scale;
+
+            ShapeCurve(DoseRateCurve curve, double scale)
+            {
+                this.curve = curve;
+                this.scale = scale;
+            }
+
+            public double MinKev { get { return this.curve.MinKev; } }
+
+            public double MaxKev { get { return this.curve.MaxKev; } }
+
+            public double At(double energyKev)
+            {
+                return this.curve.At(energyKev) * this.scale;
+            }
+
+            /// <summary>Наименьшая степень двойки, не меньшая наибольшего значения.</summary>
+            public static double ScaleFor(double[] y)
+            {
+                double max = 0.0;
+                for (int i = 0; i < y.Length; i++)
+                {
+                    if (y[i] > max)
+                    {
+                        max = y[i];
+                    }
+                }
+
+                double scale = 1.0;
+                while (scale < max)
+                {
+                    scale *= 2.0;
+                }
+
+                return scale;
+            }
+
+            public static ShapeCurve Of(double[] x, double[] y)
+            {
+                double scale = ScaleFor(y);
+                var points = new List<ROIEfficiencyData>();
+                for (int i = 0; i < x.Length; i++)
+                {
+                    points.Add(new ROIEfficiencyData
+                    {
+                        Energy = x[i],
+                        Efficiency = y[i] / scale,
+                        ErrorPercent = 1.0,
+                    });
+                }
+
+                return new ShapeCurve(DoseRateEstimator.CurveOf(points), scale);
+            }
+        }
+
+        /// <summary>Прежняя таблица «RToSv», приведённая к Зв/Гр.</summary>
+        static double[] OldSvPerGy()
+        {
+            var y = new double[OldRToSv.Length];
+            for (int i = 0; i < y.Length; i++)
+            {
+                y[i] = OldRToSv[i] / DoseRateCoefficients.RemPerRoentgenFactor;
+            }
+
+            return y;
+        }
+
         static void Interpolation()
         {
             Console.WriteLine();
@@ -505,31 +625,15 @@ namespace DoseCoefProbeO2
             // ⚠ Узловая сверка `C4` этого не видела вовсе: она сравнивала
             // значения В УЗЛАХ, а прежний код между ними гнул монотонный
             // кубический сплайн по шестнадцати точкам.
-            var oldPoints = new List<ROIEfficiencyData>();
-            for (int i = 0; i < OldEnergies.Length; i++)
-            {
-                oldPoints.Add(new ROIEfficiencyData
-                {
-                    Energy = OldEnergies[i],
-                    Efficiency = OldRToSv[i] / DoseRateCoefficients.RemPerRoentgenFactor,
-                    ErrorPercent = 1.0,
-                });
-            }
-
-            DoseRateCurve oldCurve = DoseRateEstimator.CurveOf(oldPoints);
+            // ⚠ Это ФОРМА, а не кривая эффективности: величина — Зв/Гр,
+            // 1.47…1.74. Через `ShapeCurve`, а не через `CurveOf` напрямую
+            // (`A258`); граница ε ≤ 1 остаётся на месте.
+            ShapeCurve oldCurve = ShapeCurve.Of(OldEnergies, OldSvPerGy());
 
             // Тот же сплайн, но по НОВЫМ двадцати пяти узлам: показывает,
-            // сколько стоит САМА схема, отдельно от смены чисел.
-            var newPoints = new List<ROIEfficiencyData>();
-            for (int i = 0; i < x.Length; i++)
-            {
-                newPoints.Add(new ROIEfficiencyData
-                {
-                    Energy = x[i], Efficiency = y[i], ErrorPercent = 1.0,
-                });
-            }
-
-            DoseRateCurve newSpline = DoseRateEstimator.CurveOf(newPoints);
+            // сколько стоит САМА схема, отдельно от смены чисел. Тоже форма:
+            // h*(10)/K_air доходит до 1.74 Зв/Гр.
+            ShapeCurve newSpline = ShapeCurve.Of(x, y);
 
             var csv = new StringBuilder();
             csv.AppendLine("E_keV;icrp74_loglinear;icrp74_spline;old_RToSv_spline;"
@@ -680,18 +784,9 @@ namespace DoseCoefProbeO2
             // ответ на вопрос строки без примеси нормировки.
             double[] lines = { 1173.2, 1332.5, 1460.8 };
             string[] names = { "Co-60, 1173.2 кэВ", "Co-60, 1332.5 кэВ", "K-40, 1460.8 кэВ" };
-            var oldPoints = new List<ROIEfficiencyData>();
-            for (int i = 0; i < OldEnergies.Length; i++)
-            {
-                oldPoints.Add(new ROIEfficiencyData
-                {
-                    Energy = OldEnergies[i],
-                    Efficiency = OldRToSv[i] / DoseRateCoefficients.RemPerRoentgenFactor,
-                    ErrorPercent = 1.0,
-                });
-            }
 
-            DoseRateCurve oldCurve = DoseRateEstimator.CurveOf(oldPoints);
+            // ⚠ Снова ФОРМА, а не эффективность (`A258`): Зв/Гр, не доля.
+            ShapeCurve oldCurve = ShapeCurve.Of(OldEnergies, OldSvPerGy());
             for (int i = 0; i < lines.Length; i++)
             {
                 double now = DoseRateCoefficients.AmbientDoseConversion(lines[i]);
