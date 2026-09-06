@@ -35,8 +35,22 @@ namespace BecquerelMonitor.N42
         [XmlElement("ChannelData")]
         public AH_ChannelData ChannelData { get; set; }
 
+        // ⛔ ЖИВОЕ ВРЕМЯ — ТОЖЕ string, А НЕ double (`A214`, 06.09.2026).
+        //    Здесь стоял double, и это был отказ разбора ВСЕГО документа на
+        //    всяком файле, записавшем живое время ПО СПЕЦИФИКАЦИИ N42-2006,
+        //    то есть как xs:duration («PT295S»). Измерено 06.09.2026 входом
+        //    case30_rad_live_iso: XmlSerializer бросал
+        //    InvalidOperationException «There is an error in XML document
+        //    (10, 20)» ← FormatException, и наружу шло «ввоз N42 оборвался» —
+        //    ни спектра, ни указания, какое поле виновато.
+        //
+        //    ⚠ Соседнее поле RealTime уже заведено строкой ровно по этой
+        //    причине (05.09.2026), а LiveTime осталось числом: дверь читала
+        //    ОДНО из двух времён одного элемента двумя разными соглашениями.
+        //    Теперь оба читаются Util.N42SecondsLoose — обе записи принимаются,
+        //    нечитаемая НАЗЫВАЕТСЯ словами (`A140`), а не подставляется молча.
         [XmlElement("LiveTime")]
-        public double LiveTime { get; set; }
+        public string LiveTime { get; set; }
 
         // ⛔ ПОЛНОЕ ВРЕМЯ НАБОРА — ЭЛЕМЕНТ БЫЛ, ЧИТАТЕЛЯ НЕ БЫЛО (05.09.2026).
         //    В N42-2006 у Spectrum ДВА времени: RealTime (по часам) и LiveTime
