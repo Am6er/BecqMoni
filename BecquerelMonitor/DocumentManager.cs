@@ -1755,6 +1755,18 @@ namespace BecquerelMonitor
 
                     }
                 }
+                // `A240` (полоса F66, 06.09.2026): ЧИТАТЕЛЬ ПРИЧИНЫ у третьей
+                //   двери ввоза. `CheckDocument` выше уже пробовал построить
+                //   кривую разрешения и, если не построил, положил причину в
+                //   `fwhmRefusals`; без этой строки причина оставалась в поле, а
+                //   человек — без слова. Соглашение дверей (`A160`/`A175`) требует
+                //   ОДНОГО голоса на все двери ввоза: `ImportDocumentN42` и
+                //   `ImportDocumentSpecUtils` говорят тем же методом.
+                //   Место — КОНЕЦ ввоза, а не сразу за `CheckDocument`: у этой
+                //   двери отсчёты читаются ПОСЛЕ проверки, и голос на ввозе,
+                //   который тут же оборвётся, был бы про документ, которого нет.
+                //   Состояние кривой чтение отсчётов не меняет.
+                this.ReportMissingFwhmCalibration(doc, filePath);
                 Cursor.Current = Cursors.Default;
             }
             catch (Exception ex)
@@ -2695,6 +2707,13 @@ namespace BecquerelMonitor
 
             energySpectrum.EnergyCalibration = calibration.Clone();
             this.CheckDocument(doc.ResultDataFile, doCorrections: true);
+
+            // `A240` (полоса F66, 06.09.2026): ЧИТАТЕЛЬ ПРИЧИНЫ у четвёртой двери
+            //   ввоза. Тот же метод и тот же текст, что у N42, Atom Spectra и
+            //   SpecUtils, — соглашение `A160`/`A175`: разойтись дверям нечем.
+            //   `CheckDocument` строкой выше уже назвал причину себе в
+            //   `fwhmRefusals`; здесь она звучит.
+            this.ReportMissingFwhmCalibration(doc, fileName);
         }
 
         private void ResetSpectrumConfig(ResultData data, int numberOfChannels)

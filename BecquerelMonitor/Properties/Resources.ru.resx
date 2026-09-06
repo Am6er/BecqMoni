@@ -1484,6 +1484,9 @@
   <data name="ActivityNetNotPositiveRefused" xml:space="preserve">
     <value>нетто не выше нуля: активность не показана</value>
   </data>
+  <data name="ActivityLcZeroRefused" xml:space="preserve">
+    <value>фон в выделении пуст: порог обнаружения не определён</value>
+  </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K переводит скорость счёта в беккерели: Бк = имп/с · K. С галочкой он считается по кривой эффективности, выбранной для спектра, и интенсивности этой зоны: K = 100 / (эффективность · интенсивность). Без галочки берётся число из поля, как раньше. Сохранённое число остаётся в любом случае и подставляется, когда кривой нет.</value>
   </data>

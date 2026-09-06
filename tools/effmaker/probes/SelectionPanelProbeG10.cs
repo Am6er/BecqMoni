@@ -32,7 +32,10 @@ namespace SelectionPanelProbeG10
     ///   honest   кривая есть, фон есть, нетто &gt; 0     — число; кадр и числа те же, что раньше
     ///   nocurve  кривой у спектра нет                  — `A193`: отказ словами `ActivityNoCurveRefused`
     ///   netneg   фон вдвое выше спектра, нетто &lt; 0     — `A193`: отказ словами `ActivityNetNotPositiveRefused`
-    ///   lczero   фон есть, но в выделении пуст, Lc = 0 — `A195`: панель НЕ резервирует 54 px под число
+    ///   lczero   фон есть, но в выделении пуст, Lc = 0 — `A195`: панель НЕ резервирует 54 px под число;
+    ///                                                    `A259` (полоса F66, 06.09.2026): отказ словами
+    ///                                                    `ActivityLcZeroRefused` — число ПОСЧИТАНО, но
+    ///                                                    на панель не выходит, и молчания больше нет
     ///   nobg     фонового спектра нет                  — контроль ~~`A192`~~: отказ тот же, кадр тот же
     ///
     /// Для каждого плеча печатаются: текст отказа из аналитики вида против
@@ -49,15 +52,26 @@ namespace SelectionPanelProbeG10
     /// черты и «Peak Counts» (найдено этой пробой, починено той же полосой).
     ///
     /// ⛔ ПЛЕЧО «ДО» — ТА ЖЕ ПРОБА ПРОТИВ СБОРКИ БЕЗ ПРАВКИ: она сама узнаёт
-    /// сборку (есть ли `EnergySpectrumView.RefuseActivity`) и ждёт от старой
-    /// МОЛЧАНИЯ (ни подписи, ни отказа) на `nocurve`/`netneg` и +54 px на
-    /// `lczero`. Сводка каждого прогона пишется в `&lt;shots&gt;\g10-panel.txt`;
-    /// ключ `--ref=` сличает текущий прогон с такой сводкой другой сборки:
-    /// `honest` — sha256 кадров равны и высоты равны; `lczero` — высота старой
-    /// минус новой = 54; `nocurve` — высота новой минус старой = 48; `netneg` —
-    /// 54 и `nobg` — 6: при Lc = 0 с подписью прежний код не резервировал 6 px
-    /// отступа перед блоком ПШПВ, и последняя строка свисала с заливки (найдено
-    /// этой пробой, контроль «вне панели кадр тот же»; починено той же полосой).
+    /// сборку по ДВУМ признакам — есть ли `EnergySpectrumView.RefuseActivity`
+    /// (правка `A193`/`A195`, полоса G10) и есть ли строка ресурса
+    /// `ActivityLcZeroRefused` (правка `A259`, полоса F66), — и ждёт от старой
+    /// МОЛЧАНИЯ (ни подписи, ни отказа) на `nocurve`/`netneg` и на `lczero`.
+    /// Сводка каждого прогона пишется в `&lt;shots&gt;\g10-panel.txt` и открывается
+    /// строкой `#` с этими двумя признаками; ключ `--ref=` сличает текущий
+    /// прогон со сводкой другой сборки, и ПРАВИЛО СЛИЧЕНИЯ ВЫБИРАЕТСЯ ПО ТОМУ,
+    /// ЧЕМ СБОРКИ РАЗЛИЧАЮТСЯ:
+    ///
+    ///   различие `A193`/`A195` (G10): `honest` — sha256 кадров равны и высоты
+    ///     равны; `lczero` — высота старой минус новой = 54; `nocurve` — высота
+    ///     новой минус старой = 48; `netneg` — 54 и `nobg` — 6 (при Lc = 0 с
+    ///     подписью прежний код не резервировал 6 px отступа перед блоком ПШПВ,
+    ///     и последняя строка свисала с заливки);
+    ///
+    ///   различие `A259` (F66): ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — `honest`, `nocurve`,
+    ///     `netneg` и `nobg` обязаны совпасть ПОБАЙТНО (sha256) и по высоте, а
+    ///     сдвинуться обязано ТОЛЬКО плечо `lczero`: панель с отказом выше
+    ///     молчащей на 38 + 16 × строк (16 подписи + 6 отступа при Lc = 0 +
+    ///     16 строки «Activity Bq: no K» + 16 × строк переноса отказа).
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0.
     /// </summary>
@@ -66,6 +80,8 @@ namespace SelectionPanelProbeG10
         static int bad;
         static string shotDir;
         static bool fixedBuild;
+        /// <summary>Есть ли в сборке правка `A259` (полоса F66) — по строке ресурса.</summary>
+        static bool lcZeroFixed;
         static readonly List<string> summary = new List<string>();
 
         const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -118,6 +134,12 @@ namespace SelectionPanelProbeG10
             Console.WriteLine("SETUP\tсборка: {0}", fixedBuild
                 ? "С ПРАВКОЙ A193/A195 (есть EnergySpectrumView.RefuseActivity) — ждём отказы словами"
                 : "БЕЗ ПРАВКИ (плечо «до») — ждём молчание и +54 px при Lc = 0");
+            // `A259` (F66): признак — строка ресурса, а не метод: отказ ставится
+            // в `EnsureSelectionAnalytics`, своего метода у него нет.
+            lcZeroFixed = AppResources.GetString("ActivityLcZeroRefused", CultureInfo.InvariantCulture) != null;
+            Console.WriteLine("SETUP\tсборка: {0}", lcZeroFixed
+                ? "С ПРАВКОЙ A259 (есть ресурс ActivityLcZeroRefused) — при Lc = 0 ждём отказ словами"
+                : "БЕЗ ПРАВКИ A259 (плечо «до») — при Lc = 0 ждём МОЛЧАНИЕ при посчитанном числе");
             Console.WriteLine("SETUP\tприложение: {0}", typeof(EnergySpectrumView).Assembly.Location);
 
             MainForm mainForm = new MainForm();
@@ -172,12 +194,15 @@ namespace SelectionPanelProbeG10
                 Arm("netneg", culture, doc, view, () => { rd.Efficiency = curve; rd.BackgroundEnergySpectrum = Scaled(fg, 2.0, fg.MeasurementTime); },
                     expectRefusalKey: "ActivityNetNotPositiveRefused", expectNumber: false, expectLcZero: false);
                 Arm("lczero", culture, doc, view, () => { rd.Efficiency = curve; rd.BackgroundEnergySpectrum = Scaled(fg, 0.0, fg.MeasurementTime); },
-                    expectRefusalKey: null, expectNumber: true, expectLcZero: true);
+                    expectRefusalKey: "ActivityLcZeroRefused", expectNumber: false, expectLcZero: true);
                 Arm("nobg", culture, doc, view, () => { rd.Efficiency = curve; rd.BackgroundEnergySpectrum = null; },
                     expectRefusalKey: "ActivityNoBackgroundRefused", expectNumber: false, expectLcZero: false, refusalIsOld: true);
             }
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("en");
 
+            // Признаки сборки — ПЕРВОЙ строкой сводки: по ним `--ref=` выбирает
+            // правило сличения (чем именно две сборки различаются), а не гадает.
+            summary.Insert(0, "#\tg10=" + (fixedBuild ? "1" : "0") + "\ta259=" + (lcZeroFixed ? "1" : "0"));
             string summaryPath = Path.Combine(shotDir, "g10-panel.txt");
             File.WriteAllLines(summaryPath, summary, new UTF8Encoding(false));
             Console.WriteLine();
@@ -242,17 +267,24 @@ namespace SelectionPanelProbeG10
             if (expectLcZero)
             {
                 Same("Lc = 0 (фон в выделении пуст)", true, lc == 0.0);
-                Same("число посчитано (A > 0)", true, activity > 0.0);
-                Same("отказа нет", true, refusal == null);
-                // На панели в этом состоянии нет НИЧЕГО про активность — ни числа,
-                // ни отказа (молчание того же рода, что `A193`, но не решённое
-                // Amber; `A195` — только про высоту). Здесь оно называется вслух.
-                Console.WriteLine("  ⚠ число посчитано, а на панели ни числа, ни отказа — решения Amber по этому нет (в отчёт полосы)");
-                frame.Dispose();
-                return;
+                // ⛔ Число в памяти посчитано и ПОСЛЕ правки `A259` тоже: решение
+                //    Amber 06.09.2026 — «отказ словами», а не показ числа; цена
+                //    (человек не увидит посчитанного) названа и принята. Поэтому
+                //    ниже, на общем пути плеча с отказом, «числа нет» не судится.
+                Same("число в памяти посчитано (A > 0)", true, activity > 0.0);
+                if (!lcZeroFixed)
+                {
+                    // Плечо «до»: на панели нет НИЧЕГО про активность — ни числа,
+                    // ни отказа. Молчание того же рода, что два закрытых в `A193`.
+                    Same("плечо «до»: отказа нет (молчание `A259` числом)", true, refusal == null);
+                    Console.WriteLine("  ⚠ число посчитано, а на панели ни числа, ни отказа — это и есть `A259`");
+                    frame.Dispose();
+                    return;
+                }
+                // Дальше — общий путь плеча с отказом: текст против ресурса,
+                // положительный контроль «как рисовал прежний код», высота.
             }
-
-            if (expectNumber)
+            else if (expectNumber)
             {
                 Same("число посчитано (A > 0)", true, activity > 0.0);
                 Same("Lc > 0", true, lc > 0.0);
@@ -263,7 +295,7 @@ namespace SelectionPanelProbeG10
             }
 
             // Плечи с отказом.
-            bool expectVoice = fixedBuild || refusalIsOld;
+            bool expectVoice = fixedBuild || refusalIsOld || expectLcZero;
             if (!expectVoice)
             {
                 Same("плечо «до»: подписи нет", true, label == null);
@@ -282,7 +314,10 @@ namespace SelectionPanelProbeG10
             }
             Same("отказ словами = ресурс «" + expectRefusalKey + "» [" + culture + "]", expected, refusal);
             Same("подпись поставлена (отказ занимает место числа)", true, !string.IsNullOrEmpty(label));
-            Same("числа нет", 0.0, activity);
+            if (!expectLcZero)
+            {
+                Same("числа нет", 0.0, activity);
+            }
             if (culture == "ru")
             {
                 Same("русский текст отличается от английского (сателлит ru рядом)", true,
@@ -344,14 +379,37 @@ namespace SelectionPanelProbeG10
                 return;
             }
             var other = new Dictionary<string, string[]>();
+            bool refG10 = false, refA259 = false;
             foreach (string line in File.ReadAllLines(refPath))
             {
                 string[] c = line.Split('\t');
+                if (c.Length > 0 && c[0] == "#")
+                {
+                    foreach (string mark in c)
+                    {
+                        if (mark == "g10=1") refG10 = true;
+                        if (mark == "a259=1") refA259 = true;
+                    }
+                    continue;
+                }
                 if (c.Length >= 4) other[c[0] + "/" + c[1]] = c;
+            }
+            // ⛔ ЧЕМ РАЗЛИЧАЮТСЯ СБОРКИ — тем и судим. Если различие в `A193`/`A195`
+            //    (полоса G10), правила старые. Если в `A259` (полоса F66), сдвинуться
+            //    обязано ТОЛЬКО плечо `lczero`, а остальные четыре — побайтно те же:
+            //    это и есть положительный контроль правки.
+            bool g10Diff = fixedBuild != refG10;
+            bool a259Diff = lcZeroFixed != refA259;
+            Console.WriteLine("  сборки различаются: A193/A195 — {0}; A259 — {1}",
+                              g10Diff ? "ДА" : "нет", a259Diff ? "ДА" : "нет");
+            if (!g10Diff && !a259Diff)
+            {
+                Console.WriteLine("  правило: сборки в одном состоянии — ждём ВСЁ побайтно то же");
             }
             foreach (string line in summary)
             {
                 string[] c = line.Split('\t');
+                if (c.Length > 0 && c[0] == "#") continue;
                 string key = c[0] + "/" + c[1];
                 string[] o;
                 if (!other.TryGetValue(key, out o))
@@ -367,6 +425,36 @@ namespace SelectionPanelProbeG10
                 int oldH = fixedBuild ? theirs : mine;
                 int lines = c.Length > 5 ? int.Parse(c[5], CultureInfo.InvariantCulture) : 0;
                 bool lcPositive = c.Length > 6 && c[6] == "1";
+
+                // ⛔ Сборки различаются ТОЛЬКО правкой `A259` (либо не различаются
+                //    вовсе) — тогда сдвинуться имеет право одно плечо `lczero`, а
+                //    остальные четыре обязаны совпасть. Это положительный контроль:
+                //    правка, тронувшая чужое плечо, здесь и ловится.
+                if (!g10Diff)
+                {
+                    string refPng = Path.Combine(Path.GetDirectoryName(refPath), "g10-" + c[0] + "-" + c[1] + ".png");
+                    string myPng = Path.Combine(shotDir, "g10-" + c[0] + "-" + c[1] + ".png");
+                    if (c[0] == "lczero" && a259Diff)
+                    {
+                        int withH = lcZeroFixed ? mine : theirs;
+                        int withoutH = lcZeroFixed ? theirs : mine;
+                        int withLines = lcZeroFixed
+                            ? lines
+                            : (o.Length > 5 ? int.Parse(o[5], CultureInfo.InvariantCulture) : 0);
+                        Same(key + ": панель с отказом выше молчащей на 38 + 16 × строк"
+                             + " (16 подписи + 6 отступа при Lc = 0 + 16 строки K + 16 × строк) (A259)",
+                             38 + 16 * withLines, withH - withoutH);
+                        Same(key + ": кадры различаются", true, o[3] != c[3]);
+                    }
+                    else
+                    {
+                        Same(key + ": высота панели та же", theirs, mine);
+                        PanelCrop(key, refPng, myPng, o[3] == c[3]);
+                        Same(key + ": кадр целиком побайтно тот же", true, o[3] == c[3]);
+                    }
+                    continue;
+                }
+
                 switch (c[0])
                 {
                     case "honest":

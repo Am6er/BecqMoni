@@ -61,6 +61,18 @@ namespace N42RoundTripProbe
     ///                    (у кривой фона читателя нет: фон вычитается по
     ///                    отсчётам); исправная конфигурация — 0/0/0
     ///                    (положительный контроль ложной тревоги).
+    ///                    ⛔ ОСТАТОК `A240` (полоса F66, 06.09.2026): к тому же
+    ///                    `CheckDocument` ведут ещё ДВЕ двери ввоза, у которых
+    ///                    читателя причины не было, — `ImportDocumentAtomSpectra`
+    ///                    и `ImportCsvEnergyToDocument`. Плечо доводит события до
+    ///                    ПЯТИ: входы сочиняются пробой (файл Atom Spectra
+    ///                    «FORMAT: 3» и CSV «Energy,Count #…» с тем же числом
+    ///                    каналов, что у документа, — иначе ввоз сбрасывает
+    ///                    настройку спектра и говорит СВОЁ, не относящееся к
+    ///                    кривой, слово) и ввозятся в ОТКРЫТЫЙ документ, как это
+    ///                    делает пункт меню. Ожидание после правки: ввоз Atom
+    ///                    Spectra — 1, ввоз CSV — 1; исправная конфигурация —
+    ///                    0/0/0/0/0.
     ///
     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
     /// AppUi.HasWindows == false и мерится ОТКАЗНАЯ половина всех дверей.
@@ -1082,7 +1094,7 @@ namespace N42RoundTripProbe
             }
 
             int rc = 0;
-            rc |= OneVoiceArm("КОНФИГУРАЦИЯ ИСПРАВНА", Path.Combine(dir, "g11_ok.xml"), 0, 0, 0);
+            rc |= OneVoiceArm("КОНФИГУРАЦИЯ ИСПРАВНА", Path.Combine(dir, "g11_ok.xml"), 0, 0, 0, 0, 0);
 
             FWHMPeakDetectionMethodConfig broken =
                 (FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig;
@@ -1098,7 +1110,7 @@ namespace N42RoundTripProbe
                                   + (FwhmCalibration.DefaultCalibration(broken, new PolynomialEnergyCalibration()) == null
                                      ? "null" : "кривая построилась — ПЛЕЧО НЕ МЕРИТ") + " ---");
                 Console.WriteLine();
-                rc |= OneVoiceArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", Path.Combine(dir, "g11_broken.xml"), 1, 1, 0);
+                rc |= OneVoiceArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", Path.Combine(dir, "g11_broken.xml"), 1, 1, 0, 1, 1);
             }
             finally
             {
@@ -1107,9 +1119,101 @@ namespace N42RoundTripProbe
                 broken.FwhmCalibration = keepCurve;
             }
 
+            rc |= ResetKeepsCurve(Path.Combine(dir, "g11_reset.xml"));
+
             Console.WriteLine("=== ИТОГ ===");
             foreach (string s in armTotals) Console.WriteLine("  " + s);
             return rc;
+        }
+
+        /// <summary>
+        /// ⛔ ЗАМЕР ПОПУТНОЙ НАХОДКИ (полоса F66, 06.09.2026), в отказ пробы не идёт.
+        ///
+        /// `DocumentManager.ResetSpectrumConfig` — сброс настройки спектра, которым
+        /// обе двери ввоза встречают файл с ДРУГИМ числом каналов (и любой файл
+        /// при настройке «ввозить с пустой конфигурацией»), — заводит новый
+        /// `EnergySpectrum`, стирает фон, ROI и ПРИБОР (`DeviceConfig = new
+        /// DeviceConfigInfo()`), но НЕ трогает ни `FwhmCalibration`, ни
+        /// `PeakDetectionMethodConfig`. `CheckDocument` следом кривую тоже не
+        /// трогает: он строит умолчание ТОЛЬКО когда кривой нет.
+        ///
+        /// Цена, если это так: кривая разрешения задана В КАНАЛАХ, а число
+        /// каналов только что сменилось — и поиск пиков идёт по ширинам, взятым
+        /// с прежней шкалы прежнего прибора, которого у документа больше нет.
+        /// Родня — ~~`A239`~~ / ~~`A257`~~ («модель разрешения выдуманного
+        /// прибора»), но там кривую ВЫДУМЫВАЛИ, а здесь её УНАСЛЕДОВАЛИ.
+        ///
+        /// Проба это ИЗМЕРЯЕТ и печатает числами; отказом не считает — чем это
+        /// заменить (снять кривую, чтобы прозвучал голос ~~`A234`~~, либо
+        /// перестроить её по прибору документа), решением Amber не покрыто, а
+        /// сочинять поведение полоса не вправе.
+        /// </summary>
+        static int ResetKeepsCurve(string path)
+        {
+            Console.WriteLine("=== ЧТО ОСТАЁТСЯ ОТ ПРЕЖНЕГО ПРИБОРА ПОСЛЕ СБРОСА НАСТРОЙКИ СПЕКТРА (F66) ===");
+            DocumentManager dm = DocumentManager.GetInstance();
+            if (File.Exists(path)) File.Delete(path);
+            DocEnergySpectrum doc = dm.CreateDocument(path);
+            if (doc == null)
+            {
+                Console.WriteLine("  документ НЕ СОЗДАН — мерить нечего");
+                Console.WriteLine();
+                return 0;
+            }
+            ResultData rd = doc.ActiveResultData;
+            int chBefore = rd.EnergySpectrum.NumberOfChannels;
+            string curveBefore = CurveState(rd);
+            string devBefore = rd.DeviceConfig == null ? "(нет)" : "«" + rd.DeviceConfig.Name + "»";
+            string cfgBefore = Cfg3(rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
+
+            // Число каналов в файле НАРОЧНО другое — только так дверь зовёт
+            // `ResetSpectrumConfig` при выключенной настройке «пустая конфигурация».
+            int chFile = chBefore == 1024 ? 2048 : 1024;
+            string atomPath = Path.Combine(Path.GetDirectoryName(path), "g11_reset_ats.txt");
+            WriteAtomSpectra(atomPath, chFile);
+
+            List<string> voices = new List<string>();
+            TextWriter realErr = Console.Error;
+            StringWriter caught = new StringWriter();
+            Console.SetError(caught);
+            int v;
+            try
+            {
+                dm.ImportDocumentAtomSpectra(doc, atomPath);
+            }
+            finally
+            {
+                v = Voices(caught, voices);
+                Console.SetError(realErr);
+            }
+
+            ResultData after = doc.ActiveResultData;
+            string curveAfter = CurveState(after);
+            Console.WriteLine("  ДО ввоза:    каналов " + chBefore.ToString(CultureInfo.InvariantCulture)
+                              + ", прибор " + devBefore + ", настройки " + cfgBefore + ", " + curveBefore);
+            Console.WriteLine("  файл ввоза:  каналов " + chFile.ToString(CultureInfo.InvariantCulture)
+                              + " (нарочно другое — иначе сброса нет)");
+            Console.WriteLine("  ПОСЛЕ ввоза: каналов " + after.EnergySpectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture)
+                              + ", прибор " + (after.DeviceConfig == null ? "(нет)" : "«" + after.DeviceConfig.Name + "»")
+                              + ", настройки " + Cfg3(after.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig)
+                              + ", " + curveAfter);
+            Console.WriteLine("  голосов при ввозе: " + v);
+            foreach (string s in voices) Console.WriteLine("    " + s);
+            bool curveKept = after.FwhmCalibration != null && curveAfter == curveBefore;
+            bool devWiped = after.DeviceConfig == null || string.IsNullOrEmpty(after.DeviceConfig.Name);
+            bool chChanged = after.EnergySpectrum.NumberOfChannels != chBefore;
+            Console.WriteLine("  ВЫВОД: кривая прежняя — " + (curveKept ? "ДА" : "нет")
+                              + "; прибор стёрт — " + (devWiped ? "ДА" : "нет")
+                              + "; число каналов сменилось — " + (chChanged ? "ДА" : "нет"));
+            if (curveKept && devWiped && chChanged)
+            {
+                Console.WriteLine("  ⚠ НАХОДКА ПОДТВЕРЖДЕНА ЗАМЕРОМ: шкала каналов сменилась, прибор стёрт,");
+                Console.WriteLine("    а модель разрешения осталась прежняя — поиск пиков считает ширины");
+                Console.WriteLine("    по кривой прибора, которого у документа больше нет (в отчёт полосы,");
+                Console.WriteLine("    не в отказ пробы: чем это заменить — решение Amber).");
+            }
+            Console.WriteLine();
+            return 0;
         }
 
         /// <summary>Сколько строк `BecqMoni:` (голосов `AppUi.Report` без окон) в перехваченном потоке ошибок.</summary>
@@ -1135,17 +1239,20 @@ namespace N42RoundTripProbe
         /// <summary>
         /// Одно плечо: создать документ (CreateDocument), записать (SaveDocument),
         /// закрыть, открыть (OpenDocument), подгрузить его же как фон
-        /// (LoadBackgroundSpectrum). Три числа голосов — три события. Код
+        /// (LoadBackgroundSpectrum), ввезти в него файл Atom Spectra
+        /// (ImportDocumentAtomSpectra) и CSV с энергиями
+        /// (ImportCsvEnergyToDocument). Пять чисел голосов — пять событий. Код
         /// возврата 1, если хоть одно число разошлось с ожиданием.
         /// </summary>
-        static int OneVoiceArm(string state, string path, int expectCreate, int expectOpen, int expectBg)
+        static int OneVoiceArm(string state, string path, int expectCreate, int expectOpen, int expectBg,
+                               int expectAtom, int expectCsv)
         {
             string head = state + " | " + Path.GetFileName(path);
             Console.WriteLine("=== " + head + " ===");
             DocumentManager dm = DocumentManager.GetInstance();
             List<string> voices = new List<string>();
-            int vCreate = -1, vOpen = -1, vBg = -1;
-            string sCreate = "?", sOpen = "?", sBg = "?";
+            int vCreate = -1, vOpen = -1, vBg = -1, vAtom = -1, vCsv = -1;
+            string sCreate = "?", sOpen = "?", sBg = "?", sAtom = "?", sCsv = "?";
             string trouble = null;
 
             if (File.Exists(path)) File.Delete(path);
@@ -1180,6 +1287,50 @@ namespace N42RoundTripProbe
                 dm.LoadBackgroundSpectrum(rd);
                 vBg = Voices(caught, voices);
                 sBg = rd.BackgroundEnergySpectrum == null ? "фон НЕ загружен" : "фон загружен";
+
+                // ⛔ `A240`, остаток (полоса F66): ещё две двери к тому же
+                //    `CheckDocument`. Ввоз идёт В ОТКРЫТЫЙ ДОКУМЕНТ — так это и
+                //    делает пункт меню, и состояние кривой у него уже своё.
+                //
+                //    ⚠ Сброс настройки спектра НАРОЧНО не задевается: у обеих
+                //    дверей он срабатывает от `ImportSpectrumWithEmptyConfig`
+                //    либо от несовпадения числа каналов, и у Atom Spectra тогда
+                //    звучит СВОЁ уведомление («каналов в файле не то»), которое
+                //    к кривой разрешения отношения не имеет и сбило бы счёт
+                //    голосов. Поэтому число каналов у сочинённых файлов — то же,
+                //    что у документа, а настройка на время плеча снята.
+                bool keepEmptyConfig = GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig;
+                GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig = false;
+                try
+                {
+                    int channels = rd.EnergySpectrum.NumberOfChannels;
+
+                    // 5. Ввоз Atom Spectra — ImportDocumentAtomSpectra -> CheckDocument.
+                    string atomPath = Path.Combine(Path.GetDirectoryName(path),
+                                                   Path.GetFileNameWithoutExtension(path) + "_ats.txt");
+                    WriteAtomSpectra(atomPath, channels);
+                    caught = new StringWriter();
+                    Console.SetError(caught);
+                    dm.ImportDocumentAtomSpectra(doc2, atomPath);
+                    vAtom = Voices(caught, voices);
+                    sAtom = CurveState(doc2.ActiveResultData) + ", отсчётов "
+                            + doc2.ActiveResultData.EnergySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
+
+                    // 6. Ввоз CSV с энергиями — ImportCsvEnergyToDocument -> CheckDocument.
+                    string csvPath = Path.Combine(Path.GetDirectoryName(path),
+                                                  Path.GetFileNameWithoutExtension(path) + "_energy.csv");
+                    WriteCsvEnergy(csvPath, channels);
+                    caught = new StringWriter();
+                    Console.SetError(caught);
+                    dm.ImportCsvEnergyToDocument(doc2, 600, csvPath);
+                    vCsv = Voices(caught, voices);
+                    sCsv = CurveState(doc2.ActiveResultData) + ", отсчётов "
+                           + doc2.ActiveResultData.EnergySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
+                }
+                finally
+                {
+                    GlobalConfigManager.GetInstance().GlobalConfig.ImportSpectrumWithEmptyConfig = keepEmptyConfig;
+                }
                 dm.CloseDocument(doc2);
             }
             catch (Exception ex)
@@ -1191,23 +1342,84 @@ namespace N42RoundTripProbe
                 Console.SetError(realErr);
             }
 
-            Console.WriteLine("  создание: голосов " + vCreate + ", " + sCreate);
-            Console.WriteLine("  открытие: голосов " + vOpen + ", " + sOpen);
-            Console.WriteLine("  фон:      голосов " + vBg + ", " + sBg);
+            Console.WriteLine("  создание:     голосов " + vCreate + ", " + sCreate);
+            Console.WriteLine("  открытие:     голосов " + vOpen + ", " + sOpen);
+            Console.WriteLine("  фон:          голосов " + vBg + ", " + sBg);
+            Console.WriteLine("  ввоз ats:     голосов " + vAtom + ", " + sAtom);
+            Console.WriteLine("  ввоз csv:     голосов " + vCsv + ", " + sCsv);
             if (trouble != null) Console.WriteLine("  ОТКАЗ: " + trouble);
             if (voices.Count > 0)
             {
                 Console.WriteLine("  ГОЛОСА:");
                 foreach (string v in voices) Console.WriteLine("    " + v);
             }
-            bool ok = trouble == null && vCreate == expectCreate && vOpen == expectOpen && vBg == expectBg;
+            bool ok = trouble == null && vCreate == expectCreate && vOpen == expectOpen && vBg == expectBg
+                      && vAtom == expectAtom && vCsv == expectCsv;
             string total = head + " -> создание " + vCreate + " (ожидалось " + expectCreate + "), открытие "
                            + vOpen + " (ожидалось " + expectOpen + "), фон " + vBg + " (ожидалось " + expectBg + ")"
+                           + ", ввоз ats " + vAtom + " (ожидалось " + expectAtom + "), ввоз csv "
+                           + vCsv + " (ожидалось " + expectCsv + ")"
                            + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ") + (trouble == null ? "" : "; " + trouble);
             Console.WriteLine("  ИТОГ: " + total);
             Console.WriteLine();
             armTotals.Add(total);
             return ok ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Файл Atom Spectra «FORMAT: 3» — вход двери `ImportDocumentAtomSpectra`
+        /// (`A240`, остаток, полоса F66). Порядок строк взят у самого разбора:
+        /// первые десять строк дверь читает ДВАЖДЫ (в первом заходе — только
+        /// чтобы взять десятую, число каналов), поэтому смещаться им нельзя.
+        ///   1 FORMAT: 3      2 примечание   3 время начала, мс   4 время конца
+        ///   5 широта         6 долгота      7 имя пробы          8 прибор
+        ///   9 длительность, с              10 каналов          11 степень
+        ///   12.. коэффициенты (степень + 1), дальше — отсчёты по каналам.
+        /// Калибровка нарочно линейная и возрастающая: `CheckCalibration` иначе
+        /// отвергает шкалу, и дверь говорит СВОЁ слово про калибровку, которое к
+        /// кривой разрешения отношения не имеет.
+        /// </summary>
+        static void WriteAtomSpectra(string path, int channels)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("FORMAT: 3");
+            sb.AppendLine("проба F66: вход двери Atom Spectra");
+            sb.AppendLine("1757000000000");
+            sb.AppendLine("1757000600000");
+            sb.AppendLine("55.7500");
+            sb.AppendLine("37.6100");
+            sb.AppendLine("F66-ATS");
+            sb.AppendLine("F66 probe device");
+            sb.AppendLine("600");
+            sb.AppendLine(channels.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("1");
+            sb.AppendLine("0");
+            sb.AppendLine("0.5");
+            for (int i = 0; i < channels; i++)
+            {
+                sb.AppendLine(((i % 7) + 1).ToString(CultureInfo.InvariantCulture));
+            }
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+        }
+
+        /// <summary>
+        /// CSV «энергия, отсчёты» — вход двери `ImportCsvEnergyToDocument`
+        /// (`A240`, остаток, полоса F66). Шапка обязана нести длительность в
+        /// виде `#0d0h10m0s`, иначе дверь считает время нулевым. Энергия слегка
+        /// нелинейна: дверь подгоняет по точкам многочлен 4-й степени, и на
+        /// строго прямой линии старший коэффициент вышел бы нулём.
+        /// </summary>
+        static void WriteCsvEnergy(string path, int channels)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Energy,Count #0d0h10m0s");
+            for (int i = 0; i < channels; i++)
+            {
+                double e = 0.5 * i + 1.0e-6 * i * i;
+                sb.AppendLine(e.ToString("F4", CultureInfo.InvariantCulture) + ","
+                              + ((i % 5) + 2).ToString(CultureInfo.InvariantCulture));
+            }
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
         }
 
         static string Cfg3(FWHMPeakDetectionMethodConfig cfg)

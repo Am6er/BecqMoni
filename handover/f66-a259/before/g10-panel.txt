@@ -1,0 +1,11 @@
+#	g10=1	a259=0
+honest	en	340	a74889fc6555c5a744f31d8dfd2e4801a8d472ea5d03b3502b4b27f2283061a5		0	1
+nocurve	en	334	899fbbacfa739a494a681e5171fc55629ef3e729a2142b4be761af7e4c8b85d2	no efficiency curve is chosen for this spectrum: activity not shown	2	1
+netneg	en	268	e1fafc7ca49d36b1f021045e6d434e7ec74fe8e5142967bf55ab1ee2105bbcf4	net count is not above zero: activity not shown	2	0
+lczero	en	150	2871b9d9591e6cc3b6b989aacfd5b143849eac133f078e1c5d29092009c8751f		0	0
+nobg	en	220	dafe5f1952fc62a48aad95a4019ae30a40b1c75c0eacc15320d864c9570538f4	no background spectrum: activity not shown	2	0
+honest	ru	340	7aae52564a5aad708847f3aab01eefd63d18e5dfdde897eaeb5baaa8d8aa3975		0	1
+nocurve	ru	350	6ba5a055c4a3a8847e42ce970d3fe9d739a0aa426a1579e4ceccf0fab3460575	для спектра не выбрана кривая эффективности: активность не показана	3	1
+netneg	ru	268	f86dc2a5ffef1b0f228978aec43965f489e5adf338de812bf01c322a83e68c6f	нетто не выше нуля: активность не показана	2	0
+lczero	ru	150	9169ac9bb87602e8e503a64ec02851aef9a6e5bf42f3cefc0005837de6b6a3b5		0	0
+nobg	ru	220	d299af00132528b47aa997c21ceb219541c1f8db22aeeb3076d00d79dc727411	фонового спектра нет: активность не показана	2	0
