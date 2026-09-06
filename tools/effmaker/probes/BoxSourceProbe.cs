@@ -95,18 +95,47 @@ namespace BoxSourceProbe
         static double sdPooled, anPooled;
         static int pooledCount;
 
-        static bool Flag(string v)
+        /// <summary>
+        /// Строгий разбор булева ключа (`A77`, вторая волна 06.09.2026). Принимает
+        /// РОВНО <c>0</c> и <c>1</c>; на всё остальное бросает, и прогон кончается
+        /// в первую секунду.
+        ///
+        /// ⛔ Прежний разбор был `v == "1" || v == "on" || v == "true"`, то есть
+        /// ЛЮБОЕ неизвестное значение он молча толковал как ЛОЖЬ. Это та же беда
+        /// `A77`, что и в `CorpusMatrixProbe` (там неизвестное шло за ИСТИНУ), и
+        /// стоила она там трёх часов счёта: ключ синтаксически прежний, значение
+        /// просто «понятное». ⚠ Хуже того, ключи здесь называются ТАК ЖЕ, как в
+        /// `CorpusMatrixProbe` (`--pairth=`, `--positron=`, `--rayl2=` …), а
+        /// толковались ИНАЧЕ: `--pairth=far` там отказ, здесь молча «выключено»,
+        /// `--pairth=on` там отказ, здесь «включено». Два разбора одних и тех же
+        /// ключей, расходящиеся молча, — ровно тот случай, ради которого `A77` и
+        /// заведена; поэтому правило здесь ТО ЖЕ, что там, а не своё.
+        /// </summary>
+        static bool Flag(string arg, int prefix)
         {
-            return v == "1" || string.Equals(v, "on", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
+            string key = arg.Substring(0, prefix);
+            string value = arg.Substring(prefix);
+            if (value == "0") return false;
+            if (value == "1") return true;
+            throw new ArgumentException(
+                "ключ " + key + " понимает только 0 и 1, а получил «" + value
+                + "». Разбор строгий (`A77`): прежний считал ЛЮБОЕ неизвестное "
+                + "значение ложью и молчал.");
         }
 
         static int Main(string[] args)
         {
+            // ⛔ Разделитель дробной части — ВСЕГДА ТОЧКА (правило Amber
+            // 05.09.2026, `A242`). Разбор ключей здесь и так шёл инвариантной
+            // культурой, а ПЕЧАТЬ — культурой потока, и проба выдавала «полоса
+            // 3,3 СКО среднего». Обе стороны чинятся вместе.
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             int n = 200000;
             double tolerance = 0.05;
             int spread = 0;
             var dirs = new System.Collections.Generic.List<string>();
+            try
+            {
             foreach (string a in args)
             {
                 if (a.StartsWith("--n="))
@@ -139,33 +168,42 @@ namespace BoxSourceProbe
                 }
                 else if (a.StartsWith("--klcasc="))
                 {
-                    physics.KLCascade = Flag(a.Substring(9));
+                    physics.KLCascade = Flag(a, 9);
                 }
                 else if (a.StartsWith("--lx="))
                 {
-                    physics.LXrayEscape = Flag(a.Substring(5));
+                    physics.LXrayEscape = Flag(a, 5);
                 }
                 else if (a.StartsWith("--pairth="))
                 {
-                    physics.XcomPairThreshold = Flag(a.Substring(9));
+                    physics.XcomPairThreshold = Flag(a, 9);
                 }
                 else if (a.StartsWith("--positron="))
                 {
-                    physics.PositronTransport = Flag(a.Substring(11));
+                    physics.PositronTransport = Flag(a, 11);
                 }
                 else if (a.StartsWith("--posoffset="))
                 {
-                    physics.PositronOffset = Flag(a.Substring(12));
+                    physics.PositronOffset = Flag(a, 12);
                 }
                 else if (a.StartsWith("--rayl2="))
                 {
-                    physics.RayleighToCrystal = Flag(a.Substring(8));
+                    physics.RayleighToCrystal = Flag(a, 8);
                 }
                 else
                 {
                     Console.WriteLine("не знаю ключа: " + a);
                     return 2;
                 }
+            }
+            }
+            catch (ArgumentException e)
+            {
+                // `A77`: ОТКАЗ, а не предупреждение. Предупреждение в первой
+                // строке прогона никто не читает, а мёртвый ключ виден только
+                // по итогу — то есть уже после счёта.
+                Console.Error.WriteLine("⛔ " + e.Message);
+                return 2;
             }
 
             if (spread > 0)

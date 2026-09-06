@@ -71,8 +71,35 @@ namespace FsaDeterminismProbeF29
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--runs=", StringComparison.Ordinal)) runs = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
-                else if (a.StartsWith("--phase=", StringComparison.Ordinal)) phase = a.Substring(8);
-                else if (a.StartsWith("--source=", StringComparison.Ordinal)) nucBase = a.Substring(9) == "nucbase";
+                // ⛔ `A77`, вторая волна 06.09.2026: у ОБОИХ названных ключей
+                // разбор строгий — принимаются только перечисленные значения,
+                // на прочее отказ с кодом 2. Прежде `--phase=` брался свободной
+                // строкой (неизвестная фаза не совпадала ни с одним `if` ниже, и
+                // проба МОЛЧА не мерила ничего, отчитавшись успехом), а
+                // `--source=` был `== "nucbase"` — то есть всякая опечатка молча
+                // означала «по подписям пиков», и мерился НЕ ТОТ путь.
+                else if (a.StartsWith("--phase=", StringComparison.Ordinal))
+                {
+                    phase = a.Substring(8);
+                    if (phase != "fsa" && phase != "peaks" && phase != "both")
+                    {
+                        Console.Error.WriteLine("⛔ ключ --phase= понимает только fsa, peaks и both, а получил «"
+                                                + phase + "». Разбор строгий (`A77`).");
+                        return 2;
+                    }
+                }
+                else if (a.StartsWith("--source=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(9);
+                    if (v == "nucbase") nucBase = true;
+                    else if (v == "peaks") nucBase = false;
+                    else
+                    {
+                        Console.Error.WriteLine("⛔ ключ --source= понимает только nucbase и peaks, а получил «"
+                                                + v + "». Разбор строгий (`A77`).");
+                        return 2;
+                    }
+                }
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
