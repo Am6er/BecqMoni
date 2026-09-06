@@ -1173,8 +1173,10 @@ namespace BecquerelMonitor
         /// геометрий разницы не было: они писаны нашим писателем из той же
         /// библиотеки, и числа совпадали.
         ///
-        /// `false` — вернулись из правки БИБЛИОТЕКИ, и новый состав взять
-        /// неоткуда, кроме неё: он и есть смысл той правки.
+        /// `false` — вернулись из правки БИБЛИОТЕКИ, И ЭТО ВЕЩЕСТВО ею тронуто:
+        /// новый состав взять неоткуда, кроме неё, он и есть смысл той правки.
+        /// ⛔ Слоты, которых правка не касалась, идут сюда с `true` (`A262`):
+        /// решает не «откуда пришли», а «изменилось ли ЭТО вещество».
         /// </param>
         void SelectMaterial(string key, GeometryMaterial material, bool keepComposition)
         {
@@ -1249,6 +1251,15 @@ namespace BecquerelMonitor
         /// работает при открытии геометрии, — и переименованное вещество он
         /// оставит как есть, а список опустошит, вместо того чтобы молча выбрать
         /// первое попавшееся.
+        ///
+        /// ⛔ Состав из библиотеки берётся ТОЛЬКО у слотов, чьё вещество эта
+        /// правка и правда изменила (`A262`). Прежде он брался у всех пяти —
+        /// и «ОК», нажатый без единой правки, двигал клеймо сцены, объявляя
+        /// посчитанную матрицу устаревшей на пустом месте: у файлов ЛСРМ доли
+        /// записаны короче библиотечных (`0.04196` против `0.0419585`), а
+        /// отпечатку эта разница неотличима от настоящей. Кого правка
+        /// коснулась, решает <see cref="GeometryMaterialLibrary.CompositionChanged"/>
+        /// по снимкам библиотеки ДО и ПОСЛЕ окна.
         /// </summary>
         void EditMaterials(string key, GeometryMaterialLibrary.MaterialKind kind)
         {
@@ -1259,6 +1270,8 @@ namespace BecquerelMonitor
                 was[pair.Key] = this.MaterialOf(pair.Key, this.Get(pair.Key + ".Density"));
             }
 
+            List<GeometryMaterialLibrary.Entry> before = SnapshotMaterials();
+
             using (GeometryMaterialEditorForm form = new GeometryMaterialEditorForm(kind))
             {
                 if (form.ShowDialog(this) != DialogResult.OK)
@@ -1266,6 +1279,8 @@ namespace BecquerelMonitor
                     return;
                 }
             }
+
+            List<GeometryMaterialLibrary.Entry> after = SnapshotMaterials();
 
             bool wasLoading = this.loading;
             this.loading = true;
@@ -1275,10 +1290,17 @@ namespace BecquerelMonitor
                 {
                     pair.Value.Items.Clear();
                     FillMaterialCombo(pair.Value, this.materialKinds[pair.Key]);
-                    // Здесь состав берётся ИЗ БИБЛИОТЕКИ (`A139`): её правка —
-                    // осознанное действие человека, и новый состав обязан
-                    // доехать до геометрии. Отличается ровно этим от загрузки.
-                    this.SelectMaterial(pair.Key, was[pair.Key], false);
+
+                    // Состав из библиотеки — только там, где правка его и
+                    // изменила (`A139` живёт, `A262` вылечена): осознанная
+                    // правка обязана доехать до геометрии, а нетронутое
+                    // вещество обязано остаться СВОИМ, до последнего знака
+                    // записи. Отличается ровно этим и от загрузки, и от
+                    // прежнего поведения.
+                    GeometryMaterial material = was[pair.Key];
+                    bool touched = material != null
+                        && GeometryMaterialLibrary.CompositionChanged(material.Name, before, after);
+                    this.SelectMaterial(pair.Key, material, !touched);
                 }
             }
             finally
@@ -1291,6 +1313,25 @@ namespace BecquerelMonitor
             // «Сохранить» обязана ожить: иначе библиотека уже новая, а в
             // конфигурации прибора остался прежний состав.
             this.RefreshSketch();
+        }
+
+        /// <summary>
+        /// Снимок действующей библиотеки — СВОИМИ копиями, а не ссылками: после
+        /// правки `GeometryMaterialStore` держит уже другой список, а прежние
+        /// записи должны пережить окно, иначе сравнивать «до» будет не с чем.
+        /// </summary>
+        static List<GeometryMaterialLibrary.Entry> SnapshotMaterials()
+        {
+            List<GeometryMaterialLibrary.Entry> copy = new List<GeometryMaterialLibrary.Entry>();
+            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialStore.Entries)
+            {
+                if (entry != null)
+                {
+                    copy.Add(entry.Clone());
+                }
+            }
+
+            return copy;
         }
 
         void MaterialChanged(string key)
