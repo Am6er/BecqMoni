@@ -1,0 +1,209 @@
+читатель сторожей: 12 к вызову (заведомо красных по строкам реестра пропущено 1 — см. --all)
+  пропущен tools/check_registry.py — ЗЕЛЕН с 06.09.2026 («РЕЕСТР ЧИСТ»), но идёт 100 с и потому не в умолчании: восемь ссылок на файлы, лежавшие только на диске (S61, S134, T134, T223), переписаны на копии в handover/registry-artefacts/; противоречия DONE.md по T102 сняты по решению Amber
+
+→ зову: python tools/check_registry_refs.py
+    реестры: DONE.md — 329 строк, TODO.md — 550 строк
+    известных номеров всего: 877, буквы: ABCDEFMNPRSTVWX
+    обойдено файлов: 1182 (из них журналов-записей 171), строгих ссылок проверено: 8213
+    исключено по правилу: 142 ссылок (A200 ×22, A231 ×5, A232 ×5, A233 ×5, A9998, C12 ×11, F0 ×16, F36 ×7, N0 ×19, N42 ×9, P0 ×2, P1 ×3, P25 ×4, T1 ×8, T39 ×8, T51 ×7, T224 ×5, T9999 ×2, X12 ×3)
+      правило «удалена решением Amber; ссылка в журнале историчная»: A200 ×22, A231 ×5, A232 ×5, A233 ×5, T1 ×8, T39 ×8, T51 ×7, T224 ×5
+        A200 — удалена приказом Amber 05.09.2026 вместе с A231–A233, T224 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A231 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A232 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A233 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T1 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо»: «Удалить задачу T1»)
+        T224 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T39 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+        T51 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+      правило «приоритет строки P0–P3, а не её номер»: P0 ×2, P1 ×3
+      правило «формат числа .NET (номер 0 или буква DEFGNX на строке о печати чисел)»: F0 ×16, N0 ×19, N42 ×3, X12 ×3
+      правило «имя полосы захода на строке о полосе/журнале/обрыве»: C12 ×11, F36 ×5, P25 ×2
+      правило «цитата положительного контроля (строка сама так себя называет)»: A9998, T9999 ×2
+      правило «поимённо, NOT_A_REF с причиной»: F36 ×2, N42 ×6, P25 ×2
+        F36 — полоса захода 05.09.2026, оборвана (журнал handover-2026-09-05-f37-s132.md), а не строка
+        N42 — формат файла ANSI N42 (стандарт спектров), а не строка реестра
+        P25 — 25-й процентиль в записи статистики (handover-2026-09-05-f5-v18-v19.md), а не строка
+    битых строгих ссылок: 0
+✅ tools/check_registry_refs.py: код 0, 1.4 с
+
+→ зову: python tools/check_build_recipe.py
+    обойдено файлов: 2254 (из них журналов-записей 1037, вне git 194)
+    копий рецепта найдено: 65; судимых 30 (с ключом 30, БЕЗ ключа 0)
+    не судим по правилу «журнал — запись» (T219): 31 копий, из них без ключа — историчных 16
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:7
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:15
+        запись: handover/g2-guard-readers/05-control-bad-recipe.txt:7
+        запись: handover/g2-guard-readers/05-control-reader-stops.txt:32
+        запись: handover/handover-2026-08-13.md:200
+        запись: handover/handover-2026-08-14.md:256
+        запись: handover/handover-2026-08-15-evening.md:202
+        запись: handover/handover-2026-08-15.md:274
+        запись: handover/handover-2026-08-16-evening.md:311
+        запись: handover/handover-2026-08-16-night.md:193
+        запись: handover/handover-2026-08-16.md:132
+        запись: handover/handover-2026-08-17-fluorescence.md:202
+        запись: handover/handover-2026-08-17-matrix-speed.md:447
+        запись: handover/handover-2026-08-17.md:190
+        запись: handover/handover-2026-08-18-cascade-xray.md:228
+        запись: handover/handover-2026-09-05-f19-cleanup.md:239
+    не судим по правилу «вне git — за Amber»: 4 копий, из них без ключа 2
+        ⚠ ПРЕДУПРЕЖДЕНИЕ (за Amber): .claude/settings.local.json:6 — без ключа
+        ⚠ ПРЕДУПРЕЖДЕНИЕ (за Amber): AGENTS.md:27 — без ключа
+    копий без ключа среди судимых: 0
+    
+    с ключом (для сверки):
+      handover/f11-a230/run_f11.ps1:5
+      handover/f16-a246-a247/build_f16.ps1:14
+      handover/f18-p8a/build_f18.ps1:9
+      handover/f20-f17-accept/build_f20.ps1:16
+      handover/f21-a248/build_f21.ps1:30
+      handover/f22-a245-p5p6/build_f22.ps1:16
+      handover/f23-a212/build_f23.ps1:31
+      handover/f25-f22-finish/build_f25.ps1:16
+      handover/f26-a249/build_f26.ps1:17
+      handover/f27-p4/build_f27.ps1:17
+      handover/f28-p8/build_f28.ps1:16
+      handover/f29-a250/build_f29.ps1:17
+      handover/f30-a251/build_f30.ps1:13
+      handover/f34-p8-finish/build_f34.ps1:15
+      handover/f35-p9/build_f35.ps1:15
+      handover/f4-a185/build_f4.ps1:7
+      handover/f41-a211-t119/build_f41.ps1:20
+      handover/f43-e17-e19/build_f43.ps1:14
+      handover/f45-e17-e19/build_f45.ps1:20
+      handover/f47-p8-tail/build_f47.ps1:17
+      handover/f48-s44-nan/build_before_f48.ps1:20
+      handover/f48-s44-nan/build_f48.ps1:20
+      handover/f49-a190-a228/build_f49.ps1:31
+      handover/f50-final/build_f50.ps1:16
+      handover/f51-a205/build_f51.ps1:18
+      handover/f53-a252/build_f53.ps1:32
+      handover/f8-a219/build_f8.ps1:8
+      handover/f8-a219/run_f8.ps1:3
+      handover/g1-doserateprobe/build_g1.ps1:15
+      tools/effmaker/run.ps1:36
+✅ tools/check_build_recipe.py: код 0, 2.1 с
+
+→ зову: python tools/check_resx.py
+    
+    русских resx просмотрено: 32, из них с английской парой: 32
+    файлов с расхождением: 0
+    непереведённых осмысленных строк: 0
+      из них ключ есть, а значение пусто: 0
+    ключей, которых нет в английской паре: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx.py: код 0, 4.7 с
+
+→ зову: python tools/check_resx_designer.py
+    
+    обращений с литеральным именем проверено: 822
+      из них через ОДИН шаг (обёртка или член): 48
+    ключей, которых нет в нейтральном resx: 0
+    обращений с вычисляемым именем: 4, из них разобрано одним шагом: 3
+    обращений с вычисляемым именем (проверке недоступны): 1
+          обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1)
+          члены:   Resource
+    вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 9
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_designer.py: код 0, 11.0 с
+
+→ зову: python tools/check_resx_letters.py
+    
+    английских resx просмотрено: 45, русских: 32
+    генерируемых *.Designer.cs: 46, значений в них: 3822
+    находок: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_letters.py: код 0, 4.0 с
+
+→ зову: python tools/check_resx_zorder.py
+    пар Foo.Designer.cs / Foo.resx: 43
+    контейнеров проверено: 87, с расхождением: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    ==========================================================================
+    расхождений нет
+✅ tools/check_resx_zorder.py: код 0, 3.6 с
+
+→ зову: python tools/check_headless.py
+    Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+      файлов приложения: 501, типов: 683, проб: 134
+      оконных типов по наследованию: 82; засев от проб: 256 типов
+      достижимо БЕЗ окон: 543 типов; барьер (оконные): 22
+      оконных типов, которые пробы СТРОЯТ (`new T(...)`): 32 — их конструкторы ALLOW не обеляет
+      живых MessageBox.Show: 149
+    
+    
+    итого: безоконный путь 0, оконные 149, вне разряда 0
+    ЧИСТО: в безоконном пути модальных окон нет.
+✅ tools/check_headless.py: код 0, 3.2 с
+
+→ зову: python tools/check_menu_accelerators.py
+    
+    АНГЛИЙСКИЙ: узлов 10, пунктов 69, с ускорителем 41, столкновений 0
+    РУССКИЙ:    узлов 10, пунктов 69, с ускорителем 41, столкновений 0
+    узлов AddRange в Designer всего 11, из них в дереве меню 10
+    подписей, заданных кодом (MainForm.cs): 1
+          showLogToolStripMenuItem <- Resources.MenuShowLog  (строка 1806): en 'Show log' / ru 'Показать журнал'
+    пунктов, добавляемых в меню кодом (разбору недоступны): 0
+    СОШЛОСЬ
+✅ tools/check_menu_accelerators.py: код 0, 0.1 с
+
+→ зову: python tools/check_fsa_docs.py
+    FsaAnalyzer.cs: описаний 128, умолчаний 39 (из них конструктор ставит 23)
+    ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+    # §9а: строки и владельцы
+    
+    строк в таблицах: 33
+    
+    # Открытые строки, которые не называют задачи
+    
+      нет
+    
+    # Ссылки в пустоту
+    
+      нет
+    
+    # Открытые строки, чья задача уже в DONE.md
+    
+      К глазам: либо дыра закрыта и здесь не отмечена, либо
+      закрыто другое. Прогон этим не валится.
+      F-2   строка 1155  -> T27 (в DONE.md)
+    
+    §9а СОШЁЛСЯ С РЕЕСТРОМ
+✅ tools/check_scheme_gaps.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_library.py
+    ⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026)
+      ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+      ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+    НАХОДОК: 0
+✅ tools/check_corpus_library.py: код 0, 0.0 с
+
+→ зову: python tools/check_done_headers.py
+    === счёт ===
+    строк таблицы в DONE.md: 329
+    разобрано (заголовок выделен): 329
+    заголовков со словами незнания: 5
+    ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): 0
+    порядок: противоречий не найдено
+✅ tools/check_done_headers.py: код 0, 0.1 с
+
+=== сводка ===
+  ✅ check_registry_refs.py — код 0, 1.4 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ check_build_recipe.py — код 0, 2.1 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ check_resx.py — код 0, 4.7 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ check_resx_designer.py — код 0, 11.0 с — GetString("X") без X в парном resx
+  ✅ check_resx_letters.py — код 0, 4.0 с — кириллица в английских resx и наоборот
+  ✅ check_resx_zorder.py — код 0, 3.6 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ check_headless.py — код 0, 3.2 с — окна на безоконном пути
+  ✅ check_menu_accelerators.py — код 0, 0.1 с — столкновения ускорителей главного меню
+  ✅ check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ check_scheme_gaps.py — код 0, 0.1 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ check_corpus_library.py — код 0, 0.0 с — корпус не читает поставочную библиотеку
+  ✅ check_done_headers.py — код 0, 0.1 с — заголовок строки DONE.md против её тела
+ВСЕ ЗЕЛЕНЫ: 12 из 12 сторожей дали 0.
