@@ -18,6 +18,10 @@ namespace BecquerelMonitor
             this.mainForm = mainForm;
             this.InitializeComponent();
 
+            // (`A255`) Выбор строки таблицы уходит на график активного
+            // документа — по образцу `FSAReportView` (`A246`).
+            this.table1.SelectionChanged += this.Table1_SelectionChanged;
+
             this.RefreshNuclideSets();
         }
 
@@ -26,6 +30,13 @@ namespace BecquerelMonitor
         {
             this.FormLoading = true;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            // (`A255`) Сменился документ — выделение снимается у ПРЕЖНЕГО, пока
+            // ссылка на него ещё здесь: панель на него больше не смотрит, и
+            // снять полосу с метки было бы некому.
+            if (!ReferenceEquals(activeDocument, this.highlightedDocument))
+            {
+                this.ClearHighlight();
+            }
             // Набор нуклидов этого документа встаёт в список ПЕРВЫМ делом:
             // ниже метод не раз выходит досрочно — нет результата, нет
             // конфигурации прибора, нет калибровки ПШПВ, — а список наборов
@@ -33,7 +44,7 @@ namespace BecquerelMonitor
             this.ShowNuclideSetOf(activeDocument);
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
                 return;
             }
@@ -41,7 +52,7 @@ namespace BecquerelMonitor
             DeviceConfigInfo deviceConfigInfo = activeResultData.DeviceConfig;
             if (deviceConfigInfo == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
                 return;
             }
@@ -83,7 +94,7 @@ namespace BecquerelMonitor
             }
             if (!(activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
                 return;
             }
@@ -234,7 +245,7 @@ namespace BecquerelMonitor
                     // исключение, брошенное ИЗ catch в методе `async void`,
                     // некому поймать — оно валит процесс. Чистка списка строк
                     // ничего не читает и бросить не может.
-                    this.tableModel1.Rows.Clear();
+                    this.ClearRows();
                     this.ShowDetectionFailure(ex);
                 }
             }
@@ -304,13 +315,13 @@ namespace BecquerelMonitor
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             if (activeResultData.DetectedPeaks == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 return;
             }
             List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
@@ -320,11 +331,11 @@ namespace BecquerelMonitor
                 EnergyCalibration energyCalibration = activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
                 if (energyCalibration == null)
                 {
-                    this.tableModel1.Rows.Clear();
+                    this.ClearRows();
                     return;
                 }
 
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 foreach (Peak peak in peaks)
                 {
                     Row row = new Row();
@@ -356,6 +367,9 @@ namespace BecquerelMonitor
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
                     row.Cells.Add(new Cell(peak.FWHM.ToString("f0", CultureInfo.InvariantCulture) + ", " + resolution.ToString("f1", CultureInfo.InvariantCulture) + "% ±" + peak.FWHM_DELTA.ToString("f1", CultureInfo.InvariantCulture)));
+                    // (`A255`) Строка несёт свой пик: по нему график рисует
+                    // выделение, а не по разбору текста ячеек.
+                    row.Tag = peak;
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();
@@ -613,6 +627,134 @@ namespace BecquerelMonitor
             {
                 activeDocument.EnergySpectrumView.Invalidate();
             }
+        }
+
+        // ------------------------------------------------------------------
+        // (`A255`) Выделение выбранного пика на графике
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Документ, графику которого отдано выделение; null — выделения нет.
+        /// Хранится отдельно от <c>mainForm.ActiveDocument</c>: снимать
+        /// выделение надо у ТОГО документа, которому оно было отдано, а
+        /// активным к этому времени может быть уже другой.
+        /// </summary>
+        DocEnergySpectrum highlightedDocument;
+
+        /// <summary>
+        /// Таблицу сейчас перестраивает код — событие выбора в этот момент не
+        /// значит выбора человека (по образцу `FSAReportView.suspendSelection`).
+        /// </summary>
+        bool suspendSelection;
+
+        void Table1_SelectionChanged(object sender, XPTable.Events.SelectionEventArgs e)
+        {
+            if (this.suspendSelection)
+            {
+                return;
+            }
+            this.PushHighlight();
+        }
+
+        /// <summary>
+        /// Сказать графику активного документа, какие пики выбраны. ⛔ Ничего,
+        /// кроме краски, это не меняет: ни поиска, ни таблицы, ни чисел.
+        /// Строки выбрано несколько — уходят все; строк без пика (нет `Tag`)
+        /// или выбора вовсе — выделение снимается.
+        /// </summary>
+        void PushHighlight()
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (!ReferenceEquals(activeDocument, this.highlightedDocument))
+            {
+                this.ClearHighlight();
+            }
+            if (activeDocument == null || activeDocument.IsDisposed || activeDocument.EnergySpectrumView == null)
+            {
+                return;
+            }
+
+            List<Peak> picked = null;
+            foreach (Row row in this.table1.SelectedItems)
+            {
+                Peak peak = row.Tag as Peak;
+                if (peak != null)
+                {
+                    if (picked == null)
+                    {
+                        picked = new List<Peak>();
+                    }
+                    picked.Add(peak);
+                }
+            }
+
+            activeDocument.EnergySpectrumView.HighlightedPeaks = picked;
+            this.highlightedDocument = picked != null ? activeDocument : null;
+        }
+
+        /// <summary>Снять выделение у документа, которому оно было отдано.</summary>
+        void ClearHighlight()
+        {
+            DocEnergySpectrum document = this.highlightedDocument;
+            this.highlightedDocument = null;
+            if (document != null && !document.IsDisposed && document.EnergySpectrumView != null)
+            {
+                document.EnergySpectrumView.HighlightedPeaks = null;
+            }
+        }
+
+        /// <summary>
+        /// Очистить таблицу — вместе с выбором и выделением на графике. Пики
+        /// перечитываются заново (смена документа, повторный поиск, отказ), и
+        /// прежний выбор указывал бы на строки, которых больше нет.
+        /// `Rows.Clear()` сам выбор не снимает — снимается явно.
+        /// </summary>
+        void ClearRows()
+        {
+            this.suspendSelection = true;
+            try
+            {
+                this.tableModel1.Selections.Clear();
+                this.tableModel1.Rows.Clear();
+            }
+            finally
+            {
+                this.suspendSelection = false;
+            }
+            this.ClearHighlight();
+        }
+
+        /// <summary>Документ, на графике которого сейчас выделены пики; null — нет (пробы).</summary>
+        public DocEnergySpectrum HighlightedDocument
+        {
+            get { return this.highlightedDocument; }
+        }
+
+        /// <summary>
+        /// Выбрать строки таблицы по номерам — ТЕМ ЖЕ путём, каким их выбирает
+        /// мышь, через <c>Selections</c> (пробы). Пусто — снять выбор.
+        /// false — хотя бы одного номера в таблице нет; выбор тогда не трогается.
+        /// </summary>
+        public bool SelectPeakRows(params int[] rows)
+        {
+            if (rows == null || rows.Length == 0)
+            {
+                this.tableModel1.Selections.Clear();
+                return true;
+            }
+            foreach (int row in rows)
+            {
+                if (row < 0 || row >= this.tableModel1.Rows.Count)
+                {
+                    return false;
+                }
+            }
+            this.tableModel1.Selections.SelectCell(rows[0], 0);
+            for (int i = 1; i < rows.Length; i++)
+            {
+                this.tableModel1.Selections.AddCell(rows[i], 0);
+            }
+            return true;
         }
 
         // Token: 0x040001B3 RID: 435

@@ -136,6 +136,7 @@ namespace N42RoundTripProbe
             if (mode == "res") return Res();
             if (mode == "specutils") return SpecUtils();
             if (mode == "noconfig") return NoConfig();
+            if (mode == "origin") return Origin();
             Console.Error.WriteLine("неизвестный --mode: " + mode);
             return 2;
         }
@@ -934,6 +935,242 @@ namespace N42RoundTripProbe
             Console.WriteLine("=== ИТОГ ===");
             foreach (string s in armTotals) Console.WriteLine("  " + s);
             return 0;
+        }
+
+        // ==================================================================
+        // ⛔ ОТКУДА У ДОКУМЕНТА ПОСЛЕ ДВЕРИ НАСТРОЙКИ ПРИБОРА (`A239`, полоса G8,
+        //    06.09.2026). Строка `A239` знала только, что после двери N42 кривая
+        //    разрешения ЕСТЬ там, где по настройкам прибора документа её быть не
+        //    может, и ПОДОЗРЕВАЛА `new ResultData()` в разборе 2012 года.
+        //    Подозрение — не замер. Здесь по каждому спектру документа ПОСЛЕ
+        //    двери печатается, чьи у него настройки: конфигурация прибора (тот
+        //    же объект, что был у документа до двери, или свежий
+        //    `DeviceConfigInfo`), ссылка на неё, конфигурация ROI, три числа
+        //    настроек поиска пиков (FWHM_AT_0, Ch_Fwhm, Width_Fwhm) — и кривая
+        //    разрешения по её опорным точкам. Сравнение — с документом ДО двери
+        //    и со ВСТРОЕННЫМИ умолчаниями `new FWHMPeakDetectionMethodConfig()`.
+        //
+        //    ⛔ Обе двери на одном списке: приговор «настройки чужие» у одной
+        //    двери без той же мерки у второй ничего не значил бы — двери уже
+        //    трижды расходились на одном файле (`A160`, `A175`, `A216`).
+        //
+        //    Плечо со СЛОМАННЫМ умолчанием (то же, что в --mode=noconfig)
+        //    показывает, чья кривая появляется там, где у прибора документа её
+        //    построить нельзя: если после двери кривая есть и её опорные точки
+        //    — встроенные 15/3756/103, значит человек получил модель разрешения
+        //    выдуманного прибора.
+        // ==================================================================
+        static int Origin()
+        {
+            if (outDir == null)
+            {
+                Console.Error.WriteLine("нужен --out=<каталог с файлами спектров>");
+                return 2;
+            }
+            string[] files = Directory.GetFiles(outDir, "*.n42");
+            Array.Sort(files, StringComparer.Ordinal);
+
+            DeviceConfigManager dcm = DeviceConfigManager.GetInstance();
+            if (dcm.DeviceConfigList.Count == 0)
+            {
+                Console.Error.WriteLine("конфигураций приборов не загружено — мерить не с чем");
+                return 2;
+            }
+            FWHMPeakDetectionMethodConfig builtin = new FWHMPeakDetectionMethodConfig();
+            Console.WriteLine("=== ЧЬИ НАСТРОЙКИ У ДОКУМЕНТА ПОСЛЕ ДВЕРИ (`A239`) ===");
+            Console.WriteLine("  каталог: " + Path.GetFullPath(outDir));
+            Console.WriteLine("  файлов: " + files.Length);
+            Console.WriteLine("  конфигурация документа: «" + dcm.DeviceConfigList[0].Name + "», настройки поиска пиков "
+                              + Cfg3((FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig));
+            Console.WriteLine("  встроенные умолчания new FWHMPeakDetectionMethodConfig(): " + Cfg3(builtin));
+            Console.WriteLine();
+
+            int rc = 0;
+            rc |= OriginArm("КОНФИГУРАЦИЯ ИСПРАВНА", "SpecUtils", files, builtin);
+            rc |= OriginArm("КОНФИГУРАЦИЯ ИСПРАВНА", "N42", files, builtin);
+
+            // Умолчание по прибору документа НЕ строится — то же плечо, что в
+            // --mode=noconfig, правка живёт только в памяти и возвращается в finally.
+            FWHMPeakDetectionMethodConfig broken =
+                (FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig;
+            double keepAt0 = broken.FWHM_AT_0, keepWidth = broken.Width_Fwhm;
+            FwhmCalibration keepCurve = broken.FwhmCalibration;
+            broken.FWHM_AT_0 = 40.0;
+            broken.Width_Fwhm = 1.0;
+            broken.FwhmCalibration = null;
+            try
+            {
+                Console.WriteLine("--- у конфигурации «" + dcm.DeviceConfigList[0].Name + "» умолчание не строится: "
+                                  + Cfg3(broken) + " ---");
+                Console.WriteLine();
+                rc |= OriginArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "SpecUtils", files, builtin);
+                rc |= OriginArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", "N42", files, builtin);
+            }
+            finally
+            {
+                broken.FWHM_AT_0 = keepAt0;
+                broken.Width_Fwhm = keepWidth;
+                broken.FwhmCalibration = keepCurve;
+            }
+
+            Console.WriteLine("=== ИТОГ ===");
+            foreach (string s in armTotals) Console.WriteLine("  " + s);
+            return rc;
+        }
+
+        static string Cfg3(FWHMPeakDetectionMethodConfig cfg)
+        {
+            if (cfg == null) return "(настроек нет)";
+            return "(" + cfg.FWHM_AT_0.ToString("0.###", CultureInfo.InvariantCulture)
+                 + "/" + cfg.Ch_Fwhm.ToString("0.###", CultureInfo.InvariantCulture)
+                 + "/" + cfg.Width_Fwhm.ToString("0.###", CultureInfo.InvariantCulture) + ")";
+        }
+
+        static bool SameCfg3(FWHMPeakDetectionMethodConfig a, FWHMPeakDetectionMethodConfig b)
+        {
+            return a != null && b != null
+                && a.FWHM_AT_0 == b.FWHM_AT_0 && a.Ch_Fwhm == b.Ch_Fwhm && a.Width_Fwhm == b.Width_Fwhm;
+        }
+
+        /// <summary>Опорные точки кривой разрешения: «канал:ПШПВ», по ним видно, чьё умолчание её построило.</summary>
+        static string Curve(FwhmCalibration c)
+        {
+            if (c == null) return "null";
+            if (c.CalibrationPeaks == null) return c.GetType().Name;
+            StringBuilder sb = new StringBuilder();
+            sb.Append(c.GetType().Name).Append('[');
+            for (int i = 0; i < c.CalibrationPeaks.Count; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                sb.Append(c.CalibrationPeaks[i].Channel).Append(':')
+                  .Append(c.CalibrationPeaks[i].FWHM.ToString("0.###", CultureInfo.InvariantCulture));
+            }
+            return sb.Append(']').ToString();
+        }
+
+        /// <summary>
+        /// Одно плечо: документ приложения (CreateDocument), названная дверь,
+        /// после двери — чьи настройки у КАЖДОГО спектра списка.
+        /// Код возврата 1, если хоть у одного ввезённого спектра настройки
+        /// поиска пиков — встроенные умолчания, а не документа; это и есть
+        /// приговор `A239`, и после правки он обязан стать 0.
+        /// </summary>
+        static int OriginArm(string configState, string door, string[] files, FWHMPeakDetectionMethodConfig builtin)
+        {
+            string head = configState + " | документ приложения | дверь " + door;
+            Console.WriteLine("=== " + head + " ===");
+            int ok = 0, failed = 0, spectra = 0, cfgDoc = 0, cfgBuiltin = 0, cfgOther = 0,
+                devSame = 0, devFresh = 0, roiSame = 0, roiNull = 0, roiFresh = 0,
+                curveNull = 0, curveDoc = 0, curveBuiltin = 0, curveOther = 0, spoke = 0;
+            List<string> voices = new List<string>();
+
+            foreach (string f in files)
+            {
+                string name = Path.GetFileName(f);
+                DocEnergySpectrum doc = DocumentManager.GetInstance().CreateDocument(name + ".xml");
+                if (doc == null || doc.ActiveResultData == null)
+                {
+                    Console.WriteLine("  " + name + " | документ НЕ СОЗДАН");
+                    failed++;
+                    continue;
+                }
+                ResultData before = doc.ActiveResultData;
+                DeviceConfigInfo devBefore = before.DeviceConfig;
+                ROIConfigData roiBefore = before.ROIConfig;
+                FWHMPeakDetectionMethodConfig cfgBefore = before.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+                string curveBefore = Curve(before.FwhmCalibration);
+                // Кривая, какую построило бы умолчание ПРИБОРА ДОКУМЕНТА, и
+                // кривая ВСТРОЕННОГО умолчания — по ним опознаётся, чья.
+                string curveOfDoc = cfgBefore == null ? "?" : Curve(FwhmCalibration.DefaultCalibration(cfgBefore, before.EnergySpectrum.EnergyCalibration));
+                string curveOfBuiltin = Curve(FwhmCalibration.DefaultCalibration(builtin, before.EnergySpectrum.EnergyCalibration));
+
+                string said = null;
+                TextWriter realErr = Console.Error;
+                StringWriter caught = new StringWriter();
+                Console.SetError(caught);
+                try
+                {
+                    if (door == "SpecUtils") DocumentManager.GetInstance().ImportDocumentSpecUtils(doc, f, 3600);
+                    else DocumentManager.GetInstance().ImportDocumentN42(doc, f);
+                }
+                catch (Exception ex)
+                {
+                    said = ex.GetType().Name + ": " + Flat(ex.Message);
+                }
+                finally
+                {
+                    Console.SetError(realErr);
+                }
+                string voice = caught.ToString().Trim();
+                if (voice.Length > 0)
+                {
+                    spoke++;
+                    foreach (string line in voice.Split('\n'))
+                    {
+                        string one = line.Trim();
+                        if (one.Length > 0 && !voices.Contains(one)) voices.Add(one);
+                    }
+                }
+                if (said != null)
+                {
+                    failed++;
+                    Console.WriteLine("  " + name + " | ОТКАЗ | " + said);
+                    continue;
+                }
+                ok++;
+
+                StringBuilder sb = new StringBuilder();
+                sb.Append("  ").Append(name).Append(" | ВВЕЗЁН | до: прибор «")
+                  .Append(devBefore == null ? "null" : devBefore.Name).Append("», настройки ")
+                  .Append(Cfg3(cfgBefore)).Append(", кривая ").Append(curveBefore);
+                for (int i = 0; i < doc.ResultDataFile.ResultDataList.Count; i++)
+                {
+                    ResultData rd = doc.ResultDataFile.ResultDataList[i];
+                    if (rd == null || rd.EnergySpectrum == null) continue;
+                    spectra++;
+                    string dev;
+                    if (object.ReferenceEquals(rd.DeviceConfig, devBefore)) { dev = "прибор ДОКУМЕНТА"; devSame++; }
+                    else { dev = "прибор СВЕЖИЙ «" + (rd.DeviceConfig == null ? "null" : rd.DeviceConfig.Name) + "»"; devFresh++; }
+                    string roi;
+                    if (rd.ROIConfig == null) { roi = "ROI null"; roiNull++; }
+                    else if (object.ReferenceEquals(rd.ROIConfig, roiBefore)) { roi = "ROI документа"; roiSame++; }
+                    else { roi = "ROI СВЕЖИЙ"; roiFresh++; }
+                    FWHMPeakDetectionMethodConfig cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+                    string cfgWho;
+                    if (SameCfg3(cfg, cfgBefore)) { cfgWho = "ДОКУМЕНТА"; cfgDoc++; }
+                    else if (SameCfg3(cfg, builtin)) { cfgWho = "ВСТРОЕННЫЕ"; cfgBuiltin++; }
+                    else { cfgWho = "ЧУЖИЕ"; cfgOther++; }
+                    string curve = Curve(rd.FwhmCalibration);
+                    string curveWho;
+                    if (rd.FwhmCalibration == null) { curveWho = "нет"; curveNull++; }
+                    else if (curve == curveBefore || curve == curveOfDoc) { curveWho = "ДОКУМЕНТА"; curveDoc++; }
+                    else if (curve == curveOfBuiltin) { curveWho = "ВСТРОЕННАЯ"; curveBuiltin++; }
+                    else { curveWho = "ЧУЖАЯ"; curveOther++; }
+                    sb.Append(" | [").Append(i).Append("] ").Append(dev)
+                      .Append(", ссылка ").Append(rd.DeviceConfigReference == null ? "null" : (rd.DeviceConfigReference.Guid ?? "(пусто)"))
+                      .Append(", ").Append(roi)
+                      .Append(", настройки ").Append(cfgWho).Append(' ').Append(Cfg3(cfg))
+                      .Append(", кривая ").Append(curveWho).Append(' ').Append(curve);
+                }
+                Console.WriteLine(sb.ToString());
+            }
+
+            string total = head + " -> ВВЕЗЕНО " + ok + " / ОТКАЗ " + failed + " (из " + files.Length + ")"
+                           + "; спектров " + spectra
+                           + ": прибор документа " + devSame + " / свежий " + devFresh
+                           + "; ROI документа " + roiSame + " / null " + roiNull + " / свежий " + roiFresh
+                           + "; настройки документа " + cfgDoc + " / ВСТРОЕННЫЕ " + cfgBuiltin + " / чужие " + cfgOther
+                           + "; кривая документа " + curveDoc + " / ВСТРОЕННАЯ " + curveBuiltin + " / чужая " + curveOther + " / нет " + curveNull
+                           + "; дверь сказала слово: " + spoke;
+            Console.WriteLine("  ИТОГ: " + total);
+            if (voices.Count > 0)
+            {
+                Console.WriteLine("  ГОЛОСА ДВЕРИ:");
+                foreach (string v in voices) Console.WriteLine("    " + v);
+            }
+            Console.WriteLine();
+            armTotals.Add(total);
+            return cfgBuiltin + curveBuiltin > 0 ? 1 : 0;
         }
 
         static readonly List<string> armTotals = new List<string>();

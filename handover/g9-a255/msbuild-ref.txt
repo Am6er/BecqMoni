@@ -1,0 +1,5 @@
+
+  Определение проектов для восстановления...
+  Восстановлен C:\Users\moroz\source\repos\bq_g9_ref\BecquerelMonitor\BecquerelMonitor.csproj (за 1,5 с).
+  BecquerelMonitor -> C:\Users\moroz\source\repos\bq_g9_ref\BecquerelMonitor\bin\Debug_G9ref\BecquerelMonitor.exe
+EXIT=0
