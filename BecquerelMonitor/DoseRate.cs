@@ -237,6 +237,15 @@ namespace BecquerelMonitor
         /// <summary>Масса покоя электрона, кэВ.</summary>
         public const double ElectronMassKev = 510.99895;
 
+        /// <summary>Число Авогадро, 1/моль (CODATA, точное).</summary>
+        public const double AvogadroPerMole = 6.02214076e23;
+
+        /// <summary>
+        /// Квадрат классического радиуса электрона, см². r_e = 2.8179403262e-13 см
+        /// (CODATA 2018).
+        /// </summary>
+        public const double ElectronRadiusSquaredCm2 = 2.8179403262e-13 * 2.8179403262e-13;
+
         // ==================================================================
         // ⛔ ТАБЛИЦА ПЕРЕХОДА — РЕДАКЦИЯ НАЗВАНА ЗДЕСЬ (`A198`, решение Amber
         //    05.09.2026: принять ICRP 74).
@@ -305,9 +314,24 @@ namespace BecquerelMonitor
         /// где f — доля энергии кванта, доставшаяся заряженным частицам:
         /// * фотоэффект: 1 − ω_K·E_K/E, то есть вычитается энергия, унесённая
         ///   характеристическим рентгеном;
-        /// * некогерентное: средняя доля по Клейну — Нишине (см.
-        ///   <see cref="ComptonTransferFraction"/>);
+        /// * некогерентное: полное сечение переноса Клейна — Нишины на
+        ///   СВОБОДНОМ электроне, σ_tr, умноженное на число электронов в грамме
+        ///   воздуха (см. <see cref="ComptonTransferCrossSection"/>);
         /// * пары: (E − 2m_e c²)/E, оба канала.
+        ///
+        /// ⛔ `A224`. Комптоновский член НЕ берёт сечение из XCOM. Раньше брал:
+        /// σ_нк(XCOM) — сечение СВЯЗАННОГО электрона, с поправкой на
+        /// некогерентную функцию рассеяния S(q,Z), — умножалось на среднюю долю
+        /// переноса СВОБОДНОГО электрона f_КН. Это смесь двух моделей, и она
+        /// занижает: связь гасит рассеяние вперёд, то есть ровно те события,
+        /// где переноса почти нет, поэтому у связанного электрона средняя доля
+        /// переноса ВЫШЕ свободной, а произведение σ_связ·f_своб выходит меньше
+        /// обоих согласованных вариантов. Замер 06.09.2026 (одна перемена,
+        /// та же сетка, та же интерполяция): расхождение с K_a/Φ ICRP 119 в
+        /// области 40…150 кэВ ушло с −0.66…−1.35 % на +0.02…+0.45 %.
+        /// Опубликованные μ_tr/ρ (Hubbell &amp; Seltzer) считаны так же — на
+        /// свободном электроне; ниже 20 кэВ комптоновский член даёт меньше
+        /// 0.1 % величины, и связь там роли не играет.
         ///
         /// ⚠ Радиационные потери (тормозное от вторичных электронов,
         /// аннигиляция на лету) НЕ вычитаются: μ_en/ρ = μ_tr/ρ·(1 − g), а g для
@@ -324,12 +348,13 @@ namespace BecquerelMonitor
                     energyKev));
             }
 
-            double fCompton = ComptonTransferFraction(energyKev);
+            double comptonTransfer = ComptonTransferCrossSection(energyKev);
             double fPair = energyKev > 2.0 * ElectronMassKev
                 ? (energyKev - 2.0 * ElectronMassKev) / energyKev
                 : 0.0;
 
             double sum = 0.0;
+            double electronsPerGram = 0.0;
             for (int i = 0; i < AirZ.Length; i++)
             {
                 MaterialDatabase.Element element;
@@ -355,7 +380,6 @@ namespace BecquerelMonitor
                         energyKev, AirZ[i], lowKev, highKev));
                 }
 
-                double incoherent = MaterialDatabase.Interpolate(element.EnergyKev, element.Channels[1], energyKev);
                 double photo = MaterialDatabase.Interpolate(element.EnergyKev, element.Channels[2], energyKev);
                 double pairNuclear = MaterialDatabase.Interpolate(element.EnergyKev, element.Channels[3], energyKev);
                 double pairElectron = MaterialDatabase.Interpolate(element.EnergyKev, element.Channels[4], energyKev);
@@ -369,9 +393,18 @@ namespace BecquerelMonitor
                 }
 
                 sum += AirWeight[i] * (photo * fPhoto
-                                       + incoherent * fCompton
                                        + (pairNuclear + pairElectron) * fPair);
+
+                // ⛔ Электроны считаются по ТОМУ ЖЕ атомному весу, каким
+                // `MaterialDatabase` перевела барны в см²/г. Взять вес из
+                // другого места значило бы сложить два разных воздуха.
+                if (element.AtomicWeight > 0.0)
+                {
+                    electronsPerGram += AirWeight[i] * AvogadroPerMole * AirZ[i] / element.AtomicWeight;
+                }
             }
+
+            sum += electronsPerGram * comptonTransfer;
 
             // см²/г → м²/кг: старая вшитая таблица была именно в м²/кг.
             return sum / 10.0;
@@ -455,39 +488,87 @@ namespace BecquerelMonitor
         /// </summary>
         public static double ComptonTransferFraction(double energyKev)
         {
-            double cached;
+            double sigma, sigmaTransfer;
+            KleinNishina(energyKev, out sigma, out sigmaTransfer);
+            return sigma > 0.0 ? sigmaTransfer / sigma : 0.0;
+        }
+
+        /// <summary>
+        /// Полное сечение ПЕРЕНОСА энергии при комптоновском рассеянии на
+        /// свободном электроне, σ_tr = ∫ (T/hν) dσ_КН, **см²/электрон**.
+        ///
+        /// ⛔ `A224`. Именно эта величина, а не «сечение из XCOM, умноженное на
+        /// долю», входит в μ_tr/ρ: XCOM отдаёт сечение СВЯЗАННОГО электрона, а
+        /// доля переноса считается для СВОБОДНОГО, и перемножать их нельзя —
+        /// см. <see cref="MassEnergyAbsorptionAir"/>.
+        ///
+        /// Та же квадратура, что у <see cref="ComptonTransferFraction"/>, но с
+        /// общим множителем r_e²/2, который в отношении сокращался. Опора
+        /// множителя — томсоновский предел: <see cref="ComptonCrossSection"/>
+        /// на 0.01 кэВ обязано выйти на (8/3)π r_e² = 0.665246 барн/электрон
+        /// (`DoseAirProbeF63`).
+        /// </summary>
+        public static double ComptonTransferCrossSection(double energyKev)
+        {
+            double sigma, sigmaTransfer;
+            KleinNishina(energyKev, out sigma, out sigmaTransfer);
+            return sigmaTransfer;
+        }
+
+        /// <summary>
+        /// Полное сечение Клейна — Нишины на свободном электроне, см²/электрон.
+        /// Нужно как опора самой квадратуры: у него есть замкнутая формула и
+        /// табличные значения, у σ_tr — нет.
+        /// </summary>
+        public static double ComptonCrossSection(double energyKev)
+        {
+            double sigma, sigmaTransfer;
+            KleinNishina(energyKev, out sigma, out sigmaTransfer);
+            return sigma;
+        }
+
+        /// <summary>
+        /// Квадратура Клейна — Нишины: σ и σ_tr разом, см²/электрон.
+        /// Ответы кэшируются парой: на один разбор сетки их полтора десятка.
+        /// </summary>
+        static void KleinNishina(double energyKev, out double sigma, out double sigmaTransfer)
+        {
+            double[] cached;
             lock (comptonCache)
             {
                 if (comptonCache.TryGetValue(energyKev, out cached))
                 {
-                    return cached;
+                    sigma = cached[0];
+                    sigmaTransfer = cached[1];
+                    return;
                 }
             }
 
             double alpha = energyKev / ElectronMassKev;
             const int Steps = 4096;
-            double sigma = 0.0;
-            double sigmaTransfer = 0.0;
+            double s = 0.0;
+            double st = 0.0;
             for (int i = 0; i < Steps; i++)
             {
                 double theta = Math.PI * (i + 0.5) / Steps;
                 double cos = Math.Cos(theta);
                 double k = 1.0 / (1.0 + alpha * (1.0 - cos));   // E'/E
-                // Дифференциальное сечение КН без общего множителя r_e²/2 — он
-                // сокращается в отношении.
+                // Дифференциальное сечение КН без общего множителя r_e²/2.
                 double d = k * k * (k + 1.0 / k - (1.0 - cos * cos));
                 double w = d * Math.Sin(theta);
-                sigma += w;
-                sigmaTransfer += w * (1.0 - k);
+                s += w;
+                st += w * (1.0 - k);
             }
 
-            double value = sigma > 0.0 ? sigmaTransfer / sigma : 0.0;
+            // ∫…dθ ≈ (π/Steps)·Σ, dΩ = 2π sinθ dθ, множитель r_e²/2.
+            double scale = Math.PI * Math.PI * ElectronRadiusSquaredCm2 / Steps;
+            sigma = s * scale;
+            sigmaTransfer = st * scale;
+
             lock (comptonCache)
             {
-                comptonCache[energyKev] = value;
+                comptonCache[energyKev] = new double[] { sigma, sigmaTransfer };
             }
-
-            return value;
         }
 
         /// <summary>
@@ -540,7 +621,7 @@ namespace BecquerelMonitor
             }
         }
 
-        static readonly Dictionary<double, double> comptonCache = new Dictionary<double, double>();
+        static readonly Dictionary<double, double[]> comptonCache = new Dictionary<double, double[]>();
     }
 
     /// <summary>

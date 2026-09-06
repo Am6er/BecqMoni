@@ -1,0 +1,9 @@
+  ok   объявленная схема (линейно по значению, логарифмически по энергии) воспроизведена независимо: худшее |Δ| = 0.00e+000 на 0 кэВ
+  ok   линейная по ЭНЕРГИИ схема расходится с приложением на 13.52 % (11 кэВ) — проверка схемы не слепая
+  Cs-137, 661.657 кэВ: 1.2032 Зв/Гр (опубликованная опора ICRP 74 — 1.20…1.21)
+  ok   опора Cs-137 между узлами 600 и 800 кэВ выдержана
+!! проба сорвалась: BecquerelMonitor.DoseRateRefusalException: Мощность дозы: кривая эффективности даёт 1.47260273972603 на 40.0 кэВ. Эффективность — это доля зарегистрированных из испущенных квантов, больше единицы быть не может.
+   в BecquerelMonitor.DoseRateEstimator.CurveOf(IList`1 points) в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\DoseRate.cs:строка 1141
+   в DoseCoefProbeO2.Program.Interpolation()
+   в DoseCoefProbeO2.Program.Main(String[] args)
+O2=3

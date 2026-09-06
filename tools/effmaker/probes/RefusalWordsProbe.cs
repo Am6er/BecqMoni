@@ -57,7 +57,8 @@ namespace RefusalWordsProbe
     /// РЕАЛЬНОСТИ, и это установлено поиском, а не мнением: во всём
     /// <c>FullSpectrumAnalysis\*.cs</c>, в <c>EnergySpectrum.cs</c> и в
     /// <c>ResultData.cs</c> единственный вызов <c>GetInstance()</c> — это
-    /// <c>NuclideDefinitionManager</c> (<c>FsaOverlay.cs:251</c>, <c>:583</c>).
+    /// <c>NuclideDefinitionManager</c> (<c>FsaAnalysisSession.cs:485</c>, <c>:860</c>;
+    /// прежде оба вызова стояли в снятом на этапе 2 <c>A145</c> файле двери).
     /// Ни <c>DeviceConfigManager</c>, ни <c>GlobalConfigManager</c> дверь
     /// разложения не трогает; требование <c>config\device</c> проба выдумала
     /// себе сама. Поэтому под перехватом поднимается РОВНО ТО, что дверь может
@@ -269,7 +270,8 @@ namespace RefusalWordsProbe
 
             // Поднимается ДО подмены потока ошибок и ПОД ПЕРЕХВАТОМ (`T150`)
             // ровно то, что дверь разложения может тронуть, — библиотека
-            // нуклидов (`FsaOverlay.Launch`, `NuclideDefinitionManager`): её
+            // нуклидов (`FsaAnalysisSession.EnsureUpToDate`, а вызовы —
+            // `FsaAnalysisSession.cs:485` и `:860`): её
             // заверение (`AppUi.Note`) не должно попасть в замеряемое, а её
             // отказ без `config\NuclideDefinition.xml` — это отказ СРЕДЫ, и
             // выглядеть отказом пробы он не должен. `DeviceConfigManager` и
