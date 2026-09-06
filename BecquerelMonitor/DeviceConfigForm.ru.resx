@@ -184,6 +184,15 @@
   <data name="label21.Text" xml:space="preserve">
     <value>Шаг канала</value>
   </data>
+  <data name="crystalMaterialLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>114, 13</value>
+  </data>
+  <data name="crystalMaterialLabel.Text" xml:space="preserve">
+    <value>Вещество кристалла</value>
+  </data>
+  <data name="crystalMaterialNotSet" xml:space="preserve">
+    <value>(не задано)</value>
+  </data>
   <data name="label28.Size" type="System.Drawing.Size, System.Drawing">
     <value>28, 13</value>
   </data>

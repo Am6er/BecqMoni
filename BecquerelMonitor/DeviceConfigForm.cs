@@ -451,6 +451,7 @@ namespace BecquerelMonitor
             this.contentsLoading = true;
             this.LoadEfficiencyTab(config);
             this.LoadDoseRateTab(config);
+            this.LoadCrystalMaterial(config);
             this.textBox1.Text = config.Name;
             this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
             this.integerTextBox1.Text = config.NumberOfChannels.ToString(CultureInfo.InvariantCulture);
@@ -773,6 +774,10 @@ namespace BecquerelMonitor
                 config.NumberOfChannels = numberOfChannels;
                 config.ChannelPitch = channelPitch;
                 config.Note = this.textBox19.Text;
+                // `A276`: вещество кристалла — ссылка на строку библиотеки, и
+                // писать её надо ровно так же, как читаются имя и заметка:
+                // разбора здесь нет, значит и спотыкаться нечему.
+                config.CrystalMaterialName = this.CrystalMaterialFromForm();
                 this.SaveEfficiencyTab(config);
                 if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
@@ -1041,6 +1046,145 @@ namespace BecquerelMonitor
         // Token: 0x0600052C RID: 1324 RVA: 0x00021894 File Offset: 0x0001FA94
         void textBox19_TextChanged(object sender, EventArgs e)
         {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        // ------------------------------------------------------------------
+        // ВЕЩЕСТВО КРИСТАЛЛА (`A276`, решение Amber 06.09.2026: «поле в
+        // конфигурации прибора, выбор вещества из библиотеки»).
+        //
+        // Почему список, а не ввод имени руками. Имя здесь — ССЫЛКА на строку
+        // библиотеки веществ, и по опечатке состава не найти: `CrystalFractionsOf`
+        // вернула бы пусто, отбор родителей образов вылета остался бы при одном
+        // запасе по энергии, и человек об этом никак бы не узнал. Список
+        // опечатку исключает по устройству.
+        //
+        // ⛔ Имён веществ в коде при этом НЕ ПОЯВЛЯЕТСЯ (решение Amber
+        // 01.09.2026): список берётся у библиотеки целиком, а в конфигурацию
+        // уезжает `Entry.Name` той строки, которую человек выбрал.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// «Вещество не названо» — своим ТИПОМ, а не пустой строкой.
+        ///
+        /// ⚠ Отличать пункт «не задано» от имени вещества по ТЕКСТУ нельзя:
+        /// текст переводится, а сравнение с переводом молча разошлось бы с
+        /// русским сателлитом. По ссылке на строку — тоже: интернирование строк
+        /// делает <c>ReferenceEquals</c> непредсказуемым. Отдельный тип
+        /// отвечает на вопрос «это пункт „не задано“?» однозначно и без текста.
+        /// </summary>
+        sealed class CrystalMaterialNone
+        {
+            readonly string caption;
+
+            public CrystalMaterialNone(string caption)
+            {
+                this.caption = caption ?? "";
+            }
+
+            public override string ToString()
+            {
+                return this.caption;
+            }
+        }
+
+        /// <summary>
+        /// Наполнить список веществ кристалла и выбрать в нём то, что названо у
+        /// прибора.
+        ///
+        /// Список строится ПРИ КАЖДОЙ ЗАГРУЗКЕ конфигурации, а не один раз в
+        /// конструкторе: библиотеку веществ правит человек (редактор веществ
+        /// открывается из того же окна, `E20`), и список, собранный при
+        /// открытии формы, показывал бы вчерашнюю библиотеку.
+        ///
+        /// ⛔ ВЕЩЕСТВО, КОТОРОГО В СПИСКЕ НЕТ, ДОБАВЛЯЕТСЯ ОТДЕЛЬНОЙ СТРОКОЙ, и
+        /// это не украшение. Имя в конфигурации могло пережить правку
+        /// библиотеки (вещество переименовали, сменили ему вид, удалили).
+        /// Молча показать «не задано» значило бы стереть настройку человека
+        /// первым же сохранением — и стереть незаметно, потому что окно
+        /// выглядело бы так, будто её и не было.
+        /// </summary>
+        void LoadCrystalMaterial(DeviceConfigInfo config)
+        {
+            ComboBox combo = this.crystalMaterialCombo;
+            combo.Items.Clear();
+
+            var none = new CrystalMaterialNone(this.CrystalMaterialNotSetCaption());
+            combo.Items.Add(none);
+            object chosen = none;
+
+            string wanted = config != null ? config.CrystalMaterialName : null;
+            bool found = false;
+            foreach (BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry entry
+                     in BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Of(
+                         BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.MaterialKind.Crystal))
+            {
+                combo.Items.Add(entry);
+                if (!found && !string.IsNullOrEmpty(wanted)
+                    && string.Equals(entry.Name, wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    chosen = entry;
+                    found = true;
+                }
+            }
+
+            if (!found && !string.IsNullOrEmpty(wanted))
+            {
+                // Вещество с таким именем в библиотеке ещё есть, но лежит уже не
+                // среди кристаллов, — берём его как есть; нет вовсе — остаётся
+                // само имя, чтобы сохранение его не потеряло.
+                BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry aside =
+                    BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.ByName(wanted);
+                object item = aside != null ? (object)aside : wanted;
+                combo.Items.Add(item);
+                chosen = item;
+            }
+
+            combo.SelectedItem = chosen;
+        }
+
+        /// <summary>
+        /// Имя вещества, выбранного в списке, для записи в конфигурацию. Пункт
+        /// «не задано» даёт пустую строку — то же самое, что у конфигурации, где
+        /// этого поля нет вовсе.
+        /// </summary>
+        string CrystalMaterialFromForm()
+        {
+            object item = this.crystalMaterialCombo.SelectedItem;
+            var entry = item as BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry;
+            if (entry != null)
+            {
+                return entry.Name ?? "";
+            }
+
+            // Строкой в списке лежит только имя, пережившее пропажу вещества из
+            // библиотеки (см. LoadCrystalMaterial): его надо вернуть в файл, а
+            // не потерять.
+            string lost = item as string;
+            return lost ?? "";
+        }
+
+        /// <summary>
+        /// Подпись пункта «не задано». Берётся из ресурсов САМОЙ ФОРМЫ (пара
+        /// <c>DeviceConfigForm.resx</c> / <c>DeviceConfigForm.ru.resx</c>), там
+        /// же, где лежат подпись поля и раскладка, — а не из общих
+        /// <c>Properties.Resources</c>: строка нужна ровно этому списку и
+        /// нигде больше.
+        /// </summary>
+        string CrystalMaterialNotSetCaption()
+        {
+            string caption = new ComponentResourceManager(typeof(DeviceConfigForm))
+                .GetString("crystalMaterialNotSet");
+            return caption ?? "";
+        }
+
+        void crystalMaterialCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.contentsLoading)
+            {
+                return;
+            }
+
             this.SetActiveDeviceConfigDirty();
         }
 

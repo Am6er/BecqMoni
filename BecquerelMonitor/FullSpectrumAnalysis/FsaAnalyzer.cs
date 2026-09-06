@@ -968,6 +968,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int RefitZKept { get; private set; }
 
         /// <summary>
+        /// (`A275`) Сколько НУКЛИДНЫХ компонентов судил отсев на последнем
+        /// <see cref="Analyze"/> — знаменатель класса, отдельно от общего
+        /// <see cref="RefitZJudged"/>.
+        /// </summary>
+        public int RefitZNuclidesJudged { get; private set; }
+
+        /// <summary>
+        /// (`A275`) Сколько нуклидных компонентов отсев ВЕРНУЛ, не пройдя
+        /// порог, потому что иначе разбор остался бы без единого нуклида.
+        /// Ноль — самоотключение по классу не срабатывало и правка не
+        /// изменила НИ ОДНОГО БИТА; положительное число — сработало, и на этом
+        /// спектре числа с прежними сравнивать нельзя. Читателя без этого
+        /// счётчика заводить нельзя (урок ~~`T240`~~): «правка есть» и «правка
+        /// сработала» — разные утверждения.
+        /// </summary>
+        public int RefitZNuclidesRescued { get; private set; }
+
+        /// <summary>
         /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
         /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
         ///
@@ -1534,6 +1552,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.RefitZJudged = 0;
             this.RefitZUsed = double.NaN;
             this.RefitZKept = 0;
+            this.RefitZNuclidesJudged = 0;
+            this.RefitZNuclidesRescued = 0;
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
@@ -2015,16 +2035,98 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 this.RefitZUsed = threshold;
 
-                List<FsaComponent> keep = new List<FsaComponent>();
+                // ⛔ (`A275`) САМООТКЛЮЧЕНИЕ ОТСЕВА СЧИТАЕТСЯ И ПО НУКЛИДНОМУ
+                // КЛАССУ, а не только по всему набору колонок.
+                //
+                // Правило ниже («keep пуст — отсева не было») стоит здесь с
+                // самого начала и опирается на довод: фит без единой колонки не
+                // «уточнённый состав», а пустой ответ. Довод верен и для
+                // ПОЛОВИНЫ набора: разбор, в котором не осталось ни одного
+                // нуклида, — такой же пустой ответ на вопрос человека «что в
+                // пробе», даже если рядом уцелел приборный образ. А общий
+                // счётчик их не различает: одного значимого мешающего образа
+                // хватает, чтобы `keep` был непуст, отсев сработал и вынес
+                // ВЕСЬ объявленный состав.
+                //
+                // Измерено 07.09.2026 на `AS80_Charoite` (`A275`): порог 3.0,
+                // судимых 13; `Xray-Pb` z = 15.14 и `Xray-Ba` z = 6.50 порог
+                // проходят, объявленные `Ra-226` (z = 2.26) и `K-40` (z = 0.00)
+                // — нет. Отсев срабатывает, состава не остаётся вовсе, и
+                // континуум разносится по двум уцелевшим образам: доля
+                // `Xray-Pb` в стеке становится 20.6 % при СОБСТВЕННЫХ 4433
+                // отсчётах (1.0 % спектра), и печатается вердикт «состав
+                // пересилен приборным образом». Контроль тем же замером: снять
+                // атомные образы (`--no-atomic`) — порог не проходит НИКТО,
+                // старое правило самоотключения срабатывает, и та же цепочка с
+                // той же значимостью (z = 2.93) остаётся в разборе. То есть
+                // мешающий образ не перебивал состав в фите — он ВООРУЖАЛ
+                // отсев, который состав выносил.
+                //
+                // ⚠ Обратной симметрии здесь НЕТ нарочно: разбор без единого
+                // мешающего образа — законный ответ, и класс мешающих
+                // самоотключения не получает. Возвращаются ровно нуклидные
+                // колонки и ровно тогда, когда иначе не осталось бы ни одной.
+                int nuclidesJudged = 0;
+                int nuclidesPassed = 0;
+                int passed = 0;
                 for (int k = 0; k < best.Columns.Count; k++)
                 {
                     FsaComponent component = best.Columns[k].Component;
-                    if (component != null && best.Z[k] >= threshold)
+                    if (component == null)
                     {
-                        keep.Add(component);
+                        continue;
+                    }
+
+                    bool nuclide = component.Kind != FsaComponentKind.Nuisance;
+                    if (nuclide)
+                    {
+                        nuclidesJudged++;
+                    }
+
+                    if (best.Z[k] >= threshold)
+                    {
+                        passed++;
+                        if (nuclide)
+                        {
+                            nuclidesPassed++;
+                        }
                     }
                 }
 
+                // ⚠ Условие `passed > 0` не украшение: когда порог не проходит
+                // НИКТО, всё уже решает старая ветка ниже (`keep` пуст, отсева
+                // не было), и возврат нуклидов подменил бы её приговор
+                // `AllBelow` на `NothingBelow` — то есть переписал бы СМЫСЛ
+                // состояния, заведённого ~~`T240`~~, ничего не изменив по
+                // существу. Правило вступает ровно там, где отсев СРАБАТЫВАЕТ,
+                // а нуклидов после него не остаётся.
+                bool rescueNuclides = passed > 0 && nuclidesJudged > 0 && nuclidesPassed == 0;
+
+                List<FsaComponent> keep = new List<FsaComponent>();
+                int rescued = 0;
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    FsaComponent component = best.Columns[k].Component;
+                    if (component == null)
+                    {
+                        continue;
+                    }
+
+                    if (best.Z[k] >= threshold)
+                    {
+                        keep.Add(component);
+                        continue;
+                    }
+
+                    if (rescueNuclides && component.Kind != FsaComponentKind.Nuisance)
+                    {
+                        keep.Add(component);
+                        rescued++;
+                    }
+                }
+
+                this.RefitZNuclidesJudged = nuclidesJudged;
+                this.RefitZNuclidesRescued = rescued;
                 this.RefitZJudged = total;
                 this.RefitZKept = keep.Count;
                 if (keep.Count > 0 && keep.Count < total)

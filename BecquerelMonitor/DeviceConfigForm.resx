@@ -894,6 +894,60 @@
   <data name="&gt;&gt;label24.ZOrder" xml:space="preserve">
     <value>14</value>
   </data>
+  <data name="crystalMaterialLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="crystalMaterialLabel.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="crystalMaterialLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>6, 139</value>
+  </data>
+  <data name="crystalMaterialLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>82, 13</value>
+  </data>
+  <data name="crystalMaterialLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>94</value>
+  </data>
+  <data name="crystalMaterialLabel.Text" xml:space="preserve">
+    <value>Crystal Material</value>
+  </data>
+  <data name="crystalMaterialNotSet" xml:space="preserve">
+    <value>(not specified)</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Name" xml:space="preserve">
+    <value>crystalMaterialLabel</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialLabel.ZOrder" xml:space="preserve">
+    <value>18</value>
+  </data>
+  <data name="crystalMaterialCombo.Location" type="System.Drawing.Point, System.Drawing">
+    <value>140, 136</value>
+  </data>
+  <data name="crystalMaterialCombo.Size" type="System.Drawing.Size, System.Drawing">
+    <value>202, 21</value>
+  </data>
+  <data name="crystalMaterialCombo.TabIndex" type="System.Int32, mscorlib">
+    <value>95</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Name" xml:space="preserve">
+    <value>crystalMaterialCombo</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.Parent" xml:space="preserve">
+    <value>tabPage1</value>
+  </data>
+  <data name="&gt;&gt;crystalMaterialCombo.ZOrder" xml:space="preserve">
+    <value>19</value>
+  </data>
   <data name="tabPage1.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
   </data>

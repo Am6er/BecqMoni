@@ -567,6 +567,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 job.CrystalFractions = new Dictionary<int, double>(
                     efficiencyConfig.Geometry.Crystal.Fractions);
             }
+            else if (resultData.DeviceConfig != null)
+            {
+                // ⛔ `A276`: путь ПО ПИКАМ — умолчание разбора
+                // (`DbLookupsForFsa` выключена), и без этой ветки поле прибора
+                // молчало бы у большинства людей: доли получал бы только тот,
+                // кто включил вывод состава из баз. Порядок тот же, что у
+                // второго пути, и он виден прямо здесь: ветка ЗАПАСНАЯ — при
+                // живой геометрии сюда не попадают вовсе.
+                Dictionary<int, double> named = FsaSampleLibrary.FractionsOfMaterial(
+                    resultData.DeviceConfig.CrystalMaterialName);
+                if (named.Count > 0)
+                {
+                    job.CrystalFractions = named;
+                }
+            }
 
             return job;
         }
