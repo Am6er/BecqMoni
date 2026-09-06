@@ -1,0 +1,389 @@
+НАЧАЛО: 09/06/2026 14:29:47
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p1\config\BecquerelMonitor.xml
+Матрицы отклика понятной части корпуса (B1)
+сетка: 140 узлов 5-3000 кэВ, бин 2 кэВ, 3000000 историй на узел
+останов по шуму ВЫКЛЮЧЕН — плоский счёт (T35)
+
+== AS80_lu_front ==
+   пропущена: клеймо сошлось, пересчитывать нечего
+
+== AS80_point0 ==
+   пропущена: клеймо сошлось, пересчитывать нечего
+
+== ASN16_lu_side ==
+   клеймо   : phys=16;00b75f630cd0626918df723918989055eec5b961ccd6771638105791da1c3a31
+   время    : 199.4 с на часах, ядер 13.3 из 15
+   счёт     : 2653.7 с ЦП, 6.23 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 5.7 шага границ, 5.9 поиска области, 2.0 интерполяции μ, 2.33 сбора пересечений
+   шум конт.: взвешенная 0.98 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-ASN16_lu_side.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\ASN16_lu_side.rmx (0.5 МБ)
+
+== G1S_denta100_oisn10_100_p16 ==
+   клеймо   : phys=16;f3f136299cbf73a08433731481a85cfdf4b9b0fe91af0b4b34c9bab599e23cf0
+   время    : 259.3 с на часах, ядер 13.9 из 15
+   счёт     : 3608.5 с ЦП, 8.47 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.4 шага границ, 7.0 поиска области, 3.1 интерполяции μ, 2.32 сбора пересечений
+   шум конт.: взвешенная 0.73 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta100_oisn10_100_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta100_oisn10_100_p16.rmx (0.5 МБ)
+
+== G1S_denta100_risn379_100_p16 ==
+   клеймо   : phys=16;d505728500442b585a56f2b4a52f3c69f308d42ed44063f9fe28e5b5f74a64d2
+   время    : 275.5 с на часах, ядер 13.4 из 15
+   счёт     : 3689.6 с ЦП, 8.78 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.7 шага границ, 7.3 поиска области, 3.2 интерполяции μ, 2.29 сбора пересечений
+   шум конт.: взвешенная 0.64 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta100_risn379_100_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta100_risn379_100_p16.rmx (0.5 МБ)
+
+== G1S_denta120_oisn06_057_p24 ==
+   клеймо   : phys=16;2431953b7ae3bd611141b5ecb03d1693b3301a793b921a02da8800c6f3b8c7f6
+   время    : 255.5 с на часах, ядер 13.7 из 15
+   счёт     : 3504.2 с ЦП, 8.23 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.7 шага границ, 7.4 поиска области, 3.4 интерполяции μ, 2.26 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn06_057_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn06_057_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn06_062_p24 ==
+   клеймо   : phys=16;7896f507b8f849d70149ce3de84e267c948afb1cc01341d87b1ee387520a18a1
+   время    : 244.2 с на часах, ядер 14.1 из 15
+   счёт     : 3450.1 с ЦП, 8.10 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.7 шага границ, 7.4 поиска области, 3.4 интерполяции μ, 2.27 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn06_062_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn06_062_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn06_064_p24 ==
+   клеймо   : phys=16;249974db7a964232f38c7f2370ffe72558995b009dbcab1ef04a993c7c5e8f13
+   время    : 256.9 с на часах, ядер 13.9 из 15
+   счёт     : 3568.5 с ЦП, 8.38 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.7 шага границ, 7.4 поиска области, 3.4 интерполяции μ, 2.27 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn06_064_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn06_064_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn06_066_p24 ==
+   клеймо   : phys=16;08d8b68acb10af290ef2b0cff7189ebc804bd24c7cf7dbfd84540713415839d6
+   время    : 252.3 с на часах, ядер 13.9 из 15
+   счёт     : 3499.3 с ЦП, 8.21 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.7 шага границ, 7.4 поиска области, 3.4 интерполяции μ, 2.27 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn06_066_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn06_066_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn16_155_p24 ==
+   клеймо   : phys=16;c0fca462f3d70183f744268959a2a99da263e1df0fcf80333aff151aa1022298
+   время    : 282.4 с на часах, ядер 13.6 из 15
+   счёт     : 3854.2 с ЦП, 9.05 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.9 поиска области, 3.0 интерполяции μ, 2.39 сбора пересечений
+   шум конт.: взвешенная 0.78 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn16_155_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn16_155_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn16_160_p24 ==
+   клеймо   : phys=16;6a62e4708a150f6db69033d8a4232b6c1951253ed8cbf3fc8ed7235677601670
+   время    : 274.5 с на часах, ядер 13.8 из 15
+   счёт     : 3797.6 с ЦП, 8.91 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.9 поиска области, 3.0 интерполяции μ, 2.40 сбора пересечений
+   шум конт.: взвешенная 0.78 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn16_160_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn16_160_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn16_166_p24 ==
+   клеймо   : phys=16;bb60cde7c6c927bba0de8b051832dcb35b50799eeb27d9e0178068e0aa9293ab
+   время    : 288.8 с на часах, ядер 13.4 из 15
+   счёт     : 3877.4 с ЦП, 9.10 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.9 поиска области, 3.0 интерполяции μ, 2.41 сбора пересечений
+   шум конт.: взвешенная 0.78 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn16_166_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn16_166_p24.rmx (0.5 МБ)
+
+== G1S_denta120_oisn16_167_p24 ==
+   клеймо   : phys=16;34a687bc32aa282e223b80f15b59281c350e446bec47b70221d355ae2b59cfb7
+   время    : 280.6 с на часах, ядер 13.7 из 15
+   счёт     : 3834.7 с ЦП, 9.00 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.9 поиска области, 3.0 интерполяции μ, 2.41 сбора пересечений
+   шум конт.: взвешенная 0.78 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_denta120_oisn16_167_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_denta120_oisn16_167_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_055_p16 ==
+   клеймо   : phys=16;40eb5c05156e773439fa4acace829b85818056c0c328ac92523568127241e129
+   время    : 250.4 с на часах, ядер 13.7 из 15
+   счёт     : 3428.8 с ЦП, 8.16 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.8 шага границ, 9.3 поиска области, 3.9 интерполяции μ, 2.31 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_055_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_055_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_057_p16 ==
+   клеймо   : phys=16;397b61783c98916778d8f08883412af4d80ed1267e3b4c84639f23ff006ced16
+   время    : 251.7 с на часах, ядер 13.7 из 15
+   счёт     : 3457.5 с ЦП, 8.23 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.8 шага границ, 9.3 поиска области, 3.9 интерполяции μ, 2.32 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_057_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_057_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_057_p24 ==
+   клеймо   : phys=16;7fc4c1a2fd24e7df6ecc06aac7024a8b41f27e8caa52ef1c046f509aeff448cc
+   время    : 277.7 с на часах, ядер 13.8 из 15
+   счёт     : 3827.7 с ЦП, 8.99 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.3 шага границ, 8.8 поиска области, 3.7 интерполяции μ, 2.32 сбора пересечений
+   шум конт.: взвешенная 0.77 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_057_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_057_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_062_p16 ==
+   клеймо   : phys=16;b743ee1ec67a4404fed637c9c725de4b41305405ef0b24edfc6e36c49c582d5b
+   время    : 267.6 с на часах, ядер 13.0 из 15
+   счёт     : 3482.9 с ЦП, 8.29 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.8 шага границ, 9.4 поиска области, 3.9 интерполяции μ, 2.34 сбора пересечений
+   шум конт.: взвешенная 0.69 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_062_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_062_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_062_p24 ==
+   клеймо   : phys=16;5cca997dc853597c93951619a88de1fc97a1b6b67cce7bd88f1ad65ea2b9dcf1
+   время    : 320.0 с на часах, ядер 12.1 из 15
+   счёт     : 3882.3 с ЦП, 9.11 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.3 шага границ, 8.8 поиска области, 3.7 интерполяции μ, 2.34 сбора пересечений
+   шум конт.: взвешенная 0.76 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_062_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_062_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_064_p24 ==
+   клеймо   : phys=16;c85bf35a8274e9d04fc304a2a0a0db4f927afb96f5cf154dd56a62acdaf4c21e
+   время    : 283.8 с на часах, ядер 13.6 из 15
+   счёт     : 3861.3 с ЦП, 9.06 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.3 шага границ, 8.8 поиска области, 3.7 интерполяции μ, 2.35 сбора пересечений
+   шум конт.: взвешенная 0.76 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_064_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_064_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_066_p16 ==
+   клеймо   : phys=16;6eae3e31c3cc5861b64b0390ee4a32d2b067ecc6a26d7258665cae28b3bead29
+   время    : 255.9 с на часах, ядер 13.9 из 15
+   счёт     : 3553.2 с ЦП, 8.46 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.8 шага границ, 9.4 поиска области, 3.9 интерполяции μ, 2.35 сбора пересечений
+   шум конт.: взвешенная 0.69 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_066_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_066_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn06_066_p24 ==
+   клеймо   : phys=16;0afe56fbfc8b78786f75a68a344fdb8487f93e5a2925172b4540ef84b5361c05
+   время    : 285.1 с на часах, ядер 13.6 из 15
+   счёт     : 3882.8 с ЦП, 9.11 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.3 шага границ, 8.8 поиска области, 3.7 интерполяции μ, 2.35 сбора пересечений
+   шум конт.: взвешенная 0.76 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn06_066_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn06_066_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_155_p16 ==
+   клеймо   : phys=16;9786d8ec10f2176602b6bbf791371bcbc3273998f85078fc94ed68ebc3b67bb0
+   время    : 310.4 с на часах, ядер 14.0 из 15
+   счёт     : 4339.1 с ЦП, 10.19 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.8 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.52 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_155_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_155_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_155_p24 ==
+   клеймо   : phys=16;14d1a6c7e4d1c212ed2e3b3a036d342744fa2cd3dd9ebf3a75dffbbf7605ac03
+   время    : 322.8 с на часах, ядер 13.6 из 15
+   счёт     : 4390.0 с ЦП, 10.31 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.7 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.51 сбора пересечений
+   шум конт.: взвешенная 0.83 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_155_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_155_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_160_p16 ==
+   клеймо   : phys=16;cb642dd2c63a7604582956b1da53dc75fe8d51d438e26e839851554b1cf24d63
+   время    : 321.4 с на часах, ядер 13.5 из 15
+   счёт     : 4335.5 с ЦП, 10.18 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.8 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.52 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_160_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_160_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_160_p24 ==
+   клеймо   : phys=16;64ba63c1925ccf6d1c812b6af8e1d7ecb8ecfc8c55619568e57e27162136e9ba
+   время    : 335.3 с на часах, ядер 13.1 из 15
+   счёт     : 4401.8 с ЦП, 10.33 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.7 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.52 сбора пересечений
+   шум конт.: взвешенная 0.83 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_160_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_160_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_166_p16 ==
+   клеймо   : phys=16;8b985b6bd466ffe7421b6443bc764f4fa133c6634617f22b1f752eaac0f1a4f0
+   время    : 339.7 с на часах, ядер 13.0 из 15
+   счёт     : 4428.1 с ЦП, 10.39 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.8 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.54 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_166_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_166_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_166_p24 ==
+   клеймо   : phys=16;6e1ff9367a7830b65202daec51a2f28decabbff65d315bbb67cfffa36442a05c
+   время    : 313.5 с на часах, ядер 13.8 из 15
+   счёт     : 4312.8 с ЦП, 10.12 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.7 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.53 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_166_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_166_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_167_p16 ==
+   клеймо   : phys=16;c0fae9df74f1727fb0727c7452aa8ec3b5f1bcaa519a9d5383401a6f4baad7dd
+   время    : 318.0 с на часах, ядер 13.8 из 15
+   счёт     : 4394.0 с ЦП, 10.31 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.8 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.54 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_167_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_167_p16.rmx (0.5 МБ)
+
+== G1S_mar1l_oisn16_167_p24 ==
+   клеймо   : phys=16;439da89c4c5aa0a9a8c70808382074197a6d4088384af9c9258c99d02a0e89c2
+   время    : 305.4 с на часах, ядер 14.1 из 15
+   счёт     : 4312.8 с ЦП, 10.12 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 7.7 шага границ, 8.2 поиска области, 3.3 интерполяции μ, 2.53 сбора пересечений
+   шум конт.: взвешенная 0.82 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_oisn16_167_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_oisn16_167_p24.rmx (0.5 МБ)
+
+== G1S_mar1l_risn379_100_p16 ==
+   клеймо   : phys=16;9ce1654ae1dce6bd64ef9cf396fe0db78701674dcb4c89372f716b304402c84f
+   время    : 297.0 с на часах, ядер 14.0 из 15
+   счёт     : 4169.5 с ЦП, 9.93 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 8.3 шага границ, 8.9 поиска области, 3.6 интерполяции μ, 2.41 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_mar1l_risn379_100_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_mar1l_risn379_100_p16.rmx (0.5 МБ)
+
+== G1S_petri60_oisn06_057_p24 ==
+   клеймо   : phys=16;ba41b1920879e77fd4ccac6404608389bc45e04f89e69d5c65e6dd7243890a1e
+   время    : 218.6 с на часах, ядер 14.0 из 15
+   счёт     : 3069.3 с ЦП, 7.20 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.5 шага границ, 7.0 поиска области, 2.9 интерполяции μ, 2.22 сбора пересечений
+   шум конт.: взвешенная 0.64 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn06_057_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn06_057_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn06_062_p24 ==
+   клеймо   : phys=16;846ed75049e6a361deae409edfec90a914ffad76b9f6cdbb16d3091974758306
+   время    : 217.3 с на часах, ядер 14.1 из 15
+   счёт     : 3054.4 с ЦП, 7.17 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.5 шага границ, 7.0 поиска области, 2.9 интерполяции μ, 2.23 сбора пересечений
+   шум конт.: взвешенная 0.63 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn06_062_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn06_062_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn06_064_p24 ==
+   клеймо   : phys=16;61146e62100714ef7973b62da43edd357c8ce0b4463244dd386298f60da68f3b
+   время    : 217.0 с на часах, ядер 14.1 из 15
+   счёт     : 3053.4 с ЦП, 7.17 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.5 шага границ, 7.0 поиска области, 2.9 интерполяции μ, 2.23 сбора пересечений
+   шум конт.: взвешенная 0.63 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn06_064_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn06_064_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn06_067_p24 ==
+   клеймо   : phys=16;301146c1f0809b5bfbd9c8b930573162f998e6b39755c834ef683a35a071279f
+   время    : 223.9 с на часах, ядер 13.8 из 15
+   счёт     : 3098.4 с ЦП, 7.27 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.5 шага границ, 7.0 поиска области, 2.9 интерполяции μ, 2.23 сбора пересечений
+   шум конт.: взвешенная 0.63 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn06_067_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn06_067_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn10_100_p16 ==
+   клеймо   : phys=16;253a1c95ea42395288d00977a557d276ab67635fec2bacf3dd9d7707fc9799ed
+   время    : 236.3 с на часах, ядер 13.8 из 15
+   счёт     : 3263.8 с ЦП, 7.66 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.8 поиска области, 2.8 интерполяции μ, 2.27 сбора пересечений
+   шум конт.: взвешенная 0.67 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn10_100_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn10_100_p16.rmx (0.5 МБ)
+
+== G1S_petri60_oisn16_155_p24 ==
+   клеймо   : phys=16;1ede23c54532f25622e63b74b6ec5caf19f411d47105860076294d32ee7cd350
+   время    : 245.8 с на часах, ядер 13.8 из 15
+   счёт     : 3401.2 с ЦП, 7.98 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.2 шага границ, 6.6 поиска области, 2.7 интерполяции μ, 2.31 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn16_155_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn16_155_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn16_160_p24 ==
+   клеймо   : phys=16;89c732f97614237f6b02ba156e790e22fe0038f85d7b22285de9e3bb23b42c71
+   время    : 246.6 с на часах, ядер 13.9 из 15
+   счёт     : 3417.8 с ЦП, 8.02 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.1 шага границ, 6.6 поиска области, 2.7 интерполяции μ, 2.32 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn16_160_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn16_160_p24.rmx (0.5 МБ)
+
+== G1S_petri60_oisn16_167_p24 ==
+   клеймо   : phys=16;3095e99c4653912fd01f9a15f23b50c483d8029735f7c117f3b4890cda89f33a
+   время    : 240.6 с на часах, ядер 14.1 из 15
+   счёт     : 3387.2 с ЦП, 7.95 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.1 шага границ, 6.6 поиска области, 2.7 интерполяции μ, 2.32 сбора пересечений
+   шум конт.: взвешенная 0.70 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_oisn16_167_p24.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_oisn16_167_p24.rmx (0.5 МБ)
+
+== G1S_petri60_risn379_100_p16 ==
+   клеймо   : phys=16;15b725f226f4b011ece60e36dfe464d28fae2619229682d4644261a26a173865
+   время    : 225.1 с на часах, ядер 14.0 из 15
+   счёт     : 3152.6 с ЦП, 7.51 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.5 шага границ, 7.0 поиска области, 2.9 интерполяции μ, 2.24 сбора пересечений
+   шум конт.: взвешенная 0.61 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_petri60_risn379_100_p16.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_petri60_risn379_100_p16.rmx (0.5 МБ)
+
+== G1S_point25 ==
+   клеймо   : phys=16;3d34b5d82d017fd8c6f23b6e7fec756829447cc0d457f1cabb951d6bfc7a99f8
+   время    : 126.6 с на часах, ядер 14.3 из 15
+   счёт     : 1806.9 с ЦП, 4.30 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 3.4 шага границ, 3.9 поиска области, 1.3 интерполяции μ, 2.00 сбора пересечений
+   шум конт.: взвешенная 5.34 %  ВЫШЕ ПОРОГА 5.0 %
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_point25.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_point25.rmx (0.5 МБ)
+
+== G1S_point5 ==
+   клеймо   : phys=16;22e2e359c4f4ef565f2d705e6d7f56b8ea72f1fa5a6b2d3a2057ee64d458cf5a
+   время    : 169.3 с на часах, ядер 14.3 из 15
+   счёт     : 2424.1 с ЦП, 5.77 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 4.4 шага границ, 5.2 поиска области, 1.9 интерполяции μ, 2.02 сбора пересечений
+   шум конт.: взвешенная 1.35 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-G1S_point5.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\G1S_point5.rmx (0.5 МБ)
+
+== RC103_lu_front ==
+   клеймо   : phys=16;cc2e940a18cf3b16f9b0f45b7693e41bc1eb4e9777c8e88b6288818e02f16a1b
+   время    : 183.3 с на часах, ядер 14.2 из 15
+   счёт     : 2596.1 с ЦП, 6.09 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 6.3 шага границ, 6.5 поиска области, 2.9 интерполяции μ, 2.30 сбора пересечений
+   шум конт.: взвешенная 1.99 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-RC103_lu_front.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\RC103_lu_front.rmx (0.5 МБ)
+
+== RC103_marinelli05_kcl ==
+   клеймо   : phys=16;2d7a890ecad0f28b3a01e7ade30578bd60ab5cc4fd1c87561aa7b116ee17ef17
+   время    : 187.8 с на часах, ядер 13.9 из 15
+   счёт     : 2606.7 с ЦП, 6.21 мкс на историю  <- сравнивать надо ЭТО
+   обход    : на историю 9.5 шага границ, 9.7 поиска области, 4.7 интерполяции μ, 2.33 сбора пересечений
+   шум конт.: взвешенная 3.20 %  тихо
+   раскладка: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p1-e34\store_nodes-RC103_marinelli05_kcl.csv
+   файл     : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p1\RC103_marinelli05_kcl.rmx (0.5 МБ)
+
+== RC103_point0 ==
+   пропущена: клеймо сошлось, пересчитывать нечего
+
+матриц: 44 — посчитано 41, пропущено 3 (клеймо сошлось); всего 177.7 мин
+ЕСТЬ ШУМНЫЕ
+КОНЕЦ: 09/06/2026 17:27:31
+КОД ВОЗВРАТА: 1
+ЧАСОВ: 2.96216059436111

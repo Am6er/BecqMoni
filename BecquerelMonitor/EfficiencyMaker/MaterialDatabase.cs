@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -371,9 +372,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return null;
                 }
 
-                if (this.lastFracEnergy == energyKev && this.lastFrac != null)
+                // ⛔ (`A104`) ПАМЯТКА ЧИТАЕТСЯ ОДНОЙ ССЫЛКОЙ, А НЕ ДВУМЯ ПОЛЯМИ.
+                // Модель лежит в общем на весь процесс кэше
+                // (<see cref="photoShells"/>) и потому одна на ВСЕ потоки счёта:
+                // прежняя пара полей «энергия» + «массив» писалась ими вразнобой,
+                // и читатель ловил энергию своего прохода вместе с массивом
+                // ЧУЖОГО. Разбор — <see cref="Memo"/>.
+                Memo memo = this.lastFrac;
+                if (memo != null && memo.EnergyKev == energyKev)
                 {
-                    return this.lastFrac;
+                    return memo.Fractions;
                 }
 
                 double rest = 1.0 - this.KFraction(energyKev);
@@ -410,13 +418,53 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                this.lastFracEnergy = energyKev;
-                this.lastFrac = result;
+                // Публикация — ОДНИМ присваиванием ссылки: оно неделимо, и
+                // читатель получает либо прежнюю памятку целиком, либо новую
+                // целиком, но никогда половину одной и половину другой.
+                this.lastFrac = new Memo(energyKev, result);
                 return result;
             }
 
-            double lastFracEnergy = double.NaN;
-            double[] lastFrac;
+            /// <summary>
+            /// ⛔ (`A104`) ПАМЯТКА ПОСЛЕДНЕЙ ЭНЕРГИИ — ОДНИМ НЕИЗМЕНЯЕМЫМ
+            /// ОБЪЕКТОМ, и это не вкусовщина.
+            ///
+            /// <see cref="PhotoShellModel"/> живёт в статическом кэше
+            /// <see cref="photoShells"/> — один объект на элемент НА ВЕСЬ
+            /// ПРОЦЕСС, — а <see cref="LFractions"/> зовётся из каждого потока
+            /// счёта на каждое фотопоглощение. Пока памятка лежала двумя полями
+            /// (<c>lastFracEnergy</c> и <c>lastFrac</c>), поток А писал свою
+            /// энергию, поток Б следом писал свой массив, и поток А на быстром
+            /// пути видел «энергия совпала» вместе с ЧУЖИМ массивом. Дальше
+            /// доли L-подоболочек уводили розыгрыш в другую ветвь, число
+            /// вызовов <c>Uniform()</c> на историю менялось — и весь поток
+            /// случайных чисел узла уходил в сторону.
+            ///
+            /// Измерено 06.09.2026 (`AS80_point0`, 20 узлов по 20 тыс. историй,
+            /// 15 потоков, один и тот же двоичный файл): до правки восемь
+            /// прогонов дали СЕМЬ разных матриц, на одном потоке — одну.
+            /// Ошибка молчаливая: числа остаются правдоподобными, портится
+            /// только воспроизводимость, а на ней стоит вся приёмка правок
+            /// (`A101`, `E34`).
+            ///
+            /// Ссылка присваивается неделимо, поля объекта после создания не
+            /// меняются, и значение зависит ТОЛЬКО от энергии — поэтому чужая
+            /// памятка с совпавшей энергией так же верна, как своя, и результат
+            /// не зависит ни от числа потоков, ни от порядка.
+            /// </summary>
+            sealed class Memo
+            {
+                public readonly double EnergyKev;
+                public readonly double[] Fractions;
+
+                public Memo(double energyKev, double[] fractions)
+                {
+                    this.EnergyKev = energyKev;
+                    this.Fractions = fractions;
+                }
+            }
+
+            Memo lastFrac;
 
             /// <summary>σ(E) = Σ aᵢ/Eⁱ; E в кэВ снаружи, в МэВ внутри.</summary>
             static double EvalFit(double[] a, double energyKev)
@@ -945,7 +993,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         static void Load()
         {
-            if (elements != null)
+            // ⛔ (`A104`) БЫСТРЫЙ ПУТЬ ЧИТАЕТСЯ ЯВНО «С ЗАХВАТОМ». `elements`
+            // ставится ПОСЛЕДНИМ из четырёх словарей и служит признаком
+            // готовности всех; обычное чтение поля разрешено переупорядочить с
+            // чтениями `fluorescence`, `atomicMass` и `symbols`, и тогда
+            // «таблицы готовы» пришло бы вместе с ещё пустым словарём. Цена
+            // одна на вызов и не в горячем цикле; на публикующей стороне —
+            // парный `Volatile.Write` в `LoadTables`.
+            if (Volatile.Read(ref elements) != null)
             {
                 return;
             }
@@ -968,7 +1023,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         static void LoadTables()
         {
-            if (elements != null)
+            if (Volatile.Read(ref elements) != null)
             {
                 return;
             }
@@ -1338,7 +1393,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 atomicMass = masses;
                 symbols = names;
                 fluorescence = fluo;
-                elements = loaded;
+                // ⛔ (`A104`) ПРИЗНАК ГОТОВНОСТИ ПУБЛИКУЕТСЯ ПОСЛЕДНИМ И «С
+                // ОСВОБОЖДЕНИЕМ»: `Volatile.Write` не даёт трём присваиваниям
+                // выше уехать после него, а читателю (`Load`) — увидеть
+                // непустой `elements` рядом с пустым `fluorescence`.
+                Volatile.Write(ref elements, loaded);
             }
         }
 

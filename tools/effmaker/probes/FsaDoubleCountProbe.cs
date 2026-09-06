@@ -55,6 +55,13 @@ namespace FsaDoubleCountProbe
     ///      общим знаменателем, и то же тождество покрывает их.
     ///      Положительный контроль: спектр без ряда (`--chain=` не задан) —
     ///      `DecayChainRoot` пуст у всех и родительский режим недопустим.
+    ///   4. `S141`, библиотека ИЗ БАЗ (`FsaSampleLibrary.Build`, ею идёт весь
+    ///      корпус): SE/DE в НЕЙ построены, без матрицы проходят в разбор, с
+    ///      матрицей их снимает гейт, выключенный ключ снимает и без матрицы.
+    ///      ⛔ Положительный контроль двойной: сперва «SE/DE в библиотеке есть»
+    ///      (на сборке без правки `S141` эта проверка ОТКАЗЫВАЕТ, и клетка «с
+    ///      матрицей 0» перестаёт быть доказательством), потом снятый гейт при
+    ///      живой матрице — двойной образ обязан вернуться.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0. Всё, что мерится, печатается строками
     /// `CELL`/`CHAIN`, чтобы числа можно было положить в журнал.
@@ -68,6 +75,10 @@ namespace FsaDoubleCountProbe
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+            // отражение её не видит, и снятая позже она уже могла быть уведена.
+            FsaTuningReport.Snapshot();
 
             string spectrumPath = null;
             var chains = new List<string>();
@@ -123,7 +134,31 @@ namespace FsaDoubleCountProbe
                 }
             }
 
-            Console.WriteLine("матрица : {0}", matrix != null ? "есть, " + material : "НЕТ");
+            // ⛔ Отказ обязан НАЗЫВАТЬ причину: «матрица НЕТ» без разбора —
+            // молчаливый отказ, и на нём уже потерян час (06.09.2026, полоса
+            // П5): половина приёмки `S141` меряется только при живой матрице,
+            // а склад корпуса стоит на прежней версии физики.
+            if (matrix == null)
+            {
+                string why;
+                if (!wantMatrix) why = "запрещена ключом --no-matrix";
+                else if (rd.Efficiency == null) why = "у спектра нет кривой";
+                else if (!rd.Efficiency.HasGeometry) why = "у кривой нет геометрии";
+                else if (!rd.Efficiency.UseResponseMatrix) why = "матрица выключена в кривой";
+                else
+                {
+                    ResponseMatrix loaded = ResponseMatrixStore.Load(rd.Efficiency.Guid);
+                    why = loaded == null
+                        ? "в складе нет файла на Guid " + rd.Efficiency.Guid
+                        : "файл есть, но НЕ ГОДЕН для этой геометрии (клеймо: версия физики, формат или сама геометрия)";
+                }
+
+                Console.WriteLine("матрица : НЕТ — {0}", why);
+            }
+            else
+            {
+                Console.WriteLine("матрица : есть, {0}", material);
+            }
 
             // Спецификация состава — как `CorpusFsaProbe.SpecOf`, без manifest.
             FsaSampleSpec spec = SpecOf(rd, chains, nuclides, crystal);
@@ -140,6 +175,26 @@ namespace FsaDoubleCountProbe
                 peaks, definitions, spec.CrystalFractions.Count > 0 ? spec.CrystalFractions : null);
             Console.WriteLine("пиков {0}, библиотека по пикам {1} образов: SE/DE {2}, Ann-511 {3}",
                               peaks.Count, byPeaks.Count, CountEscape(byPeaks), CountAnnihilation(byPeaks));
+
+            // ⛔ Образ вылета — МЕШАЮЩИЙ, и нуклидным компонентом стать не
+            // может (`S141`). Признак нуклидного имени — массовое число, а в
+            // «SE-2615» цифры есть: подпись вылета, попав в состав, забрала бы
+            // долю активности и сама стала бы родителем вылета. Поймано
+            // 06.09.2026, когда корпусная библиотека начала строить SE/DE и её
+            // же подписи поехали в финдер.
+            int escapeAsNuclide = 0;
+            foreach (FsaComponent component in byPeaks)
+            {
+                if (FsaLibrary.IsEscapeImage(component.Name)
+                    && component.Kind != FsaComponentKind.Nuisance)
+                {
+                    Console.WriteLine("⛔ образ вылета «{0}» встал в состав видом {1}",
+                                      component.Name, component.Kind);
+                    escapeAsNuclide++;
+                }
+            }
+
+            Same("по пикам: образов вылета среди нуклидных компонентов нет", 0, escapeAsNuclide);
 
             if (CountEscape(byPeaks) == 0)
             {
@@ -167,6 +222,14 @@ namespace FsaDoubleCountProbe
                 FsaAnalyzer analyzer = NewAnalyzer(rd, withMatrix ? matrix : null, material);
                 var options = new FsaCalculationOptions { EscapeAndAnnihilation = escapeOn };
                 options.ApplyTo(analyzer);
+
+                // (`T243`) ЧЕМ СЧИТАЛИ ЭТО ПЛЕЧО — ДО СЧЁТА И ВСЛУХ. Плечи
+                // A/B здесь настраивают анализатор ИЗ КЛЮЧЕЙ (`--no-matrix`,
+                // `--crystal=`), и до 06.09.2026 отличить их в выводе по
+                // настройкам было нечем: болезнь ~~`S82`~~ внутри одного
+                // прогона. Анализатор у каждого плеча СВОЙ (`NewAnalyzer`),
+                // поэтому состояние прошлого разбора в отчёт не попадает.
+                FsaTuningReport.Print(analyzer, Cell(withMatrix, escapeOn));
                 FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                     rd.FwhmCalibration, byPeaks, efficiency);
                 if (result == null)
@@ -249,6 +312,97 @@ namespace FsaDoubleCountProbe
             else
             {
                 Console.WriteLine("(матрицы нет — клетки «есть» и оба положительных контроля на этом спектре не меряются)");
+            }
+
+            // ------------------------------------------------------------------
+            // S141: библиотека ИЗ БАЗ обязана строить SE/DE тем же правилом,
+            // что путь по подписям пиков. До 06.09.2026 не строила вовсе, и
+            // весь корпус (`--lib=sample`) шёл без образов вылета.
+            //
+            // ⛔ Гейт «с матрицей SE/DE нет» сам по себе НИЧЕГО не меряет: он
+            // проходит и тогда, когда образов не построено вовсе. Поэтому
+            // первой стоит проверка «в библиотеке из баз SE/DE ЕСТЬ» — на
+            // сборке без правки она и есть отрицательное плечо контроля, — а
+            // при матрице снятый гейт обязан вернуть двойной образ.
+            // ------------------------------------------------------------------
+            Console.WriteLine();
+            Console.WriteLine("=== S141: SE/DE на библиотеке ИЗ БАЗ ===");
+            int sampleEscapes = CountEscape(sample);
+            Console.WriteLine("библиотека из баз: образов {0}, SE/DE {1}, Ann-511 {2}",
+                              sample.Count, sampleEscapes, CountAnnihilation(sample));
+            foreach (FsaComponent component in sample)
+            {
+                if (FsaLibrary.IsEscapeImage(component.Name) && component.Lines.Count > 0)
+                {
+                    Console.WriteLine("      {0}\t{1} кэВ", component.Name,
+                                      component.Lines[0].Energy.ToString("F2", CultureInfo.InvariantCulture));
+                }
+            }
+
+            Same("библиотека из баз: SE/DE построены", true, sampleEscapes > 0);
+
+            Console.WriteLine("SDE\tматрица\tвылеты\tSE/DE\tAnn-511\tchi2/ndf\tдвойной_образ");
+            var sampleCells = new List<bool[]>();
+            if (matrix != null)
+            {
+                sampleCells.Add(new[] { true, true });
+            }
+
+            sampleCells.Add(new[] { false, true });
+            sampleCells.Add(new[] { false, false });
+            foreach (bool[] cell in sampleCells)
+            {
+                bool withMatrix = cell[0], escapeOn = cell[1];
+                FsaAnalyzer analyzer = NewAnalyzer(rd, withMatrix ? matrix : null, material);
+                new FsaCalculationOptions { EscapeAndAnnihilation = escapeOn }.ApplyTo(analyzer);
+                FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                    rd.FwhmCalibration, sample, efficiency);
+                if (result == null)
+                {
+                    Console.WriteLine("SDE\t{0}\t{1}\tразложение не получилось", withMatrix, escapeOn);
+                    bad++;
+                    continue;
+                }
+
+                int escapes = PassedEscape(result);
+                Console.WriteLine("SDE\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}",
+                                  withMatrix ? "есть" : "нет", escapeOn ? "вкл" : "выкл",
+                                  escapes, PassedAnnihilation(result),
+                                  result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture),
+                                  DoubleEscape(result) ? "ДА" : "нет");
+                Same("из баз, " + Cell(withMatrix, escapeOn) + ": двойного образа нет",
+                     false, DoubleEscape(result));
+                if (withMatrix)
+                {
+                    Same("из баз, " + Cell(withMatrix, escapeOn) + ": матрица применена",
+                         true, result.ResponseMatrixUsed);
+                    Same("из баз, " + Cell(withMatrix, escapeOn) + ": SE/DE отдельными образами нет",
+                         0, escapes);
+                }
+                else
+                {
+                    Same("из баз, " + Cell(withMatrix, escapeOn) + ": SE/DE "
+                         + (escapeOn ? "есть" : "нет"), escapeOn, escapes > 0);
+                }
+            }
+
+            if (matrix != null)
+            {
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ S141: гейт снят при живой матрице —
+                // образы обязаны пройти и дать двойной счёт. Не прошли — значит
+                // клетка «с матрицей 0» выше была пустой, а не запертой.
+                FsaAnalyzer analyzer = NewAnalyzer(rd, matrix, material);
+                new FsaCalculationOptions().ApplyTo(analyzer);
+                analyzer.EscapeGate = false;
+                FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                    rd.FwhmCalibration, sample, efficiency);
+                bool caught = result != null && DoubleEscape(result);
+                Console.WriteLine("SDE\tесть\tвкл, гейт СНЯТ\t{0}\t{1}\t{2}\t{3}",
+                                  result != null ? PassedEscape(result) : -1,
+                                  result != null ? PassedAnnihilation(result) : -1,
+                                  result != null ? result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture) : "-",
+                                  caught ? "ДА (ловушка сработала)" : "НЕ ПОЙМАН");
+                Same("положительный контроль S141: гейт снят — двойной образ ПОЙМАН", true, caught);
             }
 
             // ------------------------------------------------------------------

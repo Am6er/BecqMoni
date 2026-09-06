@@ -345,7 +345,8 @@ def load_scene(entry, res_by_det):
 # ---------------------------------------------------------------------------
 # стадия A
 # ---------------------------------------------------------------------------
-def stage_a(entries, res_by_det, part_of, gate, clean=CLEAN_FWHM):
+def stage_a(entries, res_by_det, part_of, gate, clean=CLEAN_FWHM,
+            coverage_only=False):
     rows = []
     agg = {}
     skipped = []
@@ -365,6 +366,12 @@ def stage_a(entries, res_by_det, part_of, gate, clean=CLEAN_FWHM):
         n = len(counts)
         part = part_of.get(key, '?')
         read[key] = part
+        if coverage_only:
+            # `T76`: `--coverage-only` — вход читателя кодов 3/4/5. Стадия
+            # охвата (`read`) уже посчитана ТЕМ ЖЕ чтением, что и в полном
+            # прогоне; всё, что ниже, — работа гейта, и она к охвату
+            # отношения не имеет.
+            continue
         a = agg.setdefault(part, dict(sp=0, off=0, off_f=0, off_far=0,
                                       dirty=0, proposed=0))
         a['sp'] += 1
@@ -641,6 +648,9 @@ def main():
                     help=u'`V16`: чистить ложный набор по полному списку '
                          u'излучений, в ПШПВ; 0 — не чистить (прежнее поведение)')
     ap.add_argument('--no-inject', action='store_true')
+    ap.add_argument('--coverage-only', action='store_true',
+                    help=u'`T76`: считать ТОЛЬКО охват и выйти (код 3 при '
+                         u'сломанном охвате); гейт, V16 и V17 не считаются')
     args = ap.parse_args()
     only = set(args.only.split(',')) if args.only else None
     gate = PROD if args.gate == 'prod' else PASS1
@@ -652,7 +662,8 @@ def main():
     entries = [e for e in corpus_def.ALL if not only or e['key'] in only]
 
     rows, agg, skipped, read, lost = stage_a(entries, res_by_det, part_of, gate,
-                                             clean=args.clean)
+                                             clean=args.clean,
+                                             coverage_only=args.coverage_only)
 
     # ---- охват: правило ОДНО на обе мерки (`T76`) ----------------------------
     # ⛔ `frozen=set()` не украшение: эта мерка читает `corpus/spectra`, где
@@ -669,6 +680,19 @@ def main():
         print(u'⛔ ЛИНИИ ПОТЕРЯНЫ ВНУТРИ МЕРКИ: шкала %d, короткое окно %d. '
               u'Числитель доли «принято» уменьшен, знаменатель — нет.'
               % (lost['scale'], lost['window']))
+
+    if args.coverage_only:
+        # ⛔ Коды 4 и 5 отсюда НЕ приходят и приходить не должны: их считают
+        # `V16` и `V17`, а они не считались. Читатель обязан знать, что
+        # получил ответ только на один из трёх вопросов.
+        print(u'')
+        print(u'--coverage-only: посчитан ТОЛЬКО охват (код 3). Чистота ложного '
+              u'набора (`V16`, код 4) и признак вершины (`V17`, код 5) НЕ '
+              u'проверялись — их даёт полный прогон.')
+        if broken:
+            print(u'⛔ ОХВАТ СЛОМАН: %d. Код возврата 3.' % broken)
+            return 3
+        return 0
 
     print(u'')
     print(u'гейт «%s»: tol=%.2f ПШПВ, ширина %.2f…%.2f, min_sig=5'

@@ -16442,6 +16442,6 @@
         <Format>Base64 encoded binary</Format>
         <Pulses />
       </PulseCollection>
-    <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>1.3326544255528638</Coefficient><Coefficient>0.5784879690300235</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>1.3315513062730573</Coefficient><Coefficient>0.5786248819303625</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

@@ -1139,7 +1139,11 @@ def legacy_manifest(entries):
         rows.append(dict(
             key=e['key'], det=e['det'], channels=sp.n, live=round(sp.live, 1),
             counts=int(sp.counts.sum()),
-            chains=';'.join(e.get('chains') or []), nuclides='',
+            chains=';'.join(e.get('chains') or []),
+            # `T239`: раньше здесь стояло `nuclides=''` безусловно, и приказ
+            # Amber 02.09.2026 про K-40 у чароитов ОТМЕНЯЛСЯ пересборкой молча.
+            # Поле истины заполняется ровно так же, как `chains`.
+            nuclides=';'.join(e.get('nuclides') or []),
             background='встроен' if has_bg else 'нет',
             ecal_mode=c.get('mode', '?'), ecal_lines=c.get('n_lines', ''),
             ecal_rms_kev=round(c['rms'], 2) if 'rms' in c else '',

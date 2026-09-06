@@ -1,0 +1,132 @@
+спектр	кривая	guid	состояние
+AS1Pro_Ra226			БЕЗ ГЕОМЕТРИИ
+AS80_Charoite			БЕЗ ГЕОМЕТРИИ
+AS80_Cs137_0cm	AS80_point0	2992663a-84a9-9264-dfc8-2cf14a25cc21	СОШЛОСЬ
+AS80_K40			БЕЗ ГЕОМЕТРИИ
+AS80_Lu176	AS80_lu_front	a7eb945d-9246-91ca-c23b-65a4402448cd	СОШЛОСЬ
+AS80_Onyx			БЕЗ ГЕОМЕТРИИ
+AS80_Th232Medal			БЕЗ ГЕОМЕТРИИ
+AS80_Th232WT20	Цилиндр Lu	57512f8b-1ef0-40af-9aae-aa26f7e51463	ФАЙЛА НЕТ
+AS80_Th232_v2			БЕЗ ГЕОМЕТРИИ
+AS80_UGlass			БЕЗ ГЕОМЕТРИИ
+ASN16_Am241			БЕЗ ГЕОМЕТРИИ
+ASN16_BrazilNuts			БЕЗ ГЕОМЕТРИИ
+ASN16_Charoite			БЕЗ ГЕОМЕТРИИ
+ASN16_Charoite_v2			БЕЗ ГЕОМЕТРИИ
+ASN16_Cs137	Точка с торца впритык	db2b0a22-5b35-454b-96fa-033045004d96	ФАЙЛА НЕТ
+ASN16_Cs137_10cm			БЕЗ ГЕОМЕТРИИ
+ASN16_Granite			БЕЗ ГЕОМЕТРИИ
+ASN16_Lu176	ASN16_lu_side	bbc4db49-18f4-2299-4337-0f2f11b88c88	СОШЛОСЬ
+ASN16_Lu176_P0	ASN16_lu_side	bbc4db49-18f4-2299-4337-0f2f11b88c88	СОШЛОСЬ
+ASN16_Th232			БЕЗ ГЕОМЕТРИИ
+ASN16_Th232_Am241			БЕЗ ГЕОМЕТРИИ
+ASN16_UGlass			БЕЗ ГЕОМЕТРИИ
+ASN3_Tile			БЕЗ ГЕОМЕТРИИ
+ASN8_Am241			БЕЗ ГЕОМЕТРИИ
+ASN8_Th232_1024			БЕЗ ГЕОМЕТРИИ
+ASN8_Th232_2048			БЕЗ ГЕОМЕТРИИ
+ASN8_Th232_3000			БЕЗ ГЕОМЕТРИИ
+ASN8_Th232_4096			БЕЗ ГЕОМЕТРИИ
+ASN8_Th232_8192			БЕЗ ГЕОМЕТРИИ
+ASN8_UGlass			БЕЗ ГЕОМЕТРИИ
+G1S16_Am241_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Am241_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Ba133_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Ba133_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Cd109_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Cd109_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Ce139_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Ce139_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Co57_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Co60_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Co60_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Cs137_Mar	G1S_mar1l_oisn06_057_p16	77ab0974-6f2b-47cb-c1ca-042f7150bbe2	РАЗОШЛОСЬ
+G1S16_Cs137_Mar_2	G1S_mar1l_oisn16_166_p16	37f93a41-e560-68e3-3900-a08567ebafe4	СОШЛОСЬ
+G1S16_Cs137_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Cs137_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Eu152_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Eu152_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_K40_Mar	G1S_mar1l_oisn06_066_p16	80fe173b-d74c-4bad-6a94-5213b32f2495	СОШЛОСЬ
+G1S16_K40_Mar_2	G1S_mar1l_oisn16_155_p16	c6e83c91-6a59-95c2-12b5-2b326706f97c	СОШЛОСЬ
+G1S16_Mix_Denta100	G1S_denta100_risn379_100_p16	6ed49f5c-2dd6-7721-537c-60c030d94137	СОШЛОСЬ
+G1S16_Mix_Mar	G1S_mar1l_risn379_100_p16	10130f74-47dd-27d9-46b8-fb5c8271f084	СОШЛОСЬ
+G1S16_Mix_Petri	G1S_petri60_risn379_100_p16	eea37702-b9e7-cc9c-0b7e-c7df2743253f	СОШЛОСЬ
+G1S16_Mn54_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Mn54_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Na22_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Na22_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Ra226_Mar	G1S_mar1l_oisn06_062_p16	28b990e4-f7dc-3116-e27e-be996cdd1d91	СОШЛОСЬ
+G1S16_Ra226_Mar_2	G1S_mar1l_oisn16_167_p16	61d23db3-f81e-aecf-fe2b-5b601ed9326e	СОШЛОСЬ
+G1S16_Th228_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Th228_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S16_Th232_Denta100	G1S_denta100_oisn10_100_p16	ed033f43-ad92-39e9-1ab8-185b2ccd84a1	СОШЛОСЬ
+G1S16_Th232_Mar			БЕЗ ГЕОМЕТРИИ
+G1S16_Th232_Mar_2	G1S_mar1l_oisn06_055_p16	8b274676-e4b0-184b-fa1c-2c8d3592c725	СОШЛОСЬ
+G1S16_Th232_Mar_3	G1S_mar1l_oisn16_160_p16	a43b8253-1140-8904-1140-2410f7114e45	СОШЛОСЬ
+G1S16_Th232_Petri	G1S_petri60_oisn10_100_p16	1eb5247c-3880-474b-295b-f8a61f3187fb	СОШЛОСЬ
+G1S16_Y88_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S16_Y88_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Am241_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Ba133_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Bi207_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Cd109_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Co60_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Cs137_Denta120	G1S_denta120_oisn06_057_p24	d8f04e41-0488-dc39-8416-d51b803b5e8a	СОШЛОСЬ
+G1S24_Cs137_Denta120_2	G1S_denta120_oisn16_166_p24	9e1c51ab-cf78-66a4-1150-87dc22f327c4	СОШЛОСЬ
+G1S24_Cs137_Mar	G1S_mar1l_oisn06_057_p24	5a5c317a-0751-ac21-a6e8-185bdd6fc5f2	СОШЛОСЬ
+G1S24_Cs137_Mar_2	G1S_mar1l_oisn16_166_p24	c157b4bb-7884-36c7-7050-77aac7272d8a	СОШЛОСЬ
+G1S24_Cs137_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S24_Cs137_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Cs137_Petri	G1S_petri60_oisn06_057_p24	b495efd5-978c-c40b-720d-4a2ca7fa2455	СОШЛОСЬ
+G1S24_Cs137_Petri_2	G1S_petri60_oisn16_167_p24	c33e2b8d-5594-53ab-aa5b-2df4abcd0b56	СОШЛОСЬ
+G1S24_Eu152_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_K40_Denta120	G1S_denta120_oisn06_066_p24	cce59946-11c3-5472-6c3d-302ae9d6f3f1	СОШЛОСЬ
+G1S24_K40_Denta120_2	G1S_denta120_oisn16_155_p24	6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd	СОШЛОСЬ
+G1S24_K40_Mar	G1S_mar1l_oisn06_066_p24	59d90fb3-76cc-c566-6db4-f829c99ac6ca	СОШЛОСЬ
+G1S24_K40_Mar_2	G1S_mar1l_oisn16_155_p24	38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03	СОШЛОСЬ
+G1S24_K40_Petri	G1S_petri60_oisn06_067_p24	ec040922-9d7a-72da-bec5-4d9c6b38f5ec	СОШЛОСЬ
+G1S24_K40_Petri_2	G1S_petri60_oisn16_155_p24	53bd04df-6e8d-1f9e-83a2-564d7b8b327d	СОШЛОСЬ
+G1S24_Na22_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S24_Na22_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Ra226_Denta120	G1S_denta120_oisn06_062_p24	04d28c74-e0d4-9d32-2bc0-cd12c59b998c	СОШЛОСЬ
+G1S24_Ra226_Denta120_2	G1S_denta120_oisn16_167_p24	c2cf3bec-4df6-39dc-8b24-e5977eda81f1	СОШЛОСЬ
+G1S24_Ra226_Mar	G1S_mar1l_oisn06_062_p24	68449eb8-40d8-1ccc-d718-bfa9105ee418	СОШЛОСЬ
+G1S24_Ra226_Mar_2	G1S_mar1l_oisn16_167_p24	e42f1d2c-7212-6988-b30d-da3995473bfe	СОШЛОСЬ
+G1S24_Ra226_Petri	G1S_petri60_oisn06_062_p24	11d8337f-3f31-3b2c-f625-8f9bec43a3f1	СОШЛОСЬ
+G1S24_Ra226_Petri_2	G1S_petri60_oisn16_167_p24	c33e2b8d-5594-53ab-aa5b-2df4abcd0b56	СОШЛОСЬ
+G1S24_Th228_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S24_Th228_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Th232_Denta120	G1S_denta120_oisn06_064_p24	2fecfdc4-9f49-742f-c154-9617cacf5318	СОШЛОСЬ
+G1S24_Th232_Denta120_2	G1S_denta120_oisn16_160_p24	f587e421-fd8b-2a2e-3c21-1ed10265ac4b	СОШЛОСЬ
+G1S24_Th232_Mar	G1S_mar1l_oisn06_064_p24	34c0ad77-6a01-d6ed-1447-d49b32889411	СОШЛОСЬ
+G1S24_Th232_Mar_2	G1S_mar1l_oisn16_160_p24	6fafd956-34af-0bed-9910-3ee13f5424e3	СОШЛОСЬ
+G1S24_Th232_Petri	G1S_petri60_oisn06_064_p24	0287f7f6-e492-c3ef-02aa-f922d1e07552	СОШЛОСЬ
+G1S24_Th232_Petri_2	G1S_petri60_oisn16_160_p24	6b61f24c-55c3-f6c0-8603-8ad89cc01ed8	СОШЛОСЬ
+G1S24_Y88_P25	G1S_point25	d373d6c3-467d-5a40-0410-ad5e3c60cb70	СОШЛОСЬ
+G1S24_Y88_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+G1S24_Zn65_P5	G1S_point5	a1438401-8aeb-009d-edc5-210a2a14ecdd	СОШЛОСЬ
+GS4000_Lu176			БЕЗ ГЕОМЕТРИИ
+GS4000_Ra226			БЕЗ ГЕОМЕТРИИ
+GS4000_Th232			БЕЗ ГЕОМЕТРИИ
+GS4000_U			БЕЗ ГЕОМЕТРИИ
+HPGE_Uranium			БЕЗ ГЕОМЕТРИИ
+HPGeGEM_K40			БЕЗ ГЕОМЕТРИИ
+HPGeGEM_Ra226			БЕЗ ГЕОМЕТРИИ
+HPGeGEM_Th232			БЕЗ ГЕОМЕТРИИ
+HPGeGMX_Background			БЕЗ ГЕОМЕТРИИ
+HPGeGMX_Eu152			БЕЗ ГЕОМЕТРИИ
+HPGeGMX_Th228			БЕЗ ГЕОМЕТРИИ
+HPGeGMX_Th232			БЕЗ ГЕОМЕТРИИ
+LaBrBril_Eu152			БЕЗ ГЕОМЕТРИИ
+LaBrBril_Th228			БЕЗ ГЕОМЕТРИИ
+OBS_UGlass			БЕЗ ГЕОМЕТРИИ
+RC101_I131			БЕЗ ГЕОМЕТРИИ
+RC103_Charoite			БЕЗ ГЕОМЕТРИИ
+RC103_Cs137_0cm	RC103_point0	c4123ab9-b4d7-e796-6ffd-0891f4d71111	СОШЛОСЬ
+RC103_K40	RC103_marinelli05_kcl	0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f	СОШЛОСЬ
+RC103_K40Village			БЕЗ ГЕОМЕТРИИ
+RC103_Lu176	RC103_lu_front	552a036a-dfc9-c14c-b505-fbfaadbaf1ae	СОШЛОСЬ
+RC103_Th232Village			БЕЗ ГЕОМЕТРИИ
+RC103_Th232WT20			БЕЗ ГЕОМЕТРИИ
+
+сошлось 81, разошлось 1, файла нет 2, без геометрии 45 (спектров 129)

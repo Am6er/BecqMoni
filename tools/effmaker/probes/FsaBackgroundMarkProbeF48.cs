@@ -62,6 +62,10 @@ static class FsaBackgroundMarkProbeF48
         // ⛔ Сторож модальных окон — ПЕРВЫМ ДЕЛОМ (`A245`).
         ModalWatchStart();
 
+        // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+        // отражение её не видит, и снятая позже она уже могла быть уведена.
+        FsaTuningReport.Snapshot();
+
         // ⛔ Обе карты примитивов ROI — ДО любого менеджера-одиночки (`T60`).
         ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
         ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
@@ -321,6 +325,7 @@ static class FsaBackgroundMarkProbeF48
         component.TotalYieldPercent = 85.1;
 
         var analyzer = new FsaAnalyzer();
+        FsaTuningReport.Print(analyzer);
         try
         {
             return analyzer.Analyze(spectrum, background, fwhm,

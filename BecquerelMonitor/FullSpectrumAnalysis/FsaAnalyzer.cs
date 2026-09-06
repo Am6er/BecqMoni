@@ -870,6 +870,104 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double RefitZ { get; set; }
 
         /// <summary>
+        /// (`A266`, решение Amber 06.09.2026) ОТНОСИТЕЛЬНАЯ часть порога
+        /// отсева — доля от НАИБОЛЬШЕЙ значимости среди судимых компонентов.
+        /// 0 (умолчание) — порога только абсолютный <see cref="RefitZ"/>, как
+        /// было до 06.09.2026.
+        ///
+        /// ⛔ Зачем. <see cref="RefitZ"/> — величина АБСОЛЮТНАЯ, и на слабых
+        /// сценах она выше значимости ВСЕХ компонентов: отсева там нет вовсе
+        /// (~~`T240`~~ назвала это состояние вслух). Измерено 06.09.2026 на
+        /// `G1S16_Cd109_P25`: наибольшая значимость 2.62 при пороге 3, и это
+        /// ПОСТАВОЧНЫЙ прогон, а не экзотика абляции.
+        ///
+        /// ⚠ Форма — МИНИМУМ из абсолютного и относительного:
+        /// <c>порог = min(RefitZ, RefitZRelative · z_max)</c>. Довод замером, а
+        /// не вкусом: чисто относительный порог (<c>RefitZRelative · z_max</c>
+        /// вместо минимума) двигает и СИЛЬНЫЕ сцены, где отсев и так работал, —
+        /// на `ASN16_Cs137` (z_max = 303.78) доля 0.1 дала бы порог 30.4, а
+        /// развёртка ~~`T240`~~ показывает, что уже при 20 стек теряет строку и
+        /// χ²/ndf растёт 49.181 → 50.299. Минимум же на сильной сцене
+        /// возвращает ровно <see cref="RefitZ"/> и не меняет НИ ОДНОГО БИТА,
+        /// а на слабой опускает порог ниже вершины — и отсев там оживает.
+        ///
+        /// ⚠ Пока доля меньше единицы и вершина положительна, исход
+        /// <see cref="RefitZOutcome.AllBelow"/> недостижим по построению:
+        /// сам вершинный компонент порог проходит всегда.
+        /// </summary>
+        public double RefitZRelative { get; set; }
+
+        /// <summary>
+        /// (`T240`) Что СЛУЧИЛОСЬ с отсевом по значимости на последнем разборе.
+        ///
+        /// ⛔ Заведено потому, что «отсев заказан» и «отсев применён» — разные
+        /// утверждения, а до 06.09.2026 они были одним молчанием. Порог выше
+        /// значимости ВСЕХ предъявленных компонентов оставляет
+        /// <c>keep</c> пустым, второго прохода не происходит вовсе, — и плечо
+        /// развёртки <c>--refit-z=&lt;большое&gt;</c> читается как «самый строгий
+        /// отсев», а на деле значит «отсева нет». Ни отказа, ни предупреждения;
+        /// в шапке прогона ключ печатается как принятый.
+        /// </summary>
+        public enum RefitZOutcome
+        {
+            /// <summary>Отсев не заказан (<see cref="RefitZ"/> не положителен).</summary>
+            NotRequested,
+
+            /// <summary>Часть компонентов не прошла порог, второй проход сделан по уцелевшим.</summary>
+            Applied,
+
+            /// <summary>Порог прошли ВСЕ — выбрасывать было некого, второй проход не нужен.</summary>
+            NothingBelow,
+
+            /// <summary>
+            /// ⚠ Порог выше значимости ВСЕХ: <c>keep</c> пуст, второго прохода
+            /// НЕ БЫЛО, в отчёте стоит результат ДО отсева.
+            /// </summary>
+            AllBelow
+        }
+
+        /// <summary>
+        /// (`T240`) Исход отсева по значимости на последнем
+        /// <see cref="Analyze"/>. Читатель — шапка прогона пробы: состояние
+        /// <see cref="RefitZOutcome.AllBelow"/> обязано быть НАЗВАНО, иначе
+        /// абляционное плечо читается наоборот.
+        /// </summary>
+        public RefitZOutcome RefitZState { get; private set; }
+
+        /// <summary>
+        /// (`T240`) Наибольшая значимость среди компонентов, судимых отсевом на
+        /// последнем <see cref="Analyze"/>; <c>NaN</c> — судить было некого.
+        /// Это ЗНАМЕНАТЕЛЬ приговора: без него «порог выше всех» не отличить от
+        /// «фит вернул пустоту».
+        /// </summary>
+        public double RefitZTopZ { get; private set; }
+
+        /// <summary>
+        /// (`T240`) Сколько компонентов отсев судил на последнем
+        /// <see cref="Analyze"/>.
+        /// </summary>
+        public int RefitZJudged { get; private set; }
+
+        /// <summary>
+        /// (`A266`) Порог, ФАКТИЧЕСКИ применённый на последнем
+        /// <see cref="Analyze"/>; <c>NaN</c> — отсев не заказан. При нулевой
+        /// <see cref="RefitZRelative"/> равен <see cref="RefitZ"/>, иначе —
+        /// минимуму из него и доли вершины. Печатать надо ЕГО, а не заказанный:
+        /// иначе относительный порог выглядит в отчёте как абсолютный, то есть
+        /// ровно тем молчанием, из-за которого заведена ~~`T240`~~.
+        /// </summary>
+        public double RefitZUsed { get; private set; }
+
+        /// <summary>
+        /// (`A266`) Сколько компонентов порог ПРОШЛИ на последнем
+        /// <see cref="Analyze"/>. Мерка правки — разность
+        /// <see cref="RefitZJudged"/> и этого числа, то есть сколько отсеяно;
+        /// без него «отсев ожил» подтверждается только сменой исхода, а
+        /// НАСКОЛЬКО он ожил — ничем.
+        /// </summary>
+        public int RefitZKept { get; private set; }
+
+        /// <summary>
         /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
         /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
         ///
@@ -1427,6 +1525,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
                 chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
+            // (`T240`) Исход отсева — состояние ЭТОГО разбора, и от прошлого
+            // ему достаться нечего: анализатор переживает несколько спектров
+            // подряд (корпусный прогон), и уцелевшее с прошлого раза «отсев
+            // применён» было бы ложью того же рода, что и молчание.
+            this.RefitZState = RefitZOutcome.NotRequested;
+            this.RefitZTopZ = double.NaN;
+            this.RefitZJudged = 0;
+            this.RefitZUsed = double.NaN;
+            this.RefitZKept = 0;
+
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
             {
@@ -1865,25 +1973,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // не прошедших порог значимости в первом.
             if (this.RefitZ > 0.0)
             {
-                List<FsaComponent> keep = new List<FsaComponent>();
+                // (`A266`) ДВА ПРОХОДА, А НЕ ОДИН. Порог теперь может зависеть
+                // от вершины (`RefitZRelative`), а вершина известна только
+                // после обхода всех судимых, — приговор в том же цикле, где
+                // копится знаменатель, судил бы первые колонки по одному
+                // порогу, а последние по другому, и молча.
                 int total = 0;
                 for (int k = 0; k < best.Columns.Count; k++)
                 {
-                    FsaComponent component = best.Columns[k].Component;
-                    if (component == null)
+                    if (best.Columns[k].Component == null)
                     {
                         continue;
                     }
 
                     total++;
-                    if (best.Z[k] >= this.RefitZ)
+
+                    // (`T240`) Знаменатель приговора: НАИБОЛЬШАЯ значимость
+                    // среди судимых. Без неё «порог выше всех» неотличимо от
+                    // «судить было некого».
+                    if (double.IsNaN(this.RefitZTopZ) || best.Z[k] > this.RefitZTopZ)
+                    {
+                        this.RefitZTopZ = best.Z[k];
+                    }
+                }
+
+                // (`A266`) Порог = min(абсолютный, доля вершины). Оговорка про
+                // положительную вершину не косметика: при неположительной
+                // доля дала бы порог ≤ 0, то есть отсев, не отвергающий
+                // НИЧЕГО, — а это другая беда той же породы, что и `T240`,
+                // только с другого конца.
+                double threshold = this.RefitZ;
+                if (this.RefitZRelative > 0.0
+                    && !double.IsNaN(this.RefitZTopZ) && this.RefitZTopZ > 0.0)
+                {
+                    double relative = this.RefitZRelative * this.RefitZTopZ;
+                    if (relative < threshold)
+                    {
+                        threshold = relative;
+                    }
+                }
+
+                this.RefitZUsed = threshold;
+
+                List<FsaComponent> keep = new List<FsaComponent>();
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    FsaComponent component = best.Columns[k].Component;
+                    if (component != null && best.Z[k] >= threshold)
                     {
                         keep.Add(component);
                     }
                 }
 
+                this.RefitZJudged = total;
+                this.RefitZKept = keep.Count;
                 if (keep.Count > 0 && keep.Count < total)
                 {
+                    this.RefitZState = RefitZOutcome.Applied;
                     FitResult refit = FitHuber(working, fixedColumns, calibration, fwhmCalibration, efficiency,
                                                bestGain, bestOffset, chLo, chHi, channels, y, variance, baseWeights, reportWeights, keep);
                     if (refit != null)
@@ -1891,6 +2037,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         best = refit;
                         remember(best);
                     }
+                }
+                else if (total > 0 && keep.Count == 0)
+                {
+                    // ⛔ (`T240`) ПОРОГ ВЫШЕ ЗНАЧИМОСТИ ВСЕХ — ОТСЕВА НЕ БЫЛО.
+                    //
+                    // Ветка сама по себе разумна: фит без единой колонки не
+                    // «уточнённый состав», а пустой ответ, и подставлять его
+                    // вместо разбора было бы хуже. Беда была в МОЛЧАНИИ —
+                    // признак есть, читателя у него не было, и абляционное
+                    // плечо `--refit-z=<большое>` читалось наоборот: как
+                    // «самый строгий отсев» вместо «отсева нет».
+                    //
+                    // ⛔ СМЫСЛ ОТСЕВА ЗДЕСЬ НЕ МЕНЯЕТСЯ (решение полосы П9,
+                    // 06.09.2026): поведение то же, что было, — иначе поехали
+                    // бы корпусные числа на всяком спектре, где порог никого
+                    // не пропустил, а измерять это плечо надо отдельно и не в
+                    // день объявления базы. Меняется ровно одно: состояние
+                    // НАЗВАНО.
+                    //
+                    // ⚠ (`A266`) Лечит это состояние не здешняя ветка, а
+                    // относительный порог `RefitZRelative`: при нём вершина
+                    // порог проходит всегда, и сюда попасть можно только с
+                    // неположительной вершиной. Ветка остаётся именно для
+                    // такого случая и для поставочного (чисто абсолютного)
+                    // порога.
+                    this.RefitZState = RefitZOutcome.AllBelow;
+                }
+                else
+                {
+                    // Порог прошли все: выбрасывать было некого. Второй проход
+                    // повторил бы первый колонка в колонку. Сюда же — фит без
+                    // единой судимой колонки (<c>total</c> = 0); их различает
+                    // <see cref="RefitZJudged"/>, а не отдельное состояние:
+                    // общего у них ровно одно — отсев не выбросил ничего.
+                    this.RefitZState = RefitZOutcome.NothingBelow;
                 }
             }
 

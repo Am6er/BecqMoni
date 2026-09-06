@@ -38,6 +38,10 @@ namespace FsaCascadeProbe
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            // (`T243`) Эталон настроек — ДО разбора ключей: полоса это статика,
+            // отражение её не видит, и снятая позже она уже могла быть уведена.
+            FsaTuningReport.Snapshot();
+
             string spectrumPath = null, backgroundPath = null, efficiencyName = null, dumpGeometry = null;
             bool rebuild = false, force = false, describe = false, sumLayerContinuum = false;
             int maxLines = 12;
@@ -251,6 +255,16 @@ namespace FsaCascadeProbe
             // «подслой выше своей ленты» ниже — на этой ветке дефект S37 и
             // проявлялся крупнее всего.
             analyzer.SumLayerIncludesContinuum = sumLayerContinuum;
+
+            // (`T243`) ЧЕМ СЧИТАЛИ — ДО СЧЁТА И ВСЛУХ. Ключ
+            // `--sum-layer-continuum` до 06.09.2026 не оставлял в выводе НИ
+            // СТРОКИ, и прогон с ним был неотличим от умолчательного.
+            // ⛔ Печатается ОДИН раз и ПЕРЕД первым `Analyze`: дальше проба
+            // двигает тот же анализатор от плеча к плечу, а после разбора у
+            // него есть состояние прогона (`RefitZState`, `T240`), и второй
+            // отчёт называл бы исходом то, что обязан называть настройками.
+            // Чем отличаются плечи, печатают их собственные строки ниже.
+            FsaTuningReport.Print(analyzer, "первое плечо");
             var clock = System.Diagnostics.Stopwatch.StartNew();
             FsaResult plain = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
                                                library, efficiency);

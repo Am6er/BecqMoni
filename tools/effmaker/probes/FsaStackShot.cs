@@ -35,6 +35,7 @@ namespace FsaStackShot
     ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
     ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
+    ///                [--refit-z-rel=0.1]
     ///                [--no-drift] [--gain-steps=N] [--offset-steps=N]
     ///                [--knots=4]
     ///                [--calculating]
@@ -80,6 +81,16 @@ namespace FsaStackShot
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            // (`T101`) ПОСТАВОЧНАЯ ПОЛОСА — СНИМАЕТСЯ ДО ВСЕГО. Отражение её не
+            // видит (статика, читаемая обоими концами в момент обращения), и
+            // эталон для строки «против поставочного разбора изменено» обязан
+            // родиться с нею; снятая позже, она уже могла быть уведена
+            // конфигурацией. Тот же приём и тот же довод, что у `CorpusFsaProbe`
+            // (`S101`, `T65`).
+            // (`T243`) Само правило живёт ОДНИМ местом — довеском
+            // `FsaTuningReport.cs`; здесь только два вызова.
+            FsaTuningReport.Snapshot();
+
             string spectrumPath = null, efficiencyName = null, outPath = "stack.png";
             string setName = null, linesOf = null, selectKev = null;
             // Развязка гейтов и приборных образов — `S81`: «кто чью полку
@@ -87,6 +98,10 @@ namespace FsaStackShot
             // анализатора, а не «поставить ноль».
             bool atomic = true, backscatter = true;
             double refitZ = double.NaN;
+            // (`A266`) Относительная доля порога отсева — ОТДЕЛЬНЫМ рычагом, а
+            // не подменой умолчания: иначе её эффект не отделить от прочих
+            // правок того же дня. NaN — не трогать умолчание анализатора.
+            double refitZRel = double.NaN;
             // (S69/S70) Ветка галки «состав из баз»: библиотеку собирает
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
@@ -113,6 +128,8 @@ namespace FsaStackShot
                 else if (a.StartsWith("--lines=", StringComparison.Ordinal)) linesOf = a.Substring(8);
                 else if (a == "--no-atomic") atomic = false;
                 else if (a == "--no-backscatter") backscatter = false;
+                else if (a.StartsWith("--refit-z-rel=", StringComparison.Ordinal))
+                    refitZRel = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                     refitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a == "--no-equilibrium") equilibrium = false;
@@ -357,6 +374,27 @@ namespace FsaStackShot
             {
                 analyzer.RefitZ = refitZ;
             }
+
+            // (`A266`) Ключ обязан ДОЕХАТЬ до анализатора, иначе он мёртв и
+            // молчит: заведённый в разборе и не применённый здесь, он дал бы
+            // плечо, побитово совпадающее с поставочным. Читатель у него —
+            // `FsaTuningReport.Print` (строка «RefitZRelative 0 → …», довесок
+            // `FsaTuningReport.cs`) и `PrintRefitZ` (фактический порог, ниже по
+            // тексту).
+            if (!double.IsNaN(refitZRel))
+            {
+                analyzer.RefitZRelative = refitZRel;
+            }
+
+            // (`T101`) ЧЕМ СНЯТ СНИМОК — ДО СЧЁТА И ВСЛУХ. Это ровно та проба,
+            // которой ловят расхождение стенда с экраном (~~`S82`~~), и до
+            // 06.09.2026 она о своих настройках не говорила НИ СТРОКИ: прогоны
+            // `--no-backscatter`, `--refit-z=`, `--knots=` выглядели в выводе
+            // в точности как поставочный. Печатается ПЕРЕД `Analyze` нарочно:
+            // после разбора у анализатора появляется состояние прогона
+            // (`RefitZState`), и эталон `new FsaAnalyzer()` разошёлся бы с ним
+            // не по настройкам, а по исходу.
+            FsaTuningReport.Print(analyzer);
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                 rd.FwhmCalibration,
                                                 library, FsaEfficiency.FromConfig(rd.Efficiency));
@@ -376,6 +414,7 @@ namespace FsaStackShot
             Console.WriteLine("chi2/ndf {0:F3}, невязка модели {1:F1} %, суммирование {2}",
                               result.Chi2Ndf, result.ModelResidual * 100.0,
                               result.CascadeSummingUsed ? "да" : "нет");
+            PrintRefitZ(analyzer);
 
             // Состав и подавленные — ТЕКСТОМ рядом с картинкой (`S81`). Доля
             // берётся у слоёв, а не у компонентов: у приборных образов
@@ -597,6 +636,91 @@ namespace FsaStackShot
             }
 
             return 0;
+        }
+        /// <summary>
+        /// (`T240`) ЧТО СЛУЧИЛОСЬ С ОТСЕВОМ ПО ЗНАЧИМОСТИ — вслух, после счёта.
+        ///
+        /// ⛔ Зачем. Порог выше значимости ВСЕХ компонентов ОТКЛЮЧАЕТ отсев, а
+        /// не ужесточает его: `keep` пуст, второго прохода не происходит, в
+        /// отчёте стоит результат ДО отсева. Плечо развёртки
+        /// `--refit-z=&lt;большое&gt;` читается при этом как «самый строгий
+        /// отсев» — то есть НАОБОРОТ, — а ключ в шапке печатается как принятый.
+        /// Ни отказа, ни предупреждения до 06.09.2026 не было.
+        ///
+        /// ⚠ Печатаются ВСЕ четыре исхода, а не один тревожный: «отсев
+        /// применён», «выбрасывать было некого» и «порог выше всех» — три
+        /// разных утверждения, и молчание вместо двух последних снова сделало
+        /// бы их неразличимыми.
+        /// </summary>
+        static void PrintRefitZ(FsaAnalyzer analyzer)
+        {
+            string top = double.IsNaN(analyzer.RefitZTopZ)
+                ? "судить было некого"
+                : "наибольшая значимость "
+                  + analyzer.RefitZTopZ.ToString("F2", CultureInfo.InvariantCulture);
+            string thr = Threshold(analyzer);
+            switch (analyzer.RefitZState)
+            {
+                case FsaAnalyzer.RefitZOutcome.NotRequested:
+                    Console.WriteLine("отсев по значимости: НЕ ЗАКАЗАН (порог {0})", thr);
+                    break;
+                case FsaAnalyzer.RefitZOutcome.Applied:
+                    Console.WriteLine("отсев по значимости: ПРИМЕНЁН, порог {0}, судимых {1}, {2}",
+                                      thr,
+                                      Judged(analyzer), top);
+                    break;
+                case FsaAnalyzer.RefitZOutcome.NothingBelow:
+                    Console.WriteLine("отсев по значимости: выбрасывать было некого,"
+                                      + " порог {0}, судимых {1}, {2}",
+                                      thr,
+                                      Judged(analyzer), top);
+                    break;
+                default:
+                    Console.WriteLine("⚠ отсев по значимости НЕ ПРИМЕНЁН (`T240`): порог {0} выше"
+                                      + " значимости ВСЕХ {1} судимых ({2}) — второго прохода НЕ БЫЛО,"
+                                      + " в отчёте результат ДО отсева. Плечо «строже» здесь значит"
+                                      + " «отсева нет», наоборот читать нельзя",
+                                      thr,
+                                      // Здесь НЕ `Judged`: отсеяно НОЛЬ, а не
+                                      // всё. Второго прохода не было вовсе, и
+                                      // «отсеяно 13» было бы ложью ровно того
+                                      // рода, против которой заведена `T240`.
+                                      analyzer.RefitZJudged.ToString(CultureInfo.InvariantCulture), top);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// (`A266`) ПОРОГ, КОТОРЫМ СУДИЛИ, — а не тот, что заказан.
+        ///
+        /// ⛔ При относительной доле заказанное и применённое расходятся:
+        /// заказано `RefitZ` = 3 и доля 0.1, применено 0.26. Печатать
+        /// заказанный значило бы повторить механизм ~~`T240`~~ на новом рычаге —
+        /// ключ в шапке стоит как принятый, а судили другим числом.
+        /// </summary>
+        /// <summary>
+        /// (`A266`) Судимых и сколько из них ОТСЕЯНО. Одна смена исхода
+        /// говорит лишь «отсев ожил», а насколько — не говорит ничем.
+        /// </summary>
+        static string Judged(FsaAnalyzer analyzer)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0} (отсеяно {1})",
+                                 analyzer.RefitZJudged,
+                                 analyzer.RefitZJudged - analyzer.RefitZKept);
+        }
+
+        static string Threshold(FsaAnalyzer analyzer)
+        {
+            if (analyzer.RefitZRelative <= 0.0 || double.IsNaN(analyzer.RefitZUsed))
+            {
+                return analyzer.RefitZ.ToString("G", CultureInfo.InvariantCulture);
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                                 "{0:F4} = min(абс {1}, доля {2} от вершины)",
+                                 analyzer.RefitZUsed,
+                                 analyzer.RefitZ.ToString("G", CultureInfo.InvariantCulture),
+                                 analyzer.RefitZRelative.ToString("G", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
