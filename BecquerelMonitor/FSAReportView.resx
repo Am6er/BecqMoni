@@ -186,53 +186,68 @@
   <data name="sourceNucBaseRadio.Text" xml:space="preserve">
     <value>From NucBase</value>
   </data>
-  <data name="groupingGroupBox.AutoSize" type="System.Boolean, mscorlib">
+  <data name="displayGroupBox.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="groupingGroupBox.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+  <data name="displayGroupBox.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Top</value>
   </data>
-  <data name="groupingGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 47</value>
+  <data name="displayGroupBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 233</value>
   </data>
-  <data name="groupingGroupBox.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+  <data name="displayGroupBox.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>6, 3, 6, 4</value>
   </data>
-  <data name="groupingGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 47</value>
+  <data name="displayGroupBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>320, 112</value>
   </data>
-  <data name="groupingGroupBox.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+  <data name="displayGroupBox.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
   </data>
-  <data name="groupingGroupBox.Text" xml:space="preserve">
-    <value>Result grouping</value>
+  <data name="displayGroupBox.Text" xml:space="preserve">
+    <value>Display</value>
   </data>
-  <data name="groupingFlow.AutoSize" type="System.Boolean, mscorlib">
+  <data name="displayFlow.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
-  <data name="groupingFlow.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+  <data name="displayFlow.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Top</value>
   </data>
-  <data name="groupingFlow.Location" type="System.Drawing.Point, System.Drawing">
+  <data name="displayFlow.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 16</value>
   </data>
-  <data name="groupingFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 25</value>
+  <data name="displayFlow.Size" type="System.Drawing.Size, System.Drawing">
+    <value>308, 90</value>
   </data>
-  <data name="groupingFlow.TabIndex" type="System.Int32, mscorlib">
+  <data name="displayFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
+  </data>
+  <data name="groupingLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="groupingLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 3</value>
+  </data>
+  <data name="groupingLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>84, 13</value>
+  </data>
+  <data name="groupingLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="groupingLabel.Text" xml:space="preserve">
+    <value>Result grouping</value>
   </data>
   <data name="parentsRadio.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="parentsRadio.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 3</value>
+    <value>3, 22</value>
   </data>
   <data name="parentsRadio.Size" type="System.Drawing.Size, System.Drawing">
     <value>110, 17</value>
   </data>
   <data name="parentsRadio.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="parentsRadio.Text" xml:space="preserve">
     <value>Parent nuclides</value>
@@ -241,13 +256,13 @@
     <value>True</value>
   </data>
   <data name="daughtersRadio.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 26</value>
+    <value>3, 45</value>
   </data>
   <data name="daughtersRadio.Size" type="System.Drawing.Size, System.Drawing">
     <value>122, 17</value>
   </data>
   <data name="daughtersRadio.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="daughtersRadio.Text" xml:space="preserve">
     <value>Daughter nuclides</value>
@@ -259,7 +274,7 @@
     <value>Top</value>
   </data>
   <data name="chainGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 94</value>
+    <value>0, 47</value>
   </data>
   <data name="chainGroupBox.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>6, 3, 6, 4</value>
@@ -268,7 +283,7 @@
     <value>320, 47</value>
   </data>
   <data name="chainGroupBox.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
+    <value>1</value>
   </data>
   <data name="chainGroupBox.Text" xml:space="preserve">
     <value>Chain model</value>
@@ -310,16 +325,16 @@
     <value>Top</value>
   </data>
   <data name="extrasGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 141</value>
+    <value>0, 94</value>
   </data>
   <data name="extrasGroupBox.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>6, 3, 6, 4</value>
   </data>
   <data name="extrasGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 162</value>
+    <value>320, 139</value>
   </data>
   <data name="extrasGroupBox.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+    <value>2</value>
   </data>
   <data name="extrasGroupBox.Text" xml:space="preserve">
     <value>Additional model components</value>
@@ -334,7 +349,7 @@
     <value>6, 16</value>
   </data>
   <data name="extrasFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 140</value>
+    <value>308, 117</value>
   </data>
   <data name="extrasFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -418,13 +433,13 @@
     <value>True</value>
   </data>
   <data name="residualBandCheckBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 118</value>
+    <value>3, 68</value>
   </data>
   <data name="residualBandCheckBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>104, 17</value>
   </data>
   <data name="residualBandCheckBox.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
+    <value>3</value>
   </data>
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Model residual</value>
@@ -4797,28 +4812,40 @@
   <data name="&gt;&gt;sourceNucBaseRadio.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="&gt;&gt;groupingGroupBox.Name" xml:space="preserve">
-    <value>groupingGroupBox</value>
+  <data name="&gt;&gt;displayGroupBox.Name" xml:space="preserve">
+    <value>displayGroupBox</value>
   </data>
-  <data name="&gt;&gt;groupingGroupBox.Type" xml:space="preserve">
+  <data name="&gt;&gt;displayGroupBox.Type" xml:space="preserve">
     <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;groupingGroupBox.Parent" xml:space="preserve">
+  <data name="&gt;&gt;displayGroupBox.Parent" xml:space="preserve">
     <value>$this</value>
   </data>
-  <data name="&gt;&gt;groupingGroupBox.ZOrder" xml:space="preserve">
-    <value>3</value>
+  <data name="&gt;&gt;displayGroupBox.ZOrder" xml:space="preserve">
+    <value>1</value>
   </data>
-  <data name="&gt;&gt;groupingFlow.Name" xml:space="preserve">
-    <value>groupingFlow</value>
+  <data name="&gt;&gt;displayFlow.Name" xml:space="preserve">
+    <value>displayFlow</value>
   </data>
-  <data name="&gt;&gt;groupingFlow.Type" xml:space="preserve">
+  <data name="&gt;&gt;displayFlow.Type" xml:space="preserve">
     <value>System.Windows.Forms.FlowLayoutPanel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;groupingFlow.Parent" xml:space="preserve">
-    <value>groupingGroupBox</value>
+  <data name="&gt;&gt;displayFlow.Parent" xml:space="preserve">
+    <value>displayGroupBox</value>
   </data>
-  <data name="&gt;&gt;groupingFlow.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;displayFlow.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;groupingLabel.Name" xml:space="preserve">
+    <value>groupingLabel</value>
+  </data>
+  <data name="&gt;&gt;groupingLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;groupingLabel.Parent" xml:space="preserve">
+    <value>displayFlow</value>
+  </data>
+  <data name="&gt;&gt;groupingLabel.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <data name="&gt;&gt;parentsRadio.Name" xml:space="preserve">
@@ -4828,10 +4855,10 @@
     <value>System.Windows.Forms.RadioButton, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;parentsRadio.Parent" xml:space="preserve">
-    <value>groupingFlow</value>
+    <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;parentsRadio.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="&gt;&gt;daughtersRadio.Name" xml:space="preserve">
     <value>daughtersRadio</value>
@@ -4840,10 +4867,10 @@
     <value>System.Windows.Forms.RadioButton, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;daughtersRadio.Parent" xml:space="preserve">
-    <value>groupingFlow</value>
+    <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;daughtersRadio.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="&gt;&gt;chainGroupBox.Name" xml:space="preserve">
     <value>chainGroupBox</value>
@@ -4855,7 +4882,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;chainGroupBox.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="&gt;&gt;chainFlow.Name" xml:space="preserve">
     <value>chainFlow</value>
@@ -4891,7 +4918,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;extrasGroupBox.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="&gt;&gt;extrasFlow.Name" xml:space="preserve">
     <value>extrasFlow</value>
@@ -4972,10 +4999,10 @@
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;residualBandCheckBox.Parent" xml:space="preserve">
-    <value>extrasFlow</value>
+    <value>displayFlow</value>
   </data>
   <data name="&gt;&gt;residualBandCheckBox.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>3</value>
   </data>
   <data name="&gt;&gt;reportTable.Name" xml:space="preserve">
     <value>reportTable</value>

@@ -4852,12 +4852,19 @@ namespace BecquerelMonitor
                 bool activityRefused = !string.IsNullOrEmpty(selection.ActivityRefusal);
                 bool activityLabelShown = !string.IsNullOrEmpty(selection.ActivityLabel)
                                           && ((Lc > 0 && activity > 0.0) || activityRefused);
+                // ⛔ КЛЕЙМА `ПАНЕЛЬ:` НИЖЕ ЧИТАЕТ СТОРОЖ (`A273`,
+                // `tools/check_selection_panel_height.py`). Каждое слагаемое высоты,
+                // зависящее от подписи и отказа, названо, и ровно тот же набор имён
+                // обязан стоять в мерке `SelectionPanelProbeG10`. Слагаемое, добавленное
+                // сюда без клейма или без пары в пробе, делает сторожа красным: 06.09.2026
+                // проба полдня отвергала ВЕРНУЮ отрисовку на сцене со спором подписи
+                // (`G1S16_Th228_P5`) ровно потому, что слагаемого «спор» у неё не было.
                 if (activityLabelShown)
                 {
-                    infopanel_height += 16;
+                    infopanel_height += 16; // ПАНЕЛЬ: подпись
                     if (selection.ActivityRivals > 0)
                     {
-                        infopanel_height += 16;
+                        infopanel_height += 16; // ПАНЕЛЬ: спор
                     }
                     // (`A195`-родня, полоса G10 06.09.2026) Отступ 6 px перед
                     // блоком ПШПВ ставится ниже при `Lc > 0 || activityLabelShown`;
@@ -4867,7 +4874,7 @@ namespace BecquerelMonitor
                     // контролем «вне панели кадр тот же» (154 точки вне заливки).
                     if (!(Lc > 0))
                     {
-                        infopanel_height += 6;
+                        infopanel_height += 6; // ПАНЕЛЬ: отступ
                     }
                 }
                 // (полоса G10, 06.09.2026) Отказ длиннее ширины панели GDI+ переносит
@@ -4883,7 +4890,7 @@ namespace BecquerelMonitor
                     : 0;
                 if (activityRefused)
                 {
-                    infopanel_height += 16 + refusalHeight;
+                    infopanel_height += 16 + refusalHeight; // ПАНЕЛЬ: отказ
                 }
                 g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);

@@ -502,12 +502,15 @@ class CorpusMatrixProbe
                 // на такой строке комментария и стояла посылка `S132`.
                 double ratio = matrix.HistoriesSpent > 0
                     ? flat / matrix.HistoriesSpent : 0.0;
-                Console.WriteLine("   историй  : {0:N0} против {1:N0} плоских — в {2:F1} раза {3}; "
-                                  + "самый дорогой узел {4:N0}",
+                // ⛔ `T246`: `F0`, а не `N0` — группировки разрядов быть не должно
+                // (решение Amber 05.09.2026).
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   историй  : {0:F0} против {1:F0} плоских — в {2:F1} раза {3}; "
+                                  + "самый дорогой узел {4:F0}",
                                   (double)matrix.HistoriesSpent, flat,
                                   ratio >= 1.0 ? ratio : (ratio > 0.0 ? 1.0 / ratio : 0.0),
                                   ratio >= 1.0 ? "дешевле" : "ДОРОЖЕ",
-                                  (double)matrix.HistoriesWorstNode);
+                                  (double)matrix.HistoriesWorstNode));
             }
 
             // `T43`: цена истории почти не зависит от энергии — значит время

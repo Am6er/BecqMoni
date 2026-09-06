@@ -127,7 +127,10 @@
   <data name="sourceNucBaseRadio.Text" xml:space="preserve">
     <value>Из NucBase</value>
   </data>
-  <data name="groupingGroupBox.Text" xml:space="preserve">
+  <data name="displayGroupBox.Text" xml:space="preserve">
+    <value>Отрисовка</value>
+  </data>
+  <data name="groupingLabel.Text" xml:space="preserve">
     <value>Группировка результата</value>
   </data>
   <data name="parentsRadio.Text" xml:space="preserve">
