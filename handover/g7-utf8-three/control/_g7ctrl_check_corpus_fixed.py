@@ -633,6 +633,7 @@ def check_parts():
 
 
 def main():
+    print(u"⛔ КОНТРОЛЬ G7 — знак вне cp1251 первой строкой main(): ✅ ➜ σ 𝄞")
     only = None
     verbose = '--verbose' in sys.argv
     for a in sys.argv[1:]:

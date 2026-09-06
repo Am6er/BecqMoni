@@ -92,11 +92,6 @@ sys.path.insert(0, HERE)
 # Кодировка utf-8, а не `backslashreplace` при cp1251: по замеру G5 06.09.2026
 # (handover/g5-cp1251/04-readers.md) оба канала агента и check_all.py декодируют utf-8, и при
 # cp1251 ВЕСЬ русский приходит как ������. Решение Amber 06.09.2026 — utf-8 тем же блоком (G7).
-for _stream in (sys.stdout, sys.stderr):
-    try:
-        _stream.reconfigure(encoding='utf-8', errors='replace')
-    except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
-        pass
 
 import corpus_def                                       # noqa: E402
 import corpus_calib                                     # noqa: E402
@@ -632,6 +627,7 @@ def canon_check(res_by_det, name):
 
 # ---------------------------------------------------------------------------
 def main():
+    print(u"⛔ КОНТРОЛЬ G7 — знак вне cp1251 первой строкой main(): ✅ ➜ σ 𝄞")
     ap = argparse.ArgumentParser()
     ap.add_argument('--only', default=None)
     ap.add_argument('--csv', default=None)

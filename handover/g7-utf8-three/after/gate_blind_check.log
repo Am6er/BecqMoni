@@ -1,0 +1,14 @@
+usage: gate_blind_check.py [-h] [--only ONLY] [--csv CSV]
+                           [--gate {prod,pass1}]
+                           [--vertex {пик-3√N,пик-3√N+симм}] [--clean CLEAN]
+                           [--no-inject]
+
+options:
+  -h, --help            show this help message and exit
+  --only ONLY
+  --csv CSV
+  --gate {prod,pass1}
+  --vertex {пик-3√N,пик-3√N+симм}
+  --clean CLEAN         `V16`: чистить ложный набор по полному списку
+                        излучений, в ПШПВ; 0 — не чистить (прежнее поведение)
+  --no-inject

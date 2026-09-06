@@ -1,0 +1,8 @@
+| копия | код | ждали | UnicodeEncodeError | контрольная строка цела | строка приговора |
+|---|---|---|---|---|---|
+| `_g7ctrl_check_corpus_fixed.py` | 0 | 0 | нет | да | да |
+| `_g7ctrl_check_corpus_broken.py` | 1 | 1 | да | нет | нет |
+| `_g7ctrl_gate_blind_check_fixed.py` | 0 | 0 | нет | да | да |
+| `_g7ctrl_gate_blind_check_broken.py` | 1 | 1 | да | нет | нет |
+| `_g7ctrl_gaussfit_check_fixed.py` | 2 | 2 | нет | да | да |
+| `_g7ctrl_gaussfit_check_broken.py` | 1 | 1 | да | нет | нет |

@@ -433,6 +433,7 @@ def fake_lines(lines, res_a, sign):
 
 
 def main():
+    print(u"⛔ КОНТРОЛЬ G7 — знак вне cp1251 первой строкой main(): ✅ ➜ σ 𝄞")
     only = None
     csv_out = None
     raw_dir = RAW

@@ -632,6 +632,7 @@ def canon_check(res_by_det, name):
 
 # ---------------------------------------------------------------------------
 def main():
+    print(u"⛔ КОНТРОЛЬ G7 — знак вне cp1251 первой строкой main(): ✅ ➜ σ 𝄞")
     ap = argparse.ArgumentParser()
     ap.add_argument('--only', default=None)
     ap.add_argument('--csv', default=None)

@@ -1,0 +1,2 @@
+нет прежнего gaussfit: no_such_ref.py
+достать: git show HEAD~1:tools/CORPUS/scripts/gaussfit.py > no_such_ref.py

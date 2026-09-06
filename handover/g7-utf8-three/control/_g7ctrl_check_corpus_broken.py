@@ -633,6 +633,7 @@ def check_parts():
 
 
 def main():
+    print(u"⛔ КОНТРОЛЬ G7 — знак вне cp1251 первой строкой main(): ✅ ➜ σ 𝄞")
     only = None
     verbose = '--verbose' in sys.argv
     for a in sys.argv[1:]:
@@ -718,9 +719,4 @@ if __name__ == '__main__':
     # при cp1251 ВЕСЬ русский приходит как ������. Решение Amber 06.09.2026 — utf-8 тем же
     # блоком (G7). Блок в теле __main__, а не у импортов: модуль импортируют, и потоки
     # импортёра трогать нельзя.
-    for _stream in (sys.stdout, sys.stderr):
-        try:
-            _stream.reconfigure(encoding='utf-8', errors='replace')
-        except (AttributeError, ValueError):  # поток подменён (StringIO) или закрыт
-            pass
     sys.exit(main())
