@@ -103,6 +103,11 @@ namespace BecquerelMonitor
             activeResultData.BackgroundSpectrumPathname = activeResultData.DeviceConfig.BackgroundSpectrumPathname;
             this.LoadBackgroundSpectrum(activeResultData);
             docEnergySpectrum.UpdateEnergySpectrum();
+            // `A240`: та же дверь, что у открытия и у обоих ввозов. Новый
+            //   документ без кривой разрешения — то самое состояние, из-за
+            //   которого `A212` ловила NullReferenceException далеко отсюда;
+            //   имя файла здесь то, под которым документ виден на экране.
+            this.ReportMissingFwhmCalibration(docEnergySpectrum, filename);
             return docEnergySpectrum;
         }
 
@@ -422,6 +427,22 @@ namespace BecquerelMonitor
             }
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
             docEnergySpectrum2.UpdateEnergySpectrum();
+            // ⛔ `A240` (06.09.2026): ТА ЖЕ ДВЕРЬ, ЧТО У ОБОИХ ВВОЗОВ — ОДНА НА
+            //    ВСЕ. `A234` научила говорить ввоз N42 и ввоз через SpecUtils, а
+            //    ОТКРЫТИЕ СОХРАНЁННОГО документа осталось немым: через
+            //    CheckDocument проходят и OpenDocument, и CreateDocument, а он
+            //    зовёт FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
+            //    получает null, ПРИЧИНУ выбрасывает и всё равно возвращает true,
+            //    то есть объявляет документ проверенным без кривой разрешения.
+            //    Тот же спектр при той же конфигурации прибора ввозом ГОВОРИЛ, а
+            //    открытием МОЛЧАЛ; исход зависел от пункта меню, а это ровно то,
+            //    что сводили `A160`, `A175` и `A234`.
+            //    ⚠ Голос ОДИН РАЗ НА ФАЙЛ и с числами (сколько спектров из
+            //    скольких): метод общий, и расходиться дверям больше нечем.
+            //    ⚠ Замер молчания: 129 корпусных документов
+            //    (tools\CORPUS\corpus\spectra) открываются этой дверью с НУЛЁМ
+            //    голосов — у всех кривая строится по конфигурации прибора.
+            this.ReportMissingFwhmCalibration(docEnergySpectrum2, filename);
             return docEnergySpectrum2;
         }
 
@@ -586,6 +607,22 @@ namespace BecquerelMonitor
             }
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
             docEnergySpectrum2.UpdateEnergySpectrum();
+            // ⛔ `A240` (06.09.2026): ТА ЖЕ ДВЕРЬ, ЧТО У ОБОИХ ВВОЗОВ — ОДНА НА
+            //    ВСЕ. `A234` научила говорить ввоз N42 и ввоз через SpecUtils, а
+            //    ОТКРЫТИЕ СОХРАНЁННОГО документа осталось немым: через
+            //    CheckDocument проходят и OpenDocument, и CreateDocument, а он
+            //    зовёт FwhmCalibration.DefaultCalibration СТАРОЙ подписью —
+            //    получает null, ПРИЧИНУ выбрасывает и всё равно возвращает true,
+            //    то есть объявляет документ проверенным без кривой разрешения.
+            //    Тот же спектр при той же конфигурации прибора ввозом ГОВОРИЛ, а
+            //    открытием МОЛЧАЛ; исход зависел от пункта меню, а это ровно то,
+            //    что сводили `A160`, `A175` и `A234`.
+            //    ⚠ Голос ОДИН РАЗ НА ФАЙЛ и с числами (сколько спектров из
+            //    скольких): метод общий, и расходиться дверям больше нечем.
+            //    ⚠ Замер молчания: 129 корпусных документов
+            //    (tools\CORPUS\corpus\spectra) открываются этой дверью с НУЛЁМ
+            //    голосов — у всех кривая строится по конфигурации прибора.
+            this.ReportMissingFwhmCalibration(docEnergySpectrum2, filename);
             return docEnergySpectrum2;
         }
 
@@ -785,6 +822,20 @@ namespace BecquerelMonitor
                 // `A207`: у скольких измерений времени начала не оказалось вовсе.
                 //   Голос по этому счётчику звучит ОДИН РАЗ на файл, ниже.
                 int noStart = 0;
+                // `A216`: у скольких измерений энергетическая шкала взята НЕ ИЗ
+                //   ФАЙЛА. Три разных положения, и человеку они разные:
+                //   substitutedScale — SpecUtils сама сказала, что шкалы не было,
+                //   и подставила своё умолчание; invalidScale — запись шкалы в
+                //   файле негодна; identityScale — ни коэффициентов, ни границ
+                //   прочесть не удалось, и в документе осталась y = x, то есть
+                //   номер канала объявлен энергией (`A141`); approximatedScale —
+                //   шкала в файле есть, но полином выше четвёртого порядка, и он
+                //   ПРИБЛИЖЁН четвёртым. Голоса по этим счётчикам звучат ОДИН
+                //   РАЗ на файл, ниже.
+                int substitutedScale = 0;
+                int invalidScale = 0;
+                int identityScale = 0;
+                int approximatedScale = 0;
                 for (int m = 0; m < measurements_count; m++)
                 {
                     // 16 spectrum MAX
@@ -938,6 +989,66 @@ namespace BecquerelMonitor
                     // Calibration part
                     int energyCalType = SpecUtilsNative.GetEnergyCalType(file_h, m);
 
+                    // ⛔ `A216` (06.09.2026): ШКАЛА, ВЗЯТАЯ НЕ ИЗ ФАЙЛА,
+                    //    НАЗЫВАЕТСЯ ВСЛУХ — КАК У СОСЕДНЕЙ ДВЕРИ.
+                    //
+                    //    Измерено 06.09.2026 на 31 сочинённом входе, обеими
+                    //    дверьми поимённо: приговоры разошлись у СЕМИ файлов, и
+                    //    все семь одного рода — дверь N42 отказывает словами,
+                    //    дверь SpecUtils ввозит МОЛЧА. Шесть из семи ввозятся со
+                    //    шкалой, которой в файле НЕТ: case4_empty, case6_nocalib,
+                    //    case23_rad_declared, case28_rad_shortener и
+                    //    case29_2006_nocoeff получают ОДНУ И ТУ ЖЕ прямую
+                    //    [0, 47.619049072265625] — это умолчание самой SpecUtils
+                    //    «0…3000 кэВ на 64 канала», а не число из файла;
+                    //    case3_order5 получает приближение полинома 5-го порядка
+                    //    четвёртым, дающее на канале 0 энергию 2.0E+7 кэВ вместо
+                    //    записанной в файле единицы. Дверь N42 в этих шести
+                    //    положениях отказывает и НАЗЫВАЕТ причину (`A136`,
+                    //    `A140`, `A141`, `A151`, `A208`), а здесь человек получал
+                    //    правдоподобную шкалу без единого слова — и по ней
+                    //    подписывались пики, набиралась библиотека и считалось
+                    //    разложение.
+                    //
+                    //    ⛔ Отказывать здесь НЕЛЬЗЯ, и это тоже замер, а не
+                    //    осторожность: 12 корпусных .n42 этой дверью ввозятся 12
+                    //    из 12, и всякий отказ закрыл бы файлы, которые сегодня
+                    //    работают. Дверь поэтому та же, что у `A160`/`A175`/`A207`
+                    //    строкой ниже: ГОЛОС ОДИН РАЗ НА ФАЙЛ, работа
+                    //    продолжается.
+                    //
+                    //    ⚠ Признак взят у САМОЙ SpecUtils, а не выведен из
+                    //    коэффициентов: значение 3 её перечисления и есть
+                    //    «UnspecifiedUsingDefaultPolynomial» — библиотека прямо
+                    //    сообщает, что шкалы в файле не было и она подставила
+                    //    свою. Значение 4 — «InvalidEquationType», то же самое.
+                    //    Седьмое расхождение (case1_boundary) сюда НЕ попадает
+                    //    нарочно: там SpecUtils читает границы энергий каналов из
+                    //    файла и восстанавливает настоящую шкалу 12.5 кэВ/канал —
+                    //    это положительный контроль, на котором признак обязан
+                    //    МОЛЧАТЬ. Молчит он и на case5_healthy ([3.5, 12.5] из
+                    //    файла), и на всех 12 корпусных .n42.
+                    //
+                    //    ⚠ ЗАДЕТ ЦЕЛЫЙ ИЗВОД, А НЕ ТОЛЬКО ПОРЧЕНЫЕ ФАЙЛЫ, И ЭТО
+                    //    ИЗМЕРЕНО, А НЕ ПОБОЧНО. Всякий файл извода Alpha Hound
+                    //    (RadiologicalInstrumentData) этой дверью получает ту же
+                    //    подставную прямую [0, 47.619049072265625]: SpecUtils
+                    //    списка ChannelEnergies из него не берёт, хотя список в
+                    //    файле есть и дверь N42 читает его целиком. Из 33
+                    //    сочинённых входов голос звучит у 15 — восемь из них
+                    //    здоровые файлы Alpha Hound. Это не шум: человек,
+                    //    открывший такой файл пунктом «Import spectrum file»,
+                    //    получает шкалу 0…3000 кэВ вместо своей и до 06.09.2026
+                    //    не узнавал об этом ничего.
+                    if (energyCalType == 3)
+                    {
+                        substitutedScale++;
+                    }
+                    else if (energyCalType == 4)
+                    {
+                        invalidScale++;
+                    }
+
                     switch (energyCalType)
                     {
                         // Polynomial
@@ -970,6 +1081,17 @@ namespace BecquerelMonitor
                                         calibration.Coefficients = new double[matrix.Length];
                                         calibration.Coefficients = matrix;
                                         calibration.PolynomialOrder = matrix.Length - 1;
+                                        // `A216`: шкала из файла ЕСТЬ, но она выше
+                                        //   четвёртого порядка и ПРИБЛИЖЕНА. Дверь
+                                        //   N42 такой файл отказывает словами
+                                        //   (`A151`); здесь он ввозится — но с
+                                        //   другой шкалой, и молчать об этом
+                                        //   нельзя.
+                                        approximatedScale++;
+                                    }
+                                    else
+                                    {
+                                        identityScale++;
                                     }
                                 } else
                                 {
@@ -978,6 +1100,16 @@ namespace BecquerelMonitor
                                         calibration.PolynomialOrder = cal_size - 1;
                                         calibration.Coefficients = new double[cal_size];
                                         for (int i = 0; i < cal_size; i++) calibration.Coefficients[i] = (double)cal[i];
+                                    }
+                                    else if (energyCalType != 3)
+                                    {
+                                        // `A216`: коэффициентов не прочитано, и в
+                                        //   документе остаётся умолчание
+                                        //   PolynomialEnergyCalibration — y = x,
+                                        //   то есть номер канала объявлен
+                                        //   энергией. Ровно то, что дверь N42
+                                        //   называет вслух (`A141`).
+                                        identityScale++;
                                     }
                                 }
 
@@ -1015,6 +1147,18 @@ namespace BecquerelMonitor
                                         calibration.Coefficients = matrix;
                                         calibration.PolynomialOrder = matrix.Length - 1;
                                     }
+                                    else if (energyCalType != 4)
+                                    {
+                                        // `A216`: точек меньше пяти — полином не
+                                        //   подгоняется, и остаётся y = x.
+                                        identityScale++;
+                                    }
+                                }
+                                else if (energyCalType != 4)
+                                {
+                                    // `A216`: границ энергий не прочитано — та же
+                                    //   y = x, что и в ветви коэффициентов.
+                                    identityScale++;
                                 }
 
                                 energySpectrum.EnergyCalibration = calibration.Clone();
@@ -1041,6 +1185,49 @@ namespace BecquerelMonitor
                 {
                     AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRMissingStartDateTime, noStart),
                                  "", MessageBoxIcon.None);
+                }
+
+                // ⛔ `A216`: ШКАЛА НЕ ИЗ ФАЙЛА — ОДИН ГОЛОС НА ФАЙЛ.
+                //    Четыре положения названы по отдельности нарочно: человеку
+                //    они разные, и починка у них разная. Соглашение о голосе —
+                //    то же, что двумя проверками выше (`A160`, `A175`, `A207`):
+                //    один раз на файл, работа продолжается.
+                //    ⚠ Текст здесь СТРОКОЙ, а не ресурсом: `Properties\Resources*.resx`
+                //    правит соседняя полоса, и заводить ключ пришлось бы в её файле.
+                //    Тот же приём и по той же причине стоит у отказов `A208`/`A213`
+                //    в `N42\Util.cs`.
+                if (substitutedScale + invalidScale + identityScale + approximatedScale > 0)
+                {
+                    List<string> scaleTrouble = new List<string>();
+                    if (substitutedScale > 0)
+                    {
+                        scaleTrouble.Add("энергетической шкалы в файле нет, и подставлено умолчание SpecUtils (измерений: "
+                                         + substitutedScale.ToString(CultureInfo.InvariantCulture) + ")");
+                    }
+                    if (invalidScale > 0)
+                    {
+                        scaleTrouble.Add("запись энергетической шкалы в файле негодна (измерений: "
+                                         + invalidScale.ToString(CultureInfo.InvariantCulture) + ")");
+                    }
+                    if (identityScale > 0)
+                    {
+                        scaleTrouble.Add("шкала не прочитана, и осталась y = x, то есть номер канала объявлен энергией (измерений: "
+                                         + identityScale.ToString(CultureInfo.InvariantCulture) + ")");
+                    }
+                    if (approximatedScale > 0)
+                    {
+                        scaleTrouble.Add("шкала в файле задана полиномом выше четвёртого порядка и ПРИБЛИЖЕНА четвёртым (измерений: "
+                                         + approximatedScale.ToString(CultureInfo.InvariantCulture) + ")");
+                    }
+                    // ⚠ Без приставки «BecqMoni: » — её без окон дописывает сам
+                    //   AppUi.Report, а в окне сообщение показывается как есть.
+                    AppUi.Report(
+                        "Энергетическая шкала спектра взята не из файла ("
+                        + AppUi.Where(filepath) + "): "
+                        + string.Join("; ", scaleTrouble.ToArray())
+                        + ". По такой шкале подписи пиков, состав библиотеки и разложение "
+                        + "выйдут правдоподобными и чужими — сверьте калибровку прежде, чем считать.",
+                        "", MessageBoxIcon.None);
                 }
 
                 // ⛔ `A176`/`A175`: ПУСТОЙ ДОКУМЕНТ НЕ ВЫДАЁТСЯ ЗА ВВЕЗЁННЫЙ ФАЙЛ.

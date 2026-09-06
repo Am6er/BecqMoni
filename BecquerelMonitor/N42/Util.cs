@@ -369,11 +369,7 @@ namespace BecquerelMonitor.N42
             //    сумма 253» ПОСЛЕ отказа. Снаружи такой документ неотличим от
             //    удачного ввоза.
             //
-            //    ⚠ Сверяется ТОЛЬКО НЕДОСТАЧА (записано МЕНЬШЕ объявленного).
-            //    Обратный случай — записано больше объявленного — сегодня
-            //    молча отбрасывает хвост; отказывать на нём значило бы закрыть
-            //    файлы, которые сейчас ввозятся, а такого замера у нас нет.
-            //    Остаток вынесен отдельной строкой реестра.
+            //    ⚠ НЕДОСТАЧА — ОТКАЗ, ИЗБЫТОК — ГОЛОС; см. следующую проверку.
             if (NumberOfChanels < 0
                 || chanData.Length < NumberOfChanels
                 || chanEnergy.Length < NumberOfChanels)
@@ -384,6 +380,58 @@ namespace BecquerelMonitor.N42
                     + "отсчётов " + chanData.Length.ToString(CultureInfo.InvariantCulture) + " и энергий " + chanEnergy.Length.ToString(CultureInfo.InvariantCulture)
                     + " — читать нечего, и достраивать недостающие каналы нулями нельзя: "
                     + "это был бы выдуманный спектр");
+            }
+
+            // ⛔ `A213` (06.09.2026): ЗАПИСАНО БОЛЬШЕ ОБЪЯВЛЕННОГО — ХВОСТ
+            //    ОТБРАСЫВАЕТСЯ, И ТЕПЕРЬ ОБ ЭТОМ ГОВОРИТСЯ.
+            //
+            //    Обратная половина той же беды, что закрыта `A208` строкой
+            //    выше. Длина массива берётся у атрибута NumberOfChannels, а
+            //    отсчёты и энергии читаются по индексу, — значит при
+            //    записано > объявленного цикл ниже проходит только по первым
+            //    NumberOfChannels, а остаток списка ПРОПАДАЕТ. Измерено
+            //    06.09.2026 входом case31_rad_extra (объявлено 64, записано
+            //    100): в документ ложились 64 канала и сумма 253 при сумме
+            //    всего файла 395, то есть терялось 142 отсчёта из 395 — 35.9 %,
+            //    и ни слова об этом сказано не было.
+            //
+            //    ⛔ ПОЧЕМУ ГОЛОС, А НЕ ОТКАЗ. Соглашение выбрано ЗАМЕРОМ, а не
+            //    вкусом. Недостача — это «читать нечего»: спектра на объявленную
+            //    длину в файле НЕТ, и достроить его можно только выдумав. Избыток
+            //    — это «прочитано не всё»: спектр на объявленную длину в файле
+            //    ЕСТЬ и прочитан целиком, лишним оказывается хвост. Отказ на нём
+            //    закрыл бы файлы, которые сегодня ввозятся, а замера, говорящего,
+            //    что такие файлы негодны, нет вовсе — настоящих файлов этого
+            //    прибора в дереве НЕТ (`T184`). Дверь поэтому та же, что у
+            //    `A160`/`A175`/`A207`: голос ОДИН РАЗ НА ФАЙЛ, работа
+            //    продолжается, а число потерянных отсчётов названо, чтобы
+            //    урезанный спектр не приняли за измеренный.
+            //
+            //    ⚠ Голос стоит ЗДЕСЬ, до первой записи в документ, по той же
+            //    причине, что и отказ выше: `AppUi.Report` без окон пишет в
+            //    поток ошибок, но с окнами он МОДАЛЕН, и говорить о файле надо
+            //    прежде, чем открытый документ будет затёрт.
+            if (chanData.Length > NumberOfChanels || chanEnergy.Length > NumberOfChanels)
+            {
+                long droppedCounts = 0;
+                for (int i = NumberOfChanels; i < chanData.Length; i++)
+                {
+                    int tail;
+                    if (int.TryParse(chanData[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out tail))
+                    {
+                        droppedCounts += tail;
+                    }
+                }
+                AppUi.Report(
+                    "в файле N42 (" + AppUi.Where(filename) + ") объявлено каналов "
+                    + NumberOfChanels.ToString(CultureInfo.InvariantCulture)
+                    + " (атрибут ChannelData/@NumberOfChannels), а записано отсчётов "
+                    + chanData.Length.ToString(CultureInfo.InvariantCulture)
+                    + " и энергий " + chanEnergy.Length.ToString(CultureInfo.InvariantCulture)
+                    + " — ввезено объявленное число каналов, хвост отброшен; "
+                    + "в отброшенных каналах " + droppedCounts.ToString(CultureInfo.InvariantCulture)
+                    + " отсчётов, и в сумме спектра их нет.",
+                    "", MessageBoxIcon.None);
             }
 
             // ⛔ ЖИВОЕ ВРЕМЯ — В ПОЛЕ ЖИВОГО, ПОЛНОЕ — В ПОЛЕ ПОЛНОГО (05.09.2026).
@@ -412,7 +460,21 @@ namespace BecquerelMonitor.N42
             //    мёртвое время не из чего, а обнулить полное нельзя: на него
             //    делит весь показ спектра (EnergySpectrumView), доза
             //    (DoseRateManager) и нормировка фона.
-            double lifetime = rad.MeasurementGroup.Measurement.Spectrum.LiveTime;
+            //    ⛔ `A214` (06.09.2026): ЖИВОЕ ВРЕМЯ ЧИТАЕТСЯ ТЕМ ЖЕ ПУТЁМ, ЧТО
+            //       И ПОЛНОЕ. Поле AH_Spectrum.LiveTime было объявлено double, и
+            //       файл, записавший живое время по спецификации N42-2006
+            //       (xs:duration, «PT295S»), ронял разбор ВСЕГО документа ещё в
+            //       XmlSerializer — до этой строки дело не доходило вовсе.
+            //       Теперь поле строковое, а обе записи разбирает
+            //       N42SecondsLoose; отсутствующий элемент даёт НОЛЬ — ровно то,
+            //       что давал double, — и ни одно число входа без живого времени
+            //       не сдвигается (контроль case26_rad_nolive).
+            double lifetime = 0.0;
+            string liveTimeText = rad.MeasurementGroup.Measurement.Spectrum.LiveTime;
+            if (liveTimeText != null && liveTimeText.Trim().Length > 0)
+            {
+                lifetime = N42SecondsLoose(liveTimeText, "LiveTime", filename);
+            }
             double realtime = lifetime;
             string realTimeText = rad.MeasurementGroup.Measurement.Spectrum.RealTime;
             if (realTimeText != null && realTimeText.Trim().Length > 0)
@@ -422,28 +484,24 @@ namespace BecquerelMonitor.N42
             string spectrumtype = rad.MeasurementGroup.Measurement.Spectrum.SpectrumType;
             AH_InstrumentInformation instrument = rad.MeasurementGroup.Measurement.Spectrum.InstrumentInformation;
 
-            ResultData resultData = doc.ActiveResultData;
+            // ⛔ `A217` (06.09.2026): ВСЁ, ЧТО МОЖЕТ ОТКАЗАТЬ, СЧИТАЕТСЯ В СВОЁ,
+            //    И ТОЛЬКО ПОТОМ ДОКУМЕНТ ПЕРЕЗАПИСЫВАЕТСЯ.
+            //
+            //    `A208`/`A210` вынесли перед перезаписью сверку числа каналов;
+            //    остатком были разбор чисел и отказ CheckCalibration — они
+            //    случались УЖЕ ПОСЛЕ того, как отсчёты легли в документ, и после
+            //    такого отказа документ нёс числа отказавшего файла. Теперь
+            //    отсчёты, энергии и подогнанная шкала считаются в СВОИ величины
+            //    (counts, listCalibration, calibration), проверяются здесь же, и
+            //    только пройдя проверку попадают в doc.ActiveResultData.
+            //
+            //    ⚠ Что от этого НЕ меняется: ни одно число удачного ввоза.
+            //    CheckCalibration звалась с energySpectrum.NumberOfChannels,
+            //    которому строкой выше присваивался тот же NumberOfChanels, —
+            //    значение то же самое, и `A152`/`A172` этим не задеты.
             List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
             long totalpulsecount = 0;
-            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
-
-            // ⛔ `A152`: ЧИСЛО КАНАЛОВ БЕРЁТСЯ У ФАЙЛА, КАК У СОСЕДА.
-            //    Прежде этой строки здесь не было: файл на 1024 канала ложился в
-            //    документ, объявляющий 8192, каналы 1024…8191 оставались нулями, а
-            //    длина шкалы у документа была чужая. Разбор 2012 года в этом же
-            //    файле число каналов ФАЙЛА записывает — третьего соглашения быть
-            //    не должно.
-            //    ⛔ И это портило заведённую `A141` проверку: CheckCalibration
-            //    судит по числу каналов ДОКУМЕНТА, а полином подгонялся по точкам
-            //    ФАЙЛА, — то есть проверялась экстраполяция за край подгонки, а не
-            //    то, что подгоняли.
-            //    ⚠ Сверх того снимается падение: файл, у которого каналов БОЛЬШЕ,
-            //    чем у документа, ронял разбор IndexOutOfRangeException в цикле
-            //    ниже.
-            //    ⚠ ChannelPitch НЕ трогается нарочно: строка про него не говорит, а
-            //    у файлов, которые ввозились и раньше, это сдвинуло бы шаг шкалы.
-            energySpectrum.NumberOfChannels = NumberOfChanels;
-            energySpectrum.Initialize();
+            int[] counts = new int[NumberOfChanels];
 
             for (int i = 0; i < NumberOfChanels; i++)
             {
@@ -455,37 +513,12 @@ namespace BecquerelMonitor.N42
                 // `A142`: разбор ЧИСЛА в файле не зависит от культуры машины.
                 decimal energy = decimal.Parse(chanEnergy[i], CultureInfo.InvariantCulture);
 
-                energySpectrum.Spectrum[i] = count;
+                counts[i] = count;
                 totalpulsecount += count;
 
                 CalibrationPoint calibrationPoint = new CalibrationPoint(i, energy, count);
                 listCalibration.Add(calibrationPoint);
             }
-
-            // См. пояснение выше: полное — в поле полного, живое — в поле живого.
-            energySpectrum.MeasurementTime = realtime;
-            energySpectrum.LiveTime = lifetime;
-            energySpectrum.TotalPulseCount = totalpulsecount;
-            energySpectrum.ValidPulseCount = totalpulsecount;
-            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
-            resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
-            resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
-            // ⛔ `A207`: ВРЕМЕНИ НАЧАЛА У ЭТОГО ФОРМАТА НЕТ ВОВСЕ, И ТЕПЕРЬ ЭТО
-            //    ВИДНО. Модель RadiologicalInstrumentData такого элемента не
-            //    несёт; до 06.09.2026 сюда молча ложилось «сейчас» — то есть
-            //    спектр, набранный два года назад, получал СЕГОДНЯШНЮЮ дату,
-            //    неотличимую от измеренной, и уезжал с ней в отчёт и в вывоз.
-            //    Теперь ставится единое значение «время начала неизвестно»
-            //    (ResultData.UnknownStartTime), и об этом говорится один раз на
-            //    файл — решение Amber 06.09.2026.
-            resultData.StartTime = ResultData.UnknownStartTime;
-            resultData.SampleInfo.Time = ResultData.UnknownStartTime;
-            // ⚠ `A177`: КОНЕЦ НАБОРА — то же правило, что у двух других разборов
-            //    и у соседей в DocumentManager: начало плюс полное время набора.
-            //    Начало неизвестно, поэтому и конец неизвестен вместе с ним, но
-            //    ДЛИТЕЛЬНОСТЬ в паре полей сохраняется — она из файла честная.
-            resultData.EndTime = resultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
-            resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
             // calibration part
             PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
@@ -503,7 +536,7 @@ namespace BecquerelMonitor.N42
                 //    не должно: негодная шкала задаёт подписи пиков, состав
                 //    библиотеки и разложение — по ней получаются правдоподобные
                 //    и чужие числа.
-                if (!calibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
+                if (!calibration.CheckCalibration(channels: NumberOfChanels))
                 {
                     if (!AppUi.HasWindows)
                     {
@@ -534,6 +567,61 @@ namespace BecquerelMonitor.N42
                 }
                 AppUi.Report(Resources.ERRTooFewCalibrationPointsN42, "", MessageBoxIcon.None);
             }
+
+            // ==========================================================
+            // ⛔ ОТСЮДА И НИЖЕ ДОКУМЕНТ ПЕРЕЗАПИСЫВАЕТСЯ. Выше этой черты
+            //    doc не менялся ничем, кроме имени (`A217`).
+            // ==========================================================
+            ResultData resultData = doc.ActiveResultData;
+            EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
+
+            // ⛔ `A152`: ЧИСЛО КАНАЛОВ БЕРЁТСЯ У ФАЙЛА, КАК У СОСЕДА.
+            //    Прежде этой строки здесь не было: файл на 1024 канала ложился в
+            //    документ, объявляющий 8192, каналы 1024…8191 оставались нулями, а
+            //    длина шкалы у документа была чужая. Разбор 2012 года в этом же
+            //    файле число каналов ФАЙЛА записывает — третьего соглашения быть
+            //    не должно.
+            //    ⛔ И это портило заведённую `A141` проверку: CheckCalibration
+            //    судит по числу каналов ДОКУМЕНТА, а полином подгонялся по точкам
+            //    ФАЙЛА, — то есть проверялась экстраполяция за край подгонки, а не
+            //    то, что подгоняли.
+            //    ⚠ Сверх того снимается падение: файл, у которого каналов БОЛЬШЕ,
+            //    чем у документа, ронял разбор IndexOutOfRangeException в цикле
+            //    ниже.
+            //    ⚠ ChannelPitch НЕ трогается нарочно: строка про него не говорит, а
+            //    у файлов, которые ввозились и раньше, это сдвинуло бы шаг шкалы.
+            energySpectrum.NumberOfChannels = NumberOfChanels;
+            energySpectrum.Initialize();
+
+            for (int i = 0; i < NumberOfChanels; i++)
+            {
+                energySpectrum.Spectrum[i] = counts[i];
+            }
+
+            // См. пояснение выше: полное — в поле полного, живое — в поле живого.
+            energySpectrum.MeasurementTime = realtime;
+            energySpectrum.LiveTime = lifetime;
+            energySpectrum.TotalPulseCount = totalpulsecount;
+            energySpectrum.ValidPulseCount = totalpulsecount;
+            ResultDataStatus resultDataStatus = doc.ActiveResultData.ResultDataStatus;
+            resultDataStatus.TotalTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(energySpectrum.MeasurementTime);
+            // ⛔ `A207`: ВРЕМЕНИ НАЧАЛА У ЭТОГО ФОРМАТА НЕТ ВОВСЕ, И ТЕПЕРЬ ЭТО
+            //    ВИДНО. Модель RadiologicalInstrumentData такого элемента не
+            //    несёт; до 06.09.2026 сюда молча ложилось «сейчас» — то есть
+            //    спектр, набранный два года назад, получал СЕГОДНЯШНЮЮ дату,
+            //    неотличимую от измеренной, и уезжал с ней в отчёт и в вывоз.
+            //    Теперь ставится единое значение «время начала неизвестно»
+            //    (ResultData.UnknownStartTime), и об этом говорится один раз на
+            //    файл — решение Amber 06.09.2026.
+            resultData.StartTime = ResultData.UnknownStartTime;
+            resultData.SampleInfo.Time = ResultData.UnknownStartTime;
+            // ⚠ `A177`: КОНЕЦ НАБОРА — то же правило, что у двух других разборов
+            //    и у соседей в DocumentManager: начало плюс полное время набора.
+            //    Начало неизвестно, поэтому и конец неизвестен вместе с ним, но
+            //    ДЛИТЕЛЬНОСТЬ в паре полей сохраняется — она из файла честная.
+            resultData.EndTime = resultData.StartTime.AddSeconds(energySpectrum.MeasurementTime);
+            resultData.SampleInfo.Note = $"Manufacturer = {instrument.Manufacturer}, Model = {instrument.Model}, SerialNumber = {instrument.SerialNumber}";
 
             energySpectrum.EnergyCalibration = calibration.Clone();
 
@@ -654,8 +742,58 @@ namespace BecquerelMonitor.N42
 
             string spectrumtype = rad.Measurement.Spectrum.Type;
 
-            ResultData resultData = doc.ActiveResultData;
+            // ⛔ `A217` (06.09.2026): ОТСЧЁТЫ И ШКАЛА ПРОВЕРЯЮТСЯ ДО ПЕРЕЗАПИСИ
+            //    ДОКУМЕНТА, А НЕ ПОСЛЕ.
+            //
+            //    `A210` вынесла сюда три проверки шкалы (пустой список, порядок
+            //    больше четырёх, нечисло в коэффициентах); остатком были разбор
+            //    отсчётов и отказ CheckCalibration — они случались уже после
+            //    того, как спектр лёг в документ, и после такого отказа документ
+            //    нёс числа отказавшего файла (замер `case29_2006_nocoeff`,
+            //    05.09.2026). Теперь отсчёты читаются в СВОЙ массив, шкала
+            //    собирается и проверяется здесь же, и в документ попадает только
+            //    то, что проверку прошло.
+            //
+            //    ⚠ Ни одно число удачного ввоза не меняется: CheckCalibration
+            //    звалась с resultData.EnergySpectrum.NumberOfChannels, которому
+            //    строкой ниже присваивался тот же NumberOfChanels (`A172`).
             long totalpulsecount = 0;
+            int[] counts = new int[NumberOfChanels];
+            for (int i = 0; i < NumberOfChanels; i++)
+            {
+                // `A158`: инвариантная культура — то же правило, что у коэффициентов
+                //   этого же разбора выше (`A142`) и у отсчётов разбора 2012 года.
+                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
+                counts[i] = count;
+                totalpulsecount += count;
+            }
+
+            PolynomialEnergyCalibration energyCalibration = new PolynomialEnergyCalibration();
+            energyCalibration.PolynomialOrder = PolynomialOrder;
+            energyCalibration.Coefficients = coefficients;
+
+            if (!energyCalibration.CheckCalibration(channels: NumberOfChanels))
+            {
+                // ОТКАЗ без окон, а не уведомление: калибровка в файле есть, но
+                // она не годится, — а документ отсюда возвращается КАК УДАЧНЫЙ,
+                // и дальше по нему считают. Шкала энергий задаёт всё: подписи
+                // пиков, состав библиотеки, разложение. Молча посчитать по
+                // негодной шкале значит выдать правдоподобные и чужие числа.
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: " + Resources.CalibrationFunctionError
+                        + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
+                        + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
+                }
+                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+            }
+
+            // ==========================================================
+            // ⛔ ОТСЮДА И НИЖЕ ДОКУМЕНТ ПЕРЕЗАПИСЫВАЕТСЯ. Выше этой черты
+            //    doc не менялся ничем, кроме имени (`A217`).
+            // ==========================================================
+            ResultData resultData = doc.ActiveResultData;
             EnergySpectrum energySpectrum = doc.ActiveResultData.EnergySpectrum;
             // ⛔ `A172`: ЧИСЛО КАНАЛОВ ФАЙЛА ПИШЕТСЯ В СПЕКТР — ТА ЖЕ ПРАВКА, ЧТО
             //    `A152` СДЕЛАЛА У РАЗБОРА RadiologicalInstrumentData. Здесь её не
@@ -681,11 +819,7 @@ namespace BecquerelMonitor.N42
 
             for (int i = 0; i < NumberOfChanels; i++)
             {
-                // `A158`: инвариантная культура — то же правило, что у коэффициентов
-                //   этого же разбора ниже (`A142`) и у отсчётов разбора 2012 года.
-                int count = int.Parse(chanData[i], CultureInfo.InvariantCulture);
-                energySpectrum.Spectrum[i] = count;
-                totalpulsecount += count;
+                energySpectrum.Spectrum[i] = counts[i];
             }
 
             resultData.EnergySpectrum.MeasurementTime = realtime;
@@ -770,29 +904,10 @@ namespace BecquerelMonitor.N42
 
 
 
-            // Порядок полинома и коэффициенты разобраны ВЫШЕ, до перезаписи
-            // документа (см. пояснение там); здесь они только ставятся на место.
-            resultData.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-            PolynomialEnergyCalibration energyCalibration = (PolynomialEnergyCalibration)resultData.EnergySpectrum.EnergyCalibration;
-            energyCalibration.PolynomialOrder = PolynomialOrder;
-            energyCalibration.Coefficients = coefficients;
-
-            if (!energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
-            {
-                // ОТКАЗ без окон, а не уведомление: калибровка в файле есть, но
-                // она не годится, — а документ отсюда возвращается КАК УДАЧНЫЙ,
-                // и дальше по нему считают. Шкала энергий задаёт всё: подписи
-                // пиков, состав библиотеки, разложение. Молча посчитать по
-                // негодной шкале значит выдать правдоподобные и чужие числа.
-                if (!AppUi.HasWindows)
-                {
-                    throw new InvalidOperationException(
-                        "BecqMoni: " + Resources.CalibrationFunctionError
-                        + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
-                        + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
-                }
-                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
-            }
+            // Порядок полинома, коэффициенты И проверка CheckCalibration —
+            // ВЫШЕ, до перезаписи документа (`A210`, `A217`); здесь шкала только
+            // ставится на место.
+            resultData.EnergySpectrum.EnergyCalibration = energyCalibration;
 
             // `A171`: дата не прочитана — спектр ввезён, но с чужим временем.
             //   Голос стоит В КОНЦЕ, как у разбора 2012 года: если файл не
