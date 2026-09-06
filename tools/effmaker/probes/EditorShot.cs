@@ -77,7 +77,24 @@ namespace EditorShot
                 else if (a.StartsWith("--tag=", StringComparison.Ordinal)) tag = a.Substring(6);
                 else if (a.StartsWith("--only=", StringComparison.Ordinal)) only = a.Substring(7);
                 else if (a.StartsWith("--expect=", StringComparison.Ordinal))
-                    expectFail = a.Substring(9) == "fail";
+                {
+                    // ⛔ `A77`, вторая волна 06.09.2026: РОВНО `ok` или `fail`,
+                    // на прочее отказ с кодом. Прежде было `== "fail"`, то есть
+                    // любая опечатка (`--expect=fial`, `--expect=Fail`) молча
+                    // означала «жду успеха» — и ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ этой
+                    // пробы переставал быть контролем, никак того не показывая.
+                    // Тихо портится не число, а СМЫСЛ прогона; ровно этим и
+                    // дорога `A77`.
+                    string v = a.Substring(9);
+                    if (v == "fail") expectFail = true;
+                    else if (v == "ok") expectFail = false;
+                    else
+                    {
+                        Console.Error.WriteLine("⛔ ключ --expect= понимает только ok и fail, а получил «"
+                                                + v + "». Разбор строгий (`A77`).");
+                        return 2;
+                    }
+                }
                 else if (a.StartsWith("--scene=", StringComparison.Ordinal))
                     scene = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--energy=", StringComparison.Ordinal))
