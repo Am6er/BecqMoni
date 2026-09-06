@@ -47,6 +47,8 @@ namespace N42DoorsProbeF54
     ///   --extra              дописать в каталог сочинённые входы полосы F54
     ///                        (case30_rad_live_iso — `A214`,
     ///                         case31_rad_extra — `A213`)
+    ///   --extra-g8           дописать в каталог входы полосы G8 (`A254`:
+    ///                        case38_boundary_dip, case39_boundary_inf)
     ///   --expect-silent=&lt;n&gt;  сколько молчаливых расхождений ожидается
     ///                        (по умолчанию 0); больше — код возврата 1
     ///   --culture=&lt;имя&gt;      культура прогона
@@ -60,6 +62,7 @@ namespace N42DoorsProbeF54
         static string outDir = null;
         static string culture = null;
         static bool extra = false;
+        static bool extraG8 = false;
         static int expectSilent = 0;
 
         [STAThread]
@@ -72,6 +75,7 @@ namespace N42DoorsProbeF54
                 if (a.StartsWith("--out=")) outDir = a.Substring(6);
                 else if (a.StartsWith("--culture=")) culture = a.Substring(10);
                 else if (a == "--extra") extra = true;
+                else if (a == "--extra-g8") extraG8 = true;
                 else if (a.StartsWith("--expect-silent="))
                 {
                     expectSilent = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
@@ -105,8 +109,70 @@ namespace N42DoorsProbeF54
             Console.WriteLine();
 
             if (extra) WriteExtraCases();
+            if (extraG8) WriteExtraCasesG8();
 
             return Doors();
+        }
+
+        /// <summary>
+        /// Входы полосы G8 (`A254`, 06.09.2026): границы энергий каналов
+        /// (N42-2012, EnergyBoundaryValues) НЕГОДНЫ так, что подогнанный по ним
+        /// полином всё равно монотонен и CheckCalibration его пропускает.
+        /// case34_boundary_nonmono полосы G6 — плато (362.5 362.5); здесь —
+        /// настоящий ПРОВАЛ (362.5 350 387.5) и граница за пределом float
+        /// (1e39): проверка годности стоит ДО подгонки, и оба входа обязаны
+        /// получить голос у двери SpecUtils, а не молчание.
+        /// </summary>
+        static void WriteExtraCasesG8()
+        {
+            Directory.CreateDirectory(outDir);
+            Write("case38_boundary_dip.n42", Boundary2012(64, 30, "350"));
+            Write("case39_boundary_inf.n42", Boundary2012(64, 30, "1e39"));
+        }
+
+        /// <summary>
+        /// Файл N42-2012 на <paramref name="n"/> каналов, шкала границами
+        /// 12.5 кэВ/канал (n + 1 значение), граница №<paramref name="spoil"/>
+        /// заменена на <paramref name="with"/>. Тело — как у case34 полосы G6.
+        /// </summary>
+        static string Boundary2012(int n, int spoil, string with)
+        {
+            StringBuilder edges = new StringBuilder();
+            StringBuilder counts = new StringBuilder();
+            for (int i = 0; i <= n; i++)
+            {
+                if (i > 0) edges.Append(' ');
+                edges.Append(i == spoil ? with : (12.5 * i).ToString("0.###", CultureInfo.InvariantCulture));
+                if (i < n)
+                {
+                    if (i > 0) counts.Append(' ');
+                    counts.Append((i % 7) + 1);
+                }
+            }
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+                 + "<RadInstrumentData xmlns=\"http://physics.nist.gov/N42/2011/N42\" n42DocUUID=\"probe-a254-case-g8\">\r\n"
+                 + "  <RadInstrumentInformation id=\"RadInstrument\">\r\n"
+                 + "    <RadInstrumentManufacturerName>PROBE</RadInstrumentManufacturerName>\r\n"
+                 + "    <RadInstrumentModelName>A254</RadInstrumentModelName>\r\n"
+                 + "    <RadInstrumentClassCode>Radionuclide Identifier</RadInstrumentClassCode>\r\n"
+                 + "    <RadInstrumentVersion>\r\n"
+                 + "      <RadInstrumentComponentName>Hardware</RadInstrumentComponentName>\r\n"
+                 + "      <RadInstrumentComponentVersion>1</RadInstrumentComponentVersion>\r\n"
+                 + "    </RadInstrumentVersion>\r\n"
+                 + "  </RadInstrumentInformation>\r\n"
+                 + "  <EnergyCalibration id=\"EC1\">\r\n"
+                 + "    <EnergyBoundaryValues>" + edges + "</EnergyBoundaryValues>\r\n"
+                 + "  </EnergyCalibration>\r\n"
+                 + "  <RadMeasurement id=\"M1\">\r\n"
+                 + "    <MeasurementClassCode>Foreground</MeasurementClassCode>\r\n"
+                 + "    <StartDateTime>2026-09-05T12:00:00Z</StartDateTime>\r\n"
+                 + "    <RealTimeDuration>PT300S</RealTimeDuration>\r\n"
+                 + "    <Spectrum id=\"S1\" radDetectorInformationReference=\"D1\" energyCalibrationReference=\"EC1\">\r\n"
+                 + "      <LiveTimeDuration>PT295S</LiveTimeDuration>\r\n"
+                 + "      <ChannelData>" + counts + "</ChannelData>\r\n"
+                 + "    </Spectrum>\r\n"
+                 + "  </RadMeasurement>\r\n"
+                 + "</RadInstrumentData>\r\n";
         }
 
         // ==================================================================

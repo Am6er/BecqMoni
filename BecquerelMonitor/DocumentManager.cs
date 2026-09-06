@@ -727,6 +727,83 @@ namespace BecquerelMonitor
             return Resources.ERRFwhmCalibrationUnset;
         }
 
+        /// <summary>
+        /// СПЕКТР, ЗАВЕДЁННЫЙ ДВЕРЬЮ ВВОЗА, НАСЛЕДУЕТ НАСТРОЙКИ ПРИБОРА
+        /// ДОКУМЕНТА, А НЕ ВСТРОЕННЫЕ УМОЛЧАНИЯ (`A239`, полоса G8, 06.09.2026).
+        ///
+        /// ⛔ Измерено 06.09.2026 (`N42RoundTripProbe --mode=origin`, 12
+        /// корпусных .n42, документ пунктом меню): разбор N42-2012 заводил
+        /// голый <c>new ResultData()</c>, и после двери у 12 из 12 спектров
+        /// стояли конфигурация прибора «» (свежий <c>DeviceConfigInfo</c>,
+        /// ссылка пустая), свежая конфигурация ROI и настройки поиска пиков
+        /// встроенных умолчаний (15/3756/103) вместо настроек прибора документа
+        /// (у RC-103 — 6/266/26). Кривую разрешения по ЭТИМ трём числам затем
+        /// достраивал <c>CheckDocument</c>: в плече, где умолчание по прибору
+        /// документа не строится вовсе, после двери кривая была у 12 из 12 —
+        /// опорные точки [0:15 3756:103], то есть модель разрешения
+        /// выдуманного прибора, без единого слова. Дверь SpecUtils первый
+        /// спектр кладёт в <c>ActiveResultData</c> документа (настройки
+        /// прибора целы), а со второго заводила тот же голый
+        /// <c>new ResultData()</c> — 1 спектр из 34 на сочинённых входах.
+        ///
+        /// ⛔ Соглашение ОДНО на обе двери: настройки берутся у документа
+        /// (<c>DeviceConfig</c>, ссылка на него, ROI, настройки поиска пиков
+        /// копией, кривая разрешения копией либо null, контроллер измерения).
+        /// Кривая при этом НЕ ВЫДУМЫВАЕТСЯ: нет её у документа — нет и у
+        /// спектра, и об этом говорит <c>ReportMissingFwhmCalibration</c>
+        /// (`A234`), а не молчание.
+        ///
+        /// ⚠ Под галкой «ввозить с пустой конфигурацией» шаблон уже пуст
+        /// (<c>ResetSpectrumConfig</c> ставит свежий <c>DeviceConfigInfo</c> и
+        /// ROI = null) — наследуется ровно это, то есть галка не обходится.
+        /// </summary>
+        internal static ResultData NewResultDataLike(ResultData template)
+        {
+            ResultData data = new ResultData();
+            if (template == null)
+            {
+                return data;
+            }
+            data.MeasurementController = template.MeasurementController;
+            data.DeviceConfig = template.DeviceConfig;
+            data.DeviceConfigReference = template.DeviceConfigReference;
+            data.ROIConfig = template.ROIConfig;
+            data.ROIConfigReference = template.ROIConfigReference;
+            if (template.PeakDetectionMethodConfig != null)
+            {
+                data.PeakDetectionMethodConfig = template.PeakDetectionMethodConfig.Clone();
+            }
+            data.FwhmCalibration = template.FwhmCalibration != null ? template.FwhmCalibration.Clone() : null;
+            return data;
+        }
+
+        /// <summary>
+        /// `A254`: ЧЕМ НЕГОДНЫ ГРАНИЦЫ ЭНЕРГИЙ КАНАЛОВ, прочитанные SpecUtils, —
+        /// словами, или null, если годны. Годные — конечные числа, строго
+        /// возрастающие по номеру канала: то же условие, что у соседней двери
+        /// (`N42\Util.cs`, <c>FitEnergyBoundaryValues</c>), чтобы у одного
+        /// файла в одном приложении было одно понятие годной шкалы.
+        /// </summary>
+        static string ChannelEdgesTrouble(float[] energies)
+        {
+            for (int i = 0; i < energies.Length; i++)
+            {
+                if (float.IsNaN(energies[i]) || float.IsInfinity(energies[i]))
+                {
+                    return "граница №" + i.ToString(CultureInfo.InvariantCulture)
+                           + " — не конечное число: " + energies[i].ToString("R", CultureInfo.InvariantCulture);
+                }
+                if (i > 0 && energies[i] <= energies[i - 1])
+                {
+                    return "границы не возрастают: №" + (i - 1).ToString(CultureInfo.InvariantCulture)
+                           + " = " + energies[i - 1].ToString("R", CultureInfo.InvariantCulture)
+                           + ", №" + i.ToString(CultureInfo.InvariantCulture)
+                           + " = " + energies[i].ToString("R", CultureInfo.InvariantCulture);
+                }
+            }
+            return null;
+        }
+
         public void ImportDocumentSpecUtils(DocEnergySpectrum doc, string filepath, int presettime)
         {
             IntPtr file_h = IntPtr.Zero;
@@ -836,6 +913,10 @@ namespace BecquerelMonitor
                 int invalidScale = 0;
                 int identityScale = 0;
                 int approximatedScale = 0;
+                // `A254`: у скольких измерений границы энергий каналов в файле
+                //   НЕГОДНЫ (не возрастают, не число) — и первая причина словами.
+                int badEdgesScale = 0;
+                string badEdgesSample = null;
                 for (int m = 0; m < measurements_count; m++)
                 {
                     // 16 spectrum MAX
@@ -863,7 +944,9 @@ namespace BecquerelMonitor
                                 // EnergySpectrum allready done, create new ResultData
                                 if (resultData.EnergySpectrum.TotalPulseCount != 0)
                                 {
-                                    doc.ResultDataFile.ResultDataList.Add(new ResultData());
+                                    // `A239`: второй и дальнейшие спектры файла наследуют
+                                    //   настройки прибора документа, как и первый.
+                                    doc.ResultDataFile.ResultDataList.Add(NewResultDataLike(doc.ResultDataFile.ResultDataList[0]));
                                     list_count++;
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
                                     if (importWithEmtyConfig)
@@ -888,7 +971,8 @@ namespace BecquerelMonitor
                                 // BackgroundEnergySpectrum allready done, create new ResultData
                                 if (resultData.BackgroundEnergySpectrum != null)
                                 {
-                                    doc.ResultDataFile.ResultDataList.Add(new ResultData());
+                                    // `A239`: см. ветвь переднего спектра выше.
+                                    doc.ResultDataFile.ResultDataList.Add(NewResultDataLike(doc.ResultDataFile.ResultDataList[0]));
                                     list_count++;
                                     resultData = doc.ResultDataFile.ResultDataList[list_count];
                                     if (importWithEmtyConfig)
@@ -1131,7 +1215,36 @@ namespace BecquerelMonitor
 
                                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
 
-                                if (energies.Sum() != 0)
+                                // ⛔ `A254` (06.09.2026): ГРАНИЦЫ ПРОВЕРЯЮТСЯ ДО
+                                //    ПОДГОНКИ, А НЕ ПОЛИНОМ ПОСЛЕ НЕЁ. Найдено
+                                //    полосой G6 на входе case34_boundary_nonmono:
+                                //    границы «… 362.5 362.5 …» не возрастают, дверь
+                                //    N42 такой файл отказывает словами (`A253`), а
+                                //    здесь полином 4-го порядка подгонялся СКВОЗЬ
+                                //    провал, выходил монотонным ([−0.224, 12.627, …]),
+                                //    CheckCalibration его пропускал — и человек
+                                //    получал правдоподобную чужую шкалу без единого
+                                //    слова: новое молчаливое расхождение дверей рода
+                                //    `A216`. Условие годности взято у соседней двери
+                                //    (FitEnergyBoundaryValues): конечные числа,
+                                //    строго возрастающие. Негодные границы в шкалу
+                                //    НЕ идут — остаётся y = x, и об этом говорится
+                                //    ниже ОДИН РАЗ НА ФАЙЛ, как у прочих четырёх
+                                //    положений `A216`.
+                                //    ⚠ Проверка стоит ВНУТРИ ветви «границы
+                                //    прочитаны» нарочно: список из одних нулей — это
+                                //    «не прочитано» (identityScale), а не «не
+                                //    возрастают», и человеку это разные вещи.
+                                string edgeTrouble = energies.Sum() != 0 ? ChannelEdgesTrouble(energies) : null;
+                                if (edgeTrouble != null)
+                                {
+                                    badEdgesScale++;
+                                    if (badEdgesSample == null)
+                                    {
+                                        badEdgesSample = edgeTrouble;
+                                    }
+                                }
+                                else if (energies.Sum() != 0)
                                 {
                                     List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
                                     for (int ch = 0; ch < cal_ch_energy_size - 1; ch++)
@@ -1196,9 +1309,17 @@ namespace BecquerelMonitor
                 //    правит соседняя полоса, и заводить ключ пришлось бы в её файле.
                 //    Тот же приём и по той же причине стоит у отказов `A208`/`A213`
                 //    в `N42\Util.cs`.
-                if (substitutedScale + invalidScale + identityScale + approximatedScale > 0)
+                if (substitutedScale + invalidScale + identityScale + approximatedScale + badEdgesScale > 0)
                 {
                     List<string> scaleTrouble = new List<string>();
+                    if (badEdgesScale > 0)
+                    {
+                        // `A254`: пятое положение, и оно первым — у него единственного
+                        //   названа причина по числам файла.
+                        scaleTrouble.Add("границы энергий каналов в файле негодны (" + badEdgesSample
+                                         + "), в шкалу они не взяты, и осталась y = x, то есть номер канала объявлен энергией (измерений: "
+                                         + badEdgesScale.ToString(CultureInfo.InvariantCulture) + ")");
+                    }
                     if (substitutedScale > 0)
                     {
                         scaleTrouble.Add("энергетической шкалы в файле нет, и подставлено умолчание SpecUtils (измерений: "

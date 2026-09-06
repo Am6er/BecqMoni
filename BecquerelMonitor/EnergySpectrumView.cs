@@ -315,6 +315,65 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`A255`, решение Amber 06.09.2026: «метка сверху и полоса шириной в
+        /// ПШПВ») ВЫДЕЛЕННЫЕ ПИКИ — те, чьи строки выбраны в таблице поиска
+        /// пиков (<see cref="DCPeakDetectionView"/>); null или пусто — выбора нет.
+        ///
+        /// Каждый выделенный пик получает полупрозрачную полосу шириной в свою
+        /// ПШПВ (<see cref="ShowHighlightedPeakBands"/>) и треугольную метку над
+        /// вершиной (<see cref="ShowHighlightedPeakMarkers"/>). Строк выбрано
+        /// несколько — выделены все: таблица показывает N выбранных, и график
+        /// обязан показывать те же N, а не последний из них.
+        ///
+        /// ⛔ Ни расчёта, ни представления это не трогает — по образцу
+        /// <see cref="FsaHighlight"/>: сеттер делает РОВНО <c>Invalidate()</c>,
+        /// ни снимок представления, ни кадровые массивы не сбрасываются,
+        /// пересчёт не заказывается. Пик рисуется по своим <see cref="Peak.Channel"/>
+        /// и <see cref="Peak.FWHM"/> ТОЙ ЖЕ проекцией, какой рисуются линии и
+        /// флажки пиков (<see cref="PeakX"/>, <see cref="PeakTopY"/>).
+        /// </summary>
+        internal IList<Peak> HighlightedPeaks
+        {
+            get
+            {
+                return this.highlightedPeaks;
+            }
+
+            set
+            {
+                IList<Peak> next = value == null || value.Count == 0 ? null : value;
+                if (SamePeaks(this.highlightedPeaks, next))
+                {
+                    return;
+                }
+
+                this.highlightedPeaks = next;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>Те же пики в том же порядке (по ссылкам) — перерисовывать нечего.</summary>
+        static bool SamePeaks(IList<Peak> a, IList<Peak> b)
+        {
+            if (ReferenceEquals(a, b))
+            {
+                return true;
+            }
+            if (a == null || b == null || a.Count != b.Count)
+            {
+                return false;
+            }
+            for (int i = 0; i < a.Count; i++)
+            {
+                if (!ReferenceEquals(a[i], b[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         // Token: 0x1700018E RID: 398
         // (get) Token: 0x060004A7 RID: 1191 RVA: 0x0001645C File Offset: 0x0001465C
         // (set) Token: 0x060004A8 RID: 1192 RVA: 0x00016464 File Offset: 0x00014664
@@ -2406,6 +2465,13 @@ namespace BecquerelMonitor
                 g.PixelOffsetMode = PixelOffsetMode.Default;
             }
             this.ShowStopwatch(g);
+            // (`A255`) Полоса выделенного пика ложится ПОД линии и флажки пиков —
+            // полупрозрачная краска поверх флажка подкрасила бы его подпись, —
+            // а метка над вершиной встаёт ПОВЕРХ них, последней из наложений.
+            if (this.peakMode == PeakMode.Visible && this.activeResultData.Visible)
+            {
+                this.ShowHighlightedPeakBands(g);
+            }
             if (this.activeResultData.Visible)
             {
                 this.ShowCalibrationPeaks(g, this.energySpectrum, this.energyCalibration);
@@ -2413,6 +2479,7 @@ namespace BecquerelMonitor
             if (this.peakMode == PeakMode.Visible && this.activeResultData.Visible)
             {
                 this.ShowDetectedPeaks(g, this.energySpectrum, this.energyCalibration);
+                this.ShowHighlightedPeakMarkers(g, this.energySpectrum);
             }
             this.DrawFWHM(g);
             g.ResetClip();
@@ -4117,74 +4184,11 @@ namespace BecquerelMonitor
             double[] fsaNet = this.FsaNetSpectrum;
             foreach (Peak peak4 in detectedPeaks)
             {
-                int channel2 = peak4.Channel;
-                int num4;
-                if (this.horizontalUnit == HorizontalUnit.Channel)
-                {
-                    num4 = (int)(((double)channel2 + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                }
-                else
-                {
-                    double num5 = this.energyCalibration.ChannelToEnergy((double)channel2);
-                    num4 = (int)(((num5 - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                }
-                double num6 = 0.0;
-                if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
-                {
-                    // В режиме разложения на графике нарисован спектр ЗА ВЫЧЕТОМ
-                    // фона — метка пика должна упираться в ту же кривую, иначе
-                    // она висит над ней на величину фона (на слабых пробах это
-                    // 13-50 % высоты пика).
-                    num6 = fsaNet[channel2];
-                }
-                else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
-                    && this.substractedEnergySpectrum != null)
-                {
-                    num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
-                } else
-                {
-                    num6 = spectrum.DrawingSpectrum[channel2];
-                }
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
-                {
-                    num6 /= spectrum.MeasurementTime;
-                }
-                int y;
-                if (this.verticalScaleType == VerticalScaleType.LinearScale)
-                {
-                    if (num6 <= 0.0)
-                    {
-                        y = this.height;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else if (this.verticalScaleType == VerticalScaleType.PowerScale)
-                {
-                    double num7 = Pow(num6);
-                    if (num6 <= 0.0)
-                    {
-                        y = this.height + 100;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num7 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
-                else
-                {
-                    double num7 = Log10(num6);
-                    if (num6 <= 0.0)
-                    {
-                        y = this.height + 100;
-                    }
-                    else
-                    {
-                        y = this.height - (int)((num7 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                    }
-                }
+                // (`A255`) Проекция вынесена в `PeakX` / `PeakTopY` — ими же
+                // рисуется выделение выбранного пика, и оно обязано лечь ровно
+                // туда, где стоит его линия. Числа те же, что стояли здесь.
+                int num4 = this.PeakX((double)peak4.Channel);
+                int y = this.PeakTopY(peak4, spectrum, fsaNet);
                 if (num4 > this.left)
                 {
                     g.DrawLine(pen, num4, 12, num4, y);
@@ -4247,6 +4251,207 @@ namespace BecquerelMonitor
             g.DrawPolygon(outlinePen, points);
             Rectangle r = new Rectangle(px + 10, py + 2, num + 2, 16);
             g.DrawString(text, this.Font, figureBrush, r);
+        }
+
+        /// <summary>
+        /// Экранный X канала (дробного) — ТА ЖЕ проекция, какой ставятся линии и
+        /// флажки найденных пиков (<see cref="ShowDetectedPeaks"/>): для целого
+        /// канала это середина его столбика.
+        /// </summary>
+        int PeakX(double channel)
+        {
+            if (this.horizontalUnit == HorizontalUnit.Channel)
+            {
+                return (int)((channel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+            }
+            double energy = this.energyCalibration.ChannelToEnergy(channel);
+            return (int)(((energy - this.energyViewOffset) * this.pixelPerEnergy + 0.5) * this.horizontalScale + (double)this.scrollX + (double)this.left);
+        }
+
+        /// <summary>
+        /// Экранный Y вершины пика — той кривой, что нарисована: за вычетом фона
+        /// в режиме разложения (<paramref name="fsaNet"/>) и в режиме вычитания,
+        /// иначе самого спектра. Значение ≤ 0 на нелинейной шкале даёт точку за
+        /// краем поля (<c>height + 100</c>) — как и было у линии пика.
+        /// </summary>
+        int PeakTopY(Peak peak, EnergySpectrum spectrum, double[] fsaNet)
+        {
+            int channel2 = peak.Channel;
+            double num6 = 0.0;
+            if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
+            {
+                // В режиме разложения на графике нарисован спектр ЗА ВЫЧЕТОМ
+                // фона — метка пика должна упираться в ту же кривую, иначе
+                // она висит над ней на величину фона (на слабых пробах это
+                // 13-50 % высоты пика).
+                num6 = fsaNet[channel2];
+            }
+            else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.MeasurementTime != 0.0
+                && this.substractedEnergySpectrum != null)
+            {
+                num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
+            } else
+            {
+                num6 = spectrum.DrawingSpectrum[channel2];
+            }
+            if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.MeasurementTime != 0.0)
+            {
+                num6 /= spectrum.MeasurementTime;
+            }
+            int y;
+            if (this.verticalScaleType == VerticalScaleType.LinearScale)
+            {
+                if (num6 <= 0.0)
+                {
+                    y = this.height;
+                }
+                else
+                {
+                    y = this.height - (int)((num6 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+            }
+            else if (this.verticalScaleType == VerticalScaleType.PowerScale)
+            {
+                double num7 = Pow(num6);
+                if (num6 <= 0.0)
+                {
+                    y = this.height + 100;
+                }
+                else
+                {
+                    y = this.height - (int)((num7 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+            }
+            else
+            {
+                double num7 = Log10(num6);
+                if (num6 <= 0.0)
+                {
+                    y = this.height + 100;
+                }
+                else
+                {
+                    y = this.height - (int)((num7 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                }
+            }
+            return y;
+        }
+
+        /// <summary>Непрозрачность полосы выделенного пика, 0…255 (48 ≈ 19 %).</summary>
+        const int HighlightBandAlpha = 48;
+
+        /// <summary>Полуширина основания треугольной метки над вершиной, px.</summary>
+        const int HighlightMarkerHalfWidth = 6;
+
+        /// <summary>Высота треугольной метки, px.</summary>
+        const int HighlightMarkerHeight = 10;
+
+        /// <summary>Зазор между остриём метки и вершиной пика, px.</summary>
+        const int HighlightMarkerGap = 3;
+
+        /// <summary>
+        /// (`A255`) ПОЛОСА ШИРИНОЙ В ПШПВ под каждым выделенным пиком — от
+        /// <c>Channel − FWHM/2</c> до <c>Channel + FWHM/2</c> той же проекцией
+        /// <see cref="PeakX"/>, на всю высоту поля. Пик без измеренной ширины
+        /// (ПШПВ ≤ 0 или NaN) полосы не получает — выдуманной ширины у него
+        /// нет, остаётся одна метка.
+        ///
+        /// ⚠ Краска — цвет САМОГО СПЕКТРА (<see cref="ColorConfig.ActiveSpectrumColor"/>)
+        /// с малой альфой, а не литерал и не постоянный светлый/тёмный цвет.
+        /// Цвет поля задаёт человек (<see cref="ColorConfig.BackgroundColor"/>),
+        /// и цвет спектра он подбирает КОНТРАСТНЫМ к нему на любой теме — иначе
+        /// не видно самого спектра. Полоса наследует этот контраст: на светлом
+        /// поле с тёмным спектром она чуть темнее поля, на тёмном со светлым —
+        /// чуть светлее, и в обе стороны на одну и ту же долю
+        /// (<see cref="HighlightBandAlpha"/>). Постоянный подмешанный цвет на
+        /// одной из тем сливался бы с полем (оговорка <c>A246</c>).
+        /// </summary>
+        void ShowHighlightedPeakBands(Graphics g)
+        {
+            IList<Peak> peaks = this.highlightedPeaks;
+            if (peaks == null || this.energyCalibration == null)
+            {
+                return;
+            }
+            ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
+            using (Brush brush = new SolidBrush(Color.FromArgb(HighlightBandAlpha, colorConfig.ActiveSpectrumColor.Color)))
+            {
+                foreach (Peak peak in peaks)
+                {
+                    if (peak == null || !(peak.FWHM > 0.0) || double.IsNaN(peak.FWHM))
+                    {
+                        continue;
+                    }
+                    int x1 = this.PeakX((double)peak.Channel - peak.FWHM / 2.0);
+                    int x2 = this.PeakX((double)peak.Channel + peak.FWHM / 2.0);
+                    if (x2 < x1)
+                    {
+                        int t = x1; x1 = x2; x2 = t;
+                    }
+                    // Узкий пик на сжатой шкале — не уже одного столбика:
+                    // полоса нулевой ширины не показала бы ничего.
+                    if (x2 == x1)
+                    {
+                        x2 = x1 + 1;
+                    }
+                    g.FillRectangle(brush, x1, 0, x2 - x1, this.height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`A255`) ТРЕУГОЛЬНАЯ МЕТКА над вершиной каждого выделенного пика —
+        /// остриём вниз, в ту же точку, куда упирается линия пика
+        /// (<see cref="PeakTopY"/>). Вершина у самого верха поля — метка
+        /// прижимается к верху и накрывает её: метка, ушедшая за край, не
+        /// выделение.
+        ///
+        /// Заливка — цвет линий пиков (<see cref="ColorConfig.PeakLineColor"/>):
+        /// метка принадлежит тому же пику, что и его линия. Обводка — цвет
+        /// спектра (<see cref="ColorConfig.ActiveSpectrumColor"/>): он контрастен
+        /// полю на любой теме по выбору человека, и метка остаётся видна, даже
+        /// если цвет линий пиков к полю близок.
+        /// </summary>
+        void ShowHighlightedPeakMarkers(Graphics g, EnergySpectrum spectrum)
+        {
+            IList<Peak> peaks = this.highlightedPeaks;
+            if (peaks == null || spectrum == null || this.energyCalibration == null)
+            {
+                return;
+            }
+            ColorConfig colorConfig = this.globalConfigManager.GlobalConfig.ColorConfig;
+            double[] fsaNet = this.FsaNetSpectrum;
+            using (Brush fill = new SolidBrush(colorConfig.PeakLineColor.Color))
+            using (Pen outline = new Pen(colorConfig.ActiveSpectrumColor.Color))
+            {
+                foreach (Peak peak in peaks)
+                {
+                    if (peak == null || peak.Channel < 0 || peak.Channel >= spectrum.DrawingSpectrum.Length)
+                    {
+                        continue;
+                    }
+                    int px = this.PeakX((double)peak.Channel);
+                    if (px <= this.left)
+                    {
+                        continue;
+                    }
+                    int tip = this.PeakTopY(peak, spectrum, fsaNet) - HighlightMarkerGap;
+                    int top = tip - HighlightMarkerHeight;
+                    if (top < 0)
+                    {
+                        top = 0;
+                        tip = HighlightMarkerHeight;
+                    }
+                    Point[] points = new Point[]
+                    {
+                        new Point(px - HighlightMarkerHalfWidth, top),
+                        new Point(px + HighlightMarkerHalfWidth, top),
+                        new Point(px, tip)
+                    };
+                    g.FillPolygon(fill, points);
+                    g.DrawPolygon(outline, points);
+                }
+            }
         }
 
         // Token: 0x060004C2 RID: 1218 RVA: 0x0001AFF8 File Offset: 0x000191F8
@@ -5275,6 +5480,9 @@ namespace BecquerelMonitor
 
         // Token: 0x0400020B RID: 523
         PeakMode peakMode;
+
+        /// <summary>(`A255`) Выделенные пики таблицы поиска; null — выбора нет. См. <see cref="HighlightedPeaks"/>.</summary>
+        IList<Peak> highlightedPeaks;
 
         // Token: 0x0400020C RID: 524
         StringFormat farFormat;

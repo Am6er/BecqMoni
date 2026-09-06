@@ -985,6 +985,18 @@ namespace BecquerelMonitor.N42
             int noStart = 0;
             string badStartSample = null;
 
+            // ⛔ `A239` (06.09.2026): НАСТРОЙКИ ПРИБОРА — У ДОКУМЕНТА, А НЕ У
+            //    ВСТРОЕННЫХ УМОЛЧАНИЙ. Здесь каждый спектр заводился голым
+            //    `new ResultData()`, и человек получал конфигурацию прибора «»,
+            //    свежий ROI и настройки поиска пиков 15/3756/103, по которым
+            //    CheckDocument достраивал кривую разрешения выдуманного прибора
+            //    — измерено 06.09.2026 у 12 из 12 корпусных .n42 (подробности
+            //    и соглашение — DocumentManager.NewResultDataLike).
+            //    ⚠ Шаблон берётся ДО цикла нарочно: первый же спектр ЗАМЕЩАЕТ
+            //    ResultDataList[0], и после этого ActiveResultData указывал бы
+            //    уже на него, а не на документ, каким его застала дверь.
+            ResultData template = doc.ActiveResultData;
+
             for (int i = 0; i < SpectrumCount; i++)
             {
                 RadMeasurement radMeasurement = rad.RadMeasurement[i];
@@ -1027,8 +1039,8 @@ namespace BecquerelMonitor.N42
                 {
                     radCalibration = rad.EnergyCalibration[i];
                 }
-                ResultData resultData = new ResultData();
-                resultData.MeasurementController = doc.ActiveResultData.MeasurementController;
+                // `A239`: наследник настроек документа, а не голый `new ResultData()`.
+                ResultData resultData = DocumentManager.NewResultDataLike(template);
 
                 // ⛔ `A156`: ВРЕМЯ НАЧАЛА КЛАДЁТСЯ В ТО ЖЕ ПОЛЕ, ИЗ КОТОРОГО ЕГО
                 //    БЕРЁТ ВЫВОЗ. Прежде ввоз клал прочитанное ТОЛЬКО в

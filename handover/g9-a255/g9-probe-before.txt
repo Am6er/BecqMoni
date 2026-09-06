@@ -1,0 +1,30 @@
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\config\device: 24 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\config\NuclideDefinition.xml: 152 entries
+SETUP	сборка: БЕЗ ПРАВКИ (плечо «до») — ждём 0 изменившихся точек
+SETUP	приложение: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\BecquerelMonitor.exe
+SETUP	ASN16_Cs137.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+BecqMoni: Ошибка: Не удалось загрузить конфигурационный файл ROI. C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\config\ROI Причина: DirectoryNotFoundException: Не удалось найти часть пути "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g9_ref\config\ROI".
+SETUP	ASN16_Th232.xml: прибор 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+SETUP	пиков найдено 12, строк в таблице 12
+  ok   строк в таблице столько же, сколько пиков                                12
+SETUP	выбранная строка 4: 657.96 кэВ, канал 1718, ПШПВ 113.3 каналов, SNR 4116
+SETUP	вторая строка для множественного выбора: 11
+SETUP	цвета конфигурации: поле #FFFFFF, спектр #000000, линия пика #FF0000
+
+=== 1. проводка: таблица → график (A255) ===
+  ok   до выбора у графика выделения нет                                        0
+  ok   плечо «до»: выбор строки до графика НЕ доходит                           0
+SETUP	тема светлая: поле #FFFFFF, спектр #000000, линия пика #FF0000
+
+=== 2. пиксели, тема светлая (A255) ===
+  кадр 1184×556 = 658304 точек; изменилось 0 (0.000 %)
+  ok   плечо «до»: выбор строки кадр НЕ меняет                                  0
+SETUP	тема тёмная: поле #000000, спектр #FFFFFF, линия пика #FF0000
+
+=== 2. пиксели, тема тёмная (A255) ===
+  кадр 1184×556 = 658304 точек; изменилось 0 (0.000 %)
+  ok   плечо «до»: выбор строки кадр НЕ меняет                                  0
+
+ВСЕ СОШЛИСЬ
