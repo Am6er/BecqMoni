@@ -604,6 +604,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Пара «группа линий — найденный пик» для взаимно однозначного
         /// сопоставления (`A292`). Своего смысла не несёт, живёт один вызов.
         /// </summary>
+        /// <summary>
+        /// Увеличивающий путь для группы (`A293`): занять свободный пик либо
+        /// подвинуть того, кто уже занял, на другой его пик. Возвращает false,
+        /// когда группе места нет ни при каких перестановках.
+        /// </summary>
+        static bool Augment(Group group, Dictionary<Group, List<Candidate>> options,
+                            Dictionary<Peak, Candidate> takenBy, HashSet<Peak> seen)
+        {
+            List<Candidate> bag;
+            if (!options.TryGetValue(group, out bag))
+            {
+                return false;
+            }
+
+            foreach (Candidate candidate in bag)
+            {
+                if (!seen.Add(candidate.Peak))
+                {
+                    continue;
+                }
+
+                Candidate holder;
+                if (!takenBy.TryGetValue(candidate.Peak, out holder))
+                {
+                    takenBy[candidate.Peak] = candidate;
+                    return true;
+                }
+
+                if (Augment(holder.Group, options, takenBy, seen))
+                {
+                    takenBy[candidate.Peak] = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         sealed class Candidate
         {
             public Group Group;
@@ -882,19 +920,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ ЖАДНОГО ВЫБОРА МАЛО (`A293`, поправка к `A292`). Взаимную
+            // однозначность он даёт, а МАКСИМАЛЬНОЕ число совпадений — нет:
+            // группа `G1` видит пики `P1` и `P2` (P1 чуть ближе), соседняя
+            // `G2` — только `P1`; жадность берёт `G1`–`P1`, и `G2` остаётся ни
+            // с чем, хотя пара `G1`–`P2` и `G2`–`P1` даёт ДВА совпадения.
+            // То есть двойной зачёт одного пика исчез, но `Matched` и
+            // `Coverage` стали ЗАНИЖАТЬСЯ — там же, где проявлялась `A292`.
+            //
+            // Здесь ищется максимальное паросочетание двудольного графа
+            // (увеличивающими путями, алгоритм Куна). Порядок обхода задан
+            // явно — группы по энергии, кандидаты каждой по близости, — поэтому
+            // итог не зависит от порядка входных списков.
+            //
+            // ⚠ ЧТО ГАРАНТИРУЕТСЯ, А ЧТО НЕТ. Гарантируется максимальное ЧИСЛО
+            // пар и повторяемость. Минимальность суммы расстояний внутри
+            // максимума НЕ гарантируется: кандидаты перебираются от ближнего к
+            // дальнему, то есть близость учитывается жадно внутри поиска.
             pairs.Sort(Candidate.Order);
-            HashSet<Group> takenGroups = new HashSet<Group>();
-            HashSet<Peak> takenPeaks = new HashSet<Peak>();
+
+            var options = new Dictionary<Group, List<Candidate>>();
+            var order = new List<Group>();
             foreach (Candidate pair in pairs)
             {
-                if (takenGroups.Contains(pair.Group) || takenPeaks.Contains(pair.Peak))
+                List<Candidate> bag;
+                if (!options.TryGetValue(pair.Group, out bag))
                 {
-                    continue;
+                    options[pair.Group] = bag = new List<Candidate>();
+                    order.Add(pair.Group);
                 }
 
-                takenGroups.Add(pair.Group);
-                takenPeaks.Add(pair.Peak);
-                pair.Group.Snr = pair.Snr;
+                bag.Add(pair);
+            }
+
+            // Группы — по энергии: порядок обхода обязан быть свойством ДАННЫХ,
+            // а не порядка построения списков.
+            order.Sort((a, b) => a.Energy.CompareTo(b.Energy));
+
+            var takenBy = new Dictionary<Peak, Candidate>();
+            foreach (Group group in order)
+            {
+                var seen = new HashSet<Peak>();
+                Augment(group, options, takenBy, seen);
+            }
+
+            foreach (KeyValuePair<Peak, Candidate> taken in takenBy)
+            {
+                taken.Value.Group.Snr = taken.Value.Snr;
             }
         }
 
