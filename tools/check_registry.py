@@ -132,15 +132,46 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Разбор таблицы объявления базы берётся у соседнего сторожа, а не
+# переписывается здесь: две копии разбора ОДНОГО текста расходятся
+# молча (`S37`, `T250`).
+import check_declared_base
+
 ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,2}\d{1,3})\b(.*)$")
+
+#: Разделы-ПРОЕКЦИИ: таблицы, которые ПЕРЕСКАЗЫВАЮТ строки, объявленные выше,
+#: а своих задач не заводят. Строка такого раздела — вторая явка одного и того
+#: же номера, и разбирать её наравне с объявлением нельзя ни проверке номеров
+#: (получается «столкновение» там, где номер один), ни проверке графы состояния
+#: (в проекции стоит РАЗРЯД ОЖИДАНИЯ — «⏳ ждёт счётного захода», — а не
+#: состояние, и это законно: состояние живёт в объявлении).
+#:
+#: ⛔ Заведено по `T250` (07.09.2026): раздел «Отложенные прогоны» появился
+#: 06.09.2026, и с ним обязательная проверка покрытия стала красной на штатном
+#: реестре — `A266` и `S61` числились столкновениями. Красный сторож, у которого
+#: находки базовые, перестаёт отличать новую беду от старого шума.
+PROJECTION_SECTIONS = frozenset((u"Отложенные прогоны",))
+
+#: Заголовок раздела любого уровня. Из текста снимаются жирность и значки —
+#: сравнивается СЛОВО, а не оформление.
+HEADING = re.compile(u"^#{1,6}\\s+(.*)$")
 
 # Объявление действующей базы корпуса. Привязка к НАЧАЛУ строки обязательна:
 # без неё ловятся исторические упоминания внутри задач, и они законны.
+#
+# ⛔ ГРАММАТИКА ПЕРЕПИСАНА 07.09.2026 (`T250`). Прежние образцы требовали
+# порядок «`имя базы`, дата» и ОДНУ базу в заголовке. С 06.09.2026 объявление
+# устроено иначе: в заголовке стоят ДАТА И ВЕРШИНА, а баз объявляется ДВЕ —
+# полная и малая, — и имя каждой живёт в графе «база» таблицы под заголовком.
+# Старые образцы не находили объявления вовсе и печатали «базу забыли
+# объявить» на реестре, где она объявлена дважды и верно.
 BASE_IN_TODO = re.compile(
-    u"^⛔ \\*\\*ДЕЙСТВУЮЩАЯ БАЗА КОРПУСА — `([^`]+)`,\\s*"
-    u"(\\d{2}\\.\\d{2}\\.\\d{4})")
+    u"^⛔ \\*\\*ДЕЙСТВУЮЩАЯ БАЗА КОРПУСА\\s*[—-]\\s*"
+    u"(\\d{2}\\.\\d{2}\\.\\d{4}),\\s*вершина\\s*`([0-9a-fA-F]{6,40})`")
 BASE_IN_CORPUS = re.compile(
-    u"^## ✅ ДЕЙСТВУЮЩАЯ БАЗА: `([^`]+)`,\\s*(\\d{2}\\.\\d{2}\\.\\d{4})")
+    u"^#+ ✅ ДЕЙСТВУЮЩАЯ БАЗА:\\s*"
+    u"(\\d{2}\\.\\d{2}\\.\\d{4}),\\s*вершина\\s*`([0-9a-fA-F]{6,40})`")
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 CODE = re.compile(r"`([^`]+)`")
 FILEY = re.compile(r"\.(cs|py|ps1|md|xml|sqlite|resx|csproj|tsv|csv|json)$")
@@ -219,9 +250,62 @@ def read_lines(path):
     return text.split(u"\n")
 
 
+def _sectioned(path):
+    u"""(номер строки, строка, в проекционном ли РАЗДЕЛЕ) по всему файлу."""
+    inside = False
+    for n, line in enumerate(read_lines(path), 1):
+        head = HEADING.match(line.rstrip(u"\r\n"))
+        if head:
+            title = head.group(1).replace(u"*", u"").replace(u"#", u"").strip()
+            title = title.lstrip(u"⛔⚠✅⏳➕ ").strip()
+            inside = title in PROJECTION_SECTIONS
+            continue
+        yield n, line, inside
+
+
+def projection_lines(path):
+    u"""Номера строк файла, которые ПЕРЕСКАЗЫВАЮТ задачу, объявленную выше.
+
+    ⛔ ОДНОГО ИМЕНИ РАЗДЕЛА МАЛО, и это не осторожность, а поправка к первой
+    редакции правила (`T250`, поймано в тот же час): раздел «Отложенные
+    прогоны» есть И В `DONE.md`, но там он не проекция, а обычный архив — у
+    `X1` и `X2` объявления выше нет вовсе, они живут только в нём. Правило по
+    одному заголовку прятало эти две настоящие строки, то есть чинило ложную
+    находку ценой слепого пятна — обмен, ради запрета которого сторож и писан.
+
+    Поэтому проекцией считается строка, у которой сошлось ОБА: она стоит в
+    таком разделе И её номер уже объявлен в этом же файле выше. Второе условие
+    и есть определение проекции — пересказ существующего, а не заведение нового.
+    """
+    declared, candidates = set(), []
+    for n, line, inside in _sectioned(path):
+        m = ROW.match(line)
+        if not m:
+            continue
+        if inside:
+            candidates.append((m.group(1), n))
+        else:
+            declared.add(m.group(1))
+    return set(n for num, n in candidates if num in declared)
+
+
+def registry_lines(path):
+    u"""(номер строки, строка, проекция ли) по всему файлу реестра.
+
+    Один обход на обе проверки, которым нужны строки таблиц (номера и графа
+    состояния): у двух своих обходов разошлись бы списки исключений, а это
+    ровно тот способ потерять беду, против которого написан весь сторож.
+    """
+    skip = projection_lines(path)
+    for n, line, _inside in _sectioned(path):
+        yield n, line, n in skip
+
+
 def read_rows(path):
     rows = []
-    for n, line in enumerate(read_lines(path), 1):
+    for n, line, projection in registry_lines(path):
+        if projection:
+            continue
         m = ROW.match(line)
         if m:
             rows.append((m.group(1), m.group(2), n))
@@ -591,15 +675,43 @@ def check_config_copies(root, out):
     return bad
 
 
+def fmt_bases(bases):
+    u"""Набор баз словами: «полн out_p29_full, мал out_p29_mini»."""
+    return u", ".join(u"%s %s" % (kind, name) for kind, name in sorted(bases)) \
+        if bases else u"нет"
+
+
 def declared_base(path, pattern):
-    u"""Найти объявление действующей базы. Возвращает (база, дата, номер строки)."""
+    u"""Объявление действующей базы: (базы, дата, вершина, номер строки).
+
+    `базы` — множество пар (род, каталог) из ТАБЛИЦЫ под заголовком: род это
+    «полн»/«мал», каталог — имя в обратных кавычках графы «база». Заголовок
+    имён баз больше не несёт (`T250`), поэтому разбирать надо тело.
+
+    ⛔ Таблицу разбирает `check_declared_base` — ТОТ ЖЕ код, которым сверяются
+    сами числа. Своя вторая копия разбора одного и того же текста разошлась бы
+    с ним молча, и «объявление найдено» у одного сторожа значило бы не то же,
+    что у другого.
+    """
     if not os.path.exists(path):
         return None
-    with io.open(path, encoding="utf-8-sig") as f:
-        for i, line in enumerate(f, 1):
-            m = pattern.match(line)
-            if m:
-                return (m.group(1), m.group(2), i)
+    lines = read_lines(path)
+    for i, line in enumerate(lines):
+        m = pattern.match(line.rstrip(u"\r\n"))
+        if not m:
+            continue
+        body = []
+        for other in lines[i + 1:]:
+            if other.startswith(u"## "):
+                break
+            body.append(other.rstrip(u"\r\n"))
+        bases = set()
+        for row in check_declared_base.parse_table(body):
+            kind, _ = check_declared_base.base_kind(row[u"base"])
+            names = re.findall(u"`([^`]+)`", row[u"base"])
+            if kind and names:
+                bases.add((kind, names[0].strip()))
+        return (frozenset(bases), m.group(1), m.group(2), i + 1)
     return None
 
 
@@ -659,22 +771,33 @@ def check_corpus_base(root, out):
                       u"      другом виде, либо базу забыли объявить\n" % name)
             bad += 1
             continue
-        out.write(u"  %-24s %s, %s (строка %d)\n"
-                  % (name, got[0], got[1], got[2]))
+        out.write(u"  %-24s %s, вершина %s, базы: %s (строка %d)\n"
+                  % (name, got[1], got[2], fmt_bases(got[0]), got[3]))
         found.append((name, got))
 
     if len(found) == len(places):
         bases = set(g[0] for _, g in found)
         dates = set(g[1] for _, g in found)
-        if len(bases) > 1:
+        heads = set(g[2] for _, g in found)
+        if not bases or frozenset() in bases:
+            out.write(u"  ⛔ в объявлении НЕ НАЗВАН НИ ОДИН КАТАЛОГ базы —\n"
+                      u"      имя базы живёт в графе «база» таблицы под\n"
+                      u"      заголовком, и без него сверять нечего (T248)\n")
+            bad += 1
+        elif len(bases) > 1:
             out.write(u"  ⛔ РАЗНЫЕ БАЗЫ: %s. Объявить в двух местах значит НЕ\n"
                       u"      объявить: читатель сверяет свежий прогон со снятой\n"
                       u"      моделью и расходится заведомо.\n"
-                      % u" против ".join(sorted(bases)))
+                      % u" против ".join(sorted(fmt_bases(b) for b in bases)))
             bad += 1
         elif len(dates) > 1:
-            out.write(u"  ⛔ база одна (%s), а ДАТЫ разные: %s\n"
-                      % (bases.pop(), u" против ".join(sorted(dates))))
+            out.write(u"  ⛔ базы одни (%s), а ДАТЫ разные: %s\n"
+                      % (fmt_bases(sorted(bases)[0]),
+                         u" против ".join(sorted(dates))))
+            bad += 1
+        elif len(heads) > 1:
+            out.write(u"  ⛔ базы и дата одни, а ВЕРШИНЫ разные: %s\n"
+                      % u" против ".join(sorted(heads)))
             bad += 1
 
     # Третье место — память. Сверяется НАЛИЧИЕМ памятки этой базы, а не
@@ -687,8 +810,12 @@ def check_corpus_base(root, out):
         out.write(u"  ⚠ память агента на этой машине не найдена — ТРЕТЬЕ место\n"
                   u"      не проверено, сверь глазами\n")
     elif found:
-        base = found[0][1][0]
-        note = os.path.join(mem, u"corpus-base-%s.md" % base.replace(u"_", u"-"))
+        # ⛔ ИМЯ ПАМЯТКИ ТОЖЕ СМЕНИЛОСЬ (`T250`, 07.09.2026). Пока база была
+        # одна, памятка звалась её именем (`corpus-base-out-v11.md`); с двумя
+        # базами такого имени не бывает, и памятка одна — `corpus-base-current`.
+        # Найдено попутно: прежний вид проверки НЕ КРАСНЕЛ только потому, что
+        # объявления не находилось вовсе и до памяти дело не доходило.
+        note = os.path.join(mem, u"corpus-base-current.md")
         others = sorted(os.path.basename(p) for p in
                         glob.glob(os.path.join(mem, u"corpus-base-*.md"))
                         if os.path.basename(p) != os.path.basename(note))
@@ -783,7 +910,10 @@ def check_state_column(out, files):
             continue
         rows = noword = merged = 0
         eyes = []
-        for n, line in enumerate(read_lines(path), 1):
+        for n, line, projection in registry_lines(path):
+            # Проекция состояния не называет и называть не обязана — `T250`.
+            if projection:
+                continue
             m = ROW.match(line.rstrip(u"\r\n"))
             if not m:
                 continue
@@ -970,6 +1100,98 @@ def selftest_registry(root, out):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def selftest_projection_and_base(root, out):
+    u"""Положительный контроль правил `T250`: проекции и грамматика объявления.
+
+    ⛔ Обе правки 07.09.2026 УБИРАЛИ находки, а правка, которая делает
+    сторожа тише, обязана доказывать, что он не оглох. Поэтому каждое из
+    четырёх плеч ниже требует ОТКАЗА на подделке, а не только молчания на
+    чистом дереве.
+
+    Плечи:
+      1. проекция снимается — `A266`/`S61` в разборе не числятся ДВАЖДЫ;
+      2. ⚠ но снимается ТОЛЬКО пересказ: НОВЫЙ номер, поставленный в тот же
+         раздел, обязан остаться строкой (иначе раздел стал бы дырой, куда
+         задача уезжает молча — и ровно это первая редакция делала с `X1`/`X2`
+         в `DONE.md`);
+      3. подделанная ДАТА объявления в одном из двух мест — находка;
+      4. подделанное ИМЯ КАТАЛОГА базы в одном из двух мест — находка.
+    """
+    out.write(u"# Положительный контроль проекций и объявления базы (T250)\n\n")
+    todo = os.path.join(root, u"TODO.md")
+    corpus = os.path.join(root, u"tools", u"CORPUS", u"README.md")
+    if not os.path.exists(todo) or not os.path.exists(corpus):
+        out.write(u"  ⛔ нет TODO.md либо tools/CORPUS/README.md — контроль не проведён\n\n")
+        return 1
+
+    failures = []
+
+    # --- 1 и 2: проекции ------------------------------------------------
+    hidden = projection_lines(todo)
+    rows = read_rows(todo)
+    numbers = [num for num, _, _ in rows]
+    dups = sorted(n for n, c in collections.Counter(numbers).items() if c > 1)
+    out.write(u"  проекций снято в TODO.md: %d, задвоенных номеров осталось: %d\n"
+              % (len(hidden), len(dups)))
+    if not hidden:
+        failures.append(u"проекций не снято ни одной — правило не работает")
+
+    tmp = tempfile.mkdtemp(prefix=u"check_registry_t250_")
+    try:
+        # НОВЫЙ номер в проекционном разделе обязан остаться задачей
+        dst = os.path.join(tmp, u"TODO.md")
+        lines = read_lines(todo)
+        planted_line = None
+        for i, line in enumerate(lines):
+            if i + 1 in hidden:
+                lines[i] = re.sub(u"[A-Z]{1,2}\\d{1,3}", u"Z99", line, count=1)
+                planted_line = i + 1
+                break
+        io.open(dst, "w", encoding="utf-8-sig", newline=u"").write(u"\n".join(lines))
+        planted_rows = [num for num, _, _ in read_rows(dst)]
+        seen = u"Z99" in planted_rows
+        out.write(u"  НОВЫЙ номер Z99 в том же разделе (строка %s) виден как задача: %s\n"
+                  % (planted_line, u"да" if seen else u"НЕТ"))
+        if not seen:
+            failures.append(u"новый номер в проекционном разделе потерян — "
+                            u"раздел стал дырой для задач")
+
+        # --- 3 и 4: объявление базы -------------------------------------
+        for what, spoil in ((u"ДАТА", u"date"), (u"КАТАЛОГ базы", u"dir")):
+            copy = os.path.join(tmp, u"README.md")
+            text = read_lines(corpus)
+            for i, line in enumerate(text):
+                if spoil == u"date" and BASE_IN_CORPUS.match(line.rstrip(u"\r\n")):
+                    text[i] = line.replace(u"06.09.2026", u"01.01.2000")
+                    break
+                if spoil == u"dir" and u"out_p29_full" in line:
+                    text[i] = line.replace(u"out_p29_full", u"out_podmena")
+                    break
+            io.open(copy, "w", encoding="utf-8-sig", newline=u"").write(u"\n".join(text))
+            quiet = io.StringIO()
+            first = declared_base(todo, BASE_IN_TODO)
+            second = declared_base(copy, BASE_IN_CORPUS)
+            if first is None or second is None:
+                failures.append(u"подделка %s: объявление перестало разбираться" % what)
+                out.write(u"  ⛔ подделка %s: объявление не разобралось вовсе\n" % what)
+                continue
+            differs = (first[0] != second[0] or first[1] != second[1]
+                       or first[2] != second[2])
+            out.write(u"  подделка %-14s замечена: %s\n"
+                      % (what, u"да" if differs else u"НЕТ"))
+            if not differs:
+                failures.append(u"подделка %s прошла незамеченной" % what)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    ok = not failures
+    out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ СОШЁЛСЯ: пересказ снят, новая задача видна, "
+                                u"подмена даты и каталога названа"
+                                if ok else
+                                u"⛔ КОНТРОЛЬ ПРОВАЛЕН: " + u"; ".join(failures)))
+    return 0 if ok else 1
+
+
 def check_done_headers_section(root, out):
     u"""Проверка 7 — заголовок строки `DONE.md` против её тела (`T102`).
 
@@ -1022,8 +1244,9 @@ def main():
         out = io.open(1, "w", encoding="utf-8", closefd=False)
         rc = selftest_registry(a.root, out)
         failures2 = selftest_file_refs(a.root, out)
+        rc3 = selftest_projection_and_base(a.root, out)
         out.flush()
-        return 1 if (rc or failures2) else 0
+        return 1 if (rc or failures2 or rc3) else 0
 
     root = a.root
     out = io.open(1, "w", encoding="utf-8", closefd=False)

@@ -81,8 +81,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// Через сколько секунд после распада вылетает этот квант. Ноль —
             /// мгновенно. Считается ходом по схеме уровней, см.
             /// <see cref="Delays"/>.
+            ///
+            /// ⚠ Это СУММА ПЕРИОДОВ ПОЛУРАСПАДА по пути, а не время события:
+            /// время жизни уровня распределено экспоненциально, и потребителю,
+            /// которому нужна вероятность уложиться в окно, нужны сами периоды
+            /// (<see cref="EmitHalfLives"/>), а не их сумма (`A289`).
             /// </summary>
             public double EmitDelaySec;
+
+            /// <summary>
+            /// Периоды полураспада уровней НА ПУТИ этого кванта, секунды, от
+            /// распада вниз — по одному на уровень, что задержал каскад.
+            /// Пусто — путь мгновенный.
+            ///
+            /// Хранятся ПОШТУЧНО нарочно (`A289`): вероятность уложиться в окно
+            /// у суммы экспонент не выводится из суммы их периодов, а
+            /// требует свёртки распределений. Кто складывает — тот получает
+            /// ступеньку 100→0 % около окна прибора вместо плавного перехода.
+            /// </summary>
+            public double[] EmitHalfLives;
         }
 
         /// <summary>K-линии дочернего атома: энергия и выход, % на распад.</summary>
@@ -474,6 +491,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// корпусе она точна — там у всех таких уровней путь один. Разбор по
         /// долям населённости — остаток, TODO S58.
         /// </summary>
+        static readonly double[] EmptyLives = new double[0];
+
         static void Delays(Dictionary<double, Transition> gammas, Dictionary<int, double> halfLife)
         {
             var levels = new List<int>();
@@ -489,12 +508,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             levels.Reverse();
 
             var arrival = new Dictionary<int, double>();
+
+            // (`A289`) Тот же ход, но копится ещё и СПИСОК периодов пути:
+            // выбор «позднее из двух» у обоих один, иначе список отвечал бы за
+            // один путь, а сумма — за другой.
+            var arrivalLives = new Dictionary<int, double[]>();
             foreach (int level in levels)
             {
                 double came;
                 if (!arrival.TryGetValue(level, out came))
                 {
                     came = 0.0;
+                }
+
+                double[] cameLives;
+                if (!arrivalLives.TryGetValue(level, out cameLives))
+                {
+                    cameLives = EmptyLives;
                 }
 
                 double life;
@@ -504,6 +534,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double emitted = came + life;
+                double[] lives = cameLives;
+                if (life > 0.0)
+                {
+                    lives = new double[cameLives.Length + 1];
+                    Array.Copy(cameLives, lives, cameLives.Length);
+                    lives[cameLives.Length] = life;
+                }
+
                 foreach (Transition transition in gammas.Values)
                 {
                     if (transition.FromSeq != level)
@@ -512,10 +550,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     transition.EmitDelaySec = emitted;
+                    transition.EmitHalfLives = lives;
                     double have;
                     if (!arrival.TryGetValue(transition.ToSeq, out have) || emitted > have)
                     {
                         arrival[transition.ToSeq] = emitted;
+                        arrivalLives[transition.ToSeq] = lives;
                     }
                 }
             }
