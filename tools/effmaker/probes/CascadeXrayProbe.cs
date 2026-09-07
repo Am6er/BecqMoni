@@ -162,6 +162,38 @@ namespace BecquerelMonitor.Probes
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
         }
 
+        /// <summary>
+        /// Могут ли два перехода случиться в ОДНОМ событии распада (`S158`).
+        ///
+        /// ⛔ ПОЧЕМУ ЭТОГО НЕ ЛОВИЛА БУХГАЛТЕРИЯ ВАКАНСИЙ ВЫШЕ. Она сводит
+        /// ОБЩИЙ баланс на распад — «сколько вакансий всего» — и он сходится
+        /// независимо от того, кому именно приписаны слагаемые. Дефект же в
+        /// УСЛОВНОСТИ при конкретной гамме: код добавлял событию 356 кэВ
+        /// конверсионную вакансию перехода, который в этом событии произойти
+        /// НЕ МОГ. Разные вопросы, и первый на второй не отвечает.
+        ///
+        /// Ждём НЕТ у альтернатив одного уровня и у переходов вне общего пути;
+        /// ждём ДА у настоящих каскадов — они здесь отрицательный контроль,
+        /// без них правка «всё запретить» прошла бы проверку.
+        /// </summary>
+        static readonly object[][] Coexist =
+        {
+            new object[] { "133BA",  356.0129,   53.1622, false,
+                           "альтернативы уровня 4: 4→1 против 4→3" },
+            new object[] { "133BA",  356.0129,  276.3989, false,
+                           "альтернативы уровня 4: 4→1 против 4→2" },
+            new object[] { "133BA",  302.8508,  383.8485, false,
+                           "альтернативы уровня 3: 3→1 против 3→0" },
+            new object[] { "133BA",   53.1622,  302.8508, true,
+                           "настоящий каскад 4→3, затем 3→1 (в поставке доля 0.638)" },
+            new object[] { "133BA",  356.0129,   80.9979, true,
+                           "настоящий каскад 4→1, затем 1→0 (в поставке доля 0.368)" },
+            new object[] { "133BA",   79.6142,   80.9979, true,
+                           "настоящий каскад 2→1, затем 1→0" },
+            new object[] { "60CO",  1173.2280, 1332.4920, true,
+                           "настоящий каскад Ni-60: 4→1, затем 1→0" },
+        };
+
         static int Main(string[] args)
         {
             double window = FsaCascadeSummer.DefaultCoincidenceWindowSec;
@@ -371,6 +403,73 @@ namespace BecquerelMonitor.Probes
 
                 Say("  {0,-8} {1,9:F6} {2,9:F6}   {3}   {4}",
                     nucid, expect, got, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("ВЗАИМОИСКЛЮЧАЮЩИЕ ПЕРЕХОДЫ: может ли пара быть в одном событии (S158)");
+            Console.WriteLine();
+            System.Reflection.MethodInfo canCoexist = typeof(FsaCascadeSummer).GetMethod(
+                "CanCoexist", System.Reflection.BindingFlags.NonPublic
+                              | System.Reflection.BindingFlags.Static);
+            if (canCoexist == null)
+            {
+                Console.WriteLine("  ⛔ ОТКАЗ: закрытого CanCoexist в сборке нет — проба мерила бы пустоту");
+                failed++;
+            }
+            else
+            {
+                Say("  нуклид   гамма, кэВ  партнёр, кэВ   ждём  вышло  ложный K   итог   почему");
+                foreach (object[] row in Coexist)
+                {
+                    string nucid = (string)row[0];
+                    double one = (double)row[1];
+                    double two = (double)row[2];
+                    bool expect = (bool)row[3];
+                    string why = (string)row[4];
+
+                    CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                    CascadeAtomicData.Transition mine = null, other = null;
+                    if (atomic != null)
+                    {
+                        atomic.Gammas.TryGetValue(one, out mine);
+                        atomic.Gammas.TryGetValue(two, out other);
+                    }
+
+                    CascadeAtomicData.Branch branch =
+                        atomic != null ? atomic.BranchOfGamma(one) : null;
+                    if (atomic == null || mine == null || other == null || branch == null)
+                    {
+                        Say("  {0,-8} {1,10:F3} {2,12:F3}   переходов или ветви нет", nucid, one, two);
+                        failed++;
+                        continue;
+                    }
+
+                    bool got = (bool)canCoexist.Invoke(null, new object[] { branch, mine, other });
+                    bool ok = got == expect;
+                    if (!ok)
+                    {
+                        failed++;
+                    }
+
+                    // Сколько ЛОЖНОГО K-кванта добавлял прежний запасной ход,
+                    // если пара невозможна: выход партнёра × α_K × ω_K.
+                    double spurious = 0.0;
+                    if (!expect)
+                    {
+                        foreach (double[] line in atomic.GammaIntensity)
+                        {
+                            if (Math.Abs(line[0] - two) < 0.05)
+                            {
+                                spurious = line[1] / 100.0 * other.AlphaK * branch.OmegaK;
+                                break;
+                            }
+                        }
+                    }
+
+                    Say("  {0,-8} {1,10:F3} {2,12:F3}  {3,-5} {4,-5} {5,10:F5}   {6}   {7}",
+                        nucid, one, two, expect ? "да" : "нет", got ? "да" : "нет",
+                        spurious, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
+                }
             }
 
             Console.WriteLine();
