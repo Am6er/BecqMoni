@@ -283,6 +283,22 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`A295`) Такт обновления вида — второй источник заказа, наравне
+            // со сменой документа и видимости: без него окно, открытое при
+            // выключенном `ShowFSA`, не узнаёт о новых отсчётах вовсе.
+            if (!ReferenceEquals(this.document, doc))
+            {
+                if (this.document != null)
+                {
+                    this.document.ViewRefreshed -= this.DocumentViewRefreshed;
+                }
+
+                if (doc != null)
+                {
+                    doc.ViewRefreshed += this.DocumentViewRefreshed;
+                }
+            }
+
             this.document = doc;
             this.probeResultData = null;
             this.ReadDocument();
@@ -423,6 +439,17 @@ namespace BecquerelMonitor
             // один отпечаток, иначе они заказывали бы два разных счёта по
             // очереди.
             this.session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null);
+        }
+
+        /// <summary>
+        /// Вид документа обновлён — данные могли смениться (`A295`). Заказ
+        /// идёт БЕЗ перестроения таблицы: строки перечитает
+        /// <see cref="SessionCompleted"/>, когда счёт кончится, а дёргать
+        /// таблицу на каждом такте отрисовки незачем.
+        /// </summary>
+        void DocumentViewRefreshed(object sender, EventArgs e)
+        {
+            this.Consume();
         }
 
         void ConsumerStateChanged(object sender, EventArgs e)
@@ -1557,6 +1584,14 @@ namespace BecquerelMonitor
                 // вернуть её было бы нечем.
                 this.showResidualBand = true;
                 this.PushResidualBand();
+
+                // (`A295`) Подписку на такт вида снимаем здесь же: иначе
+                // документ держал бы ссылку на закрытое окно и звал бы
+                // его на каждом обновлении.
+                if (this.document != null)
+                {
+                    this.document.ViewRefreshed -= this.DocumentViewRefreshed;
+                }
 
                 if (this.session != null)
                 {

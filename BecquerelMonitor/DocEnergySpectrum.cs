@@ -656,6 +656,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600032F RID: 815 RVA: 0x0000FDF8 File Offset: 0x0000DFF8
+        /// <summary>
+        /// Вид документа обновлён — данные могли смениться (`A295`).
+        ///
+        /// ⛔ ЗАЧЕМ СОБЫТИЕ. Разбор до 07.09.2026 заказывал ОДИН потребитель —
+        /// график, и только в режиме `ShowFSA` (`PrepareViewData`). Окно отчёта
+        /// заказывало его лишь на смене документа, спектра, видимости и
+        /// настроек, а дальше держалось цепочкой «расчёт кончился → закажи
+        /// следующий». Цепочка самоподдерживается, только пока расчёты ИДУТ:
+        /// стоит отпечатку совпасть (данные не менялись), как она гаснет, и
+        /// разбудить её при новых отсчётах становится некому. Отсюда и жалоба:
+        /// на записи спектра пики находятся, а отчёт стоит с прежним отказом,
+        /// пока человек не включит `ShowFSA`.
+        ///
+        /// Событие поднимается на КАЖДОМ обновлении вида, потому что именно им
+        /// приходят новые отсчёты. Лишним оно не бывает: подписчик зовёт
+        /// `EnsureUpToDate`, а тот на совпавшем отпечатке возвращается молча.
+        /// </summary>
+        public event EventHandler ViewRefreshed;
+
         public void RefreshView()
         {
             this.EvaluateNormByEffMode();
@@ -665,6 +684,12 @@ namespace BecquerelMonitor
             this.DocumentTextWithDirtyFlag();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
+
+            EventHandler handler = this.ViewRefreshed;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
         }
 
         // Token: 0x06000330 RID: 816 RVA: 0x0000FE1C File Offset: 0x0000E01C
