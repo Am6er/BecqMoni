@@ -24,7 +24,8 @@ namespace BecquerelMonitor
     ///
     /// (`A145`, этап 3) Вид отвечает ТОЛЬКО за ленты, штриховку сумм-пиков,
     /// невязку, линии и короткую строку состояния (<see cref="DrawFsaStatus"/>:
-    /// «считается / невозможно / ошибка»). Перечень компонентов, пределы,
+    /// «невозможно / ошибка» — «идёт пересчёт» снято 07.09.2026, см. там же).
+    /// Перечень компонентов, пределы,
     /// предупреждения, невязка числом и строка качества живут в окне отчёта
     /// <see cref="FSAReportView"/>; прежней ручной таблицы под панелью
     /// курсора, её бюджета высоты и усечения хвоста качества здесь больше нет.
@@ -934,14 +935,23 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Что вид говорит на графике о разложении, когда сказать есть что:
-        /// пока результата нет — «считается», причина невозможности или
-        /// ошибка (<see cref="FsaAnalysisSession.Status"/>); при готовом
-        /// результате и идущем пересчёте — «считается» (`A32`: пересчёт виден
-        /// ВСЕГДА, иначе на экране висит устаревший стек без единого признака).
-        /// Пусто — рисовать нечего: результат есть и он актуален. Полный отчёт
-        /// и строка качества здесь НЕ дублируются (`A145`, «Связь окна с
-        /// главным интерфейсом»).
+        /// Что вид говорит на графике о разложении: ТОЛЬКО пока результата
+        /// НЕТ — причину невозможности или ошибку
+        /// (<see cref="FsaAnalysisSession.Status"/>). Есть результат — пусто.
+        /// Полный отчёт и строка качества здесь НЕ дублируются (`A145`, «Связь
+        /// окна с главным интерфейсом»).
+        ///
+        /// ⛔ ПАНЕЛЬ «ИДЁТ ПЕРЕСЧЁТ» С ГРАФИКА СНЯТА (решение Amber 07.09.2026),
+        /// и это ОТМЕНА прежнего решения ~~`A32`~~ — не забывчивость. `A32`
+        /// добавляла признак затем, чтобы устаревшая легенда не висела молча;
+        /// на живой записи спектра пересчёт идёт непрерывно, и признак
+        /// превращался в мигающую поверх графика панель. Цена отмены названа:
+        /// на САМОМ графике устаревшую легенду теперь ничем не отличить.
+        ///
+        /// ⚠ Признак не потерян, он остался там, где был до `A32`: окно отчёта
+        /// печатает строкой `FSAReportRecalculating` — «пересчёт… строки ниже
+        /// от предыдущего расчёта». Возвращать панель сюда НЕ НАДО (запись в
+        /// таблице «Чего делать НЕ надо» `TODO.md`).
         /// </summary>
         public static string FsaStatusText(FsaAnalysisSession session)
         {
@@ -952,37 +962,37 @@ namespace BecquerelMonitor
 
             // Один снимок на кадр: фон публикует результат в любой момент.
             FsaResult result = session.Result;
-            string status = session.Status;
-            if (result == null)
+            if (result != null)
             {
-                return string.IsNullOrEmpty(status) ? null : status;
+                return null;
             }
 
-            return session.IsRunning ? Resources.FSACalculating : null;
+            string status = session.Status;
+            return string.IsNullOrEmpty(status) ? null : status;
         }
 
         /// <summary>
         /// Строка состояния тем же видом, что панели значений курсора: тень,
         /// белая заливка, чёрная рамка; текст переносится по ширине панели.
-        /// Пересчёт при живом результате — оранжевым: это не часть состава, а
-        /// предупреждение, что состав СЕЙЧАС переписывается.
+        ///
+        /// Рисуется, только когда результата НЕТ, — то есть это сообщение об
+        /// отказе, а не индикатор занятости. Оранжевого «идёт пересчёт» здесь
+        /// больше нет: см. <see cref="FsaStatusText"/>.
         /// </summary>
         void DrawFsaStatus(Graphics g, int x, int y, int width)
         {
-            FsaAnalysisSession session = this.FsaSession;
-            string text = FsaStatusText(session);
+            string text = FsaStatusText(this.FsaSession);
             if (string.IsNullOrEmpty(text))
             {
                 return;
             }
 
-            bool recalculating = session.Result != null;
             int height = (int)Math.Ceiling(g.MeasureString(text, this.Font, width - 12).Height) + 8;
             g.FillRectangle(Brushes.DarkGray, x + 3, y + 3, width, height);
             g.FillRectangle(Brushes.White, x, y, width, height);
             g.DrawRectangle(Pens.Black, x, y, width, height);
             Rectangle r = new Rectangle(x + 8, y + 4, width - 12, height - 8);
-            g.DrawString(text, this.Font, recalculating ? Brushes.DarkOrange : Brushes.Black, r);
+            g.DrawString(text, this.Font, Brushes.Black, r);
         }
     }
 }
