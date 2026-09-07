@@ -1640,10 +1640,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // ⛔ АННИГИЛЯЦИЯ ДОСТАЁТСЯ ТОЛЬКО β⁺-ВЕТВИ (`S147`). Прежде она
                 // добавлялась КАЖДОЙ ветви, и у смешанного распада гамма
                 // β⁻-ветви получала партнёром 511 кэВ, которого в её событии
-                // нет. Канал читается из `dec_type` поставки: `1` — β⁺/EC,
-                // `2` — β⁻, `7` — чистый EC, `0` — α (сверено по 137CS, 60CO,
-                // 22NA, 152EU, 241AM, 57CO, 44TI, 65ZN, 40K).
-                if (BetaPlusChannel(branch.DecType))
+                // нет.
+                //
+                // ⛔ СПРАШИВАЕМ У ДАННЫХ, А НЕ У ТАБЛИЦЫ КОДОВ (`S150`). Здесь
+                // стоял разбор `dec_type` со списком «`1` — β⁺/EC, `7` — чистый
+                // EC», и список был ПРОСТО НЕВЕРЕН: у `20NA` весь β⁺ (100 %
+                // ветвь, 6 строк `B+`) записан каналом `7`, у `56CU` — каналом
+                // `15`. Ветвь несёт позитроны тогда, когда у неё есть строки
+                // `B+` своего канала, и это уже посчитано при чтении.
+                if (branch.BetaPlusShare > 0.0)
                 {
                     own.AddRange(annihilation);
                 }
@@ -1717,6 +1722,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // должно.
             foreach (Carrier carrier in AllCarriers(carriers, carriersOf))
             {
+                // ⛔ У АННИГИЛЯЦИИ КЛЮЧ СВОЙ, И ИСКАТЬ ЕГО СРЕДИ ЯДЕРНЫХ ЛИНИЙ
+                // НЕЛЬЗЯ (`S152`). Поиск шёл допуском 0.3 кэВ, и у нуклида с
+                // настоящей гаммой около 511 кэВ отдельного ключа не возникало
+                // вовсе: аннигиляция садилась на ключ ЧУЖОЙ линии. Дальше
+                // `PartnerQuanta[ключ] = 2` объявляло двухквантовыми ВСЕ
+                // партнёрства этой энергии, включая ядерные, а выход самой
+                // аннигиляции в таблицу не попадал — и обратная условная
+                // делилась не на то число. Таких родителей в поставке 11
+                // (`110SB`, `208TL`, `77RB`, …).
+                //
+                // 511.0 — величина физическая, у неё нет разнобоя округлений
+                // между поставками, ради которого `Match` здесь и заведён.
+                if (!carrier.FromVacancy)
+                {
+                    double before;
+                    data.Intensity.TryGetValue(AnnihilationKev, out before);
+                    data.Intensity[AnnihilationKev] = before + carrier.IntensityPct;
+                    continue;
+                }
+
                 double had;
                 if (!Match(data.Intensity, carrier.EnergyKev, out had))
                 {
@@ -1770,18 +1795,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (Carrier carrier in own)
                 {
+                    // ⛔ У АННИГИЛЯЦИИ ДОЛЯ УСЛОВНАЯ ПРИ ЭТОЙ ГАММЕ (`S150`).
+                    // Прежде сюда шёл `AnnihilationQuanta` — МАРГИНАЛЬНЫЙ выход
+                    // 511 на распад родителя, — и он выдавался за вероятность
+                    // при каждой линии подряд. У K-40 это строило совпадение
+                    // 511 ↔ 1461, которого не бывает: позитрон уходит только в
+                    // основное состояние Ar-40, а 1460.8 кэВ следует за
+                    // ЗАХВАТОМ. Условное число знает `CascadeAtomicData`, потому
+                    // что связь «канал → уровень → гамма» лежит в поставке.
                     double probability = carrier.FromVacancy
                         ? carrier.Share
                           * this.VacancyGiven(atomic, branch, branchIndex, raw,
                                               decayEnergy, delay, phases)
-                        : atomic.AnnihilationQuanta * inWindow;
+                        : atomic.AnnihilationQuantaOfGamma(decayEnergy) * inWindow;
                     if (!(probability > 0.0))
                     {
                         continue;
                     }
 
+                    // (`S152`) Ключ аннигиляции — свой, ядерные линии рядом его
+                    // не занимают.
                     double carrierKey;
-                    if (!Match(data.Intensity, carrier.EnergyKev, out carrierKey))
+                    if (!carrier.FromVacancy)
+                    {
+                        carrierKey = AnnihilationKev;
+                    }
+                    else if (!Match(data.Intensity, carrier.EnergyKev, out carrierKey))
                     {
                         carrierKey = carrier.EnergyKev;
                     }
@@ -1835,17 +1874,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Квантов у аннигиляции на одно событие — два (`S147`).</summary>
         const double AnnihilationQuantaPerEvent = 2.0;
-
-        /// <summary>
-        /// Канал распада, в котором рождается позитрон (`S147`). `1` — β⁺/EC;
-        /// `7` (чистый захват), `2` (β⁻) и `0` (α) позитрона не дают. Пусто —
-        /// канал не назван, и ветвь берётся: это прежнее поведение, то есть
-        /// сторона осторожная.
-        /// </summary>
-        static bool BetaPlusChannel(string decType)
-        {
-            return string.IsNullOrEmpty(decType) || decType.Trim() == "1";
-        }
 
         /// <summary>Все носители — запасные и поветвевые, без повторов по энергии.</summary>
         static IEnumerable<Carrier> AllCarriers(List<Carrier> fallback,

@@ -96,6 +96,61 @@ namespace BecquerelMonitor.Probes
             new object[] { "22NA", 1274.537, true,  "уровень Ne 1274.5 живёт 3.6 пс" },
         };
 
+        /// <summary>
+        /// Условное число квантов 511 при данной гамме (`S150`).
+        ///
+        /// ⛔ ЖДЁМ НЕ ТО, ЧТО СЧИТАЕТ КОД. Ожидания выведены отдельно, по
+        /// `ensdf_feedings` и `ensdf_gammas`, с той же протяжкой каскада сверху
+        /// вниз, но своим счётом — иначе проверка сверяла бы код с самим собой.
+        /// Нули здесь не «ничего не посчиталось», а ФИЗИКА: позитрон населяет
+        /// один уровень, гамма идёт с другого.
+        /// </summary>
+        static readonly object[][] Annihilation =
+        {
+            new object[] { "40K",  1460.820, 0.0,
+                           "β⁺ только в основное состояние Ar-40, 1461 — за захватом" },
+            new object[] { "22NA", 1274.537, 1.80996,
+                           "уровень Ne 1274.5 населяют β⁺ 90.498 и захват 9.502" },
+            new object[] { "88Y",   898.042, 0.0,
+                           "уровень Sr 2734 населяет ТОЛЬКО захват" },
+            new object[] { "88Y",  1836.063, 0.00419021,
+                           "уровень 1836 набирает почти весь распад сверху: 0.21 %, не 3.8 %" },
+            new object[] { "65ZN", 1115.539, 0.0,
+                           "β⁺ Zn-65 идёт в основное состояние Cu-65" },
+            new object[] { "137CS", 661.657, 0.0,
+                           "позитронов нет вовсе" },
+            new object[] { "152EU", 121.7817, 0.00071032,
+                           "наборов питаний два — доля ВЕТВЕВАЯ: 2·0.0256/72.08" },
+            new object[] { "20NA", 1633.600, 2.0,
+                           "ветвь целиком позитронная (канал 7, не 1)" },
+        };
+
+        /// <summary>
+        /// Выход самой линии 511 на распад родителя (`S153`): поставка местами
+        /// даёт позитронов больше, чем есть распадов ветви, и это обязано быть
+        /// зажато ДО потребителей, а не у одного из них.
+        /// </summary>
+        static readonly object[][] AnnihilationYield =
+        {
+            new object[] { "20NA", 2.0,
+                           "поставка 196.847 % при ветви 100 % — зажато (было 3.937)" },
+            new object[] { "77RB", 2.0,
+                           "поставка 110.470 % при ветви 100 % — зажато (было 2.209)" },
+            new object[] { "22NA", 1.798, "89.9 % при ветви 100 % — не зажимается" },
+            new object[] { "40K",  0.00002, "0.001 % при ветви 10.72 % — не зажимается" },
+        };
+
+        /// <summary>
+        /// Печать числа ТОЧКОЙ, а не культурой потока (правило Amber
+        /// 05.09.2026). У `Console.WriteLine` перегрузки с культурой нет вовсе,
+        /// поэтому строка собирается `string.Format` явной инвариантной
+        /// культурой. Прежде отчёт пробы выходил с запятыми — `306,780`.
+        /// </summary>
+        static void Say(string format, params object[] args)
+        {
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
+        }
+
         static int Main(string[] args)
         {
             double window = FsaCascadeSummer.DefaultCoincidenceWindowSec;
@@ -114,7 +169,7 @@ namespace BecquerelMonitor.Probes
             }
 
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.WriteLine("Окно совпадения: {0:E3} с", window);
+            Say("Окно совпадения: {0:E3} с", window);
             Console.WriteLine();
 
             int failed = 0;
@@ -169,7 +224,7 @@ namespace BecquerelMonitor.Probes
                     failed++;
                 }
 
-                Console.WriteLine(
+                Say(
                     "  {0,-8} {1,7:F3}  {2,6:F4}  {3,7:F4}    {4,7:F4}  {5,7:F4}   {6,4:F2}…{7,4:F2}  {8}",
                     e.Name, kPct, omega, total, conversion,
                     atomic.PromptVacancy, e.PromptLo, e.PromptHi, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
@@ -191,7 +246,7 @@ namespace BecquerelMonitor.Probes
                             }
                         }
 
-                        Console.WriteLine(
+                        Say(
                             "           ветвь {0,-8} {1,6:F2} %  ω_K {2,6:F4}  I_K {3,7:F3} %"
                             + "  захват {4,7:F4}  гамм {5}",
                             branch.Nucid, branch.Perc, branch.OmegaK,
@@ -218,7 +273,7 @@ namespace BecquerelMonitor.Probes
                 CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
                 if (atomic == null)
                 {
-                    Console.WriteLine("  {0,-8} {1,10:F3}   атомных данных нет", nucid, energy);
+                    Say("  {0,-8} {1,10:F3}   атомных данных нет", nucid, energy);
                     failed++;
                     continue;
                 }
@@ -240,11 +295,71 @@ namespace BecquerelMonitor.Probes
                     failed++;
                 }
 
-                Console.WriteLine("  {0,-8} {1,10:F3}   {2,11}    {3,-5}  {4,-5}   {5}   {6}",
+                Say("  {0,-8} {1,10:F3}   {2,11}    {3,-5}  {4,-5}   {5}   {6}",
                     nucid, energy,
                     delay < 0.0 ? "нет перехода" : delay.ToString("E3", CultureInfo.InvariantCulture),
                     expect ? "да" : "нет", got ? "да" : "нет",
                     ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("АННИГИЛЯЦИЯ: условное число квантов 511 ПРИ ГАММЕ (S150, S153)");
+            Console.WriteLine();
+            Console.WriteLine("  нуклид    гамма, кэВ      ждём     вышло     итог   почему");
+            foreach (object[] row in Annihilation)
+            {
+                string nucid = (string)row[0];
+                double energy = (double)row[1];
+                double expect = (double)row[2];
+                string why = (string)row[3];
+
+                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                if (atomic == null)
+                {
+                    Say("  {0,-8} {1,10:F3}   атомных данных нет", nucid, energy);
+                    failed++;
+                    continue;
+                }
+
+                double got = atomic.AnnihilationQuantaOfGamma(energy);
+                bool ok = Math.Abs(got - expect) <= 1.0E-5 * (1.0 + Math.Abs(expect));
+                if (!ok)
+                {
+                    failed++;
+                }
+
+                Say("  {0,-8} {1,10:F3} {2,9:F6} {3,9:F6}   {4}   {5}",
+                    nucid, energy, expect, got,
+                    ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("ВЫХОД ЛИНИИ 511 НА РАСПАД: поставка сверх доли ветви зажата (S153)");
+            Console.WriteLine();
+            Console.WriteLine("  нуклид      ждём     вышло     итог   почему");
+            foreach (object[] row in AnnihilationYield)
+            {
+                string nucid = (string)row[0];
+                double expect = (double)row[1];
+                string why = (string)row[2];
+
+                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                if (atomic == null)
+                {
+                    Console.WriteLine("  {0,-8}  атомных данных нет", nucid);
+                    failed++;
+                    continue;
+                }
+
+                double got = atomic.AnnihilationQuanta;
+                bool ok = Math.Abs(got - expect) <= 1.0E-5 * (1.0 + Math.Abs(expect));
+                if (!ok)
+                {
+                    failed++;
+                }
+
+                Say("  {0,-8} {1,9:F6} {2,9:F6}   {3}   {4}",
+                    nucid, expect, got, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
             }
 
             Console.WriteLine();
