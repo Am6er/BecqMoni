@@ -241,6 +241,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public Dictionary<double, double> Intensity;                        // E → I, %
             public List<double[]> Pairs;                                        // {E, Ecoinc, P(Ecoinc|E)}
             public Dictionary<double, Dictionary<double, double>> Partners;     // P(m|a), обе стороны
+
+            /// <summary>
+            /// СКОЛЬКО КВАНТОВ несёт партнёр этой энергии: 1 у всех, кроме
+            /// аннигиляции, у которой их ДВА (`S147`). Пусто — единица.
+            ///
+            /// ⛔ Заведено потому, что `Partners` хранит для 511 кэВ не
+            /// вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов на распад (2·доля β⁺), и
+            /// подставлять его в формулу вероятности нельзя: при доле 1 и
+            /// эффективности 0.6 верная потеря 0.84, а число 2·0.6 = 1.2
+            /// зажималось в единицу, то есть в «пик потерян целиком».
+            /// </summary>
+            public Dictionary<double, double> PartnerQuanta;
         }
 
         /// <summary>
@@ -800,7 +812,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
             // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
             // зарегистрирован», и считается она через выживание.
-            loss = 1.0 - this.SurviveAll(Partners(data, energy));
+            loss = 1.0 - this.SurviveAll(data, Partners(data, energy));
 
             // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
             // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
@@ -1028,7 +1040,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double Survive(NuclideData data, double[] pair)
         {
-            return this.SurviveAll(MergedThird(data, pair[0], pair[1]));
+            return this.SurviveAll(data, MergedThird(data, pair[0], pair[1]));
         }
 
         /// <summary>
@@ -1053,20 +1065,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// потерю (верна была бы сумма), но разводить их нечем — условные
         /// вероятности поставки не несут признака ветви. Родня: `S145`.
         /// </summary>
-        double SurviveAll(Dictionary<double, double> partners)
+        double SurviveAll(NuclideData data, Dictionary<double, double> partners)
         {
             double survive = 1.0;
             foreach (KeyValuePair<double, double> partner in partners)
             {
-                double p = partner.Value * this.TotalEfficiency(partner.Key);
-                if (!(p > 0.0))
+                double efficiency = this.TotalEfficiency(partner.Key);
+                if (!(efficiency > 0.0) || !(partner.Value > 0.0))
                 {
                     continue;
                 }
 
-                // Зажим — не косметика: условная вероятность поставки бывает
-                // больше единицы (у каскада на распад приходится больше одного
-                // кванта), и без зажима сомножитель ушёл бы в минус.
+                // ⛔ КРАТНОСТЬ ПАРТНЁРА (`S147`). У аннигиляции `Partners` несёт
+                // не вероятность, а ОЖИДАЕМОЕ ЧИСЛО квантов (2·доля β⁺). Два
+                // фотона рождаются ВМЕСТЕ, а не независимо, поэтому верная
+                // потеря равна q·(1−(1−ε)ᵐ), где q — доля события, а m — число
+                // квантов в нём. Прежнее `value·ε` при q = 1 и ε = 0.6 давало
+                // 1.2, зажималось в единицу — «пик потерян целиком» вместо
+                // верных 0.84.
+                double quanta = 1.0;
+                if (data != null && data.PartnerQuanta != null)
+                {
+                    double had;
+                    if (data.PartnerQuanta.TryGetValue(partner.Key, out had) && had > 0.0)
+                    {
+                        quanta = had;
+                    }
+                }
+
+                double share = partner.Value / quanta;
+                if (share > 1.0)
+                {
+                    // Доля события больше единицы физически невозможна: значит
+                    // поставка даёт на распад больше одного такого кванта, и
+                    // осторожнее считать событие достоверным.
+                    share = 1.0;
+                }
+
+                double miss = Math.Pow(1.0 - efficiency, quanta);
+                double p = share * (1.0 - miss);
                 survive *= p < 1.0 ? 1.0 - p : 0.0;
             }
 
@@ -1407,7 +1444,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 Intensity = new Dictionary<double, double>(),
                 Pairs = new List<double[]>(),
-                Partners = new Dictionary<double, Dictionary<double, double>>()
+                Partners = new Dictionary<double, Dictionary<double, double>>(),
+                PartnerQuanta = new Dictionary<double, double>()
             };
 
             try
@@ -1564,6 +1602,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // атому, в который распад ПРИШЁЛ, и с гаммой ДРУГОЙ ветви совпасть
             // не может: это два разных события распада. Прежде носители
             // строились одним списком по сильнейшей ветви и раздавались всем.
+            // Ключ — НОМЕР ВЕТВИ (`S148`): по `Z` ветви сливаются, и носители
+            // одной затирали носителей другой.
             var carriersOf = new Dictionary<int, List<Carrier>>();
             var annihilation = new List<Carrier>();
             if (this.withAnnihilation && atomic.AnnihilationQuanta > 0.0)
@@ -1577,8 +1617,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
-            foreach (CascadeAtomicData.Branch branch in atomic.Branches)
+            for (int index = 0; index < atomic.Branches.Count; index++)
             {
+                CascadeAtomicData.Branch branch = atomic.Branches[index];
                 var own = new List<Carrier>();
                 if (this.withXrays && branch.KIntensityPct > 0.0 && branch.OmegaK > 0.0)
                 {
@@ -1596,8 +1637,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                own.AddRange(annihilation);
-                carriersOf[branch.Z] = own;
+                // ⛔ АННИГИЛЯЦИЯ ДОСТАЁТСЯ ТОЛЬКО β⁺-ВЕТВИ (`S147`). Прежде она
+                // добавлялась КАЖДОЙ ветви, и у смешанного распада гамма
+                // β⁻-ветви получала партнёром 511 кэВ, которого в её событии
+                // нет. Канал читается из `dec_type` поставки: `1` — β⁺/EC,
+                // `2` — β⁻, `7` — чистый EC, `0` — α (сверено по 137CS, 60CO,
+                // 22NA, 152EU, 241AM, 57CO, 44TI, 65ZN, 40K).
+                if (BetaPlusChannel(branch.DecType))
+                {
+                    own.AddRange(annihilation);
+                }
+
+                carriersOf[index] = own;
             }
 
             // Запасной список — для гамм, ветвь которых не определилась.
@@ -1697,8 +1748,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 // (`S145`) Носители — СВОЕЙ ветви этой гаммы.
                 CascadeAtomicData.Branch branch = atomic.BranchOfGamma(decayEnergy);
+                int branchIndex = branch != null ? atomic.Branches.IndexOf(branch) : -1;
                 List<Carrier> own;
-                if (branch == null || !carriersOf.TryGetValue(branch.Z, out own))
+                if (branchIndex < 0 || !carriersOf.TryGetValue(branchIndex, out own))
                 {
                     own = carriers;
                 }
@@ -1720,7 +1772,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     double probability = carrier.FromVacancy
                         ? carrier.Share
-                          * this.VacancyGiven(atomic, branch, raw, decayEnergy, delay, phases)
+                          * this.VacancyGiven(atomic, branch, branchIndex, raw,
+                                              decayEnergy, delay, phases)
                         : atomic.AnnihilationQuanta * inWindow;
                     if (!(probability > 0.0))
                     {
@@ -1735,6 +1788,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     data.Pairs.Add(new[] { pairKey, carrierKey, probability });
                     Put(data, pairKey, carrierKey, probability);
+
+                    // (`S147`) У аннигиляции партнёр — ПАРА квантов, и `Partners`
+                    // держит их ожидаемое ЧИСЛО. Кратность записывается рядом,
+                    // чтобы вероятность объединения считалась по ней, а площадь
+                    // сумм-пика — по прежнему числу (`Pairs` не трогаем).
+                    if (!carrier.FromVacancy)
+                    {
+                        data.PartnerQuanta[carrierKey] = AnnihilationQuantaPerEvent;
+                    }
 
                     // Обратная условная — тем же правилом, что у ядерных пар:
                     // P(A|B) = P(B|A)·I(A)/I(B).
@@ -1771,6 +1833,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Аннигиляционная линия, кэВ.</summary>
         const double AnnihilationKev = 511.0;
 
+        /// <summary>Квантов у аннигиляции на одно событие — два (`S147`).</summary>
+        const double AnnihilationQuantaPerEvent = 2.0;
+
+        /// <summary>
+        /// Канал распада, в котором рождается позитрон (`S147`). `1` — β⁺/EC;
+        /// `7` (чистый захват), `2` (β⁻) и `0` (α) позитрона не дают. Пусто —
+        /// канал не назван, и ветвь берётся: это прежнее поведение, то есть
+        /// сторона осторожная.
+        /// </summary>
+        static bool BetaPlusChannel(string decType)
+        {
+            return string.IsNullOrEmpty(decType) || decType.Trim() == "1";
+        }
+
         /// <summary>Все носители — запасные и поветвевые, без повторов по энергии.</summary>
         static IEnumerable<Carrier> AllCarriers(List<Carrier> fallback,
                                                 Dictionary<int, List<Carrier>> byBranch)
@@ -1800,12 +1876,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Число K-вакансий, приходящееся на событие с гаммой `energyKev`, —
         /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
         /// </summary>
-        double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch, NuclideData raw,
+        double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch,
+                            int branchIndex, NuclideData raw,
                             double energyKev, double delaySec, CascadeAtomicData.Phase[] phases)
         {
             // (`S145`) Захватные вакансии и ω_K берутся У СВОЕЙ ВЕТВИ. Ветви нет
             // (линия не нашлась ни в одной схеме) — прежние сводные поля.
             double promptVacancy = branch != null ? branch.PromptVacancy : atomic.PromptVacancy;
+
+            // ⛔ ВАКАНСИЯ СЧИТАНА НА РАСПАД, А НУЖНА УСЛОВНАЯ ПРИ ГАММЕ (`S149`).
+            // `PromptVacancy` = I_K/ω_K − Σ I_γ·α_K, и все выходы там заданы на
+            // распад РОДИТЕЛЯ, то есть уже несут долю ветви. Но гамма к этому
+            // месту УЖЕ отнесена к своей ветви, значит событие принадлежит ей, и
+            // делить надо на ту же долю — иначе она войдёт дважды: первый раз в
+            // интенсивности гаммы, второй раз в ненормированном остатке.
+            // У Eu-152 ветвь Sm даёт 0.5933 на распад при доле 0.7208, то есть
+            // на событие ветви приходится 0.8231.
+            //
+            // ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: точная условность зависит от населённого
+            // уровня и оболочки захвата, а здесь взята маргинальная нормировка с
+            // зажимом в единицу. Это ближе верного, чем прежняя подстановка
+            // величины на распад, но моделью населённости не является.
+            if (branch != null && branch.Perc > 0.0 && branch.Perc < 100.0)
+            {
+                promptVacancy = promptVacancy / (branch.Perc / 100.0);
+                if (promptVacancy > 1.0)
+                {
+                    promptVacancy = 1.0;
+                }
+            }
             double omegaK = branch != null ? branch.OmegaK : atomic.OmegaK;
             double vacancy = 0.0;
 
@@ -1834,8 +1933,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // ⛔ ГАММА ЧУЖОЙ ВЕТВИ ПАРТНЁРОМ НЕ БЫВАЕТ (`S145`): у Eu-152
                 // линия схемы Gd-152 и линия схемы Sm-152 приходят из РАЗНЫХ
                 // событий распада и совпасть не могут ни при каком окне.
-                if (branch != null && transition.DaughterZ > 0
-                    && transition.DaughterZ != branch.Z)
+                if (branchIndex >= 0 && transition.BranchIndex >= 0
+                    && transition.BranchIndex != branchIndex)
                 {
                     continue;
                 }
@@ -2225,7 +2324,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 Intensity = new Dictionary<double, double>(),
                 Pairs = new List<double[]>(),
-                Partners = new Dictionary<double, Dictionary<double, double>>()
+                Partners = new Dictionary<double, Dictionary<double, double>>(),
+                PartnerQuanta = new Dictionary<double, double>()
             };
 
             if (source == null)

@@ -148,15 +148,15 @@ namespace BecquerelMonitor.Probes
 
                 double kPct = main != null ? main.KIntensityPct : atomic.KIntensityPct;
                 double omega = main != null ? main.OmegaK : atomic.OmegaK;
-                int mainZ = main != null ? main.Z : 0;
+                int mainIndex = main != null ? atomic.Branches.IndexOf(main) : -1;
                 double total = omega > 0.0 ? kPct / 100.0 / omega : 0.0;
                 double conversion = 0.0;
                 foreach (double[] line in atomic.GammaIntensity)
                 {
                     CascadeAtomicData.Transition transition;
                     if (atomic.Gammas.TryGetValue(line[0], out transition)
-                        && (mainZ == 0 || transition.DaughterZ == 0
-                            || transition.DaughterZ == mainZ))
+                        && (mainIndex < 0 || transition.BranchIndex < 0
+                            || transition.BranchIndex == mainIndex))
                     {
                         conversion += line[1] / 100.0 * transition.AlphaK;
                     }
@@ -179,12 +179,13 @@ namespace BecquerelMonitor.Probes
                 // свойство ОДНОЙ его ветви.
                 if (atomic.Branches.Count > 1)
                 {
-                    foreach (CascadeAtomicData.Branch branch in atomic.Branches)
+                    for (int bi = 0; bi < atomic.Branches.Count; bi++)
                     {
+                        CascadeAtomicData.Branch branch = atomic.Branches[bi];
                         int owns = 0;
                         foreach (KeyValuePair<double, CascadeAtomicData.Transition> g in atomic.Gammas)
                         {
-                            if (g.Value.DaughterZ == branch.Z)
+                            if (g.Value.BranchIndex == bi)
                             {
                                 owns++;
                             }

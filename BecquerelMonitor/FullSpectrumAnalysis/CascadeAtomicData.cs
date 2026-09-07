@@ -92,15 +92,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int ToSeq;
 
             /// <summary>
-            /// Z ДОЧЕРНЕГО ЯДРА, в схеме которого найден этот переход (`S145`).
-            /// У родителя со смешанным распадом ветвей несколько, и гамма
-            /// принадлежит РОВНО ОДНОЙ из них: у Eu-152 линии 121.8 и 964.1 —
+            /// НОМЕР ВЕТВИ в <see cref="Branches"/>, в схеме которой найден
+            /// этот переход; −1 — ветвь не определена (`S145`, ключ исправлен
+            /// по `S148`). У родителя со смешанным распадом ветвей несколько, и
+            /// гамма принадлежит РОВНО ОДНОЙ: у Eu-152 линии 121.8 и 964.1 —
             /// схема Sm-152 (захват), а 344.3 и 778.9 — схема Gd-152 (β⁻).
             /// Без этого поля захватный рентген самария приписывался и гаммам
-            /// гадолиния, то есть совпадению, которого не бывает: это два
-            /// РАЗНЫХ события распада.
+            /// гадолиния, то есть совпадению, которого не бывает.
+            ///
+            /// ⛔ ЗДЕСЬ НОМЕР ВЕТВИ, А НЕ `Z` ДОЧЕРНЕГО АТОМА, и это поправка
+            /// `S148` к первой редакции. По `Z` ветви СЛИВАЮТСЯ: в поставке
+            /// **144 родителя**, у которых две ветви дают один и тот же
+            /// элемент, — либо разными каналами в один нуклид (8 случаев,
+            /// например `131CE → 131LA` двумя `dec_type`), либо в разные
+            /// изотопы одного элемента (`100RB` → `100SR`, `99SR`, `98SR`).
+            /// У таких ветвей РАЗНЫЕ схемы уровней и времена, и общий ключ
+            /// затирал носители, времена и вакансии предыдущей ветви.
             /// </summary>
-            public int DaughterZ;
+            public int BranchIndex = -1;
 
             /// <summary>
             /// Через сколько секунд после распада вылетает этот квант. Ноль —
@@ -153,6 +162,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// <summary>Доля этой ветви, % (графа `perc` в `decay_chain`).</summary>
             public double Perc;
 
+            /// <summary>
+            /// Канал распада (`dec_type` в `decay_chain`). Держится потому, что
+            /// В ОДИН дочерний нуклид ведут разные каналы, и это РАЗНЫЕ ветви
+            /// с разными долями (`S148`).
+            /// </summary>
+            public string DecType;
+
             /// <summary>Выход флуоресценции K ЭТОГО атома.</summary>
             public double OmegaK;
 
@@ -180,20 +196,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public Branch BranchOfGamma(double energyKev)
         {
             Transition transition;
-            if (!this.Gammas.TryGetValue(energyKev, out transition) || transition.DaughterZ <= 0)
+            if (!this.Gammas.TryGetValue(energyKev, out transition)
+                || transition.BranchIndex < 0
+                || transition.BranchIndex >= this.Branches.Count)
             {
                 return null;
             }
 
-            foreach (Branch branch in this.Branches)
-            {
-                if (branch.Z == transition.DaughterZ)
-                {
-                    return branch;
-                }
-            }
-
-            return null;
+            return this.Branches[transition.BranchIndex];
         }
 
         /// <summary>
@@ -424,7 +434,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // у 511 родителей из 2535 и у 123 из них побеждают по `perc`.
                 command.Parameters.Clear();
                 command.CommandText =
-                    "select daughter_nucid, perc from decay_chain d"
+                    "select daughter_nucid, perc, dec_type from decay_chain d"
                     + " where nucid = $n"
                     + DecayParentRule.ChainLevelClause;
                 command.Parameters.AddWithValue("$n", nucid);
@@ -465,7 +475,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 Nucid = name,
                                 Z = branchZ,
                                 A = branchA,
-                                Perc = perc
+                                Perc = perc,
+                                DecType = reader.IsDBNull(2) ? null : reader.GetString(2)
                             });
                         }
 
@@ -526,16 +537,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ⛔ ПО ВЕТВЯМ, А НЕ ПО ОДНОЙ (`S145`). У каждой своя схема уровней,
             // свой ω_K, свои K-линии и свой остаток захватных вакансий. Гамма
             // достаётся ТОЙ ветви, в схеме которой нашлась, и помечается её Z.
+            // Ключ — НОМЕР ВЕТВИ, а не Z: у двух ветвей Z совпадает (`S148`).
             var halfLifeOf = new Dictionary<int, Dictionary<int, double>>();
-            foreach (Branch branch in data.Branches)
+            for (int index = 0; index < data.Branches.Count; index++)
             {
+                Branch branch = data.Branches[index];
                 MaterialDatabase.Fluorescence bf = MaterialDatabase.FluorescenceOf(branch.Z);
                 branch.OmegaK = bf != null ? bf.Omega(true) : 0.0;
 
                 List<Transition> scheme;
                 Dictionary<int, double> halfLife;
                 LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes);
-                halfLifeOf[branch.Z] = halfLife;
+                halfLifeOf[index] = halfLife;
 
                 double conversionVacancy = 0.0;
                 foreach (double[] line in gammaIntensity)
@@ -553,7 +566,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    match.DaughterZ = branch.Z;
+                    match.BranchIndex = index;
                     data.Gammas[line[0]] = match;
                     conversionVacancy += line[1] / 100.0 * match.AlphaK;
                 }
@@ -584,10 +597,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Задержки — ПО СВОЕЙ схеме у каждой ветви: номера уровней у разных
             // ядер свои, и общий ход по ним смешал бы чужие пути (`A290`).
-            foreach (Branch branch in data.Branches)
+            for (int index = 0; index < data.Branches.Count; index++)
             {
                 Dictionary<int, double> halfLife;
-                if (!halfLifeOf.TryGetValue(branch.Z, out halfLife))
+                if (!halfLifeOf.TryGetValue(index, out halfLife))
                 {
                     continue;
                 }
@@ -595,7 +608,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var own = new Dictionary<double, Transition>();
                 foreach (KeyValuePair<double, Transition> pair in data.Gammas)
                 {
-                    if (pair.Value.DaughterZ == branch.Z)
+                    if (pair.Value.BranchIndex == index)
                     {
                         own.Add(pair.Key, pair.Value);
                     }
