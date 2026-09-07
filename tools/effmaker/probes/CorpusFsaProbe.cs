@@ -115,7 +115,8 @@ namespace CorpusFsaProbe
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
-    ///                  [--no-xray] [--no-ann] [--no-isomer] [--window=<секунды>]
+    ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
+    ///                  [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
     ///                  [--no-escape-gate]
@@ -209,10 +210,14 @@ namespace CorpusFsaProbe
                 if (a == "--no-xray") { o.Xray = false; continue; }
                 if (a == "--no-ann") { o.Annihilation = false; continue; }
                 if (a == "--no-isomer") { o.Isomers = false; continue; }
-                // `A289`, АБЛЯЦИЯ НАОБОРОТ: ключ ВКЛЮЧАЕТ вероятностный гейт
-                // времени вместо ступеньки. Умолчание — ВЫКЛ, чтобы прогон без
-                // ключа давал прежние числа и действующая база не сдвинулась.
+                // `A289`: вероятностный гейт времени — УМОЛЧАНИЕ с 07.09.2026
+                // (решение Amber, цена на полном корпусе нулевая). Оба ключа
+                // живы нарочно: `--no-decay-time-prob` возвращает прежнюю
+                // ступеньку и нужен ОБРАТНЫМ ПЛЕЧОМ замера, а явный
+                // `--decay-time-prob` оставлен, чтобы прежние командные строки
+                // в журналах не начали значить другое.
                 if (a == "--decay-time-prob") { o.DecayTimeProbability = true; continue; }
+                if (a == "--no-decay-time-prob") { o.DecayTimeProbability = false; continue; }
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
@@ -901,8 +906,8 @@ namespace CorpusFsaProbe
                               head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
             Console.WriteLine("время жизни уровня: {0}",
                               head.CascadeDecayTimeProbability
-                                  ? "ВЕРОЯТНОСТНО (A289)"
-                                  : "ступенькой (умолчание)");
+                                  ? "ВЕРОЯТНОСТНО (A289, умолчание)"
+                                  : "СТУПЕНЬКОЙ — прежняя модель, обратное плечо");
             Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
                               + " окно совпадения {2:E3} с{3}",
                               head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
@@ -3380,7 +3385,7 @@ namespace CorpusFsaProbe
             public bool Xray = true;            // S27: K-рентген партнёром
             public bool Annihilation = true;    // S27: кванты 511 партнёром
             public bool Isomers = true;         // S27: изомеры по sandia_symbol
-            public bool DecayTimeProbability;   // A289: время жизни уровня вероятностно
+            public bool DecayTimeProbability = true;  // A289: время жизни уровня вероятностно
             public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
             public bool PileUp = true;
             public bool Backscatter = true;
