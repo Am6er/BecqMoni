@@ -116,6 +116,7 @@ namespace FsaReportViewProbe
             WindowSection(mainForm, thorium, control);
             EntrySection(mainForm, control);      // у контроля есть кривая: дверь FSA открыта без вопросов
             OneResultSection(mainForm, thorium);
+            ReportWithoutFsaModeSection(mainForm, thorium);
             RowKindsSection(mainForm, thorium, control);
             StatesSection(mainForm, thorium);
             QualitySection(mainForm, thorium);
@@ -360,6 +361,62 @@ namespace FsaReportViewProbe
                 Invoke(report, "Consume");
                 WaitIdle(session);
                 Same("контроль: после Invalidate — ещё один запуск", 2, session.RunCount - runsBefore);
+                report.SetDocument(null);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 4б. ОТЧЁТ СЧИТАЕТ БЕЗ `ShowFSA` (`A295`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⛔ ЭТОГО ПЛЕЧА НЕ БЫЛО, И ИМЕННО ПОЭТОМУ ДЕФЕКТ ДОЖИЛ ДО ЖАЛОБЫ.
+        /// Все прежние разделы включали `BackgroundMode.ShowFSA` ПЕРЕД тем,
+        /// как проверять окно отчёта, — то есть мерили случай, где разбор
+        /// заказывает график. Сценарий «отчёт открыт, график в обычном режиме,
+        /// идёт запись спектра» не мерился вовсе.
+        ///
+        /// Здесь он и мерится: режим графика НЕ `ShowFSA`, данные меняются
+        /// (правится сам спектр, как при наборе), и окно обязано заказать
+        /// новый счёт САМО — тактом обновления вида.
+        /// </summary>
+        static void ReportWithoutFsaModeSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 4б. отчёт считает БЕЗ ShowFSA (A295) ===");
+            FsaAnalysisSession session = doc.FsaSession;
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.ProbeConsumer = true;
+                doc.EnergySpectrumView.BackgroundMode = BackgroundMode.Invisible;
+                report.SetDocument(doc);
+                WaitIdle(session);
+
+                Same("контроль: режим графика НЕ ShowFSA", true,
+                     doc.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA);
+
+                int before = session.RunCount;
+
+                // Данные сменились — ровно то, что делает набор спектра.
+                EnergySpectrum spectrum = doc.ActiveResultData.EnergySpectrum;
+                spectrum.MeasurementTime += 1.0;
+
+                // Такт обновления вида: им приходят новые отсчёты.
+                doc.RefreshView();
+                WaitIdle(session);
+
+                Same("новые данные без ShowFSA: счёт ЗАКАЗАН", true,
+                     session.RunCount > before);
+                Same("и отпечаток сеанса — от нынешнего спектра", session.Stamp,
+                     FsaAnalysisSession.BuildStamp(doc.ActiveResultData,
+                         doc.ActiveResultData.BackgroundEnergySpectrum != null));
+
+                // Отрицательный контроль: данные НЕ менялись — лишнего счёта нет.
+                int after = session.RunCount;
+                doc.RefreshView();
+                WaitIdle(session);
+                Same("контроль: без смены данных лишнего счёта нет", after, session.RunCount);
+
                 report.SetDocument(null);
             }
         }
