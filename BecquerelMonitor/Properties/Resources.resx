@@ -8425,6 +8425,18 @@ It is probably open in another program or write-protected.</value>
   <data name="DeviceTypeLEMCA" xml:space="preserve">
     <value>LEMCA USB Adaptor</value>
   </data>
+  <data name="FSAStatusCompleted" xml:space="preserve">
+    <value>FSA completed</value>
+  </data>
+  <data name="FSAStatusRunning" xml:space="preserve">
+    <value>FSA in progress</value>
+  </data>
+  <data name="FSAStatusError" xml:space="preserve">
+    <value>FSA error</value>
+  </data>
+  <data name="FSAStatusIdle" xml:space="preserve">
+    <value>FSA idle</value>
+  </data>
   <data name="FSACalculating" xml:space="preserve">
     <value>Full-spectrum decomposition: calculating…</value>
   </data>
@@ -43435,9 +43447,6 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="FSAReportNoSpectrum" xml:space="preserve">
     <value>No spectrum selected</value>
-  </data>
-  <data name="FSAReportRecalculating" xml:space="preserve">
-    <value>Recalculating… the rows below are from the previous calculation</value>
   </data>
   <data name="FSAReportTipCalculation" xml:space="preserve">
     <value>Changes the calculation: the decomposition is recomputed.</value>

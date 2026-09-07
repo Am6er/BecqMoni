@@ -444,6 +444,21 @@
   <data name="residualBandCheckBox.Text" xml:space="preserve">
     <value>Model residual</value>
   </data>
+  <data name="statusLabel.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+    <value>Top</value>
+  </data>
+  <data name="statusLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 258</value>
+  </data>
+  <data name="statusLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>320, 22</value>
+  </data>
+  <data name="statusLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="statusLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleLeft</value>
+  </data>
   <data name="reportTable.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
     <value>Fill</value>
   </data>
@@ -4774,7 +4789,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;sourceGroupBox.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="&gt;&gt;sourceFlow.Name" xml:space="preserve">
     <value>sourceFlow</value>
@@ -4822,7 +4837,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;displayGroupBox.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="&gt;&gt;displayFlow.Name" xml:space="preserve">
     <value>displayFlow</value>
@@ -4882,7 +4897,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;chainGroupBox.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="&gt;&gt;chainFlow.Name" xml:space="preserve">
     <value>chainFlow</value>
@@ -4918,7 +4933,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;extrasGroupBox.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="&gt;&gt;extrasFlow.Name" xml:space="preserve">
     <value>extrasFlow</value>
@@ -5003,6 +5018,18 @@
   </data>
   <data name="&gt;&gt;residualBandCheckBox.ZOrder" xml:space="preserve">
     <value>3</value>
+  </data>
+  <data name="&gt;&gt;statusLabel.Name" xml:space="preserve">
+    <value>statusLabel</value>
+  </data>
+  <data name="&gt;&gt;statusLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;statusLabel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;statusLabel.ZOrder" xml:space="preserve">
+    <value>1</value>
   </data>
   <data name="&gt;&gt;reportTable.Name" xml:space="preserve">
     <value>reportTable</value>

@@ -541,35 +541,51 @@ namespace FsaReportViewProbe
         static void StatesSection(MainForm mainForm, DocEnergySpectrum doc)
         {
             Console.WriteLine();
-            Console.WriteLine("=== состояния таблицы: считается / пересчёт / ошибка ===");
+            Console.WriteLine("=== состояния: СТРОКА НАД таблицей и содержимое таблицы ===");
             using (var report = new FSAReportView(mainForm))
             {
+                // ⛔ ЧТО ИМЕННО ПОВЕРЯЕТСЯ ПОСЛЕ 07.09.2026. Признак «идёт
+                // расчёт» БОЛЬШЕ НЕ СТРОКА ТАБЛИЦЫ: при записи спектра разбор
+                // пересчитывается непрерывно, и строка мигала, сдвигая таблицу
+                // (решение Amber). Он переехал в постоянную цветную строку НАД
+                // таблицей. Поэтому здесь два утверждения на каждое состояние:
+                // что говорит СТРОКА и чего НЕТ в таблице.
+                Label status = (Label)Field(report, "statusLabel").GetValue(report);
                 var session = new FsaAnalysisSession();
                 ResultData rd = doc.ActiveResultData;
 
                 Field(session, "running").SetValue(session, true);
                 Field(session, "status").SetValue(session, BecquerelMonitor.Properties.Resources.FSACalculating);
                 report.SetProbeSource(session, rd);
-                Same("первый расчёт идёт: одна строка", 1, report.ReportTable.TableModel.Rows.Count);
-                Same("и это «считается»", BecquerelMonitor.Properties.Resources.FSACalculating, Text(report, 0, 1));
+                Same("первый расчёт идёт: строка состояния «идёт расчёт»",
+                     BecquerelMonitor.Properties.Resources.FSAStatusRunning, status.Text);
+                Same("и таблица ПУСТА — «считается» в ней больше нет",
+                     0, report.ReportTable.TableModel.Rows.Count);
 
                 Plant(session, doc.FsaSession.Result, "old");
                 Field(session, "running").SetValue(session, true);
                 report.RefreshReport();
                 int rows = report.ReportTable.TableModel.Rows.Count;
-                Same("пересчёт при старом результате: первая строка — «пересчёт»",
-                     BecquerelMonitor.Properties.Resources.FSAReportRecalculating, Text(report, 0, 1));
-                Same("и старые строки остались (их больше одной)", true, rows > 1);
-                Same("строка пересчёта оранжевая", Color.DarkOrange, report.ReportTable.TableModel.Rows[0].Cells[1].ForeColor);
+                Same("пересчёт при старом результате: строка состояния «идёт расчёт»",
+                     BecquerelMonitor.Properties.Resources.FSAStatusRunning, status.Text);
+                Same("и первая строка таблицы — СОСТАВ, а не «пересчёт»",
+                     FsaReportRowKind.Layer, ((FsaReportRow)report.ReportTable.TableModel.Rows[0].Tag).Kind);
+                Same("старые строки остались (их больше одной)", true, rows > 1);
 
                 Field(session, "running").SetValue(session, false);
                 report.RefreshReport();
-                Same("расчёт завершён: строка пересчёта убрана", rows - 1, report.ReportTable.TableModel.Rows.Count);
+                Same("расчёт завершён: строка состояния «завершён»",
+                     BecquerelMonitor.Properties.Resources.FSAStatusCompleted, status.Text);
+                Same("число строк таблицы НЕ изменилось — мигать больше нечему",
+                     rows, report.ReportTable.TableModel.Rows.Count);
                 Same("первая строка — состав", FsaReportRowKind.Layer, ((FsaReportRow)report.ReportTable.TableModel.Rows[0].Tag).Kind);
 
                 Field(session, "result").SetValue(session, null);
                 Field(session, "status").SetValue(session, "ОШИБКА: причина такая-то");
                 report.RefreshReport();
+                Same("ошибка: строка состояния несёт ПРИЧИНУ, а не одно слово",
+                     BecquerelMonitor.Properties.Resources.FSAStatusError + ": ОШИБКА: причина такая-то",
+                     status.Text);
                 Same("ошибка без результата: одна строка", 1, report.ReportTable.TableModel.Rows.Count);
                 Same("и это текст причины", "ОШИБКА: причина такая-то", Text(report, 0, 1));
                 report.SetDocument(null);
