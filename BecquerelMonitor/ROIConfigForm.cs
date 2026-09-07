@@ -93,26 +93,58 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060008F4 RID: 2292 RVA: 0x00033A38 File Offset: 0x00031C38
+        /// <summary>
+        /// Перестроить список конфигураций в таблице.
+        ///
+        /// ⛔ ПЕРЕЧИСЛЯЕТСЯ СНИМОК, А НЕ ЖИВОЙ СПИСОК МЕНЕДЖЕРА, и это не
+        /// осторожность, а починка падения. `Selections.AddCell` ниже поднимает
+        /// `SelectionChanged`, тот зовёт <see cref="ConfirmSaveROIConfig"/>, а
+        /// он при грязной конфигурации — `manager.SaveConfig`, который делает
+        /// `roiConfigList.Remove`. То есть метод правил ту самую коллекцию, по
+        /// которой шёл, и получал «Collection was modified» прямо на открытии
+        /// окна (`ROIConfigForm_Load`).
+        ///
+        /// ⚠ Снимок лечит ПАДЕНИЕ, но не причину: без второго замка тот же путь
+        /// вызывал бы `ListupConfigFiles` рекурсивно из собственного цикла —
+        /// с диалогом сохранения посреди наполнения таблицы. Замок —
+        /// <see cref="listing"/>.
+        /// </summary>
         void ListupConfigFiles()
         {
-            this.table3.SuspendLayout();
-            this.tableModel3.Rows.Clear();
-            this.tableModel3.Selections.Clear();
-            foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList)
+            if (this.listing)
             {
-                ROIConfigData roiconfigData2 = roiconfigData.Clone();
-                Row row = new Row();
-                row.Cells.Add(new Cell(roiconfigData2.Name));
-                row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
-                row.Tag = roiconfigData2;
-                this.tableModel3.Rows.Add(row);
-                if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)
-                {
-                    this.activeROIConfig = roiconfigData2;
-                    this.tableModel3.Selections.AddCell(row.Index, 0);
-                }
+                // Перестроение уже идёт: повторный заход затёр бы строки,
+                // которые внешний цикл ещё раскладывает.
+                return;
             }
-            this.table3.ResumeLayout();
+
+            this.listing = true;
+            try
+            {
+                this.table3.SuspendLayout();
+                this.tableModel3.Rows.Clear();
+                this.tableModel3.Selections.Clear();
+                foreach (ROIConfigData roiconfigData in this.manager.ROIConfigList.ToArray())
+                {
+                    ROIConfigData roiconfigData2 = roiconfigData.Clone();
+                    Row row = new Row();
+                    row.Cells.Add(new Cell(roiconfigData2.Name));
+                    row.Cells.Add(new Cell(roiconfigData2.LastUpdated.ToShortDateString() + " " + roiconfigData2.LastUpdated.ToLongTimeString()));
+                    row.Tag = roiconfigData2;
+                    this.tableModel3.Rows.Add(row);
+                    if (this.activeROIConfig != null && this.activeROIConfig.Guid == roiconfigData2.Guid)
+                    {
+                        this.activeROIConfig = roiconfigData2;
+                        this.tableModel3.Selections.AddCell(row.Index, 0);
+                    }
+                }
+
+                this.table3.ResumeLayout();
+            }
+            finally
+            {
+                this.listing = false;
+            }
         }
 
         // Token: 0x060008F5 RID: 2293 RVA: 0x00033B84 File Offset: 0x00031D84
@@ -422,7 +454,24 @@ namespace BecquerelMonitor
             {
                 return;
             }
+
             this.reenter = true;
+            try
+            {
+                this.SelectionChangedCore();
+            }
+            finally
+            {
+                // ⛔ ЗАМОК СНИМАЕТСЯ ВСЕГДА. Прежде отказ `ConfirmSaveROIConfig`
+                // уходил из метода по `return`, оставив `reenter` поднятым
+                // навсегда, — и выбор строки переставал работать до закрытия
+                // окна, молча.
+                this.reenter = false;
+            }
+        }
+
+        void SelectionChangedCore()
+        {
             ROIConfigData roiconfigData = null;
             Row row = null;
             if (this.table3.SelectedItems.Length > 0)
@@ -430,10 +479,18 @@ namespace BecquerelMonitor
                 roiconfigData = (ROIConfigData)this.table3.SelectedItems[0].Tag;
                 row = this.table3.SelectedItems[0];
             }
-            if (!this.ConfirmSaveROIConfig())
+
+            // ⚠ ПОСРЕДИ ПЕРЕСТРОЕНИЯ О СОХРАНЕНИИ НЕ СПРАШИВАЮТ. Выбор здесь
+            // ставит не человек, а сам `ListupConfigFiles`, и `activeROIConfig`
+            // к этому мигу уже заменён свежим клоном из менеджера — спрашивать
+            // «сохранить правки?» не о чем, а `SaveConfig` внутри правил бы
+            // список, по которому идёт перестроение. Загрузку содержимого это
+            // НЕ отменяет: без неё окно открывалось бы с пустой правой частью.
+            if (!this.listing && !this.ConfirmSaveROIConfig())
             {
                 return;
             }
+
             if (roiconfigData != null)
             {
                 this.activeROIConfig = roiconfigData;
@@ -452,7 +509,6 @@ namespace BecquerelMonitor
             this.activeROIDefinition = null;
             this.button2.Enabled = false;
             this.tableModel1.Selections.Clear();
-            this.reenter = false;
         }
 
         // Token: 0x06000906 RID: 2310 RVA: 0x0003442C File Offset: 0x0003262C
@@ -1237,6 +1293,13 @@ namespace BecquerelMonitor
 
         // Token: 0x0400050D RID: 1293
         bool reenter;
+
+        /// <summary>
+        /// Идёт перестроение списка конфигураций. Держит два запрета: повторный
+        /// заход в <see cref="ListupConfigFiles"/> и вопрос о сохранении из
+        /// обработчика выбора, который поднимается тем же перестроением.
+        /// </summary>
+        bool listing;
 
     }
 }
