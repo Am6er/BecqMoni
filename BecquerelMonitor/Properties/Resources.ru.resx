@@ -379,6 +379,18 @@
   <data name="ERRCannotOpenWavFile" xml:space="preserve">
     <value>Не могу открыть WAV файл.</value>
   </data>
+  <data name="FSAStatusCompleted" xml:space="preserve">
+    <value>ППР: расчёт завершён</value>
+  </data>
+  <data name="FSAStatusRunning" xml:space="preserve">
+    <value>ППР: идёт расчёт</value>
+  </data>
+  <data name="FSAStatusError" xml:space="preserve">
+    <value>ППР: ошибка</value>
+  </data>
+  <data name="FSAStatusIdle" xml:space="preserve">
+    <value>ППР: расчёта не было</value>
+  </data>
   <data name="FSACalculating" xml:space="preserve">
     <value>Полноспектральное разложение: считается…</value>
   </data>
@@ -2184,9 +2196,6 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="FSAReportNoSpectrum" xml:space="preserve">
     <value>Спектр не выбран</value>
-  </data>
-  <data name="FSAReportRecalculating" xml:space="preserve">
-    <value>Пересчёт… строки ниже — от прежнего расчёта</value>
   </data>
   <data name="FSAReportTipCalculation" xml:space="preserve">
     <value>Меняет расчёт: разложение пересчитывается.</value>

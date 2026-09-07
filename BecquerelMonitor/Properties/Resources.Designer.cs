@@ -2884,6 +2884,42 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to FSA completed.
+        /// </summary>
+        public static string FSAStatusCompleted {
+            get {
+                return ResourceManager.GetString("FSAStatusCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA error.
+        /// </summary>
+        public static string FSAStatusError {
+            get {
+                return ResourceManager.GetString("FSAStatusError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA idle.
+        /// </summary>
+        public static string FSAStatusIdle {
+            get {
+                return ResourceManager.GetString("FSAStatusIdle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA in progress.
+        /// </summary>
+        public static string FSAStatusRunning {
+            get {
+                return ResourceManager.GetString("FSAStatusRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Full-spectrum decomposition: calculating….
         /// </summary>
         public static string FSACalculating {
@@ -5907,12 +5943,6 @@ namespace BecquerelMonitor.Properties {
         public static string FSAReportNoSpectrum {
             get {
                 return ResourceManager.GetString("FSAReportNoSpectrum", resourceCulture);
-            }
-        }
-
-        public static string FSAReportRecalculating {
-            get {
-                return ResourceManager.GetString("FSAReportRecalculating", resourceCulture);
             }
         }
 

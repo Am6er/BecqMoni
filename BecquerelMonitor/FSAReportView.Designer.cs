@@ -38,6 +38,7 @@ namespace BecquerelMonitor
             this.escapeCheckBox = new System.Windows.Forms.CheckBox();
             this.pileUpCheckBox = new System.Windows.Forms.CheckBox();
             this.residualBandCheckBox = new System.Windows.Forms.CheckBox();
+            this.statusLabel = new System.Windows.Forms.Label();
             this.reportTable = new XPTable.Models.Table();
             this.columnModel = new XPTable.Models.ColumnModel();
             this.swatchColumn = new XPTable.Models.ImageColumn();
@@ -277,10 +278,16 @@ namespace BecquerelMonitor
             this.valueColumn.Sortable = false;
             resources.ApplyResources(this.valueColumn, "valueColumn");
             //
+            // statusLabel
+            //
+            resources.ApplyResources(this.statusLabel, "statusLabel");
+            this.statusLabel.Name = "statusLabel";
+            //
             // FSAReportView
             //
             resources.ApplyResources(this, "$this");
             this.Controls.Add(this.reportTable);
+            this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.displayGroupBox);
             this.Controls.Add(this.extrasGroupBox);
             this.Controls.Add(this.chainGroupBox);
@@ -331,6 +338,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.CheckBox escapeCheckBox;
         private System.Windows.Forms.CheckBox pileUpCheckBox;
         private System.Windows.Forms.CheckBox residualBandCheckBox;
+        private System.Windows.Forms.Label statusLabel;
         private XPTable.Models.Table reportTable;
         private XPTable.Models.ColumnModel columnModel;
         private XPTable.Models.ImageColumn swatchColumn;

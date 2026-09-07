@@ -804,11 +804,16 @@ namespace BecquerelMonitor
         /// <summary>
         /// Строки таблицы по состоянию сеанса (`A145`, «Состояния таблицы»):
         /// нет спектра — одна строка «Спектр не выбран»; результата нет —
-        /// одна строка состояния (считается / причина невозможности /
-        /// ошибка с полной цепочкой причины, слова сеанса `A95`); результат
-        /// есть — полный отчёт, а при идущем пересчёте перед ним заметная
-        /// строка «Пересчёт…» (`A32`: старые строки нельзя выдавать за
-        /// актуальные).
+        /// одна строка ПРИЧИНЫ (невозможность или ошибка с полной цепочкой,
+        /// слова сеанса `A95`); результат есть — полный отчёт.
+        ///
+        /// ⛔ «ИДЁТ РАСЧЁТ» ЗДЕСЬ НЕ ПОЯВЛЯЕТСЯ НИ В КАКОМ ВИДЕ (решение
+        /// Amber 07.09.2026) — ни строкой «считается» при пустом результате,
+        /// ни строкой «Пересчёт…» перед готовым. Обе мигали при записи
+        /// спектра, где разбор пересчитывается непрерывно. Признак живёт
+        /// ПОСТОЯННОЙ строкой над таблицей (<see cref="RefreshStatusLine"/>),
+        /// и замысел `A32` — «старые строки нельзя выдавать за актуальные» —
+        /// исполняет она: жёлтый цвет держится всё время пересчёта.
         ///
         /// ⚠ Состояние «пересчёт завершился ошибкой при старом результате»
         /// здесь не бывает по устройству сеанса: отказ счёта публикуется с
@@ -836,23 +841,29 @@ namespace BecquerelMonitor
             if (result == null)
             {
                 this.presentation = null;
-                string text = running ? Resources.FSACalculating : status;
-                if (!string.IsNullOrEmpty(text))
+
+                // ⛔ «ИДЁТ РАСЧЁТ» В ТАБЛИЦЕ БОЛЬШЕ НЕ ПОЯВЛЯЕТСЯ (решение
+                // Amber 07.09.2026). При записи спектра разбор пересчитывается
+                // непрерывно, и строка мигала в таблице на каждом круге.
+                // Признак переехал в <see cref="statusLabel"/> НАД таблицей —
+                // он там постоянный и потому не дёргается. В таблице остаётся
+                // только ПРИЧИНА, по которой разбора нет: её надо читать, и она
+                // не мигает.
+                if (!running && !string.IsNullOrEmpty(status))
                 {
-                    rows.Add(StatusRow(text));
+                    rows.Add(StatusRow(status));
                 }
 
                 return rows;
             }
 
             this.presentation = FsaPresentationBuilder.Build(result, this.EffectiveGrouping, oldFormat);
-            if (running)
-            {
-                FsaReportRow recalculating = StatusRow(Resources.FSAReportRecalculating);
-                recalculating.Warning = true;
-                rows.Add(recalculating);
-            }
 
+            // ⛔ Строки «Пересчёт…» здесь БОЛЬШЕ НЕТ (решение Amber
+            // 07.09.2026): она вставлялась первой на каждом круге пересчёта и
+            // при живой записи спектра мигала. То, ради чего её заводила
+            // ~~`A32`~~ — «старые строки нельзя выдавать за актуальные», —
+            // теперь говорит ПОСТОЯННАЯ жёлтая строка состояния над таблицей.
             rows.AddRange(this.presentation.Rows);
             return rows;
         }
@@ -881,8 +892,92 @@ namespace BecquerelMonitor
         /// <see cref="FsaReportRow.Value"/> модели ДОСЛОВНО. Ни одного второго
         /// форматирования числа в окне нет и быть не должно (`A242`/`A244`).
         /// </summary>
+        /// <summary>
+        /// Цвета строки состояния. Не из палитры отчёта: это светофор, и он
+        /// обязан читаться independently от того, чем раскрашены ленты.
+        /// </summary>
+        static readonly Color StatusDoneColor = Color.FromArgb(0, 128, 0);
+        static readonly Color StatusRunningColor = Color.FromArgb(176, 124, 0);
+        static readonly Color StatusErrorColor = Color.FromArgb(192, 0, 0);
+        static readonly Color StatusIdleColor = Color.Gray;
+
+        /// <summary>
+        /// Строка состояния расчёта НАД таблицей (решение Amber 07.09.2026):
+        /// зелёный — расчёт завершён, жёлтый — идёт, красный — ошибка, серый —
+        /// расчёта не было.
+        ///
+        /// ⛔ ЗАЧЕМ ОНА ЗАВЕДЕНА, и почему признак не вернуть в таблицу.
+        /// Признак «идёт расчёт» жил СТРОКОЙ ТАБЛИЦЫ (~~`A32`~~), то есть
+        /// появлялся и исчезал вместе с ней. При записи спектра разбор
+        /// пересчитывается непрерывно, и строка мигала, сдвигая таблицу.
+        /// Постоянная строка снимает мигание, СОХРАНЯЯ признак: она всегда на
+        /// месте и меняет только цвет и слово.
+        ///
+        /// ⚠ Ошибка показывается ТЕКСТОМ сеанса, а не одним словом «ошибка»:
+        /// причина («нет опознанных пиков», «разложение невозможно») — это то,
+        /// что человеку и нужно, а красного цвета без причины мало.
+        /// </summary>
+        void RefreshStatusLine()
+        {
+            if (this.statusLabel == null)
+            {
+                return;
+            }
+
+            string text;
+            Color color;
+            if (this.session == null || this.ActiveResultData == null)
+            {
+                text = Resources.FSAStatusIdle;
+                color = StatusIdleColor;
+            }
+            else
+            {
+                // Один снимок на обновление: фон публикует результат в любой
+                // момент, и три чтения подряд дали бы три разных состояния.
+                FsaResult result = this.session.Result;
+                string status = this.session.Status;
+                bool running = this.session.IsRunning;
+
+                if (running)
+                {
+                    text = Resources.FSAStatusRunning;
+                    color = StatusRunningColor;
+                }
+                else if (result != null)
+                {
+                    text = Resources.FSAStatusCompleted;
+                    color = StatusDoneColor;
+                }
+                else if (!string.IsNullOrEmpty(status))
+                {
+                    text = Resources.FSAStatusError + ": " + status;
+                    color = StatusErrorColor;
+                }
+                else
+                {
+                    text = Resources.FSAStatusIdle;
+                    color = StatusIdleColor;
+                }
+            }
+
+            // Перекрашивать и переписывать только на СМЕНЕ состояния: иначе
+            // каждое обновление отчёта дёргало бы метку перерисовкой, а это та
+            // же болезнь, от которой строку и завели.
+            if (this.statusLabel.Text != text)
+            {
+                this.statusLabel.Text = text;
+            }
+
+            if (this.statusLabel.ForeColor != color)
+            {
+                this.statusLabel.ForeColor = color;
+            }
+        }
+
         public void RefreshReport()
         {
+            this.RefreshStatusLine();
             List<FsaReportRow> rows = this.BuildRows();
             string keep = this.selectedLayer;
             this.suspendSelection = true;
