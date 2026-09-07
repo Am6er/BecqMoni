@@ -138,7 +138,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # молча (`S37`, `T250`).
 import check_declared_base
 
-ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,2}\d{1,3})\b(.*)$")
+#: ⛔ БУКВ В ПРЕФИКСЕ ДО ПЯТИ, А НЕ ДВУХ (07.09.2026). Amber завела серию
+#: `AMBER` — задачи, которые объявляет и ведёт лично. При прежнем `{1,2}`
+#: строка `AMBER1` не разбиралась ВООБЩЕ: не считалась задачей, не занимала
+#: номера, не проверялась на столкновения и на существование названных файлов.
+#: Отказа при этом не бывает — сторож просто не видит строки, то есть молчит
+#: ровно там, где заведена работа. Расширено во ВСЕХ пяти местах разом
+#: (`check_registry`, `check_registry_refs`, `check_scheme_gaps`,
+#: `check_pending_runs`, `move_done`): один непочиненный разбор вернул бы ту же
+#: слепоту с другой стороны.
+ROW = re.compile(r"^\|\s*~*\**~*\s*([A-Z]{1,5}\d{1,3})\b(.*)$")
 
 #: Разделы-ПРОЕКЦИИ: таблицы, которые ПЕРЕСКАЗЫВАЮТ строки, объявленные выше,
 #: а своих задач не заводят. Строка такого раздела — вторая явка одного и того
@@ -525,7 +534,7 @@ def check_numbers(out, files):
     nxt = collections.defaultdict(int)
     for rows in files.values():
         for num, _, _ in rows:
-            series = re.match(r"^([A-Z]{1,2})(\d+)$", num)
+            series = re.match(r"^([A-Z]{1,5})(\d+)$", num)
             nxt[series.group(1)] = max(nxt[series.group(1)], int(series.group(2)))
     out.write(u"следующий свободный номер: %s\n\n"
               % u", ".join(u"%s%d" % (s, n + 1) for s, n in sorted(nxt.items())))
@@ -1028,7 +1037,7 @@ def selftest_registry(root, out):
                 k += 1
             elif dup_line is None:
                 # тот же номер, что у первой подделанной строки
-                cells[1] = re.sub(r"[A-Z]{1,2}\d{1,3}", dup_num, cells[1], count=1)
+                cells[1] = re.sub(r"[A-Z]{1,5}\d{1,3}", dup_num, cells[1], count=1)
                 dup_line = i + 1
             else:
                 # CR и лишняя черта — В ОПИСАНИИ, графы не касаются
@@ -1144,7 +1153,7 @@ def selftest_projection_and_base(root, out):
         planted_line = None
         for i, line in enumerate(lines):
             if i + 1 in hidden:
-                lines[i] = re.sub(u"[A-Z]{1,2}\\d{1,3}", u"Z99", line, count=1)
+                lines[i] = re.sub(u"[A-Z]{1,5}\\d{1,3}", u"Z99", line, count=1)
                 planted_line = i + 1
                 break
         io.open(dst, "w", encoding="utf-8-sig", newline=u"").write(u"\n".join(lines))
@@ -1157,16 +1166,54 @@ def selftest_projection_and_base(root, out):
                             u"раздел стал дырой для задач")
 
         # --- 3 и 4: объявление базы -------------------------------------
+        #
+        # ⛔ ПОРЧА БЕРЁТСЯ ИЗ САМОГО ОБЪЯВЛЕНИЯ, А НЕ ИЗ ЗАШИТЫХ СЛОВ
+        # (07.09.2026). Прежде здесь стояли литералы `06.09.2026` и
+        # `out_p29_full` — те, что были в объявлении в день написания контроля.
+        # Каждое ПЕРЕОБЪЯВЛЕНИЕ базы (а их 07.09.2026 было четыре) отвязывало
+        # их от текста: `line.replace` не находил образца, копия выходила
+        # НЕИСПОРЧЕННОЙ, разницы с подлинником не возникало — и контроль честно
+        # сообщал «подделка НЕ замечена», хотя подделки и не было.
+        #
+        # ⚠ Отказ при этом получался задом наперёд: сторож выглядел ослепшим
+        # ровно тогда, когда с ним всё в порядке. Прочитать его как «база
+        # переобъявлена, литералы протухли» без этой записи нельзя, и ловушка
+        # уже стоила одного разбора.
+        real = declared_base(corpus, BASE_IN_CORPUS)
+        if real is None:
+            failures.append(u"объявление базы не разбирается — портить нечего")
+            out.write(u"  ⛔ объявление базы не разобралось: контроль 3 и 4 не проведён\n")
+            real = (frozenset(), u"", u"", 0)
+
+        real_dirs = sorted(name for _, name in real[0])
         for what, spoil in ((u"ДАТА", u"date"), (u"КАТАЛОГ базы", u"dir")):
+            if spoil == u"date" and not real[1]:
+                continue
+            if spoil == u"dir" and not real_dirs:
+                failures.append(u"в объявлении не названо ни одного каталога — "
+                                u"портить нечего")
+                out.write(u"  ⛔ каталогов в объявлении нет: плечо не проведено\n")
+                continue
+
             copy = os.path.join(tmp, u"README.md")
             text = read_lines(corpus)
+            planted = False
             for i, line in enumerate(text):
                 if spoil == u"date" and BASE_IN_CORPUS.match(line.rstrip(u"\r\n")):
-                    text[i] = line.replace(u"06.09.2026", u"01.01.2000")
+                    text[i] = line.replace(real[1], u"01.01.2000")
+                    planted = text[i] != line
                     break
-                if spoil == u"dir" and u"out_p29_full" in line:
-                    text[i] = line.replace(u"out_p29_full", u"out_podmena")
+                if spoil == u"dir" and real_dirs[0] in line:
+                    text[i] = line.replace(real_dirs[0], u"out_podmena")
+                    planted = text[i] != line
                     break
+
+            if not planted:
+                # Подсадить не удалось — значит плечо ничего не меряет, и
+                # молчать об этом нельзя: именно так оно и слепло.
+                failures.append(u"подделка %s: образец не подсажен" % what)
+                out.write(u"  ⛔ подделка %s: подсадить нечего\n" % what)
+                continue
             io.open(copy, "w", encoding="utf-8-sig", newline=u"").write(u"\n".join(text))
             quiet = io.StringIO()
             first = declared_base(todo, BASE_IN_TODO)

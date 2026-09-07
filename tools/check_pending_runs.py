@@ -83,7 +83,7 @@ KINDS = [
 
 SEPARATOR_RE = re.compile(r'^\|[\s:|-]*\|\s*$')
 TABLE_HEAD_RE = re.compile(r'^\|\s*#\s*\|')
-ID_RE = re.compile(r'^[A-Z]{1,2}\d+$')
+ID_RE = re.compile(r'^[A-Z]{1,5}\d+$')
 HEADING_RE = re.compile(r'^##+\s+(.*?)\s*$')
 
 
@@ -288,20 +288,47 @@ def _mk_good(lines, kind):
             continue
         if MARK not in parts[2] or is_closed(parts[2]):
             continue
-        parts[2] = parts[2].rstrip() + u'; разряд: %s ' % kind
+        # ⛔ РАЗРЯД СНАЧАЛА СНИМАЕТСЯ, А ПОТОМ СТАВИТСЯ (07.09.2026). Прежде он
+        # ДОПИСЫВАЛСЯ, и пока строки реестра своего разряда не несли, копия
+        # выходила согласованной. Разряды в строках появились — и «хороший
+        # вход» стал называть их ДВА, то есть плечо, которое обязано давать 0,
+        # давало 1. Сторож при этом исправен: он верно ловил двойной разряд в
+        # том мусоре, который ему подсунул его же контроль.
+        #
+        # ⚠ Отказ читался задом наперёд — «сторож судит не то, что обещает», —
+        # хотя судил он ровно то. Ловушка того же рода, что и зашитые литералы
+        # в контроле `check_registry`: контроль стареет вместе с текстом, из
+        # которого строит свой вход.
+        state = parts[2]
+        for other in KINDS:
+            state = state.replace(other, u'')
+        state = re.sub(u'[;,]?\\s*разряд:\\s*', u' ', state)
+        state = re.sub(u'\\s{2,}', u' ', state).rstrip(u' ;,')
+        parts[2] = state + u'; разряд: %s ' % kind
         out[i] = u'|'.join(parts)
         ids.append(ident)
     body = [u'| **%s** | ⏳ %s | %s | строка `%s` выше |'
             % (i, MARK.lower(), kind, i) for i in ids]
+    # ⛔ СТАРЫЕ СТРОКИ РАЗДЕЛА СНИМАЮТСЯ, А НЕ ОСТАВЛЯЮТСЯ (07.09.2026).
+    # Прежний текст здесь гласил «старая пустая шапка раздела осталась ниже —
+    # она безвредна», и это было верно ровно пока раздел был ПУСТ. Строки в нём
+    # появились, и «хороший вход» стал нести ЧЕТЫРЕ строки вместо двух: две
+    # свои и две настоящие, с другим разрядом. Сторож честно называл
+    # расхождение, а плечо, обязанное давать 0, давало 1.
     filled = []
+    in_section = False
     for raw in out:
+        head = HEADING_RE.match(raw.rstrip('\r'))
+        if head:
+            in_section = head.group(1) == SECTION
+            filled.append(raw)
+            if in_section:
+                filled.extend([u'', u'| # | состояние | задача | детали |',
+                               u'|---|---|---|---|'] + body)
+            continue
+        if in_section and raw.lstrip().startswith(u'|'):
+            continue
         filled.append(raw)
-        if HEADING_RE.match(raw.rstrip('\r')) and \
-                HEADING_RE.match(raw.rstrip('\r')).group(1) == SECTION:
-            filled.extend([u'', u'| # | состояние | задача | детали |',
-                           u'|---|---|---|---|'] + body)
-    # старая пустая шапка раздела осталась ниже — она безвредна (шапки и
-    # разделители разбором пропускаются), но уберём её, чтобы копия читалась.
     return filled, ids
 
 
