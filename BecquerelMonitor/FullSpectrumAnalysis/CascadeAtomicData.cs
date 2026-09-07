@@ -243,44 +243,91 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Ожидаемое число квантов 511 кэВ В ТОМ ЖЕ СОБЫТИИ, что и эта гамма
         /// (`S150`). Два на каждый позитрон, поэтому `2 · P(β⁺ | гамма)`.
         ///
-        /// Три ступени, от точного к грубому, и каждая следующая берётся, лишь
-        /// когда предыдущей нет данных:
-        ///   1. доля по НАСЕЛЁННОМУ УРОВНЮ (`Branch.BetaPlusOfGamma`) — считана
-        ///      по питаниям ENSDF с протяжкой каскада сверху вниз;
-        ///   2. доля ВЕТВИ (`Branch.BetaPlusShare`) — маргинальная, если набора
-        ///      питаний для ветви нет или он неоднозначен;
-        ///   3. <see cref="AnnihilationQuanta"/> — прежний маргинальный выход на
-        ///      распад родителя, если ветвь у гаммы не определилась вовсе.
+        /// ⛔ ЗНАЕМ ПО УРОВНЮ — СЧИТАЕМ; НЕ ЗНАЕМ — ПАРЫ НЕТ (решение Amber
+        /// 07.09.2026, `S155`). Третьей возможности нет по существу: доля ВЕТВИ
+        /// `P(β⁺ | ветвь)` не равна `P(β⁺ | гамма)`, и подстановка одной вместо
+        /// другой — ровно то смешение, ради которого заведена `S150`. Здесь
+        /// стояли две запасные ступени (ветвевая доля, затем маргинальный выход
+        /// родителя), и обе воспроизводили дефект в меньшем масштабе.
         ///
-        /// ⚠ Ступень 3 — это ровно прежнее (неверное) поведение, и она
-        /// оставлена НЕ по недосмотру: гамма без ветви идёт по запасному списку
-        /// носителей, где ветвевого знания нет по построению. Сузить её можно
-        /// только сузив долю гамм без ветви.
+        /// ⚠ Ноль — это ОТКАЗ СТРОИТЬ ПАРУ, а не «позитронов нет». Причина
+        /// уходит в <see cref="Note"/>, и своя цена у отказа тоже есть: там, где
+        /// пара на самом деле была, потеря совпадения теперь занижена. Выбран он
+        /// потому, что противоположная ошибка — выдуманное совпадение — уже
+        /// стоила `40K` несуществующей пары 511 ↔ 1461.
+        ///
+        /// ⚠ После разведения наборов периодом родителя (`S155`) запасной ход
+        /// на корпусе не срабатывает вовсе: все корпусные родители с β⁺ —
+        /// `152EU`, `44SC`, `22NA`, `88Y`, `65ZN`, `40K` — получают долю по
+        /// уровню. Из 123 неразведённых пар поставки позитроны есть у 31, и ни
+        /// одной из них корпус не измеряет.
         /// </summary>
         public double AnnihilationQuantaOfGamma(double energyKev)
         {
             double share;
             Branch branch = this.BranchOfGamma(energyKev);
-            if (branch != null)
+            if (branch != null && NearestShare(branch, energyKev, out share))
             {
-                return branch.BetaPlusOfGamma.TryGetValue(energyKev, out share)
-                    ? 2.0 * share
-                    : 2.0 * branch.BetaPlusShare;
+                return 2.0 * share;
             }
 
-            // Ветвь по схеме не определилась. Доля по уровню всё же может быть
-            // известна: она считается по КАНАЛУ строки излучения, а канал есть и
-            // у линии, которой перехода в схеме не нашлось.
+            // Ветвь по схеме могла не определиться, а доля по уровню всё равно
+            // быть известной: она считается по КАНАЛУ строки излучения, а канал
+            // есть и у линии, которой перехода в схеме не нашлось.
             foreach (Branch other in this.Branches)
             {
-                if (other.BetaPlusOfGamma.TryGetValue(energyKev, out share))
+                if (NearestShare(other, energyKev, out share))
                 {
                     return 2.0 * share;
                 }
             }
 
-            return this.AnnihilationQuanta;
+            return 0.0;
         }
+
+        /// <summary>
+        /// Доля β⁺ у ближайшей линии ветви. Допуск узкий и нужен только против
+        /// ОКРУГЛЕНИЯ вызывающего: ключи кладутся из `decay_radiations`, и
+        /// оттуда же приходит энергия в рабочем пути, — но точное сравнение
+        /// `double` превращает округление в ТИХИЙ НОЛЬ, неотличимый от честного
+        /// «пары нет». Поймано пробой: у `20NA` линия записана 1633.602, а
+        /// спрошена была 1633.600.
+        ///
+        /// ⚠ Допуск НЕ такой, как у сопоставления со схемой (`MatchKev` = 0.6):
+        /// там сводятся ДВЕ РАЗНЫЕ поставки с разным округлением, здесь — одна
+        /// и та же, и 0.6 кэВ захватили бы соседнюю линию с чужой долей.
+        /// </summary>
+        static bool NearestShare(Branch branch, double energyKev, out double share)
+        {
+            share = 0.0;
+            if (branch == null || branch.BetaPlusOfGamma.Count == 0)
+            {
+                return false;
+            }
+
+            bool found = false;
+            double bestDelta = SameGammaKev;
+            foreach (KeyValuePair<double, double> entry in branch.BetaPlusOfGamma)
+            {
+                double delta = Math.Abs(entry.Key - energyKev);
+                if (delta >= SameGammaKev || (found && delta >= bestDelta))
+                {
+                    continue;
+                }
+
+                found = true;
+                bestDelta = delta;
+                share = entry.Value;
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Допуск «та же самая линия одной поставки», кэВ. Только против
+        /// округления вызывающего — см. <see cref="NearestShare"/>.
+        /// </summary>
+        const double SameGammaKev = 0.05;
 
         /// <summary>
         /// K-линии дочернего атома: энергия и выход, % на распад.
@@ -1148,6 +1195,105 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// наугад — значит подставить чужую схему питаний, поэтому при
         /// неоднозначности доля остаётся ветвевой, а причина попадает в отчёт.
         /// </summary>
+        /// <summary>
+        /// Насколько близко период набора обязан сойтись с периодом родителя,
+        /// чтобы набор считался ЕГО (`S155`). Один процент: паспортные периоды
+        /// в двух поставках округлены по-разному (`152EU` — 0.15 % расхождения,
+        /// `133BA` — 0.29 %), а состояния родителя различаются порядками.
+        /// </summary>
+        const double NearHalfLife = 0.01;
+
+        /// <summary>
+        /// Насколько ДАЛЕКО обязан лежать второй кандидат. Без этого условия
+        /// правило судило бы по одному числу: два близких периода означают, что
+        /// поставка их не разводит, и выбирать наугад нельзя.
+        /// </summary>
+        const double FarHalfLife = 0.10;
+
+        /// <summary>
+        /// Период родителя, с. Уровень берётся ТЕМ ЖЕ правилом, что у всей
+        /// библиотеки (<see cref="DecayParentRule.LevelClause"/>), и именно
+        /// подзапросом, а не переписанным текстом: вторая копия одного правила
+        /// разошлась бы с первой молча.
+        /// </summary>
+        static double ParentHalfLifeSec(string nucid)
+        {
+            string path = NuclideDatabasePath();
+            if (!File.Exists(path))
+            {
+                return 0.0;
+            }
+
+            using (SqliteConnection connection = OpenRead(path))
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "select w.half_life_sec from nuclides w"
+                    + " where w.nucid = $n and w.l_seqno = ("
+                    + "   select min(parent_l_seqno) from decay_radiations"
+                    + "    where parent_nucid = $n" + DecayParentRule.LevelClause + ")";
+                command.Parameters.AddWithValue("$n", nucid);
+                object raw = command.ExecuteScalar();
+                if (raw == null || raw == DBNull.Value)
+                {
+                    return 0.0;
+                }
+
+                double seconds = Convert.ToDouble(raw, CultureInfo.InvariantCulture);
+                return seconds > 0.0 ? seconds : 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Какой из нескольких наборов питаний принадлежит ЭТОМУ состоянию
+        /// родителя (`S155`). −1 — развести не удалось, и тогда пара 511 не
+        /// строится вовсе.
+        /// </summary>
+        static long ByParentHalfLife(SqliteCommand command, string parentNucid,
+                                     List<long> sets, StringBuilder notes)
+        {
+            double target = ParentHalfLifeSec(parentNucid);
+            if (!(target > 0.0))
+            {
+                notes.AppendFormat(CultureInfo.InvariantCulture,
+                    "период {0} неизвестен, набор питаний не разведён; ", parentNucid);
+                return -1L;
+            }
+
+            var away = new List<double[]>();
+            foreach (long id in sets)
+            {
+                command.Parameters.Clear();
+                command.CommandText = "select parent_hl_sec from ensdf_datasets where id = $i";
+                command.Parameters.AddWithValue("$i", id);
+                object raw = command.ExecuteScalar();
+                if (raw == null || raw == DBNull.Value)
+                {
+                    continue;
+                }
+
+                double hl = Convert.ToDouble(raw, CultureInfo.InvariantCulture);
+                if (!(hl > 0.0))
+                {
+                    continue;
+                }
+
+                away.Add(new[] { Math.Abs(hl - target) / target, id });
+            }
+
+            away.Sort(delegate(double[] a, double[] b) { return a[0].CompareTo(b[0]); });
+            if (away.Count == 0 || away[0][0] >= NearHalfLife
+                || (away.Count > 1 && away[1][0] <= FarHalfLife))
+            {
+                notes.AppendFormat(CultureInfo.InvariantCulture,
+                    "наборы питаний {0} периодом не разведены ({1} кандидатов); ",
+                    parentNucid, away.Count);
+                return -1L;
+            }
+
+            return (long)away[0][1];
+        }
+
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
                                         List<double[]> gammaIntensity,
                                         List<string> gammaChannel,
@@ -1195,16 +1341,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                if (sets.Count != 1)
+                long chosen = -1L;
+                if (sets.Count == 1)
                 {
-                    notes.AppendFormat(CultureInfo.InvariantCulture,
-                        "наборов питаний {0}→{1}: {2}, доля β⁺ осталась ветвевой; ",
-                        parentNucid, branch.Nucid, sets.Count);
+                    chosen = sets[0];
+                }
+                else if (sets.Count > 1)
+                {
+                    // ⛔ НЕОДНОЗНАЧНОСТЬ РАЗВОДИТСЯ ПЕРИОДОМ РОДИТЕЛЯ (`S155`).
+                    // Наборы одной пары «родитель — дочь» различаются именно
+                    // состоянием родителя, и период у них записан:
+                    // `ensdf_datasets.parent_hl_sec` против
+                    // `nuclides.half_life_sec` того же уровня, каким живёт вся
+                    // остальная библиотека. Измерено: из 432 неоднозначных пар
+                    // поставки так разводятся **309**, и среди них ВСЕ
+                    // корпусные с β⁺ — `152EU→152SM` (отклонение 0.15 %),
+                    // `152EU→152GD`, `44SC→44CA` (отклонение 0).
+                    chosen = ByParentHalfLife(command, parentNucid, sets, notes);
+                }
+
+                if (chosen < 0L)
+                {
                     return;
                 }
 
                 command.Parameters.Clear();
-                command.Parameters.AddWithValue("$s", sets[0]);
+                command.Parameters.AddWithValue("$s", chosen);
 
                 command.CommandText =
                     "select seq, energy_kev from ensdf_levels where dataset_id = $s";
