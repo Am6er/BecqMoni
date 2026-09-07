@@ -209,6 +209,10 @@ namespace CorpusFsaProbe
                 if (a == "--no-xray") { o.Xray = false; continue; }
                 if (a == "--no-ann") { o.Annihilation = false; continue; }
                 if (a == "--no-isomer") { o.Isomers = false; continue; }
+                // `A289`, АБЛЯЦИЯ НАОБОРОТ: ключ ВКЛЮЧАЕТ вероятностный гейт
+                // времени вместо ступеньки. Умолчание — ВЫКЛ, чтобы прогон без
+                // ключа давал прежние числа и действующая база не сдвинулась.
+                if (a == "--decay-time-prob") { o.DecayTimeProbability = true; continue; }
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
@@ -895,6 +899,10 @@ namespace CorpusFsaProbe
 
             Console.WriteLine("изомеры по sandia_symbol: {0}",
                               head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
+            Console.WriteLine("время жизни уровня: {0}",
+                              head.CascadeDecayTimeProbability
+                                  ? "ВЕРОЯТНОСТНО (A289)"
+                                  : "ступенькой (умолчание)");
             Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
                               + " окно совпадения {2:E3} с{3}",
                               head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
@@ -974,6 +982,7 @@ namespace CorpusFsaProbe
                 PileUp = o.PileUp
             }.ApplyTo(analyzer);
             analyzer.CascadeXrayPartners = o.Xray;
+            analyzer.CascadeDecayTimeProbability = o.DecayTimeProbability;
             analyzer.CascadeAnnihilationPartners = o.Annihilation;
             analyzer.CascadeIsomerPartners = o.Isomers;
             analyzer.CoincidenceWindowSec = o.WindowSec;
@@ -3371,6 +3380,7 @@ namespace CorpusFsaProbe
             public bool Xray = true;            // S27: K-рентген партнёром
             public bool Annihilation = true;    // S27: кванты 511 партнёром
             public bool Isomers = true;         // S27: изомеры по sandia_symbol
+            public bool DecayTimeProbability;   // A289: время жизни уровня вероятностно
             public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
             public bool PileUp = true;
             public bool Backscatter = true;

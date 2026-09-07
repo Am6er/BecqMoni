@@ -338,6 +338,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly bool withXrays;
         readonly bool withAnnihilation;
         readonly bool withIsomers;
+        readonly bool withTimeProbability;
         readonly Dictionary<FsaComponent, Correction> corrections =
             new Dictionary<FsaComponent, Correction>();
 
@@ -353,7 +354,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode,
                          MaterialDatabase.LightYieldCurve light, double windowSec,
-                         bool withXrays, bool withAnnihilation, bool withIsomers)
+                         bool withXrays, bool withAnnihilation, bool withIsomers,
+                         bool withTimeProbability)
         {
             this.matrix = matrix;
             this.peakAtNode = peakAtNode;
@@ -363,6 +365,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.withXrays = withXrays;
             this.withAnnihilation = withAnnihilation;
             this.withIsomers = withIsomers;
+            this.withTimeProbability = withTimeProbability;
         }
 
         /// <summary>Окно совпадения этого разбора, секунды — для отчёта проб.</summary>
@@ -399,7 +402,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator)
         {
-            return Create(matrix, scintillator, 0.0, true, true, true);
+            return Create(matrix, scintillator, 0.0, true, true, true, false);
         }
 
         /// <summary>
@@ -417,7 +420,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator,
                                               double windowSec, bool withXrays,
-                                              bool withAnnihilation, bool withIsomers)
+                                              bool withAnnihilation, bool withIsomers,
+                                              bool withTimeProbability)
         {
             if (matrix == null || !matrix.HasChannels || matrix.Energies == null
                 || matrix.Energies.Length == 0 || matrix.Rows == null)
@@ -457,7 +461,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return new FsaCascadeSummer(matrix, peak, total, curve, windowSec,
-                                        withXrays, withAnnihilation, withIsomers);
+                                        withXrays, withAnnihilation, withIsomers,
+                                        withTimeProbability);
         }
 
         /// <summary>
@@ -1582,6 +1587,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double delay = DelayOf(atomic, decayEnergy);
+                double[] phases = PhasesOf(atomic, decayEnergy);
                 if (delay < 0.0)
                 {
                     // Перехода в схеме не нашлось — времени вылета не знаем.
@@ -1590,11 +1596,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     delay = 0.0;
                 }
 
+                // (`A289`) Доля распадов, у которых этот квант успел выйти
+                // внутри окна. При выключенном ключе — прежняя ступенька.
+                double inWindow = this.withTimeProbability
+                    ? PassProbability(phases, this.windowSec)
+                    : (delay < this.windowSec ? 1.0 : 0.0);
+
                 foreach (Carrier carrier in carriers)
                 {
                     double probability = carrier.FromVacancy
-                        ? carrier.Share * this.VacancyGiven(atomic, raw, decayEnergy, delay)
-                        : (delay < this.windowSec ? atomic.AnnihilationQuanta : 0.0);
+                        ? carrier.Share * this.VacancyGiven(atomic, raw, decayEnergy, delay, phases)
+                        : atomic.AnnihilationQuanta * inWindow;
                     if (!(probability > 0.0))
                     {
                         continue;
@@ -1649,15 +1661,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
         /// </summary>
         double VacancyGiven(CascadeAtomicData atomic, NuclideData raw,
-                            double energyKev, double delaySec)
+                            double energyKev, double delaySec, double[] phases)
         {
             double vacancy = 0.0;
-            if (delaySec < this.windowSec)
-            {
-                // Захватная вакансия рождается в момент распада, значит от неё
-                // до гаммы прошло ровно `delaySec`.
-                vacancy += atomic.PromptVacancy;
-            }
+
+            // Захватная вакансия рождается в момент распада, значит от неё до
+            // гаммы прошло ровно время жизни пути. (`A289`) При включённом
+            // ключе это не «успел / не успел», а ДОЛЯ успевших.
+            double prompt = this.withTimeProbability
+                ? PassProbability(phases, this.windowSec)
+                : (delaySec < this.windowSec ? 1.0 : 0.0);
+            vacancy += atomic.PromptVacancy * prompt;
 
             foreach (double[] other in atomic.GammaIntensity)
             {
@@ -1673,12 +1687,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (Math.Abs(transition.EmitDelaySec - delaySec) >= this.windowSec)
+                // (`A289`) Гейт по РАЗНОСТИ времён вылета двух квантов одного
+                // каскада. Выключен ключ — прежняя ступенька.
+                double together = this.withTimeProbability
+                    ? PairProbability(phases, transition.EmitHalfLives, this.windowSec)
+                    : (Math.Abs(transition.EmitDelaySec - delaySec) < this.windowSec ? 1.0 : 0.0);
+                if (!(together > 0.0))
                 {
                     continue;
                 }
 
-                vacancy += Conditional(atomic, raw, energyKev, other[0]) * transition.AlphaK;
+                vacancy += Conditional(atomic, raw, energyKev, other[0]) * transition.AlphaK
+                           * together;
             }
 
             return vacancy * atomic.OmegaK;
@@ -1726,6 +1746,281 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return 0.0;
         }
 
+
+        /// <summary>Пустой путь — общая ссылка, чтобы не плодить массивов.</summary>
+        static readonly double[] NoPhases = new double[0];
+
+        /// <summary>
+        /// Во сколько раз период полураспада должен быть КОРОЧЕ окна, чтобы
+        /// уровень считался мгновенным и из свёртки выбрасывался. При 64
+        /// отброшенный уровень не успевает с вероятностью 2^-64 ≈ 5.4e-20, то
+        /// есть вклад его меньше точности итога.
+        ///
+        /// ⚠ Порог здесь не только про точность, но и про СХОДИМОСТЬ: он же
+        /// ограничивает λ·t сверху величиной ln2·64 ≈ 44, а от неё зависит
+        /// число шагов равномеризации ниже. Без отсечки уровень с T½ = 1 фс
+        /// потребовал бы сотни миллионов шагов ради того же ответа «успел».
+        /// </summary>
+        const double PromptPhaseRatio = 64.0;
+
+        /// <summary>
+        /// Потолок шагов равномеризации. λ·t ≤ ln2·<see cref="PromptPhaseRatio"/>
+        /// ≈ 44 по построению, а у пуассоновского распределения с таким средним
+        /// хвост выше 512 в двойной точности не существует; значение стоит
+        /// СТОРОЖЕМ от неверной отсечки, а не рабочим пределом.
+        /// </summary>
+        const int UniformizationSteps = 512;
+
+        /// <summary>
+        /// Доля распадов, у которых сумма времён жизни уровней `halfLives`
+        /// уложилась в `t` секунд (`A289`).
+        ///
+        /// ⛔ ПЕРИОД ПОЛУРАСПАДА — НЕ ЗАДЕРЖКА. Время жизни уровня распределено
+        /// экспоненциально, и у ОДНОГО уровня доля равна 1 − 2^(−t/T½): при
+        /// T½ = t это ровно половина, а не «не успел» и не «успел». Складывать
+        /// периоды и сравнивать сумму с окном — значит ставить на границе окна
+        /// скачок 100 → 0 %, которого в природе нет. Для нескольких уровней
+        /// нужна СВЁРТКА распределений (гипоэкспоненциальное), а не сумма
+        /// периодов.
+        ///
+        /// Считается равномеризацией (метод Йенсена): непрерывная цепь фаз
+        /// заменяется пуассоновским потоком с частотой Λ = max λ и вложенной
+        /// дискретной цепью, ответ — сумма НЕОТРИЦАТЕЛЬНЫХ слагаемых.
+        /// ⛔ Замкнутая формула гипоэкспоненциального распределения здесь НЕ
+        /// годится: у неё в знаменателях стоят разности λ, а близкие периоды
+        /// на одном пути — обычное дело (у Mg-29 это 1.400 и 1.270 нс), и
+        /// разность двух почти равных чисел съедает всю точность. Здесь
+        /// вычитания нет вовсе.
+        /// </summary>
+        static double PassProbability(double[] halfLives, double t)
+        {
+            if (!(t > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (halfLives == null || halfLives.Length == 0)
+            {
+                return 1.0;
+            }
+
+            double ln2 = Math.Log(2.0);
+            List<double> rates = new List<double>(halfLives.Length);
+            double top = 0.0;
+            foreach (double half in halfLives)
+            {
+                if (!(half > 0.0) || half * PromptPhaseRatio < t)
+                {
+                    // Мгновенный для этого окна уровень — см. PromptPhaseRatio.
+                    continue;
+                }
+
+                double lambda = ln2 / half;
+                rates.Add(lambda);
+                if (lambda > top)
+                {
+                    top = lambda;
+                }
+            }
+
+            if (rates.Count == 0)
+            {
+                return 1.0;
+            }
+
+            if (rates.Count == 1)
+            {
+                return 1.0 - Math.Exp(-rates[0] * t);
+            }
+
+            double lt = top * t;
+            int n = rates.Count;
+            double[] v = new double[n];
+            v[0] = 1.0;
+            double survive = 0.0;
+            double poisson = Math.Exp(-lt);
+            double mass = 0.0;
+
+            // Хвост Пуассона обрывается по НАКОПЛЕННОЙ массе, а не по числу
+            // шагов: так обрыв судится тем же, чем и точность ответа.
+            for (int k = 0; k < UniformizationSteps; k++)
+            {
+                double alive = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    alive += v[i];
+                }
+
+                survive += poisson * alive;
+                mass += poisson;
+                if (k > lt && 1.0 - mass < 1.0E-13)
+                {
+                    break;
+                }
+
+                double carry = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    double move = v[i] * (rates[i] / top);
+                    v[i] = v[i] - move + carry;
+                    carry = move;
+                }
+
+                // `carry`, ушедший из последней фазы, поглощён — квант вылетел.
+                poisson *= lt / (k + 1);
+            }
+
+            double p = 1.0 - survive;
+            return p > 0.0 ? (p < 1.0 ? p : 1.0) : 0.0;
+        }
+
+        /// <summary>
+        /// Доля распадов, у которых два кванта ОДНОГО каскада разошлись во
+        /// времени меньше чем на `t` (`A289`).
+        ///
+        /// Пути обоих строит <see cref="CascadeAtomicData"/> ходом сверху вниз,
+        /// и путь верхнего кванта — ПРИСТАВКА пути нижнего, когда один уровень
+        /// лежит над другим. Общая приставка в разности сокращается ТОЧНО (это
+        /// одни и те же уровни одного и того же распада, а не две одинаково
+        /// распределённых величины), поэтому она снимается, и остаётся ровно
+        /// то, что кванты разводит. Мерено 07.09.2026 по схемам дочерних ядер
+        /// 23 корпусных нуклидов: из 246 467 пар переходов приставкой оказались
+        /// 246 352, то есть 99.95 %.
+        ///
+        /// Оставшиеся 0.05 % — ветвление, когда кванты идут разными ветвями
+        /// после общего предка. Остатки их независимы, и доля считается
+        /// разбиением по одному из них (<see cref="BranchProbability"/>).
+        /// </summary>
+        static double PairProbability(double[] first, double[] second, double t)
+        {
+            double[] a = first ?? NoPhases;
+            double[] b = second ?? NoPhases;
+
+            int common = 0;
+            while (common < a.Length && common < b.Length && a[common] == b[common])
+            {
+                common++;
+            }
+
+            double[] restA = Suffix(a, common);
+            double[] restB = Suffix(b, common);
+            if (restA.Length == 0)
+            {
+                return PassProbability(restB, t);
+            }
+
+            if (restB.Length == 0)
+            {
+                return PassProbability(restA, t);
+            }
+
+            return BranchProbability(restA, restB, t);
+        }
+
+        static double[] Suffix(double[] source, int from)
+        {
+            if (from >= source.Length)
+            {
+                return NoPhases;
+            }
+
+            double[] rest = new double[source.Length - from];
+            Array.Copy(source, from, rest, 0, rest.Length);
+            return rest;
+        }
+
+        /// <summary>
+        /// P(|A − B| &lt; t) для независимых A и B — случай ветвления путей.
+        /// Считается разбиением по B: масса B в ячейке умножается на долю A,
+        /// попавшую в окно вокруг середины ячейки. Верх разбиения — квантиль B,
+        /// выше которой остаётся 1e-6 массы; отброшенный хвост вносит не
+        /// больше её самой.
+        ///
+        /// ⚠ Точность разбиения ЗАМЕРЕНА, а не обещана (07.09.2026): на сцене
+        /// A ~ Exp(T½ = 2 мкс), B ~ Exp(T½ = 0.5 мкс), окно 1 мкс аналитический
+        /// ответ 0.384314575, здесь выходит 0.384316471 — расхождение 1.9e-6,
+        /// то есть 0.0005 %. На 128 ячейках было 1.1e-4, и это единственная
+        /// причина, по которой их 1024.
+        /// </summary>
+        static double BranchProbability(double[] a, double[] b, double t)
+        {
+            const int Cells = 1024;
+            const double Tail = 1.0E-6;
+
+            double top = Quantile(b, 1.0 - Tail);
+            if (!(top > 0.0))
+            {
+                return PassProbability(a, t);
+            }
+
+            double step = top / Cells;
+            double previous = 0.0;
+            double total = 0.0;
+            for (int i = 1; i <= Cells; i++)
+            {
+                double edge = i * step;
+                double cdf = PassProbability(b, edge);
+                double weight = cdf - previous;
+                previous = cdf;
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                double middle = edge - 0.5 * step;
+                double lower = middle - t;
+                double inside = PassProbability(a, middle + t)
+                                - (lower > 0.0 ? PassProbability(a, lower) : 0.0);
+                if (inside > 0.0)
+                {
+                    total += weight * inside;
+                }
+            }
+
+            return total > 0.0 ? (total < 1.0 ? total : 1.0) : 0.0;
+        }
+
+        /// <summary>Время, к которому уложилась доля `level` — делением пополам.</summary>
+        static double Quantile(double[] halfLives, double level)
+        {
+            double high = 0.0;
+            foreach (double half in halfLives)
+            {
+                if (half > 0.0)
+                {
+                    high += half;
+                }
+            }
+
+            if (!(high > 0.0))
+            {
+                return 0.0;
+            }
+
+            // Вверх до перекрытия: сумма периодов — не квантиль, и для уровня
+            // 1−1e-6 её заведомо мало.
+            while (high < 1.0E12 && PassProbability(halfLives, high) < level)
+            {
+                high *= 2.0;
+            }
+
+            double low = 0.0;
+            for (int i = 0; i < 80; i++)
+            {
+                double mid = 0.5 * (low + high);
+                if (PassProbability(halfLives, mid) < level)
+                {
+                    low = mid;
+                }
+                else
+                {
+                    high = mid;
+                }
+            }
+
+            return high;
+        }
+
         /// <summary>Через сколько секунд после распада вылетает эта гамма; −1 — не знаем.</summary>
         static double DelayOf(CascadeAtomicData atomic, double energyKev)
         {
@@ -1733,6 +2028,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return atomic.Gammas.TryGetValue(energyKev, out transition)
                 ? transition.EmitDelaySec
                 : -1.0;
+        }
+
+        /// <summary>
+        /// Периоды полураспада уровней на пути этой гаммы (`A289`). Пусто —
+        /// путь мгновенный ЛИБО перехода в схеме нет: обе новости для гейта
+        /// означают одно и то же — «задержки не знаем, считаем мгновенным», и
+        /// это та же осторожная сторона, что у <see cref="DelayOf"/>.
+        /// </summary>
+        static double[] PhasesOf(CascadeAtomicData atomic, double energyKev)
+        {
+            CascadeAtomicData.Transition transition;
+            if (atomic.Gammas.TryGetValue(energyKev, out transition)
+                && transition.EmitHalfLives != null)
+            {
+                return transition.EmitHalfLives;
+            }
+
+            return NoPhases;
         }
 
         static NuclideData Copy(NuclideData source)

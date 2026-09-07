@@ -1238,6 +1238,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeXrayPartners { get; set; }
 
         /// <summary>
+        /// Считать ли время жизни уровня ВЕРОЯТНОСТНО, а не ступенькой
+        /// (`A289`). ⛔ Умолчание — ВЫКЛ, и это НЕ мнение о том, чья физика
+        /// вернее: ключ заведён РАЗДЕЛЯЮЩИМ замером, как `S120`–`S122`, чтобы
+        /// цену правки сняли на одном двоичном файле, а действующая база
+        /// корпуса от появления ключа не сдвинулась ни на разряд.
+        ///
+        /// Выключен — прежнее правило: сумма периодов полураспада по пути
+        /// сравнивается с окном, совпадение берётся целиком либо не берётся
+        /// вовсе. Включён — доля распадов, успевших внутрь окна, считается
+        /// свёрткой экспонент (<c>FsaCascadeSummer.PassProbability</c>).
+        ///
+        /// ⚠ Заселены ли в корпусных распадах уровни, где ступенька врёт
+        /// крупно, ещё НЕ измерено — это остаток строки `A289`, и ключ здесь
+        /// ровно для того, чтобы его можно было измерить.
+        /// </summary>
+        public bool CascadeDecayTimeProbability { get; set; }
+
+        /// <summary>
         /// Считать ли аннигиляционные кванты партнёром совпадения (S27).
         /// ⛔ Пара 511 + 511 не заводится ни при каком значении — кванты летят
         /// спина к спине, см. <see cref="CascadeAtomicData.AnnihilationQuanta"/>.
@@ -1394,6 +1412,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // совпадения ноль — «прибор не назвал»; кто знает мёртвое время,
             // ставит его сам (FsaAnalysisSession берёт у InputDeviceConfig.DeadTime()).
             this.CascadeXrayPartners = true;
+
+            // (`A289`) Полярность умолчания стоит ЗДЕСЬ, у присваивания, а не
+            // в описании свойства — правило `T82`.
+            this.CascadeDecayTimeProbability = false;
             this.CascadeAnnihilationPartners = true;
             this.CascadeIsomerPartners = true;
             this.CoincidenceWindowSec = 0.0;
@@ -1455,7 +1477,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? FsaCascadeSummer.Create(this.ResponseMatrix, this.ScintillatorMaterial,
                                           this.CoincidenceWindowSec, this.CascadeXrayPartners,
                                           this.CascadeAnnihilationPartners,
-                                          this.CascadeIsomerPartners)
+                                          this.CascadeIsomerPartners,
+                                          this.CascadeDecayTimeProbability)
                 : null;
             this.cascadeApplied = false;
 
@@ -3015,7 +3038,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     WeightsAreFinal = component.WeightsAreFinal,
                     Derived = component.Derived,
                     FixedTemplate = component.FixedTemplate,
-                    TotalYieldPercent = component.TotalYieldPercent
+                    TotalYieldPercent = component.TotalYieldPercent,
+
+                    // (`A287`) Происхождение в ряду переносится ВМЕСТЕ с
+                    // остальным. Обрезка части линий не делает член ряда чужим
+                    // ряду, а по невязке потеря не видна вовсе: столбец и
+                    // амплитуда на месте, расходятся только группировка ленты
+                    // по корню (`FsaPresentationBuilder`) и графа подавленных.
+                    DecayChainRoot = component.DecayChainRoot
                 };
 
                 foreach (FsaLine line in component.Lines)
@@ -3745,8 +3775,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     break;
                 }
 
-                FsaComponentResult target = result.Components[row++];
-                if (!string.Equals(target.Name, column.Component.Name, StringComparison.Ordinal))
+                // ⛔ (`A288`) СТРОК У КОЛОНКИ БЫВАЕТ НЕСКОЛЬКО, и счётчик «одна
+                // колонка — одна строка» здесь однажды уже разъехался.
+                // `BuildResult` разворачивает колонку связанного ряда в строки
+                // ЕГО ЧЛЕНОВ (`SplitChainMembers`), поэтому после первой же
+                // цепочки простой `row++` показывал на второго члена, сверка
+                // имени не сходилась и `break` уносил зонные величины у ВСЕХ
+                // следующих компонентов — они оставались `NaN`. Мерено
+                // 07.09.2026 на `AS1Pro_Ra226`: посчитана 1 строка из 11.
+                //
+                // Поэтому строки берутся БЛОКОМ, тем же признаком, которым их
+                // пометил `BuildResult`: у всех строк развёрнутой колонки
+                // `ChainRoot` — имя самой колонки (у неразложенной цепочки тоже,
+                // `S72`), у обычного компонента он пуст и сверяется имя.
+                List<FsaComponentResult> targets = new List<FsaComponentResult>();
+                if (string.Equals(result.Components[row].ChainRoot, column.Component.Name,
+                                  StringComparison.Ordinal))
+                {
+                    while (row < result.Components.Count
+                           && string.Equals(result.Components[row].ChainRoot,
+                                            column.Component.Name, StringComparison.Ordinal))
+                    {
+                        targets.Add(result.Components[row++]);
+                    }
+                }
+                else if (string.Equals(result.Components[row].Name, column.Component.Name,
+                                       StringComparison.Ordinal))
+                {
+                    targets.Add(result.Components[row++]);
+                }
+                else
                 {
                     // Строки результата создаются BuildResult в этом же порядке
                     // и по этим же условиям; разъехались — считать нечего.
@@ -3776,8 +3834,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                target.ZoneChannels = zoneChannels;
-                target.ZoneChi2Ndf = dWith / zoneChannels;
+                // Зонная мерка считается ПО КОЛОНКЕ — маска окон и перефит
+                // без неё общие на весь ряд, — и потому одна на все её строки.
+                // Это то же следствие связки, что и общая значимость у членов:
+                // данные различают ряд целиком, а не его члена.
+                foreach (FsaComponentResult member in targets)
+                {
+                    member.ZoneChannels = zoneChannels;
+                    member.ZoneChi2Ndf = dWith / zoneChannels;
+                }
 
                 List<FsaComponent> without = new List<FsaComponent>(components);
                 without.Remove(column.Component);
@@ -3798,7 +3863,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                target.ZoneDeltaD = dWithout - dWith;
+                foreach (FsaComponentResult member in targets)
+                {
+                    member.ZoneDeltaD = dWithout - dWith;
+                }
             }
         }
 
