@@ -72,9 +72,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///     разобрано в <see cref="CascadeAtomicData.AnnihilationQuanta"/>);
     ///   * L-серии рентгена — у неё своя бухгалтерия вакансий, TODO S58;
     ///   * угловых корреляций (`database/scheme.md`, D-1) — совпадения
-    ///     изотропны; геометрическая половина живёт своей строкой, TODO N14;
-    ///   * сумм-континуума (полное + частичное поглощение пары): сумм-пик
-    ///     ставится только на полное поглощение обоих квантов.
+    ///     изотропны; геометрическая половина живёт своей строкой, TODO N14.
+    ///
+    /// ⚠ СУММ-КОНТИНУУМ ЕСТЬ (~~`T252`~~, поправка 07.09.2026): он числился в
+    /// списке отсутствующего, хотя реализован ещё по `S19` — тип
+    /// <see cref="SumContinuum"/>, список <see cref="Correction.SumContinua"/>,
+    /// построение в <see cref="CollectSumPeaks"/>. Приближение таково: пара
+    /// поглощается ПОЛНОСТЬЮ, а третий квант каскада — ЧАСТИЧНО, и его
+    /// комптоновский недобор размазывает сумм-пик вниз непрерывной подложкой.
+    /// Чисел прежняя запись не портила, но описывала не ту границу модели.
     /// </summary>
     public sealed class FsaCascadeSummer
     {
@@ -760,6 +766,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// раз наблюдённая площадь МЕНЬШЕ истинной (A_ист = A_набл · CF).
         /// Больше единицы — суммирование выносит из пика больше, чем вносит.
         /// </summary>
+        /// <summary>
+        /// Потолок поправки: при нём образ линии множится на 1e-6, что для
+        /// фита неотличимо от «линии нет». Величина не физическая, а
+        /// численная — см. возврат <see cref="CoincidenceFactor"/>.
+        /// </summary>
+        const double MaxCoincidenceFactor = 1.0E6;
+
         double CoincidenceFactor(NuclideData data, double energy)
         {
             double loss, inShare, direct;
@@ -785,11 +798,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
-            // уносит событие из пика.
-            foreach (KeyValuePair<double, double> partner in Partners(data, energy))
-            {
-                loss += partner.Value * this.TotalEfficiency(partner.Key);
-            }
+            // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
+            // зарегистрирован», и считается она через выживание.
+            loss = 1.0 - this.SurviveAll(Partners(data, energy));
 
             // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
             // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
@@ -807,8 +818,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             direct = intensity / 100.0 * this.PeakEfficiency(energy);
             inShare = direct > 0.0 ? sumIn / direct : 0.0;
+
+            // Знаменатель — ДОЛЯ ВЫЖИВШИХ в полном пике: именно она уходит
+            // в образ (`factors[i] = 1 / cf`, см. Correction.LineFactors).
             double denominator = (1.0 - loss) + inShare;
-            return denominator > 0.0 ? 1.0 / denominator : 1.0;
+
+            // ⛔ ПРЕЖДЕ ЗДЕСЬ СТОЯЛО `: 1.0`, И ЭТО БЫЛО НАОБОРОТ (`S144`).
+            // Ноль знаменателя означает «из полного пика не выжило ничего»,
+            // то есть линия обязана ИСЧЕЗНУТЬ из образа; возврат единицы
+            // оставлял её нетронутой — поправка молча выключалась ровно там,
+            // где она сильнейшая. Потолок нужен лишь затем, чтобы вместо
+            // бесконечности в образ ушёл множитель 1e-6, то есть та же
+            // исчезнувшая линия, но без NaN дальше по счёту.
+            return denominator > 0.0
+                ? Math.Min(1.0 / denominator, MaxCoincidenceFactor)
+                : MaxCoincidenceFactor;
         }
 
         /// <summary>
@@ -1000,14 +1024,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Доля пар, которым третий квант каскада не помешал:
-        /// `S_ij = 1 − Σ_m P(m) · ε_T(m)`.
+        /// `S_ij = ∏_m (1 − P(m) · ε_T(m))` (`S144`).
         /// </summary>
         double Survive(NuclideData data, double[] pair)
         {
+            return this.SurviveAll(MergedThird(data, pair[0], pair[1]));
+        }
+
+        /// <summary>
+        /// Доля событий, в которых НЕ зарегистрирован НИ ОДИН из партнёров:
+        /// `∏_j (1 − p_j)`, где `p_j = P(j|k) · ε_T(j)` (`S144`).
+        ///
+        /// ⛔ БЫЛО `1 − Σ p_j`, И ЭТО РАЗНЫЕ ВЕЛИЧИНЫ. Сумма маргинальных
+        /// вероятностей равна вероятности объединения только у ВЗАИМНО
+        /// ИСКЛЮЧАЮЩИХ событий; здесь же класс сам строит ТРОЙНЫЕ сумм-пики,
+        /// то есть прямо допускает регистрацию двух партнёров сразу. Для двух
+        /// независимых верно `p₁ + p₂ − p₁p₂`, а сумма учитывала пересечение
+        /// дважды — тем сильнее, чем больше партнёров и чем ближе геометрия.
+        ///
+        /// ⛔ Вторая половина той же беды была ОТКАЗОМ БЕЗ ОТКАЗА: завышенная
+        /// сумма перескакивала единицу, знаменатель `(1 − loss) + inShare`
+        /// становился неположительным, и метод возвращал `CF = 1` — поправка
+        /// МОЛЧА выключалась ровно там, где она сильнейшая. У произведения
+        /// такого исхода нет по построению: оно лежит в [0, 1].
+        ///
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: партнёры считаются независимыми при данном
+        /// опорном кванте. У ВЗАИМНО ИСКЛЮЧАЮЩИХ ветвей это чуть занижает
+        /// потерю (верна была бы сумма), но разводить их нечем — условные
+        /// вероятности поставки не несут признака ветви. Родня: `S145`.
+        /// </summary>
+        double SurviveAll(Dictionary<double, double> partners)
+        {
             double survive = 1.0;
-            foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
+            foreach (KeyValuePair<double, double> partner in partners)
             {
-                survive -= third.Value * this.TotalEfficiency(third.Key);
+                double p = partner.Value * this.TotalEfficiency(partner.Key);
+                if (!(p > 0.0))
+                {
+                    continue;
+                }
+
+                // Зажим — не косметика: условная вероятность поставки бывает
+                // больше единицы (у каскада на распад приходится больше одного
+                // кванта), и без зажима сомножитель ушёл бы в минус.
+                survive *= p < 1.0 ? 1.0 - p : 0.0;
             }
 
             return survive;
@@ -1499,13 +1559,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Носитель: энергия, доля внутри своей серии и признак «это
             // вакансия» (рентген) против «это аннигиляция».
+            //
+            // ⛔ У КАЖДОЙ ВЕТВИ СВОИ НОСИТЕЛИ (`S145`). K-рентген принадлежит
+            // атому, в который распад ПРИШЁЛ, и с гаммой ДРУГОЙ ветви совпасть
+            // не может: это два разных события распада. Прежде носители
+            // строились одним списком по сильнейшей ветви и раздавались всем.
+            var carriersOf = new Dictionary<int, List<Carrier>>();
+            var annihilation = new List<Carrier>();
+            if (this.withAnnihilation && atomic.AnnihilationQuanta > 0.0)
+            {
+                annihilation.Add(new Carrier
+                {
+                    EnergyKev = AnnihilationKev,
+                    IntensityPct = atomic.AnnihilationQuanta * 100.0,
+                    Share = 1.0,
+                    FromVacancy = false
+                });
+            }
+
+            foreach (CascadeAtomicData.Branch branch in atomic.Branches)
+            {
+                var own = new List<Carrier>();
+                if (this.withXrays && branch.KIntensityPct > 0.0 && branch.OmegaK > 0.0)
+                {
+                    foreach (double[] line in branch.KLines)
+                    {
+                        // Вакансия одна, а ответить она может любой линией серии —
+                        // отсюда доля.
+                        own.Add(new Carrier
+                        {
+                            EnergyKev = line[0],
+                            IntensityPct = line[1],
+                            Share = line[1] / branch.KIntensityPct,
+                            FromVacancy = true
+                        });
+                    }
+                }
+
+                own.AddRange(annihilation);
+                carriersOf[branch.Z] = own;
+            }
+
+            // Запасной список — для гамм, ветвь которых не определилась.
             var carriers = new List<Carrier>();
             if (this.withXrays && atomic.KIntensityPct > 0.0 && atomic.OmegaK > 0.0)
             {
                 foreach (double[] line in atomic.KLines)
                 {
-                    // Вакансия одна, а ответить она может любой линией серии —
-                    // отсюда доля.
                     carriers.Add(new Carrier
                     {
                         EnergyKev = line[0],
@@ -1516,20 +1616,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            if (this.withAnnihilation && atomic.AnnihilationQuanta > 0.0)
-            {
-                carriers.Add(new Carrier
-                {
-                    EnergyKev = AnnihilationKev,
-                    IntensityPct = atomic.AnnihilationQuanta * 100.0,
-                    Share = 1.0,
-                    FromVacancy = false
-                });
-            }
-
+            carriers.AddRange(annihilation);
             if (carriers.Count == 0)
             {
-                return data.Pairs.Count > 0 ? data : null;
+                bool any = false;
+                foreach (KeyValuePair<int, List<Carrier>> entry in carriersOf)
+                {
+                    any = any || entry.Value.Count > 0;
+                }
+
+                if (!any)
+                {
+                    return data.Pairs.Count > 0 ? data : null;
+                }
             }
 
             // ⛔ НОСИТЕЛЬ НИЖЕ СЕТКИ МАТРИЦЫ НЕ БЕРЁТСЯ ВОВСЕ, и это не мелочь.
@@ -1550,7 +1649,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? this.matrix.Energies[0]
                 : 0.0;
             carriers.RemoveAll(c => c.EnergyKev < lowestNode);
-            if (carriers.Count == 0)
+            bool anyCarrier = carriers.Count > 0;
+            foreach (KeyValuePair<int, List<Carrier>> entry in carriersOf)
+            {
+                entry.Value.RemoveAll(c => c.EnergyKev < lowestNode);
+                anyCarrier = anyCarrier || entry.Value.Count > 0;
+            }
+
+            if (!anyCarrier)
             {
                 return data.Pairs.Count > 0 ? data : null;
             }
@@ -1558,7 +1664,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Выходы носителей — в таблицу выходов ДО построения пар: обратная
             // условная считается через них, и на полпути их там быть уже
             // должно.
-            foreach (Carrier carrier in carriers)
+            foreach (Carrier carrier in AllCarriers(carriers, carriersOf))
             {
                 double had;
                 if (!Match(data.Intensity, carrier.EnergyKev, out had))
@@ -1588,6 +1694,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double delay = DelayOf(atomic, decayEnergy);
                 CascadeAtomicData.Phase[] phases = PhasesOf(atomic, decayEnergy);
+
+                // (`S145`) Носители — СВОЕЙ ветви этой гаммы.
+                CascadeAtomicData.Branch branch = atomic.BranchOfGamma(decayEnergy);
+                List<Carrier> own;
+                if (branch == null || !carriersOf.TryGetValue(branch.Z, out own))
+                {
+                    own = carriers;
+                }
                 if (delay < 0.0)
                 {
                     // Перехода в схеме не нашлось — времени вылета не знаем.
@@ -1602,10 +1716,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     ? PassProbability(phases, this.windowSec)
                     : (delay < this.windowSec ? 1.0 : 0.0);
 
-                foreach (Carrier carrier in carriers)
+                foreach (Carrier carrier in own)
                 {
                     double probability = carrier.FromVacancy
-                        ? carrier.Share * this.VacancyGiven(atomic, raw, decayEnergy, delay, phases)
+                        ? carrier.Share
+                          * this.VacancyGiven(atomic, branch, raw, decayEnergy, delay, phases)
                         : atomic.AnnihilationQuanta * inWindow;
                     if (!(probability > 0.0))
                     {
@@ -1656,13 +1771,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Аннигиляционная линия, кэВ.</summary>
         const double AnnihilationKev = 511.0;
 
+        /// <summary>Все носители — запасные и поветвевые, без повторов по энергии.</summary>
+        static IEnumerable<Carrier> AllCarriers(List<Carrier> fallback,
+                                                Dictionary<int, List<Carrier>> byBranch)
+        {
+            var seen = new HashSet<double>();
+            foreach (Carrier carrier in fallback)
+            {
+                if (seen.Add(carrier.EnergyKev))
+                {
+                    yield return carrier;
+                }
+            }
+
+            foreach (KeyValuePair<int, List<Carrier>> entry in byBranch)
+            {
+                foreach (Carrier carrier in entry.Value)
+                {
+                    if (seen.Add(carrier.EnergyKev))
+                    {
+                        yield return carrier;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Число K-вакансий, приходящееся на событие с гаммой `energyKev`, —
         /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
         /// </summary>
-        double VacancyGiven(CascadeAtomicData atomic, NuclideData raw,
+        double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch, NuclideData raw,
                             double energyKev, double delaySec, CascadeAtomicData.Phase[] phases)
         {
+            // (`S145`) Захватные вакансии и ω_K берутся У СВОЕЙ ВЕТВИ. Ветви нет
+            // (линия не нашлась ни в одной схеме) — прежние сводные поля.
+            double promptVacancy = branch != null ? branch.PromptVacancy : atomic.PromptVacancy;
+            double omegaK = branch != null ? branch.OmegaK : atomic.OmegaK;
             double vacancy = 0.0;
 
             // Захватная вакансия рождается в момент распада, значит от неё до
@@ -1671,7 +1815,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double prompt = this.withTimeProbability
                 ? PassProbability(phases, this.windowSec)
                 : (delaySec < this.windowSec ? 1.0 : 0.0);
-            vacancy += atomic.PromptVacancy * prompt;
+            vacancy += promptVacancy * prompt;
 
             foreach (double[] other in atomic.GammaIntensity)
             {
@@ -1683,6 +1827,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 CascadeAtomicData.Transition transition;
                 if (!atomic.Gammas.TryGetValue(other[0], out transition)
                     || !(transition.AlphaK > 0.0))
+                {
+                    continue;
+                }
+
+                // ⛔ ГАММА ЧУЖОЙ ВЕТВИ ПАРТНЁРОМ НЕ БЫВАЕТ (`S145`): у Eu-152
+                // линия схемы Gd-152 и линия схемы Sm-152 приходят из РАЗНЫХ
+                // событий распада и совпасть не могут ни при каком окне.
+                if (branch != null && transition.DaughterZ > 0
+                    && transition.DaughterZ != branch.Z)
                 {
                     continue;
                 }
@@ -1701,7 +1854,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                            * together;
             }
 
-            return vacancy * atomic.OmegaK;
+            return vacancy * omegaK;
         }
 
         /// <summary>

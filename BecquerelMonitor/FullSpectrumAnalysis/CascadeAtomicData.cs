@@ -92,6 +92,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int ToSeq;
 
             /// <summary>
+            /// Z ДОЧЕРНЕГО ЯДРА, в схеме которого найден этот переход (`S145`).
+            /// У родителя со смешанным распадом ветвей несколько, и гамма
+            /// принадлежит РОВНО ОДНОЙ из них: у Eu-152 линии 121.8 и 964.1 —
+            /// схема Sm-152 (захват), а 344.3 и 778.9 — схема Gd-152 (β⁻).
+            /// Без этого поля захватный рентген самария приписывался и гаммам
+            /// гадолиния, то есть совпадению, которого не бывает: это два
+            /// РАЗНЫХ события распада.
+            /// </summary>
+            public int DaughterZ;
+
+            /// <summary>
             /// Через сколько секунд после распада вылетает этот квант. Ноль —
             /// мгновенно. Считается ходом по схеме уровней, см.
             /// <see cref="Delays"/>.
@@ -122,7 +133,75 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public Phase[] EmitPhases;
         }
 
-        /// <summary>K-линии дочернего атома: энергия и выход, % на распад.</summary>
+        /// <summary>
+        /// ВЕТВЬ РАСПАДА: свой дочерний атом, свой выход флуоресценции, свои
+        /// K-линии и свой остаток захватных вакансий (`S145`).
+        ///
+        /// ⛔ Заведено потому, что прежде бралась ОДНА ветвь — сильнейшая по
+        /// `perc`, — и её захватные вакансии приписывались ВСЕМ гаммам
+        /// родителя. Для Eu-152 (Sm-152 72.08 % захватом и Gd-152 27.92 %
+        /// бета-минусом) это давало физически невозможные совпадения между
+        /// разными событиями распада, а K-линии обоих атомов лежали в одном
+        /// ведре под одним ω_K сильнейшего.
+        /// </summary>
+        public sealed class Branch
+        {
+            public string Nucid;
+            public int Z;
+            public int A;
+
+            /// <summary>Доля этой ветви, % (графа `perc` в `decay_chain`).</summary>
+            public double Perc;
+
+            /// <summary>Выход флуоресценции K ЭТОГО атома.</summary>
+            public double OmegaK;
+
+            /// <summary>K-линии ЭТОГО атома: энергия и выход, % на распад.</summary>
+            public List<double[]> KLines = new List<double[]>();
+
+            /// <summary>Суммарный выход <see cref="KLines"/>, %.</summary>
+            public double KIntensityPct;
+
+            /// <summary>Захватные вакансии ЭТОЙ ветви, на распад.</summary>
+            public double PromptVacancy;
+        }
+
+        /// <summary>
+        /// Все ветви распада родителя. Пусто — ветвей не нашлось; тогда работают
+        /// прежние сводные поля.
+        /// </summary>
+        public List<Branch> Branches = new List<Branch>();
+
+        /// <summary>
+        /// Ветвь, которой принадлежит гамма-линия (`S145`). Null — линии нет в
+        /// схеме ни одной ветви либо ветвей не нашлось вовсе; потребитель тогда
+        /// обязан вести себя как прежде, по сводным полям.
+        /// </summary>
+        public Branch BranchOfGamma(double energyKev)
+        {
+            Transition transition;
+            if (!this.Gammas.TryGetValue(energyKev, out transition) || transition.DaughterZ <= 0)
+            {
+                return null;
+            }
+
+            foreach (Branch branch in this.Branches)
+            {
+                if (branch.Z == transition.DaughterZ)
+                {
+                    return branch;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// K-линии дочернего атома: энергия и выход, % на распад.
+        ///
+        /// ⚠ Это СВОДНОЕ поле сильнейшей ветви — оставлено ради прежних
+        /// читателей (пробы). Поветвевые данные — в <see cref="Branches"/>.
+        /// </summary>
         public List<double[]> KLines = new List<double[]>();
 
         /// <summary>Выход флуоресценции K, доля.</summary>
@@ -369,7 +448,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             perc = 0.0;
                         }
 
-                        if (name != null && perc > best)
+                        if (name == null)
+                        {
+                            continue;
+                        }
+
+                        // (`S145`) Берутся ВСЕ ветви, а не одна сильнейшая.
+                        // Сильнейшая по-прежнему становится сводным `Daughter`
+                        // ради прежних читателей, но физика считается по каждой.
+                        int branchZ = ChargeOf(name);
+                        int branchA = MassOf(name);
+                        if (branchZ > 0 && branchA > 0)
+                        {
+                            data.Branches.Add(new Branch
+                            {
+                                Nucid = name,
+                                Z = branchZ,
+                                A = branchA,
+                                Perc = perc
+                            });
+                        }
+
+                        if (perc > best)
                         {
                             best = perc;
                             daughter = name;
@@ -411,46 +511,107 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
             data.OmegaK = fluorescence != null ? fluorescence.Omega(true) : 0.0;
 
-            // Схема уровней дочернего: коэффициенты конверсии и времена жизни.
-            List<Transition> scheme;
-            Dictionary<int, double> halfLife;
-            LoadScheme(z, mass, out scheme, out halfLife, notes);
-
-            double conversionVacancy = 0.0;
-            foreach (double[] line in gammaIntensity)
+            // Ветвей может не найтись вовсе (старые/неполные поставки) — тогда
+            // работает одна, собранная из сводных полей: поведение прежнее.
+            if (data.Branches.Count == 0)
             {
-                Transition match = MatchTransition(scheme, line[0]);
-                if (match == null)
+                data.Branches.Add(new Branch
+                {
+                    Nucid = daughter, Z = z, A = mass, Perc = 100.0
+                });
+            }
+
+            SplitKLines(data, notes);
+
+            // ⛔ ПО ВЕТВЯМ, А НЕ ПО ОДНОЙ (`S145`). У каждой своя схема уровней,
+            // свой ω_K, свои K-линии и свой остаток захватных вакансий. Гамма
+            // достаётся ТОЙ ветви, в схеме которой нашлась, и помечается её Z.
+            var halfLifeOf = new Dictionary<int, Dictionary<int, double>>();
+            foreach (Branch branch in data.Branches)
+            {
+                MaterialDatabase.Fluorescence bf = MaterialDatabase.FluorescenceOf(branch.Z);
+                branch.OmegaK = bf != null ? bf.Omega(true) : 0.0;
+
+                List<Transition> scheme;
+                Dictionary<int, double> halfLife;
+                LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes);
+                halfLifeOf[branch.Z] = halfLife;
+
+                double conversionVacancy = 0.0;
+                foreach (double[] line in gammaIntensity)
+                {
+                    if (data.Gammas.ContainsKey(line[0]))
+                    {
+                        // Линия уже разобрана более сильной ветвью: она может
+                        // принадлежать только одной.
+                        continue;
+                    }
+
+                    Transition match = MatchTransition(scheme, line[0]);
+                    if (match == null)
+                    {
+                        continue;
+                    }
+
+                    match.DaughterZ = branch.Z;
+                    data.Gammas[line[0]] = match;
+                    conversionVacancy += line[1] / 100.0 * match.AlphaK;
+                }
+
+                if (branch.OmegaK > 0.0)
+                {
+                    double total = branch.KIntensityPct / 100.0 / branch.OmegaK;
+                    double prompt = total - conversionVacancy;
+                    if (prompt < -0.02)
+                    {
+                        // Отрицательный остаток физически невозможен: вакансий от
+                        // конверсии не может быть больше, чем их всего. Значит
+                        // сопоставление взяло не тот переход — ровно та беда, что
+                        // описана в TODO D31. Говорим об этом вслух.
+                        notes.AppendFormat(CultureInfo.InvariantCulture,
+                            "{0}: остаток вакансий отрицателен ({1:F4}), сопоставление под подозрением; ",
+                            branch.Nucid, prompt);
+                    }
+
+                    branch.PromptVacancy = prompt > 0.0 ? prompt : 0.0;
+                }
+                else
+                {
+                    notes.Append("нет ω_K для Z="
+                                 + branch.Z.ToString(CultureInfo.InvariantCulture) + "; ");
+                }
+            }
+
+            // Задержки — ПО СВОЕЙ схеме у каждой ветви: номера уровней у разных
+            // ядер свои, и общий ход по ним смешал бы чужие пути (`A290`).
+            foreach (Branch branch in data.Branches)
+            {
+                Dictionary<int, double> halfLife;
+                if (!halfLifeOf.TryGetValue(branch.Z, out halfLife))
                 {
                     continue;
                 }
 
-                data.Gammas[line[0]] = match;
-                conversionVacancy += line[1] / 100.0 * match.AlphaK;
-            }
-
-            Delays(data.Gammas, halfLife);
-
-            if (data.OmegaK > 0.0)
-            {
-                double total = data.KIntensityPct / 100.0 / data.OmegaK;
-                double prompt = total - conversionVacancy;
-                if (prompt < -0.02)
+                var own = new Dictionary<double, Transition>();
+                foreach (KeyValuePair<double, Transition> pair in data.Gammas)
                 {
-                    // Отрицательный остаток физически невозможен: вакансий от
-                    // конверсии не может быть больше, чем их всего. Значит
-                    // сопоставление взяло не тот переход — ровно та беда, что
-                    // описана в TODO D31. Говорим об этом вслух.
-                    notes.AppendFormat(CultureInfo.InvariantCulture,
-                        "остаток вакансий отрицателен ({0:F4}), сопоставление под подозрением; ",
-                        prompt);
+                    if (pair.Value.DaughterZ == branch.Z)
+                    {
+                        own.Add(pair.Key, pair.Value);
+                    }
                 }
 
-                data.PromptVacancy = prompt > 0.0 ? prompt : 0.0;
+                Delays(own, halfLife);
             }
-            else
+
+            // Сводные поля — у сильнейшей ветви, ради прежних читателей.
+            foreach (Branch branch in data.Branches)
             {
-                notes.Append("нет ω_K для Z=" + z.ToString(CultureInfo.InvariantCulture) + "; ");
+                if (branch.Z == z)
+                {
+                    data.PromptVacancy = branch.PromptVacancy;
+                    break;
+                }
             }
 
             data.Note = notes.ToString();
@@ -511,6 +672,121 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// корпусе она точна — там у всех таких уровней путь один. Разбор по
         /// долям населённости — остаток, TODO S58.
         /// </summary>
+        /// <summary>
+        /// Развести K-линии между дочерними атомами ветвей (`S145`).
+        ///
+        /// ⛔ В поставке они лежат ОДНИМ ведром: у Eu-152 основная серия
+        /// самария около 39.5–46.6 кэВ, а строка 42.996 кэВ принадлежит
+        /// гадолинию, и прежний код применял ко всем один ω_K сильнейшего.
+        ///
+        /// ⛔ ПРАВИЛО «БЛИЖАЙШИЙ КРАЙ СВЕРХУ» НЕГОДНО, и это поймано своей же
+        /// пробой, а не рассуждением. K-линии ТЯЖЁЛОГО атома лежат НИЖЕ края
+        /// лёгкого: у Lu-176 (ветви Hf-176 и Yb-176) Kα гафния 55.8 кэВ стоит
+        /// ниже края иттербия 61.3, и правило отдавало гафниевый рентген
+        /// иттербию — баланс вакансий гафния уходил в минус. То есть первая
+        /// редакция чинила Eu-152 ценой поломки Lu-176.
+        ///
+        /// Годное правило — ДОЛЯ ОТ КРАЯ, и она устойчива по всей таблице:
+        /// Kα2 ≈ 0.844, Kα1 ≈ 0.855, Kβ1 ≈ 0.969 от K-края (мерено по Sm, Gd,
+        /// Hf, Yb — разброс в третьем знаке). Линия достаётся атому, у которого
+        /// она ближе всего к одной из этих трёх опор; линия выше края атому не
+        /// принадлежит в принципе и такой атом не рассматривается.
+        ///
+        /// Линия, которой не нашлось хозяина, остаётся у сильнейшей ветви, и
+        /// это НАЗЫВАЕТСЯ в примечании — молча приписывать её было бы тем же
+        /// дефектом в мелком масштабе.
+        /// </summary>
+        /// <summary>
+        /// Доли K-линий от K-края: Kα2, Kα1, Kβ1. Мерены по Sm, Gd, Hf, Yb —
+        /// разброс в третьем знаке, чего для разведения соседних атомов хватает
+        /// с запасом (соседи расходятся на единицы кэВ).
+        /// </summary>
+        static readonly double[] KLineShares = { 0.844, 0.855, 0.969 };
+
+        /// <summary>
+        /// Насколько близкими считать две опоры, чтобы решала доля ветви, кэВ.
+        /// </summary>
+        const double KLineTieKev = 0.30;
+
+        static void SplitKLines(CascadeAtomicData data, StringBuilder notes)
+        {
+            int homeless = 0;
+            Branch strongest = null;
+            foreach (Branch branch in data.Branches)
+            {
+                if (strongest == null || branch.Perc > strongest.Perc)
+                {
+                    strongest = branch;
+                }
+            }
+
+            foreach (double[] line in data.KLines)
+            {
+                Branch owner = null;
+                double bestAway = double.MaxValue;
+                foreach (Branch branch in data.Branches)
+                {
+                    // ⛔ ВЕТВЬ НУЛЕВОЙ ВЕРОЯТНОСТИ ХОЗЯИНОМ НЕ БЫВАЕТ, и это
+                    // тоже поймано пробой: у Mn-54 в `decay_chain` числится
+                    // ветвь 54FE с долей 0.00 %, и она забирала 3.05 % K-линий
+                    // хрома — захват падал 0.8913 → 0.7855 на пустом месте.
+                    if (!(branch.Perc > 0.0))
+                    {
+                        continue;
+                    }
+
+                    MaterialDatabase.Fluorescence f = MaterialDatabase.FluorescenceOf(branch.Z);
+                    if (f == null || !(f.KEdgeKev > line[0]))
+                    {
+                        continue;
+                    }
+
+                    foreach (double share in KLineShares)
+                    {
+                        double away = Math.Abs(line[0] - share * f.KEdgeKev);
+
+                        // Соседние Z дают опоры в единицах кэВ друг от друга, и
+                        // при почти равной близости решает ДОЛЯ ВЕТВИ: у Cr Kβ
+                        // (5.95) опоры хрома и железа расходятся на 0.1 кэВ, а
+                        // ветви — на порядки.
+                        bool better = away < bestAway - KLineTieKev
+                                      || (away < bestAway + KLineTieKev
+                                          && owner != null && branch.Perc > owner.Perc)
+                                      || owner == null;
+                        if (better && away < bestAway + KLineTieKev)
+                        {
+                            if (away < bestAway)
+                            {
+                                bestAway = away;
+                            }
+
+                            owner = branch;
+                        }
+                    }
+                }
+
+                if (owner == null)
+                {
+                    owner = strongest;
+                    homeless++;
+                }
+
+                if (owner == null)
+                {
+                    continue;
+                }
+
+                owner.KLines.Add(line);
+                owner.KIntensityPct += line[1];
+            }
+
+            if (homeless > 0 && data.Branches.Count > 1)
+            {
+                notes.AppendFormat(CultureInfo.InvariantCulture,
+                    "K-линий без своего края {0}, отданы сильнейшей ветви; ", homeless);
+            }
+        }
+
         static readonly Phase[] EmptyLives = new Phase[0];
 
         static void Delays(Dictionary<double, Transition> gammas, Dictionary<int, double> halfLife)
