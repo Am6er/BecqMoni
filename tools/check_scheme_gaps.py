@@ -46,9 +46,9 @@ SECTION = re.compile(r"^##\s+9а\.")
 NEXT_SECTION = re.compile(r"^##\s+(?!#)")
 GAP_ROW = re.compile(r"^\|\s*\**\s*([A-F])-(\d{1,2})\s*\**\s*\|(.*)$")
 # Ссылка на задачу, названная ссылкой: «TODO M1», «(D11)», «~~F24~~».
-REFS = (re.compile(r"TODO\s+`?([A-Z]{1,2}\d{1,3})`?"),
-        re.compile(r"~~([A-Z]{1,2}\d{1,3})~~"),
-        re.compile(r"\(`?([A-Z]{1,2}\d{1,3})`?\)"))
+REFS = (re.compile(r"TODO\s+`?([A-Z]{1,5}\d{1,3})`?"),
+        re.compile(r"~~([A-Z]{1,5}\d{1,3})~~"),
+        re.compile(r"\(`?([A-Z]{1,5}\d{1,3})`?\)"))
 CLOSED = u"✔"
 NOTDO = u"⛔"       # решено НЕ делать; причина — в «Чего делать НЕ надо» TODO.md
 
