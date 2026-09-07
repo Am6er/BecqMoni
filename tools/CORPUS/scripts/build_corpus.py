@@ -1135,7 +1135,20 @@ def legacy_manifest(entries):
         fw = (100 * float(np.sqrt(max(res[0] + res[1] * 662.0 + res[2] * 662.0 ** 2, 1e-9))) / 662.0
               if res else None)
         rd = ET.parse(path).getroot().find('ResultDataList/ResultData')
-        has_bg = rd.find('BackgroundEnergySpectrum') is not None
+        bg_el = rd.find('BackgroundEnergySpectrum')
+        has_bg = bg_el is not None
+        # ⛔ Графа `bg_ecal_mode` была ЖЁСТКО «как передний план» и с 07.09.2026
+        # это стало неправдой: у `AS80_Charoite` фон держит СВОЮ шкалу (`A278`,
+        # `bg_ecal` в `data/calibration.json`). Спрашиваем сам файл, а не
+        # посылку о нём.
+        bg_mode = '-'
+        if has_bg:
+            def _coef(el):
+                c = el.find('EnergyCalibration/Coefficients')
+                return None if c is None else [x.text for x in c]
+            bg_mode = ('как передний план'
+                       if _coef(bg_el) == _coef(rd.find('EnergySpectrum'))
+                       else 'своя шкала')
         rows.append(dict(
             key=e['key'], det=e['det'], channels=sp.n, live=round(sp.live, 1),
             counts=int(sp.counts.sum()),
@@ -1148,7 +1161,7 @@ def legacy_manifest(entries):
             ecal_mode=c.get('mode', '?'), ecal_lines=c.get('n_lines', ''),
             ecal_rms_kev=round(c['rms'], 2) if 'rms' in c else '',
             ecal_rms_fwhm='',
-            bg_ecal_mode='как передний план' if has_bg else '-',
+            bg_ecal_mode=bg_mode,
             fwhm_662_pct=round(fw, 2) if fw else '',
             source=os.path.relpath(resolve(e['path']), corpus_def.LIB),
             result_data=0, why=e['why']))
