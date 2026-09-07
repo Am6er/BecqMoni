@@ -42,7 +42,13 @@ SCORE = os.path.join(HERE, 'score.py')
 
 GRID = [0.10, 0.20, 0.30, 0.50, 0.75, 1.00, 1.50, 2.00, 3.00, 4.00, 5.00, 7.00, 10.00]
 
-TOTAL = re.compile(r'^итого\s+(\d+)\s+(\d+)%\s+(\d+)\s+\(\+(\d+) комнатных\)')
+#: ⛔ Графа «подавлен» появилась в итоговой строке `score.py` с `S95`
+#: (24.08.2026), а здесь её не было — и разбор ПЕРЕСТАЛ СОВПАДАТЬ МОЛЧА:
+#: `run()` возвращал нули по всем графам, развёртка печатала колонку нулей, а
+#: правило выбора «самый низкий порог с наименьшим числом фантомов» брало
+#: первый порог сетки ВСЕГДА. Ни отказа, ни предупреждения. Поймано 07.09.2026
+#: (`A279`, полоса П30) при обходе читателей вывода `score.py`.
+TOTAL = re.compile(r'^итого\s+(\d+)\s+(\d+)%\s+(\d+)\s+(\d+)\s+\(\+(\d+) комнатных\)')
 RESID = re.compile(r'model residual медиана\s+([0-9.]+)')
 
 
@@ -53,15 +59,26 @@ def run(out_dir, mode, part, sthr, zthr, members):
         cmd.append('--members')
     p = subprocess.run(cmd, capture_output=True)
     text = p.stdout.decode('utf-8', 'replace')
-    row = dict(spectra=0, recall=0, phantom=0, room=0, residual=float('nan'))
+    row = dict(spectra=0, recall=0, phantom=0, room=0, suppressed=0,
+               residual=float('nan'))
+    seen = False
     for line in text.splitlines():
         m = TOTAL.match(line.strip())
         if m:
+            seen = True
             row.update(spectra=int(m.group(1)), recall=int(m.group(2)),
-                       phantom=int(m.group(3)), room=int(m.group(4)))
+                       phantom=int(m.group(3)), suppressed=int(m.group(4)),
+                       room=int(m.group(5)))
         m = RESID.search(line)
         if m:
             row['residual'] = float(m.group(1))
+    if not seen:
+        # ⛔ Не молчать. Прежде несовпадение разбора давало колонку нулей,
+        # неотличимую от честного «фантомов нет», и правило выбора порога
+        # брало по ней первый порог сетки.
+        sys.exit(u'sweep_sthr: итоговая строка score.py НЕ РАЗОБРАНА '
+                 u'(порог %.2f, часть %s). Формат строки изменился — чинить '
+                 u'TOTAL, а не считать нули.\n%s' % (sthr, part, text[-800:]))
     return row
 
 

@@ -127,8 +127,8 @@ legacy,ASN16,ASN16_UGlass,scripts\spectra\ASN16_UGlass.xml,a30e54c8d376014db98c5
 legacy,ASN16,ASN16_Granite,scripts\spectra\ASN16_Granite.xml,20d946761d38d28293865b903416de0a8788c3989e0074e716fd98ca55f3972c,611741,0,,,,,
 legacy,AS80x80,AS80_Th232_v2,scripts\spectra\AS80_Th232_v2.xml,3b3c7a91e6040bb992c2ec6a711778c6b3e4ec1a24b12420837c8fb7f9a8de12,625915,0,,,,,
 legacy,AS80x80,AS80_UGlass,scripts\spectra\AS80_UGlass.xml,16df180a54f2faba9edb4c32559c985654d8592efad2158b2353b0a3194ddb05,622940,0,,,,,
-legacy,AS80x80,AS80_Charoite,scripts\spectra\AS80_Charoite.xml,22c32cbc5fb38968d19d85ea412663b04735bd9b2daa4c7fa01d46acd3299f2e,615632,0,,,,,
-data,,,data/calibration.json,47ac07c2b4b27e3a995c5fcf39f1a1edc2ec9d4051781f099f3b42d7746f81d7,4327,,,,,,
+legacy,AS80x80,AS80_Charoite,scripts\spectra\AS80_Charoite.xml,268afad82150174c55b6049d9cb1ee2219109a713af4f60c2ad8405ffaca9c21,615632,0,,,,,
+data,,,data/calibration.json,6b1beb4098aa598cd0c4f048deb1fd6c790dd599449c19b1af48fcf2559b5508,5226,,,,,,
 group,AS1PRO,,точки модели разрешения,2f94de80b7ef57e5b3540f3ffc0a2540b59ad1e7daa3bd52f3fb14fe89a5e694,,,,,,5,0.0;2.2825923284550456;0.0016313332495599634
 group,AS80x80,,точки модели разрешения,5488184f274be6dc022f1d656a0782546aced1acd5353d81cb1d50fc9d175c7a,,,,,,26,0.0;6.543502823333523;-0.0013980325198824778
 group,ASN16,,точки модели разрешения,faa6ed8f2a66743463decd204bb5ef2bcf12ed9b00ab252ecc3bc06aef4ca777,,,,,,40,0.0;1.885475380438514;0.000580793322304259

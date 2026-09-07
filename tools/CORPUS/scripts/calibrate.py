@@ -408,35 +408,49 @@ def fwhm_channel_coef(ecal, res_fn, nmax):
     return np.array([0.0, k, 0.0])
 
 
-def write_spectrum(entry, ecal_coef, fwhm_coef, peak_type=0, left=1.0, right=1.0):
+def write_spectrum(entry, ecal_coef, fwhm_coef, peak_type=0, left=1.0, right=1.0,
+                   bg_ecal_coef=None):
     tree = ET.parse(entry['path'])
     root = tree.getroot()
     rd = root.find('ResultDataList/ResultData')
     guid_el = rd.find('DeviceConfigReference/Guid')
     if guid_el is not None and guid_el.text in GUID_FIX:
         guid_el.text = GUID_FIX[guid_el.text]
-    def apply_ecal(spectrum_element):
+    def apply_ecal(spectrum_element, coef):
         cal = spectrum_element.find('EnergyCalibration')
         if cal is None:
             return
         order = cal.find('PolynomialOrder')
         if order is not None:
-            order.text = str(len(ecal_coef) - 1)
+            order.text = str(len(coef) - 1)
         coefs = cal.find('Coefficients')
         for child in list(coefs):
             coefs.remove(child)
-        for c in ecal_coef:
+        for c in coef:
             ET.SubElement(coefs, 'Coefficient').text = repr(float(c))
 
     es = rd.find('EnergySpectrum')
-    apply_ecal(es)
+    apply_ecal(es, ecal_coef)
     # The 28.08.2025 files carry a measured background whose stored calibration
     # is identical to the foreground's. Recalibrating only the foreground would
     # leave the two on different scales, and BuildFixedBackground would then map
     # background channels through the stale polynomial.
+    #
+    # ⛔ ОГОВОРКА, ИЗМЕРЕННАЯ 07.09.2026 (`A278`, полоса П29). «Одна и та же
+    # шкала» — это ПОСЫЛКА о том, что фон снят при том же усилении, и она
+    # проверяема: комнатный фон даёт большу́ю часть отсчётов самого переднего
+    # плана, значит одни и те же линии стоят в обеих гистограммах, и отношение
+    # их каналов — прямая мера ухода усиления между съёмками. У
+    # `AS80_Charoite` (передний план 1584 с, встроенный фон 192 ks) это
+    # отношение вышло **1.0333**, то есть посылка ЛОЖНА: уехал передний план, а
+    # фон стоит на той шкале, которую файл и хранит. Замер — `xcorr.py`,
+    # разбор — `handover/handover-2026-09-07-p29-recal-charoite.md`.
+    #
+    # Поэтому у фона появилась СВОЯ калибровка (`bg_ecal` в
+    # `data/calibration.json`). Без ключа поведение прежнее — обе шкалы одни.
     background = rd.find('BackgroundEnergySpectrum')
     if background is not None:
-        apply_ecal(background)
+        apply_ecal(background, bg_ecal_coef if bg_ecal_coef else ecal_coef)
     lt = es.find('LiveTime')
     if lt is None or not (lt.text or '').strip():
         if lt is None:
