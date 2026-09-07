@@ -213,6 +213,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public Dictionary<double, double> BetaPlusOfGamma =
                 new Dictionary<double, double>();
+
+            /// <summary>
+            /// Уровни, достижимые СВЕРХУ ВНИЗ из каждого уровня схемы (`S158`).
+            /// Транзитивное замыкание переходов ветви: ключ — уровень, значение
+            /// — всё, куда из него можно спуститься за любое число шагов.
+            ///
+            /// ⛔ ЗАЧЕМ. Ядро снимает возбуждение ОДНИМ путём вниз. Два перехода
+            /// происходят в одном событии, только если один лежит НА ПУТИ
+            /// другого; иначе они взаимоисключающие, и условная вероятность
+            /// одного при другом равна НУЛЮ — не «мала», а точно нулю. Схема
+            /// это знает, и `Conditional` обязан её спрашивать.
+            /// </summary>
+            public Dictionary<int, HashSet<int>> Downstream =
+                new Dictionary<int, HashSet<int>>();
+
+            /// <summary>
+            /// Лежит ли уровень `to` ниже `from` по схеме (или это он и есть).
+            /// Пустая карта — судить нечем, и ответ ДА: молчаливый ноль там, где
+            /// схемы просто не нашлось, был бы хуже прежнего приближения.
+            /// </summary>
+            public bool Reaches(int from, int to)
+            {
+                if (this.Downstream.Count == 0)
+                {
+                    return true;
+                }
+
+                if (from == to)
+                {
+                    return true;
+                }
+
+                HashSet<int> below;
+                return this.Downstream.TryGetValue(from, out below) && below.Contains(to);
+            }
         }
 
         /// <summary>
@@ -714,6 +749,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Dictionary<int, double> halfLife;
                 LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes);
                 halfLifeOf[index] = halfLife;
+                branch.Downstream = BuildDownstream(scheme);
 
                 double conversionVacancy = 0.0;
                 for (int line = 0; line < gammaIntensity.Count; line++)
@@ -1561,6 +1597,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     branch.BetaPlusOfGamma[energyKev] = share;
                 }
             }
+        }
+
+        /// <summary>
+        /// Транзитивное замыкание схемы вниз (`S158`): из какого уровня куда
+        /// можно спуститься. Считается один раз на ветвь, обходом в глубину с
+        /// запоминанием.
+        ///
+        /// ⚠ Схема — направленный граф БЕЗ циклов по построению (переход всегда
+        /// сбрасывает энергию), но защита от повторного входа стоит: битая
+        /// поставка с петлёй иначе увела бы обход в бесконечность.
+        /// </summary>
+        static Dictionary<int, HashSet<int>> BuildDownstream(List<Transition> scheme)
+        {
+            var closure = new Dictionary<int, HashSet<int>>();
+            if (scheme == null || scheme.Count == 0)
+            {
+                return closure;
+            }
+
+            var next = new Dictionary<int, List<int>>();
+            foreach (Transition transition in scheme)
+            {
+                List<int> bag;
+                if (!next.TryGetValue(transition.FromSeq, out bag))
+                {
+                    next[transition.FromSeq] = bag = new List<int>();
+                }
+
+                if (!bag.Contains(transition.ToSeq))
+                {
+                    bag.Add(transition.ToSeq);
+                }
+            }
+
+            foreach (KeyValuePair<int, List<int>> entry in next)
+            {
+                if (!closure.ContainsKey(entry.Key))
+                {
+                    Descend(entry.Key, next, closure, new HashSet<int>());
+                }
+            }
+
+            return closure;
+        }
+
+        static HashSet<int> Descend(int level, Dictionary<int, List<int>> next,
+                                    Dictionary<int, HashSet<int>> closure, HashSet<int> path)
+        {
+            HashSet<int> known;
+            if (closure.TryGetValue(level, out known))
+            {
+                return known;
+            }
+
+            var below = new HashSet<int>();
+            if (!path.Add(level))
+            {
+                // Петля в поставке: дальше не идём, но и молчать не будем —
+                // пустое множество здесь честнее бесконечного обхода.
+                return below;
+            }
+
+            List<int> children;
+            if (next.TryGetValue(level, out children))
+            {
+                foreach (int child in children)
+                {
+                    below.Add(child);
+                    below.UnionWith(Descend(child, next, closure, path));
+                }
+            }
+
+            path.Remove(level);
+            closure[level] = below;
+            return below;
         }
 
         static void LoadScheme(int z, int a, out List<Transition> scheme,

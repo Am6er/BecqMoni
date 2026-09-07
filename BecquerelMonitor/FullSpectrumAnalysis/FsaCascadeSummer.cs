@@ -1944,6 +1944,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 : (delaySec < this.windowSec ? 1.0 : 0.0);
             vacancy += promptVacancy * prompt;
 
+            // (`S158`) Переход САМОЙ этой гаммы — чтобы спросить схему, может ли
+            // другой переход случиться в том же событии. Не нашёлся (линии нет в
+            // схеме) — судить нечем, и запасной ход остаётся прежним.
+            CascadeAtomicData.Transition mine;
+            if (!atomic.Gammas.TryGetValue(energyKev, out mine))
+            {
+                mine = null;
+            }
+
             foreach (double[] other in atomic.GammaIntensity)
             {
                 if (Math.Abs(other[0] - energyKev) < SamePairLineKev)
@@ -1977,8 +1986,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                vacancy += Conditional(atomic, raw, energyKev, other[0]) * transition.AlphaK
-                           * together;
+                vacancy += Conditional(atomic, raw, energyKev, other[0], branch, mine, transition)
+                           * transition.AlphaK * together;
             }
 
             return vacancy * omegaK;
@@ -1987,14 +1996,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// P(γ_other | γ_energy) — из поставки совпадений, если пара там есть.
         ///
-        /// Пары нет — берём безусловный выход другой линии. Это НЕ уклонение:
-        /// у нуклида с одной гаммой других слагаемых не бывает вовсе, а у
-        /// многогаммового отсечка поставки (обе линии ≥0.1 %, доля ≥0.1 %)
-        /// отбрасывает как раз слабые пары, где приближение независимости
-        /// стоит меньше самого слагаемого.
+        /// ⛔ ПАРЫ НЕТ — ЭТО ДВА РАЗНЫХ СЛУЧАЯ, И ПРЕЖДЕ ОНИ БЫЛИ СЛИТЫ
+        /// (`S158`). Отсечка поставки (обе линии ≥0.1 %, доля ≥0.1 %) выбрасывает
+        /// слабые пары — там безусловный выход разумное приближение. Но строки
+        /// нет и у пары, которой НЕ БЫВАЕТ: ядро снимает возбуждение ОДНИМ
+        /// путём вниз, и два перехода вне общего пути в одном событии не
+        /// происходят никогда. Условная там не «мала», а ТОЧНО НОЛЬ, и схема
+        /// уровней это знает.
+        ///
+        /// Поставочный контрпример, дошедший до корпуса, — `133BA`. Из уровня 4
+        /// выходят альтернативы 356.013 (4→1), 53.162 (4→3) и 276.399 (4→2).
+        /// Строки `356↔53` в `v_gamma_coincidence` нет — и правильно, — а
+        /// каскадные `53↔302.853` (0.638) и `53↔383.848` (0.311) есть, то есть
+        /// поставка сама по себе верна. Прежний запасной ход подставлял выход
+        /// 53.162 (2.140725 %) и при `α_K = 4.783` с `ω_K = 0.894` добавлял
+        /// **0.0945 ложного K-кванта** на событие 356 кэВ — 16 % честного
+        /// захватного члена.
+        ///
+        /// ⚠ Мерка сплошной сверкой поставки: пар с ОДНИМ `from_seq` (прямые
+        /// альтернативы) — 22 662, а пар БЕЗ ОБЩЕГО ПУТИ вовсе — **477 755**,
+        /// то есть отбор по одному `from_seq` закрыл бы около 5 % доказуемых
+        /// нулей. Поэтому судит достижимость, а не совпадение номера уровня
+        /// (решение Amber 07.09.2026, вопросником).
+        ///
+        /// ⚠ Что ОСТАЛОСЬ приближением: там, где общий путь ЕСТЬ, а строки
+        /// совпадения нет, по-прежнему берётся безусловный выход. Это прежняя
+        /// названная договорённость, и `S158` её не отменяет.
         /// </summary>
         static double Conditional(CascadeAtomicData atomic, NuclideData raw,
-                                  double energyKev, double otherKev)
+                                  double energyKev, double otherKev,
+                                  CascadeAtomicData.Branch branch,
+                                  CascadeAtomicData.Transition mine,
+                                  CascadeAtomicData.Transition other)
         {
             if (raw != null)
             {
@@ -2015,6 +2048,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ ЗДЕСЬ РАЗВОДЯТСЯ ДВА «ПАРЫ НЕТ» (`S158`).
+            if (!CanCoexist(branch, mine, other))
+            {
+                return 0.0;
+            }
+
             foreach (double[] line in atomic.GammaIntensity)
             {
                 if (Math.Abs(line[0] - otherKev) < SamePairLineKev)
@@ -2024,6 +2063,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return 0.0;
+        }
+
+        /// <summary>
+        /// Могут ли два перехода случиться в ОДНОМ событии распада (`S158`).
+        ///
+        /// Могут ровно тогда, когда один лежит на пути другого: либо конец
+        /// первого достижим сверху до начала второго, либо наоборот. Прямые
+        /// альтернативы из одного уровня — частный случай: у них `FromSeq`
+        /// совпадает, ни один не ведёт к началу другого, и ответ НЕТ.
+        ///
+        /// ⚠ Не знаем — отвечаем ДА. Нет ветви, нет перехода у одной из линий,
+        /// пуста карта достижимости (схемы не нашлось) — судить нечем, и
+        /// молчаливый ноль был бы хуже прежнего приближения: он выключил бы
+        /// поправку там, где про неё просто ничего не известно.
+        /// </summary>
+        static bool CanCoexist(CascadeAtomicData.Branch branch,
+                               CascadeAtomicData.Transition mine,
+                               CascadeAtomicData.Transition other)
+        {
+            if (branch == null || mine == null || other == null)
+            {
+                return true;
+            }
+
+            return branch.Reaches(mine.ToSeq, other.FromSeq)
+                   || branch.Reaches(other.ToSeq, mine.FromSeq);
         }
 
 
