@@ -61,6 +61,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     public sealed class CascadeAtomicData
     {
         /// <summary>
+        /// Задерживающий уровень на пути кванта: КТО задержал и НАСКОЛЬКО
+        /// (`A290`). Пара неразделима — период без уровня не даёт сказать,
+        /// одна это задержка у двух квантов или две независимые.
+        /// </summary>
+        public struct Phase
+        {
+            /// <summary>Номер уровня в схеме — тождество, а не мера.</summary>
+            public int Seq;
+
+            /// <summary>Период полураспада этого уровня, секунды.</summary>
+            public double HalfLifeSec;
+        }
+
+        /// <summary>
         /// Переход, сопоставленный гамма-линии распада: чем он конвертирует и
         /// откуда идёт. Уровни нужны для гейта по времени.
         /// </summary>
@@ -85,21 +99,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// ⚠ Это СУММА ПЕРИОДОВ ПОЛУРАСПАДА по пути, а не время события:
             /// время жизни уровня распределено экспоненциально, и потребителю,
             /// которому нужна вероятность уложиться в окно, нужны сами периоды
-            /// (<see cref="EmitHalfLives"/>), а не их сумма (`A289`).
+            /// (<see cref="EmitPhases"/>), а не их сумма (`A289`).
             /// </summary>
             public double EmitDelaySec;
 
             /// <summary>
-            /// Периоды полураспада уровней НА ПУТИ этого кванта, секунды, от
-            /// распада вниз — по одному на уровень, что задержал каскад.
-            /// Пусто — путь мгновенный.
+            /// Уровни НА ПУТИ этого кванта, от распада вниз — по одному на
+            /// уровень, что задержал каскад. Пусто — путь мгновенный.
             ///
             /// Хранятся ПОШТУЧНО нарочно (`A289`): вероятность уложиться в окно
             /// у суммы экспонент не выводится из суммы их периодов, а
             /// требует свёртки распределений. Кто складывает — тот получает
             /// ступеньку 100→0 % около окна прибора вместо плавного перехода.
+            ///
+            /// ⛔ И НОМЕР УРОВНЯ ЗДЕСЬ НЕ УКРАШЕНИЕ (`A290`). Потребителю нужно
+            /// знать, ОДИН ЛИ ЭТО уровень у двух квантов, а по одному лишь
+            /// периоду это неразличимо: у разных уровней разных ветвей периоды
+            /// совпадают (в `schemedb` таких пар хватает — `Au-183` seq 4 и 8
+            /// по 1 мкс). Сокращать общий путь по равенству ЧИСЕЛ значит
+            /// объявлять две независимые задержки одной и той же.
             /// </summary>
-            public double[] EmitHalfLives;
+            public Phase[] EmitPhases;
         }
 
         /// <summary>K-линии дочернего атома: энергия и выход, % на распад.</summary>
@@ -491,7 +511,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// корпусе она точна — там у всех таких уровней путь один. Разбор по
         /// долям населённости — остаток, TODO S58.
         /// </summary>
-        static readonly double[] EmptyLives = new double[0];
+        static readonly Phase[] EmptyLives = new Phase[0];
 
         static void Delays(Dictionary<double, Transition> gammas, Dictionary<int, double> halfLife)
         {
@@ -512,7 +532,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`A289`) Тот же ход, но копится ещё и СПИСОК периодов пути:
             // выбор «позднее из двух» у обоих один, иначе список отвечал бы за
             // один путь, а сумма — за другой.
-            var arrivalLives = new Dictionary<int, double[]>();
+            var arrivalLives = new Dictionary<int, Phase[]>();
             foreach (int level in levels)
             {
                 double came;
@@ -521,7 +541,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     came = 0.0;
                 }
 
-                double[] cameLives;
+                Phase[] cameLives;
                 if (!arrivalLives.TryGetValue(level, out cameLives))
                 {
                     cameLives = EmptyLives;
@@ -534,12 +554,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double emitted = came + life;
-                double[] lives = cameLives;
+                Phase[] lives = cameLives;
                 if (life > 0.0)
                 {
-                    lives = new double[cameLives.Length + 1];
+                    lives = new Phase[cameLives.Length + 1];
                     Array.Copy(cameLives, lives, cameLives.Length);
-                    lives[cameLives.Length] = life;
+                    lives[cameLives.Length] = new Phase { Seq = level, HalfLifeSec = life };
                 }
 
                 foreach (Transition transition in gammas.Values)
@@ -550,7 +570,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     transition.EmitDelaySec = emitted;
-                    transition.EmitHalfLives = lives;
+                    transition.EmitPhases = lives;
                     double have;
                     if (!arrival.TryGetValue(transition.ToSeq, out have) || emitted > have)
                     {

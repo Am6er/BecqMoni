@@ -1587,7 +1587,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double delay = DelayOf(atomic, decayEnergy);
-                double[] phases = PhasesOf(atomic, decayEnergy);
+                CascadeAtomicData.Phase[] phases = PhasesOf(atomic, decayEnergy);
                 if (delay < 0.0)
                 {
                     // Перехода в схеме не нашлось — времени вылета не знаем.
@@ -1661,7 +1661,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// формула из шапки <see cref="Augment"/>, уже с гейтом по времени.
         /// </summary>
         double VacancyGiven(CascadeAtomicData atomic, NuclideData raw,
-                            double energyKev, double delaySec, double[] phases)
+                            double energyKev, double delaySec, CascadeAtomicData.Phase[] phases)
         {
             double vacancy = 0.0;
 
@@ -1690,7 +1690,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`A289`) Гейт по РАЗНОСТИ времён вылета двух квантов одного
                 // каскада. Выключен ключ — прежняя ступенька.
                 double together = this.withTimeProbability
-                    ? PairProbability(phases, transition.EmitHalfLives, this.windowSec)
+                    ? PairProbability(phases, transition.EmitPhases, this.windowSec)
                     : (Math.Abs(transition.EmitDelaySec - delaySec) < this.windowSec ? 1.0 : 0.0);
                 if (!(together > 0.0))
                 {
@@ -1748,7 +1748,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
 
         /// <summary>Пустой путь — общая ссылка, чтобы не плодить массивов.</summary>
-        static readonly double[] NoPhases = new double[0];
+        static readonly CascadeAtomicData.Phase[] NoPhases = new CascadeAtomicData.Phase[0];
 
         /// <summary>
         /// Во сколько раз период полураспада должен быть КОРОЧЕ окна, чтобы
@@ -1792,7 +1792,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разность двух почти равных чисел съедает всю точность. Здесь
         /// вычитания нет вовсе.
         /// </summary>
-        static double PassProbability(double[] halfLives, double t)
+        static double PassProbability(CascadeAtomicData.Phase[] halfLives, double t)
         {
             if (!(t > 0.0))
             {
@@ -1807,8 +1807,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double ln2 = Math.Log(2.0);
             List<double> rates = new List<double>(halfLives.Length);
             double top = 0.0;
-            foreach (double half in halfLives)
+            foreach (CascadeAtomicData.Phase phase in halfLives)
             {
+                double half = phase.HalfLifeSec;
                 if (!(half > 0.0) || half * PromptPhaseRatio < t)
                 {
                     // Мгновенный для этого окна уровень — см. PromptPhaseRatio.
@@ -1883,27 +1884,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// лежит над другим. Общая приставка в разности сокращается ТОЧНО (это
         /// одни и те же уровни одного и того же распада, а не две одинаково
         /// распределённых величины), поэтому она снимается, и остаётся ровно
-        /// то, что кванты разводит. Мерено 07.09.2026 по схемам дочерних ядер
-        /// 23 корпусных нуклидов: из 246 467 пар переходов приставкой оказались
-        /// 246 352, то есть 99.95 %.
+        /// то, что кванты разводит. ⚠ Доля общих приставок ПЕРЕСЧИТАНА по
+        /// номерам уровней (`A290`): прежние 99.95 % были получены сравнением
+        /// периодов и потому завышены — числа в журнале захода.
         ///
         /// Оставшиеся 0.05 % — ветвление, когда кванты идут разными ветвями
         /// после общего предка. Остатки их независимы, и доля считается
         /// разбиением по одному из них (<see cref="BranchProbability"/>).
         /// </summary>
-        static double PairProbability(double[] first, double[] second, double t)
+        static double PairProbability(CascadeAtomicData.Phase[] first, CascadeAtomicData.Phase[] second, double t)
         {
-            double[] a = first ?? NoPhases;
-            double[] b = second ?? NoPhases;
+            CascadeAtomicData.Phase[] a = first ?? NoPhases;
+            CascadeAtomicData.Phase[] b = second ?? NoPhases;
 
+            // ⛔ СОКРАЩАЕТСЯ ТОЛЬКО ОДИН И ТОТ ЖЕ УРОВЕНЬ (`A290`), поэтому
+            // сверяется `Seq`, а не период. Равные периоды тождества НЕ
+            // доказывают: у разных уровней разных ветвей они совпадают (в
+            // `schemedb` — `Au-183` seq 4 и 8 по 1 мкс, `Pm-141` seq 49 и 51
+            // по 2 мкс), и сокращение по ЧИСЛУ объявляло бы две НЕЗАВИСИМЫЕ
+            // задержки одной и той же. Цена измерена: два независимых уровня
+            // с T½ = окно давали 1 вместо верных 0.5.
             int common = 0;
-            while (common < a.Length && common < b.Length && a[common] == b[common])
+            while (common < a.Length && common < b.Length
+                   && a[common].Seq == b[common].Seq)
             {
                 common++;
             }
 
-            double[] restA = Suffix(a, common);
-            double[] restB = Suffix(b, common);
+            CascadeAtomicData.Phase[] restA = Suffix(a, common);
+            CascadeAtomicData.Phase[] restB = Suffix(b, common);
             if (restA.Length == 0)
             {
                 return PassProbability(restB, t);
@@ -1917,14 +1926,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return BranchProbability(restA, restB, t);
         }
 
-        static double[] Suffix(double[] source, int from)
+        static CascadeAtomicData.Phase[] Suffix(CascadeAtomicData.Phase[] source, int from)
         {
             if (from >= source.Length)
             {
                 return NoPhases;
             }
 
-            double[] rest = new double[source.Length - from];
+            CascadeAtomicData.Phase[] rest = new CascadeAtomicData.Phase[source.Length - from];
             Array.Copy(source, from, rest, 0, rest.Length);
             return rest;
         }
@@ -1942,7 +1951,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// то есть 0.0005 %. На 128 ячейках было 1.1e-4, и это единственная
         /// причина, по которой их 1024.
         /// </summary>
-        static double BranchProbability(double[] a, double[] b, double t)
+        static double BranchProbability(CascadeAtomicData.Phase[] a, CascadeAtomicData.Phase[] b, double t)
         {
             const int Cells = 1024;
             const double Tail = 1.0E-6;
@@ -1981,14 +1990,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Время, к которому уложилась доля `level` — делением пополам.</summary>
-        static double Quantile(double[] halfLives, double level)
+        static double Quantile(CascadeAtomicData.Phase[] halfLives, double level)
         {
             double high = 0.0;
-            foreach (double half in halfLives)
+            foreach (CascadeAtomicData.Phase phase in halfLives)
             {
-                if (half > 0.0)
+                if (phase.HalfLifeSec > 0.0)
                 {
-                    high += half;
+                    high += phase.HalfLifeSec;
                 }
             }
 
@@ -2036,13 +2045,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// означают одно и то же — «задержки не знаем, считаем мгновенным», и
         /// это та же осторожная сторона, что у <see cref="DelayOf"/>.
         /// </summary>
-        static double[] PhasesOf(CascadeAtomicData atomic, double energyKev)
+        static CascadeAtomicData.Phase[] PhasesOf(CascadeAtomicData atomic, double energyKev)
         {
             CascadeAtomicData.Transition transition;
             if (atomic.Gammas.TryGetValue(energyKev, out transition)
-                && transition.EmitHalfLives != null)
+                && transition.EmitPhases != null)
             {
-                return transition.EmitHalfLives;
+                return transition.EmitPhases;
             }
 
             return NoPhases;
