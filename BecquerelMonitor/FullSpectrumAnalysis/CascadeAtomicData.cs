@@ -180,6 +180,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>Захватные вакансии ЭТОЙ ветви, на распад.</summary>
             public double PromptVacancy;
+
+            /// <summary>
+            /// Доля событий ЭТОЙ ветви, в которых вылетел позитрон (`S150`).
+            ///
+            /// Считается как `Σ B+ по своему dec_type / Perc`, то есть условно
+            /// ПРИ СОБЫТИИ ВЕТВИ, а не на распад родителя. Прежде на всё шёл
+            /// маргинальный выход `2·B+/100`, и у Eu-152 гамма ветви Sm
+            /// получала вероятность аннигиляции, посчитанную по всем распадам
+            /// разом (0.0256 % вместо 0.0355 %).
+            ///
+            /// ⚠ Это МАРГИНАЛЬНАЯ доля ветви: какой именно уровень населил
+            /// позитрон, она не знает. Точнее — <see cref="BetaPlusOfGamma"/>.
+            /// </summary>
+            public double BetaPlusShare;
+
+            /// <summary>
+            /// Доля β⁺ У КАЖДОЙ ГАММЫ ветви: ключ — энергия линии, значение —
+            /// `P(β⁺ | эта гамма испущена)` (`S150`). Пусто — поставка связи
+            /// «канал → уровень» для этой ветви не даёт, и потребитель обязан
+            /// откатиться к <see cref="BetaPlusShare"/>.
+            ///
+            /// ⛔ ЗАЧЕМ ЭТО ВООБЩЕ НУЖНО. Код `dec_type = 1` означает
+            /// ОБЪЕДИНЁННЫЙ канал β⁺/EC, а не «в каждом событии был позитрон».
+            /// У K-40 β⁺ идёт 0.001 % и ТОЛЬКО в основное состояние Ar-40, а
+            /// линия 1460.8 кэВ следует за захватом на уровень 1460.851 —
+            /// совпадения 511 ↔ 1461 не бывает вовсе, а прежний счёт его
+            /// строил. У Y-88 разница ещё нагляднее: 898 кэВ идёт с уровня,
+            /// населяемого ТОЛЬКО захватом (доля 0), а 1836 кэВ — с уровня,
+            /// куда сходится почти весь распад (доля 0.0021, а не 0.038, как
+            /// дало бы прямое питание уровня без каскада сверху).
+            /// </summary>
+            public Dictionary<double, double> BetaPlusOfGamma =
+                new Dictionary<double, double>();
         }
 
         /// <summary>
@@ -204,6 +237,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return this.Branches[transition.BranchIndex];
+        }
+
+        /// <summary>
+        /// Ожидаемое число квантов 511 кэВ В ТОМ ЖЕ СОБЫТИИ, что и эта гамма
+        /// (`S150`). Два на каждый позитрон, поэтому `2 · P(β⁺ | гамма)`.
+        ///
+        /// Три ступени, от точного к грубому, и каждая следующая берётся, лишь
+        /// когда предыдущей нет данных:
+        ///   1. доля по НАСЕЛЁННОМУ УРОВНЮ (`Branch.BetaPlusOfGamma`) — считана
+        ///      по питаниям ENSDF с протяжкой каскада сверху вниз;
+        ///   2. доля ВЕТВИ (`Branch.BetaPlusShare`) — маргинальная, если набора
+        ///      питаний для ветви нет или он неоднозначен;
+        ///   3. <see cref="AnnihilationQuanta"/> — прежний маргинальный выход на
+        ///      распад родителя, если ветвь у гаммы не определилась вовсе.
+        ///
+        /// ⚠ Ступень 3 — это ровно прежнее (неверное) поведение, и она
+        /// оставлена НЕ по недосмотру: гамма без ветви идёт по запасному списку
+        /// носителей, где ветвевого знания нет по построению. Сузить её можно
+        /// только сузив долю гамм без ветви.
+        /// </summary>
+        public double AnnihilationQuantaOfGamma(double energyKev)
+        {
+            double share;
+            Branch branch = this.BranchOfGamma(energyKev);
+            if (branch != null)
+            {
+                return branch.BetaPlusOfGamma.TryGetValue(energyKev, out share)
+                    ? 2.0 * share
+                    : 2.0 * branch.BetaPlusShare;
+            }
+
+            // Ветвь по схеме не определилась. Доля по уровню всё же может быть
+            // известна: она считается по КАНАЛУ строки излучения, а канал есть и
+            // у линии, которой перехода в схеме не нашлось.
+            foreach (Branch other in this.Branches)
+            {
+                if (other.BetaPlusOfGamma.TryGetValue(energyKev, out share))
+                {
+                    return 2.0 * share;
+                }
+            }
+
+            return this.AnnihilationQuanta;
         }
 
         /// <summary>
@@ -256,6 +332,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// аннигилирует в два кванта. Это не вероятность, а ожидаемое ЧИСЛО, и
         /// в линейные члены (вынос из пика, площадь суммы с гаммой) оно входит
         /// именно так — «любой из двух».
+        ///
+        /// ⛔ ЭТО МАРГИНАЛЬНЫЙ ВЫХОД ЛИНИИ, А НЕ УСЛОВНАЯ ВЕРОЯТНОСТЬ ПРИ ГАММЕ
+        /// (`S150`). Ровно на этой подмене строилось несуществующее совпадение
+        /// 511 ↔ 1461 у K-40. Условное число — только
+        /// <see cref="AnnihilationQuantaOfGamma"/>; здесь остаётся выход линии,
+        /// каким его видит спектр. Слагаемые зажаты долями своих ветвей
+        /// (`S153`): поставка местами даёт позитронов больше, чем есть распадов.
         ///
         /// ⛔ Пары 511 + 511 здесь НЕТ и не будет (решение Amber 18.08.2026):
         /// два кванта одной аннигиляции летят СТРОГО в противоположные
@@ -354,7 +437,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Излучения самого распада: гаммы, K-рентген, β⁺. Всё — на распад
             // РОДИТЕЛЯ цепочки, как и в остальной библиотеке.
             var gammaIntensity = new List<double[]>();
-            double betaPlusPct = 0.0;
+
+            // (`S151`) КАНАЛ РАСПАДА У КАЖДОЙ ЛИНИИ, а не только у ветви.
+            // Список идёт номер в номер с `gammaIntensity`: без него гамма
+            // доставалась той ветви, которая первой нашла её в своей схеме, —
+            // то есть порядку строк запроса. Родителей, у которых гаммы
+            // приходят более чем одним `dec_type`, в поставке 175.
+            var gammaChannel = new List<string>();
+
+            // (`S153`) β⁺ — ПО КАНАЛАМ. Общая сумма смешивала ветви, а сверх
+            // того у 40 родителей она выходит за долю самой ветви (у `20NA`
+            // 196.85 % при ветви 100 %), и такое число доезжало до площадей
+            // сумм-пиков без всякой проверки.
+            var betaPlusOf = new Dictionary<string, double>(StringComparer.Ordinal);
             string daughter = null;
 
             // K-серия собирается тремя вёдрами и разбирается ПОСЛЕ цикла:
@@ -371,10 +466,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`S89`) Тот же зажим по уровню родителя, что и у библиотеки, и
                 // из одного места: без него запрос складывал ВСЕ наборы одного
                 // имени, то есть двоил распад у четырёх изомеров.
+                //
+                // ⛔ `dec_type` И `order by` — ОБА ОБЯЗАТЕЛЬНЫ (`S151`). Графа
+                // канала в таблице ЕСТЬ, и без неё принадлежность гаммы ветви
+                // решал порядок строк, которого запрос без `order by` вообще не
+                // обещает: у SQLite он свойство плана, а не данных.
                 command.CommandText =
-                    "select type_a, type_c, energy_num, intensity_num from decay_radiations"
+                    "select type_a, type_c, energy_num, intensity_num, dec_type"
+                    + " from decay_radiations"
                     + " where parent_nucid = $n and intensity_num > 0"
-                    + DecayParentRule.LevelClause;
+                    + DecayParentRule.LevelClause
+                    + " order by dr_pk";
                 command.Parameters.AddWithValue("$n", nucid);
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
@@ -384,6 +486,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         string series = reader.IsDBNull(1) ? "" : reader.GetString(1);
                         double energy = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
                         double intensity = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+                        string channel = reader.IsDBNull(4) ? "" : reader.GetString(4);
                         if (!(intensity > 0.0))
                         {
                             continue;
@@ -392,6 +495,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (kind == "G" && energy > 0.0)
                         {
                             gammaIntensity.Add(new[] { energy, intensity });
+                            gammaChannel.Add(channel);
                         }
                         else if (kind == "X" && energy > 0.0 && KSeriesRule.IsSeries(series))
                         {
@@ -412,7 +516,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
                         else if (kind == "B+")
                         {
-                            betaPlusPct += intensity;
+                            double had;
+                            betaPlusOf.TryGetValue(channel, out had);
+                            betaPlusOf[channel] = had + intensity;
                         }
                     }
                 }
@@ -503,7 +609,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Два кванта на позитрон. Аннигиляция идёт по месту остановки
             // позитрона, то есть практически мгновенно.
-            data.AnnihilationQuanta = 2.0 * betaPlusPct / 100.0;
+            //
+            // ⚠ Здесь ещё СЫРАЯ сумма по всем каналам: ветвей на этом месте
+            // может не быть вовсе, а ниже стоит ранний выход, которому нужно
+            // знать лишь «есть ли аннигиляция в принципе». По ветвям и в их
+            // границах она пересчитывается ниже (`S150`, `S153`).
+            double betaPlusRaw = 0.0;
+            foreach (KeyValuePair<string, double> entry in betaPlusOf)
+            {
+                betaPlusRaw += entry.Value;
+            }
+
+            data.AnnihilationQuanta = 2.0 * betaPlusRaw / 100.0;
             data.GammaIntensity = gammaIntensity;
 
             if (data.KLines.Count == 0 && !(data.AnnihilationQuanta > 0.0))
@@ -532,6 +649,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
+            BetaPlusByBranch(data, betaPlusOf, notes);
             SplitKLines(data, notes);
 
             // ⛔ ПО ВЕТВЯМ, А НЕ ПО ОДНОЙ (`S145`). У каждой своя схема уровней,
@@ -551,25 +669,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 halfLifeOf[index] = halfLife;
 
                 double conversionVacancy = 0.0;
-                foreach (double[] line in gammaIntensity)
+                for (int line = 0; line < gammaIntensity.Count; line++)
                 {
-                    if (data.Gammas.ContainsKey(line[0]))
+                    double energyKev = gammaIntensity[line][0];
+
+                    // ⛔ СНАЧАЛА КАНАЛ, ПОТОМ СХЕМА (`S151`). Прежде линия
+                    // доставалась той ветви, которая нашла её в схеме первой, а
+                    // схема у двух ветвей в ОДИН нуклид одна и та же — значит
+                    // решал порядок. Канал в поставке есть у каждой строки
+                    // излучения, и он отвечает на этот вопрос прямо.
+                    if (!SameChannel(gammaChannel[line], branch.DecType))
                     {
-                        // Линия уже разобрана более сильной ветвью: она может
-                        // принадлежать только одной.
                         continue;
                     }
 
-                    Transition match = MatchTransition(scheme, line[0]);
+                    if (data.Gammas.ContainsKey(energyKev))
+                    {
+                        // Линия уже разобрана: она может принадлежать только
+                        // одной ветви.
+                        continue;
+                    }
+
+                    Transition match = MatchTransition(scheme, energyKev);
                     if (match == null)
                     {
                         continue;
                     }
 
                     match.BranchIndex = index;
-                    data.Gammas[line[0]] = match;
-                    conversionVacancy += line[1] / 100.0 * match.AlphaK;
+                    data.Gammas[energyKev] = match;
+                    conversionVacancy += gammaIntensity[line][1] / 100.0 * match.AlphaK;
                 }
+
+                // (`S150`) Доля β⁺ у каждой гаммы ветви — по населённому
+                // уровню. Читается ПОСЛЕ раздачи гамм: годятся только те
+                // линии, которые этой ветви и достались.
+                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, gammaChannel, notes);
 
                 if (branch.OmegaK > 0.0)
                 {
@@ -866,6 +1001,402 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         arrival[transition.ToSeq] = emitted;
                         arrivalLives[transition.ToSeq] = lives;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Одного ли канала распада строка излучения и ветвь (`S151`).
+        ///
+        /// ⚠ Незнание одной из сторон — НЕ отказ. Пустая графа `dec_type`
+        /// встречается и у ветви (запасная ветвь, собранная из сводных полей), и
+        /// у строки излучения в неполной поставке; ответить «разные каналы»
+        /// значило бы выбросить линию совсем, а прежнее поведение — раздать по
+        /// схеме — здесь безопаснее.
+        /// </summary>
+        static bool SameChannel(string line, string branch)
+        {
+            if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(branch))
+            {
+                return true;
+            }
+
+            return string.Equals(line.Trim(), branch.Trim(), StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Есть ли у нуклида метка изомера. Метку отделяет РЕГИСТР, а не буква:
+        /// `234PAm1` — изомер, `241AM` — нет.
+        /// </summary>
+        static bool IsomerTail(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return false;
+            }
+
+            foreach (char c in nucid)
+            {
+                if (char.IsLower(c))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Разложить β⁺ поставки по ветвям и удержать его в физических границах
+        /// (`S150`, `S153`).
+        ///
+        /// ⛔ ЧТО БЫЛО НЕ ТАК. Считалась одна общая сумма `2·ΣB+/100` на распад
+        /// родителя, и она же выдавалась за условную вероятность при КАЖДОЙ
+        /// гамме — в том числе гамме ветви, в которой позитронов нет вовсе. А
+        /// сверх того сумма поставки у 40 родителей выходит за долю самой ветви
+        /// (`20NA` — 196.85 % при ветви 100 %, `77RB` — 110.47 %), и такое
+        /// число доезжало до `Pairs` и площадей сумм-пиков без всякой проверки:
+        /// зажим стоял ОДИН, в конце, у одного потребителя.
+        ///
+        /// Здесь β⁺ каждого канала кладётся своим ветвям, зажимается их
+        /// суммарной долей и превращается в УСЛОВНУЮ долю
+        /// <see cref="Branch.BetaPlusShare"/> — при событии ветви, а не на
+        /// распад. Общий выход линии 511 (`AnnihilationQuanta`) пересчитывается
+        /// по зажатым числам: он остаётся маргинальным, потому что это и есть
+        /// выход линии в спектре.
+        /// </summary>
+        static void BetaPlusByBranch(CascadeAtomicData data,
+                                     Dictionary<string, double> betaPlusOf,
+                                     StringBuilder notes)
+        {
+            double total = 0.0;
+            foreach (KeyValuePair<string, double> entry in betaPlusOf)
+            {
+                if (!(entry.Value > 0.0))
+                {
+                    continue;
+                }
+
+                var own = new List<Branch>();
+                double bound = 0.0;
+                foreach (Branch branch in data.Branches)
+                {
+                    if (!SameChannel(entry.Key, branch.DecType))
+                    {
+                        continue;
+                    }
+
+                    own.Add(branch);
+                    bound += branch.Perc > 0.0 ? branch.Perc : 0.0;
+                }
+
+                if (own.Count == 0 || !(bound > 0.0))
+                {
+                    // Канал есть, ветви под него нет: в выход линии позитроны
+                    // всё равно идут, а условной доли им дать не из чего.
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "β⁺ канала {0} ({1:F3} %) не привязан ни к одной ветви; ",
+                        entry.Key, entry.Value);
+                    total += entry.Value;
+                    continue;
+                }
+
+                double kept = entry.Value;
+                if (kept > bound)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "β⁺ канала {0}: поставка даёт {1:F3} % при доле ветвей {2:F3} %, зажато; ",
+                        entry.Key, kept, bound);
+                    kept = bound;
+                }
+
+                double share = kept / bound;
+                foreach (Branch branch in own)
+                {
+                    branch.BetaPlusShare += share;
+                    if (branch.BetaPlusShare > 1.0)
+                    {
+                        branch.BetaPlusShare = 1.0;
+                    }
+                }
+
+                total += kept;
+            }
+
+            if (total > 100.0)
+            {
+                total = 100.0;
+            }
+
+            data.AnnihilationQuanta = 2.0 * total / 100.0;
+        }
+
+        /// <summary>
+        /// Доля β⁺ у каждой гаммы ветви — ПО НАСЕЛЁННОМУ УРОВНЮ (`S150`).
+        ///
+        /// Поставка эту связь несёт: `ensdf_feedings` даёт питание каждого
+        /// уровня отдельно позитронным (`intensity`) и захватным
+        /// (`intensity_ec`) числом, а `ensdf_gammas` — из какого уровня в какой
+        /// идёт линия. Поток протягивается СВЕРХУ ВНИЗ, и без этой протяжки
+        /// ответ выходит неверным на порядок: у Y-88 прямое питание уровня 1836
+        /// кэВ даёт долю 0.208/5.508 = 3.8 %, тогда как через него проходит
+        /// почти весь распад сверху, и верная доля — 0.21 %.
+        ///
+        /// ⛔ ОДИН НАБОР ИЛИ НИЧЕГО. `ensdf_datasets.parent_nucid` изомер НЕ
+        /// помечает, и у 432 пар «родитель — дочь» наборов больше одного:
+        /// различает их период родителя в `dsid`, которого здесь нет. Взять
+        /// наугад — значит подставить чужую схему питаний, поэтому при
+        /// неоднозначности доля остаётся ветвевой, а причина попадает в отчёт.
+        /// </summary>
+        static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
+                                        List<double[]> gammaIntensity,
+                                        List<string> gammaChannel,
+                                        StringBuilder notes)
+        {
+            if (branch == null || string.IsNullOrEmpty(branch.Nucid)
+                || !(branch.BetaPlusShare > 0.0))
+            {
+                // Позитронов у ветви нет — считать по уровням нечего.
+                return;
+            }
+
+            if (IsomerTail(parentNucid))
+            {
+                notes.Append("изомер: набор питаний ENSDF уровня родителя не различает; ");
+                return;
+            }
+
+            string path = SchemeDatabasePath();
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var levelEnergy = new Dictionary<int, double>();
+            var inBeta = new Dictionary<int, double>();
+            var inTotal = new Dictionary<int, double>();
+            var transitions = new List<double[]>();
+
+            using (SqliteConnection connection = OpenRead(path))
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "select id from ensdf_datasets"
+                    + " where upper(parent_nucid) = $p and upper(nucid) = $d"
+                    + " order by id";
+                command.Parameters.AddWithValue("$p", parentNucid.ToUpperInvariant());
+                command.Parameters.AddWithValue("$d", branch.Nucid.ToUpperInvariant());
+                var sets = new List<long>();
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        sets.Add(reader.GetInt64(0));
+                    }
+                }
+
+                if (sets.Count != 1)
+                {
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "наборов питаний {0}→{1}: {2}, доля β⁺ осталась ветвевой; ",
+                        parentNucid, branch.Nucid, sets.Count);
+                    return;
+                }
+
+                command.Parameters.Clear();
+                command.Parameters.AddWithValue("$s", sets[0]);
+
+                command.CommandText =
+                    "select seq, energy_kev from ensdf_levels where dataset_id = $s";
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        levelEnergy[reader.GetInt32(0)] =
+                            reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                    }
+                }
+
+                command.CommandText =
+                    "select level_seq, kind, intensity, intensity_ec"
+                    + " from ensdf_feedings where dataset_id = $s";
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.IsDBNull(0))
+                        {
+                            continue;
+                        }
+
+                        int seq = reader.GetInt32(0);
+                        string kind = reader.IsDBNull(1) ? "" : reader.GetString(1);
+                        double beta = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
+                        double capture = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+
+                        double had;
+                        inTotal.TryGetValue(seq, out had);
+                        inTotal[seq] = had + beta + capture;
+
+                        // ⚠ Позитрон — только в канале `E`. У `B` (β⁻) и `A`
+                        // графа `intensity` тоже заполнена, и сложить их значило
+                        // бы объявить позитронами весь бета-минус.
+                        if (kind == "E")
+                        {
+                            inBeta.TryGetValue(seq, out had);
+                            inBeta[seq] = had + beta;
+                        }
+                    }
+                }
+
+                command.CommandText =
+                    "select from_level_seq, to_level_seq, energy_kev, intensity,"
+                    + " total_intensity, conv_coef"
+                    + " from ensdf_gammas where dataset_id = $s";
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2))
+                        {
+                            continue;
+                        }
+
+                        // Вес — ПОЛНАЯ населённость перехода: гамма плюс
+                        // конверсия. Поток уровня уходит и той и другой.
+                        double weight;
+                        if (!reader.IsDBNull(4))
+                        {
+                            weight = reader.GetDouble(4);
+                        }
+                        else
+                        {
+                            double gamma = reader.IsDBNull(3) ? 0.0 : reader.GetDouble(3);
+                            double alpha = reader.IsDBNull(5) ? 0.0 : reader.GetDouble(5);
+                            weight = gamma * (1.0 + (alpha > 0.0 ? alpha : 0.0));
+                        }
+
+                        transitions.Add(new[]
+                        {
+                            reader.GetInt32(0), reader.GetInt32(1),
+                            reader.GetDouble(2), weight > 0.0 ? weight : 0.0
+                        });
+                    }
+                }
+            }
+
+            if (transitions.Count == 0)
+            {
+                return;
+            }
+
+            // Уровни — сверху вниз: пока идём вниз, весь поток сверху уже влит.
+            var levels = new List<int>();
+            foreach (double[] transition in transitions)
+            {
+                int from = (int)transition[0];
+                if (!levels.Contains(from))
+                {
+                    levels.Add(from);
+                }
+            }
+
+            levels.Sort(delegate(int a, int b)
+            {
+                double ea, eb;
+                levelEnergy.TryGetValue(a, out ea);
+                levelEnergy.TryGetValue(b, out eb);
+                int by = eb.CompareTo(ea);
+                return by != 0 ? by : b.CompareTo(a);
+            });
+
+            // Энергия линии → доля β⁺ и поток, которым она подтверждена.
+            var shareOf = new List<double[]>();
+            foreach (int level in levels)
+            {
+                double outTotal = 0.0;
+                foreach (double[] transition in transitions)
+                {
+                    if ((int)transition[0] == level)
+                    {
+                        outTotal += transition[3];
+                    }
+                }
+
+                double beta, all;
+                inBeta.TryGetValue(level, out beta);
+                inTotal.TryGetValue(level, out all);
+                double share = all > 0.0 ? beta / all : 0.0;
+                if (share > 1.0)
+                {
+                    share = 1.0;
+                }
+
+                foreach (double[] transition in transitions)
+                {
+                    if ((int)transition[0] != level)
+                    {
+                        continue;
+                    }
+
+                    shareOf.Add(new[] { transition[2], share, transition[3] });
+                    if (!(outTotal > 0.0) || !(all > 0.0))
+                    {
+                        continue;
+                    }
+
+                    int to = (int)transition[1];
+                    double part = transition[3] / outTotal;
+                    double had;
+                    inBeta.TryGetValue(to, out had);
+                    inBeta[to] = had + beta * part;
+                    inTotal.TryGetValue(to, out had);
+                    inTotal[to] = had + all * part;
+                }
+            }
+
+            for (int line = 0; line < gammaIntensity.Count; line++)
+            {
+                if (!SameChannel(gammaChannel[line], branch.DecType))
+                {
+                    continue;
+                }
+
+                double energyKev = gammaIntensity[line][0];
+                double bestDelta = MatchKev;
+                double bestFlux = -1.0;
+                bool found = false;
+                double share = 0.0;
+                foreach (double[] candidate in shareOf)
+                {
+                    double delta = Math.Abs(candidate[0] - energyKev);
+                    if (delta >= MatchKev)
+                    {
+                        continue;
+                    }
+
+                    // Ближайшая по энергии, а при равной близости — та, через
+                    // которую идёт больший поток: слабый однофамилец рядом не
+                    // должен перебивать основную линию.
+                    if (found && delta > bestDelta)
+                    {
+                        continue;
+                    }
+
+                    if (found && delta == bestDelta && candidate[2] <= bestFlux)
+                    {
+                        continue;
+                    }
+
+                    found = true;
+                    bestDelta = delta;
+                    bestFlux = candidate[2];
+                    share = candidate[1];
+                }
+
+                if (found)
+                {
+                    branch.BetaPlusOfGamma[energyKev] = share;
                 }
             }
         }

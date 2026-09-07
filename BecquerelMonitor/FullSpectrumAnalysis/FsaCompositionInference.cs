@@ -601,47 +601,235 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
 
         /// <summary>
-        /// Пара «группа линий — найденный пик» для взаимно однозначного
-        /// сопоставления (`A292`). Своего смысла не несёт, живёт один вызов.
+        /// Стоимость пути в остаточном графе (`A297`): сумма нормированных
+        /// отходов, а при ТОЧНОМ их равенстве — сумма номеров кандидатов в
+        /// разобранном порядке (ближе, значимее, затем энергии).
+        ///
+        /// ⚠ Второй ключ нужен не для красоты. Отход `away/window` у разных
+        /// пар совпадает точно чаще, чем кажется: пик ровно в центре группы
+        /// даёт ноль, и таких нулей в спектре с хорошим разрешением много.
+        /// Без второго ключа выбор между равными путями достался бы порядку
+        /// обхода рёбер, то есть перестал бы быть свойством данных.
         /// </summary>
-        /// <summary>
-        /// Увеличивающий путь для группы (`A293`): занять свободный пик либо
-        /// подвинуть того, кто уже занял, на другой его пик. Возвращает false,
-        /// когда группе места нет ни при каких перестановках.
-        /// </summary>
-        static bool Augment(Group group, Dictionary<Group, List<Candidate>> options,
-                            Dictionary<Peak, Candidate> takenBy, HashSet<Peak> seen)
+        struct Cost
         {
-            List<Candidate> bag;
-            if (!options.TryGetValue(group, out bag))
+            public double Away;
+            public long Rank;
+
+            public Cost Plus(double away, long rank)
             {
-                return false;
+                return new Cost { Away = this.Away + away, Rank = this.Rank + rank };
             }
 
-            foreach (Candidate candidate in bag)
+            public int CompareTo(Cost other)
             {
-                if (!seen.Add(candidate.Peak))
+                int by = this.Away.CompareTo(other.Away);
+                return by != 0 ? by : this.Rank.CompareTo(other.Rank);
+            }
+        }
+
+        /// <summary>
+        /// Паросочетание максимальной мощности и минимальной стоимости
+        /// (`A297`). Возвращает выбранные пары; группы и пики в них взаимно
+        /// однозначны.
+        ///
+        /// Ход — последовательные кратчайшие увеличивающие пути: на каждом шаге
+        /// ищется путь НАИМЕНЬШЕЙ стоимости от ЛЮБОЙ свободной группы до любого
+        /// свободного пика, и по нему разворачивается паросочетание. Обратные
+        /// рёбра (по занятым парам) имеют отрицательный вес, поэтому кратчайший
+        /// путь ищет Беллман — Форд, а не Дейкстра.
+        ///
+        /// ⚠ Мощность при этом не страдает: шаг кончается, только когда пути
+        /// нет НИ ОТ ОДНОЙ свободной группы, — а это и есть признак максимума.
+        /// </summary>
+        static List<Candidate> MinCostMatching(List<Group> order,
+                                               Dictionary<Group, List<Candidate>> options,
+                                               List<Candidate> ranked)
+        {
+            var rankOf = new Dictionary<Candidate, long>();
+            for (int i = 0; i < ranked.Count; i++)
+            {
+                rankOf[ranked[i]] = i + 1;
+            }
+
+            var groupNo = new Dictionary<Group, int>();
+            foreach (Group group in order)
+            {
+                groupNo[group] = groupNo.Count;
+            }
+
+            var peakNo = new Dictionary<Peak, int>();
+            var edges = new List<Candidate>();
+            foreach (Group group in order)
+            {
+                List<Candidate> bag;
+                if (!options.TryGetValue(group, out bag))
                 {
                     continue;
                 }
 
-                Candidate holder;
-                if (!takenBy.TryGetValue(candidate.Peak, out holder))
+                foreach (Candidate candidate in bag)
                 {
-                    takenBy[candidate.Peak] = candidate;
-                    return true;
-                }
+                    if (!peakNo.ContainsKey(candidate.Peak))
+                    {
+                        peakNo[candidate.Peak] = peakNo.Count;
+                    }
 
-                if (Augment(holder.Group, options, takenBy, seen))
-                {
-                    takenBy[candidate.Peak] = candidate;
-                    return true;
+                    edges.Add(candidate);
                 }
             }
 
-            return false;
+            int groups = groupNo.Count;
+            int peaks = peakNo.Count;
+            var result = new List<Candidate>();
+            if (groups == 0 || peaks == 0)
+            {
+                return result;
+            }
+
+            // Кто из кандидатов сейчас занимает пик; -1 — пик свободен.
+            var matchOf = new int[peaks];
+            for (int i = 0; i < peaks; i++)
+            {
+                matchOf[i] = -1;
+            }
+
+            int nodes = groups + peaks;
+            var dist = new Cost[nodes];
+            var reached = new bool[nodes];
+            var viaEdge = new int[nodes];
+            var viaNode = new int[nodes];
+            var matchedGroup = new bool[groups];
+
+            // ⛔ ПУТЬ ИЩЕТСЯ ОТ ВСЕХ СВОБОДНЫХ ГРУПП СРАЗУ, А НЕ ОТ ОЧЕРЕДНОЙ.
+            // Это не ускорение, а условие правильности: перебор групп по одной
+            // даёт минимум лишь среди раскладов, занимающих ТЕ ЖЕ группы. Один
+            // пик на две группы — G1 ценой 0.4 и G2 ценой 0.2 — при обходе по
+            // очереди достаётся G1 (она первая), и подвинуть её некуда: мощность
+            // не растёт, а значит увеличивающего пути нет и цена остаётся 0.4.
+            // Общий исток выбирает 0.2 сразу.
+            for (int step = 0; step < peaks; step++)
+            {
+                for (int i = 0; i < nodes; i++)
+                {
+                    reached[i] = false;
+                    viaEdge[i] = -1;
+                    viaNode[i] = -1;
+                }
+
+                for (int g = 0; g < groups; g++)
+                {
+                    if (matchedGroup[g])
+                    {
+                        continue;
+                    }
+
+                    reached[g] = true;
+                    dist[g] = new Cost();
+                }
+
+                // Беллман — Форд: проходов не больше числа узлов, выход раньше,
+                // как только проход ничего не улучшил.
+                for (int pass = 0; pass < nodes; pass++)
+                {
+                    bool moved = false;
+                    for (int e = 0; e < edges.Count; e++)
+                    {
+                        Candidate edge = edges[e];
+                        int left = groupNo[edge.Group];
+                        int right = groups + peakNo[edge.Peak];
+                        bool taken = matchOf[peakNo[edge.Peak]] == e;
+                        int from = taken ? right : left;
+                        int to = taken ? left : right;
+                        if (!reached[from])
+                        {
+                            continue;
+                        }
+
+                        double away = taken ? -edge.Away : edge.Away;
+                        long rank = taken ? -rankOf[edge] : rankOf[edge];
+                        Cost candidate = dist[from].Plus(away, rank);
+                        if (reached[to] && dist[to].CompareTo(candidate) <= 0)
+                        {
+                            continue;
+                        }
+
+                        reached[to] = true;
+                        dist[to] = candidate;
+                        viaEdge[to] = e;
+                        viaNode[to] = from;
+                        moved = true;
+                    }
+
+                    if (!moved)
+                    {
+                        break;
+                    }
+                }
+
+                // ⚠ Обход пиков — ПО НОМЕРУ, а не по словарю: номера розданы в
+                // порядке разобранных кандидатов, то есть свойство данных, а
+                // перебор `Dictionary` порядка не обещает вовсе.
+                int best = -1;
+                for (int p = 0; p < peaks; p++)
+                {
+                    int node = groups + p;
+                    if (matchOf[p] >= 0 || !reached[node])
+                    {
+                        continue;
+                    }
+
+                    if (best < 0 || dist[node].CompareTo(dist[best]) < 0)
+                    {
+                        best = node;
+                    }
+                }
+
+                if (best < 0)
+                {
+                    // Свободного пика не достать ни одной перестановкой:
+                    // мощность больше не растёт, и дальше расти не начнёт.
+                    break;
+                }
+
+                // Разворот пути: каждое ребро «слева направо» становится
+                // занятым, каждое «справа налево» освобождается — а оно тут же
+                // перезанимается следующим шагом разворота.
+                int at = best;
+                while (at >= 0)
+                {
+                    if (at >= groups)
+                    {
+                        matchOf[at - groups] = viaEdge[at];
+                    }
+
+                    int previous = viaNode[at];
+                    if (previous < 0)
+                    {
+                        // Начало пути — свободная группа, теперь занятая.
+                        matchedGroup[at] = true;
+                        break;
+                    }
+
+                    at = previous;
+                }
+            }
+
+            for (int i = 0; i < peaks; i++)
+            {
+                if (matchOf[i] >= 0)
+                {
+                    result.Add(edges[matchOf[i]]);
+                }
+            }
+
+            return result;
         }
 
+        /// <summary>
+        /// Пара «группа линий — найденный пик» для взаимно однозначного
+        /// сопоставления (`A292`). Своего смысла не несёт, живёт один вызов.
+        /// </summary>
         sealed class Candidate
         {
             public Group Group;
@@ -933,10 +1121,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // явно — группы по энергии, кандидаты каждой по близости, — поэтому
             // итог не зависит от порядка входных списков.
             //
-            // ⚠ ЧТО ГАРАНТИРУЕТСЯ, А ЧТО НЕТ. Гарантируется максимальное ЧИСЛО
-            // пар и повторяемость. Минимальность суммы расстояний внутри
-            // максимума НЕ гарантируется: кандидаты перебираются от ближнего к
-            // дальнему, то есть близость учитывается жадно внутри поиска.
+            // ⛔⛔ И МАКСИМАЛЬНОЙ МОЩНОСТИ ТОЖЕ МАЛО (`A297`, поправка к
+            // `A293`). Максимумов бывает много, и прежний поиск брал ЛЮБОЙ из
+            // них — тот, до которого довели увеличивающие пути. Контрпример:
+            // `G1` видит `P1` ценой 0.1 и `P2` ценой 0.9, `G2` видит `P1`
+            // ценой 0.2 и `P2` ценой 0.3. Заняв `G1`–`P1`, второй путь
+            // выталкивает `G1` на `P2` — мощность 2, стоимость 1.1, тогда как
+            // `G1`–`P1` + `G2`–`P2` даёт ту же мощность 2 при стоимости 0.4.
+            //
+            // Дешевле это не «красивее»: выбранный пик отдаёт группе свою
+            // значимость (`Group.Snr`), медиана `SNR/Weight` решает, какие
+            // группы считаются ожидаемыми, и `Expected`/`Coverage` меняются
+            // вместе с выбором. То есть максимум без цены двигал приговор о
+            // составе.
+            //
+            // Здесь ищется паросочетание МАКСИМАЛЬНОЙ МОЩНОСТИ И МИНИМАЛЬНОЙ
+            // СТОИМОСТИ — последовательными кратчайшими увеличивающими путями
+            // (Беллман — Форд по остаточному графу: у обратных рёбер вес
+            // отрицателен, Дейкстра без потенциалов здесь неприменима).
+            // Свойство SSP: augment по пути минимальной стоимости оставляет
+            // паросочетание оптимальным ДЛЯ СВОЕЙ мощности на каждом шаге.
+            //
+            // ⚠ Что остаётся приближением: стоимость — сумма нормированных
+            // отходов, значимость входит лишь вторым ключом при ТОЧНОМ
+            // равенстве отходов. Взвешивать отход значимостью было бы уже
+            // другой моделью, и такой договорённости нет.
             pairs.Sort(Candidate.Order);
 
             var options = new Dictionary<Group, List<Candidate>>();
@@ -957,16 +1166,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // а не порядка построения списков.
             order.Sort((a, b) => a.Energy.CompareTo(b.Energy));
 
-            var takenBy = new Dictionary<Peak, Candidate>();
-            foreach (Group group in order)
+            foreach (Candidate taken in MinCostMatching(order, options, pairs))
             {
-                var seen = new HashSet<Peak>();
-                Augment(group, options, takenBy, seen);
-            }
-
-            foreach (KeyValuePair<Peak, Candidate> taken in takenBy)
-            {
-                taken.Value.Group.Snr = taken.Value.Snr;
+                taken.Group.Snr = taken.Snr;
             }
         }
 
