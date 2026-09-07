@@ -599,6 +599,46 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разное число наблюдаемых структур, а число ГРУПП — уже одно и то же
         /// по смыслу.
         /// </summary>
+
+        /// <summary>
+        /// Пара «группа линий — найденный пик» для взаимно однозначного
+        /// сопоставления (`A292`). Своего смысла не несёт, живёт один вызов.
+        /// </summary>
+        sealed class Candidate
+        {
+            public Group Group;
+            public Peak Peak;
+
+            /// <summary>Отход от центра группы В ДОЛЯХ ЕЁ ОКНА: окна у групп
+            /// разной ширины, и сравнивать кэВ напрямую нельзя.</summary>
+            public double Away;
+
+            public double Snr;
+
+            /// <summary>
+            /// Порядок разбора: ближе к центру — раньше; при равной близости
+            /// сильнее по значимости; дальше — по энергиям, чтобы у одинаковых
+            /// пар был ОДИН исход, а не зависящий от порядка входных списков.
+            /// </summary>
+            public static int Order(Candidate a, Candidate b)
+            {
+                int by = a.Away.CompareTo(b.Away);
+                if (by != 0)
+                {
+                    return by;
+                }
+
+                by = b.Snr.CompareTo(a.Snr);
+                if (by != 0)
+                {
+                    return by;
+                }
+
+                by = a.Group.Energy.CompareTo(b.Group.Energy);
+                return by != 0 ? by : a.Peak.Energy.CompareTo(b.Peak.Energy);
+            }
+        }
+
         sealed class Group
         {
             public double Energy;
@@ -776,23 +816,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 model.Groups.Add(current);
             }
 
+            // ⛔⛔ СОПОСТАВЛЕНИЕ ГРУПП И ПИКОВ — ВЗАИМНО ОДНОЗНАЧНОЕ (`A292`).
+            //
+            // Прежде каждая группа искала свой пик САМА, и найденный нигде не
+            // помечался. Окна при этом пересекаются по построению: новая группа
+            // начинается, когда линия отошла от центра больше чем на ПШПВ, а
+            // окно у группы — ±0.75 ПШПВ. Две группы на расстоянии 1.1 ПШПВ
+            // остаются разными, их окна общей шириной 1.5 ПШПВ накрывают друг
+            // друга на 0.4 ПШПВ, и ОДИН пик в перекрытии подтверждал ОБЕ.
+            //
+            // Цена: `Matched` рос вдвое на одном наблюдении, а вместе с ним
+            // `Coverage = Matched / Expected` — то есть родитель мог пройти
+            // порог 0.30 без второго независимого свидетельства. Тем доступнее,
+            // чем шире ПШПВ, то есть у сцинтилляторов в первую очередь.
+            //
+            // Здесь пары «группа — пик» строятся все разом и разбираются
+            // жадно по БЛИЗОСТИ, нормированной окном группы. Порядок разбора
+            // задан явно (близость, затем значимость, затем энергии), поэтому
+            // итог не зависит от порядка групп и пиков во входных списках.
+            List<Candidate> pairs = new List<Candidate>();
             foreach (Group group in model.Groups)
             {
                 double window = Window(group.Energy,
                                        Resolution(group.Energy, energyCalibration,
                                                   fwhmCalibration, channels));
                 group.Window = window;
-                double best = double.NaN;
+                if (!(window > 0.0))
+                {
+                    continue;
+                }
+
                 foreach (Peak peak in peaks)
                 {
-                    if (peak.Energy < group.Energy - window)
+                    double away = Math.Abs(peak.Energy - group.Energy);
+                    if (away > window)
                     {
                         continue;
-                    }
-
-                    if (peak.Energy > group.Energy + window)
-                    {
-                        break;
                     }
 
                     // ⛔ ПОДПИСЬ ПИКА ПРОВЕРЯЕТСЯ, И ЭТО БУКВА ПРАВИЛА AMBER:
@@ -813,13 +872,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    if (double.IsNaN(best) || peak.SNR > best)
+                    pairs.Add(new Candidate
                     {
-                        best = peak.SNR;
-                    }
+                        Group = group,
+                        Peak = peak,
+                        Away = away / window,
+                        Snr = peak.SNR
+                    });
+                }
+            }
+
+            pairs.Sort(Candidate.Order);
+            HashSet<Group> takenGroups = new HashSet<Group>();
+            HashSet<Peak> takenPeaks = new HashSet<Peak>();
+            foreach (Candidate pair in pairs)
+            {
+                if (takenGroups.Contains(pair.Group) || takenPeaks.Contains(pair.Peak))
+                {
+                    continue;
                 }
 
-                group.Snr = best;
+                takenGroups.Add(pair.Group);
+                takenPeaks.Add(pair.Peak);
+                pair.Group.Snr = pair.Snr;
             }
         }
 

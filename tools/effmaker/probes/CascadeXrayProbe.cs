@@ -131,14 +131,32 @@ namespace BecquerelMonitor.Probes
                     continue;
                 }
 
-                double total = atomic.OmegaK > 0.0
-                    ? atomic.KIntensityPct / 100.0 / atomic.OmegaK
-                    : 0.0;
+                // ⛔ БАЛАНС ПЕЧАТАЕТСЯ ПО ТОЙ ЖЕ ВЕТВИ, ПО КОТОРОЙ СЧИТАН
+                // (`S145`). Сводные `KIntensityPct` и `OmegaK` собраны по ВСЕМ
+                // атомам родителя, а `PromptVacancy` — остаток СИЛЬНЕЙШЕЙ ветви;
+                // печатать их в одной строке значило бы показывать «всего» и
+                // «захват», которые не сходятся между собой. У однoветвевого
+                // родителя обе величины совпадают, и строка та же, что прежде.
+                CascadeAtomicData.Branch main = null;
+                foreach (CascadeAtomicData.Branch branch in atomic.Branches)
+                {
+                    if (main == null || branch.Perc > main.Perc)
+                    {
+                        main = branch;
+                    }
+                }
+
+                double kPct = main != null ? main.KIntensityPct : atomic.KIntensityPct;
+                double omega = main != null ? main.OmegaK : atomic.OmegaK;
+                int mainZ = main != null ? main.Z : 0;
+                double total = omega > 0.0 ? kPct / 100.0 / omega : 0.0;
                 double conversion = 0.0;
                 foreach (double[] line in atomic.GammaIntensity)
                 {
                     CascadeAtomicData.Transition transition;
-                    if (atomic.Gammas.TryGetValue(line[0], out transition))
+                    if (atomic.Gammas.TryGetValue(line[0], out transition)
+                        && (mainZ == 0 || transition.DaughterZ == 0
+                            || transition.DaughterZ == mainZ))
                     {
                         conversion += line[1] / 100.0 * transition.AlphaK;
                     }
@@ -153,8 +171,32 @@ namespace BecquerelMonitor.Probes
 
                 Console.WriteLine(
                     "  {0,-8} {1,7:F3}  {2,6:F4}  {3,7:F4}    {4,7:F4}  {5,7:F4}   {6,4:F2}…{7,4:F2}  {8}",
-                    e.Name, atomic.KIntensityPct, atomic.OmegaK, total, conversion,
+                    e.Name, kPct, omega, total, conversion,
                     atomic.PromptVacancy, e.PromptLo, e.PromptHi, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
+
+                // Родитель со СМЕШАННЫМ распадом обязан быть назван поимённо:
+                // без этого «захват 0.60» читается как свойство родителя, а он
+                // свойство ОДНОЙ его ветви.
+                if (atomic.Branches.Count > 1)
+                {
+                    foreach (CascadeAtomicData.Branch branch in atomic.Branches)
+                    {
+                        int owns = 0;
+                        foreach (KeyValuePair<double, CascadeAtomicData.Transition> g in atomic.Gammas)
+                        {
+                            if (g.Value.DaughterZ == branch.Z)
+                            {
+                                owns++;
+                            }
+                        }
+
+                        Console.WriteLine(
+                            "           ветвь {0,-8} {1,6:F2} %  ω_K {2,6:F4}  I_K {3,7:F3} %"
+                            + "  захват {4,7:F4}  гамм {5}",
+                            branch.Nucid, branch.Perc, branch.OmegaK,
+                            branch.KIntensityPct, branch.PromptVacancy, owns);
+                    }
+                }
                 if (!string.IsNullOrEmpty(atomic.Note))
                 {
                     Console.WriteLine("           замечание: {0}", atomic.Note);

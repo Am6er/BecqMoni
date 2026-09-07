@@ -3949,6 +3949,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double Chi2Ndf;
 
             /// <summary>
+            /// ЭФФЕКТИВНОЕ число степеней свободы остатка (`A291`). При нулевом
+            /// штрафе гладкости равно `n − активных`, при ненулевом считается
+            /// следом сглаживающей матрицы — см. <c>EffectiveNdf</c>. Хранится
+            /// НА РЕЗУЛЬТАТЕ затем, чтобы отчётный `Chi2NdfBase`, `inflate`,
+            /// значимости и характеристические пределы делили на ОДНО число:
+            /// две копии подсчёта уже расходились молча.
+            /// </summary>
+            public double Ndf;
+
+            /// <summary>
             /// χ²/ndf того же остатка ПРЕЖНИМИ весами (пуассон плюс шум фона),
             /// без Хубера и без составного шума — общая метрика для сравнения
             /// прогонов с разными весами решателя. Считается в FitHuber.
@@ -4034,16 +4044,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     dataWeighted += y[i] * y[i] * reportWeights[i];
                 }
 
-                int activeCount = 0;
-                for (int k = 0; k < best.Active.Length; k++)
-                {
-                    if (best.Active[k])
-                    {
-                        activeCount++;
-                    }
-                }
-
-                int ndf = Math.Max(1, (chHi - chLo + 1) - activeCount);
+                // (`A291`) Второй подсчёт `ndf` здесь БЫЛ, и он повторял
+                // формулу `n − активных`, то есть ошибался ровно так же, как
+                // первый. Две одинаково неверные копии не расходятся между
+                // собой, и сравнение двух полей результата дефекта не ловило.
+                // Теперь число одно и живёт на результате.
+                double ndf = best.Ndf > 0.0
+                    ? best.Ndf
+                    : Math.Max(1, (chHi - chLo + 1) - ActiveCount(best.Active));
                 best.Chi2NdfBase = chi2Base / ndf;
 
                 // (S51) НЕВЯЗКА МОДЕЛИ ε — доля формы спектра, которую модель НЕ
@@ -4082,6 +4090,87 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return best;
+        }
+
+
+        /// <summary>Сколько колонок в активном множестве.</summary>
+        static int ActiveCount(bool[] active)
+        {
+            int n = 0;
+            for (int k = 0; active != null && k < active.Length; k++)
+            {
+                if (active[k])
+                {
+                    n++;
+                }
+            }
+
+            return n;
+        }
+
+        /// <summary>
+        /// ЭФФЕКТИВНОЕ число степеней свободы остатка (`A291`).
+        ///
+        /// ⛔ ПРИ ШТРАФЕ ГЛАДКОСТИ `n − активных` НЕВЕРНО. С добавкой `λ·DᵀD` в
+        /// Грам задача перестаёт быть проекцией: сглаживающая матрица
+        /// `S = W^½ Φ (ΦᵀWΦ + λDᵀD)⁻¹ ΦᵀW^½` уже не идемпотентна, её
+        /// собственные числа лежат между нулём и единицей, и подгонка «стоит»
+        /// меньше параметров, чем их сосчитано. Знаменатель остатка —
+        /// `tr((I−S)ᵀ(I−S)) = n − 2·tr(S) + tr(SᵀS)`, и только при `S² = S` он
+        /// сворачивается в `n − активных`.
+        ///
+        /// Считается без построения `S` размера n×n: с `G = ΦᵀWΦ + λDᵀD` и
+        /// `U = ΦᵀWΦ` (Грам ДО штрафа) верно `tr(S) = tr(G⁻¹U)` и
+        /// `tr(SᵀS) = tr(G⁻¹U G⁻¹U)`, а это матрицы размера активного
+        /// множества — десятки, а не тысячи.
+        ///
+        /// ⚠ Формула условна на НЕИЗМЕННОЕ активное множество NNLS, и штраф
+        /// вносит смещение — то есть величина перестаёт быть точной χ² и
+        /// остаётся оценкой. Здесь исправлен доказанный просчёт ЧИСЛА
+        /// ПАРАМЕТРОВ, а не обоснована вся статистика регуляризованного фита.
+        ///
+        /// Без штрафа (`gramUnpenalized == null`) возвращается ровно
+        /// `n − активных` — прежнее поведение, разряд в разряд.
+        /// </summary>
+        static double EffectiveNdf(int n, List<int> activeIndices,
+                                   double[,] activeInverse, double[,] gramUnpenalized)
+        {
+            int a = activeIndices != null ? activeIndices.Count : 0;
+            if (gramUnpenalized == null || activeInverse == null || a == 0)
+            {
+                return Math.Max(1.0, n - a);
+            }
+
+            // M = G⁻¹U на активном множестве.
+            double[,] product = new double[a, a];
+            for (int i = 0; i < a; i++)
+            {
+                for (int j = 0; j < a; j++)
+                {
+                    double sum = 0.0;
+                    for (int k = 0; k < a; k++)
+                    {
+                        sum += activeInverse[i, k]
+                               * gramUnpenalized[activeIndices[k], activeIndices[j]];
+                    }
+
+                    product[i, j] = sum;
+                }
+            }
+
+            double traceS = 0.0;
+            double traceSS = 0.0;
+            for (int i = 0; i < a; i++)
+            {
+                traceS += product[i, i];
+                for (int j = 0; j < a; j++)
+                {
+                    traceSS += product[i, j] * product[j, i];
+                }
+            }
+
+            double ndf = n - 2.0 * traceS + traceSS;
+            return ndf > 1.0 ? ndf : 1.0;
         }
 
         FitResult FitOnce(List<FsaComponent> library, List<double[]> fixedColumns,
@@ -4192,9 +4281,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             //
             // ⚠ DᵀD неотрицательно определена, поэтому NNLS остаётся корректен:
             // прибавка не может сделать Грам знаконеопределённым.
+            // (`A291`) Грам БЕЗ штрафа нужен потом для эффективного ndf: след
+            // сглаживающей матрицы считается по паре «штрафованный / чистый».
+            // Снимок делается только когда штраф вообще есть — иначе это лишняя
+            // копия на каждом узле сетки дрейфа.
+            double[,] gramUnpenalized = null;
             if (this.ContinuumRoughness > 0.0 && this.continuumColumns >= 3
                 && fixedColumns.Count > 0)
             {
+                gramUnpenalized = (double[,])gram.Clone();
                 int first = fixedFirst;
                 int last = first + this.continuumColumns - 1;
 
@@ -4294,23 +4389,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 chi2 += r * r * weights[i];
             }
 
-            int activeCount = 0;
-            for (int k = 0; k < m; k++)
-            {
-                if (active[k])
-                {
-                    activeCount++;
-                }
-            }
-
-            double chi2ndf = chi2 / Math.Max(1, n - activeCount);
-
-            // Погрешности — из обратной матрицы нормальных уравнений активного
-            // множества, надутые на sqrt(chi2/ndf): когда модель не дотягивает
-            // до статистики, «сырая» погрешность занижена.
-            double[] sigma = new double[m];
-            double[] z = new double[m];
-            double inflate = Math.Sqrt(Math.Max(1.0, chi2ndf));
             List<int> activeIndices = new List<int>();
             for (int k = 0; k < m; k++)
             {
@@ -4320,26 +4398,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            int activeCount = activeIndices.Count;
+
             double[,] activeInverse = null;
-            if (activeIndices.Count > 0)
+            if (activeCount > 0)
             {
-                double[,] activeGram = new double[activeIndices.Count, activeIndices.Count];
-                for (int a = 0; a < activeIndices.Count; a++)
+                double[,] activeGram = new double[activeCount, activeCount];
+                for (int a = 0; a < activeCount; a++)
                 {
-                    for (int b = 0; b < activeIndices.Count; b++)
+                    for (int b = 0; b < activeCount; b++)
                     {
                         activeGram[a, b] = gram[activeIndices[a], activeIndices[b]];
                     }
                 }
 
-                activeInverse = InvertSymmetric(activeGram, activeIndices.Count);
-                if (activeInverse != null)
+                activeInverse = InvertSymmetric(activeGram, activeCount);
+            }
+
+            // (`A291`) ndf — ЭФФЕКТИВНОЕ, а не «n минус активных».
+            double ndf = EffectiveNdf(n, activeIndices, activeInverse,
+                                      gramUnpenalized);
+            double chi2ndf = chi2 / ndf;
+
+            // Погрешности — из обратной матрицы нормальных уравнений активного
+            // множества, надутые на sqrt(chi2/ndf): когда модель не дотягивает
+            // до статистики, «сырая» погрешность занижена.
+            double[] sigma = new double[m];
+            double[] z = new double[m];
+            double inflate = Math.Sqrt(Math.Max(1.0, chi2ndf));
+            if (activeInverse != null)
+            {
+                for (int a = 0; a < activeCount; a++)
                 {
-                    for (int a = 0; a < activeIndices.Count; a++)
-                    {
-                        double d = activeInverse[a, a];
-                        sigma[activeIndices[a]] = d > 0.0 ? Math.Sqrt(d) * inflate : 0.0;
-                    }
+                    double d = activeInverse[a, a];
+                    sigma[activeIndices[a]] = d > 0.0 ? Math.Sqrt(d) * inflate : 0.0;
                 }
             }
 
@@ -4364,6 +4456,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Z = z,
                 Chi2 = chi2,
                 Chi2Ndf = chi2ndf,
+                Ndf = ndf,
                 Residual = residual,
                 FromResponseMatrix = fromMatrix,
                 Weights = weights,
