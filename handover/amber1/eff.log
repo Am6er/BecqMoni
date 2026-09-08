@@ -1,0 +1,308 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_rel\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 200000 историй на узел
+
+== G1S_point5 ==
+   guid     : a1438401-8aeb-009d-edc5-210a2a14ecdd
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_point5.rmx -> response\a1438401-8aeb-009d-edc5-210a2a14ecdd.rmx
+   спектр   : G1S16_Am241_P5 (1 записей ResultData)
+   спектр   : G1S16_Ba133_P5 (1 записей ResultData)
+   спектр   : G1S16_Cd109_P5 (1 записей ResultData)
+   спектр   : G1S16_Ce139_P5 (1 записей ResultData)
+   спектр   : G1S16_Co57_P5 (1 записей ResultData)
+   спектр   : G1S16_Co60_P5 (1 записей ResultData)
+   спектр   : G1S16_Cs137_P5 (1 записей ResultData)
+   спектр   : G1S16_Eu152_P5 (1 записей ResultData)
+   спектр   : G1S16_Mn54_P5 (1 записей ResultData)
+   спектр   : G1S16_Na22_P5 (1 записей ResultData)
+   спектр   : G1S16_Th228_P5 (1 записей ResultData)
+   спектр   : G1S16_Y88_P5 (1 записей ResultData)
+   спектр   : G1S24_Am241_P5 (1 записей ResultData)
+   спектр   : G1S24_Ba133_P5 (1 записей ResultData)
+   спектр   : G1S24_Bi207_P5 (1 записей ResultData)
+   спектр   : G1S24_Cd109_P5 (1 записей ResultData)
+   спектр   : G1S24_Co60_P5 (1 записей ResultData)
+   спектр   : G1S24_Cs137_P5 (1 записей ResultData)
+   спектр   : G1S24_Eu152_P5 (1 записей ResultData)
+   спектр   : G1S24_Na22_P5 (1 записей ResultData)
+   спектр   : G1S24_Th228_P5 (1 записей ResultData)
+   спектр   : G1S24_Y88_P5 (1 записей ResultData)
+   спектр   : G1S24_Zn65_P5 (1 записей ResultData)
+
+== G1S_point25 ==
+   guid     : d373d6c3-467d-5a40-0410-ad5e3c60cb70
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_point25.rmx -> response\d373d6c3-467d-5a40-0410-ad5e3c60cb70.rmx
+   спектр   : G1S16_Am241_P25 (1 записей ResultData)
+   спектр   : G1S16_Ba133_P25 (1 записей ResultData)
+   спектр   : G1S16_Cd109_P25 (1 записей ResultData)
+   спектр   : G1S16_Ce139_P25 (1 записей ResultData)
+   спектр   : G1S16_Co60_P25 (1 записей ResultData)
+   спектр   : G1S16_Cs137_P25 (1 записей ResultData)
+   спектр   : G1S16_Eu152_P25 (1 записей ResultData)
+   спектр   : G1S16_Mn54_P25 (1 записей ResultData)
+   спектр   : G1S16_Na22_P25 (1 записей ResultData)
+   спектр   : G1S16_Th228_P25 (1 записей ResultData)
+   спектр   : G1S16_Y88_P25 (1 записей ResultData)
+   спектр   : G1S24_Cs137_P25 (1 записей ResultData)
+   спектр   : G1S24_Na22_P25 (1 записей ResultData)
+   спектр   : G1S24_Th228_P25 (1 записей ResultData)
+   спектр   : G1S24_Y88_P25 (1 записей ResultData)
+
+== AS80_point0 ==
+   guid     : 2992663a-84a9-9264-dfc8-2cf14a25cc21
+   кривая   : 38 точек, клеймо phys=16; hist=200000; grid=5-3000 keV/38 std
+   матрица  : AS80_point0.rmx -> response\2992663a-84a9-9264-dfc8-2cf14a25cc21.rmx
+   спектр   : AS80_Cs137_0cm (1 записей ResultData)
+
+== RC103_point0 ==
+   guid     : c4123ab9-b4d7-e796-6ffd-0891f4d71111
+   кривая   : 38 точек, клеймо phys=16; hist=200000; grid=5-3000 keV/38 std
+   матрица  : RC103_point0.rmx -> response\c4123ab9-b4d7-e796-6ffd-0891f4d71111.rmx
+   спектр   : RC103_Cs137_0cm (1 записей ResultData)
+
+== ASN16_lu_side ==
+   guid     : bbc4db49-18f4-2299-4337-0f2f11b88c88
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/39 std
+   матрица  : ASN16_lu_side.rmx -> response\bbc4db49-18f4-2299-4337-0f2f11b88c88.rmx
+   спектр   : ASN16_Lu176 (1 записей ResultData)
+   спектр   : ASN16_Lu176_P0 (1 записей ResultData)
+
+== AS80_lu_front ==
+   guid     : a7eb945d-9246-91ca-c23b-65a4402448cd
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/39 std
+   матрица  : AS80_lu_front.rmx -> response\a7eb945d-9246-91ca-c23b-65a4402448cd.rmx
+   спектр   : AS80_Lu176 (1 записей ResultData)
+
+== RC103_lu_front ==
+   guid     : 552a036a-dfc9-c14c-b505-fbfaadbaf1ae
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/39 std
+   матрица  : RC103_lu_front.rmx -> response\552a036a-dfc9-c14c-b505-fbfaadbaf1ae.rmx
+   спектр   : RC103_Lu176 (1 записей ResultData)
+
+== RC103_marinelli05_kcl ==
+   guid     : 0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : RC103_marinelli05_kcl.rmx -> response\0b58cea4-b8af-4297-1e2b-0fdfa6e40c3f.rmx
+   спектр   : RC103_K40 (1 записей ResultData)
+
+== G1S_denta100_oisn10_100_p16 ==
+   guid     : ed033f43-ad92-39e9-1ab8-185b2ccd84a1
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta100_oisn10_100_p16.rmx -> response\ed033f43-ad92-39e9-1ab8-185b2ccd84a1.rmx
+   спектр   : G1S16_Th232_Denta100 (1 записей ResultData)
+
+== G1S_denta100_risn379_100_p16 ==
+   guid     : 6ed49f5c-2dd6-7721-537c-60c030d94137
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_denta100_risn379_100_p16.rmx -> response\6ed49f5c-2dd6-7721-537c-60c030d94137.rmx
+   спектр   : G1S16_Mix_Denta100 (1 записей ResultData)
+
+== G1S_denta120_oisn06_057_p24 ==
+   guid     : d8f04e41-0488-dc39-8416-d51b803b5e8a
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn06_057_p24.rmx -> response\d8f04e41-0488-dc39-8416-d51b803b5e8a.rmx
+   спектр   : G1S24_Cs137_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_062_p24 ==
+   guid     : 04d28c74-e0d4-9d32-2bc0-cd12c59b998c
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn06_062_p24.rmx -> response\04d28c74-e0d4-9d32-2bc0-cd12c59b998c.rmx
+   спектр   : G1S24_Ra226_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_064_p24 ==
+   guid     : 2fecfdc4-9f49-742f-c154-9617cacf5318
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn06_064_p24.rmx -> response\2fecfdc4-9f49-742f-c154-9617cacf5318.rmx
+   спектр   : G1S24_Th232_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn06_066_p24 ==
+   guid     : cce59946-11c3-5472-6c3d-302ae9d6f3f1
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn06_066_p24.rmx -> response\cce59946-11c3-5472-6c3d-302ae9d6f3f1.rmx
+   спектр   : G1S24_K40_Denta120 (1 записей ResultData)
+
+== G1S_denta120_oisn16_155_p24 ==
+   guid     : 6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn16_155_p24.rmx -> response\6c14ccdc-6ed8-e995-58a6-f2a64fe0bfcd.rmx
+   спектр   : G1S24_K40_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_160_p24 ==
+   guid     : f587e421-fd8b-2a2e-3c21-1ed10265ac4b
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn16_160_p24.rmx -> response\f587e421-fd8b-2a2e-3c21-1ed10265ac4b.rmx
+   спектр   : G1S24_Th232_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_166_p24 ==
+   guid     : 9e1c51ab-cf78-66a4-1150-87dc22f327c4
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn16_166_p24.rmx -> response\9e1c51ab-cf78-66a4-1150-87dc22f327c4.rmx
+   спектр   : G1S24_Cs137_Denta120_2 (1 записей ResultData)
+
+== G1S_denta120_oisn16_167_p24 ==
+   guid     : c2cf3bec-4df6-39dc-8b24-e5977eda81f1
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_denta120_oisn16_167_p24.rmx -> response\c2cf3bec-4df6-39dc-8b24-e5977eda81f1.rmx
+   спектр   : G1S24_Ra226_Denta120_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn06_055_p16 ==
+   guid     : 8b274676-e4b0-184b-fa1c-2c8d3592c725
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_mar1l_oisn06_055_p16.rmx -> response\8b274676-e4b0-184b-fa1c-2c8d3592c725.rmx
+   спектр   : G1S16_Th232_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn06_057_p16 ==
+   guid     : 77ab0974-6f2b-47cb-c1ca-042f7150bbe2
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_mar1l_oisn06_057_p16.rmx -> response\77ab0974-6f2b-47cb-c1ca-042f7150bbe2.rmx
+   спектр   : G1S16_Cs137_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_057_p24 ==
+   guid     : 5a5c317a-0751-ac21-a6e8-185bdd6fc5f2
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn06_057_p24.rmx -> response\5a5c317a-0751-ac21-a6e8-185bdd6fc5f2.rmx
+   спектр   : G1S24_Cs137_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_062_p16 ==
+   guid     : 28b990e4-f7dc-3116-e27e-be996cdd1d91
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_mar1l_oisn06_062_p16.rmx -> response\28b990e4-f7dc-3116-e27e-be996cdd1d91.rmx
+   спектр   : G1S16_Ra226_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_062_p24 ==
+   guid     : 68449eb8-40d8-1ccc-d718-bfa9105ee418
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn06_062_p24.rmx -> response\68449eb8-40d8-1ccc-d718-bfa9105ee418.rmx
+   спектр   : G1S24_Ra226_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_064_p24 ==
+   guid     : 34c0ad77-6a01-d6ed-1447-d49b32889411
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn06_064_p24.rmx -> response\34c0ad77-6a01-d6ed-1447-d49b32889411.rmx
+   спектр   : G1S24_Th232_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_066_p16 ==
+   guid     : 80fe173b-d74c-4bad-6a94-5213b32f2495
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_mar1l_oisn06_066_p16.rmx -> response\80fe173b-d74c-4bad-6a94-5213b32f2495.rmx
+   спектр   : G1S16_K40_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn06_066_p24 ==
+   guid     : 59d90fb3-76cc-c566-6db4-f829c99ac6ca
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn06_066_p24.rmx -> response\59d90fb3-76cc-c566-6db4-f829c99ac6ca.rmx
+   спектр   : G1S24_K40_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn16_155_p16 ==
+   guid     : c6e83c91-6a59-95c2-12b5-2b326706f97c
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_155_p16.rmx -> response\c6e83c91-6a59-95c2-12b5-2b326706f97c.rmx
+   спектр   : G1S16_K40_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_155_p24 ==
+   guid     : 38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_155_p24.rmx -> response\38d9c7f8-f938-50f4-8ef6-b3ff1cf79e03.rmx
+   спектр   : G1S24_K40_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_160_p16 ==
+   guid     : a43b8253-1140-8904-1140-2410f7114e45
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_160_p16.rmx -> response\a43b8253-1140-8904-1140-2410f7114e45.rmx
+   спектр   : G1S16_Th232_Mar_3 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_160_p24 ==
+   guid     : 6fafd956-34af-0bed-9910-3ee13f5424e3
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_160_p24.rmx -> response\6fafd956-34af-0bed-9910-3ee13f5424e3.rmx
+   спектр   : G1S24_Th232_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_166_p16 ==
+   guid     : 37f93a41-e560-68e3-3900-a08567ebafe4
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_166_p16.rmx -> response\37f93a41-e560-68e3-3900-a08567ebafe4.rmx
+   спектр   : G1S16_Cs137_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_166_p24 ==
+   guid     : c157b4bb-7884-36c7-7050-77aac7272d8a
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_166_p24.rmx -> response\c157b4bb-7884-36c7-7050-77aac7272d8a.rmx
+   спектр   : G1S24_Cs137_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_167_p16 ==
+   guid     : 61d23db3-f81e-aecf-fe2b-5b601ed9326e
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_167_p16.rmx -> response\61d23db3-f81e-aecf-fe2b-5b601ed9326e.rmx
+   спектр   : G1S16_Ra226_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_oisn16_167_p24 ==
+   guid     : e42f1d2c-7212-6988-b30d-da3995473bfe
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_mar1l_oisn16_167_p24.rmx -> response\e42f1d2c-7212-6988-b30d-da3995473bfe.rmx
+   спектр   : G1S24_Ra226_Mar_2 (1 записей ResultData)
+
+== G1S_mar1l_risn379_100_p16 ==
+   guid     : 10130f74-47dd-27d9-46b8-fb5c8271f084
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_mar1l_risn379_100_p16.rmx -> response\10130f74-47dd-27d9-46b8-fb5c8271f084.rmx
+   спектр   : G1S16_Mix_Mar (1 записей ResultData)
+
+== G1S_petri60_oisn06_057_p24 ==
+   guid     : b495efd5-978c-c40b-720d-4a2ca7fa2455
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn06_057_p24.rmx -> response\b495efd5-978c-c40b-720d-4a2ca7fa2455.rmx
+   спектр   : G1S24_Cs137_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_062_p24 ==
+   guid     : 11d8337f-3f31-3b2c-f625-8f9bec43a3f1
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn06_062_p24.rmx -> response\11d8337f-3f31-3b2c-f625-8f9bec43a3f1.rmx
+   спектр   : G1S24_Ra226_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_064_p24 ==
+   guid     : 0287f7f6-e492-c3ef-02aa-f922d1e07552
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn06_064_p24.rmx -> response\0287f7f6-e492-c3ef-02aa-f922d1e07552.rmx
+   спектр   : G1S24_Th232_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn06_067_p24 ==
+   guid     : ec040922-9d7a-72da-bec5-4d9c6b38f5ec
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn06_067_p24.rmx -> response\ec040922-9d7a-72da-bec5-4d9c6b38f5ec.rmx
+   спектр   : G1S24_K40_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn10_100_p16 ==
+   guid     : 1eb5247c-3880-474b-295b-f8a61f3187fb
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn10_100_p16.rmx -> response\1eb5247c-3880-474b-295b-f8a61f3187fb.rmx
+   спектр   : G1S16_Th232_Petri (1 записей ResultData)
+
+== G1S_petri60_oisn16_155_p24 ==
+   guid     : 53bd04df-6e8d-1f9e-83a2-564d7b8b327d
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn16_155_p24.rmx -> response\53bd04df-6e8d-1f9e-83a2-564d7b8b327d.rmx
+   спектр   : G1S24_K40_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_oisn16_160_p24 ==
+   guid     : 6b61f24c-55c3-f6c0-8603-8ad89cc01ed8
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn16_160_p24.rmx -> response\6b61f24c-55c3-f6c0-8603-8ad89cc01ed8.rmx
+   спектр   : G1S24_Th232_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_oisn16_167_p24 ==
+   guid     : c33e2b8d-5594-53ab-aa5b-2df4abcd0b56
+   кривая   : 39 точек, клеймо phys=16; hist=200000; grid=7.1-3000 keV/39 std
+   матрица  : G1S_petri60_oisn16_167_p24.rmx -> response\c33e2b8d-5594-53ab-aa5b-2df4abcd0b56.rmx
+   спектр   : G1S24_Cs137_Petri_2 (1 записей ResultData)
+   спектр   : G1S24_Ra226_Petri_2 (1 записей ResultData)
+
+== G1S_petri60_risn379_100_p16 ==
+   guid     : eea37702-b9e7-cc9c-0b7e-c7df2743253f
+   кривая   : 37 точек, клеймо phys=16; hist=200000; grid=10-3000 keV/37 std
+   матрица  : G1S_petri60_risn379_100_p16.rmx -> response\eea37702-b9e7-cc9c-0b7e-c7df2743253f.rmx
+   спектр   : G1S16_Mix_Petri (1 записей ResultData)
+
+геометрий: 44 — посчитано 44, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 82
+ВСЕ СОШЛИСЬ
