@@ -3263,6 +3263,23 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSAPresentNoShare", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to not resolved.
+        /// </summary>
+        public static string FSANotResolvedNoShare {
+            get {
+                return ResourceManager.GetString("FSANotResolvedNoShare", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry..
+        /// </summary>
+        public static string FSANotResolvedHint {
+            get {
+                return ResourceManager.GetString("FSANotResolvedHint", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to &lt; {0} %.
