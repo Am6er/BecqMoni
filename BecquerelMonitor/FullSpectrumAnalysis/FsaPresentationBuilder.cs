@@ -391,6 +391,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
+            // ⛔ (`AMBER5`) ОБРАЗ ПРИБОРА, ПРЕДЪЯВЛЕННЫЙ И НЕ ВЫДЕЛИВШИЙСЯ,
+            // НАЗЫВАЕТСЯ. Вопрос Amber 08.09.2026: «Где обратное рассеивание?»
+            // — на `Чароит в домике` строки не было вовсе, хотя переключатель
+            // стоял.
+            //
+            // Физика: рассеянный назад квант возвращается широким горбом около
+            // 200 кэВ, и подложка модели тоже гладкая. При живой матрице спора
+            // нет — рассеяние уже в ней, отдельный образ не строится
+            // (~~`A83`~~). Без матрицы форма континуума неизвестна и свободна,
+            // и гладкий горб внутри свободной гладкой подложки неразличим:
+            // измерено на чароите — в полосе 120…280 кэВ подложка держит
+            // 796 338 отсчётов из 872 542 (91 %), образу достаётся ноль.
+            //
+            // ⚠ Значение — СЛОВО, а не число, ровно по тому же доводу, по
+            // какому у выделившегося рассеяния печатается «есть», а не доля
+            // (~~`S85`~~, решение Amber 24.08.2026): величина зависит от
+            // густоты узлов сплайна сильнее, чем от самого рассеяния.
+            // Молчание же неотличимо от «образ не строился вовсе».
+            if (result.SuppressedImages != null)
+            {
+                bool shown = false;
+                foreach (FsaStackLayer layer in presentation.Layers)
+                {
+                    if (string.Equals(layer.Name, FsaResult.BackscatterLayerName,
+                                      StringComparison.Ordinal))
+                    {
+                        shown = true;
+                    }
+                }
+
+                foreach (FsaSuppressedImage image in result.SuppressedImages)
+                {
+                    if (shown || !string.Equals(image.Name, FsaResult.BackscatterLayerName,
+                                                StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    rows.Add(new FsaReportRow
+                    {
+                        Kind = FsaReportRowKind.Undetected,
+                        Name = FsaPalette.DisplayName(image.Name),
+                        Value = Resources.FSANotResolvedNoShare,
+                        Hint = Resources.FSANotResolvedHint,
+                        Muted = true
+                    });
+                }
+            }
+
             // 4. (S69) Кандидаты, которые АПРИОРИ не могут показать себя гаммой, —
             // одной строкой с суммарным пределом. Их предел не ограничивает
             // содержание ничем, и печатать его отдельным числом на каждого

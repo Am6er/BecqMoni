@@ -8553,6 +8553,12 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} %</value>
   </data>
+  <data name="FSANotResolvedNoShare" xml:space="preserve">
+    <value>not resolved</value>
+  </data>
+  <data name="FSANotResolvedHint" xml:space="preserve">
+    <value>The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry.</value>
+  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>not determined ({0})</value>
   </data>

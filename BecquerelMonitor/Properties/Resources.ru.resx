@@ -507,6 +507,12 @@
   <data name="FSAMdaValue" xml:space="preserve">
     <value>&lt; {0} %</value>
   </data>
+  <data name="FSANotResolvedNoShare" xml:space="preserve">
+    <value>не выделено</value>
+  </data>
+  <data name="FSANotResolvedHint" xml:space="preserve">
+    <value>Образ предъявлен фиту и получил ноль: полосу держит континуум модели. Величина требует геометрии детектора.</value>
+  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>не определяются ({0})</value>
   </data>

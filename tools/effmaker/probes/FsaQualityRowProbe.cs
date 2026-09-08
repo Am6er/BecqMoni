@@ -234,6 +234,7 @@ namespace FsaQualityRowProbe
         {
             Console.WriteLine();
             FoldedLimitsSection();
+            BackscatterRowSection();
 
             Console.WriteLine("=== 4. положительный контроль: сторож на заведомо плохом входе ===");
             Language("ru-RU");
@@ -445,6 +446,75 @@ namespace FsaQualityRowProbe
             Same("свёрнутая строка одна", 1, foldedRows);
             Same("она называет обоих свёрнутых", "Rn-222, Po-214", folded);
             Same("у названного кандидата подсказки нет", "(пусто)", named);
+        }
+
+        /// <summary>
+        /// (`AMBER5`) ПРЕДЪЯВЛЕННОЕ И НЕ ВЫДЕЛИВШЕЕСЯ ОБРАТНОЕ РАССЕЯНИЕ
+        /// НАЗЫВАЕТСЯ. Вопрос Amber 08.09.2026: «Где обратное рассеивание?» —
+        /// на `Чароит в домике` строки не было вовсе при стоящем
+        /// переключателе.
+        ///
+        /// Физика: рассеянный назад квант возвращается широким горбом около
+        /// 200 кэВ; подложка модели тоже гладкая, и без матрицы её форма
+        /// свободна. Измерено на том же спектре: в полосе 120…280 кэВ подложка
+        /// держит 796 338 отсчётов из 872 542, образу достаётся ноль. Значение
+        /// строки — СЛОВО, а не число, по тому же доводу, по какому у
+        /// выделившегося рассеяния печатается «есть» (~~`S85`~~).
+        ///
+        /// Положительный контроль второй строкой: когда рассеяние ВЫДЕЛИЛОСЬ,
+        /// второй строки быть не должно — иначе одно и то же окажется в
+        /// таблице дважды.
+        /// </summary>
+        static void BackscatterRowSection()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 6. предъявленное и не выделившееся рассеяние названо (`AMBER5`) ===");
+
+            var dropped = new FsaResult { Chi2Ndf = Chi2, EfficiencyUsed = true };
+            dropped.SuppressedImages.Add(new FsaSuppressedImage
+            {
+                Name = FsaResult.BackscatterLayerName,
+                Kind = FsaComponentKind.Nuisance,
+                Z = 0.0
+            });
+
+            int rows = 0;
+            string value = null, hint = null;
+            foreach (FsaReportRow row in FsaPresentationBuilder.Build(dropped, FsaGrouping.Daughters, false).Rows)
+            {
+                if (row.Name == FsaResult.BackscatterLayerName)
+                {
+                    rows++;
+                    value = row.Value;
+                    hint = row.Hint;
+                }
+            }
+
+            Console.WriteLine("  строк рассеяния {0}, значение «{1}», подсказка {2}",
+                              rows, value ?? "(нет)", string.IsNullOrEmpty(hint) ? "(нет)" : "есть");
+            Same("строка появилась ровно одна", 1, rows);
+            Same("значение — слово, а не доля", BecquerelMonitor.Properties.Resources.FSANotResolvedNoShare, value);
+            Same("причина в подсказке есть", true, !string.IsNullOrEmpty(hint));
+
+            // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: та же сцена БЕЗ отсеянного рассеяния —
+            // строки быть не должно. Без него «строка появилась» неотличимо от
+            // «строка появляется всегда», и сторож слеп.
+            var quiet = new FsaResult { Chi2Ndf = Chi2, EfficiencyUsed = true };
+            quiet.SuppressedImages.Add(new FsaSuppressedImage
+            {
+                Name = "pile-up",
+                Kind = FsaComponentKind.Nuisance,
+                Z = 0.0
+            });
+
+            int again = 0;
+            foreach (FsaReportRow row in FsaPresentationBuilder.Build(quiet, FsaGrouping.Daughters, false).Rows)
+            {
+                if (row.Name == FsaResult.BackscatterLayerName) again++;
+            }
+
+            Console.WriteLine("  контроль: без отсеянного рассеяния строк {0}", again);
+            Same("на чужой отсеянный образ строка не заводится", 0, again);
         }
 
         static void Same(string what, object expected, object got)
