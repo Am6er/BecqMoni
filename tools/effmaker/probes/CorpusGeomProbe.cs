@@ -724,7 +724,11 @@ class CorpusGeomProbe
             Key = "AS80_point0",
             Preset = "Atom Spectra Pro 80x80",
             Vessel = "точечный источник, вплотную к торцу",
-            Spectra = new[] { "AS80_Cs137_0cm" },
+            // `AS80_Am241` добавлен 08.09.2026: америциевых источников ТРИ, но
+            // лежали они кучно (между центрами менее 3-4 мм, слово Amber), а
+            // смещение от оси до 3 мм меняет телесный угол менее чем на 0.3 %.
+            // Точка описывает эту постановку, отдельной сцены не нужно.
+            Spectra = new[] { "AS80_Cs137_0cm", "AS80_Am241" },
             Shape = g => { g.SourceType = GeometrySourceType.Point; g.PointDistance = 0.0; },
         });
 
@@ -801,7 +805,10 @@ class CorpusGeomProbe
             Key = "AS80_lu_front",
             Preset = "Atom Spectra Pro 80x80",
             Vessel = "банка 50 мл Ø40×h15, ВПРИТЫК к торцу",
-            Spectra = new[] { "AS80_Lu176" },
+            // `AS80_Lu176_v2` — та же банка и та же постановка, съёмка
+            // 08.09.2026 втрое длиннее (12 600 с против 3 824). Прежний ключ
+            // остаётся: он закреплён (`corpus/pinned`).
+            Spectra = new[] { "AS80_Lu176", "AS80_Lu176_v2" },
             PassportVolumeMl = 18.85,
             PassportMassG = 20.0,
             SourceMaterial = "Lutetium oxide",
