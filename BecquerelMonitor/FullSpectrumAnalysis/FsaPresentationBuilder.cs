@@ -1,4 +1,4 @@
-using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -416,12 +416,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
+                // (`AMBER6`) Свёрнутые НАЗЫВАЮТСЯ в подсказке. Свёртка сама по
+                // себе верна (у этих кандидатов гамма-выход ниже порога, и
+                // отдельный предел был бы обещанием измерения, которого нет),
+                // но человек, спросивший «где радон?», обязан получить ответ,
+                // а не пустую строку: имена есть, места в строке нет —
+                // значит место подсказки.
+                var names = new List<string>();
+                foreach (FsaCharacteristicLimit limit in folded)
+                {
+                    names.Add(limit.Name);
+                }
+
                 rows.Add(new FsaReportRow
                 {
                     Kind = FsaReportRowKind.UndetectedFolded,
                     Name = string.Format(CultureInfo.InvariantCulture,
                                          Resources.FSAUndetectedFoldedRow, folded.Count),
                     Value = LimitText(LimitSharePercent(result, sum)),
+                    Hint = string.Join(", ", names.ToArray()),
                     Muted = true
                 });
             }

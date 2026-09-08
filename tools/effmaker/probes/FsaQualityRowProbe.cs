@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -233,6 +233,8 @@ namespace FsaQualityRowProbe
         static void Control()
         {
             Console.WriteLine();
+            FoldedLimitsSection();
+
             Console.WriteLine("=== 4. положительный контроль: сторож на заведомо плохом входе ===");
             Language("ru-RU");
             string old = Mark("FSAOldMatrixMark");
@@ -378,6 +380,71 @@ namespace FsaQualityRowProbe
             CultureInfo culture = new CultureInfo(name);
             Thread.CurrentThread.CurrentCulture = culture;
             Thread.CurrentThread.CurrentUICulture = culture;
+        }
+
+        /// <summary>
+        /// (`AMBER6`) СВЁРНУТАЯ СТРОКА ПРЕДЕЛОВ НАЗЫВАЕТ СВЁРНУТЫХ — в
+        /// подсказке, раз в самой строке места нет.
+        ///
+        /// Вопрос Amber 08.09.2026: «Выключено равновесие у Ra-226 цепи. Где
+        /// радон?» На `Чароит в домике` разбор радон СУДИТ и предел ему
+        /// считает (1.58E+003 1/с, то есть заведомо не ограничивающий), но в
+        /// таблицу он не попадает: гамма-выход у Rn-222 ниже порога, и свёртка
+        /// (`S69`, решение Amber `S74`) кладёт его в безымянное
+        /// «не определяются (3)» вместе с Po-214 и Po-210. Свёртка верна —
+        /// отдельный предел был бы обещанием измерения, которого нет, — но
+        /// человек, спросивший «где радон», обязан получить ответ.
+        ///
+        /// Положительный контроль здесь ОБЯЗАТЕЛЕН и он второй строкой: у
+        /// НАЗВАННОГО кандидата подсказки быть не должно, иначе «подсказка
+        /// есть» ничего не отличает.
+        /// </summary>
+        static void FoldedLimitsSection()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 5. свёрнутая строка пределов называет свёрнутых (`AMBER6`) ===");
+
+            var result = new FsaResult { Chi2Ndf = Chi2, EfficiencyUsed = true };
+            result.CharacteristicLimits.Add(new FsaCharacteristicLimit
+            {
+                Name = "Ra-226", Kind = FsaComponentKind.Single, Detected = false,
+                DetectionLimitRate = 1.0, DetectionLimitPeakCounts = 100.0,
+                TotalYieldPercent = 100.0
+            });
+            result.CharacteristicLimits.Add(new FsaCharacteristicLimit
+            {
+                Name = "Rn-222", Kind = FsaComponentKind.Single, Detected = false,
+                DetectionLimitRate = 1.0, DetectionLimitPeakCounts = 100.0,
+                TotalYieldPercent = 0.08
+            });
+            result.CharacteristicLimits.Add(new FsaCharacteristicLimit
+            {
+                Name = "Po-214", Kind = FsaComponentKind.Single, Detected = false,
+                DetectionLimitRate = 1.0, DetectionLimitPeakCounts = 100.0,
+                TotalYieldPercent = 0.01
+            });
+
+            FsaPresentation view = FsaPresentationBuilder.Build(result, FsaGrouping.Daughters, false);
+            string folded = null, named = "(строки нет)";
+            int foldedRows = 0;
+            foreach (FsaReportRow row in view.Rows)
+            {
+                if (row.Kind == FsaReportRowKind.UndetectedFolded)
+                {
+                    folded = row.Hint;
+                    foldedRows++;
+                }
+                else if (row.Kind == FsaReportRowKind.Undetected && row.Name == "Ra-226")
+                {
+                    named = row.Hint ?? "(пусто)";
+                }
+            }
+
+            Console.WriteLine("  свёрнутых строк {0}, подсказка «{1}»; у названного «{2}»",
+                              foldedRows, folded ?? "(нет)", named);
+            Same("свёрнутая строка одна", 1, foldedRows);
+            Same("она называет обоих свёрнутых", "Rn-222, Po-214", folded);
+            Same("у названного кандидата подсказки нет", "(пусто)", named);
         }
 
         static void Same(string what, object expected, object got)
