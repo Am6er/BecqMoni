@@ -111,6 +111,13 @@ class CorpusEffProbe
                           options.MinEnergyKev, options.MaxEnergyKev, options.Histories);
         Console.WriteLine();
 
+        // ⛔ Взятых В РАБОТУ, а не всех из описи. До 08.09.2026 итог считал
+        // `order.Count - skippedCurves`, а `--only` отсекал соседей ДО
+        // счётчика, и строка «геометрий: 44 — посчитано 44» стояла над
+        // прогоном, тронувшим ОДНУ сцену. Число из неё читается как «пересчёт
+        // всего склада», то есть три часа счёта, — а его не было.
+        int taken = 0;
+
         foreach (string key in order)
         {
             // --only= держит пересчёт хирургическим: кривая — Монте-Карло, и
@@ -120,6 +127,8 @@ class CorpusEffProbe
             {
                 continue;
             }
+
+            taken++;
 
             string geomPath = Path.Combine(dir, key + ".in");
             string matrixPath = Path.Combine(dir, key + ".rmx");
@@ -210,11 +219,24 @@ class CorpusEffProbe
             Console.WriteLine();
         }
 
-        Console.WriteLine("геометрий: {0} — посчитано {1}, пропущено {2} (клеймо и геометрия"
-                          + " сошлись); записей проставлено: {3}{4}",
-                          order.Count, order.Count - skippedCurves, skippedCurves, attached,
+        Console.WriteLine("геометрий в описи: {0}{1} — посчитано {2}, пропущено {3}"
+                          + " (клеймо и геометрия сошлись); записей проставлено: {4}{5}",
+                          order.Count,
+                          only == null
+                              ? ""
+                              : string.Format(CultureInfo.InvariantCulture,
+                                              ", взято по --only={0}: {1}", only, taken),
+                          taken - skippedCurves, skippedCurves, attached,
                           dry ? " (--dry, ничего не записано)" : "");
-        if (skippedCurves == order.Count && order.Count > 0)
+        if (only != null && taken == 0)
+        {
+            // Опечатка в ключе не должна выглядеть как «всё уже сошлось»:
+            // прогон, не тронувший ни одной сцены, обязан назвать себя.
+            Console.WriteLine("НЕТ ТАКОЙ ГЕОМЕТРИИ: --only={0} не совпал ни с одним"
+                              + " ключом описи", only);
+            ok = false;
+        }
+        else if (skippedCurves == taken && taken > 0)
         {
             Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
         }
