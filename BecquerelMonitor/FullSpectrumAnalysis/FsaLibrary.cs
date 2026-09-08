@@ -230,7 +230,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     parents.Add(new EscapeParent(line,
-                        double.IsNaN(share) ? line.Intensity : line.Intensity * share));
+                        double.IsNaN(share) ? line.Intensity : line.Intensity * share,
+                        component.Name));
                 }
             }
 
@@ -262,8 +263,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 used++;
-                extra.Add(OneLine("SE-" + tag, parent.Line.Energy - 511.0));
-                extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0));
+                extra.Add(OneLine("SE-" + tag, parent.Line.Energy - 511.0, parent.Owner));
+                extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0, parent.Owner));
             }
 
             return extra;
@@ -316,10 +317,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public readonly FsaLine Line;
             public readonly double Weight;
 
-            public EscapeParent(FsaLine line, double weight)
+            /// <summary>
+            /// (`AMBER8`) Имя КОЛОНКИ, чья это линия. Нужно, чтобы образ вылета
+            /// помнил родителя: вылета без родителя не бывает, и когда колонку
+            /// снимает отсев, её вылет обязан уйти вместе с ней.
+            /// </summary>
+            public readonly string Owner;
+
+            public EscapeParent(FsaLine line, double weight, string owner)
             {
                 this.Line = line;
                 this.Weight = weight;
+                this.Owner = owner;
             }
         }
 
@@ -372,10 +381,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return total > 0.0 ? pair / total : double.NaN;
         }
 
-        static FsaComponent OneLine(string name, double energy)
+        static FsaComponent OneLine(string name, double energy, string escapeParent = null)
         {
             var component = new FsaComponent(name, FsaComponentKind.Nuisance);
             component.Lines.Add(new FsaLine(name, energy, 100.0));
+            component.EscapeParent = escapeParent;
             return component;
         }
 
