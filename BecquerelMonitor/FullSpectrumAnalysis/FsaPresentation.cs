@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
@@ -98,6 +98,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Красный текст: предупреждение (`S44`).</summary>
         public bool Warning { get; set; }
+
+        /// <summary>
+        /// (`AMBER6`) Подсказка строки — то, чего в самой строке не помещается.
+        /// Пусто — подсказкой служит сам текст строки, как было.
+        ///
+        /// Заведено ради свёрнутой строки пределов: вопрос Amber 08.09.2026
+        /// «Выключено равновесие у Ra-226 цепи. Где радон?» — радон судится и
+        /// предел у него посчитан, но в таблице он попадает в безымянное
+        /// «не определяются (3)» (свёртка по порогу выхода, `S69`/`S74`), и
+        /// назвать свёрнутых было негде.
+        /// </summary>
+        public string Hint { get; set; }
 
         /// <summary>
         /// Строка уступает место первой при нехватке высоты (временная таблица

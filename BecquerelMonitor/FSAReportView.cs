@@ -1,4 +1,4 @@
-using BecquerelMonitor.FullSpectrumAnalysis;
+﻿using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -1349,7 +1349,9 @@ namespace BecquerelMonitor
             var value = new Cell(row.Value ?? string.Empty);
             name.ForeColor = fore;
             value.ForeColor = fore;
-            name.ToolTipText = name.Text;
+            // (`AMBER6`) Подсказка строки: своя, если она есть, иначе сам
+            // текст — как было до 08.09.2026.
+            name.ToolTipText = string.IsNullOrEmpty(row.Hint) ? name.Text : row.Hint;
             value.ToolTipText = row.Value;
 
             // Полный текст без усечения: строки блока качества и строка
