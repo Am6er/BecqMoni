@@ -1586,12 +1586,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // берутся из `decay_radiations`. Уже имеющиеся НЕ трогаем — иначе
             // прежние замеры сдвинулись бы без всякой связи с S27 (у Lu-176
             // поставки расходятся: 91.0 % против 77.97 на линии 201.83).
-            foreach (double[] line in atomic.GammaIntensity)
+            foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
             {
                 double had;
-                if (!Match(data.Intensity, line[0], out had))
+                if (!Match(data.Intensity, line.EnergyKev, out had))
                 {
-                    data.Intensity[line[0]] = line[1];
+                    data.Intensity[line.EnergyKev] = line.IntensityPct;
                 }
             }
 
@@ -1749,9 +1749,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            foreach (double[] gamma in atomic.GammaIntensity)
+            foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
-                double decayEnergy = gamma[0];
+                double decayEnergy = gamma.EnergyKev;
 
                 // ⛔ КЛЮЧ ПАРЫ — ТОТ ЖЕ, ЧТО У ЯДЕРНЫХ ПАР, а он приходит из
                 // ДРУГОЙ поставки и округлён иначе: у Lu-176 линия 306.780 в
@@ -1768,11 +1768,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     pairKey = decayEnergy;
                 }
 
-                double delay = DelayOf(atomic, decayEnergy);
-                CascadeAtomicData.Phase[] phases = PhasesOf(atomic, decayEnergy);
+                // ⛔ ВРЕМЯ, ПУТЬ И ВЕТВЬ — У САМОЙ СТРОКИ (`S157`). Прежде их
+                // искали по ЭНЕРГИИ, и у межканального дубля вторая строка
+                // получала переход и ветвь ПЕРВОГО канала.
+                double delay = DelayOf(gamma);
+                CascadeAtomicData.Phase[] phases = PhasesOf(gamma);
 
                 // (`S145`) Носители — СВОЕЙ ветви этой гаммы.
-                CascadeAtomicData.Branch branch = atomic.BranchOfGamma(decayEnergy);
+                CascadeAtomicData.Branch branch = atomic.BranchOfLine(gamma);
                 int branchIndex = branch != null ? atomic.Branches.IndexOf(branch) : -1;
                 List<Carrier> own;
                 if (branchIndex < 0 || !carriersOf.TryGetValue(branchIndex, out own))
@@ -1806,8 +1809,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double probability = carrier.FromVacancy
                         ? carrier.Share
                           * this.VacancyGiven(atomic, branch, branchIndex, raw,
-                                              decayEnergy, delay, phases)
-                        : atomic.AnnihilationQuantaOfGamma(decayEnergy) * inWindow;
+                                              gamma, delay, phases)
+                        : atomic.AnnihilationQuantaOfLine(gamma) * inWindow;
                     if (!(probability > 0.0))
                     {
                         continue;
@@ -1906,8 +1909,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double VacancyGiven(CascadeAtomicData atomic, CascadeAtomicData.Branch branch,
                             int branchIndex, NuclideData raw,
-                            double energyKev, double delaySec, CascadeAtomicData.Phase[] phases)
+                            CascadeAtomicData.GammaLine gamma, double delaySec,
+                            CascadeAtomicData.Phase[] phases)
         {
+            double energyKev = gamma != null ? gamma.EnergyKev : 0.0;
             // (`S145`) Захватные вакансии и ω_K берутся У СВОЕЙ ВЕТВИ. Ветви нет
             // (линия не нашлась ни в одной схеме) — прежние сводные поля.
             double promptVacancy = branch != null ? branch.PromptVacancy : atomic.PromptVacancy;
@@ -1947,22 +1952,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`S158`) Переход САМОЙ этой гаммы — чтобы спросить схему, может ли
             // другой переход случиться в том же событии. Не нашёлся (линии нет в
             // схеме) — судить нечем, и запасной ход остаётся прежним.
-            CascadeAtomicData.Transition mine;
-            if (!atomic.Gammas.TryGetValue(energyKev, out mine))
-            {
-                mine = null;
-            }
+            // (`S157`) Берётся У СТРОКИ, а не по энергии.
+            CascadeAtomicData.Transition mine = gamma != null ? gamma.Transition : null;
 
-            foreach (double[] other in atomic.GammaIntensity)
+            foreach (CascadeAtomicData.GammaLine other in atomic.GammaIntensity)
             {
-                if (Math.Abs(other[0] - energyKev) < SamePairLineKev)
+                // ⚠ Правило прежнее и НАРОЧНО не тронуто (`S157`): линия ближе
+                // `SamePairLineKev` к опорной партнёром не берётся. Соблазн
+                // сравнивать здесь по ССЫЛКЕ (две строки дубля — разные) был
+                // отвергнут: это правка сверх задачи, а у самого дубля ветви
+                // разные, и его всё равно отсеет проверка ветви ниже.
+                if (Math.Abs(other.EnergyKev - energyKev) < SamePairLineKev)
                 {
                     continue;
                 }
 
-                CascadeAtomicData.Transition transition;
-                if (!atomic.Gammas.TryGetValue(other[0], out transition)
-                    || !(transition.AlphaK > 0.0))
+                CascadeAtomicData.Transition transition = other.Transition;
+                if (transition == null || !(transition.AlphaK > 0.0))
                 {
                     continue;
                 }
@@ -1986,7 +1992,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                vacancy += Conditional(atomic, raw, energyKev, other[0], branch, mine, transition)
+                vacancy += Conditional(raw, energyKev, other, branch, mine, transition)
                            * transition.AlphaK * together;
             }
 
@@ -2023,12 +2029,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// совпадения нет, по-прежнему берётся безусловный выход. Это прежняя
         /// названная договорённость, и `S158` её не отменяет.
         /// </summary>
-        static double Conditional(CascadeAtomicData atomic, NuclideData raw,
-                                  double energyKev, double otherKev,
+        static double Conditional(NuclideData raw, double energyKev,
+                                  CascadeAtomicData.GammaLine otherLine,
                                   CascadeAtomicData.Branch branch,
                                   CascadeAtomicData.Transition mine,
                                   CascadeAtomicData.Transition other)
         {
+            double otherKev = otherLine != null ? otherLine.EnergyKev : 0.0;
             if (raw != null)
             {
                 double have;
@@ -2054,15 +2061,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
-            foreach (double[] line in atomic.GammaIntensity)
-            {
-                if (Math.Abs(line[0] - otherKev) < SamePairLineKev)
-                {
-                    return line[1] / 100.0;
-                }
-            }
-
-            return 0.0;
+            // (`S157`) Выход берётся У ТОЙ САМОЙ строки, а не у первой с
+            // такой энергией: у межканального дубля выходы разные.
+            return otherLine != null ? otherLine.IntensityPct / 100.0 : 0.0;
         }
 
         /// <summary>
@@ -2385,11 +2386,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Через сколько секунд после распада вылетает эта гамма; −1 — не знаем.</summary>
-        static double DelayOf(CascadeAtomicData atomic, double energyKev)
+        static double DelayOf(CascadeAtomicData.GammaLine gamma)
         {
-            CascadeAtomicData.Transition transition;
-            return atomic.Gammas.TryGetValue(energyKev, out transition)
-                ? transition.EmitDelaySec
+            return gamma != null && gamma.Transition != null
+                ? gamma.Transition.EmitDelaySec
                 : -1.0;
         }
 
@@ -2399,16 +2399,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// означают одно и то же — «задержки не знаем, считаем мгновенным», и
         /// это та же осторожная сторона, что у <see cref="DelayOf"/>.
         /// </summary>
-        static CascadeAtomicData.Phase[] PhasesOf(CascadeAtomicData atomic, double energyKev)
+        static CascadeAtomicData.Phase[] PhasesOf(CascadeAtomicData.GammaLine gamma)
         {
-            CascadeAtomicData.Transition transition;
-            if (atomic.Gammas.TryGetValue(energyKev, out transition)
-                && transition.EmitPhases != null)
-            {
-                return transition.EmitPhases;
-            }
-
-            return NoPhases;
+            return gamma != null && gamma.Transition != null
+                   && gamma.Transition.EmitPhases != null
+                ? gamma.Transition.EmitPhases
+                : NoPhases;
         }
 
         static NuclideData Copy(NuclideData source)

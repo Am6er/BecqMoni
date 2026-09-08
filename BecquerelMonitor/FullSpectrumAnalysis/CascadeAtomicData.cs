@@ -297,23 +297,76 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// уровню. Из 123 неразведённых пар поставки позитроны есть у 31, и ни
         /// одной из них корпус не измеряет.
         /// </summary>
-        public double AnnihilationQuantaOfGamma(double energyKev)
+        public double AnnihilationQuantaOfLine(GammaLine row)
         {
-            double share;
-            Branch branch = this.BranchOfGamma(energyKev);
-            if (branch != null && NearestShare(branch, energyKev, out share))
+            if (row == null)
             {
-                return 2.0 * share;
+                return 0.0;
             }
 
-            // Ветвь по схеме могла не определиться, а доля по уровню всё равно
-            // быть известной: она считается по КАНАЛУ строки излучения, а канал
-            // есть и у линии, которой перехода в схеме не нашлось.
-            foreach (Branch other in this.Branches)
+            double share;
+            Branch branch = this.BranchOfLine(row);
+            if (branch != null)
             {
-                if (NearestShare(other, energyKev, out share))
+                // ⛔ У СТРОКИ СО СВОЕЙ ВЕТВЬЮ ДРУГИХ ВЕТВЕЙ НЕ СПРАШИВАЕМ
+                // (`S157`). Прежде поиск шёл по энергии и при неудаче обходил
+                // ВСЕ ветви — а у межканального дубля соседняя ветвь другого
+                // канала охотно отдавала свою долю β⁺, которой у этой строки
+                // нет. У `46MN` так непозитронный канал `10` получал пару с
+                // 511 кэВ от позитронного канала `1`.
+                return NearestShare(branch, row.EnergyKev, out share) ? 2.0 * share : 0.0;
+            }
+
+            // Ветвь по схеме не определилась, а доля по уровню всё равно может
+            // быть известной: она считается по КАНАЛУ строки излучения, а канал
+            // есть и у линии, которой перехода в схеме не нашлось. Здесь ветви
+            // перебираются, но только СВОЕГО канала.
+            for (int index = 0; index < this.Branches.Count; index++)
+            {
+                Branch other = this.Branches[index];
+                if (!SameChannel(row.Channel, other.DecType))
+                {
+                    continue;
+                }
+
+                if (NearestShare(other, row.EnergyKev, out share))
                 {
                     return 2.0 * share;
+                }
+            }
+
+            return 0.0;
+        }
+
+        /// <summary>
+        /// Ветвь СТРОКИ (`S157`): по её собственному переходу, а не по энергии.
+        /// Null — перехода у строки нет либо номер ветви не проставлен.
+        /// </summary>
+        public Branch BranchOfLine(GammaLine row)
+        {
+            if (row == null || row.Transition == null
+                || row.Transition.BranchIndex < 0
+                || row.Transition.BranchIndex >= this.Branches.Count)
+            {
+                return null;
+            }
+
+            return this.Branches[row.Transition.BranchIndex];
+        }
+
+        /// <summary>
+        /// Сводная форма по ЭНЕРГИИ — для прежних читателей (пробы). Берёт
+        /// ПЕРВУЮ строку этой энергии; у межканального дубля это первый канал,
+        /// и судить принадлежность ею нельзя (`S157`). Рабочий путь ходит через
+        /// <see cref="AnnihilationQuantaOfLine"/>.
+        /// </summary>
+        public double AnnihilationQuantaOfGamma(double energyKev)
+        {
+            foreach (GammaLine row in this.GammaIntensity)
+            {
+                if (Math.Abs(row.EnergyKev - energyKev) < SameGammaKev)
+                {
+                    return this.AnnihilationQuantaOfLine(row);
                 }
             }
 
@@ -393,9 +446,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double PromptVacancy;
 
-        /// <summary>Гамма-линия распада → сопоставленный ей переход.</summary>
+        /// <summary>
+        /// Гамма-линия распада → сопоставленный ей переход.
+        ///
+        /// ⚠ КЛЮЧ ТОЛЬКО ЭНЕРГИЯ, И ЭТОГО НЕ ХВАТАЕТ (`S157`). Две строки
+        /// излучения РАЗНЫХ каналов могут стоять на одной энергии, и вторая сюда
+        /// уже не попадает. Сводка оставлена ради прежних читателей, которым
+        /// довольно «какой переход у этой энергии»; всё, что судит ПРИНАДЛЕЖНОСТЬ
+        /// строки, обязано ходить через <see cref="GammaLine.Transition"/>.
+        /// </summary>
         public Dictionary<double, Transition> Gammas =
             new Dictionary<double, Transition>();
+
+        /// <summary>
+        /// Строка гамма-излучения распада — со СВОЕЙ личностью (`S157`).
+        ///
+        /// ⛔ ЗАЧЕМ КЛАСС ВМЕСТО ПАРЫ ЧИСЕЛ. Личность строки — это `(энергия,
+        /// канал)`, а не одна энергия: у `46MN` линии 796.1 и 1118.0 записаны И
+        /// в канале `1` (дочерний `46CR`, у него есть `B+`), И в канале `10`
+        /// (дочерний `45V`, позитронов нет). Пока ключом была энергия, вторая
+        /// строка отбрасывалась из <see cref="Gammas"/>, но оставалась в списке
+        /// выходов — и получала ветвь ПЕРВОГО канала: пара с 511 кэВ строилась
+        /// дважды и приписывалась непозитронному каналу.
+        ///
+        /// ⚠ Таких точных межканальных дублей в поставке ВСЕГО ЧЕТЫРЕ у трёх
+        /// родителей (`32NA`, `33NA`, `46MN`), и ни одного в корпусе — число
+        /// названо, чтобы разделение не выглядело крупнее, чем оно есть.
+        /// </summary>
+        public sealed class GammaLine
+        {
+            /// <summary>Энергия линии, кэВ.</summary>
+            public double EnergyKev;
+
+            /// <summary>Выход, % на распад родителя.</summary>
+            public double IntensityPct;
+
+            /// <summary>Канал распада (`dec_type`), которым записана строка.</summary>
+            public string Channel;
+
+            /// <summary>
+            /// Переход схемы ЭТОЙ строки; null — перехода не нашлось. Держится
+            /// на строке, а не ищется по энергии: в этом и весь `S157`.
+            /// </summary>
+            public Transition Transition;
+        }
 
         /// <summary>
         /// ВСЕ гамма-линии распада с выходами, % на распад родителя, — включая
@@ -407,7 +501,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// линий взять оттуда нельзя, а без выходов не посчитать ни CF, ни
         /// площадь суммы с рентгеном. Здесь они есть всегда.
         /// </summary>
-        public List<double[]> GammaIntensity = new List<double[]>();
+        public List<GammaLine> GammaIntensity = new List<GammaLine>();
 
         /// <summary>
         /// Квантов 511 кэВ на распад: ДВА на каждый β⁺, потому что позитрон
@@ -518,14 +612,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Излучения самого распада: гаммы, K-рентген, β⁺. Всё — на распад
             // РОДИТЕЛЯ цепочки, как и в остальной библиотеке.
-            var gammaIntensity = new List<double[]>();
+            var gammaIntensity = new List<GammaLine>();
 
             // (`S151`) КАНАЛ РАСПАДА У КАЖДОЙ ЛИНИИ, а не только у ветви.
             // Список идёт номер в номер с `gammaIntensity`: без него гамма
             // доставалась той ветви, которая первой нашла её в своей схеме, —
             // то есть порядку строк запроса. Родителей, у которых гаммы
             // приходят более чем одним `dec_type`, в поставке 175.
-            var gammaChannel = new List<string>();
+            // (`S157`) Канал уехал В САМУ СТРОКУ, отдельного списка больше нет:
+            // два списка «номер в номер» — та же ловушка, что и ключ по одной
+            // энергии, только на шаг раньше.
 
             // (`S153`) β⁺ — ПО КАНАЛАМ. Общая сумма смешивала ветви, а сверх
             // того у 40 родителей она выходит за долю самой ветви (у `20NA`
@@ -576,8 +672,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         if (kind == "G" && energy > 0.0)
                         {
-                            gammaIntensity.Add(new[] { energy, intensity });
-                            gammaChannel.Add(channel);
+                            gammaIntensity.Add(new GammaLine
+                            {
+                                EnergyKev = energy,
+                                IntensityPct = intensity,
+                                Channel = channel
+                            });
                         }
                         else if (kind == "X" && energy > 0.0 && KSeriesRule.IsSeries(series))
                         {
@@ -754,22 +854,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double conversionVacancy = 0.0;
                 for (int line = 0; line < gammaIntensity.Count; line++)
                 {
-                    double energyKev = gammaIntensity[line][0];
+                    GammaLine row = gammaIntensity[line];
+                    double energyKev = row.EnergyKev;
 
                     // ⛔ СНАЧАЛА КАНАЛ, ПОТОМ СХЕМА (`S151`). Прежде линия
                     // доставалась той ветви, которая нашла её в схеме первой, а
                     // схема у двух ветвей в ОДИН нуклид одна и та же — значит
                     // решал порядок. Канал в поставке есть у каждой строки
                     // излучения, и он отвечает на этот вопрос прямо.
-                    if (!SameChannel(gammaChannel[line], branch.DecType))
+                    if (!SameChannel(row.Channel, branch.DecType))
                     {
                         continue;
                     }
 
-                    if (data.Gammas.ContainsKey(energyKev))
+                    // ⛔ ЗАНЯТОСТЬ ПРОВЕРЯЕТСЯ У СТРОКИ, А НЕ У ЭНЕРГИИ (`S157`).
+                    // Прежде здесь стоял `data.Gammas.ContainsKey(energyKev)`, и
+                    // вторая строка ТОЙ ЖЕ энергии в ДРУГОМ канале отбрасывалась
+                    // как «уже разобранная», хотя разобрана была чужая.
+                    if (row.Transition != null)
                     {
-                        // Линия уже разобрана: она может принадлежать только
-                        // одной ветви.
                         continue;
                     }
 
@@ -780,14 +883,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     match.BranchIndex = index;
-                    data.Gammas[energyKev] = match;
-                    conversionVacancy += gammaIntensity[line][1] / 100.0 * match.AlphaK;
+                    row.Transition = match;
+                    if (!data.Gammas.ContainsKey(energyKev))
+                    {
+                        // Сводка по энергии — первому, кто занял; читатели, которым
+                        // нужна принадлежность, ходят по строке.
+                        data.Gammas[energyKev] = match;
+                    }
+
+                    conversionVacancy += row.IntensityPct / 100.0 * match.AlphaK;
                 }
 
                 // (`S150`) Доля β⁺ у каждой гаммы ветви — по населённому
                 // уровню. Читается ПОСЛЕ раздачи гамм: годятся только те
                 // линии, которые этой ветви и достались.
-                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, gammaChannel, notes);
+                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, notes);
 
                 if (branch.OmegaK > 0.0)
                 {
@@ -1331,8 +1441,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
-                                        List<double[]> gammaIntensity,
-                                        List<string> gammaChannel,
+                                        List<GammaLine> gammaIntensity,
                                         StringBuilder notes)
         {
             if (branch == null || string.IsNullOrEmpty(branch.Nucid)
@@ -1378,7 +1487,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 long chosen = -1L;
-                if (sets.Count == 1)
+                if (sets.Count == 0)
+                {
+                    // ⛔ ОТКАЗ БЕЗ ПРИЧИНЫ — ЭТО ТИХИЙ НОЛЬ (`S156`). Правило
+                    // `S155` обещает «нет совместного уровневого знания — пары
+                    // нет С ДИАГНОСТИКОЙ», и для изомера и неразведённых наборов
+                    // причина писалась, а вот при ПОЛНОМ отсутствии набора метод
+                    // молча возвращался. Дальше `AnnihilationQuantaOfLine`
+                    // законно отдавал ноль — неотличимый от физического вывода
+                    // «эта гамма с β⁺ не совпадает». В поставке таких β⁺-ветвей
+                    // без единого набора **60**, и ни одной в корпусе.
+                    notes.AppendFormat(CultureInfo.InvariantCulture,
+                        "набора питаний {0}→{1} нет вовсе, пара 511 не строится; ",
+                        parentNucid, branch.Nucid);
+                }
+                else if (sets.Count == 1)
                 {
                     chosen = sets[0];
                 }
@@ -1553,14 +1676,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            for (int line = 0; line < gammaIntensity.Count; line++)
+            foreach (GammaLine row in gammaIntensity)
             {
-                if (!SameChannel(gammaChannel[line], branch.DecType))
+                if (!SameChannel(row.Channel, branch.DecType))
                 {
                     continue;
                 }
 
-                double energyKev = gammaIntensity[line][0];
+                double energyKev = row.EnergyKev;
                 double bestDelta = MatchKev;
                 double bestFlux = -1.0;
                 bool found = false;

@@ -194,6 +194,224 @@ namespace BecquerelMonitor.Probes
                            "настоящий каскад Ni-60: 4→1, затем 1→0" },
         };
 
+        /// <summary>
+        /// (`S159`) Явная пара Sandia сильнее конфликтующей схемы Geant4.
+        ///
+        /// ⛔ ЗАЧЕМ ОТДЕЛЬНОЕ ПЛЕЧО, РАЗ `CanCoexist` УЖЕ ПРОВЕРЕН ВЫШЕ. Тот
+        /// раздел зовёт `CanCoexist` НАПРЯМУЮ и не проходит через `Conditional`.
+        /// Значит ошибочная перестановка топологического фильтра ВЫШЕ явной пары
+        /// оставила бы все семь его плеч зелёными, а реальные пары при этом
+        /// отвергались бы. Здесь меряется ПОЛНЫЙ путь.
+        ///
+        /// ⛔ ВЕЗЁТ НЕ `28NE`, И ЭТО ИЗМЕРЕНО, А НЕ ПРЕДПОЧТЕНИЕ. Разбор назвал
+        /// `28NE` (Sandia даёт 864.5↔2063.0 = 0.821053, а схема кладёт обе линии
+        /// альтернативами уровня 5), и случай он описал верно. Но у `28NE` в
+        /// поставке НЕТ НИ ОДНОЙ строки K-рентгена, поэтому
+        /// `CascadeAtomicData.Of` отдаёт для него null раньше, чем дело доходит
+        /// до схемы: через этот путь его не проверить вовсе.
+        ///
+        /// Взят равноценный и корпусно-независимый `103IN`: одна ветвь в
+        /// `103CD`, шесть строк K-рентгена, гаммы 740.4 и 552.1 — альтернативы
+        /// уровня 6 по схеме, а Sandia прямо задаёт их пару с долей 0.032093.
+        /// Свойство проверяется то же самое.
+        ///
+        /// Отменять прямые данные совпадения схемой НЕЛЬЗЯ — запись стоит в
+        /// таблице «Чего делать НЕ надо».
+        ///
+        /// Два плеча вместе и пришпиливают порядок: с поставкой обязан выйти
+        /// 0.821053, без неё — ноль от топологии. Одного мало: первое без
+        /// второго прошло бы и при выключенной топологии, второе без первого —
+        /// при перестановке.
+        /// </summary>
+        /// <summary>
+        /// (`S157`) Две строки ОДНОЙ энергии в РАЗНЫХ каналах — две личности.
+        ///
+        /// ⛔ ЧТО ИМЕННО СУДИТСЯ: строки обязаны разойтись по РАЗНЫМ ВЕТВЯМ.
+        /// Пока ключом была энергия, первый канал занимал `Gammas`, а вторая
+        /// строка получала ЕГО переход, ЕГО ветвь, ЕГО задержку и ЕГО долю β⁺ —
+        /// то есть физику чужого дочернего ядра.
+        ///
+        /// Взят `33NA`: линия 221.0 записана в каналах `2` (дочерний `33MG`,
+        /// выход 1.914 %) и `17` (дочерний `31MG`, 0.31 %), и схемы ОБЕИХ
+        /// дочек её сопоставляют — 220.9 (3→1) у `33MG` и 220.87 (2→0) у
+        /// `31MG`. Значит расхождение видно, а не постулировано.
+        ///
+        /// ⚠ `46MN`, названный разбором, для проверки НЕ ГОДИТСЯ, и это
+        /// измерено: ни 796.1, ни 1118.0 не сопоставляются ни одной схеме
+        /// (`46CR` и `45V`) и не встречаются в ENSDF, так что обе его строки
+        /// остаются без перехода и без ветви — дубль там есть, а наблюдать его
+        /// нечем. Строка об этом печатается, но провалом не считается: это
+        /// свойство ПОСТАВКИ, а не кода.
+        /// </summary>
+        static int ChannelIdentity()
+        {
+            int bad = 0;
+
+            // Наблюдаемый случай — судим.
+            bad += TwoBranches("33NA", 221.0, "2", "17");
+
+            // Названный разбором — печатаем как есть.
+            CascadeAtomicData mn = CascadeAtomicData.Of("46MN");
+            if (mn != null)
+            {
+                foreach (double energy in new[] { 796.1, 1118.0 })
+                {
+                    int rows = 0, withBranch = 0;
+                    foreach (CascadeAtomicData.GammaLine line in mn.GammaIntensity)
+                    {
+                        if (Math.Abs(line.EnergyKev - energy) >= 0.05)
+                        {
+                            continue;
+                        }
+
+                        rows++;
+                        if (mn.BranchOfLine(line) != null)
+                        {
+                            withBranch++;
+                        }
+                    }
+
+                    Say("  46MN {0,8:F1}: строк {1}, из них с ветвью {2}"
+                        + "   — схемы этих линий не знают, наблюдать нечем",
+                        energy, rows, withBranch);
+                }
+            }
+
+            return bad;
+        }
+
+        /// <summary>
+        /// Строки одной энергии двух названных каналов обязаны дать РАЗНЫЕ
+        /// ветви. Возвращает число провалов.
+        /// </summary>
+        static int TwoBranches(string nucid, double energy, string one, string two)
+        {
+            CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+            if (atomic == null)
+            {
+                Say("  ⛔ ОТКАЗ: атомных данных {0} нет — плечо мерило бы пустоту", nucid);
+                return 1;
+            }
+
+            CascadeAtomicData.Branch first = null, second = null;
+            int rows = 0;
+            foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
+            {
+                if (Math.Abs(line.EnergyKev - energy) >= 0.05)
+                {
+                    continue;
+                }
+
+                rows++;
+                CascadeAtomicData.Branch branch = atomic.BranchOfLine(line);
+                if (line.Channel == one)
+                {
+                    first = branch;
+                }
+                else if (line.Channel == two)
+                {
+                    second = branch;
+                }
+
+                Say("  {0,-6} {1,8:F1}  канал {2,-3} ветвь {3,-6} переход {4}",
+                    nucid, energy, line.Channel,
+                    branch != null ? branch.Nucid : "—",
+                    line.Transition != null
+                        ? line.Transition.EnergyKev.ToString("F2", CultureInfo.InvariantCulture)
+                        : "—");
+            }
+
+            bool ok = rows >= 2 && first != null && second != null
+                      && !ReferenceEquals(first, second);
+            Say("           строк {0}, ветви разные и обе есть: {1}",
+                rows, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
+            return ok ? 0 : 1;
+        }
+
+        static int SourcePriority()
+        {
+            const string Nucid = "103IN";
+            const double One = 740.4;
+            const double Two = 552.1;
+            const double Fraction = 0.032093;
+
+            System.Reflection.MethodInfo conditional = typeof(FsaCascadeSummer).GetMethod(
+                "Conditional", System.Reflection.BindingFlags.NonPublic
+                               | System.Reflection.BindingFlags.Static);
+            Type rawType = typeof(FsaCascadeSummer).GetNestedType(
+                "NuclideData", System.Reflection.BindingFlags.NonPublic);
+            if (conditional == null || rawType == null)
+            {
+                Say("  ⛔ ОТКАЗ: закрытых Conditional/NuclideData нет — проба мерила бы пустоту");
+                return 1;
+            }
+
+            CascadeAtomicData atomic = CascadeAtomicData.Of(Nucid);
+            CascadeAtomicData.GammaLine mineRow = null, otherRow = null;
+            if (atomic != null)
+            {
+                foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
+                {
+                    if (Math.Abs(line.EnergyKev - One) < 0.05) mineRow = line;
+                    if (Math.Abs(line.EnergyKev - Two) < 0.05) otherRow = line;
+                }
+            }
+
+            if (atomic == null || mineRow == null || otherRow == null
+                || mineRow.Transition == null || otherRow.Transition == null)
+            {
+                Say("  ⛔ ОТКАЗ: у {0} нет строк {1}/{2} с переходами", Nucid, One, Two);
+                return 1;
+            }
+
+            CascadeAtomicData.Branch branch = atomic.BranchOfLine(mineRow);
+            object[] call = new object[] { null, One, otherRow, branch,
+                                           mineRow.Transition, otherRow.Transition };
+
+            // Схема обязана считать их альтернативами — иначе плечо ничего не
+            // различает, и об этом надо сказать, а не тихо пройти.
+            System.Reflection.MethodInfo canCoexist = typeof(FsaCascadeSummer).GetMethod(
+                "CanCoexist", System.Reflection.BindingFlags.NonPublic
+                              | System.Reflection.BindingFlags.Static);
+            bool topology = canCoexist != null && (bool)canCoexist.Invoke(
+                null, new object[] { branch, mineRow.Transition, otherRow.Transition });
+
+            int bad = 0;
+            Say("  схема Geant4 считает пару возможной: {0}   (ждём: нет, иначе плечо слепо)",
+                topology ? "да" : "нет");
+            if (topology)
+            {
+                bad++;
+            }
+
+            // Плечо 1: поставка совпадений ЕСТЬ — она и отвечает.
+            object raw = Activator.CreateInstance(rawType, true);
+            var intensity = new Dictionary<double, double> { { One, 1.067 }, { Two, 1.164 } };
+            var partners = new Dictionary<double, Dictionary<double, double>>
+            {
+                { One, new Dictionary<double, double> { { Two, Fraction } } }
+            };
+            rawType.GetField("Intensity").SetValue(raw, intensity);
+            rawType.GetField("Partners").SetValue(raw, partners);
+
+            call[0] = raw;
+            double withSandia = (double)conditional.Invoke(null, call);
+            bool okOne = Math.Abs(withSandia - Fraction) < 1.0E-9;
+            if (!okOne) bad++;
+            Say("  с поставкой Sandia:  ждём {0:F6}  вышло {1:F6}   {2}",
+                Fraction, withSandia, okOne ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
+
+            // Плечо 2: поставки нет — судит топология, и она запрещает.
+            call[0] = null;
+            double without = (double)conditional.Invoke(null, call);
+            bool okTwo = Math.Abs(without) < 1.0E-12;
+            if (!okTwo) bad++;
+            Say("  без поставки:        ждём {0:F6}  вышло {1:F6}   {2}",
+                0.0, without, okTwo ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
+
+            return bad;
+        }
+
         static int Main(string[] args)
         {
             double window = FsaCascadeSummer.DefaultCoincidenceWindowSec;
@@ -249,14 +467,16 @@ namespace BecquerelMonitor.Probes
                 int mainIndex = main != null ? atomic.Branches.IndexOf(main) : -1;
                 double total = omega > 0.0 ? kPct / 100.0 / omega : 0.0;
                 double conversion = 0.0;
-                foreach (double[] line in atomic.GammaIntensity)
+                foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
                 {
-                    CascadeAtomicData.Transition transition;
-                    if (atomic.Gammas.TryGetValue(line[0], out transition)
+                    // (`S157`) Переход берётся У СТРОКИ: у межканального дубля
+                    // поиск по энергии отдал бы переход чужого канала.
+                    CascadeAtomicData.Transition transition = line.Transition;
+                    if (transition != null
                         && (mainIndex < 0 || transition.BranchIndex < 0
                             || transition.BranchIndex == mainIndex))
                     {
-                        conversion += line[1] / 100.0 * transition.AlphaK;
+                        conversion += line.IntensityPct / 100.0 * transition.AlphaK;
                     }
                 }
 
@@ -456,11 +676,11 @@ namespace BecquerelMonitor.Probes
                     double spurious = 0.0;
                     if (!expect)
                     {
-                        foreach (double[] line in atomic.GammaIntensity)
+                        foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
                         {
-                            if (Math.Abs(line[0] - two) < 0.05)
+                            if (Math.Abs(line.EnergyKev - two) < 0.05)
                             {
-                                spurious = line[1] / 100.0 * other.AlphaK * branch.OmegaK;
+                                spurious = line.IntensityPct / 100.0 * other.AlphaK * branch.OmegaK;
                                 break;
                             }
                         }
@@ -471,6 +691,16 @@ namespace BecquerelMonitor.Probes
                         spurious, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", why);
                 }
             }
+
+            Console.WriteLine();
+            Console.WriteLine("МЕЖКАНАЛЬНЫЙ ДУБЛЬ: у каждой строки своя ветвь и своя доля β⁺ (S157)");
+            Console.WriteLine();
+            failed += ChannelIdentity();
+
+            Console.WriteLine();
+            Console.WriteLine("ПРИОРИТЕТ ИСТОЧНИКОВ: явная пара Sandia сильнее схемы (S159)");
+            Console.WriteLine();
+            failed += SourcePriority();
 
             Console.WriteLine();
             Console.WriteLine("ИЗОМЕРЫ: разбор имени в ключ родителя совпадений");
