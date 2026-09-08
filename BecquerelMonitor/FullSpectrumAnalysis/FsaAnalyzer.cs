@@ -1024,6 +1024,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int CrystalXrayDropped { get; private set; }
 
         /// <summary>
+        /// (`AMBER8`) Сколько образов вылета снято ВМЕСТЕ С УШЕДШИМ РОДИТЕЛЕМ
+        /// на последнем <see cref="Analyze"/>. Ноль — правило не срабатывало и
+        /// правка не изменила ни одного бита.
+        /// </summary>
+        public int EscapeOrphansDropped { get; private set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER8`) ВЫЛЕТА БЕЗ РОДИТЕЛЯ НЕ БЫВАЕТ: образ `SE-*`/`DE-*`
+        /// снимается, когда его родительская колонка не дожила до этого
+        /// прохода.
+        ///
+        /// Пик вылета — не самостоятельная линия, а доля фотопика родителя:
+        /// рождать аннигиляционную пару нечему, если родительского кванта в
+        /// спектре нет. Оставшись без родителя, свободная амплитуда садится на
+        /// первую подходящую структуру — измерено на `Cs 137 в домике`
+        /// (`AMBER8`): `K-40` снят отсевом (z = 0.00), а его `DE-1461` выжил
+        /// с z = 64.34 и забрал 5.156 % спектра, сев на 439 кэВ в область
+        /// комптоновского края цезия.
+        ///
+        /// ⚠ Одного прохода довольно: образ вылета сам родителем не бывает.
+        /// </summary>
+        int DropOrphanEscapes(List<FsaComponent> keep)
+        {
+            if (keep == null || keep.Count == 0)
+            {
+                return 0;
+            }
+
+            var alive = new HashSet<string>(StringComparer.Ordinal);
+            foreach (FsaComponent component in keep)
+            {
+                if (component != null)
+                {
+                    alive.Add(component.Name);
+                }
+            }
+
+            int dropped = 0;
+            for (int i = keep.Count - 1; i >= 0; i--)
+            {
+                FsaComponent component = keep[i];
+                if (component == null || string.IsNullOrEmpty(component.EscapeParent))
+                {
+                    continue;
+                }
+
+                if (!alive.Contains(component.EscapeParent))
+                {
+                    keep.RemoveAt(i);
+                    dropped++;
+                }
+            }
+
+            return dropped;
+        }
+
+        /// <summary>
         /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
         /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
         ///
@@ -1625,6 +1682,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.RefitZNuclidesRescued = 0;
             this.GateNuclidesJudged = 0;
             this.GateNuclidesRescued = 0;
+            this.EscapeOrphansDropped = 0;
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
@@ -2232,6 +2290,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
+                // ⛔ (`AMBER8`) Вылета без родителя не бывает — см.
+                // `DropOrphanEscapes`. Снимается ЗДЕСЬ, до перефита, чтобы
+                // осиротевший образ не пережил тот самый проход, который увёл
+                // его родителя.
+                this.EscapeOrphansDropped += this.DropOrphanEscapes(keep);
+
                 this.RefitZNuclidesJudged = nuclidesJudged;
                 this.RefitZNuclidesRescued = rescued;
                 this.RefitZJudged = total;
@@ -2424,6 +2488,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.GateNuclidesRescued = gateDropped;
                     gateKeep = gateAll;
                 }
+
+                // (`AMBER8`) И здесь тоже: гейт уводит нуклидную колонку, а её
+                // вылет обязан уйти вместе с ней.
+                this.EscapeOrphansDropped += this.DropOrphanEscapes(gateKeep);
 
                 if (gateKeep.Count < gateAll.Count)
                 {
