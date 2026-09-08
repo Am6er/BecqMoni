@@ -424,16 +424,18 @@ namespace BecquerelMonitor
             this.facingCombo.SelectedIndexChanged += this.FacingChanged;
             page.Controls.Add(this.facingCombo);
 
-            this.cylinderSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 56) };
+            this.cylinderSizePanel = new Panel { Location = new Point(0, ShapeTop), Width = 620 };
             int y = 0;
             this.Row(this.cylinderSizePanel, ref y, "CrystalDiameter", Resources.GeometryEditorCrystalDiameter);
             this.Row(this.cylinderSizePanel, ref y, "CrystalHeight", Resources.GeometryEditorCrystalHeight);
             page.Controls.Add(this.cylinderSizePanel);
 
-            // Высоты хватает на ДВЕ строки подписи о равноценном цилиндре: в
-            // русском она в одну не помещается, а панель детей обрезает — и
-            // строка с объёмом кристалла пропадала под соседним полем.
-            this.boxSizePanel = new Panel { Location = new Point(0, 70), Size = new Size(620, 130), Visible = false };
+            // Подпись о равноценном цилиндре в русском в одну строку не
+            // помещается, а панель детей обрезает — и строка с объёмом
+            // кристалла пропадала под соседним полем. Высота считается по ней
+            // же (`FitPanel`), поэтому число здесь больше не стоит: вторая
+            // строка подписи расширяет панель сама.
+            this.boxSizePanel = new Panel { Location = new Point(0, ShapeTop), Width = 620, Visible = false };
             y = 0;
             this.Row(this.boxSizePanel, ref y, "CrystalBoxX", Resources.GeometryEditorBoxX);
             this.Row(this.boxSizePanel, ref y, "CrystalBoxY", Resources.GeometryEditorBoxY);
@@ -448,7 +450,7 @@ namespace BecquerelMonitor
             this.boxSizePanel.Controls.Add(this.equivalentLabel);
             page.Controls.Add(this.boxSizePanel);
 
-            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 224) };
+            Panel rest = new Panel { Location = new Point(0, ShapeTop), Width = 620 };
             this.wrappingPanel = rest;
             y = 0;
             this.Row(rest, ref y, "FrontReflectorThickness", Resources.GeometryEditorFrontReflector);
@@ -492,7 +494,7 @@ namespace BecquerelMonitor
             rest.Controls.Add(this.fwhmSuggestButton);
             page.Controls.Add(rest);
 
-            Panel mats = new Panel { Location = new Point(0, 436), Size = new Size(620, 150) };
+            Panel mats = new Panel { Location = new Point(0, ShapeTop), Width = 620 };
             this.materialsPanel = mats;
             y = 0;
             this.MaterialRow(mats, ref y, "Crystal", Resources.GeometryEditorCrystalMaterial,
@@ -519,8 +521,107 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Пересобрать столбик обвязки после того, как строка зазора сбоку
-        /// показана или снята (`AMBER1`).
+        /// Верх первой панели вкладки детектора: под готовым детектором, формой
+        /// кристалла и стороной, обращённой к пробе. Всё, что ниже, стоит друг
+        /// за другом и своей координаты не имеет.
+        /// </summary>
+        const int ShapeTop = 70;
+
+        /// <summary>Просвет между соседними панелями столбика.</summary>
+        const int PanelGap = 6;
+
+        /// <summary>
+        /// Запас под нижним контролом панели. Восемь точек — ровно столько
+        /// оставляла прежняя ручная арифметика (шаг строки 28 при поле высотой
+        /// 20), так что вид панелей от перехода на счёт не поехал.
+        /// </summary>
+        const int PanelPad = 8;
+
+        /// <summary>
+        /// Высота панели ПО ЕЁ СОДЕРЖИМОМУ: низ самого нижнего показанного
+        /// контрола плюс запас.
+        ///
+        /// ⛔ Числом высоту не писать. Панель детей ОБРЕЗАЕТ молча — ни
+        /// прокрутки, ни следа: колонка вокруг (`FieldColumn`) прокручивает
+        /// себя, а не чужое переполнение, и контрол просто исчезает. Так уже
+        /// вышло дважды: `E27` увёл за край вещества пробы, а `AMBER1` добавил
+        /// в стопку веществ детектора четвёртую строку («наполнитель зазора»)
+        /// — 4 × 48 = 192 против записанных 150, и «Cladding material»
+        /// обрезался на снимке Amber 08.09.2026.
+        ///
+        /// ⛔ Спрашивать <see cref="Control.Visible"/> здесь НЕЛЬЗЯ — см.
+        /// <see cref="RowControls.Shown"/>: у WinForms она ФАКТИЧЕСКАЯ и false
+        /// у всех детей невыбранной вкладки разом, и панель ужалась бы в точку.
+        /// Судим по НАШЕМУ решению — <see cref="HiddenControls"/>.
+        /// </summary>
+        void FitPanel(Control panel)
+        {
+            if (panel == null)
+            {
+                return;
+            }
+
+            HashSet<Control> hidden = this.HiddenControls();
+            int bottom = 0;
+            foreach (Control child in panel.Controls)
+            {
+                if (hidden.Contains(child) || child.Bottom <= bottom)
+                {
+                    continue;
+                }
+
+                bottom = child.Bottom;
+            }
+
+            panel.Height = Math.Max(1, bottom + PanelPad);
+        }
+
+        /// <summary>
+        /// Контролы, снятые НАШИМ решением: в высоту панели они не считаются.
+        /// Строки полей помнят это в <see cref="RowControls.Shown"/>, строки
+        /// веществ — в <see cref="materialRowShown"/>; всё остальное показано.
+        /// </summary>
+        HashSet<Control> HiddenControls()
+        {
+            HashSet<Control> hidden = new HashSet<Control>();
+            foreach (RowControls row in this.rows.Values)
+            {
+                if (row.Shown)
+                {
+                    continue;
+                }
+
+                hidden.Add(row.Label);
+                hidden.Add(row.Box);
+                hidden.Add(row.Units);
+            }
+
+            foreach (KeyValuePair<string, List<Control>> pair in this.materialRows)
+            {
+                bool shown;
+                if (!this.materialRowShown.TryGetValue(pair.Key, out shown) || shown)
+                {
+                    continue;
+                }
+
+                foreach (Control control in pair.Value)
+                {
+                    hidden.Add(control);
+                }
+            }
+
+            return hidden;
+        }
+
+        /// <summary>
+        /// Пересобрать вкладку детектора: размеры кристалла, обвязка и вещества
+        /// встают друг за другом, каждая панель — по своему содержимому.
+        ///
+        /// Зовётся всякий раз, когда содержимое могло поехать: сменилась форма
+        /// кристалла (панель размеров у бруска выше на строку и подпись),
+        /// снялась или вернулась строка зазора сбоку (`AMBER1`), переписался
+        /// состав вещества или подпись о равноценном цилиндре — обе AutoSize и
+        /// в русском переносятся на вторую строку.
         ///
         /// ⚠ Двух соседей <see cref="Reflow"/> не знает и знать не может:
         /// кнопка «взять у прибора» стоит в том же столбике по абсолютной
@@ -528,11 +629,21 @@ namespace BecquerelMonitor
         /// а не его строка. Оба переставляются здесь, иначе кнопка уезжает от
         /// своего поля, а вещества оставляют под собой пустую полосу.
         /// </summary>
-        void ReflowWrapping()
+        void ReflowDetector()
         {
             if (this.wrappingPanel == null)
             {
                 return;
+            }
+
+            // Панели двух форм кристалла стоят одна поверх другой: место под
+            // обвязкой считается по ТОЙ, что выбрана, а не по самой высокой.
+            Panel shape = this.boxRadio != null && this.boxRadio.Checked
+                        ? this.boxSizePanel : this.cylinderSizePanel;
+            if (shape != null)
+            {
+                this.FitPanel(shape);
+                this.wrappingPanel.Top = shape.Bottom + PanelGap;
             }
 
             this.Reflow(this.wrappingPanel);
@@ -541,13 +652,67 @@ namespace BecquerelMonitor
             if (this.fwhmSuggestButton != null
                 && this.rows.TryGetValue("FwhmAt662Percent", out fwhm))
             {
+                // ⚠ Сперва кнопку на место, и только потом мерить панель:
+                // после снятой строки кнопка ещё стоит внизу и завысила бы
+                // высоту, а второй мерки уже не будет.
                 this.fwhmSuggestButton.Top = fwhm.Box.Top - 1;
+                this.FitPanel(this.wrappingPanel);
             }
 
             if (this.materialsPanel != null)
             {
-                this.materialsPanel.Top =
-                    this.wrappingPanel.Top + this.wrappingPanel.Height + 6;
+                this.FitPanel(this.materialsPanel);
+                this.materialsPanel.Top = this.wrappingPanel.Bottom + PanelGap;
+            }
+        }
+
+        /// <summary>
+        /// То же для вкладки источника: вещества встают под ТЕМ набором полей,
+        /// что сейчас показан, и панель веществ меряется по своим строкам.
+        /// </summary>
+        void ReflowSource()
+        {
+            if (this.sourceMaterialsPanel == null)
+            {
+                return;
+            }
+
+            Panel shown = this.ShownSourcePanel();
+            if (shown != null)
+            {
+                this.FitPanel(shown);
+                this.sourceMaterialsPanel.Top = shown.Bottom + SourceMaterialsGap;
+            }
+
+            this.FitPanel(this.sourceMaterialsPanel);
+        }
+
+        /// <summary>Просвет над стопкой веществ пробы — шире, чем между полями.</summary>
+        const int SourceMaterialsGap = 16;
+
+        /// <summary>
+        /// Панель полей той формы источника, что выбрана в списке. Спрашиваем
+        /// СПИСОК, а не `Visible` панелей — по той же причине, что и в
+        /// <see cref="FitPanel"/>.
+        /// </summary>
+        Panel ShownSourcePanel()
+        {
+            int index = this.sourceTypeCombo != null ? this.sourceTypeCombo.SelectedIndex : -1;
+            if (index < 0 || index >= SourceKinds.Length)
+            {
+                return this.pointPanel;
+            }
+
+            switch (SourceKinds[index].Key)
+            {
+                case GeometrySourceType.Cylinder:
+                    return this.cylinderPanel;
+                case GeometrySourceType.Marinelli:
+                    return this.marinelliPanel;
+                case GeometrySourceType.Box:
+                    return this.boxPanel;
+                default:
+                    return this.pointPanel;
             }
         }
 
@@ -566,7 +731,7 @@ namespace BecquerelMonitor
         void UpdateGapRows(bool box)
         {
             this.ShowRow("SideGapThickness", box, null);
-            this.ReflowWrapping();
+            this.ReflowDetector();
         }
 
         /// <summary>
@@ -653,12 +818,12 @@ namespace BecquerelMonitor
             };
             page.Controls.Add(this.sceneLabel);
 
-            this.pointPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 40) };
+            this.pointPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
             int y = 0;
             this.Row(this.pointPanel, ref y, "PointDistance", Resources.GeometryEditorPointDistance);
             page.Controls.Add(this.pointPanel);
 
-            this.cylinderPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 170), Visible = false };
+            this.cylinderPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620, Visible = false };
             y = 0;
             this.Row(this.cylinderPanel, ref y, "BeakerDiameter", Resources.GeometryEditorBeakerDiameter);
             this.Row(this.cylinderPanel, ref y, "BeakerHeight", Resources.GeometryEditorBeakerHeight);
@@ -668,7 +833,7 @@ namespace BecquerelMonitor
             this.Row(this.cylinderPanel, ref y, "BeakerToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
             page.Controls.Add(this.cylinderPanel);
 
-            this.marinelliPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 282), Visible = false };
+            this.marinelliPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620, Visible = false };
             y = 0;
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerDiameter", Resources.GeometryEditorBeakerDiameter);
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerHeight", Resources.GeometryEditorBeakerHeight);
@@ -684,7 +849,7 @@ namespace BecquerelMonitor
 
             // Прямоугольная кювета. Поля те же, что у цилиндрической, только
             // вместо диаметра две стороны — их и меряют на приборе, полными.
-            this.boxPanel = new Panel { Location = new Point(0, 76), Size = new Size(620, 170), Visible = false };
+            this.boxPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620, Visible = false };
             y = 0;
             this.Row(this.boxPanel, ref y, "BoxSourceX", Resources.GeometryEditorBoxSourceX);
             this.Row(this.boxPanel, ref y, "BoxSourceY", Resources.GeometryEditorBoxSourceY);
@@ -698,7 +863,7 @@ namespace BecquerelMonitor
             // высоким из трёх: у точечного источника одно поле, у маринелли
             // одиннадцать, и место под маринелли оставляло у точки пустую
             // полосу в три сотни точек.
-            this.sourceMaterialsPanel = new Panel { Location = new Point(0, 336), Size = new Size(620, 100) };
+            this.sourceMaterialsPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
             y = 0;
             this.MaterialRow(this.sourceMaterialsPanel, ref y, "BeakerWall",
                              Resources.GeometryEditorWallMaterial,
@@ -707,7 +872,14 @@ namespace BecquerelMonitor
                              Resources.GeometryEditorSourceMaterial,
                              GeometryMaterialLibrary.MaterialKind.Source);
             page.Controls.Add(this.sourceMaterialsPanel);
+
+            // Столбик собирается сразу: список форм источника ещё не трогали, а
+            // окно уже может открыться на этой вкладке.
+            this.ReflowSource();
         }
+
+        /// <summary>Верх полей источника: под списком форм и подсказкой сцены.</summary>
+        const int SourceFieldsTop = 76;
 
         /// <summary>Строка «подпись — поле — см».</summary>
         void Row(Control parent, ref int y, string key, string caption)
@@ -844,7 +1016,7 @@ namespace BecquerelMonitor
                 y += 28;
             }
 
-            parent.Height = Math.Max(1, y);
+            this.FitPanel(parent);
         }
 
         /// <summary>
@@ -1010,6 +1182,8 @@ namespace BecquerelMonitor
 
                 y += 48;
             }
+
+            this.FitPanel(this.sourceMaterialsPanel);
         }
 
         // ------------------------------------------------------------------
@@ -1314,6 +1488,29 @@ namespace BecquerelMonitor
             this.Set(key + ".Density", density);
             this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                 this.MaterialOf(key, density));
+            this.ReflowAfterComposition(key);
+        }
+
+        /// <summary>
+        /// Пересобрать ту вкладку, где стоит строка вещества: её состав только
+        /// что переписан, а подпись состава AutoSize и может стать двустрочной.
+        /// </summary>
+        void ReflowAfterComposition(string key)
+        {
+            Label composition;
+            if (!this.compositions.TryGetValue(key, out composition))
+            {
+                return;
+            }
+
+            if (composition.Parent == this.sourceMaterialsPanel)
+            {
+                this.ReflowSource();
+            }
+            else
+            {
+                this.ReflowDetector();
+            }
         }
 
         GeometryMaterial MaterialOf(string key, double density)
@@ -1448,6 +1645,7 @@ namespace BecquerelMonitor
 
             this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                 this.MaterialOf(key, this.Get(key + ".Density")));
+            this.ReflowAfterComposition(key);
         }
 
         void ValueChanged(object sender, EventArgs e)
@@ -1465,6 +1663,11 @@ namespace BecquerelMonitor
                     this.MaterialOf(key, this.Get(key + ".Density")));
             }
 
+            // Состав — тоже AutoSize: у сложного вещества он переносится, и
+            // строка под ним обрезалась бы краем панели.
+            this.ReflowDetector();
+            this.ReflowSource();
+
             this.UpdateSceneHint("");
             this.RefreshSketch();
         }
@@ -1479,6 +1682,10 @@ namespace BecquerelMonitor
                             / (GeometryModel.MmPerCm * GeometryModel.MmPerCm * GeometryModel.MmPerCm);
             this.equivalentLabel.Text = string.Format(CultureInfo.InvariantCulture,
                 Resources.GeometryEditorEquivalent, d, volume);
+
+            // Подпись AutoSize и в русском переносится на вторую строку: панель
+            // размеров от этого выше, а обвязка с веществами под ней — ниже.
+            this.ReflowDetector();
         }
 
         /// <summary>
@@ -1738,15 +1945,9 @@ namespace BecquerelMonitor
 
             // Вещества подтягиваются под видимый набор полей: стенка сосуда у
             // точечного источника не спрашивается вовсе, но само вещество пробы
-            // нужно всегда.
-            Panel shown = type == GeometrySourceType.Cylinder ? this.cylinderPanel
-                        : type == GeometrySourceType.Marinelli ? this.marinelliPanel
-                        : type == GeometrySourceType.Box ? this.boxPanel
-                        : this.pointPanel;
-            if (this.sourceMaterialsPanel != null)
-            {
-                this.sourceMaterialsPanel.Top = shown.Bottom + 16;
-            }
+            // нужно всегда. Какая панель показана, `ReflowSource` спрашивает у
+            // того же списка — второй копии этого выбора здесь не держим.
+            this.ReflowSource();
 
             this.UpdateSceneHint("");
             this.RefreshSketch();
