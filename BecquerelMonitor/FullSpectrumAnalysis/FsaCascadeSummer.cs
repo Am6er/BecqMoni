@@ -1586,12 +1586,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // берутся из `decay_radiations`. Уже имеющиеся НЕ трогаем — иначе
             // прежние замеры сдвинулись бы без всякой связи с S27 (у Lu-176
             // поставки расходятся: 91.0 % против 77.97 на линии 201.83).
+            // ⛔ У ОБЩЕГО КЛЮЧА ВЫХОД — СУММА СТРОК (`S161`). Прежде вторая
+            // строка той же энергии находила ключ занятым и молча пропадала:
+            // у межканального дубля `33NA` на 221 кэВ оставалось 1.914 %
+            // вместо 0.31 + 1.914 = 2.224 %. Складывать можно ТОЛЬКО со
+            // своими же строками — ключ, пришедший из поставки совпадений,
+            // не трогаем: там выход уже полный, и прибавка удвоила бы его.
+            var ownKeys = new HashSet<double>();
             foreach (CascadeAtomicData.GammaLine line in atomic.GammaIntensity)
             {
                 double had;
                 if (!Match(data.Intensity, line.EnergyKev, out had))
                 {
                     data.Intensity[line.EnergyKev] = line.IntensityPct;
+                    ownKeys.Add(line.EnergyKev);
+                    continue;
+                }
+
+                double ownKey;
+                if (Match(data.Intensity, line.EnergyKev, out ownKey) && ownKeys.Contains(ownKey))
+                {
+                    data.Intensity[ownKey] += line.IntensityPct;
                 }
             }
 
@@ -1749,6 +1764,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ УСЛОВНЫЕ ОДНОГО КЛЮЧА СЛИВАЮТСЯ ПО ИНТЕНСИВНОСТЯМ (`S161`),
+            // а не затираются последней строкой:
+            //
+            //     P(C|E) = Σ Iᵢ·P(C|E,i) / Σ Iᵢ
+            //
+            // Прежде `Put` писал `bag[to] = p`, то есть у межканального дубля
+            // ответ давала ТА строка, что обошлась последней. И пара клалась в
+            // `Pairs` ДВАЖДЫ под одним ключом, а площадь сумм-пика берёт выход
+            // по ключу — то есть общий выход считался дважды.
+            //
+            // Ключ накопителя — пара «опорный ключ → ключ партнёра»; значение
+            // — {Σ I·p, Σ I} и то же для ОБРАТНОЙ условной.
+            var merged = new Dictionary<double, Dictionary<double, double[]>>();
+
+            // ⛔ ПОРЯДОК ВЫГРУЗКИ — ПЕРВОГО ПОЯВЛЕНИЯ, А НЕ СЛОВАРНЫЙ. Перебор
+            // `Dictionary` порядка не обещает вовсе, а `Pairs` дальше
+            // складываются в площадь сумм-пика: смена порядка двигает последние
+            // разряды на ровном месте. Померено: без этого списка у `88Y`
+            // уезжал четвёртый знак χ² на двух корпусных спектрах при
+            // неизменной физике.
+            var order = new List<double[]>();
             foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
                 double decayEnergy = gamma.EnergyKev;
@@ -1828,26 +1864,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         carrierKey = carrier.EnergyKev;
                     }
 
-                    data.Pairs.Add(new[] { pairKey, carrierKey, probability });
-                    Put(data, pairKey, carrierKey, probability);
+                    // Вес слияния — выход ЭТОЙ строки. У одиночной линии он
+                    // сокращается и ответ прежний, знак в знак.
+                    double weight = gamma.IntensityPct > 0.0 ? gamma.IntensityPct : 0.0;
+                    // ⛔ КЛЮЧ НАКОПИТЕЛЯ — СОБСТВЕННАЯ ЭНЕРГИЯ НОСИТЕЛЯ, А НЕ
+                    // ЕГО ОТОБРАЖЁННЫЙ КЛЮЧ, и это не мелочь. `Match` сводит
+                    // носителей допуском 0.3 кэВ, а Kα1 и Kα2 стоят ближе (у
+                    // Sr это 14.165 и 14.098, разница 0.067) — то есть ДВА
+                    // РАЗНЫХ носителя попадают в один `carrierKey`. Слив их
+                    // взвешенным средним, я поменял бы физику там, где
+                    // `S161` ничего не просила: у `88Y` уезжал четвёртый
+                    // знак χ² на двух корпусных спектрах. Слияние идёт
+                    // ТОЛЬКО по строкам гаммы, ради которых `S161` и заведена.
+                    //
+                    // ⚠ Что ОСТАЛОСЬ как было: у двух носителей одного ключа
+                    // `Partners` хранит ПОСЛЕДНЕГО, а `Pairs` — обоих. Эта
+                    // несогласованность прежняя и отдельная от `S161` — строка `S165`.
+                    Accumulate(merged, order, pairKey, carrier.EnergyKev, carrierKey,
+                               probability, weight);
 
                     // (`S147`) У аннигиляции партнёр — ПАРА квантов, и `Partners`
                     // держит их ожидаемое ЧИСЛО. Кратность записывается рядом,
                     // чтобы вероятность объединения считалась по ней, а площадь
-                    // сумм-пика — по прежнему числу (`Pairs` не трогаем).
+                    // сумм-пика — по прежнему числу.
                     if (!carrier.FromVacancy)
                     {
                         data.PartnerQuanta[carrierKey] = AnnihilationQuantaPerEvent;
                     }
+                }
+            }
 
-                    // Обратная условная — тем же правилом, что у ядерных пар:
-                    // P(A|B) = P(B|A)·I(A)/I(B).
-                    double ia, ib;
-                    if (data.Intensity.TryGetValue(pairKey, out ia)
-                        && data.Intensity.TryGetValue(carrierKey, out ib) && ib > 0.0)
-                    {
-                        Put(data, carrierKey, pairKey, probability * ia / ib);
-                    }
+            // Слитые условные — В ОДНУ запись на пару ключей, и `Pairs` тоже
+            // по одной: общий выход этой энергии учитывается ровно раз.
+            foreach (double[] pair in order)
+            {
+                double fromKey = pair[0];
+                double carrierEnergy = pair[1];
+                double toKey = pair[2];
+                double[] acc = merged[fromKey][carrierEnergy];
+                if (!(acc[1] > 0.0))
+                {
+                    continue;
+                }
+
+                double probability = acc[0] / acc[1];
+                if (!(probability > 0.0))
+                {
+                    continue;
+                }
+
+                data.Pairs.Add(new[] { fromKey, toKey, probability });
+                Put(data, fromKey, toKey, probability);
+
+                // Обратная условная — тем же правилом, что у ядерных пар:
+                // P(A|B) = P(B|A)·I(A)/I(B). Считается ПОСЛЕ слияния, потому
+                // что `I(A)` — уже суммарный выход ключа.
+                double ia, ib;
+                if (data.Intensity.TryGetValue(fromKey, out ia)
+                    && data.Intensity.TryGetValue(toKey, out ib) && ib > 0.0)
+                {
+                    Put(data, toKey, fromKey, probability * ia / ib);
                 }
             }
 
@@ -2444,6 +2520,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return data;
+        }
+
+        /// <summary>
+        /// Копит взвешенную сумму условной для одной пары ключей (`S161`):
+        /// `[0]` — Σ I·p, `[1]` — Σ I. Деление — при выгрузке.
+        /// </summary>
+        static void Accumulate(Dictionary<double, Dictionary<double, double[]>> merged,
+                               List<double[]> order, double from,
+                               double carrierEnergy, double to,
+                               double probability, double weight)
+        {
+            if (!(weight > 0.0))
+            {
+                return;
+            }
+
+            Dictionary<double, double[]> bag;
+            if (!merged.TryGetValue(from, out bag))
+            {
+                merged[from] = bag = new Dictionary<double, double[]>();
+            }
+
+            double[] acc;
+            if (!bag.TryGetValue(carrierEnergy, out acc))
+            {
+                bag[carrierEnergy] = acc = new double[2];
+                order.Add(new[] { from, carrierEnergy, to });
+            }
+
+            acc[0] += weight * probability;
+            acc[1] += weight;
         }
 
         static void Put(NuclideData data, double from, double to, double probability)

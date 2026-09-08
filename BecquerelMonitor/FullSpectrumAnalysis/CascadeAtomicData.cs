@@ -933,12 +933,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                var own = new Dictionary<double, Transition>();
-                foreach (KeyValuePair<double, Transition> pair in data.Gammas)
+                // ⛔ ПО СТРОКАМ, А НЕ ПО СВОДКЕ ПО ЭНЕРГИИ (`S160`). Здесь
+                // ходили по `data.Gammas`, у которого КЛЮЧ ОДИН НА ЭНЕРГИЮ, —
+                // значит у межканального дубля второй `Transition` не попадал
+                // в расчёт вовсе и оставался с неинициализированными
+                // `EmitDelaySec` и `EmitPhases`. После `S157` рабочий путь
+                // берёт их ИМЕННО у строки, то есть такая линия молча
+                // становилась мгновенной.
+                //
+                // ⚠ У нынешнего `33NA` ошибка СЛУЧАЙНО не видна: уровень
+                // второго канала имеет нулевой период, и «не посчитано»
+                // совпадает с «мгновенно». Совпадение — не исправность.
+                var own = new List<Transition>();
+                foreach (GammaLine row in gammaIntensity)
                 {
-                    if (pair.Value.BranchIndex == index)
+                    if (row.Transition != null && row.Transition.BranchIndex == index)
                     {
-                        own.Add(pair.Key, pair.Value);
+                        own.Add(row.Transition);
                     }
                 }
 
@@ -1130,10 +1141,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static readonly Phase[] EmptyLives = new Phase[0];
 
-        static void Delays(Dictionary<double, Transition> gammas, Dictionary<int, double> halfLife)
+        static void Delays(List<Transition> gammas, Dictionary<int, double> halfLife)
         {
             var levels = new List<int>();
-            foreach (Transition transition in gammas.Values)
+            foreach (Transition transition in gammas)
             {
                 if (!levels.Contains(transition.FromSeq))
                 {
@@ -1179,7 +1190,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     lives[cameLives.Length] = new Phase { Seq = level, HalfLifeSec = life };
                 }
 
-                foreach (Transition transition in gammas.Values)
+                foreach (Transition transition in gammas)
                 {
                     if (transition.FromSeq != level)
                     {
@@ -1606,8 +1617,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // ⛔ ПРИЧИНА НУЖНА И ЗДЕСЬ (`S163`). `S156` закрыла только «набора
+            // нет вовсе», а набор БЕЗ ПЕРЕХОДОВ (`100SN→100IN`) уходил тем же
+            // молчаливым `return`: доля β⁺ оставалась пустой, и ноль снова
+            // становился неотличим от доказанного отсутствия совпадения.
             if (transitions.Count == 0)
             {
+                notes.AppendFormat(CultureInfo.InvariantCulture,
+                    "набор питаний {0}→{1} без переходов, пара 511 не строится; ",
+                    parentNucid, branch.Nucid);
+                return;
+            }
+
+            // ⛔ И ЗДЕСЬ ТОЖЕ (`S163`): переходы есть, а ЧИСЛОВЫХ питаний нет
+            // (`104IN→104CD`). Тогда весь поток нулевой, доли выходят нулями —
+            // но это «не знаем», а не «позитронов при этой гамме не бывает».
+            bool anyFeeding = false;
+            foreach (KeyValuePair<int, double> entry in inTotal)
+            {
+                if (entry.Value > 0.0)
+                {
+                    anyFeeding = true;
+                    break;
+                }
+            }
+
+            if (!anyFeeding)
+            {
+                notes.AppendFormat(CultureInfo.InvariantCulture,
+                    "у набора питаний {0}→{1} нет числовых интенсивностей, пара 511 не строится; ",
+                    parentNucid, branch.Nucid);
                 return;
             }
 

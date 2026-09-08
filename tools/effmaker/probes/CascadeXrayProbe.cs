@@ -219,7 +219,7 @@ namespace BecquerelMonitor.Probes
         /// таблице «Чего делать НЕ надо».
         ///
         /// Два плеча вместе и пришпиливают порядок: с поставкой обязан выйти
-        /// 0.821053, без неё — ноль от топологии. Одного мало: первое без
+        /// 0.032093, без неё — ноль от топологии. Одного мало: первое без
         /// второго прошло бы и при выключенной топологии, второе без первого —
         /// при перестановке.
         /// </summary>
@@ -249,6 +249,11 @@ namespace BecquerelMonitor.Probes
 
             // Наблюдаемый случай — судим.
             bad += TwoBranches("33NA", 221.0, "2", "17");
+
+            // ⛔ И ДОЛЮ β⁺ ТОЖЕ (`S164`). Плечо выше судит только ВЕТВИ, то
+            // есть повторное присвоение строке доли ЧУЖОГО канала осталось бы
+            // незамеченным — а это и был дефект `S157`.
+            bad += ShareIsPerLine();
 
             // Названный разбором — печатаем как есть.
             CascadeAtomicData mn = CascadeAtomicData.Of("46MN");
@@ -326,6 +331,91 @@ namespace BecquerelMonitor.Probes
             Say("           строк {0}, ветви разные и обе есть: {1}",
                 rows, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ");
             return ok ? 0 : 1;
+        }
+
+        /// <summary>
+        /// (`S164`) Доля β⁺ берётся У СТРОКИ, а не у первой ветви с такой
+        /// энергией.
+        ///
+        /// ⛔ ВЕХИКУЛА В ПОСТАВКЕ НЕТ, И ЭТО ИЗМЕРЕНО, а не предпочтение.
+        /// Межканальный дубль есть ровно у трёх родителей: у `32NA` и `33NA`
+        /// позитронов нет вовсе (оба канала дадут честный ноль, различать
+        /// нечего), а у `46MN` β⁺ есть, но ни одна из дублирующихся линий не
+        /// сопоставляется ни одной схеме и не встречается в ENSDF — доля тоже
+        /// ноль у обоих. Поэтому вход собирается РУКАМИ.
+        ///
+        /// ⚠ Названо честно: это проверка КОДА, а не поставки. Она не
+        /// доказывает, что в базе есть такой нуклид, — она доказывает, что
+        /// если он появится, доля не утечёт из чужого канала.
+        ///
+        /// Три плеча: строка позитронного канала со своей ветвью, строка
+        /// непозитронного канала со своей ветвью, и строка непозитронного
+        /// канала БЕЗ ветви — последняя проверяет запасной путь, где перебор
+        /// ветвей и утекал.
+        /// </summary>
+        static int ShareIsPerLine()
+        {
+            var positron = new CascadeAtomicData.Branch
+            {
+                Nucid = "TEST-P", Z = 20, A = 40, Perc = 100.0, DecType = "1",
+                BetaPlusShare = 0.5
+            };
+            positron.BetaPlusOfGamma[500.0] = 0.4;
+
+            var plain = new CascadeAtomicData.Branch
+            {
+                Nucid = "TEST-B", Z = 21, A = 40, Perc = 100.0, DecType = "2"
+            };
+
+            var atomic = new CascadeAtomicData();
+            atomic.Branches.Add(positron);
+            atomic.Branches.Add(plain);
+
+            var withBranch = new CascadeAtomicData.GammaLine
+            {
+                EnergyKev = 500.0, IntensityPct = 10.0, Channel = "1",
+                Transition = new CascadeAtomicData.Transition { EnergyKev = 500.0, BranchIndex = 0 }
+            };
+            var otherChannel = new CascadeAtomicData.GammaLine
+            {
+                EnergyKev = 500.0, IntensityPct = 3.0, Channel = "2",
+                Transition = new CascadeAtomicData.Transition { EnergyKev = 500.0, BranchIndex = 1 }
+            };
+            var noBranch = new CascadeAtomicData.GammaLine
+            {
+                EnergyKev = 500.0, IntensityPct = 3.0, Channel = "2"
+            };
+            atomic.GammaIntensity.Add(withBranch);
+            atomic.GammaIntensity.Add(otherChannel);
+            atomic.GammaIntensity.Add(noBranch);
+
+            var cases = new object[][]
+            {
+                new object[] { "канал 1, своя ветвь", withBranch, 0.8,
+                               "доля 0.4 своей ветви, квантов вдвое" },
+                new object[] { "канал 2, своя ветвь", otherChannel, 0.0,
+                               "у своей ветви доли нет — чужую брать нельзя" },
+                new object[] { "канал 2, ветви нет", noBranch, 0.0,
+                               "запасной перебор идёт только по ветвям СВОЕГО канала" },
+            };
+
+            int bad = 0;
+            foreach (object[] row in cases)
+            {
+                double want = (double)row[2];
+                double got = atomic.AnnihilationQuantaOfLine(
+                    (CascadeAtomicData.GammaLine)row[1]);
+                bool ok = Math.Abs(got - want) < 1.0E-12;
+                if (!ok)
+                {
+                    bad++;
+                }
+
+                Say("  {0,-22} ждём {1:F4}  вышло {2:F4}   {3}   {4}",
+                    row[0], want, got, ok ? "СОШЛОСЬ" : "⛔ ПРОВАЛ", row[3]);
+            }
+
+            return bad;
         }
 
         static int SourcePriority()
