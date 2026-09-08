@@ -1326,7 +1326,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
             if (!AddCrystalFluorescence(spec, result, report, seen))
             {
-                AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen);
+                AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen, true);
             }
 
             AddEscape(spec, result, declared, report);
@@ -1385,6 +1385,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var component = new FsaComponent("Xray-" + mix.Name, FsaComponentKind.Nuisance);
+
+            // (`AMBER4`) Это образ САМОГО прибора: при живой матрице отклика он
+            // снимается гейтом, потому что матрица уже несёт K-вакансию и её
+            // вылет отдельным каналом отклика (`ResponseChannel.EscapeXray`).
+            component.FromCrystal = true;
             foreach (CrystalMix.Part part in mix.Parts)
             {
                 MaterialDatabase.Fluorescence fluorescence = part.Fluorescence;
@@ -1430,7 +1435,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         static void AddFluorescence(FsaSampleSpec spec, List<int> elements, string what,
-                                    List<FsaComponent> result, Report report, HashSet<int> seen)
+                                    List<FsaComponent> result, Report report, HashSet<int> seen,
+                                    bool fromCrystal = false)
         {
             foreach (int z in elements)
             {
@@ -1449,6 +1455,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (component.Lines.Count > 0)
                 {
+                    component.FromCrystal = fromCrystal;
                     result.Add(component);
                     report.Lines += component.Lines.Count;
                 }

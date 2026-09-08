@@ -1004,6 +1004,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int GateNuclidesRescued { get; private set; }
 
         /// <summary>
+        /// (`AMBER4`) Снимать свободный образ собственного рентгена кристалла,
+        /// когда разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА. Пара к
+        /// <see cref="EscapeGate"/>: довод, замер и оговорка про рентген пробы
+        /// и защиты — у места применения.
+        ///
+        /// Ключ внутренний, как и `EscapeGate`: пользовательский флажок
+        /// «атомный рентген» решает другой вопрос — строить ли атомные образы
+        /// ВООБЩЕ, а этот отвечает, не посчитан ли образ кристалла дважды.
+        /// </summary>
+        public bool CrystalXrayGate { get; set; }
+
+        /// <summary>
+        /// (`AMBER4`) Сколько образов кристалла снял гейт на последнем
+        /// <see cref="Analyze"/>. Ноль — гейт не срабатывал и правка не
+        /// изменила НИ ОДНОГО БИТА; читателя без счётчика заводить нельзя
+        /// (урок ~~`T240`~~).
+        /// </summary>
+        public int CrystalXrayDropped { get; private set; }
+
+        /// <summary>
         /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
         /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
         ///
@@ -1365,6 +1385,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // S47: умолчание выставлено по A/B корпуса, см. описание свойства
             // и §13с журнала матрицы. Выключатель для A/B — `--no-escape-gate`.
             this.EscapeGate = true;
+            this.CrystalXrayGate = true;
             // A168: отдельные образы вылета и аннигиляции включены — так
             // считалось всегда; выключает их пользователь через
             // `FsaCalculationOptions`, пробы — ключом `--no-escape`.
@@ -1767,7 +1788,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool dropEscapeImages = (this.EscapeGate && this.ResponseMatrix != null)
                                     || !this.EscapeAndAnnihilation;
             bool dropAnnihilation = !this.EscapeAndAnnihilation;
-            if (dropEscapeImages || dropAnnihilation)
+
+            // ⛔ (`AMBER4`) СОБСТВЕННЫЙ РЕНТГЕН КРИСТАЛЛА ПРИ ЖИВОЙ МАТРИЦЕ
+            // СВОБОДНОЙ КОЛОНКОЙ НЕ ИДЁТ — тот же довод, что снял свободные
+            // SE/DE (~~`S47`~~) и образ обратного рассеяния (~~`A83`~~):
+            // матрица это уже несёт, а второй столбец на те же отсчёты —
+            // не «улучшение фита», а второй счёт.
+            //
+            // ⛔ ФИЗИКА, а не удобство (довод Amber 08.09.2026: «физику не
+            // обманешь: если детектор NaI — должен быть вылет, его не может не
+            // быть»). В сцинтилляторе собственный K-рентген кристалла — это
+            // ПРОЦЕСС ВЫЛЕТА: линия стоит не на 28.6 кэВ, а на `E − Kα` у
+            // каждого фотопика, и отношение «вылет/фотопик» — считаемая
+            // функция энергии и геометрии, а не свободная амплитуда. Квант,
+            // рождённый в объёме, там же и поглощается; уйти он может лишь из
+            // тонкого приповерхностного слоя. Свободный пик НА Kα объёмного
+            // основания не имеет вовсе.
+            //
+            // Измерено 08.09.2026 на матрице `Th медальон` (AS80x80, NaI,
+            // `ResponseChannel.EscapeXray`): отношение «вылет/фотопик» 6.74 %
+            // на 88 кэВ, 7.51 % на 122, 2.32 % на 238.6, 1.31 % на 338.3,
+            // 0.72 % на 583.2 и 0.34 % на 911.2 — падает с энергией, как и
+            // положено. То есть вылет в матрице ЕСТЬ и он количественный.
+            //
+            // ⚠ Рентген ПРОБЫ и ЗАЩИТЫ приходит извне, матрица его не
+            // содержит и содержать не может — эти образы гейт не трогает.
+            // Поэтому признак — флаг <see cref="FsaComponent.FromCrystal"/>, а
+            // не имя: у сведённого образа имя от вещества (`Xray-NaI`), у
+            // запасного поэлементного — от символа (`Xray-I`).
+            bool dropCrystalXray = this.CrystalXrayGate && this.ResponseMatrix != null;
+            this.CrystalXrayDropped = 0;
+            if (dropEscapeImages || dropAnnihilation || dropCrystalXray)
             {
                 List<FsaComponent> kept = new List<FsaComponent>(library.Count);
                 foreach (FsaComponent component in library)
@@ -1779,6 +1830,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     if (dropAnnihilation && FsaResult.IsAnnihilationImage(component.Name))
                     {
+                        continue;
+                    }
+
+                    if (dropCrystalXray && component.FromCrystal)
+                    {
+                        this.CrystalXrayDropped++;
                         continue;
                     }
 
