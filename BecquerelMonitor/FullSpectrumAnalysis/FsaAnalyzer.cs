@@ -986,6 +986,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int RefitZNuclidesRescued { get; private set; }
 
         /// <summary>
+        /// (`AMBER3`) Сколько нуклидных колонок судил гейт по парциальной
+        /// невязке (P6 «б») на последнем <see cref="Analyze"/> — знаменатель
+        /// его самоотключения, тот же по смыслу, что
+        /// <see cref="RefitZNuclidesJudged"/> у отсева по значимости.
+        /// </summary>
+        public int GateNuclidesJudged { get; private set; }
+
+        /// <summary>
+        /// (`AMBER3`) Сколько нуклидных колонок гейт ВЕРНУЛ, потому что иначе
+        /// вынес бы состав целиком. Ноль — самоотключение не срабатывало и
+        /// правка не изменила НИ ОДНОГО БИТА; положительное число — сработало,
+        /// и числа этого спектра с прежними сравнивать нельзя. Счётчик заведён
+        /// вместе с правилом нарочно (урок ~~`T240`~~): «правка есть» и
+        /// «правка сработала» — разные утверждения.
+        /// </summary>
+        public int GateNuclidesRescued { get; private set; }
+
+        /// <summary>
         /// (S47) Убирать свободные образы вылета `SE-2614`/`DE-2614`, когда
         /// разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА.
         ///
@@ -1584,6 +1602,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.RefitZKept = 0;
             this.RefitZNuclidesJudged = 0;
             this.RefitZNuclidesRescued = 0;
+            this.GateNuclidesJudged = 0;
+            this.GateNuclidesRescued = 0;
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
@@ -2259,6 +2279,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 List<FsaComponent> gateKeep = new List<FsaComponent>(gateAll);
+                int gateJudged = 0, gateDropped = 0;
                 for (int k = 0; k < best.Columns.Count; k++)
                 {
                     FitColumn column = best.Columns[k];
@@ -2269,6 +2290,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         continue;
                     }
+
+                    gateJudged++;
 
                     bool[] zone = this.PeakWindowMask(component, calibration, fwhmCalibration,
                                                       bestGain, bestOffset, chLo, chHi, channels);
@@ -2308,7 +2331,41 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (dWithout - dWith < 0.0)
                     {
                         gateKeep.Remove(component);
+                        gateDropped++;
                     }
+                }
+
+                this.GateNuclidesJudged = gateJudged;
+
+                // ⛔ (`AMBER3`) САМООТКЛЮЧЕНИЕ ГЕЙТА, КОГДА ОН ВЫНОСИТ СОСТАВ
+                // ЦЕЛИКОМ. Тот же довод, которым ~~`A275`~~ снабдил отсев по
+                // значимости: разбор, в котором не осталось НИ ОДНОГО нуклида,
+                // — не уточнённый состав, а пустой ответ на вопрос человека
+                // «что в пробе», даже если рядом уцелел приборный образ. Гейт
+                // судит форму зоны, и на спектре, где ВСЯ модель смещена
+                // (чужая матрица отклика, не та кривая, не то вещество пробы),
+                // «без него зоне лучше» верно для КАЖДОГО объявленного
+                // нуклида разом — и гейт выносит всех.
+                //
+                // Измерено 08.09.2026 на `Th-232.xml` (AS80x80, ториевый
+                // стеклянный диск): матрица, посчитанная с зазором ~~`AMBER1`~~,
+                // даёт цепочке Th-232 значимость z = 71.87 при пороге отсева
+                // 3.0 — то есть отсев её не трогает, — а гейт выносит ЕДИНСТВЕННУЮ
+                // нуклидную колонку, и на экране остаётся «состав пересилен
+                // приборным образом Xray-Pb (32.6 %)» у спектра, где ториевый
+                // ряд виден глазом по 2614.5 кэВ. Плечи того же замера: гейт
+                // выключен — цепочка 94.53 % и χ²/ndf 4.83; матрица выключена
+                // — 91.28 % и 2.77.
+                //
+                // ⚠ Обратной симметрии нет нарочно, как и у ~~`A275`~~: гейт
+                // остаётся в силе везде, где после него хоть один нуклид
+                // уцелел, — фантомы он снимает именно там. Возвращается ровно
+                // весь нуклидный класс и ровно тогда, когда иначе не осталось
+                // бы ничего.
+                if (gateJudged > 0 && gateDropped >= gateJudged)
+                {
+                    this.GateNuclidesRescued = gateDropped;
+                    gateKeep = gateAll;
                 }
 
                 if (gateKeep.Count < gateAll.Count)
