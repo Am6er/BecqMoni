@@ -4009,6 +4009,24 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string GeometryEditorFrontGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorGapMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorGapMaterial", resourceCulture);
+            }
+        }
+
         public static string GeometryEditorFrontReflector {
             get {
                 return ResourceManager.GetString("GeometryEditorFrontReflector", resourceCulture);

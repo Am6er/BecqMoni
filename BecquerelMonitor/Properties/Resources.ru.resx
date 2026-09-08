@@ -1253,6 +1253,15 @@
   <data name="GeometryEditorCrystalMaterial" xml:space="preserve">
     <value>Кристалл</value>
   </data>
+  <data name="GeometryEditorFrontGap" xml:space="preserve">
+    <value>Зазор с торца</value>
+  </data>
+  <data name="GeometryEditorSideGap" xml:space="preserve">
+    <value>Зазор сбоку</value>
+  </data>
+  <data name="GeometryEditorGapMaterial" xml:space="preserve">
+    <value>Наполнитель зазора</value>
+  </data>
   <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
     <value>Отражатель</value>
   </data>

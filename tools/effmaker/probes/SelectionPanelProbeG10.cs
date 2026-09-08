@@ -100,6 +100,18 @@ namespace SelectionPanelProbeG10
         static bool fixedBuild;
         /// <summary>Есть ли в сборке правка `A259` (полоса F66) — по строке ресурса.</summary>
         static bool lcZeroFixed;
+
+        /// <summary>
+        /// Есть ли в сборке правка `AMBER2` — блок активности НЕ выходит на
+        /// панель, когда числа нет (задача Amber 08.09.2026).
+        ///
+        /// Признак — ОТСУТСТВИЕ мерки `EnergySpectrumView.RefusalHeight`: она
+        /// считала перенос слов отказа и вместе с отказом снята. Признак взят
+        /// тем же способом, что два прежних (`RefuseActivity` для `A193`/`A195`,
+        /// ресурс `ActivityLcZeroRefused` для `A259`), — по сборке, а не по
+        /// ключу командной строки: ключ пришлось бы помнить человеку.
+        /// </summary>
+        static bool amber2;
         static readonly List<string> summary = new List<string>();
 
         const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -158,6 +170,10 @@ namespace SelectionPanelProbeG10
             Console.WriteLine("SETUP\tсборка: {0}", lcZeroFixed
                 ? "С ПРАВКОЙ A259 (есть ресурс ActivityLcZeroRefused) — при Lc = 0 ждём отказ словами"
                 : "БЕЗ ПРАВКИ A259 (плечо «до») — при Lc = 0 ждём МОЛЧАНИЕ при посчитанном числе");
+            amber2 = typeof(EnergySpectrumView).GetMethod("RefusalHeight", Any) == null;
+            Console.WriteLine("SETUP\tсборка: {0}", amber2
+                ? "С ПРАВКОЙ AMBER2 (нет EnergySpectrumView.RefusalHeight) — блока активности без числа на панели НЕТ"
+                : "БЕЗ ПРАВКИ AMBER2 (плечо «до») — ждём отказ и подпись при нём на панели");
             Console.WriteLine("SETUP\tприложение: {0}", typeof(EnergySpectrumView).Assembly.Location);
 
             MainForm mainForm = new MainForm();
@@ -220,7 +236,8 @@ namespace SelectionPanelProbeG10
 
             // Признаки сборки — ПЕРВОЙ строкой сводки: по ним `--ref=` выбирает
             // правило сличения (чем именно две сборки различаются), а не гадает.
-            summary.Insert(0, "#\tg10=" + (fixedBuild ? "1" : "0") + "\ta259=" + (lcZeroFixed ? "1" : "0"));
+            summary.Insert(0, "#\tg10=" + (fixedBuild ? "1" : "0") + "\ta259=" + (lcZeroFixed ? "1" : "0")
+                              + "\tamber2=" + (amber2 ? "1" : "0"));
             string summaryPath = Path.Combine(shotDir, "g10-panel.txt");
             File.WriteAllLines(summaryPath, summary, new UTF8Encoding(false));
             Console.WriteLine();
@@ -318,6 +335,75 @@ namespace SelectionPanelProbeG10
                 Same("Lc > 0", true, lc > 0.0);
                 Same("отказа нет", true, refusal == null);
                 Same("подпись поставлена", true, !string.IsNullOrEmpty(label));
+
+                // ⛔ (`AMBER2`) ЗДЕСЬ ТЕПЕРЬ ЖИВЁТ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ВСЕЙ
+                //    МЕРКИ. Прежде им были плечи с отказом: у них снимались
+                //    подпись и отказ, панель обязана была осесть, и это
+                //    доказывало, что мерка видит отрисовку. После `AMBER2` у
+                //    тех плеч не меняется НИЧЕГО — и такое «сошлось» одинаково
+                //    даёт и верная правка, и сломанная напрочь отрисовка.
+                //
+                //    Поэтому контроль перенесён туда, где подпись рисуется:
+                //    её снятие обязано опустить панель РОВНО на 16 px (плюс 16
+                //    строки спора) и изменить точки внутри панели, не тронув
+                //    ничего вне её. Это ровно те слагаемые, что остались в
+                //    отрисовке, — и сторож `check_selection_panel_height.py`
+                //    сверяет их имена с клеймами ниже.
+                if (amber2 && !string.IsNullOrEmpty(label))
+                {
+                    int rivalRowHonest = rivals > 0 ? 16 : 0; // ПАНЕЛЬ: спор
+                    int labelRow = 16;                        // ПАНЕЛЬ: подпись
+
+                    // ⛔ СПОР РАЗВОДИТСЯ ОТДЕЛЬНО (`A273`, и урок его цел). Он
+                    //    снимается ОДИН, при живой подписи, и панель обязана
+                    //    осесть ровно на 16 px — иначе «лишние 16» нечем
+                    //    отличить от пустого места. До `AMBER2` это плечо
+                    //    стояло у отказов; отказ на панель больше не выходит,
+                    //    и разведение переехало туда, где строка спора
+                    //    рисуется, — к числу.
+                    if (rivals > 0)
+                    {
+                        Set(an, "ActivityRivals", 0);
+                        using (Bitmap noRival = Frame(view))
+                        {
+                            Rectangle noRivalBox = DarkGrayBox(noRival);
+                            Rectangle area = Rectangle.Union(panelBox, noRivalBox);
+                            area.Inflate(Margin, Margin);
+                            int changedRival = ChangedIn(frame, noRival, area);
+                            int outsideRival = ChangedIn(frame, noRival,
+                                new Rectangle(0, 0, frame.Width, frame.Height)) - changedRival;
+                            Console.WriteLine("  разведение «спор подписи»: панель без спора {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
+                                              noRivalBox.Height, panelBox.Height, changedRival, outsideRival);
+                            Same("строка спора НАРИСОВАНА: точек изменилось > 0", true, changedRival > 0);
+                            Same("строка спора занимает ровно 16 px", 16, panelBox.Height - noRivalBox.Height);
+                            Same("снятие спора вне панели кадр не трогает", 0, outsideRival);
+                        }
+
+                        Set(an, "ActivityRivals", rivals);
+                    }
+
+                    Set(an, "ActivityLabel", null);
+                    using (Bitmap noLabel = Frame(view))
+                    {
+                        Rectangle noLabelBox = DarkGrayBox(noLabel);
+                        Rectangle area = Rectangle.Union(panelBox, noLabelBox);
+                        area.Inflate(Margin, Margin);
+                        int changed = ChangedIn(frame, noLabel, area);
+                        int outside = ChangedIn(frame, noLabel,
+                                                new Rectangle(0, 0, frame.Width, frame.Height)) - changed;
+                        Console.WriteLine("  контроль «подпись снята»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
+                                          noLabelBox.Height, panelBox.Height, changed, outside);
+                        Same("подпись НАРИСОВАНА: точек изменилось > 0", true, changed > 0);
+                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest).ToString(CultureInfo.InvariantCulture)
+                             + " px" + (rivalRowHonest > 0 ? " (16 подписи + 16 строки спора)" : ""),
+                             labelRow + rivalRowHonest, panelBox.Height - noLabelBox.Height);
+                        Same("снятие подписи вне панели кадр не трогает", 0, outside);
+                        noLabel.Save(Path.Combine(shotDir, tag + "-nolabel.png"), ImageFormat.Png);
+                    }
+
+                    Set(an, "ActivityLabel", label);
+                }
+
                 frame.Dispose();
                 return;
             }
@@ -357,7 +443,10 @@ namespace SelectionPanelProbeG10
             //    ниже, и в её области обязаны измениться точки — то есть строка
             //    спора не только резервируется, но и РИСУЕТСЯ. Без этого плеча
             //    «лишние 16 px» нечем отличить от пустого места.
-            if (rivals > 0)
+            // ⚠ Под `AMBER2` у плеч с отказом строки спора на панели НЕТ (как и
+            // подписи), и разводить нечего: её отсутствие судится ниже общим
+            // «точек изменилось 0». Ветка оставлена для сборок «до».
+            if (rivals > 0 && !amber2)
             {
                 Set(an, "ActivityRivals", 0);
                 using (Bitmap noRival = Frame(view))
@@ -392,7 +481,6 @@ namespace SelectionPanelProbeG10
                 int outside = ChangedIn(frame, silent, new Rectangle(0, 0, frame.Width, frame.Height)) - changed;
                 Console.WriteLine("  контроль «как рисовал прежний код»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                   silentBox.Height, panelBox.Height, changed, outside);
-                Same("отказ виден: точек изменилось в области панели > 0", true, changed > 0);
                 // Отступ 6 px перед блоком ПШПВ: при Lc = 0 с подписью прежний код
                 // его не резервировал, и последняя строка свисала с заливки —
                 // «вне панели» менялись точки. С правкой G10 (`A195`-родня) вне
@@ -415,18 +503,38 @@ namespace SelectionPanelProbeG10
                 //    `EnergySpectrumView.cs`. Слагаемое, заведённое там и забытое
                 //    здесь, — это и был дефект `A273`.
                 int rivalRow = rivals > 0 ? 16 : 0; // ПАНЕЛЬ: спор
-                int grow = fixedBuild
-                    ? 16                          // ПАНЕЛЬ: подпись
-                      + rivalRow
-                      + 16 + 16 * lines           // ПАНЕЛЬ: отказ (строка «Activity Bq: no K» и перенос)
-                      + (lc > 0.0 ? 0 : 6)        // ПАНЕЛЬ: отступ
-                    : 48;
+                int grow = amber2
+                    // ⛔ (`AMBER2`) НОЛЬ — это и есть содержание задачи: подпись
+                    //    и отказ на панель не выходят, и снятие их ничего не
+                    //    меняет. Слагаемых «отказ» и «отступ» в отрисовке больше
+                    //    нет, поэтому клейм у них нет и здесь — иначе сторож
+                    //    `check_selection_panel_height.py` назвал бы их
+                    //    «ждём того, чего не рисуют». Клеймо «подпись» осталось
+                    //    у плеча `honest`, где подпись рисуется и судится.
+                    ? 0
+                    : fixedBuild
+                      ? 16 + rivalRow + 16 + 16 * lines + (lc > 0.0 ? 0 : 6)
+                      : 48;
                 if (fixedBuild)
                 {
                     Same("вне панели (с полем 4 px) кадр тот же", 0, outside);
                 }
+                if (amber2)
+                {
+                    // Тут судится ОТСУТСТВИЕ отрисовки, поэтому и сказано это
+                    // двумя способами: ни одна точка панели не изменилась И
+                    // кадр целиком побайтно тот же. Первое ловит правку внутри
+                    // панели, второе — где угодно.
+                    Same("(`AMBER2`) снятие подписи и отказа панель НЕ меняет: точек 0", 0, changed);
+                    Same("(`AMBER2`) кадр побайтно тот же", sha, Sha256(silent));
+                }
+                else
+                {
+                    Same("отказ виден: точек изменилось в области панели > 0", true, changed > 0);
+                }
                 Same("панель с отказом выше на " + grow.ToString(CultureInfo.InvariantCulture)
-                     + (fixedBuild ? " px (16 подписи" + (rivalRow > 0 ? " + 16 строки спора" : "")
+                     + (amber2 ? " px (`AMBER2`: блока активности без числа нет)"
+                       : fixedBuild ? " px (16 подписи" + (rivalRow > 0 ? " + 16 строки спора" : "")
                                      + " + 16 строки K + 16 × строк отказа" + (lc > 0.0 ? "" : " + 6 отступа") + ")"
                                    : " px (прежний код: 48 всегда)"),
                      grow, panelBox.Height - silentBox.Height);
@@ -450,7 +558,7 @@ namespace SelectionPanelProbeG10
                 return;
             }
             var other = new Dictionary<string, string[]>();
-            bool refG10 = false, refA259 = false;
+            bool refG10 = false, refA259 = false, refAmber2 = false;
             foreach (string line in File.ReadAllLines(refPath))
             {
                 string[] c = line.Split('\t');
@@ -460,6 +568,7 @@ namespace SelectionPanelProbeG10
                     {
                         if (mark == "g10=1") refG10 = true;
                         if (mark == "a259=1") refA259 = true;
+                        if (mark == "amber2=1") refAmber2 = true;
                     }
                     continue;
                 }
@@ -471,11 +580,17 @@ namespace SelectionPanelProbeG10
             //    это и есть положительный контроль правки.
             bool g10Diff = fixedBuild != refG10;
             bool a259Diff = lcZeroFixed != refA259;
-            Console.WriteLine("  сборки различаются: A193/A195 — {0}; A259 — {1}",
-                              g10Diff ? "ДА" : "нет", a259Diff ? "ДА" : "нет");
-            if (!g10Diff && !a259Diff)
+            bool amber2Diff = amber2 != refAmber2;
+            Console.WriteLine("  сборки различаются: A193/A195 — {0}; A259 — {1}; AMBER2 — {2}",
+                              g10Diff ? "ДА" : "нет", a259Diff ? "ДА" : "нет", amber2Diff ? "ДА" : "нет");
+            if (!g10Diff && !a259Diff && !amber2Diff)
             {
                 Console.WriteLine("  правило: сборки в одном состоянии — ждём ВСЁ побайтно то же");
+            }
+            if (amber2Diff)
+            {
+                Console.WriteLine("  правило AMBER2: `honest` обязано совпасть побайтно, а четыре плеча с отказом —");
+                Console.WriteLine("                  осесть ровно на снятый блок (16 подписи + спор + 16 строки K + 16 × строк + 6 отступа при Lc = 0)");
             }
             foreach (string line in summary)
             {
@@ -513,6 +628,36 @@ namespace SelectionPanelProbeG10
                 //    вовсе) — тогда сдвинуться имеет право одно плечо `lczero`, а
                 //    остальные четыре обязаны совпасть. Это положительный контроль:
                 //    правка, тронувшая чужое плечо, здесь и ловится.
+                if (amber2Diff)
+                {
+                    // ⛔ Считаем от той сборки, которая блок РИСОВАЛА: строки
+                    //    переноса и спор — её слагаемые, у сборки с `AMBER2`
+                    //    отказ по-прежнему в аналитике, но на панель не выходит.
+                    string[] drew = amber2 ? o : c;
+                    int drewLines = drew.Length > 5 ? int.Parse(drew[5], CultureInfo.InvariantCulture) : 0;
+                    bool drewLcPositive = drew.Length > 6 && drew[6] == "1";
+                    int drewRivals = drew.Length > 7 ? int.Parse(drew[7], CultureInfo.InvariantCulture) : 0;
+                    int withH = amber2 ? theirs : mine;    // сборка, рисовавшая блок
+                    int withoutH = amber2 ? mine : theirs; // сборка с `AMBER2`
+                    if (c[0] == "honest")
+                    {
+                        Same(key + ": высота панели та же (AMBER2 числа не трогает)", theirs, mine);
+                        PanelCrop(key, Path.Combine(Path.GetDirectoryName(refPath), "g10-" + c[0] + "-" + c[1] + ".png"),
+                                  Path.Combine(shotDir, "g10-" + c[0] + "-" + c[1] + ".png"), o[3] == c[3]);
+                        continue;
+                    }
+
+                    int block = 16 + (drewRivals > 0 ? 16 : 0) + 16 + 16 * drewLines
+                                + (drewLcPositive ? 0 : 6);
+                    Same(key + ": панель осела ровно на снятый блок " + block.ToString(CultureInfo.InvariantCulture)
+                         + " px (16 подписи" + (drewRivals > 0 ? " + 16 спора" : "")
+                         + " + 16 строки K + 16 × " + drewLines.ToString(CultureInfo.InvariantCulture)
+                         + " строк" + (drewLcPositive ? "" : " + 6 отступа") + ")",
+                         block, withH - withoutH);
+                    Same(key + ": кадры различаются", true, o[3] != c[3]);
+                    continue;
+                }
+
                 if (!g10Diff)
                 {
                     string refPng = Path.Combine(Path.GetDirectoryName(refPath), "g10-" + c[0] + "-" + c[1] + ".png");

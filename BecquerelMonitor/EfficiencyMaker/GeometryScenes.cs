@@ -219,7 +219,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static double CrystalHeightAboveSampleMm(GeometryModel g)
         {
+            // (`AMBER1`) Зазор между отражателем и корпусом ВХОДИТ В ВЫНОС:
+            // расстояния сцены отсчитываются от переднего торца корпуса, и
+            // зазор углубляет кристалл ровно на свою толщину.
             double front = Math.Max(0.0, g.FrontReflectorThickness)
+                           + Math.Max(0.0, g.FrontGapThickness)
                            + Math.Max(0.0, g.FrontCladdingThickness);
 
             double depth;
@@ -244,6 +248,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static double DetectorOuterDiameterMm(GeometryModel g)
         {
             double side = Math.Max(0.0, g.SideReflectorThickness)
+                          + Math.Max(0.0, g.SideGapThickness)
                           + Math.Max(0.0, g.SideCladdingThickness);
 
             if (g.Shape == CrystalShape.Box)

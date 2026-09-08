@@ -42628,6 +42628,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorCrystalMaterial" xml:space="preserve">
     <value>Crystal</value>
   </data>
+  <data name="GeometryEditorFrontGap" xml:space="preserve">
+    <value>Crystal front gap thickness</value>
+  </data>
+  <data name="GeometryEditorSideGap" xml:space="preserve">
+    <value>Crystal side gap thickness</value>
+  </data>
+  <data name="GeometryEditorGapMaterial" xml:space="preserve">
+    <value>Gap filler</value>
+  </data>
   <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
     <value>Reflector</value>
   </data>
