@@ -1156,6 +1156,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var gamma = new List<double[]>();
+
+            // (`S161`) Канал каждой гамма-строки — ТОЛЬКО на время чтения, чтобы
+            // отличить копию одной линии от двух линий разных каналов. Наружу
+            // не уходит и вместе с `gamma` никуда не передаётся: список живёт
+            // ровно до конца цикла чтения, где обе стороны видны в двух строках
+            // кода. Дальше `lines` собирается как прежде, из одних чисел.
+            var gammaChannel = new List<string>();
             var kAlpha = new List<double[]>();
             var kBetaSplit = new List<double[]>();
             var kBetaSplitSeries = new HashSet<string>(StringComparer.Ordinal);
@@ -1175,7 +1182,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // соглашений о том, что такое «родитель», в проекте быть не
                     // должно, ровно как и о K-серии.
                     command.CommandText =
-                        "select type_a, type_c, energy_num, intensity_num from decay_radiations"
+                        "select type_a, type_c, energy_num, intensity_num, dec_type"
+                        + " from decay_radiations"
                         + " where parent_nucid = $n and type_a in ('G', 'X')"
                         + " and energy_num not null and intensity_num > 0"
                         + DecayParentRule.LevelClause;
@@ -1186,6 +1194,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             string kind = reader.IsDBNull(0) ? "" : reader.GetString(0);
                             string series = reader.IsDBNull(1) ? "" : reader.GetString(1).Trim();
+                            string channel = reader.IsDBNull(4) ? "" : reader.GetString(4).Trim();
                             double energy, intensity;
                             if (!TryNumber(reader, 2, out energy) || !TryNumber(reader, 3, out intensity)
                                 || !(energy > 0.0) || !(intensity > 0.0))
@@ -1196,7 +1205,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             var line = new[] { energy, intensity };
                             if (kind == "G")
                             {
-                                gamma.Add(line);
+                                // ⛔ ДВЕ СТРОКИ ОДНОЙ ЭНЕРГИИ ИЗ РАЗНЫХ КАНАЛОВ —
+                                // ДВЕ НАСТОЯЩИЕ ЛИНИИ, И ВЫХОДЫ СКЛАДЫВАЮТСЯ
+                                // (`S161`). Ниже по пути `AddLine` выбрасывает
+                                // вторую линию той же энергии, и у `33NA` на
+                                // 221 кэВ оставалось 1.914 % вместо
+                                // 0.31 + 1.914 = 2.224 %.
+                                //
+                                // ⛔ НО «СКЛАДЫВАТЬ ВСЕГДА» НЕЛЬЗЯ, и это
+                                // измерено: пар линий ближе 0.05 кэВ у одного
+                                // родителя в поставке 190, из них 186 у 115
+                                // родителей — С ОДНИМ И ТЕМ ЖЕ `dec_type`, то
+                                // есть копии ОДНОЙ линии (своя строка и строка
+                                // «в цепочке», либо копия с округлённой
+                                // энергией). Их сложение удвоило бы вес — ровно
+                                // тот дефект, против которого отсев в `AddLine`
+                                // и заводился, — а четверо из этих 115 в
+                                // КОРПУСЕ (`152EU`, `227TH`, `231PA`, `234PA`).
+                                // С разными `dec_type` пар всего ЧЕТЫРЕ у трёх
+                                // родителей, и корпусных среди них нет.
+                                //
+                                // ⚠ Канал живёт ТОЛЬКО здесь и наружу не
+                                // уходит: слияние делается на месте чтения, а
+                                // `AddLine` со своим правилом не меняется
+                                // ни на волос.
+                                int same = -1;
+                                for (int k = 0; k < gamma.Count; k++)
+                                {
+                                    if (Math.Abs(gamma[k][0] - energy) < 0.05
+                                        && !string.Equals(gammaChannel[k], channel,
+                                                          StringComparison.Ordinal))
+                                    {
+                                        same = k;
+                                        break;
+                                    }
+                                }
+
+                                if (same >= 0)
+                                {
+                                    gamma[same][1] += intensity;
+                                }
+                                else
+                                {
+                                    gamma.Add(line);
+                                    gammaChannel.Add(channel);
+                                }
                             }
                             else if (series.Length == 0 || series[0] != 'K')
                             {
