@@ -186,6 +186,19 @@ namespace BecquerelMonitor
         const string KeySummingRow = "FSAReport_SummingRow";
         const string KeySummingUsed = "FSAReport_SummingUsed";
         const string KeySummingNotUsed = "FSAReport_SummingNotUsed";
+
+        /// <summary>
+        /// (`AMBER9`) Суммирование не сделано ПОТОМУ ЧТО НЕТ МАТРИЦЫ — причина,
+        /// а не только факт. Вопрос Amber 08.09.2026: «Куда делся суммарный пик
+        /// на 519 keV?» У лютеция три кванта каскада (88, 202, 307 кэВ) дают
+        /// сумму 202 + 307 = 509 кэВ, и на спектре она видна; модель её не
+        /// строит. Физика: площадь сумм-пика — это две ПИКОВЫЕ эффективности,
+        /// а убыль из одиночных фотопиков — ПОЛНАЯ, и полную вне матрицы взять
+        /// негде. Считать приход без убыли нельзя: это лишние отсчёты из
+        /// ничего. Поэтому суммирование целиком ждёт геометрии — и окно
+        /// обязано это СКАЗАТЬ, а не молча опустить пик.
+        /// </summary>
+        const string KeySummingNoMatrix = "FSAReport_SummingNoMatrix";
         const string KeyDriftRow = "FSAReport_DriftRow";
         const string KeyDriftEdge = "FSAReport_DriftEdge";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
@@ -1124,7 +1137,11 @@ namespace BecquerelMonitor
                                       OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
                                       false));
             made.Add(this.MakeMarkRow(KeySummingRow,
-                                      OwnText(result.CascadeSummingUsed ? KeySummingUsed : KeySummingNotUsed),
+                                      OwnText(result.CascadeSummingUsed
+                                                  ? KeySummingUsed
+                                                  : result.ResponseMatrixUsed
+                                                      ? KeySummingNotUsed
+                                                      : KeySummingNoMatrix),
                                       false));
 
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина

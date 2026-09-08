@@ -5118,7 +5118,10 @@
   <data name="FSAReport_SummingNotUsed" xml:space="preserve">
     <value>not applied</value>
   </data>
-  <data name="FSAReport_DriftRow" xml:space="preserve">
+    <data name="FSAReport_SummingNoMatrix" xml:space="preserve">
+    <value>not applied: no response matrix</value>
+  </data>
+<data name="FSAReport_DriftRow" xml:space="preserve">
     <value>Scale drift fit</value>
   </data>
   <data name="FSAReport_DriftEdge" xml:space="preserve">
