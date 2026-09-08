@@ -131,6 +131,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Wrapping(g, 2.0, 2.0, 3.0, 3.0, 2.0);
                 Reflector(g, "Magnesium oxide", 0.8);
                 Crystal(g, "Sodium iodide");
+
+                // ⛔ ЗАЗОР МЕЖДУ ОТРАЖАТЕЛЕМ И КОРПУСОМ — 21.7 мм У ТОРЦА
+                // (`AMBER1`, задача Amber 07.09.2026; «у цилиндра только
+                // торец, бока нет» — её же ответ вопросником). Это НЕ мелочь:
+                // расстояния сцены отсчитываются от переднего торца корпуса,
+                // поэтому кристалл уходит вглубь с 0.5 см до 2.67 см, и
+                // геометрический фактор точечной сцены на торце падает почти
+                // вдвое (0.438 → 0.222).
+                g.FrontGapThickness = 21.7;
                 Fwhm(g, 7.65);                        // корпус, группа AS80x80
             }));
 
@@ -203,6 +212,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.FrontCladdingThickness = frontCladding;
             g.SideCladdingThickness = sideCladding;
             g.MountingThickness = mounting;
+
+            // (`AMBER1`, задача Amber 07.09.2026) Зазор между отражателем и
+            // корпусом: расстояние по умолчанию НОЛЬ, наполнитель — ВОЗДУХ.
+            // Ставится ВСЕМ пресетам, а не только тем, у кого зазор измерен:
+            // пресет накладывается на уже набранные поля, и молчаливый пропуск
+            // оставил бы здесь зазор ПРЕДЫДУЩЕГО прибора — ровно та беда, из-за
+            // которой ниже явным нулём выписано разрешение 40x40.
+            g.FrontGapThickness = 0.0;
+            g.SideGapThickness = 0.0;
+            g.Gap = Material("Air, dry");
+
             g.Reflector = Material("Polytetrafluoroethylene");
             g.Cladding = Material("Aluminum");
         }

@@ -50,6 +50,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             FractionTypeKey = "DS_FractionTypeCrystalCladding", NamePrefix = "M_DS_Crystal_Cladding",
         };
 
+        static readonly Slot DsGap = new Slot
+        {
+            CountKey = "DS_nCrystalGapElements", RoKey = "DS_RoCrystalGap",
+            ZPart = "DS_ZCrystalGap", FractionsPart = "DS_FractionsCrystalGap",
+            FractionTypeKey = "DS_FractionTypeGap", NamePrefix = "M_DS_Gap",
+        };
+
         static readonly Slot DsReflector = new Slot
         {
             CountKey = "DS_nCrystalReflectorElements", RoKey = "DS_RoCrystalReflector",
@@ -301,6 +308,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             cm("DS_CrystalHeight", height);
             cm("DS_CrystalFrontReflectorThickness", model.FrontReflectorThickness);
             cm("DS_CrystalSideReflectorThickness", model.SideReflectorThickness);
+            // (`AMBER1`) Зазор между отражателем и корпусом. Ключей формата
+            // ЛСРМ для него нет — это наше расширение, и печатается оно
+            // ВСЕГДА (решение Amber 08.09.2026, вопросником): единообразный
+            // формат вместо условных ключей. ⚠ Цена принята с открытыми
+            // глазами — отпечаток `ResponseMatrix.ComputeStamp` считается по
+            // ТЕКСТУ файла, поэтому появление ключа объявляет устаревшим весь
+            // склад матриц, включая 42 сцены с нулевым зазором.
+            cm("DS_CrystalFrontGapThickness", model.FrontGapThickness);
+            cm("DS_CrystalSideGapThickness", model.SideGapThickness);
             cm("DS_CrystalFrontCladdingThickness", model.FrontCladdingThickness);
             cm("DS_CrystalSideCladdingThickness", model.SideCladdingThickness);
             cm("DS_DetectorMountingThickness", model.MountingThickness);
@@ -392,6 +408,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             line("");
             line("// Reflector ");
             Material(text, DsReflector, model.Reflector);
+
+            // (`AMBER1`) Вещество зазора — своим блоком, тем же порядком, что
+            // у отражателя и корпуса.
+            line("");
+            line("// Gap between reflector and cladding ");
+            Material(text, DsGap, model.Gap);
             line("");
             line("");
             line("");

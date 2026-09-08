@@ -1445,6 +1445,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             GeometryModel g = this.geometry;
             GeometryMaterial reflector = OrVacuum(g.Reflector);
+
+            // (`AMBER1`) Зазор между отражателем и корпусом — такой же слой
+            // сцены, как обвязка. Воздух в него кладут пресет и заготовка
+            // редактора (слово Amber 07.09.2026); здесь же стоит общий для всех
+            // слоёв `OrVacuum` — он отвечает на другой вопрос: что делать, если
+            // вещества НЕ НАЗВАЛИ вовсе. Подставлять в этом случае воздух
+            // молча нельзя: пустое вещество означает «не сказано», а не
+            // «известно, что воздух», и старый файл `.in` без ключей зазора
+            // получил бы вещество, которого в нём нет. При нулевой толщине
+            // разницы нет никакой — слой не строится.
+            GeometryMaterial gap = OrVacuum(g.Gap);
             GeometryMaterial cladding = OrVacuum(g.Cladding);
             GeometryMaterial beakerWall = OrVacuum(g.BeakerWall);
             GeometryMaterial sample = OrVacuum(g.Source);
@@ -1462,6 +1473,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
             double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
+            double tfg = Math.Max(0.0, g.FrontGapThickness);
+            double tsg = Math.Max(0.0, g.SideGapThickness);
 
             // E21: когда проба стоит У БОКОВОЙ ГРАНИ, между нею и кристаллом
             // лежит БОКОВАЯ обвязка, а не передняя. Толщины меняются местами
@@ -1477,13 +1490,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 double t = tfr; tfr = tsr; tsr = t;
                 t = tfc; tfc = tsc; tsc = t;
+                t = tfg; tfg = tsg; tsg = t;
             }
             // Оправа детектора. В файле геометрии это одна толщина без указания,
             // где она стоит; MountingInFront решает, ставить её перед торцом
             // (тогда квант её проходит) или за кристаллом. Ключ введён как
             // измерительный: у прогона без неё остаётся ровный сдвиг вверх.
             double tm = Math.Max(0.0, g.MountingThickness);
-            double zFace = -(tfr + tfc) - (this.MountingInFront ? tm : 0.0);
+            double zFace = -(tfr + tfg + tfc) - (this.MountingInFront ? tm : 0.0);
 
             // Кристалл и его обвязка. Области вкладываются, порядок значим:
             // кристалл кладётся первым, чтобы точка внутри него доставалась ему,
@@ -1499,33 +1513,47 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.AddBox(ax, ay, 0.0, hc, g.Crystal, true);
                 this.AddBox(ax, ay, -tfr, 0.0, reflector, false);
                 this.AddBox(ax + tsr, ay + tsr, -tfr, hc, reflector, false);
-                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -(tfr + tfc), -tfr, cladding, false);
-                this.AddBox(ax + tsr + tsc, ay + tsr + tsc, -tfr, hc, cladding, false);
+
+                // (`AMBER1`) Зазор — между отражателем и корпусом, тем же
+                // вложением: сперва торцевая пластина, потом боковая рубашка.
+                this.AddBox(ax + tsr, ay + tsr, -(tfr + tfg), -tfr, gap, false);
+                this.AddBox(ax + tsr + tsg, ay + tsr + tsg, -(tfr + tfg), hc, gap, false);
+
+                double wx = ax + tsr + tsg + tsc, wy = ay + tsr + tsg + tsc;
+                this.AddBox(wx, wy, -(tfr + tfg + tfc), -(tfr + tfg), cladding, false);
+                this.AddBox(wx, wy, -(tfr + tfg), hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
                 {
-                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, zFace, -(tfr + tfc), cladding, false);
+                    this.AddBox(wx, wy, zFace, -(tfr + tfg + tfc), cladding, false);
                 }
                 else if (tm > 0.0)
                 {
-                    this.AddBox(ax + tsr + tsc, ay + tsr + tsc, hc, hc + tm, cladding, false);
+                    this.AddBox(wx, wy, hc, hc + tm, cladding, false);
                 }
 
-                double bx = ax + tsr + tsc, by = ay + tsr + tsc;
+                double bx = wx, by = wy;
                 transverse = Math.Sqrt(bx * bx + by * by);
             }
             else
             {
                 // Внешний радиус собранного детектора нужен только цилиндру:
                 // у бруска обвязка прямоугольная и считается по полуширинам.
-                double rDet = rc + tsr + tsc;
+                double rGap = rc + tsr + tsg;
+                double rDet = rGap + tsc;
                 this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
                 this.Add(0.0, rc, -tfr, 0.0, reflector, false);
                 this.Add(rc, rc + tsr, -tfr, hc, reflector, false);
-                this.Add(0.0, rDet, -(tfr + tfc), -tfr, cladding, false);
-                this.Add(rc + tsr, rDet, -tfr, hc, cladding, false);
+
+                // (`AMBER1`) Зазор: торцевая пластина над отражателем и
+                // боковая рубашка вокруг него.
+                this.Add(0.0, rc + tsr, -(tfr + tfg), -tfr, gap, false);
+                this.Add(rc + tsr, rGap, -(tfr + tfg), hc, gap, false);
+
+                this.Add(0.0, rDet, -(tfr + tfg + tfc), -(tfr + tfg), cladding, false);
+                this.Add(rGap, rDet, -(tfr + tfg), hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
                 {
-                    this.Add(0.0, rDet, zFace, -(tfr + tfc), cladding, false);
+                    this.Add(0.0, rDet, zFace, -(tfr + tfg + tfc), cladding, false);
                 }
                 else if (tm > 0.0)
                 {
@@ -1537,7 +1565,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.sphereZ = 0.5 * hc;
             this.sphereR = Math.Sqrt(transverse * transverse
-                                     + Math.Pow(0.5 * hc + tfr + tfc, 2.0)) + 1e-3;
+                                     + Math.Pow(0.5 * hc + tfr + tfg + tfc, 2.0)) + 1e-3;
 
             switch (g.SourceType)
             {

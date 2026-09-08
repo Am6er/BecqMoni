@@ -29,6 +29,8 @@ DS_CrystalDiameter = 8 cm
 DS_CrystalHeight = 8 cm
 DS_CrystalFrontReflectorThickness = 0.2 cm
 DS_CrystalSideReflectorThickness = 0.2 cm
+DS_CrystalFrontGapThickness = 2.17 cm
+DS_CrystalSideGapThickness = 0 cm
 DS_CrystalFrontCladdingThickness = 0.3 cm
 DS_CrystalSideCladdingThickness = 0.3 cm
 DS_DetectorMountingThickness = 0.2 cm
@@ -183,6 +185,19 @@ M_DS_Reflector.MName = Magnesium oxide
 M_DS_Reflector.Nmaterials = 1
 M_DS_Reflector.Name[0] = Magnesium oxide                          
 M_DS_Reflector.MatRelWeight[0] = 1
+
+// Gap between reflector and cladding 
+DS_nCrystalGapElements = 2
+DS_RoCrystalGap = 0.001205
+DS_ZCrystalGap[0] = 7
+DS_FractionsCrystalGap[0] = 0.636483
+DS_ZCrystalGap[1] = 8
+DS_FractionsCrystalGap[1] = 0.363517
+DS_FractionTypeGap = MASS
+M_DS_Gap.MName = Air, dry
+M_DS_Gap.Nmaterials = 1
+M_DS_Gap.Name[0] = Air, dry                                 
+M_DS_Gap.MatRelWeight[0] = 1
 
 
 

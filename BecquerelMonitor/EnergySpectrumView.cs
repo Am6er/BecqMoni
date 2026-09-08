@@ -1160,19 +1160,13 @@ namespace BecquerelMonitor
             return string.Format(CultureInfo.InvariantCulture, Resources.ActivityNoEpsilonRefused, energyKev);
         }
 
-        /// <summary>
-        /// Высота строки отказа на панели выделения: 16 px на каждую строку, на
-        /// которые GDI+ переносит текст в ширину панели. Меряется тем же
-        /// <see cref="Graphics.MeasureString(string, Font, int, StringFormat)"/>,
-        /// которым текст и рисуется, — своя оценка «влезет ли» разошлась бы с ним.
-        /// </summary>
-        int RefusalHeight(Graphics g, string text, int width)
-        {
-            float lineHeight = this.Font.GetHeight(g);
-            SizeF size = g.MeasureString(text, this.Font, width, this.centerFormat);
-            int lines = Math.Max(1, (int)Math.Round(size.Height / lineHeight));
-            return 16 * lines;
-        }
+        // ⛔ (`AMBER2`) Здесь жила `RefusalHeight` — мерка переноса слов отказа
+        // в ширину панели. Отказ на панель не выходит, мерить нечего, и метод
+        // снят целиком, а не оставлен «на всякий случай»: его ОТСУТСТВИЕ —
+        // признак, по которому `SelectionPanelProbeG10` узнаёт сборку с этой
+        // правкой и выбирает правило сличения (у неё уже два таких признака —
+        // `RefuseActivity` для `A193`/`A195` и ресурс `ActivityLcZeroRefused`
+        // для `A259`). Вернуть метод — значит соврать пробе о сборке.
 
         /// <summary>
         /// (`A193`, решение Amber 06.09.2026 «оба, отказом на панели») Отказ вслух
@@ -4842,16 +4836,26 @@ namespace BecquerelMonitor
                 {
                     infopanel_height += 54;
                 }
-                // S96: строка «по какой подписи», предупреждение о споре под ней
-                // и отказ вместо числа. Отказ занимает место активности, поэтому
-                // подпись называется и тогда, когда числа нет вовсе.
+                // ⛔ (`AMBER2`, задача Amber 08.09.2026, консоль со снимком)
+                // ПОДПИСЬ ВЫХОДИТ НА ПАНЕЛЬ ТОЛЬКО ВМЕСТЕ С ЧИСЛОМ. Ни строки
+                // «Activity Bq: no K», ни слов отказа, ни подписи при них на
+                // панели больше нет: «при выделении пика информация, указанная
+                // в выделении, не нужна» — объём назван вопросником того же
+                // дня, ТОЛЬКО КОГДА ЧИСЛА НЕТ.
                 //
-                // (05.09.2026) Отказ рисуется и при Lc = 0 — без фонового
-                // спектра Lc не считается вовсе, а отказ «фона нет» именно
-                // там и стоит. Число по-прежнему только при Lc > 0.
-                bool activityRefused = !string.IsNullOrEmpty(selection.ActivityRefusal);
+                // Условие — ТО ЖЕ ТРОЙНОЕ, что у отрисовки самих беккерелей
+                // ниже (`Lc > 0 && selectionFWHM > 0 && activity > 0`), слово в
+                // слово. Разойтись им нельзя: подпись, показанная без числа,
+                // это ровно тот блок, который снимается, а место, занятое без
+                // отрисовки, — пустая полоса внизу панели (`A195`).
+                //
+                // ⚠ Отказ по-прежнему СЧИТАЕТСЯ (`SelectionAnalytics.ActivityRefusal`)
+                // и по-прежнему судится `BqActivityProbe`: он остаётся причиной,
+                // по которой числа нет, и служит внутренним признаком. Снята
+                // только его ПЕЧАТЬ на панели.
                 bool activityLabelShown = !string.IsNullOrEmpty(selection.ActivityLabel)
-                                          && ((Lc > 0 && activity > 0.0) || activityRefused);
+                                          && Lc > 0 && this.selectionFWHM > 0.0
+                                          && activity > 0.0;
                 // ⛔ КЛЕЙМА `ПАНЕЛЬ:` НИЖЕ ЧИТАЕТ СТОРОЖ (`A273`,
                 // `tools/check_selection_panel_height.py`). Каждое слагаемое высоты,
                 // зависящее от подписи и отказа, названо, и ровно тот же набор имён
@@ -4866,32 +4870,18 @@ namespace BecquerelMonitor
                     {
                         infopanel_height += 16; // ПАНЕЛЬ: спор
                     }
-                    // (`A195`-родня, полоса G10 06.09.2026) Отступ 6 px перед
-                    // блоком ПШПВ ставится ниже при `Lc > 0 || activityLabelShown`;
-                    // при Lc > 0 он уже внутри 88/72, а при Lc = 0 с подписью (отказ
-                    // «фона нет», «нетто ≤ 0») не резервировался — последняя строка
-                    // панели свисала с заливки на 6 px. Найдено `SelectionPanelProbeG10`
-                    // контролем «вне панели кадр тот же» (154 точки вне заливки).
-                    if (!(Lc > 0))
-                    {
-                        infopanel_height += 6; // ПАНЕЛЬ: отступ
-                    }
                 }
-                // (полоса G10, 06.09.2026) Отказ длиннее ширины панели GDI+ переносит
-                // на вторую строку, а высота считалась ОДНОЙ строкой (32 = строка
-                // «Activity Bq: no K» + строка отказа): вторая строка ложилась поверх
-                // черты и «Peak Counts». Найдено `SelectionPanelProbeG10` на отказе
-                // «no efficiency curve is chosen for this spectrum: activity not shown»;
-                // отказы ~~`A189`~~ («… is outside the efficiency curve (… to … keV): …»)
-                // ещё длиннее и переносились так же с 05.09.2026. Строк — той же
-                // меркой GDI+, которой текст и переносится (`RefusalHeight`).
-                int refusalHeight = activityRefused
-                    ? this.RefusalHeight(g, selection.ActivityRefusal, table_width_origin - 12)
-                    : 0;
-                if (activityRefused)
-                {
-                    infopanel_height += 16 + refusalHeight; // ПАНЕЛЬ: отказ
-                }
+
+                // ⛔ (`AMBER2`) СЛАГАЕМЫХ «отказ» И «отступ» БОЛЬШЕ НЕТ, и это
+                // не упрощение, а половина задачи. «Отказ» резервировал место
+                // под строку «Activity Bq: no K» и перенос слов отказа —
+                // рисовать их больше нечего. «Отступ» в 6 px закрывал случай
+                // «подпись при Lc = 0», который теперь невозможен: подпись
+                // выходит только при `Lc > 0`, а там 6 px уже сидят внутри
+                // 88/72. Оба имени сняты и из `SelectionPanelProbeG10`, и из
+                // сторожа `tools/check_selection_panel_height.py` — договор
+                // клейм судит НАБОРЫ ИМЁН, и оставленное здесь имя без пары
+                // сделало бы сторожа красным.
                 g.FillRectangle(Brushes.DarkGray, region_table_x_pos, table_y_pos, table_width_origin, infopanel_height);
                 g.FillRectangle(Brushes.White, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
                 g.DrawRectangle(Pens.Black, region_table_x_pos - 3, table_y_pos - 3, table_width_origin, infopanel_height);
@@ -5060,22 +5050,19 @@ namespace BecquerelMonitor
                     }
                 }
 
-                // ⛔ S96. Отказ вместо числа: подпись есть, кривая есть, а
-                // считать по ней беккерели нельзя. Раньше активности просто
-                // не появлялось, и это было неотличимо от «нет кривой».
-                if (!string.IsNullOrEmpty(selection.ActivityRefusal))
-                {
-                    g.DrawString(Resources.Activity + " " + Resources.Bq + ":", this.Font, Brushes.DarkRed, r2);
-                    g.DrawString(Resources.ResultNoCoefficient, this.Font, Brushes.DarkRed, r2, this.farFormat);
-                    r2.Y += 16;
-                    // Прямоугольник — в высоту всех строк отказа (см. `RefusalHeight`):
-                    // r2 высотой 32 вмещал две строки, но шаг вниз был 16.
-                    g.DrawString(selection.ActivityRefusal, this.Font, Brushes.DarkRed,
-                                 new Rectangle(r2.X, r2.Y, r2.Width, refusalHeight), this.centerFormat);
-                    r2.Y += refusalHeight;
-                }
+                // ⛔ (`AMBER2`) ЗДЕСЬ СТОЯЛ ОТКАЗ — строка «Activity Bq: no K»
+                // и слова причины. Снят по задаче Amber 08.09.2026 вместе с
+                // подписью при нём. `Resources.ResultNoCoefficient` (то самое
+                // «no K») НЕ УДАЛЁН из ресурсов: его зовёт ещё
+                // `MeasurementResultManager.cs`, и удаление обесточило бы окно
+                // результатов. Шесть строк причин (`Activity*Refused`) тоже
+                // остались: их по-прежнему кладёт `RefuseActivity` и по-прежнему
+                // судит `BqActivityProbe` — снята печать, а не расчёт.
 
-                if (Lc > 0 || activityLabelShown)
+                // Отступ 6 px перед блоком ПШПВ — только при `Lc > 0`, где он и
+                // зарезервирован (внутри 88/72). Прежнее `|| activityLabelShown`
+                // закрывало подпись при Lc = 0; такой подписи больше не бывает.
+                if (Lc > 0)
                 {
                     r2.Y += 6;
                 }

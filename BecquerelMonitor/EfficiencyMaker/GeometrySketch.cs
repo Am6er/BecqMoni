@@ -48,6 +48,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         static readonly Color CrystalColor = Color.FromArgb(0x35, 0xA5, 0xAD);
         static readonly Color ReflectorColor = Color.FromArgb(0x8C, 0xEC, 0xEC);
         static readonly Color CladdingColor = Color.FromArgb(0x82, 0x90, 0xB0);
+
+        /// <summary>
+        /// Зазор между отражателем и корпусом (`AMBER1`). Цвет светлее корпуса
+        /// и холоднее отражателя: слой по умолчанию ВОЗДУХ, и он не должен
+        /// читаться как вещество обвязки.
+        /// </summary>
+        static readonly Color GapColor = Color.FromArgb(0xE8, 0xEE, 0xF6);
         static readonly Color WallColor = Color.FromArgb(0xA6, 0xD5, 0xE8);
         static readonly Color SampleColor = Color.FromArgb(0x78, 0x80, 0x8E);
         static readonly Color Ink = Color.FromArgb(0x20, 0x20, 0x20);
@@ -217,12 +224,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             double tsr = Math.Max(m.SideReflectorThickness, 0.0);
             double tfc = Math.Max(m.FrontCladdingThickness, 0.0);
             double tsc = Math.Max(m.SideCladdingThickness, 0.0);
+            // (`AMBER1`) Зазор — такой же слой обвязки и переставляется вместе
+            // с нею.
+            double tfg = Math.Max(m.FrontGapThickness, 0.0);
+            double tsg = Math.Max(m.SideGapThickness, 0.0);
             // Та же перестановка, что в симуляторе: к пробе обращена обвязка
             // ТОЙ стороны, у которой она стоит.
             if (m.Facing == GeometryDetectorFacing.Side)
             {
                 double t = tfr; tfr = tsr; tsr = t;
                 t = tfc; tfc = tsc; tsc = t;
+                t = tfg; tfg = tsg; tsg = t;
             }
             double tm = Math.Max(m.MountingThickness, 0.0);
             if (!(halfWidth > 0.0) || !(height > 0.0))
@@ -230,8 +242,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            double outerHalf = halfWidth + tsr + tsc;
-            double zFace = -(tfr + tfc);
+            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double zFace = -(tfr + tfg + tfc);
             double zBack = height + tm;
 
             double left = -outerHalf, right = outerHalf, top = zFace, bottom = zBack;
@@ -276,10 +288,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.DrawSource(g, m, zFace);
             }
 
-            this.DrawDetector(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm);
+            this.DrawDetector(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm, tfg, tsg);
             if (this.Mode == SketchMode.Detector)
             {
-                this.Annotate(g, m, halfWidth, height, boxDepthIntoPage, tfr, tsr, tfc, tsc, tm);
+                this.Annotate(g, m, halfWidth, height, boxDepthIntoPage,
+                              tfr, tsr, tfc, tsc, tm, tfg, tsg);
             }
             else if (this.Mode == SketchMode.Source)
             {
@@ -410,15 +423,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         // ------------------------------------------------------------------
 
         void DrawDetector(Graphics g, GeometryModel m, double halfWidth, double height,
-                          double tfr, double tsr, double tfc, double tsc, double tm)
+                          double tfr, double tsr, double tfc, double tsc, double tm,
+                          double tfg, double tsg)
         {
-            double outerHalf = halfWidth + tsr + tsc;
-            double zFace = -(tfr + tfc);
+            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double zFace = -(tfr + tfg + tfc);
 
-            // Слои рисуются снаружи внутрь: корпус целиком, потом отражатель,
-            // потом кристалл. Так же они и вложены в сцене расчёта — там
-            // побеждает первая область, в которую попала точка.
+            // Слои рисуются снаружи внутрь: корпус целиком, потом зазор, потом
+            // отражатель, потом кристалл. Так же они и вложены в сцене расчёта
+            // — там побеждает первая область, в которую попала точка.
             Fill(g, CladdingColor, -outerHalf, zFace, 2.0 * outerHalf, height + tm - zFace);
+            double gapHalf = halfWidth + tsr + tsg;
+            Fill(g, GapColor, -gapHalf, -(tfr + tfg), 2.0 * gapHalf, height + tfr + tfg);
             double reflHalf = halfWidth + tsr;
             Fill(g, ReflectorColor, -reflHalf, -tfr, 2.0 * reflHalf, height + tfr);
             Fill(g, CrystalColor, -halfWidth, 0.0, 2.0 * halfWidth, height);
@@ -432,10 +448,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         void Annotate(Graphics g, GeometryModel m, double halfWidth, double height,
                       double boxDepthIntoPage,
-                      double tfr, double tsr, double tfc, double tsc, double tm)
+                      double tfr, double tsr, double tfc, double tsc, double tm,
+                      double tfg, double tsg)
         {
-            double outerHalf = halfWidth + tsr + tsc;
-            double zFace = -(tfr + tfc);
+            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double zFace = -(tfr + tfg + tfc);
 
             bool box = m.Shape == CrystalShape.Box;
             // Подписи идут за РАЗВОРОТОМ: после боковой постановки высота на
@@ -459,11 +476,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.DimV(g, pen, ink, this.RightOf(outerHalf, 26), 0.0, height,
                           height, lengthKey);
                 this.DimV(g, pen, ink, -halfWidth * 0.45, -tfr, 0.0, tfr, "FrontReflectorThickness");
-                this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -tfr, tfc, "FrontCladdingThickness");
+                this.DimV(g, pen, ink, halfWidth * 0.45, zFace, -(tfr + tfg), tfc,
+                          "FrontCladdingThickness");
                 this.DimH(g, pen, ink, -halfWidth - tsr, -halfWidth, height * 0.35, tsr,
                           "SideReflectorThickness");
-                this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr, height * 0.62, tsc,
+                this.DimH(g, pen, ink, -outerHalf, -halfWidth - tsr - tsg, height * 0.62, tsc,
                           "SideCladdingThickness");
+
+                // (`AMBER1`) Размер зазора ставится, ТОЛЬКО когда он есть:
+                // нулевая выноска на чертеже — это шум, а не сведение.
+                if (tfg > 0.0)
+                {
+                    this.DimV(g, pen, ink, -halfWidth * 0.75, -(tfr + tfg), -tfr, tfg,
+                              "FrontGapThickness");
+                }
+
+                if (tsg > 0.0)
+                {
+                    this.DimH(g, pen, ink, -halfWidth - tsr - tsg, -halfWidth - tsr,
+                              height * 0.48, tsg, "SideGapThickness");
+                }
                 this.DimV(g, pen, ink, 0.0, height, height + tm, tm, "MountingThickness");
 
                 // У бруска третий размер в разрез не попадает — его надо

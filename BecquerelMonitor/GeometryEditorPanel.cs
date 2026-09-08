@@ -63,6 +63,12 @@ namespace BecquerelMonitor
         Panel pointPanel, cylinderPanel, marinelliPanel, boxPanel;
         Panel sourceMaterialsPanel;
         Panel cylinderSizePanel, boxSizePanel;
+
+        // (`AMBER1`) Столбик размеров обвязки и стоящая под ним стопка веществ.
+        // Держатся полями, потому что строка «зазор сбоку» СНИМАЕТСЯ у
+        // цилиндра, столбик после этого пересобирается, и вещества обязаны
+        // поехать за ним: они стоят по абсолютной координате, а не стыковкой.
+        Panel wrappingPanel, materialsPanel;
         ComboBox presetCombo;
         Label sceneLabel;
 
@@ -278,6 +284,11 @@ namespace BecquerelMonitor
                 SideReflectorThickness = 1.0,
                 FrontCladdingThickness = 0.5,
                 SideCladdingThickness = 0.5,
+                // Зазор между отражателем и корпусом (`AMBER1`): расстояние по
+                // умолчанию НОЛЬ — слово Amber. Ноль означает «слоя нет», и
+                // сцена собирается ровно как до задачи.
+                FrontGapThickness = 0.0,
+                SideGapThickness = 0.0,
                 MountingThickness = 1.0,
                 PointDistance = 100.0,
                 BeakerToDetectorDistance = 5.0,
@@ -300,6 +311,10 @@ namespace BecquerelMonitor
 
             g.Crystal = Make("Cesium iodide");
             g.Reflector = Make("Polytetrafluoroethylene");
+            // Наполнитель зазора — ВОЗДУХ по слову Amber (`AMBER1`). При
+            // нулевой толщине он ничего не меняет; вещество ставится сразу,
+            // чтобы человек, набрав толщину, не получил молчаливый вакуум.
+            g.Gap = Make("Air, dry");
             g.Cladding = Make("Aluminum");
             g.BeakerWall = Make("Polyethylene");
             // Воздух, а не вода: заготовка открывается с точечным источником, и
@@ -433,10 +448,17 @@ namespace BecquerelMonitor
             this.boxSizePanel.Controls.Add(this.equivalentLabel);
             page.Controls.Add(this.boxSizePanel);
 
-            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 180) };
+            Panel rest = new Panel { Location = new Point(0, 206), Size = new Size(620, 224) };
+            this.wrappingPanel = rest;
             y = 0;
             this.Row(rest, ref y, "FrontReflectorThickness", Resources.GeometryEditorFrontReflector);
             this.Row(rest, ref y, "SideReflectorThickness", Resources.GeometryEditorSideReflector);
+            // (`AMBER1`, задача Amber 07.09.2026) Зазор стоит МЕЖДУ отражателем
+            // и корпусом и в столбике тоже: порядок строк здесь читается как
+            // порядок слоёв от кристалла наружу, и переставить их значит
+            // рассказать про прибор неправду.
+            this.Row(rest, ref y, "FrontGapThickness", Resources.GeometryEditorFrontGap);
+            this.Row(rest, ref y, "SideGapThickness", Resources.GeometryEditorSideGap);
             this.Row(rest, ref y, "FrontCladdingThickness", Resources.GeometryEditorFrontCladding);
             this.Row(rest, ref y, "SideCladdingThickness", Resources.GeometryEditorSideCladding);
             this.Row(rest, ref y, "MountingThickness", Resources.GeometryEditorMounting);
@@ -470,15 +492,81 @@ namespace BecquerelMonitor
             rest.Controls.Add(this.fwhmSuggestButton);
             page.Controls.Add(rest);
 
-            Panel mats = new Panel { Location = new Point(0, 392), Size = new Size(620, 150) };
+            Panel mats = new Panel { Location = new Point(0, 436), Size = new Size(620, 150) };
+            this.materialsPanel = mats;
             y = 0;
             this.MaterialRow(mats, ref y, "Crystal", Resources.GeometryEditorCrystalMaterial,
                              GeometryMaterialLibrary.MaterialKind.Crystal);
             this.MaterialRow(mats, ref y, "Reflector", Resources.GeometryEditorReflectorMaterial,
                              GeometryMaterialLibrary.MaterialKind.Reflector);
+            // (`AMBER1`) Наполнитель зазора берётся из списка ПРОБ, а не
+            // отражателей: зазор — это вещество, НАЛИТОЕ В ПУСТОТУ, и
+            // единственный газ библиотеки (`Air, dry`) значится именно там.
+            // Своего вида веществ ему не заведено нарочно: он был бы пуст —
+            // воздух пришлось бы либо задваивать, либо отнять у проб, где он
+            // стоит умолчанием заготовки. Всё остальное достаётся из «прочих»,
+            // которые дописываются в конец любого списка.
+            this.MaterialRow(mats, ref y, "Gap", Resources.GeometryEditorGapMaterial,
+                             GeometryMaterialLibrary.MaterialKind.Source);
             this.MaterialRow(mats, ref y, "Cladding", Resources.GeometryEditorCladdingMaterial,
                              GeometryMaterialLibrary.MaterialKind.Cladding);
             page.Controls.Add(mats);
+
+            // Окно открывается цилиндром, а у цилиндра бока у зазора нет
+            // (`AMBER1`). Событие смены формы здесь не сработает — переключатель
+            // УЖЕ отмечен, — поэтому строка снимается прямо тут.
+            this.UpdateGapRows(this.boxRadio.Checked);
+        }
+
+        /// <summary>
+        /// Пересобрать столбик обвязки после того, как строка зазора сбоку
+        /// показана или снята (`AMBER1`).
+        ///
+        /// ⚠ Двух соседей <see cref="Reflow"/> не знает и знать не может:
+        /// кнопка «взять у прибора» стоит в том же столбике по абсолютной
+        /// координате строки полуширины, а стопка веществ — сосед столбика,
+        /// а не его строка. Оба переставляются здесь, иначе кнопка уезжает от
+        /// своего поля, а вещества оставляют под собой пустую полосу.
+        /// </summary>
+        void ReflowWrapping()
+        {
+            if (this.wrappingPanel == null)
+            {
+                return;
+            }
+
+            this.Reflow(this.wrappingPanel);
+
+            RowControls fwhm;
+            if (this.fwhmSuggestButton != null
+                && this.rows.TryGetValue("FwhmAt662Percent", out fwhm))
+            {
+                this.fwhmSuggestButton.Top = fwhm.Box.Top - 1;
+            }
+
+            if (this.materialsPanel != null)
+            {
+                this.materialsPanel.Top =
+                    this.wrappingPanel.Top + this.wrappingPanel.Height + 6;
+            }
+        }
+
+        /// <summary>
+        /// Показать «зазор сбоку» только там, где бок у зазора есть.
+        ///
+        /// ⛔ Решение Amber 07.09.2026, вопросником, дословно: «ASN 80x80 —
+        /// цилиндр, у неё только торец, а бока нет. Для неё и таких же, где
+        /// бока нет, — одно поле. Где есть и торец и бок — каждое
+        /// индивидуальное поле.» То есть у ЦИЛИНДРА строка снимается, а у
+        /// бруска стоит.
+        ///
+        /// ⚠ Правило сказано ПРО ЗАЗОР и только про него: боковые толщины
+        /// отражателя и корпуса у цилиндра остаются на месте.
+        /// </summary>
+        void UpdateGapRows(bool box)
+        {
+            this.ShowRow("SideGapThickness", box, null);
+            this.ReflowWrapping();
         }
 
         /// <summary>
@@ -984,6 +1072,8 @@ namespace BecquerelMonitor
                 (g, v) => g.CrystalBoxZ = g.Shape == CrystalShape.Box ? v : 0.0);
             add("FrontReflectorThickness", g => g.FrontReflectorThickness, (g, v) => g.FrontReflectorThickness = v);
             add("SideReflectorThickness", g => g.SideReflectorThickness, (g, v) => g.SideReflectorThickness = v);
+            add("FrontGapThickness", g => g.FrontGapThickness, (g, v) => g.FrontGapThickness = v);
+            add("SideGapThickness", g => g.SideGapThickness, (g, v) => g.SideGapThickness = v);
             add("FrontCladdingThickness", g => g.FrontCladdingThickness, (g, v) => g.FrontCladdingThickness = v);
             add("SideCladdingThickness", g => g.SideCladdingThickness, (g, v) => g.SideCladdingThickness = v);
             add("MountingThickness", g => g.MountingThickness, (g, v) => g.MountingThickness = v);
@@ -1084,12 +1174,17 @@ namespace BecquerelMonitor
                 // не правка, и подменять доли библиотечными нельзя.
                 this.SelectMaterial("Crystal", g.Crystal, true);
                 this.SelectMaterial("Reflector", g.Reflector, true);
+                this.SelectMaterial("Gap", g.Gap, true);
                 this.SelectMaterial("Cladding", g.Cladding, true);
                 this.SelectMaterial("BeakerWall", g.BeakerWall, true);
                 this.SelectMaterial("Source", g.Source, true);
 
                 this.boxRadio.Checked = g.Shape == CrystalShape.Box;
                 this.cylinderRadio.Checked = g.Shape != CrystalShape.Box;
+                // Та же беда, что при постройке: у геометрии ТОЙ ЖЕ формы
+                // переключатель не меняется, события нет, и строка зазора
+                // осталась бы от прошлой геометрии.
+                this.UpdateGapRows(g.Shape == CrystalShape.Box);
                 // E21: сторона, обращённая к пробе. Ставится ПОСЛЕ формы —
                 // ShapeChanged гасит выбор у цилиндра, и порядок значим.
                 this.facingCombo.Enabled = g.Shape == CrystalShape.Box;
@@ -1364,7 +1459,7 @@ namespace BecquerelMonitor
 
             this.MarkBadValues();
             this.UpdateEquivalent();
-            foreach (string key in new[] { "Crystal", "Reflector", "Cladding", "BeakerWall", "Source" })
+            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "Cladding", "BeakerWall", "Source" })
             {
                 this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                     this.MaterialOf(key, this.Get(key + ".Density")));
@@ -1475,6 +1570,11 @@ namespace BecquerelMonitor
             "CrystalDiameter", "CrystalHeight",
             "CrystalBoxX", "CrystalBoxY", "CrystalBoxZ",
             "FrontReflectorThickness", "SideReflectorThickness",
+            // (`AMBER1`) Зазор — такой же вынос детектора, как обвязка:
+            // торцевой углубляет кристалл под корпусом, боковой раздувает
+            // поперечник. Обе величины читает `GeometryScenes`, и пропуск их
+            // здесь оставил бы сцену посчитанной по прежнему прибору.
+            "FrontGapThickness", "SideGapThickness",
             "FrontCladdingThickness", "SideCladdingThickness",
         };
 
@@ -1557,6 +1657,7 @@ namespace BecquerelMonitor
             bool box = this.boxRadio.Checked;
             this.boxSizePanel.Visible = box;
             this.cylinderSizePanel.Visible = !box;
+            this.UpdateGapRows(box);
             if (box)
             {
                 this.UpdateEquivalent();
@@ -1877,6 +1978,18 @@ namespace BecquerelMonitor
 
             g.Crystal = this.MaterialOf("Crystal", this.Get("Crystal.Density"));
             g.Reflector = this.MaterialOf("Reflector", this.Get("Reflector.Density"));
+            g.Gap = this.MaterialOf("Gap", this.Get("Gap.Density"));
+
+            // ⛔ (`AMBER1`) У ЦИЛИНДРА БОКА У ЗАЗОРА НЕТ — решение Amber
+            // 07.09.2026. Ноль ставится ЗДЕСЬ, а не стиранием поля: поле у
+            // цилиндра снято с окна, и число в нём — это значение, набранное
+            // для бруска. Стереть его значило бы потерять набранное при
+            // случайном переключении формы туда и обратно; оставить как есть —
+            // тихо посчитать цилиндр с боковым зазором.
+            if (g.Shape != CrystalShape.Box)
+            {
+                g.SideGapThickness = 0.0;
+            }
             g.Cladding = this.MaterialOf("Cladding", this.Get("Cladding.Density"));
             g.BeakerWall = this.MaterialOf("BeakerWall", this.Get("BeakerWall.Density"));
             g.Source = this.MaterialOf("Source", this.Get("Source.Density"));

@@ -665,6 +665,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
         public double FrontReflectorThickness;
         public double SideReflectorThickness;
+
+        /// <summary>
+        /// Зазор между отражателем и корпусом, мм — торцевой (`AMBER1`,
+        /// задача Amber 07.09.2026).
+        ///
+        /// ⛔ ЭТО НЕ «ЕЩЁ НЕМНОГО ВОЗДУХА». Расстояния сцены отсчитываются от
+        /// ПЕРЕДНЕГО ТОРЦА КОРПУСА, поэтому зазор УГЛУБЛЯЕТ КРИСТАЛЛ под
+        /// торцом: у `Atom Spectra Pro 80x80` глубина растёт с 0.5 см
+        /// (0.3 корпус + 0.2 отражатель) до 2.67 см, и геометрический фактор
+        /// точечной сцены на торце падает с 0.438 до 0.222 — почти вдвое.
+        /// Ослабление в воздухе при этом ничтожно; работает именно вынос.
+        /// </summary>
+        public double FrontGapThickness;
+
+        /// <summary>
+        /// Тот же зазор с БОКА. ⚠ У ЦИЛИНДРА бока у зазора НЕТ (решение Amber
+        /// 07.09.2026, вопросником): поле остаётся нулём и в окне не
+        /// показывается. Заведено ради видов, у которых торец и бок
+        /// различаются, — там у каждого своё число.
+        ///
+        /// ⚠ Правило «бока нет» сказано ПРО ЗАЗОР и только про него: обвязка
+        /// (отражатель и корпус) у цилиндра по-прежнему несёт оба размера.
+        /// </summary>
+        public double SideGapThickness;
+
         public double FrontCladdingThickness;
         public double SideCladdingThickness;
         public double MountingThickness;
@@ -702,6 +727,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public GeometryMaterial Crystal = new GeometryMaterial();
         public GeometryMaterial Reflector = new GeometryMaterial();
+
+        /// <summary>
+        /// Вещество зазора между отражателем и корпусом (`AMBER1`). По
+        /// умолчанию ВОЗДУХ — по слову Amber; выбирается из той же библиотеки
+        /// веществ, что отражатель и корпус.
+        /// </summary>
+        public GeometryMaterial Gap = new GeometryMaterial();
         public GeometryMaterial Cladding = new GeometryMaterial();
         public GeometryMaterial BeakerWall = new GeometryMaterial();
         public GeometryMaterial Source = new GeometryMaterial();
@@ -822,6 +854,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             GeometryModel copy = (GeometryModel)this.MemberwiseClone();
             copy.Crystal = this.Crystal.Clone();
             copy.Reflector = this.Reflector.Clone();
+            copy.Gap = this.Gap.Clone();
             copy.Cladding = this.Cladding.Clone();
             copy.BeakerWall = this.BeakerWall.Clone();
             copy.Source = this.Source.Clone();
@@ -858,6 +891,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.CrystalBoxZ *= factor;
             g.FrontReflectorThickness *= factor;
             g.SideReflectorThickness *= factor;
+            g.FrontGapThickness *= factor;
+            g.SideGapThickness *= factor;
             g.FrontCladdingThickness *= factor;
             g.SideCladdingThickness *= factor;
             g.MountingThickness *= factor;
@@ -1158,6 +1193,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             g.FrontReflectorThickness = Len(kv, "DS_CrystalFrontReflectorThickness");
             g.SideReflectorThickness = Len(kv, "DS_CrystalSideReflectorThickness");
+            // (`AMBER1`) Ключей зазора у формата ЛСРМ нет — это наше
+            // расширение. Отсутствие ключа читается нулём, то есть прежние
+            // файлы понимаются как раньше, знак в знак.
+            g.FrontGapThickness = Len(kv, "DS_CrystalFrontGapThickness");
+            g.SideGapThickness = Len(kv, "DS_CrystalSideGapThickness");
             g.FrontCladdingThickness = Len(kv, "DS_CrystalFrontCladdingThickness");
             g.SideCladdingThickness = Len(kv, "DS_CrystalSideCladdingThickness");
             g.MountingThickness = Len(kv, "DS_DetectorMountingThickness");
@@ -1231,6 +1271,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                                    "DS_FractionTypeReflector", g.Warnings);
             g.Cladding = Material(kv, "DS_", "CrystalCladding", "M_DS_Crystal_Cladding.MName",
                                   "DS_FractionTypeCrystalCladding", g.Warnings);
+            // (`AMBER1`) Вещество зазора. У файла БЕЗ этих ключей — а таковы
+            // все файлы до 08.09.2026 и все чужие — выйдет пустое вещество, и
+            // это верно: толщина зазора у них тоже ноль, слоя нет вовсе.
+            // ⛔ Подставлять здесь воздух «по умолчанию» НЕЛЬЗЯ: умолчание
+            // ставят пресет и заготовка редактора, то есть места, где человек
+            // геометрию СОЗДАЁТ. Разбор чужого файла ничего не создаёт и обязан
+            // прочесть ровно то, что в файле написано.
+            g.Gap = Material(kv, "DS_", "CrystalGap", "M_DS_Gap.MName",
+                             "DS_FractionTypeGap", g.Warnings);
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
             g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName",
@@ -1273,6 +1322,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             check(Math.Max(this.FrontReflectorThickness, this.SideReflectorThickness),
                   this.Reflector, Properties.Resources.GeometryEditorReflectorMaterial);
+            check(Math.Max(this.FrontGapThickness, this.SideGapThickness),
+                  this.Gap, Properties.Resources.GeometryEditorGapMaterial);
             check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
                   this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
 
