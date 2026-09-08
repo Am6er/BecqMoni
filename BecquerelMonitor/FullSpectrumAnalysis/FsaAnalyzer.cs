@@ -1030,6 +1030,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public int EscapeOrphansDropped { get; private set; }
 
+        /// <summary>Энергия аннигиляционной линии, кэВ.</summary>
+        public const double AnnihilationKev = 511.0;
+
+        /// <summary>
+        /// (`AMBER7`) Снимать свободный образ `Ann-511`, когда в объявленном
+        /// составе есть СВОЯ линия в том же окне: два столбца на одну линию
+        /// разделить нечем. Довод и замер — у места применения.
+        /// </summary>
+        public bool AnnihilationGate { get; set; }
+
+        /// <summary>
+        /// (`AMBER7`) Чья линия столкнулась с 511 на последнем
+        /// <see cref="Analyze"/>; null — столкновения не было и правка не
+        /// изменила ни одного бита.
+        /// </summary>
+        public string AnnihilationCollides { get; private set; }
+
         /// <summary>
         /// ⛔ (`AMBER8`) ВЫЛЕТА БЕЗ РОДИТЕЛЯ НЕ БЫВАЕТ: образ `SE-*`/`DE-*`
         /// снимается, когда его родительская колонка не дожила до этого
@@ -1443,6 +1460,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // и §13с журнала матрицы. Выключатель для A/B — `--no-escape-gate`.
             this.EscapeGate = true;
             this.CrystalXrayGate = true;
+            this.AnnihilationGate = true;
             // A168: отдельные образы вылета и аннигиляции включены — так
             // считалось всегда; выключает их пользователь через
             // `FsaCalculationOptions`, пробы — ключом `--no-escape`.
@@ -1683,6 +1701,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GateNuclidesJudged = 0;
             this.GateNuclidesRescued = 0;
             this.EscapeOrphansDropped = 0;
+            this.AnnihilationCollides = null;
 
             double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
             if (liveTime <= 0.0)
@@ -1845,7 +1864,61 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // некому выразить.
             bool dropEscapeImages = (this.EscapeGate && this.ResponseMatrix != null)
                                     || !this.EscapeAndAnnihilation;
+            // ⛔ (`AMBER7`) 511 СНИМАЕТСЯ, КОГДА ЕЁ НЕ ОТЛИЧИТЬ ОТ СОБСТВЕННОЙ
+            // ЛИНИИ СОСТАВА. Задача Amber 08.09.2026, снимком: «Откуда
+            // ANN-511?» — на чистом тории образ брал 0.86 %.
+            //
+            // Аннигиляционная линия в спектре ЕСТЬ (пары рождаются в защите и
+            // обвязке от 2614.5 кэВ), спор не о ней. Спор о том, можно ли её
+            // ИЗМЕРИТЬ отдельной колонкой: у Tl-208 своя линия 510.77 кэВ с
+            // выходом 8.12 % стоит в 0.23 кэВ от 511.00 — на сцинтилляторе с
+            // ПШПВ около девяноста в этой полосе это ОДИН И ТОТ ЖЕ столбец.
+            // Два столбца на одну линию — не модель, а делёж: свободная
+            // амплитуда 511 берёт отсчёты у объявленного ряда, и разделить их
+            // данные не могут (родня `A280`).
+            //
+            // Окно «та же линия» — `0.7 · ПШПВ`, та же мерка, какой отбираются
+            // линии в нуклидный набор; она зависит от разрешения прибора, и на
+            // германии рядом с 511 ничего не окажется.
+            //
+            // ⚠ Где своей линии рядом НЕТ (цезий, лютеций), образ остаётся:
+            // там он единственный, кто эти отсчёты выражает.
             bool dropAnnihilation = !this.EscapeAndAnnihilation;
+            if (!dropAnnihilation && this.AnnihilationGate && fwhmCalibration != null)
+            {
+                double annihilationChannel = calibration.EnergyToChannel(AnnihilationKev, channels);
+                double fwhmChannels = fwhmCalibration.ChannelToFwhm(annihilationChannel);
+                double windowKev = fwhmChannels > 0.0
+                    ? 0.7 * Math.Abs(calibration.ChannelToEnergy(annihilationChannel + fwhmChannels)
+                                     - calibration.ChannelToEnergy(annihilationChannel))
+                    : 0.0;
+                if (windowKev > 0.0)
+                {
+                    foreach (FsaComponent component in library)
+                    {
+                        if (component == null || component.Kind == FsaComponentKind.Nuisance)
+                        {
+                            continue;
+                        }
+
+                        foreach (FsaLine line in component.Lines)
+                        {
+                            if (Math.Abs(line.Energy - AnnihilationKev) <= windowKev)
+                            {
+                                dropAnnihilation = true;
+                                this.AnnihilationCollides = component.Name + " "
+                                    + line.Energy.ToString("F2", CultureInfo.InvariantCulture) + " кэВ";
+                                break;
+                            }
+                        }
+
+                        if (dropAnnihilation)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
 
             // ⛔ (`AMBER4`) СОБСТВЕННЫЙ РЕНТГЕН КРИСТАЛЛА ПРИ ЖИВОЙ МАТРИЦЕ
             // СВОБОДНОЙ КОЛОНКОЙ НЕ ИДЁТ — тот же довод, что снял свободные
