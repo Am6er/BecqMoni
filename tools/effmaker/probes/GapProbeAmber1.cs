@@ -58,6 +58,37 @@ namespace GapProbeAmber1
                 return 0;
             }
 
+            // ⛔ Клеймо УЗЛА СПЕКТРА против клейма файла `.in` — ровно то
+            // сравнение, которым разбор решает, годится ли матрица
+            // (`matrix.IsValidFor(rd.Efficiency.Geometry)`). Заведено 08.09.2026:
+            // после `AMBER1` встал вопрос, обязателен ли пересчёт кривых у 42
+            // сцен без зазора, и отвечать на него рассуждением нельзя —
+            // расхождение в одну букву отнимает матрицу МОЛЧА (`A269`).
+            if (args.Length == 3 && args[0] == "--nodestamp")
+            {
+                GlobalConfigManager.GetInstance();
+                DeviceConfigManager.GetInstance();
+
+                ResultDataFile file;
+                var ser = new System.Xml.Serialization.XmlSerializer(typeof(ResultDataFile));
+                using (var stream = new FileStream(args[1], FileMode.Open, FileAccess.Read,
+                                                   FileShare.Read))
+                {
+                    file = (ResultDataFile)ser.Deserialize(stream);
+                }
+
+                ResultData rd = file.ResultDataList[0];
+                var opts = new ResponseMatrixOptions();
+                string nodeStamp = rd.Efficiency == null || !rd.Efficiency.HasGeometry
+                    ? "(у спектра нет геометрии)"
+                    : ResponseMatrix.ComputeStamp(rd.Efficiency.Geometry, opts);
+                string inStamp = ResponseMatrix.ComputeStamp(GeometryModel.Load(args[2]), opts);
+                Say("узел  {0}", nodeStamp);
+                Say("файл  {0}", inStamp);
+                Say(nodeStamp == inStamp ? "СОШЛОСЬ" : "РАЗОШЛОСЬ");
+                return nodeStamp == inStamp ? 0 : 1;
+            }
+
             // Поставить зазор в готовый файл геометрии тем же писателем.
             if (args.Length == 3 && args[0] == "--setgap")
             {
