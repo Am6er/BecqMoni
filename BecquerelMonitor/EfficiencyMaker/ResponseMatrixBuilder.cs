@@ -502,8 +502,98 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
 
             matrix.RebuildTotals();
+            BuildJoint(geometry, options, matrix, grid, parallel);
             return matrix;
         }
+
+        /// <summary>
+        /// ⚡ ТАБЛИЦА СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАР (`S112`, задача Amber 09.09.2026).
+        ///
+        /// Формула сумм-пика перемножает СРЕДНИЕ по объёму эффективности
+        /// `ε_p(i)·ε_p(j)`, а точка распада у двух квантов каскада ОДНА: верная
+        /// величина — среднее ПРОИЗВЕДЕНИЯ ⟨ε₁ε₂⟩. Здесь считается их отношение
+        /// κ(E₁,E₂) — тем же переносом, что и сама матрица, из одной разыгранной
+        /// точки по два кванта.
+        ///
+        /// ⛔ БЛОКИ С НЕЗАВИСИМЫМИ ЗЁРНАМИ, А НЕ РАЗДАЧА ТОЧЕК ПОТОКАМ. Число
+        /// блоков постоянно, зерно блока — от его номера, накопители
+        /// складываются; поэтому результат не зависит от того, сколько потоков
+        /// дали машине. Раздача по потокам сделала бы матрицу невоспроизводимой
+        /// на другом железе, а этим свойством здесь уже пользуется приёмка.
+        ///
+        /// ⚠ Сетка κ СВОЯ и грубее узловой: замер стоит `2·N` историй на точку.
+        /// Её края совпадают с краями сетки узлов — за ними
+        /// <see cref="ResponseMatrix.JointFactor"/> зажимает, а не продолжает.
+        /// </summary>
+        static void BuildJoint(GeometryModel geometry, ResponseMatrixOptions options,
+                               ResponseMatrix matrix, double[] grid, ParallelOptions parallel)
+        {
+            int nodes = options.JointNodes;
+            if (nodes <= 1 || grid == null || grid.Length < 2)
+            {
+                return;
+            }
+
+            double lo = grid[0], hi = grid[grid.Length - 1];
+            double[] energies = new double[nodes];
+            double logLo = Math.Log(lo), logHi = Math.Log(hi);
+            for (int i = 0; i < nodes; i++)
+            {
+                energies[i] = Math.Exp(logLo + (logHi - logLo) * i / (nodes - 1));
+            }
+
+            // Допуск пика — СВОЙ на каждую энергию сетки κ (`E34`): поле
+            // симулятора одно, а шкала здесь пройдена вся.
+            double[] halfWidths = null;
+            if (options.PeakToleranceFromGeometry)
+            {
+                halfWidths = new double[nodes];
+                for (int i = 0; i < nodes; i++)
+                {
+                    halfWidths[i] = geometry.PeakHalfWidthKev(energies[i]);
+                }
+            }
+
+            int points = Math.Max(1000, options.JointHistories);
+            int blocks = Math.Max(1, Math.Min(JointBlocks, points));
+            int perBlock = Math.Max(1, points / blocks);
+            var partials = new JointSums[blocks];
+            Parallel.ForEach(Partitioner.Create(0, blocks, 1), parallel, chunk =>
+            {
+                for (int block = chunk.Item1; block < chunk.Item2; block++)
+                {
+                    // Зерно блока продолжает нумерацию узлов сетки, чтобы κ
+                    // разыгрывалась НЕ теми же точками, что последний узел.
+                    EfficiencySimulator sim = MakeSimulator(geometry, options,
+                                                            grid.Length + block, energies[0]);
+                    partials[block] = sim.JointPeakSums(energies, perBlock, halfWidths);
+                }
+            });
+
+            var total = new JointSums(nodes);
+            foreach (JointSums part in partials)
+            {
+                total.Add(part);
+            }
+
+            double[][] kappa, error;
+            JointSums.Resolve(total, out kappa, out error);
+            if (kappa == null)
+            {
+                return;
+            }
+
+            matrix.JointEnergies = energies;
+            matrix.JointKappa = kappa;
+            matrix.JointKappaError = error;
+            matrix.JointPoints = total.Points;
+        }
+
+        /// <summary>
+        /// Блоков замера κ. Постоянное число, а не «по потокам»: от него зависит
+        /// разбиение розыгрыша, то есть сами числа.
+        /// </summary>
+        const int JointBlocks = 32;
 
         /// <summary>Минимум историй на пробный проход: по десятку событий шум не измерить.</summary>
         const int MinPilotHistories = 2000;

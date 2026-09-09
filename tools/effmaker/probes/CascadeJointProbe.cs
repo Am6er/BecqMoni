@@ -31,13 +31,14 @@ namespace CascadeJointProbe
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-            string geometryPath = null, pairs = "201.83:306.78";
+            string geometryPath = null, pairs = "201.83:306.78", matrixPath = null;
             int histories = 400000;
             foreach (string a in args)
             {
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--pairs=", StringComparison.Ordinal)) pairs = a.Substring(8);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--matrix=", StringComparison.Ordinal)) matrixPath = a.Substring(9);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -45,6 +46,20 @@ namespace CascadeJointProbe
             {
                 Console.Error.WriteLine("нужен --geometry=<файл.in>");
                 return 2;
+            }
+
+            // `S112`: сверка ТАБЛИЦЫ матрицы с прямым замером. Истина здесь —
+            // тот же перенос, поэтому расхождение меряет ровно цену грубой сетки
+            // κ и её шума, а не разницу двух моделей.
+            ResponseMatrix stored = null;
+            if (matrixPath != null)
+            {
+                stored = ResponseMatrix.Load(matrixPath);
+                if (stored == null)
+                {
+                    Console.Error.WriteLine("матрица не прочиталась: " + matrixPath);
+                    return 2;
+                }
             }
 
             GeometryModel geometry = GeometryModel.Load(geometryPath);
@@ -57,7 +72,17 @@ namespace CascadeJointProbe
             Console.WriteLine("геометрия: {0}", geometryPath);
             Console.WriteLine("историй на точку: {0}", histories);
             Console.WriteLine();
-            Console.WriteLine("  {0,10} {1,10} {2,10} {3,10}", "E1, кэВ", "E2, кэВ", "κ", "±%");
+            if (stored != null)
+            {
+                Console.WriteLine("сверка с таблицей: {0}", matrixPath);
+                Console.WriteLine("узлов κ в матрице: {0}, точек замера: {1}",
+                                  stored.JointEnergies == null ? 0 : stored.JointEnergies.Length,
+                                  stored.JointPoints);
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("  {0,10} {1,10} {2,10} {3,10}{4}", "E1, кэВ", "E2, кэВ", "κ", "±%",
+                              stored != null ? "  таблица   расх., %" : "");
             foreach (string item in pairs.Split(','))
             {
                 string[] two = item.Split(':');
@@ -72,7 +97,16 @@ namespace CascadeJointProbe
                 var simulator = new EfficiencySimulator(geometry) { Histories = histories };
                 double error;
                 double kappa = simulator.JointPeakFactor(e1, e2, out error);
-                Console.WriteLine("  {0,10:F2} {1,10:F2} {2,10:F4} {3,10:F2}", e1, e2, kappa, error);
+                if (stored == null)
+                {
+                    Console.WriteLine("  {0,10:F2} {1,10:F2} {2,10:F4} {3,10:F2}", e1, e2, kappa, error);
+                    continue;
+                }
+
+                double fromTable = stored.JointFactor(e1, e2);
+                Console.WriteLine("  {0,10:F2} {1,10:F2} {2,10:F4} {3,10:F2} {4,8:F4} {5,10:F2}",
+                                  e1, e2, kappa, error, fromTable,
+                                  kappa > 0.0 ? (fromTable - kappa) / kappa * 100.0 : 0.0);
             }
 
             return 0;

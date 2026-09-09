@@ -70,7 +70,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     читается прежним кодом побайтно и ни одна посчитанная матрица не
         //     объявляется негодной. Разбор, какой случай чинится каким хвостом,
         //     стоит у самих хвостов в `Save`.
-        public const int FormatVersion = 7;
+        // ⚠ ШЕСТОЙ СЛУЧАЙ ВЕРСИЮ ПОДНЯЛ — решение Amber 09.09.2026, дословно:
+        //     «Формат 8 сейчас, и пересборка матрицы конкретно этого спектра для
+        //     проверки». Хвостом (как `OPTF`, `PKWT`, `RLFL`) совместная
+        //     эффективность пары КЛАСТЬСЯ МОГЛА БЫ, и тогда старый файл читался
+        //     бы с κ = 1, то есть с нынешним поведением; выбран подъём версии,
+        //     и цена его названа при выборе: все 44 корпусные и 4 рабочие
+        //     матрицы объявлены негодными разом и подлежат пересчёту, а до него
+        //     разбор печатает «БЕЗ МАТРИЦЫ».
+        public const int FormatVersion = 8;
 
         /// <summary>
         /// Версия ФИЗИКИ. Поднимать при любой правке переноса, меняющей числа:
@@ -188,6 +196,90 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
+
+        /// <summary>
+        /// ⚡ СЕТКА СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ, кэВ (`S112`). Своя, ГРУБЕЕ сетки
+        /// узлов: κ — гладкая функция двух энергий, а замер её стоит `2·N`
+        /// историй на точку, то есть квадратично по числу узлов. null — таблицы
+        /// нет, и тогда <see cref="JointFactor"/> отдаёт 1.0, то есть ровно то
+        /// поведение, которое было до правки.
+        /// </summary>
+        public double[] JointEnergies { get; set; }
+
+        /// <summary>
+        /// κ(E₁,E₂) = ⟨ε₁ε₂⟩/(⟨ε₁⟩⟨ε₂⟩) на <see cref="JointEnergies"/>,
+        /// симметричная. Замерено на `ASN16_lu_side`: 1.344 для пары
+        /// 201.83+306.78, 2.255 для 88.34+201.83 — то есть одним числом на все
+        /// пары обойтись нельзя, κ тем больше, чем мягче квант.
+        /// </summary>
+        public double[][] JointKappa { get; set; }
+
+        /// <summary>Относительный шум κ, %. Хранится, чтобы читатель знал цену числа.</summary>
+        public double[][] JointKappaError { get; set; }
+
+        /// <summary>Точек, разыгранных на замер κ; 0 — таблицы нет.</summary>
+        public long JointPoints { get; set; }
+
+        /// <summary>
+        /// ⚡ МНОЖИТЕЛЬ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАРЫ (`S112`).
+        ///
+        /// Билинейная интерполяция по логарифму энергии — той же логарифмической
+        /// шкалой, что и <see cref="FsaCascadeSummer"/> берёт сами эффективности.
+        /// За краями сетки ЗАЖИМАЕТСЯ: экстраполировать κ некуда, а выдумывать
+        /// рост поправки там, где её не мерили, — верный способ раздуть сумм-пик.
+        ///
+        /// 1.0 у пустой таблицы: это «поправки нет», прежнее поведение.
+        /// </summary>
+        public double JointFactor(double firstKev, double secondKev)
+        {
+            double[] grid = this.JointEnergies;
+            double[][] table = this.JointKappa;
+            if (grid == null || table == null || grid.Length == 0
+                || !(firstKev > 0.0) || !(secondKev > 0.0))
+            {
+                return 1.0;
+            }
+
+            int lo1, hi1, lo2, hi2;
+            double t1 = JointSlot(grid, firstKev, out lo1, out hi1);
+            double t2 = JointSlot(grid, secondKev, out lo2, out hi2);
+            double a = table[lo1][lo2] + t2 * (table[lo1][hi2] - table[lo1][lo2]);
+            double b = table[hi1][lo2] + t2 * (table[hi1][hi2] - table[hi1][lo2]);
+            double kappa = a + t1 * (b - a);
+            return kappa > 0.0 ? kappa : 1.0;
+        }
+
+        /// <summary>Место энергии на сетке κ: соседи и доля между ними по логарифму.</summary>
+        static double JointSlot(double[] grid, double energyKev, out int lo, out int hi)
+        {
+            int last = grid.Length - 1;
+            if (energyKev <= grid[0])
+            {
+                lo = 0;
+                hi = 0;
+                return 0.0;
+            }
+
+            if (energyKev >= grid[last])
+            {
+                lo = last;
+                hi = last;
+                return 0.0;
+            }
+
+            int found = Array.BinarySearch(grid, energyKev);
+            if (found >= 0)
+            {
+                lo = found;
+                hi = found;
+                return 0.0;
+            }
+
+            hi = ~found;
+            lo = hi - 1;
+            return (Math.Log(energyKev) - Math.Log(grid[lo]))
+                   / (Math.Log(grid[hi]) - Math.Log(grid[lo]));
+        }
 
         /// <summary>Шаг бина поглощённой энергии, кэВ.</summary>
         public double BinKev { get; set; }
@@ -613,6 +705,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!options.KLCascade)
                 {
                     sb.Append("noklcasc=1;");
+                }
+
+                // `S112`: совместная эффективность пар. В клеймо пишется
+                // ВЫКЛЮЧЕННАЯ — по тому же правилу `T42`, что у `nolx` и
+                // `noklcasc`: строка появляется только у матрицы, отличной от
+                // умолчания. ⚠ ЧИСЛО узлов и точек κ в клеймо НЕ входит
+                // НАРОЧНО: оно меняет шум таблицы, а не модель, и включать его
+                // значило бы гнать в пересчёт всю сцену ради ячейки, ставшей
+                // на полпроцента тише. Шум κ хранится в файле, рядом с самой
+                // таблицей, — кому важно, тот прочтёт.
+                if (options.JointNodes <= 0)
+                {
+                    sb.Append("nojoint=1;");
                 }
 
                 if (options.PositronTransport)
@@ -1172,6 +1277,52 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(Encoding.ASCII.GetBytes("RLFL"));
                 writer.Write(flags.ScatterRoulette);
                 writer.Write(flags.SampleFluorescence);
+
+                // ⚡ ШЕСТОЙ ХВОСТ, `JNTK` — СОВМЕСТНАЯ ЭФФЕКТИВНОСТЬ ПАР
+                // (`S112`, задача Amber 09.09.2026).
+                //
+                // ⛔ Здесь версия формата ПОДНЯТА (7 → 8), в отличие от хвостов
+                // выше, и это не забывчивость наоборот: κ меняет ЧИСЛА разбора,
+                // а не только его происхождение. Матрица без таблицы считает
+                // сумм-пики по-старому, и читать её как годную значило бы
+                // держать в складе две модели под одним именем. Цена подъёма
+                // названа при решении, у `FormatVersion`.
+                //
+                // Хвостом, а не полем блока параметров, — чтобы порядок чтения
+                // всего остального не сдвинулся ни на байт.
+                double[] jointGrid = this.JointEnergies;
+                double[][] jointTable = this.JointKappa;
+                double[][] jointError = this.JointKappaError;
+                bool haveJoint = jointGrid != null && jointGrid.Length > 0
+                                 && jointTable != null && jointTable.Length == jointGrid.Length;
+                writer.Write(Encoding.ASCII.GetBytes("JNTK"));
+
+                // ⛔ САМА НАСТРОЙКА, А НЕ ТОЛЬКО ЕЁ ПЛОД. `JointNodes` входит в
+                // КЛЕЙМО (`nojoint=1` у выключенной), и без этого поля матрица,
+                // посчитанная `--jnodes=0`, после чтения получала бы умолчание,
+                // пересчитывала клеймо БЕЗ строки и не сходилась САМА С СОБОЙ —
+                // седьмой случай того же, что `T114`, `A66`, `E34` и `T242`.
+                // Поймано сторожем `tools/check_matrix_keys.py` в тот же день.
+                writer.Write(flags.JointNodes);
+                writer.Write(haveJoint ? jointGrid.Length : 0);
+                if (haveJoint)
+                {
+                    writer.Write(this.JointPoints);
+                    foreach (double e in jointGrid)
+                    {
+                        writer.Write(e);
+                    }
+
+                    for (int i = 0; i < jointGrid.Length; i++)
+                    {
+                        for (int j = 0; j < jointGrid.Length; j++)
+                        {
+                            writer.Write(jointTable[i][j]);
+                            writer.Write(jointError != null && jointError.Length == jointGrid.Length
+                                         ? jointError[i][j] : 0.0);
+                        }
+                    }
+                }
             }
 
             if (File.Exists(path))
@@ -1343,6 +1494,60 @@ namespace BecquerelMonitor.EfficiencyMaker
             // сходилась сама с собой. `IsValidFor` отвечал «нет» навсегда,
             // разбор печатал «БЕЗ МАТРИЦЫ». `T114`, 31.08.2026.
             writer.Write(o.Seed);
+        }
+
+        /// <summary>
+        /// Шестой хвост, `JNTK` (`S112`): таблица совместной эффективности пар.
+        /// Нулевой размер — «не считалась», и <see cref="JointFactor"/> отдаёт
+        /// 1.0. Вынесено отдельным методом, потому что вложенность чтения
+        /// хвостов и без него дошла до восьми уровней.
+        /// </summary>
+        static void ReadJoint(ResponseMatrix matrix, Stream stream, BinaryReader reader)
+        {
+            if (stream.Length - stream.Position < 12
+                || Encoding.ASCII.GetString(reader.ReadBytes(4)) != "JNTK")
+            {
+                return;
+            }
+
+            if (matrix.Options != null)
+            {
+                matrix.Options.JointNodes = reader.ReadInt32();
+            }
+            else
+            {
+                reader.ReadInt32();
+            }
+
+            int nodes = reader.ReadInt32();
+            if (nodes <= 0)
+            {
+                return;
+            }
+
+            matrix.JointPoints = reader.ReadInt64();
+            double[] grid = new double[nodes];
+            for (int i = 0; i < nodes; i++)
+            {
+                grid[i] = reader.ReadDouble();
+            }
+
+            double[][] table = new double[nodes][];
+            double[][] noise = new double[nodes][];
+            for (int i = 0; i < nodes; i++)
+            {
+                table[i] = new double[nodes];
+                noise[i] = new double[nodes];
+                for (int j = 0; j < nodes; j++)
+                {
+                    table[i][j] = reader.ReadDouble();
+                    noise[i][j] = reader.ReadDouble();
+                }
+            }
+
+            matrix.JointEnergies = grid;
+            matrix.JointKappa = table;
+            matrix.JointKappaError = noise;
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)
@@ -1599,6 +1804,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         {
                                             matrix.Options.ScatterRoulette = reader.ReadDouble();
                                             matrix.Options.SampleFluorescence = reader.ReadBoolean();
+                                            ReadJoint(matrix, stream, reader);
                                         }
                                     }
                                 }
@@ -1947,6 +2153,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// не заводится по общему правилу «узел вплотную не нужен».
         /// </summary>
         public bool ResolveEdges = true;
+
+        /// <summary>
+        /// ⚡ УЗЛОВ СЕТКИ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ (`S112`). 0 — не считать
+        /// вовсе, и тогда κ = 1, то есть поведение до правки.
+        ///
+        /// Сетка κ СВОЯ и намеренно грубее сетки узлов матрицы. Причина в цене:
+        /// замер стоит `2·N` историй на разыгранную точку, то есть растёт с
+        /// числом узлов линейно, а таблица — квадратично по памяти и по шуму на
+        /// ячейку. При этом κ — гладкая функция обеих энергий (замерено:
+        /// 1.344 на паре 202+307, 1.816 на 88+307, 2.255 на 88+202), и между
+        /// узлами она ложится на логарифмическую интерполяцию.
+        /// </summary>
+        public int JointNodes = 24;
+
+        /// <summary>
+        /// Точек на замер κ. Не историй: историй `2·JointNodes` на точку.
+        /// 400 тыс. точек давали шум κ 1.8 % на паре 202+307 (`CascadeJointProbe`,
+        /// 01.09.2026); здесь их вдвое меньше, потому что пар много и каждая
+        /// набирает статистику из ОДНОГО и того же розыгрыша точек.
+        /// </summary>
+        public int JointHistories = 200000;
 
         /// <summary>
         /// Цель по шуму континуума УЗЛА, % — счёт останавливается, когда она

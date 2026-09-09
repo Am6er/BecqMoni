@@ -314,9 +314,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// вплотную к ASN16 оно 1.34 для пары 202+307 и 2.26 для 88+202, а на
         /// точечном источнике 1.00 — то есть мерится именно протяжённость.
         ///
-        /// ⚠ Ноль (умолчание) — рычаг выключен, счёт прежний. Настоящая поправка
-        /// обязана зависеть от энергий пары и приходить из матрицы; этот ключ
-        /// нужен, чтобы измерить цену до того, как считать её для всего склада.
+        /// ⚠ Ноль (умолчание) — рычага нет, и κ берётся ИЗ МАТРИЦЫ
+        /// (<see cref="ResponseMatrix.JointFactor"/>, `S112`, 09.09.2026). Ключ
+        /// остался ЗАМЕРНЫМ и теперь ПЕРЕКРЫВАЕТ таблицу одним числом на все
+        /// пары: `--joint=1` даёт счёт до правки на той же матрице, то есть
+        /// плечо A/B без второго построения. Матрица, посчитанная старее правки
+        /// или с `nojoint=1`, таблицы не несёт — там κ = 1 сама собой.
         /// </summary>
         public static double JointFactorOverride;
 
@@ -888,7 +891,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double area = scale * this.PairArea(data, pair) * JointFactor();
+                double area = scale * this.PairArea(data, pair);
                 if (area > floor)
                 {
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
@@ -942,7 +945,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double area = scale * baseArea * third.Value * peakThird * JointFactor();
+                // κ пары уже внутри `baseArea`; третий квант идёт БЕЗ
+                // поправки — для тройки нужна своя, трёхчастичная, а её никто
+                // не мерил. Занижение названное: тройные суммы срезает порог
+                // все до одной (`S113`), их вклад 0.8 % от суммы пары.
+                double area = scale * baseArea * third.Value * peakThird;
                 double energy = this.ApparentSum(pair[0], pair[1], third.Key);
                 if (LogTriples)
                 {
@@ -1000,10 +1007,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        /// <summary>Множитель совместной эффективности; 1.0 — рычаг выключен.</summary>
-        static double JointFactor()
+        /// <summary>
+        /// ⚡ МНОЖИТЕЛЬ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАРЫ (`S112`).
+        ///
+        /// Замерный рычаг перекрывает таблицу; иначе κ(E₁,E₂) берётся из матрицы,
+        /// а у матрицы без таблицы он равен единице — то есть счёт до правки.
+        /// </summary>
+        double JointFactor(double firstKev, double secondKev)
         {
-            return JointFactorOverride > 0.0 ? JointFactorOverride : 1.0;
+            if (JointFactorOverride > 0.0)
+            {
+                return JointFactorOverride;
+            }
+
+            return this.matrix != null ? this.matrix.JointFactor(firstKev, secondKev) : 1.0;
         }
 
         /// <summary>
@@ -1030,8 +1047,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return 0.0;
             }
 
+            // ⚡ κ СТОИТ ЗДЕСЬ, А НЕ У СУММ-ПИКА (`S112`, решение Amber
+            // 09.09.2026 «сумм-пики + влёт Σ_in, одна таблица κ_pp»).
+            //
+            // Через `PairBase` проходят ВСЕ места, где перемножаются пиковые
+            // эффективности двух квантов одного распада: площадь сумм-пика,
+            // влёт `Σ_in` в `CoincidenceFactor`, тройные суммы и сумм-континуум.
+            // Пока множитель стоял только у сумм-пика, одна и та же сумма была
+            // поднята на 34 % как отдельный пик и НЕ поднята, когда попадала в
+            // окно чужой линии, — модель спорила сама с собой.
             return intensity / 100.0 * pair[2]
-                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1]);
+                   * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1])
+                   * this.JointFactor(pair[0], pair[1]);
         }
 
         /// <summary>

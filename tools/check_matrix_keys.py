@@ -151,6 +151,13 @@ MATRIX = [
      u'внутренняя доля пробного прохода; рычага нет НИ НА ОДНОМ пути, расхождения нет'),
     (u'MaxHistoriesFactor', False, None, None, u'намеренно',
      u'потолок историй на узел; рычага нет НИ НА ОДНОМ пути, расхождения нет'),
+    (u'JointNodes', True, u'--jnodes=', None, u'намеренно',
+     u'S112: узлов сетки совместной эффективности пар; в клеймо идёт ВЫКЛЮЧЕННОЙ '
+     u'(nojoint=1), как nolx и noklcasc. Форме поле не нужно: κ считается всегда, '
+     u'а её отключение -- абляция, не настройка'),
+    (u'JointHistories', False, u'--jn=', None, u'намеренно',
+     u'S112: точек на замер κ -- усилие, а не содержание (как ContinuumErrorTarget): '
+     u'меняет шум таблицы, а не модель, и в клеймо не идёт намеренно'),
 ]
 
 # Поля, которые форма матрицы заполняет из своих полей; остальные она оставляет
@@ -332,6 +339,27 @@ def assigned_in(body, names):
     return hit
 
 
+def with_callees(text, body):
+    u"""Тело метода ВМЕСТЕ с телами статических методов, которые оно зовёт.
+
+    Заведено 09.09.2026 (`S112`): чтение шестого хвоста `JNTK` вынесено из
+    `Load` отдельным методом `ReadJoint` -- вложенность чтения хвостов дошла
+    до восьми уровней, -- и правило C ослепло: поле читалось, а сторож видел
+    только тело самого `Load`.
+
+    ⛔ Разбор ПО ВЫЗОВАМ, а не по списку имён: список пришлось бы дописывать
+    при каждом следующем вынесении, то есть сторож слеп бы молча ровно там, где
+    правку делают неаккуратно. Один уровень вглубь -- этого хватает разбору
+    хвостов и не тянет за собой полдерева.
+    """
+    seen = [body]
+    for name in sorted(set(re.findall(r'\b([A-Z]\w+)\s*\(', body))):
+        callee = block(text, r'static\s+[\w\[\]<>.]+\s+' + name + r'\s*\(')
+        if callee:
+            seen.append(callee)
+    return u'\n'.join(seen)
+
+
 def used_in(body, names, prefix):
     hit = set()
     for name in names:
@@ -405,7 +433,7 @@ def judge(src):
     save_body = block(rm, r'public\s+void\s+Save')
     wopt = block(rm, r'static\s+void\s+WriteOptions')
     ropt = block(rm, r'static\s+ResponseMatrixOptions\s+ReadOptions')
-    load_body = block(rm, r'ResponseMatrix\s+Load\(string\s+path,\s*out\s+MatrixRefusal')
+    load_body = with_callees(rm, block(rm, r'ResponseMatrix\s+Load\(string\s+path,\s*out\s+MatrixRefusal'))
     in_stamp = used_in(stamp_body, want, u'options.')
     written = used_in(wopt, want, u'o.') | used_in(save_body, want, u'flags.')
     read_back = assigned_in(ropt, want) | used_in(load_body, want, u'matrix.Options.')
