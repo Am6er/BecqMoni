@@ -1445,6 +1445,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // L-серия — ТОЛЬКО у элементов ВНЕ кристалла (`AMBER10`). У
+                // самого кристалла её отсчёты приходят другим путём: L-вылет
+                // считает перенос (`A60`, `EfficiencySimulator`), и второй образ
+                // на те же события завёл бы спор двух счетоводств — ту самую
+                // беду, ради которой заведён гейт `S47`.
+                if (!fromCrystal)
+                {
+                    FsaComponent lseries = LFluorescenceComponent(z, spec.LineFloorKev,
+                                                                  spec.MaxEnergyKev);
+                    if (lseries != null)
+                    {
+                        result.Add(lseries);
+                        report.Lines += lseries.Lines.Count;
+                    }
+                }
+
                 FsaComponent component = FluorescenceComponent(z, spec.LineFloorKev, spec.MaxEnergyKev);
                 if (component == null)
                 {
@@ -1517,6 +1533,85 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return component;
+        }
+
+        /// <summary>
+        /// Образ характеристического L-рентгена элемента — ОТДЕЛЬНЫМ образом от
+        /// K-серии, а не её линиями.
+        ///
+        /// ⛔ ОТДЕЛЬНАЯ АМПЛИТУДА — ЭТО ФИЗИКА, А НЕ УДОБСТВО. Отношение L/K
+        /// задаёт не атом, а глубина выхода: у свинца квант 75 кэВ выходит из
+        /// слоя ~0.4 мм, квант 11 кэВ — из ~10 мкм, то есть в сорок раз тоньше,
+        /// и доля зависит от того, чем и с какой стороны свинец засвечен.
+        /// Измерено 09.09.2026 по пяти сценам ASN16 (избыток над подложкой,
+        /// L 7.5…15.5 кэВ против Pb K 68…92 кэВ): `Cs 137 в домике` 0.567,
+        /// `Cs 137 28.11.2022` 0.748, `Фон в домике` 0.303. Одна общая
+        /// амплитуда навязала бы им одно отношение — то есть заведомо неверное
+        /// у двух сцен из трёх.
+        ///
+        /// Зачем вообще заведено (`AMBER10`, задача Amber 09.09.2026 «в начале
+        /// спектра какая-то систематическая невязка»). На `Cs 137 в домике
+        /// 24.11.2022` в полосе 9…17 кэВ модель лежит в 40…80 раз ниже
+        /// измерения (при 14.3 кэВ: 145 634 против 1 866), и это не грубость
+        /// континуума: у структуры ширина 4.8 кэВ при ПШПВ прибора 5.0 кэВ на
+        /// 11 кэВ, то есть это ЛИНИЯ, а континуум-сплайн по построению уже́
+        /// 4·ПШПВ брать не должен. Контроль отрицательный: у `Lu176`, где пика
+        /// Pb K нет вовсе, нет и этой структуры (избыток над подложкой уходит в
+        /// минус), — а у всех сцен, где Pb K виден, она есть.
+        ///
+        /// Веса подоболочек. Дырка в L рождается двумя путями — прямым
+        /// фотоэффектом на L (ниже K-края это ЕДИНСТВЕННЫЙ путь) и каскадом
+        /// после K-перехода. Здесь взят первый: вклад подоболочки ∝ (число
+        /// электронов 2:2:4) · ω_L. ⚠ Цена выбора измерена, а не принята на
+        /// веру: у свинца центр тяжести серии выходит 11.46 кэВ, а по
+        /// K-каскаду (доли Kα1/Kα2 из `eadl_radiative`) — 11.41 кэВ, то есть
+        /// разница 0.05 кэВ при ПШПВ 5.0 кэВ. Различить эти два распределения
+        /// нашим разрешением нельзя, и спорить о них не о чем.
+        ///
+        /// Данные — те же, что у переноса (`A60`): `MaterialDatabase.
+        /// Fluorescence.LineKevL`/`LineWeightL`/`OmegaL` из `eadl_radiative`.
+        /// Второй копии знания не заводится.
+        /// </summary>
+        /// <returns>Образ либо null, если L-серии для этого Z в базе нет.</returns>
+        public static FsaComponent LFluorescenceComponent(int z, double floorKev, double maxKev)
+        {
+            MaterialDatabase.Fluorescence fluorescence = MaterialDatabase.FluorescenceOf(z);
+            if (fluorescence == null || !fluorescence.HasL)
+            {
+                return null;
+            }
+
+            // Заселённость подоболочек: L1 — 2 электрона, L2 — 2, L3 — 4.
+            // Порядок массивов — L1, L2, L3, как в EADL (вакансии 3, 5, 6).
+            double[] electrons = { 2.0, 2.0, 4.0 };
+            var component = new FsaComponent("Xray-" + MaterialDatabase.SymbolOf(z) + "-L",
+                                             FsaComponentKind.Nuisance);
+            for (int li = 0; li < fluorescence.OmegaL.Length && li < electrons.Length; li++)
+            {
+                double[] kev = fluorescence.LineKevL[li];
+                double[] weight = fluorescence.LineWeightL[li];
+                if (kev == null || weight == null || !(fluorescence.OmegaL[li] > 0.0))
+                {
+                    continue;
+                }
+
+                double shell = electrons[li] * fluorescence.OmegaL[li];
+                for (int i = 0; i < kev.Length && i < weight.Length; i++)
+                {
+                    double energy = kev[i];
+                    if (!(energy > 0.0) || !(weight[i] > 0.0)
+                        || energy < floorKev || energy > maxKev)
+                    {
+                        continue;
+                    }
+
+                    // Вес — доля ВНУТРИ L-серии, как и у K-образа: выхода на
+                    // распад у характеристического рентгена не существует.
+                    AddLine(component, component.Name, energy, 100.0 * shell * weight[i]);
+                }
+            }
+
+            return component.Lines.Count > 0 ? component : null;
         }
 
         /// <summary>
