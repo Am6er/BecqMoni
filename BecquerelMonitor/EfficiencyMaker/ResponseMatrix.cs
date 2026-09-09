@@ -818,14 +818,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         static GeometryModel StampView(GeometryModel geometry)
         {
-            if (geometry == null
-                || geometry.FrontGapThickness > 0.0 || geometry.SideGapThickness > 0.0)
+            if (geometry == null)
+            {
+                return geometry;
+            }
+
+            // Зазор нулевой толщины в сцену не кладётся вовсе — блок с ним
+            // и файл без блока обязаны давать ОДНО клеймо (`AMBER1`).
+            bool dropGap = !(geometry.FrontGapThickness > 0.0
+                             || geometry.SideGapThickness > 0.0);
+            if (!dropGap && !geometry.InShield)
             {
                 return geometry;
             }
 
             GeometryModel view = geometry.Clone();
-            view.Gap = new GeometryMaterial();
+            if (dropGap)
+            {
+                view.Gap = new GeometryMaterial();
+            }
+
+            // (`AMBER12`) Защита снимается ВСЕГДА и по той же причине, что
+            // зазор: она не входит в сцену переноса. Матрица, посчитанная
+            // до 09.09.2026, и она же с поднятым признаком — одни и те же
+            // числа, и разъехавшееся клеймо объявило бы их чужими: 44
+            // корпусные сцены в пересчёт из-за галки, которую читает
+            // ТОЛЬКО разбор.
+            view.InShield = false;
             return view;
         }
 

@@ -4217,6 +4217,17 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("GeometryEditorFwhmFromDevice", resourceCulture);
             }
         }
+        public static string GeometryEditorInShield {
+            get {
+                return ResourceManager.GetString("GeometryEditorInShield", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorInShieldHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorInShieldHint", resourceCulture);
+            }
+        }
 
         public static string GeometryEditorUnitDensity {
             get {
