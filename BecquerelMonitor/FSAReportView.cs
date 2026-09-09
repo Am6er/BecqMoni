@@ -223,6 +223,25 @@ namespace BecquerelMonitor
         /// <summary>Цвет черты над блоком качества.</summary>
         static readonly Color QualityRuleColor = Color.FromArgb(128, 128, 128);
 
+        /// <summary>
+        /// (`AMBER11`) Цвет ПОЛОЖИТЕЛЬНОГО статуса блока качества — тот же
+        /// зелёный, каким строка состояния говорит «FSA completed»
+        /// (<see cref="StatusDoneColor"/>): один смысл — один цвет.
+        ///
+        /// ⛔ Значение записано числом, а не ссылкой на <c>StatusDoneColor</c>:
+        /// статические поля инициализируются в ТЕКСТОВОМ порядке, а та строка
+        /// объявлена ниже по файлу — ссылка дала бы пустой цвет молча.
+        /// </summary>
+        static readonly Color MarkGoodColor = Color.FromArgb(0, 128, 0);
+
+        /// <summary>
+        /// (`AMBER11`) Цвет ОТРИЦАТЕЛЬНОГО статуса — тот же кирпичный, каким
+        /// в этой же таблице уже светятся происшествия и строка «фон не
+        /// вычтен» (<see cref="MakeRow"/>): двух красных в одной панели быть
+        /// не должно.
+        /// </summary>
+        static readonly Color MarkBadColor = Color.Firebrick;
+
         /// <summary>Заголовок блока — тем же шрифтом, но полужирным; заводится один раз.</summary>
         Font headerFont;
 
@@ -1132,9 +1151,11 @@ namespace BecquerelMonitor
                                       OwnText(result.ResponseMatrixUsed
                                                   ? KeyMatrixUsed
                                                   : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
+                                      result.ResponseMatrixUsed,
                                       false));
             made.Add(this.MakeMarkRow(KeyEfficiencyRow,
                                       OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
+                                      result.EfficiencyUsed,
                                       false));
             made.Add(this.MakeMarkRow(KeySummingRow,
                                       OwnText(result.CascadeSummingUsed
@@ -1142,6 +1163,7 @@ namespace BecquerelMonitor
                                                   : result.ResponseMatrixUsed
                                                       ? KeySummingNotUsed
                                                       : KeySummingNoMatrix),
+                                      result.CascadeSummingUsed,
                                       false));
 
             // (`S44`, решение Amber 01.09.2026) ФОН ПОДАН И НЕ ВЗЯТ — причина
@@ -1156,19 +1178,19 @@ namespace BecquerelMonitor
             // самого разбора (`FSABackgroundNoCounts` и соседи), а не здесь.
             if (result.BackgroundRejected != null)
             {
-                made.Add(this.MakeMarkRow(KeyBackgroundRejectedRow, result.BackgroundRejected, true));
+                made.Add(this.MakeMarkRow(KeyBackgroundRejectedRow, result.BackgroundRejected, false, true));
             }
 
             if (result.DriftOnGridEdge)
             {
-                made.Add(this.MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), true));
+                made.Add(this.MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), false, true));
             }
 
             if (result.CompositionSuppressed)
             {
                 // Имя пересилившего образа — не надпись, а данные результата,
                 // и переводу не подлежит (`Backscatter`, `Esc-I`, нуклид).
-                made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, true));
+                made.Add(this.MakeMarkRow(KeySuppressedRow, result.SuppressorName ?? string.Empty, false, true));
             }
 
             return made;
@@ -1178,14 +1200,29 @@ namespace BecquerelMonitor
         /// (`A247`) Строка пометки: подпись слева, слово состояния справа.
         /// Числа здесь не бывает никогда — только у невязки и χ²/ndf, и оба
         /// берут его у модели.
+        ///
+        /// (`AMBER11`, задача Amber 09.09.2026: «нужно раскрасить все статусы:
+        /// положительные зелёным, отрицательные красным») ЦВЕТ НЕСЁТ СЛОВО
+        /// СОСТОЯНИЯ, А НЕ ПОДПИСЬ: серый одинаково окрашивал «used» и «not
+        /// used», и человек читал блок словами вместо того, чтобы видеть его
+        /// целиком. Подпись остаётся чёрной (решение Amber того же дня,
+        /// вопросником: «только значение справа»).
+        ///
+        /// ⚠ Судится ФАКТ, а не причина (её же решение): «not applied», когда
+        /// суммирование выключил сам человек галочкой, — такой же красный, как
+        /// «not applied: no response matrix». Окно говорит, ЧТО учтено в
+        /// числах, а не одобряет выбор.
+        ///
+        /// <paramref name="good"/> — статус положительный (учтено); у
+        /// происшествий (<paramref name="attention"/>) его не бывает.
         /// </summary>
-        Row MakeMarkRow(string captionKey, string value, bool attention)
+        Row MakeMarkRow(string captionKey, string value, bool good, bool attention)
         {
             string caption = OwnText(captionKey);
             var name = new Cell(caption);
             var cell = new Cell(value ?? string.Empty);
             name.ForeColor = Color.Black;
-            cell.ForeColor = attention ? Color.Firebrick : Color.Gray;
+            cell.ForeColor = good ? MarkGoodColor : MarkBadColor;
 
             // Подпись переносится по ширине колонки: усечение многоточием и
             // есть та беда, ради которой заведена `A247`.

@@ -694,14 +694,20 @@ namespace FsaReportViewProbe
                     // Подписи и слова состояния — из СОБСТВЕННОЙ `.resx` окна,
                     // тем же `ComponentResourceManager`, каким читает окно.
                     // Ключ вместо перевода — отказ: значит `.resx` не прочитан.
+                    //
+                    // (`AMBER11`) Третьим столбцом — ЦВЕТ слова состояния:
+                    // `+` зелёный (учтено), `−` красный (не учтено). Ожидание
+                    // записано ЧИСЛОМ здесь, а не взято отражением у окна:
+                    // сторож, читающий эталон у подсудимого, проверяет лишь
+                    // самосогласованность.
                     var marks = new List<string[]>
                     {
-                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixOldFormat") },
-                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyNotUsed") },
-                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed") },
-                        new[] { Own("FSAReport_DriftRow"), Own("FSAReport_DriftEdge") },
+                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixOldFormat"), Bad },
+                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyNotUsed"), Bad },
+                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                        new[] { Own("FSAReport_DriftRow"), Own("FSAReport_DriftEdge"), Bad },
                         // Имя пересилившего образа — данные результата, не надпись.
-                        new[] { Own("FSAReport_SuppressedRow"), "Backscatter" }
+                        new[] { Own("FSAReport_SuppressedRow"), "Backscatter", Bad }
                     };
                     int keys = 0;
                     foreach (string[] mark in marks)
@@ -741,11 +747,82 @@ namespace FsaReportViewProbe
                     // культурах одна и та же и плечи не разводит.
                     Denies(lang + ": контроль — «1,234.57» в колонке значения проверку не проходит",
                            BlockProblems(report, "1,234.57", marks).Count == 0);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ЧЕТВЁРТЫЙ (`AMBER11`): цвет
+                    // пометки подменён на противоположный — текст тот же,
+                    // длина блока та же, лжёт только цвет.
+                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    Color wasColor = painted.Cells[2].ForeColor;
+                    painted.Cells[2].ForeColor = GoodColor;
+                    Denies(lang + ": контроль — красная пометка, перекрашенная в зелёный, проверку не проходит",
+                           BlockProblems(report, "1234.57", marks).Count == 0);
+                    painted.Cells[2].ForeColor = wasColor;
+                }
+
+                // (`AMBER11`, задача Amber 09.09.2026) ВТОРАЯ СЦЕНА — ВСЁ
+                // УЧТЕНО. Без неё зелёный меряется на одной пометке из трёх, и
+                // «матрица использована» могла бы остаться серой незамеченной:
+                // сцена выше даёт зелёным только суммирование.
+                var whole = new FsaResult
+                {
+                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    EfficiencyUsed = true, CascadeSummingUsed = true, GainOnGridEdge = false
+                };
+                var wholeSession = new FsaAnalysisSession();
+                Plant(wholeSession, whole, "quality-good");
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.SetProbeSource(wholeSession, doc.ActiveResultData);
+                    var green = new List<string[]>
+                    {
+                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good }
+                    };
+
+                    ShowBlock(report, lang);
+                    Same(lang + ": всё учтено — три пометки зелёные", string.Empty,
+                         string.Join("; ", BlockProblems(report, "1234.57", green)));
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: зелёная пометка, перекрашенная
+                    // в красный, проверку проходить не должна.
+                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    Color wasColor = painted.Cells[2].ForeColor;
+                    painted.Cells[2].ForeColor = BadColor;
+                    Denies(lang + ": контроль — зелёная пометка, перекрашенная в красный, проверку не проходит",
+                           BlockProblems(report, "1234.57", green).Count == 0);
+                    painted.Cells[2].ForeColor = wasColor;
                 }
             }
 
             Language("en-US");
         }
+
+        /// <summary>(`AMBER11`) Цвет словами — чтобы отказ читался, а не считался в ARGB.</summary>
+        static string Paint(Color color)
+        {
+            if (color.ToArgb() == GoodColor.ToArgb()) return "зелёный";
+            if (color.ToArgb() == BadColor.ToArgb()) return "красный";
+            if (color.ToArgb() == Color.Black.ToArgb()) return "чёрный";
+            if (color.ToArgb() == Color.Gray.ToArgb()) return "серый";
+            return "R" + color.R + " G" + color.G + " B" + color.B;
+        }
+
+        /// <summary>(`AMBER11`) Метка ожидаемого цвета: положительный статус.</summary>
+        const string Good = "+";
+
+        /// <summary>(`AMBER11`) Метка ожидаемого цвета: отрицательный статус.</summary>
+        const string Bad = "−";
+
+        /// <summary>
+        /// (`AMBER11`) Зелёный положительного статуса — ТОТ ЖЕ, каким строка
+        /// состояния говорит «FSA completed». Записан числом нарочно: эталон
+        /// сторожа не берётся у подсудимого.
+        /// </summary>
+        static readonly Color GoodColor = Color.FromArgb(0, 128, 0);
+
+        /// <summary>(`AMBER11`) Красный отрицательного статуса.</summary>
+        static readonly Color BadColor = Color.Firebrick;
 
         /// <summary>Печать блока целиком — им читается вид, а не только отказы.</summary>
         static void ShowBlock(FSAReportView report, string lang)
@@ -759,8 +836,11 @@ namespace FsaReportViewProbe
                     continue;
                 }
 
-                Console.WriteLine("  {0}: [{1}] «{2}» | {3}", lang, i,
-                                  model.Rows[i].Cells[1].Text, model.Rows[i].Cells[2].Text);
+                // (`AMBER11`) Цвет значения печатается рядом: блок читается
+                // глазом по цвету, и вывод сторожа обязан говорить то же.
+                Console.WriteLine("  {0}: [{1}] «{2}» | {3} ({4})", lang, i,
+                                  model.Rows[i].Cells[1].Text, model.Rows[i].Cells[2].Text,
+                                  Paint(model.Rows[i].Cells[2].ForeColor));
             }
         }
 
@@ -877,6 +957,25 @@ namespace FsaReportViewProbe
                 {
                     bad.Add("пометка " + (k + 1) + " «" + row.Cells[1].Text + " | " + row.Cells[2].Text
                             + "» вместо «" + marks[k][0] + " | " + marks[k][1] + "»");
+                }
+
+                // (`AMBER11`) ЦВЕТ СЛОВА СОСТОЯНИЯ. Судится ячейка ЗНАЧЕНИЯ:
+                // подпись остаётся чёрной по решению Amber 09.09.2026, и её
+                // почернение проверяется отдельной жалобой ниже.
+                if (marks[k].Length > 2)
+                {
+                    Color want = marks[k][2] == Good ? GoodColor : BadColor;
+                    if (row.Cells[2].ForeColor.ToArgb() != want.ToArgb())
+                    {
+                        bad.Add("цвет пометки " + (k + 1) + " «" + row.Cells[2].Text + "» — "
+                                + Paint(row.Cells[2].ForeColor) + " вместо " + Paint(want));
+                    }
+
+                    if (row.Cells[1].ForeColor.ToArgb() != Color.Black.ToArgb())
+                    {
+                        bad.Add("подпись пометки " + (k + 1) + " окрашена в " + Paint(row.Cells[1].ForeColor)
+                                + ", а должна быть чёрной");
+                    }
                 }
 
                 if (Trimmed(row.Cells[1].Text))
