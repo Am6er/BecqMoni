@@ -604,6 +604,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     result.Add(xray);
                 }
+
+                // L-серия того же элемента — своим образом и своей амплитудой
+                // (`AMBER10`, задача Amber 09.09.2026). Отношение L/K задаёт
+                // глубина выхода, а не атом: измерено 0.30…0.75 на трёх сценах
+                // ASN16 со свинцовым домиком — довод и числа у
+                // <see cref="FsaSampleLibrary.LFluorescenceComponent"/>. Элемент
+                // здесь пришёл ИЗ СОСТАВА, то есть он внешний; собственный
+                // рентген кристалла строится не тут.
+                FsaComponent lxray = FsaSampleLibrary.LFluorescenceComponent(
+                    z, 0.0, double.MaxValue);
+                if (lxray != null && lxray.Lines.Count > 0 && taken.Add(lxray.Name))
+                {
+                    result.Add(lxray);
+                }
             }
 
             // Мешающие образы добавляются только К ЧЕМУ-ТО: спектр без единого
