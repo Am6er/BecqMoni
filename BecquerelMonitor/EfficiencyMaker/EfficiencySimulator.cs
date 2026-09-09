@@ -5064,40 +5064,92 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double JointPeakFactor(double firstKev, double secondKev, out double relativeError)
         {
             relativeError = 0.0;
-            this.EnsureBuilt();
             if (!(firstKev > 0.0) || !(secondKev > 0.0))
             {
                 return 1.0;
             }
 
-            int n = Math.Max(1000, this.Histories);
-            double sum1 = 0.0, sum2 = 0.0, joint = 0.0, joint2 = 0.0;
+            JointSums sums = this.JointPeakSums(new[] { firstKev, secondKev },
+                                                Math.Max(1000, this.Histories));
+            double[][] kappa, error;
+            JointSums.Resolve(sums, out kappa, out error);
+            relativeError = error[0][1];
+            return kappa[0][1];
+        }
+
+        /// <summary>
+        /// ⚡ НАКОПИТЕЛИ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПО СЕТКЕ ЭНЕРГИЙ (`S112`).
+        ///
+        /// Возвращает СУММЫ, а не готовые κ, нарочно: построитель матрицы делит
+        /// точки на блоки с независимыми зёрнами и складывает накопители, а
+        /// делить на число точек можно только в самом конце. Складываемость и
+        /// делает счёт независимым от числа потоков.
+        ///
+        /// Из каждой разыгранной точки идут ДВА независимых набора историй — по
+        /// одной на энергию сетки в каждом. Совместная величина берётся между
+        /// РАЗНЫМИ наборами (`a_i·b_j`), и только поэтому она верна и на
+        /// диагонали: у `⟨ε²⟩` внутри одного набора направление было бы одно на
+        /// оба кванта, чего в природе не бывает. Симметризация `(a_i·b_j +
+        /// a_j·b_i)/2` — та же величина с вдвое меньшим шумом.
+        ///
+        /// ⚠ Цена — `2·N` историй на точку, где N — узлов сетки κ. Гистограммы
+        /// не заполняются: нужна одна вероятность полного поглощения.
+        /// </summary>
+        public JointSums JointPeakSums(double[] energies, int points)
+        {
+            return this.JointPeakSums(energies, points, null);
+        }
+
+        /// <summary>
+        /// То же с ДОПУСКОМ ПИКА НА КАЖДУЮ ЭНЕРГИЮ (`E34`). Допуск — поле
+        /// симулятора, одно на все истории, а сетка κ проходит всю шкалу: взять
+        /// его от одной энергии значило бы мерить верхние узлы допуском нижнего.
+        /// null — допуска нет вовсе (умолчание, `PeakToleranceFromGeometry`
+        /// выключен), и поле не трогается.
+        /// </summary>
+        public JointSums JointPeakSums(double[] energies, int points, double[] peakHalfWidths)
+        {
+            if (energies == null || energies.Length == 0)
+            {
+                return null;
+            }
+
+            this.EnsureBuilt();
+            int n = Math.Max(1, points);
+            int m = energies.Length;
+            var sums = new JointSums(m);
+            double[] a = new double[m], b = new double[m];
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
                 this.source.Next(this, out x, out y, out z);
 
-                // ⛔ ОБА кванта — из ОДНОЙ точки: в этом весь смысл замера.
+                // ⛔ ВСЕ кванты — из ОДНОЙ точки: в этом весь смысл замера.
                 // Направления разыгрываются независимо, как и в природе.
-                double a = this.OneHistory(firstKev, x, y, z, null, 0.0);
-                double b = this.OneHistory(secondKev, x, y, z, null, 0.0);
-                sum1 += a;
-                sum2 += b;
-                joint += a * b;
-                joint2 += a * b * a * b;
+                for (int e = 0; e < m; e++)
+                {
+                    if (peakHalfWidths != null && peakHalfWidths.Length == m)
+                    {
+                        this.PeakHalfWidthKev = peakHalfWidths[e];
+                    }
+
+                    a[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                }
+
+                for (int e = 0; e < m; e++)
+                {
+                    if (peakHalfWidths != null && peakHalfWidths.Length == m)
+                    {
+                        this.PeakHalfWidthKev = peakHalfWidths[e];
+                    }
+
+                    b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
+                }
+
+                sums.Accumulate(a, b);
             }
 
-            double mean1 = sum1 / n, mean2 = sum2 / n, meanJoint = joint / n;
-            if (!(mean1 > 0.0) || !(mean2 > 0.0))
-            {
-                return 1.0;
-            }
-
-            double variance = Math.Max(0.0, joint2 / n - meanJoint * meanJoint);
-            relativeError = meanJoint > 0.0
-                ? Math.Sqrt(variance / n) / meanJoint * 100.0
-                : 0.0;
-            return meanJoint / (mean1 * mean2);
+            return sums;
         }
 
         /// <summary>
@@ -5892,6 +5944,136 @@ namespace BecquerelMonitor.EfficiencyMaker
             lines.Add(this.source.Describe());
             lines.Add("END");
             return string.Join("\n", lines.ToArray());
+        }
+    }
+
+    /// <summary>
+    /// ⚡ НАКОПИТЕЛИ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ (`S112`, задача Amber 09.09.2026).
+    ///
+    /// Держит суммы по разыгранным точкам, из которых получается таблица
+    ///
+    ///     κ(E₁,E₂) = ⟨ε₁ε₂⟩ / (⟨ε₁⟩·⟨ε₂⟩)
+    ///
+    /// — во сколько раз истинная вероятность поглотить ОБА кванта каскада целиком
+    /// больше произведения средних эффективностей. Формула сумм-пика перемножает
+    /// средние по объёму, а точка распада у пары ОДНА, и на протяжённой пробе их
+    /// шансы связаны: распад ближе к кристаллу поднимает оба.
+    ///
+    /// ⛔ СКЛАДЫВАЕМОСТЬ — НЕ УДОБСТВО, А УСЛОВИЕ ДЕТЕРМИНИЗМА. Блоки точек
+    /// считаются независимыми зёрнами и складываются; будь здесь готовые средние,
+    /// результат зависел бы от того, сколько блоков попало в поток.
+    /// </summary>
+    public sealed class JointSums
+    {
+        public JointSums(int size)
+        {
+            this.Size = size;
+            this.Single = new double[size];
+            this.Joint = new double[size][];
+            this.JointSquares = new double[size][];
+            for (int i = 0; i < size; i++)
+            {
+                this.Joint[i] = new double[size];
+                this.JointSquares[i] = new double[size];
+            }
+        }
+
+        /// <summary>Узлов сетки κ.</summary>
+        public int Size { get; private set; }
+
+        /// <summary>Разыгранных точек (не историй: их `2·N` на точку).</summary>
+        public long Points { get; private set; }
+
+        /// <summary>Σ(a_i + b_i) — на два набора, поэтому делится на `2·Points`.</summary>
+        public double[] Single { get; private set; }
+
+        /// <summary>Σ(a_i·b_j + a_j·b_i)/2 — симметризованное совместное.</summary>
+        public double[][] Joint { get; private set; }
+
+        /// <summary>Та же величина в квадрате — ради шума κ.</summary>
+        public double[][] JointSquares { get; private set; }
+
+        public void Accumulate(double[] a, double[] b)
+        {
+            this.Points++;
+            for (int i = 0; i < this.Size; i++)
+            {
+                this.Single[i] += a[i] + b[i];
+                for (int j = i; j < this.Size; j++)
+                {
+                    double c = 0.5 * (a[i] * b[j] + a[j] * b[i]);
+                    this.Joint[i][j] += c;
+                    this.JointSquares[i][j] += c * c;
+                }
+            }
+        }
+
+        public void Add(JointSums other)
+        {
+            if (other == null || other.Size != this.Size)
+            {
+                return;
+            }
+
+            this.Points += other.Points;
+            for (int i = 0; i < this.Size; i++)
+            {
+                this.Single[i] += other.Single[i];
+                for (int j = i; j < this.Size; j++)
+                {
+                    this.Joint[i][j] += other.Joint[i][j];
+                    this.JointSquares[i][j] += other.JointSquares[i][j];
+                }
+            }
+        }
+
+        /// <summary>
+        /// Готовая таблица κ и её относительный шум, в процентах. Пара, у которой
+        /// хоть одна эффективность нулевая, получает κ = 1 — то есть «поправки
+        /// нет», а не ноль: ноль стёр бы сумм-пик, которого замер просто не видел.
+        /// </summary>
+        public static void Resolve(JointSums sums, out double[][] kappa, out double[][] error)
+        {
+            kappa = null;
+            error = null;
+            if (sums == null || sums.Points <= 0)
+            {
+                return;
+            }
+
+            int m = sums.Size;
+            long n = sums.Points;
+            double[] mean = new double[m];
+            for (int i = 0; i < m; i++)
+            {
+                mean[i] = sums.Single[i] / (2.0 * n);
+            }
+
+            kappa = new double[m][];
+            error = new double[m][];
+            for (int i = 0; i < m; i++)
+            {
+                kappa[i] = new double[m];
+                error[i] = new double[m];
+            }
+
+            for (int i = 0; i < m; i++)
+            {
+                for (int j = i; j < m; j++)
+                {
+                    double meanJoint = sums.Joint[i][j] / n;
+                    double product = mean[i] * mean[j];
+                    double k = product > 0.0 && meanJoint > 0.0 ? meanJoint / product : 1.0;
+                    double variance = Math.Max(0.0, sums.JointSquares[i][j] / n - meanJoint * meanJoint);
+                    double relative = meanJoint > 0.0
+                        ? Math.Sqrt(variance / n) / meanJoint * 100.0
+                        : 0.0;
+                    kappa[i][j] = k;
+                    kappa[j][i] = k;
+                    error[i][j] = relative;
+                    error[j][i] = relative;
+                }
+            }
         }
     }
 }

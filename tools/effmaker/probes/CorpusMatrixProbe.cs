@@ -133,6 +133,15 @@ class CorpusMatrixProbe
                 options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--emax=", StringComparison.Ordinal))
                 options.MaxEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--jnodes=", StringComparison.Ordinal))
+                // `S112`: узлов сетки совместной эффективности пар; 0 — не
+                // считать её вовсе (в клейме `nojoint=1`). Ключ нужен затем,
+                // чтобы плечо «без κ» строилось ТЕМ ЖЕ прогоном, а не старым
+                // бинарём.
+                options.JointNodes = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--jn=", StringComparison.Ordinal))
+                // Точек на замер κ (историй вдвое больше на каждый узел сетки).
+                options.JointHistories = int.Parse(a.Substring(5), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--seed=", StringComparison.Ordinal))
                 // `T43`: независимая выборка тем же кодом. Нужна для приёмки
                 // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»
