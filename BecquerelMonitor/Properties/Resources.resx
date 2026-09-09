@@ -42712,6 +42712,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
     <value>From device calibration</value>
   </data>
+  <data name="GeometryEditorInShield" xml:space="preserve">
+    <value>Measured inside a shield (lead castle)</value>
+  </data>
+  <data name="GeometryEditorInShieldHint" xml:space="preserve">
+    <value>The shield is not part of the simulated scene and does not change the response matrix. It tells the analysis that photons scatter back from the surroundings, so the backscatter component is kept even when a matrix is used.</value>
+  </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>g/cm3</value>
   </data>

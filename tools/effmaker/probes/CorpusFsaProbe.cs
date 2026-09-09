@@ -1659,9 +1659,12 @@ namespace CorpusFsaProbe
                     }
                     else
                     {
-                        analyzer.ResponseMatrix = matrix;
-                        analyzer.ScintillatorMaterial = EfficiencySimulator.ScintillatorNameOf(
-                            rd.Efficiency.Geometry);
+                        // ⛔ ТЕМ ЖЕ кодом, что и приложение (`FsaMatrixBinding`,
+                        // `AMBER12`): с матрицей едут вещество кристалла (`S20`)
+                        // и признак защиты. Корпусных геометрий с защитой нет, и
+                        // чисел базы это не двигает, — но расходиться с экраном
+                        // проба, которая объявляет базу, не вправе.
+                        FsaMatrixBinding.Bind(analyzer, rd.Efficiency.Geometry, matrix);
                         row.Matrix = MatrixState.Found;
                     }
                 }

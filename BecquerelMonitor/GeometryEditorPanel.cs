@@ -62,6 +62,16 @@ namespace BecquerelMonitor
         ComboBox sourceTypeCombo;
         Panel pointPanel, cylinderPanel, marinelliPanel, boxPanel;
         Panel sourceMaterialsPanel;
+
+        /// <summary>
+        /// Галка «измерение в защите» (`AMBER12`) и её пояснение. Стоят на
+        /// вкладке пробы, под веществами: защита — свойство ОБСТАНОВКИ
+        /// измерения, как и съёмка на грунте, а не слой детектора и не
+        /// стенка сосуда.
+        /// </summary>
+        CheckBox shieldCheck;
+
+        Panel shieldPanel;
         Panel cylinderSizePanel, boxSizePanel;
 
         // (`AMBER1`) Столбик размеров обвязки и стоящая под ним стопка веществ.
@@ -685,6 +695,26 @@ namespace BecquerelMonitor
             }
 
             this.FitPanel(this.sourceMaterialsPanel);
+            this.ReflowShield();
+        }
+
+        /// <summary>
+        /// Поставить панель защиты (`AMBER12`) под стопкой веществ пробы.
+        ///
+        /// ⛔ Зовётся из ОБОИХ мест, где стопка веществ меняет высоту:
+        /// <see cref="ReflowSource"/> и <see cref="ReflowMaterials"/>.
+        /// Иначе снятая строка вещества оставляла бы галку висеть на
+        /// прежнем месте — с наложением на соседа или с провалом.
+        /// </summary>
+        void ReflowShield()
+        {
+            if (this.shieldPanel == null || this.sourceMaterialsPanel == null)
+            {
+                return;
+            }
+
+            this.shieldPanel.Top = this.sourceMaterialsPanel.Bottom + SourceMaterialsGap;
+            this.FitPanel(this.shieldPanel);
         }
 
         /// <summary>Просвет над стопкой веществ пробы — шире, чем между полями.</summary>
@@ -872,6 +902,32 @@ namespace BecquerelMonitor
                              Resources.GeometryEditorSourceMaterial,
                              GeometryMaterialLibrary.MaterialKind.Source);
             page.Controls.Add(this.sourceMaterialsPanel);
+
+            // (`AMBER12`, задача Amber 09.09.2026) Измерение в защите. Домик
+            // в сцену расчёта НЕ кладётся и клейма матрицы не меняет —
+            // признак читает только разбор: он говорит, что вокруг детектора
+            // есть обстановка, в которой квант рассеивается назад. Такое
+            // рассеяние матрица не считает (её сцена — кристалл, обвязка и
+            // проба), и при защите образ обратного рассеяния остаётся.
+            this.shieldPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
+            this.shieldCheck = new CheckBox
+            {
+                AutoSize = true,
+                Location = new Point(14, 0),
+                Text = Resources.GeometryEditorInShield,
+            };
+            this.shieldCheck.CheckedChanged += this.ValueChanged;
+            this.shieldPanel.Controls.Add(this.shieldCheck);
+            Label shieldHint = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.DimGray,
+                Location = new Point(32, 22),
+                MaximumSize = new Size(570, 0),
+                Text = Resources.GeometryEditorInShieldHint,
+            };
+            this.shieldPanel.Controls.Add(shieldHint);
+            page.Controls.Add(this.shieldPanel);
 
             // Столбик собирается сразу: список форм источника ещё не трогали, а
             // окно уже может открыться на этой вкладке.
@@ -1184,6 +1240,7 @@ namespace BecquerelMonitor
             }
 
             this.FitPanel(this.sourceMaterialsPanel);
+            this.ReflowShield();
         }
 
         // ------------------------------------------------------------------
@@ -1369,6 +1426,13 @@ namespace BecquerelMonitor
                 // что у обычного цилиндра, и по одной форме их не различить.
                 this.sourceTypeCombo.SelectedIndex = IndexOfSource(g);
                 this.sceneShown = g.Scene != GeometrySceneKind.None;
+                // (`AMBER12`) Защита от вида съёмки не зависит: домик бывает
+                // и у точки, и у маринелли, поэтому это отдельная галка, а не
+                // строка списка сцен.
+                if (this.shieldCheck != null)
+                {
+                    this.shieldCheck.Checked = g.InShield;
+                }
             }
             finally
             {
@@ -2155,6 +2219,9 @@ namespace BecquerelMonitor
                        && g.Shape == CrystalShape.Box
                 ? GeometryDetectorFacing.Side
                 : GeometryDetectorFacing.Front;
+
+            // (`AMBER12`) Измерение в защите.
+            g.InShield = this.shieldCheck != null && this.shieldCheck.Checked;
 
             // ⛔ (`A134`) ВИД ИСТОЧНИКА РЕШАЕТСЯ ДО ПОЛЕЙ, а не после. Тем же
             // правилом, каким `A94` решает форму кристалла: карта полей

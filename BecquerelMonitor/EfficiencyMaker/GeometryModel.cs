@@ -488,6 +488,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public GeometrySceneKind Scene = GeometrySceneKind.None;
 
+        /// <summary>
+        /// Измерение в ЗАЩИТЕ: детектор со спектром стоит в свинцовом
+        /// домике (`AMBER12`, задача Amber 09.09.2026).
+        ///
+        /// ⛔ Признак НЕ участвует в переносе и НЕ входит в клеймо матрицы
+        /// — см. <see cref="ResponseMatrix"/>.StampView. Сцена расчёта
+        /// осталась прежней: кристалл, обвязка и проба, а домик в неё не
+        /// кладётся. Он говорит другое — что вокруг детектора ЕСТЬ
+        /// обстановка, в которой квант, ушедший мимо кристалла,
+        /// рассеивается назад и возвращается. Внутриприборное рассеяние
+        /// матрица считает сама (`A83`, `A55`), рассеяние в обстановке
+        /// не считает никто, и при этом признаке разбор возвращает поверх
+        /// матрицы аналитический образ обратного рассеяния
+        /// (<c>FsaAnalyzer.BackscatterWithMatrix</c>).
+        ///
+        /// Умолчание — защиты нет: так читаются все геометрии, снятые до
+        /// 09.09.2026, все файлы ЛСРМ и весь корпус, и чисел им это не
+        /// двигает.
+        /// </summary>
+        public bool InShield;
+
         // Кристалл, мм
         public double CrystalDiameter;
         public double CrystalHeight;
@@ -1226,6 +1247,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     g.Scene = GeometrySceneKind.Borehole;
                 }
+            }
+
+            // `AMBER12`: измерение в защите (свинцовый домик). Ключа нет —
+            // защиты нет, то есть прежнее поведение и все файлы ЛСРМ.
+            string shield;
+            if (kv.TryGetValue("DS_Shield", out shield)
+                && shield.Trim().Equals("YES", StringComparison.OrdinalIgnoreCase))
+            {
+                g.InShield = true;
             }
 
             // Проценты, не длина: через Num, а не Len.

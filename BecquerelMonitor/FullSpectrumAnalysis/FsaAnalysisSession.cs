@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -525,14 +525,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (matrix != null && matrix.IsValidFor(efficiencyConfig.Geometry))
                 {
-                    analyzer.ResponseMatrix = matrix;
-
-                    // Вещество кристалла идёт вместе с матрицей и только с ней:
-                    // им каскадное суммирование ставит сумм-пики по сумме СВЕТА
-                    // (S20), а без матрицы суммирования нет вовсе.
-                    analyzer.ScintillatorMaterial =
-                        EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(
-                            efficiencyConfig.Geometry);
+                    // ⛔ Матрица кладётся ОДНИМ движением и общим кодом
+                    // (`FsaMatrixBinding`, `AMBER12`): вместе с нею едут вещество
+                    // кристалла (`S20`) и признак защиты. Пробы зовут его же —
+                    // иначе стенд и экран расходятся молча, а снимок «до/после»
+                    // выходит побитово одинаковым.
+                    FsaMatrixBinding.Bind(analyzer, efficiencyConfig.Geometry, matrix);
                 }
             }
 

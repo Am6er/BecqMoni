@@ -1337,6 +1337,12 @@
   <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
     <value>Из калибровки прибора</value>
   </data>
+  <data name="GeometryEditorInShield" xml:space="preserve">
+    <value>Измерение в защите (свинцовый домик)</value>
+  </data>
+  <data name="GeometryEditorInShieldHint" xml:space="preserve">
+    <value>Домик не входит в сцену расчёта и матрицу отклика не меняет. Признак говорит разбору, что вокруг детектора есть обстановка, в которой квант рассеивается назад, — образ обратного рассеяния остаётся и при матрице.</value>
+  </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>г/см3</value>
   </data>

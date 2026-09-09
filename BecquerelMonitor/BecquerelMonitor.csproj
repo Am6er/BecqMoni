@@ -367,6 +367,7 @@
     <Compile Include="FullSpectrumAnalysis\FsaEfficiency.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaLibrary.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaAnalysisSession.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaMatrixBinding.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaPresentation.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaPresentationBuilder.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaPalette.cs" />
