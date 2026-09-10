@@ -296,7 +296,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Отклик, разложенный по каналам исхода: `[канал][узел][бин]`, канал —
         /// <see cref="EfficiencySimulator.ResponseChannel"/>. Пустой канал
-        /// (скажем, вылет 511 у матрицы, не достающей до порога пар) хранится
+        /// (скажем, вылет аннигиляции у матрицы, не достающей до порога пар) хранится
         /// как строки нулевой длины и места не занимает.
         /// </summary>
         public float[][][] ChannelRows { get; set; }
@@ -568,6 +568,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             return !options.PeakToleranceFromGeometry || !(geometry.FwhmAt662Percent > 0.0);
         }
 
+        /// <summary>
+        /// Умолчания настроек — ОДИН экземпляр на процесс (`T255`).
+        ///
+        /// Нужен клейму: поля, входящие в него по правилу `T42` («нет отличия —
+        /// нет строки»), обязаны сравниваться с умолчанием САМОГО КЛАССА, а не
+        /// с литералом рядом. Литерал — вторая копия числа, и она разойдётся с
+        /// полем при первой же правке умолчания, молча объявив склад чужим.
+        ///
+        /// ⚠ Экземпляр, а не пересоздание на каждый вызов: годность матрицы
+        /// проверяется с UI-потока на каждый тик живого набора геометрии.
+        /// Читается он только на чтение и никем не правится.
+        /// </summary>
+        static readonly ResponseMatrixOptions DefaultOptions = new ResponseMatrixOptions();
+
         public static string ComputeStamp(GeometryModel geometry, ResponseMatrixOptions options)
         {
             if (geometry == null)
@@ -710,14 +724,58 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // `S112`: совместная эффективность пар. В клеймо пишется
                 // ВЫКЛЮЧЕННАЯ — по тому же правилу `T42`, что у `nolx` и
                 // `noklcasc`: строка появляется только у матрицы, отличной от
-                // умолчания. ⚠ ЧИСЛО узлов и точек κ в клеймо НЕ входит
-                // НАРОЧНО: оно меняет шум таблицы, а не модель, и включать его
-                // значило бы гнать в пересчёт всю сцену ради ячейки, ставшей
-                // на полпроцента тише. Шум κ хранится в файле, рядом с самой
-                // таблицей, — кому важно, тот прочтёт.
-                if (options.JointNodes <= 0)
+                // умолчания.
+                //
+                // ⛔ (`T255`, решение Amber 10.09.2026 «внести УСЛОВНО, как
+                // `SingleScatter`») ЧИСЛО узлов и точек κ ВХОДИТ в клеймо —
+                // но условно, двумя условиями сразу, и оба обязательны.
+                //
+                // 1. ТОЛЬКО ТАМ, ГДЕ ПАРА СЧИТАЕТСЯ. Условие — зеркало раннего
+                //    выхода <c>ResponseMatrixBuilder.BuildJoint</c>: при
+                //    `JointNodes <= 1` или сетке короче двух узлов таблицы κ
+                //    не будет вовсе, и число точек тогда не описывает ничего.
+                //    Это тот же ход, что у `scat=` (`E34`): клеймо называет
+                //    ветку ТАК, КАК ОНА СЧИТАЛАСЬ, а не так, как стоит ключ.
+                //    ⚠ Один узел приравнен к нулю ИМЕННО ЗДЕСЬ, а прежде
+                //    `nojoint=1` писалось только при `<= 0`: матрица с
+                //    `--jnodes=1` таблицы κ не несла, а клеймо носила от
+                //    матрицы, которая несёт. Складу это не стоит ничего —
+                //    все 44 его матрицы посчитаны умолчательными 24
+                //    (замер 10.09.2026).
+                //
+                // 2. ТОЛЬКО ПРИ ОТЛИЧИИ ОТ УМОЛЧАНИЯ — правило `T42`, как у
+                //    `seed=` и сетки. Писать числа всегда значило бы поменять
+                //    клеймо у ВСЕХ готовых матриц и объявить чужим весь склад
+                //    (44 сцены, трое суток счёта) ради поля, которое у них у
+                //    всех одинаковое. Умолчания берутся у самого класса
+                //    (<see cref="DefaultOptions"/>), а не литералами: копия
+                //    числа здесь разошлась бы с полем при первой же правке.
+                //
+                // ⚠ Прежняя оговорка «число κ в клеймо не входит, оно меняет
+                // шум таблицы, а не модель» СНЯТА решением Amber: шум κ входит
+                // в поправку каскада, то есть в числа разбора, и матрица,
+                // посчитанная на 24 узлах, при 48 признавалась годной молча.
+                bool jointComputed = options.JointNodes > 1
+                                     && gridStamp != null && gridStamp.Length >= 2;
+                if (!jointComputed)
                 {
                     sb.Append("nojoint=1;");
+                }
+                else
+                {
+                    if (options.JointNodes != DefaultOptions.JointNodes)
+                    {
+                        sb.Append("jnodes=")
+                          .Append(options.JointNodes.ToString(CultureInfo.InvariantCulture))
+                          .Append(';');
+                    }
+
+                    if (options.JointHistories != DefaultOptions.JointHistories)
+                    {
+                        sb.Append("jhist=")
+                          .Append(options.JointHistories.ToString(CultureInfo.InvariantCulture))
+                          .Append(';');
+                    }
                 }
 
                 if (options.PositronTransport)
@@ -966,8 +1024,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
-        /// Отклик ОДНОГО канала исхода: пик, комптон, вылет 511 или вылет
-        /// K-рентгена. <paramref name="channel"/> = −1 — весь отклик разом.
+        /// Отклик ОДНОГО канала исхода: пик, комптон, одиночный или двойной
+        /// вылет аннигиляции, вылет K-рентгена. <paramref name="channel"/> = −1 — весь отклик разом.
         /// </summary>
         public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
         {
@@ -1342,6 +1400,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
                     }
                 }
+
+                // ⚡ СЕДЬМОЙ ХВОСТ, `JNTH` — ЧИСЛО ТОЧЕК замера κ (`T255`,
+                // решение Amber 10.09.2026). Формат НЕ поднят: подробности и
+                // довод — у <see cref="ReadJointHistories"/>. Пишется ВСЕГДА,
+                // и при выключенной паре тоже: читатель ищет его в обоих
+                // случаях, а «поле есть, только когда его значение неважно» —
+                // это ровно та неявность, которой стоят разряды `T114`.
+                writer.Write(Encoding.ASCII.GetBytes("JNTH"));
+                writer.Write(flags.JointHistories);
             }
 
             if (File.Exists(path))
@@ -1538,35 +1605,63 @@ namespace BecquerelMonitor.EfficiencyMaker
                 reader.ReadInt32();
             }
 
+            // ⚠ Раннего выхода при пустой таблице здесь БОЛЬШЕ НЕТ: за ней
+            // идёт седьмой хвост, он пишется ВСЕГДА, и выйти отсюда значило
+            // бы потерять `JointHistories` у матрицы с выключенной парой.
             int nodes = reader.ReadInt32();
-            if (nodes <= 0)
+            if (nodes > 0)
             {
-                return;
-            }
-
-            matrix.JointPoints = reader.ReadInt64();
-            double[] grid = new double[nodes];
-            for (int i = 0; i < nodes; i++)
-            {
-                grid[i] = reader.ReadDouble();
-            }
-
-            double[][] table = new double[nodes][];
-            double[][] noise = new double[nodes][];
-            for (int i = 0; i < nodes; i++)
-            {
-                table[i] = new double[nodes];
-                noise[i] = new double[nodes];
-                for (int j = 0; j < nodes; j++)
+                matrix.JointPoints = reader.ReadInt64();
+                double[] grid = new double[nodes];
+                for (int i = 0; i < nodes; i++)
                 {
-                    table[i][j] = reader.ReadDouble();
-                    noise[i][j] = reader.ReadDouble();
+                    grid[i] = reader.ReadDouble();
                 }
+
+                double[][] table = new double[nodes][];
+                double[][] noise = new double[nodes][];
+                for (int i = 0; i < nodes; i++)
+                {
+                    table[i] = new double[nodes];
+                    noise[i] = new double[nodes];
+                    for (int j = 0; j < nodes; j++)
+                    {
+                        table[i][j] = reader.ReadDouble();
+                        noise[i][j] = reader.ReadDouble();
+                    }
+                }
+
+                matrix.JointEnergies = grid;
+                matrix.JointKappa = table;
+                matrix.JointKappaError = noise;
             }
 
-            matrix.JointEnergies = grid;
-            matrix.JointKappa = table;
-            matrix.JointKappaError = noise;
+            // ⚡ СЕДЬМОЙ ХВОСТ, `JNTH` (`T255`): ЧИСЛО ТОЧЕК замера κ.
+            //
+            // ⛔ Зачем поле в файле, если сама таблица уже там. С `T255`
+            // `JointHistories` входит в КЛЕЙМО (условно — см.
+            // <see cref="ComputeStamp"/>), а всякая настройка клейма обязана
+            // приезжать обратно с диска: иначе матрица, посчитанная
+            // `--jn=400000`, после чтения получит умолчание, пересчитает
+            // клеймо БЕЗ строки и не сойдётся САМА С СОБОЙ — восьмой случай
+            // того же, что `T114`, `A66`, `E34`, `T242` и `S112`.
+            //
+            // ⚠ ХВОСТОМ, А НЕ ПОДЪЁМОМ ФОРМАТА. У файлов до 10.09.2026
+            // хвоста нет — поле остаётся умолчанием, то есть ровно тем, чем
+            // оно было при их счёте (замер того же дня: все 44 матрицы
+            // склада посчитаны умолчанием), — и клеймо сходится побайтно.
+            // Подъём формата объявил бы склад чужим на ровном месте.
+            //
+            // ⚠ Читается ЗДЕСЬ ЖЕ, а не отдельным методом: сторож
+            // `tools/check_matrix_keys.py` (правило «что в клейме, то в
+            // файле») смотрит тело `Load` и тела ЕГО вызовов на один
+            // уровень, и поле, прочитанное на два уровня вглубь, для него
+            // не существует.
+            if (matrix.Options != null && stream.Length - stream.Position >= 8
+                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "JNTH")
+            {
+                matrix.Options.JointHistories = reader.ReadInt32();
+            }
         }
 
         static ResponseMatrixOptions ReadOptions(BinaryReader reader)

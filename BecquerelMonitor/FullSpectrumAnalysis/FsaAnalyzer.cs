@@ -126,6 +126,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// ⛔ ЧЕМ НАЗНАЧАЕТСЯ ПОЛ ПОЛОСЫ **ФИТА** (`A302`, 10.09.2026).
+    ///
+    /// Это НЕ то же самое, что <see cref="FsaNoCurveFloor"/>: тот двигает пол
+    /// БИБЛИОТЕКИ (какие линии впускаются в образы), а фит при всех его
+    /// значениях по-прежнему идёт от нулевого канала. Между тем нулевой канал
+    /// у 31 спектра понятной части малой базы из 42 сидит на ОТРИЦАТЕЛЬНОЙ
+    /// калиброванной энергии (у `ASN16_Cs137` полоса начинается с −13.9 кэВ),
+    /// где ни один образ существовать не может в принципе, а данные там есть:
+    /// ниже 20 кэВ у того же спектра 11.2 млн отсчётов против 0.18 млн у
+    /// модели, и одна эта подпороговая полоса даёт 55.8 % χ² всего спектра
+    /// (измерено полосой П9 при `A283`).
+    ///
+    /// ⛔ ПОСТАВЛЯЕТСЯ <see cref="Off"/>, то есть в точности прежнее
+    /// поведение. Пол полосы фита двигает ВСЕ числа корпуса и требует
+    /// переобъявления базы — это решение Amber, а не правка полосы; здесь
+    /// заведён РЫЧАГ ДЛЯ ЗАМЕРА, и поставочное плечо обязано воспроизводить
+    /// базу побитово.
+    /// </summary>
+    public enum FsaFitFloor
+    {
+        /// <summary>Как было: фит от нулевого канала (кроме `FitToLibrary`).</summary>
+        Off,
+
+        /// <summary>
+        /// ПОРОГ АЦП САМОГО СПЕКТРА — наименьшая ПОЛОЖИТЕЛЬНАЯ энергия, на
+        /// которой у спектра есть отсчёты (<see cref="FsaBand.AdcFloorOf"/>).
+        /// Ровно то, что просит строка `A302`: величина есть у каждого спектра
+        /// и кривой не требует.
+        /// </summary>
+        Adc,
+
+        /// <summary>
+        /// ЧИСЛО, объявленное на весь разбор
+        /// (<see cref="FsaBand.DefaultFitFloorKev"/>). Второе плечо того же
+        /// замера: порог АЦП у прибора без аппаратного реза лежит у самого
+        /// нуля и режет одни отрицательные каналы, а вопрос строки — ещё и
+        /// про подпороговый вал ВЫШЕ нуля.
+        /// </summary>
+        Fixed
+    }
+
+    /// <summary>
     /// Умолчание полосы — ОДНО на весь разбор, и печатается вслух.
     ///
     /// ⛔ Выбор сделан числами, а не вкусом; всё измерено 25.08.2026 по ПОНЯТНОЙ
@@ -296,6 +338,127 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Число запасной ветви, кэВ; ключ пробы `--nocurve-floor=&lt;кэВ&gt;`.</summary>
         public static double DefaultNoCurveFloorKev = ShippedNoCurveFloorKev;
+
+        /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ ПОЛОМ ПОЛОСЫ ФИТА (`A302`) — отдельно от того,
+        /// что стоит СЕЙЧАС, по той же причине, что <see cref="ShippedMode"/>:
+        /// без разделения строка «(умолчание)» врёт на всяком прогоне, где пол
+        /// сдвинут ключом.
+        ///
+        /// Поставляется <see cref="FsaFitFloor.Off"/> — прежнее поведение, и
+        /// это положительный контроль самого рычага: прогон поставочным
+        /// умолчанием обязан воспроизвести базу ПОБИТОВО, и только тогда числа
+        /// других плеч принадлежат плечу, а не правке.
+        /// </summary>
+        public const FsaFitFloor ShippedFitFloor = FsaFitFloor.Off;
+
+        /// <summary>
+        /// Чем назначается пол полосы ФИТА (`A302`). Двигается ключом пробы
+        /// `--fit-floor=`; живёт ОДНОЙ статикой и читается В МОМЕНТ ОБРАЩЕНИЯ
+        /// — вторая копия повторила бы `S101`.
+        /// </summary>
+        public static FsaFitFloor DefaultFitFloor = ShippedFitFloor;
+
+        /// <summary>
+        /// ⛔ ЧТО ПОСТАВЛЯЕТСЯ ЧИСЛОМ пола фита. Значение НЕЙТРАЛЬНО ровно
+        /// постольку, поскольку сама ветвь по умолчанию выключена
+        /// (<see cref="ShippedFitFloor"/>); число взято равным полу, который
+        /// кривая назначает 38 спектрам малой базы из 42, — то есть это не «на
+        /// глаз», а перенос уже измеренного числа на полосу фита.
+        /// </summary>
+        public const double ShippedFitFloorKev = 20.0;
+
+        /// <summary>Число пола фита, кэВ; ключ пробы `--fit-floor=&lt;кэВ&gt;`.</summary>
+        public static double DefaultFitFloorKev = ShippedFitFloorKev;
+
+        /// <summary>
+        /// ⛔ ПОЛ ПОЛОСЫ ФИТА — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A302`), по образцу
+        /// <see cref="NoCurveFloor"/>. Возвращает 0, когда пола нет: тогда фит,
+        /// как и до `A302`, начинается с нулевого канала.
+        ///
+        /// Спрашивают его двое — сам <see cref="FsaAnalyzer.Analyze"/> (что
+        /// режет) и <see cref="FsaAnalyzer.BandNote"/> (что печатается), — и
+        /// оба обязаны звать ИМЕННО ЭТОТ метод: разойдясь в нём, они повторили
+        /// бы `S101` на новом месте.
+        /// </summary>
+        /// <param name="adcFloorKev">порог АЦП спектра, кэВ; 0 — неизвестен.</param>
+        public static double FitFloor(double adcFloorKev)
+        {
+            switch (DefaultFitFloor)
+            {
+                case FsaFitFloor.Adc:
+                    return adcFloorKev > 0.0 ? adcFloorKev : 0.0;
+                case FsaFitFloor.Fixed:
+                    return DefaultFitFloorKev > 0.0 ? DefaultFitFloorKev : 0.0;
+                default:
+                    return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Разобрать значение ключа `--fit-floor=`: `off` (как было), `adc`
+        /// (порог АЦП спектра) или число в кэВ.
+        ///
+        /// ⛔ Возвращает false на непонятном значении, а НЕ «умолчание молча»:
+        /// старый разбор, счётший новое значение ключа за «не ноль», стоил трёх
+        /// часов счёта (`A77`).
+        /// </summary>
+        public static bool TryParseFitFloor(string name, out FsaFitFloor source, out double kev)
+        {
+            source = DefaultFitFloor;
+            kev = DefaultFitFloorKev;
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            string s = name.Trim();
+            if (string.Equals(s, "off", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(s, "none", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(s, "0", StringComparison.Ordinal))
+            {
+                source = FsaFitFloor.Off;
+                return true;
+            }
+
+            if (string.Equals(s, "adc", StringComparison.OrdinalIgnoreCase))
+            {
+                source = FsaFitFloor.Adc;
+                return true;
+            }
+
+            double value;
+            if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && value > 0.0)
+            {
+                source = FsaFitFloor.Fixed;
+                kev = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Пол полосы фита словами — хвост заверения. Пусто, когда рычаг
+        /// выключен: поставочное плечо обязано печатать в точности прежнюю
+        /// строку, иначе A/B по журналу не отличить от A/B по правке.
+        /// </summary>
+        public static string FitFloorNote(double fitFloorKev)
+        {
+            if (DefaultFitFloor == ShippedFitFloor)
+            {
+                return "";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "; пол ПОЛОСЫ ФИТА — {0} = {1:F2} кэВ (НЕ умолчание, A/B)",
+                DefaultFitFloor == FsaFitFloor.Adc
+                    ? "порог АЦП спектра"
+                    : string.Format(CultureInfo.InvariantCulture, "{0:F1} кэВ числом",
+                                    DefaultFitFloorKev),
+                fitFloorKev);
+        }
 
         /// <summary>
         /// ⛔ ПОЛ БЕЗ КРИВОЙ — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A73`).
@@ -1004,6 +1167,76 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int GateNuclidesRescued { get; private set; }
 
         /// <summary>
+        /// ⛔ (`AMBER3`) ПОТОЛОК ЗНАЧИМОСТИ У ГЕЙТА ФОРМЫ: колонку, чья
+        /// значимость его достигла, гейт по парциальной невязке НЕ СНИМАЕТ
+        /// ВОВСЕ — не судит и не выбрасывает.
+        ///
+        /// Решение Amber 10.09.2026 (вопросником), дословно: **«Не вправе:
+        /// ввести потолок по z»** — «при смещённой модели врёт ФОРМА, а не
+        /// значимость». Случай, из-за которого решение принято: в
+        /// неравновесном режиме гейт вынес `Ac-228` со значимостью 43.11 при
+        /// пороге отсева <see cref="RefitZ"/>, и человек увидел у ториевого
+        /// ряда «Ac-228 &lt; 1.51 %», хотя соседи уцелели (Tl-208 53.2 %,
+        /// Pb-212 34.9 %). Самоотключение (<see cref="GateNuclidesRescued"/>)
+        /// такой случай не ловит и ловить не должно по построению: состав
+        /// вынесен не ЦЕЛИКОМ, а по одному сильному члену.
+        ///
+        /// ⚠ Цена названа замером и НЕ мала: на малой базе гейт теряет власть
+        /// над девятью колонками из десяти (72 нуклидных колонки, из них выше
+        /// потолка 66 в равновесном режиме и 67 в неравновесном). Терпимо это
+        /// потому, что власть свою гейт почти не применяет: на той же базе он
+        /// снимает НОЛЬ колонок с равновесием и ОДНУ без него.
+        ///
+        /// Неположительное значение — потолка нет, гейт судит всех (плечо А).
+        /// Само значение ставит конструктор, второй копии тут нет (`T82`).
+        /// </summary>
+        public double GateZCeiling { get; set; }
+
+        /// <summary>
+        /// (`AMBER3`) Сколько нуклидных колонок гейт НЕ СУДИЛ, потому что их
+        /// значимость достигла <see cref="GateZCeiling"/>. Ноль — потолок ни
+        /// разу не вступил и правка не изменила НИ ОДНОГО БИТА; положительное
+        /// число — вступил, и числа этого спектра с прежними сравнивать
+        /// нельзя. Счётчик заведён вместе с правилом нарочно (урок ~~`T240`~~):
+        /// «правка есть» и «правка сработала» — разные утверждения.
+        ///
+        /// ⛔ Он же — знаменатель самоотключения: пощажённая колонка в разборе
+        /// ОСТАЛАСЬ, значит «гейт вынес состав целиком» неверно, и возвращать
+        /// нечего.
+        /// </summary>
+        public int GateNuclidesSpared { get; private set; }
+
+        /// <summary>
+        /// ⛔ (`A277`) НЕТ ГЕОМЕТРИИ — НЕТ РАЗБОРА. Решение Amber 10.09.2026
+        /// (вопросником), дословно: **«Кристалл указывается в редакторе
+        /// геометрии. Нет геометрии — нет FSA разбора»**; переспрошено по её же
+        /// указанию с числами и подтверждено: **«Завести гейт по-настоящему:
+        /// нет геометрии — нет FSA разбора»**.
+        ///
+        /// Довод: без геометрии у разбора нет ни матрицы отклика, ни СПИСКА
+        /// ЭЛЕМЕНТОВ КРИСТАЛЛА (<c>FsaSampleSpec.CrystalElements</c>), а от
+        /// него зависят образы вылета `Esc-*` и флуоресценция кристалла. То
+        /// есть модель без геометрии не «чуть беднее», а построена по другим
+        /// правилам, и её числа складывались с числами полной модели молча.
+        ///
+        /// ⚠ Цена названа Amber при ответе и принята ею: у человека без
+        /// геометрии экран разбора гаснет совсем, а из корпуса выпадает вся
+        /// непонятная часть. Замер платы — в журнале полосы П5.
+        ///
+        /// Полярность ставит конструктор (`T82`); выключенный гейт — плечо А.
+        /// </summary>
+        public bool RequireGeometry { get; set; }
+
+        /// <summary>
+        /// (`A277`) Последний <see cref="Analyze"/> отказал ИМЕННО ПО ГЕОМЕТРИИ,
+        /// а не по вырожденному входу. Признак заведён вместе с гейтом, потому
+        /// что <see cref="Analyze"/> отвечает <c>null</c> ещё на пяти причинах,
+        /// и без этого поля человеку и прогону досталось бы одно слово
+        /// «разложение не получилось» на шесть разных бед.
+        /// </summary>
+        public bool GeometryRefused { get; private set; }
+
+        /// <summary>
         /// (`AMBER4`) Снимать свободный образ собственного рентгена кристалла,
         /// когда разбор идёт ЧЕРЕЗ МАТРИЦУ ОТКЛИКА. Пара к
         /// <see cref="EscapeGate"/>: довод, замер и оговорка про рентген пробы
@@ -1554,6 +1787,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.PileUp = true;
             this.PartialResidualGate = true;
 
+            // (`AMBER3`) Потолок значимости у гейта формы — решение Amber
+            // 10.09.2026 «Не вправе: ввести потолок по z». Полярность и само
+            // значение стоят ЗДЕСЬ, у присваивания, а не в описании (`T82`).
+            // Значение выбрано так, чтобы накрыть ОБА известных случая: гейт
+            // вынес `Ac-228` со значимостью 43.11 у Amber и `Th-228` со
+            // значимостью 10.78 на корпусном `AS80_Th232Medal` без равновесия.
+            // Ниже 10.78 опускать нечего — цена растёт, а накрывать больше
+            // нечего; выше — второй случай остаётся снаружи.
+            this.GateZCeiling = 10.0;
+
+            // (`A277`) Гейт геометрии ВКЛЮЧЁН — решение Amber 10.09.2026 «нет
+            // геометрии — нет FSA разбора». Полярность стоит здесь, у
+            // присваивания, а не в описании (`T82`).
+            this.RequireGeometry = true;
+
             // ВКЛЮЧЕНО 16.08.2026 — условие включения, записанное 15.08, теперь
             // выполнено. Перекладку выключали не за неё саму: фон в корпусе
             // калибровался ОТДЕЛЬНО, по спектру, бедному линиями, и перекладка
@@ -1583,9 +1831,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
+            this.GeometryRefused = false;
+
             if (spectrum == null || spectrum.Spectrum == null || fwhmCalibration == null
                 || spectrum.EnergyCalibration == null || originalLibrary == null || originalLibrary.Count == 0)
             {
+                return null;
+            }
+
+            // ⛔ (`A277`) ГЕЙТ ГЕОМЕТРИИ — решение Amber 10.09.2026 «нет
+            // геометрии — нет FSA разбора». Стоит ПЕРВЫМ из содержательных
+            // отказов и до единого расчёта: разбор без геометрии — не
+            // упрощённая модель той же задачи, а другая модель (нет матрицы
+            // отклика, нет элементов кристалла, нет образов вылета), и отдавать
+            // её человеку под тем же именем значит смешивать две модели молча.
+            //
+            // ⛔ Судится КРИВАЯ, а не поле прибора: `FsaEfficiency` —
+            // единственное, что доезжает сюда от конфигурации, и решение потому
+            // одно на экран и на всякую пробу (см. `FsaEfficiency.HasGeometry`).
+            //
+            // ⚠ ГРАНИЦА, И ЕЁ НАДО ЗНАТЬ. Отказ накрывает ДВА случая: кривой
+            // нет вовсе (`efficiency == null`) и кривая есть, а геометрии у неё
+            // нет. Первый на корпусе и есть основной — 15 из 17 спектров
+            // непонятной части малой базы не имеют кривой ВООБЩЕ (`eff=0`,
+            // «кривой нет»), и геометрии у них потому нет тем более. Неточным
+            // слово «геометрия» окажется ровно в одном стечении: геометрия у
+            // кривой есть, а точек в самой кривой меньше двух — тогда
+            // `FromConfig` отвечает `null`, и человеку скажут про геометрию,
+            // хотя чинить надо точки. Развести это здесь нечем: признака
+            // геометрии в отсутствующем объекте не бывает.
+            if (this.RequireGeometry && (efficiency == null || !efficiency.HasGeometry))
+            {
+                this.GeometryRefused = true;
                 return null;
             }
 
@@ -1662,6 +1939,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 chLo = 1;
             }
 
+            // ⛔ `A302`: ПОЛ ПОЛОСЫ ФИТА. Рычаг ЗАМЕРА, по умолчанию выключен —
+            // и тогда ни одного канала не отнимает, то есть поставочное плечо
+            // побитово прежнее.
+            //
+            // Зачем он вообще нужен: `chLo = 0` выше означает «от нулевого
+            // канала», а нулевой канал у 37 спектров понятной части малой базы
+            // из 42 сидит на ОТРИЦАТЕЛЬНОЙ калиброванной энергии — там ни один
+            // образ модели существовать не может, и всю подпороговую структуру
+            // берёт на себя континуум-сплайн (⚠ строка `A302` говорит 31; 37 —
+            // мой замер 10.09.2026 по колонке `fit_lo_keV` дампа `--band-audit=`).
+            // Цена измерена: у `ASN16_Cs137` полоса начинается с −14.3 кэВ, и
+            // срез одних только отрицательных каналов — 0.46 % отсчётов — даёт
+            // χ²/ndf 60.807 -> 47.298.
+            //
+            // ⛔ Пол ищется ПО ЭНЕРГИИ КАНАЛА, а не пересчётом энергии в номер
+            // канала: `EnergyToChannelSafe` округляет, и канал, чья энергия
+            // ниже пола, остался бы в полосе — то есть ключ доехал бы до
+            // печати, но не до решения.
+            double fitFloorKev = FsaBand.FitFloor(
+                FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
+            if (fitFloorKev > 0.0)
+            {
+                while (chLo < chHi && calibration.ChannelToEnergy(chLo) < fitFloorKev)
+                {
+                    chLo++;
+                }
+            }
+
             if (chHi <= chLo + 10)
             {
                 return null;
@@ -1694,8 +1999,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double noteNoCurve = FsaBand.NoCurveFloor(
                 FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
-                "{0}; фит {1}…{2} ({3:F1}…{4:F1} кэВ)",
+                "{0}{1}; фит {2}…{3} ({4:F1}…{5:F1} кэВ)",
                 FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
+                // `A302`: пол полосы ФИТА называется вслух и ТЕМ ЖЕ числом,
+                // каким он резал, — иначе заверение и решение разъедутся молча.
+                FsaBand.FitFloorNote(fitFloorKev),
                 chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
             // (`T240`) Исход отсева — состояние ЭТОГО разбора, и от прошлого
@@ -1711,6 +2019,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.RefitZNuclidesRescued = 0;
             this.GateNuclidesJudged = 0;
             this.GateNuclidesRescued = 0;
+            this.GateNuclidesSpared = 0;
             this.EscapeOrphansDropped = 0;
             this.AnnihilationCollides = null;
 
@@ -2484,7 +2793,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 List<FsaComponent> gateKeep = new List<FsaComponent>(gateAll);
-                int gateJudged = 0, gateDropped = 0;
+                int gateJudged = 0, gateDropped = 0, gateSpared = 0;
                 for (int k = 0; k < best.Columns.Count; k++)
                 {
                     FitColumn column = best.Columns[k];
@@ -2493,6 +2802,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         || component.Kind == FsaComponentKind.Nuisance
                         || component.Derived || component.FixedTemplate != null)
                     {
+                        continue;
+                    }
+
+                    // ⛔ (`AMBER3`) ПОТОЛОК ЗНАЧИМОСТИ — решение Amber
+                    // 10.09.2026 «Не вправе: ввести потолок по z». Колонка,
+                    // чья значимость его достигла, гейтом НЕ СУДИТСЯ вовсе:
+                    // при смещённой модели (чужая матрица, не то вещество
+                    // пробы) врёт ФОРМА зоны, а значимость — нет, и «без него
+                    // зоне лучше» становится верно для сильного компонента по
+                    // причине, к его подлинности отношения не имеющей.
+                    //
+                    // ⚠ Не путать с самоотключением ниже: то ловит случай
+                    // «вынесен ВЕСЬ состав», а здесь снимается один сильный
+                    // член при живых соседях — случай, которого
+                    // самоотключение не видит по построению (Tl-208 53.2 % и
+                    // Pb-212 34.9 % уцелели, а `Ac-228` со значимостью 43.11
+                    // вынесен).
+                    if (this.GateZCeiling > 0.0 && best.Z[k] >= this.GateZCeiling)
+                    {
+                        gateSpared++;
                         continue;
                     }
 
@@ -2541,6 +2870,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 this.GateNuclidesJudged = gateJudged;
+                this.GateNuclidesSpared = gateSpared;
 
                 // ⛔ (`AMBER3`) САМООТКЛЮЧЕНИЕ ГЕЙТА, КОГДА ОН ВЫНОСИТ СОСТАВ
                 // ЦЕЛИКОМ. Тот же довод, которым ~~`A275`~~ снабдил отсев по
@@ -2567,7 +2897,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // уцелел, — фантомы он снимает именно там. Возвращается ровно
                 // весь нуклидный класс и ровно тогда, когда иначе не осталось
                 // бы ничего.
-                if (gateJudged > 0 && gateDropped >= gateJudged)
+                //
+                // ⛔ (`AMBER3`, потолок) ПОЩАЖЁННАЯ КОЛОНКА ОТМЕНЯЕТ ВОЗВРАТ, и
+                // это не оговорка, а само условие правила. Возврат стоит на
+                // доводе «не осталось НИ ОДНОГО нуклида»; колонка, которую
+                // потолок не дал судить, в разборе ОСТАЛАСЬ, значит состав
+                // вынесен не целиком и возвращать нечего. Без этой проверки
+                // возврат срабатывал бы по знаменателю, из которого сильные
+                // колонки уже вычтены, — то есть на спектре, где состав жив.
+                if (gateJudged > 0 && gateDropped >= gateJudged && gateSpared == 0)
                 {
                     this.GateNuclidesRescued = gateDropped;
                     gateKeep = gateAll;
@@ -2783,7 +3121,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<int> A = fit.ActiveIndices;
             double[,] H = fit.ActiveInverse;
             double[] W = fit.Weights;
-            double inflate = Math.Sqrt(Math.Max(1.0, fit.Chi2Ndf));
+            // (`A281`) Тот же множитель, что домножил σ, — берётся у фита, а не
+            // считается заново: две копии формулы разошлись бы молча.
+            double inflate = fit.SigmaInflation;
             double k1 = this.LimitQuantileK;
             double[] projection = new double[channels];
 
@@ -3559,6 +3899,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 FirstChannel = chLo,
                 LastChannel = chHi,
                 Chi2Ndf = fit.Chi2Ndf,
+                SigmaInflation = fit.SigmaInflation,
                 Chi2NdfPoisson = fit.Chi2NdfBase,
                 ModelResidual = fit.ModelResidual,
                 Gain = gain,
@@ -3722,13 +4063,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // же спектре числа расходятся: `G1S24_Th228_P5` — ε 34.2 %, а по
             // отсчётам «не добавлено» 20.25 % и «добавлено лишнего» 6.80 %. На ЭКРАН идут
             // отсчёты: человек читает строку как площадь нарисованной ленты.
+            //
+            // ⛔ (`A284`) Измерение берётся у РЕЗУЛЬТАТА, кривой фита
+            // (<see cref="FsaResult.FitSpectrum"/>), а не считается здесь своим
+            // циклом: «спектр минус вычтенный фон» — правило одно на проект, и
+            // третьей его копии рядом с показной и с фитом быть не должно.
+            // Числа не меняются ни на знак: считалось ровно это.
             double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
             int[] raw = spectrum.Spectrum;
+            double[] measured = result.FitSpectrum(raw);
             for (int i = chLo; i <= chHi && i < raw.Length; i++)
             {
-                double background = backgroundCurve != null && i < backgroundCurve.Length
-                    ? backgroundCurve[i] : 0.0;
-                double net = raw[i] - background;
+                double net = i < measured.Length ? measured[i] : 0.0;
                 double difference = net - result.Model[i];
                 measuredCounts += net;
                 if (difference > 0.0)
@@ -4285,6 +4631,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] Z;
             public double Chi2;
             public double Chi2Ndf;
+
+            /// <summary>
+            /// (`A281`) МНОЖИТЕЛЬ ПОГРЕШНОСТЕЙ — ровно тот, на который
+            /// домножены <see cref="Sigma"/>: корень из <see cref="Chi2Ndf"/>,
+            /// зажатый снизу единицей.
+            ///
+            /// Хранится, а не пересчитывается читателем, по правилу «признак
+            /// заведён — у него обязан быть потребитель, и потребитель обязан
+            /// читать ТО ЖЕ число»: формула стоит в одном месте, и вывести её
+            /// заново значило бы завести вторую копию, расходящуюся молча.
+            /// </summary>
+            public double SigmaInflation = 1.0;
 
             /// <summary>
             /// ЭФФЕКТИВНОЕ число степеней свободы остатка В МЕТРИКЕ РЕШАТЕЛЯ
@@ -5024,6 +5382,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Z = z,
                 Chi2 = chi2,
                 Chi2Ndf = chi2ndf,
+                SigmaInflation = inflate,
                 Ndf = ndf,
                 NdfBase = Math.Max(1, n - activeCount),
                 Residual = residual,

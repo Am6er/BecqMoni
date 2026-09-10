@@ -184,8 +184,20 @@
   <data name="FSAReport_ResidualRow" xml:space="preserve">
     <value>Невязка: + лишнее / − нехватка</value>
   </data>
+  <data name="FSAReport_ResidualClamped" xml:space="preserve">
+    <value>показ подрезан на {0} каналах</value>
+  </data>
+  <data name="FSAReport_ResidualClampedTip" xml:space="preserve">
+    <value>Число посчитано по кривой фита, без подрезки. Лента на графике рисуется против показной кривой, где отрицательное подрезано нулём на {0} каналах, поэтому её площадь меньше, чем говорит число.</value>
+  </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
     <value>χ²/ndf, качество подгонки</value>
+  </data>
+  <data name="FSAReport_InflationRow" xml:space="preserve">
+    <value>σ×, во сколько раз раздута погрешность</value>
+  </data>
+  <data name="FSAReport_InflationTip" xml:space="preserve">
+    <value>Погрешности компонентов домножены на этот множитель, sqrt(χ²/ndf), когда подгонка хуже одной лишь пуассоновской статистики. Порог значимости 3 означает поэтому 3 × этот множитель сырых сигм. 1.000 — раздутия нет.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Матрица отклика</value>

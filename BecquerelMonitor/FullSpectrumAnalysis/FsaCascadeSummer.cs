@@ -253,6 +253,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// зажималось в единицу, то есть в «пик потерян целиком».
             /// </summary>
             public Dictionary<double, double> PartnerQuanta;
+
+            /// <summary>
+            /// (`D49`) ОТКУДА ВЗЯЛАСЬ ДОЛЯ: ключи «опорная линия → партнёр»,
+            /// значение которых списано из поставки ДОСЛОВНО (столбец
+            /// `fraction` таблицы `v_gamma_coincidence`). Всё, чего здесь нет,
+            /// приложение посчитало само — обратной условной
+            /// `P(A|B) = P(B|A)·I(A)/I(B)` или дополнением атомными
+            /// партнёрами (<see cref="Augment"/>).
+            ///
+            /// ⛔ Заведено ради счётчика зажима, и различие это не косметика:
+            /// доля больше единицы у списанной строки — ДЕФЕКТ ПОСТАВКИ
+            /// (1820 пар у 99 родителей), а у посчитанной — законный исход
+            /// счёта. У `Co-60` поставка безупречна (`fraction` = 0.999872),
+            /// а зажим срабатывает четыре раза: отношение выходов двух линий
+            /// перескакивает единицу само собой. Счётчик, не различающий эти
+            /// два случая, велит чинить поставку там, где чинить нечего.
+            /// </summary>
+            public Dictionary<double, HashSet<double>> SupplyPartners;
         }
 
         /// <summary>
@@ -319,6 +337,137 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static int CarrierKeyMerges;
 
         /// <summary>
+        /// (`D49`) ЧТО ДЕЛАТЬ С ДОЛЕЙ СОВПАДЕНИЯ БОЛЬШЕ ЕДИНИЦЫ. С 10.09.2026
+        /// это ПРАВИЛО ПРИЛОЖЕНИЯ (`Clamp`, решение Amber), а прочие значения
+        /// остались замерным рычагом для `CascadeClampProbe`.
+        ///
+        /// ⛔ Величина больше единицы физически невозможна для условной
+        /// вероятности, а в поставке SandiaDecay она есть: 1820 пар (1.42 %) у
+        /// 99 родителей, максимум 205 835 у `Er151m`. Рычаг заводился НЕ ЧТОБЫ
+        /// чинить, а чтобы измерить цену каждого исхода на одной и той же
+        /// матрице; по этим числам Amber и выбрала `Clamp` 10.09.2026.
+        /// </summary>
+        public enum SuperUnitRule
+        {
+            /// <summary>Поведение дерева ДО 10.09.2026: зажим в выживании, сумм-пик БЕЗ зажима.</summary>
+            AsIs = 0,
+            /// <summary>✅ ПРАВИЛО ПРИЛОЖЕНИЯ: зажим в ОБОИХ потребителях — и в выносе, и во влёте.</summary>
+            Clamp = 1,
+            /// <summary>Пары нет вовсе — так выглядел бы отсев при импорте.</summary>
+            Drop = 2,
+            /// <summary>Без зажима нигде — что поставка сказала, то и считаем.</summary>
+            Raw = 3
+        }
+
+        /// <summary>
+        /// ✅ ДЕЙСТВУЮЩЕЕ ПРАВИЛО ДЛЯ ДОЛИ БОЛЬШЕ ЕДИНИЦЫ — решение Amber
+        /// 10.09.2026 (вопросником), дословно: **«Зажимать в ОБОИХ
+        /// потребителях + счётчик»** (`D49`).
+        ///
+        /// То есть долю зажимает не только <see cref="SurviveAll"/> (вынос из
+        /// пика), но и <see cref="PairBase"/> (площадь сумм-события и влёт
+        /// `inShare` в CF линии-соседа), а у зажима есть счётчик, различающий
+        /// дефект поставки и законный счёт.
+        ///
+        /// ⚠ Цена названа при ответе и принята: сумм-пики задетых нуклидов
+        /// падают до физичных (`Ir-192` −63.1 %, `Sn-115m` −85.0 %,
+        /// `In-114m` −71.3 %, `Cs-132` −11.7 %, `Bi-207` −1.0 %), вынос из
+        /// пика не меняется ВОВСЕ (0.000000 %), на корпусе сдвиг ниже
+        /// разрешения отчёта.
+        ///
+        /// ⛔ Довод за это правило против отсева при импорте: правка в ОДНОМ
+        /// файле приложения, записи в базу не требует, и ловит случай
+        /// `Co-60`, где доля рождается счётом, а не приходит из файла, —
+        /// отсев его не лечит.
+        ///
+        /// Прочие значения остаются ЗАМЕРНЫМИ: `AsIs` — поведение дерева до
+        /// 10.09.2026, `Drop` — как выглядел бы отсев при импорте, `Raw` — что
+        /// поставка сказала. Ими меряет `CascadeClampProbe`; приложение их не
+        /// ставит.
+        /// </summary>
+        public static SuperUnitRule SuperUnitPolicy = SuperUnitRule.Clamp;
+
+        /// <summary>
+        /// (`D49`) Сколько раз доля партнёра в <see cref="SurviveAll"/>
+        /// оказалась больше единицы. ⚠ Считает ШИРЕ, чем 1820 испорченных
+        /// строк поставки: обратная условная считается как
+        /// `P(B|A)·I(A)/I(B)` и перескакивает единицу и при согласной поставке,
+        /// когда выходы двух линий разнятся. Чистится вызывающим.
+        /// </summary>
+        public static int SuperUnitShares;
+
+        /// <summary>
+        /// (`D49`) Из них — на доле, СПИСАННОЙ ИЗ ПОСТАВКИ дословно, то есть
+        /// на дефекте `sandia.decay.xml`. Только это число говорит о поставке.
+        /// </summary>
+        public static int SuperUnitSharesSupply;
+
+        /// <summary>
+        /// (`D49`) Из них — на доле, ПОСЧИТАННОЙ приложением (обратная
+        /// условная `P(A|B) = P(B|A)·I(A)/I(B)`, атомные партнёры). ⚠ Это
+        /// ЗАКОННЫЙ исход счёта, а не порча данных: у `Co-60` при безупречной
+        /// поставке (`fraction` = 0.999872) счётчик набирает четыре.
+        /// </summary>
+        public static int SuperUnitSharesDerived;
+
+        /// <summary>Худшая такая доля и энергия её партнёра, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitShare;
+
+        /// <summary>Энергия партнёра худшей доли, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitShareKev;
+
+        /// <summary>Худшая доля списана из поставки, а не посчитана (`D49`).</summary>
+        public static bool WorstSuperUnitShareFromSupply;
+
+        /// <summary>
+        /// (`D49`) Сколько раз доля пары больше единицы попала в ПЛОЩАДЬ
+        /// сумм-события (<see cref="PairBase"/>). ⛔ Второй потребитель той же
+        /// испорченной строки, и вот у него зажима нет вовсе: доля 129 у
+        /// `Ir192` множит площадь сумм-пика на 129. Чистится вызывающим.
+        /// </summary>
+        public static int SuperUnitPairs;
+
+        /// <summary>(`D49`) Из них — на паре, списанной из поставки дословно.</summary>
+        public static int SuperUnitPairsSupply;
+
+        /// <summary>
+        /// (`D49`) Из них — на паре, посчитанной приложением: рентген и
+        /// аннигиляция, где у 511 кэВ величина есть ожидаемое ЧИСЛО квантов на
+        /// событие и больше единицы бывает законно.
+        /// </summary>
+        public static int SuperUnitPairsDerived;
+
+        /// <summary>Худшая доля пары и энергии её квантов, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPair;
+
+        /// <summary>Первый квант худшей пары, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPairKev;
+
+        /// <summary>Второй квант худшей пары, кэВ (`D49`).</summary>
+        public static double WorstSuperUnitPairWithKev;
+
+        /// <summary>Худшая пара списана из поставки, а не посчитана (`D49`).</summary>
+        public static bool WorstSuperUnitPairFromSupply;
+
+        /// <summary>Обнулить счётчики доли больше единицы (`D49`).</summary>
+        public static void ResetSuperUnitCounters()
+        {
+            SuperUnitShares = 0;
+            SuperUnitSharesSupply = 0;
+            SuperUnitSharesDerived = 0;
+            SuperUnitPairs = 0;
+            SuperUnitPairsSupply = 0;
+            SuperUnitPairsDerived = 0;
+            WorstSuperUnitShare = 0.0;
+            WorstSuperUnitShareKev = 0.0;
+            WorstSuperUnitShareFromSupply = false;
+            WorstSuperUnitPair = 0.0;
+            WorstSuperUnitPairKev = 0.0;
+            WorstSuperUnitPairWithKev = 0.0;
+            WorstSuperUnitPairFromSupply = false;
+        }
+
+        /// <summary>
         /// ⚡ ЗАМЕРНЫЙ РЫЧАГ (`S19`, `S50`): один множитель κ на все сумм-события.
         ///
         /// Площадь сумм-пика считается как `p_ij · ε_p(i) · ε_p(j)` — произведение
@@ -352,6 +501,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «у нуклида нет каскадов», и поломка живёт незамеченной.
         /// </summary>
         public static string Failure { get; private set; }
+
+        /// <summary>
+        /// ⛔ ПРИМЕЧАНИЯ РАЗБОРА — то, что база СКАЗАЛА, отработав (10.09.2026).
+        /// Пусто — сказать нечего.
+        ///
+        /// Заведено потому, что признак отказа кричал на исправной работе.
+        /// <c>Augment</c> клал в <see cref="Failure"/> ЛЮБУЮ непустую записку
+        /// <see cref="CascadeAtomicData.Note"/>, а пробы печатают `Failure`
+        /// словами «ОТКАЗ БАЗЫ» — и законные оговорки («изомер: набор питаний
+        /// ENSDF уровня родителя не различает», «набора питаний X→Y нет вовсе,
+        /// пара 511 не строится») каждый прогон докладывались отказом. На
+        /// корпусных родителях это `228AC` и `234PA`, то есть ряды тория и
+        /// урана — самые частые нуклиды корпуса.
+        ///
+        /// ⚠ Беда тут не в слове, а в том, что признак отказа, срабатывающий
+        /// без отказа, перестают читать — и настоящий отказ тонет вместе с
+        /// ним. Разведены они ПРИЗНАКОМ (<see cref="CascadeAtomicData.Failed"/>),
+        /// а не разбором текста записки.
+        ///
+        /// Копится по всем нуклидам разбора: записка одного не должна затирать
+        /// записку другого — у `Failure` такое затирание есть и оно там уместно
+        /// (отказ важен сам по себе), а примечания читаются списком.
+        /// </summary>
+        public static string Notes { get; private set; }
+
+        static readonly object NoteGate = new object();
+
+        static readonly HashSet<string> NotesSaid =
+            new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>
         /// Окно совпадения по умолчанию, секунды, — когда прибор своего
@@ -830,7 +1008,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
             // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
             // зарегистрирован», и считается она через выживание.
-            loss = 1.0 - this.SurviveAll(data, Partners(data, energy));
+            loss = 1.0 - this.SurviveAll(data, Partners(data, energy), SupplyOf(data, energy));
 
             // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
             // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
@@ -979,7 +1157,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double pairEnergy = this.ApparentSum(pair[0], pair[1]);
-            foreach (KeyValuePair<double, double> third in MergedThird(data, pair[0], pair[1]))
+            HashSet<double> thirdSupply;
+            foreach (KeyValuePair<double, double> third
+                     in MergedThird(data, pair[0], pair[1], out thirdSupply))
             {
                 double peakThird = this.PeakEfficiency(third.Key);
                 double totalThird = this.TotalEfficiency(third.Key);
@@ -1110,7 +1290,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Пока множитель стоял только у сумм-пика, одна и та же сумма была
             // поднята на 34 % как отдельный пик и НЕ поднята, когда попадала в
             // окно чужой линии, — модель спорила сама с собой.
-            return intensity / 100.0 * pair[2]
+            // ⛔ ВТОРОЙ ПОТРЕБИТЕЛЬ ИСПОРЧЕННОЙ СТРОКИ ПОСТАВКИ (`D49`), и
+            // зажима у него в дереве НЕТ вовсе: доля 129 у `Ir192` множит
+            // площадь сумм-события на 129, а через `inShare` поднимает и образ
+            // линии, в чьё окно эта сумма попала.
+            double joint = pair[2];
+
+            // ⛔ СУДИТСЯ ДОЛЯ СОБЫТИЯ, А НЕ ЧИСЛО КВАНТОВ (`D49`, та же беда,
+            // что `S147` уже вылечила в выносе). У аннигиляции величина в паре
+            // — ОЖИДАЕМОЕ ЧИСЛО квантов на распад (2·доля β⁺), и для Na-22 она
+            // законно равна 1.806. Зажим «в единицу», поставленный ей, срезает
+            // сумм-пик 511+1274 почти вдвое.
+            //
+            // ⚠ ИЗМЕРЕНО, а не выведено: с зажимом в 1.0 малая база теряет на
+            // четырёх спектрах Na-22 — χ²/ndf 4.5265 → 4.5528, 18.9646 →
+            // 19.3547, 18.1857 → 18.3052, 57.8650 → 58.6707, Σχ² понятной
+            // части 566.4 → 567.7. Ни один задетый `D49` нуклид при этом не
+            // шелохнулся: правило било по здоровому.
+            //
+            // Делится на кратность — и величина снова становится ВЕРОЯТНОСТЬЮ,
+            // для которой «больше единицы» действительно невозможно. Зажим
+            // тогда ставит не 1.0, а `quanta`: максимум, физически достижимый
+            // для этой пары.
+            double quanta = PairQuanta(data, pair);
+            double share = quanta > 0.0 ? joint / quanta : joint;
+            if (share > 1.0)
+            {
+                // (`D49`) Тот же раздел, что и в выносе: ядерная пара приходит
+                // из поставки дословно, а атомная (рентген, аннигиляция)
+                // посчитана нами. ⚠ «Посчитана» не значит «безупречна»: у
+                // `Ir-192` вероятность рентгена собирается из тех же
+                // испорченных условных и перескакивает единицу вслед за ними.
+                bool listed = IsSupply(data, pair[0], pair[1]);
+                SuperUnitPairs++;
+                if (listed)
+                {
+                    SuperUnitPairsSupply++;
+                }
+                else
+                {
+                    SuperUnitPairsDerived++;
+                }
+
+                if (share > WorstSuperUnitPair)
+                {
+                    WorstSuperUnitPair = share;
+                    WorstSuperUnitPairKev = pair[0];
+                    WorstSuperUnitPairWithKev = pair[1];
+                    WorstSuperUnitPairFromSupply = listed;
+                }
+
+                if (SuperUnitPolicy == SuperUnitRule.Drop)
+                {
+                    return 0.0;
+                }
+
+                if (SuperUnitPolicy == SuperUnitRule.Clamp)
+                {
+                    joint = quanta > 0.0 ? quanta : 1.0;
+                }
+            }
+
+            return intensity / 100.0 * joint
                    * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1])
                    * this.JointFactor(pair[0], pair[1]);
         }
@@ -1121,7 +1362,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double Survive(NuclideData data, double[] pair)
         {
-            return this.SurviveAll(data, MergedThird(data, pair[0], pair[1]));
+            HashSet<double> supply;
+            Dictionary<double, double> third = MergedThird(data, pair[0], pair[1], out supply);
+            return this.SurviveAll(data, third, supply);
         }
 
         /// <summary>
@@ -1146,7 +1389,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// потерю (верна была бы сумма), но разводить их нечем — условные
         /// вероятности поставки не несут признака ветви. Родня: `S145`.
         /// </summary>
-        double SurviveAll(NuclideData data, Dictionary<double, double> partners)
+        double SurviveAll(NuclideData data, Dictionary<double, double> partners,
+                          HashSet<double> supply)
         {
             double survive = 1.0;
             foreach (KeyValuePair<double, double> partner in partners)
@@ -1180,7 +1424,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // Доля события больше единицы физически невозможна: значит
                     // поставка даёт на распад больше одного такого кванта, и
                     // осторожнее считать событие достоверным.
-                    share = 1.0;
+                    //
+                    // ⚡ (`D49`) Счётчик и рычаг. Зажим — максимальный
+                    // возможный вынос линии из пика, и до 10.09.2026 он стоял
+                    // МОЛЧА: отличить «зажали 1820 раз» от «ни разу» было
+                    // нечем.
+                    //
+                    // ⛔ СЧЁТЧИК РАЗДЕЛЁН НА ДВА СЛУЧАЯ, и это не украшение.
+                    // Доля, СПИСАННАЯ из поставки и большая единицы, — дефект
+                    // `sandia.decay.xml` (1820 пар у 99 родителей). Доля,
+                    // ПОСЧИТАННАЯ нами, перескакивает единицу законно:
+                    // обратная условная `P(A|B) = P(B|A)·I(A)/I(B)` при разных
+                    // выходах двух линий, и дополнение атомными партнёрами.
+                    // У `Co-60` поставка безупречна (0.999872), а зажим
+                    // срабатывает четыре раза — сложенный счётчик послал бы
+                    // чинить поставку там, где чинить нечего.
+                    bool listed = supply != null && supply.Contains(partner.Key);
+                    SuperUnitShares++;
+                    if (listed)
+                    {
+                        SuperUnitSharesSupply++;
+                    }
+                    else
+                    {
+                        SuperUnitSharesDerived++;
+                    }
+
+                    if (share > WorstSuperUnitShare)
+                    {
+                        WorstSuperUnitShare = share;
+                        WorstSuperUnitShareKev = partner.Key;
+                        WorstSuperUnitShareFromSupply = listed;
+                    }
+
+                    if (SuperUnitPolicy == SuperUnitRule.Drop)
+                    {
+                        continue;
+                    }
+
+                    if (SuperUnitPolicy != SuperUnitRule.Raw)
+                    {
+                        share = 1.0;
+                    }
                 }
 
                 double miss = Math.Pow(1.0 - efficiency, quanta);
@@ -1196,11 +1481,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// данных невосстановима, берётся P(m|i∧j) ≈ max(P(m|i), P(m|j)) — для
         /// каскада i→j квант ниже j воспроизводится точно, выше i консервативно.
         /// </summary>
-        static Dictionary<double, double> MergedThird(NuclideData data, double i, double j)
+        static Dictionary<double, double> MergedThird(NuclideData data, double i, double j,
+                                                      out HashSet<double> supply)
         {
             Dictionary<double, double> merged = new Dictionary<double, double>();
+
+            // (`D49`) Метка происхождения едет за ПОБЕДИВШИМ значением: у
+            // максимума одно происхождение, и приписывать ему чужое нельзя.
+            supply = new HashSet<double>();
             foreach (double side in new[] { i, j })
             {
+                HashSet<double> marks = SupplyOf(data, side);
                 foreach (KeyValuePair<double, double> entry in Partners(data, side))
                 {
                     if (Math.Abs(entry.Key - i) < SamePairLineKev || Math.Abs(entry.Key - j) < SamePairLineKev)
@@ -1212,6 +1503,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (!merged.TryGetValue(entry.Key, out have) || entry.Value > have)
                     {
                         merged[entry.Key] = entry.Value;
+                        if (marks != null && marks.Contains(entry.Key))
+                        {
+                            supply.Add(entry.Key);
+                        }
+                        else
+                        {
+                            supply.Remove(entry.Key);
+                        }
                     }
                 }
             }
@@ -1526,7 +1825,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Intensity = new Dictionary<double, double>(),
                 Pairs = new List<double[]>(),
                 Partners = new Dictionary<double, Dictionary<double, double>>(),
-                PartnerQuanta = new Dictionary<double, double>()
+                PartnerQuanta = new Dictionary<double, double>(),
+                SupplyPartners = new Dictionary<double, HashSet<double>>()
             };
 
             try
@@ -1595,12 +1895,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (database/scheme.md, §8).
             foreach (double[] pair in data.Pairs)
             {
-                Put(data, pair[0], pair[1], pair[2]);
+                // Прямая сторона — ЧИСЛО ПОСТАВКИ, обратная — наше (`D49`).
+                Put(data, pair[0], pair[1], pair[2], true);
                 double ia, ib;
                 if (data.Intensity.TryGetValue(pair[0], out ia)
                     && data.Intensity.TryGetValue(pair[1], out ib) && ib > 0.0)
                 {
-                    Put(data, pair[1], pair[0], pair[2] * ia / ib);
+                    Put(data, pair[1], pair[0], pair[2] * ia / ib, false);
                 }
             }
 
@@ -1654,9 +1955,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return hasPairs ? raw : null;
             }
 
+            // ⛔ ЗАПИСКА — НЕ ОТКАЗ (10.09.2026). Отказ называет себя сам
+            // признаком `Failed`; всё прочее — примечание, и работа при нём
+            // идёт. Прежде здесь стояло «любая непустая записка = Failure», и
+            // пробы печатали её словами «ОТКАЗ БАЗЫ» у `228AC` и `234PA`,
+            // хотя ни та ни другая база не отказывала. Подробности — у
+            // <see cref="Notes"/>.
             if (!string.IsNullOrEmpty(atomic.Note))
             {
-                Failure = key + ": " + atomic.Note;
+                if (atomic.Failed)
+                {
+                    Failure = key + ": " + atomic.Note;
+                }
+                else
+                {
+                    // ⚠ Каждая записка ОДИН РАЗ: `Augment` зовётся на каждый
+                    // разбор, а данные нуклида лежат в общем кэше, и без этого
+                    // строка росла бы на каждом прогоне одним и тем же.
+                    string said = key + ": " + atomic.Note;
+                    lock (NoteGate)
+                    {
+                        if (NotesSaid.Add(said))
+                        {
+                            Notes = string.IsNullOrEmpty(Notes) ? said : Notes + " | " + said;
+                        }
+                    }
+                }
             }
 
             // Копия, а не правка на месте: `raw` лежит в ОБЩЕМ кэше, и дописать
@@ -2047,7 +2371,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double probability = byKeys[fromKey][toKey];
 
                 data.Pairs.Add(new[] { fromKey, toKey, probability });
-                Put(data, fromKey, toKey, probability);
+                // Атомный партнёр посчитан НАМИ, в поставке такой строки нет (`D49`).
+                Put(data, fromKey, toKey, probability, false);
 
                 // Обратная условная — тем же правилом, что у ядерных пар:
                 // P(A|B) = P(B|A)·I(A)/I(B). Считается ПОСЛЕ слияния, потому
@@ -2056,7 +2381,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (data.Intensity.TryGetValue(fromKey, out ia)
                     && data.Intensity.TryGetValue(toKey, out ib) && ib > 0.0)
                 {
-                    Put(data, toKey, fromKey, probability * ia / ib);
+                    Put(data, toKey, fromKey, probability * ia / ib, false);
                 }
             }
 
@@ -2652,6 +2977,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 data.Partners[entry.Key] = bag;
             }
 
+            // ⛔ Метки происхождения копируются ВМЕСТЕ со значениями (`D49`):
+            // без этого копия объявила бы все доли посчитанными нами, и
+            // счётчик перестал бы находить дефект поставки после `Augment`.
+            if (source.SupplyPartners != null)
+            {
+                data.SupplyPartners = new Dictionary<double, HashSet<double>>();
+                foreach (KeyValuePair<double, HashSet<double>> entry in source.SupplyPartners)
+                {
+                    data.SupplyPartners[entry.Key] = new HashSet<double>(entry.Value);
+                }
+            }
+
             return data;
         }
 
@@ -2686,7 +3023,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             acc[1] += weight;
         }
 
-        static void Put(NuclideData data, double from, double to, double probability)
+        /// <summary>
+        /// Положить долю партнёра. <paramref name="fromSupply"/> — величина
+        /// списана из поставки ДОСЛОВНО, а не посчитана нами (`D49`); метка
+        /// нужна счётчику зажима, чтобы отличать дефект поставки от законного
+        /// исхода счёта.
+        /// </summary>
+        static void Put(NuclideData data, double from, double to, double probability,
+                        bool fromSupply)
         {
             Dictionary<double, double> bag;
             if (!data.Partners.TryGetValue(from, out bag))
@@ -2695,6 +3039,84 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             bag[to] = probability;
+
+            if (data.SupplyPartners == null)
+            {
+                data.SupplyPartners = new Dictionary<double, HashSet<double>>();
+            }
+
+            HashSet<double> marks;
+            if (!data.SupplyPartners.TryGetValue(from, out marks))
+            {
+                if (!fromSupply)
+                {
+                    // Метки и не было — заводить пустое множество незачем.
+                    return;
+                }
+
+                data.SupplyPartners[from] = marks = new HashSet<double>();
+            }
+
+            // ⛔ Метка живёт ВМЕСТЕ со значением: перезапись посчитанной
+            // величиной снимает её. Иначе счётчик отнёс бы к поставке число,
+            // которого в поставке уже нет.
+            if (fromSupply)
+            {
+                marks.Add(to);
+            }
+            else
+            {
+                marks.Remove(to);
+            }
+        }
+
+        /// <summary>
+        /// КРАТНОСТЬ ПАРЫ: сколько квантов несёт её многоквантовый конец
+        /// (`D49`, по образцу `S147`). Единица у всех, кроме аннигиляции, у
+        /// которой квантов ДВА. Берётся больший из двух концов: у пары
+        /// «гамма ↔ 511» многоквантовый один, и какой именно — зависит от
+        /// стороны, которой пара записана.
+        /// </summary>
+        static double PairQuanta(NuclideData data, double[] pair)
+        {
+            if (data == null || data.PartnerQuanta == null || pair == null || pair.Length < 2)
+            {
+                return 1.0;
+            }
+
+            double quanta = 1.0;
+            for (int end = 0; end < 2; end++)
+            {
+                double had;
+                if (data.PartnerQuanta.TryGetValue(pair[end], out had) && had > quanta)
+                {
+                    quanta = had;
+                }
+            }
+
+            return quanta;
+        }
+
+        /// <summary>Доля партнёра списана из поставки дословно (`D49`).</summary>
+        static bool IsSupply(NuclideData data, double from, double to)
+        {
+            HashSet<double> marks;
+            return data != null && data.SupplyPartners != null
+                   && data.SupplyPartners.TryGetValue(from, out marks)
+                   && marks.Contains(to);
+        }
+
+        /// <summary>
+        /// Метки происхождения для партнёров опорной линии (`D49`); `null` —
+        /// списанных из поставки среди них нет вовсе.
+        /// </summary>
+        static HashSet<double> SupplyOf(NuclideData data, double energy)
+        {
+            HashSet<double> marks;
+            return data != null && data.SupplyPartners != null
+                   && data.SupplyPartners.TryGetValue(energy, out marks)
+                ? marks
+                : null;
         }
 
         /// <summary>

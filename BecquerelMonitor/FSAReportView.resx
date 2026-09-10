@@ -5085,8 +5085,20 @@
   <data name="FSAReport_ResidualRow" xml:space="preserve">
     <value>Residual: + excess / − missing</value>
   </data>
+  <data name="FSAReport_ResidualClamped" xml:space="preserve">
+    <value>display clipped on {0} channels</value>
+  </data>
+  <data name="FSAReport_ResidualClampedTip" xml:space="preserve">
+    <value>The number is measured on the fit curve, without clipping. The band on the chart is drawn against the displayed curve, where negative counts are clipped to zero on {0} channels, so the band covers less area than the number states.</value>
+  </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
     <value>χ²/ndf, goodness of fit</value>
+  </data>
+  <data name="FSAReport_InflationRow" xml:space="preserve">
+    <value>σ×, uncertainty inflation</value>
+  </data>
+  <data name="FSAReport_InflationTip" xml:space="preserve">
+    <value>Component uncertainties are multiplied by this factor, sqrt(χ²/ndf), whenever the fit is worse than Poisson statistics alone. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Response matrix</value>
