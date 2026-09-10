@@ -49,7 +49,14 @@ def load_comps(d, mode):
 
 def recall(d, mode, sthr=3.0, zthr=4.0, only=None):
     truth = score.load_truth()
-    results, groups, _ = score.load_results(mode, d)
+    # ⚠ Берём первые два поля ПОЗИЦИОННО, а не распаковкой всей связки
+    # (10.09.2026): `score.load_results` отдавала три значения, потом стала
+    # отдавать шесть (χ²/ndf, невязка, отказы фона), и сравнение падало
+    # `ValueError: too many values to unpack` — уже ПОСЛЕ того, как напечатало
+    # таблицу по группам. То есть отказ выглядел как «сравнение сделано»:
+    # числа на экране есть, recall и фантомов нет вовсе.
+    loaded = score.load_results(mode, d)
+    results, groups = loaded[0], loaded[1]
     if only:
         groups &= set(only)
     hits = tot = phantom = 0
