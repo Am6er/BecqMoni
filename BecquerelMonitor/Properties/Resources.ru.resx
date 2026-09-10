@@ -400,6 +400,9 @@
   <data name="FSANotPossible" xml:space="preserve">
     <value>Полноспектральное разложение для этого спектра невозможно</value>
   </data>
+  <data name="FSANoGeometry" xml:space="preserve">
+    <value>Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности</value>
+  </data>
   <data name="FSAFailed" xml:space="preserve">
     <value>Полноспектральное разложение не удалось.</value>
   </data>
@@ -603,6 +606,9 @@
   </data>
   <data name="N42ExportDialogTitle" xml:space="preserve">
     <value>Экспорт файла N42</value>
+  </data>
+  <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
+    <value>Формат N42 не несёт кривую эффективности. В файл НЕ уйдут кривая эффективности, геометрия детектора и привязка к матрице отклика; спектров с кривой в этом документе: {0} из {1}. Поэтому у файла, ввезённого в НОВЫЙ документ, не будет ни активности выделения, ни активности зон, ни полноспектрального разбора (FSA), ни нормировки по эффективности. Сами спектры, энергетическая калибровка и времена набора уходят в файл полностью.</value>
   </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>Функция калибровки должна монотонно возрастать при увеличиении канала. Проверьте калибровку!</value>
@@ -1681,6 +1687,12 @@
   </data>
   <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
     <value>У {0} выбранных спектров нет калибровки ПШПВ, а конфигурации прибора, на которую они ссылаются, в вашем конфиге нет ({1}). От неё зависят обе калибровки, поэтому замену называете вы:</value>
+  </data>
+  <data name="EfficiencyTabImportLsrm" xml:space="preserve">
+    <value>Ввоз ЛСРМ...</value>
+  </data>
+  <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
+    <value>ЛСРМ EffCalcMC.txt → кривая эффективности</value>
   </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Матрица отклика...</value>

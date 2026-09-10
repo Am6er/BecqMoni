@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
@@ -135,6 +136,35 @@ namespace BecquerelMonitor.EfficiencyMaker
             get { return this.labels.ToArray(); }
         }
 
+        int crowded;
+        int crowdedReported = -1;
+
+        /// <summary>
+        /// Сколько размерных чисел последней отрисовки встали ПРИЖАТЫМИ — то
+        /// есть ни одно из 40+ мест по ГОСТ не оказалось свободным, и число
+        /// напечатано в наименее занятом, вплотную к соседу или к краю поля.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `E40`. Прижимать число правильно — потерянное число хуже
+        /// прижатого, и <see cref="Place"/> так и делает. Дефектом был не сам
+        /// прижим, а его НЕМОТА: узнать о нём можно было только прогнав
+        /// `EditorShot --check`, а тот меряет 14 заготовленных сцен. У
+        /// геометрии, введённой человеком в поля редактора, читателя не было
+        /// вовсе — чертёж молча выдавал нечитаемое место.
+        ///
+        /// Теперь читателя два: это свойство (его берёт проба) и запись в
+        /// журнал приложения <c>becqmoni.log</c> через <see cref="Trace"/> —
+        /// то есть при жалобе человека подробности есть откуда взять.
+        ///
+        /// ⚠ Ноль — это «все числа встали свободно», а не «не считали»:
+        /// счётчик сбрасывается в начале КАЖДОЙ отрисовки, вместе с
+        /// <see cref="Labels"/>.
+        /// </remarks>
+        public int CrowdedLabels
+        {
+            get { return this.crowded; }
+        }
+
         // ------------------------------------------------------------------
         // Мир -> экран
         // ------------------------------------------------------------------
@@ -187,6 +217,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Canvas);
             this.labels.Clear();
+            // ⛔ `E40`. Счётчик прижатых чисел живёт РОВНО ОДНУ отрисовку, как
+            // и список подписей: иначе он копил бы прижимы прошлых кадров и
+            // показывал бы беду там, где её уже нет.
+            this.crowded = 0;
 
             using (Pen frame = new Pen(Color.FromArgb(0x90, 0x90, 0x90)))
             {
@@ -302,6 +336,39 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 this.AnnotateOverview(g, m);
             }
+
+            this.ReportCrowded();
+        }
+
+        /// <summary>
+        /// Сказать в журнал приложения, что размерным числам не хватило места.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `E40`, вторая половина: сам счётчик — ещё не читатель.
+        /// <see cref="CrowdedLabels"/> берёт проба, а человеку за экраном нужен
+        /// след в <c>becqmoni.log</c> (<see cref="AppLog"/>): при жалобе «числа
+        /// на чертеже слиплись» подробности иначе взять неоткуда, а
+        /// `EditorShot --check` меряет 14 заготовленных сцен и о геометрии,
+        /// введённой руками, не знает ничего.
+        ///
+        /// ⚠ Пишем ТОЛЬКО ПРИ ИЗМЕНЕНИИ числа, а не на каждый кадр.
+        /// <see cref="OnPaint"/> зовётся на каждую перерисовку — при
+        /// перетаскивании окна это десятки раз в секунду, и запись «в лоб»
+        /// залила бы журнал (порог подрезки 2 МБ) за минуту, вытеснив из него
+        /// всё остальное. Возврат к нулю сообщается тоже: человек должен видеть,
+        /// что правкой полей он беду убрал.
+        /// </remarks>
+        void ReportCrowded()
+        {
+            if (this.crowded == this.crowdedReported)
+            {
+                return;
+            }
+
+            this.crowdedReported = this.crowded;
+            Trace.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "GeometrySketch [{0}, {1}x{2}]: размерных чисел без свободного места — {3}",
+                this.Mode, this.Width, this.Height, this.crowded));
         }
 
         /// <summary>
@@ -540,11 +607,32 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 case GeometrySourceType.Cylinder:
                 {
+                    // (`E42`) Границы обязаны НАКРЫВАТЬ то, что рисует
+                    // DrawSource, иначе тело уезжает за край поля — тот же
+                    // договор, что записан у маринелли ниже и соблюдён у
+                    // бруска выше.
+                    //
+                    // ⛔ ВЕРХ ТЕЛА У ЦИЛИНДРА — `zTop - end - hs`, и `BeakerHeight`
+                    // в нём не участвует: `DrawSource` рисует стенку высотой
+                    // `hs + end` от `zSrcTop - hs`, а полной высоты сосуда не
+                    // читает вовсе. Здесь же стояло `zTop - BeakerHeight - hs`,
+                    // и при `BeakerHeight < BeakerEndWallThickness` кадр
+                    // оказывался НИЖЕ нарисованного тела.
+                    //
+                    // ⚠ Взят `Math.Max`, а не одно только `end`. Кадр обязан
+                    // накрывать нарисованное — это и чинится; делать его ещё и
+                    // ПЛОТНЫМ значит сдвинуть кадр КАЖДОГО чертежа цилиндра
+                    // (на штатной сцене «на земле» `BeakerHeight = SourceHeight`
+                    // при нулевом донышке, то есть высота кадра завышена вдвое),
+                    // а дефекта, который бы это оправдывал, нет: масштаб там
+                    // задаёт ширина. Отдельное решение, отдельная строка.
                     double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
                     double zTop = zFace - Math.Max(m.BeakerToDetectorDistance, 0.0);
+                    double reserve = Math.Max(Math.Max(m.BeakerHeight, 0.0),
+                                              Math.Max(m.BeakerEndWallThickness, 0.0));
                     left = -rOut;
                     right = rOut;
-                    top = zTop - Math.Max(m.BeakerHeight, 0.0) - Math.Max(m.SourceHeight, 0.0);
+                    top = zTop - reserve - Math.Max(m.SourceHeight, 0.0);
                     bottom = zFace;
                     return;
                 }
@@ -725,8 +813,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.DimV(g, pen, ink, -rOut * 0.55, zSrcTop, zWallTop, end, "BeakerEndWallThickness");
                         this.DimH(g, pen, ink, -rOut, -(rOut - wall), zSrcTop - hs * 0.5,
                                   wall, "BeakerSideWallThickness");
-                        this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs, zWallTop,
-                                  Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
+                        // ⛔ (`E39`) ВЫСОТА СОСУДА ПОДПИСЫВАЕТСЯ ТОЛЬКО ТАМ, ГДЕ
+                        // СОСУД ЕСТЬ. Сцена «на земле» ставит `BeakerHeight =
+                        // SourceHeight` (поле уезжает в `.in`, пусть не врёт), и
+                        // чертёж честно печатал два одинаковых числа в трёх
+                        // точках друг от друга: в колонке редактора шириной 232
+                        // точки «638.6» и «638.6» читаются как одно число из
+                        // одиннадцати знаков.
+                        //
+                        // ⚠ Судим НЕ по совпадению значений: чертёж не вправе
+                        // решать, что размер сосуда совпал с размером пробы не
+                        // случайно, — человек мог ввести равные числа руками, и
+                        // тогда оба размера обязаны стоять. Судим по СТЕНКАМ:
+                        // у сцены «на земле» стенок нет ни боковой, ни донышка
+                        // (грунт — не стакан), а у сосуда без стенок высоты нет
+                        // как размера, есть только пустое поле модели.
+                        if (VesselExists(wall, end))
+                        {
+                            this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs, zWallTop,
+                                      Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
+                        }
+
                         return;
                     }
 
@@ -758,8 +865,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Корпус рисуется от zSrc0 - endWall высотой body
                         // (см. DrawSource), выноска обязана мерить ровно то же и
                         // показывать само поле, а не сумму с чем-нибудь.
-                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - endWall,
-                                  zSrc0 - endWall + body, body, "MarinelliBeakerHeight");
+                        //
+                        // ⛔ (`E39`) ТО ЖЕ ПРАВИЛО, ЧТО У ЦИЛИНДРА. Строка
+                        // реестра назвала одну сцену, а их ДВЕ: «в лунке»
+                        // (`GeometryScenes.Borehole`) ставит
+                        // `MarinelliBeakerHeight = MarinelliSourceHeight` и
+                        // обнуляет обе стенки ровно так же, как «на земле», —
+                        // и точно так же печатала одно число дважды. Лунка в
+                        // грунте стаканом не является, высоты стакана у неё нет.
+                        if (VesselExists(side, endWall))
+                        {
+                            this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrc0 - endWall,
+                                      zSrc0 - endWall + body, body, "MarinelliBeakerHeight");
+                        }
                         this.DimH(g, pen, ink, -rOut, -(rOut - side), zSrc0 + hs * 0.28, side,
                                   "MarinelliSideThickness");
                         // Донышко — своя толщина, а не боковая. Раньше здесь
@@ -781,6 +899,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Есть ли у пробы сосуд. Сосуд — это стенки; проба без единой стенки
+        /// лежит навалом (грунт под прибором, лунка в грунте), и «высота
+        /// сосуда» у неё не размер, а незаполненное поле модели.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `E39`. Признак нарочно взят по СТЕНКАМ, а не по равенству высоты
+        /// сосуда высоте пробы. Равенство — совпадение чисел, и решать за
+        /// человека, что оно неслучайно, чертёж не вправе: ввёл равные руками —
+        /// оба размера обязаны стоять на чертеже. Отсутствие обеих стенок —
+        /// суждение о ПРЕДМЕТЕ, а не о числах, и его чертёж выносить вправе.
+        ///
+        /// ⚠ В дереве этому признаку отвечают ровно две сцены —
+        /// <c>GeometryScenes.Ground</c> и <c>GeometryScenes.Borehole</c>, и
+        /// ровно они же ставят «сосуд = проба». Других сцен, обнуляющих обе
+        /// стенки, нет (проверено счётом присвоений в `GeometryScenes.cs`).
+        /// </remarks>
+        static bool VesselExists(double sideWall, double endWall)
+        {
+            return sideWall > 0.0 || endWall > 0.0;
         }
 
         // ------------------------------------------------------------------
@@ -1070,12 +1210,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             int best = 0;
             float bestCost = float.MaxValue;
+            bool free = false;
             for (int i = 0; i < spots.Count; i++)
             {
                 float cost = this.Cost(spots[i].Box);
                 if (cost <= 0f)
                 {
                     best = i;
+                    free = true;
                     break;
                 }
 
@@ -1084,6 +1226,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     bestCost = cost;
                     best = i;
                 }
+            }
+
+            // ⛔ `E40`. ЗДЕСЬ И ТОЛЬКО ЗДЕСЬ становится известно, что месту не
+            // нашлось замены. Ниже число уже напечатано и от свободного на вид
+            // неотличимо — ни `Labels`, ни картинка прижима не показывают, пока
+            // подписи фактически не пересеклись (зазор `Gap` в две точки
+            // пересечением не считается, а читается как одно длинное число).
+            if (!free)
+            {
+                this.crowded++;
             }
 
             Spot spot = spots[best];

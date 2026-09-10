@@ -2075,8 +2075,80 @@ namespace BecquerelMonitor
             Cursor.Current = Cursors.Default;
         }
 
+        /// <summary>
+        /// Предупреждение о том, ЧЕГО файл N42 не понесёт (`AMBER14`, решение
+        /// Amber 10.09.2026 вопросником: «Предупреждать при вывозе»; формат
+        /// своим элементом НЕ расширяется).
+        ///
+        /// ⛔ Теряется не «кривая», а ЧЕТЫРЕ возможности разом, и предупреждение
+        /// обязано называть их. Через <see cref="ResultData.Efficiency"/> в
+        /// программу приходят не только точки эффективности, но и
+        /// <c>Geometry</c>, и привязка к матрице отклика
+        /// (<c>FsaAnalysisSession.MatrixFileStamp(resultData.Efficiency)</c>),
+        /// поэтому вывезенный и ввезённый В НОВЫЙ ДОКУМЕНТ файл остаётся без
+        /// активности выделения, без активности зон, без полноспектрального
+        /// разбора (<c>DocEnergySpectrum.CanShowFsa</c> требует
+        /// <c>Efficiency != null</c>) и без нормировки по эффективности
+        /// (<c>IsNormalizeByEfficiencyAvailable</c>).
+        ///
+        /// ⛔ НЕ ПУТАТЬ с ~~<c>A260</c>~~: при ввозе в СУЩЕСТВУЮЩИЙ документ
+        /// кривая документа СОХРАНЯЕТСЯ — это отдельное решение Amber, и его
+        /// судит <c>N42RoundTripProbe</c>. Здесь речь о том, что несёт САМ ФАЙЛ.
+        ///
+        /// ⚠ Измерено 10.09.2026: во всех двенадцати файлах
+        /// <c>BecquerelMonitor/N42/</c> слово <c>Efficiency</c> не встречается
+        /// НИ РАЗУ (положительный контроль того же скана —
+        /// <c>EnergyCalibration</c>, 57 совпадений), то есть терять нечему
+        /// только тому документу, у которого кривой и нет.
+        ///
+        /// Возвращает <c>null</c>, когда предупреждать не о чем: ни у одного
+        /// спектра документа кривой нет, и вывоз ничего не теряет. Метод
+        /// отдельный и без окон нарочно — иначе положительный контроль
+        /// («с кривой — говорит, без кривой — молчит») пришлось бы снимать
+        /// нажатием на окно, а окна пробе нажимать некому.
+        /// </summary>
+        public static string N42ExportWarning(ResultDataFile resultDataFile)
+        {
+            if (resultDataFile == null || resultDataFile.ResultDataList == null)
+            {
+                return null;
+            }
+
+            int total = resultDataFile.ResultDataList.Count;
+            int withCurve = 0;
+            for (int i = 0; i < total; i++)
+            {
+                ResultData data = resultDataFile.ResultDataList[i];
+                if (data != null && data.Efficiency != null)
+                {
+                    withCurve++;
+                }
+            }
+
+            if (withCurve == 0)
+            {
+                return null;
+            }
+
+            // Числа печатаются инвариантной культурой — правило Amber
+            // 05.09.2026 о разделителе; группировки разрядов нет.
+            return string.Format(CultureInfo.InvariantCulture,
+                                 Resources.MSGN42ExportLosesEfficiency,
+                                 withCurve, total);
+        }
+
         public void ExportDocumentN42(DocEnergySpectrum doc)
         {
+            // Предупреждение ДО выбора файла: человек, узнавший о потере, ещё
+            // может отказаться от вывоза в диалоге сохранения. После записи
+            // предупреждать было бы поздно.
+            string efficiencyWarning = DocumentManager.N42ExportWarning(
+                doc != null ? doc.ResultDataFile : null);
+            if (efficiencyWarning != null)
+            {
+                AppUi.Report(efficiencyWarning, "", MessageBoxIcon.None);
+            }
+
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.N42ExportDialogTitle;
             saveFileDialog.Filter = Resources.N42FileFilter;

@@ -32,6 +32,20 @@ namespace BecquerelMonitor
         Button efficiencyDuplicateButton, efficiencyDeleteButton, efficiencyMatrixButton;
 
         /// <summary>
+        /// Ввоз текстового экспорта ЛСРМ (`EffCalcMC.txt`).
+        ///
+        /// ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять и завести ввоз на
+        /// Efficiency». До того ввоз жил на вкладке `DoseRate` кнопкой
+        /// `buttonLoadEff`, и это была ЕДИНСТВЕННАЯ дверь ввоза ЛСРМ во всём
+        /// приложении — а ввезённая кривая никуда не сохранялась: она лежала в
+        /// поле формы (`doseRateFileCurve`) и пропадала вместе с окном. Здесь
+        /// она становится обычной <see cref="EfficiencyConfigData"/> в списке
+        /// прибора, то есть переживает закрытие окна, «Сохранить» и снимок в
+        /// файл спектра.
+        /// </summary>
+        Button efficiencyImportButton;
+
+        /// <summary>
         /// Собрать вкладку и вставить её СРАЗУ ЗА калибровкой энергии: кривая —
         /// это тоже градуировка прибора, и стоять ей рядом с остальными.
         /// </summary>
@@ -58,7 +72,12 @@ namespace BecquerelMonitor
             // тот: она получает свои 490x599 позже, и растянутый на разницу
             // чертёж уезжал за край (768x1086 при поле 490x599). Док от
             // размера не зависит вовсе.
-            this.efficiencyHeader = new Panel { Dock = DockStyle.Top, Height = 166 };
+            //
+            // ⛔ Высота шапки — ЧИСЛО, и оно устаревает при первой же
+            // добавленной строке: панель обрезает детей МОЛЧА, без исключения
+            // и без признака. Третий ряд кнопок (ввоз ЛСРМ, `AMBER13`) прибавил
+            // 32 точки, и высота выросла ровно на них: 166 → 198.
+            this.efficiencyHeader = new Panel { Dock = DockStyle.Top, Height = 198 };
             Panel header = this.efficiencyHeader;
 
             int y = Margin;
@@ -77,12 +96,21 @@ namespace BecquerelMonitor
             this.efficiencyMatrixButton = this.EfficiencyButton(
                 Resources.EfficiencyTabResponseMatrix, Margin + 2 * (ButtonWidth + Gap), y, ButtonWidth);
 
+            // Третий ряд: ввоз экспорта ЛСРМ (`AMBER13`, решение Amber
+            // 10.09.2026). Стоит ОТДЕЛЬНО от шести кнопок правки, а не седьмой
+            // в их ряду: те шесть работают с ВЫБРАННОЙ кривой, а эта заводит
+            // новую и выбора не требует вовсе.
+            y += 32;
+            this.efficiencyImportButton = this.EfficiencyButton(
+                Resources.EfficiencyTabImportLsrm, Margin, y, ButtonWidth);
+
             this.efficiencyNewButton.Click += this.efficiencyNewButton_Click;
             this.efficiencyEditButton.Click += this.efficiencyEditButton_Click;
             this.efficiencyRenameButton.Click += this.efficiencyRenameButton_Click;
             this.efficiencyDuplicateButton.Click += this.efficiencyDuplicateButton_Click;
             this.efficiencyDeleteButton.Click += this.efficiencyDeleteButton_Click;
             this.efficiencyMatrixButton.Click += this.efficiencyMatrixButton_Click;
+            this.efficiencyImportButton.Click += this.efficiencyImportButton_Click;
 
             // Подпись отдельной строкой над списком, а не слева от него:
             // «Конфигурация эффективности:» съедает треть ширины, и списку
@@ -442,6 +470,86 @@ namespace BecquerelMonitor
 
             this.openEfficiencyMakers.Add(maker);
             maker.Show(this);
+        }
+
+        /// <summary>
+        /// Завести кривую эффективности из текстового экспорта ЛСРМ
+        /// (`EffCalcMC.txt`) и ПОЛОЖИТЬ ЕЁ В КОНФИГУРАЦИЮ ПРИБОРА.
+        ///
+        /// ⛔ `AMBER13`, решение Amber 10.09.2026: «`buttonLoadEff` /
+        /// `labelEffNote` уходят с вкладки `DoseRate`, а ввоз экспорта ЛСРМ
+        /// заводится на вкладке Efficiency, и ввезённая кривая наконец
+        /// СОХРАНЯЕТСЯ». Прежний ввоз клал точки в поле формы
+        /// (`doseRateFileCurve`), откуда их нельзя было ни сохранить, ни
+        /// посмотреть после закрытия окна.
+        ///
+        /// ⚠ Метод отделён от кнопки нарочно и окна не поднимает: разбор файла
+        /// и попадание кривой в конфигурацию проверяются пробой без диалога.
+        /// Геометрии у ввезённой кривой НЕТ — экспорт ЛСРМ её не несёт, — и
+        /// это законное состояние: <see cref="EfficiencyConfigData"/> без
+        /// геометрии пользуется, но не пересчитывается.
+        /// </summary>
+        /// <returns>Заведённая конфигурация или null, если файл негоден.</returns>
+        internal static EfficiencyConfigData ImportLsrmEfficiency(
+            DeviceConfigInfo device, string path, out string problem)
+        {
+            problem = null;
+            if (device == null)
+            {
+                // Не подпись для человека, а страж вызова: с кнопки сюда с
+                // пустой конфигурацией не приходят, а проба обязана получить
+                // причину. Поэтому строка не переводится и в resx не заводится.
+                problem = "no device configuration selected";
+                return null;
+            }
+
+            List<ROIEfficiencyData> points = ReadLsrmEfficiencyExport(path, out problem);
+            if (problem != null)
+            {
+                return null;
+            }
+
+            EfficiencyConfigData config = new EfficiencyConfigData(
+                Path.GetFileNameWithoutExtension(path))
+            {
+                Origin = EfficiencyOrigin.Lsrm,
+                Curve = points,
+            };
+
+            device.EfficiencyConfigs.Add(config);
+            return config;
+        }
+
+        void efficiencyImportButton_Click(object sender, EventArgs e)
+        {
+            if (this.activeDeviceConfig == null)
+            {
+                return;
+            }
+
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = Resources.EfficiencyTabImportLsrmTitle;
+            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
+            openFileDialog.FilterIndex = 2;
+            openFileDialog.RestoreDirectory = true;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            string problem;
+            EfficiencyConfigData config = ImportLsrmEfficiency(
+                this.activeDeviceConfig, openFileDialog.FileName, out problem);
+            if (config == null)
+            {
+                MessageBox.Show(this,
+                    string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, problem),
+                    this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            this.RefreshEfficiencyList(config.Guid);
+            this.SetActiveDeviceConfigDirty();
         }
 
         void efficiencyRenameButton_Click(object sender, EventArgs e)

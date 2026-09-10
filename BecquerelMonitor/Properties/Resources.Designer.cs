@@ -2149,6 +2149,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full..
+        /// </summary>
+        public static string MSGN42ExportLosesEfficiency {
+            get {
+                return ResourceManager.GetString("MSGN42ExportLosesEfficiency", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to N42 Files (*.N42)|*.N42|All Files (*.*)|*.*.
         /// </summary>
         public static string N42FileFilter {
@@ -2937,6 +2946,15 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve.
+        /// </summary>
+        public static string FSANoGeometry {
+            get {
+                return ResourceManager.GetString("FSANoGeometry", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Full-spectrum decomposition is not possible for this spectrum.
         /// </summary>
@@ -4921,6 +4939,24 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyMakerSetElementXray {
             get {
                 return ResourceManager.GetString("EfficiencyMakerSetElementXray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabImportLsrm.
+        /// </summary>
+        public static string EfficiencyTabImportLsrm {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImportLsrm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabImportLsrmTitle.
+        /// </summary>
+        public static string EfficiencyTabImportLsrmTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImportLsrmTitle", resourceCulture);
             }
         }
         

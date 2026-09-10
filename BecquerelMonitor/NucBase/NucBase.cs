@@ -430,8 +430,19 @@ namespace BecquerelMonitor.NucBase
 
             this.IsotopeZLabel.Text = nuc.Z.ToString(CultureInfo.InvariantCulture);
             this.IsotopeNLabel.Text = nuc.N.ToString(CultureInfo.InvariantCulture);
-            this.IsotopeHLLabel.Text = nuc.HalfLife.ToString(CultureInfo.InvariantCulture) + " " + nuc.HalfLifeUOM;
-            this.IsotopeSpecActivity.Text = nuc.SpecialActivity.ToString("e2", CultureInfo.InvariantCulture) + " " + Resources.Bkg;
+            // ⛔ ПОДПИСЬ СКЛАДЫВАЕТ `NucBaseFramework`, А НЕ ЭТА СТРОКА
+            // (`A304`): у 81 нуклида из 4429 период в поставке — не измерение,
+            // а граница сверху, и перед ним обязан стоять знак «>» (решение
+            // Amber 10.09.2026). Правило показа вынесено туда, чтобы его
+            // проверял безоконный читатель: окно `BecqMoni` в проверке не
+            // поднимают.
+            this.IsotopeHLLabel.Text = NucBaseFramework.HalfLifeCaption(nuc);
+            // ⛔ И ЗДЕСЬ ПОДПИСЬ СКЛАДЫВАЕТ `NucBaseFramework`, А НЕ ЭТА СТРОКА
+            // (`A304`, решение Amber 10.09.2026: «Ставить „<“ тем же
+            // признаком»). Знак ПРОТИВОПОЛОЖЕН знаку строкой выше: период
+            // стоит в знаменателе активности, поэтому граница снизу у периода
+            // — это граница СВЕРХУ у активности.
+            this.IsotopeSpecActivity.Text = NucBaseFramework.SpecificActivityCaption(nuc);
             this.IsotopeAbundance.Text = nuc.Abundance.ToString(CultureInfo.InvariantCulture) + " %";
 
             foreach (Decay parent in nuc.Parents)

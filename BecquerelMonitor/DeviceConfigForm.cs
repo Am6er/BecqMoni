@@ -46,7 +46,6 @@ namespace BecquerelMonitor
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
             this.BuildEfficiencyTab();
-            this.BuildDoseRateTab();
             this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
@@ -561,20 +560,10 @@ namespace BecquerelMonitor
                     this.tableModel3.Rows.Add(row);
                 }
             }
-            DoseRateConfig doseRateConfig = config.DoseRateConfig;
-            this.tableModel4.Rows.Clear();
-            if (doseRateConfig != null && doseRateConfig.DoseRateCalibrationPoints != null)
-            {
-                foreach(DoseRateCalibrationPoint point in doseRateConfig.DoseRateCalibrationPoints)
-                {
-                    Row row = new Row();
-                    row.Cells.Add(new Cell(point.LowerBound));
-                    row.Cells.Add(new Cell(point.UpperBound));
-                    row.Cells.Add(new Cell(point.CPS));
-                    row.Cells.Add(new Cell(point.EtalonDoseRateValue));
-                    this.tableModel4.Rows.Add(row);
-                }
-            }
+            // ⛔ `AMBER13`, решение Amber 10.09.2026 («Убрать в коде работу с
+            // этими точками. При пересохранении конфига этот рудимент
+            // исчезнет. Это legacy.»): ручной таблицы точек калибровки дозы на
+            // вкладке больше нет, и читать их в форму больше некуда.
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
             this.numericUpDown4.Minimum = 1;
             this.numericUpDown4.Maximum = 10000;
@@ -839,17 +828,14 @@ namespace BecquerelMonitor
                     targetPeak.Error = (decimal)row.Cells[2].Data;
                     config.StabilizerConfig.TargetPeaks.Add(targetPeak);
                 }
-                DoseRateConfig doseRateConfig = config.DoseRateConfig;
-                config.DoseRateConfig.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
-                foreach(Row row in this.tableModel4.Rows)
-                {
-                    DoseRateCalibrationPoint point = new DoseRateCalibrationPoint();
-                    point.LowerBound = getDouble(row.Cells[0].Data);
-                    point.UpperBound = getDouble(row.Cells[1].Data);
-                    point.CPS = getDouble(row.Cells[2].Data);
-                    point.EtalonDoseRateValue = getDouble(row.Cells[3].Data);
-                    config.DoseRateConfig.DoseRateCalibrationPoints.Add(point);
-                }
+                // ⛔ `AMBER13`: точки калибровки дозы форма больше не пишет —
+                // ни из таблицы (её нет), ни как пустой список. Пустой список
+                // здесь был бы ТИХОЙ ПОТЕРЕЙ содержимого поставочных файлов у
+                // человека, который просто открыл конфигурацию и нажал
+                // «Сохранить»; вместо этого поле не сериализуется вовсе
+                // (`DoseRateConfig.DoseRateCalibrationPoints`, `[XmlIgnore]`),
+                // и рудимент исчезает при первом же пересохранении — ровно
+                // так, как сказала Amber 10.09.2026.
                 FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
@@ -876,22 +862,9 @@ namespace BecquerelMonitor
             return true;
         }
 
-        double getDouble(object Data)
-        {
-            if (Data.GetType() == typeof(int))
-            {
-                return (double)(int)Data;
-            }
-            if (Data.GetType() == typeof(double))
-            {
-                return (double)Data;
-            }
-            if(Data.GetType() == typeof(decimal))
-            {
-                return (double)(decimal)Data;
-            }
-            return (double)Data;
-        }
+        // ⛔ `getDouble` снят вместе с таблицей точек дозы (`AMBER13`,
+        // 10.09.2026): единственными его читателями были четыре ячейки
+        // `tableModel4`.
 
         // Token: 0x06000524 RID: 1316 RVA: 0x00021668 File Offset: 0x0001F868
         void EnableForm()
@@ -2480,53 +2453,13 @@ namespace BecquerelMonitor
             }
         }
 
-        void table4_EditingStopped(object sender, CellEditEventArgs e)
-        {
-            Cell cell = e.Cell;
-            Row row = cell.Row;
-            try
-            {
-                string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                this.SetActiveDeviceConfigDirty();
-            }
-            catch (Exception)
-            {
-                e.Cancel = true;
-            }
-        }
-
-        void button15_Click(object sender, EventArgs e)
-        {
-            Row row1 = new Row();
-            if (this.table4.RowCount == 0)
-            {
-                row1.Cells.Add(new Cell(0));
-                row1.Cells.Add(new Cell(3000));
-                row1.Cells.Add(new Cell(1));
-                row1.Cells.Add(new Cell(0.001));
-            } else
-            {
-                row1.Cells.Add(this.tableModel4[this.tableModel4.Rows.Count - 1,1]);
-                row1.Cells.Add(new Cell(3000));
-                row1.Cells.Add(new Cell(1));
-                row1.Cells.Add(new Cell(0.001));
-            }
-            this.tableModel4.Rows.Add(row1);
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
-
-        void button16_Click(object sender, EventArgs e)
-        {
-            if (this.table4.SelectedItems.Length <= 0)
-            {
-                return;
-            }
-            Row row = this.table4.SelectedItems[0];
-            this.tableModel4.Rows.RemoveAt(row.Index);
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
+        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять целиком»: обработчики
+        // ручной таблицы точек дозы (`table4_EditingStopped`, `button15_Click`
+        // — «Создать», `button16_Click` — «Удалить») сняты вместе с таблицей.
+        // Полей «поправка к показанию» на их место не заводится — довод в
+        // строке реестра: 0 из 4 существующих наборов построены расчётом, у
+        // поставочного RC-103 CPS = 100 у всех 36 точек, а две живые ASN16
+        // задают форму, расходящуюся в 3.370 / 2.367 / 0.684 раза.
 
         // Token: 0x040002BB RID: 699
         DeviceConfigManager manager = DeviceConfigManager.GetInstance();
@@ -2587,44 +2520,27 @@ namespace BecquerelMonitor
         PolynomialEnergyCalibration rc_EnergyCalibration;
 
 
-        private EnergySpectrum doseRateSpectrum;
         private DoseRateCurve efficiencyCurve;
 
-        // --- `C4(а)` и `C4(б)`: то, что уже есть у приложения, вместо диалога ---
+        // --- `AMBER13`, решения Amber 10.09.2026 -----------------------------
         //
-        // ⚠ Оба списка — `comboDoseRateSpectrum` и `comboDoseRateEfficiency` —
-        // живут в `DeviceConfigForm.Designer.cs` и получают место, размер и
-        // порядок обхода из `DeviceConfigForm.resx` (`A202`, 05.09.2026). До
-        // того они строились здесь, кодом, и брали раскладку у двух ПОЛЕЙ
-        // «путь к файлу», которые остались в конструкторе форм и прятались
-        // `Visible = false`: раскладка жила в двух местах разом, а человек за
-        // конструктором видел поля, которых на вкладке нет.
-        ToolTip doseRateToolTip;
-
-        /// <summary>Спектр, поднятый из файла старым путём; null, если его не было.</summary>
-        DoseRateSpectrumChoice doseRateFileChoice;
-
-        /// <summary>Кривая, поднятая из файла ЛСРМ старым путём.</summary>
-        List<ROIEfficiencyData> doseRateFileCurve;
-        string doseRateFileCurveName;
-
+        // ⛔ «Чистить сразу» и «Снять целиком»: с вкладки `DoseRate` сняты
+        // ручная таблица точек, эталонный спектр с объявленной дозой и кнопка
+        // оценки. ⛔ «Снять и завести ввоз на Efficiency»: ввоз экспорта ЛСРМ
+        // (`buttonLoadEff` / `labelEffNote`) уехал на вкладку Efficiency, где
+        // ввезённая кривая наконец СОХРАНЯЕТСЯ в конфигурации прибора —
+        // см. `DeviceConfigForm.Efficiency.cs`, `ImportLsrmEfficiency`.
+        //
+        // ⚠ На вкладке остался ОДИН контрол — `comboDoseRateEfficiency`. Его
+        // судьба решением (в) названа отдельно: «на его место — выбор вида
+        // облучения и сцены поля», то есть он не снимается, а ЗАМЕЩАЕТСЯ, и
+        // замещение приходит с пунктом (б) (`GeometrySceneKind`: `AP`/`PA`/
+        // `ISO`/`ROT`), который лежит в `EfficiencyMaker/**` и этой полосе
+        // запрещён. До того список стоит на месте без потребителя: расчёт по
+        // кривой ПРОБЫ снят вместе с кнопкой оценки.
 
         /// <summary>
-        /// Достроить вкладку «Dose Rate» тем, чего конструктор форм не хранит.
-        ///
-        /// Сами списки — спектра и кривой — стоят в конструкторе форм рядом со
-        /// своими кнопками «… из файла»: выбранный пункт и есть имя источника,
-        /// а полный путь к файлу, поднятому кнопкой, висит подсказкой. Подсказка
-        /// раскладкой не является и в `*.resx` не хранится — компонент
-        /// заводится здесь (`A202`, 05.09.2026).
-        /// </summary>
-        void BuildDoseRateTab()
-        {
-            this.doseRateToolTip = new ToolTip();
-        }
-
-        /// <summary>
-        /// Наполнить оба списка. Зовётся при загрузке конфигурации: набор
+        /// Наполнить список кривых. Зовётся при загрузке конфигурации: набор
         /// кривых у каждой конфигурации свой.
         /// </summary>
         void LoadDoseRateTab(DeviceConfigInfo config)
@@ -2635,7 +2551,6 @@ namespace BecquerelMonitor
             }
 
             this.FillDoseRateEfficiencyCombo(config);
-            this.FillDoseRateSpectrumCombo();
         }
 
         void FillDoseRateEfficiencyCombo(DeviceConfigInfo config)
@@ -2649,13 +2564,6 @@ namespace BecquerelMonitor
                 this.comboDoseRateEfficiency.Items.Add(item);
             }
 
-            // Файл ЛСРМ остаётся: старый путь цел, он просто перестал быть
-            // единственным.
-            if (this.doseRateFileCurve != null)
-            {
-                this.comboDoseRateEfficiency.Items.Add(this.doseRateFileCurveName);
-            }
-
             if (this.comboDoseRateEfficiency.Items.Count > 0)
             {
                 this.comboDoseRateEfficiency.SelectedIndex = this.comboDoseRateEfficiency.Items.Count - 1;
@@ -2663,71 +2571,7 @@ namespace BecquerelMonitor
             else
             {
                 this.efficiencyCurve = null;
-                this.EvaluateButtonEstimateDRState();
             }
-        }
-
-        void FillDoseRateSpectrumCombo()
-        {
-            this.comboDoseRateSpectrum.Items.Clear();
-
-            // Уже открытые спектры (`C4(б)`).
-            foreach (DoseRateSpectrumChoice choice in this.OpenSpectrumChoices())
-            {
-                this.comboDoseRateSpectrum.Items.Add(choice);
-            }
-
-            if (this.doseRateFileChoice != null)
-            {
-                this.comboDoseRateSpectrum.Items.Add(this.doseRateFileChoice);
-            }
-
-            if (this.comboDoseRateSpectrum.Items.Count > 0)
-            {
-                this.comboDoseRateSpectrum.SelectedIndex = this.comboDoseRateSpectrum.Items.Count - 1;
-            }
-            else
-            {
-                this.doseRateSpectrum = null;
-                this.EvaluateButtonEstimateDRState();
-            }
-        }
-
-        /// <summary>Открытые документы, приведённые к выбору вкладки.</summary>
-        List<DoseRateSpectrumChoice> OpenSpectrumChoices()
-        {
-            var titles = new List<string>();
-            var results = new List<ResultData>();
-            try
-            {
-                foreach (DocEnergySpectrum document in DocumentManager.GetInstance().DocumentList)
-                {
-                    if (document == null || document.ActiveResultData == null)
-                    {
-                        continue;
-                    }
-
-                    titles.Add(string.IsNullOrEmpty(document.Filename)
-                        ? document.Text
-                        : Path.GetFileNameWithoutExtension(document.Filename));
-                    results.Add(document.ActiveResultData);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Список документов — удобство, а не условие работы: без него
-                // остаётся старый путь через файл.
-                Trace.WriteLine("Dose rate: список открытых документов недоступен: " + ex.Message);
-            }
-
-            return DoseRateEstimator.OfferedSpectra(titles, results);
-        }
-
-        void comboDoseRateSpectrum_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            DoseRateSpectrumChoice choice = this.comboDoseRateSpectrum.SelectedItem as DoseRateSpectrumChoice;
-            this.doseRateSpectrum = choice == null ? null : choice.Spectrum;
-            this.EvaluateButtonEstimateDRState();
         }
 
         void comboDoseRateEfficiency_SelectedIndexChanged(object sender, EventArgs e)
@@ -2736,15 +2580,7 @@ namespace BecquerelMonitor
             try
             {
                 EfficiencyConfigData data = selected as EfficiencyConfigData;
-                List<ROIEfficiencyData> points = null;
-                if (data != null)
-                {
-                    points = data.Curve;
-                }
-                else if (this.doseRateFileCurve != null)
-                {
-                    points = this.doseRateFileCurve;
-                }
+                List<ROIEfficiencyData> points = data == null ? null : data.Curve;
 
                 this.efficiencyCurve = points == null ? null : DoseRateEstimator.CurveOf(points);
             }
@@ -2755,8 +2591,7 @@ namespace BecquerelMonitor
                 // ⚠ Во время загрузки конфигурации окно НЕ показывается: список
                 // наполняется сам, человек ничего не выбирал, и негодная кривая
                 // из хранилища встретила бы его модальным окном на открытии
-                // формы. Причина при этом не теряется — она уходит в журнал, а
-                // кнопка «Оценить» остаётся выключенной.
+                // формы. Причина при этом не теряется — она уходит в журнал.
                 if (this.contentsLoading)
                 {
                     Trace.WriteLine("Dose rate: " + ex.Message);
@@ -2766,65 +2601,12 @@ namespace BecquerelMonitor
                     MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
-
-            this.EvaluateButtonEstimateDRState();
         }
 
-        private void buttonLoadDoseRateSpectrum_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.OpenFileDialogTitle;
-            openFileDialog.Filter = Resources.SpectrumFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-
-            try
-            {
-                using (FileStream fileStream = new FileStream(openFileDialog.FileName, FileMode.Open))
-                {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                    ResultDataFile result = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-
-                    // Проверка входа, которой на этом месте не было (собственное
-                    // `TODO: add input data validation`): пустой список или
-                    // спектр без калибровки прежде уезжали дальше молча и
-                    // всплывали `NullReferenceException` в расчёте.
-                    var titles = new List<string> { Path.GetFileNameWithoutExtension(openFileDialog.FileName) };
-                    var results = new List<ResultData>();
-                    if (result != null && result.ResultDataList != null && result.ResultDataList.Count > 0)
-                    {
-                        results.Add(result.ResultDataList[0]);
-                    }
-
-                    List<DoseRateSpectrumChoice> choices = DoseRateEstimator.OfferedSpectra(titles, results);
-                    if (choices.Count == 0)
-                    {
-                        MessageBox.Show(this, string.Format(
-                            CultureInfo.CurrentCulture,
-                            DoseRateCoefficients.Text("DoseRateFileUnusable",
-                                "Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time."),
-                            openFileDialog.FileName), this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    this.doseRateFileChoice = choices[0];
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, ex.Message),
-                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            this.doseRateToolTip.SetToolTip(this.comboDoseRateSpectrum, openFileDialog.FileName);
-            this.FillDoseRateSpectrumCombo();
-            EvaluateButtonEstimateDRState();
-        }
+        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Чистить сразу»: ввоз
+        // эталонного спектра (`buttonLoadDoseRateSpectrum_Click`) снят вместе
+        // с самим эталоном — он был входом расчёта точек, а не параметром
+        // прибора, и в конфигурации не хранился.
 
         /// <summary>
         /// Общий разбор текстового экспорта ЛСРМ (собственное `TODO: create
@@ -3012,123 +2794,23 @@ namespace BecquerelMonitor
             return points;
         }
 
-        private void buttonLoadEff_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.EffCalcMCImportDialogTitle;
-            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
-            openFileDialog.FilterIndex = 2;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-
-            string problem;
-            List<ROIEfficiencyData> points = ReadLsrmEfficiencyExport(openFileDialog.FileName, out problem);
-            if (problem != null)
-            {
-                MessageBox.Show(this, string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, problem),
-                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            this.doseRateFileCurve = points;
-            this.doseRateFileCurveName = Path.GetFileNameWithoutExtension(openFileDialog.FileName);
-            this.doseRateToolTip.SetToolTip(this.comboDoseRateEfficiency, openFileDialog.FileName);
-            this.FillDoseRateEfficiencyCombo(this.activeDeviceConfig);
-
-            EvaluateButtonEstimateDRState();
-        }
-
-        private void buttonEstimateDRConf_Click(object sender, EventArgs e)
-        {
-            List<DoseRateCalibrationPoint> doseConfig;
-            try
-            {
-                double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
-
-                // Сетка от ШКАЛЫ ПРИБОРА, а не от двух вшитых чисел (`C4(в)`).
-                double minKev, maxKev;
-                DoseRateEstimator.DeviceRange(this.activeDeviceConfig, this.doseRateSpectrum,
-                                              out minKev, out maxKev);
-
-                // ...и по протяжённости кривой: за её крайними точками сплайн
-                // продолжает форму, а не эффективность.
-                if (this.efficiencyCurve != null)
-                {
-                    minKev = Math.Max(minKev, this.efficiencyCurve.MinKev);
-                    maxKev = Math.Min(maxKev, this.efficiencyCurve.MaxKev);
-                }
-
-                double[] energies = DoseRateEstimator.BuildGrid(minKev, maxKev);
-
-                var log = new List<string>();
-                doseConfig = CalculateDoseRateConfig(this.doseRateSpectrum, this.efficiencyCurve,
-                                                     expectedDoseRate, energies, log);
-                foreach (string line in log)
-                {
-                    Trace.WriteLine(line);
-                }
-            }
-            catch (DoseRateRefusalException ex)
-            {
-                // ⛔ Отказ ВИДИМЫЙ. Прежде обработчик молча выходил по `return`,
-                // и человек нажимал кнопку, не получая ни таблицы, ни причины.
-                MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // Оценка ЗАМЕЩАЕТ таблицу, а не дописывается к ней. Прежде кнопка
-            // включалась только при пустой таблице (см. EvaluateButtonEstimateDRState),
-            // и чтобы пересчитать, надо было сначала нажать «Очистить» —
-            // C4(г).
-            tableModel4.Rows.Clear();
-            tableModel4.Rows.AddRange(doseConfig.Select(dc =>
-            {
-                Row row = new Row();
-                row.Cells.Add(new Cell(dc.LowerBound));
-                row.Cells.Add(new Cell(dc.UpperBound));
-                row.Cells.Add(new Cell(dc.CPS));
-                row.Cells.Add(new Cell(dc.EtalonDoseRateValue));
-
-                return row;
-            }).ToArray());
-
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
-
-        private void EvaluateButtonEstimateDRState()
-        {
-            // Без «и таблица пуста»: оценка теперь заменяет содержимое таблицы
-            // целиком, поэтому пересчёт не требует предварительной очистки.
-            buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null;
-        }
-
-        /// <summary>
-        /// Точки калибровки мощности дозы.
-        ///
-        /// ⛔ `C4(в)`. Здесь больше нет ни сетки, ни коэффициентов: пятнадцать
-        /// вшитых диапазонов 40–3000 кэВ, шестнадцать значений μ_en/ρ и
-        /// шестнадцать значений перевода Р→Зв уехали в
-        /// <see cref="DoseRateCoefficients"/>, где у них есть имя, единица и
-        /// источник, а μ_en/ρ вообще перестал быть таблицей — считается из XCOM
-        /// (`matdb.sqlite`). Сетка приходит снаружи, от шкалы прибора.
-        /// </summary>
-        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(
-            EnergySpectrum spectrum, DoseRateCurve efficiency, double expectedDoseRate,
-            double[] energies, IList<string> log)
-        {
-            return DoseRateEstimator.Estimate(spectrum, efficiency, expectedDoseRate, energies, log);
-        }
-
-        private void buttonClearDoseRate_Click(object sender, EventArgs e)
-        {
-            tableModel4.Rows.Clear();
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
+        // ⛔ `AMBER13`, решения Amber 10.09.2026. Сняты вместе со своими
+        // контролами:
+        //
+        //  * `buttonLoadEff_Click` — решение «Снять и завести ввоз на
+        //    Efficiency»: ввоз экспорта ЛСРМ переехал на вкладку Efficiency
+        //    (`ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`), где
+        //    ввезённая кривая СОХРАНЯЕТСЯ в конфигурации прибора. Здесь она
+        //    жила в поле формы и пропадала с закрытием окна;
+        //  * `buttonEstimateDRConf_Click` и `CalculateDoseRateConfig` — оценка
+        //    точек по эталону, решение «Чистить сразу»;
+        //  * `EvaluateButtonEstimateDRState` — состояние снятой кнопки;
+        //  * `buttonClearDoseRate_Click` — очистка снятой таблицы.
+        //
+        // ⚠ Сам ГЕНЕРАТОР точек (`DoseRateEstimator.Estimate`) не снят: по
+        // пункту (а) строки его переводят с пиковой эффективности на полную,
+        // и он же остаётся читателем `ReadLsrmEfficiencyExport`, которую ниже
+        // зовёт вкладка Efficiency.
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
