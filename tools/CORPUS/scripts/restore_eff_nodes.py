@@ -203,7 +203,7 @@ def main():
         if m is not None and node_name(text) == need:
             donors[need] = m.group(0)
 
-    restored, already, missing, foreign = 0, 0, 0, 0
+    restored, already, missing, foreign, stale = 0, 0, 0, 0, 0
     declined, undue = [], []
     for path in sorted(glob.glob(os.path.join(args.spectra, '*.xml'))):
         key = os.path.splitext(os.path.basename(path))[0]
@@ -254,13 +254,40 @@ def main():
             name = node_name(text)
             need = want.get(key)
             if need is None or name == need:
-                already += 1
-                continue
+                # ⛔ «Имя ТО» и «узел ТОТ» — тоже разные вещи (10.09.2026), и
+                # эта разница стоила прогона ровно так же, как в 2026-08-16
+                # стоила предыдущая. ЗАКРЕПЛЁННЫЕ копии (`corpus/pinned`,
+                # решение Amber 16.08.2026) приезжают из библиотеки байт-в-байт
+                # ВМЕСТЕ со своим узлом, а у него имя геометрии ТО ЖЕ. Внутри
+                # же — кривая прежней эпохи: у `AS80_Lu176` и `ASN16_Lu176` это
+                # `phys=11, 34 точки сетки 40–3000` против `phys=16, 39 точек
+                # 10–3000` в git, и геометрия БЕЗ зазора `AMBER1`. Такой узел
+                # проходил как «уже на месте»; у `AS80_Lu176` отпечаток матрицы
+                # не сошёлся, и спектр понятной части посчитался из одних пиков
+                # (понятная часть 84/84 -> 83/84, его собственный χ²/ndf 6.10).
+                #
+                # Поэтому узел сверяется с тем же узлом в git ДОСЛОВНО. Нет его
+                # в git — сверять не с чем, оставляем как есть.
+                have = NODE.search(text)
+                rel_now = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
+                src = from_git(args.rev, rel_now)
+                src_node = None
+                if src is not None:
+                    m_src = NODE.search(src)
+                    src_node = m_src.group(0) if m_src is not None else None
+                if src_node is None or (have is not None and have.group(0) == src_node):
+                    already += 1
+                    continue
 
-            print('%-24s ЧУЖОЙ узел «%s», нужен «%s» — заменяю'
-                  % (key, name, need))
-            foreign += 1
-            text = NODE.sub('', text, count=1)
+                print('%-24s узел ТОТ ПО ИМЕНИ «%s», но содержимое прежней эпохи '
+                      '— возвращаю из git' % (key, name))
+                stale += 1
+                text = NODE.sub('', text, count=1)
+            else:
+                print('%-24s ЧУЖОЙ узел «%s», нужен «%s» — заменяю'
+                      % (key, name, need))
+                foreign += 1
+                text = NODE.sub('', text, count=1)
 
         rel = os.path.relpath(os.path.abspath(path), REPO).replace(os.sep, '/')
         old = from_git(args.rev, rel)
@@ -320,8 +347,9 @@ def main():
             u'﻿' + text[:i] + node + text[i:])
 
     print()
-    print('вернуть узлов: %d (из них взамен ЧУЖИХ: %d); уже на месте: %d; без места: %d%s'
-          % (restored, foreign, already, missing,
+    print('вернуть узлов: %d (из них взамен ЧУЖИХ: %d, взамен УСТАРЕВШИХ: %d); '
+          'уже на месте: %d; без места: %d%s'
+          % (restored, foreign, stale, already, missing,
              '' if args.apply else '  (--apply не задан, файлы не тронуты)'))
 
     # `W29`: раздача обязана НАЗЫВАТЬ себя. Прежде она молчала, и то, что кривая
