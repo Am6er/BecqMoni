@@ -22,6 +22,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double[] SumPeakCurve { get; set; }
 
         /// <summary>
+        /// (`S3`, первый этап) Та же <see cref="Curve"/>, РАЗЛОЖЕННАЯ ПО
+        /// ЧЕТЫРЁМ КАНАЛАМ ИСХОДА — по номеру
+        /// <c>EfficiencySimulator.ResponseChannel</c>: полное поглощение,
+        /// комптоновский хвост, вылет 511 и вылет рентгена кристалла. null —
+        /// матрица без раскладки по каналам либо образ построен не по матрице.
+        ///
+        /// ⛔ ТОЖДЕСТВО: Σ каналов = <see cref="Curve"/> ТОЧНО, по построению.
+        /// Лента и есть сумма каналов (решение Amber 10.09.2026 вопросником:
+        /// «Точное тождество»), уширяются они одним проходом с общими группами,
+        /// порогом и ядром, а члены связанного ряда получают долю канала тем же
+        /// отношением, что и долю ленты. Держать вторую независимую копию
+        /// полного отклика ради этого не нужно.
+        ///
+        /// ЗАЧЕМ каналы разделены (постановка Amber 10.09.2026):
+        /// каскадная поправка `CF` правит ТОЛЬКО канал полного поглощения, а по
+        /// суммарной матрице пришлось бы одинаково растянуть её и на пик, и на
+        /// весь хвост; ошибку физики видно, из какого канала она пришла;
+        /// вылеты 511 и рентгена проверяются порознь; правила каскадов меняются
+        /// без пересчёта матриц; двойной счёт при добавлении сумм-пиков и
+        /// сумм-континуума становится видимым.
+        ///
+        /// ⚠ Подложка сюда НЕ разносится (решение Amber 10.09.2026,
+        /// «Подложка вне каналов»): она — то, чего модель не описала, и
+        /// приписывать её каналу полного поглощения физически неверно. У слоя
+        /// поэтому Σ каналов = <c>FsaStackLayer.Curve</c> −
+        /// <c>FsaStackLayer.ContinuumCurve</c>.
+        /// </summary>
+        public double[][] ChannelCurves { get; set; }
+
+        /// <summary>
         /// Отсчёты компонента в его ПИКОВЫХ ОКНАХ (±2 ПШПВ у каждой линии и
         /// каждого сумм-пика), а не по всему образу — см.
         /// <c>FsaAnalyzer.PeakWindowCounts</c> и решение S24в.
@@ -283,6 +313,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разносится — это чистый пиковый вклад.
         /// </summary>
         public double[] SumPeakCurve { get; set; }
+
+        /// <summary>
+        /// (`S3`) Раскладка ленты по четырём каналам исхода — копия
+        /// <see cref="FsaComponentResult.ChannelCurves"/>, сложенная теми же
+        /// правилами, что и сама лента, при свёртке «прочего» и при
+        /// родительской группировке. null — каналов нет.
+        ///
+        /// ⛔ ТОЖДЕСТВО СЛОЯ: Σ каналов = <see cref="Curve"/> −
+        /// <see cref="ContinuumCurve"/>. Подложка в каналы не разносится
+        /// (решение Amber 10.09.2026), и потому проверять надо именно эту
+        /// разность, а не саму <see cref="Curve"/>.
+        /// </summary>
+        public double[][] ChannelCurves { get; set; }
+
+        /// <summary>
+        /// (`S3`) Та доля <see cref="Curve"/>, что пришла РАЗНОСОМ ПОДЛОЖКИ, а
+        /// не от образа компонента; null — слою подложка не досталась.
+        ///
+        /// Заведена ради проверяемости каналов: без неё «Σ каналов = лента»
+        /// невозможно ни подтвердить, ни опровергнуть — разность есть, а
+        /// назвать её нечем, и всякое расхождение списывалось бы на подложку.
+        /// Величина не новая: это ровно то, что <c>DistributeContinuum</c>
+        /// добавляет слою.
+        /// </summary>
+        public double[] ContinuumCurve { get; set; }
 
         /// <summary>
         /// Доля слоя в полном счёте модели, %. ОДНА МЕРА на весь проект
@@ -834,7 +889,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = PositivePart(component.Curve),
                     SumPeakCurve = component.SumPeakCurve != null
                         ? (double[])component.SumPeakCurve.Clone()
-                        : null
+                        : null,
+                    ChannelCurves = CloneChannels(component.ChannelCurves)
                 });
             }
 
@@ -1042,6 +1098,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 double[] other = new double[channels];
                 double[] otherSums = null;
+                double[][] otherChannels = null;
+                double[] otherSpread = null;
                 foreach (int k in rest)
                 {
                     double[] curve = full[k].Curve;
@@ -1049,6 +1107,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         other[i] += curve[i];
                     }
+
+                    // (`S3`) Каналы и доля подложки складываются ТЕМ ЖЕ
+                    // движением, что и лента: «прочее» — такой же слой, и
+                    // тождество «Σ каналов = лента − подложка» обязано
+                    // пережить свёртку. Сложить одну ленту, забыв про части,
+                    // значит получить строку, у которой оно молча не сходится.
+                    AddChannels(ref otherChannels, full[k].ChannelCurves, channels);
+                    AddCurve(ref otherSpread, full[k].ContinuumCurve, channels);
 
                     double[] sums = full[k].SumPeakCurve;
                     if (sums == null)
@@ -1072,7 +1138,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Name = OtherLayerName,
                     Kind = FsaComponentKind.Single,
                     Curve = other,
-                    SumPeakCurve = otherSums
+                    SumPeakCurve = otherSums,
+                    ChannelCurves = otherChannels,
+                    ContinuumCurve = otherSpread
                 });
             }
 
@@ -1248,6 +1316,75 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`S3`) Копия раскладки по каналам — своя у каждого слоя, потому что
+        /// разнос подложки и свёртка «прочего» пишут в кривые слоя на месте, а
+        /// кривые компонента при этом обязаны остаться нетронутыми.
+        ///
+        /// ⚠ Обрезки по нулю здесь НЕТ нарочно, в отличие от
+        /// <see cref="PositivePart"/> у ленты: обрезка нелинейна, и обрезанная
+        /// поканально сумма разошлась бы с обрезанной лентой. Каналы отклика
+        /// неотрицательны по построению (доли на бин, веса линий и ядро формы —
+        /// все неотрицательны), поэтому обрезать тут нечего; если когда-нибудь
+        /// окажется, что есть, это увидит проверка тождества, а не спрячет
+        /// молчаливый `Max(0, …)`.
+        /// </summary>
+        /// <summary>(`S3`) Прибавить кривую к накопителю, заводя его при первом слагаемом.</summary>
+        static void AddCurve(ref double[] target, double[] source, int channels)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            if (target == null)
+            {
+                target = new double[channels];
+            }
+
+            for (int i = 0; i < channels && i < source.Length; i++)
+            {
+                target[i] += source[i];
+            }
+        }
+
+        /// <summary>(`S3`) То же для раскладки по каналам, канал в канал.</summary>
+        static void AddChannels(ref double[][] target, double[][] source, int channels)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            if (target == null)
+            {
+                target = new double[source.Length][];
+            }
+
+            for (int c = 0; c < source.Length && c < target.Length; c++)
+            {
+                double[] row = target[c];
+                AddCurve(ref row, source[c], channels);
+                target[c] = row;
+            }
+        }
+
+        static double[][] CloneChannels(double[][] channels)
+        {
+            if (channels == null)
+            {
+                return null;
+            }
+
+            double[][] copy = new double[channels.Length][];
+            for (int c = 0; c < channels.Length; c++)
+            {
+                copy[c] = channels[c] != null ? (double[])channels[c].Clone() : null;
+            }
+
+            return copy;
+        }
+
+        /// <summary>
         /// Разнести континуум по компонентам. Возвращает остаток — ту часть
         /// подложки, разносить которую не по чему (выше самой верхней линии
         /// пикового счёта ни у одного компонента нет), или null, если остатка
@@ -1311,7 +1448,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double[] curve = layers[k].Curve;
                     if (i < curve.Length)
                     {
-                        curve[i] += above[k][i] / totalAbove * continuum;
+                        double share = above[k][i] / totalAbove * continuum;
+                        curve[i] += share;
+
+                        // (`S3`) То же число — отдельной кривой слоя. В каналы
+                        // подложка НЕ разносится (решение Amber 10.09.2026), и
+                        // без этой записи разность «лента минус каналы» не с
+                        // чем было бы сверить.
+                        if (layers[k].ChannelCurves != null)
+                        {
+                            if (layers[k].ContinuumCurve == null)
+                            {
+                                layers[k].ContinuumCurve = new double[channels];
+                            }
+
+                            layers[k].ContinuumCurve[i] += share;
+                        }
                     }
                 }
             }
