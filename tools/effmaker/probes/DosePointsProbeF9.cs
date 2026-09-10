@@ -50,6 +50,12 @@ namespace DosePointsProbeF9
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+            // ⛔ (`T247`) Культура ЦЕЛИКОМ инвариантная, приказ Amber 05.09.2026. Проба
+            //    не ставила её ВОВСЕ, и на русской машине часть её чисел шла с ЗАПЯТОЙ
+            //    (замер 10.09.2026, полоса П8: мест без поставщика культуры — 3).
+            //    Инвариант ЦЕЛИКОМ, а не клон с подменённым разделителем: клон
+            //    чинит печать и оставляет РАЗБОР системным (`T245`).
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             string repo = FindRepo();
             string file = repo == null ? null : Path.Combine(repo, @"BecquerelMonitor\config\device\RC-103.xml");
             string spectrum = repo == null ? null : Path.Combine(repo, @"tools\CORPUS\corpus\spectra\RC103_Charoite.xml");

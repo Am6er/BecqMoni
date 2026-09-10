@@ -19,7 +19,7 @@ namespace FsaChannelSplitProbe
     /// каскадная поправка `CF` правит ТОЛЬКО канал полного поглощения, а по
     /// суммарной матрице её пришлось бы одинаково растянуть и на пик, и на весь
     /// комптоновский хвост. Отсюда и остальное: видно, из какого канала пришла
-    /// ошибка физики; вылет 511 и вылет рентгена проверяются порознь; двойной
+    /// ошибка физики; вылеты аннигиляции и рентгена проверяются порознь; двойной
     /// счёт при добавлении сумм-пиков и сумм-континуума становится видимым.
     ///
     /// ⛔ ЧТО ИМЕННО ЗДЕСЬ ДОКАЗЫВАЕТСЯ — шесть точек тождества, названные в
@@ -76,7 +76,8 @@ namespace FsaChannelSplitProbe
 
         static readonly string[] ChannelNames =
         {
-            "полное поглощение", "комптон", "вылет 511", "вылет рентгена"
+            "полное поглощение", "комптон", "вылет аннигиляции одиночный",
+            "вылет рентгена", "вылет аннигиляции двойной"
         };
 
         [STAThread]
@@ -169,17 +170,50 @@ namespace FsaChannelSplitProbe
                 return 1;
             }
 
-            if (!matrix.HasChannels || matrix.ChannelRows.Length != EfficiencySimulator.ResponseChannelCount)
+            // ⛔ КАНАЛОВ У МАТРИЦЫ МЕНЬШЕ, ЧЕМ У КОДА, — ЭТО НЕ ПОВОД ОТКАЗАТЬ
+            // (полоса П25, 10.09.2026). До этого дня здесь стояло сравнение НА
+            // РАВЕНСТВО, и с разведением SE/DE (`AMBER15`) оно закрыло пробу
+            // на ВСЁМ складе корпуса: 44 матрицы из 44 четырёхканальные, и
+            // сторож шести тождеств перестал стеречь хоть что-нибудь — до
+            // пересчёта склада, то есть на неопределённый срок. Сторож,
+            // который не судит, хуже отсутствующего: он выглядит живым.
+            //
+            // ⚠ Тождества от числа каналов НЕ ЗАВИСЯТ. Разбор строит
+            // `ChannelCurves` длиной `ResponseChannelCount` ВСЕГДА, а лишний
+            // канал на старой матрице остаётся нулевым (`Accumulate` на номер
+            // за пределами `ChannelRows` отдаёт пустоту, а не суммарную
+            // строку). Σ каналов = лента и «родитель = Σ дочерних» верны и
+            // при четырёх, и при пяти.
+            //
+            // ⛔ А ПРИЗНАК НЕ ПОТЕРЯН: рассогласование «в файле 4, в коде 5»
+            // называет приёмка склада `MatrixAuditProbe` — поимённо по всем
+            // 44 файлам и с указанием причины. То есть у сигнала есть свой
+            // читатель, и глушить ради него ЭТУ пробу больше не нужно.
+            //
+            // Отказ остаётся там, где смысл каналов вправду не восстановить:
+            // каналов нет вовсе (проверять нечего) либо их БОЛЬШЕ, чем знает
+            // код, — файл писан кодом новее нашего, и что лежит в лишних, нам
+            // неизвестно.
+            int matrixChannels = matrix.HasChannels ? matrix.ChannelRows.Length : 0;
+            if (matrixChannels <= 0 || matrixChannels > EfficiencySimulator.ResponseChannelCount)
             {
-                Console.Error.WriteLine("⛔ у матрицы {0} каналов вместо {1}",
-                                        matrix.HasChannels ? matrix.ChannelRows.Length : 0,
-                                        EfficiencySimulator.ResponseChannelCount);
+                Console.Error.WriteLine("⛔ у матрицы {0} каналов при {1} у кода — судить нечем",
+                                        matrixChannels, EfficiencySimulator.ResponseChannelCount);
                 return 1;
             }
 
             Console.WriteLine("матрица : есть, {0}, каналов {1}, бин {2} кэВ",
-                              material, matrix.ChannelRows.Length,
+                              material, matrixChannels,
                               matrix.BinKev.ToString("F3", CultureInfo.InvariantCulture));
+            if (matrixChannels != EfficiencySimulator.ResponseChannelCount)
+            {
+                Console.WriteLine("⚠ матрица посчитана ДО разведения SE/DE (`AMBER15`): в канале"
+                                  + " № {0} слиты одиночный и двойной вылет, канал № {1} пуст."
+                                  + " Тождества это НЕ ломает, но числа по каналам вылета"
+                                  + " принадлежат СТАРОЙ раскладке",
+                                  (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation,
+                                  (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble);
+            }
 
             FsaSampleSpec spec = SpecOf(rd, chains, nuclides);
             FsaCalculationOptions.Of(rd).ApplyTo(spec);

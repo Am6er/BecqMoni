@@ -8,15 +8,22 @@ using System.Text;
 namespace MatrixAuditProbe
 {
     /// <summary>
-    /// ПРИЁМКА СКЛАДА МАТРИЦ: все `.rmx` каталога, четыре признака у каждой.
+    /// ПРИЁМКА СКЛАДА МАТРИЦ: все `.rmx` каталога, ПЯТЬ признаков у каждой.
     ///
     /// ЗАЧЕМ. Приёмку склада нельзя вести ни датой файла, ни их числом. Замер
     /// 02.09.2026: все 44 корпусные матрицы лежали на месте, свежие, с верным
     /// числом узлов — и все негодные, потому что клеймо несло `phys=12` против
     /// нынешней 14. В тот же день пересборка корпуса выглядела прошедшей по
     /// времени файлов, а на деле упала на первом шаге. Свежесть и наличие
-    /// признаками не являются; признаки лежат ВНУТРИ файла, и их четыре:
-    /// клеймо, число узлов, число историй и достигнутый шум.
+    /// признаками не являются; признаки лежат ВНУТРИ файла, и их пять:
+    /// клеймо, число узлов, число историй, достигнутый шум и ЧИСЛО КАНАЛОВ.
+    ///
+    /// ⛔ Пятый добавлен 10.09.2026 (`AMBER15`, полоса П25) и добавлен по той
+    /// же причине, по какой написана вся проба: клеймо его НЕ ВИДИТ. Канал
+    /// вылета аннигиляции в тот день разведён на одиночный и двойной, каналов
+    /// стало пять — а клеймо считается от физики, настроек и геометрии и на
+    /// раскладку не смотрит. Склад из 44 четырёхканальных матриц проходил
+    /// приёмку как родной, хотя канал № 2 у него значит не то, что зовёт код.
     ///
     /// ⛔ Своего разборщика формата здесь НЕТ нарочно: матрица читается тем же
     /// `ResponseMatrix.Load`, каким её читает приложение. Второй разборщик
@@ -162,6 +169,16 @@ namespace MatrixAuditProbe
             var nodeLines = new List<string>();
             var physCount = new Dictionary<string, int>();
             var histCount = new Dictionary<int, int>();
+            // ⛔ ЧИСЛО КАНАЛОВ — ПЯТЫЙ ПРИЗНАК (`AMBER15`, полоса П25,
+            // 10.09.2026). Его тут не было, и это стоило слепого пятна ровно
+            // того разряда, ради которого проба и написана: 10.09.2026 канал
+            // вылета аннигиляции разведён на одиночный и двойной, а КЛЕЙМО от
+            // этого не двинулось (оно берётся от физики, настроек и геометрии,
+            // а число каналов — свойство раскладки). То есть склад, у которого
+            // канал № 2 держит SE и DE слитно, для приёмки выглядел ровно как
+            // склад, где они разведены, — «содержимое другое, клеймо то же»,
+            // разряд `T114`. Свежесть и клеймо этого не видят НИ ОДНИМ полем.
+            var chanCount = new Dictionary<int, int>();
             int noisy = 0, coneOn = 0, emptyTotal = 0;
 
             Console.WriteLine("склад: {0}", Path.GetFullPath(dir));
@@ -169,9 +186,9 @@ namespace MatrixAuditProbe
             Console.WriteLine();
             if (!quiet)
             {
-                Console.WriteLine("{0,-38} {1,5} {2,6} {3,10} {4,5} {5,8} {6,8} {7,5}",
-                                  "файл", "форм", "phys", "историй", "узл", "шум мед", "шум худш", "конус");
-                Console.WriteLine(new string('-', 100));
+                Console.WriteLine("{0,-38} {1,5} {2,6} {3,10} {4,5} {5,4} {6,8} {7,8} {8,5}",
+                                  "файл", "форм", "phys", "историй", "узл", "кан", "шум мед", "шум худш", "конус");
+                Console.WriteLine(new string('-', 105));
             }
 
             foreach (string path in files)
@@ -213,10 +230,31 @@ namespace MatrixAuditProbe
 
                 physCount[phys] = physCount.TryGetValue(phys, out int pc) ? pc + 1 : 1;
                 histCount[m.Histories] = histCount.TryGetValue(m.Histories, out int hc) ? hc + 1 : 1;
+                int chans = m.ChannelRows != null ? m.ChannelRows.Length : 0;
+                chanCount[chans] = chanCount.TryGetValue(chans, out int cc) ? cc + 1 : 1;
 
                 if (wantPhys != 0 && phys != wantPhys.ToString(CultureInfo.InvariantCulture))
                 {
                     findings.Add(name + ": физика " + phys + ", а ждали " + wantPhys);
+                }
+
+                // ⛔ КАНАЛОВ МЕНЬШЕ, ЧЕМ ЗНАЕТ КОД, — это НАХОДКА, а не мелочь.
+                // Файл при этом читается и числа разбора не двигает: лишний
+                // канал пуст, а `Accumulate` на чужой номер отдаёт пустоту. Но
+                // СМЫСЛ канала № 2 у такого файла ДРУГОЙ — там слиты одиночный
+                // и двойной вылет, — а код зовёт его одиночным. Матрица,
+                // посчитанная до разведения, годна ровно до первого разбора,
+                // который спросит каналы порознь.
+                //
+                // ⚠ Сравнение ИМЕННО с `ResponseChannelCount`, а не с числом
+                // рядом: литерал был бы второй копией числа и разошёлся бы с
+                // перечислением при следующем канале молча.
+                if (chans != EfficiencySimulator.ResponseChannelCount)
+                {
+                    findings.Add(string.Format(CultureInfo.InvariantCulture,
+                        "{0}: каналов {1}, а код знает {2} — посчитана ДО разведения SE/DE"
+                        + " (`AMBER15`), клеймо этого НЕ видит", name, chans,
+                        EfficiencySimulator.ResponseChannelCount));
                 }
 
                 // ⛔ ИМЯ ФАЙЛА — НЕ ВСЕГДА КЛЮЧ СЦЕНЫ (`A84`). В складе файл
@@ -304,9 +342,9 @@ namespace MatrixAuditProbe
 
                 if (!quiet)
                 {
-                    Console.WriteLine("{0,-38} {1,5} {2,6} {3,10} {4,5} {5,7:F2}% {6,7:F2}% {7,5}",
+                    Console.WriteLine("{0,-38} {1,5} {2,6} {3,10} {4,5} {5,4} {6,7:F2}% {7,7:F2}% {8,5}",
                                       Trim(name, 38), ResponseMatrix.FormatVersion, phys,
-                                      m.Histories, nodes, med, worst, cone ? "да" : "нет");
+                                      m.Histories, nodes, chans, med, worst, cone ? "да" : "нет");
                 }
 
                 // ⛔ ПОУЗЛОВОЙ СРЕЗ. Нужен, чтобы проверить, постоянна ли по
@@ -401,6 +439,7 @@ namespace MatrixAuditProbe
                 {
                     name, phys, m.Histories.ToString(CultureInfo.InvariantCulture),
                     nodes.ToString(CultureInfo.InvariantCulture),
+                    chans.ToString(CultureInfo.InvariantCulture),
                     med.ToString("F4", CultureInfo.InvariantCulture),
                     worst.ToString("F4", CultureInfo.InvariantCulture),
                     empty.ToString(CultureInfo.InvariantCulture),
@@ -416,6 +455,8 @@ namespace MatrixAuditProbe
             Console.WriteLine();
             Console.WriteLine("  версия физики: {0}", Join(physCount));
             Console.WriteLine("  историй на узел: {0}", Join(histCount));
+            Console.WriteLine("  каналов у матрицы: {0} (код знает {1})",
+                              Join(chanCount), EfficiencySimulator.ResponseChannelCount);
             Console.WriteLine("  с конусом: {0} из {1}", coneOn, files.Length);
             Console.WriteLine("  шумных (худший СУДИМЫЙ узел выше {0:F2} %): {1}", noiseLimit, noisy);
 
@@ -430,7 +471,7 @@ namespace MatrixAuditProbe
             {
                 using (var w = new StreamWriter(csv, false, new UTF8Encoding(true)))
                 {
-                    w.WriteLine("file,phys,histories,nodes,noise_median,noise_worst,nodes_empty,cone,created,seconds,stamp,body_sha256,fingerprint");
+                    w.WriteLine("file,phys,histories,nodes,channels,noise_median,noise_worst,nodes_empty,cone,created,seconds,stamp,body_sha256,fingerprint");
                     foreach (string l in lines)
                     {
                         w.WriteLine(l);

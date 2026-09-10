@@ -69,6 +69,10 @@ static class FsaTuningReport
     static FsaNoCurveFloor stockNoCurveFloor;
     static double stockNoCurveFloorKev;
 
+    // (`A302`) Пол полосы ФИТА — рычаг замера, поставляется выключенным.
+    static FsaFitFloor stockFitFloor;
+    static double stockFitFloorKev;
+
     /// <summary>
     /// ПОСТАВОЧНАЯ ПОЛОСА — снимается ДО разбора ключей и до чтения любой
     /// конфигурации. Первый вызов побеждает: помощник, позвавший снимок
@@ -87,6 +91,8 @@ static class FsaTuningReport
         stockShareThreshold = FsaBand.DefaultShareThreshold;
         stockNoCurveFloor = FsaBand.DefaultNoCurveFloor;
         stockNoCurveFloorKev = FsaBand.DefaultNoCurveFloorKev;
+        stockFitFloor = FsaBand.DefaultFitFloor;
+        stockFitFloorKev = FsaBand.DefaultFitFloorKev;
         taken = true;
     }
 
@@ -178,6 +184,8 @@ static class FsaTuningReport
         double liveThreshold = FsaBand.DefaultShareThreshold;
         FsaNoCurveFloor liveNoCurve = FsaBand.DefaultNoCurveFloor;
         double liveNoCurveKev = FsaBand.DefaultNoCurveFloorKev;
+        FsaFitFloor liveFitFloor = FsaBand.DefaultFitFloor;
+        double liveFitFloorKev = FsaBand.DefaultFitFloorKev;
 
         FsaBand.DefaultMode = stockMode;
         FsaBand.DefaultFloor = stockFloor;
@@ -185,6 +193,8 @@ static class FsaTuningReport
         FsaBand.DefaultShareThreshold = stockShareThreshold;
         FsaBand.DefaultNoCurveFloor = stockNoCurveFloor;
         FsaBand.DefaultNoCurveFloorKev = stockNoCurveFloorKev;
+        FsaBand.DefaultFitFloor = stockFitFloor;
+        FsaBand.DefaultFitFloorKev = stockFitFloorKev;
         try
         {
             FsaAnalyzer stock = new FsaAnalyzer();
@@ -198,6 +208,8 @@ static class FsaTuningReport
             FsaBand.DefaultShareThreshold = liveThreshold;
             FsaBand.DefaultNoCurveFloor = liveNoCurve;
             FsaBand.DefaultNoCurveFloorKev = liveNoCurveKev;
+            FsaBand.DefaultFitFloor = liveFitFloor;
+            FsaBand.DefaultFitFloorKev = liveFitFloorKev;
         }
     }
 
@@ -248,6 +260,24 @@ static class FsaTuningReport
                                     FsaBand.DefaultNoCurveFloorKev)
                     : "",
                 stockNoCurveFloor));
+        }
+
+        // (`A302`) ПОЛ ПОЛОСЫ ФИТА. Сличается по той же причине, что и всё
+        // выше: он двигает САМУ ПОЛОСУ СЧЁТА, то есть все числа прогона, а
+        // отражение его не видит — анализатор читает статику в момент
+        // обращения.
+        if (FsaBand.DefaultFitFloor != stockFitFloor
+            || (FsaBand.DefaultFitFloor == FsaFitFloor.Fixed
+                && Math.Abs(FsaBand.DefaultFitFloorKev - stockFitFloorKev) > 1e-9))
+        {
+            changed.Add(string.Format(CultureInfo.InvariantCulture,
+                "FitFloor: {0}{1} (поставка {2})",
+                FsaBand.DefaultFitFloor,
+                FsaBand.DefaultFitFloor == FsaFitFloor.Fixed
+                    ? string.Format(CultureInfo.InvariantCulture, " {0:F2} кэВ",
+                                    FsaBand.DefaultFitFloorKev)
+                    : "",
+                stockFitFloor));
         }
     }
 

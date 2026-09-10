@@ -586,6 +586,8 @@ static class GraphCultureProbeF27
         //    и НЕТРОНУТЫМ разделителем разрядов. То есть эта строка — экран
         //    поставляемого приложения на русской системе, и на нём видно, что
         //    костыль лечит только половину: дробь он чинит, разряды нет.
+        // T245: НАРОЧНО — подмена разделителя ЗДЕСЬ и есть предмет замера;
+        //    инвариант вместо неё стёр бы то самое, что плечо показывает.
         CultureInfo crutch = (CultureInfo)CultureInfo.GetCultureInfo("ru-RU").Clone();
         crutch.NumberFormat.NumberDecimalSeparator = ".";
         Thread.CurrentThread.CurrentCulture = crutch;

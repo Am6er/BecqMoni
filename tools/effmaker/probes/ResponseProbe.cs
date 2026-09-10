@@ -57,6 +57,12 @@ namespace ResponseProbe
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+            // ⛔ Культура ЦЕЛИКОМ инвариантная (`T245`, приказ Amber 05.09.2026).
+            //    Проба её не ставила ВОВСЕ, и на русской машине весь её вывод шёл
+            //    с ЗАПЯТОЙ — включая `--csv=`, который потом кто-то разбирает.
+            //    Найдено 10.09.2026 при `T247`; такой же дыры ещё у двадцати проб
+            //    каталога, разбор им — отдельной строкой.
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string dir = null, csvPath = null, pngPath = null, spectrumSpec = null;
             var geometryFiles = new List<string>();
@@ -436,8 +442,12 @@ namespace ResponseProbe
             Console.WriteLine("  один прогон:        сумма {0:E4}, {1:F0} мс", sumFast / omega, fastMs);
             Console.WriteLine("  сканирование порога: сумма {0:E4}, {1:F0} мс", sumScan / omega, scanMs);
             Console.WriteLine("  выигрыш по времени: {0:F0} раз", scanMs / Math.Max(1.0, fastMs));
-            Console.WriteLine("  худшее расхождение бина: {0:E3} (бин {1}), от суммы {2:P3}",
-                              worst / omega, worstBin, worst / Math.Max(1e-30, sumFast));
+            // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит разделитель
+            //    разрядов, а группировки разрядов нет вовсе (решение Amber
+            //    05.09.2026). Процент — множителем 100.0 и знаком в тексте.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "  худшее расхождение бина: {0:E3} (бин {1}), от суммы {2:F3} %",
+                              worst / omega, worstBin, 100.0 * worst / Math.Max(1e-30, sumFast)));
 
             if (outDir != null)
             {

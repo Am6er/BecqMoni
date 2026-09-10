@@ -246,6 +246,17 @@ namespace FsaCascadeProbe
                 }
             }
 
+            // ⛔ ПРИМЕЧАНИЕ И ОТКАЗ — РАЗНЫМИ СТРОКАМИ (10.09.2026). Прежде
+            // здесь печаталось «ОТКАЗ БАЗЫ» на любую записку, включая законные
+            // («изомер: набор питаний ENSDF уровня родителя не различает»), и
+            // на корпусных родителях отказ докладывался у `228AC` и `234PA`,
+            // где никакого отказа нет. Признак, кричащий на исправной работе,
+            // перестают читать.
+            if (!string.IsNullOrEmpty(FsaCascadeSummer.Notes))
+            {
+                Console.WriteLine("ПРИМЕЧАНИЕ БАЗЫ: {0}", FsaCascadeSummer.Notes);
+            }
+
             if (!string.IsNullOrEmpty(FsaCascadeSummer.Failure))
             {
                 Console.WriteLine("ОТКАЗ БАЗЫ: {0}", FsaCascadeSummer.Failure);
@@ -535,8 +546,12 @@ namespace FsaCascadeProbe
                               shortBefore, overBefore);
             Console.WriteLine("      с каскадом : недобор {0:F0}, перебор {1:F0}",
                               shortAfter, overAfter);
-            Console.WriteLine("      суммирование положило {0:F0} отсчётов = {1:P1} недостачи",
-                              returned, shortBefore > 0.0 ? returned / shortBefore : 0.0);
+            // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит разделитель
+            //    разрядов, а группировки разрядов нет вовсе (решение Amber
+            //    05.09.2026). Процент — множителем 100.0 и знаком в тексте.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "      суммирование положило {0:F0} отсчётов = {1:F1} % недостачи",
+                              returned, shortBefore > 0.0 ? 100.0 * returned / shortBefore : 0.0));
         }
 
         /// <summary>

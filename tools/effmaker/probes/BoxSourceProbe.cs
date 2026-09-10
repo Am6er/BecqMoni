@@ -304,10 +304,14 @@ namespace BoxSourceProbe
                     double sd = Math.Sqrt(Math.Max(0.0, sum2 / seeds - mean * mean));
                     // СКО среднего: именно оно говорит, отличается ли среднее от единицы.
                     double sem = seeds > 1 ? sd / Math.Sqrt(seeds - 1.0) : 0.0;
-                    Console.WriteLine("   {0,6:F0} кэВ  среднее {1:F4}  СКО зёрен {2:P2}  СКО среднего {3:P2}"
-                                      + "  худшее |r-1| {4:P2}  отклонение среднего {5:F2}σ",
-                                      e, mean, sd, sem, worst,
-                                      sem > 0.0 ? Math.Abs(mean - 1.0) / sem : 0.0);
+                    // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит
+                    //    разделитель разрядов, а группировки разрядов нет вовсе
+                    //    (решение Amber 05.09.2026). Процент — множителем и текстом.
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                      "   {0,6:F0} кэВ  среднее {1:F4}  СКО зёрен {2:F2} %  СКО среднего {3:F2} %"
+                                      + "  худшее |r-1| {4:F2} %  отклонение среднего {5:F2}σ",
+                                      e, mean, 100.0 * sd, 100.0 * sem, 100.0 * worst,
+                                      sem > 0.0 ? Math.Abs(mean - 1.0) / sem : 0.0));
                 }
             }
 
@@ -586,9 +590,12 @@ namespace BoxSourceProbe
                 double sigma = analytic / Math.Sqrt(k);
                 double band = Math.Max(tolerance, Band * sigma);
                 bool ok = Math.Abs(mean - 1.0) <= band;
-                Console.WriteLine("   {0,6:F0} кэВ  {1:E3} / {2:E3} = {3:F4}  (шум {4:P1}, зёрна {5:P1}, полоса {6:P1})  {7}",
-                                  energies[i], lastB[i], lastA[i], mean, analytic, sd, band,
-                                  ok ? "ок" : "РАСХОДИТСЯ");
+                // ⛔ `P` не применяется (`T247`), см. довод выше по файлу.
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "   {0,6:F0} кэВ  {1:E3} / {2:E3} = {3:F4}  (шум {4:F1} %, зёрна {5:F1} %, полоса {6:F1} %)  {7}",
+                                  energies[i], lastB[i], lastA[i], mean,
+                                  100.0 * analytic, 100.0 * sd, 100.0 * band,
+                                  ok ? "ок" : "РАСХОДИТСЯ"));
 
                 // ⚠ ЧИТАТЕЛЬ ПРИЗНАКА ОТКАЗА — но СВОДНЫЙ, а не построчный.
                 //

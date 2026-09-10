@@ -32,8 +32,9 @@ namespace FsaChannelShot
     ///   * тонкой линией — полная модель;
     ///   * заливкой — ОДИН канал отклика, сумма по всем компонентам состава.
     ///
-    /// И одна общая картинка, где все четыре канала сложены стопкой — по ней
-    /// видно, что они и составляют модель.
+    /// И одна общая картинка, где все ПЯТЬ каналов сложены стопкой — по ней
+    /// видно, что они и составляют модель. (Было четыре; пятым 10.09.2026 стал
+    /// двойной вылет аннигиляции, `AMBER15`.)
     ///
     ///   fsachannelshot --spectrum=X.xml [--out=префикс] [--set=Имя]
     ///                  [--from=0] [--to=3000] [--ceiling=N] [--pow=4]
@@ -53,8 +54,9 @@ namespace FsaChannelShot
         /// <summary>
         /// ⛔ ВТОРОЙ КАНАЛ — НЕ «КОМПТОН», И НАЗЫВАТЬ ЕГО ТАК НЕЛЬЗЯ.
         /// `EfficiencySimulator.ChannelOf` кладёт в него ВСЯКУЮ историю, из
-        /// которой что-то вылетело, если это не 511 и не K-рентген кристалла:
-        /// рассеянный квант, ушедший электрон, тормозное, L-рентген.
+        /// которой что-то вылетело, если это не аннигиляционный квант и не
+        /// K-рентген кристалла: рассеянный квант, ушедший электрон, тормозное,
+        /// L-рентген.
         ///
         /// ⚠ Причём при НУЛЕВОМ допуске пика (`PeakToleranceFromGeometry`
         /// выключен умолчанием, ~~`E34`~~) туда уходит даже утечка в доли
@@ -68,15 +70,17 @@ namespace FsaChannelShot
         {
             "полное поглощение",
             "неполное поглощение (комптон, электроны, тормозное)",
-            "вылет 511", "вылет рентгена кристалла"
+            "вылет аннигиляции одиночный (SE)", "вылет рентгена кристалла",
+            "вылет аннигиляции двойной (DE)"
         };
 
         static readonly Color[] ChannelColors =
         {
             Color.FromArgb(210, 32, 96, 200),    // пик — синий
             Color.FromArgb(210, 232, 126, 40),   // комптон — оранжевый
-            Color.FromArgb(210, 150, 60, 190),   // вылет 511 — фиолетовый
-            Color.FromArgb(210, 205, 50, 60)     // вылет рентгена — красный
+            Color.FromArgb(210, 150, 60, 190),   // одиночный вылет — фиолетовый
+            Color.FromArgb(210, 205, 50, 60),    // вылет рентгена — красный
+            Color.FromArgb(210, 90, 30, 130)     // двойной вылет — тёмно-фиолетовый
         };
 
         [STAThread]
@@ -357,7 +361,10 @@ namespace FsaChannelShot
             if (dumpPath != null)
             {
                 var rows = new List<string>();
-                rows.Add("channel;energy_kev;measured;model;peak;compton;esc511;escxray");
+                // ⛔ (`AMBER15`) Колонок стало ПЯТЬ: `esc511` разведена на
+                // `esc_se` и `esc_de` — прежнее имя обещало потерю 511 кэВ, а
+                // половину колонки занимала потеря 1022.
+                rows.Add("channel;energy_kev;measured;model;peak;compton;esc_se;escxray;esc_de");
                 for (int i = 0; i < channels; i++)
                 {
                     double e = calibration.ChannelToEnergy(i);
@@ -367,9 +374,10 @@ namespace FsaChannelShot
                     }
 
                     rows.Add(string.Format(CultureInfo.InvariantCulture,
-                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4}",
+                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4};{8:F4}",
                         i, e, measured[i], result.Model[i],
-                        byChannel[0][i], byChannel[1][i], byChannel[2][i], byChannel[3][i]));
+                        byChannel[0][i], byChannel[1][i], byChannel[2][i], byChannel[3][i],
+                        byChannel[4][i]));
                 }
 
                 File.WriteAllLines(dumpPath, rows, new UTF8Encoding(true));
@@ -396,8 +404,8 @@ namespace FsaChannelShot
 
                 Console.WriteLine();
                 Console.WriteLine("=== кто даёт {0:F1} кЭВ (канал АЦП {1}) ===", who, bin);
-                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12}",
-                                  "компонент", "пик", "комптон", "вылет 511", "вылет x");
+                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12} {5,12}",
+                                  "компонент", "пик", "комптон", "вылет SE", "вылет x", "вылет DE");
                 foreach (FsaComponentResult component in result.Components)
                 {
                     if (component.ChannelCurves == null)
@@ -419,13 +427,13 @@ namespace FsaChannelShot
                         continue;
                     }
 
-                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1}",
-                                      component.Name, v[0], v[1], v[2], v[3]);
+                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1}",
+                                      component.Name, v[0], v[1], v[2], v[3], v[4]);
                 }
 
-                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1}   ← всего",
+                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1}   ← всего",
                                   "ИТОГО", byChannel[0][bin], byChannel[1][bin],
-                                  byChannel[2][bin], byChannel[3][bin]);
+                                  byChannel[2][bin], byChannel[3][bin], byChannel[4][bin]);
             }
 
             var files = new List<string>();
@@ -769,7 +777,8 @@ namespace FsaChannelShot
             {
                 case 0: return "пик";
                 case 1: return "комптон";
-                case 2: return "вылет511";
+                case 2: return "вылет-SE";
+                case 4: return "вылет-DE";
                 default: return "рентген";
             }
         }

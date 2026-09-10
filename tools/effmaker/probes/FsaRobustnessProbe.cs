@@ -26,9 +26,10 @@ namespace FsaRobustnessProbe
         static int Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
-            CultureInfo culture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
-            culture.NumberFormat.NumberDecimalSeparator = ".";
-            Thread.CurrentThread.CurrentCulture = culture;
+            // ⛔ Культура ЦЕЛИКОМ инвариантная, а не клон системной с подменённым
+            //    разделителем (`T245`): клон чинил ПЕЧАТЬ и оставлял РАЗБОР
+            //    системным — обе стороны чинятся вместе (приказ Amber 05.09.2026).
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
             // (`T243`) Эталон настроек — ДО всего: полоса это статика,
             // отражение её не видит, и снятая позже она уже могла быть уведена.

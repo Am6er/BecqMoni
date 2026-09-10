@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
 using System.IO;
@@ -82,11 +82,13 @@ namespace BackscatterShapeProbe
             // его нет.
             //
             // Матрица раскладывает отклик по каналам исхода (`Peak`, `Compton`,
-            // `Escape511`, `EscapeXray`), и вылет живёт в своём. Квант, ушедший
+            // `EscapeAnnihilation`, `EscapeXray`, `EscapeAnnihilationDouble`),
+            // и вылет живёт в своём. Квант, ушедший
             // в обвязку, рассеявшийся там назад и поглощённый целиком, уносит
             // часть энергии — значит метка «утечка», канал `Compton`. Там его и
             // ищем.
-            string[] channelNames = { "Peak", "Compton", "Escape511", "EscapeXray" };
+            string[] channelNames = { "Peak", "Compton", "EscapeAnnihilation",
+                                      "EscapeXray", "EscapeAnnihilationDouble" };
             double[][] byChannel = new double[channelNames.Length][];
             bool hasChannels = matrix.HasChannels;
             for (int c = 0; c < channelNames.Length; c++)

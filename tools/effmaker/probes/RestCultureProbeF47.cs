@@ -865,6 +865,8 @@ static class RestCultureProbeF47
         }
         // Тот самый клон, что стоит в `MainForm.cs:158-160`: разделитель
         // ДРОБНОЙ части подменён на точку. Целому это не меняет ничего.
+        // T245: НАРОЧНО — подмена разделителя ЗДЕСЬ и есть предмет замера;
+        // инвариант вместо неё стёр бы то самое, что строка показывает.
         CultureInfo crutch = (CultureInfo)CultureInfo.GetCultureInfo("ru-RU").Clone();
         crutch.NumberFormat.NumberDecimalSeparator = ".";
         Thread.CurrentThread.CurrentCulture = crutch;

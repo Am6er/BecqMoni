@@ -219,7 +219,16 @@ static class LabelPathProbeF49
         string lib = Path.Combine(Directory.GetCurrentDirectory(), "config\\NuclideDefinition.xml");
         if (File.Exists(lib))
         {
-            Say("            " + lib + ", байт " + new FileInfo(lib).Length + ", sha256 " + Sha16(lib));
+            // ⛔ ОТПЕЧАТОК — ПО НОРМАЛИЗОВАННЫМ КОНЦАМ СТРОК (`T172`): сырой
+            // sha256 у ОДНОЙ И ТОЙ ЖЕ библиотеки разный в дереве с LF и в
+            // дереве с CRLF, и числа двух заходов переставали быть сравнимы.
+            // Печатаются оба — отпечаток, чтобы сравнивать, сырой, чтобы было
+            // видно, что дерево переписано.
+            byte[] raw = File.ReadAllBytes(lib);
+            Say("            " + lib + ", байт " + raw.Length
+                + ", концы строк " + EolKind(raw)
+                + ", отпечаток " + Sha16(NormalizeEol(raw))
+                + ", сырой sha256 " + Sha16(raw));
         }
         else
         {
@@ -1018,6 +1027,58 @@ static class LabelPathProbeF49
         {
             return BitConverter.ToString(sha.ComputeHash(fs)).Replace("-", "").ToLowerInvariant().Substring(0, 16);
         }
+    }
+
+    static string Sha16(byte[] bytes)
+    {
+        using (var sha = SHA256.Create())
+        {
+            return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant().Substring(0, 16);
+        }
+    }
+
+    /// <summary>
+    /// Концы строк, СЧИТАННЫЕ ПО БАЙТАМ (`T172`). Разбирать файл как текст тут
+    /// нельзя: три способа счёта уже давали три разных числа.
+    /// </summary>
+    static string EolKind(byte[] b)
+    {
+        int crlf = 0, lf = 0, cr = 0;
+        for (int i = 0; i < b.Length; i++)
+        {
+            if (b[i] == 13)
+            {
+                if (i + 1 < b.Length && b[i + 1] == 10) { crlf++; i++; }
+                else cr++;
+            }
+            else if (b[i] == 10) lf++;
+        }
+
+        if (crlf + lf + cr == 0) return "нет переводов строк";
+        if (lf == 0 && cr == 0) return "CRLF";
+        if (crlf == 0 && cr == 0) return "LF";
+        return string.Format(CultureInfo.InvariantCulture,
+                             "смешанные (CRLF {0}, LF {1}, CR {2})", crlf, lf, cr);
+    }
+
+    /// <summary>
+    /// CRLF → LF, одиночный CR → LF. Нормализуются ТОЛЬКО концы строк:
+    /// пробелы, отступы и BOM — это содержимое (`T172`).
+    /// </summary>
+    static byte[] NormalizeEol(byte[] b)
+    {
+        var outBytes = new List<byte>(b.Length);
+        for (int i = 0; i < b.Length; i++)
+        {
+            if (b[i] == 13)
+            {
+                outBytes.Add(10);
+                if (i + 1 < b.Length && b[i + 1] == 10) i++;
+            }
+            else outBytes.Add(b[i]);
+        }
+
+        return outBytes.ToArray();
     }
 
     static void Say(string line)

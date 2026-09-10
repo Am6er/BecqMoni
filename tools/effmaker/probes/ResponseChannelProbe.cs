@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Globalization;
 using System.IO;
@@ -18,8 +18,10 @@ namespace ResponseChannelProbe
     ///
     /// Дальше — где каналы обязаны быть:
     ///
-    /// * **вылет 511** живёт только выше порога рождения пар (1022 кэВ) и
-    ///   ставит пики на E−511 и E−1022. Ниже порога канал обязан быть ПУСТ;
+    /// * **вылет аннигиляции** живёт только выше порога рождения пар
+    ///   (1022 кэВ). Каналов у него ДВА (`AMBER15`, 10.09.2026): ОДИНОЧНЫЙ
+    ///   ставит пик на E−511, ДВОЙНОЙ — на E−1022, и каждый пик обязан стоять
+    ///   В СВОЁМ канале, а не в общем. Ниже порога пусты ОБА;
     /// * **вылет K-рентгена** ставит пик на 28–33 кэВ ниже линии (Kα иода и
     ///   цезия) и заметен внизу шкалы, где фотопоглощение преобладает;
     /// * **комптон** обрывается на краю E/(1+2E/511) и не имеет права заходить
@@ -113,10 +115,25 @@ namespace ResponseChannelProbe
                 double total = Sum(plain);
                 double peak = Sum(channels[(int)EfficiencySimulator.ResponseChannel.Peak]);
                 double compton = Sum(channels[(int)EfficiencySimulator.ResponseChannel.Compton]);
-                double annih = Sum(channels[(int)EfficiencySimulator.ResponseChannel.Escape511]);
+                double annihSingle = Sum(channels[(int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation]);
+                double annihDouble = Sum(channels[(int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble]);
+                double annih = annihSingle + annihDouble;
                 double xray = Sum(channels[(int)EfficiencySimulator.ResponseChannel.EscapeXray]);
-                Console.WriteLine("доли: пик {0:P2}, комптон {1:P2}, вылет 511 {2:P2}, вылет рентгена {3:P2}",
-                                  peak / total, compton / total, annih / total, xray / total);
+                // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит
+                //    разделитель разрядов, а группировки разрядов нет вовсе
+                //    (решение Amber 05.09.2026). Процент — множителем и текстом.
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "доли: пик {0:F2} %, комптон {1:F2} %, вылет SE {2:F2} %, "
+                                  + "вылет DE {3:F2} %, вылет рентгена {4:F2} %",
+                                  100.0 * peak / total, 100.0 * compton / total,
+                                  100.0 * annihSingle / total, 100.0 * annihDouble / total,
+                                  100.0 * xray / total));
+                // Абсолютные доли отклика на историю — ими и меряется
+                // разведение (`AMBER15`): было одно число, стало два.
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                  "каналы вылета аннигиляции: одиночный {0:E4}, двойной {1:E4}, "
+                                  + "их сумма {2:E4} (прежний общий канал)",
+                                  annihSingle, annihDouble, annih));
 
                 // --- 2. Пик целиком в своём канале --------------------------
                 int peakBin = EfficiencySimulator.PeakBin(energy, binKev);
@@ -133,28 +150,54 @@ namespace ResponseChannelProbe
                 // бина. Но это должны быть КРОХИ против самого пика.
                 double inPeakBin = channels[(int)EfficiencySimulator.ResponseChannel.Peak][peakBin];
                 bad += Report(peakElsewhere < 0.02 * inPeakBin,
-                              "бин пика принадлежит каналу пика: чужого {0:P2}",
-                              inPeakBin > 0.0 ? peakElsewhere / inPeakBin : 0.0);
+                              "бин пика принадлежит каналу пика: чужого {0:F2} %",
+                              inPeakBin > 0.0 ? 100.0 * peakElsewhere / inPeakBin : 0.0);
 
                 // --- 3. Вылет 511 только выше порога рождения пар ------------
                 if (energy < 1022.0)
                 {
-                    bad += Report(annih <= 0.0, "ниже порога пар канал 511 пуст: {0:E3}", annih);
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ разведения: ниже порога пар
+                    // рождения пар нет вовсе, значит ПУСТЫ ОБА канала. Проверка
+                    // каждого порознь — не мелочь: сумма их обнулилась бы и при
+                    // ошибке, где двойной канал набрал ровно столько, сколько
+                    // потерял одиночный.
+                    bad += Report(annihSingle <= 0.0, "ниже порога пар канал SE пуст: {0:E3}", annihSingle);
+                    bad += Report(annihDouble <= 0.0, "ниже порога пар канал DE пуст: {0:E3}", annihDouble);
                 }
                 else
                 {
-                    bad += Report(annih > 0.0, "выше порога пар канал 511 не пуст: {0:P2} отклика", annih / total);
-                    foreach (double shift in new[] { 511.0, 1022.0 })
+                    bad += Report(annihSingle > 0.0, "выше порога пар канал SE не пуст: {0:F2} % отклика", 100.0 * annihSingle / total);
+                    bad += Report(annihDouble > 0.0, "выше порога пар канал DE не пуст: {0:F2} % отклика", 100.0 * annihDouble / total);
+                    // ⛔ (`AMBER15`) Каждый пик — В СВОЁМ канале. Прежде оба
+                    // искались в одном, и проба проходила бы ровно так же, если
+                    // бы SE и DE лежали вперемешку: это она и не различала.
+                    // Теперь у каждого свой канал, и вторым числом печатается,
+                    // сколько того же пика осталось в ЧУЖОМ канале.
+                    var where = new[]
                     {
-                        int at = EfficiencySimulator.PeakBin(energy - shift, binKev);
-                        double local = Window(channels[(int)EfficiencySimulator.ResponseChannel.Escape511], at - 1, at + 1);
-                        double around = Window(channels[(int)EfficiencySimulator.ResponseChannel.Escape511], at - 12, at + 12);
+                        new { Shift = 511.0, Own = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation,
+                              Other = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble, Name = "SE" },
+                        new { Shift = 1022.0, Own = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble,
+                              Other = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation, Name = "DE" }
+                    };
+                    foreach (var w in where)
+                    {
+                        int at = EfficiencySimulator.PeakBin(energy - w.Shift, binKev);
+                        double local = Window(channels[w.Own], at - 1, at + 1);
+                        double around = Window(channels[w.Own], at - 12, at + 12);
                         // Пик вылета обязан ВЫСТУПАТЬ над своей окрестностью:
                         // три бина из двадцати пяти держат заметно больше трёх
                         // двадцать пятых, иначе это не пик, а ровное плато.
                         bool stands = around > 0.0 && local / around > 3.0 * 3.0 / 25.0;
-                        bad += Report(stands, "пик вылета на {0:F0} кэВ выступает: {1:P1} от окрестности",
-                                      energy - shift, around > 0.0 ? local / around : 0.0);
+                        bad += Report(stands, "пик {0} на {1:F0} кэВ выступает в своём канале: {2:F1} % от окрестности",
+                                      w.Name, energy - w.Shift, around > 0.0 ? 100.0 * local / around : 0.0);
+
+                        double alien = Window(channels[w.Other], at - 1, at + 1);
+                        double alienAround = Window(channels[w.Other], at - 12, at + 12);
+                        bool quiet = !(alienAround > 0.0) || alien / alienAround <= 3.0 * 3.0 / 25.0;
+                        bad += Report(quiet, "пика {0} в ЧУЖОМ канале нет: {1:F1} % от окрестности (было бы {2:F1} % при слиянии)",
+                                      w.Name, alienAround > 0.0 ? 100.0 * alien / alienAround : 0.0,
+                                      100.0 * 3.0 / 25.0);
                     }
                 }
 
@@ -171,8 +214,8 @@ namespace ResponseChannelProbe
                     // Не ноль: многократное рассеяние законно заводит выше края.
                     // Но основная масса обязана лежать ПОД ним.
                     bad += Report(aboveEdge < 0.35 * compton,
-                                  "комптон в основном ниже края {0:F0} кэВ: выше него {1:P1}",
-                                  edge, compton > 0.0 ? aboveEdge / compton : 0.0);
+                                  "комптон в основном ниже края {0:F0} кэВ: выше него {1:F1} %",
+                                  edge, compton > 0.0 ? 100.0 * aboveEdge / compton : 0.0);
                 }
                 else
                 {
@@ -183,8 +226,9 @@ namespace ResponseChannelProbe
                     // приносит свою энергию целиком, и никакого края у этого
                     // распределения нет. Требовать его — значит требовать от
                     // модели того, чего в ней нет по построению.
-                    Console.WriteLine("--   край {0:F0} кэВ прижат к нулю, правило не применяется (комптона {1:P1})",
-                                      edge, compton / total);
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                      "--   край {0:F0} кэВ прижат к нулю, правило не применяется (комптона {1:F1} %)",
+                                      edge, 100.0 * compton / total));
                 }
 
                 // --- 5. Вылет рентгена стоит на 28-33 кэВ ниже линии --------
@@ -194,8 +238,8 @@ namespace ResponseChannelProbe
                     double[] xrayRow = channels[(int)EfficiencySimulator.ResponseChannel.EscapeXray];
                     double local = Window(xrayRow, at - 3, at + 3);
                     bad += Report(local > 0.25 * xray,
-                                  "вылет рентгена собран у {0:F0} кэВ: {1:P1} канала",
-                                  energy - 30.6, local / xray);
+                                  "вылет рентгена собран у {0:F0} кэВ: {1:F1} % канала",
+                                  energy - 30.6, 100.0 * local / xray);
                 }
             }
 

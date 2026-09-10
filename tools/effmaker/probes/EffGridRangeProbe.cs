@@ -43,9 +43,10 @@ namespace EffGridRangeProbe
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            CultureInfo culture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
-            culture.NumberFormat.NumberDecimalSeparator = ".";
-            Thread.CurrentThread.CurrentCulture = culture;
+            // ⛔ Культура ЦЕЛИКОМ инвариантная, а не клон системной с подменённым
+            //    разделителем (`T245`): клон чинил ПЕЧАТЬ и оставлял РАЗБОР
+            //    системным — обе стороны чинятся вместе (приказ Amber 05.09.2026).
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
             // Умолчание — ровно штатная сетка, ни одного лишнего узла.
             Grid("умолчание", 40, 3000, EfficiencyGridMode.Standard, 34, true);
@@ -325,10 +326,31 @@ namespace EffGridRangeProbe
             // позитрона нет. Проба проваливала СВОЁ ЖЕ утверждение с
             // 02.09.2026 (`S130`) — то есть с того дня, как ключ завели.
             // Проверяется он ниже отдельно и С ДВУХ СТОРОН.
+            //
+            // ⛔ `SingleScatter`, `JointNodes` и `JointHistories` — вне
+            // СПЛОШНОГО перебора ПО ТОЙ ЖЕ, ТРЕТЬЕЙ причине (`T255`,
+            // 10.09.2026): все три УСЛОВНЫ, и сплошной перебор судил их у
+            // матрицы, где судимая ветка не считается вовсе.
+            //
+            // `SingleScatter`: при погашенном выходе (`SingleScatterErased` —
+            // аналоговый континуум включён, а допуск пика нулевой) сборщик
+            // ветку не считает, и клеймо ЗАКОННО не меняется. У пресета
+            // перебора допуск как раз нулевой, поэтому проба тревожила ЛОЖНО
+            // с 06.09.2026 (`E34`) — то есть с того дня, как условие завели.
+            //
+            // `JointNodes`/`JointHistories`: пара каскада считается только
+            // при `JointNodes > 1` (`ResponseMatrixBuilder.BuildJoint`), и
+            // числа входят в клеймо ТОЛЬКО там И ТОЛЬКО при отличии от
+            // умолчания (правило `T42`) — иначе появление полей объявило бы
+            // чужими все 44 матрицы склада разом. Сплошной перебор берёт
+            // умолчания и сдвигает поле на +7, то есть спрашивает у матрицы с
+            // УМОЛЧАТЕЛЬНОЙ κ, «замечает ли клеймо её узлы», — и до `T255`
+            // получал «нет» законно.
             var skip = new HashSet<string>
             {
                 "Threads", "ContinuumErrorTarget", "PilotDivisor", "MaxHistoriesFactor",
                 "ResolveEdges", "PositronOffset",
+                "SingleScatter", "JointNodes", "JointHistories",
             };
 
             int checked_ = 0;
@@ -392,6 +414,59 @@ namespace EffGridRangeProbe
             // половинами, а не только той, что попала в перебор.
             Check("отпечаток: включение переноса позитрона его меняет",
                   ResponseMatrix.ComputeStamp(g, trOffA) != ResponseMatrix.ComputeStamp(g, trOnA));
+
+            // ⛔ (`T255`) ОДНОКРАТНОЕ РАССЕЯНИЕ — тоже пара, и по образцу
+            // `PositronOffset`. Ключ читается симулятором по-настоящему только
+            // там, где его выход не стирается аналоговым континуумом
+            // (`ResponseMatrix.SingleScatterErased`, `E34`): при погашенном
+            // выходе матрица с `--scat=1` и с `--scat=0` побитово одна, и
+            // клеймо у них обязано быть одно. Проверяется С ДВУХ СТОРОН по той
+            // же причине, что и вершина позитрона: без второй половины проба
+            // «чинится» строкой в клеймо, а это пересчёт склада.
+            var scatLiveA = new ResponseMatrixOptions { AnalogContinuum = false, SingleScatter = true };
+            var scatLiveB = new ResponseMatrixOptions { AnalogContinuum = false, SingleScatter = false };
+            var scatDeadA = new ResponseMatrixOptions { AnalogContinuum = true, SingleScatter = true };
+            var scatDeadB = new ResponseMatrixOptions { AnalogContinuum = true, SingleScatter = false };
+            Check("отпечаток: выход рассеяния НЕ стёрт — ключ рассеяния клеймо меняет",
+                  ResponseMatrix.ComputeStamp(g, scatLiveA) != ResponseMatrix.ComputeStamp(g, scatLiveB));
+            Check("отпечаток: выход рассеяния СТЁРТ — ключ рассеяния клеймо НЕ меняет",
+                  ResponseMatrix.ComputeStamp(g, scatDeadA) == ResponseMatrix.ComputeStamp(g, scatDeadB));
+            // Положительный контроль самому условию: у пресета перебора выход
+            // и правда стёрт, иначе обе проверки выше мерили бы одно плечо.
+            Check("отпечаток: у пресета перебора выход рассеяния действительно стёрт",
+                  ResponseMatrix.SingleScatterErased(g, scatDeadA));
+
+            // ⛔ (`T255`, решение Amber 10.09.2026 «внести УСЛОВНО, как
+            // SingleScatter») ПАРА КАСКАДА — третья условная тройка. Узлы и
+            // точки κ идут в клеймо только там, где пара реально считается
+            // (`JointNodes > 1`), и только при отличии от умолчания.
+            var jointOn = new ResponseMatrixOptions();
+            var jointNodesOther = new ResponseMatrixOptions { JointNodes = 48 };
+            var jointHistOther = new ResponseMatrixOptions { JointHistories = 400000 };
+            var jointOff = new ResponseMatrixOptions { JointNodes = 0 };
+            var jointOffHist = new ResponseMatrixOptions { JointNodes = 0, JointHistories = 400000 };
+            var jointOne = new ResponseMatrixOptions { JointNodes = 1 };
+            Check("отпечаток: пара СЧИТАЕТСЯ — число узлов κ его меняет",
+                  ResponseMatrix.ComputeStamp(g, jointOn) != ResponseMatrix.ComputeStamp(g, jointNodesOther));
+            Check("отпечаток: пара СЧИТАЕТСЯ — число точек κ его меняет",
+                  ResponseMatrix.ComputeStamp(g, jointOn) != ResponseMatrix.ComputeStamp(g, jointHistOther));
+            Check("отпечаток: пара НЕ считается — число точек κ его НЕ меняет",
+                  ResponseMatrix.ComputeStamp(g, jointOff) == ResponseMatrix.ComputeStamp(g, jointOffHist));
+            Check("отпечаток: выключение пары его меняет",
+                  ResponseMatrix.ComputeStamp(g, jointOn) != ResponseMatrix.ComputeStamp(g, jointOff));
+            // Один узел — это ТОТ ЖЕ отказ считать (`BuildJoint` выходит при
+            // `nodes <= 1`), и клеймо обязано говорить о нём то же, что о нуле.
+            // Иначе матрица без таблицы κ носит клеймо матрицы с таблицей.
+            Check("отпечаток: один узел κ — то же, что выключенная пара",
+                  ResponseMatrix.ComputeStamp(g, jointOne) == ResponseMatrix.ComputeStamp(g, jointOff));
+
+            // ⛔ СКЛАД НЕ ОБЪЯВЛЕН ЧУЖИМ. Клеймо умолчаний печатается числом,
+            // чтобы правка клейма ловилась сверкой с прежним прогоном: все 44
+            // матрицы склада посчитаны умолчательными `JointNodes` = 24 и
+            // `JointHistories` = 200000 (замер 10.09.2026), и после `T255` эта
+            // строка обязана остаться прежней побайтно.
+            Console.WriteLine("отпечаток умолчаний           {0}",
+                              ResponseMatrix.ComputeStamp(g, new ResponseMatrixOptions()));
 
             // Края учтены СЕТКОЙ, и в этом весь смысл (`T42`): у пробы с K-краем
             // отпечаток обязан измениться, а у пробы без края — ОБЯЗАН ОСТАТЬСЯ
