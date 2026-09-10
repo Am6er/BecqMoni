@@ -138,6 +138,7 @@ namespace FsaCascadeProbe
             // кэшируются у суммирователя, и флаг, поднятый позже, не догонит.
             FsaCascadeSummer.LogTriples = true;
             FsaCascadeSummer.TripleLog.Clear();
+            FsaCascadeSummer.CarrierKeyMerges = 0;
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
             Console.WriteLine("кривая света: {0}",
                               summer != null && summer.LightYieldName.Length > 0
@@ -207,6 +208,13 @@ namespace FsaCascadeProbe
             Console.WriteLine();
             Console.WriteLine("компонентов поправлено {0} из {1}, сумм-пиков всего {2}",
                               corrected, library.Count, sumPeaks);
+
+            // (`S165`) СЛИЯНИЙ НОСИТЕЛЕЙ — сколько раз два носителя попали в
+            // один ключ и их вероятности сложены. Ноль здесь значит, что на
+            // этой библиотеке правка `S165` НЕ РАБОТАЛА ВОВСЕ, и совпадение
+            // чисел «до/после» доказывает не её верность, а её бездействие.
+            Console.WriteLine("слияний носителей одного ключа (`S165`): {0}",
+                              FsaCascadeSummer.CarrierKeyMerges);
 
             // (`S19`) Тройные суммы: все рассмотренные, с площадью и порогом.
             if (FsaCascadeSummer.TripleLog.Count > 0)
