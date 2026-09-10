@@ -184,8 +184,13 @@ def match_lines(counts, ecal, lines, res_a, tol_fwhm=1.5, min_sig=5.0,
             continue
         out.append(dict(ch=r['mu'], e_ref=e_ref, label=label, purity=purity,
                         fwhm=r['fwhm'], sig=r['sig'], area=r['area'],
-                        # `V13`: значимость амплитуды ПО КОВАРИАЦИИ — читает
-                        # её пока только мерка `gaussfit_check.py`
+                        # `V13`: значимость амплитуды ПО КОВАРИАЦИИ. Читателей
+                        # ЧЕТЫРЕ (сверено грепом `sig_fit` по дереву 10.09.2026,
+                        # `T185`): мерки `gaussfit_check.py`, `gate_blind_check.py`,
+                        # `calib_null_check.py` и сам этот файл — гейт
+                        # `min_sig_fit` выше (`:178`). Величина считается не
+                        # здесь, а в `gaussfit.py:249`. Снимать её как
+                        # «никем не читаемую» НЕЛЬЗЯ.
                         sig_fit=float(r.get('sig_fit', 0.0))))
     out.sort(key=lambda a: a['ch'])
     dedup = []

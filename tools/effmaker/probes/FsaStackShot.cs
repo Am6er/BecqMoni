@@ -897,8 +897,12 @@ namespace FsaStackShot
                 ? net[channel]
                 : double.NaN;
 
-            Console.WriteLine("полуширина: вершина канал {0}, значение {1:F0}; полувысота {2:F0}; подложка {3:F0}; ПШПВ {4:P2}",
-                              channel, maxValue, halfValue, baseValue, resolution);
+            // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит разделитель
+            //    разрядов, а группировки разрядов нет вовсе (решение Amber
+            //    05.09.2026). Процент — множителем 100.0 и знаком в тексте.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "полуширина: вершина канал {0}, значение {1:F0}; полувысота {2:F0}; подложка {3:F0}; ПШПВ {4:F2} %",
+                              channel, maxValue, halfValue, baseValue, 100.0 * resolution));
             Console.WriteLine("            в этом канале: сырых {0:F0}, за вычетом фона {1:F0} — считалось по {2}",
                               raw, clean,
                               Math.Abs(maxValue - clean) < Math.Abs(maxValue - raw)

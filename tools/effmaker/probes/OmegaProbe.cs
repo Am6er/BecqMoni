@@ -145,9 +145,13 @@ class OmegaProbe
             double peakB = b.Efficiency(e, out errB);
             double totalB = b.TotalEfficiency(e, out errTb);
 
-            Console.WriteLine("{0,6:F1}  {1,9:E3}  {2,10:E3}  {3,8:P2}  {4,10:E3}  {5,12:E3}  {6,8:P2}",
-                              e, peakA, peakB, Delta(peakA, peakB),
-                              totalA, totalB, Delta(totalA, totalB));
+            // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит разделитель
+            //    разрядов, а группировки разрядов нет вовсе (решение Amber
+            //    05.09.2026). Процент — множителем 100.0 и знаком в тексте.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "{0,6:F1}  {1,9:E3}  {2,10:E3}  {3,8:F2} %  {4,10:E3}  {5,12:E3}  {6,8:F2} %",
+                              e, peakA, peakB, 100.0 * Delta(peakA, peakB),
+                              totalA, totalB, 100.0 * Delta(totalA, totalB)));
         }
 
         Console.WriteLine();

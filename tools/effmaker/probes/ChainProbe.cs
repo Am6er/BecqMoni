@@ -43,14 +43,15 @@ namespace ChainProbe
         static int Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
-            // То же, что делает MainForm при запуске (MainForm.cs:144). Числа
-            // базы нуклидов разбираются ТЕКУЩЕЙ культурой, и на русской машине
-            // без этой подмены «0.353» — не число: getDecayRad ловит
+            // Числа базы нуклидов разбираются ТЕКУЩЕЙ культурой, и на русской
+            // машине без этой строки «0.353» — не число: getDecayRad ловит
             // FormatException, показывает окно с ошибкой и возвращает null.
-            // Проба без подмены висит на этом окне, а не падает.
-            CultureInfo culture = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
-            culture.NumberFormat.NumberDecimalSeparator = ".";
-            Thread.CurrentThread.CurrentCulture = culture;
+            // Проба без неё висит на этом окне, а не падает.
+            // ⛔ Культура ставится ЦЕЛИКОМ инвариантной, а не клоном системной с
+            //    подменённым разделителем (`T245`): клон чинил ПЕЧАТЬ и оставлял
+            //    РАЗБОР системным — обе стороны чинятся вместе (приказ Amber
+            //    05.09.2026). Разбор «0.353» инвариант держит так же.
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
             int bad = 0;
             bad += CheckParsing();

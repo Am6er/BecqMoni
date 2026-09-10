@@ -760,6 +760,8 @@ static class CultureProbeO14
         //   подменённым разделителем дробной части. Ни прежний код, ни правка
         //   `A238` этот клон другим потокам не отдают, и колонка «1.5» ниже
         //   показывает расхождение числом, а не мнением.
+        // T245: НАРОЧНО — подмена разделителя ЗДЕСЬ и есть предмет замера;
+        //   инвариант вместо неё стёр бы то самое, что колонка показывает.
         CultureInfo custom = (CultureInfo)Thread.CurrentThread.CurrentCulture.Clone();
         custom.NumberFormat.NumberDecimalSeparator = ".";
         Thread.CurrentThread.CurrentCulture = custom;

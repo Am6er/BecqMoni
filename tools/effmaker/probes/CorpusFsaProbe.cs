@@ -111,6 +111,7 @@ namespace CorpusFsaProbe
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
     ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
+    ///                  [--fit-floor=off|adc|&lt;кэВ&gt;]   (`A302`, пол полосы ФИТА)
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
@@ -395,6 +396,38 @@ namespace CorpusFsaProbe
 
                     FsaBand.DefaultNoCurveFloor = source;
                     FsaBand.DefaultNoCurveFloorKev = kev;
+                    continue;
+                }
+
+                // (`A302`) ПОЛ ПОЛОСЫ **ФИТА** — не библиотеки.
+                //
+                // ⛔ Не путать с `--nocurve-floor=` выше: тот решает, какие
+                // ЛИНИИ впускаются в образы, а фит при всех его значениях
+                // по-прежнему идёт от нулевого канала. Здесь режется САМА
+                // ПОЛОСА СЧЁТА, то есть меняются и χ², и невязка, и ndf.
+                //
+                // ⛔ Плечо ЗАМЕРА, а не правка поставки: поставочное значение
+                // `off` не отнимает ни одного канала и обязано воспроизвести
+                // базу побитово. Двигать поставку — решение Amber.
+                //
+                // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
+                // сам разбор (что режет) и заверение анализатора (что
+                // печатается), — а вторая копия была бы `S101` заново.
+                if (a.StartsWith("--fit-floor=", StringComparison.Ordinal))
+                {
+                    o.FitFloorName = a.Substring(12);
+                    FsaFitFloor fitSource;
+                    double fitKev;
+                    if (!FsaBand.TryParseFitFloor(o.FitFloorName, out fitSource, out fitKev))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестное значение --fit-floor=: {0}"
+                            + " (off | adc | <кэВ>)", o.FitFloorName);
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultFitFloor = fitSource;
+                    FsaBand.DefaultFitFloorKev = fitKev;
                     continue;
                 }
 
@@ -723,7 +756,12 @@ namespace CorpusFsaProbe
             int kept = 0;
             using (var w = new StreamWriter(spectra, false, new UTF8Encoding(false)))
             {
+                // (`A302`) `fit_lo_ch` / `fit_lo_keV` — нижний конец полосы
+                // ФИТА, взятый разбором НА ДЕЛЕ. Стоят рядом с `adc_floor_keV`
+                // нарочно: вопрос строки — «насколько ниже порога АЦП считает
+                // фит», и оба числа читаются только вместе.
                 w.WriteLine("key,det,part,min_range_keV,curve_floor_keV,adc_floor_keV,"
+                            + "fit_lo_ch,fit_lo_keV,"
                             + "line_floor_keV,lines_below,"
                             + "audited_lines,chi2ndf,model_residual_pct,data_total,data_below,"
                             + "model_below,continuum_below,images_below,area_lines_below");
@@ -746,7 +784,10 @@ namespace CorpusFsaProbe
 
                     w.WriteLine(string.Join(",",
                         r.Key, r.Det, r.Part, F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
-                        F(r.AdcFloorKev, "F2"), F(r.LineFloorKev, "F2"),
+                        F(r.AdcFloorKev, "F2"),
+                        r.FitLoCh < 0 ? "" : r.FitLoCh.ToString(CultureInfo.InvariantCulture),
+                        F(r.FitLoKev, "F2"),
+                        F(r.LineFloorKev, "F2"),
                         r.LinesBelowMinRange < 0
                             ? ""
                             : r.LinesBelowMinRange.ToString(CultureInfo.InvariantCulture),
@@ -767,22 +808,48 @@ namespace CorpusFsaProbe
         /// у `FsaStackShot --dump=`, чтобы разбирал их один и тот же читатель
         /// (`tools/CORPUS/scripts/wave_shape.py`).
         ///
-        /// Измерение берётся у РЕЗУЛЬТАТА (<c>FsaResult.NetSpectrum</c>), а не
-        /// считается здесь заново: правило «спектр минус вычтенный фон» одно на
-        /// вид и на пробы, и вторая его копия рядом разъехалась бы молча.
+        /// Измерение берётся у РЕЗУЛЬТАТА, а не считается здесь заново: правило
+        /// «спектр минус вычтенный фон» одно на вид и на пробы, и вторая его
+        /// копия рядом разъехалась бы молча.
+        ///
+        /// ⛔ (`A284`) КРИВЫХ ИЗМЕРЕНИЯ ДВЕ, И В ДАМПЕ ОНИ НАЗВАНЫ ПОРОЗНЬ.
+        /// `net` — ПОКАЗНАЯ (<c>FsaResult.NetSpectrum</c>, отрицательное
+        /// подрезано нулём), ею вид рисует линию; `fit` — та, ПО КОТОРОЙ СЧИТАН
+        /// ФИТ (<c>FsaResult.FitSpectrum</c>, без подрезки), и в паре со
+        /// столбцом `model` стоит именно она. Кто меряет модель — берёт `fit`.
+        ///
+        /// ⚠ Столбец `net` оставлен на прежнем месте и с прежним смыслом
+        /// НАРОЧНО: тот же формат пишет `FsaStackShot --dump=`, и одно имя,
+        /// значащее в двух дампах разное, — это `T103` заново. Читателю, которому
+        /// нужна кривая фита, старый дамп отказывает громко (`KeyError` на `fit`),
+        /// а не отдаёт молча другое число.
+        ///
+        /// Расхождение НЕ МОЛЧАЛИВОЕ: число подрезанных каналов печатается тут же
+        /// (`AS80_Onyx` — 2672 из 8192, 07.09.2026), иначе признак остался бы без
+        /// читателя.
         /// </summary>
         static void DumpCurves(string dir, string key, EnergySpectrum spectrum, FsaResult result)
         {
             Directory.CreateDirectory(dir);
             List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             double[] net = result.NetSpectrum(spectrum.Spectrum);
+            double[] fit = result.FitSpectrum(spectrum.Spectrum);
+            int clamped = result.ClampedChannels(spectrum.Spectrum);
             EnergyCalibration calibration = spectrum.EnergyCalibration;
+            if (clamped > 0)
+            {
+                Console.WriteLine(
+                    "  {0}: показная кривая подрезана в {1} из {2} каналов — "
+                    + "модель мерить столбцом `fit`, не `net` (`A284`)",
+                    key, clamped.ToString(CultureInfo.InvariantCulture),
+                    spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture));
+            }
 
             // (`T103`) Сырой сплайн зовётся `continuum_raw`, а не `continuum`: слой
             // стека с именем `FsaResult.ContinuumLayerName` («continuum») идёт следом
             // в том же заголовке, и `csv.DictReader` молча брал ВТОРОЙ — «сплайн 0»
             // там, где он 223.9 (`S103`). На складе 05.09.2026 таких дампов 115 из 329.
-            var head = new StringBuilder("ch,keV,net,model,continuum_raw");
+            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw");
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
@@ -799,6 +866,7 @@ namespace CorpusFsaProbe
                     line.Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
                         .Append(calibration.ChannelToEnergy(i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(Cell(net, i)).Append(',')
+                        .Append(Cell(fit, i)).Append(',')
                         .Append(Cell(result.Model, i)).Append(',')
                         .Append(Cell(result.Continuum, i));
                     foreach (FsaStackLayer layer in layers)
@@ -876,7 +944,10 @@ namespace CorpusFsaProbe
                                   ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
                                   : o.Library == "infer"
                                       ? "ВЫВЕДЕНА ИЗ ПОИСКА ПИКОВ по цепочке родителя (S57), порог доли "
-                                        + InferTheta(o).ToString("P0", CultureInfo.InvariantCulture)
+                                        // (`T247`) Знак процента ТЕКСТОМ, множитель у аргумента:
+                                        // формат `P` ставит разделитель разрядов выше 1000 %.
+                                        + (100.0 * InferTheta(o)).ToString("F0", CultureInfo.InvariantCulture)
+                                        + " %"
                                         + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
                                         + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
                                         + ", оборванный ряд: "
@@ -922,12 +993,15 @@ namespace CorpusFsaProbe
             // 17 (`S93`). Поймано на `G1S16_Cd109_P5`, который возвращал
             // усиление 0.980000 с пометкой «КРАЙ» — за объявленными шапкой
             // ±0.80 %. См. <c>NewAnalyzer</c>.
+            // (`T247`) Усиление — в процентах ТЕКСТОМ, множитель 100.0 у аргумента
+            // и у полосы, которую считает `GridStep`: формат `P` ставит
+            // разделитель разрядов выше 1000 %, и группировки в дереве нет вовсе.
             Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} ({2});"
-                              + " усиление ±{3:P2}, узлов {4} ({5})",
+                              + " усиление ±{3:F2} %, узлов {4} ({5})",
                               head.OffsetRangeKev, head.OffsetSteps,
                               GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
-                              head.GainRange, head.GainSteps,
-                              GridStep(head.GainRange, head.GainSteps, "P3", ""));
+                              100.0 * head.GainRange, head.GainSteps,
+                              GridStep(100.0 * head.GainRange, head.GainSteps, "F3", " %"));
             // (`S101`) ПОЛОСА — ОБОИМИ КОНЦАМИ И ВСЛУХ. Печатается не «что
             // заказано ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ:
             // анализатор (полоса фита и заверение) и спецификация библиотеки
@@ -1104,13 +1178,14 @@ namespace CorpusFsaProbe
             Console.WriteLine(FsaBand.EndsLine(head, new FsaSampleSpec()));
 
             double frac = FsaBand.DefaultFloorFraction;
-            Console.WriteLine("доля пола по кривой: {0:P3}{1}",
-                              frac,
+            // (`T247`) Проценты — `F` со знаком текстом и множителем у аргумента.
+            Console.WriteLine("доля пола по кривой: {0:F3} %{1}",
+                              100.0 * frac,
                               Math.Abs(frac - FsaBand.ShippedFloorFraction) <= 1e-12
                                   ? " (поставочная)"
                                   : string.Format(CultureInfo.InvariantCulture,
-                                                  " — СДВИНУТА ключом --floor-frac=, поставляется {0:P3}",
-                                                  FsaBand.ShippedFloorFraction));
+                                                  " — СДВИНУТА ключом --floor-frac=, поставляется {0:F3} %",
+                                                  100.0 * FsaBand.ShippedFloorFraction));
 
             // (`S103`) Порог опоры по столбцу печатается ВСЕГДА, когда режим
             // включён, — в том числе нейтральный 1.0: контрольное плечо обязано
@@ -1125,6 +1200,18 @@ namespace CorpusFsaProbe
                                         + " плечо обязано совпасть с поставкой побитово"
                                       : "");
             }
+
+            // (`A302`) ПОЛ ПОЛОСЫ ФИТА — вслух и ВСЕГДА, в том числе
+            // поставочный: плечо, которого не видно в шапке журнала, ничем не
+            // отличается от поставочного прогона.
+            Console.WriteLine("пол ПОЛОСЫ ФИТА: {0}",
+                              FsaBand.DefaultFitFloor == FsaBand.ShippedFitFloor
+                                  ? "выключен (поставочный) — фит от нулевого канала, как было"
+                                  : FsaBand.DefaultFitFloor == FsaFitFloor.Adc
+                                      ? "ПОРОГ АЦП спектра (НЕ умолчание, A/B)"
+                                      : string.Format(CultureInfo.InvariantCulture,
+                                                      "{0:F2} кэВ числом (НЕ умолчание, A/B)",
+                                                      FsaBand.DefaultFitFloorKev));
         }
 
         /// <summary>
@@ -1665,6 +1752,14 @@ namespace CorpusFsaProbe
                         // чисел базы это не двигает, — но расходиться с экраном
                         // проба, которая объявляет базу, не вправе.
                         FsaMatrixBinding.Bind(analyzer, rd.Efficiency.Geometry, matrix);
+                        // Абляционный ключ выставляется в NewAnalyzer ДО того,
+                        // как сюда приезжает матрица. Bind закономерно ставит
+                        // штатное значение из геометрии, поэтому явное плечо
+                        // «строить образ и при матрице» возвращаем ПОСЛЕ него.
+                        if (o.BackscatterWithMatrix)
+                        {
+                            analyzer.BackscatterWithMatrix = true;
+                        }
                         row.Matrix = MatrixState.Found;
                     }
                 }
@@ -1718,7 +1813,23 @@ namespace CorpusFsaProbe
 
                 if (result == null)
                 {
-                    row.Error = "разложение не получилось (нет калибровок или вырожденный диапазон)";
+                    // ⛔ (`T256`) ОТКАЗ ПО ГЕОМЕТРИИ НАЗЫВАЕТ СЕБЯ И В КОРПУСЕ.
+                    // Гейт `A277` («нет геометрии — нет FSA разбора») отказывает
+                    // до единого расчёта, а `Analyze` отвечает `null` ещё на
+                    // пяти причинах, и одно слово «разложение не получилось»
+                    // стояло на шести разных бедах. Экран причину назвал в тот
+                    // же день (`FsaAnalysisSession`, строка `FSANoGeometry`), а
+                    // корпус — нет: признак `GeometryRefused` был заведён и
+                    // читателя здесь не имел, то есть ровно «признак без
+                    // читателя». На малой базе так выглядели 15 спектров из 59.
+                    //
+                    // Решение о самом отказе принимает ОДНО место
+                    // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
+                    row.GeometryRefused = analyzer.GeometryRefused;
+                    row.Error = analyzer.GeometryRefused
+                        ? "нет геометрии — разбора не было (A277: кристалл описывается"
+                          + " в редакторе геометрии у кривой эффективности)"
+                        : "разложение не получилось (нет калибровок или вырожденный диапазон)";
                     Report(row, o);
                     return row;
                 }
@@ -1740,13 +1851,19 @@ namespace CorpusFsaProbe
 
                 // (`S103`) Чем описана полоса НИЖЕ `Min_Range`: сколько там
                 // отсчётов и сколько из них взял континуум. Считается по тем же
-                // кривым, что выгружает `--dump-curves=`, и той же
-                // `NetSpectrum`: второй копии правила «спектр минус фон» здесь
-                // не заводится.
+                // кривым, что выгружает `--dump-curves=`, и тем же правилом
+                // «спектр минус фон» у результата: второй копии здесь не
+                // заводится.
+                //
+                // ⛔ (`A284`) Берётся кривая ФИТА, а не показная: ниже `Min_Range`
+                // живут самые бедные каналы, ровно те, где вычтенный фон
+                // превышает счёт, и подрезка нулём завышала бы `DataTotal` и
+                // `DataBelow` — то есть меру сравнивали бы с моделью, построенной
+                // по ДРУГОЙ кривой.
                 if (!string.IsNullOrEmpty(o.BandAudit))
                 {
                     row.LineColumns = result.LineColumns;
-                    double[] net = result.NetSpectrum(rd.EnergySpectrum.Spectrum);
+                    double[] net = result.FitSpectrum(rd.EnergySpectrum.Spectrum);
                     EnergyCalibration cal = rd.EnergySpectrum.EnergyCalibration;
                     for (int ch = result.FirstChannel; ch <= result.LastChannel; ch++)
                     {
@@ -1775,7 +1892,18 @@ namespace CorpusFsaProbe
                                           s.Z.ToString("F2", CultureInfo.InvariantCulture));
                     }
                 }
+                // ⛔ (`A302`) НИЖНИЙ КОНЕЦ ПОЛОСЫ ФИТА — ПОИМЁННО, У КАЖДОГО
+                // спектра. Заверение `BandNote` печатается один раз за прогон,
+                // с первого разобравшегося спектра, и доказать им, что ключ
+                // `--fit-floor=` доехал до РЕШЕНИЯ на остальных, нечем: ключ,
+                // доехавший до печати и не доехавший до счёта, выглядел бы
+                // ровно так же (`A77`).
+                row.FitLoCh = result.FirstChannel;
+                row.FitLoKev = rd.EnergySpectrum.EnergyCalibration != null
+                    ? rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(result.FirstChannel)
+                    : double.NaN;
                 row.Chi2Ndf = result.Chi2Ndf;
+                row.SigmaInflation = result.SigmaInflation;
                 row.Chi2NdfPoisson = result.Chi2NdfPoisson;
                 row.ModelResidual = result.ModelResidual;
 
@@ -2518,13 +2646,19 @@ namespace CorpusFsaProbe
                 return;
             }
 
-            Console.WriteLine("{0,-22} {1,-10} {2,-8} chi2/ndf {3,8:F3}  пиков {4,3}  комп. {5,2}"
+            // ⛔ (`A281`, решение Amber 10.09.2026 «печатать рядом с z») МНОЖИТЕЛЬ
+            // ПОГРЕШНОСТЕЙ — В СТРОКЕ РАЗБОРА. Значимости всех компонентов уже
+            // поделены на него, поэтому порог 3 на этой сцене значит 3·inflate
+            // СЫРЫХ сигм. Без числа рядом «едва дотянул» и «дотянул с
+            // восьмикратным запасом» на экране одно и то же.
+            Console.WriteLine("{0,-22} {1,-10} {2,-8} chi2/ndf {3,8:F3}  σ×{9,6:F3}  пиков {4,3}  комп. {5,2}"
                               + "  матрица: {6,-52} {7,6:F0} мс{8}",
                               row.Key, row.Det, row.Part, row.Chi2Ndf, row.Peaks, row.LibrarySize,
                               MatrixNote(row), row.Ms,
                               row.GainOnGridEdge && row.OffsetOnGridEdge ? "  КРАЙ: усиление И ноль"
                               : row.GainOnGridEdge ? "  КРАЙ: усиление"
-                              : row.OffsetOnGridEdge ? "  КРАЙ: ноль шкалы" : "");
+                              : row.OffsetOnGridEdge ? "  КРАЙ: ноль шкалы" : "",
+                              row.SigmaInflation);
         }
 
         /// <summary>
@@ -2631,6 +2765,8 @@ namespace CorpusFsaProbe
                 // колонка считает ровно то, чем подписана, и третья строка
                 // называет спектры, у которых они разошлись.
                 int noFile = 0;
+                // (`T256`) Отказ гейта геометрии — своим счётом и поимённо.
+                var noGeometry = new List<string>();
                 var foundNotApplied = new List<string>();
                 // (`T85`) Те из них, у кого матрице БЫЛО ЧТО строить в отчётном
                 // фите: это уже не «уцелели одни производные образы», а отказ.
@@ -2641,6 +2777,11 @@ namespace CorpusFsaProbe
                     if (r.Error != null)
                     {
                         errors++;
+                        if (r.GeometryRefused)
+                        {
+                            noGeometry.Add(r.Key);
+                        }
+
                         continue;
                     }
 
@@ -2705,6 +2846,21 @@ namespace CorpusFsaProbe
                 Console.WriteLine("{0,-10} {1,8} {2,8} {3,9} {4,10:F1} {5,10:F2} {6,8} {7,8} {8,8}",
                                   part, of.Count, found, applied, sum, median, errors,
                                   gainEdge, offsetEdge);
+                if (noGeometry.Count > 0)
+                {
+                    // ⛔ (`T256`) ЧИТАТЕЛЬ ГЕЙТА ГЕОМЕТРИИ. Колонка «ошибок» в
+                    // строке выше говорит, СКОЛЬКО спектров разбора не
+                    // получили, и молчит о том, ПОЧЕМУ; с `A277` это перестало
+                    // быть мелочью — на малой базе так выпадают 15 спектров из
+                    // 59, и без этой строки прогон выглядит поломанным.
+                    // Спектры называются поимённо: список короток, а «у кого
+                    // именно нет геометрии» — это готовый список работы.
+                    noGeometry.Sort(StringComparer.Ordinal);
+                    Console.WriteLine("{0,-10} ⛔ БЕЗ ГЕОМЕТРИИ — РАЗБОРА НЕ БЫЛО (гейт A277): {1} из"
+                                      + " {2} — {3}", "", noGeometry.Count, of.Count,
+                                      string.Join(", ", noGeometry.ToArray()));
+                }
+
                 if (noFile > 0)
                 {
                     // ⛔ Печатается ОТДЕЛЬНОЙ строкой и только когда есть что
@@ -2752,6 +2908,7 @@ namespace CorpusFsaProbe
             }
 
             PrintRefitZCensus(rows);
+            PrintCascadeDatabaseVoice();
 
             Console.WriteLine();
             Console.WriteLine("⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;");
@@ -2759,6 +2916,57 @@ namespace CorpusFsaProbe
             Console.WriteLine("Фантомы и recall — {0}\\..\\score.py по этим же файлам:", o.Out);
             Console.WriteLine("  python tools/pie/score.py --mode={0} --out-dir={1} --part={2}",
                               o.Mode, o.Out, o.Part);
+        }
+
+        /// <summary>
+        /// ⛔ ГОЛОС БАЗЫ КАСКАДОВ ЗА ВЕСЬ ПРОГОН: примечания отдельно, отказы
+        /// отдельно (10.09.2026).
+        ///
+        /// Заведено потому, что читателя у этих признаков в корпусном прогоне
+        /// не было вовсе — а сами признаки есть с самого начала. Пока их никто
+        /// не печатал, отказ базы на корпусе выглядел как «у нуклида нет
+        /// каскадов», то есть был неотличим от нормы.
+        ///
+        /// ⚠ И разведены они не ради красоты. До 10.09.2026 `FsaCascadeSummer`
+        /// клал в `Failure` ЛЮБУЮ записку базы, включая законные — «изомер:
+        /// набор питаний ENSDF уровня родителя не различает», «набора питаний
+        /// X→Y нет вовсе, пара 511 не строится». На корпусных родителях такие
+        /// записки получают `228AC` и `234PA`, ряды тория и урана, — и каждый
+        /// прогон докладывал отказ базы там, где база отработала. Признак
+        /// отказа, срабатывающий без отказа, перестают читать.
+        ///
+        /// Печатается сводкой на весь прогон, а не на спектр: записки копятся
+        /// по нуклидам, а нуклиды у спектров общие.
+        /// </summary>
+        static void PrintCascadeDatabaseVoice()
+        {
+            string notes = FsaCascadeSummer.Notes;
+            string failure = FsaCascadeSummer.Failure;
+            if (string.IsNullOrEmpty(notes) && string.IsNullOrEmpty(failure))
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            if (!string.IsNullOrEmpty(notes))
+            {
+                string[] said = notes.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries);
+                Console.WriteLine("ПРИМЕЧАНИЯ БАЗЫ КАСКАДОВ: {0} — работа при них ШЛА, это не отказ",
+                                  said.Length);
+                foreach (string one in said)
+                {
+                    Console.WriteLine("    {0}", one);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(failure))
+            {
+                Console.WriteLine("⛔ ОТКАЗ БАЗЫ КАСКАДОВ: {0}", failure);
+            }
+            else
+            {
+                Console.WriteLine("отказов базы каскадов НЕ БЫЛО");
+            }
         }
 
         /// <summary>
@@ -2872,7 +3080,9 @@ namespace CorpusFsaProbe
                     // всегда: применение матрицы, а не её наличие. Наличие —
                     // новая `matrix_found` В КОНЦЕ строки. Разошлись они на
                     // снятых файлах: `out_v6` 81/80, `out_fz_lib` 81/78.
-                    runs.WriteLine("spectrum,det,part,chi2ndf,gain,offset_ch,drift_edge,gain_edge,"
+                    // `inflate` (`A281`) — множитель погрешностей √(max(1, χ²/ndf)):
+                    // колонка `z` в `components.csv` УЖЕ поделена на него.
+                    runs.WriteLine("spectrum,det,part,chi2ndf,inflate,gain,offset_ch,drift_edge,gain_edge,"
                                    + "offset_edge,matrix_applied,"
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
@@ -2906,7 +3116,10 @@ namespace CorpusFsaProbe
                     // ⚠ Беккерелями это НЕ называется по другой причине и она
                     // остаётся в силе: абсолютный уровень кривой недостоверен
                     // (`E1`, `V1`).
-                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,decay_s,peak_counts,"
+                    // ⛔ `inflate` стоит ВПЛОТНУЮ к `z` (`A281`): значимость уже
+                    // поделена на него, и читать одну без другого нельзя —
+                    // z = 3.0 при inflate 1.0 и при 8.2 говорят о разном.
+                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,inflate,decay_s,peak_counts,"
                                     + "dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
                     // вошедших в состав: у «не обнаружен» без МДА нет смысла.
@@ -2929,6 +3142,7 @@ namespace CorpusFsaProbe
                         runs.WriteLine(string.Join(",",
                             Csv(r.Key), Csv(r.Det), Csv(r.Part),
                             r.Error != null ? "ERROR" : F(r.Chi2Ndf, "F4"),
+                            r.Error != null ? "" : F(r.SigmaInflation, "F4"),
                             F(r.Gain, "F6"), F(r.OffsetChannels, "F3"),
                             r.DriftOnGridEdge ? "1" : "0",
                             r.GainOnGridEdge ? "1" : "0", r.OffsetOnGridEdge ? "1" : "0",
@@ -2960,6 +3174,7 @@ namespace CorpusFsaProbe
                                 Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(c.Name),
                                 c.Kind.ToString().ToLowerInvariant(),
                                 F(c.SharePercent, "F3"), F(c.Z, "F2"),
+                                F(r.SigmaInflation, "F4"),
                                 F(c.CountRate, "E4"), F(c.PeakCounts, "F1"),
                                 F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4"),
                                 F(c.ZoneChi2Ndf, "F3"), F(c.ZoneDeltaD, "F2"),
@@ -3125,9 +3340,11 @@ namespace CorpusFsaProbe
             Console.WriteLine("=== S60: сверка по линиям, которые ОБЯЗАНЫ быть ===");
             Console.WriteLine("строк всего {0}; обязательных {1} (порог решения Карри, k = {2});",
                               total, obligatory, FsaLineAudit.DecisionK);
-            Console.WriteLine("  из них |Z| <= 3: {0} ({1:P1}); НЕ подтвердилось вовсе: {2} ({3:P1})",
-                              agreed, obligatory > 0 ? (double)agreed / obligatory : 0.0,
-                              missing, obligatory > 0 ? (double)missing / obligatory : 0.0);
+            // (`T247`) Доли — `F` со знаком процента текстом и множителем 100.0
+            // у аргумента; формат `P` группировал бы разряды выше 1000 %.
+            Console.WriteLine("  из них |Z| <= 3: {0} ({1:F1} %); НЕ подтвердилось вовсе: {2} ({3:F1} %)",
+                              agreed, obligatory > 0 ? 100.0 * agreed / obligatory : 0.0,
+                              missing, obligatory > 0 ? 100.0 * missing / obligatory : 0.0);
             Console.WriteLine();
             Console.WriteLine("{0,-12} {1,7} {2,10} {3,10} {4,10} {5,9}",
                               "полоса, кэВ", "линий", "изм/ожид", "с матрицей", "без неё", "мед.|Z|");
@@ -3641,6 +3858,14 @@ namespace CorpusFsaProbe
             /// </summary>
             public string NoCurveFloorName;
 
+            /// <summary>
+            /// (`A302`) Чем назначается пол ПОЛОСЫ ФИТА, ключ `--fit-floor=`
+            /// (`off` | `adc` | число в кэВ); пусто — не трогать умолчание
+            /// (<c>FsaBand.ShippedFitFloor</c> = `off`, то есть в точности
+            /// поведение до 10.09.2026: фит от нулевого канала).
+            /// </summary>
+            public string FitFloorName;
+
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
             public bool BandSelfTest;
@@ -3700,6 +3925,15 @@ namespace CorpusFsaProbe
             public MatrixState Matrix = MatrixState.Unknown;
             public string EfficiencyName = "";
 
+            /// <summary>
+            /// (`T256`) Разбора не было ИМЕННО ПО ГЕОМЕТРИИ (гейт `A277`), а не
+            /// по вырожденному входу. Заводится вместе со своим читателем —
+            /// сводкой по частям: «сколько спектров разбора не получили» и
+            /// «почему» это разные утверждения, и первая цифра без второй
+            /// выглядит поломкой прогона.
+            /// </summary>
+            public bool GeometryRefused;
+
             /// <summary>(S56) Чем задана библиотека и что в неё вошло.</summary>
             public string LibraryNote = "";
 
@@ -3755,6 +3989,20 @@ namespace CorpusFsaProbe
             public int Peaks;
             public int LibrarySize;
             public double Chi2Ndf;
+
+            /// <summary>
+            /// (`A281`) Множитель погрешностей √(max(1, χ²/ndf)): во сколько раз
+            /// порог значимости жёстче сырого на ЭТОМ спектре. Единица — множителя
+            /// нет. Копия <see cref="FsaResult.SigmaInflation"/>.
+            /// </summary>
+            public double SigmaInflation = 1.0;
+
+            /// <summary>
+            /// (`A302`) Нижний конец полосы ФИТА, взятый разбором НА ДЕЛЕ:
+            /// номер канала и его энергия. −1 / NaN — разбора не было.
+            /// </summary>
+            public int FitLoCh = -1;
+            public double FitLoKev = double.NaN;
 
             /// <summary>χ²/ndf прежними весами — общая метрика A/B (S41/S43).</summary>
             public double Chi2NdfPoisson;

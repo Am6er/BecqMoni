@@ -30,9 +30,25 @@ namespace ResponseMatrixProbe
     ///
     ///     responsematrixprobe --geometry=X.in [--nodes=34] [--n=20000] [--bin=2]
     ///                         [--maxn=100000]
-    ///                         [--emin=30] [--emax=3000]
+    ///                         [--emin=30] [--emax=3000] [--out=каталог]
+    ///                         [--spoil=5]
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
+    ///
+    /// ⛔ ПРОВАЛ ПРОВЕРКИ 1 ПЕЧАТАЕТ ВЕЛИЧИНУ РАСХОЖДЕНИЯ (`T179`). До
+    /// 10.09.2026 на провале печатались ТОЛЬКО времена — сколько узлов
+    /// разошлось и насколько, проба знала, но не показывала, и `A104`
+    /// (невоспроизводимость при потоках &gt; 1) разбирали на глаз. Теперь на
+    /// провале идут медиана и худший узел по пику и по сумме, как у
+    /// `MatrixDiffProbe`, а `--out=` кладёт рядом ОБЕ матрицы (`one.rmx`,
+    /// `parallel.rmx`), чтобы расхождение мерили, а не гадали.
+    ///
+    /// ⚠ `--spoil=&lt;проценты&gt;` — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ этой самой печати.
+    /// Провал проверки 1 ловится не каждым прогоном, и без ключа новая печать
+    /// молчала бы ровно до дня, когда понадобится. Ключ уводит пик среднего
+    /// узла на заданные проценты и ПЕРЕВОРАЧИВАЕТ приговор проверки 1: провал
+    /// ожидаем, его отсутствие — отказ. Порча снимается сразу за проверкой 1,
+    /// поэтому остальные семь идут по ЦЕЛОЙ матрице и их числа настоящие.
     /// </summary>
     static class Program
     {
@@ -42,6 +58,8 @@ namespace ResponseMatrixProbe
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string geometryPath = null;
+            string outDir = null;                       // `T179`
+            double spoilPercent = 0.0;                  // `T179`, положительный контроль
             bool historiesGiven = false;
             int maxAuto = MaxAutoHistories;
             var options = new ResponseMatrixOptions { NodeCount = 34, Histories = 20000, BinKev = 2.0 };
@@ -57,6 +75,17 @@ namespace ResponseMatrixProbe
                 // на месте пришлось бы принимать вслепую.
                 else if (a.StartsWith("--emin=", StringComparison.Ordinal)) options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--emax=", StringComparison.Ordinal)) options.MaxEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                // `T179`: куда положить ОБЕ матрицы проверки 1, чтобы расхождение
+                // можно было померить `MatrixDiffProbe`, а не пересчитывать заново.
+                else if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЕЧАТИ РАСХОЖДЕНИЯ (`T179`). Провал
+                // проверки 1 — это `A104`, он ловится не каждым прогоном, и без
+                // этого ключа новую печать нечем проверить: она молчит ровно до
+                // того дня, когда понадобится, и в тот день выяснится, что она
+                // не работает. Ключ портит пик СРЕДНЕГО узла на заданные
+                // проценты и ПЕРЕВОРАЧИВАЕТ приговор проверки 1: провал теперь
+                // ожидаем, а его ОТСУТСТВИЕ — отказ (значит порча не доехала).
+                else if (a.StartsWith("--spoil=", StringComparison.Ordinal)) spoilPercent = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание. Опечатка
                 // `--node=140` вместо `--nodes=140` молча считала не то, что просили.
                 else
@@ -130,12 +159,68 @@ namespace ResponseMatrixProbe
             ResponseMatrix parallel = ResponseMatrixBuilder.Build(geometry, many, null, CancellationToken.None);
             double manySeconds = watch.Elapsed.TotalSeconds;
 
+            // `T179`, положительный контроль: пик среднего узла уводится на
+            // заданные проценты ПОСЛЕ обоих построений — то есть портится
+            // ровно то, что сравнивает проверка 1, и ничего больше.
+            int spoiledNode = -1;
+            float spoiledWas = 0.0f;
+            if (spoilPercent > 0.0 && parallel != null && parallel.NodeCount > 0)
+            {
+                spoiledNode = parallel.NodeCount / 2;
+                float[] spoiledRow = parallel.Rows[spoiledNode];
+                spoiledWas = spoiledRow[spoiledRow.Length - 1];
+                spoiledRow[spoiledRow.Length - 1] =
+                    (float)(spoiledWas * (1.0 + spoilPercent / 100.0));
+                Console.WriteLine("⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`T179`): пик узла {0} ({1:F0} кэВ) уведён на {2:F2} %;"
+                                  + " провал проверки 1 ОЖИДАЕМ, его отсутствие — отказ",
+                                  spoiledNode, parallel.Energies[spoiledNode], spoilPercent);
+            }
+
             // Отпечаток в число потоков не входит нарочно: потоки — это КАК
             // считали, а не ЧТО посчитали.
             int mismatches = Compare(one, parallel);
-            Report(mismatches == 0, "один поток и {0} потоков дают одно и то же ({1:F1} с против {2:F1} с, ускорение {3:F1}x)",
-                   many.Threads, oneSeconds, manySeconds, oneSeconds / Math.Max(0.001, manySeconds));
-            bad += mismatches == 0 ? 0 : 1;
+            bool expectFail = spoiledNode >= 0;
+            bool check1Ok = expectFail ? mismatches != 0 : mismatches == 0;
+            Report(check1Ok, "один поток и {0} потоков дают одно и то же ({1:F1} с против {2:F1} с, ускорение {3:F1}x){4}",
+                   many.Threads, oneSeconds, manySeconds, oneSeconds / Math.Max(0.001, manySeconds),
+                   expectFail ? " [приговор ПЕРЕВЁРНУТ ключом --spoil=]" : "");
+            bad += check1Ok ? 0 : 1;
+
+            // ⛔ НА ПРОВАЛЕ — ВЕЛИЧИНА РАСХОЖДЕНИЯ, А НЕ ОДНИ ВРЕМЕНА (`T179`).
+            // Провал этой проверки — это `A104`, и для его разбора нужна именно
+            // величина: «разошлись 3 узла из 34» и «разошлись все 34 на 40 %» —
+            // разные беды, а прежняя строка их не различала.
+            if (mismatches != 0)
+            {
+                ReportSpread(one, parallel, mismatches);
+                if (outDir != null)
+                {
+                    Directory.CreateDirectory(outDir);
+                    string onePath = Path.Combine(outDir, "one.rmx");
+                    string manyPath = Path.Combine(outDir, "parallel.rmx");
+                    one.Save(onePath);
+                    parallel.Save(manyPath);
+                    Console.WriteLine("           обе матрицы: {0} и {1}", onePath, manyPath);
+                    Console.WriteLine("           померить: matrixdiffprobe --a={0} --b={1}", onePath, manyPath);
+                }
+                else
+                {
+                    Console.WriteLine("           (--out=<каталог> положит обе матрицы рядом для `MatrixDiffProbe`)");
+                }
+            }
+
+            // ⛔ ПОРЧА СНИМАЕТСЯ СРАЗУ ЗА ПРОВЕРКОЙ 1, и это не уборка. Матрица
+            // одна на все восемь проверок: оставленная порча валит ещё и
+            // круговорот через файл (отпечаток считается по содержимому и с
+            // записанным не сходится) — то есть контроль печати начинает
+            // выглядеть поломкой ФАЙЛА. Проверено 10.09.2026: без снятия
+            // проверка 2 давала ПРОВАЛ на ровном месте.
+            if (spoiledNode >= 0)
+            {
+                float[] spoiledRow = parallel.Rows[spoiledNode];
+                spoiledRow[spoiledRow.Length - 1] = spoiledWas;
+                Console.WriteLine("           порча снята: остальные проверки идут по ЦЕЛОЙ матрице");
+            }
 
             // --- 2. Круговорот через файл ----------------------------------
             string path = Path.Combine(Path.GetTempPath(), "rmx_probe_" + Guid.NewGuid().ToString("N") + ".rmx");
@@ -555,6 +640,110 @@ namespace ResponseMatrixProbe
             }
 
             return mismatches;
+        }
+
+        /// <summary>
+        /// `T179`: величина расхождения двух матриц по узлам — медиана и худший
+        /// узел, отдельно по ПИКУ и по СУММЕ строки, тем же счётом, что печатает
+        /// `MatrixDiffProbe`. Зовётся только на провале проверки 1.
+        ///
+        /// ⚠ Пик и сумма считаются ОТДЕЛЬНО нарочно: расхождение, сидящее целиком
+        /// в пике, и расхождение, размазанное по континууму, — разные причины, и
+        /// одно число их смешивает.
+        /// </summary>
+        static void ReportSpread(ResponseMatrix a, ResponseMatrix b, int mismatches)
+        {
+            if (a == null || b == null || a.NodeCount != b.NodeCount)
+            {
+                Console.WriteLine("           расхождение не измеримо: разное число узлов ({0} против {1})",
+                                  a == null ? -1 : a.NodeCount, b == null ? -1 : b.NodeCount);
+                return;
+            }
+
+            // ⛔ Считаются только ЖИВЫЕ узлы — те, у кого обе строки есть, одной
+            // длины и непустые. Узел без строки не «сошёлся на ноль»: включи его
+            // нулём — и медиана поедет вниз тем сильнее, чем больше дыр. Число
+            // мёртвых печатается отдельной величиной, а не растворяется.
+            int n = a.NodeCount;
+            var peak = new double[n];
+            var sum = new double[n];
+            var live = new int[n];
+            int liveCount = 0, dead = 0;
+            for (int i = 0; i < n; i++)
+            {
+                float[] ra = i < a.Rows.Length ? a.Rows[i] : null;
+                float[] rb = i < b.Rows.Length ? b.Rows[i] : null;
+                if (ra == null || rb == null || ra.Length != rb.Length || ra.Length == 0)
+                {
+                    dead++;
+                    continue;
+                }
+
+                double sa = 0.0, sb = 0.0;
+                for (int k = 0; k < ra.Length; k++)
+                {
+                    sa += ra[k];
+                    sb += rb[k];
+                }
+
+                double pa = ra[ra.Length - 1], pb = rb[rb.Length - 1];
+                peak[liveCount] = pa > 0.0 ? Math.Abs(100.0 * (pb - pa) / pa) : 0.0;
+                sum[liveCount] = sa > 0.0 ? Math.Abs(100.0 * (sb - sa) / sa) : 0.0;
+                live[liveCount] = i;
+                liveCount++;
+            }
+
+            Console.WriteLine("           разошлось узлов {0} из {1}{2}; расхождение, % (медиана / худший):",
+                              mismatches, n,
+                              dead > 0 ? "; без строки или разной длины " + dead : "");
+            if (liveCount == 0)
+            {
+                Console.WriteLine("           расхождение не измеримо: сравнимых узлов не осталось");
+                return;
+            }
+
+            Array.Resize(ref peak, liveCount);
+            Array.Resize(ref sum, liveCount);
+            int wp = 0, ws = 0;
+            for (int i = 1; i < liveCount; i++)
+            {
+                if (peak[i] > peak[wp]) wp = i;
+                if (sum[i] > sum[ws]) ws = i;
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "             пик  : {0:F4} / {1:F4}   (узел {2}, {3:F0} кэВ)",
+                Median(peak), peak[wp], live[wp], Energy(a, live[wp])));
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "             сумма: {0:F4} / {1:F4}   (узел {2}, {3:F0} кэВ)",
+                Median(sum), sum[ws], live[ws], Energy(a, live[ws])));
+        }
+
+        /// <summary>
+        /// Энергия узла, если она есть. `Energies` короче `NodeCount` быть не
+        /// должна, но печать расхождения зовётся ИМЕННО НА ПОЛОМКЕ — падать в
+        /// ней на выходе за границу значило бы отнять у разбора то самое, ради
+        /// чего печать заведена (`T179`).
+        /// </summary>
+        static double Energy(ResponseMatrix m, int node)
+        {
+            return m.Energies != null && node >= 0 && node < m.Energies.Length
+                ? m.Energies[node]
+                : double.NaN;
+        }
+
+        /// <summary>Медиана по копии: исходный порядок узлов сортировкой не портится.</summary>
+        static double Median(double[] values)
+        {
+            if (values == null || values.Length == 0)
+            {
+                return 0.0;
+            }
+
+            var copy = (double[])values.Clone();
+            Array.Sort(copy);
+            int m = copy.Length / 2;
+            return copy.Length % 2 == 1 ? copy[m] : 0.5 * (copy[m - 1] + copy[m]);
         }
 
         static void Report(bool ok, string format, params object[] args)

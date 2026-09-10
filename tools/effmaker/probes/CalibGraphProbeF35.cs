@@ -594,6 +594,8 @@ static class CalibGraphProbeF35
         // ── ЧТО ВИДИТ ЧЕЛОВЕК НА ЖИВОЙ СИСТЕМЕ. Культура здесь та самая, что
         //    ставит костыль `MainForm.cs:158-160`: клон системной с ТОЧКОЙ в
         //    дробной части. Не судится — показывается.
+        // T245: НАРОЧНО — подмена разделителя ЗДЕСЬ и есть предмет замера;
+        //    инвариант вместо неё стёр бы то самое, что плечо показывает.
         CultureInfo crutch = (CultureInfo)CultureInfo.GetCultureInfo("ru-RU").Clone();
         crutch.NumberFormat.NumberDecimalSeparator = ".";
         Thread.CurrentThread.CurrentCulture = crutch;

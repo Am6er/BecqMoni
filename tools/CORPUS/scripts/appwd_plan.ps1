@@ -747,36 +747,111 @@ function Test-AppWdStamp {
 #
 # ⛔ Отпечаток печатается КАЖДЫЙ прогон и нарочно: в дереве лежат четыре рода
 #    копий `NuclideDefinition.xml` (поставочная 152 записи, корневая `config\`
-#    143 без полей `Sets`/`Chain`, `wd_<группа>` от 114 до 278 от `mkconfig.py`,
-#    `probes\build` — 4-записная заготовка), и на этом споткнулась `S63`:
+#    143 без полей `Sets`/`Chain`, `wd_<группа>` от 163 до 741 от `mkconfig.py`,
+#    `probes\build*` — где 152, где 143, где 34), и на этом споткнулась `S63`:
 #    потолок опознания мерен по КОРНЕВОЙ копии, а корпус считался по поставочной.
+#
+# ⛔ ОТПЕЧАТОК СЧИТАЕТСЯ ПО НОРМАЛИЗОВАННОМУ СОДЕРЖИМОМУ, А НЕ ПО ФАЙЛУ (`T172`).
+#    `Get-FileHash` мерил ОДНУ И ТУ ЖЕ библиотеку двумя разными числами в
+#    зависимости от того, как выписано дерево (`core.autocrlf`), — и корпусные
+#    числа между заходами становились несравнимы, хотя менялись только концы
+#    строк. Перепись дерева 10.09.2026: 517 копий `NuclideDefinition.xml`,
+#    28 различных нормализованных содержимых и 29 сырых — то есть ровно ОДНА
+#    пара «одна библиотека, два отпечатка»: поставочная 152-записная лежит в
+#    485 каталогах с LF (49 121 б, sha `7aaa0b01c9bd`) и в одном —
+#    `tools\effmaker\probes\build_p13` — с CRLF (50 814 б, sha `082c331db48f`),
+#    разница ровно 1693 байта, по байту на строку. Нормализованный отпечаток у
+#    обеих ОДИН: `7aaa0b01c9bd`.
+#
+# ⚠ Нормализуются ТОЛЬКО концы строк (CRLF → LF, одиночный CR → LF) и ничего
+#   больше: пробелы, отступы и BOM — это содержимое, и молча уравнивать по ним
+#   разные файлы отпечаток не вправе.
+
+# Отпечаток одной копии библиотеки: нормализованный sha256, сырой sha256 и
+# концы строк — СЧИТАННЫЕ ПО БАЙТАМ (`T172`).
+#
+# ⚠ Байты переводятся в строку кодировкой ISO-8859-1 (28591) нарочно: она
+#   отображает 0x00…0xFF в U+0000…U+00FF взаимно однозначно, поэтому один
+#   символ строки — ровно один байт файла, и счёт концов строк по такой строке
+#   ЕСТЬ счёт по байтам. Разбирать файл как UTF-8 здесь нельзя: битый байт
+#   превратился бы в «?» и подменил отпечаток.
+function Get-AppWdLibraryPrint {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $enc   = [System.Text.Encoding]::GetEncoding(28591)
+    $s     = $enc.GetString($bytes)
+
+    $crlf = [regex]::Matches($s, "`r`n").Count
+    $cr   = [regex]::Matches($s, "`r").Count - $crlf
+    $lf   = [regex]::Matches($s, "`n").Count - $crlf
+    $eol  = if ($crlf -gt 0 -and $lf -eq 0 -and $cr -eq 0) { 'CRLF' }
+            elseif ($lf -gt 0 -and $crlf -eq 0 -and $cr -eq 0) { 'LF' }
+            elseif ($crlf + $lf + $cr -eq 0) { 'нет переводов строк' }
+            else { "смешанные (CRLF $crlf, LF $lf, CR $cr)" }
+
+    $norm = $enc.GetBytes($s.Replace("`r`n", "`n").Replace("`r", "`n"))
+    $sha  = [System.Security.Cryptography.SHA256]::Create()
+    $hex  = { param($b) ($sha.ComputeHash($b) | ForEach-Object { $_.ToString('x2') }) -join '' }
+
+    [pscustomobject]@{
+        Print = (& $hex $norm).Substring(0, 12)
+        Raw   = (& $hex $bytes).Substring(0, 12)
+        Eol   = $eol
+        Bytes = $bytes.Length
+    }
+}
+
+# Какая это копия — ПОИМЁННО (`T66`, `T172`). Сверяется НОРМАЛИЗОВАННЫЙ
+# отпечаток с двумя копиями, которые отслеживает git; всё прочее честно
+# называется чужим, а не выдаётся за поставку.
+function Get-AppWdLibraryName {
+    param([Parameter(Mandatory)][string]$Repo, [Parameter(Mandatory)][string]$Print)
+
+    $known = [ordered]@{
+        'поставочная (BecquerelMonitor\config)' = Join-Path $Repo 'BecquerelMonitor\config\NuclideDefinition.xml'
+        'КОРНЕВАЯ (config\) — НЕ поставочная'   = Join-Path $Repo 'config\NuclideDefinition.xml'
+    }
+    foreach ($name in $known.Keys) {
+        $p = $known[$name]
+        if (Test-Path -LiteralPath $p) {
+            if ((Get-AppWdLibraryPrint -Path $p).Print -eq $Print) { return $name }
+        }
+    }
+    return 'СВОЯ — ни поставочная, ни корневая'
+}
+
 function Test-AppWdLibrary {
     param([Parameter(Mandatory)]$Plan)
 
     $bad = [System.Collections.Generic.List[string]]::new()
     $f = Join-Path $Plan.Wd 'config\NuclideDefinition.xml'
+    $empty = [pscustomobject]@{ Bad = @(); Count = 0; Sha = ''; Raw = ''; Eol = ''; Which = '' }
     if (-not (Test-Path -LiteralPath $Plan.Wd)) {
         # Про отсутствие оснастки целиком кричит `Test-AppWdPlan`, второй раз незачем.
-        return [pscustomobject]@{ Bad = @(); Count = 0; Sha = '' }
+        return $empty
     }
     if (-not (Test-Path -LiteralPath $f)) {
         $bad.Add("В ОСНАСТКЕ НЕТ config\NuclideDefinition.xml — прогон возьмёт ЗАГОТОВКУ, которую напишет сам")
-        return [pscustomobject]@{ Bad = @($bad); Count = 0; Sha = '' }
+        $empty.Bad = @($bad)
+        return $empty
     }
-    $sha = (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.Substring(0, 12).ToLower()
+    $fp    = Get-AppWdLibraryPrint -Path $f
+    $sha   = $fp.Print
+    $which = Get-AppWdLibraryName -Repo $Plan.Repo -Print $sha
     try {
         $doc = [xml](Get-Content -LiteralPath $f -Raw)
     } catch {
-        $bad.Add("config\NuclideDefinition.xml НЕ РАЗБИРАЕТСЯ КАК XML (sha $sha): $($_.Exception.Message)")
-        return [pscustomobject]@{ Bad = @($bad); Count = 0; Sha = $sha }
+        $bad.Add("config\NuclideDefinition.xml НЕ РАЗБИРАЕТСЯ КАК XML (отпечаток $sha): $($_.Exception.Message)")
+        return [pscustomobject]@{ Bad = @($bad); Count = 0; Sha = $sha; Raw = $fp.Raw; Eol = $fp.Eol; Which = $which }
     }
     $n = @($doc.NuclideDefinitionFile.NuclideDefinitions.Nuclide).Count
     if ($n -lt $script:AppWdNuclideMin) {
-        $bad.Add(("БИБЛИОТЕКА НУКЛИДОВ ВЫРОЖДЕНА: {0} записей при пороге {1} (sha {2})" -f $n, $script:AppWdNuclideMin, $sha) +
+        $bad.Add(("БИБЛИОТЕКА НУКЛИДОВ ВЫРОЖДЕНА: {0} записей при пороге {1} (отпечаток {2}, {3})" -f $n, $script:AppWdNuclideMin, $sha, $which) +
                  "`n           4 записи пишет само приложение, когда файла нет; в поставке их 152." +
                  "`n           Состав библиотеки задаёт и поиск пиков, и разбор FSA — прогонять НЕЛЬЗЯ.")
     }
-    [pscustomobject]@{ Bad = @($bad); Count = $n; Sha = $sha }
+    [pscustomobject]@{ Bad = @($bad); Count = $n; Sha = $sha; Raw = $fp.Raw; Eol = $fp.Eol; Which = $which }
 }
 
 # Сверка СБОРОК с исходниками — ПО НАБОРУ, ИЗ КОТОРОГО ОНИ СОБРАНЫ (`T226`).
@@ -1174,7 +1249,18 @@ function Invoke-AppWdGuard {
                     ([string]$st.sources.probes.fp).Substring(0, 12), $st.sources.probes.n)
     }
     Write-Host ("  сверено  : {0} файлов по sha256 за {1} с" -f $Plan.Pairs.Count, $sw.Elapsed.TotalSeconds.ToString('F2'))
-    if ($l.Sha) { Write-Host ("  библиотека: {0} записей, sha {1}" -f $l.Count, $l.Sha) }
+    # ⛔ БИБЛИОТЕКА НАЗЫВАЕТСЯ ПОИМЁННО, А НЕ ОДНИМ ЧИСЛОМ (`T172`): под словом
+    #    «поставочная» в дереве лежат ДВА разных файла, и журнал корпусного
+    #    замера обязан нести, какой из них считал. Отпечаток — по
+    #    нормализованным концам строк, поэтому он один и тот же у дерева,
+    #    выписанного с LF, и у выписанного с CRLF.
+    if ($l.Sha) {
+        Write-Host ("  библиотека: {0} записей, {1}, отпечаток {2}, концы строк {3}" -f
+                    $l.Count, $l.Which, $l.Sha, $l.Eol)
+        if ($l.Raw -ne $l.Sha) {
+            Write-Host ("  ⚠ концы строк переписаны при выписке дерева (сырой sha {0}) — на отпечаток это НЕ влияет (T172)" -f $l.Raw) -ForegroundColor DarkYellow
+        }
+    }
     if ($m.Note) { Write-Host ("  перекладка: {0}" -f $m.Note) }
 
     foreach ($x in $Plan.Strays) {

@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Collections.Generic;
@@ -45,7 +45,8 @@ namespace FsaReportViewProbe
     ///      ⛔ Судится СОСТАВ строк по `Tag.Kind`, а не их ЧИСЛО (`A249`):
     ///      после `A247` строки модели ложатся в таблицу не одна в одну.
     ///   6. БЛОК «КАЧЕСТВО РАЗБОРА» (критерий 6, переписан под `A247`): черта,
-    ///      заголовок, χ²/ndf своей строкой и по строке на каждую пометку —
+    ///      заголовок, χ²/ndf своей строкой, СРАЗУ ПОД НИМ множитель `σ×`
+    ///      (`A281`, решение Amber 10.09.2026) и по строке на каждую пометку —
     ///      в `ru-RU` и `en-US`, с полными подписями и без многоточия.
     ///   7. ГРУППИРОВКА И ФЛАГИ (критерий 7): родители/дочерние не меняют
     ///      отпечаток и не запускают счёт; расчётный флаг — ровно один запуск
@@ -110,6 +111,50 @@ namespace FsaReportViewProbe
             if (thorium == null || control == null)
             {
                 return 2;
+            }
+
+            // ⛔ ГЕЙТ ГЕОМЕТРИИ (`A277`, 10.09.2026) — «МЕРИТЬ НЕЧЕМ», А НЕ
+            // ПАДЕНИЕ. У спектра без геометрии разбор не идёт вовсе, результат
+            // сеанса пуст, и раздел 4 звал `GetFsaPresentation(null)`, то есть
+            // проба УМИРАЛА `NullReferenceException` посреди прогона, не
+            // напечатав приговора. Внешне это неотличимо от поломки окна.
+            //
+            // Тот же порядок, каким `T256` (полоса П8) развела коды у
+            // `FsaGateRescueProbe`: 1 — «нарушено», 2 — «мерить нечем».
+            // ⚠ Гейт судится по КАЖДОМУ из двух входов: разделы 5, 6 и 8 берут
+            // и `--control`.
+            foreach (var pair in new[] { new object[] { "--spectrum", thorium, spectrumPath },
+                                         new object[] { "--control", control, controlPath } })
+            {
+                var doc = (DocEnergySpectrum)pair[1];
+                doc.FsaSession.Reset();
+                doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                using (var probeReport = new FSAReportView(mainForm))
+                {
+                    probeReport.ProbeConsumer = true;
+                    probeReport.SetDocument(doc);
+                    WaitIdle(doc.FsaSession);
+                    probeReport.SetDocument(null);
+                }
+
+                if (doc.FsaSession.Result == null)
+                {
+                    Console.Error.WriteLine("⛔ МЕРИТЬ НЕЧЕМ: у {0}={1} разбора нет ({2}). Гейт `A277`"
+                                            + " отказывает спектру без геометрии ДО единого расчёта,"
+                                            + " и приёмке окна отчёта нужен вход, у которого"
+                                            + " геометрия ЕСТЬ.",
+                                            pair[0], pair[2], doc.FsaSession.Status ?? "причина не названа");
+
+                    // ⛔ ФОРМЫ УБИРАЮТСЯ И НА ЭТОМ ВЫХОДЕ. Без этого процесс
+                    // печатает «МЕРИТЬ НЕЧЕМ» и падает следом кодом 0xC000041D
+                    // на разборе окон — то есть отказ, названный словами,
+                    // снаружи снова неотличим от поломки. Та же грабля, о
+                    // которой предупреждает хвост `Main`.
+                    thorium.Dispose();
+                    control.Dispose();
+                    mainForm.Dispose();
+                    return 2;
+                }
             }
 
             Hygiene();
@@ -734,7 +779,7 @@ namespace FsaReportViewProbe
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ВТОРОЙ: подменено слово состояния
                     // у пометки — блок остаётся той же длины, а содержимое лжёт.
-                    Row markRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    Row markRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
                     string was = markRow.Cells[2].Text;
                     markRow.Cells[2].Text = Own("FSAReport_MatrixUsed");
                     Denies(lang + ": контроль — подменённое слово состояния пометки проверку не проходит",
@@ -751,12 +796,66 @@ namespace FsaReportViewProbe
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ЧЕТВЁРТЫЙ (`AMBER11`): цвет
                     // пометки подменён на противоположный — текст тот же,
                     // длина блока та же, лжёт только цвет.
-                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
                     Color wasColor = painted.Cells[2].ForeColor;
                     painted.Cells[2].ForeColor = GoodColor;
                     Denies(lang + ": контроль — красная пометка, перекрашенная в зелёный, проверку не проходит",
                            BlockProblems(report, "1234.57", marks).Count == 0);
                     painted.Cells[2].ForeColor = wasColor;
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЯТЫЙ (`A281`): убрана строка
+                    // множителя σ×. Сцена собрана с зажатым множителем (1.000),
+                    // и без этого контроля «строка есть» было бы неотличимо от
+                    // «строки нет»: пустая ячейка и молчание выглядят одинаково.
+                    int sigmaRow = Chi2Row(report) + 1;
+                    Row sigmaSaved = report.ReportTable.TableModel.Rows[sigmaRow];
+                    report.ReportTable.TableModel.Rows.Remove(sigmaSaved);
+                    Denies(lang + ": контроль — блок без строки σ× проверку не проходит",
+                           BlockProblems(report, "1234.57", marks).Count == 0);
+                    report.ReportTable.TableModel.Rows.Insert(sigmaRow, sigmaSaved);
+                    Same(lang + ": строка σ× возвращена, блок снова сходится", string.Empty,
+                         string.Join("; ", BlockProblems(report, "1234.57", marks)));
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ШЕСТОЙ (`A281`): чужое число в
+                    // ячейке σ×. Без него проверка судила бы лишь наличие
+                    // строки, а печатать всегда «1.000» — ровно тот дефект,
+                    // ради которого множитель и выведен на экран.
+                    Denies(lang + ": контроль — «8.163» вместо зажатого «1.000» проверку не проходит",
+                           BlockProblems(report, "1234.57", "8.163", marks).Count == 0);
+                }
+
+                // ⛔ (`A281`) ВТОРАЯ СЦЕНА МНОЖИТЕЛЯ — РАЗДУТЫЙ. Число взято не
+                // из головы: 8.163 — множитель `G1S24_Eu152_P5`, худший на
+                // малой базе (замер 10.09.2026, `out_p17_off`). Сцена с одним
+                // зажатым множителем доказывала бы только, что окно умеет
+                // печатать единицу.
+                var inflated = new FsaResult
+                {
+                    Chi2Ndf = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    EfficiencyUsed = true, CascadeSummingUsed = true,
+                    SigmaInflation = 8.163
+                };
+                var inflatedSession = new FsaAnalysisSession();
+                Plant(inflatedSession, inflated, "quality-inflate");
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.SetProbeSource(inflatedSession, doc.ActiveResultData);
+                    var green = new List<string[]>
+                    {
+                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good }
+                    };
+
+                    ShowBlock(report, lang);
+                    Same(lang + ": раздутый множитель показан как 8.163", string.Empty,
+                         string.Join("; ", BlockProblems(report, "1234.57", "8.163", green)));
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: на этой сцене ожидание «1.000»
+                    // проверку проходить не должно — иначе обе сцены мерили бы
+                    // одно и то же.
+                    Denies(lang + ": контроль — «1.000» на раздутой сцене проверку не проходит",
+                           BlockProblems(report, "1234.57", "1.000", green).Count == 0);
                 }
 
                 // (`AMBER11`, задача Amber 09.09.2026) ВТОРАЯ СЦЕНА — ВСЁ
@@ -786,7 +885,7 @@ namespace FsaReportViewProbe
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: зелёная пометка, перекрашенная
                     // в красный, проверку проходить не должна.
-                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 1];
+                    Row painted = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
                     Color wasColor = painted.Cells[2].ForeColor;
                     painted.Cells[2].ForeColor = BadColor;
                     Denies(lang + ": контроль — зелёная пометка, перекрашенная в красный, проверку не проходит",
@@ -874,6 +973,18 @@ namespace FsaReportViewProbe
         /// </summary>
         static List<string> BlockProblems(FSAReportView report, string chi2Value, List<string[]> marks)
         {
+            return BlockProblems(report, chi2Value, "1.000", marks);
+        }
+
+        /// <summary>
+        /// То же, но с ожидаемым множителем погрешностей `σ×` (`A281`).
+        /// Отдельная перегрузка, а не значение по умолчанию: сцена с зажатым
+        /// множителем (1.000) и сцена с раздутым обязаны отличаться В ВЫЗОВЕ, а
+        /// не молча брать одно и то же ожидание.
+        /// </summary>
+        static List<string> BlockProblems(FSAReportView report, string chi2Value, string inflateValue,
+                                          List<string[]> marks)
+        {
             var bad = new List<string>();
             TableModel model = report.ReportTable.TableModel;
             int rule = -1;
@@ -944,15 +1055,47 @@ namespace FsaReportViewProbe
                 bad.Add("значение χ²/ndf «" + model.Rows[chi].Cells[2].Text + "» вместо «" + chi2Value + "»");
             }
 
-            int have = model.Rows.Count - chi - 1;
+            // ⛔ (`A281`, решение Amber 10.09.2026 «В блок „Качество разбора“
+            // окна отчёта») МНОЖИТЕЛЬ ПОГРЕШНОСТЕЙ — СРАЗУ ПОД χ²/ndf.
+            //
+            // Судится и подпись, и САМО ЧИСЛО: строка, показывающая «1.000»
+            // всегда, выглядела бы точно так же, а именно она и была бы
+            // дефектом — множитель по малой базе идёт от 1.000 до 8.163.
+            // ⚠ Значение проверяется ПОСИМВОЛЬНО, как и χ²/ndf: разделитель
+            // разрядов и запятая вместо точки — тот же грех `A242`/`A244`.
+            if (chi + 1 >= model.Rows.Count)
+            {
+                bad.Add("под строкой χ²/ndf нет строки множителя σ×");
+                return bad;
+            }
+
+            if (model.Rows[chi + 1].Cells[1].Text != Own("FSAReport_InflationRow"))
+            {
+                bad.Add("подпись σ× «" + model.Rows[chi + 1].Cells[1].Text + "» вместо «"
+                        + Own("FSAReport_InflationRow") + "»");
+            }
+
+            if (model.Rows[chi + 1].Cells[2].Text != inflateValue)
+            {
+                bad.Add("значение σ× «" + model.Rows[chi + 1].Cells[2].Text + "» вместо «"
+                        + inflateValue + "»");
+            }
+
+            if (string.IsNullOrEmpty(model.Rows[chi + 1].Cells[1].ToolTipText)
+                || model.Rows[chi + 1].Cells[1].ToolTipText == model.Rows[chi + 1].Cells[1].Text)
+            {
+                bad.Add("у строки σ× нет своей подсказки");
+            }
+
+            int have = model.Rows.Count - chi - 2;
             if (have != marks.Count)
             {
                 bad.Add("пометок " + have + " вместо " + marks.Count);
             }
 
-            for (int k = 0; k < marks.Count && chi + 1 + k < model.Rows.Count; k++)
+            for (int k = 0; k < marks.Count && chi + 2 + k < model.Rows.Count; k++)
             {
-                Row row = model.Rows[chi + 1 + k];
+                Row row = model.Rows[chi + 2 + k];
                 if (row.Cells[1].Text != marks[k][0] || row.Cells[2].Text != marks[k][1])
                 {
                     bad.Add("пометка " + (k + 1) + " «" + row.Cells[1].Text + " | " + row.Cells[2].Text
@@ -1694,7 +1837,8 @@ namespace FsaReportViewProbe
         /// модели. Строки ложатся в таблицу НЕ ОДНА В ОДНУ (`A247`): перед
         /// первой строкой блока качества встают ЧЕРТА и ЗАГОЛОВОК, а строка
         /// качества разворачивается в χ²/ndf и по строке на каждую пометку.
-        /// Пометок всегда три (матрица, кривая, суммирование) плюс отвергнутый
+        /// Пометок всегда три (матрица, кривая, суммирование) плюс строка
+        /// множителя `σ×` (`A281`, стоит сразу под χ²/ndf) плюс отвергнутый
         /// фон, край сетки дрейфа и подавленный состав — по признакам
         /// результата.
         /// </summary>
@@ -1705,7 +1849,12 @@ namespace FsaReportViewProbe
             marks = 0;
             if (result != null)
             {
-                marks = 3;
+                // ⛔ (`A281`) ЧЕТЫРЕ, А НЕ ТРИ: под χ²/ndf с 10.09.2026 стоит
+                // строка множителя погрешностей `σ×` — она не пометка, но
+                // строка блока, и в СОСТАВЕ по `Tag.Kind` неотличима от
+                // пометки. Число здесь и есть тот сторож, который поймает её
+                // пропажу: подпись и значение судит `BlockProblems`.
+                marks = 4;
                 // (`S44`, 06.09.2026) Фон подан и не взят — причина словами
                 // своей строкой, как край сетки и подавленный состав.
                 if (result.BackgroundRejected != null) marks++;

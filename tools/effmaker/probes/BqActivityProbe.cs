@@ -148,6 +148,14 @@ namespace BqActivityProbe
         /// `config/NuclideDefinition.xml` вокруг 59 кэВ стоят РАЗНЫЕ линии, и
         /// подпись выходит разная. Без имени файла и его отпечатка число не
         /// повторяется.
+        ///
+        /// ⛔ ОТПЕЧАТОК — ПО НОРМАЛИЗОВАННЫМ КОНЦАМ СТРОК (`T172`). Сырой
+        /// sha256 у ОДНОЙ И ТОЙ ЖЕ библиотеки разный в дереве, выписанном с LF,
+        /// и в дереве с CRLF (измерено 10.09.2026: 49 121 б `7aaa0b01…` и
+        /// 50 814 б `082c331d…`, разница ровно по байту на строку), и числа
+        /// двух заходов переставали быть сравнимы, хотя менялись только концы
+        /// строк. Печатаются ОБА: отпечаток — чтобы сравнивать, сырой — чтобы
+        /// было видно, что дерево переписано.
         /// </summary>
         static NuclideDefinitionManager ReportLibrary()
         {
@@ -155,13 +163,10 @@ namespace BqActivityProbe
             Console.WriteLine("библиотека: {0}", full);
             if (File.Exists(full))
             {
-                var info = new FileInfo(full);
-                using (var sha = SHA256.Create())
-                using (var s = File.OpenRead(full))
-                {
-                    string hash = BitConverter.ToString(sha.ComputeHash(s)).Replace("-", "").ToLowerInvariant();
-                    Console.WriteLine("            {0} байт, sha256 {1}", info.Length, hash.Substring(0, 16));
-                }
+                byte[] raw = File.ReadAllBytes(full);
+                byte[] norm = NormalizeEol(raw);
+                Console.WriteLine("            {0} байт, концы строк {1}, отпечаток {2}, сырой sha256 {3}",
+                                  raw.Length, EolKind(raw), Sha16(norm), Sha16(raw));
             }
             else
             {
@@ -175,6 +180,60 @@ namespace BqActivityProbe
                               m.NuclideDefinitions == null ? -1 : m.NuclideDefinitions.Count,
                               set != null ? set.Name : "(нет)");
             return m;
+        }
+
+        /// <summary>
+        /// Концы строк, СЧИТАННЫЕ ПО БАЙТАМ (`T172`). Разбирать файл как текст
+        /// тут нельзя: три способа счёта уже давали три разных числа.
+        /// </summary>
+        static string EolKind(byte[] b)
+        {
+            int crlf = 0, lf = 0, cr = 0;
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (b[i] == 13)
+                {
+                    if (i + 1 < b.Length && b[i + 1] == 10) { crlf++; i++; }
+                    else cr++;
+                }
+                else if (b[i] == 10) lf++;
+            }
+
+            if (crlf + lf + cr == 0) return "нет переводов строк";
+            if (lf == 0 && cr == 0) return "CRLF";
+            if (crlf == 0 && cr == 0) return "LF";
+            return string.Format(CultureInfo.InvariantCulture,
+                                 "смешанные (CRLF {0}, LF {1}, CR {2})", crlf, lf, cr);
+        }
+
+        /// <summary>
+        /// CRLF → LF, одиночный CR → LF. Нормализуются ТОЛЬКО концы строк:
+        /// пробелы, отступы и BOM — это содержимое, и молча уравнивать по ним
+        /// разные файлы отпечаток не вправе (`T172`).
+        /// </summary>
+        static byte[] NormalizeEol(byte[] b)
+        {
+            var outBytes = new List<byte>(b.Length);
+            for (int i = 0; i < b.Length; i++)
+            {
+                if (b[i] == 13)
+                {
+                    outBytes.Add(10);
+                    if (i + 1 < b.Length && b[i + 1] == 10) i++;
+                }
+                else outBytes.Add(b[i]);
+            }
+
+            return outBytes.ToArray();
+        }
+
+        static string Sha16(byte[] b)
+        {
+            using (var sha = SHA256.Create())
+            {
+                return BitConverter.ToString(sha.ComputeHash(b))
+                                   .Replace("-", "").ToLowerInvariant().Substring(0, 16);
+            }
         }
 
         // ------------------------------------------------------------------
@@ -398,7 +457,11 @@ namespace BqActivityProbe
                 double minority = (double)kevVerdict / (channelsVerdict + kevVerdict);
                 if (minority > 0.1)
                 {
-                    Console.WriteLine("  ⛔ но меньшинство больше десятой части ({0:P1}) — единица не одна", minority);
+                    // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит
+                    //    разделитель разрядов, а группировки разрядов нет вовсе
+                    //    (решение Amber 05.09.2026). Процент — множителем и текстом.
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "  ⛔ но меньшинство больше десятой части ({0:F1} %) — единица не одна", 100.0 * minority));
                     bad++;
                 }
             }

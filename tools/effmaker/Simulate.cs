@@ -31,6 +31,12 @@ namespace EffSim
 
         static int Main(string[] args)
         {
+            // ⛔ (`T247`) Культура ЦЕЛИКОМ инвариантная, приказ Amber 05.09.2026. Проба
+            //    не ставила её ВОВСЕ, и на русской машине часть её чисел шла с ЗАПЯТОЙ
+            //    (замер 10.09.2026, полоса П8: мест без поставщика культуры — 12).
+            //    Инвариант ЦЕЛИКОМ, а не клон с подменённым разделителем: клон
+            //    чинит печать и оставляет РАЗБОР системным (`T245`).
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             try
             {
                 string geometry = null, reference = null, outPath = null, all = null, refDir = null;

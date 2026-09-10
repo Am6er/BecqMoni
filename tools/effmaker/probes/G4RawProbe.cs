@@ -22,10 +22,23 @@ namespace G4RawProbe
     ///     g4rawprobe --geometry=X.in [--spectrum=X.xml] --energy=661.657
     ///                [--n=2000000] [--bin=1] [--seed=20260902]
     ///                [--out=raw.csv] [--scene=scene.txt]
+    ///                [--bands=1-12,13-25,55-59]
     ///
     /// `--out=` — `keV,response` (доля на историю; ПОСЛЕДНИЙ бин — пик полного
     /// поглощения, см. <see cref="EfficiencySimulator.Response"/>).
     /// `--scene=` — `DumpScene()` в формате, который читает `g4cf scene`.
+    ///
+    /// ⛔ `--bands=` СЧИТАЕТ ПОЛОСЫ САМА ПРОБА (`T134`). До 10.09.2026 полосы
+    /// каждый раз считались отдельным скриптом поверх `--out=`, у каждой сверки
+    /// своим, — то есть числа полос разных заходов сравнивались на веру. Ключ
+    /// берёт список `a-b` в кэВ через запятую и печатает по каждой полосе долю
+    /// на историю и долю от полной суммы.
+    ///
+    /// ⚠ Полоса считается по КОНТИНУУМУ: бины `i` с энергией `i*bin` в `[a, b]`
+    /// и `i &lt; N-1`. Последний бин — пик полного поглощения, его энергия в
+    /// `--out=` записана как `(N-1)*bin` и в полосу НЕ входит, иначе полоса у
+    /// верхнего края шкалы молча вобрала бы весь пик. Пик печатается отдельной
+    /// строкой выше.
     /// </summary>
     static class Program
     {
@@ -58,6 +71,7 @@ namespace G4RawProbe
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
+            double[][] bands = null;                    // `T134`, --bands=
             foreach (string a in args)
             {
                 if (a == "--no-light") { light = false; continue; }
@@ -109,6 +123,20 @@ namespace G4RawProbe
                 else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--scene=", StringComparison.Ordinal)) scenePath = a.Substring(8);
+                else if (a.StartsWith("--bands=", StringComparison.Ordinal))
+                {
+                    // `T134`: список полос `a-b` через запятую, границы в кэВ.
+                    // ⛔ Плохой список — ОТКАЗ, а не пустой разбор: молча
+                    // пропущенная полоса выглядит как «полос нет», и это ровно
+                    // тот случай, из-за которого ключ и заводится.
+                    if (!TryParseBands(a.Substring(8), out bands))
+                    {
+                        Console.Error.WriteLine("не разобрал --bands=, нужен список «a-b» через запятую, границы в кэВ: " + a.Substring(8));
+                        return 2;
+                    }
+
+                    continue;
+                }
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -238,6 +266,45 @@ namespace G4RawProbe
             Console.WriteLine("полная вторым обходом (TotalEfficiency) {0:E6} ± {1:F2} %, отклик/обход = {2:F4}",
                               totalSecond, totalError, totalSecond > 0.0 ? sum / totalSecond : 0.0);
 
+            // ⛔ ПОЛОСЫ СЧИТАЕТ САМА ПРОБА (`T134`). Прежде их считали скриптом
+            // поверх `--out=` — у каждой сверки своим, и числа полос разных
+            // заходов сравнивались на веру. Теперь определение полосы одно и
+            // живёт рядом с расчётом.
+            if (bands != null)
+            {
+                Console.WriteLine();
+                Console.WriteLine("ПОЛОСЫ КОНТИНУУМА (бины i*{0} кэВ, i < {1}; бин пика НЕ входит)",
+                                  binKev.ToString("F3", CultureInfo.InvariantCulture),
+                                  response.Length - 1);
+                // Континуум — всё, кроме последнего бина: он несёт пик полного
+                // поглощения, а его энергия в `--out=` записана как (N-1)*bin.
+                double continuum = sum - response[response.Length - 1];
+                foreach (double[] bd in bands)
+                {
+                    double inBand = 0.0;
+                    int binsInBand = 0;
+                    for (int i = 0; i < response.Length - 1; i++)
+                    {
+                        double kev = i * binKev;
+                        if (kev >= bd[0] && kev <= bd[1])
+                        {
+                            inBand += response[i];
+                            binsInBand++;
+                        }
+                    }
+
+                    // ⚠ Пустая полоса — не ноль отклика, а промах по шкале, и
+                    // это разные беды. Число бинов печатается рядом, чтобы их
+                    // было видно ОТДЕЛЬНО.
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "  {0,8:F2}...{1,8:F2} кэВ: {2:E6}  ({3:F3} % отклика, {4:F3} % континуума, бинов {5})",
+                        bd[0], bd[1], inBand,
+                        sum > 0.0 ? 100.0 * inBand / sum : 0.0,
+                        continuum > 0.0 ? 100.0 * inBand / continuum : 0.0,
+                        binsInBand));
+                }
+            }
+
             if (outPath != null)
             {
                 using (var writer = new StreamWriter(outPath, false, new UTF8Encoding(true)))
@@ -255,6 +322,63 @@ namespace G4RawProbe
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Разбор `--bands=a-b,c-d,…` (`T134`). Границы в кэВ, разделитель
+        /// дробной части — ТОЧКА, разбор явной инвариантной культурой
+        /// (приказ Amber 05.09.2026), как и у всех остальных ключей пробы.
+        /// ⛔ Возвращает false на ЛЮБОМ изъяне списка: пустой список, пара без
+        /// дефиса, нечисло, отрицательная граница, перевёрнутая полоса.
+        /// Молчаливый пропуск здесь неотличим от «полос нет».
+        /// </summary>
+        static bool TryParseBands(string spec, out double[][] bands)
+        {
+            bands = null;
+            if (string.IsNullOrEmpty(spec))
+            {
+                return false;
+            }
+
+            string[] parts = spec.Split(',');
+            var list = new double[parts.Length][];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string p = parts[i].Trim();
+                // ⛔ Длина проверяется ДО поиска: `IndexOf(знак, 1)` на пустой
+                //    строке бросает, и хвостовая запятая («1-12,») валила пробу
+                //    исключением вместо отказа с доводом. Поймано положительным
+                //    контролем 10.09.2026 — шестым плохим входом из шести.
+                if (p.Length < 3)
+                {
+                    return false;
+                }
+
+                // Дефис ищется ПОСЛЕ первого знака, иначе «-5-10» распалось бы
+                // по своему же минусу; отрицательных границ у шкалы всё равно нет.
+                int dash = p.IndexOf('-', 1);
+                if (dash <= 0 || dash == p.Length - 1)
+                {
+                    return false;
+                }
+
+                double lo, hi;
+                if (!double.TryParse(p.Substring(0, dash), NumberStyles.Float, CultureInfo.InvariantCulture, out lo)
+                    || !double.TryParse(p.Substring(dash + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out hi))
+                {
+                    return false;
+                }
+
+                if (lo < 0.0 || hi < lo)
+                {
+                    return false;
+                }
+
+                list[i] = new[] { lo, hi };
+            }
+
+            bands = list;
+            return true;
         }
     }
 }

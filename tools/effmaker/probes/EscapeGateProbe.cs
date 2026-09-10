@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -149,12 +149,26 @@ static class EscapeGateProbe
         // Канал вылета отдельно — он и есть прямой ответ на вопрос строки:
         // «пики вылета внутри матрицы» и «строка отклика вообще что-то
         // содержит» — разные утверждения, и путать их нельзя.
+        // ⛔ (`AMBER15`, 10.09.2026) КАНАЛОВ ВЫЛЕТА АННИГИЛЯЦИИ ДВА — одиночный
+        // и двойной, — и здесь берутся ОБА. Один канал дал бы разный ответ на
+        // матрице, посчитанной до разведения SE/DE, и на посчитанной после:
+        // в старой пик 1592.5 лежит в том же канале, что и 2103.5, в новой — в
+        // своём. Сумма двух каналов означает одно и то же в обоих случаях, а у
+        // матрицы старого склада второй просто пуст.
         double[] escapeOnly = null;
+        double[] escapeDouble = null;
         if (matrix.HasChannels)
         {
             escapeOnly = new double[bins];
+            escapeDouble = new double[bins];
             matrix.AccumulateChannel(escapeOnly, Parent, 1.0,
-                                     (int)EfficiencySimulator.ResponseChannel.Escape511);
+                                     (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation);
+            matrix.AccumulateChannel(escapeDouble, Parent, 1.0,
+                                     (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble);
+            for (int b = 0; b < bins; b++)
+            {
+                escapeOnly[b] += escapeDouble[b];
+            }
         }
 
         double peak = Area(full, matrix.BinKev, Parent, 2);
@@ -184,11 +198,21 @@ static class EscapeGateProbe
                               + "1592.5 — {2:E4} ({3:F4} к пику)",
                               singleEsc, peak > 0.0 ? singleEsc / peak : 0.0,
                               doubleEsc, peak > 0.0 ? doubleEsc / peak : 0.0);
-            Console.WriteLine("   канал «ушёл 511»: {0:E4} всего, из них в двух пиках {1:F1} %",
+            Console.WriteLine("   каналы вылета   : {0:E4} всего, из них в двух пиках {1:F1} %",
                               escapeTotal,
                               escapeTotal > 0.0
                                   ? 100.0 * (singleEsc + doubleEsc) / escapeTotal
                                   : 0.0);
+            // Разведены ли SE и DE в самой матрице — видно по числу каналов, а
+            // не по дате файла: старый склад отдаёт четыре, новый пять.
+            double doubleChannel = Sum(escapeDouble);
+            Console.WriteLine("   из них в канале двойного вылета: {0:E4} ({1})",
+                              doubleChannel,
+                              matrix.ChannelRows != null
+                              && matrix.ChannelRows.Length
+                                 > (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble
+                                  ? "SE и DE разведены"
+                                  : "матрица посчитана ДО разведения SE/DE");
 
             // Встречная проверка: НИЖЕ ПОРОГА РОЖДЕНИЯ ПАР (1022 кэВ) канала
             // вылета быть не может вовсе. Без неё «площадь в окне» ничего не
@@ -201,7 +225,11 @@ static class EscapeGateProbe
             // комптоновским каскадом, так что общего p у трёх чисел нет.
             double[] below = new double[(int)(900.0 / matrix.BinKev) + 3];
             matrix.AccumulateChannel(below, 900.0, 1.0,
-                                     (int)EfficiencySimulator.ResponseChannel.Escape511);
+                                     (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation);
+            // Оба канала вылета — по тому же доводу, что и выше: ниже порога
+            // пар пуст обязан быть КАЖДЫЙ, и проверять надо оба.
+            matrix.AccumulateChannel(below, 900.0, 1.0,
+                                     (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble);
             double belowSum = Sum(below);
             Console.WriteLine("   ниже порога пар (900 кэВ) канал вылета: {0:E3} — {1}",
                               belowSum, belowSum <= 0.0 ? "ПУСТ, как и должен" : "⚠ НЕ ПУСТ");

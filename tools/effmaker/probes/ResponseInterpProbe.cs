@@ -99,9 +99,13 @@ namespace ResponseInterpProbe
 
             GeometryModel geometry = GeometryModel.Load(geometryPath);
             Console.WriteLine("геометрия: {0}", geometry.Describe());
-            Console.WriteLine("узлы: {0}; {1} историй на узел, {2} на эталон, бин {3:F2} кэВ, уширение {4:P0} на 662 кэВ",
-                              string.Join(", ", Array.ConvertAll(nodeCounts, v => v.ToString())),
-                              histories, refHistories, binKev, resolution);
+            // ⛔ `P` не применяется (`T247`): выше 1000 % он ставит разделитель
+            //    разрядов, а группировки разрядов нет вовсе (решение Amber
+            //    05.09.2026). Процент — множителем 100.0 и знаком в тексте.
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                              "узлы: {0}; {1} историй на узел, {2} на эталон, бин {3:F2} кэВ, уширение {4:F0} % на 662 кэВ",
+                              string.Join(", ", Array.ConvertAll(nodeCounts, v => v.ToString(CultureInfo.InvariantCulture))),
+                              histories, refHistories, binKev, 100.0 * resolution));
             Console.WriteLine();
 
             var template = new ResponseMatrixOptions { Histories = histories, BinKev = binKev };
@@ -207,9 +211,11 @@ namespace ResponseInterpProbe
                     noiseShape += nShape; noisePeak += nPeak; noiseSum += nSum;
                     count++;
 
+                    // ⛔ `P` не применяется (`T247`), довод выше по файлу.
                     detail.Add(string.Format(CultureInfo.InvariantCulture,
-                        "         {0,6:F0} кэВ (шаг {1,5:F0}): форма {2,6:P2} при шуме {3,6:P2}, пик {4,6:P2} при шуме {5,6:P2}",
-                        plan.MidEnergy, plan.StepKev, eShape, nShape, ePeak, nPeak));
+                        "         {0,6:F0} кэВ (шаг {1,5:F0}): форма {2,6:F2} % при шуме {3,6:F2} %, пик {4,6:F2} % при шуме {5,6:F2} %",
+                        plan.MidEnergy, plan.StepKev,
+                        100.0 * eShape, 100.0 * nShape, 100.0 * ePeak, 100.0 * nPeak));
 
                     lines.Add(string.Format(CultureInfo.InvariantCulture,
                         "{0};{1};{2:F0};{3:F1};{4:F5};{5:F5};{6:F5};{7:F5};{8:F5};{9:F5};{10:F1};{11:F1}",
