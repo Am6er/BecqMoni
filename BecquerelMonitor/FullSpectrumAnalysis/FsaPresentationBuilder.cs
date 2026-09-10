@@ -189,6 +189,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     parent.SumPeakCurve = sums;
                 }
 
+                AddChannelsInto(parent, layer, channels);
                 parent.SharePercent += layer.SharePercent;
             }
 
@@ -253,6 +254,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         other.SumPeakCurve = sums;
                     }
 
+                    AddChannelsInto(other, layer, channels);
                     other.SharePercent += layer.SharePercent;
                 }
 
@@ -303,6 +305,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             for (int i = 0; i < channels && i < source.Length; i++)
             {
                 target[i] += source[i];
+            }
+        }
+
+        /// <summary>
+        /// (`S3`) Сложить в строку-приёмник раскладку по каналам и долю
+        /// подложки слагаемого — ТЕМ ЖЕ сложением, что и саму ленту.
+        ///
+        /// ⛔ Обе величины складываются здесь вместе с лентой нарочно: правило
+        /// «Σ каналов = лента − подложка» обязано пережить и свёртку «прочего»,
+        /// и родительскую группировку. Сложить ленту, забыв каналы, — значит
+        /// получить строку, у которой тождество молча не выполняется, а
+        /// родительская строка `T176` как раз и проверяется этим тождеством.
+        /// </summary>
+        static void AddChannelsInto(FsaStackLayer target, FsaStackLayer source, int channels)
+        {
+            if (source.ChannelCurves == null)
+            {
+                return;
+            }
+
+            if (target.ChannelCurves == null)
+            {
+                target.ChannelCurves = new double[source.ChannelCurves.Length][];
+            }
+
+            for (int c = 0; c < source.ChannelCurves.Length && c < target.ChannelCurves.Length; c++)
+            {
+                double[] row = target.ChannelCurves[c];
+                AddInto(ref row, source.ChannelCurves[c], channels);
+                target.ChannelCurves[c] = row;
+            }
+
+            if (source.ContinuumCurve != null)
+            {
+                double[] spread = target.ContinuumCurve;
+                AddInto(ref spread, source.ContinuumCurve, channels);
+                target.ContinuumCurve = spread;
             }
         }
 

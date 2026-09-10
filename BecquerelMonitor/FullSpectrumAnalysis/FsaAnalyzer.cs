@@ -1439,6 +1439,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] Values;
             public double[] Tail;
             public double[] SumPart;
+
+            /// <summary>
+            /// (`S3`) Та же гистограмма по четырём каналам исхода; null —
+            /// матрица без раскладки. Поканально суммируется в
+            /// <see cref="Values"/> ТОЧНО: лента отсюда и берётся, а не из
+            /// суммарных строк матрицы (решение Amber 10.09.2026).
+            /// Общий нож режет каналы тем же движением, что ленту, — иначе
+            /// разошлись бы ровно на вынутое, как в S37.
+            /// </summary>
+            public double[][] Channels;
+
             public bool CascadeApplied;
         }
 
@@ -3492,23 +3503,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             && lineIndex < correction.LineFactors.Length
                     ? correction.LineFactors[lineIndex]
                     : 1.0;
-                if (Math.Abs(cf - 1.0) < 1.0E-6)
+                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                if (matrix.HasChannels)
                 {
-                    matrix.Accumulate(deposit, line.Energy, weight);
+                    // Тем же путём, что и лента (`S3`): по каналам и суммой их
+                    // вкладов. Поверка линии обязана мерить ТОТ ЖЕ столбец, что
+                    // стоит в фите, — иначе она поверяет свою копию правила.
+                    for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                    {
+                        matrix.AccumulateChannel(deposit, line.Energy,
+                                                 c == peak && corrected ? weight * cf : weight, c);
+                    }
                 }
-                else
+                else if (corrected)
                 {
                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
                     {
-                        bool peakChannel = c == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
                         matrix.AccumulateChannel(deposit, line.Energy,
-                                                 peakChannel ? weight * cf : weight, c);
+                                                 c == peak ? weight * cf : weight, c);
                     }
+                }
+                else
+                {
+                    matrix.Accumulate(deposit, line.Energy, weight);
                 }
 
                 // Тот же нож, что в `DepositOf`: подпороговый континуум уезжает
                 // в соседнюю свободную колонку и в столбце образа не стоит.
-                this.SplitContinuumBelowTrustFloor(deposit, null, bin, component,
+                this.SplitContinuumBelowTrustFloor(deposit, null, null, bin, component,
                                                    calibration, fwhmCalibration, channels);
                 return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, bin,
                                                    gain, offset, chLo, chHi, channels);
@@ -3608,10 +3631,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                // Та часть кривой, что пришла от сумм-пиков: та же амплитуда,
-                // тот же дрейф — отличается только состав образа.
-                double[] sumOnly = this.BuildSumPeakCurve(column.Component, calibration, fwhmCalibration,
-                                                          gain, offset, chLo, chHi, channels);
+                // Части кривой: та, что пришла от сумм-пиков, и раскладка по
+                // четырём каналам исхода (`S3`). Та же амплитуда, тот же
+                // дрейф — отличается только состав образа.
+                double[] sumOnly;
+                double[][] channelCurves;
+                this.BuildLayerParts(column.Component, calibration, fwhmCalibration,
+                                     gain, offset, chLo, chHi, channels,
+                                     out sumOnly, out channelCurves);
                 if (sumOnly != null)
                 {
                     for (int i = 0; i < channels; i++)
@@ -3619,6 +3646,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         sumOnly[i] *= amplitude;
                     }
                 }
+
+                ScaleCurves(channelCurves, amplitude);
 
                 FsaComponentResult component = new FsaComponentResult
                 {
@@ -3640,6 +3669,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 ? column.Component.Name : null),
                     Curve = curve,
                     SumPeakCurve = sumOnly,
+                    ChannelCurves = channelCurves,
                     PeakCounts = this.PeakWindowCounts(column.Component, curve, calibration,
                                                        fwhmCalibration, gain, offset,
                                                        chLo, chHi, channels),
@@ -3823,13 +3853,65 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 FsaComponent source = parts[order[m]];
-                double[] sumOnly = this.BuildSumPeakCurve(source, calibration, fwhmCalibration,
-                                                          gain, offset, chLo, chHi, channels);
+                double[] sumOnly;
+                double[][] memberChannels;
+                this.BuildLayerParts(source, calibration, fwhmCalibration,
+                                     gain, offset, chLo, chHi, channels,
+                                     out sumOnly, out memberChannels);
+
+                // ⛔ ПОДСЛОЙ СУММ ЧЛЕНА — ДОЛЯ ЕГО СОБСТВЕННОЙ ЛЕНТЫ, а не
+                // отдельно посчитанная кривая (найдено 10.09.2026 проверкой
+                // `S3` на `G1S16_Th232_Denta100`). Прежде он умножался на
+                // амплитуду колонки и клался КАК ЕСТЬ, а лента члена — это
+                // ДОЛЯ колонки (`curve · image / Σ image`), и подслой вылезал
+                // за неё: Tl-208 на 2.899E-2 отсчёта, Pb-212 на 5.878E-3. Мало
+                // по величине — и ровно того же рода, что `S37`, где всё
+                // начиналось с 0.01 отсчёта, а кончилось 5–11.
+                //
+                // ⚠ Делить на долю колонки (`image / Σ image`) оказалось МАЛО,
+                // и это измерено там же: Tl-208 остался выше на те же 2.9E-2.
+                // Причина — РАЗНЫЕ НОЖИ: подпороговый нож считает пиковые окна
+                // по линиям СВОЕГО компонента, поэтому образ члена и образ
+                // колонки урезаны в разных бинах, и «часть колонки» частью
+                // ленты члена не является. Верное отношение берётся у самого
+                // члена: какая доля ЕГО образа пришла от сумм-пиков.
                 if (sumOnly != null)
                 {
                     for (int i = 0; i < channels; i++)
                     {
-                        sumOnly[i] *= amplitude;
+                        double share = i >= chLo && i <= chHi && image[i] > 0.0
+                            ? sumOnly[i] / image[i]
+                            : 0.0;
+                        sumOnly[i] = part[i] * (share > 1.0 ? 1.0 : share);
+                    }
+                }
+
+                // Каналы члена делятся ТЕМ ЖЕ отношением, что и его лента:
+                // доля канала колонки раздаётся по весу образов членов в этом
+                // канале шкалы (`S3`). Иначе Σ каналов члена разошлась бы с его
+                // же лентой ровно на подпороговый хвост колонки — та самая
+                // причина, по которой члены и раскладываются долями, а не
+                // строятся независимо.
+                if (memberChannels != null)
+                {
+                    for (int c = 0; c < memberChannels.Length; c++)
+                    {
+                        double[] row = memberChannels[c];
+                        if (row == null)
+                        {
+                            continue;
+                        }
+
+                        double[] share = new double[channels];
+                        for (int i = chLo; i <= chHi; i++)
+                        {
+                            if (sum[i] > 0.0)
+                            {
+                                share[i] = curve[i] * row[i] / sum[i];
+                            }
+                        }
+
+                        memberChannels[c] = share;
                     }
                 }
 
@@ -3851,6 +3933,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     DecayChainRoot = component.DecayChainRoot ?? component.Name,
                     Curve = part,
                     SumPeakCurve = sumOnly,
+                    ChannelCurves = memberChannels,
                     PeakCounts = this.PeakWindowCounts(source, part, calibration, fwhmCalibration,
                                                        gain, offset, chLo, chHi, channels),
                     CountRate = amplitude / liveTime,
@@ -5508,19 +5591,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                                int channels)
         {
-            return this.SplitContinuumBelowTrustFloor(deposit, null, bin, component, calibration,
+            return this.SplitContinuumBelowTrustFloor(deposit, null, null, bin, component, calibration,
                                                       fwhmCalibration, channels);
         }
 
         /// <summary>
-        /// То же, но заодно вынимает те же бины из ПАРАЛЛЕЛЬНОЙ гистограммы
-        /// <paramref name="part"/> — доли образа, которую потом рисуют подслоем.
-        /// Нож обязан быть один: бин, ушедший из ленты в отдельную колонку,
-        /// обязан уйти и из подслоя, иначе подслой окажется выше ленты ровно на
-        /// вынутое (S37).
+        /// То же, но заодно вынимает те же бины из ПАРАЛЛЕЛЬНЫХ гистограмм:
+        /// <paramref name="part"/> — доли образа, которую потом рисуют
+        /// подслоем, и <paramref name="channelParts"/> — четырёх каналов
+        /// исхода (`S3`).
+        ///
+        /// Нож обязан быть ОДИН: бин, ушедший из ленты в отдельную колонку,
+        /// обязан уйти и из подслоя, и из каждого канала, иначе они окажутся
+        /// выше ленты ровно на вынутое (S37). Именно поэтому здесь не «нож для
+        /// ленты и такой же для каналов», а один проход по одним и тем же
+        /// номерам бинов.
         /// </summary>
-        double[] SplitContinuumBelowTrustFloor(double[] deposit, double[] part, double bin,
-                                               FsaComponent component,
+        double[] SplitContinuumBelowTrustFloor(double[] deposit, double[] part, double[][] channelParts,
+                                               double bin, FsaComponent component,
                                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                                int channels)
         {
@@ -5596,6 +5684,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (part != null)
                     {
                         part[i] = 0.0;
+                    }
+
+                    if (channelParts != null)
+                    {
+                        for (int c = 0; c < channelParts.Length; c++)
+                        {
+                            double[] row = channelParts[c];
+                            if (row != null && i < row.Length)
+                            {
+                                row[i] = 0.0;
+                            }
+                        }
                     }
                 }
             }
@@ -5682,7 +5782,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.cascadeApplied = false;
 
             double[] sumPart;
-            double[] values = this.BuildResponseDeposit(component, true, out sumPart);
+            double[][] channelParts;
+            double[] values = this.BuildResponseDeposit(component, true, out sumPart, out channelParts);
             Deposit deposit = null;
             if (values != null)
             {
@@ -5695,7 +5796,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Values = values,
                     SumPart = sumPart,
-                    Tail = this.SplitContinuumBelowTrustFloor(values, sumPart, bin, component,
+                    Channels = channelParts,
+                    Tail = this.SplitContinuumBelowTrustFloor(values, sumPart, channelParts, bin, component,
                                                               calibration, fwhmCalibration, channels),
                     CascadeApplied = this.cascadeApplied
                 };
@@ -5720,10 +5822,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// каскадные добавки; по построению она поканально не больше основной,
         /// потому что в основную кладётся то же самое плюс неотрицательные
         /// линии.
+        ///
+        /// <paramref name="channelParts"/> (`S3`, первый этап) — та же
+        /// гистограмма, РАЗЛОЖЕННАЯ ПО ЧЕТЫРЁМ КАНАЛАМ ИСХОДА
+        /// (<see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel"/>).
+        ///
+        /// ⛔ ЛЕНТА СТРОИТСЯ КАК СУММА КАНАЛОВ, а не по суммарным строкам
+        /// матрицы (решение Amber 10.09.2026 вопросником: «Точное тождество»).
+        /// Довод измерен в самом коде: <c>ResponseMatrix.Rows</c> в файле НЕ
+        /// ЛЕЖИТ, он всегда пересчитывается <c>RebuildTotals()</c>, а там сумма
+        /// каналов копится в float32 (<c>total[b] += row[b]</c>). Пока лента
+        /// шла по `Rows`, а каналы складывались бы в double после `Stretch`,
+        /// тождество «Σ каналов = лента» было бы верно лишь с допуском — то
+        /// есть защита от двойного счёта сумм-пиков опиралась бы на допуск, а
+        /// не на построение. Теперь оба числа получаются ОДНИМ сложением, и
+        /// расходиться им негде.
+        ///
+        /// Запасной путь (матрица без раскладки по каналам) оставлен: там
+        /// <paramref name="channelParts"/> пуст, а лента строится по-старому.
+        /// Молчаливо отдавать пустой отклик там, где каналов нет, нельзя.
         /// </summary>
-        double[] BuildResponseDeposit(FsaComponent component, bool needSumPart, out double[] sumPart)
+        double[] BuildResponseDeposit(FsaComponent component, bool needSumPart, out double[] sumPart,
+                                      out double[][] channelParts)
         {
             sumPart = null;
+            channelParts = null;
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             double bin = matrix.BinKev;
             if (!(bin > 0.0))
@@ -5752,7 +5875,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            double[] deposit = new double[(int)(topEnergy / bin + 0.5) + 1];
+            int length = (int)(topEnergy / bin + 0.5) + 1;
+            int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
+            int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+            bool byChannels = matrix.HasChannels;
+            double[] deposit = new double[length];
+            double[][] channels = null;
+            if (byChannels)
+            {
+                channels = new double[channelCount][];
+                for (int c = 0; c < channelCount; c++)
+                {
+                    channels[c] = new double[length];
+                }
+            }
+
             bool anyLine = false;
             for (int i = 0; i < component.Lines.Count; i++)
             {
@@ -5765,23 +5902,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // Эффективность НЕ применяется: она уже внутри отклика.
                 double weight = line.Intensity / 100.0;
                 double cf = correction != null ? correction.LineFactors[i] : 1.0;
-                if (Math.Abs(cf - 1.0) < 1.0E-6)
-                {
-                    matrix.Accumulate(deposit, line.Energy, weight);
-                }
-                else
+                bool corrected = Math.Abs(cf - 1.0) >= 1.0E-6;
+                if (byChannels)
                 {
                     // Поправка ложится ТОЛЬКО на канал пика: вынос из пика —
                     // чистая потеря, а континуум столько же теряет своих
                     // событий, сколько получает чужих сумм, и в первом порядке
-                    // остаётся при своём.
-                    for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                    // остаётся при своём. Ради ЭТОГО каналы и разделены: по
+                    // суммарной строке ту же поправку пришлось бы одинаково
+                    // растянуть и на пик, и на весь хвост.
+                    for (int c = 0; c < channelCount; c++)
                     {
-                        bool peakChannel = c == (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
-                        matrix.AccumulateChannel(deposit, line.Energy,
-                                                 peakChannel ? weight * cf : weight, c);
+                        matrix.AccumulateChannel(channels[c], line.Energy,
+                                                 c == peak && corrected ? weight * cf : weight, c);
                     }
+                }
+                else if (corrected)
+                {
+                    for (int c = 0; c < channelCount; c++)
+                    {
+                        matrix.AccumulateChannel(deposit, line.Energy,
+                                                 c == peak ? weight * cf : weight, c);
+                    }
+                }
+                else
+                {
+                    matrix.Accumulate(deposit, line.Energy, weight);
+                }
 
+                if (corrected)
+                {
                     this.cascadeApplied = true;
                 }
 
@@ -5793,9 +5943,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            if (sumPeaks && this.AccumulateSumPeaks(deposit, correction))
+            if (sumPeaks && this.AccumulateSumPeaks(deposit, channels, correction, true))
             {
                 this.cascadeApplied = true;
+            }
+
+            if (byChannels)
+            {
+                // Лента — сумма каналов, и другого источника у неё нет.
+                for (int c = 0; c < channelCount; c++)
+                {
+                    double[] row = channels[c];
+                    for (int b = 0; b < length; b++)
+                    {
+                        deposit[b] += row[b];
+                    }
+                }
+
+                channelParts = channels;
             }
 
             if (sumPeaks && needSumPart)
@@ -5804,8 +5969,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // разность «с суммами минус без» дала бы то же число, но
                 // повторный вызов честнее — он показывает, что подслой кладёт
                 // РОВНО то же, что лента, и отличается только составом.
-                sumPart = new double[deposit.Length];
-                this.AccumulateSumPeaks(sumPart, correction, this.SumLayerIncludesContinuum);
+                sumPart = new double[length];
+                this.AccumulateSumPeaks(sumPart, null, correction, this.SumLayerIncludesContinuum);
             }
 
             return deposit;
@@ -5880,14 +6045,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// внутри неё. Вес подбирается так, чтобы канал пика дал ровно её и ни
         /// на что больше не разошёлся.
         /// </summary>
-        bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction)
-        {
-            return this.AccumulateSumPeaks(deposit, correction, true);
-        }
-
-        bool AccumulateSumPeaks(double[] deposit, FsaCascadeSummer.Correction correction,
+        /// <param name="channels">
+        /// Раскладка по каналам исхода; null — складывать всё в
+        /// <paramref name="deposit"/> одной кучей (запасной путь матрицы без
+        /// каналов и построение чистой сумм-доли для подслоя).
+        ///
+        /// ⛔ Куда что кладётся, определено ФИЗИКОЙ, а не удобством: сумм-пик —
+        /// это полное поглощение пары, и он идёт в канал `Peak`; сумм-континуум
+        /// — недобранный третий квант, и он идёт во ВСЕ каналы, кроме пикового.
+        /// Разделение каналов именно это и делает проверяемым (`S3`): до него
+        /// обе добавки лежали в одной куче с комптоном, и «не задвоили ли мы
+        /// полное поглощение третьего» нельзя было ни увидеть, ни померить.
+        /// </param>
+        bool AccumulateSumPeaks(double[] deposit, double[][] channels,
+                                FsaCascadeSummer.Correction correction,
                                 bool withContinuum)
         {
+            int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
             bool any = false;
             foreach (FsaCascadeSummer.SumPeak peak in correction.SumPeaks)
             {
@@ -5898,8 +6072,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 this.ResponseMatrix.AccumulateChannel(
-                    deposit, peak.Energy, peak.Area / peakEfficiency,
-                    (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak);
+                    channels != null ? channels[peakChannel] : deposit,
+                    peak.Energy, peak.Area / peakEfficiency, peakChannel);
                 any = true;
             }
 
@@ -5912,8 +6086,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // задвоить.
             if (withContinuum && correction.SumContinua != null)
             {
-                int channels = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
-                int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+                int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
                 foreach (FsaCascadeSummer.SumContinuum band in correction.SumContinua)
                 {
                     if (!(band.Weight > 0.0))
@@ -5921,7 +6094,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    for (int c = 0; c < channels; c++)
+                    for (int c = 0; c < channelCount; c++)
                     {
                         if (c == peakChannel)
                         {
@@ -5929,7 +6102,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         }
 
                         this.ResponseMatrix.AccumulateShifted(
-                            deposit, band.ThirdKev, band.Weight, c, band.ShiftKev);
+                            channels != null ? channels[c] : deposit,
+                            band.ThirdKev, band.Weight, c, band.ShiftKev);
                     }
 
                     any = true;
@@ -5987,6 +6161,121 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`S3`, первый этап) Части ленты компонента ОДНИМ проходом уширения:
+        /// доля сумм-пиков для подслоя и четыре канала исхода.
+        ///
+        /// Зовётся ОДИН раз на готовый результат, на выигравшей точке дрейфа, —
+        /// как и <see cref="BuildSumPeakCurve"/>, и по той же причине: в фит
+        /// каналы не идут (их доли заданы геометрией, свободная колонка
+        /// подогнала бы плато под остаток континуума), а сетку дрейфа
+        /// удорожать вчетверо незачем.
+        ///
+        /// ⚠ Один проход, а не два, — не экономия ради экономии: подслой сумм и
+        /// каналы обязаны быть частями ОДНОЙ ленты, а это верно только когда
+        /// группы, порог и ядро у них общие с ней и между собой.
+        /// </summary>
+        void BuildLayerParts(FsaComponent component, EnergyCalibration calibration,
+                             FwhmCalibration fwhmCalibration,
+                             double gain, double offset, int chLo, int chHi, int channels,
+                             out double[] sumCurve, out double[][] channelCurves)
+        {
+            sumCurve = null;
+            channelCurves = null;
+            if (this.ResponseMatrix == null || component == null || component.WeightsAreFinal)
+            {
+                return;
+            }
+
+            double bin = this.ResponseMatrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return;
+            }
+
+            // Берётся ТА ЖЕ гистограмма, по которой строилась лента, — из кэша
+            // разбора, целиком. Она нужна как мерка: по ней берутся группы
+            // бинов, порог отсечки и центры тяжести, и только это делает части
+            // действительно частями ленты, а не похожими на неё кривыми (S37).
+            Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
+            if (deposit == null)
+            {
+                return;
+            }
+
+            bool wantSum = deposit.SumPart != null && this.cascade != null && this.CascadeSumPeaks;
+            if (wantSum)
+            {
+                FsaCascadeSummer.Correction correction = this.cascade.For(component);
+                wantSum = correction != null && correction.SumPeaks != null
+                          && correction.SumPeaks.Count > 0;
+            }
+
+            int channelCount = deposit.Channels != null ? deposit.Channels.Length : 0;
+            int partCount = (wantSum ? 1 : 0) + channelCount;
+            if (partCount == 0)
+            {
+                return;
+            }
+
+            double[][] parts = new double[partCount][];
+            int next = 0;
+            if (wantSum)
+            {
+                parts[next++] = deposit.SumPart;
+            }
+
+            for (int c = 0; c < channelCount; c++)
+            {
+                parts[next++] = deposit.Channels[c];
+            }
+
+            double[][] templates;
+            this.BroadenResponseDeposit(deposit.Values, parts, calibration, fwhmCalibration,
+                                        bin, gain, offset, chLo, chHi, channels, out templates);
+            if (templates == null)
+            {
+                return;
+            }
+
+            next = 0;
+            if (wantSum)
+            {
+                sumCurve = templates[next++];
+            }
+
+            if (channelCount > 0)
+            {
+                channelCurves = new double[channelCount][];
+                for (int c = 0; c < channelCount; c++)
+                {
+                    channelCurves[c] = templates[next++];
+                }
+            }
+        }
+
+        /// <summary>Умножить части ленты на амплитуду компонента — на месте.</summary>
+        static void ScaleCurves(double[][] curves, double amplitude)
+        {
+            if (curves == null)
+            {
+                return;
+            }
+
+            foreach (double[] curve in curves)
+            {
+                if (curve == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < curve.Length; i++)
+                {
+                    curve[i] *= amplitude;
+                }
+            }
+        }
+
+        /// <summary>
         /// Уширить гистограмму поглощения в образ по шкале каналов — общий хвост
         /// пути <see cref="BuildTemplateFromResponse"/>, вынесенный ради второй
         /// свёртки подпорогового хвоста.
@@ -6017,7 +6306,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                         double gain, double offset, int chLo, int chHi, int channels,
                                         out double[] partTemplate)
         {
-            partTemplate = null;
+            double[][] templates;
+            double[] result = this.BroadenResponseDeposit(
+                deposit, part != null ? new[] { part } : null, calibration, fwhmCalibration, bin,
+                gain, offset, chLo, chHi, channels, out templates);
+            partTemplate = templates != null ? templates[0] : null;
+            return result;
+        }
+
+        /// <summary>
+        /// То же уширение, но ведёт СРАЗУ НЕСКОЛЬКО параллельных частей
+        /// (`S3`): долю сумм для подслоя и четыре канала исхода.
+        ///
+        /// ⛔ Части ведутся ОДНИМ проходом нарочно. Каждая из них обязана
+        /// остаться внутри своей ленты, а это следует лишь из того, что группы
+        /// бинов, порог отсечки, центр тяжести и ядро у них ОБЩИЕ с полной
+        /// гистограммой. Уширять канал отдельным вызовом (со своим порогом
+        /// `top·1e-5` от СВОЕГО максимума и своими группами) значило бы завести
+        /// ровно тот дефект, которым была S37, только вчетверо.
+        ///
+        /// Отсюда же и точное «Σ каналов = лента»: если Σ частей поканально
+        /// равна гистограмме, то после общей раскладки по группам, общего
+        /// сноса в центр тяжести и общего ядра равенство сохраняется —
+        /// свёртка линейна.
+        /// </summary>
+        double[] BroadenResponseDeposit(double[] deposit, double[][] parts, EnergyCalibration calibration,
+                                        FwhmCalibration fwhmCalibration, double bin,
+                                        double gain, double offset, int chLo, int chHi, int channels,
+                                        out double[][] partTemplates)
+        {
+            partTemplates = null;
             double top = 0.0;
             foreach (double v in deposit)
             {
@@ -6034,9 +6352,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double threshold = top * 1.0E-5;
             double[] template = new double[channels];
-            if (part != null)
+            int partCount = parts != null ? parts.Length : 0;
+            if (partCount > 0)
             {
-                partTemplate = new double[channels];
+                partTemplates = new double[partCount][];
+                for (int p = 0; p < partCount; p++)
+                {
+                    partTemplates[p] = new double[channels];
+                }
             }
 
             // Перевод «энергия → канал» не зависит ни от компонента, ни от узла
@@ -6060,10 +6383,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 bands = this.sourceBands = new int[size];
             }
 
-            // Буфер части — свой и одноразовый: подслой строится один раз на
-            // готовый результат, а не на каждом узле сетки дрейфа, и делить
-            // ради него общий буфер незачем.
-            double[] partSource = part != null ? new double[size] : null;
+            // Буферы частей — свои и одноразовые: подслой и каналы строятся
+            // один раз на готовый результат, а не на каждом узле сетки дрейфа,
+            // и делить ради них общий буфер незачем.
+            double[][] partSources = null;
+            double[] partAreas = null;
+            double[] partWeights = null;
+            if (partCount > 0)
+            {
+                partSources = new double[partCount][];
+                partAreas = new double[partCount];
+                partWeights = new double[partCount];
+                for (int p = 0; p < partCount; p++)
+                {
+                    partSources[p] = new double[size];
+                }
+            }
 
             int srcLo = Int32.MaxValue;
             int srcHi = Int32.MinValue;
@@ -6110,7 +6445,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 double area = 0.0;
                 double moment = 0.0;
-                double partArea = 0.0;
+                if (partAreas != null)
+                {
+                    Array.Clear(partAreas, 0, partAreas.Length);
+                }
+
                 int end = Math.Min(deposit.Length, b + group);
                 for (int k = b; k < end; k++)
                 {
@@ -6128,9 +6467,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     area += v;
                     moment += v * this.DriftPosition(q, gain, offset);
-                    if (part != null && k < part.Length)
+                    for (int pt = 0; pt < partCount; pt++)
                     {
-                        partArea += part[k];
+                        double[] row = parts[pt];
+                        if (row != null && k < row.Length)
+                        {
+                            partAreas[pt] += row[k];
+                        }
                     }
                 }
 
@@ -6151,14 +6494,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double frac = center - channel;
                 Splat(source, bands, pad, channels, channel, area * (1.0 - frac), band, ref srcLo, ref srcHi);
                 Splat(source, bands, pad, channels, channel + 1, area * frac, band, ref srcLo, ref srcHi);
-                if (partSource != null && partArea > 0.0)
+                for (int pt = 0; pt < partCount; pt++)
                 {
+                    if (!(partAreas[pt] > 0.0))
+                    {
+                        continue;
+                    }
+
                     // Тот же канал, та же доля, то же ядро — площадь у части
                     // своя. Границы источников и номера ядер уже записаны
                     // полной гистограммой: часть их не расширяет, потому что
                     // непустой быть там, где полная пуста, не может.
-                    SplatPart(partSource, pad, channels, channel, partArea * (1.0 - frac));
-                    SplatPart(partSource, pad, channels, channel + 1, partArea * frac);
+                    SplatPart(partSources[pt], pad, channels, channel, partAreas[pt] * (1.0 - frac));
+                    SplatPart(partSources[pt], pad, channels, channel + 1, partAreas[pt] * frac);
                 }
             }
 
@@ -6175,11 +6523,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 source[idx] = 0.0;
-                double partWeight = 0.0;
-                if (partSource != null)
+                for (int p = 0; p < partCount; p++)
                 {
-                    partWeight = partSource[idx];
-                    partSource[idx] = 0.0;
+                    partWeights[p] = partSources[p][idx];
+                    partSources[p][idx] = 0.0;
                 }
 
                 double[] kernel = bank.Get(bands[idx]);
@@ -6200,9 +6547,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     double k = kernel[i - full0];
                     template[i] += weight * k;
-                    if (partWeight > 0.0)
+                    for (int p = 0; p < partCount; p++)
                     {
-                        partTemplate[i] += partWeight * k;
+                        if (partWeights[p] > 0.0)
+                        {
+                            partTemplates[p][i] += partWeights[p] * k;
+                        }
                     }
                 }
 
