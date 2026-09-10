@@ -1,0 +1,59 @@
+ЧИТАТЕЛЬ П21: четыре решения Amber 10.09.2026 по вкладке DoseRate
+сборка под рукой: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P21_before\BecquerelMonitor.exe
+
+──────────────────────────────────────────────────────────────
+§1. СОСТАВ ВКЛАДКИ tabPage7 — решения (1), (2), (4) в части снятия
+──────────────────────────────────────────────────────────────
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P21_before\config\device: 1 loaded
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P21_before\config\BecquerelMonitor.xml
+  на вкладке контролов: 15
+  groupBox3                    GroupBox
+  table4                       Table
+  button15                     Button
+  button16                     Button
+  buttonClearDoseRate          Button
+  labelDREstimateTitle         Label
+  comboDoseRateEfficiency      ComboBox
+  comboDoseRateSpectrum        ComboBox
+  buttonEstimateDRConf         Button
+  labelDoseRateValue           Label
+  upDownDoseRateValue          InvariantNumericUpDown
+  labelEffNote                 Label
+  buttonLoadEff                Button
+  labelSpectrumNote            Label
+  buttonLoadDoseRateSpectrum   Button
+
+  [НЕТ]  на вкладке ОСТАЛОСЬ снимаемое: groupBox3, table4, button15, button16, buttonClearDoseRate, labelDREstimateTitle, comboDoseRateSpectrum, buttonEstimateDRConf, labelDoseRateValue, upDownDoseRateValue, labelEffNote, buttonLoadEff, labelSpectrumNote, buttonLoadDoseRateSpectrum
+  [ок]   всё, что должно остаться, на месте: comboDoseRateEfficiency
+
+──────────────────────────────────────────────────────────────
+§2. ВВОЗ ЛСРМ ПЕРЕЕХАЛ НА ВКЛАДКУ Efficiency — решение (4)
+──────────────────────────────────────────────────────────────
+  [НЕТ]  кнопки ввоза ЛСРМ на вкладке Efficiency НЕТ
+
+──────────────────────────────────────────────────────────────
+§3. ВВЕЗЁННАЯ КРИВАЯ ПЕРЕЖИВАЕТ СОХРАНЕНИЕ КОНФИГУРАЦИИ
+──────────────────────────────────────────────────────────────
+  [НЕТ]  метода DeviceConfigForm.ImportLsrmEfficiency нет — ввоз не заведён
+
+──────────────────────────────────────────────────────────────
+§4. ЦЕНА РЕШЕНИЯ (1): у скольких конфигураций пропадает показание дозы
+──────────────────────────────────────────────────────────────
+  гейт MainForm.ShowDoseRate: доза показывается при
+  DoseRateConfig.DoseRateCalibrationPoints.Count > 0
+
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\config\device
+    гейт ОТКРЫТ, точек  36  RC-103.xml
+    ИТОГО: гейт открыт у 1 конфигураций из 10
+
+  C:\Users\moroz\AppData\Roaming\BecqMoni\config\device
+    гейт ОТКРЫТ, точек   3  1.Atom Spectra Nano 16 Pro PM 1610B.xml
+    гейт ОТКРЫТ, точек   3  1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml
+    гейт ОТКРЫТ, точек  36  RC-103.xml
+    ИТОГО: гейт открыт у 3 конфигураций из 9
+
+  ВСЕГО по прочитанным каталогам: гейт открыт у 4 из 19
+  [НЕТ]  гейт всё ещё открыт у 4 конфигураций
+  [НЕТ]  точки всё ещё уходят в XML при пересохранении
+
+проверок 6, непрошедших 5
