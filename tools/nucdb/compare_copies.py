@@ -673,6 +673,102 @@ def pair3(mat, scheme, nuc, sym, worst_n):
 # ═══════════════════════════════════════════════════════════════════════════
 # ПАРА 4 — период полураспада
 # ═══════════════════════════════════════════════════════════════════════════
+def round_limit_rows(nuc):
+    u"""`D36`: нуклиды, у которых `half_life_sec` несёт ПРЕДЕЛ, а не измерение.
+
+    ⛔ ЭТО САМО ПРАВИЛО, И ОНО СЧИТАЕТСЯ ПО ЧИСЛАМ, А НЕ ПО КОЛОНКЕ. Колонку
+    `half_life_is_limit` ставит `mark_half_life_limits.py` — ровно этой
+    функцией; читает признак `round_limits` ниже, сверяя колонку с правилом.
+
+    ⛔ ЗАЧЕМ ОТДЕЛЬНО. У части поставки в `half_life_sec` лежит закодированная
+    граница «>300 нс», и потребитель читает её как настоящее число. Признака
+    «>» в базе НЕТ НИ ОДНОГО: перемерено 10.09.2026 — из 4429 строк `nuclides`
+    ни одна не начинается с «>» или «<» ни в `half_life`, ни в `half_life_unc`,
+    а `tentative` у всех этих строк — пробел. В независимой поставке
+    `ensdf_levels` (35 220 уровней) знака тоже нет ни у одной строки. То есть
+    метка потеряна при переносе и из дерева не восстанавливается.
+
+    ПРИЗНАК, КОТОРЫЙ ОСТАЛСЯ, — круглое значение, разделённое многими
+    нуклидами, при пустой неопределённости. Правило: период короче микросекунды,
+    ЭТО ЖЕ значение стоит не менее чем у восьми нуклидов, и у САМОЙ строки нет
+    `half_life_unc`.
+
+    Замерено: значений, проходящих правило, ЧЕТЫРЕ — 3e-07 (37 нуклидов),
+    1.6e-07 (26), 6.2e-07 (11), 2e-07 (10), всего 84 строки, из них правилу
+    отвечает 81. Три отсеиваются по неопределённости и правильно: `105TE`
+    записан «0.62 us» с `half_life_unc` = 7, то есть это измерение, случайно
+    севшее на то же круглое число.
+
+    ⚠ Проверка на «сама себе доказательство»: неопределённость есть у 3751
+    строки из 4000 с числом, то есть её отсутствие — признак редкий (249), и
+    пересечение с круглыми значениями не тривиально.
+
+    Возвращает СТРОКИ: список `(pk, nucid, half_life_sec, half_life_unc)`.
+    Ключ — `pk`, а не `nucid`: имя в таблице НЕ уникально (`144TBm` стоит
+    трижды), и правка по имени задела бы тёзок.
+    """
+    counts = collections.Counter()
+    for (hl,) in nuc.execute("select half_life_sec from nuclides"
+                             " where half_life_sec is not null"
+                             " and half_life_sec < 1e-6"):
+        counts[hl] += 1
+    shared = set(v for v, n in counts.items() if n >= 8)
+    out = []
+    for pk, nucid, hl, unc in nuc.execute(
+            "select pk, nucid, half_life_sec, half_life_unc from nuclides"
+            " where half_life_sec is not null and half_life_sec < 1e-6"):
+        if hl in shared and (unc is None or not unc.strip()):
+            out.append((pk, nucid, hl, unc))
+    return out
+
+
+#: Колонка-признак «в `half_life_sec` лежит ПРЕДЕЛ, а не измерение».
+#: Заведена 10.09.2026 решением Amber (`D36`, дословно: «Отдельная
+#: колонка-признак»); ставит её `mark_half_life_limits.py`.
+LIMIT_COLUMN = "half_life_is_limit"
+
+
+def has_limit_column(nuc):
+    return LIMIT_COLUMN in [r[1] for r in nuc.execute("pragma table_info(nuclides)")]
+
+
+def round_limits(nuc, report=None):
+    u"""То же множество `nucid`, но признак берётся ИЗ КОЛОНКИ, если она есть.
+
+    ⛔ КОЛОНКА НЕ ОТМЕНЯЕТ ПРАВИЛА, А СВЕРЯЕТСЯ С НИМ. Признак, записанный в
+    базу, — данные, и они могут разойтись с правилом: поставку переписали,
+    кто-то пометил строку руками, инструмент прогнали наполовину. Поэтому
+    механическое правило (`round_limit_rows`) считается ВСЕГДА, и расхождение
+    печатается вслух — иначе колонка стала бы признаком без читателя, а это
+    повторяющаяся беда дерева.
+
+    `report` — куда писать расхождение (по умолчанию `w`); передаётся, чтобы
+    сверку можно было позвать из другого инструмента с его же печатью.
+    """
+    mech = set(r[1].upper() for r in round_limit_rows(nuc))
+    if not has_limit_column(nuc):
+        return mech
+
+    col = set(nucid.upper() for (nucid,) in nuc.execute(
+        "select nucid from nuclides where %s = 1" % LIMIT_COLUMN))
+    say = report if report is not None else w
+    only_col = sorted(col - mech)
+    only_mech = sorted(mech - col)
+    if only_col or only_mech:
+        say(u"⛔ `D36`: КОЛОНКА `%s` И ПРАВИЛО РАСХОДЯТСЯ —"
+            u" в колонке %d, по правилу %d", LIMIT_COLUMN, len(col), len(mech))
+        if only_col:
+            say(u"   помечено, а правилу НЕ отвечает (%d): %s",
+                len(only_col), u", ".join(only_col[:12]))
+        if only_mech:
+            say(u"   правилу отвечает, а НЕ помечено (%d): %s",
+                len(only_mech), u", ".join(only_mech[:12]))
+    else:
+        say(u"`D36`: признак взят ИЗ КОЛОНКИ `%s`; с механическим правилом"
+            u" сошлось до единицы (%d)", LIMIT_COLUMN, len(col))
+    return col
+
+
 def pair4(nuc, scheme, sym, worst_n):
     w(u"")
     w(u"══ ПАРА 4. Период полураспада: `nuclides.half_life_sec` (nucdb)")
@@ -683,6 +779,13 @@ def pair4(nuc, scheme, sym, worst_n):
     w(u"состояние seq = 0, у `ensdf_levels` seq = 1. Стабильность считается")
     w(u"отдельно от числа.")
     w(u"")
+    w(u"⛔ `D36`: нуклиды с КРУГЛЫМ ПРЕДЕЛОМ вместо измеренного периода идут")
+    w(u"ОТДЕЛЬНОЙ строкой и в общий хвост не входят — иначе верх хвоста")
+    w(u"объясняется не расхождением поставок, а кодированием «>300 нс».")
+    w(u"Правило отбора и его поверка — в docstring `round_limit_rows`;")
+    w(u"с 10.09.2026 признак лежит в колонке `nuclides.half_life_is_limit`,")
+    w(u"и `round_limits` сверяет колонку с правилом ВСЛУХ.")
+    w(u"")
 
     base = {}
     for nucid, z, n, hl in nuc.execute(
@@ -691,6 +794,10 @@ def pair4(nuc, scheme, sym, worst_n):
         base[nucid.upper()] = (z, z + n, hl)
     w(u"основных состояний в nucdb: %d, из них с числом: %d",
       len(base), sum(1 for v in base.values() if v[2] is not None))
+
+    limits = round_limits(nuc)
+    w(u"`D36` круглые пределы: %d нуклидов, из них основных состояний %d",
+      len(limits), len(limits & set(base)))
 
     def compare(title, other, note=u""):
         u"""other: nucid(upper) -> множество значений (None = стабилен).
@@ -707,6 +814,7 @@ def pair4(nuc, scheme, sym, worst_n):
         ambiguous = sum(1 for k in common if len(other[k]) > 1)
         both_fin, only_a, only_b, both_stable = 0, 0, 0, 0
         devs, worst = [], []
+        lim_devs, lim_worst = [], []      # `D36`: круглые пределы, отдельно
         for k in common:
             if len(other[k]) > 1:
                 continue
@@ -722,21 +830,39 @@ def pair4(nuc, scheme, sym, worst_n):
                 both_fin += 1
                 if a > 0 and b > 0:
                     d = abs(100.0 * (b / a - 1.0))
-                    devs.append(d)
-                    worst.append((d, k, a, b))
+                    if k in limits:
+                        lim_devs.append(d)
+                        lim_worst.append((d, k, a, b))
+                    else:
+                        devs.append(d)
+                        worst.append((d, k, a, b))
         w(u"    общих нуклидов: %d, из них выброшено как изомерно"
           u" неоднозначные (у сверяемой несколько разных значений): %d",
           len(common), ambiguous)
         w(u"    оба стабильны: %d; число только у nucdb: %d;"
           u" только у сверяемой: %d", both_stable, only_a, only_b)
-        w(u"    оба дали число: %d, из них сравнимо (оба > 0): %d",
-          both_fin, len(devs))
+        w(u"    оба дали число: %d, из них сравнимо (оба > 0): %d"
+          u"; сверх того отложено круглых пределов (`D36`): %d",
+          both_fin, len(devs), len(lim_devs))
         print_buckets(devs)
         w(u"    %s", pct(devs))
         worst.sort(reverse=True)
         for d, k, a, b in worst[:worst_n]:
             w(u"      %-8s nucdb %.6g с   сверяемая %.6g с   %+.0f %%",
               k, a, b, 100.0 * (b / a - 1.0))
+
+        if lim_devs:
+            # ⛔ Эта группа НЕ является расхождением поставок: у nucdb здесь
+            # записан предел «>300 нс» числом, а у сверяемой — измерение. Класть
+            # их в общий хвост значит мерить кодирование и называть это
+            # разбросом поставок (`D36`).
+            w(u"    ── `D36`: КРУГЛЫЕ ПРЕДЕЛЫ ОТДЕЛЬНО — %d нуклидов",
+              len(lim_devs))
+            w(u"       %s", pct(lim_devs))
+            lim_worst.sort(reverse=True)
+            for d, k, a, b in lim_worst[:worst_n]:
+                w(u"       %-8s nucdb %.6g с (ПРЕДЕЛ)   сверяемая %.6g с"
+                  u"   %+.0f %%", k, a, b, 100.0 * (b / a - 1.0))
         return devs
 
     def stable(hl):
