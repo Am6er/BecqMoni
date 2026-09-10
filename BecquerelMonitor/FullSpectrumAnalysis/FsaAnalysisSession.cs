@@ -635,7 +635,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                     library, job.Efficiency);
                     if (computed == null)
                     {
-                        message = Properties.Resources.FSANotPossible;
+                        // ⛔ (`A277`) ОТКАЗ ПО ГЕОМЕТРИИ НАЗЫВАЕТ СЕБЯ. Гаснущий
+                        // экран без слов — это ровно «признак без читателя»:
+                        // человек видит пустоту и не знает, что лечится она
+                        // одним описанием кристалла в редакторе геометрии.
+                        // Решение о самом отказе принято ОДНИМ местом
+                        // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
+                        message = job.Analyzer.GeometryRefused
+                            ? Properties.Resources.FSANoGeometry
+                            : Properties.Resources.FSANotPossible;
                     }
                 }
             }

@@ -2803,6 +2803,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                             double energyKev, double tauKill, double weight)
         {
             this.lossAnnihilation = 0.0;
+            this.annihilationEscapes = 0;
             this.lossXray = 0.0;
             this.lightDeposit = 0.0;
 
@@ -3326,9 +3327,33 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // остаток, иначе вложенные вылеты считаются дважды.
                 double pairMarkedBefore = this.lossAnnihilation + this.lossXray;
                 double first = this.InCrystal(px, py, pz, ax, ay, az, ElectronMassKev, depth + 1);
+                // ⛔ (`AMBER15`) Замер меток берётся ЕЩЁ И ПОСЕРЕДИНЕ — между
+                // квантами. Одной пары «до/после» хватало, пока канал был один;
+                // одиночный и двойной вылет различаются числом УШЕДШИХ квантов,
+                // а его из суммы `first + second` не достать: 511 кэВ недобора
+                // даёт и один ушедший квант, и два, недобравших по половине.
+                double firstMarked = this.lossAnnihilation + this.lossXray - pairMarkedBefore;
                 double second = this.InCrystal(px, py, pz, -ax, -ay, -az, ElectronMassKev, depth + 1);
                 double pairMarkedInside = this.lossAnnihilation + this.lossXray - pairMarkedBefore;
+                // ⚠ Само слагаемое метки СЧИТАЕТСЯ ПО-ПРЕЖНЕМУ, одной суммой:
+                // порознь `max(0, f−m1) + max(0, s−m2)` отличалось бы от
+                // `max(0, f+s−m1−m2)` в тех историях, где вложенная рекурсия
+                // пометила больше, чем унёс её собственный квант, и матрица
+                // перестала бы быть побитово прежней без всякой физики.
                 this.lossAnnihilation += Math.Max(0.0, first + second - pairMarkedInside);
+                double firstOwn = Math.Max(0.0, first - firstMarked);
+                double secondOwn = Math.Max(0.0, second - (pairMarkedInside - firstMarked));
+                double leftCrystal = AnnihilationEscapeShare * ElectronMassKev;
+                if (firstOwn > leftCrystal)
+                {
+                    this.annihilationEscapes++;
+                }
+
+                if (secondOwn > leftCrystal)
+                {
+                    this.annihilationEscapes++;
+                }
+
                 return escaped + first + second;
             }
 
@@ -4694,14 +4719,39 @@ namespace BecquerelMonitor.EfficiencyMaker
             Peak = 0,
             /// <summary>Утечка рассеянного кванта, электрона или тормозного.</summary>
             Compton = 1,
-            /// <summary>Ушёл хотя бы один аннигиляционный квант 511 кэВ.</summary>
-            Escape511 = 2,
+            /// <summary>
+            /// ОДИНОЧНЫЙ вылет аннигиляции: из пары квантов 511 кэВ кристалл
+            /// покинул ОДИН, потеря — 511 кэВ, пик стоит на E−511.
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Прежнее имя `Escape511` (до 10.09.2026) обещало потерю в
+            /// 511 кэВ, а канал держал ОБА исхода разом — и одиночный, и
+            /// двойной (замер `AMBER15`: на `Th232_29.07.2022` в канале стояли
+            /// обе линии, 103.9 отсчёта при 1595.1 кэВ — двойной вылет от
+            /// 2614.5 — и 52.6 при 2106.7 — одиночный). Имя выбрано Amber
+            /// 10.09.2026 вопросником, дословно: «`EscapeAnnihilation`» — не
+            /// короткое `Escape`, потому что рядом стоит <see cref="EscapeXray"/>,
+            /// и пара «вылет» / «вылет рентгена» читалась бы как общий случай и
+            /// частный, чем они не являются.
+            /// </remarks>
+            EscapeAnnihilation = 2,
             /// <summary>Ушёл характеристический K-рентген кристалла.</summary>
-            EscapeXray = 3
+            EscapeXray = 3,
+            /// <summary>
+            /// ДВОЙНОЙ вылет аннигиляции: кристалл покинули ОБА кванта пары,
+            /// потеря — 1022 кэВ, пик стоит на E−1022.
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Заведён 10.09.2026 (`AMBER15`) по решению Amber, дословно:
+            /// «Разделить SE и DE В МАТРИЦЕ». Номер ПЯТЫЙ, а не третий, нарочно:
+            /// номер канала — это индекс строки в файле матрицы, и вставка в
+            /// середину переставила бы каналы всех уже посчитанных матриц молча.
+            /// </remarks>
+            EscapeAnnihilationDouble = 4
         }
 
         /// <summary>Сколько каналов у отклика.</summary>
-        public const int ResponseChannelCount = 4;
+        public const int ResponseChannelCount = 5;
 
         /// <summary>
         /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
@@ -4753,6 +4803,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         double lossAnnihilation;
         double lossXray;
 
+        // Сколько аннигиляционных квантов ПОКИНУЛО кристалл в текущей истории
+        // (`AMBER15`, 10.09.2026). Отдельно от `lossAnnihilation`: та копит
+        // УНЕСЁННУЮ энергию, а канал одиночного и двойного вылета различает
+        // ЧИСЛО ушедших квантов — 511 кэВ можно недобрать и одним квантом,
+        // рассеявшимся на пути наружу.
+        int annihilationEscapes;
+
         // Свет текущей истории в кэВ-эквивалентах кривой L(E): каждый
         // электронный вклад входит с весом L(его начальной энергии).
         // Обнуляется вместе с метками исхода.
@@ -4781,8 +4838,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Доля кванта, при вылете которой квант считается ПОКИНУВШИМ кристалл
+        /// (`AMBER15`). Порог нужен потому, что `InCrystal` возвращает всякую
+        /// утечку кванта, включая тормозное излучение его же фотоэлектрона:
+        /// поглощённый насмерть квант 511 кэВ, чей электрон выпустил наружу
+        /// 3 кэВ, кристалл НЕ покидал, и считать его ушедшим — значит объявить
+        /// двойным вылетом историю, где ушёл один квант.
+        ///
+        /// Половина — граница, а не подгонка: кристалл либо оставил себе
+        /// больше половины кванта (квант в нём и погиб), либо меньше (квант
+        /// ушёл). Утечка от ПОГЛОЩЁННОГО кванта половины достичь не может —
+        /// тормозное и характеристический рентген вместе составляют единицы
+        /// процентов его энергии.
+        /// </summary>
+        const double AnnihilationEscapeShare = 0.5;
+
+        /// <summary>
         /// Канал текущей истории по меткам, набранным в точках событий.
         /// Ничего не вылетело — пик; иначе побеждает статья, унёсшая больше.
+        ///
+        /// ⛔ Внутри статьи аннигиляции каналов ДВА (`AMBER15`, 10.09.2026,
+        /// решение Amber «Разделить SE и DE В МАТРИЦЕ»): выбор между ними
+        /// делается НЕ по унесённой энергии, а по <see cref="annihilationEscapes"/> —
+        /// по числу квантов, покинувших кристалл. Прежде оба исхода стояли в
+        /// одном канале с именем `Escape511`, то есть имя обещало потерю
+        /// 511 кэВ, а половину канала занимала потеря 1022.
         /// </summary>
         ResponseChannel ChannelOf(double escaped)
         {
@@ -4794,7 +4874,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             double rest = escaped - this.lossAnnihilation - this.lossXray;
             if (this.lossAnnihilation >= this.lossXray && this.lossAnnihilation >= rest)
             {
-                return ResponseChannel.Escape511;
+                return this.annihilationEscapes >= 2
+                    ? ResponseChannel.EscapeAnnihilationDouble
+                    : ResponseChannel.EscapeAnnihilation;
             }
 
             return this.lossXray >= rest ? ResponseChannel.EscapeXray : ResponseChannel.Compton;
@@ -5208,6 +5290,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     else
                     {
                         this.lossAnnihilation = 0.0;
+                        this.annihilationEscapes = 0;
                         this.lossXray = 0.0;
                         this.lightDeposit = 0.0;
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
@@ -5345,6 +5428,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 this.lossAnnihilation = 0.0;
+                this.annihilationEscapes = 0;
                 this.lossXray = 0.0;
                 this.lightDeposit = 0.0;
 

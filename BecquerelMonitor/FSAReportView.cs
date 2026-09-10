@@ -175,7 +175,41 @@ namespace BecquerelMonitor
 
         const string KeyQualityHeader = "FSAReport_QualityHeader";
         const string KeyResidualRow = "FSAReport_ResidualRow";
+
+        /// <summary>
+        /// (`A300`, решение Amber 10.09.2026 — «Число оставить, ленту
+        /// подписать») Признак у строки невязки: НА СКОЛЬКИХ КАНАЛАХ ПОКАЗ
+        /// ПОДРЕЗАН.
+        /// </summary>
+        const string KeyResidualClamped = "FSAReport_ResidualClamped";
+
+        /// <summary>(`A300`) Подсказка к тому же признаку: почему число и лента расходятся.</summary>
+        const string KeyResidualClampedTip = "FSAReport_ResidualClampedTip";
+
         const string KeyChi2Row = "FSAReport_Chi2Row";
+
+        /// <summary>
+        /// (`A281`, решение Amber 10.09.2026 — «В блок „Качество разбора“ окна
+        /// отчёта») МНОЖИТЕЛЬ ПОГРЕШНОСТЕЙ `σ×`.
+        ///
+        /// ⛔ Зачем он на экране. Значимости состава уже ПОДЕЛЕНЫ на этот
+        /// множитель (<c>FsaAnalyzer.Fit</c>: `sigma[k] = √(inv(Gram)[k,k])·inflate`,
+        /// `inflate = √(max(1, χ²/ndf))`), поэтому один и тот же порог значит
+        /// на разных сценах разное: по малой базе (42 спектра понятной части,
+        /// замеры 10.09.2026) медиана множителя 2.444, максимум 8.163
+        /// (`G1S24_Eu152_P5`), единицей зажат 1 спектр из 42 — то есть порог 3
+        /// означает от 3.0 до 24.5 СЫРЫХ сигм. Множитель решено НЕ ТРОГАТЬ
+        /// (решение Amber того же дня), а показывать.
+        ///
+        /// ⚠ Ставится сразу под χ²/ndf, а не рядом со значимостью: значимости
+        /// в этом окне нет вовсе — обстоятельство названо Amber прямо, и
+        /// решение принято уже с ним.
+        /// </summary>
+        const string KeyInflationRow = "FSAReport_InflationRow";
+
+        /// <summary>(`A281`) Подсказка к множителю: что именно он делает с порогом.</summary>
+        const string KeyInflationTip = "FSAReport_InflationTip";
+
         const string KeyMatrixRow = "FSAReport_MatrixRow";
         const string KeyMatrixUsed = "FSAReport_MatrixUsed";
         const string KeyMatrixNotUsed = "FSAReport_MatrixNotUsed";
@@ -938,6 +972,45 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`A300`, решение Amber 10.09.2026 — «Число оставить, ленту
+        /// подписать») НА СКОЛЬКИХ КАНАЛАХ ПОКАЗ ПОДРЕЗАН; 0 — ни на одном.
+        ///
+        /// ⛔ ЧТО ЭТО ЧИНИТ. Лента невязки на графике и число невязки в этой
+        /// строке считаются по РАЗНЫМ кривым, и разошлись они молча:
+        /// <see cref="EnergySpectrumView"/> рисует ленту против ПОКАЗНОЙ
+        /// кривой (<see cref="FsaResult.NetSpectrum"/>, отрицательное подрезано
+        /// нулём — так решено в ~~`A26`~~, «линия измерения не рвётся»), а
+        /// число берёт <see cref="FsaResult.ResidualExcessShare"/>, считанное
+        /// на КРИВОЙ ФИТА (<see cref="FsaResult.FitSpectrum"/>, без подрезки).
+        /// Измерено 10.09.2026 полосой П2 на `AS80_Onyx`: строка говорит
+        /// «лишнего 62.79 %», площадь ленты отвечает 18.55 % — впятеро меньше.
+        ///
+        /// ⛔ ЧИСЛО НЕ ТРОГАЕТСЯ, И ЛЕНТА ТОЖЕ (решение Amber дословно). Число
+        /// честно: модель подгонялась под кривую фита, ею же и меряется, и
+        /// корпусные числа от этой правки не двигаются ни на знак. Лента
+        /// подрезана нарочно — `A26` не отменяется. Меняется ровно одно: у
+        /// строки появляется ПРИЗНАК, что показ и число смотрят на разные
+        /// кривые, и на скольких каналах.
+        ///
+        /// ⚠ Считается по ВСЕМУ спектру, а не по полосе фита, и это верная
+        /// мера ИМЕННО ДЛЯ ПОКАЗА: лента рисуется по всем каналам, какие
+        /// попали в поле, а не по `[chLo, chHi]`. Отсюда расхождение с числом
+        /// строки `A300` (2631 из полосы 8075) — там считана полоса.
+        /// </summary>
+        int ResidualClampedChannels()
+        {
+            FsaResult result = this.session != null ? this.session.Result : null;
+            ResultData rd = this.ActiveResultData;
+            if (result == null || rd == null || rd.EnergySpectrum == null
+                || rd.EnergySpectrum.Spectrum == null)
+            {
+                return 0;
+            }
+
+            return result.ClampedChannels(rd.EnergySpectrum.Spectrum);
+        }
+
+        /// <summary>
         /// Перечитать сеанс: таблица и доступность элементов управления.
         ///
         /// (`A247`) Строки модели ложатся в таблицу НЕ ОДНА В ОДНУ. Всё, что не
@@ -1038,6 +1111,21 @@ namespace BecquerelMonitor
         {
             this.RefreshStatusLine();
             List<FsaReportRow> rows = this.BuildRows();
+
+            // (`A300`) Признак подрезки считается ОДИН раз на заполнение: он
+            // общий для всей таблицы, а `ClampedChannels` проходит спектр
+            // целиком.
+            int clamped = this.ResidualClampedChannels();
+            string residualCaption = OwnText(KeyResidualRow);
+            string residualHint = null;
+            if (clamped > 0)
+            {
+                residualCaption += " — " + string.Format(CultureInfo.InvariantCulture,
+                                                         OwnText(KeyResidualClamped), clamped);
+                residualHint = string.Format(CultureInfo.InvariantCulture,
+                                             OwnText(KeyResidualClampedTip), clamped);
+            }
+
             string keep = this.selectedLayer;
             this.suspendSelection = true;
             this.reportTable.BeginUpdate();
@@ -1064,8 +1152,9 @@ namespace BecquerelMonitor
                         continue;
                     }
 
+                    bool residual = row.Kind == FsaReportRowKind.Residual;
                     this.tableModel.Rows.Add(this.MakeRow(
-                        row, row.Kind == FsaReportRowKind.Residual ? OwnText(KeyResidualRow) : null));
+                        row, residual ? residualCaption : null, residual ? residualHint : null));
                 }
             }
             finally
@@ -1145,6 +1234,23 @@ namespace BecquerelMonitor
             {
                 return made;
             }
+
+            // (`A281`) МНОЖИТЕЛЬ ПОГРЕШНОСТЕЙ — сразу под χ²/ndf: он из него и
+            // считан, и читать их порознь нельзя.
+            //
+            // ⛔ Печатается ВСЕГДА, в том числе ровно `1.000`. Молчание на
+            // зажатом множителе неотличимо от «признак не завёлся», а именно
+            // единица и есть тот случай, ради которого число на экране нужнее
+            // всего: она означает, что порог тут — сырые сигмы, а на соседнем
+            // спектре тот же порог означает восемь.
+            //
+            // ⛔ Число печатается ОДИН раз и явной инвариантной культурой
+            // (`A242`): разделитель дробной части — всегда точка, группировки
+            // разрядов нет.
+            made.Add(this.MakeNumberRow(
+                KeyInflationRow,
+                result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
+                OwnText(KeyInflationTip)));
 
             bool oldFormat = this.presentation.MatrixOldFormat;
             made.Add(this.MakeMarkRow(KeyMatrixRow,
@@ -1231,6 +1337,32 @@ namespace BecquerelMonitor
             cell.ToolTipText = cell.Text;
             var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
             row.Tag = ServiceRow(caption, cell.Text, attention);
+            return row;
+        }
+
+        /// <summary>
+        /// (`A281`) Строка блока с ЧИСЛОМ, а не со словом состояния: подпись
+        /// слева, число справа, обе чёрные.
+        ///
+        /// ⛔ Цвета здесь нет НАРОЧНО, и это не небрежность. `MakeMarkRow`
+        /// красит значение зелёным или кирпичным, потому что судит ФАКТ
+        /// («учтено» / «не учтено»); у множителя погрешностей такого факта нет
+        /// — 8.163 не «плохо», а «порог здесь в восемь раз жёстче сырого».
+        /// Покрасить его значило бы вынести суждение, которого решение Amber
+        /// не содержит: сказано печатать число.
+        /// </summary>
+        Row MakeNumberRow(string captionKey, string value, string hint)
+        {
+            string caption = OwnText(captionKey);
+            var name = new Cell(caption);
+            var cell = new Cell(value ?? string.Empty);
+            name.ForeColor = Color.Black;
+            cell.ForeColor = Color.Black;
+            name.WordWrap = true;
+            name.ToolTipText = string.IsNullOrEmpty(hint) ? caption : hint;
+            cell.ToolTipText = name.ToolTipText;
+            var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
+            row.Tag = ServiceRow(caption, cell.Text);
             return row;
         }
 
@@ -1392,7 +1524,12 @@ namespace BecquerelMonitor
         /// невязка и χ²/ndf, — и подменяется у них ТОЛЬКО ПОДПИСЬ: значение
         /// берётся у модели дословно, второго форматирования числа нет.
         /// </param>
-        Row MakeRow(FsaReportRow row, string caption = null)
+        /// <param name="hint">
+        /// (`A300`) Подсказка ВМЕСТО <see cref="FsaReportRow.Hint"/>; null —
+        /// подсказка модели. Нужна строке невязки: подрезка показа — свойство
+        /// ОКНА, модель о ней не знает и знать не должна.
+        /// </param>
+        Row MakeRow(FsaReportRow row, string caption = null, string hint = null)
         {
             Color fore = row.Kind == FsaReportRowKind.Status && row.Warning
                 ? Color.DarkOrange
@@ -1404,8 +1541,10 @@ namespace BecquerelMonitor
             name.ForeColor = fore;
             value.ForeColor = fore;
             // (`AMBER6`) Подсказка строки: своя, если она есть, иначе сам
-            // текст — как было до 08.09.2026.
-            name.ToolTipText = string.IsNullOrEmpty(row.Hint) ? name.Text : row.Hint;
+            // текст — как было до 08.09.2026. (`A300`) Подсказка ОКНА, если
+            // она задана, бьёт обе: модель о подрезке показа не знает.
+            name.ToolTipText = !string.IsNullOrEmpty(hint) ? hint
+                : string.IsNullOrEmpty(row.Hint) ? name.Text : row.Hint;
             value.ToolTipText = row.Value;
 
             // Полный текст без усечения: строки блока качества и строка

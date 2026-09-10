@@ -215,7 +215,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 for (int c = 0; c < histograms.Length; c++)
                 {
                     double[] histogram = histograms[c];
-                    // Пустой канал (вылет 511 ниже порога пар) кладётся строкой
+                    // Пустой канал (вылет аннигиляции ниже порога пар) кладётся строкой
                     // нулевой длины: в файле он занимает четыре байта, а не
                     // полторы тысячи нулей на каждый узел.
                     bool any = false;
@@ -449,7 +449,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            watch.Stop();
             double worstContinuum = 0.0;
             // Взвешенная по вкладу узла ошибка (T15): вес — число набранных
             // узлом событий континуума, а оно из определения ошибки узла
@@ -497,12 +496,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Histories = options.Histories,
                 Options = options.Clone(),
                 Stamp = ResponseMatrix.ComputeStamp(geometry, options),
-                CreatedUtc = DateTime.UtcNow,
-                BuildSeconds = watch.Elapsed.TotalSeconds
+                CreatedUtc = DateTime.UtcNow
             };
 
             matrix.RebuildTotals();
             BuildJoint(geometry, options, matrix, grid, parallel);
+            watch.Stop();
+            matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
             return matrix;
         }
 

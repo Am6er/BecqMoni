@@ -531,8 +531,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Что получилось и что не получилось — для проб и журнала. Пусто, если
         /// сказать нечего. Без этого «поправка ничего не сделала» и «данных не
         /// нашлось» с виду одно и то же.
+        ///
+        /// ⛔ ЭТО ПРИМЕЧАНИЕ, А НЕ ОТКАЗ (`T255`-соседняя находка, 10.09.2026).
+        /// Подавляющее большинство записок здесь — законные оговорки разбора,
+        /// стоявшие тут с самого начала: «изомер: набор питаний ENSDF уровня
+        /// родителя не различает», «набора питаний X→Y нет вовсе, пара 511 не
+        /// строится», «нет ω_K для Z=…». База при этом отработала, данные
+        /// отданы, поправка посчитана. Отказ базы отмечается ОТДЕЛЬНЫМ
+        /// признаком <see cref="Failed"/>.
+        ///
+        /// ⚠ Почему это записано так подробно: до 10.09.2026 разницы не было,
+        /// `FsaCascadeSummer.Augment` превращал ЛЮБУЮ непустую записку в
+        /// `Failure`, а пробы печатали её словами «ОТКАЗ БАЗЫ». На корпусных
+        /// родителях записку получают `228AC` и `234PA` — Ac-228 и Pa-234 рядов
+        /// тория и урана, то есть самые частые нуклиды корпуса, — и законная
+        /// оговорка каждый прогон докладывалась отказом. Признак отказа,
+        /// кричащий на исправной работе, перестают читать, и настоящий отказ
+        /// тонет вместе с ним.
         /// </summary>
         public string Note = "";
+
+        /// <summary>
+        /// ⛔ БАЗА НЕ ОТДАЛА ДАННЫЕ (`T255`-соседняя находка, 10.09.2026).
+        /// Поднимается ТОЛЬКО там, где чтение отказало по-настоящему —
+        /// исключение при построении (<see cref="Of"/>). Причина при этом
+        /// лежит в <see cref="Note"/> тем же порядком, что и у примечаний;
+        /// разделены они признаком, а не разбором текста.
+        ///
+        /// ⚠ Различать текстом было бы дефектом того же рода, что и слипание:
+        /// «отказ базы: …» — строка, и первая же правка её начала оставила бы
+        /// читателя молча согласным.
+        /// </summary>
+        public bool Failed;
 
         /// <summary>
         /// Полный выход K-рентгена, % на распад. ⚠ `KB` в
@@ -550,6 +580,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// зажима любая арифметика с ним даёт бесконечность.
         /// </summary>
         const double AlphaCeiling = 1.0E4;
+
+        /// <summary>
+        /// Во сколько раз α_K поставки Geant4 должен разойтись с ЛСРМ ПО СВОЕЙ
+        /// ЖЕ заявленной мультипольности, чтобы строке перестали верить
+        /// (`D37`).
+        ///
+        /// ⛔ ЗАЧЕМ, И ПОЧЕМУ <see cref="AlphaCeiling"/> ЭТОГО НЕ ЛОВИТ. Третья
+        /// ловушка `g4_gamma`: у части переходов α не соответствует
+        /// мультипольности, записанной в той же строке. Максимум α среди них —
+        /// **16.7**, то есть потолок 1e4 молчит; `intensity_ppm` у всех больше
+        /// нуля (у шести ровно 1 000 000 — сильнейший переход со своего
+        /// уровня), то есть отсев по выходу молчит тоже. Читатель
+        /// мультипольность прежде не читал вовсе, и зажать их ему было нечем.
+        ///
+        /// Раскол идёт ровно по коду: у всех 13 «Geant4 выше» код 2 (E1), у
+        /// 21 «ЛСРМ выше» — M1/M2/M3/M4/E2/E4. У E1 конверсия наименьшая, у
+        /// M3/M4 при сотне кэВ обязана быть огромной — обе стороны говорят
+        /// одно.
+        /// </summary>
+        const double AlphaMismatchFactor = 10.0;
+
+        /// <summary>
+        /// Ниже этого α зажим <see cref="AlphaMismatchFactor"/> не работает
+        /// вовсе (`D37`).
+        ///
+        /// ⛔ ОТНОШЕНИЕ ДВУХ МАЛЫХ ЧИСЕЛ НИЧЕГО НЕ ЗНАЧИТ, и без порога зажим
+        /// меряет шум: у P-31 на 5.9 МэВ ЛСРМ даёт α_K = 1.3e-06 против
+        /// 2.1e-03 у Geant4 — расхождение в 1630 раз, а вклад обоих в
+        /// `conversionVacancy` неотличим от нуля. Замерено 10.09.2026 на всей
+        /// поставке: без порога зажим берёт **298** переходов из 125 470
+        /// сверенных, с порогом 0.01 — **44**, и все 34 выброса аудита
+        /// (`audit-2026-08-08.md`, §7б) остаются внутри при любом пороге до
+        /// 0.05.
+        /// </summary>
+        const double AlphaMismatchFloor = 0.01;
+
+        /// <summary>
+        /// Сколько переходов схемы зажато правилом <see cref="AlphaMismatchFactor"/>
+        /// за все обращения к базе (`D37`). Ноль — поставка не противоречила
+        /// себе ни разу.
+        ///
+        /// ⛔ И ЭТО НЕ КЛАДЁТСЯ В <see cref="Note"/>, ХОТЯ ТАМ ЕМУ САМОЕ МЕСТО.
+        /// Причина измерена 10.09.2026, а не выведена: `FsaCascadeSummer.Augment`
+        /// превращает ЛЮБУЮ непустую записку в `Failure`, а пробы печатают её
+        /// словами «ОТКАЗ БАЗЫ». Зажим срабатывает у `228AC` (2 перехода) и
+        /// `234PA` (2) — то есть у Ac-228 и Pa-234 рядов тория и урана, самых
+        /// частых нуклидов корпуса, — и удачная поправка каждый прогон
+        /// докладывалась бы отказом базы. Прецедент рядом: <see cref="AlphaCeiling"/>
+        /// зажимает мусорные α до 1e4 тоже молча.
+        ///
+        /// Поверка зажима стоит НЕ здесь, а отдельным инструментом
+        /// `tools/nucdb/icc_multipolarity.py`: он повторяет то же правило прямо
+        /// по базам и печатает список — сегодня 46 переходов из 264 834,
+        /// доходящих до читателя.
+        /// </summary>
+        public static int AlphaMismatchClamped;
 
         /// <summary>
         /// Допуск сопоставления линии распада с переходом схемы, кэВ. Энергии
@@ -591,7 +677,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // Отказ базы не должен ронять разбор — но и молчать нельзя:
                     // без записанной причины «рентгена не нашлось» неотличимо
                     // от «читатель сломан».
-                    data = new CascadeAtomicData { Note = "отказ базы: " + error.Message };
+                    data = new CascadeAtomicData
+                    {
+                        Failed = true,
+                        Note = "отказ базы: " + error.Message
+                    };
                 }
 
                 Cache[nucid] = data;
@@ -847,7 +937,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 List<Transition> scheme;
                 Dictionary<int, double> halfLife;
-                LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes);
+                // Отсутствие базы схем — ОТКАЗ, и он поднимает признак; все
+                // прочие записки этой ветки остаются примечаниями.
+                if (!LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes))
+                {
+                    data.Failed = true;
+                }
+
                 halfLifeOf[index] = halfLife;
                 branch.Downstream = BuildDownstream(scheme);
 
@@ -1836,7 +1932,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return below;
         }
 
-        static void LoadScheme(int z, int a, out List<Transition> scheme,
+        /// <summary>
+        /// Схема уровней ветви. Возвращает ЛОЖЬ, когда базы схем нет рядом с
+        /// программой: это настоящий ОТКАЗ БАЗЫ, а не оговорка разбора
+        /// (10.09.2026) — без файла нет ни одного перехода, и всё, что на них
+        /// стоит, посчитано по пустому месту. Остальные записки этого метода —
+        /// примечания, работа при них идёт.
+        /// </summary>
+        static bool LoadScheme(int z, int a, out List<Transition> scheme,
                                out Dictionary<int, double> halfLife, StringBuilder notes)
         {
             scheme = new List<Transition>();
@@ -1846,17 +1949,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (!File.Exists(path))
             {
                 notes.Append("нет schemedb.sqlite рядом с программой; ");
-                return;
+                return false;
             }
 
             using (SqliteConnection connection = OpenRead(path))
             using (SqliteCommand command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "select energy_ev, icc_total, icc_k_ppm, from_seq, to_seq, intensity_ppm"
+                    "select energy_ev, icc_total, icc_k_ppm, from_seq, to_seq, intensity_ppm,"
+                    + " multipolarity, mixing_ratio"
                     + " from g4_gamma where z = $z and a = $a";
                 command.Parameters.AddWithValue("$z", z);
                 command.Parameters.AddWithValue("$a", a);
+                int clamped = 0;
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -1881,15 +1986,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             alphaK = alphaTotal;
                         }
 
+                        double energyKev = reader.GetDouble(0) / 1000.0;
+
+                        // (`D37`) ЗАЖИМ ПО СОБСТВЕННОЙ МУЛЬТИПОЛЬНОСТИ СТРОКИ.
+                        // Сверяется α_K поставки с ЛСРМ по ТОМУ КОДУ, который
+                        // записан в этой же строке; разошлись больше чем в
+                        // AlphaMismatchFactor раз — верим ЛСРМ, а не Geant4.
+                        // ⚠ Зажим по alphaTotal тут НЕ повторяется нарочно:
+                        // при сработавшем признаке под подозрением вся строка,
+                        // и её же полный α мерилом быть не может.
+                        // ⛔ НОЛЬ У Geant4 — ЭТО ПРОБЕЛ ПОСТАВКИ, А НЕ
+                        // ПРОТИВОРЕЧИЕ, и зажим его не берёт. Отношение к нулю
+                        // бесконечно, поэтому без `alphaK > 0` зажим ПОДСТАВЛЯЛ
+                        // бы ЛСРМ везде, где у Geant4 конверсии нет вовсе, — то
+                        // есть чинил бы не тот дефект. Поймано 10.09.2026 на
+                        // первом же прогоне пробы: у Th-229 из десяти сработок
+                        // ШЕСТЬ были ровно такими (163.9, 261.3, 425.9, 223.5,
+                        // 291.4, 491.0 кэВ, у всех α_K Geant4 = 0). Восполнять
+                        // пробелы поставки — отдельное решение, и оно не здесь.
+                        int code = reader.IsDBNull(6) ? 0 : reader.GetInt32(6);
+                        double delta = reader.IsDBNull(7) ? 0.0 : reader.GetDouble(7);
+                        double lsrm;
+                        if (alphaK > 0.0
+                            && IccGrid.AlphaK(z, energyKev, code, delta, out lsrm)
+                            && Math.Max(lsrm, alphaK) >= AlphaMismatchFloor
+                            && (lsrm > alphaK * AlphaMismatchFactor
+                                || alphaK > lsrm * AlphaMismatchFactor))
+                        {
+                            alphaK = Math.Min(lsrm, AlphaCeiling);
+                            clamped++;
+                        }
+
                         scheme.Add(new Transition
                         {
-                            EnergyKev = reader.GetDouble(0) / 1000.0,
+                            EnergyKev = energyKev,
                             AlphaK = alphaK > 0.0 ? alphaK : 0.0,
                             FromSeq = reader.GetInt32(3),
                             ToSeq = reader.GetInt32(4)
                         });
                     }
                 }
+
+                AlphaMismatchClamped += clamped;
 
                 command.CommandText =
                     "select seq, half_life_sec from g4_level where z = $z and a = $a";
@@ -1904,6 +2042,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
+
+            return true;
         }
 
         static SqliteConnection OpenRead(string path)
@@ -1912,6 +2052,285 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;");
             connection.Open();
             return connection;
+        }
+
+        /// <summary>
+        /// СЕТКА ЛСРМ по K-оболочке: α_K(Z, энергия, мультипольность) из
+        /// `matdb.icc_coefficients`, `variant = 1` (`D37`).
+        ///
+        /// НУЖНА ЗАТЕМ, что это ВТОРАЯ, независимая копия коэффициентов
+        /// конверсии, и только ею можно спросить у строки `g4_gamma`, сходится
+        /// ли её α с её же мультипольностью. Одной поставкой такой вопрос не
+        /// задаётся вовсе.
+        ///
+        /// ⛔ БЕРЁТСЯ ОДНА ОБОЛОЧКА K, А НЕ СУММА K+L+M, которой считает
+        /// сверка `tools/nucdb/compare_copies.py --pair 3`, и это НЕ упрощение:
+        /// читателю нужен ровно α_K, а сетка по одной оболочке ШИРЕ (у
+        /// M-оболочек верх по энергии ниже, чем у K). Замерено 10.09.2026: по
+        /// сумме сверяется 55 591 переход, по одной K — **125 470**, и все 34
+        /// выброса аудита K-зажим берёт, плюс ещё 10 того же рода (Fe-54
+        /// 1492.8 кэВ, код 304: ЛСРМ 7.3e-05 против 4.51 у Geant4).
+        ///
+        /// ⚠ Экстраполяции нет намеренно: за краями сетки возвращается
+        /// «не знаю», а не продлённая степень. Сечение конверсии падает
+        /// степенью энергии, и продлённая сетка мерила бы саму себя — та же
+        /// оговорка, что у сверки в `compare_copies.py`.
+        /// </summary>
+        static class IccGrid
+        {
+            /// <summary>Колонки таблицы в порядке e1…e4, m1…m4.</summary>
+            const int ColumnCount = 8;
+
+            static readonly object GridGate = new object();
+
+            /// <summary>Z → (энергии по возрастанию, восемь колонок на узел).</summary>
+            static readonly Dictionary<int, double[][]> Loaded =
+                new Dictionary<int, double[][]>();
+
+            static readonly Dictionary<int, double[]> Energies =
+                new Dictionary<int, double[]>();
+
+            /// <summary>
+            /// α_K по ЛСРМ для перехода, заявившего код <paramref name="code"/>
+            /// и отношение смешивания <paramref name="delta"/>. false — сказать
+            /// нечего: код нерасшифровываем, смесь без δ, энергия вне сетки,
+            /// у элемента нет K-оболочки в поставке.
+            /// </summary>
+            public static bool AlphaK(int z, double energyKev, int code, double delta,
+                                      out double alpha)
+            {
+                alpha = 0.0;
+                int first, second;
+                if (!Components(code, delta, out first, out second))
+                {
+                    return false;
+                }
+
+                double a1;
+                if (!Interpolate(z, energyKev, first, out a1))
+                {
+                    return false;
+                }
+
+                if (second < 0)
+                {
+                    alpha = a1;
+                    return true;
+                }
+
+                double a2;
+                if (!Interpolate(z, energyKev, second, out a2))
+                {
+                    return false;
+                }
+
+                // Смесь: (α_младшей + δ²·α_старшей) / (1 + δ²).
+                double d2 = delta * delta;
+                alpha = (a1 + d2 * a2) / (1.0 + d2);
+                return true;
+            }
+
+            /// <summary>
+            /// Код Geant4 → номера колонок ЛСРМ. E0 = 1; при k ≥ 1 E_k = 2k,
+            /// M_k = 2k+1; смесь = 100·Nx + Ny (304 = M1+E2). Колонки идут
+            /// e1…e4, m1…m4, поэтому номер = k−1 у электрической и 3+k у
+            /// магнитной.
+            ///
+            /// ⛔ СМЕСЬ БЕЗ δ ОТВЕРГАЕТСЯ ЦЕЛИКОМ. Ноль в `mixing_ratio`
+            /// означает и «чистый переход», и «данных нет»; свернуть смесь в
+            /// первый компонент значило бы считать не ту величину и зажимать
+            /// по ней исправные строки.
+            ///
+            /// <paramref name="second"/> = −1 — компонент один.
+            /// </summary>
+            static bool Components(int code, double delta, out int first, out int second)
+            {
+                first = -1;
+                second = -1;
+                if (code <= 0)
+                {
+                    return false;
+                }
+
+                int hi = code >= 100 ? code / 100 : code;
+                int lo = code >= 100 ? code % 100 : -1;
+
+                if (!Column(hi, out first))
+                {
+                    return false;
+                }
+
+                if (lo < 0)
+                {
+                    return true;
+                }
+
+                if (delta == 0.0)
+                {
+                    return false;
+                }
+
+                if (!Column(lo, out second))
+                {
+                    return false;
+                }
+
+                // Младшая мультипольность идёт первой: δ² приходится на старшую.
+                if (Order(lo) < Order(hi))
+                {
+                    int swap = first;
+                    first = second;
+                    second = swap;
+                }
+
+                return true;
+            }
+
+            static bool Column(int part, out int column)
+            {
+                column = -1;
+                if (part < 2)
+                {
+                    // 0 — кода нет, 1 — E0: такой колонки у ЛСРМ нет вовсе.
+                    return false;
+                }
+
+                int k = part / 2;
+                if (k > 4)
+                {
+                    // E5 и выше: колонок нет.
+                    return false;
+                }
+
+                column = (part % 2) != 0 ? 3 + k : k - 1;
+                return true;
+            }
+
+            /// <summary>Порядок мультипольности k, по которому смесь упорядочивается.</summary>
+            static int Order(int part)
+            {
+                return part / 2;
+            }
+
+            static bool Interpolate(int z, double energyKev, int column, out double value)
+            {
+                value = 0.0;
+                double[] xs;
+                double[][] ys;
+                if (!Load(z, out xs, out ys) || xs.Length == 0)
+                {
+                    return false;
+                }
+
+                if (energyKev < xs[0] || energyKev > xs[xs.Length - 1])
+                {
+                    return false;
+                }
+
+                int i = LowerBound(xs, energyKev);
+                if (i < xs.Length && xs[i] == energyKev)
+                {
+                    value = ys[i][column];
+                    return value > 0.0;
+                }
+
+                double y0 = ys[i - 1][column];
+                double y1 = ys[i][column];
+                if (y0 <= 0.0 || y1 <= 0.0)
+                {
+                    return false;
+                }
+
+                double t = (Math.Log(energyKev) - Math.Log(xs[i - 1]))
+                           / (Math.Log(xs[i]) - Math.Log(xs[i - 1]));
+                value = Math.Exp(Math.Log(y0) + t * (Math.Log(y1) - Math.Log(y0)));
+                return value > 0.0;
+            }
+
+            /// <summary>Первый номер, у которого xs[номер] ≥ x.</summary>
+            static int LowerBound(double[] xs, double x)
+            {
+                int lo = 0;
+                int hi = xs.Length;
+                while (lo < hi)
+                {
+                    int mid = lo + (hi - lo) / 2;
+                    if (xs[mid] < x)
+                    {
+                        lo = mid + 1;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                return lo;
+            }
+
+            static bool Load(int z, out double[] xs, out double[][] ys)
+            {
+                lock (GridGate)
+                {
+                    if (Energies.TryGetValue(z, out xs))
+                    {
+                        ys = Loaded[z];
+                        return xs.Length > 0;
+                    }
+
+                    var energies = new List<double>();
+                    var rows = new List<double[]>();
+                    try
+                    {
+                        string path = MatterDatabasePath();
+                        if (File.Exists(path))
+                        {
+                            using (SqliteConnection connection = OpenRead(path))
+                            using (SqliteCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText =
+                                    "select energy_kev, e1, e2, e3, e4, m1, m2, m3, m4"
+                                    + " from icc_coefficients"
+                                    + " where variant = 1 and shell = 'K' and z = $z"
+                                    + " order by energy_kev";
+                                command.Parameters.AddWithValue("$z", z);
+                                using (SqliteDataReader reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        var row = new double[ColumnCount];
+                                        for (int c = 0; c < ColumnCount; c++)
+                                        {
+                                            row[c] = reader.IsDBNull(c + 1)
+                                                         ? 0.0 : reader.GetDouble(c + 1);
+                                        }
+
+                                        energies.Add(reader.GetDouble(0));
+                                        rows.Add(row);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Нет второй копии — нет и зажима; это не отказ разбора.
+                        energies.Clear();
+                        rows.Clear();
+                    }
+
+                    xs = energies.ToArray();
+                    ys = rows.ToArray();
+                    Energies[z] = xs;
+                    Loaded[z] = ys;
+                    return xs.Length > 0;
+                }
+            }
+        }
+
+        static string MatterDatabasePath()
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }
 
         /// <summary>

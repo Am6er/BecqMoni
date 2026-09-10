@@ -84,8 +84,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static FsaEfficiency FromConfig(EfficiencyConfigData config)
         {
-            return config == null ? null : FromPoints(config.Curve);
+            FsaEfficiency curve = config == null ? null : FromPoints(config.Curve);
+            if (curve != null)
+            {
+                curve.HasGeometry = config.HasGeometry;
+            }
+
+            return curve;
         }
+
+        /// <summary>
+        /// ⛔ (`A277`) У КРИВОЙ, ИЗ КОТОРОЙ СЧИТАЕТСЯ ЭТОТ РАЗБОР, ЕСТЬ
+        /// ГЕОМЕТРИЯ. Признак приезжает сюда с
+        /// <see cref="EfficiencyConfigData.HasGeometry"/> и нужен ровно одному
+        /// читателю — гейту <see cref="FsaAnalyzer.RequireGeometry"/>.
+        ///
+        /// ⛔ Почему признак живёт ЗДЕСЬ, а не у каждого, кто собирает разбор.
+        /// Кривая — единственное, что доезжает до
+        /// <see cref="FsaAnalyzer.Analyze"/> от конфигурации прибора, и оба
+        /// пути (экран и всякая проба) строят её ОДНИМ вызовом
+        /// <see cref="FromConfig"/>. Спрашивать геометрию отдельно на каждом
+        /// пути значило бы завести решение в двух местах — ровно та беда, из-за
+        /// которой матрицу свели в `FsaMatrixBinding` (`AMBER12`): правка
+        /// доехала до экрана, не доехала до стенда, и снимок «до/после» вышел
+        /// побитово одинаковым.
+        /// </summary>
+        public bool HasGeometry { get; private set; }
 
         /// <summary>
         /// Точки с неположительной эффективностью отбрасываются: в поставочных
