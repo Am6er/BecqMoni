@@ -113,7 +113,18 @@ namespace BecquerelMonitor.NucBase
                 // закрывал литерал и ронял запрос. Имя параметра `$n` — то же,
                 // что у `CascadeAtomicData`, `FsaSampleLibrary` и
                 // `DecayParentRule`; второго соглашения быть не должно.
-                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0) from nuclides where nucid = $n and half_life not null",
+                // ПРИЗНАК ПРЕДЕЛА — ВОСЬМЫМ СТОЛБЦОМ И ТОЛЬКО ПРИ НАЛИЧИИ
+                // КОЛОНКИ (`A304`). Колонка `half_life_is_limit` заведена
+                // 10.09.2026; база и приложение ездят вместе, но рядом с
+                // пробами лежат КОПИИ `nucdb.sqlite` разных дней, и запрос
+                // столбца, которого в старой копии нет, уронил бы карточку
+                // целиком — вместо одного знака «>» человек не увидел бы
+                // ничего. Признака нет — читается прежний запрос, показ
+                // прежний.
+                bool hasLimit = HasColumn(db, "nuclides", "half_life_is_limit");
+                SqliteDataReader reader = db.ReadData("select z, n, ifnull(half_life, '?'), ifnull(half_life_unit, ''), ifnull(half_life_sec, 0), ifnull(abundance, 0), "
+                                                      + (hasLimit ? "ifnull(half_life_is_limit, 0)" : "0")
+                                                      + " from nuclides where nucid = $n and half_life not null",
                                                       DataBase.Param("$n", nucname));
                 if (!reader.Read())
                 {
@@ -135,6 +146,10 @@ namespace BecquerelMonitor.NucBase
                 nuc.HalfLifeUOM = reader.GetString(3);
                 nuc.HalfLife_Sec = reader.GetDouble(4);
                 nuc.Abundance = reader.GetDouble(5);
+                // Столбец приходит целым, но тип в базе не объявлен строго, и
+                // `GetInt32` на «1» строкой бросил бы. Читается значением.
+                nuc.HalfLifeIsLimit = !reader.IsDBNull(6)
+                    && Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture) != 0;
 
                 reader = db.ReadData("select daughter_nucid, ifnull(perc, '?'), dec_type from decay_chain where nucid = $n",
                                      DataBase.Param("$n", nucname));
@@ -403,6 +418,118 @@ namespace BecquerelMonitor.NucBase
 
             MarkRedundantKSeries(decayRads);
             return decayRads;
+        }
+
+        /// <summary>
+        /// ЗНАК ПРЕДЕЛА В ПОКАЗЕ ПЕРИОДА (`A304`, решение Amber 10.09.2026
+        /// вопросником: «Показывать „&gt; 0.3 мкс“ в NucBase»).
+        ///
+        /// Подпись карточки нуклида целиком: «300 ns» у измеренного периода и
+        /// «&gt; 300 ns» у того, где в поставке лежит не измерение, а НИЖНЯЯ
+        /// граница (<see cref="Nuclide.HalfLifeIsLimit"/>, 81 нуклид из 4429).
+        ///
+        /// ⛔ Число НЕ подменяется круглым «0.3 мкс» из слов решения: границ в
+        /// базе четыре — 160, 200, 300 и 620 нс, — и одна подпись на всех
+        /// сменила бы одну неправду на другую. Знак «&gt;» ставится перед тем
+        /// самым числом, что лежит в базе; для 37 нуклидов из 81 это и есть
+        /// дословное «&gt; 300 ns».
+        ///
+        /// ⚠ Метод ОТКРЫТ и статичен нарочно — тем же доводом, что
+        /// <c>NucBase.HalfLifeYearsFromCell</c> и <c>NucBase.XrayDefinitionName</c>:
+        /// подпись обязана проверяться безоконным читателем, а окно `BecqMoni`
+        /// в проверке не поднимают. Показ карточки зовёт ЕГО ЖЕ, второго
+        /// правила сложения подписи в проекте быть не должно.
+        /// </summary>
+        public static string HalfLifeCaption(Nuclide nuc)
+        {
+            if (nuc == null)
+            {
+                return "";
+            }
+
+            string text = (nuc.HalfLife ?? "") + " " + (nuc.HalfLifeUOM ?? "");
+            return nuc.HalfLifeIsLimit ? LimitMark + text : text;
+        }
+
+        /// <summary>
+        /// Знак «больше» перед периодом-границей (`A304`). Отдельной строкой —
+        /// чтобы читатель проверки искал ТО ЖЕ, что печатает показ.
+        /// </summary>
+        public const string LimitMark = "> ";
+
+        /// <summary>
+        /// ЗНАК ПРЕДЕЛА В ПОКАЗЕ УДЕЛЬНОЙ АКТИВНОСТИ (`A304`, решение Amber
+        /// 10.09.2026 вопросником: «Ставить „&lt;“ тем же признаком»).
+        ///
+        /// Подпись целиком: «1.14e+028 Bq/g» у нуклида с измеренным периодом и
+        /// «&lt; 1.14e+028 Bq/g» у того, где в поставке лежит не измерение, а
+        /// граница (<see cref="Nuclide.HalfLifeIsLimit"/>, 81 нуклид из 4429 —
+        /// те же самые, что помечены «&gt;» в <see cref="HalfLifeCaption"/>).
+        ///
+        /// ⛔ ЗНАК ЗДЕСЬ ПРОТИВОПОЛОЖЕН ЗНАКУ ПЕРИОДА, И ЭТО НЕ ОПИСКА.
+        /// <see cref="Nuclide.SpecialActivity"/> считается как
+        /// 0.693 / (A · T½), то есть период стоит в ЗНАМЕНАТЕЛЕ: «период
+        /// БОЛЬШЕ 300 нс» означает «активность МЕНЬШЕ 1.14e+028 Bq/g» —
+        /// граница сверху. Один и тот же признак базы даёт в двух строках
+        /// карточки разные знаки, и по-другому быть не может.
+        ///
+        /// ⚠ Число не подменяется и не округляется — оно то же самое, что
+        /// стояло тут голым; правка добавляет ровно два знака слева.
+        ///
+        /// ⚠ Нулевая активность знака НЕ получает: «&lt; 0» — не граница, а
+        /// неправда. Сегодня это защита впрок, а не рабочая ветка: строк с
+        /// признаком и при этом с нулевым <c>half_life_sec</c> или нулевым
+        /// A = Z + N в поставке **0 из 81** (счётом по базе 10.09.2026).
+        ///
+        /// ⚠ Метод ОТКРЫТ и статичен тем же доводом, что
+        /// <see cref="HalfLifeCaption"/>: подпись обязана проверяться
+        /// безоконным читателем, а окно `BecqMoni` в проверке не поднимают.
+        /// Показ карточки зовёт ЕГО ЖЕ, второго правила сложения подписи в
+        /// проекте быть не должно.
+        /// </summary>
+        public static string SpecificActivityCaption(Nuclide nuc)
+        {
+            if (nuc == null)
+            {
+                return "";
+            }
+
+            double value = nuc.SpecialActivity;
+            string text = value.ToString("e2", CultureInfo.InvariantCulture) + " " + Resources.Bkg;
+            return nuc.HalfLifeIsLimit && value > 0.0 ? UpperLimitMark + text : text;
+        }
+
+        /// <summary>
+        /// Знак «меньше» перед удельной активностью, посчитанной из
+        /// периода-границы (`A304`). Отдельной строкой — чтобы читатель
+        /// проверки искал ТО ЖЕ, что печатает показ.
+        /// </summary>
+        public const string UpperLimitMark = "< ";
+
+        /// <summary>
+        /// Есть ли столбец в таблице базы. Нужен там, где поставка приложения и
+        /// поставка базы могут разойтись днями (`A304`): рядом с пробами лежат
+        /// копии `nucdb.sqlite` разного возраста, и запрос отсутствующего
+        /// столбца роняет ВЕСЬ запрос, а не только этот столбец.
+        /// </summary>
+        static bool HasColumn(DataBase db, string table, string column)
+        {
+            // Имя таблицы в `pragma` параметром не подставляется — поставщик
+            // разбирает его как имя, а не как значение. Сюда оно приходит
+            // только из кода этого класса, из поля ввода — никогда.
+            SqliteDataReader reader = db.ReadData("pragma table_info(" + table + ")");
+            bool found = false;
+            while (reader.Read())
+            {
+                if (string.Equals(Text(reader, 1), column, StringComparison.OrdinalIgnoreCase))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            reader.Close();
+            return found;
         }
 
         /// <summary>

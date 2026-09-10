@@ -148,15 +148,6 @@
   <data name="button14.Text" xml:space="preserve">
     <value>Записать в устройство</value>
   </data>
-  <data name="button15.Text" xml:space="preserve">
-    <value>Добавить</value>
-  </data>
-  <data name="button16.Text" xml:space="preserve">
-    <value>Удалить</value>
-  </data>
-  <data name="buttonClearDoseRate.Text" xml:space="preserve">
-    <value>Очистить все</value>
-  </data>
   <data name="label18.Size" type="System.Drawing.Size, System.Drawing">
     <value>86, 13</value>
   </data>
@@ -429,42 +420,6 @@
   </data>
   <data name="tabPage7.Text" xml:space="preserve">
     <value>МЭД</value>
-  </data>
-  <data name="groupBox3.Text" xml:space="preserve">
-    <value>Мощность дозы</value>
-  </data>
-  <data name="table4.NoItemsText" xml:space="preserve">
-    <value>Нет точек калибровки</value>
-  </data>
-  <data name="numberColumn5.Text" xml:space="preserve">
-    <value>Начало, кэВ</value>
-  </data>
-  <data name="numberColumn6.Text" xml:space="preserve">
-    <value>Конец, кэВ</value>
-  </data>
-  <data name="numberColumn8.Text" xml:space="preserve">
-    <value>Эталон МЭД, мкЗв/ч</value>
-  </data>
-  <data name="labelDREstimateTitle.Text" xml:space="preserve">
-    <value>Экспериментально: кривая дозы по эффективности (XCOM + ICRP 74) и спектру</value>
-  </data>
-  <data name="buttonEstimateDRConf.Text" xml:space="preserve">
-    <value>Рассчитать конфигурацию</value>
-  </data>
-  <data name="labelDoseRateValue.Text" xml:space="preserve">
-    <value>мкЗв/ч, мощность дозы от источника</value>
-  </data>
-  <data name="labelEffNote.Text" xml:space="preserve">
-    <value>*важна только форма кривой; диапазон берётся у шкалы прибора</value>
-  </data>
-  <data name="buttonLoadEff.Text" xml:space="preserve">
-    <value>Кривая из файла*</value>
-  </data>
-  <data name="labelSpectrumNote.Text" xml:space="preserve">
-    <value>*от источника с известной мощностью дозы</value>
-  </data>
-  <data name="buttonLoadDoseRateSpectrum.Text" xml:space="preserve">
-    <value>Спектр из файла*</value>
   </data>
   <data name="button12.Text" xml:space="preserve">
     <value>Дубль</value>
@@ -4749,9 +4704,6 @@
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>Редактировать конфигурацию устройства</value>
-  </data>
-  <data name="numberColumn7.Text" xml:space="preserve">
-    <value>имп/с</value>
   </data>
   <data name="textColumn3.Text" xml:space="preserve">
     <value>#</value>

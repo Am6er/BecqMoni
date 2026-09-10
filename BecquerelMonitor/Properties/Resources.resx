@@ -8446,6 +8446,9 @@ It is probably open in another program or write-protected.</value>
   <data name="FSANotPossible" xml:space="preserve">
     <value>Full-spectrum decomposition is not possible for this spectrum</value>
   </data>
+  <data name="FSANoGeometry" xml:space="preserve">
+    <value>Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve</value>
+  </data>
   <data name="FSAFailed" xml:space="preserve">
     <value>Full-spectrum decomposition failed.</value>
   </data>
@@ -41860,6 +41863,9 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="N42ExportDialogTitle" xml:space="preserve">
     <value>Export N42 file</value>
   </data>
+  <data name="MSGN42ExportLosesEfficiency" xml:space="preserve">
+    <value>The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full.</value>
+  </data>
   <data name="CalibrationFunctionError" xml:space="preserve">
     <value>The calibration function should be monotonically increasing at channel &gt; 0. Re-check Calibration points!</value>
   </data>
@@ -43056,6 +43062,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
     <value>{0} of the chosen spectra carry no FWHM calibration, and the device configuration they refer to is not in your config ({1}). Both calibrations come from it, so the substitute is yours to name:</value>
+  </data>
+  <data name="EfficiencyTabImportLsrm" xml:space="preserve">
+    <value>Import LSRM...</value>
+  </data>
+  <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
+    <value>LSRM EffCalcMC.txt -&gt; efficiency curve</value>
   </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Response matrix...</value>

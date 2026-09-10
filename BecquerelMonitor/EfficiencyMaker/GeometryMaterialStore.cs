@@ -121,7 +121,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     `ОИСН-16 (2024)`, по решению Amber (`A181`, `B13`): поставка
         ///     переобъявила состав, не сменив имени, и 23 из 44 корпусных
         ///     геометрий несут набивку, которой в засеве не было вовсе.
-        public const int CurrentSeedVersion = 6;
+        /// 7 (10.09.2026) — `Ториевое стекло` по прямому слову Amber
+        ///     («Заведи отдельно Ториевое стекло с этой плотностью», `AMBER3`):
+        ///     ториевый диск Ø40 × 5 мм стоял в геометрии как `Glass, plate`
+        ///     2.4 г/см³ при взвешенных 4.345, и матрица отклика этой сцены
+        ///     делала модель хуже, чем расчёт без матрицы вовсе.
+        public const int CurrentSeedVersion = 7;
 
         static List<GeometryMaterialLibrary.Entry> entries;
         static List<string> removed = new List<string>();

@@ -43,9 +43,6 @@ namespace BecquerelMonitor
             this.button6 = new System.Windows.Forms.Button();
             this.button13 = new System.Windows.Forms.Button();
             this.button14 = new System.Windows.Forms.Button();
-            this.button15 = new System.Windows.Forms.Button();
-            this.button16 = new System.Windows.Forms.Button();
-            this.buttonClearDoseRate = new System.Windows.Forms.Button();
             this.label18 = new System.Windows.Forms.Label();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -142,24 +139,7 @@ namespace BecquerelMonitor
             this.label23 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
             this.tabPage7 = new System.Windows.Forms.TabPage();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.table4 = new XPTable.Models.Table();
-            this.columnModel4 = new XPTable.Models.ColumnModel();
-            this.numberColumn5 = new XPTable.Models.NumberColumn();
-            this.numberColumn6 = new XPTable.Models.NumberColumn();
-            this.numberColumn7 = new XPTable.Models.NumberColumn();
-            this.numberColumn8 = new XPTable.Models.NumberColumn();
-            this.tableModel4 = new XPTable.Models.TableModel();
-            this.labelDREstimateTitle = new System.Windows.Forms.Label();
             this.comboDoseRateEfficiency = new System.Windows.Forms.ComboBox();
-            this.comboDoseRateSpectrum = new System.Windows.Forms.ComboBox();
-            this.buttonEstimateDRConf = new System.Windows.Forms.Button();
-            this.labelDoseRateValue = new System.Windows.Forms.Label();
-            this.upDownDoseRateValue = new InvariantNumericUpDown();
-            this.labelEffNote = new System.Windows.Forms.Label();
-            this.buttonLoadEff = new System.Windows.Forms.Button();
-            this.labelSpectrumNote = new System.Windows.Forms.Label();
-            this.buttonLoadDoseRateSpectrum = new System.Windows.Forms.Button();
             this.button12 = new System.Windows.Forms.Button();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
@@ -190,9 +170,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).BeginInit();
             this.tabPage4.SuspendLayout();
             this.tabPage7.SuspendLayout();
-            this.groupBox3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.table4)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -253,27 +230,6 @@ namespace BecquerelMonitor
             this.button14.Name = "button14";
             this.button14.UseVisualStyleBackColor = true;
             this.button14.Click += new System.EventHandler(this.button14_Click);
-            // 
-            // button15
-            // 
-            resources.ApplyResources(this.button15, "button15");
-            this.button15.Name = "button15";
-            this.button15.UseVisualStyleBackColor = true;
-            this.button15.Click += new System.EventHandler(this.button15_Click);
-            // 
-            // button16
-            // 
-            resources.ApplyResources(this.button16, "button16");
-            this.button16.Name = "button16";
-            this.button16.UseVisualStyleBackColor = true;
-            this.button16.Click += new System.EventHandler(this.button16_Click);
-            // 
-            // buttonClearDoseRate
-            // 
-            resources.ApplyResources(this.buttonClearDoseRate, "buttonClearDoseRate");
-            this.buttonClearDoseRate.Name = "buttonClearDoseRate";
-            this.buttonClearDoseRate.UseVisualStyleBackColor = true;
-            this.buttonClearDoseRate.Click += new System.EventHandler(this.buttonClearDoseRate_Click);
             // 
             // label18
             // 
@@ -1023,109 +979,10 @@ namespace BecquerelMonitor
             // tabPage7
             // 
             this.tabPage7.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage7.Controls.Add(this.groupBox3);
-            this.tabPage7.Controls.Add(this.labelDREstimateTitle);
             this.tabPage7.Controls.Add(this.comboDoseRateEfficiency);
-            this.tabPage7.Controls.Add(this.comboDoseRateSpectrum);
-            this.tabPage7.Controls.Add(this.buttonEstimateDRConf);
-            this.tabPage7.Controls.Add(this.labelDoseRateValue);
-            this.tabPage7.Controls.Add(this.upDownDoseRateValue);
-            this.tabPage7.Controls.Add(this.labelEffNote);
-            this.tabPage7.Controls.Add(this.buttonLoadEff);
-            this.tabPage7.Controls.Add(this.labelSpectrumNote);
-            this.tabPage7.Controls.Add(this.buttonLoadDoseRateSpectrum);
             resources.ApplyResources(this.tabPage7, "tabPage7");
             this.tabPage7.Name = "tabPage7";
-            // 
-            // groupBox3
-            // 
-            this.groupBox3.Controls.Add(this.table4);
-            this.groupBox3.Controls.Add(this.button15);
-            this.groupBox3.Controls.Add(this.button16);
-            this.groupBox3.Controls.Add(this.buttonClearDoseRate);
-            resources.ApplyResources(this.groupBox3, "groupBox3");
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.TabStop = false;
-            // 
-            // table4
-            // 
-            this.table4.BorderColor = System.Drawing.Color.Black;
-            this.table4.ColumnModel = this.columnModel4;
-            this.table4.DataMember = null;
-            this.table4.DataSourceColumnBinder = dataSourceColumnBinder1;
-            this.table4.DragDropRenderer = dragDropRenderer1;
-            this.table4.FullRowSelect = true;
-            this.table4.GridLines = XPTable.Models.GridLines.Both;
-            this.table4.GridLinesContrainedToData = false;
-            this.table4.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table4, "table4");
-            this.table4.Name = "table4";
-            this.table4.TableModel = this.tableModel4;
-            this.table4.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table4.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table4_EditingStopped);
-            // 
-            // columnModel4
-            // 
-            this.columnModel4.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.numberColumn5)),
-            ((XPTable.Models.Column)(this.numberColumn6)),
-            ((XPTable.Models.Column)(this.numberColumn7)),
-            ((XPTable.Models.Column)(this.numberColumn8))});
-            // 
-            // numberColumn5
-            // 
-            this.numberColumn5.IsTextTrimmed = false;
-            this.numberColumn5.Maximum = new decimal(new int[] {
-            2999,
-            0,
-            0,
-            0});
-            this.numberColumn5.Sortable = false;
-            resources.ApplyResources(this.numberColumn5, "numberColumn5");
-            // 
-            // numberColumn6
-            // 
-            this.numberColumn6.IsTextTrimmed = false;
-            this.numberColumn6.Maximum = new decimal(new int[] {
-            3000,
-            0,
-            0,
-            0});
-            this.numberColumn6.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.numberColumn6.Sortable = false;
-            resources.ApplyResources(this.numberColumn6, "numberColumn6");
-            // 
-            // numberColumn7
-            // 
-            this.numberColumn7.IsTextTrimmed = false;
-            this.numberColumn7.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn7.Sortable = false;
-            resources.ApplyResources(this.numberColumn7, "numberColumn7");
-            // 
-            // numberColumn8
-            // 
-            this.numberColumn8.IsTextTrimmed = false;
-            this.numberColumn8.Maximum = new decimal(new int[] {
-            100000,
-            0,
-            0,
-            0});
-            this.numberColumn8.Sortable = false;
-            resources.ApplyResources(this.numberColumn8, "numberColumn8");
-            // 
-            // labelDREstimateTitle
-            // 
-            resources.ApplyResources(this.labelDREstimateTitle, "labelDREstimateTitle");
-            this.labelDREstimateTitle.Name = "labelDREstimateTitle";
-            // 
+            //
             // comboDoseRateEfficiency
             //
             this.comboDoseRateEfficiency.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -1134,66 +991,6 @@ namespace BecquerelMonitor
             this.comboDoseRateEfficiency.Name = "comboDoseRateEfficiency";
             this.comboDoseRateEfficiency.SelectedIndexChanged += new System.EventHandler(this.comboDoseRateEfficiency_SelectedIndexChanged);
             //
-            // comboDoseRateSpectrum
-            //
-            this.comboDoseRateSpectrum.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboDoseRateSpectrum.FormattingEnabled = true;
-            resources.ApplyResources(this.comboDoseRateSpectrum, "comboDoseRateSpectrum");
-            this.comboDoseRateSpectrum.Name = "comboDoseRateSpectrum";
-            this.comboDoseRateSpectrum.SelectedIndexChanged += new System.EventHandler(this.comboDoseRateSpectrum_SelectedIndexChanged);
-            // 
-            // buttonEstimateDRConf
-            // 
-            resources.ApplyResources(this.buttonEstimateDRConf, "buttonEstimateDRConf");
-            this.buttonEstimateDRConf.Name = "buttonEstimateDRConf";
-            this.buttonEstimateDRConf.UseVisualStyleBackColor = true;
-            this.buttonEstimateDRConf.Click += new System.EventHandler(this.buttonEstimateDRConf_Click);
-            // 
-            // labelDoseRateValue
-            // 
-            resources.ApplyResources(this.labelDoseRateValue, "labelDoseRateValue");
-            this.labelDoseRateValue.Name = "labelDoseRateValue";
-            // 
-            // upDownDoseRateValue
-            // 
-            this.upDownDoseRateValue.DecimalPlaces = 2;
-            this.upDownDoseRateValue.Increment = new decimal(new int[] {
-            1,
-            0,
-            0,
-            65536});
-            resources.ApplyResources(this.upDownDoseRateValue, "upDownDoseRateValue");
-            this.upDownDoseRateValue.Name = "upDownDoseRateValue";
-            this.upDownDoseRateValue.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            65536});
-            // 
-            // labelEffNote
-            // 
-            resources.ApplyResources(this.labelEffNote, "labelEffNote");
-            this.labelEffNote.Name = "labelEffNote";
-            // 
-            // buttonLoadEff
-            // 
-            resources.ApplyResources(this.buttonLoadEff, "buttonLoadEff");
-            this.buttonLoadEff.Name = "buttonLoadEff";
-            this.buttonLoadEff.UseVisualStyleBackColor = true;
-            this.buttonLoadEff.Click += new System.EventHandler(this.buttonLoadEff_Click);
-            // 
-            // labelSpectrumNote
-            // 
-            resources.ApplyResources(this.labelSpectrumNote, "labelSpectrumNote");
-            this.labelSpectrumNote.Name = "labelSpectrumNote";
-            // 
-            // buttonLoadDoseRateSpectrum
-            // 
-            resources.ApplyResources(this.buttonLoadDoseRateSpectrum, "buttonLoadDoseRateSpectrum");
-            this.buttonLoadDoseRateSpectrum.Name = "buttonLoadDoseRateSpectrum";
-            this.buttonLoadDoseRateSpectrum.UseVisualStyleBackColor = true;
-            this.buttonLoadDoseRateSpectrum.Click += new System.EventHandler(this.buttonLoadDoseRateSpectrum_Click);
-            // 
             // button12
             // 
             resources.ApplyResources(this.button12, "button12");
@@ -1287,9 +1084,6 @@ namespace BecquerelMonitor
             this.tabPage4.PerformLayout();
             this.tabPage7.ResumeLayout(false);
             this.tabPage7.PerformLayout();
-            this.groupBox3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.table4)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.upDownDoseRateValue)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -1337,10 +1131,6 @@ namespace BecquerelMonitor
 		System.Windows.Forms.Button button13;
 
 		System.Windows.Forms.Button button14;
-
-        System.Windows.Forms.Button button15;
-
-        System.Windows.Forms.Button button16;
 
         // Token: 0x04000269 RID: 617
         XPTable.Models.TextColumn textColumn2;
@@ -1552,9 +1342,6 @@ namespace BecquerelMonitor
 		// Token: 0x040002A4 RID: 676
 		System.Windows.Forms.Label label9;
 
-		// Token: 0x040002A5 RID: 677
-		System.Windows.Forms.GroupBox groupBox3;
-
 		// Token: 0x040002A6 RID: 678
 		//System.Windows.Forms.Label label15;
 
@@ -1579,20 +1366,14 @@ namespace BecquerelMonitor
 
 		// Token: 0x040002B1 RID: 689
 		XPTable.Models.Table table3;
-        XPTable.Models.Table table4;
-
         // Token: 0x040002B2 RID: 690
         XPTable.Models.ColumnModel columnModel3;
-
-        XPTable.Models.ColumnModel columnModel4;
 
         // Token: 0x040002B3 RID: 691
         XPTable.Models.TextColumn textColumn4;
 
 		// Token: 0x040002B4 RID: 692
 		XPTable.Models.TableModel tableModel3;
-
-        XPTable.Models.TableModel tableModel4;
 
         // Token: 0x040002B5 RID: 693
         System.Windows.Forms.Label label19;
@@ -1618,23 +1399,8 @@ namespace BecquerelMonitor
 		// Token: 0x040002BA RID: 698
 		XPTable.Models.NumberColumn numberColumn4;
 
-        XPTable.Models.NumberColumn numberColumn5;
-        XPTable.Models.NumberColumn numberColumn6;
-        XPTable.Models.NumberColumn numberColumn7;
-        XPTable.Models.NumberColumn numberColumn8;
-
 		// dose rate calculation
-        private System.Windows.Forms.Button buttonLoadDoseRateSpectrum;
-        private System.Windows.Forms.Label labelSpectrumNote;
-        private System.Windows.Forms.Label labelEffNote;
-        private System.Windows.Forms.Button buttonLoadEff;
-        private System.Windows.Forms.Button buttonEstimateDRConf;
-        private System.Windows.Forms.Label labelDoseRateValue;
-        private InvariantNumericUpDown upDownDoseRateValue;
         private System.Windows.Forms.ComboBox comboDoseRateEfficiency;
-        private System.Windows.Forms.ComboBox comboDoseRateSpectrum;
-        private System.Windows.Forms.Label labelDREstimateTitle;
-        private System.Windows.Forms.Button buttonClearDoseRate;
         private GroupBox peakSpecgroupBox;
         private ComboBox peakTypecomboBox;
         private Label peakTypelabel;
