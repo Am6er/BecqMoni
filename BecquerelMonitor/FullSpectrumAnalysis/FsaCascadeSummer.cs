@@ -304,6 +304,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static readonly List<string> TripleLog = new List<string>();
 
         /// <summary>
+        /// (`S165`) СКОЛЬКО РАЗ ДВА НОСИТЕЛЯ ПОПАЛИ В ОДИН КЛЮЧ и их вероятности
+        /// пришлось сложить. Счётчик, а не журнал: вопрос к нему один — бывает
+        /// ли это вообще на живой библиотеке.
+        ///
+        /// ⚠ Заведён потому, что без него правка непроверяема: `Match` сводит
+        /// носителей к ключу ТОЛЬКО когда оба попали в одну линию таблицы
+        /// выходов, а иначе каждый идёт со своей энергией и никакого слияния
+        /// нет. Отличить «слияние сработало и дало то же число» от «слияния не
+        /// было вовсе» по одним лишь CF нельзя — а это разные утверждения.
+        ///
+        /// Копится всегда (цена — одно сложение), чистится вызывающим.
+        /// </summary>
+        public static int CarrierKeyMerges;
+
+        /// <summary>
         /// ⚡ ЗАМЕРНЫЙ РЫЧАГ (`S19`, `S50`): один множитель κ на все сумм-события.
         ///
         /// Площадь сумм-пика считается как `p_ij · ε_p(i) · ε_p(j)` — произведение
@@ -865,6 +880,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             double floor = strongest * SumPeakFloor;
+
+            // ⛔ У ТРОЕК СВОЙ ПОРОГ, И СЧИТАЕТСЯ ОН ОТ СИЛЬНЕЙШЕЙ ПАРЫ
+            // (`S113`, решение Amber 10.09.2026 вопросником: «Свой порог
+            // тройкам»).
+            //
+            // Прежде тройная площадь судилась тем же `floor`, что и парная, —
+            // долей от сильнейшей ЛИНИИ компонента. Но тройная меньше парной
+            // ровно на `третий.Value · ε_p(третьего)`, то есть на порядок-два,
+            // и порог срезал их ВСЕ: журнал `LogTriples` на `ASN16_Lu176`
+            // показал 13 029 рассмотренных троек и НОЛЬ прошедших, а у самой
+            // близкой (603.35 = 201.82+88.35+306.88) площадь 4.009E-6 против
+            // порога 4.557E-6 — ниже на 12 %. Механизм жил с 13.08.2026 и всё
+            // это время был мёртв целиком.
+            //
+            // Мерка тройки — сильнейшая ПАРНАЯ сумма того же компонента: она
+            // одного рода с тройкой (обе — суммы, обе несут эффективности), и
+            // отношение «тройная к сильнейшей парной» отвечает на тот же
+            // вопрос, на который у пар отвечает доля от сильнейшей линии.
+            //
+            // ⚠ Правка трогает ТОЛЬКО тройки: `floor` парных остаётся прежним
+            // бит в бит, и цена ограничена вкладом троек — по Geant4 это 0.8 %
+            // от суммы пары (четыре события из 200 000 на тройную 596.95).
+            double strongestPair = 0.0;
+            foreach (double[] pair in data.Pairs)
+            {
+                double pairArea = scale * this.PairArea(data, pair);
+                if (pairArea > strongestPair)
+                {
+                    strongestPair = pairArea;
+                }
+            }
+
+            double tripleFloor = strongestPair * SumPeakFloor;
             foreach (double[] pair in data.Pairs)
             {
                 // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
@@ -897,7 +945,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     sumPeaks.Add(new SumPeak(energy, area, nuclide, pair[0], pair[1]));
                 }
 
-                this.CollectTripleSums(component, nuclide, data, pair, scale, floor, sumPeaks,
+                this.CollectTripleSums(component, nuclide, data, pair, scale, tripleFloor, sumPeaks,
                                        continua);
             }
         }
@@ -914,6 +962,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// пропадает: он даёт не пик, а сплошной подъём между E_i+E_j и
         /// E_i+E_j+E_m, и для него нужен отдельный образ (вторая половина S19).
         /// </summary>
+        /// <param name="floor">
+        /// Порог ТРОЕК (`S113`): доля от сильнейшей ПАРНОЙ суммы компонента, а
+        /// не от сильнейшей линии. Порог пар сюда не годится — тройная меньше
+        /// парной на `ε_p(третьего)`, и общим порогом их срезало все до одной.
+        /// Считает его <see cref="CollectSumPeaks"/>, там же и довод.
+        /// </param>
         void CollectTripleSums(FsaComponent component, string nuclide, NuclideData data,
                                double[] pair, double scale, double floor, List<SumPeak> sumPeaks,
                                List<SumContinuum> continua)
@@ -1921,8 +1975,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            // Слитые условные — В ОДНУ запись на пару ключей, и `Pairs` тоже
-            // по одной: общий выход этой энергии учитывается ровно раз.
+            // ⛔ ДВА НОСИТЕЛЯ ОДНОГО КЛЮЧА — ОДНА ЗАПИСЬ, ВЕРОЯТНОСТИ СЛОЖЕНЫ
+            // (`S165`, решение Amber 10.09.2026 вопросником: «Складывать
+            // вероятности»).
+            //
+            // `Match` сводит носителей допуском `SameLineKev` = 0.3 кэВ, а Kα1
+            // и Kα2 стоят ближе (у Sr это 14.165 и 14.098, разница 0.067), —
+            // значит ДВА РАЗНЫХ носителя получают один `carrierKey`. Копилка
+            // выше ведёт их порознь, по СОБСТВЕННОЙ энергии, и это верно: их
+            // условные вероятности считаются по-разному. А вот дальше они
+            // обязаны сойтись, и до 10.09.2026 не сходились:
+            //
+            //   * `Partners` хранил ПОСЛЕДНЕГО — `Put` писал `bag[to] = p`,
+            //     затирая первого, и вынос из пика считался по одному носителю
+            //     из двух, то есть был занижен;
+            //   * `Pairs` нёс ОБОИХ двумя записями с одинаковыми ключами —
+            //     значит и сумм-пик строился ДВАЖДЫ на одной энергии.
+            //
+            // Физически верно ни то, ни другое: два носителя — два
+            // альтернативных ответа ОДНОЙ вакансии, доли серии уже нормированы,
+            // и вероятности складываются. Сложение здесь, на общем ключе,
+            // делает обе величины одним числом — расходиться им больше негде.
+            //
+            // ⚠ Складывается ЗДЕСЬ, а не в `Put`: тот же `Put` зовут ядерные
+            // пары (см. `PairsOf`), и накапливающий `+=` в нём поменял бы их
+            // поведение там, где никакой пары ключей не задваивается.
+            var byKeys = new Dictionary<double, Dictionary<double, double>>();
+            var keyOrder = new List<double[]>();
             foreach (double[] pair in order)
             {
                 double fromKey = pair[0];
@@ -1939,6 +2018,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     continue;
                 }
+
+                Dictionary<double, double> bag;
+                if (!byKeys.TryGetValue(fromKey, out bag))
+                {
+                    byKeys[fromKey] = bag = new Dictionary<double, double>();
+                }
+
+                double had;
+                if (bag.TryGetValue(toKey, out had))
+                {
+                    bag[toKey] = had + probability;
+                    CarrierKeyMerges++;
+                }
+                else
+                {
+                    bag[toKey] = probability;
+                    keyOrder.Add(new[] { fromKey, toKey });
+                }
+            }
+
+            // Слитые условные — В ОДНУ запись на пару ключей, и `Pairs` тоже
+            // по одной: общий выход этой энергии учитывается ровно раз.
+            foreach (double[] keys in keyOrder)
+            {
+                double fromKey = keys[0];
+                double toKey = keys[1];
+                double probability = byKeys[fromKey][toKey];
 
                 data.Pairs.Add(new[] { fromKey, toKey, probability });
                 Put(data, fromKey, toKey, probability);
