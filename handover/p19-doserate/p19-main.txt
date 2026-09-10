@@ -1,0 +1,95 @@
+ЧИТАТЕЛЬ П19: вкладка DoseRate и обе находки AMBER14
+
+
+──────────────────────────────────────────────────────────────
+§1. СОСТАВ ВКЛАДКИ tabPage7 — что решение Amber покрывает
+──────────────────────────────────────────────────────────────
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P19\config\device: 1 loaded
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P19\config\BecquerelMonitor.xml
+  на вкладке контролов: 15
+
+  имя                          тип                    решение Amber 10.09
+  ----------------------------------------------------------------------------
+  groupBox3                    GroupBox               СНЯТЬ
+  table4                       Table                  СНЯТЬ
+  button15                     Button                 СНЯТЬ
+  button16                     Button                 СНЯТЬ
+  buttonClearDoseRate          Button                 СНЯТЬ
+  labelDREstimateTitle         Label                  СНЯТЬ
+  comboDoseRateEfficiency      ComboBox               оставить
+  comboDoseRateSpectrum        ComboBox               СНЯТЬ
+  buttonEstimateDRConf         Button                 СНЯТЬ
+  labelDoseRateValue           Label                  СНЯТЬ
+  upDownDoseRateValue          InvariantNumericUpDown СНЯТЬ
+  labelEffNote                 Label                  оставить
+  buttonLoadEff                Button                 оставить
+  labelSpectrumNote            Label                  СНЯТЬ
+  buttonLoadDoseRateSpectrum   Button                 СНЯТЬ
+
+  [ок]   перечень решения покрывает вкладку целиком
+  [ок]   все имена перечня найдены на вкладке
+
+  снимается 12 из 15, остаётся 3
+
+──────────────────────────────────────────────────────────────
+§2. КТО ЗАДАЁТ DoseRateCalibrationPoints — по каталогам конфигураций
+──────────────────────────────────────────────────────────────
+
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\config\device
+     36 точек  RC-103.xml                                     внесено РУКАМИ: низ 0.00 кэВ ниже 10, BuildGrid так не строит
+    ИТОГО: точки задают 1 конфигураций из 10; из них сеткой генератора — 0
+           кривую эффективности несут 1 конфигураций из 10 (столько же вкладка может предложить в comboDoseRateEfficiency)
+
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\devices
+    ИТОГО: точки задают 0 конфигураций из 24; из них сеткой генератора — 0
+           кривую эффективности несут 0 конфигураций из 24 (столько же вкладка может предложить в comboDoseRateEfficiency)
+
+  C:\Users\moroz\AppData\Roaming\BecqMoni\config\device
+      3 точек  1.Atom Spectra Nano 16 Pro PM 1610B.xml        внесено РУКАМИ: низ 0.00 кэВ ниже 10, BuildGrid так не строит
+      3 точек  1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml  внесено РУКАМИ: низ 0.00 кэВ ниже 10, BuildGrid так не строит
+     36 точек  RC-103.xml                                     внесено РУКАМИ: низ 0.00 кэВ ниже 10, BuildGrid так не строит
+    ИТОГО: точки задают 3 конфигураций из 9; из них сеткой генератора — 0
+           кривую эффективности несут 0 конфигураций из 9 (столько же вкладка может предложить в comboDoseRateEfficiency)
+
+  [ок]   положительный контроль признака: набор, сделанный самим генератором (21 точек), опознан как сетка генератора
+
+──────────────────────────────────────────────────────────────
+§3. ЦЕНА СНЯТИЯ ТОЧЕК — что станет с показанием в строке состояния
+──────────────────────────────────────────────────────────────
+  конфигурация: 1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml (3 точек)
+  спектр:       ASN16_Cs137.xml
+
+  СЕЙЧАС: гейт MainForm (3 > 0) — показывает
+          2.566 ±0.000 (0.0%) мкЗв/ч
+
+  ПОСЛЕ (г) без замены: гейт MainForm (0 > 0) — МОЛЧИТ, строка состояния пуста
+          расчёт вернул бы: 0.000 ±0.000 (0.0%) мкЗв/ч (покрыто 0 % отсчётов) (rate=0.000000)
+  [ок]   измерено: снятие точек ДО замены расчёта убирает показание совсем (было 2.5661 мкЗв/ч, станет пусто)
+
+──────────────────────────────────────────────────────────────
+§4. AMBER14(1). Кто читает DoseRateSpectrumChoice.Efficiency — разбор собранного кода
+──────────────────────────────────────────────────────────────
+      ← BecquerelMonitor.DoseRateEstimator.OfferedSpectra
+      ← BecquerelMonitor.DeviceConfigForm.comboDoseRateSpectrum_SelectedIndexChanged
+  DoseRateSpectrumChoice.Efficiency: чтений 0, записей 1
+  DoseRateSpectrumChoice.Spectrum: чтений 1   ← положительный контроль скана
+  [ок]   скан вообще работает: у соседнего свойства Spectrum найдено 1 чтений
+  [ок]   подтверждено: Efficiency не читает НИКТО (0 чтений при 1 записи)
+
+──────────────────────────────────────────────────────────────
+§5. AMBER14(2). Несёт ли схема N42 кривую эффективности
+──────────────────────────────────────────────────────────────
+  типов в BecquerelMonitor.N42: 24
+  членов со словом «EnergyCalibration»: 15
+      BecquerelMonitor.N42.EnergyCalibration (тип)
+      BecquerelMonitor.N42.N42_2006_EnergyCalibration (тип)
+      RadInstrumentData.get_EnergyCalibration
+      RadInstrumentData.set_EnergyCalibration
+      RadInstrumentData.EnergyCalibration
+      RadInstrumentData.energyCalibrationField
+  членов со словом «Efficiency»: 0
+  [ок]   поиск вообще работает: «EnergyCalibration» в схеме найден 15 раз
+  [ок]   подтверждено: слова «Efficiency» в схеме N42 нет вовсе
+  [ок]   вывоз в N42 существует: BecquerelMonitor.N42.Util.ExportToN42
+
+проверок 9, непрошедших 0

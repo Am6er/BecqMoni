@@ -1,0 +1,519 @@
+читатель сторожей: 32 к вызову (заведомо красных по строкам реестра пропущено 1 — см. --all)
+  пропущен tools/check_registry.py — ЗЕЛЕН, но идёт 100 с и потому не в умолчании: восемь ссылок на файлы, лежавшие только на диске (S61, S134, T134, T223), переписаны на копии в handover/registry-artefacts/; противоречия DONE.md по T102 сняты по решению Amber. ⚠ 06.09–07.09.2026 он снова был КРАСЕН четырьмя ложными находками (T250) — и запись здесь этого не знала: сторож вне умолчания меряется только тогда, когда его позовут руками. Починен 07.09.2026
+
+→ зову: python tools/check_registry_refs.py
+    реестры: DONE.md — 823 строк, TODO.md — 166 строк
+    известных номеров всего: 987, буквы: ABCDEFMNPRSTVWX
+    обойдено файлов: 1437 (из них журналов-записей 261), строгих ссылок проверено: 11234
+    исключено по правилу: 189 ссылок (A0, A200 ×15, A231 ×2, A232 ×2, A233 ×2, A9998, C12 ×11, F0 ×26, F33 ×3, F36 ×7, F38 ×2, F61 ×19, F63, F64 ×2, F76 ×6, F77, N0 ×27, N42 ×8, P0 ×2, P1 ×15, P25 ×4, T1 ×8, T39 ×7, T51 ×6, T224 ×2, T9999 ×2, V0, W0 ×3, X12 ×3)
+      правило «удалена решением Amber; ссылка в журнале историчная»: A200 ×15, A231 ×2, A232 ×2, A233 ×2, T1 ×8, T39 ×7, T51 ×6, T224 ×2
+        A200 — удалена приказом Amber 05.09.2026 вместе с A231–A233, T224 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A231 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A232 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        A233 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T1 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо»: «Удалить задачу T1»)
+        T224 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T39 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+        T51 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+      правило «приоритет строки P0–P3, а не её номер»: P0 ×2, P1 ×15
+      правило «формат числа .NET (номер 0 или буква DEFGNX на строке о печати чисел)»: A0, F0 ×26, N0 ×27, N42 ×3, V0, W0 ×3, X12 ×3
+      правило «имя полосы захода на строке о полосе/журнале/обрыве»: C12 ×11, F33 ×3, F36 ×5, F38 ×2, F61 ×18, F63, F64 ×2, F76 ×6, F77, P25 ×2
+      правило «цитата положительного контроля (строка сама так себя называет)»: A9998, F61, T9999 ×2
+      правило «поимённо, NOT_A_REF с причиной»: F36 ×2, N42 ×5, P25 ×2
+        F36 — полоса захода 05.09.2026, оборвана (журнал handover-2026-09-05-f37-s132.md), а не строка
+        N42 — формат файла ANSI N42 (стандарт спектров), а не строка реестра
+        P25 — 25-й процентиль в записи статистики (handover-2026-09-05-f5-v18-v19.md), а не строка
+    битых строгих ссылок: 0
+✅ tools/check_registry_refs.py: код 0, 1.4 с
+
+→ зову: python tools/check_build_recipe.py
+    обойдено файлов: 3022 (из них журналов-записей 1541, вне git 305)
+    копий рецепта найдено: 71; судимых 33 (с ключом 33, БЕЗ ключа 0)
+    не судим по правилу «журнал — запись» (T219): 33 копий, из них без ключа — историчных 16
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:7
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:15
+        запись: handover/g2-guard-readers/05-control-bad-recipe.txt:7
+        запись: handover/g2-guard-readers/05-control-reader-stops.txt:32
+        запись: handover/handover-2026-08-13.md:200
+        запись: handover/handover-2026-08-14.md:256
+        запись: handover/handover-2026-08-15-evening.md:202
+        запись: handover/handover-2026-08-15.md:274
+        запись: handover/handover-2026-08-16-evening.md:311
+        запись: handover/handover-2026-08-16-night.md:193
+        запись: handover/handover-2026-08-16.md:132
+        запись: handover/handover-2026-08-17-fluorescence.md:202
+        запись: handover/handover-2026-08-17-matrix-speed.md:447
+        запись: handover/handover-2026-08-17.md:190
+        запись: handover/handover-2026-08-18-cascade-xray.md:228
+        запись: handover/handover-2026-09-05-f19-cleanup.md:239
+    не судим по правилу «вне git — за Amber»: 5 копий, из них без ключа 1
+        ⚠ ПРЕДУПРЕЖДЕНИЕ (за Amber): .claude/settings.local.json:6 — без ключа
+    копий без ключа среди судимых: 0
+    
+    с ключом (для сверки):
+      handover/f11-a230/run_f11.ps1:5
+      handover/f16-a246-a247/build_f16.ps1:14
+      handover/f18-p8a/build_f18.ps1:9
+      handover/f20-f17-accept/build_f20.ps1:16
+      handover/f21-a248/build_f21.ps1:30
+      handover/f22-a245-p5p6/build_f22.ps1:16
+      handover/f23-a212/build_f23.ps1:31
+      handover/f25-f22-finish/build_f25.ps1:16
+      handover/f26-a249/build_f26.ps1:17
+      handover/f27-p4/build_f27.ps1:17
+      handover/f28-p8/build_f28.ps1:16
+      handover/f29-a250/build_f29.ps1:17
+      handover/f30-a251/build_f30.ps1:13
+      handover/f34-p8-finish/build_f34.ps1:15
+      handover/f35-p9/build_f35.ps1:15
+      handover/f4-a185/build_f4.ps1:7
+      handover/f41-a211-t119/build_f41.ps1:20
+      handover/f43-e17-e19/build_f43.ps1:14
+      handover/f45-e17-e19/build_f45.ps1:20
+      handover/f47-p8-tail/build_f47.ps1:17
+      handover/f48-s44-nan/build_before_f48.ps1:20
+      handover/f48-s44-nan/build_f48.ps1:20
+      handover/f49-a190-a228/build_f49.ps1:31
+      handover/f50-final/build_f50.ps1:16
+      handover/f51-a205/build_f51.ps1:18
+      handover/f53-a252/build_f53.ps1:32
+      handover/f8-a219/build_f8.ps1:8
+      handover/f8-a219/run_f8.ps1:3
+      handover/g1-doserateprobe/build_g1.ps1:15
+      handover/g10-a193-a195/build_g10.ps1:26
+      handover/g11-a240/build_g11.ps1:20
+      handover/g9-a255/build_g9.ps1:25
+      tools/effmaker/run.ps1:36
+✅ tools/check_build_recipe.py: код 0, 2.4 с
+
+→ зову: python tools/check_resx.py
+    
+    русских resx просмотрено: 32, из них с английской парой: 32
+    файлов с расхождением: 0
+    непереведённых осмысленных строк: 0
+      из них ключ есть, а значение пусто: 0
+    ключей, которых нет в английской паре: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx.py: код 0, 5.4 с
+
+→ зову: python tools/check_resx_designer.py
+    
+    обращений с литеральным именем проверено: 842
+      из них через ОДИН шаг (обёртка или член): 47
+    ключей, которых нет в нейтральном resx: 0
+    обращений с вычисляемым именем: 4, из них разобрано одним шагом: 3
+    обращений с вычисляемым именем (проверке недоступны): 1
+          обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1)
+          члены:   Resource
+    вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 10
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_designer.py: код 0, 11.7 с
+
+→ зову: python tools/check_resx_letters.py
+    
+    английских resx просмотрено: 45, русских: 32
+    генерируемых *.Designer.cs: 46, значений в них: 3832
+    находок: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_letters.py: код 0, 4.5 с
+
+→ зову: python tools/check_resx_zorder.py
+    пар Foo.Designer.cs / Foo.resx: 43
+    контейнеров проверено: 86, с расхождением: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    ==========================================================================
+    расхождений нет
+✅ tools/check_resx_zorder.py: код 0, 3.9 с
+
+→ зову: python tools/check_headless.py
+    Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+      файлов приложения: 503, типов: 697, проб: 167
+      оконных типов по наследованию: 83; засев от проб: 271 типов
+      достижимо БЕЗ окон: 558 типов; барьер (оконные): 23
+      оконных типов, которые пробы СТРОЯТ (`new T(...)`): 36 — их конструкторы ALLOW не обеляет
+      живых MessageBox.Show: 146
+    
+    
+    итого: безоконный путь 0, оконные 146, вне разряда 0
+    ЧИСТО: в безоконном пути модальных окон нет.
+✅ tools/check_headless.py: код 0, 3.3 с
+
+→ зову: python tools/check_menu_accelerators.py
+    
+    АНГЛИЙСКИЙ: узлов 10, пунктов 69, с ускорителем 41, столкновений 0
+    РУССКИЙ:    узлов 10, пунктов 69, с ускорителем 41, столкновений 0
+    узлов AddRange в Designer всего 11, из них в дереве меню 10
+    подписей, заданных кодом (MainForm.cs): 1
+          showLogToolStripMenuItem <- Resources.MenuShowLog  (строка 1806): en 'Show log' / ru 'Показать журнал'
+    пунктов, добавляемых в меню кодом (разбору недоступны): 0
+    СОШЛОСЬ
+✅ tools/check_menu_accelerators.py: код 0, 0.1 с
+
+→ зову: python tools/check_numeric_updown.py
+    самопроверка: подброшенных образцов 5, заведомо чистых 5
+      САМОПРОВЕРКА ПРОШЛА
+    обойдено файлов: 549 (из них с общим полем 13; не судится сам InvariantNumericUpDown.cs — 1)
+    мест мимо общего приёма: 0
+✅ tools/check_numeric_updown.py: код 0, 0.3 с
+
+→ зову: python tools/check_fsa_docs.py
+    FsaAnalyzer.cs: описаний 177, умолчаний 50 (из них конструктор ставит 28)
+    ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+      ✓ schemedb.ensdf_datasets           наборов ENSDF                            документ     3484, в базе     3484
+      ✓ schemedb.ensdf_datasets           разных дочерних нуклидов                 документ     1919, в базе     1919
+      ✓ schemedb.ensdf_datasets           наборов с номером уровня родителя        документ      662, в базе      662
+      ✓ schemedb.ensdf_levels             уровней                                  документ    35220, в базе    35220
+      ✓ schemedb.ensdf_gammas             переходов                                документ    79613, в базе    79613
+      ✓ schemedb.ensdf_gammas             гамм с полным коэффициентом конверсии    документ    19954, в базе    19954
+      ✓ schemedb.ensdf_gammas             гамм с мультипольностью                  документ    25906, в базе    25906
+      ✓ schemedb.ensdf_gammas             гамм без конечного уровня                документ     5283, в базе     5283
+      ✓ schemedb.ensdf_feedings           записей питания уровня                   документ    23498, в базе    23498
+      ✓ nucdb.gamma_coincidence        пар совпадений                           документ   128429, в базе   128429
+      ✓ nucdb.gamma_coincidence        пар с долей > 1                          документ     1820, в базе     1820
+      ✓ nucdb.gamma_coincidence        родителей с долей > 1                    документ       99, в базе       99
+      ✓ nucdb.gamma_coincidence_line   линий, участвующих в парах               документ    43231, в базе    43231
+      ✓ nucdb.gamma_coincidence_parent родителей                                документ     1643, в базе     1643
+    ✓ все 14 чисел §7/§8 сходятся с базами
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+    # Колонки-признаки в базах против правила (`D36`, `D38`)
+    
+    ## Сверка: колонка против механического правила
+       в колонке 81, по правилу 81
+       СОШЛОСЬ до единицы
+    
+    1. `nuclides.half_life_is_limit` (`D36`): по правилу 81, разрешено 81
+    
+    ## Контроль правила: четыре набора `110AG`
+    
+       1103  110AG EC DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1104  110AG IT DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+       1105  110AG B- DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1106  110AG B- DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+    
+    ## Сверка: колонка `parent_l_seqno` против правила
+    
+      в колонке непустых 662, по правилу 662
+      СОШЛОСЬ до единицы
+    
+    2. `ensdf_datasets.parent_l_seqno` (`D38`): по правилу 662, разрешено 662
+    
+    ОБЕ КОЛОНКИ СОШЛИСЬ с правилом и с разрешёнными числами (81 и 662).
+✅ tools/nucdb/check_db_marks.py: код 0, 0.1 с
+
+→ зову: python tools/check_decay_numeric.py
+    самопроверка: 6 плохих поймано, 7 добрых пропущено
+    текстовых колонок `decay_radiations` под арифметикой не найдено
+✅ tools/check_decay_numeric.py: код 0, 1.5 с
+
+→ зову: python tools/check_corpus_readme.py
+    === сторож журнала корпуса (T113) ===
+    действующие базы (из таблицы объявления): out_rev13_full, out_rev13_mini
+    R1 «действующая база X» с чужим X: 0
+    R2 раздел на снятой базе без пометки: 0
+    R3 шапка против дерева: 0
+    R4 состав частей против parts.csv: 0
+    СОШЛОСЬ: снятое подаётся снятым, шапка сходится с деревом
+✅ tools/check_corpus_readme.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+    # §9а: строки и владельцы
+    
+    строк в таблицах: 34
+    
+    # Открытые строки, которые не называют задачи
+    
+      нет
+    
+    # Ссылки в пустоту
+    
+      нет
+    
+    # Открытые строки, чья задача уже в DONE.md
+    
+      К глазам: либо дыра закрыта и здесь не отмечена, либо
+      закрыто другое. Прогон этим не валится.
+      B-1   строка 1383  -> N9 (в DONE.md)
+      B-2   строка 1384  -> M2 (в DONE.md)
+      D-5   строка 1407  -> D9 (в DONE.md)
+      F-2   строка 1430  -> T27 (в DONE.md)
+    
+    §9а СОШЁЛСЯ С РЕЕСТРОМ
+✅ tools/check_scheme_gaps.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_library.py
+    ⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026)
+      ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+      ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+    НАХОДОК: 0
+✅ tools/check_corpus_library.py: код 0, 0.0 с
+
+→ зову: python tools/check_corpus_truth.py
+    ⛔ истина корпуса: corpus_def ↔ manifest.csv, поля chains, nuclides
+    манифест: tools\CORPUS\corpus\manifest.csv (131 строк), corpus_def: 131 записей
+    РАСХОЖДЕНИЙ: 0
+✅ tools/check_corpus_truth.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+    === счёт ===
+    строк таблицы в DONE.md: 824
+    разобрано (заголовок выделен): 818
+    заголовков со словами незнания: 10
+    ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): 0
+    порядок: противоречий не найдено
+✅ tools/check_done_headers.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        ASN16_Th232              НЕТ своей копии в _corpus_raw
+        ASN16_Charoite           НЕТ своей копии в _corpus_raw
+        ASN16_UGlass             НЕТ своей копии в _corpus_raw
+        ASN16_Granite            НЕТ своей копии в _corpus_raw
+        AS80_Th232_v2            НЕТ своей копии в _corpus_raw
+        AS80_UGlass              НЕТ своей копии в _corpus_raw
+        AS80_Charoite            НЕТ своей копии в _corpus_raw
+        
+        === ОХВАТ МЕРКИ: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===
+        стадия                                       known     unknown    excluded       ВСЕГО
+        прочитано из _corpus_raw                     84/84     32/39 !         8/8   124/131 !
+        
+          «прочитано из _corpus_raw»: вне мерки 7 из 131
+            ОЖИДАЕМО — семёрка corpus_def.LEGACY, стадий 1 и 2 у неё в корпусе нет (7): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+        
+        --coverage-only: считана ТОЛЬКО стадия чтения; чисел мерки нет.
+    ✅ tools/CORPUS/scripts/gaussfit_check.py: код 0
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      освобождён calib_null_check.py      — мерка на `build_state` без охвата — строка `T76`, остаток
+      освобождён calib_quality_f56.py     — мерка на `build_state` без охвата — строка `T76`, остаток
+      освобождён calib_sweep_f56.py       — мерка на `build_state` без охвата — строка `T76`, остаток
+      освобождён ecal_extrapolation.py    — мерка без охвата — открытая строка `V15` (там же пересчёт приёмки `V12`)
+      нарушителей: 0
+    
+    === сводка ===
+      ✅ gaussfit_check.py        код 0
+    ОХВАТ ЦЕЛ: позвано мерок 1, все дали 0; мерок на сырье без охвата нет.
+✅ tools/check_corpus_coverage.py: код 0, 0.6 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    [ ОК ] полная `out_rev13_full` / понятная
+          каталог: tools\pie\out_rev13_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev13_full --part=known --members
+          сошлось: спектров 84, sum chi2/ndf 708.5, медиана 3.29, recall, % 100, фантомов 0, подавлен 1
+    
+    [ ОК ] полная `out_rev13_full` / непонятная
+          каталог: tools\pie\out_rev13_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev13_full --part=unknown --members
+          сошлось: спектров 39, sum chi2/ndf 504.9, медиана 5.98, recall, % 95, фантомов 0, подавлен 7
+    
+    [ ОК ] малая `out_rev13_mini` / понятная
+          каталог: tools\pie\out_rev13_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev13_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: спектров 42, sum chi2/ndf 566.4, медиана 5.97, recall, % 100, фантомов 0, подавлен 1
+    
+    [ ОК ] малая `out_rev13_mini` / непонятная
+          каталог: tools\pie\out_rev13_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev13_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: спектров 17, sum chi2/ndf 210.3, медиана 4.95, recall, % 100, фантомов 0, подавлен 0
+    
+    ИТОГО: строк сверено 4, расхождений 0, без каталога 0
+✅ tools/check_declared_base.py: код 0, 0.4 с
+
+→ зову: python tools/check_pending_runs.py
+    сверяю: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\TODO.md
+      строк реестра вне раздела: 166; с признаком «ЖДЁТ СЧЁТНОГО ЗАХОДА»: 2
+      строк в разделе «Отложенные прогоны» (файл:494): 2
+      разряды ожидания: пересборка файлов корпуса | пересчёт склада матриц | один прогон FSA на готовых матрицах
+    
+    СХОДИТСЯ: 2 строк ждут счётного захода, все названы в разделе и разряд у каждой один.
+✅ tools/check_pending_runs.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_tuning.py
+    сторож отчёта о настройках (`T243`): правило живёт ОДНИМ местом — FsaTuningReport.cs; судятся довесок и 18 проб, считающих FSA
+      FsaTuningReport.cs         ЦЕЛ — единственное место, где живёт правило
+      проб, считающих FSA: 18; о настройках молчат 0 — таких нет
+      самопроверка: девять подставленных порч пойманы, целые довесок и проба чисты
+    ОТЧЁТ О НАСТРОЙКАХ ЦЕЛ: правило одно, зовут его все 18 проб, молчащих нет.
+✅ tools/check_probe_tuning.py: код 0, 0.1 с
+
+→ зову: python tools/check_matrix_keys.py
+    сторож состава ключей обоих путей (T242): реестр -- 31 настроек матрицы, 6 кривой, 35 полей симулятора
+      самопроверка: шесть подставленных порч пойманы, целое дерево чисто
+      путь матрицы: 31 настроек, в клейме 26, рычаг пробы у 29, поле формы у 6
+      путь кривой: 6 настроек; симулятору он ставит РОВНО ТРИ поля (Histories, Seed, PeakHalfWidthKev), остальное -- умолчания симулятора
+      односторонних ключей: намеренно 45, неприменимо 14, забыто 0
+    СОСТАВ КЛЮЧЕЙ СОШЁЛСЯ: у каждой настройки есть потребитель, всё, что в клейме, лежит в файле, и у каждого одностороннего ключа названа причина.
+✅ tools/check_matrix_keys.py: код 0, 0.4 с
+
+→ зову: python tools/check_geometry_names.py
+    спектров всего 131, из них сверено с .in 84
+    расхождений нет, знаков замены нет
+✅ tools/check_geometry_names.py: код 0, 0.2 с
+
+→ зову: python tools/check_fsa_view_groups.py
+    === переключатели окна отчёта FSA: род против группы (A265) ===
+      поле                     группа             род
+      atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ
+      backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ
+      cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ
+      daughtersRadio           displayGroupBox    отрисовочный
+      equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ
+      escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      parentsRadio             displayGroupBox    отрисовочный
+      pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      residualBandCheckBox     displayGroupBox    отрисовочный
+      sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ
+      sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ
+      всего 11: расчётных 8, отрисовочных 3
+    
+    === подписи группы показа ===
+      английская   displayGroupBox.Text: есть
+      русская      displayGroupBox.Text: есть
+    
+    === САМОПРОВЕРКА: порченая копия обязана быть названа ===
+      подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет
+    
+    СОШЛОСЬ: каждый переключатель в группе своего рода
+✅ tools/check_fsa_view_groups.py: код 0, 0.1 с
+
+→ зову: python tools/check_selection_panel_height.py
+      самопроверка «слагаемое без клейма»: код 1 
+      самопроверка «слагаемое отрисовки без пары в пробе»: код 1 
+      самопроверка «слагаемое пробы без пары в отрисовке»: код 1 
+      САМОПРОВЕРКА ПРОШЛА: все три порчи названы
+    отрисовка: слагаемых высоты 2, из них с клеймом 2 — подпись, спор
+    мерка пробы: клейм 3 — спор, подпись, спор
+    СОШЛОСЬ: 2 слагаемых высоты, у каждого клеймо и пара в мерке пробы
+✅ tools/check_selection_panel_height.py: код 0, 0.0 с
+
+→ зову: python tools/check_escape_parents.py
+    === ОТСЕВ РОДИТЕЛЕЙ ОБРАЗОВ ВЫЛЕТА (`A271`) ===
+      запас над порогом пар: 124.0 кэВ
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: две порченые копии обязаны быть названы ===
+      подставлено: запас снят из условия отбора — названо поимённо
+      подставлено: возвращена форма !double.IsNaN(x) && !(…) — названо поимённо
+    
+    СОШЛОСЬ: отсев родителей вылета работает и без вещества кристалла
+✅ tools/check_escape_parents.py: код 0, 0.0 с
+
+→ зову: python tools/check_crystal_material.py
+    === вещество кристалла у прибора: геометрия первична (A276) ===
+      1. свойство CrystalMaterialName объявлено
+      1. умолчание поля — пустая строка (старый конфиг читается)
+      2. глубокая копия переносит поле
+      3. FsaSampleSpec.CrystalMaterialName объявлено
+      4. порядок источников: геометрия -> поле прибора -> элементы
+      5. вывод состава берёт имя у конфигурации прибора
+      6. путь по пикам берёт поле только там, где геометрии нет
+      7. форма связана с обоих концов: показ и запись
+      8. подписи поля и пункта «не задано» есть в обоих resx
+      9. имён веществ в коде разбора нет (сверено 38 имён засева)
+      10. проба CrystalMaterialProbe.cs на месте
+    
+    --- САМОПРОВЕРКА: две порченые копии ---
+      (а) источники переставлены  -> 4. ПОРЯДОК ИСТОЧНИКОВ НАРУШЕН: геометрия на 758, поле на 170, элементы на 899 — геометрия обязана быть первой
+      (б) умолчание не пусто      -> 1. поле crystalMaterialName не инициализировано пустой строкой — старая конфигурация без этого элемента получит не «пусто»
+    
+    СОШЛОСЬ: поле прибора читается запасным источником, геометрия первична
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+    === ОТСЕВ ПО ЗНАЧИМОСТИ И КЛАСС КОМПОНЕНТА (`A275`) ===
+      кусок приговора отсева: 2129 знаков
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: три порченые копии обязаны быть названы ===
+      подставлено: возврат распространён на мешающие образы — названо поимённо
+      подставлено: условие возврата переписано на общий счётчик — названо поимённо
+      подставлено: снят сброс счётчика возвращённых — названо поимённо
+    
+    СОШЛОСЬ: отсев не может оставить разбор без единого объявленного нуклида
+✅ tools/check_refit_z_class.py: код 0, 0.0 с
+
+→ зову: python tools/check_roi_listup.py
+    # Перестроение списка ROI не правит то, по чему идёт (A296)
+    
+    
+    ФОРМА ПРАВИЛА ЦЕЛА
+    положительный контроль: python tools/check_roi_listup.py --selftest
+✅ tools/check_roi_listup.py: код 0, 0.0 с
+
+→ зову: python tools/nucdb/check_edges.py
+    # Края поглощения: правило старшинства (D18)
+    
+    1. Порог и линии вылета (`xray_fluorescence`) против `xcom_edges`:
+       расходится 0 из 71 — ХОРОШО
+    2. Группа EADL (`eadl_binding` против `compton_profile_shell`):
+       элементов 100, макс 0.0000 %, медиана 0.0000 % — одна поставка
+    3. Группа EPICS/ESTAR (`epics_photo_subshell` против `estar_shells`):
+       элементов 100, макс 0.0040 %, медиана 0.0000 %
+    
+    Остаточное смешение, единственное: `MaterialDatabase` берёт полное
+    сечение из XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit`).
+       элементов 90, макс 0.788 % (143090.0 против 141962.0 эВ), медиана 0.0148 %
+       Максимум приходится на Z = 98…100, которых в наших веществах не
+       бывает; на реальных составах расхождение ≤ 0.28 %.
+    
+    Правило соблюдается: каждая величина берёт край своей поставки.
+✅ tools/nucdb/check_edges.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_numbers.py
+    сторож печати чисел в оснастке (T245, T247): разделитель — только инвариантом, формат P — не применяется, у каждого числа — поставщик культуры; судятся 171 файлов tools/effmaker
+      законных подмен, помеченных «T245: НАРОЧНО»: 5
+      самопроверка: семь подставленных порч пойманы, целые файлы чисты (в том числе имя «P3» и проба, у которой культура — ПРЕДМЕТ замера)
+    ПЕЧАТЬ ЧИСЕЛ ЦЕЛА: подмен разделителя без метки нет, форматов P нет ни одного, числа печатаются только с поставщиком культуры.
+✅ tools/check_probe_numbers.py: код 0, 0.3 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 1.4 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 2.4 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 5.4 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 11.7 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 4.5 с — кириллица в английских resx и наоборот
+  ✅ tools/check_resx_zorder.py — код 0, 3.9 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 3.3 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.1 с — столкновения ускорителей главного меню
+  ✅ tools/check_numeric_updown.py — код 0, 0.3 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.1 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.5 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.1 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.0 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.1 с — заголовок строки DONE.md против её тела
+  ✅ tools/check_corpus_coverage.py — код 0, 0.6 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ✅ tools/check_declared_base.py — код 0, 0.4 с — каталог из объявления базы против объявленных чисел
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.1 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 0.4 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.2 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_selection_panel_height.py — код 0, 0.0 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.0 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.0 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.0 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.1 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.3 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+ВСЕ ЗЕЛЕНЫ: 32 из 32 сторожей дали 0.
