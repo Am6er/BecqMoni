@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Xml.Serialization;
 
@@ -48,6 +49,8 @@ namespace FsaComponentDumpProbe
             string outPrefix = null;
             string setName = null;
             bool matrixAny = false;
+            bool noCascade = false;
+            string stagesOf = null;
 
             foreach (string a in args)
             {
@@ -66,6 +69,14 @@ namespace FsaComponentDumpProbe
                 else if (a == "--matrix-any")
                 {
                     matrixAny = true;
+                }
+                else if (a == "--no-cascade")
+                {
+                    noCascade = true;
+                }
+                else if (a.StartsWith("--stages=", StringComparison.Ordinal))
+                {
+                    stagesOf = a.Substring(9);
                 }
                 else
                 {
@@ -161,6 +172,18 @@ namespace FsaComponentDumpProbe
             {
                 analyzer.MinEnergy = peakConfig.Min_Range;
                 analyzer.MaxEnergy = peakConfig.Max_Range;
+            }
+
+            // ⛔ Выключаются ОБЕ половины каскада, а не одна: поправка `CF`
+            // правит амплитуду линии, а сумм-пики ДОБАВЛЯЮТ в образ энергии,
+            // которых в списке линий нет. Одного `CascadeSumPeaks = false`
+            // мало, если сам сумматор остался включён — на это указал внешний
+            // рецензент 11.09.2026, и он прав.
+            if (noCascade)
+            {
+                analyzer.CascadeSumming = false;
+                analyzer.CascadeSumPeaks = false;
+                Console.WriteLine("⚠ КАСКАД ВЫКЛЮЧЕН ЦЕЛИКОМ: CascadeSumming = CascadeSumPeaks = false");
             }
 
             FsaTuningReport.Print(analyzer, "состав разбора");
@@ -262,6 +285,11 @@ namespace FsaComponentDumpProbe
                                   F(calibration.ChannelToEnergy(top), 1));
             }
 
+            if (stagesOf != null)
+            {
+                Stages(analyzer, library, stagesOf, matrix.BinKev);
+            }
+
             var rows = new List<string>();
             var header = new StringBuilder("channel;energy_kev;measured;model");
             foreach (FsaComponentResult component in result.Components)
@@ -291,6 +319,132 @@ namespace FsaComponentDumpProbe
             Console.WriteLine();
             Console.WriteLine("записано: {0}.csv и {0}-lines.csv", outPrefix);
             return 0;
+        }
+
+        /// <summary>
+        /// СТАДИИ ОБРАЗА ОДНОГО КОМПОНЕНТА — то, что просил внешний рецензент
+        /// 11.09.2026: ненулевые вклады после обычных линий, после каскадных
+        /// добавок и перед уширением, с энергией, весом и происхождением.
+        ///
+        /// Читается ОТРАЖЕНИЕМ из кэша `FsaAnalyzer.deposits`, как это уже
+        /// делает `FsaChannelSplitProbe`: своего построения здесь нет, иначе
+        /// проба мерила бы не то, что пошло в фит. `Values` — гистограмма
+        /// целиком (она и идёт в уширение), `SumPart` — ТОЛЬКО каскадные
+        /// добавки, значит «после обычных линий» = `Values − SumPart`.
+        ///
+        /// Происхождение добавок печатает сам сумматор (`Describe`): энергия
+        /// суммы, слагаемые и площадь.
+        /// </summary>
+        static void Stages(FsaAnalyzer analyzer, List<FsaComponent> library, string name,
+                           double binKev)
+        {
+            FieldInfo field = typeof(FsaAnalyzer).GetField(
+                "deposits", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field == null)
+            {
+                Console.Error.WriteLine("⛔ поля кэша `deposits` нет — проба смотрит не туда");
+                return;
+            }
+
+            var cache = field.GetValue(analyzer) as System.Collections.IDictionary;
+            if (cache == null || cache.Count == 0)
+            {
+                Console.Error.WriteLine("⛔ кэш гистограмм пуст");
+                return;
+            }
+
+            foreach (System.Collections.DictionaryEntry entry in cache)
+            {
+                var component = entry.Key as FsaComponent;
+                if (component == null
+                    || !string.Equals(component.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                object deposit = entry.Value;
+                if (deposit == null)
+                {
+                    Console.WriteLine("у образа {0} гистограммы нет вовсе", name);
+                    return;
+                }
+
+                double[] values = FieldOf<double[]>(deposit, "Values");
+                double[] sumPart = FieldOf<double[]>(deposit, "SumPart");
+                double[] tail = FieldOf<double[]>(deposit, "Tail");
+
+                Console.WriteLine();
+                Console.WriteLine("=== СТАДИИ ОБРАЗА «{0}» (бин {1} кэВ) ===",
+                                  name, F(binKev, 2));
+                Console.WriteLine("линий в образе: {0}", component.Lines.Count);
+                Console.WriteLine("длина гистограммы: {0} бинов (верх {1} кэВ)",
+                                  values != null ? values.Length : 0,
+                                  F(values != null ? (values.Length - 1) * binKev : 0.0, 1));
+                Console.WriteLine("каскадных добавок в гистограмме: {0}",
+                                  sumPart != null ? "есть" : "нет");
+                Console.WriteLine("подпороговый хвост: {0}", tail != null ? "отвязан" : "нет");
+                Console.WriteLine();
+                Console.WriteLine("{0,8} {1,10} {2,16} {3,16} {4,16}",
+                                  "бин", "кэВ", "только линии", "каскадные суммы", "всего");
+
+                int shown = 0;
+                for (int b = 0; values != null && b < values.Length; b++)
+                {
+                    double total = values[b];
+                    double sum = sumPart != null && b < sumPart.Length ? sumPart[b] : 0.0;
+                    double lines = total - sum;
+                    if (!(total > 0.0) && !(sum > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // Печатаются ВСЕ ненулевые бины каскадной части и только
+                    // заметные бины линий: у линии их полторы сотни, у добавок
+                    // единицы, и вопрос стоит о добавках.
+                    if (!(sum > 0.0) && shown > 24)
+                    {
+                        continue;
+                    }
+
+                    Console.WriteLine("{0,8} {1,10} {2,16} {3,16} {4,16}",
+                                      b, F(b * binKev, 1), E(lines), E(sum), E(total));
+                    shown++;
+                }
+
+                FsaCascadeSummer summer = FieldOf<FsaCascadeSummer>(analyzer, "cascade");
+                if (summer != null)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("=== ЧТО ДОБАВИЛ КАСКАДНЫЙ СУММАТОР (его собственный отчёт) ===");
+                    Console.WriteLine(summer.Describe(component));
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("каскадного сумматора у разбора НЕТ (выключен)");
+                }
+
+                return;
+            }
+
+            Console.WriteLine("образа «{0}» в кэше нет", name);
+        }
+
+        static T FieldOf<T>(object target, string name) where T : class
+        {
+            if (target == null)
+            {
+                return null;
+            }
+
+            FieldInfo field = target.GetType().GetField(name,
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            return field != null ? field.GetValue(target) as T : null;
+        }
+
+        static string E(double value)
+        {
+            return value.ToString("E4", CultureInfo.InvariantCulture);
         }
 
         static int CountOf(IEnumerable<NuclideDefinition> definitions)
