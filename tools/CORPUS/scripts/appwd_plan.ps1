@@ -1314,7 +1314,7 @@ function Invoke-AppWdGuard {
                     ([string]$st.sources.app.fp).Substring(0, 12), $st.sources.app.n,
                     ([string]$st.sources.probes.fp).Substring(0, 12), $st.sources.probes.n)
     }
-    Write-Host ("  сверено  : {0} файлов по sha256 за {1} с" -f $Plan.Pairs.Count, $sw.Elapsed.TotalSeconds.ToString('F2'))
+    Write-Host ("  сверено  : {0} файлов по sha256 за {1} с" -f $Plan.Pairs.Count, $sw.Elapsed.TotalSeconds.ToString('F2', [System.Globalization.CultureInfo]::InvariantCulture))
     # ⛔ БИБЛИОТЕКА НАЗЫВАЕТСЯ ПОИМЁННО, А НЕ ОДНИМ ЧИСЛОМ (`T172`): под словом
     #    «поставочная» в дереве лежат ДВА разных файла, и журнал корпусного
     #    замера обязан нести, какой из них считал. Отпечаток — по

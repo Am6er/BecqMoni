@@ -223,7 +223,7 @@ if ($code -ne 0) {
 }
 
 Write-Output ''
-Write-Output ("ПРОГОН МАЛОЙ БАЗЫ: {0:N1} с" -f $spent)
+Write-Output ("ПРОГОН МАЛОЙ БАЗЫ: {0} с" -f $spent.ToString('F1', [System.Globalization.CultureInfo]::InvariantCulture))
 
 if (-not $SkipScore) {
     foreach ($part in @('known', 'unknown')) {
