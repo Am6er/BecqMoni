@@ -1,4 +1,4 @@
-using BecquerelMonitor.FullSpectrumAnalysis;
+﻿using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
@@ -624,6 +624,9 @@ namespace BecquerelMonitor
                     // она идёт по низу поля.
                     this.DrawFsaCurve(g, spectrumPen, this.fsaNetSpectrum, clampToFloor: true);
                 }
+
+                // (`AMBER17`) Опоры привязки шкалы — метками над верхом стека.
+                this.DrawFsaAnchors(g, result, this.fsaCumulative[layers.Count - 1]);
             }
             finally
             {
@@ -632,6 +635,75 @@ namespace BecquerelMonitor
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// (`AMBER17`) МЕТКИ ОПОР ПРИВЯЗКИ ШКАЛЫ — решение Amber 11.09.2026
+        /// «ВКЛ умолчанием — привязка работает сама, слой показывает опоры».
+        /// Слой — ИНДИКАТОР, не кнопка: человек видит, какие пики полного
+        /// поглощения стали опорами шкалы; на сколько шкала сдвинута — числом
+        /// в окне отчёта (строка «Scale anchoring»).
+        ///
+        /// Метка — треугольник остриём вниз над верхом стека на энергии
+        /// МОДЕЛЬНОГО центра опоры (после привязки он и есть измеренный);
+        /// цвет — цвет канала полного поглощения, «синего». Отвергнутые
+        /// кандидаты не рисуются: на графике им нечего сказать, их место —
+        /// в подсказке строки отчёта.
+        /// </summary>
+        void DrawFsaAnchors(Graphics g, FsaResult result, double[] modelTop)
+        {
+            if (result == null || result.ScaleAnchors == null || result.ScaleAnchorsUsed == 0
+                || modelTop == null || this.energyCalibration == null || this.energySpectrum == null)
+            {
+                return;
+            }
+
+            int channels = this.energySpectrum.NumberOfChannels;
+            using (Brush fill = new SolidBrush(FsaPalette.AnchorMarkColor))
+            using (Pen edge = new Pen(Color.FromArgb(220, Color.White)))
+            {
+                foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
+                {
+                    if (!anchor.Used || double.IsNaN(anchor.ModelKev))
+                    {
+                        continue;
+                    }
+
+                    double channel = this.energyCalibration.EnergyToChannel(anchor.ModelKev, maxChannels: channels);
+                    int index = (int)Math.Round(channel);
+                    if (index < 0 || index >= modelTop.Length || index >= channels)
+                    {
+                        continue;
+                    }
+
+                    int x = this.horizontalUnit == HorizontalUnit.Energy
+                        ? (int)((anchor.ModelKev - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale)
+                          + this.scrollX + this.left
+                        : (int)(channel * this.horizontalScale) + this.scrollX + this.left;
+                    if (x < Math.Max(this.VisibleLeftPixel, this.left) || x > this.VisibleRightPixel)
+                    {
+                        continue;
+                    }
+
+                    double value = this.ScaleFsaValue(modelTop[index]);
+                    int y = value > 0.0 ? this.GetSpectrumValueY(value) : this.height;
+                    if (y > this.height)
+                    {
+                        y = this.height;
+                    }
+
+                    // Остриё в 4 пикселях над верхом стека, основание выше на 9.
+                    int tip = Math.Max(10, y - 4);
+                    Point[] mark =
+                    {
+                        new Point(x, tip),
+                        new Point(x - 5, tip - 9),
+                        new Point(x + 5, tip - 9)
+                    };
+                    g.FillPolygon(fill, mark);
+                    g.DrawPolygon(edge, mark);
+                }
+            }
         }
 
         /// <summary>

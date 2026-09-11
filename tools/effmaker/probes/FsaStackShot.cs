@@ -36,7 +36,7 @@ namespace FsaStackShot
     ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
     ///                [--refit-z-rel=0.1]
-    ///                [--no-drift] [--gain-steps=N] [--offset-steps=N]
+    ///                [--no-drift] [--no-anchor] [--gain-steps=N] [--offset-steps=N]
     ///                [--knots=4]
     ///                [--calculating]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
@@ -107,6 +107,8 @@ namespace FsaStackShot
             // человек с включённой галкой. Без ключа остаётся прежний путь.
             bool infer = false, equilibrium = true, needMatrix = true, libDump = false;
             int gainSteps = 0, offsetSteps = 0;
+            // (`AMBER17`) Плечо A/B: привязка шкалы по пикам выключена.
+            bool anchor = true;
             double knots = double.NaN;
             bool showCalculating = false;
             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
@@ -142,6 +144,7 @@ namespace FsaStackShot
                 else if (a.StartsWith("--offset-steps=", StringComparison.Ordinal))
                     offsetSteps = int.Parse(a.Substring(15), CultureInfo.InvariantCulture);
                 else if (a == "--no-drift") { gainSteps = 1; offsetSteps = 1; }
+                else if (a == "--no-anchor") anchor = false;
                 else if (a == "--calculating") showCalculating = true;
                 else if (a.StartsWith("--knots=", StringComparison.Ordinal))
                     knots = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
@@ -355,6 +358,7 @@ namespace FsaStackShot
                 analyzer.ContinuumKnotFwhm = knots;
             }
 
+            analyzer.AnchorScale = anchor;
             if (gainSteps > 0)
             {
                 analyzer.GainSteps = gainSteps;

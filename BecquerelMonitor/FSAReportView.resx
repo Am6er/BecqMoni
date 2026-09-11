@@ -5139,6 +5139,24 @@
   <data name="FSAReport_DriftEdge" xml:space="preserve">
     <value>at grid edge</value>
   </data>
+  <data name="FSAReport_AnchorRow" xml:space="preserve">
+    <value>Scale anchoring, anchors</value>
+  </data>
+  <data name="FSAReport_AnchorGainRow" xml:space="preserve">
+    <value>Gain from anchors, %</value>
+  </data>
+  <data name="FSAReport_AnchorZeroRow" xml:space="preserve">
+    <value>Zero from anchors, keV</value>
+  </data>
+  <data name="FSAReport_AnchorNone" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="FSAReport_AnchorTip" xml:space="preserve">
+    <value>Full-absorption peaks the scale was tied to (+ used, - rejected): component, model centre keV, residual keV, peak share, reason</value>
+  </data>
+  <data name="FSAReport_AnchorTipLine" xml:space="preserve">
+    <value>{0} {1} {2} keV, residual {3} keV, share {4} {5}</value>
+  </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Composition suppressed by</value>
   </data>

@@ -238,6 +238,24 @@
   <data name="FSAReport_DriftEdge" xml:space="preserve">
     <value>край сетки</value>
   </data>
+  <data name="FSAReport_AnchorRow" xml:space="preserve">
+    <value>Привязка шкалы, опор</value>
+  </data>
+  <data name="FSAReport_AnchorGainRow" xml:space="preserve">
+    <value>Усиление по опорам, %</value>
+  </data>
+  <data name="FSAReport_AnchorZeroRow" xml:space="preserve">
+    <value>Ноль по опорам, кэВ</value>
+  </data>
+  <data name="FSAReport_AnchorNone" xml:space="preserve">
+    <value>нет</value>
+  </data>
+  <data name="FSAReport_AnchorTip" xml:space="preserve">
+    <value>Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина</value>
+  </data>
+  <data name="FSAReport_AnchorTipLine" xml:space="preserve">
+    <value>{0} {1} {2} кэВ, остаток {3} кэВ, доля {4} {5}</value>
+  </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Состав пересилен образом</value>
   </data>

@@ -220,6 +220,46 @@ namespace CorpusFsaProbe
                 if (a == "--decay-time-prob") { o.DecayTimeProbability = true; continue; }
                 if (a == "--no-decay-time-prob") { o.DecayTimeProbability = false; continue; }
                 if (a == "--no-backscatter") { o.Backscatter = false; continue; }
+                // (`AMBER17`) Привязка шкалы по пикам полного поглощения —
+                // ВКЛ умолчанием (решение Amber 11.09.2026); ключ — плечо A/B.
+                // `--anchor-share=` — порог доли синего канала для развёртки,
+                // `--anchor-passes=` и `--anchor-offset-min=` — рычаги замера.
+                if (a == "--no-anchor") { o.Anchor = false; continue; }
+                if (a.StartsWith("--anchor-share=", StringComparison.Ordinal))
+                {
+                    o.AnchorShare = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-passes=", StringComparison.Ordinal))
+                {
+                    o.AnchorPasses = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-offset-min=", StringComparison.Ordinal))
+                {
+                    o.AnchorOffsetMin = int.Parse(a.Substring(20), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-z=", StringComparison.Ordinal))
+                {
+                    o.AnchorZ = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-window=", StringComparison.Ordinal))
+                {
+                    o.AnchorWindow = double.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-floor=", StringComparison.Ordinal))
+                {
+                    o.AnchorFloor = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-minfwhm=", StringComparison.Ordinal))
+                {
+                    o.AnchorMinFwhm = double.Parse(a.Substring(17), CultureInfo.InvariantCulture);
+                    continue;
+                }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
                 // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
@@ -1147,6 +1187,44 @@ namespace CorpusFsaProbe
                 analyzer.GainSteps = o.GainSteps;
             }
 
+            // (`AMBER17`) Ключ обязан ДОЕХАТЬ до анализатора (`A268`): читатель —
+            // строка `FsaTuningReport.Print` отражением.
+            analyzer.AnchorScale = o.Anchor;
+            if (o.AnchorShare >= 0.0)
+            {
+                analyzer.AnchorShareThreshold = o.AnchorShare;
+            }
+
+            if (o.AnchorPasses > 0)
+            {
+                analyzer.AnchorPasses = o.AnchorPasses;
+            }
+
+            if (o.AnchorOffsetMin > 0)
+            {
+                analyzer.AnchorOffsetMinAnchors = o.AnchorOffsetMin;
+            }
+
+            if (o.AnchorZ >= 0.0)
+            {
+                analyzer.AnchorMinZ = o.AnchorZ;
+            }
+
+            if (o.AnchorWindow > 0.0)
+            {
+                analyzer.AnchorWindowFwhm = o.AnchorWindow;
+            }
+
+            if (o.AnchorFloor >= 0.0)
+            {
+                analyzer.AnchorSigmaFloorFwhm = o.AnchorFloor;
+            }
+
+            if (o.AnchorMinFwhm >= 0.0)
+            {
+                analyzer.AnchorMinFwhmChannels = o.AnchorMinFwhm;
+            }
+
             return analyzer;
         }
 
@@ -1924,6 +2002,10 @@ namespace CorpusFsaProbe
                 row.OffsetChannels = result.OffsetChannels;
                 row.GainOnGridEdge = result.GainOnGridEdge;
                 row.OffsetOnGridEdge = result.OffsetOnGridEdge;
+                row.AnchorsUsed = result.ScaleAnchorsUsed;
+                row.AnchorOffsetKev = result.AnchorOffsetKev;
+                row.AnchorNote = result.AnchorNote ?? "";
+                row.Anchors = result.ScaleAnchors;
                 // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
                 // поднимается тогда и только тогда, когда хоть один образ
                 // ОТЧЁТНОГО фита построен матрицей (`FitOnce`,
@@ -2905,6 +2987,48 @@ namespace CorpusFsaProbe
                                           + " наложения), строить матрице было нечего", "");
                     }
                 }
+
+                // (`AMBER17`) ЧИТАТЕЛЬ ПРИВЯЗКИ ШКАЛЫ. Без него «привязка не
+                // важна» и «привязка не доехала» неразличимы (`S101`, `T65`):
+                // сколько спектров получили опоры, сколько остались на своей
+                // калибровке, и крупнейшие сдвиги поимённо.
+                int anchored = 0, unanchored = 0;
+                var biggest = new List<KeyValuePair<double, string>>();
+                foreach (Row r in of)
+                {
+                    if (r.Error != null)
+                    {
+                        continue;
+                    }
+
+                    if (r.AnchorsUsed > 0)
+                    {
+                        anchored++;
+                        double gainPct = 100.0 * (r.Gain - 1.0);
+                        biggest.Add(new KeyValuePair<double, string>(
+                            Math.Abs(gainPct) + Math.Abs(r.AnchorOffsetKev),
+                            string.Format(CultureInfo.InvariantCulture, "{0} ({1} оп., усил. {2:+0.00;-0.00} %, ноль {3:+0.00;-0.00} кэВ)",
+                                          r.Key, r.AnchorsUsed, gainPct, r.AnchorOffsetKev)));
+                    }
+                    else
+                    {
+                        unanchored++;
+                    }
+                }
+
+                if (anchored + unanchored > 0)
+                {
+                    biggest.Sort((x, z) => z.Key.CompareTo(x.Key));
+                    var top = new List<string>();
+                    for (int i = 0; i < biggest.Count && i < 5; i++)
+                    {
+                        top.Add(biggest[i].Value);
+                    }
+
+                    Console.WriteLine("{0,-10} привязка шкалы (AMBER17): с опорами {1}, без опор {2}{3}", "",
+                                      anchored, unanchored,
+                                      top.Count > 0 ? "; крупнейшие сдвиги: " + string.Join("; ", top.ToArray()) : "");
+                }
             }
 
             PrintRefitZCensus(rows);
@@ -3069,7 +3193,12 @@ namespace CorpusFsaProbe
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
+                // (`AMBER17`) Все кандидаты в опоры привязки, принятые и
+                // отвергнутые, — сырьё развёртки порога доли синего канала.
+                using (var anchors = new StreamWriter(prefix + "_anchors.csv", false, new UTF8Encoding(true)))
                 {
+                    anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
+                                      + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal");
                     // Новые колонки — только В КОНЕЦ строки: score.py читает
                     // по именам (DictReader), но чужой разбор по номерам колонок
                     // вставка в середину сломала бы молча.
@@ -3087,7 +3216,11 @@ namespace CorpusFsaProbe
                                    + "matrix_note,cascade,efficiency,background,peaks,components,"
                                    + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
                                    + "model_residual_pct,library,library_note,matrix_found,"
-                                   + "share_dropped_lines,share_offered_lines,matrix_images");
+                                   + "share_dropped_lines,share_offered_lines,matrix_images,"
+                                   // (`AMBER17`) Привязка шкалы: опор в МНК, ноль в кэВ
+                                   // (усиление — колонка `gain` выше, она и есть
+                                   // найденное привязкой), служебная строка.
+                                   + "anchors_used,anchor_offset_kev,anchor_note");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -3161,11 +3294,29 @@ namespace CorpusFsaProbe
                             MatrixFound(r) ? "1" : "0",
                             r.ShareDropped.ToString(CultureInfo.InvariantCulture),
                             r.ShareOffered.ToString(CultureInfo.InvariantCulture),
-                            r.MatrixImages.ToString(CultureInfo.InvariantCulture)));
+                            r.MatrixImages.ToString(CultureInfo.InvariantCulture),
+                            r.AnchorsUsed.ToString(CultureInfo.InvariantCulture),
+                            F(r.AnchorOffsetKev, "F3"),
+                            Csv(r.AnchorNote)));
 
                         if (r.Result == null)
                         {
                             continue;
+                        }
+
+                        if (r.Anchors != null)
+                        {
+                            foreach (FsaScaleAnchor an in r.Anchors)
+                            {
+                                anchors.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(an.Component ?? ""),
+                                    F(an.LineKev, "F3"), F(an.ModelKev, "F3"), F(an.MeasuredKev, "F3"),
+                                    F(an.ShiftKev, "F3"), F(an.SigmaKev, "F3"),
+                                    F(an.PeakShare, "F4"), F(an.Z, "F2"),
+                                    an.FirstChannel.ToString(CultureInfo.InvariantCulture),
+                                    an.LastChannel.ToString(CultureInfo.InvariantCulture),
+                                    an.Used ? "1" : "0", Csv(an.Refusal ?? "")));
+                            }
                         }
 
                         foreach (FsaComponentResult c in r.Result.Components)
@@ -3643,6 +3794,18 @@ namespace CorpusFsaProbe
             public double GainRange;        // 0 — ключ не задан, умолчание у анализатора
             public int GainSteps;           // 0 — ключ не задан, умолчание у анализатора
 
+            // (`AMBER17`) Привязка шкалы по пикам полного поглощения: плечо A/B
+            // и рычаги развёртки. Отрицательное — ключ не задан, умолчание у
+            // анализатора (`T65`: числа здесь не повторяются).
+            public bool Anchor = true;
+            public double AnchorShare = -1.0;
+            public int AnchorPasses = -1;
+            public int AnchorOffsetMin = -1;
+            public double AnchorZ = -1.0;
+            public double AnchorWindow = -1.0;
+            public double AnchorFloor = -1.0;
+            public double AnchorMinFwhm = -1.0;
+
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
             // расширил сетку до ±8 кэВ / ±2 % по 17 узлов.
@@ -3960,6 +4123,19 @@ namespace CorpusFsaProbe
             public int ShareDropped;
 
             public int ShareOffered;
+
+            /// <summary>
+            /// (`AMBER17`) Привязка шкалы на этом спектре: сколько опор вошло в
+            /// МНК, найденный ноль в кэВ, служебная строка анализатора и все
+            /// кандидаты — для развёртки порога доли синего канала.
+            /// </summary>
+            public int AnchorsUsed;
+
+            public double AnchorOffsetKev;
+
+            public string AnchorNote = "";
+
+            public List<FsaScaleAnchor> Anchors;
 
             /// <summary>
             /// (`A268`, разряд ~~`T240`~~) ЧТО СДЕЛАЛ ОТСЕВ ПО ЗНАЧИМОСТИ на
