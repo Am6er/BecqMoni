@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -82,13 +83,20 @@ namespace BackscatterShapeProbe
             // его нет.
             //
             // Матрица раскладывает отклик по каналам исхода (`Peak`, `Compton`,
-            // `EscapeAnnihilation`, `EscapeXray`, `EscapeAnnihilationDouble`),
-            // и вылет живёт в своём. Квант, ушедший
+            // `EscapeAnnihilation`, `EscapeXrayK`, `EscapeAnnihilationDouble`,
+            // `EscapeXrayL`), и вылет живёт в своём. Квант, ушедший
             // в обвязку, рассеявшийся там назад и поглощённый целиком, уносит
             // часть энергии — значит метка «утечка», канал `Compton`. Там его и
             // ищем.
+            //
+            // ⚠ (`AMBER16` п. 1) Имена перечислены В ПОРЯДКЕ НОМЕРОВ, а номер —
+            // это строка в файле матрицы. У матрицы, посчитанной ДО заведения
+            // канала, строк меньше, и лишние остаются нулями: `HasChannels`
+            // проверяется, а `AccumulateShifted` на отсутствующий номер отдаёт
+            // пустоту.
             string[] channelNames = { "Peak", "Compton", "EscapeAnnihilation",
-                                      "EscapeXray", "EscapeAnnihilationDouble" };
+                                      "EscapeXrayK", "EscapeAnnihilationDouble",
+                                      "EscapeXrayL" };
             double[][] byChannel = new double[channelNames.Length][];
             bool hasChannels = matrix.HasChannels;
             for (int c = 0; c < channelNames.Length; c++)
@@ -160,20 +168,34 @@ namespace BackscatterShapeProbe
             {
                 using (var w = new StreamWriter(outCsv, false, new UTF8Encoding(true)))
                 {
-                    w.WriteLine("energy_kev,response,peak,compton,escape511,escapexray,image");
+                    // ⚠ (`AMBER16` п. 1) Колонки — ВСЕ каналы, поимённо из того же
+                    // списка, что и печать выше. Прежняя шапка была вписана
+                    // руками («escape511», четыре канала) и отстала от кода на
+                    // два разведения: имя канала сменилось 10.09.2026, пятый и
+                    // шестой каналы в таблицу не попадали вовсе.
+                    var head = new List<string> { "energy_kev", "response" };
+                    foreach (string name in channelNames)
+                    {
+                        head.Add(name.ToLowerInvariant());
+                    }
+
+                    head.Add("image");
+                    w.WriteLine(string.Join(",", head));
                     for (int i = 0; i < bins; i++)
                     {
                         double e = (i + 0.5) * bin;
-                        w.WriteLine(string.Join(",", new[]
+                        var cells = new List<string>
                         {
                             e.ToString("F3", CultureInfo.InvariantCulture),
-                            response[i].ToString("E6", CultureInfo.InvariantCulture),
-                            byChannel[0][i].ToString("E6", CultureInfo.InvariantCulture),
-                            byChannel[1][i].ToString("E6", CultureInfo.InvariantCulture),
-                            byChannel[2][i].ToString("E6", CultureInfo.InvariantCulture),
-                            byChannel[3][i].ToString("E6", CultureInfo.InvariantCulture),
-                            image[i].ToString("E6", CultureInfo.InvariantCulture)
-                        }));
+                            response[i].ToString("E6", CultureInfo.InvariantCulture)
+                        };
+                        for (int c = 0; c < channelNames.Length; c++)
+                        {
+                            cells.Add(byChannel[c][i].ToString("E6", CultureInfo.InvariantCulture));
+                        }
+
+                        cells.Add(image[i].ToString("E6", CultureInfo.InvariantCulture));
+                        w.WriteLine(string.Join(",", cells));
                     }
                 }
 

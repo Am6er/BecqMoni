@@ -251,10 +251,21 @@ namespace MatrixAuditProbe
                 // перечислением при следующем канале молча.
                 if (chans != EfficiencySimulator.ResponseChannelCount)
                 {
+                    // Какое именно разведение файл не застал — по числу
+                    // каналов: 4 — ни SE/DE, ни K/L; 5 — SE/DE есть, K/L нет.
+                    // ⚠ (`AMBER16` п. 1) Шестиканальный файл, посчитанный БЕЗ
+                    // ключа `--xrkl=1`, сюда не попадает: у него шесть строк и
+                    // пустая шестая, это не «до разведения», а «разведение
+                    // выключено» — и это видит клеймо (`xrkl=1`), а не счёт строк.
+                    string missed = chans <= 4
+                        ? "ДО разведения SE/DE (`AMBER15`) и K/L (`AMBER16` п. 1)"
+                        : chans == 5
+                            ? "ДО заведения канала L-вылета (`AMBER16` п. 1)"
+                            : "с ЧУЖИМ числом каналов";
                     findings.Add(string.Format(CultureInfo.InvariantCulture,
-                        "{0}: каналов {1}, а код знает {2} — посчитана ДО разведения SE/DE"
-                        + " (`AMBER15`), клеймо этого НЕ видит", name, chans,
-                        EfficiencySimulator.ResponseChannelCount));
+                        "{0}: каналов {1}, а код знает {2} — посчитана {3}, "
+                        + "клеймо этого НЕ видит", name, chans,
+                        EfficiencySimulator.ResponseChannelCount, missed));
                 }
 
                 // ⛔ ИМЯ ФАЙЛА — НЕ ВСЕГДА КЛЮЧ СЦЕНЫ (`A84`). В складе файл
