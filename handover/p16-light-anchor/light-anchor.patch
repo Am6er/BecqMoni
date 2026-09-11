@@ -1,0 +1,1235 @@
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+index 5d0423a4..c7afcb54 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+@@ -1,4 +1,4 @@
+-﻿using System;
++using System;
+ using System.Collections.Generic;
+ using System.Globalization;
+ using System.Linq;
+@@ -1337,6 +1337,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+         string anchorNote;
+ 
++        /// <summary>
++        /// (П14 11.09.2026, ЗАМЕР) Квадратичный член шкалы, каналы⁻¹:
++        /// p″ = g·p + o + q·p². Нуль, пока привязка степени 2
++        /// (<see cref="AnchorPolyDegree"/>) его не подобрала. Поле, а не
++        /// параметр: усиление и ноль едут по всем построителям параметрами,
++        /// и тянуть третий сквозь сорок сигнатур ради замера нельзя; читается
++        /// ТОЛЬКО в <see cref="DriftPosition"/>, сбрасывается в начале
++        /// <see cref="Analyze"/>.
++        /// </summary>
++        double driftQuad;
++
++        /// <summary>
++        /// (П16 11.09.2026, ЗАМЕР) Коэффициент β световой координаты шкалы:
++        /// p″ = g·p + o + q·p² + β·S(p), где S(p) — сдвиг положения в каналах,
++        /// который даёт кривая света r(E) при β = 1
++        /// (<see cref="lightShiftChannels"/>): s(E) = E·r(E)/r(E₀) − E.
++        /// Нуль, пока <see cref="AnchorLightCurve"/> пуст. Поле по тем же
++        /// доводам, что <see cref="driftQuad"/>; читается ТОЛЬКО в
++        /// <see cref="DriftPosition"/>, сбрасывается в начале <see cref="Analyze"/>.
++        /// </summary>
++        double driftLight;
++
++        /// <summary>(П16) S(p) по каналам спектра при β = 1, каналы; null — координата выключена.</summary>
++        double[] lightShiftChannels;
++
++        /// <summary>(П16) max |S(p)| по полосе, каналы — для условия сходимости.</summary>
++        double lightShiftMax;
++
+         /// <summary>
+         /// ⛔ (`AMBER8`) ВЫЛЕТА БЕЗ РОДИТЕЛЯ НЕ БЫВАЕТ: образ `SE-*`/`DE-*`
+         /// снимается, когда его родительская колонка не дожила до этого
+@@ -1535,6 +1563,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         public double AnchorMinFwhmChannels { get; set; }
+ 
++        /// <summary>
++        /// (П16, ЗАМЕР — приёмка выбросом узла) Линии, кэВ, которым ЗАПРЕЩЕНО
++        /// быть опорами: кандидат с такой линией ядра (±0.5 кэВ) получает отказ
++        /// "skip" и в МНК не идёт, а его остаток печатается как у любого
++        /// отказа. Пусто умолчанием; рычаг — `--anchor-skip=`.
++        /// </summary>
++        public double[] AnchorSkipKev { get; set; }
++
+         /// <summary>
+         /// (`AMBER17`) Систематический пол погрешности центра опоры — доля
+         /// ПШПВ, складывается с пуассоновской в квадратуре. Без него σ центра
+@@ -1555,6 +1591,79 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         public int AnchorOffsetMinAnchors { get; set; }
+ 
++        /// <summary>
++        /// (П14 11.09.2026, ЗАМЕР — умолчание ставит конструктор, ⛔ НЕ
++        /// МЕНЯТЬ без решения Amber «сначала замер, умолчание не менять»)
++        /// Степень многочлена привязки: единица — прямая (усиление и ноль,
++        /// `AMBER17`); двойка — ещё и квадратичный член, подбираемый тем же
++        /// взвешенным МНК при числе принятых опор не меньше
++        /// <see cref="AnchorPolyMinAnchors"/>, плече опор вдвое и выигрыше χ²
++        /// опор не меньше <see cref="AnchorPolyMinDeltaChi2"/>; иначе — как
++        /// прямая. Нуль — опоры собираются и печатаются, шкала НЕ двигается
++        /// (ряд «модель без привязки» для замера нелинейности). Рычаг —
++        /// `--anchor-poly=`.
++        /// </summary>
++        public int AnchorPolyDegree { get; set; }
++
++        /// <summary>
++        /// (П14) Меньше стольких принятых опор — квадратичный член не
++        /// подбирается. При трёх опорах парабола — интерполяция: ошибка любой
++        /// опоры уходит в шкалу целиком. Умолчание — в конструкторе; развёртка
++        /// порога — `--anchor-poly-min=`.
++        /// </summary>
++        public int AnchorPolyMinAnchors { get; set; }
++
++        /// <summary>
++        /// (П14) Квадратичный член принимается, только если снижает χ² опор не
++        /// меньше чем на столько против лучшей прямой — то же двухсигмовое
++        /// правило, что у нуля. 0 — принимать всегда при достаточном числе
++        /// опор. Рычаг — `--anchor-poly-dchi=`.
++        /// </summary>
++        public double AnchorPolyMinDeltaChi2 { get; set; }
++
++        /// <summary>
++        /// (П14) Квадратичный член принимается только МОНОТОННЫМ на полосе
++        /// фита: вершина параболы вне полосы. Иначе три опоры Ba-133 (31, 81,
++        /// 356 кэВ) дают параболу с вершиной на 1760 кэВ — внутри полосы
++        /// 1024-канального G1S — и всё выше вершины ставится задом наперёд;
++        /// у Ba-133 там линий нет, и фит этого не видит, а у образа фона
++        /// (K-40 1461) увидел бы. Умолчание — в конструкторе; рычаг —
++        /// `--anchor-poly-mono=`.
++        /// </summary>
++        public bool AnchorPolyMonotonic { get; set; }
++
++        /// <summary>
++        /// (П16 11.09.2026, ЗАМЕР — умолчание пусто, ⛔ НЕ МЕНЯТЬ без решения
++        /// Amber «Параболу не включать; замер r(E)») Кривая относительного
++        /// света на фотон r(E) для световой координаты привязки: пусто —
++        /// координата выключена (шкала `AMBER17`); "model" — собственная
++        /// фотонная кривая модели (`LightScaleProbe`, G1S_point5, 200k
++        /// историй, П14); "lit" — Ходюк 2010/2012 дословно в 9…100 кэВ и
++        /// форма модели, растянутая к 111.2 % на 100 кэВ, выше. Таблицы —
++        /// <see cref="FsaLightScale"/>. Рычаг — `--anchor-light=`.
++        /// </summary>
++        public string AnchorLightCurve { get; set; }
++
++        /// <summary>
++        /// (П16) β: единица — пик модели стоит там, где его ставит свет; нуль —
++        /// как без координаты. При <see cref="AnchorLightBetaFree"/> — запасное
++        /// значение, когда подбор невозможен (опор меньше порога или нет плеча).
++        /// Умолчание — в конструкторе; рычаг — `--anchor-beta=`.
++        /// </summary>
++        public double AnchorLightBeta { get; set; }
++
++        /// <summary>(П16) β подбирается тем же взвешенным МНК (базис {1, x, S}) при плече и опорах ≥ <see cref="AnchorLightMinAnchors"/>.</summary>
++        public bool AnchorLightBetaFree { get; set; }
++
++        /// <summary>(П16) Меньше стольких опор — β не подбирается, берётся <see cref="AnchorLightBeta"/>.</summary>
++        public int AnchorLightMinAnchors { get; set; }
++
++        /// <summary>(П16) Подобранный β принимается за выигрыш χ² опор не меньше этого против прямой при запасном β; 0 — всегда.</summary>
++        public double AnchorLightMinDeltaChi2 { get; set; }
++
++        /// <summary>(П16) E₀ — энергия, на которой s(E₀) = 0 (калибровочная линия прибора, Cs-137); число — в конструкторе.</summary>
++        public double AnchorLightReferenceKev { get; set; }
++
+         /// <summary>
+         /// Добавлять образы обратного рассеяния, выведенные из найденного
+         /// состава. Мерено дважды, и числа принадлежат РАЗНОМУ коду:
+@@ -1724,7 +1833,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         double DriftPosition(double position, double gain, double offset)
+         {
+-            return gain * position + offset;
++            // (П14) квадратичный член — поле, см. `driftQuad`; умолчанием нуль.
++            // (П16) световая координата — поле `driftLight` × таблица S(p).
++            return gain * position + offset + this.driftQuad * position * position
++                   + this.driftLight * this.LightShift(position);
++        }
++
++        /// <summary>(П16) S(p), каналы: линейная интерполяция таблицы <see cref="lightShiftChannels"/>; 0 без таблицы.</summary>
++        double LightShift(double position)
++        {
++            double[] table = this.lightShiftChannels;
++            if (table == null || table.Length == 0 || !Finite(position))
++            {
++                return 0.0;
++            }
++
++            if (position <= 0.0)
++            {
++                return table[0];
++            }
++
++            int last = table.Length - 1;
++            if (position >= last)
++            {
++                return table[last];
++            }
++
++            int lo = (int)position;
++            double frac = position - lo;
++            return table[lo] + (table[lo + 1] - table[lo]) * frac;
+         }
+ 
+         /// <summary>
+@@ -1769,10 +1906,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                                                  double gain, double offset,
+                                                  int chLo, int chHi, int channels,
+                                                  double[] y, double[] variance, double channelsPerKev,
+-                                                 out double a, out double b, out int used, out string note)
++                                                 out double a, out double b, out double c,
++                                                 out double beta, out int used, out string note)
+         {
+             a = 1.0;
+             b = 0.0;
++            c = 0.0;
++            beta = 0.0;
+             used = 0;
+             note = null;
+             var anchors = new List<FsaScaleAnchor>();
+@@ -1870,6 +2010,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+                 // Рычаг замера, умолчанием ноль — см. `AnchorMinFwhmChannels`.
+                 bool narrow = fwhm < this.AnchorMinFwhmChannels;
++                bool skipped = false;
+ 
+                 int half = Math.Max(2, (int)Math.Round(windowFwhm * fwhm));
+ 
+@@ -2025,6 +2166,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     {
+                         anchor.Refusal = "edge";
+                     }
++                    else if (this.AnchorSkipKev != null && IsSkipped(this.AnchorSkipKev, coreLineKev))
++                    {
++                        anchor.Refusal = "skip";
++                        skipped = true;
++                    }
+                     else if (narrow)
+                     {
+                         anchor.Refusal = "narrow";
+@@ -2047,7 +2193,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     {
+                         fits.Add(new AnchorFit
+                         {
+-                            Anchor = anchor, X = centreModel, Y = centreData, Weight = 1.0 / varCentre
++                            Anchor = anchor, X = centreModel, Y = centreData, Weight = 1.0 / varCentre,
++                            // (П16) световая координата опоры — S на модельном центре
++                            S = this.LightShift(centreModel)
+                         });
+                     }
+                 }
+@@ -2088,18 +2236,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // с промахом в три сигмы — не «шум», а другая структура (сумм-пик,
+             // наложение), и тянуть по ней шкалу нельзя.
+             string how = "усиление";
++            string polyRefused = null;
++            string lightRefused = null;
+             int outliers = 0;
++
++            // (П16, ЗАМЕР) Световая координата. Добавка β к уже стоящему
++            // `driftLight`: при закреплённом β — ровно столько, чтобы итог был
++            // равен заданному; при свободном — то же как запасной ход, а
++            // подбор ниже, 3×3 по базису {1, x, S}. Прямая при закреплённом β
++            // считается по Y' = Y − β·S — та же прямая `AMBER17`, только
++            // свет вычтен из измерения.
++            bool lightOn = this.lightShiftChannels != null;
++            double betaFixedAdd = lightOn ? this.AnchorLightBeta - this.driftLight : 0.0;
++            foreach (AnchorFit f in fits)
++            {
++                f.YEff = f.Y - betaFixedAdd * f.S;
++            }
++
+             while (true)
+             {
++                beta = betaFixedAdd;
+                 double swxx = 0.0, swxy = 0.0, sw = 0.0, swx = 0.0, swy = 0.0;
+                 double xMin = double.MaxValue, xMax = double.MinValue;
+                 foreach (AnchorFit f in fits)
+                 {
+                     sw += f.Weight;
+                     swx += f.Weight * f.X;
+-                    swy += f.Weight * f.Y;
++                    swy += f.Weight * f.YEff;
+                     swxx += f.Weight * f.X * f.X;
+-                    swxy += f.Weight * f.X * f.Y;
++                    swxy += f.Weight * f.X * f.YEff;
+                     xMin = Math.Min(xMin, f.X);
+                     xMax = Math.Max(xMax, f.X);
+                 }
+@@ -2114,7 +2279,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 double chi1 = 0.0;
+                 foreach (AnchorFit f in fits)
+                 {
+-                    double r = f.Y - a1 * f.X;
++                    double r = f.YEff - a1 * f.X;
+                     chi1 += f.Weight * r * r;
+                 }
+ 
+@@ -2139,7 +2304,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                         double chi2 = 0.0;
+                         foreach (AnchorFit f in fits)
+                         {
+-                            double r = f.Y - a2 * f.X - b2;
++                            double r = f.YEff - a2 * f.X - b2;
+                             chi2 += f.Weight * r * r;
+                         }
+ 
+@@ -2152,6 +2317,153 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     }
+                 }
+ 
++                // (П14, ЗАМЕР) Квадратичный член — тем же взвешенным МНК, при
++                // плече, при числе опор не меньше порога и только за выигрыш
++                // χ² опор против лучшей прямой (то же правило, что у нуля).
++                c = 0.0;
++                polyRefused = null;
++                if (this.AnchorPolyDegree >= 2 && lever
++                    && fits.Count >= Math.Max(3, this.AnchorPolyMinAnchors))
++                {
++                    double chiLine = 0.0;
++                    foreach (AnchorFit f in fits)
++                    {
++                        double r = f.YEff - a * f.X - b;
++                        chiLine += f.Weight * r * r;
++                    }
++
++                    // Нормальные уравнения 3×3 по базису {1, x, x²}, x в
++                    // долях верхнего канала — иначе матрица вырождена по
++                    // обусловленности (x² ~ 10⁶).
++                    double xs = xMax;
++                    double[,] m = new double[3, 3];
++                    double[] v = new double[3];
++                    foreach (AnchorFit f in fits)
++                    {
++                        double x = f.X / xs;
++                        double[] basis = { 1.0, x, x * x };
++                        for (int i = 0; i < 3; i++)
++                        {
++                            v[i] += f.Weight * basis[i] * f.YEff;
++                            for (int j = 0; j < 3; j++)
++                            {
++                                m[i, j] += f.Weight * basis[i] * basis[j];
++                            }
++                        }
++                    }
++
++                    double[] sol = Solve3(m, v);
++                    if (sol != null)
++                    {
++                        double b3 = sol[0];
++                        double a3 = sol[1] / xs;
++                        double c3 = sol[2] / (xs * xs);
++                        double chi3 = 0.0;
++                        foreach (AnchorFit f in fits)
++                        {
++                            double r = f.YEff - a3 * f.X - b3 - c3 * f.X * f.X;
++                            chi3 += f.Weight * r * r;
++                        }
++
++                        // Монотонность на полосе: производная a + 2c·x одного
++                        // знака на обоих краях полосы фита.
++                        bool monotonic = !this.AnchorPolyMonotonic
++                                         || ((a3 + 2.0 * c3 * chLo) > 0.0 && (a3 + 2.0 * c3 * chHi) > 0.0);
++                        if (!monotonic)
++                        {
++                            polyRefused = "квадрат отвергнут: вершина параболы внутри полосы";
++                        }
++                        else if (chiLine - chi3 >= this.AnchorPolyMinDeltaChi2)
++                        {
++                            a = a3;
++                            b = b3;
++                            c = c3;
++                            how = "усиление, ноль и квадрат";
++                        }
++                        else
++                        {
++                            polyRefused = string.Format(CultureInfo.InvariantCulture,
++                                "квадрат отвергнут: Δχ² опор {0:F2} < порога", chiLine - chi3);
++                        }
++                    }
++                }
++
++                // (П16, ЗАМЕР) Свободный β — тем же взвешенным МНК по базису
++                // {1, x, S} (x в долях верхнего канала, S в долях своего
++                // максимума), при плече и опорах не меньше порога; принимается
++                // за выигрыш χ² опор против прямой при запасном β.
++                lightRefused = null;
++                if (lightOn && this.AnchorLightBetaFree && lever
++                    && fits.Count >= Math.Max(3, this.AnchorLightMinAnchors))
++                {
++                    double chiFixed = 0.0;
++                    double sMax = 0.0;
++                    foreach (AnchorFit f in fits)
++                    {
++                        double r = f.Y - a * f.X - b - beta * f.S;
++                        chiFixed += f.Weight * r * r;
++                        sMax = Math.Max(sMax, Math.Abs(f.S));
++                    }
++
++                    if (sMax > 1.0E-9)
++                    {
++                        double xs = xMax;
++                        double[,] m = new double[3, 3];
++                        double[] v = new double[3];
++                        foreach (AnchorFit f in fits)
++                        {
++                            double[] basis = { 1.0, f.X / xs, f.S / sMax };
++                            for (int i = 0; i < 3; i++)
++                            {
++                                v[i] += f.Weight * basis[i] * f.Y;
++                                for (int j = 0; j < 3; j++)
++                                {
++                                    m[i, j] += f.Weight * basis[i] * basis[j];
++                                }
++                            }
++                        }
++
++                        double[] sol = Solve3(m, v);
++                        if (sol != null)
++                        {
++                            double b3 = sol[0];
++                            double a3 = sol[1] / xs;
++                            double beta3 = sol[2] / sMax;
++                            double chi3 = 0.0;
++                            foreach (AnchorFit f in fits)
++                            {
++                                double r = f.Y - a3 * f.X - b3 - beta3 * f.S;
++                                chi3 += f.Weight * r * r;
++                            }
++
++                            if (chiFixed - chi3 >= this.AnchorLightMinDeltaChi2)
++                            {
++                                a = a3;
++                                b = b3;
++                                beta = beta3;
++                                how = "усиление, ноль и β";
++                            }
++                            else
++                            {
++                                lightRefused = string.Format(CultureInfo.InvariantCulture,
++                                    "β отвергнут: Δχ² опор {0:F2} < порога", chiFixed - chi3);
++                            }
++                        }
++                        else
++                        {
++                            lightRefused = "β отвергнут: вырожденный МНК";
++                        }
++                    }
++                    else
++                    {
++                        lightRefused = "β отвергнут: S = 0 у всех опор";
++                    }
++                }
++                else if (lightOn && this.AnchorLightBetaFree)
++                {
++                    lightRefused = lever ? "β не подбирался: опор меньше порога" : "β не подбирался: нет плеча";
++                }
++
+                 if (fits.Count <= 2)
+                 {
+                     break;
+@@ -2161,7 +2473,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 double worstPull = 0.0;
+                 foreach (AnchorFit f in fits)
+                 {
+-                    double pull = Math.Abs(f.Y - a * f.X - b) * Math.Sqrt(f.Weight);
++                    double pull = Math.Abs(f.Y - a * f.X - b - c * f.X * f.X - beta * f.S) * Math.Sqrt(f.Weight);
+                     if (pull > worstPull)
+                     {
+                         worstPull = pull;
+@@ -2186,11 +2498,106 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+             used = fits.Count;
+             note = string.Format(CultureInfo.InvariantCulture,
+-                                 "опор {0} из {1} (промахов {6}), {2}: a {3:F5}, b {4:F3} кан. ({5:F2} кэВ)",
+-                                 used, anchors.Count, how, a, b, b / channelsPerKev, outliers);
++                                 "опор {0} из {1} (промахов {6}), {2}: a {3:F5}, b {4:F3} кан. ({5:F2} кэВ), c {7:E3} кан⁻¹",
++                                 used, anchors.Count, how, a, b, b / channelsPerKev, outliers, c);
++            if (polyRefused != null)
++            {
++                note += "; " + polyRefused;
++            }
++
++            if (lightOn)
++            {
++                note += string.Format(CultureInfo.InvariantCulture,
++                                      "; свет {0}: β+ {1:F3} (итого {2:F3})",
++                                      this.AnchorLightCurve, beta, this.driftLight + beta);
++                if (lightRefused != null)
++                {
++                    note += "; " + lightRefused;
++                }
++            }
++
+             return anchors;
+         }
+ 
++        /// <summary>(П16) Линия в списке выброшенных (±0.5 кэВ).</summary>
++        static bool IsSkipped(double[] skip, double lineKev)
++        {
++            foreach (double s in skip)
++            {
++                if (Math.Abs(s - lineKev) <= 0.5)
++                {
++                    return true;
++                }
++            }
++
++            return false;
++        }
++
++        /// <summary>(П14) Решение 3×3 методом Гаусса с выбором ведущего; null при вырождении.</summary>
++        static double[] Solve3(double[,] m, double[] v)
++        {
++            double[,] a = (double[,])m.Clone();
++            double[] b = (double[])v.Clone();
++            for (int col = 0; col < 3; col++)
++            {
++                int piv = col;
++                for (int r = col + 1; r < 3; r++)
++                {
++                    if (Math.Abs(a[r, col]) > Math.Abs(a[piv, col]))
++                    {
++                        piv = r;
++                    }
++                }
++
++                if (!(Math.Abs(a[piv, col]) > 1e-300))
++                {
++                    return null;
++                }
++
++                if (piv != col)
++                {
++                    for (int k = 0; k < 3; k++)
++                    {
++                        double t = a[col, k];
++                        a[col, k] = a[piv, k];
++                        a[piv, k] = t;
++                    }
++
++                    double tb = b[col];
++                    b[col] = b[piv];
++                    b[piv] = tb;
++                }
++
++                for (int r = 0; r < 3; r++)
++                {
++                    if (r == col)
++                    {
++                        continue;
++                    }
++
++                    double f = a[r, col] / a[col, col];
++                    for (int k = col; k < 3; k++)
++                    {
++                        a[r, k] -= f * a[col, k];
++                    }
++
++                    b[r] -= f * b[col];
++                }
++            }
++
++            double[] x = new double[3];
++            for (int i = 0; i < 3; i++)
++            {
++                x[i] = b[i] / a[i, i];
++                if (double.IsNaN(x[i]) || double.IsInfinity(x[i]))
++                {
++                    return null;
++                }
++            }
++
++            return x;
++        }
++
+         /// <summary>
+         /// (`AMBER17`) Чей пик полного поглощения МОЖЕТ быть опорой. Нуклидные
+         /// образы — все. Из приборных — только те, чья линия стоит на ТОЧНО
+@@ -2291,6 +2698,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             public double X;
+             public double Y;
+             public double Weight;
++
++            /// <summary>(П16) Световая координата S(X), каналы, при β = 1.</summary>
++            public double S;
++
++            /// <summary>(П16) Y − β_закр·S — измерение с вычтенным закреплённым светом.</summary>
++            public double YEff;
+         }
+ 
+         /// <summary>
+@@ -2540,6 +2953,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             this.AnchorMaxShiftFwhm = 1.0;
+             this.AnchorPasses = 3;
+             this.AnchorOffsetMinAnchors = 2;
++            this.AnchorPolyDegree = 1;
++            this.AnchorPolyMinAnchors = 4;
++            this.AnchorPolyMinDeltaChi2 = 4.0;
++            this.AnchorPolyMonotonic = true;
++            // (П16) световая координата ВЫКЛЮЧЕНА умолчанием — решение Amber 11.09.2026 «замер»
++            this.AnchorLightCurve = null;
++            this.AnchorLightBeta = 1.0;
++            this.AnchorLightBetaFree = false;
++            this.AnchorLightMinAnchors = 3;
++            this.AnchorLightMinDeltaChi2 = 0.0;
++            this.AnchorLightReferenceKev = 661.657;
+             // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
+             // порогом в три канала рентгены 22…40 кэВ на 1024-канальных G1S
+             // выпадали из опор, и малая база давала Σχ² 398.2 против 349.9 без
+@@ -2658,6 +3082,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             this.depositChannelsCalibration = null;
+             this.kernelBank = null;
+             this.deposits.Clear();
++            this.driftQuad = 0.0;
++            this.driftLight = 0.0;
++            this.lightShiftChannels = null;
++            this.lightShiftMax = 0.0;
+ 
+             // (`AMBER16` п. 4) Правило переноса строки между узлами — матрице,
+             // из настройки разбора, на каждом разборе: матрица между вызовами
+@@ -2685,6 +3113,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // S98: сужает фит РОВНО один режим. `Whole` и `LibraryToFit`
+             // считают весь спектр — разница между ними в полосе БИБЛИОТЕКИ, а
+             // не здесь.
++
++            // (П16, ЗАМЕР) Таблица световой координаты S(p) по каналам при
++            // β = 1: канал i → энергия E → E + s(E) → канал; s(E) из кривой
++            // <see cref="AnchorLightCurve"/>. Считается один раз на разбор.
++            if (!string.IsNullOrEmpty(this.AnchorLightCurve))
++            {
++                double[] table = new double[channels];
++                for (int i = 0; i < channels; i++)
++                {
++                    double e = calibration.ChannelToEnergy(i);
++                    double s = FsaLightScale.ShiftKev(this.AnchorLightCurve, e, this.AnchorLightReferenceKev);
++                    double p = Finite(s) && e + s > 0.0 ? EnergyToChannelSafe(calibration, e + s, channels) : double.NaN;
++                    double d = Finite(p) ? p - i : 0.0;
++                    table[i] = d;
++                    this.lightShiftMax = Math.Max(this.lightShiftMax, Math.Abs(d));
++                }
++
++                this.lightShiftChannels = table;
++            }
++
+             bool narrowFit = this.Band == FsaBandMode.FitToLibrary;
+             int chLo = narrowFit
+                 ? ClampChannel(EnergyToChannelSafe(calibration, this.MinEnergy, channels), channels)
+@@ -3305,13 +3753,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     int movedBy = 0;
+                     for (int pass = 0; pass < passes; pass++)
+                     {
+-                        double a, b;
++                        double a, b, c, beta;
+                         int used;
+                         string note;
+                         List<FsaScaleAnchor> anchors = this.CollectScaleAnchors(
+                             best, calibration, fwhmCalibration, bestGain, bestOffset,
+                             chLo, chHi, channels, y, variance, channelsPerKev,
+-                            out a, out b, out used, out note);
++                            out a, out b, out c, out beta, out used, out note);
+                         this.scaleAnchors = anchors;
+                         this.anchorNote = note;
+                         if (used == 0)
+@@ -3319,14 +3767,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                             break;
+                         }
+ 
+-                        // Новая шкала поверх прежней: p'' = a·(g·p + o) + b.
+-                        double gain = a * bestGain;
+-                        double offset = a * bestOffset + b;
++                        // (П14, ЗАМЕР) Степень 0 — опоры собраны и напечатаны,
++                        // шкала не двигается: ряд «модель без привязки».
++                        if (this.AnchorPolyDegree <= 0)
++                        {
++                            this.anchorNote = note + "; степень 0 — шкала не тронута (замер)";
++                            break;
++                        }
++
++                        // Новая шкала поверх прежней: p'' = a·p' + b + c·p'²,
++                        // p' = g·p + o + q·p²; члены c·q отброшены (оба ~1e-5).
++                        double gain = a * bestGain + 2.0 * c * bestGain * bestOffset;
++                        double offset = a * bestOffset + b + c * bestOffset * bestOffset;
++                        double quad = a * this.driftQuad + c * bestGain * bestGain;
++                        // (П16) световая координата: p'' = a·p' + b + β⁺·S(p'), S(p') ≈ S(p)
++                        double light = a * this.driftLight + beta;
+ 
+                         // Сошлось — дальше не двигаемся: сдвиг меньше двадцатой
+                         // канала на всём диапазоне полосы.
+                         bool converged = Math.Abs(b) < 0.05
+-                                         && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05;
++                                         && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05
++                                         && Math.Abs(c) * (double)chHi * chHi < 0.05
++                                         && Math.Abs(beta) * this.lightShiftMax < 0.05;
+                         if (converged)
+                         {
+                             // Опоры есть и шкала уже на месте: она ПРИВЯЗАНА,
+@@ -3340,11 +3802,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                             break;
+                         }
+ 
++                        double quadBefore = this.driftQuad;
++                        double lightBefore = this.driftLight;
++                        this.driftQuad = quad;
++                        this.driftLight = light;
+                         FitResult moved = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
+                                                    efficiency, gain, offset, chLo, chHi, channels,
+                                                    y, variance, baseWeights, reportWeights, null);
+                         if (moved == null)
+                         {
++                            this.driftQuad = quadBefore;
++                            this.driftLight = lightBefore;
+                             this.anchorNote = note + "; фит на новой шкале не удался, шкала прежняя";
+                             break;
+                         }
+@@ -3363,7 +3831,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                             this.scaleAnchors = this.CollectScaleAnchors(
+                                 best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                 chLo, chHi, channels, y, variance, channelsPerKev,
+-                                out a, out b, out used, out note);
++                                out a, out b, out c, out beta, out used, out note);
++                            this.anchorNote = note;
+                             break;
+                         }
+                     }
+@@ -3372,8 +3841,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     if (movedBy > 0)
+                     {
+                         this.anchorNote = string.Format(CultureInfo.InvariantCulture,
+-                            "опор {0}; усиление {1:F5}, ноль {2:F2} кэВ ({3:F3} кан.)",
+-                            movedBy, bestGain, bestOffset / channelsPerKev, bestOffset);
++                            "опор {0}; усиление {1:F5}, ноль {2:F2} кэВ ({3:F3} кан.); квадрат {4:E3} кан⁻¹, стрелка {5:F2} кэВ; свет {6}: β {7:F3}; {8}",
++                            movedBy, bestGain, bestOffset / channelsPerKev, bestOffset,
++                            this.driftQuad, this.driftQuad * chHi * (double)chHi / 4.0 / channelsPerKev,
++                            this.AnchorLightCurve ?? "выкл", this.driftLight, this.anchorNote);
+                     }
+                 }
+             }
+@@ -4806,12 +5277,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 Background = backgroundCurve,
+                 Continuum = new double[channels],
+                 Model = new double[channels],
++                P9Residual = fit.Residual,
++                P9SolverWeights = fit.Weights,
++                P9ReportWeights = fit.ReportWeights,
++                P9NdfSolver = fit.Ndf,
++                P9NdfReport = fit.NdfBase,
+ 
+                 // (`AMBER17`) Опоры привязки — как их оставил последний проход;
+                 // ноль в кэВ пересчитан тем же наклоном, каким шкала считалась.
+                 ScaleAnchors = this.scaleAnchors ?? new List<FsaScaleAnchor>(),
+                 ScaleAnchorsUsed = this.scaleAnchorsUsed,
+                 AnchorNote = this.anchorNote,
++                AnchorQuadPerChannel = this.driftQuad,
++                AnchorSagittaKev = AnchorOffsetKevOf(this.driftQuad * chHi * (double)chHi / 4.0, calibration, chLo, chHi),
++                AnchorPolyDegree = this.AnchorPolyDegree,
++                AnchorLightCurve = this.AnchorLightCurve ?? "",
++                AnchorLightBeta = this.driftLight,
++                AnchorLightFree = this.AnchorLightBetaFree,
+                 AnchorOffsetKev = AnchorOffsetKevOf(offset, calibration, chLo, chHi)
+             };
+ 
+@@ -5607,6 +6089,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             /// </summary>
+             public double[] Weights;
+ 
++            /// <summary>(П9 11.09.2026, временная копия) Отчётные веса 1/variance.</summary>
++            public double[] ReportWeights;
++
+             /// <summary>Матрица нормальных уравнений всех колонок фита.</summary>
+             public double[,] Gram;
+ 
+@@ -5661,6 +6146,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // прогоны с разными весами решателя сравнимы между собой.
+             if (best != null && reportWeights != null)
+             {
++                best.ReportWeights = reportWeights;
+                 double chi2Base = 0.0;
+                 double dataWeighted = 0.0;
+                 for (int i = chLo; i <= chHi; i++)
+@@ -8577,4 +9063,144 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             return (int)Math.Round(channel);
+         }
+     }
++
++    /// <summary>
++    /// (П16 11.09.2026, ЗАМЕР) Кривые относительного света на фотон r(E)
++    /// (свет пика полного поглощения на кэВ линии) для световой координаты
++    /// привязки шкалы. Интерполяция линейна по ln E, вне таблицы — крайние
++    /// значения. Сдвиг положения пика в шкале, откалиброванной по E₀:
++    /// s(E) = E·r(E)/r(E₀) − E.
++    ///
++    /// "model" — собственная фотонная кривая модели: `LightScaleProbe
++    /// --geometry=G1S_point5.in --n=200000`, П14 11.09.2026
++    /// (`handover/p14-anchor-poly/lightscale_g1s_point5.txt`); нормировка —
++    /// свет ЭЛЕКТРОНА 662 кэВ = 1, потому 662 даёт 1.0091 (свет фотона делится
++    /// между несколькими электронами меньшей энергии). Для замера — таблицей;
++    /// в приложении её место — кривая своей геометрии из матрицы.
++    ///
++    /// "lit" — Ходюк, Родный, Доренбос 2010 (JAP 107, 113513; arXiv:1102.3799),
++    /// ДОСЛОВНО из текста, нормировка 662 кэВ = 1: 9 кэВ 111.5 %, 20 кэВ
++    /// 117.2 %, минимум K-провала 114.1 % на 34.5 кэВ, 50 кэВ 115.8 %, 100 кэВ
++    /// 111.2 % (между 50 и 100 — линейно, по тексту); 10 кэВ 112 % — Ходюк—
++    /// Доренбос 2012 (arXiv:1204.4350), табл. I. Точки 30 (1.170), 33 (1.160),
++    /// 45 (1.158) — достройка по словам «drop in the range 30–45 keV». Выше
++    /// 100 кэВ у Ходюка чисел нет (синхротрон 9…100 кэВ): взята форма модели,
++    /// растянутая множителем k = 0.112/(r_model(100)/r_model(662) − 1) = 2.857,
++    /// чтобы на 100 кэВ сойтись с 111.2 % — то есть «модель занижает величину,
++    /// но не форму». Обе достройки названы, потому что от них зависит всё
++    /// выше 100 кэВ.
++    /// </summary>
++    internal static class FsaLightScale
++    {
++        static readonly double[][] Model =
++        {
++            new[] { 22.0, 1.1321 }, new[] { 31.0, 1.1020 }, new[] { 35.0, 1.1062 }, new[] { 40.0, 1.1042 },
++            new[] { 53.0, 1.0887 }, new[] { 59.5, 1.0747 }, new[] { 81.0, 1.0601 }, new[] { 88.0, 1.0550 },
++            new[] { 122.0, 1.0388 }, new[] { 166.0, 1.0285 }, new[] { 245.0, 1.0206 }, new[] { 344.0, 1.0161 },
++            new[] { 356.0, 1.0157 }, new[] { 511.0, 1.0116 }, new[] { 662.0, 1.0091 }, new[] { 835.0, 1.0073 },
++            new[] { 964.0, 1.0062 }, new[] { 1173.0, 1.0051 }, new[] { 1332.0, 1.0044 }, new[] { 1408.0, 1.0042 },
++            new[] { 2614.0, 1.0021 },
++        };
++
++        static readonly double[][] KhodyukLow =
++        {
++            new[] { 9.0, 1.115 }, new[] { 10.0, 1.12 }, new[] { 20.0, 1.172 }, new[] { 30.0, 1.170 },
++            new[] { 33.0, 1.160 }, new[] { 34.5, 1.141 }, new[] { 45.0, 1.158 }, new[] { 50.0, 1.158 },
++            new[] { 100.0, 1.112 },
++        };
++
++        const double ModelAt662 = 1.0091;
++
++        static double Interp(double[][] table, double e)
++        {
++            if (!(e > 0.0) || e <= table[0][0])
++            {
++                return table[0][1];
++            }
++
++            int last = table.Length - 1;
++            if (e >= table[last][0])
++            {
++                return table[last][1];
++            }
++
++            for (int i = 1; i <= last; i++)
++            {
++                if (e <= table[i][0])
++                {
++                    double e0 = table[i - 1][0], r0 = table[i - 1][1];
++                    double e1 = table[i][0], r1 = table[i][1];
++                    double t = (Math.Log(e) - Math.Log(e0)) / (Math.Log(e1) - Math.Log(e0));
++                    return r0 + (r1 - r0) * t;
++                }
++            }
++
++            return table[last][1];
++        }
++
++        /// <summary>r(E) кривой по имени; NaN — имя неизвестно.</summary>
++        public static double Relative(string curve, double e)
++        {
++            if (curve == "model")
++            {
++                return Interp(Model, e);
++            }
++
++            if (curve == "lit")
++            {
++                if (e <= 100.0)
++                {
++                    return Interp(KhodyukLow, e);
++                }
++
++                double k = 0.112 / (Interp(Model, 100.0) / ModelAt662 - 1.0);
++                return 1.0 + k * (Interp(Model, e) / ModelAt662 - 1.0);
++            }
++
++            return double.NaN;
++        }
++
++        /// <summary>s(E) = E·r(E)/r(E₀) − E, кэВ; NaN при неизвестной кривой.</summary>
++        public static double ShiftKev(string curve, double e, double e0)
++        {
++            double r = Relative(curve, e);
++            double r0 = Relative(curve, e0);
++            if (double.IsNaN(r) || double.IsNaN(r0) || !(r0 > 0.0))
++            {
++                return double.NaN;
++            }
++
++            return e * r / r0 - e;
++        }
++
++        /// <summary>
++        /// (П16) S в каналах для положения <paramref name="position"/> по
++        /// калибровке спектра — тот же счёт, что у таблицы анализатора; для
++        /// <see cref="FsaLineAudit"/>.
++        /// </summary>
++        public static double ShiftChannels(string curve, EnergyCalibration calibration, double position, int channels, double e0)
++        {
++            if (string.IsNullOrEmpty(curve) || calibration == null)
++            {
++                return 0.0;
++            }
++
++            double e = calibration.ChannelToEnergy(position);
++            double s = ShiftKev(curve, e, e0);
++            if (double.IsNaN(s) || !(e + s > 0.0))
++            {
++                return 0.0;
++            }
++
++            try
++            {
++                double p = calibration.EnergyToChannel(e + s, maxChannels: channels);
++                return double.IsNaN(p) || double.IsInfinity(p) ? 0.0 : p - position;
++            }
++            catch (Exception)
++            {
++                return 0.0;
++            }
++        }
++    }
+ }
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs
+index 3cf4460e..0e58d9e2 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaLineAudit.cs
+@@ -176,7 +176,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+                 List<LineGroup> groups = Group(component, fwhmCalibration,
+                                                spectrum.EnergyCalibration, channels,
+-                                               result.Gain, result.OffsetChannels);
++                                               result.Gain, result.OffsetChannels,
++                                               result.AnchorQuadPerChannel,
++                                               result.AnchorLightCurve, result.AnchorLightBeta);
+                 foreach (LineGroup group in groups)
+                 {
+                     LineCheck check = Measure(group, data, model, result.Continuum, background,
+@@ -217,7 +219,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         static List<LineGroup> Group(FsaComponent component, FwhmCalibration fwhmCalibration,
+                                      EnergyCalibration calibration, int channels,
+-                                     double gain, double offset)
++                                     double gain, double offset, double quad,
++                                     string lightCurve, double lightBeta)
+         {
+             var raw = new List<LineGroup>();
+             foreach (FsaLine line in component.Lines)
+@@ -242,7 +245,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     continue;
+                 }
+ 
+-                double p = gain * position + offset;
++                // (П14) квадратичный член привязки — тот же, что у DriftPosition.
++                // (П16) световая координата — тот же счёт, что у таблицы анализатора.
++                double p = gain * position + offset + quad * position * position
++                           + (lightBeta != 0.0
++                              ? lightBeta * FsaLightScale.ShiftChannels(lightCurve, calibration, position, channels, 661.657)
++                              : 0.0);
+                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
+                 if (!(fwhm > 0.0) || double.IsNaN(fwhm) || double.IsInfinity(fwhm)
+                     || p < 0.0 || p > channels - 1)
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
+index c6ca9311..cf10eaf4 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
+@@ -1,4 +1,4 @@
+-﻿using System;
++using System;
+ using System.Collections.Generic;
+ 
+ namespace BecquerelMonitor.FullSpectrumAnalysis
+@@ -610,6 +610,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// <summary>Сумма модели, отсчёты по каналам.</summary>
+         public double[] Model { get; set; }
+ 
++        /// <summary>(П9 11.09.2026, временная копия) Остаток фита по каналам.</summary>
++        public double[] P9Residual { get; set; }
++
++        /// <summary>(П9) Веса решателя (хуберовские) по каналам.</summary>
++        public double[] P9SolverWeights { get; set; }
++
++        /// <summary>(П9) Отчётные веса (пуассон + фон) по каналам.</summary>
++        public double[] P9ReportWeights { get; set; }
++
++        /// <summary>(П9) ndf решателя и отчётный.</summary>
++        public double P9NdfSolver { get; set; }
++
++        public double P9NdfReport { get; set; }
++
+         /// <summary>
+         /// (`S111`) НЕВЯЗКА, половина «НЕ ДОБАВЛЕНО»: доля отсчётов, которых
+         /// модели НЕ ХВАТИЛО, — измерение выше модели. На экране идёт со знаком
+@@ -739,6 +753,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         public double AnchorOffsetKev { get; set; }
+ 
++        /// <summary>(П14, ЗАМЕР) Квадратичный член шкалы, кан⁻¹: p″ = g·p + o + q·p². Нуль при степени 1.</summary>
++        public double AnchorQuadPerChannel { get; set; }
++
++        /// <summary>(П14) Стрелка параболы над хордой полосы, кэВ: q·chHi²/4 в кэВ.</summary>
++        public double AnchorSagittaKev { get; set; }
++
++        /// <summary>(П14) Степень многочлена привязки, с которой считалось.</summary>
++        public int AnchorPolyDegree { get; set; }
++
++        /// <summary>(П16, ЗАМЕР) Кривая света световой координаты привязки ("model"/"lit"); пусто — выключена.</summary>
++        public string AnchorLightCurve { get; set; }
++
++        /// <summary>(П16) Итоговый β световой координаты (0 при выключенной).</summary>
++        public double AnchorLightBeta { get; set; }
++
++        /// <summary>(П16) β подбирался (true) или закреплён ключом (false).</summary>
++        public bool AnchorLightFree { get; set; }
++
+         /// <summary>
+         /// Служебная строка о привязке для проб и журнала: сколько опор,
+         /// усиление, ноль, либо почему шкала не тронута. По-русски и не для
+diff --git a/tools/effmaker/probes/CorpusFsaProbe.cs b/tools/effmaker/probes/CorpusFsaProbe.cs
+index 1f6aebb0..1a8ad460 100644
+--- a/tools/effmaker/probes/CorpusFsaProbe.cs
++++ b/tools/effmaker/probes/CorpusFsaProbe.cs
+@@ -1,4 +1,4 @@
+-﻿using BecquerelMonitor;
++using BecquerelMonitor;
+ using BecquerelMonitor.EfficiencyMaker;
+ using BecquerelMonitor.FullSpectrumAnalysis;
+ using System;
+@@ -260,6 +260,75 @@ namespace CorpusFsaProbe
+                     o.AnchorMinFwhm = double.Parse(a.Substring(17), CultureInfo.InvariantCulture);
+                     continue;
+                 }
++                // (П14 11.09.2026, ЗАМЕР) степень многочлена привязки (0 — собрать
++                // опоры, шкалу не двигать; 1 — прямая, умолчание; 2 — с квадратом),
++                // порог числа опор для квадрата и порог выигрыша χ² опор.
++                if (a.StartsWith("--anchor-poly=", StringComparison.Ordinal))
++                {
++                    o.AnchorPoly = int.Parse(a.Substring(14), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                if (a.StartsWith("--anchor-poly-min=", StringComparison.Ordinal))
++                {
++                    o.AnchorPolyMin = int.Parse(a.Substring(18), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                if (a.StartsWith("--anchor-poly-dchi=", StringComparison.Ordinal))
++                {
++                    o.AnchorPolyDchi = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                if (a.StartsWith("--anchor-poly-mono=", StringComparison.Ordinal))
++                {
++                    o.AnchorPolyMono = int.Parse(a.Substring(19), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                // (П16 11.09.2026, ЗАМЕР) световая координата привязки: кривая
++                // (0 — выкл, model, lit), β (free — подбирать, число — закрепить),
++                // порог опор для подбора и порог выигрыша χ² опор.
++                if (a.StartsWith("--anchor-light=", StringComparison.Ordinal))
++                {
++                    string v = a.Substring(15);
++                    o.AnchorLight = v == "0" || v == "off" ? "" : v;
++                    continue;
++                }
++                if (a.StartsWith("--anchor-beta=", StringComparison.Ordinal))
++                {
++                    string v = a.Substring(14);
++                    if (v == "free")
++                    {
++                        o.AnchorBetaFree = true;
++                    }
++                    else
++                    {
++                        o.AnchorBeta = double.Parse(v, CultureInfo.InvariantCulture);
++                    }
++                    continue;
++                }
++                if (a.StartsWith("--anchor-beta-min=", StringComparison.Ordinal))
++                {
++                    o.AnchorBetaMin = int.Parse(a.Substring(18), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                if (a.StartsWith("--anchor-beta-dchi=", StringComparison.Ordinal))
++                {
++                    o.AnchorBetaDchi = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
++                    continue;
++                }
++                // (П16) выброс узла: линии, которым запрещено быть опорами
++                if (a.StartsWith("--anchor-skip=", StringComparison.Ordinal))
++                {
++                    var list = new List<double>();
++                    foreach (string part in a.Substring(14).Split(','))
++                    {
++                        if (part.Trim().Length > 0)
++                        {
++                            list.Add(double.Parse(part.Trim(), CultureInfo.InvariantCulture));
++                        }
++                    }
++                    o.AnchorSkip = list.ToArray();
++                    continue;
++                }
+                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
+                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
+                 // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
+@@ -896,6 +965,31 @@ namespace CorpusFsaProbe
+             }
+ 
+             RejectDuplicateColumns(head.ToString(), "--dump-curves");
++            // (П9 11.09.2026, временная копия) остаток и веса по каналам — отдельным
++            // файлом, чтобы формат `_curves.csv` остался прежним для чужих читателей.
++            int[] rawCounts = spectrum.Spectrum;
++            using (var wc = new StreamWriter(Path.Combine(dir, key + "_chi.csv"), false, new UTF8Encoding(false)))
++            {
++                wc.WriteLine("ch,keV,raw,bg,fit,model,resid,w_rep,w_sol,ndf_sol,ndf_rep,first,last");
++                for (int i = 0; i < spectrum.NumberOfChannels; i++)
++                {
++                    wc.WriteLine(string.Join(",",
++                        i.ToString(CultureInfo.InvariantCulture),
++                        calibration.ChannelToEnergy(i).ToString("F3", CultureInfo.InvariantCulture),
++                        (rawCounts != null && i < rawCounts.Length ? rawCounts[i] : 0).ToString(CultureInfo.InvariantCulture),
++                        Cell(result.Background, i),
++                        Cell(fit, i),
++                        Cell(result.Model, i),
++                        result.P9Residual != null && i < result.P9Residual.Length ? result.P9Residual[i].ToString("R", CultureInfo.InvariantCulture) : "",
++                        result.P9ReportWeights != null && i < result.P9ReportWeights.Length ? result.P9ReportWeights[i].ToString("R", CultureInfo.InvariantCulture) : "",
++                        result.P9SolverWeights != null && i < result.P9SolverWeights.Length ? result.P9SolverWeights[i].ToString("R", CultureInfo.InvariantCulture) : "",
++                        result.P9NdfSolver.ToString("R", CultureInfo.InvariantCulture),
++                        result.P9NdfReport.ToString("R", CultureInfo.InvariantCulture),
++                        result.FirstChannel.ToString(CultureInfo.InvariantCulture),
++                        result.LastChannel.ToString(CultureInfo.InvariantCulture)));
++                }
++            }
++
+             string path = Path.Combine(dir, key + "_curves.csv");
+             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
+             {
+@@ -1225,6 +1319,56 @@ namespace CorpusFsaProbe
+                 analyzer.AnchorMinFwhmChannels = o.AnchorMinFwhm;
+             }
+ 
++            if (o.AnchorPoly >= 0)
++            {
++                analyzer.AnchorPolyDegree = o.AnchorPoly;
++            }
++
++            if (o.AnchorPolyMin > 0)
++            {
++                analyzer.AnchorPolyMinAnchors = o.AnchorPolyMin;
++            }
++
++            if (o.AnchorPolyDchi >= 0.0)
++            {
++                analyzer.AnchorPolyMinDeltaChi2 = o.AnchorPolyDchi;
++            }
++
++            if (o.AnchorPolyMono >= 0)
++            {
++                analyzer.AnchorPolyMonotonic = o.AnchorPolyMono != 0;
++            }
++
++            if (o.AnchorLight != null)
++            {
++                analyzer.AnchorLightCurve = o.AnchorLight == "" ? null : o.AnchorLight;
++            }
++
++            if (o.AnchorBetaFree)
++            {
++                analyzer.AnchorLightBetaFree = true;
++            }
++
++            if (!double.IsNaN(o.AnchorBeta))
++            {
++                analyzer.AnchorLightBeta = o.AnchorBeta;
++            }
++
++            if (o.AnchorBetaMin > 0)
++            {
++                analyzer.AnchorLightMinAnchors = o.AnchorBetaMin;
++            }
++
++            if (o.AnchorBetaDchi >= 0.0)
++            {
++                analyzer.AnchorLightMinDeltaChi2 = o.AnchorBetaDchi;
++            }
++
++            if (o.AnchorSkip != null && o.AnchorSkip.Length > 0)
++            {
++                analyzer.AnchorSkipKev = o.AnchorSkip;
++            }
++
+             return analyzer;
+         }
+ 
+@@ -2005,6 +2149,11 @@ namespace CorpusFsaProbe
+                 row.AnchorsUsed = result.ScaleAnchorsUsed;
+                 row.AnchorOffsetKev = result.AnchorOffsetKev;
+                 row.AnchorNote = result.AnchorNote ?? "";
++                row.AnchorQuad = result.AnchorQuadPerChannel;
++                row.AnchorSagKev = result.AnchorSagittaKev;
++                row.AnchorLight = result.AnchorLightCurve ?? "";
++                row.AnchorBeta = result.AnchorLightBeta;
++                row.AnchorBetaFree = result.AnchorLightFree;
+                 row.Anchors = result.ScaleAnchors;
+                 // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
+                 // поднимается тогда и только тогда, когда хоть один образ
+@@ -3220,7 +3369,11 @@ namespace CorpusFsaProbe
+                                    // (`AMBER17`) Привязка шкалы: опор в МНК, ноль в кэВ
+                                    // (усиление — колонка `gain` выше, она и есть
+                                    // найденное привязкой), служебная строка.
+-                                   + "anchors_used,anchor_offset_kev,anchor_note");
++                                   + "anchors_used,anchor_offset_kev,anchor_note,"
++                                   // (П14, ЗАМЕР) квадратичный член привязки и стрелка
++                                   + "anchor_quad,anchor_sag_kev,"
++                                   // (П16, ЗАМЕР) световая координата: кривая, β, подбирался ли
++                                   + "anchor_light,anchor_beta,anchor_beta_free");
+                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
+                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
+                     // подложкой, ровно та же величина, что печатает легенда на
+@@ -3297,7 +3450,12 @@ namespace CorpusFsaProbe
+                             r.MatrixImages.ToString(CultureInfo.InvariantCulture),
+                             r.AnchorsUsed.ToString(CultureInfo.InvariantCulture),
+                             F(r.AnchorOffsetKev, "F3"),
+-                            Csv(r.AnchorNote)));
++                            Csv(r.AnchorNote),
++                            r.AnchorQuad.ToString("E4", CultureInfo.InvariantCulture),
++                            F(r.AnchorSagKev, "F3"),
++                            Csv(r.AnchorLight ?? ""),
++                            F(r.AnchorBeta, "F4"),
++                            r.AnchorBetaFree ? "1" : "0"));
+ 
+                         if (r.Result == null)
+                         {
+@@ -3805,6 +3963,16 @@ namespace CorpusFsaProbe
+             public double AnchorWindow = -1.0;
+             public double AnchorFloor = -1.0;
+             public double AnchorMinFwhm = -1.0;
++            public int AnchorPoly = -1;         // (П14) степень; -1 — умолчание анализатора
++            public int AnchorPolyMin = -1;
++            public double AnchorPolyDchi = -1.0;
++            public int AnchorPolyMono = -1;      // (П14) 1/0 — заслон монотонности; -1 — умолчание
++            public string AnchorLight = null;    // (П16) кривая световой координаты; null — умолчание анализатора
++            public double AnchorBeta = double.NaN; // (П16) закреплённый β / запасной при free
++            public bool AnchorBetaFree = false;  // (П16) подбирать β
++            public int AnchorBetaMin = -1;
++            public double AnchorBetaDchi = -1.0;
++            public double[] AnchorSkip = null;   // (П16) выброс узла
+ 
+             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
+             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
+@@ -4130,6 +4298,11 @@ namespace CorpusFsaProbe
+             /// кандидаты — для развёртки порога доли синего канала.
+             /// </summary>
+             public int AnchorsUsed;
++            public double AnchorQuad;      // (П14) квадратичный член, кан⁻¹
++            public double AnchorSagKev;    // (П14) стрелка над хордой полосы, кэВ
++            public string AnchorLight;     // (П16) кривая световой координаты
++            public double AnchorBeta;      // (П16) итоговый β
++            public bool AnchorBetaFree;    // (П16) β подбирался
+ 
+             public double AnchorOffsetKev;
+ 
