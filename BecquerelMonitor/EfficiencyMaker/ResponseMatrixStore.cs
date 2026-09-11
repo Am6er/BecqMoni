@@ -59,6 +59,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             return ResponseMatrix.Load(PathOf(efficiencyGuid), out refusal, out fileFormat);
         }
 
+        /// <summary>
+        /// Поколения матрицы БЕЗ чтения её целиком: версия формата файла и
+        /// версия физики из клейма (`A119`). Обёртка над
+        /// <see cref="ResponseMatrix.PeekVersions"/> ровно затем, чтобы
+        /// потребителю не приходилось складывать путь склада руками: тот, кто
+        /// складывает путь сам, однажды сложит его иначе.
+        ///
+        /// ⚠ Физика нулём значит «в клейме её нет» (файл старше клейм с
+        /// `phys=`), а не «поколение 0»; отличать это обязан потребитель.
+        /// false — файла нет или он не наш.
+        /// </summary>
+        public static bool PeekVersions(string efficiencyGuid, out int format, out int physics)
+        {
+            format = 0;
+            physics = 0;
+            if (string.IsNullOrEmpty(efficiencyGuid))
+            {
+                return false;
+            }
+
+            return ResponseMatrix.PeekVersions(PathOf(efficiencyGuid), out format, out physics);
+        }
+
         public static void Save(string efficiencyGuid, ResponseMatrix matrix)
         {
             if (string.IsNullOrEmpty(efficiencyGuid) || matrix == null)

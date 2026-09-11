@@ -1263,6 +1263,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public int EscapeOrphansDropped { get; private set; }
 
+        /// <summary>
+        /// (`A49`) Выбрасывать из образов линии, лежащие НИЖЕ ПЕРВОГО УЗЛА
+        /// матрицы отклика. Решение Amber 02.09.2026; довод, замер и разбор
+        /// механизма — у места применения.
+        ///
+        /// ⛔ РЫЧАГ ЗАМЕРА, А НЕ НАСТРОЙКА. Заведён `A51`: до 10.09.2026 нож
+        /// нельзя было выключить, а значит нельзя было и показать, что он
+        /// нужен, — корпусу такой случай не встречается вовсе (у всех 44 его
+        /// матриц первый узел один и тот же и лежит ниже любой линии). Плечо
+        /// «выключено» существует ради опыта; поставка нож держит включённым, и
+        /// снятие видно в отчёте настроек пробы, то есть молча не проходит.
+        /// </summary>
+        public bool MatrixFloorCut { get; set; }
+
+        /// <summary>
+        /// (`A49`/`A51`) Сколько линий снял нож ниже первого узла матрицы на
+        /// последнем <see cref="Analyze"/>. Ноль — резать было нечего, и правка
+        /// не изменила ни одного бита.
+        ///
+        /// ⛔ Читатель у признака отказа обязан быть машинный, а не только
+        /// словесный: до 10.09.2026 сработавший нож можно было заметить лишь
+        /// разбором текста <see cref="BandNote"/>, и «нож не сработал» с «ножу
+        /// нечего было резать» различались только по отсутствию подстроки.
+        /// </summary>
+        public int MatrixFloorDroppedLines { get; private set; }
+
         /// <summary>Энергия аннигиляционной линии, кэВ.</summary>
         public const double AnnihilationKev = 511.0;
 
@@ -1705,6 +1731,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.EscapeGate = true;
             this.CrystalXrayGate = true;
             this.AnnihilationGate = true;
+            // A49: нож ниже первого узла матрицы — поставочное поведение с
+            // 02.09.2026. Плечо A/B ставит полем, а не ключом: единственный
+            // заказчик — `FsaMatrixFloorProbe` (`A51`), и своей сцены у него
+            // ровно одна.
+            this.MatrixFloorCut = true;
             // A168: отдельные образы вылета и аннигиляции включены — так
             // считалось всегда; выключает их пользователь через
             // `FsaCalculationOptions`, пробы — ключом `--no-escape`.
@@ -2333,7 +2364,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `WeightsAreFinal` (обратное рассеяние) вес посчитан целиком и
             // столбец строит `BuildTemplate` по кривой, а не по матрице —
             // первого узла у него нет, и запрещать ему нечего.
-            if (this.ResponseMatrix != null && this.ResponseMatrix.Energies != null
+            this.MatrixFloorDroppedLines = 0;
+            if (this.MatrixFloorCut
+                && this.ResponseMatrix != null && this.ResponseMatrix.Energies != null
                 && this.ResponseMatrix.Energies.Length > 0)
             {
                 double matrixFloor = this.ResponseMatrix.Energies[0];
@@ -2363,6 +2396,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     List<FsaComponent> narrowed = NarrowLibrary(library, belowMatrix);
                     if (narrowed != null)
                     {
+                        this.MatrixFloorDroppedLines = belowMatrix.Count;
                         this.BandNote += string.Format(CultureInfo.InvariantCulture,
                             "; ниже первого узла матрицы ({0:F1} кэВ) выброшено {1} линий,"
                             + " образов опустело {2}",

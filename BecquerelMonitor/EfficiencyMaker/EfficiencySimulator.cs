@@ -2033,6 +2033,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long CountPeakBinDroppedScattered;
 
         /// <summary>
+        /// (`A267`) СКОЛЬКО СВЕТА ЛОЖИТСЯ НЕ В ТОТ БИН, ЧТО ВЕС ИСТОРИИ.
+        ///
+        /// <see cref="Deposit"/> и <see cref="ScoreLight"/> отвечают на один
+        /// вопрос — «в какой бин легла эта история», — и до 10.09.2026 отвечали
+        /// по-разному: первый спрашивал <see cref="InPeak"/>, второй только
+        /// округлял. Расходятся они на одном классе — история, округлившаяся в
+        /// бин пика, но в пик НЕ годная: вес такой уходит в `peak−1`, а свет
+        /// оставался в `lightSum[peak]`.
+        ///
+        /// ⛔ Класс не безобиден: `lightSum[peak]` — ЯКОРЬ всей световой шкалы
+        /// (<see cref="RemapLightScale"/>), и лишний свет в нём двигает по
+        /// бинам ВСЕ строки матрицы. Счётчики нужны затем, что величину этого
+        /// сдвига иначе не назвать: они дают ОБЕ оценки якоря из ОДНОГО
+        /// прогона (<see cref="LastPhotonLightScaleSplit"/>), без сборки «до» и
+        /// «после» — а на дереве, которое правят соседние полосы, две сборки
+        /// сравнивать нечестно.
+        ///
+        /// ⚠ Класс ПУСТ, когда допуск пика больше окна округления: при
+        /// `PeakToleranceFromGeometry` (`E34`) полуширина ПШПВ обгоняет шаг
+        /// бина уже с ~6 кэВ. Это и есть положительный контроль замера — плечо,
+        /// на котором счётчики ОБЯЗАНЫ быть нулевыми.
+        /// </summary>
+        public long CountLightBinSplit;
+
+        /// <summary>Вес историй класса <see cref="CountLightBinSplit"/>.</summary>
+        public double WeightLightBinSplit;
+
+        /// <summary>
         /// ЗАМЕРНЫЙ ключ (`T43`): выбросить кэш луча и разбирать его заново на
         /// КАЖДОМ шаге. Считает то же самое, только дороже, — нужен затем, что
         /// цену разбора иначе не узнать: профиль требует прав администратора, а
@@ -2821,7 +2849,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (histogram != null)
             {
                 this.Deposit(histogram, binKev, energyKev, deposited, share);
-                this.ScoreLight(binKev, deposited, share);
+                this.ScoreLight(binKev, energyKev, deposited, share);
                 if (this.channelHistograms != null)
                 {
                     // Квант рассеялся ДО кристалла и принёс меньше энергии
@@ -4820,6 +4848,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         // бина для пересчёта в шкалу прибора. null — пересчёт выключен.
         double[] lightSum;
 
+        // (`A267`) Свет класса, у которого бин веса и бин света РАЗОШЛИСЬ, —
+        // ровно та добавка, которой `lightSum[peak]` отличается от суммы по
+        // историям, чей вес лежит в бине пика. Копится в `ScoreLight`,
+        // обнуляется вместе с `lightSum` в начале прогона.
+        double lightBinSplit;
+
         /// <summary>
         /// Средний свет пика полного поглощения на кэВ энергии линии из
         /// ПОСЛЕДНЕГО прогона отклика — это и есть фотонная
@@ -4827,6 +4861,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// таблицей I Khodyuk 2012). Ноль, если пересчёт не выполнялся.
         /// </summary>
         public double LastPhotonLightScale { get; private set; }
+
+        /// <summary>
+        /// (`A267`) ТА ЖЕ величина, посчитанная по ЕДИНОМУ правилу бина: из
+        /// якоря вычтен свет историй, чей ВЕС в бин пика не попал
+        /// (<see cref="CountLightBinSplit"/>). Ноль, если пересчёт не
+        /// выполнялся.
+        ///
+        /// Две оценки одного якоря из одного прогона — затем, что цена
+        /// расхождения меряется их отношением, и мерить её сборкой «до» против
+        /// сборки «после» на дереве, которое правят соседние полосы, нечестно:
+        /// в разность войдут чужие правки.
+        ///
+        /// ⚠ Отношение <c>LastPhotonLightScaleSplit / LastPhotonLightScale</c>
+        /// — это множитель, на который сдвинется ВЕСЬ пересчёт шкалы: индекс
+        /// бина в <see cref="RemapLightScale"/> обратно пропорционален якорю.
+        /// </summary>
+        public double LastPhotonLightScaleSplit { get; private set; }
 
         /// <summary>Вклад электрона начальной энергии te, осевший в кристалле.</summary>
         void AddLight(double deposited, double te)
@@ -4931,6 +4982,35 @@ namespace BecquerelMonitor.EfficiencyMaker
             return energyKev - deposited <= this.PeakHalfWidthKev + 1e-9;
         }
 
+        /// <summary>
+        /// ⛔ (`A267`) ЕДИНСТВЕННОЕ МЕСТО, ГДЕ РЕШАЕТСЯ БИН ИСТОРИИ.
+        ///
+        /// Правило было записано дважды — в <see cref="Deposit"/> с оговоркой
+        /// про <see cref="InPeak"/> и в <see cref="ScoreLight"/> без неё, — и
+        /// свет истории уходил не туда, куда её вес. Пока правило стоит здесь
+        /// одно, разойтись им негде; читателям оно отдаётся методом, а не
+        /// копией трёх строк.
+        ///
+        /// `peak` — номер последнего бина (`histogram.Length − 1`).
+        /// </summary>
+        int BinOf(int peak, double binKev, double energyKev, double deposited)
+        {
+            int bin = (int)(deposited / binKev + 0.5);
+            if (bin < 0)
+            {
+                bin = 0;
+            }
+
+            if (bin >= peak)
+            {
+                bin = this.InPeak(energyKev, deposited)
+                    ? peak
+                    : Math.Max(0, peak - 1);
+            }
+
+            return bin;
+        }
+
         void Deposit(double[] histogram, double binKev, double energyKev,
                      double deposited, double weight)
         {
@@ -4939,21 +5019,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            int bin = (int)(deposited / binKev + 0.5);
-            if (bin < 0)
-            {
-                bin = 0;
-            }
-
-            int peak = histogram.Length - 1;
-            if (bin >= peak)
-            {
-                bin = this.InPeak(energyKev, deposited)
-                    ? peak
-                    : Math.Max(0, peak - 1);
-            }
-
-            histogram[bin] += weight;
+            histogram[this.BinOf(histogram.Length - 1, binKev, energyKev, deposited)] += weight;
         }
 
         /// <summary>
@@ -5088,9 +5154,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.lightSum = histogram != null && this.lightYield != null
                 ? new double[histogram.Length]
                 : null;
+            this.lightBinSplit = 0.0;
+            this.CountLightBinSplit = 0;
+            this.WeightLightBinSplit = 0.0;
             if (this.lightSum != null)
             {
                 this.LastPhotonLightScale = 0.0;
+                this.LastPhotonLightScaleSplit = 0.0;
             }
 
             double sum = 0.0, sum2 = 0.0;
@@ -5309,7 +5379,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             double share = weight * Math.Exp(-tau);
                             this.Deposit(histogram, binKev, energyKev, energyKev - escaped, share);
-                            this.ScoreLight(binKev, energyKev - escaped, share);
+                            this.ScoreLight(binKev, energyKev, energyKev - escaped, share);
                             if (this.channelHistograms != null)
                             {
                                 this.Deposit(this.channelHistograms[(int)this.ChannelOf(escaped)],
@@ -5734,25 +5804,44 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// Свет текущей истории — в копилку бина её ПОГЛОЩЁННОЙ энергии. Бин
-        /// считается тем же правилом, что в <see cref="Deposit"/>, иначе
-        /// средний свет достанется чужому бину.
+        /// берётся у <see cref="BinOf"/>, тем же правилом, что и вес истории:
+        /// иначе средний свет достаётся чужому бину.
+        ///
+        /// ⛔ До 10.09.2026 бин здесь считался СВОИМ округлением, без оговорки
+        /// про <see cref="InPeak"/> (`A267`). Описание метода при этом
+        /// утверждало обратное — «тем же правилом, что в `Deposit`», — и
+        /// расхождение прожило месяц ровно потому, что читалось описание.
+        ///
+        /// Пока правка не принята Amber (она двигает ВСЕ матрицы склада),
+        /// прежний бин остаётся действующим, а новый только СЧИТАЕТСЯ: свет
+        /// расходящегося класса копится отдельно
+        /// (<see cref="lightBinSplit"/>), и <see cref="RemapLightScale"/>
+        /// отдаёт ОБЕ оценки якоря из одного прогона.
         /// </summary>
-        void ScoreLight(double binKev, double deposited, double weight)
+        void ScoreLight(double binKev, double energyKev, double deposited, double weight)
         {
             if (this.lightSum == null || !(deposited > 0.0) || !(weight > 0.0))
             {
                 return;
             }
 
+            int peak = this.lightSum.Length - 1;
             int bin = (int)(deposited / binKev + 0.5);
             if (bin < 0)
             {
                 bin = 0;
             }
 
-            if (bin >= this.lightSum.Length)
+            if (bin > peak)
             {
-                bin = this.lightSum.Length - 1;
+                bin = peak;
+            }
+
+            if (bin != this.BinOf(peak, binKev, energyKev, deposited))
+            {
+                this.CountLightBinSplit++;
+                this.WeightLightBinSplit += weight;
+                this.lightBinSplit += weight * this.lightDeposit;
             }
 
             this.lightSum[bin] += weight * this.lightDeposit;
@@ -5800,6 +5889,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // непропорциональность модели, наружу для сверки с измерениями.
             double anchorPerKev = light[peak] / peakWeight / energyKev;
             this.LastPhotonLightScale = anchorPerKev;
+
+            // (`A267`) Второй ответ на тот же вопрос — якорь по ЕДИНОМУ правилу
+            // бина. Считается всегда, стоит одного вычитания и никаких
+            // случайных чисел; при пустом расходящемся классе совпадает с
+            // первым до бита.
+            this.LastPhotonLightScaleSplit =
+                (light[peak] - this.lightBinSplit) / peakWeight / energyKev;
 
             // Внутренний якорь берётся к ЦЕНТРУ пикового бина, а не к энергии
             // линии: бин пика обязан остаться последним, а энергия линии не

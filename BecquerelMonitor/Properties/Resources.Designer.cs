@@ -4754,6 +4754,18 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyTabCurveOldPhysics {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCurveOldPhysics", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCurveVsMatrix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCurveVsMatrix", resourceCulture);
+            }
+        }
+
         public static string ResponseMatrixUseInFsa {
             get {
                 return ResourceManager.GetString("ResponseMatrixUseInFsa", resourceCulture);

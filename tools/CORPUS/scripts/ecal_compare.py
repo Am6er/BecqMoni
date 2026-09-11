@@ -87,7 +87,7 @@ def consensus(dumps):
     return out, dropped
 
 
-def score(dump, cons, band=BAND_KEV):
+def score(dump, cons, band=BAND_KEV, band_lo=0.0):
     n = 0
     total = 0.0
     worst = 0.0
@@ -100,7 +100,7 @@ def score(dump, cons, band=BAND_KEV):
         res_a = c['res_a']
         sworst = 0.0
         for e_ref, ch in sorted(c['lines'].items()):
-            if e_ref > band:
+            if e_ref > band or e_ref < band_lo:
                 continue
             d = energy(st['coef'], ch) - e_ref
             f = d / max(res_a * np.sqrt(max(e_ref, 5.0)), 1e-9)
@@ -120,21 +120,33 @@ def main():
     if not paths:
         print(__doc__)
         return
+    # `B25`: полоса мерки задаётся ключом — «низ» и «верх» надо видеть ПОРОЗНЬ.
+    # Правило опоры низа перестраивает всю кривую, и выигрыш внизу, оплаченный
+    # проигрышем наверху, обязан быть виден, а не спрятан в общем числе.
+    band_lo, band_hi = 0.0, BAND_KEV
+    for a in sys.argv[1:]:
+        if a.startswith('--band='):
+            v = a.split('=', 1)[1]
+            lo, _, hi = v.partition(':')
+            band_lo = float(lo) if lo else 0.0
+            band_hi = float(hi) if hi else 1e9
+
     dumps = {}
     for p in paths:
         with io.open(p, encoding='utf-8') as h:
             dumps[p] = json.load(h)
     cons, dropped = consensus(dumps)
-    n_lines = sum(len([e for e in c['lines'] if e <= BAND_KEV])
+    n_lines = sum(len([e for e in c['lines'] if band_lo <= e <= band_hi])
                   for c in cons.values())
-    print('НЕПОДВИЖНЫЙ НАБОР: %d спектров, %d линий ниже %.0f кэВ '
-          '(отброшено спорных: %d)' % (len(cons), n_lines, BAND_KEV, dropped))
+    print('НЕПОДВИЖНЫЙ НАБОР: %d спектров, %d линий в полосе %.0f…%.0f кэВ '
+          '(отброшено спорных: %d)' % (len(cons), n_lines, band_lo, band_hi, dropped))
     print()
     print('%-34s %5s %9s %9s %9s %6s %6s'
           % ('вариант', 'линий', 'Σ|промах|', 'медиана', 'максимум', '>0.25', '>0.50'))
     table = {}
     for p in paths:
-        n, total, worst, worst_at, per = score(dumps[p], cons)
+        n, total, worst, worst_at, per = score(dumps[p], cons, band=band_hi,
+                                               band_lo=band_lo)
         med = float(np.median([x[0] for x in per])) if per else 0.0
         table[p] = (n, total, worst, worst_at, per)
         print('%-34s %5d %9.2f %9.3f %9.3f %6d %6d'

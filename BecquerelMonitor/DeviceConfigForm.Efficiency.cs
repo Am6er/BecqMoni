@@ -32,6 +32,19 @@ namespace BecquerelMonitor
         Button efficiencyDuplicateButton, efficiencyDeleteButton, efficiencyMatrixButton;
 
         /// <summary>
+        /// Подпись о расхождении поколений расчёта (`A119`) — своя, а не хвост
+        /// к сводке: её высота меняется с текстом и с языком. Пуста и невидима,
+        /// пока поколения кривой, матрицы и сборки сходятся.
+        /// </summary>
+        Label efficiencyGenerationLabel;
+
+        /// <summary>Высота шапки БЕЗ подписи о поколениях — от неё считается рост.</summary>
+        int efficiencyHeaderBaseHeight;
+
+        /// <summary>Просвет между сводкой и подписью о поколениях.</summary>
+        const int EfficiencyGenerationGap = 4;
+
+        /// <summary>
         /// Ввоз текстового экспорта ЛСРМ (`EffCalcMC.txt`).
         ///
         /// ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять и завести ввоз на
@@ -144,6 +157,23 @@ namespace BecquerelMonitor
             };
 
             header.Controls.Add(this.efficiencySummaryLabel);
+
+            // Подпись о расхождении поколений (`A119`) — под сводкой, своим
+            // цветом и своей высотой. Заводится пустой и невидимой: у сцены, где
+            // кривая, матрица и сборка одного поколения, сказать нечего, и
+            // пустая строка не должна отнимать у чертежа ни точки.
+            y += 30 + EfficiencyGenerationGap;
+            this.efficiencyGenerationLabel = new Label
+            {
+                AutoSize = false,
+                Location = new Point(Margin, y),
+                Size = new Size(Width, 0),
+                ForeColor = Color.Firebrick,
+                Visible = false,
+            };
+
+            header.Controls.Add(this.efficiencyGenerationLabel);
+            this.efficiencyHeaderBaseHeight = header.Height;
 
             // Чертёж забирает всё, что осталось под шапкой: высота с окном
             // растёт, ширина нет.
@@ -313,6 +343,7 @@ namespace BecquerelMonitor
             if (config == null)
             {
                 this.efficiencySummaryLabel.Text = has ? "" : Resources.EfficiencyTabEmpty;
+                this.ShowGenerationNotes(null);
                 this.efficiencySketch.SetModel(null);
                 return;
             }
@@ -343,8 +374,136 @@ namespace BecquerelMonitor
                                         Resources.EfficiencyTabComputeStamp, config.ComputeStamp));
             }
 
+            // ⛔ (`A119`) ПОКОЛЕНИЕ КРИВОЙ НАЗЫВАЕТСЯ СЛОВАМИ, А НЕ ОДНИМ
+            // КЛЕЙМОМ. Клеймо выше показывает `phys=11` — и это ровно столько
+            // же, сколько ничего: с чем сравнивать `11`, человек за экраном не
+            // знает, номер поколения переноса нигде больше не показан. Замер
+            // склада 04.09.2026 (`A50`) и повторный 11.09.2026 нашли в ОДНОЙ
+            // сцене кривую и матрицу разных поколений, и увидеть это можно было
+            // только чтением клейм двоичного файла отдельной пробой.
+            //
+            // Матрица про себя такое говорит с 05.09.2026 (~~`A50`~~, форма
+            // «Матрица отклика» разводит пять отказов), кривая — не говорила.
+            int matrixPhysics = 0;
+            int matrixFormat;
+            if (!ResponseMatrixStore.PeekVersions(config.Guid, out matrixFormat, out matrixPhysics))
+            {
+                matrixPhysics = 0;      // матрицы нет или файл не наш — сравнивать не с чем
+            }
+
             this.efficiencySummaryLabel.Text = string.Join("   ", parts.ToArray());
+
+            // ⛔ ОТДЕЛЬНОЙ ПОДПИСЬЮ, А НЕ ХВОСТОМ К СВОДКЕ. Сводка живёт в
+            // подписи 466×30 с `AutoSize = false`, и в ней уже две строки:
+            // «точек кривой …» плюс клеймо. Дописанные к ней два предложения
+            // ушли бы за нижний край МОЛЧА — панель обрезает детей без
+            // исключения и без признака, — и починка `A119` выглядела бы
+            // сделанной, оставаясь невидимой.
+            this.ShowGenerationNotes(GenerationNotes(config.ComputeStamp, matrixPhysics,
+                                                     ResponseMatrix.PhysicsVersion));
             this.efficiencySketch.SetModel(config.Geometry);
+        }
+
+        /// <summary>
+        /// Показать (или убрать) подпись о расхождении поколений.
+        ///
+        /// ⛔ ВЫСОТА СЧИТАЕТСЯ, А НЕ ПИШЕТСЯ ЧИСЛОМ. Высота числом устаревает
+        /// при первой же добавленной строке и при первом же переводе, который
+        /// длиннее английского: русская пара обеих подписей длиннее на треть.
+        /// Здесь высота — <see cref="GenerationLabelHeight"/> от настоящего
+        /// текста при настоящей ширине, и вместе с ней растёт шапка вкладки;
+        /// чертёж под ней доковый и подвинется сам.
+        /// </summary>
+        void ShowGenerationNotes(List<string> notes)
+        {
+            string text = notes == null || notes.Count == 0
+                ? ""
+                : string.Join(Environment.NewLine, notes.ToArray());
+            Label label = this.efficiencyGenerationLabel;
+            label.Text = text;
+            int need = GenerationLabelHeight(text, label.Font, label.Width);
+            label.Height = need;
+            label.Visible = need > 0;
+            this.efficiencyHeader.Height = this.efficiencyHeaderBaseHeight
+                                           + (need > 0 ? need + EfficiencyGenerationGap : 0);
+        }
+
+        /// <summary>
+        /// Сколько точек по высоте занимает текст подписи при данной ширине.
+        /// Пустой текст — ноль: подписи нет вовсе, и шапка не растёт.
+        ///
+        /// Вынесено отдельным приёмом нарочно: так высоту меряет безоконная
+        /// проба (`CurveGenerationProbe`), а не снимок формы.
+        /// </summary>
+        internal static int GenerationLabelHeight(string text, Font font, int width)
+        {
+            if (string.IsNullOrEmpty(text) || width <= 0)
+            {
+                return 0;
+            }
+
+            return TextRenderer.MeasureText(text, font, new Size(width, int.MaxValue),
+                                            TextFormatFlags.WordBreak).Height;
+        }
+
+        /// <summary>
+        /// ⛔ (`A119`) РАЗНЫЕ ПОКОЛЕНИЯ РАСЧЁТА, ЛЕЖАЩИЕ РЯДОМ, — СЛОВАМИ.
+        ///
+        /// Поколений в одной сцене ТРИ, и расходиться они умеют независимо:
+        ///
+        ///   * поколение КРИВОЙ — `phys=N` в её клейме
+        ///     (<see cref="EfficiencyConfigData.ComputeStamp"/>);
+        ///   * поколение МАТРИЦЫ — `phys=N` в клейме её файла, склад
+        ///     <see cref="ResponseMatrixStore"/>;
+        ///   * поколение СБОРКИ — <see cref="ResponseMatrix.PhysicsVersion"/>.
+        ///
+        /// Матрица пересчитывается сама (её клеймо перестаёт сходиться при смене
+        /// физики), кривая — НЕТ: она лежит в конфигурации прибора числами и
+        /// переживает любое поколение переноса. Отсюда и дефект: пересчёт одних
+        /// матриц оставляет рядом кривую прежнего поколения, и это не видно
+        /// ниоткуда, кроме клейм.
+        ///
+        /// ⚠ Метод СТАТИЧЕСКИЙ и чистый нарочно: решение о том, что сказать,
+        /// не должно требовать окна — так его меряет безоконная проба
+        /// (`CurveGenerationProbe`), а не снимок подписи.
+        ///
+        /// Клеймо без `phys=` (кривая по измерениям, ручная, или посчитанная до
+        /// заведения клейм) молчит: сказать про неё нечего, а «поколение 0»
+        /// было бы неправдой.
+        /// </summary>
+        /// <param name="computeStamp">клеймо кривой; пустое — молчим</param>
+        /// <param name="matrixPhysics">поколение матрицы склада; 0 — матрицы нет</param>
+        /// <param name="buildPhysics">поколение этой сборки</param>
+        internal static List<string> GenerationNotes(string computeStamp, int matrixPhysics,
+                                                     int buildPhysics)
+        {
+            List<string> notes = new List<string>();
+            int curvePhysics = ResponseMatrix.PhysicsFromStamp(computeStamp);
+            if (curvePhysics <= 0)
+            {
+                return notes;
+            }
+
+            // `A244`: числа — инвариантной культурой, точка и никакой
+            // группировки разрядов (решение Amber 05.09.2026).
+            if (curvePhysics != buildPhysics)
+            {
+                notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                        Resources.EfficiencyTabCurveOldPhysics,
+                                        curvePhysics, buildPhysics));
+            }
+
+            // Сравнение с матрицей — ОТДЕЛЬНОЕ: кривая и матрица бывают обе
+            // старыми, но одного поколения (тогда сказать надо одно), и бывают
+            // разного (тогда два). Матрица нулём — её нет, и молчим.
+            if (matrixPhysics > 0 && matrixPhysics != curvePhysics)
+            {
+                notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                        Resources.EfficiencyTabCurveVsMatrix,
+                                        curvePhysics, matrixPhysics));
+            }
+
+            return notes;
         }
 
         void efficiencyCombo_SelectedIndexChanged(object sender, EventArgs e)
