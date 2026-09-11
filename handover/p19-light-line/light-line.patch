@@ -1,0 +1,993 @@
+diff --git a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+index 3fa50520..7a1c8223 100644
+--- a/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
++++ b/BecquerelMonitor/EfficiencyMaker/ResponseMatrix.cs
+@@ -1007,7 +1007,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+             // Веса `1.0·(1−t)` и `1.0·t` равны `1−t` и `t` до бита, так что
+             // прежний собственный обход узлов здесь заменён общим без единого
+             // изменившегося числа (сверено sha256 выписки пробы, 11.09.2026).
+-            this.Accumulate(result, energyKev, 1.0, -1, 0.0);
++            this.Accumulate(result, energyKev, 1.0, -1, 0.0, 1.0);
+             return result;
+         }
+ 
+@@ -1023,7 +1023,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// ключом <see cref="TransferByChannel"/>.
+         /// </summary>
+         void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
+-                     double shiftBins)
++                     double shiftBins, double lightScale)
+         {
+             if (row == null || !(nodeEnergy > 0.0) || !(weight > 0.0))
+             {
+@@ -1039,7 +1039,9 @@ namespace BecquerelMonitor.EfficiencyMaker
+                     continue;
+                 }
+ 
+-                double position = b * scale + shiftBins;
++                // (П19) множитель положения по свету — на ВЫХОД, после
++                // масштаба узла; единица не меняет ни бита.
++                double position = b * scale * lightScale + shiftBins;
+                 int at = (int)position;
+                 double frac = position - at;
+ 
+@@ -1062,7 +1064,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public void Accumulate(double[] target, double energyKev, double weight)
+         {
+-            this.Accumulate(target, energyKev, weight, -1, 0.0);
++            this.Accumulate(target, energyKev, weight, -1, 0.0, 1.0);
+         }
+ 
+         /// <summary>
+@@ -1071,7 +1073,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// </summary>
+         public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
+         {
+-            this.Accumulate(target, energyKev, weight, channel, 0.0);
++            this.Accumulate(target, energyKev, weight, channel, 0.0, 1.0);
+         }
+ 
+         /// <summary>
+@@ -1089,7 +1091,27 @@ namespace BecquerelMonitor.EfficiencyMaker
+                                       double shiftKev)
+         {
+             this.Accumulate(target, energyKev, weight, channel,
+-                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0);
++                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0, 1.0);
++        }
++
++        /// <summary>
++        /// (`F11` (в), П19 12.09.2026) То же, но ВЕСЬ перенесённый отклик ещё
++        /// и умножен по шкале на <paramref name="lightScale"/>: бин, вставший
++        /// бы на x кэВ, встаёт на x·k (плюс сдвиг). Это точная карта положения
++        /// по свету для отклика ОДНОЙ линии: `RemapLightScale` при счёте
++        /// матрицы нормирует все бины строки на свет ПИКА этой линии, значит
++        /// на шкале прибора, линейной по свету и откалиброванной по E₀, вся
++        /// строка линии E стоит с множителем k = r(E)/r(E₀) — и пик, и её
++        /// комптон, и её вылеты. Множитель 1 — побитово прежние числа
++        /// (`x·1.0 == x`); узлы сетки выбираются по <paramref name="energyKev"/>
++        /// (физика отклика — у кванта E), множитель применяется к ВЫХОДУ.
++        /// </summary>
++        public void AccumulateLight(double[] target, double energyKev, double weight, int channel,
++                                    double shiftKev, double lightScale)
++        {
++            this.Accumulate(target, energyKev, weight, channel,
++                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0,
++                            lightScale > 0.0 ? lightScale : 1.0);
+         }
+ 
+         /// <summary>Есть ли у матрицы раскладка по каналам.</summary>
+@@ -1099,7 +1121,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+         }
+ 
+         void Accumulate(double[] target, double energyKev, double weight, int channel,
+-                        double shiftBins)
++                        double shiftBins, double lightScale)
+         {
+             // Просили КОНКРЕТНЫЙ канал, а такого нет (матрица без каналов или
+             // чужой номер) — вклад пустой. Молчаливый откат на суммарные
+@@ -1128,21 +1150,21 @@ namespace BecquerelMonitor.EfficiencyMaker
+             int hi = Array.BinarySearch(this.Energies, energyKev);
+             if (hi >= 0)
+             {
+-                this.Place(rows, hi, energyKev, weight, target, channel, shiftBins);
++                this.Place(rows, hi, energyKev, weight, target, channel, shiftBins, lightScale);
+                 return;
+             }
+ 
+             hi = ~hi;
+             if (hi <= 0)
+             {
+-                this.Place(rows, 0, energyKev, weight, target, channel, shiftBins);
++                this.Place(rows, 0, energyKev, weight, target, channel, shiftBins, lightScale);
+                 return;
+             }
+ 
+             if (hi >= this.Energies.Length)
+             {
+                 int last = this.Energies.Length - 1;
+-                this.Place(rows, last, energyKev, weight, target, channel, shiftBins);
++                this.Place(rows, last, energyKev, weight, target, channel, shiftBins, lightScale);
+                 return;
+             }
+ 
+@@ -1152,8 +1174,8 @@ namespace BecquerelMonitor.EfficiencyMaker
+             int lo = hi - 1;
+             double span = this.Energies[hi] - this.Energies[lo];
+             double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
+-            this.Place(rows, lo, energyKev, weight * (1.0 - t), target, channel, shiftBins);
+-            this.Place(rows, hi, energyKev, weight * t, target, channel, shiftBins);
++            this.Place(rows, lo, energyKev, weight * (1.0 - t), target, channel, shiftBins, lightScale);
++            this.Place(rows, hi, energyKev, weight * t, target, channel, shiftBins, lightScale);
+         }
+ 
+         /// <summary>
+@@ -1167,18 +1189,19 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// каналов, каждый своим переносом.
+         /// </summary>
+         void Place(float[][] rows, int node, double energyKev, double weight, double[] target,
+-                   int channel, double shiftBins)
++                   int channel, double shiftBins, double lightScale)
+         {
+             if (!this.TransferByChannel || !this.HasChannels)
+             {
+-                this.Stretch(rows[node], this.Energies[node], energyKev, weight, target, shiftBins);
++                this.Stretch(rows[node], this.Energies[node], energyKev, weight, target, shiftBins,
++                             lightScale);
+                 return;
+             }
+ 
+             if (channel >= 0)
+             {
+                 this.Transfer(rows[node], this.Energies[node], energyKev, weight, target, shiftBins,
+-                              channel);
++                              channel, lightScale);
+                 return;
+             }
+ 
+@@ -1191,7 +1214,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 }
+ 
+                 this.Transfer(channelRows[node], this.Energies[node], energyKev, weight, target,
+-                              shiftBins, c);
++                              shiftBins, c, lightScale);
+             }
+         }
+ 
+@@ -1294,7 +1317,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+         /// правила.
+         /// </summary>
+         void Transfer(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
+-                      double shiftBins, int channel)
++                      double shiftBins, int channel, double lightScale)
+         {
+             if (row == null || !(nodeEnergy > 0.0) || !(lineEnergy > 0.0) || !(weight > 0.0)
+                 || !(this.BinKev > 0.0))
+@@ -1302,11 +1325,14 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 return;
+             }
+ 
++            // (П19) `lightScale` — множитель положения по свету на ВЫХОД
++            // правила канала (после его сдвига или карты, до `shiftBins`);
++            // единица не меняет ни бита: `x·1.0 == x`.
+             if (lineEnergy == nodeEnergy)
+             {
+                 for (int b = 0; b < row.Length; b++)
+                 {
+-                    Put(target, b + shiftBins, weight * row[b]);
++                    Put(target, b * lightScale + shiftBins, weight * row[b]);
+                 }
+ 
+                 return;
+@@ -1319,7 +1345,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                             - EfficiencySimulator.PeakBin(nodeEnergy, this.BinKev);
+                 for (int b = 0; b < row.Length; b++)
+                 {
+-                    Put(target, b + shift + shiftBins, weight * row[b]);
++                    Put(target, (b + shift) * lightScale + shiftBins, weight * row[b]);
+                 }
+ 
+                 return;
+@@ -1330,7 +1356,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 double shift = (lineEnergy - nodeEnergy) / this.BinKev;
+                 for (int b = 0; b < row.Length; b++)
+                 {
+-                    Put(target, b + shift + shiftBins, weight * row[b]);
++                    Put(target, (b + shift) * lightScale + shiftBins, weight * row[b]);
+                 }
+ 
+                 return;
+@@ -1360,7 +1386,7 @@ namespace BecquerelMonitor.EfficiencyMaker
+                 double slope = (image[segment + 1] - image[segment])
+                                / (source[segment + 1] - source[segment]);
+                 double mapped = image[segment] + (x - source[segment]) * slope;
+-                Put(target, mapped / this.BinKev + shiftBins, weight * value);
++                Put(target, mapped / this.BinKev * lightScale + shiftBins, weight * value);
+             }
+         }
+ 
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+index 13642755..075f5cc5 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+@@ -1361,6 +1361,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// <summary>(П18) Имя кривой света, по которой построена таблица S(p); null — координата выключена.</summary>
+         string lightCurveName;
+ 
++        /// <summary>
++        /// (П19) Форма применения световой координаты на ЭТОТ разбор —
++        /// <see cref="AnchorLightForm"/>, разобранная один раз в
++        /// <see cref="Analyze"/>; <see cref="LightForm.None"/> — координата
++        /// выключена или кривой для вещества нет.
++        /// </summary>
++        LightForm lightForm;
++
++        /// <summary>
++        /// (П19) Запас длины гистограммы поглощения под сдвиг пика ВВЕРХ по
++        /// свету, бины (формы line/peak: линия ниже E₀ едет вверх на s(E) до
++        /// четырёх кэВ, а `Add` матрицы зажимает выход за край — без запаса
++        /// хвост пика верхней линии лёг бы в последний бин). Нуль — без
++        /// запаса, длины прежние.
++        /// </summary>
++        int lightMarginBins;
++
++        /// <summary>(П19) Формы применения световой координаты — см. <see cref="AnchorLightForm"/>.</summary>
++        enum LightForm
++        {
++            /// <summary>Координата выключена.</summary>
++            None,
++            /// <summary>Сдвиг по энергии БИНА образа (форма П18).</summary>
++            Bin,
++            /// <summary>Множитель на весь отклик каждой линии (точная форма).</summary>
++            Line,
++            /// <summary>Сдвиг одного канала полного поглощения линии.</summary>
++            Peak,
++            /// <summary>Только в привязке: опоры к E + s(E), образ не тронут.</summary>
++            Anchor
++        }
++
+         /// <summary>
+         /// ⛔ (`AMBER8`) ВЫЛЕТА БЕЗ РОДИТЕЛЯ НЕ БЫВАЕТ: образ `SE-*`/`DE-*`
+         /// снимается, когда его родительская колонка не дожила до этого
+@@ -1619,6 +1651,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         public string AnchorLightCurve { get; set; }
+ 
++        /// <summary>
++        /// (`F11` (в), П19 12.09.2026; решение Amber 12.09.2026 «ВЫКЛ — сперва
++        /// точная форма») ФОРМА ПРИМЕНЕНИЯ световой координаты — КУДА кладётся
++        /// сдвиг s(E) = E·r(E)/r(E₀) − E. Слово, разбирается в
++        /// <see cref="Analyze"/>; что стоит умолчанием — в конструкторе.
++        ///
++        ///   * "bin" — форма П18: сдвиг по энергии БИНА образа, S(p) в
++        ///     <see cref="DriftPosition"/> на всю модель разом. Пики встают
++        ///     верно, но вместе с бином едет и континуум, стоящий в нём:
++        ///     комптон чужих линий, подложка, фон — а он в матрице уже стоит
++        ///     где надо (`RemapLightScale` учёл свет по энергии электрона).
++        ///     Цена измерена П16/П18: спектры с одной-двумя опорами платят
++        ///     континуумом (`G1S24_Cs137_P5` 13.69 → 14.53).
++        ///   * "line" — ТОЧНАЯ форма: множитель k = r(E)/r(E₀) на ВЕСЬ отклик
++        ///     КАЖДОЙ линии при сборе образа (<see cref="AccumulateLine"/>,
++        ///     <c>ResponseMatrix.AccumulateLight</c>) — ровно та карта, которую
++        ///     `RemapLightScale` снял, нормируя бины строки на свет пика этой
++        ///     линии: и пик, и её комптон, и её вылеты. Континуум чужих линий,
++        ///     подложка, сплайн и фон не двигаются. Сумм-пик — по видимой
++        ///     энергии суммы (`ApparentSum`) тем же множителем, ОДИН раз;
++        ///     сумм-континуум — отклик третьего кванта своим множителем,
++        ///     приподнятый на видимую сумму пары со своим сдвигом.
++        ///   * "peak" — сдвиг ОДНОГО канала полного поглощения линии на s(E),
++        ///     континуум самой линии остаётся в шкале матрицы: приближение
++        ///     формы "line" без множителя на комптон и вылеты. У матрицы без
++        ///     раскладки по каналам сдвинуть один пик нельзя — строка кладётся
++        ///     как есть.
++        ///   * "anchor" — только в привязке: опоры сравниваются с E + s(E), а
++        ///     образ не трогается вовсе, то есть модель пика стоит НЕ там, где
++        ///     данные; плечо замера, не рабочая форма.
++        ///
++        /// Во всех формах координата действует у спектра только после первой
++        /// принятой опоры (β = 1), как у П18; без опор шкала и образы — как
++        /// без ключа. Рычаг проб — `--anchor-light=bin|line|peak|anchor` и
++        /// `--anchor-form=` у `CorpusFsaProbe`.
++        /// </summary>
++        public string AnchorLightForm { get; set; }
++
+         /// <summary>
+         /// (П18) E₀ — энергия, на которой s(E₀) = 0: линия, по которой прибор
+         /// калиброван (Cs-137). Число — в конструкторе.
+@@ -1817,7 +1887,165 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             double p = gain * position + offset;
+             // (П18) световая координата — поле `driftLight` × таблица S(p);
+             // без таблицы (ключ выключен) — ровно прежняя прямая, до бита.
+-            return this.lightShiftChannels == null ? p : p + this.driftLight * this.LightShift(position);
++            // (П19) сдвигом по бину живёт ТОЛЬКО форма "bin": у "line"/"peak"
++            // сдвиг уже в образах, у "anchor" модель не двигается вовсе.
++            return this.lightShiftChannels == null || this.lightForm != LightForm.Bin
++                ? p
++                : p + this.driftLight * this.LightShift(position);
++        }
++
++        /// <summary>
++        /// (П19) s(E) линии, кэВ, КАК ОНА ПРИМЕНЯЕТСЯ К ОБРАЗУ на этом проходе:
++        /// нуль у форм bin/anchor и без координаты, нуль до первой принятой
++        /// опоры (β = 0), нуль выше <see cref="AnchorLightMaxKev"/>; иначе
++        /// сдвиг по кривой <see cref="lightCurveName"/>.
++        /// </summary>
++        double LineLightShiftKev(double energyKev)
++        {
++            if (this.driftLight == 0.0 || this.lightCurveName == null
++                || (this.lightForm != LightForm.Line && this.lightForm != LightForm.Peak)
++                || !(energyKev > 0.0)
++                || (this.AnchorLightMaxKev > 0.0 && energyKev > this.AnchorLightMaxKev))
++            {
++                return 0.0;
++            }
++
++            double shift = FsaLightScale.ShiftKev(this.lightCurveName, energyKev, this.AnchorLightReferenceKev);
++            return Finite(shift) ? shift : 0.0;
++        }
++
++        /// <summary>(П19) Где стоит пик линии в шкале образа: E + s(E) у форм line/peak после привязки, иначе E.</summary>
++        double LinePositionKev(double energyKev)
++        {
++            return energyKev + this.LineLightShiftKev(energyKev);
++        }
++
++        /// <summary>
++        /// (П19) s(E) по кривой разбора БЕЗ оглядки на проход и форму — для
++        /// подсказки опоры и `_anchors.csv`; нуль без координаты и выше
++        /// <see cref="AnchorLightMaxKev"/>.
++        /// </summary>
++        double CurveShiftKev(double energyKev)
++        {
++            if (this.lightCurveName == null || !(energyKev > 0.0)
++                || (this.AnchorLightMaxKev > 0.0 && energyKev > this.AnchorLightMaxKev))
++            {
++                return 0.0;
++            }
++
++            double shift = FsaLightScale.ShiftKev(this.lightCurveName, energyKev, this.AnchorLightReferenceKev);
++            return Finite(shift) ? shift : 0.0;
++        }
++
++        /// <summary>(П19) Кладут ли формы сдвиг В ОБРАЗЫ (тогда кэш гистограмм зависит от β).</summary>
++        bool LightInImages
++        {
++            get { return this.lightForm == LightForm.Line || this.lightForm == LightForm.Peak; }
++        }
++
++        /// <summary>
++        /// (`F11` (в), П19) Отклик ОДНОЙ линии в гистограмму поглощения — с
++        /// формой положения по свету (<see cref="AnchorLightForm"/>). Без
++        /// координаты (ключ выключен, кривой нет, β = 0, формы bin/anchor) —
++        /// ровно <c>AccumulateChannel</c> / <c>Accumulate</c>, до бита.
++        /// <paramref name="channel"/> −1 — весь отклик (матрица без каналов).
++        /// </summary>
++        void AccumulateLine(EfficiencyMaker.ResponseMatrix matrix, double[] target,
++                            double energyKev, double weight, int channel)
++        {
++            double shift = this.LineLightShiftKev(energyKev);
++            if (shift == 0.0)
++            {
++                if (channel < 0)
++                {
++                    matrix.Accumulate(target, energyKev, weight);
++                }
++                else
++                {
++                    matrix.AccumulateChannel(target, energyKev, weight, channel);
++                }
++
++                return;
++            }
++
++            if (this.lightForm == LightForm.Line)
++            {
++                // множитель на ВЕСЬ отклик линии: k = (E + s)/E = r(E)/r(E₀)
++                matrix.AccumulateLight(target, energyKev, weight, channel, 0.0,
++                                       (energyKev + shift) / energyKev);
++                return;
++            }
++
++            // форма "peak": сдвиг одного канала полного поглощения
++            int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
++            if (channel == peak)
++            {
++                matrix.AccumulateShifted(target, energyKev, weight, channel, shift);
++            }
++            else if (channel < 0)
++            {
++                matrix.Accumulate(target, energyKev, weight);
++            }
++            else
++            {
++                matrix.AccumulateChannel(target, energyKev, weight, channel);
++            }
++        }
++
++        /// <summary>
++        /// (П19) Сумм-континуум (S19) с формой положения по свету: отклик
++        /// ТРЕТЬЕГО кванта, приподнятый на видимую сумму пары. Форма "line" —
++        /// множитель третьего на его отклик и сдвиг суммы по её видимой
++        /// энергии; прочие формы — прежний <c>AccumulateShifted</c>, до бита.
++        /// </summary>
++        void AccumulateSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
++                                    double thirdKev, double weight, int channel, double shiftKev)
++        {
++            if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
++            {
++                double third = this.LineLightShiftKev(thirdKev);
++                double sum = this.LineLightShiftKev(shiftKev);
++                if (third != 0.0 || sum != 0.0)
++                {
++                    matrix.AccumulateLight(target, thirdKev, weight, channel, shiftKev + sum,
++                                           (thirdKev + third) / thirdKev);
++                    return;
++                }
++            }
++
++            matrix.AccumulateShifted(target, thirdKev, weight, channel, shiftKev);
++        }
++
++        /// <summary>(П19) Слово формы для результата и `runs.csv`.</summary>
++        static string LightFormName(LightForm form)
++        {
++            switch (form)
++            {
++                case LightForm.Bin: return "bin";
++                case LightForm.Line: return "line";
++                case LightForm.Peak: return "peak";
++                case LightForm.Anchor: return "anchor";
++                default: return "";
++            }
++        }
++
++        /// <summary>
++        /// (П19) Разбор слова <see cref="AnchorLightForm"/>; незнакомое слово
++        /// — отказ, а не молчаливая подмена: иначе опечатка в ключе пробы
++        /// мерила бы не то плечо.
++        /// </summary>
++        static LightForm ParseLightForm(string word)
++        {
++            string w = (word ?? "").Trim().ToLowerInvariant();
++            switch (w)
++            {
++                case "bin": return LightForm.Bin;
++                case "line": return LightForm.Line;
++                case "peak": return LightForm.Peak;
++                case "anchor": return LightForm.Anchor;
++                default:
++                    throw new ArgumentException("AnchorLightForm: неизвестная форма «" + (word ?? "") + "»; ждали bin | line | peak | anchor");
++            }
+         }
+ 
+         /// <summary>(П18) S(p), каналы: линейная интерполяция таблицы <see cref="lightShiftChannels"/>; 0 без таблицы.</summary>
+@@ -1845,6 +2073,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             return table[lo] + (table[lo + 1] - table[lo]) * frac;
+         }
+ 
++        /// <summary>
++        /// (П19) S линии в каналах для форм line/peak: на сколько каналов
++        /// уедет модельный центр опоры, когда её линия ядра получит s(E).
++        /// Нуль без кривой и без линии.
++        /// </summary>
++        double LineShiftChannels(EnergyCalibration calibration, double modelKev, double lineKev,
++                                 double centreModel, int channels)
++        {
++            double shift = this.CurveShiftKev(lineKev);
++            if (shift == 0.0 || !Finite(modelKev) || !(modelKev + shift > 0.0))
++            {
++                return 0.0;
++            }
++
++            double p = EnergyToChannelSafe(calibration, modelKev + shift, channels);
++            return Finite(p) ? p - centreModel : 0.0;
++        }
++
+         /// <summary>
+         /// (`AMBER17`) ОПОРЫ ПРИВЯЗКИ ШКАЛЫ И МНК ПО НИМ — один проход.
+         ///
+@@ -2051,7 +2297,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 double coreLineBlue = 0.0;
+                 for (int j = 0; j < owner.Lines.Count; j++)
+                 {
+-                    double p = EnergyToChannelSafe(calibration, owner.Lines[j].Energy, channels);
++                    // (П19) у форм line/peak после привязки пик линии стоит
++                    // в образе на E + s(E) — искать его там же.
++                    double p = EnergyToChannelSafe(calibration, this.LinePositionKev(owner.Lines[j].Energy), channels);
+                     if (!Finite(p))
+                     {
+                         continue;
+@@ -2146,9 +2394,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+                     // (П18) Сдвиг по свету на модельном центре опоры, кэВ —
+                     // для подсказки и `_anchors.csv`; нуль без координаты.
+-                    anchor.LightShiftKev = this.lightShiftChannels == null
+-                        ? 0.0
+-                        : calibration.ChannelToEnergy(centreModel + this.LightShift(centreModel)) - anchor.ModelKev;
++                    // (П19) у форм line/peak — s(E) линии ядра по кривой.
++                    anchor.LightShiftKev = this.lightShiftChannels != null
++                        ? calibration.ChannelToEnergy(centreModel + this.LightShift(centreModel)) - anchor.ModelKev
++                        : this.CurveShiftKev(coreLineKev);
+ 
+                     if (edge)
+                     {
+@@ -2182,8 +2431,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                         fits.Add(new AnchorFit
+                         {
+                             Anchor = anchor, X = centreModel, Y = centreData, Weight = 1.0 / varCentre,
+-                            // (П18) световая координата опоры — S на модельном центре
+-                            S = this.LightShift(centreModel)
++                            // (П18) световая координата опоры — S на модельном центре;
++                            // (П19) у форм line/peak — s(E) линии ядра, в каналах
++                            // на модельном центре (до первой опоры образ не сдвинут,
++                            // и МНК вычитает свет из измерения; после — β⁺ = 0)
++                            S = this.lightShiftChannels != null
++                                ? this.LightShift(centreModel)
++                                : this.LineShiftChannels(calibration, anchor.ModelKev, coreLineKev, centreModel, channels)
+                         });
+                     }
+                 }
+@@ -2231,8 +2485,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // (после первого прохода — нуль). Прямая `AMBER17` считается по
+             // Y' = Y − β⁺·S — та же прямая, только свет вычтен из измерения.
+             // Без координаты β⁺ = 0 и Y' = Y — до бита прежний МНК.
+-            bool lightOn = this.lightShiftChannels != null;
+-            double betaFixedAdd = lightOn ? 1.0 - this.driftLight : 0.0;
++            // (П19) Координата жива у всех форм (`lightCurveName`); у формы
++            // "anchor" модель света не получает никогда, и МНК вычитает его из
++            // измерения на КАЖДОМ проходе (β⁺ = 1, наружу β = 0).
++            bool lightOn = this.lightCurveName != null;
++            bool anchorOnly = this.lightForm == LightForm.Anchor;
++            double betaFixedAdd = !lightOn ? 0.0 : (anchorOnly ? 1.0 : 1.0 - this.driftLight);
+             foreach (AnchorFit f in fits)
+             {
+                 f.YEff = lightOn ? f.Y - betaFixedAdd * f.S : f.Y;
+@@ -2240,7 +2498,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+             while (true)
+             {
+-                beta = betaFixedAdd;
++                beta = anchorOnly ? 0.0 : betaFixedAdd;
+                 double swxx = 0.0, swxy = 0.0, sw = 0.0, swx = 0.0, swy = 0.0;
+                 double xMin = double.MaxValue, xMax = double.MinValue;
+                 foreach (AnchorFit f in fits)
+@@ -2416,7 +2674,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             }
+ 
+             FsaLine line = component.Lines[lineIndex];
+-            double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1];
++            double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+             FsaCascadeSummer.Correction correction =
+                 this.cascade != null ? this.cascade.For(component) : null;
+             if (correction != null && !correction.Any)
+@@ -2430,7 +2688,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 ? correction.LineFactors[lineIndex]
+                 : 1.0;
+             int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+-            matrix.AccumulateChannel(deposit, line.Energy, weight * cf, peak);
++            this.AccumulateLine(matrix, deposit, line.Energy, weight * cf, peak);
+             this.SplitContinuumBelowTrustFloor(deposit, null, null, bin, component,
+                                                calibration, fwhmCalibration, channels);
+             return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, bin,
+@@ -2725,6 +2983,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             // Плечо A/B — `--anchor-light=1` у `CorpusFsaProbe`.
+             this.AnchorLightPosition = false;
+             this.AnchorLightCurve = null;
++            // (П19) форма применения — ТОЧНАЯ, множитель на отклик линии;
++            // форма П18 — "bin", плечи замера — "peak", "anchor".
++            this.AnchorLightForm = "line";
+             this.AnchorLightReferenceKev = 661.657;
+             this.AnchorLightMaxKev = 0.0;
+             // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
+@@ -2849,6 +3110,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             this.lightShiftChannels = null;
+             this.lightShiftMax = 0.0;
+             this.lightCurveName = null;
++            this.lightForm = LightForm.None;
++            this.lightMarginBins = 0;
+ 
+             // (`AMBER16` п. 4) Правило переноса строки между узлами — матрице,
+             // из настройки разбора, на каждом разборе: матрица между вызовами
+@@ -2883,6 +3146,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     : this.AnchorLightCurve;
+                 if (FsaLightScale.Known(curve))
+                 {
++                    LightForm form = ParseLightForm(this.AnchorLightForm);
+                     double[] table = new double[channels];
+                     for (int i = 0; i < channels; i++)
+                     {
+@@ -2896,8 +3160,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                         this.lightShiftMax = Math.Max(this.lightShiftMax, Math.Abs(d));
+                     }
+ 
+-                    this.lightShiftChannels = table;
++                    // (П19) Таблица S(p) по бинам нужна форме "bin" (сдвиг
++                    // модели в `DriftPosition`) и "anchor" (координата опор в
++                    // МНК); формам "line"/"peak" — только max|S| для условия
++                    // сходимости и запас длины гистограмм под сдвиг вверх.
++                    if (form == LightForm.Bin || form == LightForm.Anchor)
++                    {
++                        this.lightShiftChannels = table;
++                    }
++                    else
++                    {
++                        double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
++                        double up = FsaLightScale.MaxShiftKev(curve, this.AnchorLightReferenceKev, this.AnchorLightMaxKev);
++                        this.lightMarginBins = bin > 0.0 && up > 0.0 ? (int)Math.Ceiling(up / bin) + 1 : 0;
++                    }
++
+                     this.lightCurveName = curve;
++                    this.lightForm = form;
+                 }
+             }
+ 
+@@ -3543,7 +3822,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                         double offset = a * bestOffset + b;
+                         // (П18) световая координата: p'' = a·p' + b + β⁺·S(p'),
+                         // S(p') ≈ S(p) — ошибка порядка десятой кэВ.
+-                        double light = a * this.driftLight + beta;
++                        // (П19) у форм line/peak β — признак 0/1 (сдвиг живёт
++                        // в образах, в кэВ, с усилением не композируется); у
++                        // "anchor" — признак «свет вычтен из опор».
++                        double light = this.lightForm == LightForm.Bin
++                            ? a * this.driftLight + beta
++                            : (this.lightForm == LightForm.Anchor ? 1.0 : Math.Min(1.0, this.driftLight + beta));
+ 
+                         // Сошлось — дальше не двигаемся: сдвиг меньше двадцатой
+                         // канала на всём диапазоне полосы.
+@@ -3565,12 +3849,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+ 
+                         double lightBefore = this.driftLight;
+                         this.driftLight = light;
++                        // (П19) формы line/peak кладут сдвиг В ОБРАЗЫ: при смене
++                        // β кэш гистограмм поглощения обязан быть построен заново.
++                        if (light != lightBefore && this.LightInImages)
++                        {
++                            this.deposits.Clear();
++                        }
++
+                         FitResult moved = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
+                                                    efficiency, gain, offset, chLo, chHi, channels,
+                                                    y, variance, baseWeights, reportWeights, null);
+                         if (moved == null)
+                         {
+                             this.driftLight = lightBefore;
++                            if (light != lightBefore && this.LightInImages)
++                            {
++                                this.deposits.Clear();
++                            }
++
+                             this.anchorNote = note + "; фит на новой шкале не удался, шкала прежняя";
+                             break;
+                         }
+@@ -3603,14 +3899,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                         // (П18) положение по свету — в ту же служебную строку:
+                         // «свет» несёт кривую и итоговый β (единица, если
+                         // координата дошла до фита; нуль — сошлось до неё).
+-                        if (this.lightShiftChannels != null)
++                        if (this.lightCurveName != null)
+                         {
+                             this.anchorNote += string.Format(CultureInfo.InvariantCulture,
+-                                "; свет {0}: β {1:F3}", this.lightCurveName, this.driftLight);
++                                "; свет {0}: β {1:F3}, форма {2}", this.lightCurveName, this.driftLight,
++                                LightFormName(this.lightForm));
+                         }
+                     }
+ 
+-                    if (this.AnchorLightPosition && this.lightShiftChannels == null)
++                    if (this.AnchorLightPosition && this.lightCurveName == null)
+                     {
+                         // Ключ есть, кривой нет — сказать, а не промолчать:
+                         // иначе «положение по свету ВКЛ» на CZT/LaBr3 выглядит
+@@ -4966,7 +5263,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     return null;
+                 }
+ 
+-                double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1];
++                double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1 + this.lightMarginBins];
+                 FsaCascadeSummer.Correction correction =
+                     this.cascade != null ? this.cascade.For(component) : null;
+                 if (correction != null && !correction.Any)
+@@ -4988,21 +5285,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     // стоит в фите, — иначе она поверяет свою копию правила.
+                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                     {
+-                        matrix.AccumulateChannel(deposit, line.Energy,
+-                                                 c == peak && corrected ? weight * cf : weight, c);
++                        this.AccumulateLine(matrix, deposit, line.Energy,
++                                            c == peak && corrected ? weight * cf : weight, c);
+                     }
+                 }
+                 else if (corrected)
+                 {
+                     for (int c = 0; c < EfficiencyMaker.EfficiencySimulator.ResponseChannelCount; c++)
+                     {
+-                        matrix.AccumulateChannel(deposit, line.Energy,
+-                                                 c == peak ? weight * cf : weight, c);
++                        this.AccumulateLine(matrix, deposit, line.Energy,
++                                            c == peak ? weight * cf : weight, c);
+                     }
+                 }
+                 else
+                 {
+-                    matrix.Accumulate(deposit, line.Energy, weight);
++                    this.AccumulateLine(matrix, deposit, line.Energy, weight, -1);
+                 }
+ 
+                 // Тот же нож, что в `DepositOf`: подпороговый континуум уезжает
+@@ -5060,7 +5357,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 // выключена или не дошла до фита)
+                 AnchorLightCurve = this.lightCurveName ?? "",
+                 AnchorLightBeta = this.driftLight,
+-                AnchorLightReferenceKev = this.AnchorLightReferenceKev
++                AnchorLightReferenceKev = this.AnchorLightReferenceKev,
++                // (П19) форма применения — пусто без координаты
++                AnchorLightForm = LightFormName(this.lightForm)
+             };
+ 
+             if (snipContinuum != null)
+@@ -7153,8 +7452,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     }
+                 }
+ 
+-                lows.Add(line.Energy - half);
+-                highs.Add(line.Energy + half);
++                // (П19) окно — вокруг пика ТАМ, где он стоит в образе
++                double centre = this.LinePositionKev(line.Energy);
++                lows.Add(centre - half);
++                highs.Add(centre + half);
+             }
+ 
+             double[] tail = null;
+@@ -7382,7 +7683,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 return null;
+             }
+ 
+-            int length = (int)(topEnergy / bin + 0.5) + 1;
++            // (П19) запас под сдвиг пика вверх по свету — нуль без координаты
++            int length = (int)(topEnergy / bin + 0.5) + 1 + this.lightMarginBins;
+             int channelCount = EfficiencyMaker.EfficiencySimulator.ResponseChannelCount;
+             int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+             bool byChannels = matrix.HasChannels;
+@@ -7420,21 +7722,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     // растянуть и на пик, и на весь хвост.
+                     for (int c = 0; c < channelCount; c++)
+                     {
+-                        matrix.AccumulateChannel(channels[c], line.Energy,
+-                                                 c == peak && corrected ? weight * cf : weight, c);
++                        this.AccumulateLine(matrix, channels[c], line.Energy,
++                                            c == peak && corrected ? weight * cf : weight, c);
+                     }
+                 }
+                 else if (corrected)
+                 {
+                     for (int c = 0; c < channelCount; c++)
+                     {
+-                        matrix.AccumulateChannel(deposit, line.Energy,
+-                                                 c == peak ? weight * cf : weight, c);
++                        this.AccumulateLine(matrix, deposit, line.Energy,
++                                            c == peak ? weight * cf : weight, c);
+                     }
+                 }
+                 else
+                 {
+-                    matrix.Accumulate(deposit, line.Energy, weight);
++                    this.AccumulateLine(matrix, deposit, line.Energy, weight, -1);
+                 }
+ 
+                 if (corrected)
+@@ -7578,9 +7880,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     continue;
+                 }
+ 
+-                this.ResponseMatrix.AccumulateChannel(
+-                    channels != null ? channels[peakChannel] : deposit,
+-                    peak.Energy, peak.Area / peakEfficiency, peakChannel);
++                // (П19) сумм-пик — по видимой энергии суммы (`ApparentSum`),
++                // и координата света на неё ОДИН раз, как у одиночной линии
++                this.AccumulateLine(this.ResponseMatrix,
++                                    channels != null ? channels[peakChannel] : deposit,
++                                    peak.Energy, peak.Area / peakEfficiency, peakChannel);
+                 any = true;
+             }
+ 
+@@ -7608,9 +7912,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                             continue;
+                         }
+ 
+-                        this.ResponseMatrix.AccumulateShifted(
+-                            channels != null ? channels[c] : deposit,
+-                            band.ThirdKev, band.Weight, c, band.ShiftKev);
++                        this.AccumulateSumContinuum(this.ResponseMatrix,
++                                                    channels != null ? channels[c] : deposit,
++                                                    band.ThirdKev, band.Weight, c, band.ShiftKev);
+                     }
+ 
+                     any = true;
+@@ -8996,6 +9300,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             return e * r / r0 - e;
+         }
+ 
++        /// <summary>
++        /// (П19) Наибольший ПОЛОЖИТЕЛЬНЫЙ сдвиг s(E) по узлам таблицы, кэВ
++        /// (не выше <paramref name="maxKev"/>, если она задана) — запас длины
++        /// гистограммы поглощения; 0 у неизвестной кривой.
++        /// </summary>
++        public static double MaxShiftKev(string curve, double e0, double maxKev)
++        {
++            double[][] table = TableOf(curve);
++            if (table == null)
++            {
++                return 0.0;
++            }
++
++            double up = 0.0;
++            foreach (double[] point in table)
++            {
++                double e = point[0];
++                if (maxKev > 0.0 && e > maxKev)
++                {
++                    continue;
++                }
++
++                double s = ShiftKev(curve, e, e0);
++                if (!double.IsNaN(s) && s > up)
++                {
++                    up = s;
++                }
++            }
++
++            return up;
++        }
++
+         /// <summary>
+         /// S в каналах для положения <paramref name="position"/> по
+         /// калибровке спектра — тот же счёт, что у таблицы анализатора; для
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
+index 302d9e5a..87cc0ea2 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
+@@ -764,6 +764,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// <summary>(П18) E₀ световой координаты, кэВ — та же, что у анализатора; для <c>FsaLineAudit</c>.</summary>
+         public double AnchorLightReferenceKev { get; set; }
+ 
++        /// <summary>
++        /// (П19) Форма применения световой координаты этого разбора
++        /// («bin» / «line» / «peak» / «anchor» — <c>FsaAnalyzer.AnchorLightForm</c>);
++        /// пусто — координата выключена или кривой для вещества нет.
++        /// </summary>
++        public string AnchorLightForm { get; set; }
++
+         /// <summary>
+         /// Служебная строка о привязке для проб и журнала: сколько опор,
+         /// усиление, ноль, либо почему шкала не тронута; (П18) при световой
+diff --git a/tools/effmaker/probes/CorpusFsaProbe.cs b/tools/effmaker/probes/CorpusFsaProbe.cs
+index 1de5e5e8..2c437f96 100644
+--- a/tools/effmaker/probes/CorpusFsaProbe.cs
++++ b/tools/effmaker/probes/CorpusFsaProbe.cs
+@@ -264,12 +264,27 @@ namespace CorpusFsaProbe
+                 // третья координата привязки: 0 — выкл (умолчание анализатора),
+                 // 1 — кривая по веществу кристалла, `NaI:Tl`/`CsI:Tl` — кривая
+                 // поимённо на всех (контроль «копия П17 = дерево»).
++                // (П19) `bin`/`line`/`peak`/`anchor` — включить С ЭТОЙ ФОРМОЙ
++                // применения, кривая по веществу; `--anchor-form=` — форма
++                // отдельно (к кривой поимённо).
+                 if (a.StartsWith("--anchor-light=", StringComparison.Ordinal))
+                 {
+                     string v = a.Substring(15);
++                    if (v == "bin" || v == "line" || v == "peak" || v == "anchor")
++                    {
++                        o.AnchorLight = "1";
++                        o.AnchorForm = v;
++                        continue;
++                    }
++
+                     o.AnchorLight = v == "0" || v == "off" ? "0" : v;
+                     continue;
+                 }
++                if (a.StartsWith("--anchor-form=", StringComparison.Ordinal))
++                {
++                    o.AnchorForm = a.Substring(14);
++                    continue;
++                }
+                 // (П18, рычаг замера) верхняя граница световой координаты, кэВ
+                 if (a.StartsWith("--anchor-light-max=", StringComparison.Ordinal))
+                 {
+@@ -1262,6 +1277,12 @@ namespace CorpusFsaProbe
+                 analyzer.AnchorLightCurve = o.AnchorLight == "0" || o.AnchorLight == "1" ? null : o.AnchorLight;
+             }
+ 
++            // (П19) форма применения; null — умолчание анализатора
++            if (o.AnchorForm != null)
++            {
++                analyzer.AnchorLightForm = o.AnchorForm;
++            }
++
+             if (o.AnchorLightMax >= 0.0)
+             {
+                 analyzer.AnchorLightMaxKev = o.AnchorLightMax;
+@@ -1527,6 +1548,20 @@ namespace CorpusFsaProbe
+             return row.Matrix == MatrixState.Found;
+         }
+ 
++        /// <summary>(П19) Форма применения световой координаты у первой строки, где она есть; null — ни у одной.</summary>
++        static string FirstAnchorForm(List<Row> rows)
++        {
++            foreach (Row r in rows)
++            {
++                if (r.Error == null && !string.IsNullOrEmpty(r.AnchorForm))
++                {
++                    return r.AnchorForm;
++                }
++            }
++
++            return null;
++        }
++
+         /// <summary>
+         /// ⛔ ОТКАЗ, а не норма: узел кривой у спектра есть, а матрицы под него
+         /// нет. Судится ПРИЗНАКОМ, а не сличением печатной строки — прежде итог
+@@ -2052,6 +2087,7 @@ namespace CorpusFsaProbe
+                 row.AnchorsUsed = result.ScaleAnchorsUsed;
+                 row.AnchorLight = result.AnchorLightCurve ?? "";
+                 row.AnchorBeta = result.AnchorLightBeta;
++                row.AnchorForm = result.AnchorLightForm ?? "";
+                 row.AnchorOffsetKev = result.AnchorOffsetKev;
+                 row.AnchorNote = result.AnchorNote ?? "";
+                 row.Anchors = result.ScaleAnchors;
+@@ -3110,13 +3146,15 @@ namespace CorpusFsaProbe
+                             parts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
+                         }
+ 
+-                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}; со светом {2}{3}; без кривой {4}", "",
++                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}{5}; со светом {2}{3}; без кривой {4}", "",
+                                           o.AnchorLight,
+                                           parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "0",
+                                           o.AnchorSkip != null && o.AnchorSkip.Length > 0
+                                               ? "; выброс узла: " + string.Join(",", Array.ConvertAll(o.AnchorSkip, x => x.ToString("F1", CultureInfo.InvariantCulture)))
+                                               : "",
+-                                          lightMissing);
++                                          lightMissing,
++                                          // (П19) форма применения — из ключа либо из первой строки со светом
++                                          ", форма " + (o.AnchorForm ?? FirstAnchorForm(of) ?? "(умолчание анализатора)"));
+                     }
+                 }
+             }
+@@ -3314,7 +3352,9 @@ namespace CorpusFsaProbe
+                                    // найденное привязкой), служебная строка.
+                                    + "anchors_used,anchor_offset_kev,anchor_note,"
+                                    // (`F11` (в), П18) положение по свету: кривая и β — В КОНЕЦ
+-                                   + "anchor_light,anchor_beta");
++                                   + "anchor_light,anchor_beta,"
++                                   // (П19) форма применения световой координаты — В КОНЕЦ
++                                   + "anchor_form");
+                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
+                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
+                     // подложкой, ровно та же величина, что печатает легенда на
+@@ -3393,7 +3433,8 @@ namespace CorpusFsaProbe
+                             F(r.AnchorOffsetKev, "F3"),
+                             Csv(r.AnchorNote),
+                             Csv(r.AnchorLight ?? ""),
+-                            F(r.AnchorBeta, "F4")));
++                            F(r.AnchorBeta, "F4"),
++                            Csv(r.AnchorForm ?? "")));
+ 
+                         if (r.Result == null)
+                         {
+@@ -3903,6 +3944,7 @@ namespace CorpusFsaProbe
+             public double AnchorFloor = -1.0;
+             public double AnchorMinFwhm = -1.0;
+             public string AnchorLight = null;    // (П18) "0" выкл, "1" по веществу, имя кривой; null — умолчание анализатора
++            public string AnchorForm = null;     // (П19) форма применения bin|line|peak|anchor; null — умолчание анализатора
+             public double[] AnchorSkip = null;   // (П16/П18) выброс узла
+             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
+ 
+@@ -4233,6 +4275,7 @@ namespace CorpusFsaProbe
+ 
+             public double AnchorOffsetKev;
+             public string AnchorLight;     // (П18) кривая световой координаты
++            public string AnchorForm;      // (П19) форма применения световой координаты
+             public double AnchorBeta;      // (П18) итоговый β
+ 
+             public string AnchorNote = "";

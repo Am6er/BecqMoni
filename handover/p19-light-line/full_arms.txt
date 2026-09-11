@@ -1,0 +1,39 @@
+
+run lin exit=0 (85 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\lin_dump
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\lin\..\score.py по этим же файлам:
+run bin exit=0 (88 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\bin_dump --anchor-light=bin
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\bin\..\score.py по этим же файлам:
+run line exit=0 (116 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\line_dump --anchor-light=line
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\line\..\score.py по этим же файлам:
+run peak exit=0 (104 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\peak_dump --anchor-light=peak
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\peak\..\score.py по этим же файлам:
+run anchor exit=0 (89 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\anchor_dump --anchor-light=anchor
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\anchor\..\score.py по этим же файлам:
+run lin_skip exit=0 (83 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\lin_skip_dump --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\lin_skip\..\score.py по этим же файлам:
+run bin_skip exit=0 (87 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\bin_skip_dump --anchor-light=bin --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\bin_skip\..\score.py по этим же файлам:
+run line_skip exit=0 (111 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\line_skip_dump --anchor-light=line --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\line_skip\..\score.py по этим же файлам:
+run peak_skip exit=0 (115 s), ключи: --dump-curves=C:\Users\moroz\bqp19_out\peak_skip_dump --anchor-light=peak --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+Фантомы и recall — C:\Users\moroz\bqp19_out\peak_skip\..\score.py по этим же файлам:
+ВСЕ ПЛЕЧИ ПРОШЛИ
+
