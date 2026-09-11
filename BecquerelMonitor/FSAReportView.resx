@@ -5157,6 +5157,9 @@
   <data name="FSAReport_AnchorTipLine" xml:space="preserve">
     <value>{0} {1} {2} keV, residual {3} keV, share {4} {5}</value>
   </data>
+  <data name="FSAReport_AnchorTipLight" xml:space="preserve">
+    <value>, light {0} keV</value>
+  </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Composition suppressed by</value>
   </data>

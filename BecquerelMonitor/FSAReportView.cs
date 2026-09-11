@@ -245,6 +245,7 @@ namespace BecquerelMonitor
         const string KeyAnchorZeroRow = "FSAReport_AnchorZeroRow";
         const string KeyAnchorTip = "FSAReport_AnchorTip";
         const string KeyAnchorTipLine = "FSAReport_AnchorTipLine";
+        const string KeyAnchorTipLight = "FSAReport_AnchorTipLight";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
@@ -1392,6 +1393,15 @@ namespace BecquerelMonitor
                                              anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
                                              anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture),
                                              anchor.Refusal ?? string.Empty));
+                    // (`F11` (в), П18) у ПРИНЯТОЙ опоры со сдвигом по свету —
+                    // сам сдвиг: человек видит, что положение линии модели
+                    // здесь не табличное, а световое. Нуль (координата
+                    // выключена) не печатается — строка остаётся прежней.
+                    if (anchor.Used && anchor.LightShiftKev != 0.0)
+                    {
+                        tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLight),
+                                                 anchor.LightShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)));
+                    }
                 }
             }
 

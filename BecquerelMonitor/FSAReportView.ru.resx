@@ -256,6 +256,9 @@
   <data name="FSAReport_AnchorTipLine" xml:space="preserve">
     <value>{0} {1} {2} кэВ, остаток {3} кэВ, доля {4} {5}</value>
   </data>
+  <data name="FSAReport_AnchorTipLight" xml:space="preserve">
+    <value>, свет {0} кэВ</value>
+  </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Состав пересилен образом</value>
   </data>

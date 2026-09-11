@@ -260,6 +260,36 @@ namespace CorpusFsaProbe
                     o.AnchorMinFwhm = double.Parse(a.Substring(17), CultureInfo.InvariantCulture);
                     continue;
                 }
+                // (`F11` (в), П18 11.09.2026) положение пика линии ПО СВЕТУ —
+                // третья координата привязки: 0 — выкл (умолчание анализатора),
+                // 1 — кривая по веществу кристалла, `NaI:Tl`/`CsI:Tl` — кривая
+                // поимённо на всех (контроль «копия П17 = дерево»).
+                if (a.StartsWith("--anchor-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    o.AnchorLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
+                // (П18, рычаг замера) верхняя граница световой координаты, кэВ
+                if (a.StartsWith("--anchor-light-max=", StringComparison.Ordinal))
+                {
+                    o.AnchorLightMax = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // (П16/П18) выброс узла: линии, которым запрещено быть опорами
+                if (a.StartsWith("--anchor-skip=", StringComparison.Ordinal))
+                {
+                    var list = new List<double>();
+                    foreach (string part in a.Substring(14).Split(','))
+                    {
+                        if (part.Trim().Length > 0)
+                        {
+                            list.Add(double.Parse(part.Trim(), CultureInfo.InvariantCulture));
+                        }
+                    }
+                    o.AnchorSkip = list.ToArray();
+                    continue;
+                }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
                 // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
@@ -1225,6 +1255,23 @@ namespace CorpusFsaProbe
                 analyzer.AnchorMinFwhmChannels = o.AnchorMinFwhm;
             }
 
+            // (П18) положение по свету: "0" — выкл, "1" — по веществу, имя — кривая на всех
+            if (o.AnchorLight != null)
+            {
+                analyzer.AnchorLightPosition = o.AnchorLight != "0";
+                analyzer.AnchorLightCurve = o.AnchorLight == "0" || o.AnchorLight == "1" ? null : o.AnchorLight;
+            }
+
+            if (o.AnchorLightMax >= 0.0)
+            {
+                analyzer.AnchorLightMaxKev = o.AnchorLightMax;
+            }
+
+            if (o.AnchorSkip != null && o.AnchorSkip.Length > 0)
+            {
+                analyzer.AnchorSkipKev = o.AnchorSkip;
+            }
+
             return analyzer;
         }
 
@@ -2003,6 +2050,8 @@ namespace CorpusFsaProbe
                 row.GainOnGridEdge = result.GainOnGridEdge;
                 row.OffsetOnGridEdge = result.OffsetOnGridEdge;
                 row.AnchorsUsed = result.ScaleAnchorsUsed;
+                row.AnchorLight = result.AnchorLightCurve ?? "";
+                row.AnchorBeta = result.AnchorLightBeta;
                 row.AnchorOffsetKev = result.AnchorOffsetKev;
                 row.AnchorNote = result.AnchorNote ?? "";
                 row.Anchors = result.ScaleAnchors;
@@ -3028,6 +3077,47 @@ namespace CorpusFsaProbe
                     Console.WriteLine("{0,-10} привязка шкалы (AMBER17): с опорами {1}, без опор {2}{3}", "",
                                       anchored, unanchored,
                                       top.Count > 0 ? "; крупнейшие сдвиги: " + string.Join("; ", top.ToArray()) : "");
+
+                    // (`F11` (в), П18) ЧИТАТЕЛЬ ПОЛОЖЕНИЯ ПО СВЕТУ: сколько спектров
+                    // получили световую координату (β = 1), по каким кривым, и у
+                    // скольких ключ был, а кривой для вещества не нашлось.
+                    var byCurve = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                    int lightMissing = 0;
+                    foreach (Row r in of)
+                    {
+                        if (r.Error != null)
+                        {
+                            continue;
+                        }
+
+                        if (r.AnchorBeta != 0.0 && !string.IsNullOrEmpty(r.AnchorLight))
+                        {
+                            int n;
+                            byCurve.TryGetValue(r.AnchorLight, out n);
+                            byCurve[r.AnchorLight] = n + 1;
+                        }
+                        else if (r.AnchorNote != null && r.AnchorNote.Contains("положение по свету: кривой"))
+                        {
+                            lightMissing++;
+                        }
+                    }
+
+                    if (o.AnchorLight != null && o.AnchorLight != "0")
+                    {
+                        var parts = new List<string>();
+                        foreach (KeyValuePair<string, int> kv in byCurve)
+                        {
+                            parts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
+                        }
+
+                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}; со светом {2}{3}; без кривой {4}", "",
+                                          o.AnchorLight,
+                                          parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "0",
+                                          o.AnchorSkip != null && o.AnchorSkip.Length > 0
+                                              ? "; выброс узла: " + string.Join(",", Array.ConvertAll(o.AnchorSkip, x => x.ToString("F1", CultureInfo.InvariantCulture)))
+                                              : "",
+                                          lightMissing);
+                    }
                 }
             }
 
@@ -3198,7 +3288,9 @@ namespace CorpusFsaProbe
                 using (var anchors = new StreamWriter(prefix + "_anchors.csv", false, new UTF8Encoding(true)))
                 {
                     anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
-                                      + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal");
+                                      + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal,"
+                                      // (П18) сдвиг опоры по свету, кэВ — В КОНЕЦ строки
+                                      + "light_shift_kev");
                     // Новые колонки — только В КОНЕЦ строки: score.py читает
                     // по именам (DictReader), но чужой разбор по номерам колонок
                     // вставка в середину сломала бы молча.
@@ -3220,7 +3312,9 @@ namespace CorpusFsaProbe
                                    // (`AMBER17`) Привязка шкалы: опор в МНК, ноль в кэВ
                                    // (усиление — колонка `gain` выше, она и есть
                                    // найденное привязкой), служебная строка.
-                                   + "anchors_used,anchor_offset_kev,anchor_note");
+                                   + "anchors_used,anchor_offset_kev,anchor_note,"
+                                   // (`F11` (в), П18) положение по свету: кривая и β — В КОНЕЦ
+                                   + "anchor_light,anchor_beta");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -3297,7 +3391,9 @@ namespace CorpusFsaProbe
                             r.MatrixImages.ToString(CultureInfo.InvariantCulture),
                             r.AnchorsUsed.ToString(CultureInfo.InvariantCulture),
                             F(r.AnchorOffsetKev, "F3"),
-                            Csv(r.AnchorNote)));
+                            Csv(r.AnchorNote),
+                            Csv(r.AnchorLight ?? ""),
+                            F(r.AnchorBeta, "F4")));
 
                         if (r.Result == null)
                         {
@@ -3315,7 +3411,8 @@ namespace CorpusFsaProbe
                                     F(an.PeakShare, "F4"), F(an.Z, "F2"),
                                     an.FirstChannel.ToString(CultureInfo.InvariantCulture),
                                     an.LastChannel.ToString(CultureInfo.InvariantCulture),
-                                    an.Used ? "1" : "0", Csv(an.Refusal ?? "")));
+                                    an.Used ? "1" : "0", Csv(an.Refusal ?? ""),
+                                    F(an.LightShiftKev, "F3")));
                             }
                         }
 
@@ -3805,6 +3902,9 @@ namespace CorpusFsaProbe
             public double AnchorWindow = -1.0;
             public double AnchorFloor = -1.0;
             public double AnchorMinFwhm = -1.0;
+            public string AnchorLight = null;    // (П18) "0" выкл, "1" по веществу, имя кривой; null — умолчание анализатора
+            public double[] AnchorSkip = null;   // (П16/П18) выброс узла
+            public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
@@ -4132,6 +4232,8 @@ namespace CorpusFsaProbe
             public int AnchorsUsed;
 
             public double AnchorOffsetKev;
+            public string AnchorLight;     // (П18) кривая световой координаты
+            public double AnchorBeta;      // (П18) итоговый β
 
             public string AnchorNote = "";
 

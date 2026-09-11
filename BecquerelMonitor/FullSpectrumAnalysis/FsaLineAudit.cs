@@ -176,7 +176,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 List<LineGroup> groups = Group(component, fwhmCalibration,
                                                spectrum.EnergyCalibration, channels,
-                                               result.Gain, result.OffsetChannels);
+                                               result.Gain, result.OffsetChannels,
+                                               result.AnchorLightCurve, result.AnchorLightBeta,
+                                               result.AnchorLightReferenceKev);
                 foreach (LineGroup group in groups)
                 {
                     LineCheck check = Measure(group, data, model, result.Continuum, background,
@@ -217,7 +219,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         static List<LineGroup> Group(FsaComponent component, FwhmCalibration fwhmCalibration,
                                      EnergyCalibration calibration, int channels,
-                                     double gain, double offset)
+                                     double gain, double offset,
+                                     string lightCurve, double lightBeta, double lightReferenceKev)
         {
             var raw = new List<LineGroup>();
             foreach (FsaLine line in component.Lines)
@@ -242,7 +245,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double p = gain * position + offset;
+                // (`F11` (в), П18) световая координата привязки — тот же счёт,
+                // что у таблицы анализатора; без неё (β = 0) — прежняя прямая.
+                double p = gain * position + offset
+                           + (lightBeta != 0.0
+                              ? lightBeta * FsaLightScale.ShiftChannels(lightCurve, calibration, position, channels, lightReferenceKev)
+                              : 0.0);
                 double fwhm = fwhmCalibration.ChannelToFwhm(p);
                 if (!(fwhm > 0.0) || double.IsNaN(fwhm) || double.IsInfinity(fwhm)
                     || p < 0.0 || p > channels - 1)
