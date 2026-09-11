@@ -2001,6 +2001,34 @@ namespace BecquerelMonitor.EfficiencyMaker
         public long CountKXray, CountLXray;
 
         /// <summary>
+        /// (`AMBER16`) ТРАССИРОВКА ВЫБОРА КАНАЛА — отладочная, умолчанием
+        /// ВЫКЛЮЧЕНА и на числа не влияет: ни одного случайного числа она не
+        /// тянет и ни одной ветки не меняет.
+        ///
+        /// Заведена 11.09.2026 по запросу внешнего рецензента: он указал, что
+        /// канал, названный «вылет K-рентгена кристалла», на 32.194 кэВ не
+        /// может быть населён вовсе — K-края иода (33.17) и цезия (35.99) выше
+        /// падающей энергии, — и попросил показать НЕСКОЛЬКО ИСТОРИЙ канала:
+        /// элемент, оболочку вакансии, энергию родившегося рентгена и метки
+        /// перед <see cref="ChannelOf"/>. Спор «метка не та» против «метка не
+        /// сброшена» словами не решается, а этой выпиской — решается.
+        ///
+        /// ⚠ Писать в один список из многих потоков нельзя, поэтому проба,
+        /// включающая трассировку, обязана ставить `Threads = 1`; здесь стоит
+        /// только замок и предел, чтобы отладка не съела память.
+        /// </summary>
+        public static bool TraceChannels;
+
+        /// <summary>Какой канал ловить трассировкой; −1 — любой.</summary>
+        public static int TraceChannelOf = -1;
+
+        /// <summary>Предел строк трассировки.</summary>
+        public static int TraceLimit = 40;
+
+        /// <summary>Строки трассировки — читает проба.</summary>
+        public static readonly List<string> TraceLog = new List<string>();
+
+        /// <summary>
         /// (`A101`) Сколько раз K-вылет ПОРОДИЛ второй, каскадный L-квант, и
         /// сколько раз вакансия после K-линии вообще попадала на L-подоболочку
         /// (то есть линия была Kα, а не Kβ). Второе — знаменатель первого:
@@ -2834,6 +2862,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.annihilationEscapes = 0;
             this.lossXray = 0.0;
             this.lightDeposit = 0.0;
+            this.ResetTrace();
 
             double sw, scattered, sEscaped;
             if (!this.ScatteredContribution(x, y, z, ux, uy, uz, energyKev, tauKill,
@@ -3229,6 +3258,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double gone = this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
                         double markedInside = this.lossAnnihilation + this.lossXray - markedBefore;
                         this.lossXray += Math.Max(0.0, gone - markedInside);
+                        this.traceXrayGone = gone;
 
                         // (`A101`) Каскадный L-квант ведётся ТЕМ ЖЕ путём, что и
                         // вакансионный рентген комптона (`A61`): своё
@@ -3675,6 +3705,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.CascadeAfterK(f, f0.Shells[k], line, energyKev);
                 }
 
+                this.traceZ = f0.Z[k];
+                this.traceShell = 'K';
+                this.traceXrayKev = kev;
                 return kev;
             }
 
@@ -3719,7 +3752,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (u < edge)
                 {
                     this.CountLXray++;
-                    return PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+                    double lkev = PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+                    this.traceZ = f0.Z[k];
+                    this.traceShell = (char)('1' + li);   // подоболочка L1 / L2 / L3
+                    this.traceXrayKev = lkev;
+                    return lkev;
                 }
             }
 
@@ -4831,6 +4868,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         double lossAnnihilation;
         double lossXray;
 
+        // (`AMBER16`) Что именно испустил атом в текущей истории — для
+        // трассировки. Ни на один розыгрыш не влияет; пишется всегда, читается
+        // только при включённой <see cref="TraceChannels"/>: ветка «пишем,
+        // только когда включено» стоила бы проверки флага в самом горячем
+        // месте счёта.
+        int traceZ;
+        char traceShell;
+        double traceXrayKev;
+        double traceXrayGone;
+
+        /// <summary>(`AMBER16`) Забыть, чем ответил атом в прошлой истории.</summary>
+        void ResetTrace()
+        {
+            this.traceZ = 0;
+            this.traceShell = '\0';
+            this.traceXrayKev = 0.0;
+            this.traceXrayGone = 0.0;
+        }
+
         // Сколько аннигиляционных квантов ПОКИНУЛО кристалл в текущей истории
         // (`AMBER15`, 10.09.2026). Отдельно от `lossAnnihilation`: та копит
         // УНЕСЁННУЮ энергию, а канал одиночного и двойного вылета различает
@@ -4917,6 +4973,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         ResponseChannel ChannelOf(double escaped)
         {
+            ResponseChannel channel = this.PickChannel(escaped);
+            if (TraceChannels)
+            {
+                this.Trace(channel, escaped);
+            }
+
+            return channel;
+        }
+
+        ResponseChannel PickChannel(double escaped)
+        {
             if (!(escaped > this.PeakHalfWidthKev))
             {
                 return ResponseChannel.Peak;
@@ -4931,6 +4998,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return this.lossXray >= rest ? ResponseChannel.EscapeXray : ResponseChannel.Compton;
+        }
+
+        /// <summary>
+        /// (`AMBER16`) Одна строка трассировки: по какой метке история попала
+        /// в свой канал и чем эта метка набрана. Зовётся только при включённой
+        /// <see cref="TraceChannels"/>.
+        /// </summary>
+        void Trace(ResponseChannel channel, double escaped)
+        {
+            if (TraceChannelOf >= 0 && (int)channel != TraceChannelOf)
+            {
+                return;
+            }
+
+            lock (TraceLog)
+            {
+                if (TraceLog.Count >= TraceLimit)
+                {
+                    return;
+                }
+
+                TraceLog.Add(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "канал={0} вылетело={1:F4} метка_рентген={2:F4} метка_аннигиляция={3:F4} "
+                    + "остаток={4:F4} допуск={5:F4} | Z={6} оболочка={7} рентген={8:F4} "
+                    + "ушло_рентгена={9:F4}",
+                    channel, escaped, this.lossXray, this.lossAnnihilation,
+                    escaped - this.lossAnnihilation - this.lossXray, this.PeakHalfWidthKev,
+                    this.traceZ, this.traceShell == '\0' ? '—' : this.traceShell,
+                    this.traceXrayKev, this.traceXrayGone));
+            }
         }
 
         /// <summary>
@@ -5363,6 +5461,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.annihilationEscapes = 0;
                         this.lossXray = 0.0;
                         this.lightDeposit = 0.0;
+                        this.ResetTrace();
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
                         if (this.InPeak(energyKev, energyKev - escaped))
                         {
@@ -5501,6 +5600,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.annihilationEscapes = 0;
                 this.lossXray = 0.0;
                 this.lightDeposit = 0.0;
+                this.ResetTrace();
 
                 double e = energyKev;
                 double deposited = 0.0;
