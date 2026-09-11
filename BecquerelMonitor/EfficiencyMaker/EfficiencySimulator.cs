@@ -262,6 +262,40 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool LXrayEscape = true;
 
         /// <summary>
+        /// ⛔ (`AMBER16` п. 1) РАЗВЕСТИ K- И L-ВЫЛЕТ ОТДЕЛЬНЫМИ КАНАЛАМИ —
+        /// решение Amber 11.09.2026, дословно: «Развести K и L отдельными
+        /// каналами». Умолчанием ВЫКЛЮЧЕН.
+        ///
+        /// Что ключ меняет. Метку вылета рентгена кладут обе серии, и до
+        /// правки они были неразличимы: канал № 3 звался «вылет K-рентгена», а
+        /// на 32.194 кэВ все 22 его истории были L-серией иода и цезия
+        /// (2.68…5.02 кэВ, подоболочки L1/L2/L3) — K-края иода 33.17 и цезия
+        /// 35.99 там ещё закрыты. С ключом L-вылет уходит в свой
+        /// <see cref="ResponseChannel.EscapeXrayL"/>, а № 3 держит только то,
+        /// чем назван.
+        ///
+        /// ⛔ Умолчание ВЫКЛЮЧЕНО, и это не отмена решения, а порядок счёта:
+        /// ключ входит в клеймо (`xrkl=1`), склад из 44 матриц посчитан без
+        /// него, и включённое умолчание объявило бы весь склад чужим —
+        /// корпусный разбор пошёл бы БЕЗ матрицы, а объявленная база
+        /// `out_rev14_*` перестала бы воспроизводиться. Включается тем же
+        /// движением, каким пойдёт счёт склада, вместе с
+        /// <see cref="ResponseMatrixOptions.PeakToleranceHalfBin"/>.
+        ///
+        /// ⚠ ЧИСЛО КАНАЛОВ ОТ КЛЮЧА НЕ ЗАВИСИТ: их всегда
+        /// <see cref="ResponseChannelCount"/>, и при выключенном ключе шестой
+        /// просто пуст. Иначе ширина файла матрицы зависела бы от настройки, а
+        /// номер канала перестал бы означать одно и то же.
+        ///
+        /// ⚠ Ключ НЕ ТРОГАЕТ РОЗЫГРЫША: он выбирает лишь, в какую строку
+        /// положить уже разыгранную историю. Ни одного лишнего случайного
+        /// числа, и при выключенном ключе первые пять каналов побитово равны
+        /// прежним (сложение `lossXray` не изменилось вовсе — серии копятся
+        /// ОТДЕЛЬНЫМИ счётчиками рядом, а не вместо него).
+        /// </summary>
+        public bool SplitXrayShells;
+
+        /// <summary>
         /// ⛔ (`A101`) АТОМНЫЙ КАСКАД K→L: второй квант из ОДНОГО поглощения.
         /// Умолчанием ВКЛЮЧЁН решением Amber 04.09.2026; физика поднята до 16,
         /// склад обязан быть пересчитан.
@@ -2861,6 +2895,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.lossAnnihilation = 0.0;
             this.annihilationEscapes = 0;
             this.lossXray = 0.0;
+            this.lossXrayK = 0.0;
+            this.lossXrayL = 0.0;
             this.lightDeposit = 0.0;
             this.ResetTrace();
 
@@ -3239,6 +3275,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // и весь код ниже вырождается в прежний.
                     double casc = this.pendingCascadeKev;
                     this.pendingCascadeKev = 0.0;
+                    // (`AMBER16` п. 1) Серия ЭТОГО кванта — забирается здесь же
+                    // и по той же причине: рекурсия `InCrystal` ниже разыграет
+                    // свою флуоресценцию и перетрёт признак.
+                    bool xrayIsL = this.lastXrayIsL;
                     if (xray > 0.0)
                     {
                         double kx, ky, kz;
@@ -3257,7 +3297,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double markedBefore = this.lossAnnihilation + this.lossXray;
                         double gone = this.InCrystal(x, y, z, kx, ky, kz, xray, depth + 1);
                         double markedInside = this.lossAnnihilation + this.lossXray - markedBefore;
-                        this.lossXray += Math.Max(0.0, gone - markedInside);
+                        double ownXray = Math.Max(0.0, gone - markedInside);
+                        this.lossXray += ownXray;
+                        // (`AMBER16` п. 1) Та же метка, разобранная по серии:
+                        // ушедшее ВНУТРИ рекурсии свою серию уже записало, здесь
+                        // приходится только непомеченный остаток — ровно та же
+                        // бухгалтерия, что строкой выше.
+                        this.NoteXrayShell(ownXray, xrayIsL);
                         this.traceXrayGone = gone;
 
                         // (`A101`) Каскадный L-квант ведётся ТЕМ ЖЕ путём, что и
@@ -3273,7 +3319,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                             double markedBeforeC = this.lossAnnihilation + this.lossXray;
                             goneC = this.InCrystal(x, y, z, cx, cy, cz, casc, depth + 1);
                             double markedInsideC = this.lossAnnihilation + this.lossXray - markedBeforeC;
-                            this.lossXray += Math.Max(0.0, goneC - markedInsideC);
+                            double ownCasc = Math.Max(0.0, goneC - markedInsideC);
+                            this.lossXray += ownCasc;
+                            // (`AMBER16` п. 1) Каскадный квант — ВСЕГДА L: он
+                            // родился на подоболочке, куда переехала вакансия
+                            // после вылета K-кванта (`CascadeAfterK`).
+                            this.NoteXrayShell(ownCasc, true);
                         }
 
                         return lost + electron + gone + goneC;
@@ -3324,7 +3375,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double markedBefore = this.lossAnnihilation + this.lossXray;
                         double goneV = this.InCrystal(x, y, z, vx, vy, vz2, vacancyXray, depth + 1);
                         double markedInside = this.lossAnnihilation + this.lossXray - markedBefore;
-                        this.lossXray += Math.Max(0.0, goneV - markedInside);
+                        double ownVacancy = Math.Max(0.0, goneV - markedInside);
+                        this.lossXray += ownVacancy;
+                        // (`AMBER16` п. 1) Вакансионный квант — ВСЕГДА K:
+                        // `VacancyXray` отбирает по K-краю и возвращает линию
+                        // только из K-серии (`f.LineKev`), L там нет вовсе.
+                        this.NoteXrayShell(ownVacancy, false);
                         lost += goneV;
                     }
 
@@ -3623,6 +3679,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // забытое обнуление отдало бы прошлый квант чужому поглощению —
             // отказ, которого не видно ничем.
             this.pendingCascadeKev = 0.0;
+            // (`AMBER16` п. 1) Серия принадлежит ТОЛЬКО этому вызову, по тому
+            // же доводу, что и каскадный квант строкой выше: у функции три
+            // места вызова, и оставленный прошлый признак отдал бы L-метку
+            // чужому поглощению.
+            this.lastXrayIsL = false;
             Fluorescers f0 = this.FluorescersOf(material);
             if (!this.XrayEscape || f0.Z.Length == 0)
             {
@@ -3753,6 +3814,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     this.CountLXray++;
                     double lkev = PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+                    // (`AMBER16` п. 1) ЕДИНСТВЕННОЕ место, где признак серии
+                    // становится истиной: дальше по нему вылет уйдёт в свой
+                    // канал `EscapeXrayL`.
+                    this.lastXrayIsL = true;
                     this.traceZ = f0.Z[k];
                     this.traceShell = (char)('1' + li);   // подоболочка L1 / L2 / L3
                     this.traceXrayKev = lkev;
@@ -4795,13 +4860,33 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// обе линии, 103.9 отсчёта при 1595.1 кэВ — двойной вылет от
             /// 2614.5 — и 52.6 при 2106.7 — одиночный). Имя выбрано Amber
             /// 10.09.2026 вопросником, дословно: «`EscapeAnnihilation`» — не
-            /// короткое `Escape`, потому что рядом стоит <see cref="EscapeXray"/>,
-            /// и пара «вылет» / «вылет рентгена» читалась бы как общий случай и
-            /// частный, чем они не являются.
+            /// короткое `Escape`, потому что рядом стоит <see cref="EscapeXrayK"/>
+            /// (тогда — `EscapeXray`), и пара «вылет» / «вылет рентгена»
+            /// читалась бы как общий случай и частный, чем они не являются.
             /// </remarks>
             EscapeAnnihilation = 2,
-            /// <summary>Ушёл характеристический K-рентген кристалла.</summary>
-            EscapeXray = 3,
+            /// <summary>
+            /// Ушёл характеристический K-рентген кристалла — 28…36 кэВ у иода
+            /// и цезия, пик стоит на E−E_Kα.
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Прежнее имя `EscapeXray` (до 11.09.2026) обещало ВЕСЬ вылет
+            /// рентгена, а описание — только K, и это расхождение стоило
+            /// пункта (1) `AMBER16`: на 32.194 кэВ все 22 истории канала были
+            /// L-серией иода и цезия (2.68…5.02 кэВ), потому что
+            /// <see cref="SampleFluorescence"/> разыгрывает K И L, а метку обе
+            /// кладут в один `lossXray`. Имя K названо явно по тому же доводу,
+            /// каким Amber выбрала `EscapeAnnihilation` вместо `Escape`: пара
+            /// «вылет рентгена» / «вылет L-рентгена» читалась бы как общий
+            /// случай и частный, чем они не являются.
+            ///
+            /// ⚠ При ВЫКЛЮЧЕННОМ <see cref="SplitXrayShells"/> (умолчание) в
+            /// канале по-прежнему лежат обе серии: имя тогда описывает
+            /// НАМЕРЕНИЕ, а не содержимое. Разводит их ключ, и он выключен до
+            /// счётного захода склада — см.
+            /// <see cref="ResponseMatrixOptions.SplitXrayShells"/>.
+            /// </remarks>
+            EscapeXrayK = 3,
             /// <summary>
             /// ДВОЙНОЙ вылет аннигиляции: кристалл покинули ОБА кванта пары,
             /// потеря — 1022 кэВ, пик стоит на E−1022.
@@ -4812,11 +4897,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// номер канала — это индекс строки в файле матрицы, и вставка в
             /// середину переставила бы каналы всех уже посчитанных матриц молча.
             /// </remarks>
-            EscapeAnnihilationDouble = 4
+            EscapeAnnihilationDouble = 4,
+            /// <summary>
+            /// Ушёл характеристический L-рентген кристалла — 2.68…5.02 кэВ у
+            /// иода и цезия, 9.2…15.2 у свинца; пик стоит на E−E_L.
+            /// </summary>
+            /// <remarks>
+            /// ⛔ Заведён 11.09.2026 по решению Amber (`AMBER16` п. 1),
+            /// дословно: «Развести K и L отдельными каналами». Повод — замер
+            /// трассировкой: канал № 3 звался «вылет K-рентгена», а на
+            /// 32.194 кэВ держался ИСКЛЮЧИТЕЛЬНО L-серией, потому что K-края
+            /// иода 33.17 и цезия 35.99 выше падающей энергии, а L-края 4.56 и
+            /// 5.01 — ниже. Физика была верна, неразличимы были K и L.
+            ///
+            /// Номер ШЕСТОЙ, а не четвёртый, по тому же доводу, что у
+            /// <see cref="EscapeAnnihilationDouble"/>: номер канала — это
+            /// индекс строки в файле матрицы, и вставка в середину переставила
+            /// бы каналы всех уже посчитанных матриц молча.
+            ///
+            /// ⚠ Наполняется ТОЛЬКО при включённом
+            /// <see cref="SplitXrayShells"/>; умолчанием ключ выключен, канал
+            /// пуст, а L-вылет лежит в <see cref="EscapeXrayK"/> ровно как до
+            /// правки — побитово.
+            /// </remarks>
+            EscapeXrayL = 5
         }
 
-        /// <summary>Сколько каналов у отклика.</summary>
-        public const int ResponseChannelCount = 5;
+        /// <summary>
+        /// Сколько каналов у отклика.
+        ///
+        /// ⚠ Число растёт с каждым разведением, и ПУСТОЙ канал пишется на диск
+        /// наравне с полным: так номер канала остаётся одним и тем же в файле,
+        /// посчитанном с ключом и без него. Ширина файла от ключа не зависит —
+        /// зависит только наполнение.
+        /// </summary>
+        public const int ResponseChannelCount = 6;
 
         /// <summary>
         /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
@@ -4867,6 +4982,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Метки исхода текущей истории, кэВ. Обнуляются перед каждой.
         double lossAnnihilation;
         double lossXray;
+
+        // ⛔ (`AMBER16` п. 1, 11.09.2026) ТА ЖЕ МЕТКА, РАЗОБРАННАЯ ПО СЕРИЯМ:
+        // сколько унёс K-рентген и сколько L. Нужны только каналу — выбор между
+        // <see cref="ResponseChannel.EscapeXrayK"/> и
+        // <see cref="ResponseChannel.EscapeXrayL"/> делается по ним.
+        //
+        // ⛔ РЯДОМ С `lossXray`, А НЕ ВМЕСТО НЕГО, и это не избыточность.
+        // Сложение с плавающей точкой не ассоциативно: история, где ушли и K, и
+        // L (атомный каскад K→L, `A101`, даёт ровно такую), при сложении
+        // «сперва свои серии, потом их сумма» получила бы ДРУГОЙ последний бит,
+        // чем прежнее `lossXray += …` по порядку событий. Тогда выключенный
+        // ключ перестал бы возвращать прежние числа побитово, и склад из
+        // 44 матриц оказался бы чужим — молча, без единого отказа. Здесь же
+        // `lossXray` считается ровно тем же выражением и в том же порядке, а
+        // разбор по сериям идёт отдельными счётчиками, которые в выбор канала
+        // «рентген или не рентген» не входят вовсе.
+        double lossXrayK;
+        double lossXrayL;
+
+        // (`AMBER16` п. 1) Какой серией ответил атом в ПОСЛЕДНЕМ вызове
+        // <see cref="SampleFluorescence"/>: true — L-подоболочка, false — K
+        // либо оже-электрон (нулевой квант, метки не будет вовсе). Читается
+        // СРАЗУ после вызова и до рекурсии: та разыграет свою флуоресценцию и
+        // перетрёт поле — ровно та же ловушка, из-за которой рядом забирается
+        // `pendingCascadeKev`.
+        bool lastXrayIsL;
 
         // (`AMBER16`) Что именно испустил атом в текущей истории — для
         // трассировки. Ни на один розыгрыш не влияет; пишется всегда, читается
@@ -4970,6 +5111,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// по числу квантов, покинувших кристалл. Прежде оба исхода стояли в
         /// одном канале с именем `Escape511`, то есть имя обещало потерю
         /// 511 кэВ, а половину канала занимала потеря 1022.
+        ///
+        /// ⛔ Внутри статьи РЕНТГЕНА каналов тоже ДВА (`AMBER16` п. 1,
+        /// 11.09.2026, решение Amber «Развести K и L отдельными каналами»), и
+        /// выбор между ними — <see cref="XrayChannel"/>. Он ПОД КЛЮЧОМ
+        /// <see cref="SplitXrayShells"/> и умолчанием выключен: разведение
+        /// двигает содержимое канала № 3, то есть числа всех 44 матриц склада.
         /// </summary>
         ResponseChannel ChannelOf(double escaped)
         {
@@ -4997,7 +5144,52 @@ namespace BecquerelMonitor.EfficiencyMaker
                     : ResponseChannel.EscapeAnnihilation;
             }
 
-            return this.lossXray >= rest ? ResponseChannel.EscapeXray : ResponseChannel.Compton;
+            return this.lossXray >= rest ? this.XrayChannel() : ResponseChannel.Compton;
+        }
+
+        /// <summary>
+        /// (`AMBER16` п. 1) Какой из двух каналов вылета рентгена — K или L.
+        ///
+        /// ⛔ При выключенном <see cref="SplitXrayShells"/> ответ ВСЕГДА
+        /// <see cref="ResponseChannel.EscapeXrayK"/>, то есть канал № 3 ровно
+        /// тот же, что был до 11.09.2026, и все посчитанные матрицы остаются
+        /// своими.
+        ///
+        /// При включённом выбор идёт ПО УНЕСЁННОЙ ЭНЕРГИИ серий — тем же
+        /// правилом, каким <see cref="PickChannel"/> выбирает между статьями
+        /// расхода. У истории с обеими сериями (атомный каскад K→L, `A101`)
+        /// побеждает K: его линия 28…36 кэВ против L-линии 2.7…5 кэВ, и
+        /// назвать такую историю L-вылетом значило бы описать её меньшей из
+        /// двух потерь. ⚠ Равенство отдано K нарочно: нулевые метки сюда не
+        /// доходят вовсе (выше стоит `lossXray >= rest` при `escaped` больше
+        /// допуска), а «оба ноль» означало бы, что метку поставил не рентген.
+        /// </summary>
+        ResponseChannel XrayChannel()
+        {
+            return this.SplitXrayShells && this.lossXrayL > this.lossXrayK
+                ? ResponseChannel.EscapeXrayL
+                : ResponseChannel.EscapeXrayK;
+        }
+
+        /// <summary>
+        /// (`AMBER16` п. 1) Записать унесённое рентгеном в счётчик СВОЕЙ серии.
+        /// Зовётся рядом с каждым `lossXray += …` и ровно с тем же числом.
+        ///
+        /// ⚠ Считается ВСЕГДА, а не только при включённом ключе: два сложения
+        /// на вылетевший квант дешевле проверки флага, а главное — ветка «копим,
+        /// только когда включено» сделала бы включение ключа правкой ГОРЯЧЕГО
+        /// кода, то есть тем, что уже нельзя проверить выключенным плечом.
+        /// </summary>
+        void NoteXrayShell(double kev, bool isL)
+        {
+            if (isL)
+            {
+                this.lossXrayL += kev;
+            }
+            else
+            {
+                this.lossXrayK += kev;
+            }
         }
 
         /// <summary>
@@ -5023,11 +5215,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     System.Globalization.CultureInfo.InvariantCulture,
                     "канал={0} вылетело={1:F4} метка_рентген={2:F4} метка_аннигиляция={3:F4} "
                     + "остаток={4:F4} допуск={5:F4} | Z={6} оболочка={7} рентген={8:F4} "
-                    + "ушло_рентгена={9:F4}",
+                    + "ушло_рентгена={9:F4} | метка_K={10:F4} метка_L={11:F4}",
                     channel, escaped, this.lossXray, this.lossAnnihilation,
                     escaped - this.lossAnnihilation - this.lossXray, this.PeakHalfWidthKev,
                     this.traceZ, this.traceShell == '\0' ? '—' : this.traceShell,
-                    this.traceXrayKev, this.traceXrayGone));
+                    this.traceXrayKev, this.traceXrayGone,
+                    // (`AMBER16` п. 1) Метка, разобранная по сериям: именно по
+                    // этой паре канал № 3 отличается от № 5. Печатается всегда,
+                    // и при выключенном ключе тоже — тогда видно, СКОЛЬКО в
+                    // канале K лежит L-вылета, то есть цена невключённого ключа.
+                    this.lossXrayK, this.lossXrayL));
             }
         }
 
@@ -5460,6 +5657,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         this.lossAnnihilation = 0.0;
                         this.annihilationEscapes = 0;
                         this.lossXray = 0.0;
+                        this.lossXrayK = 0.0;
+                        this.lossXrayL = 0.0;
                         this.lightDeposit = 0.0;
                         this.ResetTrace();
                         double escaped = this.InCrystal(px, py, pz, ux, uy, uz, energyKev, 0);
@@ -5599,6 +5798,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.lossAnnihilation = 0.0;
                 this.annihilationEscapes = 0;
                 this.lossXray = 0.0;
+                this.lossXrayK = 0.0;
+                this.lossXrayL = 0.0;
                 this.lightDeposit = 0.0;
                 this.ResetTrace();
 

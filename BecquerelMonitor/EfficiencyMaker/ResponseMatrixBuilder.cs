@@ -545,12 +545,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Допуск пика — СВОЙ на каждую энергию сетки κ (`E34`): поле
             // симулятора одно, а шкала здесь пройдена вся.
             double[] halfWidths = null;
-            if (options.PeakToleranceFromGeometry)
+            if (options.PeakToleranceFromGeometry || options.PeakToleranceHalfBin)
             {
                 halfWidths = new double[nodes];
                 for (int i = 0; i < nodes; i++)
                 {
-                    halfWidths[i] = geometry.PeakHalfWidthKev(energies[i]);
+                    halfWidths[i] = PeakTolerance(options, geometry, energies[i]);
                 }
             }
 
@@ -722,6 +722,40 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ДОПУСК ПИКА на данной энергии — ОДНО правило на обе точки, где он
+        /// нужен (симулятор узла и сетка κ). Второе выражение для одной
+        /// величины однажды разъехалось бы молча (`S37`), и ровно так уже было
+        /// с самим этим допуском (`E34`: путь матрицы ставил ноль, путь кривой
+        /// эффективности брал из геометрии).
+        ///
+        /// Порядок разбора, и он же порядок старшинства:
+        ///
+        ///   * `PeakToleranceFromGeometry` — ПШПВ(E)/2 из геометрии. Плечо для
+        ///     сравнения, умолчанием выключено: замер 11.09.2026 показал, что
+        ///     на 32.194 кэВ такой допуск равен 17.3 % энергии линии и вдвое
+        ///     раздувает комптоновский канал (см. поле опции);
+        ///   * `PeakToleranceHalfBin` — ПОЛУБИН сетки. Решение Amber
+        ///     11.09.2026: «Допуск по БИНУ, а не по ПШПВ». Умолчание;
+        ///   * иначе ноль — поведение до 11.09.2026, при котором ветвь
+        ///     однократного рассеяния теряла вклад целиком.
+        /// </summary>
+        static double PeakTolerance(ResponseMatrixOptions options, GeometryModel geometry,
+                                    double energyKev)
+        {
+            if (options.PeakToleranceFromGeometry)
+            {
+                return geometry.PeakHalfWidthKev(energyKev);
+            }
+
+            if (options.PeakToleranceHalfBin)
+            {
+                return 0.5 * options.BinKev;
+            }
+
+            return 0.0;
+        }
+
+        /// <summary>
         /// Симулятор одного узла. Геометрия копируется: сцена строится внутри
         /// симулятора по модели, и делить одну модель между потоками — значит
         /// однажды поймать её правку из другого места.
@@ -735,6 +769,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 XrayEscape = options.XrayEscape,
                 LXrayEscape = options.LXrayEscape,
                 KLCascade = options.KLCascade,
+                // ⛔ (`AMBER16` п. 1, решение Amber 11.09.2026 «Развести K и L
+                // отдельными каналами») Без этой строки ключ был бы МЁРТВ
+                // (`S130`): поле в настройках, клеймо и хвост файла есть, а
+                // симулятор кладёт L-вылет туда же, куда и K. Побитовый замер
+                // такой дыры не ловит — числа верные, испорчено ПРОИСХОЖДЕНИЕ.
+                SplitXrayShells = options.SplitXrayShells,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,
                 // ⛔ (`E34`, решение Amber 06.09.2026, ветка «а») ВЕТКА
@@ -776,9 +816,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ⚠ Допуск берётся ТЕМ ЖЕ выражением, что на пути кривой
                 // эффективности (`EfficiencyCalculation.cs`): второе правило
                 // для одной величины однажды разъехалось бы молча (`S37`).
-                PeakHalfWidthKev = options.PeakToleranceFromGeometry
-                    ? geometry.PeakHalfWidthKev(energyKev)
-                    : 0.0
+                PeakHalfWidthKev = PeakTolerance(options, geometry, energyKev)
             };
 
             // Зерно от номера узла: результат не должен зависеть от того, какой

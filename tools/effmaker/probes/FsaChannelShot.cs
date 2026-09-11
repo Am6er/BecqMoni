@@ -32,9 +32,12 @@ namespace FsaChannelShot
     ///   * тонкой линией — полная модель;
     ///   * заливкой — ОДИН канал отклика, сумма по всем компонентам состава.
     ///
-    /// И одна общая картинка, где все ПЯТЬ каналов сложены стопкой — по ней
+    /// И одна общая картинка, где все ШЕСТЬ каналов сложены стопкой — по ней
     /// видно, что они и составляют модель. (Было четыре; пятым 10.09.2026 стал
-    /// двойной вылет аннигиляции, `AMBER15`.)
+    /// двойной вылет аннигиляции, `AMBER15`; шестым 11.09.2026 — L-вылет
+    /// рентгена, `AMBER16` п. 1. ⚠ Шестой пуст у всякой матрицы, посчитанной
+    /// без ключа `--xrkl=1`, и это не дефект картинки: разведение выключено
+    /// умолчанием до счётного захода склада.)
     ///
     ///   fsachannelshot --spectrum=X.xml [--out=префикс] [--set=Имя]
     ///                  [--from=0] [--to=3000] [--ceiling=N] [--pow=4]
@@ -55,8 +58,11 @@ namespace FsaChannelShot
         /// ⛔ ВТОРОЙ КАНАЛ — НЕ «КОМПТОН», И НАЗЫВАТЬ ЕГО ТАК НЕЛЬЗЯ.
         /// `EfficiencySimulator.ChannelOf` кладёт в него ВСЯКУЮ историю, из
         /// которой что-то вылетело, если это не аннигиляционный квант и не
-        /// K-рентген кристалла: рассеянный квант, ушедший электрон, тормозное,
-        /// L-рентген.
+        /// K-рентген кристалла: рассеянный квант, ушедший электрон, тормозное.
+        ///
+        /// ⚠ (`AMBER16` п. 1) L-рентген в этот перечень БОЛЬШЕ НЕ ВХОДИТ — у
+        /// него свой канал, шестой. Но лишь при включённом `--xrkl=1`: без ключа
+        /// он лежит в канале K-вылета, как лежал до 11.09.2026.
         ///
         /// ⚠ Причём при НУЛЕВОМ допуске пика (`PeakToleranceFromGeometry`
         /// выключен умолчанием, ~~`E34`~~) туда уходит даже утечка в доли
@@ -70,8 +76,8 @@ namespace FsaChannelShot
         {
             "полное поглощение",
             "неполное поглощение (комптон, электроны, тормозное)",
-            "вылет аннигиляции одиночный (SE)", "вылет рентгена кристалла",
-            "вылет аннигиляции двойной (DE)"
+            "вылет аннигиляции одиночный (SE)", "вылет K-рентгена кристалла",
+            "вылет аннигиляции двойной (DE)", "вылет L-рентгена кристалла"
         };
 
         static readonly Color[] ChannelColors =
@@ -79,8 +85,9 @@ namespace FsaChannelShot
             Color.FromArgb(210, 32, 96, 200),    // пик — синий
             Color.FromArgb(210, 232, 126, 40),   // комптон — оранжевый
             Color.FromArgb(210, 150, 60, 190),   // одиночный вылет — фиолетовый
-            Color.FromArgb(210, 205, 50, 60),    // вылет рентгена — красный
-            Color.FromArgb(210, 90, 30, 130)     // двойной вылет — тёмно-фиолетовый
+            Color.FromArgb(210, 205, 50, 60),    // вылет K-рентгена — красный
+            Color.FromArgb(210, 90, 30, 130),    // двойной вылет — тёмно-фиолетовый
+            Color.FromArgb(210, 120, 20, 30)     // вылет L-рентгена — тёмно-красный
         };
 
         [STAThread]
@@ -364,7 +371,12 @@ namespace FsaChannelShot
                 // ⛔ (`AMBER15`) Колонок стало ПЯТЬ: `esc511` разведена на
                 // `esc_se` и `esc_de` — прежнее имя обещало потерю 511 кэВ, а
                 // половину колонки занимала потеря 1022.
-                rows.Add("channel;energy_kev;measured;model;peak;compton;esc_se;escxray;esc_de");
+                // ⛔ (`AMBER16` п. 1) ШЕСТАЯ — `esc_xray_l`: прежняя `escxray`
+                // звалась K-вылетом, а на 32.194 кэВ держалась ИСКЛЮЧИТЕЛЬНО
+                // L-серией. Переименована в `esc_xray_k` нарочно: имя колонки
+                // обязано называть то, что в ней лежит.
+                rows.Add("channel;energy_kev;measured;model;peak;compton;esc_se;"
+                         + "esc_xray_k;esc_de;esc_xray_l");
                 for (int i = 0; i < channels; i++)
                 {
                     double e = calibration.ChannelToEnergy(i);
@@ -374,10 +386,10 @@ namespace FsaChannelShot
                     }
 
                     rows.Add(string.Format(CultureInfo.InvariantCulture,
-                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4};{8:F4}",
+                        "{0};{1:F3};{2:F4};{3:F4};{4:F4};{5:F4};{6:F4};{7:F4};{8:F4};{9:F4}",
                         i, e, measured[i], result.Model[i],
                         byChannel[0][i], byChannel[1][i], byChannel[2][i], byChannel[3][i],
-                        byChannel[4][i]));
+                        byChannel[4][i], byChannel[5][i]));
                 }
 
                 File.WriteAllLines(dumpPath, rows, new UTF8Encoding(true));
@@ -404,8 +416,9 @@ namespace FsaChannelShot
 
                 Console.WriteLine();
                 Console.WriteLine("=== кто даёт {0:F1} кЭВ (канал АЦП {1}) ===", who, bin);
-                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12} {5,12}",
-                                  "компонент", "пик", "комптон", "вылет SE", "вылет x", "вылет DE");
+                Console.WriteLine("{0,-16} {1,12} {2,12} {3,12} {4,12} {5,12} {6,12}",
+                                  "компонент", "пик", "комптон", "вылет SE", "вылет xK", "вылет DE",
+                                  "вылет xL");
                 foreach (FsaComponentResult component in result.Components)
                 {
                     if (component.ChannelCurves == null)
@@ -427,13 +440,14 @@ namespace FsaChannelShot
                         continue;
                     }
 
-                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1}",
-                                      component.Name, v[0], v[1], v[2], v[3], v[4]);
+                    Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1}",
+                                      component.Name, v[0], v[1], v[2], v[3], v[4], v[5]);
                 }
 
-                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1}   ← всего",
+                Console.WriteLine("{0,-16} {1,12:F1} {2,12:F1} {3,12:F1} {4,12:F1} {5,12:F1} {6,12:F1}   ← всего",
                                   "ИТОГО", byChannel[0][bin], byChannel[1][bin],
-                                  byChannel[2][bin], byChannel[3][bin], byChannel[4][bin]);
+                                  byChannel[2][bin], byChannel[3][bin], byChannel[4][bin],
+                                  byChannel[5][bin]);
             }
 
             var files = new List<string>();
