@@ -51,6 +51,7 @@ namespace FsaComponentDumpProbe
             bool matrixAny = false;
             bool noCascade = false;
             string stagesOf = null;
+            var apparent = new List<string>();
 
             foreach (string a in args)
             {
@@ -77,6 +78,10 @@ namespace FsaComponentDumpProbe
                 else if (a.StartsWith("--stages=", StringComparison.Ordinal))
                 {
                     stagesOf = a.Substring(9);
+                }
+                else if (a.StartsWith("--apparent=", StringComparison.Ordinal))
+                {
+                    apparent.Add(a.Substring(11));
                 }
                 else
                 {
@@ -290,6 +295,11 @@ namespace FsaComponentDumpProbe
                 Stages(analyzer, library, stagesOf, matrix.BinKev);
             }
 
+            if (apparent.Count > 0)
+            {
+                Apparent(analyzer, apparent);
+            }
+
             var rows = new List<string>();
             var header = new StringBuilder("channel;energy_kev;measured;model");
             foreach (FsaComponentResult component in result.Components)
@@ -428,6 +438,59 @@ namespace FsaComponentDumpProbe
             }
 
             Console.WriteLine("образа «{0}» в кэше нет", name);
+        }
+
+        /// <summary>
+        /// (`AMBER16`) ВИДИМАЯ СУММА ПАРЫ против арифметической. Внешний
+        /// рецензент 11.09.2026 заметил, что в отчёте сумматора равенства
+        /// «123.80 + 30.97 = 157.89» арифметически неверны на +3.12 кэВ, и
+        /// попросил две проверки: при пропорциональном световыходе результат
+        /// обязан равняться обычной сумме, а `ApparentSum(E, 0)` — самой `E`.
+        /// Обе делаются здесь, на живой кривой света разбора.
+        /// </summary>
+        static void Apparent(FsaAnalyzer analyzer, List<string> pairs)
+        {
+            FsaCascadeSummer summer = FieldOf<FsaCascadeSummer>(analyzer, "cascade");
+            if (summer == null)
+            {
+                Console.Error.WriteLine("⛔ каскадного сумматора у разбора нет — считать нечем");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("=== ВИДИМАЯ СУММА ПРОТИВ АРИФМЕТИЧЕСКОЙ ===");
+            Console.WriteLine("{0,-28} {1,14} {2,14} {3,10}",
+                              "слагаемые, кэВ", "арифм. сумма", "ApparentSum", "разница");
+            foreach (string text in pairs)
+            {
+                string[] parts = text.Split(',');
+                double a = parts.Length > 0 ? Parse(parts[0]) : 0.0;
+                double b = parts.Length > 1 ? Parse(parts[1]) : 0.0;
+                double c = parts.Length > 2 ? Parse(parts[2]) : 0.0;
+                double plain = a + b + c;
+                double seen = summer.ApparentSum(a, b, c);
+                Console.WriteLine("{0,-28} {1,14} {2,14} {3,10}",
+                                  text, F(plain, 3), F(seen, 3), F(seen - plain, 3));
+            }
+
+            // ⛔ Контроль, без которого таблица выше ничего не значит: сумма с
+            // нулём обязана вернуть саму энергию. Если вернёт другое —
+            // прибавка не «непропорциональность», а лишний пьедестал.
+            Console.WriteLine();
+            Console.WriteLine("контроль ApparentSum(E, 0) — обязан вернуть E:");
+            foreach (double e in new[] { 30.973, 123.8, 661.657, 1460.82 })
+            {
+                double seen = summer.ApparentSum(e, 0.0);
+                Console.WriteLine("   E = {0,9}   ApparentSum = {1,9}   разница {2,9}",
+                                  F(e, 3), F(seen, 3), F(seen - e, 5));
+            }
+        }
+
+        static double Parse(string text)
+        {
+            double value;
+            return double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture,
+                                   out value) ? value : 0.0;
         }
 
         static T FieldOf<T>(object target, string name) where T : class
