@@ -286,6 +286,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double Z { get; set; } = double.NaN;
     }
 
+    /// <summary>
+    /// (`AMBER17`) ОПОРА ПРИВЯЗКИ ШКАЛЫ — один пик полного поглощения модели и
+    /// то, что о нём измерено. Список у результата
+    /// (<see cref="FsaResult.ScaleAnchors"/>) держит ВСЕХ кандидатов, а не
+    /// только принятых: отвергнутый обязан помнить, чем отвергнут
+    /// (<see cref="Refusal"/>), иначе «опор нет» и «опоры не искали» на
+    /// экране одно и то же.
+    ///
+    /// Все положения — в кэВ по калибровке СПЕКТРА; сравнивать надо
+    /// <see cref="MeasuredKev"/> с <see cref="ModelKev"/>, а не с табличной
+    /// энергией линии: модельный центр стоит там, куда его поставили перенос
+    /// по каналам и дискретизация бина (решение Amber 11.09.2026 «привязка
+    /// берёт МОДЕЛЬНОЕ положение, а не табличное»).
+    /// </summary>
+    public sealed class FsaScaleAnchor
+    {
+        /// <summary>Хозяин пика — компонент с наибольшим синим каналом в окне.</summary>
+        public string Component { get; set; }
+
+        /// <summary>Табличная энергия ближайшей линии хозяина, кэВ; NaN — не сопоставлена.</summary>
+        public double LineKev { get; set; } = double.NaN;
+
+        /// <summary>Центр тяжести модели БЕЗ сплайна в окне (все образы), кэВ.</summary>
+        public double ModelKev { get; set; }
+
+        /// <summary>Центр тяжести измерения БЕЗ сплайна в том же окне, кэВ.</summary>
+        public double MeasuredKev { get; set; }
+
+        /// <summary>Разность «измерение − модель», кэВ (остаток ПОСЛЕ привязки).</summary>
+        public double ShiftKev { get; set; }
+
+        /// <summary>Погрешность центра измерения, кэВ (пуассон отсчётов окна).</summary>
+        public double SigmaKev { get; set; }
+
+        /// <summary>Доля синего канала (полное поглощение) над моделью ЦЕЛИКОМ в окне, 0…1.</summary>
+        public double PeakShare { get; set; }
+
+        /// <summary>Значимость чистого (без сплайна) счёта окна: Σ/√Σσ².</summary>
+        public double Z { get; set; }
+
+        /// <summary>Окно, каналы.</summary>
+        public int FirstChannel { get; set; }
+
+        public int LastChannel { get; set; }
+
+        /// <summary>Стала опорой: вошла в МНК.</summary>
+        public bool Used { get; set; }
+
+        /// <summary>
+        /// Чем отвергнута; null — принята. Слова служебные, для проб и журнала:
+        /// `share` (доля синего ниже порога), `z` (незначима), `shift`
+        /// (промах больше ПШПВ — не тот пик), `edge` (окно обрезано полосой).
+        /// </summary>
+        public string Refusal { get; set; }
+    }
+
     /// <summary>Слой стека для отрисовки: кривая и подпись с долей.</summary>
     public sealed class FsaStackLayer
     {
@@ -668,6 +724,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double OffsetChannels { get; set; }
 
         /// <summary>
+        /// (`AMBER17`) Кандидаты в опоры привязки шкалы — ВСЕ, принятые и
+        /// отвергнутые, в порядке роста энергии. Пуст — привязка выключена
+        /// либо синего канала нет (разбор без матрицы).
+        /// </summary>
+        public List<FsaScaleAnchor> ScaleAnchors { get; set; }
+
+        /// <summary>Сколько опор вошло в МНК; 0 — шкала не тронута.</summary>
+        public int ScaleAnchorsUsed { get; set; }
+
+        /// <summary>
+        /// Сдвиг нуля шкалы, найденный привязкой, в кэВ (пересчёт
+        /// <see cref="OffsetChannels"/> по наклону шкалы в полосе фита).
+        /// </summary>
+        public double AnchorOffsetKev { get; set; }
+
+        /// <summary>
+        /// Служебная строка о привязке для проб и журнала: сколько опор,
+        /// усиление, ноль, либо почему шкала не тронута. По-русски и не для
+        /// экрана: экран собирает подпись из ресурсов по числам выше.
+        /// </summary>
+        public string AnchorNote { get; set; }
+
+        /// <summary>
         /// Оптимум дрейфа упёрся в границу сетки — шкале верить нельзя. Это ИЛИ
         /// двух признаков ниже; порознь они появились 13.08.2026, когда
         /// корпусный прогон (S1, S6) показал, что одним словом «дрейф» названы
@@ -835,6 +914,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Components = new List<FsaComponentResult>();
             this.CharacteristicLimits = new List<FsaCharacteristicLimit>();
             this.SuppressedImages = new List<FsaSuppressedImage>();
+            this.ScaleAnchors = new List<FsaScaleAnchor>();
         }
 
         /// <summary>

@@ -65,6 +65,9 @@ namespace FsaChannelSplitProbe
     {
         static int bad;
 
+        /// <summary>(`AMBER17`) Плечо A/B: `--no-anchor` — привязка шкалы по пикам выключена.</summary>
+        static bool anchor = true;
+
         /// <summary>
         /// Допуск тождества. Числа — суммы сотен тысяч слагаемых порядка 1e5
         /// отсчётов, и порядок сложения у ленты и у каналов разный: лента
@@ -105,6 +108,7 @@ namespace FsaChannelSplitProbe
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
                 else if (a.StartsWith("--floor=", StringComparison.Ordinal))
                     floorKev = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                else if (a == "--no-anchor") anchor = false;
                 else if (a.StartsWith("--band=", StringComparison.Ordinal))
                 {
                     string[] parts = a.Substring(7).Split('-');
@@ -1216,6 +1220,10 @@ namespace FsaChannelSplitProbe
                 analyzer.ResponseContinuumTrustFloorKev = floorKev;
             }
 
+            // (`AMBER17`) Привязка шкалы — умолчание анализатора, ключ пробы
+            // её только выключает (плечо «как было»).
+            analyzer.AnchorScale = anchor;
+
             // (`T243`) ЧЕМ СЧИТАЛИ ЭТО ПЛЕЧО — ДО СЧЁТА И ВСЛУХ. Анализатор у
             // каждого плеча СВОЙ, и состояние прошлого разбора в отчёт не
             // попадает. Здесь это важно вдвойне: плечи отличаются
@@ -1237,6 +1245,28 @@ namespace FsaChannelSplitProbe
                               result.Chi2Ndf.ToString("F4", CultureInfo.InvariantCulture),
                               (result.ModelResidual * 100.0).ToString("F2", CultureInfo.InvariantCulture),
                               result.CascadeSummingUsed ? "да" : "нет");
+
+            // (`AMBER17`) Привязка шкалы — что нашла и по чему: усиление, ноль
+            // и все кандидаты в опоры с остатками ПОСЛЕ привязки.
+            Console.WriteLine("ANCHOR\tшкала: усиление {0}, ноль {1} кэВ ({2} кан.); {3}",
+                              result.Gain.ToString("F5", CultureInfo.InvariantCulture),
+                              result.AnchorOffsetKev.ToString("F2", CultureInfo.InvariantCulture),
+                              result.OffsetChannels.ToString("F3", CultureInfo.InvariantCulture),
+                              result.AnchorNote ?? "-");
+            foreach (FsaScaleAnchor an in result.ScaleAnchors)
+            {
+                Console.WriteLine("ANCHOR\t{0}\t{1}\tлиния {2}\tмодель {3}\tизмерение {4}\tсдвиг {5} ± {6}\tдоля синего {7}\tz {8}\tокно {9}…{10}\t{11}",
+                                  an.Used ? "ОПОРА" : "нет", an.Component,
+                                  an.LineKev.ToString("F2", CultureInfo.InvariantCulture),
+                                  an.ModelKev.ToString("F2", CultureInfo.InvariantCulture),
+                                  an.MeasuredKev.ToString("F2", CultureInfo.InvariantCulture),
+                                  an.ShiftKev.ToString("F2", CultureInfo.InvariantCulture),
+                                  an.SigmaKev.ToString("F2", CultureInfo.InvariantCulture),
+                                  an.PeakShare.ToString("F3", CultureInfo.InvariantCulture),
+                                  an.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                  an.FirstChannel, an.LastChannel, an.Refusal ?? "");
+            }
+
             return result;
         }
 

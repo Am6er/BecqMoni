@@ -235,6 +235,16 @@ namespace BecquerelMonitor
         const string KeySummingNoMatrix = "FSAReport_SummingNoMatrix";
         const string KeyDriftRow = "FSAReport_DriftRow";
         const string KeyDriftEdge = "FSAReport_DriftEdge";
+
+        // (`AMBER17`) Привязка шкалы по пикам полного поглощения: подпись,
+        // значение с числом опор и сдвигом, слово «нет опор», подсказка с
+        // перечнем опор.
+        const string KeyAnchorRow = "FSAReport_AnchorRow";
+        const string KeyAnchorNone = "FSAReport_AnchorNone";
+        const string KeyAnchorGainRow = "FSAReport_AnchorGainRow";
+        const string KeyAnchorZeroRow = "FSAReport_AnchorZeroRow";
+        const string KeyAnchorTip = "FSAReport_AnchorTip";
+        const string KeyAnchorTipLine = "FSAReport_AnchorTipLine";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
@@ -1292,6 +1302,17 @@ namespace BecquerelMonitor
                 made.Add(this.MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), false, true));
             }
 
+            // (`AMBER17`) ПРИВЯЗКА ШКАЛЫ — печатается ВСЕГДА при живой матрице:
+            // «опор нет, шкала как в калибровке» и «шкала привязана по N
+            // опорам, усиление и ноль такие-то» — разные состояния, и молчание
+            // в одном из них читалось бы как второе. Число — инвариантной
+            // культурой (`A242`); перечень опор — в подсказке строки, потому
+            // что в самой строке не поместится: имя, энергия, остаток.
+            if (result.ResponseMatrixUsed)
+            {
+                this.AddAnchorRow(made, result);
+            }
+
             if (result.CompositionSuppressed)
             {
                 // Имя пересилившего образа — не надпись, а данные результата,
@@ -1338,6 +1359,54 @@ namespace BecquerelMonitor
             var row = new Row(new[] { new Cell(string.Empty, (Image)null), name, cell });
             row.Tag = ServiceRow(caption, cell.Text, attention);
             return row;
+        }
+
+        /// <summary>
+        /// (`AMBER17`) Строки привязки шкалы — до трёх, по образцу блока
+        /// (подпись слева, короткое значение справа; длинное значение колонка
+        /// усекает многоточием, и это уже ловили — `A247`): число опор («none»
+        /// при нуле — шкала как в калибровке), усиление в процентах и ноль в
+        /// кэВ — два последних только при опорах, чтобы «+0.00» на
+        /// непривязанной шкале не читалось как результат привязки. Знак у
+        /// чисел печатается всегда. Подсказка у всех трёх одна: перечень
+        /// опор — компонент, энергия модельного центра, остаток после
+        /// привязки, — а следом отвергнутые кандидаты с причиной: без них
+        /// «опор нет» неотличимо от «опор не искали».
+        /// </summary>
+        void AddAnchorRow(List<Row> made, FsaResult result)
+        {
+            string value = result.ScaleAnchorsUsed > 0
+                ? result.ScaleAnchorsUsed.ToString(CultureInfo.InvariantCulture)
+                : OwnText(KeyAnchorNone);
+
+            var tip = new System.Text.StringBuilder(OwnText(KeyAnchorTip));
+            if (result.ScaleAnchors != null)
+            {
+                foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
+                {
+                    tip.AppendLine();
+                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLine),
+                                             anchor.Used ? "+" : "-",
+                                             anchor.Component ?? string.Empty,
+                                             anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
+                                             anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                                             anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture),
+                                             anchor.Refusal ?? string.Empty));
+                }
+            }
+
+            made.Add(this.MakeNumberRow(KeyAnchorRow, value, tip.ToString()));
+            if (result.ScaleAnchorsUsed > 0)
+            {
+                made.Add(this.MakeNumberRow(
+                    KeyAnchorGainRow,
+                    (100.0 * (result.Gain - 1.0)).ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                    tip.ToString()));
+                made.Add(this.MakeNumberRow(
+                    KeyAnchorZeroRow,
+                    result.AnchorOffsetKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                    tip.ToString()));
+            }
         }
 
         /// <summary>

@@ -1327,6 +1327,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string AnnihilationCollides { get; private set; }
 
         /// <summary>
+        /// (`AMBER17`) Кандидаты в опоры последнего прохода привязки — те же,
+        /// что уезжают в <see cref="FsaResult.ScaleAnchors"/>; здесь — чтобы
+        /// <c>BuildResult</c> их забрал, не зная, как они считались.
+        /// </summary>
+        List<FsaScaleAnchor> scaleAnchors;
+
+        int scaleAnchorsUsed;
+
+        string anchorNote;
+
+        /// <summary>
         /// ⛔ (`AMBER8`) ВЫЛЕТА БЕЗ РОДИТЕЛЯ НЕ БЫВАЕТ: образ `SE-*`/`DE-*`
         /// снимается, когда его родительская колонка не дожила до этого
         /// прохода.
@@ -1432,6 +1443,117 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double OffsetRangeKev { get; set; }
 
         public int OffsetSteps { get; set; }
+
+        /// <summary>
+        /// ⛔ (`AMBER17`) ПРИВЯЗКА ШКАЛЫ ПО ПИКАМ ПОЛНОГО ПОГЛОЩЕНИЯ — задача
+        /// Amber 11.09.2026 и её же решение того же дня, вопросником, дословно:
+        /// «ВКЛ умолчанием — привязка работает сама, слой показывает опоры».
+        ///
+        /// Это НЕ возврат сетки дрейфа и НЕ возврат ~~`A36`~~. Сетка выбирала
+        /// узел по общему χ², и три измеренные беды ~~`S95`~~ — одной породы:
+        /// свободный ноль шкалы и свободный сплайн суть взаимозаменяемые ручки,
+        /// и χ² «улучшался» ровно тогда, когда ответ исчезал (ноль на краю
+        /// сетки, Cd-109 96 → 5 %, `Xray-I` 4 → 94 %). ~~`A36`~~ привязывала к
+        /// центроидам ФИНДЕРА — а те смещены наклонным континуумом и
+        /// наложениями, и модель тянулась к смещённой точке.
+        ///
+        /// Здесь ни того, ни другого. Опора — ПИК ПОЛНОГО ПОГЛОЩЕНИЯ МОДЕЛИ
+        /// (максимум синего канала матрицы отклика), и сравниваются два центра
+        /// тяжести, посчитанные ОДНИМ движением в ОДНОМ окне: измерение без
+        /// сплайна против модели без сплайна. Так подложка из неполного
+        /// поглощения и вылетов (у `Cs 137 в домике` она тянет вершину на
+        /// 0.2 кэВ вниз, замер 11.09.2026) стоит по обе стороны и вычитается, и
+        /// дискретизация бина матрицы — тоже (решение Amber: «привязка берёт
+        /// МОДЕЛЬНОЕ положение, а не табличное»). Ноль и усиление НЕ свободны:
+        /// они считаются из опор МНК с весами по погрешности центра, сетки по
+        /// χ² нет вовсе, уходить на край нечему.
+        ///
+        /// Три условия строки, исполненные буквально: (а) опорой становится
+        /// только пик, у которого доля синего канала над моделью ЦЕЛИКОМ выше
+        /// <see cref="AnchorShareThreshold"/> — бугор континуума под линией
+        /// (88 кэВ у Cd-109, случай ~~`S95`~~) в опоры не проходит; (б)
+        /// смещение вершины подложкой учтено тем самым сравнением «модель без
+        /// сплайна ↔ измерение без сплайна»; (в) МНК, не χ².
+        ///
+        /// Одна опора — только УСИЛЕНИЕ, с осью в нулевом канале. Физика:
+        /// у сцинтиллятора с ФЭУ уплывает КОЭФФИЦИЕНТ (свет с температурой,
+        /// усиление ФЭУ с напряжением и загрузкой) — то есть амплитуда
+        /// импульса, пропорционально энергии; ноль шкалы держит АЦП, и он
+        /// стабилен. Сдвиг нуля по одной опоре двинул бы линию 32 кэВ на те же
+        /// 7 кэВ, что и 662, — больше её ПШПВ, — тогда как усиление двигает её
+        /// на 0.34. Измерено на `Cs 137 в домике` (журнал
+        /// `handover-2026-09-11-p10-scale-anchor.md`).
+        ///
+        /// Выключатель — плечо A/B для проб (`--no-anchor` у `CorpusFsaProbe`);
+        /// в приложении ключа нет: поставочное поведение по решению Amber.
+        /// </summary>
+        public bool AnchorScale { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`, условие «а») Порог ДОЛИ СИНЕГО КАНАЛА над моделью
+        /// целиком в окне пика: ниже — не опора. Число ВЫВЕДЕНО развёрткой по
+        /// малой базе, не назначено; ход развёртки — в журнале полосы П10.
+        /// </summary>
+        public double AnchorShareThreshold { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Наименьшая значимость чистого счёта окна (Σ/√Σσ²), при
+        /// которой центр измерения вообще имеет смысл. Ниже — центр гуляет по
+        /// шуму, и его вес в МНК всё равно был бы ничтожен; порог нужен, чтобы
+        /// такие «опоры» не печатались принятыми.
+        /// </summary>
+        public double AnchorMinZ { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Полуширина окна вокруг пика, в ПШПВ. Единица накрывает
+        /// ±2.35σ — 98 % гауссова пика.
+        /// </summary>
+        public double AnchorWindowFwhm { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Промах больше этой доли ПШПВ — не тот пик: измерение и
+        /// модель в окне говорят о разных структурах. Не заслон ~~`A36`~~ (0.5
+        /// ПШПВ, который «не помог»): здесь он ловит только явный мусор.
+        /// </summary>
+        public double AnchorMaxShiftFwhm { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Сколько раз повторить «опоры → МНК → перефит». Окно
+        /// центрировано по модели, и при промахе шкалы оно обрезает измеренный
+        /// пик несимметрично; второй проход центрирует окно по уже сдвинутой
+        /// модели, третий — проверяет, что сходится.
+        /// </summary>
+        public int AnchorPasses { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Пик уже стольких каналов ПШПВ опорой не бывает —
+        /// РЫЧАГ ЗАМЕРА, умолчанием выключен (см. присваивание). Заводился
+        /// доводом «окно в пять каналов центра не имеет», и довод не
+        /// подтвердился: центр считается ОДНИМ движением у измерения и у
+        /// модели, дискретизация стоит по обе стороны, а без узких рентгенов
+        /// K-серии шкала Ba-133 и Eu-152 находилась хуже, чем с ними.
+        /// </summary>
+        public double AnchorMinFwhmChannels { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Систематический пол погрешности центра опоры — доля
+        /// ПШПВ, складывается с пуассоновской в квадратуре. Без него σ центра
+        /// при сотнях тысяч отсчётов выходит в сотые кэВ, и один пик забирает
+        /// всю шкалу; а модель врёт формой пика (подложка, дискретизация бина
+        /// матрицы) на величину этого порядка: у Co-60 на G1S16 остатки опор
+        /// 0.24 и −0.41 кэВ при статистической σ 0.04.
+        /// </summary>
+        public double AnchorSigmaFloorFwhm { get; set; }
+
+        /// <summary>
+        /// (`AMBER17`) Меньше стольких опор — ноль шкалы не подбирается, только
+        /// усиление. Это арифметический минимум; физический — ПЛЕЧО опор,
+        /// и его проверяет сам МНК: верхняя опора обязана стоять хотя бы вдвое
+        /// выше нижней, иначе у пары соседних линий (356 и 384 кэВ у Ba-133)
+        /// плечо в 28 кэВ, и шум центра 0.3 кэВ даёт 1 % усиления — 6 кэВ на
+        /// 662. Рычаг замера — `--anchor-offset-min=` у `CorpusFsaProbe`.
+        /// </summary>
+        public int AnchorOffsetMinAnchors { get; set; }
 
         /// <summary>
         /// Добавлять образы обратного рассеяния, выведенные из найденного
@@ -1603,6 +1725,572 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double DriftPosition(double position, double gain, double offset)
         {
             return gain * position + offset;
+        }
+
+        /// <summary>
+        /// (`AMBER17`) ОПОРЫ ПРИВЯЗКИ ШКАЛЫ И МНК ПО НИМ — один проход.
+        ///
+        /// Что делается, по шагам:
+        ///
+        ///   1. Синий канал — сумма каналов полного поглощения всех НУКЛИДНЫХ
+        ///      образов фита на текущей шкале (<see cref="BuildLayerParts"/>,
+        ///      та же гистограмма и то же ядро, что у ленты). Приборные образы
+        ///      (`Xray-*`, `Esc-*`, `Ann-511`) опорами не бывают: ловушка
+        ///      ~~`S95`~~ — это когда состав переходит к приборному образу, и
+        ///      давать ему двигать шкалу значило бы вооружить её.
+        ///   2. Кандидат — каждый локальный максимум синего канала, окно вокруг
+        ///      него ±<see cref="AnchorWindowFwhm"/> ПШПВ. Неразрешённый
+        ///      дублет — один кандидат по построению; разрешённые соседи —
+        ///      два, и часть чужого пика в окне стоит по обе стороны.
+        ///   3. В окне — два центра тяжести ОДНИМ движением. Модель — ЯДРО:
+        ///      синий канал линий хозяина в полуширине от вершины (одна линия
+        ///      либо K-серия). Измерение — остаток фита ПЛЮС то же ядро, то
+        ///      есть измеренный спектр, из которого вычтено всё СМОДЕЛИРОВАННОЕ
+        ///      прочее: сплайн, комптон чужих линий, вылеты, своя же подложка
+        ///      неполного поглощения и соседние линии. Это и есть условие «б»
+        ///      строки — измеренная вершина, поправленная на подложку, — и
+        ///      решение Amber «сравнивать с модельным положением». Разность
+        ///      центров — промах шкалы в этом месте; ошибка модели в соседней
+        ///      линии входит в неё не всей линией, а своей ошибкой.
+        ///   4. Доля синего над моделью целиком (со сплайном) — условие «а»;
+        ///      значимость чистого счёта — чтобы центр не гулял по шуму; промах
+        ///      больше ПШПВ — не тот пик.
+        ///   5. МНК с весами 1/σ² центра измерения: усиление всегда, ноль —
+        ///      при плече опор и только если он снижает χ² опор не меньше чем
+        ///      на 4 (двухсигмовый довод, а не настроечное число); промахи от
+        ///      взвешенной прямой дальше трёх своих σ — прочь, по одному.
+        ///
+        /// Возвращает ВСЕХ кандидатов; принятые помечены <c>Used</c>. Поправка
+        /// — линейное отображение ТЕКУЩИХ модельных положений:
+        /// p'' = <paramref name="a"/>·p' + <paramref name="b"/> (каналы).
+        /// </summary>
+        List<FsaScaleAnchor> CollectScaleAnchors(FitResult fit, EnergyCalibration calibration,
+                                                 FwhmCalibration fwhmCalibration,
+                                                 double gain, double offset,
+                                                 int chLo, int chHi, int channels,
+                                                 double[] y, double[] variance, double channelsPerKev,
+                                                 out double a, out double b, out int used, out string note)
+        {
+            a = 1.0;
+            b = 0.0;
+            used = 0;
+            note = null;
+            var anchors = new List<FsaScaleAnchor>();
+            var fits = new List<AnchorFit>();
+
+            int peakChannel = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+            double[] blue = new double[channels];
+            double[] continuum = new double[channels];
+            double[] net = new double[channels];
+            var owners = new List<KeyValuePair<FsaComponent, double[]>>();
+            var ownerAmplitude = new Dictionary<FsaComponent, double>();
+            for (int k = 0; k < fit.Columns.Count; k++)
+            {
+                double amplitude = fit.Amplitude[k];
+                if (amplitude <= 0.0)
+                {
+                    continue;
+                }
+
+                FitColumn column = fit.Columns[k];
+                if (column.Component == null)
+                {
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        continuum[i] += amplitude * column.Values[i];
+                    }
+
+                    continue;
+                }
+
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    net[i] += amplitude * column.Values[i];
+                }
+
+                if (column.Component.WeightsAreFinal || !AnchorEligible(column.Component))
+                {
+                    continue;
+                }
+
+                double[] sumOnly;
+                double[][] parts;
+                this.BuildLayerParts(column.Component, calibration, fwhmCalibration,
+                                     gain, offset, chLo, chHi, channels, out sumOnly, out parts);
+                if (parts == null || peakChannel >= parts.Length || parts[peakChannel] == null)
+                {
+                    continue;
+                }
+
+                // ⛔ СУММ-ПИКИ ИЗ СИНЕГО КАНАЛА ВЫЧИТАЮТСЯ — опорой они не
+                // бывают. Сумм-пик сидит ВНУТРИ канала полного поглощения
+                // (`S3`), но положение его в модели — сумма двух табличных
+                // энергий, а в измерении — свет ОДНОГО импульса на E₁+E₂, и на
+                // сцинтилляторе они расходятся: измерено 11.09.2026 на четырёх
+                // спектрах малой базы (Co-60 2505, Y-88 2734, Bi-207 2340,
+                // Ce-139 199) — измеренный сумм-пик выше модельного на
+                // 0.5…1.3 %. Опора на нём тянула шкалу за собой: у
+                // `G1S16_Co60_P5` ноль уходил на −21 кэВ.
+                double[] own = parts[peakChannel];
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    own[i] *= amplitude;
+                    if (sumOnly != null && i < sumOnly.Length)
+                    {
+                        double sum = sumOnly[i] * amplitude;
+                        own[i] = sum < own[i] ? own[i] - sum : 0.0;
+                    }
+
+                    blue[i] += own[i];
+                }
+
+                owners.Add(new KeyValuePair<FsaComponent, double[]>(column.Component, own));
+                ownerAmplitude[column.Component] = amplitude;
+            }
+
+            if (owners.Count == 0)
+            {
+                note = "опор нет: ни одного нуклидного образа с синим каналом";
+                return anchors;
+            }
+
+            double windowFwhm = this.AnchorWindowFwhm > 0.0 ? this.AnchorWindowFwhm : 1.0;
+            for (int i = chLo + 1; i < chHi; i++)
+            {
+                if (!(blue[i] > 0.0) || blue[i] <= blue[i - 1] || blue[i] < blue[i + 1])
+                {
+                    continue;
+                }
+
+                double fwhm = fwhmCalibration.ChannelToFwhm(i);
+                if (!(fwhm > 1.0))
+                {
+                    continue;
+                }
+
+                // Рычаг замера, умолчанием ноль — см. `AnchorMinFwhmChannels`.
+                bool narrow = fwhm < this.AnchorMinFwhmChannels;
+
+                int half = Math.Max(2, (int)Math.Round(windowFwhm * fwhm));
+
+                // Рябь на склоне соседнего пика максимумом не считается:
+                // вершина обязана быть выше всего в половине окна.
+                bool top = true;
+                for (int k = Math.Max(chLo, i - half / 2); k <= Math.Min(chHi, i + half / 2); k++)
+                {
+                    if (blue[k] > blue[i])
+                    {
+                        top = false;
+                        break;
+                    }
+                }
+
+                if (!top)
+                {
+                    continue;
+                }
+
+                int lo = i - half;
+                int hi = i + half;
+                bool edge = lo < chLo || hi > chHi;
+                lo = Math.Max(chLo, lo);
+                hi = Math.Min(chHi, hi);
+
+                FsaComponent owner = null;
+                double ownerBlue = 0.0;
+                foreach (KeyValuePair<FsaComponent, double[]> pair in owners)
+                {
+                    if (pair.Value[i] > ownerBlue)
+                    {
+                        ownerBlue = pair.Value[i];
+                        owner = pair.Key;
+                    }
+                }
+
+                if (owner == null)
+                {
+                    continue;
+                }
+
+                // ЯДРО ОКНА — синий канал ТЕХ ЛИНИЙ ХОЗЯИНА, что стоят в
+                // полуширине от вершины: у K-серии это вся серия, у 356 кэВ
+                // Ba-133 — одна линия без соседней 384. Всё остальное в окне
+                // (соседние линии, комптон чужих, вылеты, свой же неполный
+                // отклик) — «прочее», и оно вычитается из ИЗМЕРЕНИЯ как
+                // смоделированное: измерение-для-опоры = остаток фита + ядро.
+                // Так соседняя линия с неверной относительной интенсивностью
+                // портит центр не на всю себя, а на ошибку своей интенсивности:
+                // без этого у `G1S16_Ba133_P5` окно 356 несло 384-ю целиком и
+                // давало −1.87 кэВ при −0.67 в узком окне.
+                double ownAmplitude = ownerAmplitude[owner];
+                double[] core = null;
+                double coreLineKev = double.NaN;
+                double coreLineBlue = 0.0;
+                for (int j = 0; j < owner.Lines.Count; j++)
+                {
+                    double p = EnergyToChannelSafe(calibration, owner.Lines[j].Energy, channels);
+                    if (!Finite(p))
+                    {
+                        continue;
+                    }
+
+                    if (Math.Abs(this.DriftPosition(p, gain, offset) - i) > 0.5 * fwhm)
+                    {
+                        continue;
+                    }
+
+                    double[] lineBlue = this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
+                                                           gain, offset, chLo, chHi, channels);
+                    if (lineBlue == null)
+                    {
+                        continue;
+                    }
+
+                    if (core == null)
+                    {
+                        core = new double[channels];
+                    }
+
+                    double lineTop = 0.0;
+                    for (int k = lo; k <= hi; k++)
+                    {
+                        double v = ownAmplitude * lineBlue[k];
+                        core[k] += v;
+                        lineTop = Math.Max(lineTop, v);
+                    }
+
+                    if (lineTop > coreLineBlue)
+                    {
+                        coreLineBlue = lineTop;
+                        coreLineKev = owner.Lines[j].Energy;
+                    }
+                }
+
+                if (core == null)
+                {
+                    continue;
+                }
+
+                double sumWhole = 0.0, sumCore = 0.0, sumData = 0.0, sumVar = 0.0;
+                double momentCore = 0.0, momentData = 0.0;
+                for (int k = lo; k <= hi; k++)
+                {
+                    double d = fit.Residual[k] + core[k];
+                    sumWhole += net[k] + continuum[k];
+                    sumCore += core[k];
+                    momentCore += core[k] * k;
+                    sumData += d;
+                    momentData += d * k;
+                    sumVar += variance[k];
+                }
+
+                var anchor = new FsaScaleAnchor
+                {
+                    Component = owner.Name,
+                    LineKev = coreLineKev,
+                    FirstChannel = lo,
+                    LastChannel = hi,
+                    PeakShare = sumWhole > 0.0 ? sumCore / sumWhole : 0.0,
+                    Z = sumVar > 0.0 ? sumData / Math.Sqrt(sumVar) : 0.0
+                };
+
+                double peakEnergy = calibration.ChannelToEnergy(i);
+                if (sumCore > 0.0 && sumData > 0.0)
+                {
+                    double centreModel = momentCore / sumCore;
+                    double centreData = momentData / sumData;
+                    double varCentre = 0.0;
+                    for (int k = lo; k <= hi; k++)
+                    {
+                        double dk = k - centreData;
+                        varCentre += variance[k] * dk * dk;
+                    }
+
+                    varCentre /= sumData * sumData;
+
+                    // Систематический пол погрешности центра: модель врёт формой
+                    // пика (подложка, форма, дискретизация) на долю ПШПВ, и
+                    // статистическая σ в сотые кэВ при сотнях тысяч отсчётов
+                    // отдала бы всю шкалу одному пику. Доля — у свойства.
+                    double floor = this.AnchorSigmaFloorFwhm * fwhm;
+                    varCentre += floor * floor;
+                    double sigma = Math.Sqrt(varCentre);
+                    anchor.ModelKev = calibration.ChannelToEnergy(centreModel);
+                    anchor.MeasuredKev = calibration.ChannelToEnergy(centreData);
+                    anchor.ShiftKev = anchor.MeasuredKev - anchor.ModelKev;
+                    anchor.SigmaKev = Math.Abs(calibration.ChannelToEnergy(centreData + sigma)
+                                               - anchor.MeasuredKev);
+
+                    if (edge)
+                    {
+                        anchor.Refusal = "edge";
+                    }
+                    else if (narrow)
+                    {
+                        anchor.Refusal = "narrow";
+                    }
+                    else if (anchor.Z < this.AnchorMinZ)
+                    {
+                        anchor.Refusal = "z";
+                    }
+                    else if (anchor.PeakShare < this.AnchorShareThreshold)
+                    {
+                        anchor.Refusal = "share";
+                    }
+                    else if (Math.Abs(centreData - centreModel) > this.AnchorMaxShiftFwhm * fwhm)
+                    {
+                        anchor.Refusal = "shift";
+                    }
+
+                    anchors.Add(anchor);
+                    if (anchor.Refusal == null && varCentre > 0.0)
+                    {
+                        fits.Add(new AnchorFit
+                        {
+                            Anchor = anchor, X = centreModel, Y = centreData, Weight = 1.0 / varCentre
+                        });
+                    }
+                }
+                else
+                {
+                    anchor.ModelKev = peakEnergy;
+                    anchor.MeasuredKev = double.NaN;
+                    anchor.ShiftKev = double.NaN;
+                    anchor.SigmaKev = double.NaN;
+                    anchor.Refusal = "z";
+                    anchors.Add(anchor);
+                }
+            }
+
+            if (fits.Count == 0)
+            {
+                note = string.Format(CultureInfo.InvariantCulture,
+                                     "опор нет: кандидатов {0}, все отвергнуты; шкала не тронута",
+                                     anchors.Count);
+                return anchors;
+            }
+
+            // ⚠ РОБАСТНОГО СТАРТА ЗДЕСЬ НЕТ, И ЭТО ИЗМЕРЕНО, а не забыто.
+            // Пробовалась медиана парных наклонов (Тейл — Сен) с отсевом
+            // промахов от неё ДО взвешенного МНК — чтобы опора с наименьшей σ
+            // не забирала прямую себе (`G1S16_Th228_P5`: K-серия 77 кэВ на
+            // −4.1 кэВ при σ 0.22 тянула ноль на −6.4 кэВ, χ²/ndf 4.18 → 4.48).
+            // На малой базе робастный старт этот спектр починил (4.14), но
+            // выбросил рентгены там, где они были правы (`G1S24_Th228_P5`
+            // 20.98 → 28.00, `G1S24_Ba133_P5` 19.56 → 27.21), и Σχ² вырос
+            // 319.7 → 338.7: при трёх-пяти опорах и нелинейной шкале NaI
+            // «дальше всех от медианной прямой» — не промах, а самая низкая
+            // опора. Оставлен взвешенный МНК с отсевом по его же остаткам.
+            // МНК: усиление всегда (ось в нулевом канале — см. доводы у
+            // AnchorScale), ноль — при достаточном ПЛЕЧЕ опор и только по
+            // двухсигмовому выигрышу χ² опор. Отсев промахов — по одному, с
+            // худшего, пока остаются хотя бы две опоры: одна опора среди трёх
+            // с промахом в три сигмы — не «шум», а другая структура (сумм-пик,
+            // наложение), и тянуть по ней шкалу нельзя.
+            string how = "усиление";
+            int outliers = 0;
+            while (true)
+            {
+                double swxx = 0.0, swxy = 0.0, sw = 0.0, swx = 0.0, swy = 0.0;
+                double xMin = double.MaxValue, xMax = double.MinValue;
+                foreach (AnchorFit f in fits)
+                {
+                    sw += f.Weight;
+                    swx += f.Weight * f.X;
+                    swy += f.Weight * f.Y;
+                    swxx += f.Weight * f.X * f.X;
+                    swxy += f.Weight * f.X * f.Y;
+                    xMin = Math.Min(xMin, f.X);
+                    xMax = Math.Max(xMax, f.X);
+                }
+
+                if (!(swxx > 0.0))
+                {
+                    note = "опор нет: вырожденный МНК; шкала не тронута";
+                    return anchors;
+                }
+
+                double a1 = swxy / swxx;
+                double chi1 = 0.0;
+                foreach (AnchorFit f in fits)
+                {
+                    double r = f.Y - a1 * f.X;
+                    chi1 += f.Weight * r * r;
+                }
+
+                a = a1;
+                b = 0.0;
+                how = "усиление";
+
+                // Ноль — только при плече: верхняя опора хотя бы вдвое выше
+                // нижней (по каналам). Тогда ошибка ε любого центра даёт не
+                // больше 2ε нуля и 2ε/x усиления — усиление ошибки ограничено.
+                // Пара соседних линий (356 и 384 кэВ) нуля не получает: у неё
+                // плечо 28 кэВ, и шум 0.3 кэВ дал бы 1 % усиления, 6 кэВ на 662.
+                bool lever = fits.Count >= Math.Max(2, this.AnchorOffsetMinAnchors)
+                             && xMin > 0.0 && xMax - xMin >= 0.5 * xMax;
+                if (lever)
+                {
+                    double det = sw * swxx - swx * swx;
+                    if (det > 0.0)
+                    {
+                        double a2 = (sw * swxy - swx * swy) / det;
+                        double b2 = (swxx * swy - swx * swxy) / det;
+                        double chi2 = 0.0;
+                        foreach (AnchorFit f in fits)
+                        {
+                            double r = f.Y - a2 * f.X - b2;
+                            chi2 += f.Weight * r * r;
+                        }
+
+                        if (chi1 - chi2 >= 4.0)
+                        {
+                            a = a2;
+                            b = b2;
+                            how = "усиление и ноль";
+                        }
+                    }
+                }
+
+                if (fits.Count <= 2)
+                {
+                    break;
+                }
+
+                AnchorFit worst = null;
+                double worstPull = 0.0;
+                foreach (AnchorFit f in fits)
+                {
+                    double pull = Math.Abs(f.Y - a * f.X - b) * Math.Sqrt(f.Weight);
+                    if (pull > worstPull)
+                    {
+                        worstPull = pull;
+                        worst = f;
+                    }
+                }
+
+                if (worst == null || worstPull <= 3.0)
+                {
+                    break;
+                }
+
+                worst.Anchor.Refusal = "outlier";
+                fits.Remove(worst);
+                outliers++;
+            }
+
+            foreach (AnchorFit f in fits)
+            {
+                f.Anchor.Used = true;
+            }
+
+            used = fits.Count;
+            note = string.Format(CultureInfo.InvariantCulture,
+                                 "опор {0} из {1} (промахов {6}), {2}: a {3:F5}, b {4:F3} кан. ({5:F2} кэВ)",
+                                 used, anchors.Count, how, a, b, b / channelsPerKev, outliers);
+            return anchors;
+        }
+
+        /// <summary>
+        /// (`AMBER17`) Чей пик полного поглощения МОЖЕТ быть опорой. Нуклидные
+        /// образы — все. Из приборных — только те, чья линия стоит на ТОЧНО
+        /// известной энергии и строится матрицей: аннигиляция 511.00 кэВ и
+        /// характеристический рентген пробы и защиты (`Xray-*`). У Na-22 на
+        /// G1S16 аннигиляционный образ держит 79 % модели и стоит в 511, а
+        /// единственная нуклидная линия 1274.5 измерена на −18 кэВ — без 511
+        /// опора одна, и ноль шкалы взять неоткуда. Обратное рассеяние
+        /// (широкий бугор, положение по геометрии) и наложения (готовый образ)
+        /// опорами не бывают — у них нет линии; вылеты `SE-*`/`DE-*` — тоже:
+        /// их положение не своё, а родительское.
+        /// </summary>
+        static bool AnchorEligible(FsaComponent component)
+        {
+            if (component.Kind != FsaComponentKind.Nuisance)
+            {
+                return true;
+            }
+
+            if (component.FixedTemplate != null || component.Lines == null || component.Lines.Count == 0)
+            {
+                return false;
+            }
+
+            return FsaResult.IsAnnihilationImage(component.Name)
+                   || component.Name.StartsWith("Xray-", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (`AMBER17`) СИНИЙ КАНАЛ ОДНОЙ ЛИНИИ компонента — пик полного
+        /// поглощения, построенный тем же путём, что столбец линии
+        /// (<see cref="BuildLineColumn"/>): та же матрица, тот же вес, та же
+        /// каскадная поправка на пик, то же уширение. Отличие одно — копится
+        /// ТОЛЬКО канал полного поглощения. Ядро опоры привязки.
+        /// Возвращает null без матрицы: у образа из одних пиков синего
+        /// канала нет, и опора там не строится.
+        /// </summary>
+        double[] BuildLineBlue(FsaComponent component, int lineIndex,
+                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                               double gain, double offset, int chLo, int chHi, int channels)
+        {
+            EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
+            if (matrix == null || component.WeightsAreFinal || !matrix.HasChannels)
+            {
+                return null;
+            }
+
+            double bin = matrix.BinKev;
+            if (!(bin > 0.0))
+            {
+                return null;
+            }
+
+            FsaLine line = component.Lines[lineIndex];
+            double[] deposit = new double[(int)(line.Energy / bin + 0.5) + 1];
+            FsaCascadeSummer.Correction correction =
+                this.cascade != null ? this.cascade.For(component) : null;
+            if (correction != null && !correction.Any)
+            {
+                correction = null;
+            }
+
+            double weight = line.Intensity / 100.0;
+            double cf = correction != null && correction.LineFactors != null
+                        && lineIndex < correction.LineFactors.Length
+                ? correction.LineFactors[lineIndex]
+                : 1.0;
+            int peak = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.Peak;
+            matrix.AccumulateChannel(deposit, line.Energy, weight * cf, peak);
+            this.SplitContinuumBelowTrustFloor(deposit, null, null, bin, component,
+                                               calibration, fwhmCalibration, channels);
+            return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, bin,
+                                               gain, offset, chLo, chHi, channels);
+        }
+
+        /// <summary>
+        /// (`AMBER17`) Ноль шкалы в кэВ из нуля в каналах — тем же наклоном
+        /// полосы фита, каким `Analyze` переводит `OffsetRangeKev` в каналы:
+        /// одно правило на оба направления, иначе экран и проба назвали бы
+        /// разные числа об одном сдвиге.
+        /// </summary>
+        static double AnchorOffsetKevOf(double offsetChannels, EnergyCalibration calibration, int chLo, int chHi)
+        {
+            double energyLo = calibration.ChannelToEnergy(chLo);
+            double energyHi = calibration.ChannelToEnergy(chHi);
+            if (!(energyHi > energyLo) || chHi <= chLo)
+            {
+                return 0.0;
+            }
+
+            return offsetChannels * (energyHi - energyLo) / (chHi - chLo);
+        }
+
+        /// <summary>Пара точек МНК одной опоры (`AMBER17`): модельный и измеренный центры, каналы.</summary>
+        sealed class AnchorFit
+        {
+            public FsaScaleAnchor Anchor;
+            public double X;
+            public double Y;
+            public double Weight;
         }
 
         /// <summary>
@@ -1833,6 +2521,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GainSteps = 1;
             this.OffsetRangeKev = 8.0;
             this.OffsetSteps = 1;
+
+            // ⛔ (`AMBER17`) ПРИВЯЗКА ШКАЛЫ ПО ПИКАМ ПОЛНОГО ПОГЛОЩЕНИЯ — ВКЛ
+            // умолчанием, решение Amber 11.09.2026 вопросником, дословно:
+            // «ВКЛ умолчанием — привязка работает сама, слой показывает опоры».
+            // Полярность стоит ЗДЕСЬ, у присваивания (`T82`). Плечо A/B —
+            // `--no-anchor` у `CorpusFsaProbe`.
+            //
+            // Порог доли синего канала ВЫВЕДЕН развёрткой по малой базе
+            // (42 спектра понятной части, 11.09.2026, журнал полосы П10):
+            // настоящие пики полного поглощения стоят выше, бугор континуума
+            // ~~`S95`~~ (88 кэВ `G1S16_Cd109_P5`) — ниже. Число см. в журнале
+            // вместе с таблицей развёртки; менять его без новой развёртки нельзя.
+            this.AnchorScale = true;
+            this.AnchorShareThreshold = 0.5;
+            this.AnchorMinZ = 5.0;
+            this.AnchorWindowFwhm = 1.0;
+            this.AnchorMaxShiftFwhm = 1.0;
+            this.AnchorPasses = 3;
+            this.AnchorOffsetMinAnchors = 2;
+            // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
+            // порогом в три канала рентгены 22…40 кэВ на 1024-канальных G1S
+            // выпадали из опор, и малая база давала Σχ² 398.2 против 349.9 без
+            // порога — у Ba-133 и Eu-152 рентген K-серии держит четверть
+            // отсчётов, и шкала, найденная без него, ставила его мимо.
+            // Свойство оставлено рычагом замера (`--anchor-minfwhm=`).
+            this.AnchorMinFwhmChannels = 0.0;
+            this.AnchorSigmaFloorFwhm = 0.02;
             this.Backscatter = true;
             this.CascadeSumming = true;
             this.CascadeSumPeaks = true;
@@ -2563,6 +3278,108 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (best == null)
             {
                 return null;
+            }
+
+            // ⛔ (`AMBER17`) ПРИВЯЗКА ШКАЛЫ ПО ПИКАМ ПОЛНОГО ПОГЛОЩЕНИЯ — здесь,
+            // на первом фите и ДО всего остального (обратное рассеяние, отсев
+            // по z, гейты): всё ниже строит образы на `bestGain`/`bestOffset`,
+            // и шкала обязана быть найдена раньше, чем по ней начнут судить
+            // состав. Описание и доводы — у свойства <see cref="AnchorScale"/>.
+            //
+            // Проходов до трёх: окно центрировано по модели, и при промахе
+            // шкалы оно режет измеренный пик несимметрично; второй проход
+            // центрирует окно по уже сдвинутой модели. Каждый проход — новый
+            // хуберовский фит на найденной шкале, как у сетки.
+            this.scaleAnchors = new List<FsaScaleAnchor>();
+            this.scaleAnchorsUsed = 0;
+            this.anchorNote = null;
+            if (this.AnchorScale)
+            {
+                if (this.ResponseMatrix == null || !best.FromResponseMatrix)
+                {
+                    this.anchorNote = "привязки нет: без матрицы отклика синего канала нет";
+                }
+                else
+                {
+                    int passes = Math.Max(1, this.AnchorPasses);
+                    int movedBy = 0;
+                    for (int pass = 0; pass < passes; pass++)
+                    {
+                        double a, b;
+                        int used;
+                        string note;
+                        List<FsaScaleAnchor> anchors = this.CollectScaleAnchors(
+                            best, calibration, fwhmCalibration, bestGain, bestOffset,
+                            chLo, chHi, channels, y, variance, channelsPerKev,
+                            out a, out b, out used, out note);
+                        this.scaleAnchors = anchors;
+                        this.anchorNote = note;
+                        if (used == 0)
+                        {
+                            break;
+                        }
+
+                        // Новая шкала поверх прежней: p'' = a·(g·p + o) + b.
+                        double gain = a * bestGain;
+                        double offset = a * bestOffset + b;
+
+                        // Сошлось — дальше не двигаемся: сдвиг меньше двадцатой
+                        // канала на всём диапазоне полосы.
+                        bool converged = Math.Abs(b) < 0.05
+                                         && Math.Abs(a - 1.0) * Math.Max(1, chHi) < 0.05;
+                        if (converged)
+                        {
+                            // Опоры есть и шкала уже на месте: она ПРИВЯЗАНА,
+                            // хоть и не сдвинута — это другое состояние, чем
+                            // «опор нет», и считается по числу опор.
+                            if (movedBy == 0)
+                            {
+                                movedBy = used;
+                            }
+
+                            break;
+                        }
+
+                        FitResult moved = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
+                                                   efficiency, gain, offset, chLo, chHi, channels,
+                                                   y, variance, baseWeights, reportWeights, null);
+                        if (moved == null)
+                        {
+                            this.anchorNote = note + "; фит на новой шкале не удался, шкала прежняя";
+                            break;
+                        }
+
+                        best = moved;
+                        bestGain = gain;
+                        bestOffset = offset;
+                        movedBy = used;
+
+                        // Остатки и признаки опор — ПОСЛЕ перефита: человек
+                        // должен видеть, на сколько модель промахивается
+                        // СЕЙЧАС, а не до сдвига. Последний проход цикла
+                        // оставил бы список «до», поэтому пересчёт здесь.
+                        if (pass + 1 == passes)
+                        {
+                            this.scaleAnchors = this.CollectScaleAnchors(
+                                best, calibration, fwhmCalibration, bestGain, bestOffset,
+                                chLo, chHi, channels, y, variance, channelsPerKev,
+                                out a, out b, out used, out note);
+                            break;
+                        }
+                    }
+
+                    this.scaleAnchorsUsed = movedBy;
+                    if (movedBy > 0)
+                    {
+                        this.anchorNote = string.Format(CultureInfo.InvariantCulture,
+                            "опор {0}; усиление {1:F5}, ноль {2:F2} кэВ ({3:F3} кан.)",
+                            movedBy, bestGain, bestOffset / channelsPerKev, bestOffset);
+                    }
+                }
+            }
+            else
+            {
+                this.anchorNote = "привязка выключена ключом";
             }
 
             // (S78) Всё, что было ПРЕДЪЯВЛЕНО фиту, и с какой значимостью его
@@ -3988,7 +4805,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 OffsetOnGridEdge = offsetOnEdge,
                 Background = backgroundCurve,
                 Continuum = new double[channels],
-                Model = new double[channels]
+                Model = new double[channels],
+
+                // (`AMBER17`) Опоры привязки — как их оставил последний проход;
+                // ноль в кэВ пересчитан тем же наклоном, каким шкала считалась.
+                ScaleAnchors = this.scaleAnchors ?? new List<FsaScaleAnchor>(),
+                ScaleAnchorsUsed = this.scaleAnchorsUsed,
+                AnchorNote = this.anchorNote,
+                AnchorOffsetKev = AnchorOffsetKevOf(offset, calibration, chLo, chHi)
             };
 
             if (snipContinuum != null)
