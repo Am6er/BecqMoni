@@ -541,6 +541,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// <summary>Имя материала в базе, например «CsI:Tl».</summary>
             public string Material;
 
+            /// <summary>
+            /// (`F11` (а), П17) Чем кривая отличается от таблицы базы: пусто —
+            /// таблица `scint_electron_light_yield` как есть; иначе — посчитана
+            /// в коде из параметров Пейна (<see cref="LightYieldPayne"/>), и
+            /// строка называет η, продолжение ниже 1 кэВ и обрыв короткого
+            /// трека. Читается пробами и печатается в шапке прогона.
+            /// </summary>
+            public string Variant = "";
+
             internal double[] energyKev;   // строго по возрастанию
             internal double[] yieldRel;
 
@@ -584,6 +593,222 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// (`F11` (а), П17) РАЗРЯДКА АТОМА ПО EADL: чем закрывается дырка на
+        /// подоболочке — квантом (`eadl_radiative`) или оже/Костера—Кронига
+        /// электроном (`eadl_auger`), с энергиями и вероятностями на одну
+        /// вакансию. Нужна раздельному оже-каскаду света: энергия релаксации
+        /// K-дырки (33.17 кэВ у иода) раскладывается по СВОИМ электронам —
+        /// KLL 23.7 кэВ, LMM 3.3, MNN 0.5 и десятки долей кэВ, — а не садится
+        /// одним куском на фотоэлектрон. Обозначения оболочек EADL: 1=K, 3=L1,
+        /// 5=L2, 6=L3, 8=M1… Грузится лениво по одному элементу
+        /// (<see cref="RelaxationOf"/>), одна на все потоки, только чтение.
+        /// </summary>
+        public sealed class Relaxation
+        {
+            /// <summary>Энергии связи подоболочек, кэВ, по обозначению EADL.</summary>
+            internal Dictionary<int, double> bindingKev = new Dictionary<int, double>();
+
+            /// <summary>Переходы на вакансию: [оболочка] → таблица.</summary>
+            internal Dictionary<int, Transitions> transitions = new Dictionary<int, Transitions>();
+
+            /// <summary>Подоболочки по убыванию энергии связи — для «на какой оболочке поглотится квант».</summary>
+            internal int[] shellsByBinding;
+            internal double[] bindingByOrder;
+
+            internal sealed class Transitions
+            {
+                // радиационные: кумулятивная вероятность, энергия кванта, откуда пришёл электрон
+                internal double[] radCum, radKev;
+                internal int[] radFrom;
+                internal double radSum;
+                // безрадиационные: кумулятивная вероятность (продолжает radSum), энергия электрона, откуда, кто вылетел
+                internal double[] augCum, augKev;
+                internal int[] augFrom, augEjected;
+                internal double augSum;
+            }
+
+            /// <summary>Энергия связи подоболочки, кэВ; ноль, если её нет.</summary>
+            public double BindingKev(int shell)
+            {
+                double b;
+                return this.bindingKev.TryGetValue(shell, out b) ? b : 0.0;
+            }
+
+            /// <summary>
+            /// Подоболочка EADL по энергии связи (кэВ) с допуском 2 % —
+            /// для вакансии комптона (`A61`), у которой известна только энергия.
+            /// Ноль — не нашлась.
+            /// </summary>
+            public int ShellByBinding(double bindingKev)
+            {
+                for (int i = 0; i < this.shellsByBinding.Length; i++)
+                {
+                    double b = this.bindingByOrder[i];
+                    if (Math.Abs(b - bindingKev) <= 0.02 * Math.Max(b, bindingKev))
+                    {
+                        return this.shellsByBinding[i];
+                    }
+                }
+
+                return 0;
+            }
+
+            /// <summary>
+            /// Самая глубокая подоболочка, которую квант энергии
+            /// <paramref name="photonKev"/> ещё может ионизовать, — на ней и
+            /// считается поглощённым квант каскада, не ведомый переносом (L- и
+            /// M-линии в единицы кэВ гаснут в микронах от атома). Ноль — ни
+            /// одной (квант мягче всех краёв — садится целиком).
+            /// </summary>
+            public int AbsorbingShell(double photonKev)
+            {
+                return this.AbsorbingShell(photonKev, 0);
+            }
+
+            /// <summary>
+            /// То же, но только среди подоболочек с обозначением EADL БОЛЬШЕ
+            /// <paramref name="minShellId"/> (обозначения растут наружу:
+            /// K=1, L1=3, L2=5, L3=6, M1=8…) — «M и глубже» при 7.
+            /// </summary>
+            public int AbsorbingShell(double photonKev, int minShellId)
+            {
+                for (int i = 0; i < this.shellsByBinding.Length; i++)
+                {
+                    if (this.shellsByBinding[i] > minShellId && this.bindingByOrder[i] < photonKev)
+                    {
+                        return this.shellsByBinding[i];
+                    }
+                }
+
+                return 0;
+            }
+
+            /// <summary>
+            /// Подоболочка, куда переезжает вакансия после ИЗВЕСТНОГО
+            /// радиационного перехода с оболочки <paramref name="shell"/> —
+            /// разыгрывается среди радиационных переходов EADL по их
+            /// вероятностям. Нужна, когда квант уже разыгран переносом
+            /// (`SampleFluorescence`, `CascadeAfterK`) по своей таблице линий и
+            /// известна лишь его энергия: берётся переход, ближайший по
+            /// энергии, а при <paramref name="lineKev"/> ≤ 0 — случайный.
+            /// Ноль — переходов нет.
+            /// </summary>
+            public int VacancyAfterPhoton(int shell, double lineKev, double u)
+            {
+                Transitions t;
+                if (!this.transitions.TryGetValue(shell, out t) || t.radKev == null || t.radKev.Length == 0)
+                {
+                    return 0;
+                }
+
+                if (lineKev > 0.0)
+                {
+                    int best = 0;
+                    double gap = double.MaxValue;
+                    for (int i = 0; i < t.radKev.Length; i++)
+                    {
+                        double d = Math.Abs(t.radKev[i] - lineKev);
+                        if (d < gap)
+                        {
+                            gap = d;
+                            best = i;
+                        }
+                    }
+
+                    return t.radFrom[best];
+                }
+
+                double pick = u * t.radSum;
+                for (int i = 0; i < t.radCum.Length; i++)
+                {
+                    if (pick < t.radCum[i])
+                    {
+                        return t.radFrom[i];
+                    }
+                }
+
+                return t.radFrom[t.radFrom.Length - 1];
+            }
+
+            /// <summary>Есть ли у подоболочки хоть один переход.</summary>
+            public bool HasTransitions(int shell)
+            {
+                Transitions t;
+                return this.transitions.TryGetValue(shell, out t) && (t.radSum + t.augSum) > 0.0;
+            }
+
+            /// <summary>
+            /// Один шаг разрядки вакансии на <paramref name="shell"/> по числу
+            /// <paramref name="u"/> ∈ [0, 1). Радиационный переход — квант
+            /// энергии <paramref name="kev"/>, <paramref name="from"/> — новая
+            /// вакансия, <paramref name="ejected"/> = 0; оже — электрон
+            /// энергии <paramref name="kev"/> и ДВЕ новые вакансии. Возврат
+            /// false — переходов нет либо выпал «остаток» (Σ вероятностей EADL
+            /// < 1 на 10⁻⁶): дырка садится на месте своей энергией связи.
+            /// При <paramref name="nonRadiativeOnly"/> розыгрыш идёт только по
+            /// безрадиационным (радиационный исход уже решён переносом как «нет»).
+            /// </summary>
+            public bool Step(int shell, double u, bool nonRadiativeOnly,
+                             out bool radiative, out double kev, out int from, out int ejected)
+            {
+                radiative = false;
+                kev = 0.0;
+                from = 0;
+                ejected = 0;
+                Transitions t;
+                if (!this.transitions.TryGetValue(shell, out t))
+                {
+                    return false;
+                }
+
+                double total = nonRadiativeOnly ? t.augSum : t.radSum + t.augSum;
+                if (!(total > 0.0))
+                {
+                    return false;
+                }
+
+                double pick = u * total;
+                if (!nonRadiativeOnly && t.radCum != null && pick < t.radSum)
+                {
+                    for (int i = 0; i < t.radCum.Length; i++)
+                    {
+                        if (pick < t.radCum[i])
+                        {
+                            radiative = true;
+                            kev = t.radKev[i];
+                            from = t.radFrom[i];
+                            return true;
+                        }
+                    }
+                }
+
+                if (t.augCum == null)
+                {
+                    return false;
+                }
+
+                double base0 = nonRadiativeOnly ? 0.0 : t.radSum;
+                for (int i = 0; i < t.augCum.Length; i++)
+                {
+                    if (pick < base0 + t.augCum[i])
+                    {
+                        kev = t.augKev[i];
+                        from = t.augFrom[i];
+                        ejected = t.augEjected[i];
+                        return true;
+                    }
+                }
+
+                // хвост округления: последний оже-переход
+                int last = t.augCum.Length - 1;
+                kev = t.augKev[last];
+                from = t.augFrom[last];
+                ejected = t.augEjected[last];
+                return true;
+            }
+        }
+
         static readonly object Gate = new object();
         static Dictionary<int, Element> elements;
         static Dictionary<int, double> atomicMass;
@@ -593,6 +818,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             new Dictionary<int, PhotoShellModel>();
         static readonly Dictionary<string, LightYieldCurve> lightYields =
             new Dictionary<string, LightYieldCurve>();
+        static readonly Dictionary<int, Relaxation> relaxations =
+            new Dictionary<int, Relaxation>();
 
         /// <summary>Атомные массы, г/моль, по Z. Ключ есть у всех ста элементов.</summary>
         public static Dictionary<int, double> AtomicMass
@@ -766,6 +993,475 @@ namespace BecquerelMonitor.EfficiencyMaker
                 energyKev = energies.ToArray(),
                 yieldRel = yields.ToArray(),
             };
+        }
+
+        /// <summary>
+        /// (`F11` (а), П17) КРИВАЯ СВЕТА, ПОСЧИТАННАЯ В КОДЕ из параметров
+        /// Пейна (`scint_npsm_params`, строка `is_default = 1`) и тормозной
+        /// способности ESTAR (`estar_collision_stopping`) — тем же алгоритмом,
+        /// что `tools/nucdb/import_light_yield.py` (модель Payne III, ур. 3;
+        /// L(E) = ∫₀^E l(S(E')) dE', трапеции по лог-сетке 500 точек на декаду,
+        /// нормировка на 661.657 кэВ). Без продолжения и обрыва воспроизводит
+        /// таблицу базы (контроль — `LightScaleProbe --curve=`).
+        ///
+        /// Три отличия от таблицы, каждое под своим рычагом:
+        ///
+        /// * <paramref name="etaOverride"/> > 0 — η вместо табличного (решение
+        ///   Amber 11.09.2026: η перекалибровать по 1.12 на 10 кэВ ключом, а не
+        ///   записью в базу — `database-writes-through-amber`);
+        /// * <paramref name="subKevExtension"/> — интеграл идёт от 10 эВ, а не
+        ///   от 1 кэВ: ниже 1 кэВ тормозная способность продолжена формой
+        ///   Joy — Luo (Scanning 11 (1989) 176: S ∝ (1/E)·ln(1.166·(E + 0.85·J)/J),
+        ///   J — средний потенциал ионизации вещества из `star_materials`),
+        ///   сшитой с ESTAR на 1 кэВ множителем; ниже максимума формы (~56 эВ у
+        ///   NaI) S держится постоянной. В таблице базы отрезок 0…1 кэВ был
+        ///   приближён постоянным l(S(1 кэВ)) — «ESTAR обрезан на 1 кэВ»;
+        /// * <paramref name="trackEndKev"/> > 0 — обрыв КОРОТКОГО трека:
+        ///   выход умножается на q(E) = 1/(1 + (E_q/E)²) по НАЧАЛЬНОЙ энергии
+        ///   трека. Кривая Пейна калибрована по электронным данным SLYNCI от
+        ///   единиц кэВ и ниже — экстраполяция, тогда как K-dip-спектроскопия
+        ///   (Khodyuk 2010) меряет ровно изолированный короткий трек
+        ///   (фотоэлектрон E − E_K) и даёт ему МЕНЬШЕ света: провал 114.1 % на
+        ///   34.5 кэВ при тренде ~116.5. E_q — единственный параметр, калибруется
+        ///   по глубине провала (`EfficiencySimulator.LightTrackEndKev`).
+        ///   ⚠ Множитель на НАЧАЛЬНУЮ энергию, а не на остаток вдоль трека,
+        ///   нарочно: конец длинного трека уже сидит в подгонке Пейна по
+        ///   SLYNCI, а вариант «по остатку» (прототип П17) гасил 10…20 кэВ
+        ///   впятеро сильнее, чем углублял провал.
+        ///
+        /// null — у материала нет строки параметров или тормозной (германий,
+        /// CZT, LaBr3 — та же «шкала пропорциональна», что у таблицы).
+        /// </summary>
+        public static LightYieldCurve LightYieldPayne(string material, double etaOverride,
+                                                      bool subKevExtension, double trackEndKev)
+        {
+            string key = material + "|payne|"
+                + etaOverride.ToString("R", CultureInfo.InvariantCulture) + "|"
+                + (subKevExtension ? "1" : "0") + "|"
+                + trackEndKev.ToString("R", CultureInfo.InvariantCulture);
+            lock (Gate)
+            {
+                LightYieldCurve cached;
+                if (lightYields.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+
+                LightYieldCurve curve;
+                try
+                {
+                    curve = LoadLightYieldPayne(material, etaOverride, subKevExtension, trackEndKev);
+                }
+                catch (FileNotFoundException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw Refuse("кривая световыхода Пейна «" + material + "»", DatabasePath(), ex);
+                }
+
+                lightYields[key] = curve;
+                return curve;
+            }
+        }
+
+        /// <summary>Имя готового вещества ESTAR по имени сцинтиллятора.</summary>
+        static string StarNameOf(string material)
+        {
+            if (material.StartsWith("NaI", StringComparison.Ordinal)) return "SODIUM IODIDE";
+            if (material.StartsWith("CsI", StringComparison.Ordinal)) return "CESIUM IODIDE";
+            return null;
+        }
+
+        static LightYieldCurve LoadLightYieldPayne(string material, double etaOverride,
+                                                   bool subKevExtension, double trackEndKev)
+        {
+            string path = DatabasePath();
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
+            }
+
+            string starName = StarNameOf(material);
+            if (starName == null)
+            {
+                return null;
+            }
+
+            double eta = 0.0, ons = 0.0, trap = 0.0, birks = 0.0;
+            double density = 0.0, potentialEv = 0.0;
+            bool haveParams = false;
+            List<double> estarKev = new List<double>();
+            List<double> estarCm = new List<double>();
+            using (SqliteConnection connection = new SqliteConnection(
+                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+            {
+                connection.Open();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select eta_eh, dedx_ons_mev_cm, dedx_trap_mev_cm, dedx_birks_mev_cm" +
+                        " from scint_npsm_params where material = $m and is_default = 1";
+                    command.Parameters.AddWithValue("$m", material);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            haveParams = true;
+                            eta = reader.GetDouble(0);
+                            ons = reader.GetDouble(1);
+                            trap = reader.GetDouble(2);
+                            birks = reader.GetDouble(3);
+                        }
+                    }
+                }
+
+                if (!haveParams)
+                {
+                    return null;
+                }
+
+                int starId = -1;
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select id, density_g_cm3, potential_ev from star_materials where name = $n";
+                    command.Parameters.AddWithValue("$n", starName);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            starId = reader.GetInt32(0);
+                            density = reader.GetDouble(1);
+                            potentialEv = reader.GetDouble(2);
+                        }
+                    }
+                }
+
+                if (starId < 0)
+                {
+                    return null;
+                }
+
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select energy_mev, collision_mev_cm2_g from estar_collision_stopping" +
+                        " where material_star_id = " + starId.ToString(CultureInfo.InvariantCulture) +
+                        " order by energy_mev";
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            estarKev.Add(reader.GetDouble(0) * 1000.0);
+                            estarCm.Add(reader.GetDouble(1) * density);
+                        }
+                    }
+                }
+            }
+
+            if (estarKev.Count < 2)
+            {
+                return null;
+            }
+
+            if (etaOverride > 0.0)
+            {
+                eta = etaOverride;
+            }
+
+            double[] eKev = estarKev.ToArray();
+            double[] sCm = estarCm.ToArray();
+
+            // Форма Joy — Luo ниже 1 кэВ, сшитая с ESTAR на 1 кэВ; ниже своего
+            // максимума (~0.12·J) форма не убывает — S держится постоянной.
+            double j = potentialEv;
+            Func<double, double> joyLuo = ev => Math.Log(1.166 * (ev + 0.85 * j) / j) / ev;
+            double jlPeakEv = 1000.0;
+            double jlPeak = joyLuo(1000.0);
+            for (double ev = 1000.0; ev > 5.0; ev /= 1.01)
+            {
+                double v = joyLuo(ev);
+                if (v > jlPeak)
+                {
+                    jlPeak = v;
+                    jlPeakEv = ev;
+                }
+            }
+
+            double s1 = sCm[0];
+            double jl1 = joyLuo(eKev[0] * 1000.0);
+            Func<double, double> stopping = kev =>
+            {
+                if (kev >= eKev[0] || !subKevExtension)
+                {
+                    return LogLog(eKev, sCm, kev);
+                }
+
+                double ev = Math.Max(kev * 1000.0, jlPeakEv);
+                return s1 * joyLuo(ev) / jl1;
+            };
+            Func<double, double> local = s =>
+            {
+                double inner = (s / ons) * Math.Exp(-trap / s);
+                return (1.0 - eta * Math.Exp(-inner)) / (1.0 + s / birks);
+            };
+
+            double eLo = subKevExtension ? 0.01 : 1.0;
+            const double EHi = 3000.0;
+            int steps = (int)(500 * Math.Log10(EHi / eLo));
+            double[] grid = new double[steps + 1];
+            double[] light = new double[steps + 1];
+            for (int i = 0; i <= steps; i++)
+            {
+                grid[i] = eLo * Math.Pow(EHi / eLo, i / (double)steps);
+            }
+
+            light[0] = local(stopping(eLo)) * eLo;
+            for (int i = 1; i <= steps; i++)
+            {
+                double la = local(stopping(grid[i - 1]));
+                double lb = local(stopping(grid[i]));
+                light[i] = light[i - 1] + 0.5 * (la + lb) * (grid[i] - grid[i - 1]);
+            }
+
+            const double NormKev = 661.657;
+            double norm = LogLog(grid, light, NormKev) / NormKev;
+            const int PointsPerDecade = 20;
+            int n = (int)(PointsPerDecade * Math.Log10(EHi / eLo)) + 1;
+            double[] outE = new double[n];
+            double[] outY = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                double e = eLo * Math.Pow(EHi / eLo, i / (double)(n - 1));
+                double y = LogLog(grid, light, e) / e / norm;
+                if (trackEndKev > 0.0)
+                {
+                    y /= 1.0 + (trackEndKev / e) * (trackEndKev / e);
+                }
+
+                outE[i] = e;
+                outY[i] = y;
+            }
+
+            string variant = "Payne η=" + eta.ToString("0.####", CultureInfo.InvariantCulture)
+                + (etaOverride > 0.0 ? " (ключ)" : " (база)")
+                + (subKevExtension ? ", ниже 1 кэВ Joy-Luo от 0.01" : "")
+                + (trackEndKev > 0.0
+                    ? ", обрыв E_q=" + trackEndKev.ToString("0.###", CultureInfo.InvariantCulture) + " кэВ"
+                    : "");
+            return new LightYieldCurve
+            {
+                Material = material,
+                Variant = variant,
+                energyKev = outE,
+                yieldRel = outY,
+            };
+        }
+
+        /// <summary>Лог-лог интерполяция по узлам (xs возрастают, ys > 0); за краями — крайние.</summary>
+        static double LogLog(double[] xs, double[] ys, double x)
+        {
+            int n = xs.Length;
+            if (x <= xs[0])
+            {
+                return ys[0];
+            }
+
+            if (x >= xs[n - 1])
+            {
+                return ys[n - 1];
+            }
+
+            int lo = 0, hi = n - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (xs[mid] <= x)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            double t = (Math.Log(x) - Math.Log(xs[lo])) / (Math.Log(xs[hi]) - Math.Log(xs[lo]));
+            return Math.Exp(Math.Log(ys[lo]) + t * (Math.Log(ys[hi]) - Math.Log(ys[lo])));
+        }
+
+        /// <summary>
+        /// (`F11` (а), П17) Разрядка атома Z по EADL; null, если у элемента
+        /// нет ни одного перехода в базе. Грузится лениво и по одному
+        /// элементу, кэшируется, включая отрицательный ответ.
+        /// </summary>
+        public static Relaxation RelaxationOf(int z)
+        {
+            lock (Gate)
+            {
+                Relaxation cached;
+                if (relaxations.TryGetValue(z, out cached))
+                {
+                    return cached;
+                }
+
+                Relaxation model;
+                try
+                {
+                    model = LoadRelaxationTable(z);
+                }
+                catch (FileNotFoundException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw Refuse("разрядка атома Z=" + z.ToString(CultureInfo.InvariantCulture), DatabasePath(), ex);
+                }
+
+                relaxations[z] = model;
+                return model;
+            }
+        }
+
+        static Relaxation LoadRelaxationTable(int z)
+        {
+            string path = DatabasePath();
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
+            }
+
+            Relaxation model = new Relaxation();
+            string zText = z.ToString(CultureInfo.InvariantCulture);
+            var rad = new Dictionary<int, List<double[]>>();
+            var aug = new Dictionary<int, List<double[]>>();
+            using (SqliteConnection connection = new SqliteConnection(
+                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+            {
+                connection.Open();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select shell_id, binding_ev from eadl_binding where z=" + zText;
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            model.bindingKev[reader.GetInt32(0)] = reader.GetDouble(1) / 1000.0;
+                        }
+                    }
+                }
+
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select vacancy_shell, from_shell, probability, energy_ev from eadl_radiative" +
+                        " where z=" + zText + " order by vacancy_shell, from_shell";
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int v = reader.GetInt32(0);
+                            List<double[]> list;
+                            if (!rad.TryGetValue(v, out list))
+                            {
+                                rad[v] = list = new List<double[]>();
+                            }
+
+                            list.Add(new[] { reader.GetInt32(1), reader.GetDouble(2), reader.GetDouble(3) / 1000.0 });
+                        }
+                    }
+                }
+
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select vacancy_shell, from_shell, ejected_shell, probability, energy_ev from eadl_auger" +
+                        " where z=" + zText + " order by vacancy_shell, from_shell, ejected_shell";
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int v = reader.GetInt32(0);
+                            List<double[]> list;
+                            if (!aug.TryGetValue(v, out list))
+                            {
+                                aug[v] = list = new List<double[]>();
+                            }
+
+                            list.Add(new[] { reader.GetInt32(1), reader.GetInt32(2), reader.GetDouble(3), reader.GetDouble(4) / 1000.0 });
+                        }
+                    }
+                }
+            }
+
+            if (model.bindingKev.Count == 0 || (rad.Count == 0 && aug.Count == 0))
+            {
+                return null;
+            }
+
+            var shells = new List<KeyValuePair<int, double>>(model.bindingKev);
+            shells.Sort((a, b) => b.Value.CompareTo(a.Value));
+            model.shellsByBinding = new int[shells.Count];
+            model.bindingByOrder = new double[shells.Count];
+            for (int i = 0; i < shells.Count; i++)
+            {
+                model.shellsByBinding[i] = shells[i].Key;
+                model.bindingByOrder[i] = shells[i].Value;
+            }
+
+            var vacancies = new HashSet<int>(rad.Keys);
+            vacancies.UnionWith(aug.Keys);
+            foreach (int v in vacancies)
+            {
+                var t = new Relaxation.Transitions();
+                List<double[]> r;
+                if (rad.TryGetValue(v, out r))
+                {
+                    t.radCum = new double[r.Count];
+                    t.radKev = new double[r.Count];
+                    t.radFrom = new int[r.Count];
+                    double acc = 0.0;
+                    for (int i = 0; i < r.Count; i++)
+                    {
+                        acc += r[i][1];
+                        t.radCum[i] = acc;
+                        t.radKev[i] = r[i][2];
+                        t.radFrom[i] = (int)r[i][0];
+                    }
+
+                    t.radSum = acc;
+                }
+
+                List<double[]> a;
+                if (aug.TryGetValue(v, out a))
+                {
+                    t.augCum = new double[a.Count];
+                    t.augKev = new double[a.Count];
+                    t.augFrom = new int[a.Count];
+                    t.augEjected = new int[a.Count];
+                    double acc = 0.0;
+                    for (int i = 0; i < a.Count; i++)
+                    {
+                        acc += a[i][2];
+                        t.augCum[i] = acc;
+                        t.augKev[i] = a[i][3];
+                        t.augFrom[i] = (int)a[i][0];
+                        t.augEjected[i] = (int)a[i][1];
+                    }
+
+                    t.augSum = acc;
+                }
+
+                model.transitions[v] = t;
+            }
+
+            return model;
         }
 
         /// <summary>Обёртка отказа (`A89`), см. <see cref="Refuse"/>.</summary>

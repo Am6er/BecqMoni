@@ -404,6 +404,75 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool LightNonproportionality = true;
 
         /// <summary>
+        /// (`F11` (а), П17, решение Amber 11.09.2026 «K-провал — следующей
+        /// полосой») КРИВАЯ СВЕТА ЭЛЕКТРОНОВ СЧИТАЕТСЯ В КОДЕ, с продолжением
+        /// ниже 1 кэВ и обрывом короткого трека — вместо таблицы
+        /// `scint_electron_light_yield`, обрезанной на 1 кэВ. Умолчание —
+        /// ВЫКЛ (таблица базы, побитово прежний отклик). Что именно считается —
+        /// у <see cref="MaterialDatabase.LightYieldPayne"/>; параметр обрыва —
+        /// <see cref="LightTrackEndKev"/>. Половина K-провала: фотоэлектрон
+        /// сразу над краем (0…1 кэВ у иода на 34 кэВ) получал полный свет
+        /// таблицы (1.143 на 1 кэВ), а изолированный короткий трек светит
+        /// меньше (Khodyuk 2010). Одна ни провала не даёт: измерено П17
+        /// прототипом и пробой — ступенька остаётся вверх, пока куски каскада
+        /// слиты с фотоэлектроном (<see cref="LightCascadeSplit"/>).
+        /// В матрице — часть значения `kdip` клейма
+        /// (<see cref="ResponseMatrixOptions.KDipLight"/>).
+        /// </summary>
+        public bool LightSubKevCurve = false;
+
+        /// <summary>
+        /// (`F11` (а), П17) РАЗДЕЛЬНЫЙ ОЖЕ-КАСКАД СВЕТА. Умолчание — ВЫКЛ.
+        ///
+        /// Без ключа энергия релаксации дырки — всё, что не унёс разыгранный
+        /// переносом рентген (`e − xray − casc`), — садится на ОДИН электрон
+        /// вместе с фотоэлектроном, и свет считается по его суммарной энергии.
+        /// У иода над K-краем это 5.4 кэВ «одним куском» при K-кванте либо
+        /// все 34 кэВ при оже-ответе — хотя на деле фотоэлектрону достаётся
+        /// 0…1 кэВ, а 33.17 кэВ дырки раскладываются по KLL 23.7, LMM 3.3, MNN
+        /// 0.5 кэВ и десяткам долей кэВ (EADL, `MaterialDatabase.Relaxation`).
+        /// С ключом фотоэлектрон получает `E − E_связи`, а релаксация
+        /// разыгрывается каскадом EADL: каждый электрон ≥ 1 кэВ ведётся
+        /// <see cref="ElectronLoss"/> отдельно (тормозное, вылет, свой свет по
+        /// своей энергии), куски мягче 1 кэВ ОДНОГО атома сливаются в один
+        /// сгусток (они рождаются в нанометрах друг от друга и не различимы
+        /// переносом). Кванты каскада, которых перенос не разыгрывал (L- и
+        /// M-линии в единицы кэВ у дырок после KLL), поглощаются на месте на
+        /// самой глубокой открытой подоболочке — фотоэлектрон плюс новая дырка.
+        /// Уже разыгранные переносом кванты (K-линия `SampleFluorescence`,
+        /// каскадный L-квант `CascadeAfterK`, вакансионный `VacancyXray`)
+        /// остаются как есть — каскад продолжает с ТОЙ подоболочки, куда они
+        /// увели дырку; баланс энергии сходится до эВ.
+        ///
+        /// ⚠ Меняет поток случайных чисел ТОЛЬКО включённым: розыгрыш
+        /// каскада тянет свои числа, а при выключенном ключе ни одного. В
+        /// матрице — часть значения `kdip` клейма.
+        /// </summary>
+        public bool LightCascadeSplit = false;
+
+        /// <summary>
+        /// (`F11`, решение Amber 11.09.2026 «η — в единый счёт склада,
+        /// ключом») η модели Пейна вместо табличного
+        /// (`scint_npsm_params.eta_eh`); ноль — табличное (умолчание). Действует
+        /// только на кривую, посчитанную в коде: ненулевое значение включает
+        /// расчёт в коде и без <see cref="LightSubKevCurve"/> (тогда без
+        /// продолжения и обрыва — ровно алгоритм импортёра с другим η).
+        /// В матрице — `leta=` клейма (<see cref="ResponseMatrixOptions.LightEtaEh"/>).
+        /// </summary>
+        public double LightEtaEh = 0.0;
+
+        /// <summary>
+        /// (`F11` (а), П17) E_q обрыва короткого трека, кэВ: множитель
+        /// q(E) = 1/(1 + (E_q/E)²) на выход электрона НАЧАЛЬНОЙ энергии E.
+        /// Действует только при <see cref="LightSubKevCurve"/>. Калибровка —
+        /// по глубине K-провала Ходюка (114.1 % на 34.5 кэВ при тренде ~116.5
+        /// через 20 и 50 кэВ), `LightScaleProbe --kdip=1 --eq=`, журнал
+        /// `handover/handover-2026-09-11-p17-kdip.md`. Умолчание — калиброванное
+        /// значение; ноль — без обрыва (одно продолжение Joy — Luo).
+        /// </summary>
+        public double LightTrackEndKev = 1.0;
+
+        /// <summary>
         /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
         ///
         /// Формула узкого пучка `exp(-tau)` считает потерянным всё, что
@@ -918,8 +987,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.crystalHasPartials = this.CrystalHasPartials();
             this.electron = ElectronData.Match(this.geometry.Crystal);
+            // (`F11` (а), П17) Кривая в коде — только под ключом либо при
+            // заданном η; иначе таблица базы, как было.
             this.lightYield = this.LightNonproportionality && this.electron != null
-                ? MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron))
+                ? (this.LightSubKevCurve || this.LightEtaEh > 0.0
+                    ? MaterialDatabase.LightYieldPayne(ScintillatorNameOf(this.electron),
+                                                       this.LightEtaEh, this.LightSubKevCurve,
+                                                       this.LightSubKevCurve ? this.LightTrackEndKev : 0.0)
+                    : MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron)))
                 : null;
             this.bremTable = this.Bremsstrahlung && this.BremFromData && this.electron != null
                 ? ThickTargetBrem.For(this.geometry.Crystal, this.electron, 5.0)
@@ -967,7 +1042,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             get
             {
                 this.EnsureBuilt();
-                return this.lightYield == null ? "" : this.lightYield.Material;
+                return this.lightYield == null
+                    ? ""
+                    : this.lightYield.Material
+                      + (this.lightYield.Variant.Length > 0 ? " [" + this.lightYield.Variant + "]" : "");
+            }
+        }
+
+        /// <summary>(`F11` (а), П17) Сама кривая света прогона — пробам, чтобы напечатать её точки; null — шкала пропорциональна.</summary>
+        public MaterialDatabase.LightYieldCurve LightYieldCurve
+        {
+            get
+            {
+                this.EnsureBuilt();
+                return this.lightYield;
             }
         }
 
@@ -3279,6 +3367,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // и по той же причине: рекурсия `InCrystal` ниже разыграет
                     // свою флуоресценцию и перетрёт признак.
                     bool xrayIsL = this.lastXrayIsL;
+                    // (`F11` (а), П17) Место поглощения и решения переноса —
+                    // забираются здесь же и по той же причине: рекурсия ниже
+                    // перетрёт их своим поглощением.
+                    int absorbZ = this.lastAbsorbZ;
+                    int absorbShell = this.lastAbsorbShell;
+                    int kLine = this.lastKLine;
+                    bool cascadeRolled = this.lastCascadeRolled;
                     if (xray > 0.0)
                     {
                         double kx, ky, kz;
@@ -3288,7 +3383,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Оба тянут случайные числа, и перестановка уводит
                         // поток — матрица выходит другой, а кривая
                         // эффективности перестаёт быть побитово прежней.
-                        double electron = this.ElectronLoss(x, y, z, e - xray - casc, depth);
+                        //
+                        // (`F11` (а), П17) С раздельным каскадом фотоэлектрону
+                        // достаётся `e − E_связи`, а остаток релаксации
+                        // раскладывается по электронам EADL; без ключа — прежний
+                        // один кусок `e − xray − casc`.
+                        double electron = this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0
+                            ? this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
+                                                       xray, kLine, casc, cascadeRolled, depth)
+                            : this.ElectronLoss(x, y, z, e - xray - casc, depth);
                         // Метка канала — только НЕПОМЕЧЕННЫЙ остаток вылета:
                         // вложенная рекурсия свои вылеты уже пометила (её метка
                         // точнее — она знает, ЧЕМ квант вылетел), и прибавка
@@ -3331,6 +3434,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     // фотоэлектрон уносит почти всю энергию кванта
+                    // (`F11` (а), П17) — либо, с раздельным каскадом, `e − E_связи`
+                    // плюс оже-каскад дырки, ответившей не квантом.
+                    if (this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0)
+                    {
+                        return lost + this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
+                                                               0.0, -1, 0.0, false, depth);
+                    }
+
                     return lost + this.ElectronLoss(x, y, z, e, depth);
                 }
 
@@ -3363,6 +3474,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     double vacancyXray = toElectron > vacancy
                         ? this.VacancyXray(this.geometry.Crystal, vacancyZ, vacancy) : 0.0;
+                    // (`F11` (а), П17) Признаки розыгрыша — до рекурсии.
+                    int vacancyLine = this.lastVacancyLine;
+                    bool vacancyRolled = this.lastVacancyRolled;
                     if (vacancyXray > 0.0)
                     {
                         this.CountVacancyXray++;
@@ -3384,7 +3498,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                         lost += goneV;
                     }
 
-                    lost += this.ElectronLoss(x, y, z, toElectron, depth);
+                    // (`F11` (а), П17) Та же раскладка у вакансии комптона:
+                    // кинетика электрона отдельно, релаксация дырки — каскадом.
+                    // Условие `toElectron > vacancy` то же, что у розыгрыша
+                    // кванта выше: иначе дырка не определена (доплер), и всё
+                    // идёт прежним куском.
+                    if (this.LightCascadeSplit && vacancy > 0.0 && vacancyZ > 0
+                        && toElectron + vacancyXray > vacancy)
+                    {
+                        lost += this.VacancyElectronsSplit(x, y, z, toElectron + vacancyXray, vacancyZ,
+                                                           vacancy, vacancyXray, vacancyLine,
+                                                           vacancyRolled, depth);
+                    }
+                    else
+                    {
+                        lost += this.ElectronLoss(x, y, z, toElectron, depth);
+                    }
+
                     e = scattered;
                     if (e < 1.0)
                     {
@@ -3661,6 +3791,222 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`F11` (а), П17) ФОТОЭЛЕКТРОН И РАЗДЕЛЬНЫЙ КАСКАД дырки после
+        /// фотопоглощения кванта <paramref name="e"/> на подоболочке
+        /// <paramref name="shell"/> элемента <paramref name="atomZ"/>.
+        /// Фотоэлектрон — `e − E_связи`, ведётся <see cref="ElectronLoss"/>;
+        /// релаксация — <see cref="RelaxationElectrons"/> с бюджетом
+        /// `E_связи − xray − casc` (то, что не унесли уже разыгранные кванты).
+        /// Возвращает унесённую из кристалла энергию, как `ElectronLoss`.
+        /// Если у подоболочки нет энергии связи в EADL или квант ниже её края
+        /// (рассогласование таблиц) — прежний один кусок.
+        /// </summary>
+        double PhotoElectronsSplit(double x, double y, double z, double e, int atomZ, int shell,
+                                   double xray, int kLine, double casc, bool cascadeRolled, int depth)
+        {
+            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
+            double binding = relax == null ? 0.0 : relax.BindingKev(shell);
+            if (!(binding > 0.0) || e <= binding)
+            {
+                return this.ElectronLoss(x, y, z, e - xray - casc, depth);
+            }
+
+            double lost = this.ElectronLoss(x, y, z, e - binding, depth);
+            lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray - casc,
+                                             xray, kLine, casc, cascadeRolled, depth);
+            return lost;
+        }
+
+        /// <summary>
+        /// (`F11` (а), П17) То же для ВАКАНСИИ КОМПТОНА (`A61`): полная
+        /// отдача <paramref name="total"/> = кинетика электрона + энергия
+        /// связи; подоболочка ищется по энергии связи, квант
+        /// <paramref name="xray"/> уже разыгран (`VacancyXray`, только K-серия,
+        /// без каскада K→L — поэтому L-дырка после него разряжается полным
+        /// каскадом). <paramref name="rolled"/> без кванта — дырка разыграна
+        /// как «оже», первый шаг только безрадиационный. Не нашлась
+        /// подоболочка — прежний один кусок.
+        /// </summary>
+        double VacancyElectronsSplit(double x, double y, double z, double total, int atomZ,
+                                     double bindingKev, double xray, int kLine, bool rolled, int depth)
+        {
+            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
+            int shell = relax == null ? 0 : relax.ShellByBinding(bindingKev);
+            double binding = shell > 0 ? relax.BindingKev(shell) : 0.0;
+            if (!(binding > 0.0) || total <= binding)
+            {
+                return this.ElectronLoss(x, y, z, total - xray, depth);
+            }
+
+            double lost = this.ElectronLoss(x, y, z, total - binding, depth);
+            lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray,
+                                             xray, kLine, 0.0, false, depth, rolled);
+            return lost;
+        }
+
+        /// <summary>
+        /// (`F11` (а), П17) РАЗРЯДКА ДЫРКИ ЭЛЕКТРОНАМИ EADL. Бюджет
+        /// <paramref name="budgetKev"/> — энергия релаксации, не унесённая уже
+        /// разыгранными переносом квантами; она раскладывается по
+        /// оже/Костера—Кронига электронам и локально поглощённым квантам
+        /// каскада, каждый электрон ≥ 1 кэВ ведётся <see cref="ElectronLoss"/>
+        /// отдельно, мягче 1 кэВ — сливаются в один сгусток
+        /// (<see cref="AddLight"/> одной энергией). Невязка баланса (таблицы
+        /// линий переноса и EADL расходятся на доли кэВ) садится в сгусток.
+        ///
+        /// Откуда каскад стартует, решают уже сделанные розыгрыши переноса:
+        ///
+        /// * <paramref name="xray"/> > 0 — дырка на <paramref name="shell"/>
+        ///   ответила квантом; новая дырка — там, откуда пришёл электрон
+        ///   (Kα1 → L3, Kα2 → L2; Kβ и L-линии — ближайший по энергии
+        ///   радиационный переход EADL);
+        /// * <paramref name="casc"/> > 0 — та L-дырка тоже ответила квантом
+        ///   (`CascadeAfterK`), дырка уезжает дальше по тому же правилу;
+        /// * <paramref name="cascadeRolled"/> без каскадного кванта — L-дырка
+        ///   разыграна как «оже», и первый её шаг только безрадиационный;
+        /// * <paramref name="xray"/> = 0 и <paramref name="selfRolled"/> —
+        ///   сама дырка разыграна переносом как «не квант»: первый шаг только
+        ///   безрадиационный; без розыгрыша (оболочка, где переносу нечего
+        ///   было решать) — полный каскад.
+        ///
+        /// Возвращает унесённую из кристалла энергию электронов каскада.
+        /// </summary>
+        double RelaxationElectrons(double x, double y, double z, MaterialDatabase.Relaxation relax,
+                                   int shell, double budgetKev, double xray, int kLine, double casc,
+                                   bool cascadeRolled, int depth, bool selfRolled = true)
+        {
+            if (!(budgetKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            int[] stack = this.cascadeStack;
+            int top = 0;
+            bool firstNonRadiative = false;
+            int seed = shell;
+            if (xray > 0.0)
+            {
+                // квант уже разыгран переносом: дырка переехала
+                int next = shell == 1 && (kLine == 0 || kLine == 1)
+                    ? (kLine == 0 ? 6 : 5)
+                    : relax.VacancyAfterPhoton(shell, xray, this.Uniform());
+                if (next <= 0)
+                {
+                    this.AddLight(budgetKev, budgetKev);
+                    return 0.0;
+                }
+
+                seed = next;
+                if (casc > 0.0)
+                {
+                    int after = relax.VacancyAfterPhoton(next, casc, this.Uniform());
+                    if (after <= 0)
+                    {
+                        this.AddLight(budgetKev, budgetKev);
+                        return 0.0;
+                    }
+
+                    seed = after;
+                }
+                else
+                {
+                    firstNonRadiative = cascadeRolled;
+                }
+            }
+            else
+            {
+                firstNonRadiative = selfRolled;
+            }
+
+            stack[top++] = seed;
+            double lost = 0.0;
+            double blob = 0.0;
+            double scored = 0.0;
+            bool first = true;
+            while (top > 0)
+            {
+                int v = stack[--top];
+                bool radiative;
+                double kev;
+                int from, ejected;
+                bool nonRad = first && firstNonRadiative;
+                first = false;
+                if (!relax.Step(v, this.Uniform(), nonRad, out radiative, out kev, out from, out ejected))
+                {
+                    // переходов нет: дырка садится на месте своей энергией связи
+                    blob += relax.BindingKev(v);
+                    scored += relax.BindingKev(v);
+                    continue;
+                }
+
+                if (radiative)
+                {
+                    // квант каскада, которого перенос не разыгрывал, — на месте:
+                    // фотоэлектрон с самой глубокой открытой подоболочки плюс дырка
+                    int target = relax.AbsorbingShell(kev);
+                    double pe = target > 0 ? kev - relax.BindingKev(target) : kev;
+                    scored += pe;
+                    if (pe >= 1.0)
+                    {
+                        lost += this.ElectronLoss(x, y, z, pe, depth);
+                    }
+                    else if (pe > 0.0)
+                    {
+                        blob += pe;
+                    }
+
+                    if (top + 2 > stack.Length)
+                    {
+                        this.CountCascadeOverflow++;
+                        break;
+                    }
+
+                    stack[top++] = from;
+                    if (target > 0)
+                    {
+                        stack[top++] = target;
+                    }
+
+                    continue;
+                }
+
+                scored += kev;
+                if (kev >= 1.0)
+                {
+                    lost += this.ElectronLoss(x, y, z, kev, depth);
+                }
+                else if (kev > 0.0)
+                {
+                    blob += kev;
+                }
+
+                if (top + 2 > stack.Length)
+                {
+                    this.CountCascadeOverflow++;
+                    break;
+                }
+
+                stack[top++] = from;
+                stack[top++] = ejected;
+            }
+
+            // Баланс: всё, чего каскад не разложил (или разложил лишнего на
+            // доли кэВ из-за разных таблиц), — в сгусток.
+            blob += budgetKev - scored;
+            if (Math.Abs(budgetKev - scored) > 0.5)
+            {
+                this.CountCascadeOverflow++;
+            }
+
+            if (blob > 0.0)
+            {
+                this.AddLight(blob, blob);
+            }
+
+            return lost;
+        }
+
+        /// <summary>
         /// Разыграть характеристический квант при фотопоглощении кванта энергии
         /// <paramref name="energyKev"/>. Ноль — атом ответил оже-электроном,
         /// поглощение на другой оболочке или элементе без данных.
@@ -3684,6 +4030,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // места вызова, и оставленный прошлый признак отдал бы L-метку
             // чужому поглощению.
             this.lastXrayIsL = false;
+            // (`F11` (а), П17) Место поглощения принадлежит ТОЛЬКО этому
+            // вызову — по тому же доводу, что два поля выше.
+            this.lastAbsorbZ = 0;
+            this.lastAbsorbShell = 0;
+            this.lastKLine = -1;
+            this.lastCascadeRolled = false;
             Fluorescers f0 = this.FluorescersOf(material);
             if (!this.XrayEscape || f0.Z.Length == 0)
             {
@@ -3743,6 +4095,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             MaterialDatabase.Fluorescence f = f0.Data[k];
+            this.lastAbsorbZ = f0.Z[k];
 
             // Доля K-оболочки: по энергии из EPICS2017, если данные есть;
             // иначе — константа со скачка на крае, как раньше. Число случайных
@@ -3766,6 +4119,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.CascadeAfterK(f, f0.Shells[k], line, energyKev);
                 }
 
+                this.lastAbsorbShell = 1;
+                this.lastKLine = line;
                 this.traceZ = f0.Z[k];
                 this.traceShell = 'K';
                 this.traceXrayKev = kev;
@@ -3788,7 +4143,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             // при выходах 0.098 / 0.404 / 0.352.
             if (!this.LXrayEscape || !f.HasL || f0.Shells[k] == null)
             {
-                return 0.0;                 // оже-электрон либо нет данных L
+                // оже-электрон либо нет данных L
+                this.lastAbsorbShell = this.PickShellWithoutXray(f, null, energyKev, kFraction, omega);
+                return 0.0;
             }
 
             // Все три доли берутся ОДНИМ вызовом: порознь они стоили
@@ -3797,6 +4154,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] lFrac = f0.Shells[k].LFractions(energyKev);
             if (lFrac == null)
             {
+                this.lastAbsorbShell = this.PickShellWithoutXray(f, null, energyKev, kFraction, omega);
                 return 0.0;
             }
 
@@ -3818,6 +4176,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // становится истиной: дальше по нему вылет уйдёт в свой
                     // канал `EscapeXrayL`.
                     this.lastXrayIsL = true;
+                    this.lastAbsorbShell = li == 0 ? 3 : (li == 1 ? 5 : 6);   // EADL: L1=3, L2=5, L3=6
                     this.traceZ = f0.Z[k];
                     this.traceShell = (char)('1' + li);   // подоболочка L1 / L2 / L3
                     this.traceXrayKev = lkev;
@@ -3825,7 +4184,68 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            return 0.0;                     // оже-электрон
+            // оже-электрон
+            this.lastAbsorbShell = this.PickShellWithoutXray(f, lFrac, energyKev, kFraction, omega);
+            return 0.0;
+        }
+
+        /// <summary>
+        /// (`F11` (а), П17) НА КАКОЙ ПОДОБОЛОЧКЕ поглотился квант, если атом
+        /// ответил НЕ квантом. Розыгрыш `SampleFluorescence` одним числом
+        /// решает и оболочку, и «квант или оже» — так что в исходе «кванта нет»
+        /// оболочка неизвестна, а раздельному каскаду она нужна. Ответ —
+        /// условный розыгрыш: веса K — kF·(1 − ω_K), L_i — lFrac_i·(1 − ω_Li)
+        /// (только открытые подоболочки), остаток — M и глубже (самая глубокая
+        /// открытая M-подоболочка). Ноль — оболочка не установлена.
+        ///
+        /// ⚠ Тянет ОДНО случайное число и ТОЛЬКО при включённом
+        /// <see cref="LightCascadeSplit"/>: выключенный ключ сюда не заходит,
+        /// и поток остаётся прежним до последнего бита.
+        /// </summary>
+        int PickShellWithoutXray(MaterialDatabase.Fluorescence f, double[] lFrac,
+                                 double energyKev, double kFraction, double omega)
+        {
+            if (!this.LightCascadeSplit)
+            {
+                return 0;
+            }
+
+            double wK = energyKev > f.KEdgeKev ? kFraction * (1.0 - omega) : 0.0;
+            double wL1 = 0.0, wL2 = 0.0, wL3 = 0.0;
+            double lSum = 0.0;
+            if (lFrac != null && f.HasL)
+            {
+                for (int li = 0; li < 3 && li < lFrac.Length && li < f.OmegaL.Length; li++)
+                {
+                    if (li < f.LEdgeKev.Length && energyKev <= f.LEdgeKev[li])
+                    {
+                        continue;
+                    }
+
+                    double w = lFrac[li] * (1.0 - f.OmegaL[li]);
+                    if (li == 0) wL1 = w; else if (li == 1) wL2 = w; else wL3 = w;
+                    lSum += lFrac[li];
+                }
+            }
+
+            double wRest = Math.Max(0.0, 1.0 - kFraction - lSum);
+            double total = wK + wL1 + wL2 + wL3 + wRest;
+            if (!(total > 0.0))
+            {
+                return 0;
+            }
+
+            double pick = this.Uniform() * total;
+            if (pick < wK) return 1;
+            pick -= wK;
+            if (pick < wL1) return 3;
+            pick -= wL1;
+            if (pick < wL2) return 5;
+            pick -= wL2;
+            if (pick < wL3) return 6;
+            // M и глубже: самая глубокая подоболочка за L3 с краем ниже энергии
+            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(this.lastAbsorbZ);
+            return relax == null ? 0 : relax.AbsorbingShell(energyKev, 7);
         }
 
         /// <summary>
@@ -3867,6 +4287,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.CountKLVacancy++;
+            // (`F11` (а), П17) Судьба L-дырки решена ЗДЕСЬ — раздельный каскад
+            // при оже-исходе разряжает её только безрадиационно.
+            this.lastCascadeRolled = true;
             if (this.Uniform() >= f.OmegaL[li])
             {
                 return;                     // ответил оже-электрон
@@ -3920,6 +4343,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double VacancyXray(GeometryMaterial material, int z, double bindingKev)
         {
+            // (`F11` (а), П17) Признаки принадлежат ТОЛЬКО этому вызову.
+            this.lastVacancyLine = -1;
+            this.lastVacancyRolled = false;
             if (!this.XrayEscape || z <= 0 || !(bindingKev > 0.0) || material == null)
             {
                 return 0.0;
@@ -3939,6 +4365,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return 0.0;             // вакансия не на K
                 }
 
+                this.lastVacancyRolled = true;
                 if (this.Uniform() >= f.Omega(this.MeasuredFluorescenceYield))
                 {
                     return 0.0;             // оже-электрон: энергия осела на месте
@@ -3951,10 +4378,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     acc += f.LineWeight[k];
                     if (line < acc)
                     {
+                        this.lastVacancyLine = k;
                         return f.LineKev[k];
                     }
                 }
 
+                this.lastVacancyLine = f.LineKev.Length - 1;
                 return f.LineKev[f.LineKev.Length - 1];
             }
 
@@ -5008,6 +5437,36 @@ namespace BecquerelMonitor.EfficiencyMaker
         // перетрёт поле — ровно та же ловушка, из-за которой рядом забирается
         // `pendingCascadeKev`.
         bool lastXrayIsL;
+
+        // (`F11` (а), П17) ГДЕ ПОГЛОТИЛСЯ КВАНТ в последнем вызове
+        // <see cref="SampleFluorescence"/>: элемент, подоболочка EADL (1=K,
+        // 3/5/6=L1/L2/L3, 8+=M…; 0 — не установлено: элемент без данных
+        // флуоресценции либо ключ выключен), номер K-линии (0 Kα1, 1 Kα2,
+        // 2 Kβ, −1 — не K-квант) и решал ли `CascadeAfterK` судьбу L-дырки.
+        // Читаются СРАЗУ после вызова и до рекурсии — как `pendingCascadeKev`.
+        // Пишутся всегда (присваивания розыгрыш не двигают), читаются только
+        // при <see cref="LightCascadeSplit"/>.
+        int lastAbsorbZ;
+        int lastAbsorbShell;
+        int lastKLine;
+        bool lastCascadeRolled;
+
+        // (`F11` (а), П17) То же для вакансии комптона (`VacancyXray`): номер
+        // K-линии и был ли розыгрыш «квант или оже» (без него дырка
+        // разряжается полным каскадом, с ним — только безрадиационно).
+        int lastVacancyLine;
+        bool lastVacancyRolled;
+
+        // (`F11` (а), П17) Стек вакансий каскада — свой массив, чтобы не
+        // выделять память на каждое поглощение. Глубина каскада иода — ~50
+        // дырок, 128 — с запасом на любой Z.
+        readonly int[] cascadeStack = new int[128];
+
+        /// <summary>
+        /// (`F11` (а), П17) Сколько раз каскад упёрся в стек или в несведённый
+        /// баланс — диагностика, ноль в норме.
+        /// </summary>
+        public long CountCascadeOverflow;
 
         // (`AMBER16`) Что именно испустил атом в текущей истории — для
         // трассировки. Ни на один розыгрыш не влияет; пишется всегда, читается

@@ -840,6 +840,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     sb.Append("xrkl=1;");
                 }
+
+                // ⛔ (`F11` (а), решение Amber 11.09.2026 «K-провал — следующей
+                // полосой» и «η — в единый счёт склада, ключом») — тем же
+                // правилом `T42`: пишется, ТОЛЬКО когда включён. Оба ключа
+                // двигают положение всего, что ниже ~120 кэВ, относительно
+                // пика, — матрица с ними обязана быть отличима от склада.
+                // Значение уровня (1/2/3) — в клеймо числом: половины
+                // измеряются порознь и дают разные матрицы.
+                if (options.KDipLight != 0)
+                {
+                    sb.Append("kdip=")
+                      .Append(options.KDipLight.ToString(CultureInfo.InvariantCulture))
+                      .Append(';');
+                }
+
+                if (options.LightEtaEh > 0.0)
+                {
+                    sb.Append("leta=")
+                      .Append(options.LightEtaEh.ToString("R", CultureInfo.InvariantCulture))
+                      .Append(';');
+                }
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -1777,6 +1798,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // <see cref="ResponseMatrixOptions.SplitXrayShells"/>).
                 writer.Write(Encoding.ASCII.GetBytes("XRKL"));
                 writer.Write(flags.SplitXrayShells);
+
+                // ⛔ ДЕСЯТЫЙ И ОДИННАДЦАТЫЙ ХВОСТЫ, `KDIP` и `LETA` — K-ПРОВАЛ
+                // КРИВОЙ СВЕТА И η МОДЕЛИ ПЕЙНА (`F11` (а), решения Amber
+                // 11.09.2026). Те же два довода, что у `PKBN` и `XRKL`: ключи
+                // входят в КЛЕЙМО (`kdip=`, `leta=`), и без хвоста матрица не
+                // сходилась бы САМА С СОБОЙ. Формат НЕ поднят: у прежнего файла
+                // хвостов нет, поля остаются умолчаниями (0 и 0) — ровно тем,
+                // чем они были при его счёте, — и клеймо сходится побайтно.
+                writer.Write(Encoding.ASCII.GetBytes("KDIP"));
+                writer.Write(flags.KDipLight);
+                writer.Write(Encoding.ASCII.GetBytes("LETA"));
+                writer.Write(flags.LightEtaEh);
             }
 
             if (File.Exists(path))
@@ -2052,6 +2085,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "XRKL")
                     {
                         matrix.Options.SplitXrayShells = reader.ReadBoolean();
+
+                        // ⛔ ДЕСЯТЫЙ И ОДИННАДЦАТЫЙ ХВОСТЫ, `KDIP` и `LETA`
+                        // (`F11` (а)): читаются здесь же и по тем же двум
+                        // причинам, что хвосты выше; у файлов до 11.09.2026 их
+                        // нет — поля остаются 0, то есть ровно тем, чем были
+                        // при их счёте, и клеймо сходится само с собой.
+                        if (stream.Length - stream.Position >= 8
+                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "KDIP")
+                        {
+                            matrix.Options.KDipLight = reader.ReadInt32();
+                            if (stream.Length - stream.Position >= 12
+                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LETA")
+                            {
+                                matrix.Options.LightEtaEh = reader.ReadDouble();
+                            }
+                        }
                     }
                 }
             }
@@ -2723,6 +2772,47 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// заведении пятого канала (`AMBER15`).
         /// </summary>
         public bool SplitXrayShells;
+
+        /// <summary>
+        /// ✅ **K-ПРОВАЛ КРИВОЙ СВЕТА — решение Amber 11.09.2026, дословно:
+        /// «F11 (а) K-провал — следующей полосой»** (полоса П17). Умолчанием
+        /// 0 — ВЫКЛЮЧЕН.
+        ///
+        /// Уровни: 1 — обе половины (кривая электронов в коде с продолжением
+        /// ниже 1 кэВ и обрывом короткого трека + раздельный оже-каскад по
+        /// EADL); 2 — только кривая; 3 — только каскад. Что делает каждая —
+        /// у <see cref="EfficiencySimulator.LightSubKevCurve"/> и
+        /// <see cref="EfficiencySimulator.LightCascadeSplit"/>. Повод — П16:
+        /// у K-края иода (33.17 кэВ) кривая света модели шла ступенькой
+        /// ВВЕРХ (1.0962 → 1.1062), у Ходюка — провалом ВНИЗ до 114.1 % на
+        /// 34.5 кэВ, и данным корпуса нужна K-группа над краем тусклее
+        /// относительно 81…122 кэВ.
+        ///
+        /// ⛔ Ключ двигает положение всего ниже ~120 кэВ относительно пика
+        /// у ВСЕХ матриц склада, поэтому входит в клеймо (`kdip=N`) и пишется
+        /// хвостом `KDIP` — и поэтому умолчанием ВЫКЛЮЧЕН: склад посчитан без
+        /// него, включённое умолчание не сошлось бы клеймом ни с одной из
+        /// матриц. **Включается тем же движением, каким пойдёт счёт склада** —
+        /// вместе с <see cref="PeakToleranceHalfBin"/> и
+        /// <see cref="SplitXrayShells"/>, как и решила Amber («в единый счёт
+        /// вместе с `--peakb`/`--xrkl`/SE-DE»).
+        /// </summary>
+        public int KDipLight;
+
+        /// <summary>
+        /// ✅ **η МОДЕЛИ ПЕЙНА КЛЮЧОМ — решение Amber 11.09.2026, дословно:
+        /// «В единый счёт склада, ключом»** (перекалибровать η по 1.12 на
+        /// 10 кэВ — табл. I Ходюка—Доренбоса 2012 — вместо прежних 1.14, не
+        /// трогая базу). Умолчанием 0 — табличное η
+        /// (`scint_npsm_params.eta_eh`, 0.33 у NaI:Tl).
+        ///
+        /// Ненулевое значение считает кривую электронов в коде с этим η
+        /// (<see cref="MaterialDatabase.LightYieldPayne"/>) и без
+        /// <see cref="KDipLight"/> — тогда без продолжения и обрыва, ровно
+        /// алгоритм импортёра. Входит в клеймо (`leta=`) и пишется хвостом
+        /// `LETA` по тому же доводу, что <see cref="KDipLight"/>.
+        /// </summary>
+        public double LightEtaEh;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

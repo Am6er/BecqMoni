@@ -35,7 +35,7 @@ using System.Threading;
 //   corpusmatrixprobe [--dir=tools\CORPUS\corpus\geometries] [--only=<ключ>]
 //                     [--n=3000000] [--nodes=140] [--bin=2] [--threads=N] [--force]
 //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
-//                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1]
+//                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
 //
 // `--peakw=1` (`E34`) — допуск пика сборщика из геометрии вместо нуля; тоже
@@ -271,6 +271,23 @@ class CorpusMatrixProbe
                 // посчитанный без него, честно не сойдётся. Включать — единым
                 // счётным заходом вместе с `--peakb=1`.
                 options.SplitXrayShells = Flag(a, 7);
+            else if (a.StartsWith("--kdip=", StringComparison.Ordinal))
+                // ⛔ `F11` (а), решение Amber 11.09.2026, дословно: «F11 (а)
+                // K-провал — следующей полосой». 1 — кривая электронов в коде
+                // (продолжение ниже 1 кэВ + обрыв короткого трека) И раздельный
+                // оже-каскад по EADL; 2 — только кривая; 3 — только каскад
+                // (половины меряются порознь). Умолчанием 0 — ВЫКЛ: входит в
+                // клеймо (`kdip=N`), и склад, посчитанный без него, честно не
+                // сойдётся. Включать — единым счётным заходом вместе с
+                // `--peakb=1 --xrkl=1`.
+                options.KDipLight = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--eta=", StringComparison.Ordinal))
+                // ⛔ `F11`, решение Amber 11.09.2026, дословно: «В единый счёт
+                // склада, ключом» — η модели Пейна вместо табличного (0.33 у
+                // NaI:Tl), перекалиброванное по 1.12 на 10 кэВ (Ходюк—Доренбос
+                // 2012, табл. I). Умолчанием 0 — табличное; входит в клеймо
+                // (`leta=`). Число с точкой.
+                options.LightEtaEh = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--fluo=", StringComparison.Ordinal))
                 // `F27`, АБЛЯЦИЯ: флуоресценция пробы и обвязки. Выключенный
                 // ключ возвращает прежнее «фотон погиб вне кристалла» — только
