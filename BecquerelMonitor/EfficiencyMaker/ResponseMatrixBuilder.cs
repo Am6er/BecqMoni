@@ -775,6 +775,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // симулятор кладёт L-вылет туда же, куда и K. Побитовый замер
                 // такой дыры не ловит — числа верные, испорчено ПРОИСХОЖДЕНИЕ.
                 SplitXrayShells = options.SplitXrayShells,
+                // ⛔ (`F11` (а), решения Amber 11.09.2026) Без этих трёх строк
+                // ключи K-провала и η были бы МЕРТВЫ (`S130`): поле в
+                // настройках, клеймо и хвост файла есть, а симулятор считает
+                // свет по таблице. Уровень 1 — обе половины, 2 — только
+                // кривая, 3 — только каскад.
+                LightSubKevCurve = options.KDipLight == 1 || options.KDipLight == 2,
+                LightCascadeSplit = options.KDipLight == 1 || options.KDipLight == 3,
+                LightEtaEh = options.LightEtaEh,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,
                 // ⛔ (`E34`, решение Amber 06.09.2026, ветка «а») ВЕТКА
