@@ -65,6 +65,7 @@ namespace ResponseRowDumpProbe
             bool direct = false;
             string peakw = "both";
             bool matrixAny = false;
+            int trace = -2;                    // −2 — трассировка не просилась
             var ablations = new List<string>();
 
             foreach (string a in args)
@@ -97,6 +98,17 @@ namespace ResponseRowDumpProbe
                 else if (a == "--matrix-any")
                 {
                     matrixAny = true;
+                }
+                else if (a.StartsWith("--trace=", StringComparison.Ordinal))
+                {
+                    string name = a.Substring(8);
+                    trace = Array.IndexOf(ChannelNames, name);
+                    if (trace < 0 && name != "any")
+                    {
+                        Console.Error.WriteLine("--trace= знает {0} и any; дано: {1}",
+                                                string.Join(", ", ChannelNames), name);
+                        return 2;
+                    }
                 }
                 else if (a == "--noscat")
                 {
@@ -142,6 +154,8 @@ namespace ResponseRowDumpProbe
             {
                 outPrefix = "rowdump";
             }
+
+            Trace = trace;
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
@@ -397,6 +411,17 @@ namespace ResponseRowDumpProbe
             string arm = ablation != null
                 ? "direct_no_" + ablation
                 : (peakTolerance ? "direct_peakw1" : "direct_peakw0");
+
+            // ⛔ Трассировка пишет в ОДИН список, поэтому поток ровно один:
+            // иначе строки разных историй перемешаются, и выписка перестанет
+            // быть доказательством.
+            if (Trace > -2)
+            {
+                EfficiencySimulator.TraceChannels = true;
+                EfficiencySimulator.TraceChannelOf = Trace;
+                EfficiencySimulator.TraceLog.Clear();
+                options.Threads = 1;
+            }
             Console.WriteLine();
             Console.WriteLine("--- плечо {0}: счёт нынешним кодом, историй на узел {1}, цель шума {2} % ---",
                               arm, options.Histories, F(options.ContinuumErrorTarget, 2));
@@ -420,6 +445,20 @@ namespace ResponseRowDumpProbe
                                       ? F(fresh.NodeErrors[i], 3) : "—");
             }
 
+            if (Trace > -2)
+            {
+                EfficiencySimulator.TraceChannels = false;
+                Console.WriteLine();
+                Console.WriteLine("--- трассировка канала {0}: первые {1} историй ---",
+                                  Trace >= 0 && Trace < ChannelNames.Length
+                                      ? ChannelNames[Trace] : "любого",
+                                  EfficiencySimulator.TraceLog.Count);
+                foreach (string line in EfficiencySimulator.TraceLog)
+                {
+                    Console.WriteLine("  {0}", line);
+                }
+            }
+
             foreach (double e in energies)
             {
                 DumpNode(rows, arm, fresh, e);
@@ -427,6 +466,9 @@ namespace ResponseRowDumpProbe
 
             return true;
         }
+
+        /// <summary>Какой канал трассировать; −2 — не просили, −1 — любой.</summary>
+        static int Trace = -2;
 
         static int NearestNode(double[] grid, double energyKev)
         {
