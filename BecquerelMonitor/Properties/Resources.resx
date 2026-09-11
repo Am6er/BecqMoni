@@ -42982,6 +42982,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyTabComputeStamp" xml:space="preserve">
     <value>computed with: {0}</value>
   </data>
+  <data name="EfficiencyTabCurveOldPhysics" xml:space="preserve">
+    <value>Curve computed with transport generation {0}, this build computes generation {1} — recompute it.</value>
+  </data>
+  <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
+    <value>Curve is generation {0}, its response matrix is generation {1} — two generations side by side.</value>
+  </data>
   <data name="ResponseMatrixUseInFsa" xml:space="preserve">
     <value>Use the matrix in full-spectrum analysis (FSA)</value>
   </data>

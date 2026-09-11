@@ -184,6 +184,26 @@ def low_band_miss(st, band=LOW_BAND_KEV):
     опорные в том числе, — и каждая ищется широким окном. Число одно и то же
     для любого варианта, сравнивать можно.
 
+    ⛔ **С 10.09.2026 в население входит и РЕНТГЕН (`B25`), и без него мерка
+    слепа ровно к тому дефекту, ради которого заведена.** Замер на двух самых
+    больных спектрах строки (`G1S16_Cd109_P5`, `G1S16_Ba133_P5`): гамма-население
+    даёт по ОДНОЙ линии на спектр (88.03 и 80.997) и наибольший промах 0.070
+    ПШПВ — «внизу всё хорошо», тогда как по рентгену там −1.12 и −0.95 ПШПВ.
+    Ниже 45 кэВ гамма-линий у этих образцов просто нет, мерить нечем.
+
+    ⚠ Рентген берётся БЕЗ условия подключения (`add_low_anchor`): население
+    мерки обязано быть одним и тем же и до правки, и после, иначе «стало лучше»
+    неотличимо от «стали мерить другое».
+
+    ⛔ **И РАЗРЕШЕНИЕ здесь берётся ПОСТАВОЧНОЕ, а не итоговое.** Итоговое
+    `st['r662']` — результат калибровки, то есть плеча: с ним и население
+    (группировка рентгена идёт по полуширине), и сама единица «доля ПШПВ»
+    разъезжаются между плечами, и числа несравнимы. Ловилось замером
+    10.09.2026: на четырёх спектрах население 6 против 8 линий, и сумма
+    промахов «росла» 2.23 -> 2.59 при том, что худший спектр чинился вдвое.
+    Поставочная оценка плечу не подчиняется — она считается по поставочной
+    шкале до всякой калибровки.
+
     Возвращает (найдено линий, наибольший промах в кэВ, он же в долях ПШПВ,
     сумма |промаха| в долях ПШПВ).
     """
@@ -191,18 +211,22 @@ def low_band_miss(st, band=LOW_BAND_KEV):
     if not pairs:
         return 0, 0.0, 0.0, 0.0
     sp, cal = st['sp'], st['ecal']
-    res_a = st['r662'] * np.sqrt(662.0)
 
     ent = dict(st['entry'])
     ent['wanted'] = build_corpus.wanted_lines(st['entry'])
     build_corpus.calibrate.sample_lines = build_corpus.sample_lines
-    lines = build_corpus.calibrate.curate(
-        ent, lambda e: res_a * np.sqrt(max(float(e), 5.0)), min_purity=0.45)
+    stored = corpus_calib.Ecal(sp.ecal, sp.n)
+    res_a, _r662 = corpus_calib.measure_resolution(sp.counts, stored, ent['wanted'])
+    res_fn = lambda e: res_a * np.sqrt(max(float(e), 5.0))          # noqa: E731
+    lines = build_corpus.calibrate.curate(ent, res_fn, min_purity=0.45)
     low = [ln for ln in lines if ln[0] <= band]
-    if not low:
+    xlow = [ln for ln in build_corpus.xray_candidates(ent, res_fn) if ln[0] <= band]
+    if not low and not xlow:
         return 0, 0.0, 0.0, 0.0
     found = corpus_calib.match_lines(sp.counts, cal, low, res_a, tol_fwhm=6.0,
                                      width_lo=0.3, width_hi=3.0)
+    # рентген — по локальному максимуму: см. довод в шапке и в слепке `--dump`
+    found = list(found) + build_corpus.match_low_anchor(sp.counts, cal, xlow, res_a)
     worst_kev = worst = 0.0
     total = 0.0
     for a in found:
@@ -249,11 +273,23 @@ def main():
             dump = a.split('=', 1)[1]
         elif a.startswith('--ecal-accept='):
             build_corpus.ECAL_ACCEPT = a.split('=', 1)[1]
+        elif a.startswith('--low-anchor='):
+            # `B25`: опора низа из рентгена. `off` — правило выключено (как было
+            # до 10.09.2026), число — порог в кэВ, ниже которого отсутствие
+            # гамма-опоры включает рентген.
+            v = a.split('=', 1)[1]
+            build_corpus.LOW_ANCHOR_KEV = None if v in ('', 'off') else float(v)
+        elif a.startswith('--low-anchor-min='):
+            build_corpus.LOW_ANCHOR_MIN_KEV = float(a.split('=', 1)[1])
     print('запрет экстраполяции (`B24`): %s, на кого: %s'
           % ('выключен' if corpus_calib.EXTRAP_EXCESS_FWHM is None
              else '%.2f ПШПВ избытка' % corpus_calib.EXTRAP_EXCESS_FWHM,
              corpus_calib.EXTRAP_SCOPE))
     print('приёмка второго прохода (`V12`): %s' % build_corpus.ECAL_ACCEPT)
+    print('опора низа из рентгена (`B25`): %s, не ниже %.1f кэВ'
+          % ('выключена' if not build_corpus.LOW_ANCHOR_KEV
+             else 'ниже %.1f кэВ' % build_corpus.LOW_ANCHOR_KEV,
+             build_corpus.LOW_ANCHOR_MIN_KEV))
 
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
@@ -365,16 +401,26 @@ def main():
         for key, st in state.items():
             if not st['accepted']:
                 continue
-            res_a = st['r662'] * np.sqrt(662.0)
             ent = dict(st['entry'])
             ent['wanted'] = build_corpus.wanted_lines(st['entry'])
             build_corpus.calibrate.sample_lines = build_corpus.sample_lines
-            lines = build_corpus.calibrate.curate(
-                ent, lambda e: res_a * np.sqrt(max(float(e), 5.0)),
-                min_purity=0.45)
+            # `B25`: разрешение ПОСТАВОЧНОЕ, а не итоговое — иначе и население
+            # линий, и единица «доля ПШПВ» принадлежат плечу (см. `low_band_miss`).
+            stored_cal = corpus_calib.Ecal(st['sp'].ecal, st['sp'].n)
+            res_a, _r = corpus_calib.measure_resolution(st['sp'].counts, stored_cal,
+                                                        ent['wanted'])
+            res_fn = lambda e: res_a * np.sqrt(max(float(e), 5.0))   # noqa: E731
+            lines = build_corpus.calibrate.curate(ent, res_fn, min_purity=0.45)
             found = corpus_calib.match_lines(st['sp'].counts, st['ecal'], lines,
                                              res_a, tol_fwhm=6.0,
                                              width_lo=0.3, width_hi=3.0)
+            # ⛔ Рентген ищется ПО ЛОКАЛЬНОМУ МАКСИМУМУ, а не по шкале варианта:
+            # при уехавшей шкале штатный поиск его не находит ВОВСЕ, и вариант
+            # с худшей шкалой попал бы в мерку с меньшим населением — то есть
+            # выглядел бы лучше. Ловилось замером 10.09.2026 (6 линий против 8).
+            found = list(found) + build_corpus.match_low_anchor(
+                st['sp'].counts, st['ecal'],
+                build_corpus.xray_candidates(ent, res_fn), res_a)
             out[key] = dict(
                 det=st['det'], mode=st['mode'], res_a=res_a, n=st['sp'].n,
                 coef=[float(c) for c in st['ecal'].coef],

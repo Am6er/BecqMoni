@@ -253,6 +253,10 @@ SIM = [
 SIM_NOT_SETTINGS = set([
     u'LastContinuumRelativeError', u'LastContinuumIntegralError',
     u'WeightPeakBinDropped', u'CountPeakBinDroppedScattered',
+    # (`A267`, 10.09.2026) Счётчики класса, у которого бин ВЕСА и бин СВЕТА
+    # разошлись. Не настройки: их не ставит ни один путь, они ЧИТАЮТСЯ после
+    # прогона -- ровно тот же разряд, что `WeightPeakBinDropped` строкой выше.
+    u'CountLightBinSplit', u'WeightLightBinSplit',
     # Поля ВЛОЖЕННОГО типа (описание области сцены), а не настройки симулятора:
     # тело класса читается целиком, вложенные объявления попадают в тот же кусок.
     u'IsBox', u'IsCrystal',

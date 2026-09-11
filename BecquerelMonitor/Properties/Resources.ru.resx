@@ -1607,6 +1607,12 @@
   <data name="EfficiencyTabComputeStamp" xml:space="preserve">
     <value>посчитана: {0}</value>
   </data>
+  <data name="EfficiencyTabCurveOldPhysics" xml:space="preserve">
+    <value>Кривая посчитана переносом поколения {0}, а эта сборка считает поколением {1} — пересчитайте.</value>
+  </data>
+  <data name="EfficiencyTabCurveVsMatrix" xml:space="preserve">
+    <value>Кривая поколения {0}, а её матрица отклика — поколения {1}: рядом лежат два разных поколения.</value>
+  </data>
   <data name="ResponseMatrixUseInFsa" xml:space="preserve">
     <value>Использовать матрицу в полноспектральном разборе (FSA)</value>
   </data>
