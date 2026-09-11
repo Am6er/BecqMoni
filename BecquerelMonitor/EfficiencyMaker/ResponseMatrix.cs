@@ -966,42 +966,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Поэтому строки сначала растягиваются на общую шкалу «доля от энергии
         /// линии», и лишь потом смешиваются — при таком переносе и край, и пики
         /// вылета едут туда, где им положено.
+        ///
+        /// ⚠ Последнее верно ТОЛЬКО для континуума (`AMBER16` п. 4): пики
+        /// вылета стоят на `E − E_X` с ПОСТОЯННЫМ `E_X`, и общий масштаб
+        /// уносит их в `E − E_X·(E/E_узла)`; комптоновский край стоит на
+        /// `E·2α/(1+2α)` и тоже не линеен по `E`. Перенос, у которого каждый
+        /// канал идёт своим правилом, включает <see cref="TransferByChannel"/>;
+        /// этот метод — тот же <see cref="Accumulate(double[], double, double)"/>
+        /// с единичным весом, и ключ действует на оба.
         /// </summary>
         public double[] Evaluate(double energyKev, int bins)
         {
             double[] result = new double[bins];
-            if (this.Rows == null || this.Energies == null || this.Energies.Length == 0
-                || !(energyKev > 0.0) || bins <= 0)
+            if (bins <= 0)
             {
                 return result;
             }
 
-            int hi = Array.BinarySearch(this.Energies, energyKev);
-            if (hi >= 0)
-            {
-                Stretch(this.Rows[hi], this.Energies[hi], energyKev, 1.0, result);
-                return result;
-            }
-
-            hi = ~hi;
-            if (hi <= 0)
-            {
-                Stretch(this.Rows[0], this.Energies[0], energyKev, 1.0, result);
-                return result;
-            }
-
-            if (hi >= this.Energies.Length)
-            {
-                int last = this.Energies.Length - 1;
-                Stretch(this.Rows[last], this.Energies[last], energyKev, 1.0, result);
-                return result;
-            }
-
-            int lo = hi - 1;
-            double span = this.Energies[hi] - this.Energies[lo];
-            double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
-            Stretch(this.Rows[lo], this.Energies[lo], energyKev, 1.0 - t, result);
-            Stretch(this.Rows[hi], this.Energies[hi], energyKev, t, result);
+            // Веса `1.0·(1−t)` и `1.0·t` равны `1−t` и `t` до бита, так что
+            // прежний собственный обход узлов здесь заменён общим без единого
+            // изменившегося числа (сверено sha256 выписки пробы, 11.09.2026).
+            this.Accumulate(result, energyKev, 1.0, -1, 0.0);
             return result;
         }
 
@@ -1009,12 +994,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Перенести строку узла на шкалу линии: бин с долей `p` от энергии узла
         /// становится бином с той же долей от энергии линии. Площадь при этом
         /// сохраняется — вес делится между двумя соседними бинами приёмника.
+        ///
+        /// ⚠ Это ОБЩИЙ МАСШТАБ, единый для всей строки, — прежнее и поставочное
+        /// правило. Особенности с постоянным смещением (пики вылета) и
+        /// нелинейные по `E` (комптоновский край, обратное рассеяние) он ВОЛОЧЁТ
+        /// (`AMBER16` п. 4); перенос по каналам — <see cref="Transfer"/>, под
+        /// ключом <see cref="TransferByChannel"/>.
         /// </summary>
-        void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target)
-        {
-            this.Stretch(row, nodeEnergy, lineEnergy, weight, target, 0.0);
-        }
-
         void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
                      double shiftBins)
         {
@@ -1121,29 +1107,326 @@ namespace BecquerelMonitor.EfficiencyMaker
             int hi = Array.BinarySearch(this.Energies, energyKev);
             if (hi >= 0)
             {
-                this.Stretch(rows[hi], this.Energies[hi], energyKev, weight, target, shiftBins);
+                this.Place(rows, hi, energyKev, weight, target, channel, shiftBins);
                 return;
             }
 
             hi = ~hi;
             if (hi <= 0)
             {
-                this.Stretch(rows[0], this.Energies[0], energyKev, weight, target, shiftBins);
+                this.Place(rows, 0, energyKev, weight, target, channel, shiftBins);
                 return;
             }
 
             if (hi >= this.Energies.Length)
             {
                 int last = this.Energies.Length - 1;
-                this.Stretch(rows[last], this.Energies[last], energyKev, weight, target, shiftBins);
+                this.Place(rows, last, energyKev, weight, target, channel, shiftBins);
                 return;
             }
 
+            // Смешиваются узлы ПОСЛЕ переноса каждого на энергию линии, а не
+            // до: у соседних узлов особенности стоят в разных местах, и
+            // усреднять их можно только уже поставленными на свои.
             int lo = hi - 1;
             double span = this.Energies[hi] - this.Energies[lo];
             double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
-            this.Stretch(rows[lo], this.Energies[lo], energyKev, weight * (1.0 - t), target, shiftBins);
-            this.Stretch(rows[hi], this.Energies[hi], energyKev, weight * t, target, shiftBins);
+            this.Place(rows, lo, energyKev, weight * (1.0 - t), target, channel, shiftBins);
+            this.Place(rows, hi, energyKev, weight * t, target, channel, shiftBins);
+        }
+
+        /// <summary>
+        /// Положить строку ОДНОГО узла на шкалу линии — тем правилом, которое
+        /// выбрано ключом. <paramref name="rows"/> — строки, выбранные
+        /// вызывающим по <paramref name="channel"/> (суммарные при −1).
+        ///
+        /// Без ключа — прежний общий масштаб по ТОЙ ЖЕ строке, что и раньше,
+        /// то есть побитово прежние числа. С ключом суммарную строку переносить
+        /// нельзя вовсе: у её частей разные правила, и она собирается заново из
+        /// каналов, каждый своим переносом.
+        /// </summary>
+        void Place(float[][] rows, int node, double energyKev, double weight, double[] target,
+                   int channel, double shiftBins)
+        {
+            if (!this.TransferByChannel || !this.HasChannels)
+            {
+                this.Stretch(rows[node], this.Energies[node], energyKev, weight, target, shiftBins);
+                return;
+            }
+
+            if (channel >= 0)
+            {
+                this.Transfer(rows[node], this.Energies[node], energyKev, weight, target, shiftBins,
+                              channel);
+                return;
+            }
+
+            for (int c = 0; c < this.ChannelRows.Length; c++)
+            {
+                float[][] channelRows = this.ChannelRows[c];
+                if (channelRows == null || node >= channelRows.Length)
+                {
+                    continue;
+                }
+
+                this.Transfer(channelRows[node], this.Energies[node], energyKev, weight, target,
+                              shiftBins, c);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER16` п. 4) Перенос по каналам — каждая особенность своим правилом
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ⚡ ПЕРЕНОСИТЬ СТРОКУ УЗЛА НА ЭНЕРГИЮ ЛИНИИ ПО КАНАЛАМ, каждый своим
+        /// правилом (`AMBER16` п. 4, 11.09.2026). Это ключ ЧТЕНИЯ матрицы, а не
+        /// счёта: в клеймо не входит, файл не меняет, склад пересчитывать не
+        /// требует — поэтому живёт здесь, а не в <see cref="ResponseMatrixOptions"/>.
+        /// Разбор ставит его из своей настройки
+        /// (<c>FsaAnalyzer.MatrixTransferByChannel</c>); пробам, читающим
+        /// матрицу напрямую, ставить самим.
+        ///
+        /// Что не так с общим масштабом (<see cref="Stretch"/>): строка узла
+        /// `E_узла` растягивается на линию `E` множителем `E/E_узла` ЦЕЛИКОМ.
+        /// Континуум это переносит честно, а особенности — нет:
+        ///   * пик вылета рентгена стоит на `E − E_K`, где `E_K` — постоянная
+        ///     вещества кристалла (28…36 кэВ у иода и цезия), а после масштаба
+        ///     оказывается на `E − E_K·(E/E_узла)`; то же у вылета аннигиляции
+        ///     (`E − 511`, `E − 1022`) — там при шаге сетки 4.7 % цена 24 и
+        ///     48 кэВ;
+        ///   * комптоновский край стоит на `E·2α/(1+2α)`, `α = E/511`, и по `E`
+        ///     не линеен: у узлов 636.25 и 678.72 масштаб ставит его на 472.08
+        ///     и 480.70 против точных 477.33 (замер рецензента, `AMBER16`);
+        ///   * пик полного поглощения — бин с номером `round(E_узла/шаг)`, и
+        ///     умноженный на масштаб он падает МЕЖДУ бинами приёмника: центр
+        ///     тяжести пикового канала уезжал на −0.379 кэВ (32.194) и
+        ///     −1.188 кэВ (661.657) от узла, посчитанного ровно на линии
+        ///     (`AS80_point0`, 11.09.2026).
+        ///
+        /// Правила по каналам (<see cref="EfficiencySimulator.ResponseChannel"/>),
+        /// см. <see cref="Transfer"/>: пик — СДВИГ НА ЦЕЛОЕ число бинов, бин
+        /// пика узла в бин пика линии; каналы вылета (аннигиляция одиночная и
+        /// двойная, рентген K и L) — СДВИГ НА ПОСТОЯННУЮ `E − E_узла`; комптон —
+        /// КУСОЧНО-ЛИНЕЙНАЯ карта с прибитыми обратным рассеянием и краем.
+        ///
+        /// ⛔ Умолчание — прежний общий масштаб: правило меняет числа разбора,
+        /// то есть базу корпуса, а базу объявляет Amber единым счётным заходом
+        /// (решение 11.09.2026 «сначала разобрать (3) и (4), потом ОДИН счёт»).
+        /// Матрица без раскладки по каналам под ключом не меняется — там
+        /// каналов, чтобы переносить их порознь, нет.
+        /// </summary>
+        public bool TransferByChannel { get; set; }
+
+        /// <summary>
+        /// Масса электрона, кэВ — та же константа, что в
+        /// <see cref="EfficiencySimulator"/> (там она закрытая). Нужна только
+        /// карте комптоновского канала.
+        /// </summary>
+        const double ElectronMassKev = 510.99895;
+
+        /// <summary>Комптоновский край: `E·2α/(1+2α)`, `α = E/m_e`.</summary>
+        static double ComptonEdgeKev(double energyKev)
+        {
+            double twoAlpha = 2.0 * energyKev / ElectronMassKev;
+            return energyKev * twoAlpha / (1.0 + twoAlpha);
+        }
+
+        /// <summary>Энергия кванта, рассеянного на 180°: `E/(1+2α)` — обратное рассеяние.</summary>
+        static double BackscatterKev(double energyKev)
+        {
+            return energyKev / (1.0 + 2.0 * energyKev / ElectronMassKev);
+        }
+
+        /// <summary>
+        /// Перенос строки ОДНОГО КАНАЛА узла на энергию линии — правилом
+        /// этого канала (<see cref="TransferByChannel"/>). Площадь сохраняется
+        /// тем же способом, что у <see cref="Stretch"/>: вес бина делится между
+        /// двумя соседними бинами приёмника по дробной части положения, края
+        /// зажимаются (<see cref="Add"/>).
+        ///
+        ///   * <see cref="EfficiencySimulator.ResponseChannel.Peak"/> — вся
+        ///     строка сдвигается на ЦЕЛОЕ число бинов, так что бин пика узла
+        ///     (`PeakBin(E_узла)`, последний в строке) встаёт в бин пика линии
+        ///     (`PeakBin(E)`). Дробным сдвигом здесь нельзя: пик — ровно один
+        ///     бин, и у узла, посчитанного на самой линии, он тоже один
+        ///     (`EfficiencySimulator.PeakBin`); делить его между двумя значило
+        ///     бы получить сдвиг центра тяжести, ради снятия которого правило и
+        ///     заведено.
+        ///   * каналы вылета — все, кроме пика и комптона: сдвиг на
+        ///     `(E − E_узла)/шаг` бинов, дробный. Потеря постоянна (`E_K`,
+        ///     `E_L`, 511, 1022), значит и пик вылета, и всё, что лежит от него
+        ///     на постоянном расстоянии (комптоновский хвост второго кванта
+        ///     пары между `E−1022` и `E−511`), едут вместе с линией на одну и
+        ///     ту же величину.
+        ///   * <see cref="EfficiencySimulator.ResponseChannel.Compton"/> —
+        ///     кусочно-линейная карта энергий `x → φ(x)` с узлами `0 → 0`,
+        ///     обратное рассеяние узла → обратное рассеяние линии, край узла →
+        ///     край линии, `E_узла → E`; между узлами карты — линейно, то есть
+        ///     континуум масштабируется, а прибитые точки стоят ровно там, где
+        ///     им положено. Узлы карты, ближе шага бина друг к другу или к
+        ///     краям, сливаются либо снимаются (<see cref="ComptonKnots"/>).
+        ///
+        /// Тождество (`E == E_узла`) отдаётся отдельной веткой: у карты
+        /// `t_k + (x − s_k)·1` не обязано равняться `x` до бита, а сдвиг ноль
+        /// обязан оставлять строку нетронутой — это положительный контроль
+        /// правила.
+        /// </summary>
+        void Transfer(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
+                      double shiftBins, int channel)
+        {
+            if (row == null || !(nodeEnergy > 0.0) || !(lineEnergy > 0.0) || !(weight > 0.0)
+                || !(this.BinKev > 0.0))
+            {
+                return;
+            }
+
+            if (lineEnergy == nodeEnergy)
+            {
+                for (int b = 0; b < row.Length; b++)
+                {
+                    Put(target, b + shiftBins, weight * row[b]);
+                }
+
+                return;
+            }
+
+            var kind = (EfficiencySimulator.ResponseChannel)channel;
+            if (kind == EfficiencySimulator.ResponseChannel.Peak)
+            {
+                int shift = EfficiencySimulator.PeakBin(lineEnergy, this.BinKev)
+                            - EfficiencySimulator.PeakBin(nodeEnergy, this.BinKev);
+                for (int b = 0; b < row.Length; b++)
+                {
+                    Put(target, b + shift + shiftBins, weight * row[b]);
+                }
+
+                return;
+            }
+
+            if (kind != EfficiencySimulator.ResponseChannel.Compton)
+            {
+                double shift = (lineEnergy - nodeEnergy) / this.BinKev;
+                for (int b = 0; b < row.Length; b++)
+                {
+                    Put(target, b + shift + shiftBins, weight * row[b]);
+                }
+
+                return;
+            }
+
+            double[] source;
+            double[] image;
+            int knots = ComptonKnots(nodeEnergy, lineEnergy, this.BinKev, out source, out image);
+            int segment = 0;
+            for (int b = 0; b < row.Length; b++)
+            {
+                double value = row[b];
+                if (!(value > 0.0))
+                {
+                    continue;
+                }
+
+                // Бины идут по возрастанию, значит и отрезок карты только
+                // растёт; последний отрезок продолжается за верхний узел —
+                // бин пика узла может лежать на долю бина выше `E_узла`.
+                double x = b * this.BinKev;
+                while (segment < knots - 2 && x >= source[segment + 1])
+                {
+                    segment++;
+                }
+
+                double slope = (image[segment + 1] - image[segment])
+                               / (source[segment + 1] - source[segment]);
+                double mapped = image[segment] + (x - source[segment]) * slope;
+                Put(target, mapped / this.BinKev + shiftBins, weight * value);
+            }
+        }
+
+        /// <summary>
+        /// Узлы карты комптоновского канала: пары «энергия у узла → энергия у
+        /// линии», по возрастанию, первая `0 → 0`, последняя `E_узла → E`.
+        /// Возвращает их число (от 2 до 4).
+        ///
+        /// Обратное рассеяние `E/(1+2α)` и край `E·2α/(1+2α)` МЕНЯЮТСЯ МЕСТАМИ
+        /// при `E = m_e/2 ≈ 255.5 кэВ` (там они равны `E/2`). Если у узла и у
+        /// линии порядок разный — карта с обеими точками была бы немонотонной
+        /// и складывала бы строку; такие две точки, как и стоящие ближе шага
+        /// бина друг к другу, сливаются в одну — их среднее с обеих сторон.
+        /// Точка ближе шага бина к соседу (снизу — к нулю, сверху — к пику)
+        /// снимается: отрезок короче бина даёт карте произвольный наклон, а
+        /// переносить на нём нечего.
+        /// </summary>
+        static int ComptonKnots(double nodeEnergy, double lineEnergy, double binKev,
+                                out double[] source, out double[] image)
+        {
+            double nodeBack = BackscatterKev(nodeEnergy);
+            double nodeEdge = ComptonEdgeKev(nodeEnergy);
+            double lineBack = BackscatterKev(lineEnergy);
+            double lineEdge = ComptonEdgeKev(lineEnergy);
+
+            double[] candidateSource;
+            double[] candidateImage;
+            bool sameOrder = (nodeBack < nodeEdge) == (lineBack < lineEdge);
+            if (!sameOrder || Math.Abs(nodeBack - nodeEdge) < binKev
+                || Math.Abs(lineBack - lineEdge) < binKev)
+            {
+                candidateSource = new[] { 0.5 * (nodeBack + nodeEdge) };
+                candidateImage = new[] { 0.5 * (lineBack + lineEdge) };
+            }
+            else if (nodeBack < nodeEdge)
+            {
+                candidateSource = new[] { nodeBack, nodeEdge };
+                candidateImage = new[] { lineBack, lineEdge };
+            }
+            else
+            {
+                candidateSource = new[] { nodeEdge, nodeBack };
+                candidateImage = new[] { lineEdge, lineBack };
+            }
+
+            source = new double[candidateSource.Length + 2];
+            image = new double[candidateSource.Length + 2];
+            int count = 1;                          // source[0] = image[0] = 0
+            for (int k = 0; k < candidateSource.Length; k++)
+            {
+                if (candidateSource[k] < source[count - 1] + binKev
+                    || candidateImage[k] < image[count - 1] + binKev
+                    || candidateSource[k] > nodeEnergy - binKev
+                    || candidateImage[k] > lineEnergy - binKev)
+                {
+                    continue;
+                }
+
+                source[count] = candidateSource[k];
+                image[count] = candidateImage[k];
+                count++;
+            }
+
+            source[count] = nodeEnergy;
+            image[count] = lineEnergy;
+            return count + 1;
+        }
+
+        /// <summary>
+        /// Вклад в дробное положение приёмника: делится между двумя соседними
+        /// бинами по дробной части, как у <see cref="Stretch"/>, но с
+        /// <see cref="Math.Floor"/> вместо усечения к нулю — сдвиг вниз по
+        /// шкале даёт отрицательные положения, и усечение делило бы там вес
+        /// неверно. Края зажимает <see cref="Add"/>.
+        /// </summary>
+        static void Put(double[] target, double position, double value)
+        {
+            if (!(value > 0.0))
+            {
+                return;
+            }
+
+            double floor = Math.Floor(position);
+            double frac = position - floor;
+            int at = (int)floor;
+            Add(target, at, value * (1.0 - frac));
+            Add(target, at + 1, value * frac);
         }
 
         /// <summary>

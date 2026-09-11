@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -51,6 +51,7 @@ namespace LightAnchorProbe
             int seed = 0;
             double binKev = 1.0;
             bool peakw = false;
+            bool peakb = false;     // `AMBER16` п.2/3: допуск по ПОЛУБИНУ — решение Amber 11.09.2026
             var energies = new List<double>
             {
                 30, 59.5, 122, 356, 661.657, 1173.2, 1332.5, 2614.5,
@@ -59,6 +60,7 @@ namespace LightAnchorProbe
             foreach (string a in args)
             {
                 if (a == "--peakw") { peakw = true; continue; }
+                if (a == "--peakb") { peakb = true; continue; }
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
@@ -95,6 +97,7 @@ namespace LightAnchorProbe
                 geometry.FwhmAt662Percent.ToString("F2", CultureInfo.InvariantCulture));
             Console.WriteLine("допуск пика: {0}",
                 peakw ? "ИЗ ГЕОМЕТРИИ (--peakw, `E34`) — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, класс обязан быть пуст"
+                : peakb ? "ПОЛУБИН (--peakb, `AMBER16` — решение Amber 11.09.2026 «Допуск по БИНУ»): класс обязан быть пуст"
                       : "НОЛЬ (как у поставочного склада)");
             Console.WriteLine();
             Console.WriteLine("    E, кэВ   допуск   свет/E     единое     сдвиг %   класс: историй    вес/пик %");
@@ -105,7 +108,9 @@ namespace LightAnchorProbe
                 var sim = new EfficiencySimulator(geometry.Clone())
                 {
                     Histories = histories,
-                    PeakHalfWidthKev = peakw ? geometry.PeakHalfWidthKev(e) : 0.0,
+                    // Тот же порядок старшинства, что у `ResponseMatrixBuilder.PeakTolerance`:
+                    // геометрия, потом полубин, потом ноль.
+                    PeakHalfWidthKev = peakw ? geometry.PeakHalfWidthKev(e) : peakb ? 0.5 * binKev : 0.0,
                 };
                 if (seed != 0)
                 {
@@ -136,13 +141,23 @@ namespace LightAnchorProbe
             }
 
             Console.WriteLine();
-            if (peakw)
+            if (peakw || peakb)
             {
                 // ⛔ Контроль СУДИТ, а не украшает: пустой класс на этом плече —
                 // условие, при котором числа второго плеча вообще что-то значат.
+                //
+                // ⚠ Для `--peakb` это не контроль, а ПРИЁМКА пункта (3) `AMBER16`:
+                // оба контрпримера рецензента («InPeak истинно, а бин не пиковый»
+                // и «депозит 31.8 у линии 32.194 уезжает в бин 30») живут при
+                // допуске БОЛЬШЕ полубина либо РАВНОМ нулю. Полубин — ровно та
+                // граница, где «недобрал не больше допуска» и «округлился в бин
+                // пика» совпадают, и класс обязан быть пуст ПО ПОСТРОЕНИЮ. Проба
+                // это меряет, а не утверждает.
                 if (nonEmpty == 0)
                 {
-                    Console.WriteLine("КОНТРОЛЬ ПРОШЁЛ: с допуском из геометрии расходящийся класс ПУСТ на всех узлах.");
+                    Console.WriteLine(peakw
+                        ? "КОНТРОЛЬ ПРОШЁЛ: с допуском из геометрии расходящийся класс ПУСТ на всех узлах."
+                        : "ПРИЁМКА ПРОШЛА: с допуском по ПОЛУБИНУ расходящийся класс ПУСТ на всех узлах — правило бина и правило пика совпали (AMBER16 п.3).");
                     return 0;
                 }
 
