@@ -1,0 +1,20 @@
+run lin exit=0 (41 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\lin_dump
+дампов: 87
+run light exit=0 (46 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\light_dump --anchor-light=1
+           положение по свету (F11 в): ключ 1; со светом CsI:Tl 5, NaI:Tl 79; без кривой 0
+           положение по свету (F11 в): ключ 1; со светом 0; без кривой 0
+дампов: 87
+run light_skip exit=0 (46 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\light_skip_dump --anchor-light=1 --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+           положение по свету (F11 в): ключ 1; со светом CsI:Tl 5, NaI:Tl 78; выброс узла: 121.8,81.0,244.7,344.3,583.2,860.6; без кривой 0
+           положение по свету (F11 в): ключ 1; со светом 0; выброс узла: 121.8,81.0,244.7,344.3,583.2,860.6; без кривой 0
+дампов: 87
+run lin_skip exit=0 (41 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\lin_skip_dump --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+дампов: 87
+run light_cap exit=0 (43 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\light_cap_dump --anchor-light=1 --anchor-light-max=661.657
+           положение по свету (F11 в): ключ 1; со светом CsI:Tl 5, NaI:Tl 79; без кривой 0
+           положение по свету (F11 в): ключ 1; со светом 0; без кривой 0
+дампов: 87
+run light_cap_skip exit=0 (43 s), ключи: --dump-curves=C:\Users\moroz\bqp18_out\light_cap_skip_dump --anchor-light=1 --anchor-light-max=661.657 --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+           положение по свету (F11 в): ключ 1; со светом CsI:Tl 5, NaI:Tl 78; выброс узла: 121.8,81.0,244.7,344.3,583.2,860.6; без кривой 0
+           положение по свету (F11 в): ключ 1; со светом 0; выброс узла: 121.8,81.0,244.7,344.3,583.2,860.6; без кривой 0
+дампов: 87

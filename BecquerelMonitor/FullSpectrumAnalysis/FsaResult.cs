@@ -317,6 +317,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Разность «измерение − модель», кэВ (остаток ПОСЛЕ привязки).</summary>
         public double ShiftKev { get; set; }
 
+        /// <summary>
+        /// (`F11` (в), П18) Сдвиг положения опоры ПО СВЕТУ, кэВ — на сколько
+        /// световая координата (при β = 1) ставит модельный центр этой опоры
+        /// относительно прямой шкалы. Нуль — координата выключена; экран
+        /// показывает его в подсказке опор, когда он не нуль.
+        /// </summary>
+        public double LightShiftKev { get; set; }
+
         /// <summary>Погрешность центра измерения, кэВ (пуассон отсчётов окна).</summary>
         public double SigmaKev { get; set; }
 
@@ -740,8 +748,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorOffsetKev { get; set; }
 
         /// <summary>
+        /// (`F11` (в), П18) Кривая света световой координаты привязки
+        /// («NaI:Tl» / «CsI:Tl», <c>FsaLightScale</c>); пусто — координата
+        /// выключена или кривой для вещества нет.
+        /// </summary>
+        public string AnchorLightCurve { get; set; }
+
+        /// <summary>
+        /// (П18) Итоговый β световой координаты: единица — положения линий
+        /// модели сдвинуты по свету; нуль — координата выключена либо привязка
+        /// сошлась раньше, чем дошла до фита.
+        /// </summary>
+        public double AnchorLightBeta { get; set; }
+
+        /// <summary>(П18) E₀ световой координаты, кэВ — та же, что у анализатора; для <c>FsaLineAudit</c>.</summary>
+        public double AnchorLightReferenceKev { get; set; }
+
+        /// <summary>
         /// Служебная строка о привязке для проб и журнала: сколько опор,
-        /// усиление, ноль, либо почему шкала не тронута. По-русски и не для
+        /// усиление, ноль, либо почему шкала не тронута; (П18) при световой
+        /// координате — ещё «свет &lt;кривая&gt;: β». По-русски и не для
         /// экрана: экран собирает подпись из ресурсов по числам выше.
         /// </summary>
         public string AnchorNote { get; set; }
