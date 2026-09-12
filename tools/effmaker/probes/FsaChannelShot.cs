@@ -39,18 +39,28 @@ namespace FsaChannelShot
     /// без ключа `--xrkl=1`, и это не дефект картинки: разведение выключено
     /// умолчанием до счётного захода склада.)
     ///
-    ///   fsachannelshot --spectrum=X.xml [--out=префикс] [--set=Имя]
-    ///                  [--from=0] [--to=3000] [--ceiling=N] [--pow=4]
-    ///                  [--width=1500] [--height=760] [--matrix-any]
+    ///   fsachannelshot --spectrum=X.xml --sample=137CS[,40K] [--chain=Th-232]
+    ///                  [--out=префикс] [--from=0] [--to=3000] [--ceiling=N]
+    ///                  [--pow=4] [--width=1500] [--height=760] [--matrix-any]
     ///
     /// `--pow=` — вертикальная шкала (корень степени), ровно кнопка «POW» под
     /// графиком: в линейной шкале мелкая структура сливается с осью (`S88`).
     /// `--pow=1` даёт линейную.
     ///
-    /// ⚠ Библиотека собирается ПО ПИКАМ из поставочных определений — как это
-    /// делает `FsaStackShot` и как видит человек в окне. Для КОРПУСНЫХ чисел
-    /// так делать нельзя (правило `--lib=sample`), но здесь картинка про живой
-    /// спектр, а не про корпус.
+    /// ⛔ СОСТАВ — ИЗ БАЗЫ ПО КЛЮЧАМ (`AMBER19`, П11 12.09.2026). До того
+    /// библиотека собиралась ПО ПИКАМ из поставочных определений (`--set=`),
+    /// «как видит человек в окне», — но проба живёт в ОСНАСТКЕ КОРПУСА
+    /// (матрица берётся из склада `config\device\response` рядом с exe), а по
+    /// правилу Amber там нет поставочного `config\NuclideDefinition.xml`, и
+    /// подъём `NuclideDefinitionManager` падал броском до первой картинки
+    /// (`S100`). Теперь: `--sample=` — nucid через запятую («Cs-137» тоже
+    /// понимается), `--chain=` — метки манифеста (Th-232, Th-228, Ra-226,
+    /// U-238, U-235, U-238u); спецификация — общим входом
+    /// `FsaSampleSpec.FromManifest` (`T257`), пики подписываются
+    /// определениями из той же базы (`FsaSampleLibrary.AsDefinitions`), как в
+    /// `CorpusFsaProbe --lib=sample`. Ключа `--set=` больше нет — отказ с
+    /// подсказкой; в конце печатается счётчик обращений к менеджеру, не ноль —
+    /// код 12.
     /// </summary>
     static class Program
     {
@@ -99,7 +109,9 @@ namespace FsaChannelShot
             // (`T243`) Эталон настроек — до разбора ключей.
             FsaTuningReport.Snapshot();
 
-            string spectrumPath = null, outPrefix = null, setName = null;
+            string spectrumPath = null, outPrefix = null;
+            var chains = new List<string>();
+            var nuclides = new List<string>();
             double from = 0.0, to = 0.0, ceiling = 0.0, power = 4.0;
             int width = 1500, height = 760;
             double floorKev = -1.0, who = -1.0;
@@ -109,7 +121,16 @@ namespace FsaChannelShot
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPrefix = a.Substring(6);
-                else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                    nuclides.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                    chains.AddRange(a.Substring(8).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    Console.Error.WriteLine("--set= снят (AMBER19): поставочный список в оснастке корпуса не поднимается; "
+                                            + "состав задаётся --sample=<nucid,...> и/или --chain=<Th-232,...>");
+                    return 2;
+                }
                 else if (a.StartsWith("--from=", StringComparison.Ordinal)) from = Num(a, 7);
                 else if (a.StartsWith("--to=", StringComparison.Ordinal)) to = Num(a, 5);
                 else if (a.StartsWith("--ceiling=", StringComparison.Ordinal)) ceiling = Num(a, 10);
@@ -134,18 +155,31 @@ namespace FsaChannelShot
                 outPrefix = Path.GetFileNameWithoutExtension(spectrumPath);
             }
 
+            if (chains.Count == 0 && nuclides.Count == 0)
+            {
+                Console.Error.WriteLine("нужен состав: --sample=137CS[,40K] и/или --chain=Th-232 (AMBER19: из базы, не из поставочного списка)");
+                return 2;
+            }
+
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` НЕ поднимается (`AMBER19`, П11).
 
             ResultData rd = Load(spectrumPath);
             Console.WriteLine("спектр : {0}", Path.GetFileName(spectrumPath));
             Console.WriteLine("прибор : {0}", ProbeDeviceConfig.Attach(rd));
-
-            if (setName != null && !SelectSet(nuclides, setName))
-            {
-                return 2;
-            }
 
             // ---- матрица: без неё каналов нет вовсе ------------------------
             MatrixRefusal refusal;
@@ -194,11 +228,20 @@ namespace FsaChannelShot
                               matrix.Stamp);
 
             // ---- разбор ----------------------------------------------------
+            // Состав — из базы по объявленному составу (общий вход `T257`);
+            // равновесие и атомный рентген — из настроек спектра, как у
+            // анализатора ниже. Пики подписываются определениями ИЗ ТОЙ ЖЕ
+            // базы: поставочный список не предъявляется.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, NucidsOf(nuclides), true, true);
+            FsaCalculationOptions.Of(rd).ApplyTo(spec);
+            List<FsaComponent> library = FsaSampleLibrary.Build(spec);
             List<Peak> peaks = new PeakDetector().DetectPeak(
                 rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
-            Console.WriteLine("состав : пиков {0}, образов {1}", peaks.Count, library.Count);
+                null, FsaSampleLibrary.AsDefinitions(library));
+            Console.WriteLine("состав : объявлен {0}; пиков {1}, образов {2} (из базы)",
+                              string.Join(",", chains.ToArray()) + (chains.Count > 0 && nuclides.Count > 0 ? "," : "")
+                              + string.Join(",", nuclides.ToArray()),
+                              peaks.Count, library.Count);
             if (library.Count == 0)
             {
                 Console.Error.WriteLine("⛔ библиотека пуста");
@@ -490,7 +533,41 @@ namespace FsaChannelShot
                 Console.WriteLine("КАРТИНКА\t{0}", Path.GetFullPath(f));
             }
 
-            return 0;
+            return SuppliedLibraryGate(0);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Гейт «поставочный список не поднимался» — счётчик
+        /// обращений печатается всегда, не ноль — код 12 (как у
+        /// `CorpusFsaProbe.RefuseIfManagerRaised`; по `isLoaded` подъёма не
+        /// видно — без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
+        }
+
+        /// <summary>«Cs-137» → «137CS» (nucid, как его зовёт nucdb); nucid — как есть.</summary>
+        static List<string> NucidsOf(List<string> labels)
+        {
+            var nucids = new List<string>();
+            foreach (string label in labels)
+            {
+                int dash = label.IndexOf('-');
+                nucids.Add(dash < 0
+                    ? label.ToUpperInvariant()
+                    : label.Substring(dash + 1) + label.Substring(0, dash).ToUpperInvariant());
+            }
+
+            return nucids;
         }
 
         // ==================================================================
@@ -816,26 +893,6 @@ namespace FsaChannelShot
         static double Num(string arg, int at)
         {
             return double.Parse(arg.Substring(at), CultureInfo.InvariantCulture);
-        }
-
-        static bool SelectSet(NuclideDefinitionManager nuclides, string name)
-        {
-            foreach (NuclideSet set in nuclides.NuclideSets)
-            {
-                if (string.Equals(set.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    nuclides.ActiveSet = set;
-                    return true;
-                }
-            }
-
-            Console.Error.WriteLine("набора «{0}» нет; есть:", name);
-            foreach (NuclideSet set in nuclides.NuclideSets)
-            {
-                Console.Error.WriteLine("   {0}", set.Name);
-            }
-
-            return false;
         }
 
         static ResultData Load(string path)

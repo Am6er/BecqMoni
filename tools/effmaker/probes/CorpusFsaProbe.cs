@@ -239,6 +239,7 @@ namespace CorpusFsaProbe
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
+    ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
     ///                  [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
@@ -326,6 +327,18 @@ namespace CorpusFsaProbe
                     continue;
                 }
                 if (a == "--no-pileup") { o.PileUp = false; continue; }
+                // (`S107`, П10 12.09.2026) Форма образа наложений по свету:
+                // `0` — выкл (умолчание анализатора), `1` — кривая по веществу
+                // кристалла, `energy` — той же формой, но координата
+                // тождественна энергии (плечо порчи), `NaI:Tl`/`CsI:Tl` —
+                // кривая поимённо на всех. Читатель — `SETUP` отражением и
+                // строка сводки «образ наложений по свету».
+                if (a.StartsWith("--pileup-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    o.PileUpLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
                 // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
                 // правки снимается одним двоичным файлом, «было/стало» при
                 // одной версии физики. Матрицу они не трогают вовсе (слой
@@ -1516,6 +1529,15 @@ namespace CorpusFsaProbe
                 analyzer.AnchorZeroKev = o.AnchorZeroKev;
             }
 
+            // (`S107`, П10) форма наложений по свету: "0" — выкл, "1" — по
+            // веществу, иначе — имя кривой ("energy" — плечо порчи) на всех;
+            // ключ обязан ДОЕХАТЬ до анализатора, читатель — `SETUP` отражением
+            if (o.PileUpLight != null)
+            {
+                analyzer.PileUpLightForm = o.PileUpLight != "0";
+                analyzer.PileUpLightCurve = o.PileUpLight == "0" || o.PileUpLight == "1" ? null : o.PileUpLight;
+            }
+
             return analyzer;
         }
 
@@ -2314,6 +2336,7 @@ namespace CorpusFsaProbe
                 row.AnchorOffsetKev = result.AnchorOffsetKev;
                 row.AnchorNote = result.AnchorNote ?? "";
                 row.Anchors = result.ScaleAnchors;
+                row.PileUpCurve = analyzer.PileUpCurveUsed;    // (`S107`) null — старая форма
                 // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
                 // поднимается тогда и только тогда, когда хоть один образ
                 // ОТЧЁТНОГО фита построен матрицей (`FitOnce`,
@@ -2382,105 +2405,27 @@ namespace CorpusFsaProbe
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Метка ряда в `manifest.csv` -> корень ряда в `nucdb`.
-        ///
-        /// `U-238u` стоит особняком нарочно: это урановое СТЕКЛО, где ряд
-        /// оборван на радии — уран попал в стекло химически очищенным, и
-        /// равновесия ниже Ra-226 нет. Список членов повторяет
-        /// `build_corpus.sample_lines`, где то же самое сделано для калибровки;
-        /// два разных ответа на вопрос «что излучает урановое стекло» в проекте
-        /// держать нельзя.
-        /// </summary>
-        static FsaSampleChain ChainOf(string label)
-        {
-            switch (label)
-            {
-                case "Th-232": return new FsaSampleChain("232TH");
-                case "Th-228": return new FsaSampleChain("228TH");
-                case "Ra-226": return new FsaSampleChain("226RA");
-                case "U-238": return new FsaSampleChain("238U");
-                case "U-235": return new FsaSampleChain("235U");
-                case "U-238u":
-                    return new FsaSampleChain("238U", "238U", "234TH", "234PAm1", "234PA", "234U");
-                default: return null;
-            }
-        }
-
-        /// <summary>
         /// Объявленный состав спектра плюс вещества вокруг кванта.
         ///
-        /// Кристалл и проба берутся ИЗ ГЕОМЕТРИИ, если она есть: там они
-        /// записаны веществом, а не догадкой, и второй источник правды завёл бы
-        /// расхождение, которое двигает линии (энергия пика вылета — разность с
-        /// Kα кристалла). `materials.csv` добирает то, чего геометрия не знает
-        /// вовсе: защиту — у всех, кристалл и пробу — у сорока семи спектров
-        /// без геометрии.
+        /// ⛔ Сборка — ОБЩИМ ВХОДОМ приложения `FsaSampleSpec.FromManifest`
+        /// (`T257`, хвост (2), 12.09.2026): метки рядов манифеста переводит
+        /// `FsaSampleChain.FromLabel` (там же живёт особый случай `U-238u`),
+        /// кривая, порог АЦП, окно поиска пиков, кристалл и элементы пробы из
+        /// геометрии кладутся `FsaSampleSpec.OfSpectrum`. До того здесь лежала
+        /// первая из пяти копий этой сборки. Кристалл и проба берутся ИЗ
+        /// ГЕОМЕТРИИ, если она есть: там они записаны веществом, а не догадкой,
+        /// и второй источник правды завёл бы расхождение, которое двигает линии
+        /// (энергия пика вылета — разность с Kα кристалла). `materials.csv`
+        /// добирает то, чего геометрия не знает вовсе: защиту — у всех,
+        /// кристалл и пробу — у сорока семи спектров без геометрии; это данные
+        /// корпуса, и добираются они ЗДЕСЬ, а не в приложении.
         /// </summary>
         static FsaSampleSpec SpecOf(ResultData rd, Sample sample, Options o)
         {
-            var spec = new FsaSampleSpec
-            {
-                AtomicXray = o.Atomic,
-                Equilibrium = o.Equilibrium,
-
-                // ⛔ Кривая — только ради пола полосы по ней самой (`S98`,
-                // решение Amber 27.08.2026). Расчёт живёт в
-                // `FsaEfficiency.FloorAtFraction`, здесь одно присваивание.
-                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
-
-                // ⛔ `A73`: порог АЦП спектра — второй источник пола полосы, тот
-                // самый, что работает у 39 корпусных спектров без геометрии.
-                // Расчёт — `FsaBand.AdcFloorOf`, здесь одно присваивание.
-                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
-            };
-            foreach (string label in sample.Chains)
-            {
-                FsaSampleChain chain = ChainOf(label);
-                if (chain != null)
-                {
-                    spec.Chains.Add(chain);
-                }
-            }
-
-            foreach (string nucid in sample.Nuclides)
-            {
-                spec.Nuclides.Add(nucid);
-            }
-
-            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
-                && peakConfig.Max_Range > peakConfig.Min_Range)
-            {
-                spec.MinEnergyKev = peakConfig.Min_Range;
-                spec.MaxEnergyKev = peakConfig.Max_Range;
-            }
-
-            // Порог по массовой доле 1 %: ниже него элемент — примесь, а образ
-            // примеси со свободной амплитудой ведёт себя как фантом. Окно по
-            // Kα — рабочий диапазон самого спектра, потому что образ из линий
-            // вне окна фита есть вырожденный столбец в NNLS.
-            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
-                ? rd.Efficiency.Geometry : null;
-            if (geometry != null)
-            {
-                // ⚠ У КРИСТАЛЛА окно по Kα не ставится, и это не оплошность.
-                // Элемент кристалла делает ДВЕ разные вещи: светит сам (тогда
-                // его Kα обязана попасть в окно — это проверяется построчно при
-                // сборке образа) и уносит энергию ВЫЛЕТОМ, а пик вылета стоит на
-                // E − Kα, то есть глубоко внутри окна даже когда сама Kα ниже
-                // его низа. Поймано измерением 18.08.2026: у ASN16 нижняя
-                // граница выше 28.6 кэВ, и иод CsI отсеивался целиком — вместе
-                // со своими пиками вылета, которые видны прекрасно.
-                // Кристалл целиком — с массовыми долями и именем вещества
-                // (`S84`): образ вылета у него ОДИН, соотношение его членов
-                // задаёт вещество.
-                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
-                    EfficiencySimulator.ScintillatorNameOf(geometry));
-
-                // У ПРОБЫ окно ставится: она вне кристалла, вылета не даёт, и
-                // элемент, чья K-серия ниже рабочего низа, не даёт ничего.
-                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
-                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
-            }
+            // Неизвестной метки сюда не доходит: `ReadTruth` отказал бы на ней
+            // до прогона тем же `FromLabel`.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(
+                rd, sample.Chains, sample.Nuclides, o.Equilibrium, o.Atomic);
 
             AddElements(spec.CrystalElements, sample.Crystal);
             AddElements(spec.SampleElements, sample.SampleMatter);
@@ -2573,10 +2518,14 @@ namespace CorpusFsaProbe
                 declared.Add(key);
                 foreach (string label in Split(Value(row, "chains")))
                 {
-                    if (ChainOf(label) == null)
+                    // Словарь меток — в приложении (`FsaSampleChain.FromLabel`,
+                    // `T257`); проверка ДО прогона, чтобы опечатка в манифесте
+                    // остановила его, а не всплыла броском посреди спектров.
+                    if (FsaSampleChain.FromLabel(label) == null)
                     {
                         Console.Error.WriteLine("манифест: неизвестный ряд '" + label
-                                                + "' у " + key);
+                                                + "' у " + key + "; известные: "
+                                                + string.Join(", ", FsaSampleChain.KnownLabels));
                         return false;
                     }
 
@@ -3408,6 +3357,37 @@ namespace CorpusFsaProbe
                                               : ", свет в нулевом канале " + o.AnchorZeroKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ",
                                           adcOn, anchored + unanchored);
                     }
+
+                    // (`S107`, П10 12.09.2026) ЧИТАТЕЛЬ ФОРМЫ НАЛОЖЕНИЙ ПО СВЕТУ:
+                    // у скольких спектров образ построен формой по свету и по
+                    // какой кривой («energy» — координата энергии той же
+                    // формой: вещество без кривой либо плечо порчи). Печатается,
+                    // когда ключ задан либо форма где-то включилась — умолчание
+                    // невидимым быть не должно (тот же разряд, что строки выше).
+                    var pileByCurve = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                    foreach (Row r in of)
+                    {
+                        if (r.Error == null && !string.IsNullOrEmpty(r.PileUpCurve))
+                        {
+                            int n;
+                            pileByCurve.TryGetValue(r.PileUpCurve, out n);
+                            pileByCurve[r.PileUpCurve] = n + 1;
+                        }
+                    }
+
+                    if ((o.PileUpLight != null && o.PileUpLight != "0") || pileByCurve.Count > 0)
+                    {
+                        var pileParts = new List<string>();
+                        foreach (KeyValuePair<string, int> kv in pileByCurve)
+                        {
+                            pileParts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
+                        }
+
+                        Console.WriteLine("{0,-10} образ наложений по свету (S107): ключ {1}; формой по свету {2} из {3}", "",
+                                          o.PileUpLight ?? "(умолчание анализатора)",
+                                          pileParts.Count > 0 ? string.Join(", ", pileParts.ToArray()) : "0",
+                                          anchored + unanchored);
+                    }
                 }
             }
 
@@ -4207,6 +4187,7 @@ namespace CorpusFsaProbe
             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
             public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc; null — умолчание анализатора
             public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале карты adc, кэВ; NaN — умолчание анализатора
+            public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
@@ -4544,6 +4525,14 @@ namespace CorpusFsaProbe
             public double AnchorBeta;      // (П18) итоговый β
 
             public string AnchorNote = "";
+
+            /// <summary>
+            /// (`S107`, П10) Кривая, которой построен образ наложений формой по
+            /// свету: имя таблицы, «energy», либо null — старая форма или
+            /// образа нет. Читается у анализатора после разбора; в csv не
+            /// пишется — только в сводку прогона.
+            /// </summary>
+            public string PileUpCurve;
 
             public List<FsaScaleAnchor> Anchors;
 

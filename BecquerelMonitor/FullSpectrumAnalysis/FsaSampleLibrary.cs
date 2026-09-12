@@ -45,6 +45,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>`nucid` членов, которыми ряд ограничен; пусто — весь ряд.</summary>
         public readonly HashSet<string> Only =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Метки рядов, которые понимает <see cref="FromLabel"/>, — словарь
+        /// колонки `chains` корпусного `manifest.csv` и ключей `--chain=` проб.
+        /// Для сообщения об отказе, чтобы человек видел, из чего выбирать.
+        /// </summary>
+        public static readonly string[] KnownLabels =
+            { "Th-232", "Th-228", "Ra-226", "U-238", "U-235", "U-238u" };
+
+        /// <summary>
+        /// Метка ряда в `manifest.csv` (и в ключе `--chain=` проб) → ряд `nucdb`.
+        /// Неизвестная метка — <c>null</c>: читатель манифеста на ней ОТКАЗЫВАЕТ,
+        /// а не подбирает ближайшее — состав спектра есть истина, и опечатка в
+        /// ней должна останавливать прогон, а не менять его молча.
+        ///
+        /// `U-238u` стоит особняком нарочно: это урановое СТЕКЛО, где ряд
+        /// оборван на радии — уран попал в стекло химически очищенным, и
+        /// равновесия ниже Ra-226 нет. Список членов повторяет
+        /// `build_corpus.sample_lines`, где то же самое сделано для калибровки;
+        /// два разных ответа на вопрос «что излучает урановое стекло» в проекте
+        /// держать нельзя.
+        ///
+        /// ⛔ ЭТО ЕДИНСТВЕННОЕ МЕСТО СЛОВАРЯ (`T257`). До 12.09.2026 таблица жила в
+        /// `CorpusFsaProbe.ChainOf`, а пробы каналов (`FsaChannelSplitProbe`,
+        /// `FsaDoubleCountProbe`) переводили метку в nucid своим `NucidOf` —
+        /// «Th-232» → «232TH» без всякого списка, то есть `U-238u` у них дал бы
+        /// корень «238uU» и ряд без единой линии, молча.
+        /// </summary>
+        public static FsaSampleChain FromLabel(string label)
+        {
+            switch (label)
+            {
+                case "Th-232": return new FsaSampleChain("232TH");
+                case "Th-228": return new FsaSampleChain("228TH");
+                case "Ra-226": return new FsaSampleChain("226RA");
+                case "U-238": return new FsaSampleChain("238U");
+                case "U-235": return new FsaSampleChain("235U");
+                case "U-238u":
+                    return new FsaSampleChain("238U", "238U", "234TH", "234PAm1", "234PA", "234U");
+                default: return null;
+            }
+        }
     }
 
     /// <summary>
@@ -94,10 +136,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// ИМЯ ВЕЩЕСТВА КРИСТАЛЛА В БИБЛИОТЕКЕ — ссылка, а не подпись
-        /// (`A276`, решение Amber 06.09.2026). Ставится тем, кто про прибор это
-        /// знает: в приложении — полем конфигурации прибора
-        /// (<c>DeviceConfigInfo.CrystalMaterialName</c>), в корпусном замере не
-        /// ставится вовсе — там кристалл приходит геометрией.
+        /// (`A276`, решение Amber 06.09.2026). Ставится общим входом
+        /// <see cref="OfSpectrum"/> из конфигурации прибора спектра
+        /// (<c>DeviceConfigInfo.CrystalMaterialName</c>); у корпусных приборов
+        /// поле не названо (пусто) — там кристалл приходит геометрией.
         ///
         /// ⛔ Это НЕ <see cref="CrystalName"/>. То — короткая подпись образа
         /// («CsI»), собираемая в том числе из символов элементов; это — имя
@@ -379,6 +421,175 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 306.78 самого лютеция.
         /// </summary>
         public double EscapeMinRelativeWeight = 0.02;
+
+        // ------------------------------------------------------------------
+        // ОБЩИЙ ВХОД сборки спецификации (`T257`, хвост (2), 12.09.2026)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ОБСТАНОВКА СПЕКТРА — всё, что спецификация берёт из самого спектра,
+        /// без единого нуклида: кривая (ради пола полосы, `S98`), порог АЦП
+        /// (второй источник пола, `A73`), окно — рабочий диапазон ПОИСКА ПИКОВ
+        /// прибора, вещество кристалла, названное у прибора (`A276`), и — при
+        /// геометрии — кристалл с долями и именем (`S84`) и тяжёлые элементы
+        /// пробы.
+        ///
+        /// ⛔ ЭТО ЕДИНСТВЕННАЯ КОПИЯ ЭТОЙ СБОРКИ. До 12.09.2026 её держали пять
+        /// мест — `CorpusFsaProbe.SpecOf`, <see cref="FsaCompositionInference.Infer"/>,
+        /// `FsaStackShot.DeclaredSpec`, `FsaChannelSplitProbe.SpecOf`,
+        /// `FsaDoubleCountProbe.SpecOf` — и уже разошлись: две последние не
+        /// добирали элементы пробы из геометрии, первая не ставила вещество
+        /// кристалла. Второй источник этих порогов двигал бы энергию пика
+        /// вылета (она есть разность с Kα кристалла) — ровно то, от чего
+        /// предостерегал сам `Infer`.
+        ///
+        /// ⚠ У КРИСТАЛЛА окно по Kα не ставится, и это не оплошность. Элемент
+        /// кристалла делает ДВЕ разные вещи: светит сам (тогда его Kα обязана
+        /// попасть в окно — это проверяется построчно при сборке образа) и
+        /// уносит энергию ВЫЛЕТОМ, а пик вылета стоит на E − Kα, то есть
+        /// глубоко внутри окна даже когда сама Kα ниже его низа. Поймано
+        /// измерением 18.08.2026: у ASN16 нижняя граница выше 28.6 кэВ, и иод
+        /// CsI отсеивался целиком — вместе со своими пиками вылета. У ПРОБЫ окно
+        /// ставится: она вне кристалла, вылета не даёт, и элемент, чья K-серия
+        /// ниже рабочего низа, не даёт ничего. Порог по массовой доле 1 %: ниже
+        /// него элемент — примесь, а образ примеси со свободной амплитудой ведёт
+        /// себя как фантом.
+        ///
+        /// Флаги <see cref="AtomicXray"/> и <see cref="Equilibrium"/> здесь не
+        /// трогаются (умолчания класса); кто знает настройки — ставит их сам
+        /// (<see cref="FsaCalculationOptions.ApplyTo(FsaSampleSpec)"/> или
+        /// ключи пробы). <c>null</c> вместо спектра — пустая спецификация.
+        /// </summary>
+        public static FsaSampleSpec OfSpectrum(ResultData rd)
+        {
+            var spec = new FsaSampleSpec();
+            if (rd == null)
+            {
+                return spec;
+            }
+
+            // ⛔ Кривая — только ради пола полосы по ней самой (`S98`, решение
+            // Amber 27.08.2026). Расчёт живёт в `FsaEfficiency.FloorAtFraction`,
+            // здесь одно присваивание.
+            spec.Efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
+
+            // ⛔ `A73`: порог АЦП спектра — второй источник пола полосы, тот
+            // самый, что работает у корпусных спектров без геометрии. Расчёт —
+            // `FsaBand.AdcFloorOf`, здесь одно присваивание.
+            spec.AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum);
+
+            // Окно — рабочий диапазон САМОГО поиска пиков: у ASN16 низ стоит на
+            // 28.6 кэВ, и весь L-рентген ниже него в «ожидаемое» попадать не
+            // вправе.
+            var peakConfig = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            if (peakConfig != null && peakConfig.Max_Range > peakConfig.Min_Range)
+            {
+                spec.MinEnergyKev = peakConfig.Min_Range;
+                spec.MaxEnergyKev = peakConfig.Max_Range;
+            }
+
+            // ⛔ `A276`: вещество кристалла, названное человеком у ПРИБОРА, —
+            // запасной источник массовых долей там, где геометрии нет. Здесь
+            // ТОЛЬКО присваивание ссылки: старшинство источников держит
+            // `FsaSampleLibrary.CrystalFractionsOf` и больше никто, поэтому
+            // условия «а есть ли геометрия» тут нет и быть не должно.
+            if (rd.DeviceConfig != null)
+            {
+                spec.CrystalMaterialName = rd.DeviceConfig.CrystalMaterialName;
+            }
+
+            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
+                ? rd.Efficiency.Geometry : null;
+            if (geometry != null)
+            {
+                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
+                    EfficiencySimulator.ScintillatorNameOf(geometry));
+                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
+                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
+            }
+
+            return spec;
+        }
+
+        /// <summary>
+        /// ОБЪЯВЛЕННЫЙ СОСТАВ поверх обстановки спектра: ряды (уже разобранные
+        /// в <see cref="FsaSampleChain"/>) и одиночные нуклиды `nucid`, флаги
+        /// равновесия и атомного рентгена. Вход проб, которые получают состав
+        /// ключами (`--sample=`, `--chain=`), и снимка `FsaStackShot --sample=`.
+        /// <c>null</c> в любом списке — «нет».
+        /// </summary>
+        public static FsaSampleSpec Declared(ResultData rd,
+                                             IEnumerable<FsaSampleChain> chains,
+                                             IEnumerable<string> nuclides,
+                                             bool equilibrium, bool atomic)
+        {
+            FsaSampleSpec spec = OfSpectrum(rd);
+            spec.AtomicXray = atomic;
+            spec.Equilibrium = equilibrium;
+            if (chains != null)
+            {
+                foreach (FsaSampleChain chain in chains)
+                {
+                    if (chain != null)
+                    {
+                        spec.Chains.Add(chain);
+                    }
+                }
+            }
+
+            if (nuclides != null)
+            {
+                foreach (string nucid in nuclides)
+                {
+                    if (!string.IsNullOrEmpty(nucid))
+                    {
+                        spec.Nuclides.Add(nucid);
+                    }
+                }
+            }
+
+            return spec;
+        }
+
+        /// <summary>
+        /// То же — СЛОВАМИ МАНИФЕСТА: метки рядов как в колонке `chains`
+        /// корпусного `manifest.csv` («Th-232», «U-238u»), нуклиды как в
+        /// колонке `nuclides` (`nucid`). Метка, которой
+        /// <see cref="FsaSampleChain.FromLabel"/> не знает, — ОТКАЗ
+        /// (<see cref="ArgumentException"/> с именем метки), а не пропуск:
+        /// пропущенный ряд выглядел бы как результат «ряда в спектре нет».
+        /// Читатель манифеста в `CorpusFsaProbe` проверяет метки ДО прогона тем
+        /// же <c>FromLabel</c>, так что там сюда доходят только известные.
+        ///
+        /// Что сверх этого знает про спектр корпус (`materials.csv`: кристалл,
+        /// проба и защита у спектров без геометрии) — добирает сам вызывающий
+        /// в <see cref="CrystalElements"/>/<see cref="SampleElements"/>/
+        /// <see cref="ShieldElements"/>: это данные корпуса, а не приложения.
+        /// </summary>
+        public static FsaSampleSpec FromManifest(ResultData rd,
+                                                 IEnumerable<string> chainLabels,
+                                                 IEnumerable<string> nuclides,
+                                                 bool equilibrium, bool atomic)
+        {
+            var chains = new List<FsaSampleChain>();
+            if (chainLabels != null)
+            {
+                foreach (string label in chainLabels)
+                {
+                    FsaSampleChain chain = FsaSampleChain.FromLabel(label);
+                    if (chain == null)
+                    {
+                        throw new ArgumentException(
+                            "неизвестный ряд '" + label + "'; известные: "
+                            + string.Join(", ", FsaSampleChain.KnownLabels), "chainLabels");
+                    }
+
+                    chains.Add(chain);
+                }
+            }
+
+            return Declared(rd, chains, nuclides, equilibrium, atomic);
+        }
     }
 
     /// <summary>

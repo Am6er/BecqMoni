@@ -39,13 +39,34 @@
 файле в каталоге прогона и на счётчике `NuclideDefinitionManager.RaiseCount`);
 этот сторож — текстовая половина той же двери.
 
+⛔ **ПРОБЫ ОСНАСТКИ КОРПУСА (полоса П11, 12.09.2026, следствие `AMBER19`).**
+Кроме корпусной пробы в оснастке `wd_app` живут ещё восемь проб — им нужны
+корпусные конфигурации приборов и склад матриц `config\\device\\response`, а
+значит, запускаются они ТОЛЬКО оттуда. До 12.09.2026 они поднимали
+`NuclideDefinitionManager` (состав по подписям пиков из поставочного списка,
+либо просто «на всякий случай»), и после гейта `AMBER19` все восемь падали в
+оснастке броском `S100` ещё до первого числа — измерено дымовым прогоном
+40 проб (журнал `handover/handover-2026-09-12-p11-probes-sample.md`). Теперь
+состав у них — из базы по ключам `--sample=`/`--chain=` через общий вход
+`FsaSampleSpec.FromManifest` (`T257`), и этот сторож судит их тем же правилом,
+что корпусную пробу, ЗА ОДНИМ исключением: `FsaLibrary.BuildFromPeaks` им
+разрешён — `FsaDoubleCountProbe` строит им библиотеку «по пикам» из
+определений, собранных ИЗ БАЗЫ (`FsaSampleLibrary.AsDefinitions`), это и есть
+её замер (`A168`). Запрещены подъём менеджера и его поля (`.NuclideDefinitions`,
+`.NuclideSets`, `.ActiveSet`). Список — явный, с причиной у каждой строки
+(`RIG_PROBES`); проба каталога проб (`build_pN`, там поставочный файл лежит по
+решению П5) в него НЕ входит и поставочный список читает по праву.
+
     python tools/check_corpus_library.py            # проверить дерево
     python tools/check_corpus_library.py --selftest # доказать, что отказывает
 
 ⚠ Сторож без доказанного отказа — это `T69`, поэтому `--selftest` подкладывает
 нарушение в копию файла и требует от проверки кода 1; на чистом дереве — 0.
 Для `PeakDetector.cs` контроль трёхсторонний: инициализатор поля — отказ,
-конструктор — отказ, ленивый метод — тишина.
+конструктор — отказ, ленивый метод — тишина. Для проб оснастки — подъём,
+подложенный в НАСТОЯЩИЙ текст `FsaChannelSplitProbe.cs` (внутрь `Main`), обязан
+дать ровно одну находку, а чистый текст — ноль; `BuildFromPeaks` в нём
+находкой быть не должен.
 """
 
 import io
@@ -72,6 +93,43 @@ LAZY_ONLY = [
     "BecquerelMonitor/PeakDetector.cs",
 ]
 
+# Пробы ОСНАСТКИ КОРПУСА (П11, 12.09.2026): живут в `wd_app` — им нужен склад
+# матриц рядом с exe и корпусные конфигурации приборов, — а там по `AMBER19`
+# поставочного списка нет. Каждая — с причиной, почему она в оснастке, а не в
+# каталоге проб. ⛔ `FsaStackShot.cs` сюда НЕ входит: он живёт в чужой
+# незакоммиченной правке (12.09.2026) и остаётся хвостом `T257`.
+RIG_PROBES = [
+    ("tools/effmaker/probes/FsaChannelSplitProbe.cs",
+     "тождества каналов отклика — матрица из склада (`ResponseMatrixStore.Load`)"),
+    ("tools/effmaker/probes/FsaDoubleCountProbe.cs",
+     "клетки A168 {матрица есть/нет} — матрица из склада по Guid кривой"),
+    ("tools/effmaker/probes/ResponseRowDumpProbe.cs",
+     "строки матрицы отклика — из склада; состава у пробы нет вовсе"),
+    ("tools/effmaker/probes/FsaChannelShot.cs",
+     "картинки каналов отклика — матрица из склада, без неё каналов нет"),
+    ("tools/effmaker/probes/FsaComponentDumpProbe.cs",
+     "ленты компонентов по каналам — матрица из склада"),
+    ("tools/effmaker/probes/FsaSumPeakAccountProbe.cs",
+     "сумм-пики строятся только с матрицей — из склада"),
+    ("tools/effmaker/probes/FsaCascadeProbe.cs",
+     "три прогона с матрицей из склада; `--rebuild` пишет туда же"),
+    ("tools/effmaker/probes/CrystalXrayGateProbe.cs",
+     "раздел 1 — вылет K-рентгена по строкам матрицы из склада"),
+]
+
+# Что запрещено пробам оснастки: подъём менеджера и его поля. `BuildFromPeaks`
+# — НЕ запрещён (определения приходят из базы, `FsaSampleLibrary.AsDefinitions`).
+RIG_FORBIDDEN = [
+    (re.compile(r"NuclideDefinitionManager\s*\.\s*GetInstance"),
+     "поднимает NuclideDefinitionManager — в оснастке корпуса файла нет (AMBER19), подъём падает"),
+    (re.compile(r"\.\s*NuclideDefinitions\b"),
+     "берёт NuclideDefinitions поставочного менеджера"),
+    (re.compile(r"\.\s*NuclideSets\b"),
+     "берёт NuclideSets поставочного менеджера"),
+    (re.compile(r"\.\s*ActiveSet\b"),
+     "берёт ActiveSet поставочного менеджера"),
+]
+
 GET_INSTANCE = re.compile(r"NuclideDefinitionManager\s*\.\s*GetInstance")
 # Заголовок конструктора класса PeakDetector: модификаторы, имя, скобка — и НЕТ
 # типа возврата перед именем (метод `X PeakDetector(` сюда не попадает).
@@ -90,7 +148,7 @@ FORBIDDEN = [
 COMMENT = re.compile(r"^\s*(///|//|#)")
 
 
-def offences(path, text):
+def offences(path, text, rules=FORBIDDEN):
     """Строки-нарушители: код, а не комментарий и не строковый литерал."""
     out = []
     for n, line in enumerate(text.split("\n"), 1):
@@ -98,7 +156,7 @@ def offences(path, text):
             continue
         # строковые литералы гасим целиком — в них живут сообщения отказа
         bare = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
-        for pattern, why in FORBIDDEN:
+        for pattern, why in rules:
             if pattern.search(bare):
                 out.append((n, why, line.strip()[:100]))
     return out
@@ -151,8 +209,22 @@ def lazy_offences(path, text):
     return out
 
 
-def check(paths, lazy=()):
+def check(paths, lazy=(), rig=()):
     bad = 0
+    for path, reason in rig:
+        if not os.path.isfile(path):
+            print("  ⛔ НЕТ ФАЙЛА: %s" % path)
+            bad += 1
+            continue
+        text = io.open(path, encoding="utf-8-sig", newline="").read()
+        found = offences(path, text, RIG_FORBIDDEN)
+        if not found:
+            print("  ЧИСТО   %s (проба оснастки: %s)" % (path, reason))
+            continue
+        for n, why, line in found:
+            print("  ⛔ %s:%d  %s" % (path, n, why))
+            print("       %s" % line)
+            bad += 1
     for path in lazy:
         if not os.path.isfile(path):
             print("  ⛔ НЕТ ФАЙЛА: %s" % path)
@@ -187,7 +259,7 @@ def check(paths, lazy=()):
 def selftest():
     """Двусторонний контроль: подложенное нарушение обязано УРОНИТЬ проверку."""
     print("положительный контроль (чистое дерево):")
-    clean = check(WATCHED, LAZY_ONLY)
+    clean = check(WATCHED, LAZY_ONLY, RIG_PROBES)
     print("  находок: %d" % clean)
 
     print("отрицательный контроль (подложенное нарушение):")
@@ -256,7 +328,28 @@ def selftest():
           % (len(f1), len(f2), len(f3)))
     lazy_ok = len(f1) == 1 and len(f2) == 1 and len(f3) == 0
 
-    ok = clean == 0 and len(found) >= 3 and len(noise) == 0 and lazy_ok
+    print("контроль ПРОБ ОСНАСТКИ (AMBER19, П11): подложенный подъём в настоящем тексте пробы — одна находка, чистый — ноль:")
+    rig_path = RIG_PROBES[0][0]
+    rig_text = io.open(rig_path, encoding="utf-8-sig", newline="").read()
+    rig_clean = offences(rig_path, rig_text, RIG_FORBIDDEN)
+    # Подлог кладётся ВНУТРЬ Main — строкой после `FsaTuningReport.Snapshot();`,
+    # то есть в исполняемый код, а не в комментарий и не в строковый литерал.
+    anchor = "FsaTuningReport.Snapshot();"
+    at = rig_text.find(anchor)
+    planted = (rig_text[:at + len(anchor)]
+               + "\n            NuclideDefinitionManager.GetInstance();"
+               + rig_text[at + len(anchor):]) if at >= 0 else rig_text
+    rig_planted = offences("<подлог в %s>" % os.path.basename(rig_path), planted, RIG_FORBIDDEN)
+    for n, why, line in rig_planted:
+        print("  ⛔ <подлог в %s>:%d  %s" % (os.path.basename(rig_path), n, why))
+    # `BuildFromPeaks` пробам оснастки разрешён: определения — из базы (A168).
+    peaks_text = "        byPeaks = FsaLibrary.BuildFromPeaks(peaks, definitions, null);\n"
+    rig_peaks = offences("<BuildFromPeaks из базы>", peaks_text, RIG_FORBIDDEN)
+    print("  находок: чистая проба %d (ожидался 0), с подлогом %d (ожидалась 1), BuildFromPeaks %d (ожидался 0)"
+          % (len(rig_clean), len(rig_planted), len(rig_peaks)))
+    rig_ok = at >= 0 and len(rig_clean) == 0 and len(rig_planted) == 1 and len(rig_peaks) == 0
+
+    ok = clean == 0 and len(found) >= 3 and len(noise) == 0 and lazy_ok and rig_ok
     print("СОШЛОСЬ" if ok else "НЕ СОШЛОСЬ")
     return 0 if ok else 1
 
@@ -266,7 +359,7 @@ def main():
         return selftest()
     print("⛔ поставочный NuclideDefinition.xml на корпусе не используется "
           "(правило Amber 01.09.2026; гейт AMBER19 12.09.2026)")
-    bad = check(WATCHED, LAZY_ONLY)
+    bad = check(WATCHED, LAZY_ONLY, RIG_PROBES)
     print("НАХОДОК: %d" % bad)
     return 1 if bad else 0
 

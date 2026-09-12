@@ -35,8 +35,21 @@ namespace FsaSumPeakAccountProbe
     /// Второй положительный контроль — `--drop=<имя образа>`: компонент
     /// вынимается из библиотеки, и числа обязаны разойтись у остальных.
     ///
-    ///   fsasumpeakaccountprobe --spectrum=X.xml [--efficiency=Цилиндр]
-    ///                          [--set=Имя] [--drop=Имя] [--matrix-any] [--no-matrix]
+    ///   fsasumpeakaccountprobe --spectrum=X.xml --sample=152EU[,137CS] [--chain=Th-232]
+    ///                          [--efficiency=Цилиндр] [--drop=Имя] [--matrix-any] [--no-matrix]
+    ///
+    /// ⛔ СОСТАВ — ИЗ БАЗЫ ПО КЛЮЧАМ (`AMBER19`, П11 12.09.2026). До того
+    /// библиотека шла по подписям пиков из поставочного списка (`--set=`), а
+    /// проба живёт в оснастке корпуса (ниже: «запускать из рабочего каталога
+    /// корпуса»), где по правилу Amber поставочного `config\NuclideDefinition.xml`
+    /// нет и подъём `NuclideDefinitionManager` падал броском (`S100`). Теперь
+    /// `--sample=` — nucid через запятую («Cs-137» тоже понимается),
+    /// `--chain=` — метки манифеста (Th-232, Th-228, Ra-226, U-238, U-235,
+    /// U-238u); спецификация — общим входом `FsaSampleSpec.FromManifest`
+    /// (`T257`), флаги равновесия/рентгена — из настроек спектра
+    /// (`FsaCalculationOptions.Of(rd)`, как у плеч ниже), пики подписываются
+    /// определениями из той же базы. `--set=` — отказ с подсказкой; в конце
+    /// печатается счётчик обращений к менеджеру, не ноль — код 12.
     ///
     /// `--matrix-any` берёт матрицу отклика, чей отпечаток с геометрией спектра
     /// НЕ СОШЁЛСЯ (склад корпуса прежней версии физики). Нужен затем, что без
@@ -60,13 +73,24 @@ namespace FsaSumPeakAccountProbe
             // отражение её не видит, и снятая позже она уже могла быть уведена.
             FsaTuningReport.Snapshot();
 
-            string spectrumPath = null, efficiencyName = null, setName = null, dropName = null;
+            string spectrumPath = null, efficiencyName = null, dropName = null;
+            var chains = new List<string>();
+            var nuclides = new List<string>();
             bool needMatrix = true, matrixAny = false;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
-                else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                    nuclides.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                    chains.AddRange(a.Substring(8).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    Console.Error.WriteLine("--set= снят (AMBER19): поставочный список в оснастке корпуса не поднимается; "
+                                            + "состав задаётся --sample=<nucid,...> и/или --chain=<Th-232,...>");
+                    return 2;
+                }
                 else if (a.StartsWith("--drop=", StringComparison.Ordinal)) dropName = a.Substring(7);
                 else if (a == "--matrix-any") matrixAny = true;
                 else if (a == "--no-matrix") needMatrix = false;
@@ -79,17 +103,30 @@ namespace FsaSumPeakAccountProbe
                 return 2;
             }
 
-            GlobalConfigManager.GetInstance();
-            DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
-
-            ResultData rd = Load(spectrumPath);
-            if (efficiencyName != null && !AttachEfficiency(rd, efficiencyName))
+            if (chains.Count == 0 && nuclides.Count == 0)
             {
+                Console.Error.WriteLine("нужен состав: --sample=152EU[,137CS] и/или --chain=Th-232 (AMBER19: из базы, не из поставочного списка)");
                 return 2;
             }
 
-            if (setName != null && !SelectSet(nuclides, setName))
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
+            GlobalConfigManager.GetInstance();
+            DeviceConfigManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` НЕ поднимается (`AMBER19`, П11).
+
+            ResultData rd = Load(spectrumPath);
+            if (efficiencyName != null && !AttachEfficiency(rd, efficiencyName))
             {
                 return 2;
             }
@@ -101,11 +138,19 @@ namespace FsaSumPeakAccountProbe
                               used != null ? used.Min_Range.ToString("G", CultureInfo.InvariantCulture) : "?",
                               used != null ? used.Max_Range.ToString("G", CultureInfo.InvariantCulture) : "?");
 
+            // Состав — из базы по объявленному составу (общий вход `T257`);
+            // равновесие/рентген — из настроек спектра, как у плеч ниже. Пики
+            // подписываются определениями ИЗ ТОЙ ЖЕ базы.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, NucidsOf(nuclides), true, true);
+            FsaCalculationOptions.Of(rd).ApplyTo(spec);
+            List<FsaComponent> library = FsaSampleLibrary.Build(spec);
             List<Peak> peaks = new PeakDetector().DetectPeak(
                 rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
-            Console.WriteLine("SETUP\tпиков {0}, компонентов {1}", peaks.Count, library.Count);
+                null, FsaSampleLibrary.AsDefinitions(library));
+            Console.WriteLine("SETUP\tсостав объявлен: {0}",
+                              string.Join(",", chains.ToArray()) + (chains.Count > 0 && nuclides.Count > 0 ? "," : "")
+                              + string.Join(",", nuclides.ToArray()));
+            Console.WriteLine("SETUP\tпиков {0}, компонентов {1} (из базы)", peaks.Count, library.Count);
             if (library.Count == 0)
             {
                 Console.Error.WriteLine("библиотека пуста");
@@ -303,7 +348,41 @@ namespace FsaSumPeakAccountProbe
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ИТОГ: всё сошлось" : "ИТОГ: расхождений " + bad);
-            return bad == 0 ? 0 : 1;
+            return SuppliedLibraryGate(bad == 0 ? 0 : 1);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Гейт «поставочный список не поднимался» — счётчик
+        /// обращений печатается всегда, не ноль — код 12 (как у
+        /// `CorpusFsaProbe.RefuseIfManagerRaised`; по `isLoaded` подъёма не
+        /// видно — без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
+        }
+
+        /// <summary>«Cs-137» → «137CS» (nucid, как его зовёт nucdb); nucid — как есть.</summary>
+        static List<string> NucidsOf(List<string> labels)
+        {
+            var nucids = new List<string>();
+            foreach (string label in labels)
+            {
+                int dash = label.IndexOf('-');
+                nucids.Add(dash < 0
+                    ? label.ToUpperInvariant()
+                    : label.Substring(dash + 1) + label.Substring(0, dash).ToUpperInvariant());
+            }
+
+            return nucids;
         }
 
         // ------------------------------------------------------------------
@@ -546,29 +625,6 @@ namespace FsaSumPeakAccountProbe
         // ------------------------------------------------------------------
         // Загрузка — те же правила, что у соседних проб экрана
         // ------------------------------------------------------------------
-
-        static bool SelectSet(NuclideDefinitionManager nuclides, string name)
-        {
-            var have = new List<string>();
-            foreach (NuclideSet set in nuclides.NuclideSets)
-            {
-                if (set == null)
-                {
-                    continue;
-                }
-
-                have.Add(set.Name);
-                if (string.Equals(set.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    nuclides.ActiveSet = set;
-                    Console.WriteLine("SETUP\tнабор: {0}", set.Name);
-                    return true;
-                }
-            }
-
-            Console.Error.WriteLine("набора «{0}» нет; есть: {1}", name, string.Join(", ", have.ToArray()));
-            return false;
-        }
 
         static bool AttachEfficiency(ResultData rd, string name)
         {
