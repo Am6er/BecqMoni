@@ -240,6 +240,8 @@ namespace CorpusFsaProbe
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
     ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
+    ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
+    ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
     ///                  [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
@@ -458,17 +460,22 @@ namespace CorpusFsaProbe
                     o.AnchorSkip = list.ToArray();
                     continue;
                 }
-                // (`S169`, П8 12.09.2026) нуль шкалы образа: `calib` (умолчание
-                // анализатора — калибровкой файла) или `adc` (пропорционально
-                // каналу от нуля АЦП); плечо A/B, читатель — `SETUP` отражением.
-                // `--anchor-zero-kev=` — свет в нулевом канале карты adc, кэВ
-                // (рычаг порчи: ±5 обязаны ухудшить числа).
+                // (`S169`, П8/П13 12.09.2026) нуль шкалы образа: `calib`
+                // (калибровкой файла, карты нет), `adc` (нуль света ПО СЪЁМКЕ
+                // из опор разведочного прохода, П13; умолчание анализатора
+                // стоит в его конструкторе) или `adc-fixed` (нуль
+                // прибора с начала разбора, форма П8 — плечо контроля против
+                // П12); плечо A/B, читатель — `SETUP` отражением и строка
+                // сводки «нуль шкалы образа». `--anchor-zero-kev=` — свет в
+                // нулевом канале (нуль прибора; у `adc` — запасной путь; рычаг
+                // порчи: ±5 обязаны ухудшить числа); `--anchor-zero-share=` и
+                // `--anchor-zero-max=` — ножи кандидата нуля съёмки.
                 if (a.StartsWith("--anchor-zero=", StringComparison.Ordinal))
                 {
                     string zero = a.Substring(14);
-                    if (zero != "calib" && zero != "adc")
+                    if (zero != "calib" && zero != "adc" && zero != "adc-fixed")
                     {
-                        Console.Error.WriteLine("--anchor-zero= знает calib и adc; дано: {0}", zero);
+                        Console.Error.WriteLine("--anchor-zero= знает calib, adc и adc-fixed; дано: {0}", zero);
                         return 2;
                     }
 
@@ -478,6 +485,16 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--anchor-zero-kev=", StringComparison.Ordinal))
                 {
                     o.AnchorZeroKev = double.Parse(a.Substring(18), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-share=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroShare = double.Parse(a.Substring(20), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-max=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroMax = double.Parse(a.Substring(18), CultureInfo.InvariantCulture);
                     continue;
                 }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
@@ -1527,6 +1544,16 @@ namespace CorpusFsaProbe
             if (!double.IsNaN(o.AnchorZeroKev))
             {
                 analyzer.AnchorZeroKev = o.AnchorZeroKev;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroShare))
+            {
+                analyzer.AnchorZeroShareThreshold = o.AnchorZeroShare;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroMax))
+            {
+                analyzer.AnchorZeroMaxKev = o.AnchorZeroMax;
             }
 
             // (`S107`, П10) форма наложений по свету: "0" — выкл, "1" — по
@@ -3339,23 +3366,42 @@ namespace CorpusFsaProbe
                     // «нуль adc: …» только тогда). Печатается, когда ключ задан
                     // либо карта где-то включилась — умолчание невидимым быть
                     // не должно (тот же разряд, что строка света выше).
-                    int adcOn = 0;
+                    // (П13) …и у скольких из них нуль взят ПО СЪЁМКЕ, а у скольких
+                    // — по прибору (запасной путь: одна опора, нет плеча).
+                    int adcOn = 0, adcRun = 0, adcPrior = 0, adcOff = 0;
                     foreach (Row r in of)
                     {
                         if (r.Error == null && r.AnchorNote != null && r.AnchorNote.Contains("нуль adc:"))
                         {
                             adcOn++;
+                            if (r.AnchorNote.Contains("(по съёмке:"))
+                            {
+                                adcRun++;
+                            }
+                            else if (r.AnchorNote.Contains("(по прибору:"))
+                            {
+                                adcPrior++;
+                            }
+                        }
+                        else if (r.Error == null && r.AnchorNote != null && r.AnchorNote.Contains("карта adc не включена:"))
+                        {
+                            adcOff++;
                         }
                     }
 
-                    if (o.AnchorZero != null || adcOn > 0)
+                    if (o.AnchorZero != null || adcOn > 0 || adcOff > 0)
                     {
-                        Console.WriteLine("{0,-10} нуль шкалы образа (S169): ключ {1}{2}; карта adc включилась у {3} из {4}", "",
+                        Console.WriteLine("{0,-10} нуль шкалы образа (S169): ключ {1}{2}; карта adc включилась у {3} из {4}{5}", "",
                                           o.AnchorZero ?? "(умолчание анализатора)",
                                           double.IsNaN(o.AnchorZeroKev)
                                               ? ""
                                               : ", свет в нулевом канале " + o.AnchorZeroKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ",
-                                          adcOn, anchored + unanchored);
+                                          adcOn, anchored + unanchored,
+                                          adcRun + adcPrior + adcOff > 0
+                                              ? string.Format(CultureInfo.InvariantCulture,
+                                                              " (нуль по съёмке {0}, по прибору {1}; заказана и не включилась {2})",
+                                                              adcRun, adcPrior, adcOff)
+                                              : "");
                     }
 
                     // (`S107`, П10 12.09.2026) ЧИТАТЕЛЬ ФОРМЫ НАЛОЖЕНИЙ ПО СВЕТУ:
@@ -4185,8 +4231,10 @@ namespace CorpusFsaProbe
             public string AnchorForm = null;     // (П19) форма применения bin|line|peak|anchor; null — умолчание анализатора
             public double[] AnchorSkip = null;   // (П16/П18) выброс узла
             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
-            public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc; null — умолчание анализатора
-            public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале карты adc, кэВ; NaN — умолчание анализатора
+            public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc|adc-fixed; null — умолчание анализатора
+            public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале — нуль прибора (у adc — запасной путь), кэВ; NaN — умолчание анализатора
+            public double AnchorZeroShare = double.NaN; // (S169, П13) порог доли синего у кандидата нуля съёмки; NaN — умолчание анализатора
+            public double AnchorZeroMax = double.NaN;   // (S169, П13) верхняя граница света кандидата нуля съёмки, кэВ; NaN — умолчание анализатора
             public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,

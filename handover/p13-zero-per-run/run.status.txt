@@ -1,0 +1,8 @@
+16:15:01 run out_p13_list_adc exit=0 (16 s), ключи: --anchor-zero=adc [список handover\p13-zero-per-run\list_p13.csv]
+16:15:43 run out_p13_list_calib exit=2 (4 s), ключи: --anchor-zero=calib [список handover\p13-zero-per-run\list_p13.csv]
+16:15:46 run out_p13_list_fixed exit=2 (3 s), ключи: --anchor-zero=adc-fixed [список handover\p13-zero-per-run\list_p13.csv]
+16:23:38 run out_p13_calib exit=0 (72 s), ключи: --anchor-zero=calib [полный корпус] [-Force]
+16:24:46 run out_p13_adc exit=0 (68 s), ключи: --anchor-zero=adc [полный корпус] [-Force]
+16:25:51 run out_p13_fixed exit=0 (65 s), ключи: --anchor-zero=adc-fixed [полный корпус] [-Force]
+16:33:35 run out_rev18_full exit=0 (80 s), ключи:  [полный корпус]
+16:33:49 run out_rev18_mini exit=0 (14 s), ключи:  [малая база]
