@@ -495,9 +495,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             // посчитанную, а не заказанную.
             EfficiencyGridMode gridUsed;
             double[] energies = options.BuildGrid(geometry, gridNotes, out gridUsed);
+
+            // ⛔ ОДНА ФИЗИКА ДЛЯ КРИВОЙ И МАТРИЦЫ — решение Amber 12.09.2026,
+            // дословно: «Да — одна физика для кривой и матрицы». K-провал
+            // кривой света (`F11` (а), П17: кривая электронов в коде +
+            // раздельный оже-каскад EADL) кривая берёт ОТ УМОЛЧАНИЯ НАСТРОЕК
+            // МАТРИЦЫ (`ResponseMatrixOptions.KDipLight`), тем же выражением,
+            // что `ResponseMatrixBuilder.MakeSimulator`; до 12.09.2026 она
+            // брала умолчание симулятора (ВЫКЛ) и ниже ~120 кэВ расходилась со
+            // складом на глубину провала (1…3 %). Прочие ключи склада до
+            // кривой не доезжают по делу: полубин без сетки не определён
+            // (допуск — ПШПВ/2 из геометрии, `E34`), раскладка по каналам у
+            // кривой отсутствует (реестр `tools/check_matrix_keys.py`, `SIM`).
+            // Число и уровень — в клеймо кривой (`kdip=N` ниже), иначе кривая
+            // с провалом была бы неотличима от кривой без него (`T42`).
+            ResponseMatrixOptions storePhysics = new ResponseMatrixOptions();
             EfficiencySimulator simulator = new EfficiencySimulator(geometry)
             {
                 Histories = Math.Max(1000, options.Histories),
+                LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(storePhysics.KDipLight),
+                LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storePhysics.KDipLight),
             };
 
             log(geometry.Describe());
@@ -617,6 +634,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         Histories = simulator.Histories,
                         Seed = simulator.Seed,
+                        // Рабочий потока — копия головного симулятора и по
+                        // физике света тоже: без этих двух строк K-провал
+                        // стоял бы у головного, а считали бы рабочие без него.
+                        LightSubKevCurve = simulator.LightSubKevCurve,
+                        LightCascadeSplit = simulator.LightCascadeSplit,
                     };
                 },
                 (range, loop, worker) =>
@@ -708,12 +730,23 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `; sample=air` пишется ТОЛЬКО у кривой с воздухом вместо пробы
             // (`E19`): на всех прочих сценах клеймо посимвольно прежнее, иначе
             // все посчитанные кривые разом объявились бы чужими.
+            //
+            // `; kdip=N` (12.09.2026, «одна физика для кривой и матрицы») —
+            // тем же правилом `T42`, что у клейма матрицы: пишется ТОЛЬКО при
+            // включённом K-провале, и с ним кривая с провалом отличима от
+            // посчитанной до 12.09.2026 без него; у той клеймо посимвольно
+            // прежнее. Разборщики клейма (`TryParseComputeStamp`,
+            // `ResponseMatrix.PhysicsFromStamp`, `tools/check_curve_generation.py`)
+            // читают свои куски по ключу и хвоста не замечают.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
-                sampleIsAir ? "; sample=air" : "");
+                sampleIsAir ? "; sample=air" : "",
+                storePhysics.KDipLight != 0
+                    ? "; kdip=" + storePhysics.KDipLight.ToString(CultureInfo.InvariantCulture)
+                    : "");
             return result;
         }
     }

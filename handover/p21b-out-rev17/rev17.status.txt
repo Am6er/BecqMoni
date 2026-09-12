@@ -1,0 +1,4 @@
+09:25:45 START
+09:25:57 mini exit=0
+09:26:59 full exit=0
+09:26:59 DONE

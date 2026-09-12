@@ -1,0 +1,6 @@
+run peak exit=0 (61 s), ключи: --dump-curves=C:\Users\moroz\p21b_out\peak_dump --anchor-light=peak
+оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p21b
+ОСНАСТКА СВЕЖАЯ: 442 файлов сошлись
+known            84       84        84      435.6       2.61        0        0        0
+unknown          39        0         0       80.6      26.11       36        0        0
+дампов: 87

@@ -1,0 +1,8 @@
+09:11:32 START
+09:12:47 lin: run lin exit=0 (75 s), ключи: --dump-curves=C:\Users\moroz\p21b_out\lin_dump --anchor-light=0
+09:13:51 line: run line exit=0 (63 s), ключи: --dump-curves=C:\Users\moroz\p21b_out\line_dump --anchor-light=line
+09:14:52 peak: run peak exit=0 (61 s), ключи: --dump-curves=C:\Users\moroz\p21b_out\peak_dump --anchor-light=peak
+09:15:35 lin_skip: run lin_skip exit=0 (43 s), ключи: --anchor-light=0 --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+09:16:37 line_skip: run line_skip exit=0 (62 s), ключи: --anchor-light=line --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+09:17:38 peak_skip: run peak_skip exit=0 (61 s), ключи: --anchor-light=peak --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
+09:17:38 DONE
