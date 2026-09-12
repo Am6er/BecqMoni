@@ -644,11 +644,20 @@ namespace BecquerelMonitor
         /// поглощения стали опорами шкалы; на сколько шкала сдвинута — числом
         /// в окне отчёта (строка «Scale anchoring»).
         ///
-        /// Метка — треугольник остриём вниз над верхом стека на энергии
-        /// МОДЕЛЬНОГО центра опоры (после привязки он и есть измеренный);
-        /// цвет — цвет канала полного поглощения, «синего». Отвергнутые
-        /// кандидаты не рисуются: на графике им нечего сказать, их место —
-        /// в подсказке строки отчёта.
+        /// Метка — ЯКОРЬ (`AMBER20`, задача Amber 12.09.2026 дословно: «Форма
+        /// не треугольник, а якорь. Якорь взять из unicode таблицы»; решения
+        /// вопросником того же дня: «Только на графике», «Синий прежний,
+        /// высота ≈14 px») над верхом стека на энергии МОДЕЛЬНОГО центра
+        /// опоры (после привязки он и есть измеренный): центр глифа по x — на
+        /// энергии, низ — в 4 px над верхом стека, ровно там, где стояло
+        /// остриё прежнего треугольника. Цвет — цвет канала полного
+        /// поглощения, «синего», с белой кромкой. Глиф — U+2693 ANCHOR
+        /// контуром из шрифта (<see cref="FsaAnchorGlyph"/>); ЗАПАСНОЙ ПУТЬ —
+        /// тот самый треугольник остриём вниз 10×9 px, когда шрифта на машине
+        /// нет или контур пуст: квадрат-заглушка шрифтового отказа на графике
+        /// недопустим, а треугольник человек уже знает. Отвергнутые кандидаты
+        /// не рисуются: на графике им нечего сказать, их место — в подсказке
+        /// строки отчёта.
         /// </summary>
         void DrawFsaAnchors(Graphics g, FsaResult result, double[] modelTop)
         {
@@ -659,9 +668,20 @@ namespace BecquerelMonitor
             }
 
             int channels = this.energySpectrum.NumberOfChannels;
+            GraphicsPath glyph = FsaAnchorGlyph();
             using (Brush fill = new SolidBrush(FsaPalette.AnchorMarkColor))
             using (Pen edge = new Pen(Color.FromArgb(220, Color.White)))
+            using (Pen halo = new Pen(Color.FromArgb(220, Color.White), 2f))
             {
+                // Кромка якоря — ОРЕОЛОМ ПОД заливкой, а не линией поверх неё:
+                // штрихи глифа в 14 px тонкие (1.5…2 px), и однопиксельная белая
+                // линия поверх съедала синее целиком — мерено пробой
+                // `FsaAnchorGlyphProbe`: синих точек 2 из 119, метка читалась
+                // белой. Перо в 2 px, положенное ПОД заливку, оставляет снаружи
+                // ровно 1 px белого — ту же кромку, что у треугольника, — а
+                // внутри всё синее. Стык — скруглённый: у острых углов глифа
+                // срез «под ус» выбрасывал бы шипы до предела уса.
+                halo.LineJoin = LineJoin.Round;
                 foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
                 {
                     if (!anchor.Used || double.IsNaN(anchor.ModelKev))
@@ -692,17 +712,152 @@ namespace BecquerelMonitor
                         y = this.height;
                     }
 
-                    // Остриё в 4 пикселях над верхом стека, основание выше на 9.
+                    if (glyph != null)
+                    {
+                        // Низ якоря в 4 пикселях над верхом стека, центр по x — на
+                        // энергии опоры; контур нормирован так, что его низ-центр
+                        // стоит в начале координат, — остаётся сдвиг. Зажим сверху
+                        // держит глиф целиком в поле, как прежде треугольник.
+                        int bottom = Math.Max((int)Math.Ceiling(FsaAnchorGlyphHeightPx) + 1, y - 4);
+                        using (GraphicsPath mark = (GraphicsPath)glyph.Clone())
+                        using (Matrix shift = new Matrix(1f, 0f, 0f, 1f, x, bottom))
+                        {
+                            mark.Transform(shift);
+                            g.DrawPath(halo, mark);
+                            g.FillPath(fill, mark);
+                        }
+                        continue;
+                    }
+
+                    // ЗАПАСНОЙ ПУТЬ (шрифта нет / контур пуст): прежний треугольник —
+                    // остриё в 4 пикселях над верхом стека, основание выше на 9.
                     int tip = Math.Max(10, y - 4);
-                    Point[] mark =
+                    Point[] triangle =
                     {
                         new Point(x, tip),
                         new Point(x - 5, tip - 9),
                         new Point(x + 5, tip - 9)
                     };
-                    g.FillPolygon(fill, mark);
-                    g.DrawPolygon(edge, mark);
+                    g.FillPolygon(fill, triangle);
+                    g.DrawPolygon(edge, triangle);
                 }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER20`) Глиф метки опоры — U+2693 ANCHOR из блока Miscellaneous
+        /// Symbols. В поставке Windows его контур несёт `Segoe UI Symbol`
+        /// (Windows 7+); шрифт вида (`this.Font`) его не имеет, а `Segoe UI
+        /// Emoji` — цветной шрифт, у которого <c>AddString</c> даёт пустой
+        /// контур, — потому семейство названо явно, а не берётся у вида.
+        /// ⚠ Поле, а не константа, НАРОЧНО: проба `FsaAnchorGlyphProbe`
+        /// подкладывает сюда отражением несуществующее имя (`--sabotage=nofont`)
+        /// и проверяет, что запасной путь — треугольник — действительно
+        /// включается. Иначе отказ шрифта проверялся бы только на машине, где
+        /// шрифта нет, то есть никогда.
+        /// </summary>
+        internal static string FsaAnchorGlyphFontFamily = "Segoe UI Symbol";
+
+        /// <summary>Сам глиф (⚓); локализации не подлежит, потому не в resx.</summary>
+        internal const string FsaAnchorGlyphText = "\u2693";
+
+        /// <summary>
+        /// Высота глифа на графике, px, — по ФАКТИЧЕСКОМУ контуру
+        /// (<c>GraphicsPath.GetBounds</c>), а не по кеглю: кегль 14 дал бы
+        /// чернила ≈11 px, и «≈14 px» решения Amber не сошлось бы с экраном.
+        /// </summary>
+        internal const float FsaAnchorGlyphHeightPx = 14f;
+
+        static GraphicsPath fsaAnchorGlyphCache;
+        static string fsaAnchorGlyphCacheFamily;
+
+        /// <summary>
+        /// Контур якоря для графика — один на процесс, строится при первом
+        /// обращении и перестраивается, если сменили семейство (проба).
+        /// <c>null</c> — запасной путь (треугольник), см. <see cref="DrawFsaAnchors"/>.
+        /// </summary>
+        static GraphicsPath FsaAnchorGlyph()
+        {
+            string family = FsaAnchorGlyphFontFamily;
+            if (fsaAnchorGlyphCache == null || !string.Equals(fsaAnchorGlyphCacheFamily, family, StringComparison.Ordinal))
+            {
+                if (fsaAnchorGlyphCache != null)
+                {
+                    fsaAnchorGlyphCache.Dispose();
+                }
+
+                fsaAnchorGlyphCache = BuildFsaAnchorGlyph(family, FsaAnchorGlyphHeightPx);
+                fsaAnchorGlyphCacheFamily = family;
+            }
+
+            return fsaAnchorGlyphCache;
+        }
+
+        /// <summary>
+        /// Строит контур U+2693 из шрифта <paramref name="fontFamily"/> так, что
+        /// высота ЧЕРНИЛ (<c>GetBounds</c>) равна <paramref name="heightPx"/>,
+        /// низ контура стоит на y = 0, а центр по x — на x = 0: рисующему
+        /// остаётся сдвинуть его в точку метки. <c>null</c> — шрифта на машине
+        /// нет (<see cref="FontFamily"/> бросает <see cref="ArgumentException"/>)
+        /// либо контур пуст (цветной шрифт без контуров, глифа нет):
+        /// ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ здесь — <c>PointCount &gt; 0</c> и ненулевая
+        /// высота, иначе рисовать было бы нечего, а квадрат-заглушку
+        /// шрифтового отказа на графике показывать нельзя.
+        /// </summary>
+        internal static GraphicsPath BuildFsaAnchorGlyph(string fontFamily, float heightPx)
+        {
+            FontFamily family;
+            try
+            {
+                family = new FontFamily(fontFamily);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            GraphicsPath path = new GraphicsPath();
+            try
+            {
+                using (family)
+                using (StringFormat format = new StringFormat(StringFormat.GenericTypographic))
+                {
+                    path.AddString(FsaAnchorGlyphText, family, (int)FontStyle.Regular, heightPx,
+                                   new PointF(0f, 0f), format);
+                }
+
+                // Границы — по РАСПРЯМЛЁННОЙ копии: у контура с кривыми Безье
+                // `GetBounds` может захватить опорные точки, а масштаб нужен по
+                // чернилам. Сам контур остаётся с кривыми.
+                RectangleF bounds;
+                using (GraphicsPath flat = (GraphicsPath)path.Clone())
+                {
+                    flat.Flatten();
+                    bounds = flat.GetBounds();
+                }
+
+                if (path.PointCount == 0 || bounds.Height <= 0f || bounds.Width <= 0f)
+                {
+                    path.Dispose();
+                    return null;
+                }
+
+                // Масштаб — по фактической высоте чернил; сдвиг — низ-центр в начало
+                // координат. Один Matrix: сперва сдвиг, потом масштаб (Append).
+                float scale = heightPx / bounds.Height;
+                using (Matrix normalize = new Matrix())
+                {
+                    normalize.Translate(-(bounds.Left + bounds.Width / 2f), -bounds.Bottom);
+                    normalize.Scale(scale, scale, MatrixOrder.Append);
+                    path.Transform(normalize);
+                }
+
+                return path;
+            }
+            catch (Exception)
+            {
+                path.Dispose();
+                return null;
             }
         }
 

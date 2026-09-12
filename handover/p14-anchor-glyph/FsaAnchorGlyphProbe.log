@@ -1,0 +1,12 @@
+SETUP	семейство=Segoe UI Symbol	высота=14.0	порча=нет
+КОНТУР	Segoe UI Symbol	PointCount=242	ширина=12.25	высота=14.06	низ=0.00	центр_x=0.00
+КОНТРОЛЬ	Segoe UI Emoji	PointCount=162
+КОНТРОЛЬ	NoSuchFont-P14-Sabotage	null (запасной путь)
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p14\config\BecquerelMonitor.xml
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p14\config\NuclideDefinition.xml: 152 entries
+ОПОРА	300.0 кэВ	x_ожид=300	x_центр=299.5	низ_ожид=196	низ=196	верх=181	высота=16	ширина=16	синих=45	точек=146	форма=якорь
+ОПОРА	700.0 кэВ	x_ожид=700	x_центр=699.5	низ_ожид=356	низ=356	верх=341	высота=16	ширина=16	синих=45	точек=146	форма=якорь
+ОПОРА	900.0 кэВ	x_ожид=900	x_центр=899.5	низ_ожид=15	низ=15	верх=0	высота=16	ширина=16	синих=45	точек=146	форма=якорь
+ВНЕ ОКОН	точек=0	(отвергнутая опора 500 кэВ и всё прочее)
+СОШЛОСЬ: якорь U+2693 из шрифта, положение прежнее
+probe EXIT=0
