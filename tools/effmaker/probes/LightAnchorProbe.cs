@@ -26,7 +26,24 @@ namespace LightAnchorProbe
     /// построению.
     ///
     ///     lightanchorprobe --geometry=X.in [--energies=59.5,662,...]
-    ///                      [--n=400000] [--bin=1] [--peakw] [--seed=N]
+    ///                      [--n=400000] [--bin=1] [--peakw] [--peakb] [--store]
+    ///                      [--nodes=lo-hi] [--seed=N]
+    ///
+    /// `--store` (П20 12.09.2026, замер `A267` «на умолчаниях склада»): ключи
+    /// физики, которые симулятор САМ по умолчанию держит иначе, чем строитель
+    /// склада (`ResponseMatrixBuilder.MakeSimulator` по умолчаниям
+    /// `ResponseMatrixOptions`): разведение K/L-вылета (`SplitXrayShells`) и
+    /// обе половины K-провала кривой света (`KDipLight` → `LightSubKevCurve`,
+    /// `LightCascadeSplit`). Берутся у самого класса настроек, а не литералом,
+    /// чтобы смена умолчания склада доехала сюда сама. Без ключа проба
+    /// считает умолчаниями симулятора — как П1 10.09.2026, и это плечо
+    /// воспроизводимости прежних чисел.
+    ///
+    /// `--nodes=lo-hi` — вместо списка энергий взять УЗЛЫ складской сетки
+    /// (`ResponseMatrixOptions.BuildGrid`, 140 узлов 5…3000 кэВ, без K-краёв)
+    /// в полосе `[lo, hi]` кэВ. Расходящийся класс при допуске ПОЛУБИНОМ жив
+    /// только у узла, не лежащего на середине бина, — то есть мерить его надо
+    /// на тех энергиях, где склад считает, а не на круглых.
     ///
     /// ⛔ `--peakw` — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, а не удобство. Он ставит допуск
     /// пика из геометрии (`E34`, ключ склада `--peakw=1`). Полуширина ПШПВ
@@ -52,6 +69,8 @@ namespace LightAnchorProbe
             double binKev = 1.0;
             bool peakw = false;
             bool peakb = false;     // `AMBER16` п.2/3: допуск по ПОЛУБИНУ — решение Amber 11.09.2026
+            bool store = false;     // П20: ключи физики как у строителя склада
+            double nodesLo = -1.0, nodesHi = -1.0;
             var energies = new List<double>
             {
                 30, 59.5, 122, 356, 661.657, 1173.2, 1332.5, 2614.5,
@@ -61,6 +80,22 @@ namespace LightAnchorProbe
             {
                 if (a == "--peakw") { peakw = true; continue; }
                 if (a == "--peakb") { peakb = true; continue; }
+                if (a == "--store") { store = true; continue; }
+                if (a.StartsWith("--nodes=", StringComparison.Ordinal))
+                {
+                    string[] pair = a.Substring(8).Split('-');
+                    if (pair.Length != 2
+                        || !double.TryParse(pair[0], NumberStyles.Float, CultureInfo.InvariantCulture, out nodesLo)
+                        || !double.TryParse(pair[1], NumberStyles.Float, CultureInfo.InvariantCulture, out nodesHi)
+                        || !(nodesHi > nodesLo) || !(nodesLo > 0.0))
+                    {
+                        Console.Error.WriteLine("--nodes= ждёт полосу «lo-hi» в кэВ, дано: " + a.Substring(8));
+                        return 2;
+                    }
+
+                    continue;
+                }
+
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
@@ -88,7 +123,45 @@ namespace LightAnchorProbe
 
             GeometryModel geometry = GeometryModel.Load(geometryPath);
             var probe = new EfficiencySimulator(geometry.Clone());
+            // Умолчания строителя склада — ОДИН экземпляр класса настроек
+            // (`T255`): ключи ниже читаются у него, а не переписываются числом.
+            var storeOptions = new ResponseMatrixOptions();
+            if (nodesLo > 0.0)
+            {
+                // Узлы складской сетки без K-краёв: `ResolveEdges` добавляет
+                // их по веществам геометрии, а мерить нужно ЛОГАРИФМИЧЕСКУЮ
+                // сетку — ту, где положение узла внутри бина гуляет.
+                energies.Clear();
+                foreach (double node in storeOptions.BuildGrid())
+                {
+                    if (node >= nodesLo && node <= nodesHi)
+                    {
+                        energies.Add(node);
+                    }
+                }
+
+                if (energies.Count == 0)
+                {
+                    Console.Error.WriteLine("в полосе --nodes= нет ни одного узла сетки склада");
+                    return 2;
+                }
+            }
+
             Console.WriteLine("геометрия: {0}", geometry.Describe());
+            Console.WriteLine("ключи физики: {0}", store
+                ? string.Format(CultureInfo.InvariantCulture,
+                    "КАК У СТРОИТЕЛЯ СКЛАДА (--store): SplitXrayShells={0}, KDipLight={1} → LightSubKevCurve={2}, LightCascadeSplit={3}",
+                    storeOptions.SplitXrayShells, storeOptions.KDipLight,
+                    ResponseMatrixOptions.KDipCurveHalf(storeOptions.KDipLight),
+                    ResponseMatrixOptions.KDipCascadeHalf(storeOptions.KDipLight))
+                : "умолчания симулятора (как П1 10.09.2026)");
+            if (nodesLo > 0.0)
+            {
+                Console.WriteLine("энергии: {0} узлов сетки склада в полосе {1}…{2} кэВ (бин склада {3} кэВ)",
+                    energies.Count, nodesLo.ToString("F1", CultureInfo.InvariantCulture),
+                    nodesHi.ToString("F1", CultureInfo.InvariantCulture),
+                    storeOptions.BinKev.ToString("F1", CultureInfo.InvariantCulture));
+            }
             Console.WriteLine("кривая света: {0}",
                 probe.LightYieldName == "" ? "НЕТ (шкала пропорциональна, замерять нечего)" : probe.LightYieldName);
             Console.WriteLine("историй {0}, бин {1} кэВ, ПШПВ(662) геометрии {2} %",
@@ -100,9 +173,10 @@ namespace LightAnchorProbe
                 : peakb ? "ПОЛУБИН (--peakb, `AMBER16` — решение Amber 11.09.2026 «Допуск по БИНУ»): класс обязан быть пуст"
                       : "НОЛЬ (как у поставочного склада)");
             Console.WriteLine();
-            Console.WriteLine("    E, кэВ   допуск   свет/E     единое     сдвиг %   класс: историй    вес/пик %");
+            Console.WriteLine("     E, кэВ   допуск   свет/E     единое     сдвиг %   класс: историй    вес/пик %");
 
             int nonEmpty = 0;
+            double worstShift = 0.0, worstAt = 0.0;
             foreach (double e in energies)
             {
                 var sim = new EfficiencySimulator(geometry.Clone())
@@ -112,6 +186,16 @@ namespace LightAnchorProbe
                     // геометрия, потом полубин, потом ноль.
                     PeakHalfWidthKev = peakw ? geometry.PeakHalfWidthKev(e) : peakb ? 0.5 * binKev : 0.0,
                 };
+                if (store)
+                {
+                    // Те же три присвоения, что у `ResponseMatrixBuilder.MakeSimulator`;
+                    // остальные ключи у симулятора и настроек склада совпадают.
+                    sim.SplitXrayShells = storeOptions.SplitXrayShells;
+                    sim.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(storeOptions.KDipLight);
+                    sim.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storeOptions.KDipLight);
+                    sim.LightEtaEh = storeOptions.LightEtaEh;
+                }
+
                 if (seed != 0)
                 {
                     sim.Seed = seed;
@@ -131,8 +215,14 @@ namespace LightAnchorProbe
                     nonEmpty++;
                 }
 
+                if (Math.Abs(shift) > Math.Abs(worstShift))
+                {
+                    worstShift = shift;
+                    worstAt = e;
+                }
+
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "  {0,8:F1}   {1,6:F2}   {2}   {3}   {4,7:F3}   {5,14}   {6,10:F3}",
+                    "  {0,9:F3}   {1,6:F2}   {2}   {3}   {4,7:F3}   {5,14}   {6,10:F3}",
                     e, sim.PeakHalfWidthKev,
                     now > 0.0 ? now.ToString("F6", CultureInfo.InvariantCulture) : "   —    ",
                     one > 0.0 ? one.ToString("F6", CultureInfo.InvariantCulture) : "   —    ",
@@ -141,23 +231,16 @@ namespace LightAnchorProbe
             }
 
             Console.WriteLine();
-            if (peakw || peakb)
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "наибольший сдвиг якоря: {0:F3} % на {1:F3} кэВ; класс непуст на {2} узлах из {3}.",
+                worstShift, worstAt, nonEmpty, energies.Count));
+            if (peakw)
             {
                 // ⛔ Контроль СУДИТ, а не украшает: пустой класс на этом плече —
                 // условие, при котором числа второго плеча вообще что-то значат.
-                //
-                // ⚠ Для `--peakb` это не контроль, а ПРИЁМКА пункта (3) `AMBER16`:
-                // оба контрпримера рецензента («InPeak истинно, а бин не пиковый»
-                // и «депозит 31.8 у линии 32.194 уезжает в бин 30») живут при
-                // допуске БОЛЬШЕ полубина либо РАВНОМ нулю. Полубин — ровно та
-                // граница, где «недобрал не больше допуска» и «округлился в бин
-                // пика» совпадают, и класс обязан быть пуст ПО ПОСТРОЕНИЮ. Проба
-                // это меряет, а не утверждает.
                 if (nonEmpty == 0)
                 {
-                    Console.WriteLine(peakw
-                        ? "КОНТРОЛЬ ПРОШЁЛ: с допуском из геометрии расходящийся класс ПУСТ на всех узлах."
-                        : "ПРИЁМКА ПРОШЛА: с допуском по ПОЛУБИНУ расходящийся класс ПУСТ на всех узлах — правило бина и правило пика совпали (AMBER16 п.3).");
+                    Console.WriteLine("КОНТРОЛЬ ПРОШЁЛ: с допуском из геометрии расходящийся класс ПУСТ на всех узлах.");
                     return 0;
                 }
 
@@ -166,6 +249,32 @@ namespace LightAnchorProbe
                     nonEmpty, energies.Count));
                 Console.Error.WriteLine("   и «пусто/непусто» перестало отличать правило от правила.");
                 return 1;
+            }
+
+            if (peakb)
+            {
+                // ⚠ Для `--peakb` это ПРИЁМКА пункта (3) `AMBER16`, и она
+                // УСЛОВНА: «недобрал не больше полубина» и «округлился в бин
+                // пика» совпадают, только когда энергия линии лежит на СЕРЕДИНЕ
+                // бина (E = 2·peak при бине 2). Узлы склада разложены
+                // логарифмически и на середину не попадают — у узла с
+                // E − 2·peak ∈ (0, 1] история с депозитом в [2·peak − 1, E − 1)
+                // округляется в бин пика, а `InPeak` её не берёт: класс НЕПУСТ
+                // по построению (П21б 12.09.2026, замер П20). Поэтому на этом
+                // плече «непусто» — не отказ, а измерение: судит сдвиг якоря,
+                // и он напечатан выше. Отказом остаётся только пустой класс на
+                // ВСЕХ узлах при энергиях, заведомо не лежащих на середине бина
+                // (--nodes=): тогда проба не меряет то, что думает.
+                if (nonEmpty == 0 && nodesLo > 0.0)
+                {
+                    Console.Error.WriteLine("⛔ КЛАСС ПУСТ НА ВСЕХ УЗЛАХ СЕТКИ ПРИ ПОЛУБИНЕ — так не бывает у узлов вне середины бина; проба не меряет.");
+                    return 1;
+                }
+
+                Console.WriteLine(nonEmpty == 0
+                    ? "ПРИЁМКА ПРОШЛА: с допуском по ПОЛУБИНУ расходящийся класс ПУСТ на всех узлах (энергии на середине бина — правило бина и правило пика совпали, AMBER16 п.3)."
+                    : "ПОЛУБИН, узлы вне середины бина: класс непуст по построению — читать сдвиг якоря, не «пусто/непусто».");
+                return 0;
             }
 
             if (nonEmpty == 0)

@@ -42,7 +42,19 @@ namespace ResponseRowDumpProbe
     ///
     ///     responserowdumpprobe --spectrum=&lt;файл.xml&gt; [--e=32.194,661.657]
     ///                          [--out=&lt;префикс&gt;] [--direct] [--peakw=1|0|both]
+    ///                          [--peakb=1|0]
     ///                          [--matrix-any] [--matrix-transfer=channel|stretch]
+    ///     responserowdumpprobe --geometry=&lt;файл.in&gt; --direct [--e=…] [--peakw=…]
+    ///                          [--peakb=1|0] [--ablate=…] [--out=…]
+    ///
+    /// `--geometry=` (П20 12.09.2026, замер `A306` при полубине): только прямое
+    /// плечо, настройки — УМОЛЧАНИЯ `ResponseMatrixOptions`, то есть склад
+    /// 12.09.2026 как он считан. Со спектром плечо клонирует настройки лежащей
+    /// матрицы, а у матрицы другого поколения они не складские. `--peakb=`
+    /// ставит допуск полубином (`PeakToleranceHalfBin`) у прямого плеча;
+    /// геометрия старше полубина, поэтому при `--peakw=1` он не действует, а
+    /// `--peakw=0 --peakb=0` — нулевой допуск (склад до 11.09.2026). Плечо без
+    /// полубина зовётся с хвостом `_peakb0`.
     ///
     /// `--matrix-transfer=` — правило переноса у плеча `store_interp`
     /// (`AMBER16` п. 4): `channel` (умолчание, как у разбора) или `stretch`
@@ -81,16 +93,25 @@ namespace ResponseRowDumpProbe
         /// </summary>
         static bool transferByChannel = true;
 
+        /// <summary>
+        /// (П20 12.09.2026) Ключ `--peakb=`: допуск пика ПОЛУБИНОМ у прямого
+        /// плеча. `null` — не трогать: со складом берётся у лежащей матрицы (как
+        /// до П20), из геометрии — умолчание класса настроек.
+        /// </summary>
+        static bool? PeakToleranceHalfBin;
+
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             string spectrumPath = null;
+            string geometryPath = null;      // П20 12.09.2026: прямое плечо без спектра и склада
             string outPrefix = null;
             double[] energies = { 32.194, 661.657 };
             bool direct = false;
             string peakw = "both";
+            string peakb = null;             // null — не трогать (склад: у матрицы; геометрия: умолчание класса)
             bool matrixAny = false;
             int trace = -2;                    // −2 — трассировка не просилась
             var ablations = new List<string>();
@@ -122,6 +143,14 @@ namespace ResponseRowDumpProbe
                 else if (a.StartsWith("--peakw=", StringComparison.Ordinal))
                 {
                     peakw = a.Substring(8);
+                }
+                else if (a.StartsWith("--peakb=", StringComparison.Ordinal))
+                {
+                    peakb = a.Substring(8);
+                }
+                else if (a.StartsWith("--geometry=", StringComparison.Ordinal))
+                {
+                    geometryPath = a.Substring(11);
                 }
                 else if (a == "--matrix-any")
                 {
@@ -180,15 +209,21 @@ namespace ResponseRowDumpProbe
                 }
             }
 
-            if (spectrumPath == null)
+            if (spectrumPath == null && geometryPath == null)
             {
-                Console.Error.WriteLine("нужен --spectrum=<файл>");
+                Console.Error.WriteLine("нужен --spectrum=<файл> либо --geometry=<файл .in>");
                 return 2;
             }
 
             if (peakw != "1" && peakw != "0" && peakw != "both")
             {
                 Console.Error.WriteLine("--peakw= принимает 1, 0 или both");
+                return 2;
+            }
+
+            if (peakb != null && peakb != "1" && peakb != "0")
+            {
+                Console.Error.WriteLine("--peakb= принимает 1 или 0");
                 return 2;
             }
 
@@ -200,6 +235,87 @@ namespace ResponseRowDumpProbe
 
             Trace = trace;
             NoAnalogContinuum = noAnalogContinuum;
+            PeakToleranceHalfBin = peakb == null ? (bool?)null : peakb == "1";
+
+            if (geometryPath != null)
+            {
+                // ⛔ (П20 12.09.2026, замер `A306` при `--peakb=1`) ПРЯМОЕ ПЛЕЧО БЕЗ
+                // СПЕКТРА И СКЛАДА: геометрия из файла, настройки — УМОЛЧАНИЯ
+                // класса `ResponseMatrixOptions`, то есть ровно то, чем считан
+                // склад 12.09.2026. Со спектром плечо клонировало бы настройки
+                // ЛЕЖАЩЕЙ матрицы, а у матрицы другого поколения (склад Amber)
+                // они не складские — замер «на умолчаниях склада» через неё
+                // невозможен. Складских плеч (`store_*`) здесь нет: матрицы нет.
+                if (spectrumPath != null)
+                {
+                    Console.Error.WriteLine("⛔ --geometry= и --spectrum= вместе не берутся: у плеча из геометрии склада нет");
+                    return 2;
+                }
+
+                if (!direct)
+                {
+                    Console.Error.WriteLine("⛔ --geometry= без --direct считать нечего: складских плеч у геометрии нет");
+                    return 2;
+                }
+
+                if (!File.Exists(geometryPath))
+                {
+                    Console.Error.WriteLine("нет файла геометрии: {0}", geometryPath);
+                    return 2;
+                }
+
+                if (energies.Length < 2)
+                {
+                    Console.Error.WriteLine("⛔ --direct: нужно ровно две энергии (сетка из двух узлов)");
+                    return 1;
+                }
+
+                GeometryModel fileGeometry = GeometryModel.Load(geometryPath);
+                var defaults = new ResponseMatrixOptions();
+                bool halfBin = PeakToleranceHalfBin ?? defaults.PeakToleranceHalfBin;
+                Console.WriteLine("геометрия: {0}", fileGeometry.Describe());
+                Console.WriteLine("настройки: умолчания ResponseMatrixOptions (склад), PeakToleranceHalfBin={0}, бин {1} кэВ, историй на узел {2}",
+                                  halfBin ? "ВКЛ" : "ВЫКЛ (--peakb=0)",
+                                  F(defaults.BinKev, 2), defaults.Histories);
+                Console.WriteLine("геометрия: ПШПВ(662) {0} %, допуск пика из геометрии на {1} кэВ = {2} кэВ, "
+                                  + "на {3} кэВ = {4} кэВ",
+                                  F(fileGeometry.FwhmAt662Percent, 2),
+                                  F(energies[0], 3), F(fileGeometry.PeakHalfWidthKev(energies[0]), 4),
+                                  F(energies[energies.Length - 1], 3),
+                                  F(fileGeometry.PeakHalfWidthKev(energies[energies.Length - 1]), 4));
+
+                var fileRows = new List<string>();
+                fileRows.Add("arm;line_kev;node_kev;bin;dep_kev;" + string.Join(";", ChannelNames) + ";total");
+                if (peakw == "both" || peakw == "1")
+                {
+                    if (!Direct(fileRows, fileGeometry, null, energies, true, null))
+                    {
+                        return 1;
+                    }
+                }
+
+                if (peakw == "both" || peakw == "0")
+                {
+                    if (!Direct(fileRows, fileGeometry, null, energies, false, null))
+                    {
+                        return 1;
+                    }
+                }
+
+                foreach (string ablation in ablations)
+                {
+                    if (!Direct(fileRows, fileGeometry, null, energies, peakw != "0", ablation))
+                    {
+                        return 1;
+                    }
+                }
+
+                string fileCsv = outPrefix + ".csv";
+                File.WriteAllLines(fileCsv, fileRows, new UTF8Encoding(false));
+                Console.WriteLine();
+                Console.WriteLine("записано: {0} ({1} строк)", fileCsv, fileRows.Count - 1);
+                return SuppliedLibraryGate(0);
+            }
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
@@ -466,7 +582,9 @@ namespace ResponseRowDumpProbe
         static bool Direct(List<string> rows, GeometryModel geometry, ResponseMatrix store,
                            double[] energies, bool peakTolerance, string ablation)
         {
-            ResponseMatrixOptions options = store.Options != null
+            // Без склада (`--geometry=`) — умолчания класса настроек, то есть склад
+            // 12.09.2026 как он считан; со складом — настройки лежащей матрицы.
+            ResponseMatrixOptions options = store != null && store.Options != null
                 ? store.Options.Clone()
                 : new ResponseMatrixOptions();
             options.NodeCount = 2;
@@ -474,6 +592,16 @@ namespace ResponseRowDumpProbe
             options.MaxEnergyKev = energies[energies.Length - 1];
             options.ResolveEdges = false;
             options.PeakToleranceFromGeometry = peakTolerance;
+            // ⚠ (П20) Полубин стоит НИЖЕ геометрии по старшинству
+            // (`ResponseMatrixBuilder.PeakTolerance`): при `peakw=1` он не
+            // действует, при `peakw=0` — он и есть допуск склада; `--peakb=0`
+            // возвращает НУЛЕВОЙ допуск (склад до 11.09.2026). Без ключа
+            // плечо со складом берёт полубин У ЛЕЖАЩЕЙ МАТРИЦЫ (как до П20),
+            // плечо из геометрии — умолчание класса.
+            if (PeakToleranceHalfBin.HasValue)
+            {
+                options.PeakToleranceHalfBin = PeakToleranceHalfBin.Value;
+            }
             if (ablation == "scat")
             {
                 options.SingleScatter = false;
@@ -502,6 +630,7 @@ namespace ResponseRowDumpProbe
             string arm = (ablation != null
                     ? "direct_no_" + ablation
                     : (peakTolerance ? "direct_peakw1" : "direct_peakw0"))
+                + (options.PeakToleranceHalfBin ? "" : "_peakb0")
                 + (NoAnalogContinuum ? "_noacont" : "");
 
             // ⛔ Трассировка пишет в ОДИН список, поэтому поток ровно один:
@@ -532,9 +661,16 @@ namespace ResponseRowDumpProbe
                               fresh.Energies.Length, fresh.ChannelRows.Length, fresh.Stamp);
             for (int i = 0; i < fresh.Energies.Length; i++)
             {
-                Console.WriteLine("   узел {0}: {1} кэВ, шум {2} %", i, F(fresh.Energies[i], 4),
+                // ⚠ (П20 12.09.2026) Историй печатается ДОСТИГНУТОЕ число, а не
+                // номинал: строитель делает пробный проход в десятую долю и
+                // останавливается, если шум континуума уже под целью, — у
+                // узла 661.657 при «3 000 000» на деле 300 000, и пик там
+                // шумит ~1 %. Читать номинал как N — ошибка на 2.7 %, поймано.
+                Console.WriteLine("   узел {0}: {1} кэВ, шум {2} %, историй {3}", i, F(fresh.Energies[i], 4),
                                   fresh.NodeErrors != null && i < fresh.NodeErrors.Length
-                                      ? F(fresh.NodeErrors[i], 3) : "—");
+                                      ? F(fresh.NodeErrors[i], 3) : "—",
+                                  fresh.NodeHistories != null && i < fresh.NodeHistories.Length
+                                      ? fresh.NodeHistories[i].ToString(CultureInfo.InvariantCulture) : "—");
             }
 
             if (Trace > -2)

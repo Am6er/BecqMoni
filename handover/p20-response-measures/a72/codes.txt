@@ -1,0 +1,14 @@
+ours AS80_bare_gap5_661.657 code=0 18:20:21
+ours RC103_bare_gap5_1461 code=0 18:20:33
+ours OBS_bare_gap5_1461 code=0 18:20:44
+ours AS80_bare_gap5_1461 code=0 18:20:54
+g4 AS80_bare_gap5_661.657 code=255 18:20:55
+g4 RC103_bare_gap5_1461 code=255 18:20:55
+g4 OBS_bare_gap5_1461 code=255 18:20:55
+g4 AS80_bare_gap5_1461 code=255 18:20:55
+done 18:20:55
+g4 AS80_bare_gap5_661.657 code=0 18:21:51
+g4 RC103_bare_gap5_1461 code=0 18:22:37
+g4 OBS_bare_gap5_1461 code=0 18:23:21
+g4 AS80_bare_gap5_1461 code=0 18:23:40
+done g4 18:23:40
