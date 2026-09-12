@@ -1,0 +1,32 @@
+=== СБОРКА ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t\BecquerelMonitor.exe
+  собрана 2026-09-12 20:40:19
+  окна у приложения: False
+  культура прогона: ru-RU (разделитель дробной части «,»)  [без подпорки MainForm]
+
+=== ВЫВОЗ КОРПУСНЫХ СПЕКТРОВ В N42 ===
+  корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\spectra
+  вывоз в: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p28-t-rig\t175_n42
+  спектров под вывоз: 1
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t\config\BecquerelMonitor.xml
+  ImportSpectrumWithEmptyConfig: False
+
+--- ASN16_Th232 ---
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t\config\device: 10 loaded
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t\config\NuclideDefinition.xml: 152 entries
+  вывезено: ASN16_Th232.n42, 62458 байт
+  каналов: 8192 → 8192  ✓
+  отсчёты: сумма 113998155 → 113998155, различающихся каналов 0, наибольшая разница 0  ✓
+  шкала: порядок 2 → 2, наибольшая ОТНОСИТЕЛЬНАЯ разница коэффициентов 0.000E+000  ✓
+    было: [-15.06405718884492, 0.40827536208811871, 3.1937121350844971E-06]
+    стало: [-15.06405718884492, 0.40827536208811871, 3.1937121350844971E-06]
+    наибольший сдвиг ЭНЕРГИИ по всем каналам: 0.000E+000 кэВ
+  времена: измерение 187685 → 187685, живое 187685 → 187685  ✓
+  спектров в файле после ввоза: 1 (у корпусного было 1 + фон есть)
+  ФОН: было есть → стало есть  ✓; живое фона 59415.433 → 59415.433
+  НАЧАЛО НАБОРА: сдвиг StartTime 0 с, SampleInfo.Time 0 с  ✓
+  КРУГ: СОШЁЛСЯ ПОЛНОСТЬЮ
+
+
+ИТОГ: выгружено 1, отказов вывоза/ввоза 0, ОТСЧЁТЫ разошлись у 0, ВРЕМЕНА разошлись у 0 (наибольший остаток 0.000E+000 с), ШКАЛА разошлась у 0, ПРИЗНАК ФОНА потерян у 0, ЖИВОЕ ВРЕМЯ ФОНА потеряно у 0 (наибольший остаток 0.000E+000 с), НАЧАЛО НАБОРА потеряно у 0, ВТОРОЙ КРУГ гнался у 0 и потерял начало у 0
+

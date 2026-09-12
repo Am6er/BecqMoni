@@ -1,0 +1,40 @@
+процесс : C:\Users\moroz
+PowerShell: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8
+=== 1. build_all HEAD, относительные -Bin/-Out (ждём: -Bin от C:\Users\moroz, код 2) ===
+build_all.ps1: начало, pid 34668, 12.09 20:47:09
+  -Bin C:\Users\moroz\BecquerelMonitor\bin\Release_P28t
+  -Out C:\Users\moroz\tools\effmaker\probes\build_p28t_before
+нет C:\Users\moroz\BecquerelMonitor\bin\Release_P28t\BecquerelMonitor.exe - сначала соберите приложение
+код = 2
+каталог C:\Users\moroz\tools\effmaker\probes\build_p28t_before создан: False
+=== 3. mk_appwd HEAD, относительный -Wd (ждём: -Wd от C:\Users\moroz, код 7) ===
+?? ОТКАЗ: ОСНАСТКА ВНЕ ОБРАЗЦА - НИЧЕГО НЕ СОЗДАНО
+   -Wd = C:\Users\moroz\tools\CORPUS\scripts\wd_p28t
+   Принимается только C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_<имя>: этот образец ждут .gitignore
+   корпуса (scripts/wd_*/) и умолчания сторожей check_appwd.ps1 / run_appwd.ps1 (T91).
+код = 7
+=== 4. mk_appwd ПОСЛЕ правки, те же относительные пути, -Force (ждём: оснастка в дереве, отметка есть) ===
+?? ОТКАЗ: ОСНАСТКУ НЕ ИЗ ЧЕГО СОБИРАТЬ
+?? -Force: оснастка собирается из ПРОТУХШЕЙ сборки.
+  положено файлов: 456
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p28t
+?? ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ - ПРОГОН НЕ ЗАПУСКАЕТСЯ
+?? ПРОЩЕНО ключом -Force: 2 находок, все - про протухшую сборку (T41). Числа такого прогона в журнал НЕ ГОДЯТСЯ.
+код = 0
+отметка есть: True
+=== 5. run_appwd HEAD, относительный -Out, -Force (ждём: результат в wd_p28t\handover\..., код 0) ===
+?? ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ - ПРОГОН НЕ ЗАПУСКАЕТСЯ
+?? -Force: ПРОГОН НА ПРОТУХШЕЙ ОСНАСТКЕ. Числа этого прогона
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=handover\p28-t-rig\out_t136_before --only=ASN16_Th232
+код = 0
+в дереве   C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p28-t-rig\out_t136_before : False
+в оснастке C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p28t\handover\p28-t-rig\out_t136_before : True
+=== 6. run_appwd ПОСЛЕ правки, относительные -Wd и -Out, -Force (ждём: результат в дереве, код 0) ===
+?? ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ - ПРОГОН НЕ ЗАПУСКАЕТСЯ
+?? -Force: ПРОГОН НА ПРОТУХШЕЙ ОСНАСТКЕ. Числа этого прогона
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p28-t-rig\out_t136_after --only=ASN16_Th232
+код = 0
+в дереве   C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p28-t-rig\out_t136_after : True
+в оснастке C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p28t\handover\p28-t-rig\out_t136_after : False
+done 20:47:26
+exit=0
