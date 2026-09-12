@@ -44,8 +44,7 @@
 #       сборки одной пробы — это две копии правила «чем её собирать».
 #    2. ПРОМАХ ПО `-ProbeBuild` — ОТКАЗ, а не тишина. Прежде шаг 3 был обёрнут
 #       в `if (Test-Path …)` без единого слова: план ужимался, и `mk_appwd.ps1`
-#       сносил выносом сирот (позже `Remove-AppWdExtra`; с 12.09.2026 по `T117`
-#       сборщик ничего не выносит вовсе) пробы из оснастки, после чего
+#       сносил выносом сирот (ныне `Remove-AppWdExtra`) пробы из оснастки, после чего
 #       сторож печатал «свежая», код 0. На стенде — 2 пробы из 3 удалены молча
 #       с зелёным вердиктом; на настоящей оснастке это 74 пробы.
 #    3. `Get-ChildItem` ВЕЗДЕ С `-Force`. Без него сторож не видит СКРЫТЫХ
@@ -79,31 +78,17 @@
 #       `Ghost.dll` в корне — код 0, находок 0; чужая `ghostdb.sqlite` — 0/0;
 #       `ru\Ghost.resources.dll` — 0/0; `config\NuclideDefinition.OLD.xml` —
 #       0/0. Теперь обход один (`Get-AppWdExtra`) и разметка одна на двоих:
-#       сторож по ней отказывает и называет, `mk_appwd.ps1` по ней же называет.
+#       сторож по ней отказывает, `mk_appwd.ps1` по ней же выносит.
 #    3. СИРОТА-exe — ОТКАЗ, А НЕ ЖЁЛТАЯ СТРОЧКА. `Test-AppWdPlan` клал их в
 #       отдельный список, `Invoke-AppWdGuard` печатал и в находки НЕ ДОБАВЛЯЛ:
 #       опыт — `PeakFinderProbe.exe` в корне оснастки, вердикт «свежая», код 0.
 #       Это ровно «признак отказа без читателя»; в настоящей оснастке такой
 #       `PeakFinderProbe.exe` от 17.08 пролежал восемь дней.
-#    ⚠ Отказ вызывает не всякий файл вне плана, а только ИСПОЛНЯЕМЫЙ
-#      (`$script:AppWdExecutableExt`, решение Amber 27.08.2026 — `T88`, доля
-#      оснастки исполнена 12.09.2026 — `T117`). Прочее ЗАГРУЖАЕМОЕ
-#      (`$script:AppWdLoadableExt`: `.config`, `.sqlite`, `.xml`, `.rmx`) —
-#      ПРЕДУПРЕЖДЕНИЕ поимённо, с доводом и временем файла, код 0. Продукты
-#      прогонов — `.png`, `.csv` и прочее, что проба пишет себе под ноги, —
-#      перечисляются строкой и счёт не портят: в настоящей оснастке такие лежат
-#      (`fsa_app.png`, `stack_s9ui.png`), и отказ на них означал бы сторожа,
-#      который всегда отказывает.
-#    ⛔ НИКТО ЗДЕСЬ НИЧЕГО НЕ УДАЛЯЕТ (`T117`, 12.09.2026). До того `mk_appwd.ps1`
-#      выносил из оснастки всё постороннее загружаемое (`Remove-AppWdExtra`) —
-#      против решения Amber «один ответ на три каталога», и это была
-#      неисполненная доля `wd_app` (`T88` → `T117`). Теперь сборщик постороннее
-#      называет тем же обходом; свой файл (продукт прежней оснастки, сирота своей
-#      сборки) убирает агент сам, на чужой — разрешение вопросником у Amber.
-#      Исключение одно и прежнее (`T33`): каталоги `Exclusive` (`config\device`,
-#      `…\response`) строятся из корпуса ЦЕЛИКОМ и очищаются перед раскладкой —
-#      это содержимое самой оснастки, а не чужое (два GUID = модальное окно =
-#      зависание безоконного прогона, `B6`).
+#    ⚠ Отказ вызывает не всякий файл вне плана, а только ЗАГРУЖАЕМЫЙ
+#      (`$script:AppWdLoadableExt`). Продукты прогонов — `.png`, `.csv` и прочее,
+#      что проба пишет себе под ноги, — перечисляются строкой и счёт не портят:
+#      в настоящей оснастке такие лежат (`fsa_app.png`, `stack_s9ui.png`), и
+#      отказ на них означал бы сторожа, который всегда отказывает.
 #
 # Пользуются этим файлом: `mk_appwd.ps1` (собирает), `check_appwd.ps1` (сторож
 # отдельной командой), `run_appwd.ps1` (сторож + запуск пробы — ЧИТАТЕЛЬ отказа),
@@ -413,16 +398,13 @@ function Get-AppWdPlan {
         # то есть плечо было неизмеримо в принципе.
         [string]$Store = '',
         # `T149`: план для КАТАЛОГА ПРОБ (`build_all.ps1`), а не для оснастки
-        # корпуса. Отличие одно — поставочные `config\device\*.xml` кладутся
-        # ТОЖЕ (шаг 4а). Оснастке корпуса их класть НЕЛЬЗЯ: у неё
-        # `config\device` строится из приборов КОРПУСА целиком, а поставочный
-        # `AtomSpectraVCP.xml` несёт ТОТ ЖЕ GUID, что корпусный
+        # корпуса. Отличие одно — поставочные `config\device\*.xml` и
+        # `config\ROI\*.xml` кладутся ТОЖЕ (шаг 4). Оснастке корпуса их класть
+        # НЕЛЬЗЯ: у неё `config\device` строится из приборов КОРПУСА целиком, а
+        # поставочный `AtomSpectraVCP.xml` несёт ТОТ ЖЕ GUID, что корпусный
         # `1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml` (сверено 05.09.2026)
         # — два GUID = модальное окно = зависание безоконного прогона (`B6`).
-        # Поэтому ключ, а не общее правило. ⚠ Поставочные `config\ROI\*.xml`
-        # с 12.09.2026 (`T175`) кладутся ОБЕИМ оснасткам — см. шаг 4а; приборы
-        # КОРПУСА и матрицы (шаг 5) — с 12.09.2026 (`T225`) ТОЛЬКО оснастке
-        # корпуса: в одном плане с поставочными они спорили за `config\device`.
+        # Поэтому ключ, а не общее правило.
         [switch]$ProbeCatalog
     )
 
@@ -464,8 +446,8 @@ function Get-AppWdPlan {
     #    применяется и первое же чтение базы падает.
     #
     # ⛔ Промах по каталогу — ОТКАЗ, а не тишина (щель 2 выше). План строится
-    #    ДО единого копирования и ДО очистки каталогов `Exclusive`, поэтому
-    #    отказ здесь оставляет оснастку нетронутой.
+    #    ДО единого копирования и ДО `Remove-AppWdExtra`, поэтому отказ здесь
+    #    оставляет оснастку нетронутой.
     if (-not (Test-Path -LiteralPath $probeBuild)) {
         throw ("НЕТ КАТАЛОГА ПРОБ: $probeBuild`n" +
                "   Отладочный рецепт: pwsh tools\effmaker\probes\build_all.ps1`n" +
@@ -488,9 +470,9 @@ function Get-AppWdPlan {
                 Where-Object { $_.Name -ne 'BecquerelMonitor.exe' })
     # exe, у которого в дереве нет `.cs`, — не проба, а мусор прошлых заходов
     # (в `probes\build` такие лежат: `<guid>_CorpusMatrixProbe.exe` от 09–17.08).
-    # В оснастку он не едет по той же причине, по какой сторож отказывает на
-    # нём В оснастке: запустить его можно, и он покажет разбор, которого в
-    # коде нет.
+    # В оснастку он не едет по той же причине, по какой `Remove-AppWdExtra`
+    # выносит его ИЗ оснастки: запустить его можно, и он покажет разбор,
+    # которого в коде нет.
     $probeExe = @($allExe | Where-Object { $srcNames.ContainsKey($_.BaseName.ToLowerInvariant()) })
     $strayExe = @($allExe | Where-Object { -not $srcNames.ContainsKey($_.BaseName.ToLowerInvariant()) })
     if ($probeExe.Count -eq 0) {
@@ -517,9 +499,8 @@ function Get-AppWdPlan {
     #    был ОБЯЗАТЕЛЕН только потому, что `new PeakDetector()` поднимал
     #    `NuclideDefinitionManager` инициализатором поля. Теперь менеджер
     #    ленивый, файл в оснастке — НАРУШЕНИЕ (сторож `Test-AppWdLibrary`
-    #    отказывает, проба отказывает кодом 12); в прежних оснастках сборщик
-    #    его НЕ выносит (`T117`: никто здесь ничего не удаляет) — называет как
-    #    постороннее загружаемое, а отказ даёт `Test-AppWdLibrary`; снять руками.
+    #    отказывает, проба отказывает кодом 12), и `Remove-AppWdExtra` выносит
+    #    его из прежних оснасток как постороннее загружаемое.
     #    Каталогу ПРОБ (`-ProbeCatalog`) файл кладётся по-прежнему: там живут
     #    десятки проб приложения, которым поставочная библиотека нужна по праву
     #    (`FsaStackShot`, `IntensityLinesProbe`, …), и `--band-selftest` из
@@ -538,11 +519,10 @@ function Get-AppWdPlan {
             Why = 'поставочный конфиг'
         })
     }
-    # 4а. Поставочные конфигурации приборов — ТОЛЬКО каталогу проб (`T149`,
-    #     05.09.2026), поставочные ROI — ОБЕИМ оснасткам (`T175`, 12.09.2026).
-    #     Без каталога `config\device` `DeviceConfigManager` в безоконном
-    #     прогоне бросает `InvalidOperationException` (проба падает
-    #     необработанным исключением, код −532462766), без `config\ROI`
+    # 4а. ТОЛЬКО каталогу проб (`T149`, 05.09.2026): поставочные конфигурации
+    #     приборов и ROI. Без каталога `config\device` `DeviceConfigManager`
+    #     в безоконном прогоне бросает `InvalidOperationException` (проба
+    #     падает необработанным исключением, код −532462766), без `config\ROI`
     #     `ROIConfigManager` пишет отказ и грузит НОЛЬ конфигураций — измерено
     #     05.09.2026 на свежем каталоге: `FsaStampProbe` упала, `RoiLoadProbe`
     #     и `RoiSupplyProbe` вернули 2 «нет каталога». Каталоги нарочно
@@ -551,55 +531,28 @@ function Get-AppWdPlan {
     #     тот же, что у шага 4 (в `$Bin\config\device` csproj кладёт ОДИН прибор
     #     из девяти). Дублей GUID среди девяти поставочных приборов нет
     #     (сверено 05.09.2026).
-    # ⛔ `ROI` — и оснастке КОРПУСА (`T175`): без него каждая проба, строящая
-    #     `DocEnergySpectrum`, печатала в поток ошибок «Не удалось загрузить
-    #     конфигурационный файл ROI» (найдено 05.09.2026, B15/`A145`) — на числа
-    #     не влияет, но прячет настоящие отказы среди привычного шума. GUID у
-    #     двенадцати поставочных ROI различны (сверено 12.09.2026), с приборами
-    #     корпуса они не связаны (ROI ссылок на прибор не несёт), и в план
-    #     оснастки корпуса они входят тем же движением, что `config\device` в
-    #     план каталога проб — сверяются по sha256 как всё остальное.
-    #     Поставочные файлы при этом ТОЛЬКО КОПИРУЮТСЯ (приказ Amber 05.09.2026).
-    $supplySubs = if ($ProbeCatalog) { @('device', 'ROI') } else { @('ROI') }
-    foreach ($sub in $supplySubs) {
-        Get-ChildItem (Join-Path $Repo "BecquerelMonitor\config\$sub\*.xml") -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-            $pairs.Add([pscustomobject]@{
-                Src = $_.FullName
-                Dst = (Join-Path (Join-Path $Wd "config\$sub") $_.Name)
-                Why = "поставочный конфиг\$sub"
-            })
+    if ($ProbeCatalog) {
+        foreach ($sub in @('device', 'ROI')) {
+            Get-ChildItem (Join-Path $Repo "BecquerelMonitor\config\$sub\*.xml") -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+                $pairs.Add([pscustomobject]@{
+                    Src = $_.FullName
+                    Dst = (Join-Path (Join-Path $Wd "config\$sub") $_.Name)
+                    Why = "поставочный конфиг\$sub"
+                })
+            }
         }
     }
 
     # 5. Конфигурации приборов корпуса и матрицы отклика. `ResponseMatrixStore`
     #    ищет матрицу в `config\device\response` рабочего каталога, а кладёт их
     #    в `corpus\geometries\response` проба `CorpusEffProbe`.
-    # ⛔ ТОЛЬКО оснастке КОРПУСА (`T225`, 12.09.2026). Каталогу проб они не
-    #    нужны никогда — `build_all.ps1` берёт из плана свою долю и эти два рода
-    #    отбрасывает, — а в ОДНОМ плане с поставочными приборами они спорили за
-    #    место: `config\device\RC-103.xml` шёл и из `BecquerelMonitor\config\device`
-    #    (sha `ABA03220E1E3`), и из `corpus\devices` (sha `E5D282DBEF73`), 34 пары
-    #    на 33 места (измерено 05.09.2026, полоса F9). Копирование такого плана
-    #    целиком положило бы последнего поверх первого молча — теперь спор за
-    #    место ловит `Test-AppWdPairClash` ниже, а этот источник спора снят.
     $devDir = Join-Path $Wd 'config\device'
     $rspDir = Join-Path $Wd 'config\device\response'
-    if (-not $ProbeCatalog) {
-        Get-ChildItem (Join-Path $corpus 'devices\*.xml') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-            $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $devDir $_.Name); Why = 'прибор корпуса' })
-        }
-        Get-ChildItem (Join-Path $response '*.rmx') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
-            $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $rspDir $_.Name); Why = 'матрица отклика' })
-        }
+    Get-ChildItem (Join-Path $corpus 'devices\*.xml') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $devDir $_.Name); Why = 'прибор корпуса' })
     }
-
-    # ⛔ ОДНО МЕСТО — ОДИН ИСТОЧНИК (`T225`). План с двумя разными источниками на
-    #    один `Dst` не строится вовсе: `New-AppWdPlanOrDie` уходит кодом 6, ничего
-    #    не тронуто. Одинаковое содержимое из двух мест спором не считается.
-    $clash = @(Test-AppWdPairClash -Pairs @($pairs))
-    if ($clash.Count -gt 0) {
-        throw ("ПЛАН ПРОТИВОРЕЧИВ (T225): {0} мест(а) с РАЗНЫМИ источниками — копирование положило бы последний поверх первого МОЛЧА:`n   {1}" -f
-               $clash.Count, ($clash -join "`n   "))
+    Get-ChildItem (Join-Path $response '*.rmx') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+        $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $rspDir $_.Name); Why = 'матрица отклика' })
     }
 
     [pscustomobject]@{
@@ -626,45 +579,11 @@ function Get-AppWdPlan {
     }
 }
 
-# ⛔ СПОР ЗА МЕСТО В ПЛАНЕ (`T225`, 12.09.2026): две пары с одним `Dst` и РАЗНЫМИ
-#    источниками. Сравнивается СОДЕРЖИМОЕ (sha256), а не пути: один и тот же файл,
-#    названный дважды, и два файла с одинаковым содержимым спором не считаются —
-#    копирование в обоих случаях кладёт одно и то же. Пропавший источник здесь не
-#    находка (о нём кричит `Test-AppWdPlan` — «ПРОПАЛ ИСТОЧНИК»): его sha считается
-#    пустым, и спорить с ним нечем. Возвращает строки находок; пусто — спора нет.
-function Test-AppWdPairClash {
-    param([Parameter(Mandatory)][AllowEmptyCollection()][array]$Pairs)
-    $byDst = @{}
-    $clash = [System.Collections.Generic.List[string]]::new()
-    $sha   = @{}
-    function ShaOf([string]$path) {
-        $k = $path.ToLowerInvariant()
-        if (-not $sha.ContainsKey($k)) {
-            $sha[$k] = if (Test-Path -LiteralPath $path) { Get-AppWdSha256 -Path $path } else { '' }
-        }
-        $sha[$k]
-    }
-    function Short([string]$h) { if ($h) { $h.Substring(0, 12) } else { 'нет файла' } }
-    foreach ($p in $Pairs) {
-        $k = $p.Dst.ToLowerInvariant()
-        if (-not $byDst.ContainsKey($k)) { $byDst[$k] = $p; continue }
-        $q = $byDst[$k]
-        if ($q.Src.ToLowerInvariant() -eq $p.Src.ToLowerInvariant()) { continue }
-        $hq = ShaOf $q.Src
-        $hp = ShaOf $p.Src
-        if (-not $hq -or -not $hp -or $hq -eq $hp) { continue }
-        $clash.Add(("{0}`n      <- [{1}] {2}  sha {3}`n      <- [{4}] {5}  sha {6}" -f
-                    $p.Dst, $q.Why, $q.Src, (Short $hq), $p.Why, $p.Src, (Short $hp)))
-    }
-    @($clash)
-}
-
 # Единственная точка входа для трёх скриптов: построить план либо ОТКАЗАТЬ
 # громко, кодом 6. `Get-AppWdPlan` бросает, когда строить план не из чего
 # (нет каталога проб, нет `CorpusFsaProbe.exe`, нет `BecquerelMonitor.exe.config`),
 # и это НАРОЧНО отказ, а не «план поменьше»: именно ужавшийся план дал
-# прежнему выносу (`Remove-AppWdExtra`, снят 12.09.2026 по `T117`) снести пробы
-# из оснастки при зелёном вердикте сверху.
+# `Remove-AppWdExtra`-у снести пробы из оснастки при зелёном вердикте сверху.
 # `exit` внутри функции завершает вызвавший скрипт — здесь это и требуется.
 function New-AppWdPlanOrDie {
     param(
@@ -702,9 +621,8 @@ function Invoke-AppWdPlan {
 }
 
 # ЧТО ЛЕЖИТ В ОСНАСТКЕ НЕ ПО ПЛАНУ — один обход всего дерева и одна разметка
-# на двоих: сторож по ней ОТКАЗЫВАЕТ на исполняемом и НАЗЫВАЕТ прочее
-# загружаемое (`Test-AppWdPlan`), сборщик `mk_appwd.ps1` по ней же НАЗЫВАЕТ
-# (выноса нет с 12.09.2026 — `T117`). Двух списков «что здесь чужое» не бывает —
+# на двоих: сторож по ней ОТКАЗЫВАЕТ (`Test-AppWdPlan`), сборщик по ней же
+# ВЫНОСИТ (`Remove-AppWdExtra`). Двух списков «что здесь чужое» не бывает —
 # ровно на втором списке стояла щель 2: лишнее искалось в двух каталогах и
 # среди `*.exe` в корне, а `Ghost.dll`, `ghostdb.sqlite`, `ru\*.resources.dll`
 # и `config\*.OLD.xml` проходили насквозь с зелёным вердиктом.
@@ -728,14 +646,7 @@ function Get-AppWdExtra {
     }
     $stampRel = $script:AppWdStampName.ToLowerInvariant()
 
-    # ⛔ `-FollowSymlink` (`T80` (1), 12.09.2026): без него обход НЕ ЗАХОДИТ в точки
-    #    повторного разбора. Опыт 27.08.2026 — `config\device` подменили junction
-    #    на сторонний каталог с лишним `Ghost.xml`: `Test-Path` файл видел, сторож
-    #    печатал «ОСНАСТКА СВЕЖАЯ», код 0. Перемерено 12.09.2026 на стенде:
-    #    `-Recurse -Force` — 0 файлов за junction, `-Recurse -Force -FollowSymlink`
-    #    — 1, `[IO.Directory]::EnumerateFiles` — 1. Прогон файлы за junction
-    #    ЗАГРУЖАЕТ так же, как обычные, — значит, и сторож обязан их видеть.
-    Get-ChildItem -LiteralPath $wd -Recurse -File -Force -FollowSymlink -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem -LiteralPath $wd -Recurse -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
         if ($dstSet.ContainsKey($_.FullName.ToLowerInvariant())) { return }
         $rel = $_.FullName.Substring($wd.Length).TrimStart('\')
         if ($rel.ToLowerInvariant() -eq $stampRel) { return }
@@ -762,10 +673,7 @@ function Get-AppWdExtra {
             # код 0: каталог проб это одновременно выход сборки и рабочий
             # каталог, и отказ на положенном туда руками `config\ROI\*.xml`
             # означал бы сторожа, который отказывает ВСЕГДА.
-            # ⛔ СТОРОЖ ничего не удаляет — и сборщик оснастки тоже (`T117`).
-            #    Свой файл агент убирает сам; на чужой разрешение спрашивается
-            #    ВОПРОСНИКОМ у Amber, а не выводится из этой строки (дважды
-            #    прочитанной как общий запрет — 27.08 и 31.08.2026, `T88`).
+            # ⛔ Ничего не удаляется: сносить чужое агенту не разрешено.
             Deny = ($script:AppWdExecutableExt -contains $ext)
             Why  = $why
         })
@@ -773,23 +681,30 @@ function Get-AppWdExtra {
     @($res)
 }
 
-# ⛔ Функции `Remove-AppWdExtra` (вынос постороннего загружаемого из оснастки)
-#    здесь БОЛЬШЕ НЕТ — снята 12.09.2026 (`T117`): решение Amber 27.08.2026
-#    (`T88`) — один ответ на три каталога, и в нём никто ничего не удаляет.
-#    Постороннее сборщик называет через `Get-AppWdExtra` (см. `mk_appwd.ps1`).
+# Вынести из оснастки посторонние ЗАГРУЖАЕМЫЕ файлы. Продукты прогонов
+# (`.png`, `.csv`, …) не трогаются: их пишет проба, и на счёт они не влияют.
+function Remove-AppWdExtra {
+    param([Parameter(Mandatory)]$Plan)
+    $killed = [System.Collections.Generic.List[string]]::new()
+    foreach ($x in (Get-AppWdExtra -Plan $Plan)) {
+        if (-not $x.Load) { continue }
+        Remove-Item -LiteralPath $x.File.FullName -Force
+        $killed.Add($x.Rel)
+    }
+    @($killed)
+}
 
 # Сверка ОСНАСТКИ с источниками — по содержимому.
 function Test-AppWdPlan {
     param([Parameter(Mandatory)]$Plan)
 
     $bad   = [System.Collections.Generic.List[string]]::new()
-    $warn  = [System.Collections.Generic.List[string]]::new()
     $other = [System.Collections.Generic.List[string]]::new()
     $ok    = 0
 
     if (-not (Test-Path -LiteralPath $Plan.Wd)) {
         $bad.Add("ОСНАСТКИ НЕТ ВОВСЕ: $($Plan.Wd) — сначала pwsh mk_appwd.ps1")
-        return [pscustomobject]@{ Bad = @($bad); Warn = @(); Other = @(); Ok = 0 }
+        return [pscustomobject]@{ Bad = @($bad); Other = @(); Ok = 0 }
     }
 
     foreach ($p in $Plan.Pairs) {
@@ -836,28 +751,17 @@ function Test-AppWdPlan {
     }
 
     # Посторонние файлы — ОДНИМ обходом всей оснастки (щели 2 и 3, 27.08.2026).
-    # ⛔ ИСПОЛНЯЕМОЕ — отказ; прочее ЗАГРУЖАЕМОЕ — предупреждение поимённо, с
-    #    доводом; остальное — продукты прогонов, их только перечисляем. Так
-    #    решила Amber 27.08.2026 (`T88`) для трёх каталогов сразу, а исполнено
-    #    для оснастки только 12.09.2026 (`T117`): до того здесь любой
-    #    загружаемый файл шёл в отказ, а `Deny` не спрашивался вовсе. Признак
-    #    `Deny` ставит `Get-AppWdExtra` — второй разметки нет. ⚠ Предупреждение
-    #    печатает `Invoke-AppWdGuard` каждый прогон, с временем файла и доводом:
-    #    для чужого `.xml` в `config\device` довод — `B6` (два GUID = модальное
-    #    окно = зависание), и читать его надо ДО запуска.
+    # Загружаемое — отказ; прочее — продукты прогонов, их только перечисляем.
     foreach ($x in (Get-AppWdExtra -Plan $Plan)) {
-        if ($x.Deny) {
-            $bad.Add(("ИСПОЛНЯЕМОЕ ВНЕ ПЛАНА В ОСНАСТКЕ: {0}  {1}`n           {2}" -f $x.Rel,
-                      $x.File.LastWriteTime.ToString('dd.MM HH:mm'), $x.Why) +
-                     "`n           Сторож не удаляет (T88/T117): свой файл уберите сами, на чужой — разрешение вопросником у Amber.")
-        } elseif ($x.Load) {
-            $warn.Add(("{0}  {1} — {2}" -f $x.Rel, $x.File.LastWriteTime.ToString('dd.MM HH:mm'), $x.Why))
+        if ($x.Load) {
+            $bad.Add(("ЛИШНЕЕ В ОСНАСТКЕ: {0}  {1}`n           {2}" -f $x.Rel,
+                      $x.File.LastWriteTime.ToString('dd.MM HH:mm'), $x.Why))
         } else {
             $other.Add($x.Rel)
         }
     }
 
-    [pscustomobject]@{ Bad = @($bad); Warn = @($warn); Other = @($other); Ok = $ok }
+    [pscustomobject]@{ Bad = @($bad); Other = @($other); Ok = $ok }
 }
 
 # ОТМЕТКА О СБОРКЕ (`T80`). Оснастка без отметки — это либо «никогда не
@@ -997,7 +901,7 @@ function Test-AppWdLibrary {
             $which = Get-AppWdLibraryName -Repo $Plan.Repo -Print $fp.Print
             $bad.Add(("В ОСНАСТКЕ КОРПУСА ЛЕЖИТ config\NuclideDefinition.xml (отпечаток {0}, {1}) — ПРАВИЛО AMBER19 (12.09.2026):" -f $fp.Print, $which) +
                      "`n           корпус считается по нуклидам из базы по manifest.csv, поставочного списка в каталоге прогона быть НЕ ДОЛЖНО." +
-                     "`n           Пересоберите оснастку: mk_appwd.ps1 с 12.09.2026 файл не кладёт; прежний он НЕ выносит (T117) — снимите руками.")
+                     "`n           Пересоберите оснастку: mk_appwd.ps1 с 12.09.2026 файл не кладёт и выносит прежний как постороннее.")
             $empty.Bad = @($bad)
             return $empty
         }
@@ -1495,14 +1399,6 @@ function Invoke-AppWdGuard {
     # судить» выглядят одинаково.
     if ($b.PSObject.Properties['Note']) {
         foreach ($x in @($b.Note)) { Write-Host ("  ⚠ {0}" -f $x) -ForegroundColor DarkYellow }
-    }
-    # ⚠ Постороннее ЗАГРУЖАЕМОЕ, но не исполняемое (`T88`/`T117`): не отказ, а
-    #   предупреждение поимённо, с доводом — его читают ДО запуска, потому что
-    #   чужой `.xml` в `config\device` это `B6` (зависание безоконного прогона).
-    if ($p.PSObject.Properties['Warn'] -and $p.Warn.Count -gt 0) {
-        foreach ($x in $p.Warn) {
-            Write-Host ("  ⚠ ПОСТОРОННЕЕ ЗАГРУЖАЕМОЕ (не отказ — решение Amber 27.08.2026, T88; никто не удаляет — T117): {0}" -f $x) -ForegroundColor Yellow
-        }
     }
     # Не по плану, но и не загружается: продукты прогонов. Перечисляются, чтобы
     # видно было, ЧТО именно сторож пропустил, — но не отказ: иначе сторож

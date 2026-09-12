@@ -1,0 +1,15 @@
+приложение: код 0, exe 21:11:53
+  -Bin C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_P28t
+  -Out C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t
+сверено рядом с пробами: 230 файлов по sha256 с источником
+? в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p28t нет заверенной записи набора - свежесть судится ВРЕМЕНЕМ (правило T41)
+все собрались: 180 файлов (плюс 5 без Main, идут довеском)
+каталог заверен (T226): наборы - приложение 06f3c2bc64c0 (549 файлов), пробы 09b142bb1f7f (185), довесков 5
+build_all: код 0
+  положено файлов: 468
+  сверено  : 468 файлов по sha256 за 2.92 с
+  ОСНАСТКА СВЕЖАЯ: 468 файлов сошлись
+mk_appwd без -Force: код 0; отметка True
+check_appwd: код 0;   ОСНАСТКА СВЕЖАЯ: 468 файлов сошлись
+done 21:13:13
+exit=0
