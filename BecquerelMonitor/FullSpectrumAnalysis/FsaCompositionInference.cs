@@ -37,9 +37,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Доля подтверждённых: <see cref="Matched"/> / <see cref="Expected"/>.</summary>
         public double Coverage;
 
-        /// <summary>Энергия неспутываемой линии, подтвердившей родителя; NaN — такой нет.</summary>
-        public double AnchorKev = double.NaN;
-
         /// <summary>
         /// (`S65`, `A205`) ПОДЦЕПОЧКА — тот кусок ряда, который в пробе есть на
         /// самом деле, и её собственная доля. Пусто и NaN — ряд не обрывался
@@ -98,11 +95,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             text.AppendFormat(CultureInfo.InvariantCulture, "{0} {1:P0} ({2}/{3}, пиков {4})",
                               this.Name, this.Coverage, this.Matched, this.Expected,
                               this.LabelledPeaks);
-            if (!double.IsNaN(this.AnchorKev))
-            {
-                text.AppendFormat(CultureInfo.InvariantCulture, ", якорь {0:F1} кэВ", this.AnchorKev);
-            }
-
             if (!double.IsNaN(this.HeadCoverage))
             {
                 text.AppendFormat(CultureInfo.InvariantCulture,
@@ -212,7 +204,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     {
         /// <summary>
         /// Наименьшая доля ожидаемо-различимых групп, при которой родитель
-        /// берётся в состав без якоря.
+        /// берётся в состав. (Второго пути в состав — «якоря» — с 12.09.2026
+        /// нет, `S66`; см. <see cref="Accept"/>.)
         ///
         /// ⛔ ЭТО ЧИСЛО ВЫВЕДЕНО ЗАМЕРОМ ПО КОРПУСУ, а не назначено, — того
         /// требует сама строка `S57`. Прогонялка — `CorpusFsaProbe --lib=infer
@@ -260,19 +253,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// здесь нужна РАЗРЕШИМОСТЬ, и это разные величины.
         /// </summary>
         const double MinWindowFraction = 0.005;
-
-        /// <summary>
-        /// Доля веса якоря, начиная с которой НЕПОДТВЕРЖДЁННАЯ группа отменяет
-        /// якорь: «ничего сравнимо яркого не пропало».
-        ///
-        /// Без этой оговорки якорь пропускал фантомы с долей 10 % — Am-243 в
-        /// граните 18.08.2026 прошёл единственной линией 74.7 кэВ при девяти
-        /// ненайденных. Смысл оговорки прямой: довод «главная линия на месте»
-        /// стоит чего-то, только если рядом с ней НЕ отсутствует другая, почти
-        /// такая же яркая. Отсутствие такой — довод против родителя, и он
-        /// сильнее.
-        /// </summary>
-        public const double AnchorDominance = 0.5;
 
         /// <summary>
         /// Полуширина окна соответствия в долях ПШПВ.
@@ -343,11 +323,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static FsaSampleSpec Infer(IEnumerable<Peak> peaks,
                                           ResultData resultData,
                                           double coverage,
-                                          bool anchors,
                                           bool novelty,
                                           out Report report)
         {
-            return Infer(peaks, resultData, coverage, anchors, novelty, DefaultCut,
+            return Infer(peaks, resultData, coverage, novelty, DefaultCut,
                          out report);
         }
 
@@ -355,7 +334,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static FsaSampleSpec Infer(IEnumerable<Peak> peaks,
                                           ResultData resultData,
                                           double coverage,
-                                          bool anchors,
                                           bool novelty,
                                           FsaChainCut cut,
                                           out Report report)
@@ -412,7 +390,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            Score(models, minSnr, anchors);
+            Score(models, minSnr);
             Breakdown(models);
             if (cut != FsaChainCut.Whole)
             {
@@ -456,25 +434,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return spec;
         }
 
-        /// <summary>То же с порогом прогона и якорями.</summary>
-        public static FsaSampleSpec Infer(IEnumerable<Peak> peaks, ResultData resultData,
-                                          double coverage, bool anchors, out Report report)
-        {
-            return Infer(peaks, resultData, coverage, anchors, true, out report);
-        }
-
-        /// <summary>То же с порогом прогона, якорями и проверкой новизны.</summary>
+        /// <summary>То же с порогом прогона и проверкой новизны.</summary>
         public static FsaSampleSpec Infer(IEnumerable<Peak> peaks, ResultData resultData,
                                           double coverage, out Report report)
         {
-            return Infer(peaks, resultData, coverage, true, true, out report);
+            return Infer(peaks, resultData, coverage, true, out report);
         }
 
         /// <summary>То же с порогом по умолчанию.</summary>
         public static FsaSampleSpec Infer(IEnumerable<Peak> peaks, ResultData resultData,
                                           out Report report)
         {
-            return Infer(peaks, resultData, DefaultCoverage, true, true, out report);
+            return Infer(peaks, resultData, DefaultCoverage, true, out report);
         }
 
         // ------------------------------------------------------------------
@@ -1233,7 +1204,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⚠ Медиана, а не среднее: одно случайное совпадение сильного пика со
         /// слабой линией сдвинуло бы среднее на порядок.
         /// </summary>
-        static void Score(List<Model> models, double minSnr, bool anchors)
+        static void Score(List<Model> models, double minSnr)
         {
             foreach (Model model in models)
             {
@@ -1284,7 +1255,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 evidence.Coverage = evidence.Expected > 0
                     ? (double)evidence.Matched / evidence.Expected : 0.0;
-                evidence.AnchorKev = anchors ? Anchor(model, models) : double.NaN;
             }
         }
 
@@ -1686,14 +1656,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Жадный приём по убыванию доли — и проверка НОВИЗНЫ против уже
         /// принятых.
         ///
-        /// ⛔ ТРЕТЬЕ УСЛОВИЕ, И ОНО ПРО ГЛАВНЫЙ ОСТАВШИЙСЯ КЛАСС ФАНТОМОВ.
-        /// Доля и якорь судят кандидата ПООДИНОЧКЕ, а фантом живёт не один: он
+        /// ⛔ (`S66`) ВТОРОГО ПУТИ В СОСТАВ — «неспутываемая главная линия на
+        /// месте», якоря — БОЛЬШЕ НЕТ: снят 12.09.2026 решением Amber, дословно
+        /// «Снять якорь, новизну оставить». Он был заведён ради бедных линиями
+        /// нуклидов (Cs-137: четыре группы, три из них рентген, доля 1/4) — и
+        /// перемерен полосой П30 на 131 спектре корпуса ОДНИМ двоичным файлом
+        /// (`FsaInferProbeF51 --no-anchor`): состав не изменился НИ У ОДНОГО
+        /// (принятых родителей 180 = 180), менялся только текст отчёта у 69.
+        /// При пороге 30 % нуклида с долей 1/4 на корпусе нет, у Cs-137 доля
+        /// 1/3 проходит и без него. Признак без потребителя снят ЦЕЛИКОМ, а не
+        /// оставлен ключом «на всякий случай», — так велела сама строка;
+        /// прежняя ветка — в истории до 12.09.2026 (`Anchor`, `AnchorKev`,
+        /// `AnchorDominance`).
+        ///
+        /// ⛔ ВТОРОЕ УСЛОВИЕ, И ОНО ПРО ГЛАВНЫЙ ОСТАВШИЙСЯ КЛАСС ФАНТОМОВ.
+        /// Доля судит кандидата ПООДИНОЧКЕ, а фантом живёт не один: он
         /// садится на структуру, которую уже объяснил кто-то другой. Измерено
         /// 18.08.2026 при пороге 30 %: в ториевом спектре `ASN16_Th232` Eu-152
         /// набирает 3 группы из 8 — и все три стоят на линиях самого тория
         /// (121.78 против 129.06 у Ac-228, 344.3 против 338.32, 964.1 против
         /// 968.97), то есть НИ ОДНОЙ своей структуры не приносит. Ровно тот же
-        /// механизм, что у фантома Pu-238 из `N18`.
+        /// механизм, что у фантома Pu-238 из `N18`. Тем же замером П30 (`S66`,
+        /// 12.09.2026) новизна держит 6 фантомов у 5 спектров (`--no-novel`:
+        /// I-131, трижды Eu-152, U-235, Ag-108m) — потребитель у неё есть, она
+        /// остаётся.
         ///
         /// Поэтому кандидат обязан принести хоть одну СВОЮ группу: такую, рядом
         /// с которой ни у одного уже принятого неродственного родителя нет
@@ -1717,8 +1703,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                bool anchored = !double.IsNaN(evidence.AnchorKev);
-                if (!anchored && Judged(evidence) < coverage)
+                if (Judged(evidence) < coverage)
                 {
                     evidence.Why = "доля ниже порога";
                     continue;
@@ -1731,13 +1716,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 evidence.Accepted = true;
-                evidence.Why = anchored
-                    ? "неспутываемая линия на месте"
-                    : (!double.IsNaN(evidence.HeadCoverage)
-                       && evidence.HeadCoverage > evidence.Coverage
-                       && evidence.Coverage < coverage)
-                        ? "доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)"
-                        : "доля выше порога";
+                evidence.Why = !double.IsNaN(evidence.HeadCoverage)
+                               && evidence.HeadCoverage > evidence.Coverage
+                               && evidence.Coverage < coverage
+                    ? "доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)"
+                    : "доля выше порога";
                 accepted.Add(model);
             }
         }
@@ -1791,78 +1774,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Неспутываемая ГЛАВНАЯ линия родителя, стоящая на месте, — или NaN.
-        ///
-        /// Второй путь в состав, и нужен он ровно одному классу нуклидов —
-        /// бедным линиями. У Cs-137 в рабочем окне четыре группы: 661.66 и три
-        /// рентгеновские, которых сцинтиллятор внизу шкалы обычно не берёт.
-        /// Доля выходит 1/4, порога не хватает, а нуклид в спектре стоит и
-        /// виден за версту. Богатым родителям этот путь не нужен: у настоящего
-        /// Th-232 доля и так за две трети.
-        ///
-        /// ⛔ ЯКОРЕМ СЛУЖИТ ТОЛЬКО САМАЯ СИЛЬНАЯ ОЖИДАЕМАЯ ГРУППА, и это не
-        /// строгость ради строгости. Первый прогон брал якорем любую заметную
-        /// линию — и якорь нашёлся у ВСЕХ кандидатов подряд, включая Ag-108m в
-        /// чароите и Am-241 в урановом стекле; последний тянул за собой ряд
-        /// нептуния и тринадцать выдуманных образов. Правило «главная линия»
-        /// само по себе содержит нужную проверку: если родитель есть, ярче
-        /// всего видно именно её, и её отсутствие есть довод против него, а не
-        /// повод искать якорь послабее.
-        ///
-        /// ⚠ «Не с чем спутать» проверяется по ДРУГИМ кандидатам, и родня из
-        /// проверки исключается: если поиск подписал пики и «Tl-208 (Th-232)»,
-        /// и голым «Tl-208», кандидатов выйдет два, и они отняли бы якорь друг
-        /// у друга — при том что физически это одно утверждение. Родня
-        /// опознаётся по вхождению корня в состав соседа.
-        /// </summary>
-        static double Anchor(Model model, List<Model> models)
-        {
-            Group main = null;
-            foreach (Group group in model.Groups)
-            {
-                if (group.Expected && (main == null || group.Weight > main.Weight))
-                {
-                    main = group;
-                }
-            }
-
-            if (main == null || !main.Matched)
-            {
-                return double.NaN;
-            }
-
-            // Ничего сравнимо яркого не пропало — иначе якорь не довод.
-            foreach (Group group in model.Groups)
-            {
-                if (group.Expected && !group.Matched
-                    && group.Weight >= AnchorDominance * main.Weight)
-                {
-                    return double.NaN;
-                }
-            }
-
-            foreach (Model other in models)
-            {
-                if (other == model || Kin(model, other))
-                {
-                    continue;
-                }
-
-                foreach (Group rival in other.Groups)
-                {
-                    // Соперник учитывается, только если он сам ожидаем: линия в
-                    // тысячную процента не спутывает ничего, её просто не видно.
-                    if (rival.Expected && Math.Abs(rival.Energy - main.Energy) <= main.Window)
-                    {
-                        return double.NaN;
-                    }
-                }
-            }
-
-            return main.Energy;
         }
 
         /// <summary>Родня: корень одного входит в состав другого.</summary>
