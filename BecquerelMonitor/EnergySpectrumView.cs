@@ -2592,6 +2592,48 @@ namespace BecquerelMonitor
             return (double)this.numberOfChannels;
         }
 
+        /// <summary>
+        /// Предел координаты для целочисленных <c>Graphics.DrawLine</c> и
+        /// родни — запасной ремень `AMBER23` (задача Amber 12.09.2026). GDI+
+        /// отвечает <c>OverflowException</c> («Overflow error»), когда
+        /// координата по модулю выходит за ≈2³⁰ (замер 12.09.2026 на
+        /// <c>Bitmap 800×600</c>: y проходит до 1 073 742 207, отказ с
+        /// 1 073 742 208; отрицательная — отказ с −1 073 741 761). Здесь
+        /// половина того предела: сложение с <c>scrollX + left</c> после
+        /// клипа остаётся в норме, а на экране в 2²⁹ пикселей разницы нет.
+        /// Проверяется пробой <c>FwhmOverflowProbe</c> (§1): отрезок между
+        /// углами ±предел обязан рисоваться без исключения.
+        /// </summary>
+        const int GdiCoordinateLimit = 1 << 29;
+
+        /// <summary>
+        /// Координата для GDI+: <paramref name="value"/> до приведения к
+        /// <c>int</c> зажимается в ±<see cref="GdiCoordinateLimit"/>. Внутри
+        /// предела это ровно <c>(int)value</c> — усечение к нулю, как было,
+        /// поэтому обычный кадр не меняется ни на пиксель. За пределом
+        /// прежнее <c>(int)</c> давало <c>int.MinValue</c> для ЛЮБОГО знака
+        /// (и для NaN), а <c>height - int.MinValue</c> ещё и переполнялось —
+        /// координата уходила не туда и не в предел. NaN отправляется на
+        /// положительный предел: рисовать по нему нечего, пусть будет за
+        /// краем.
+        /// </summary>
+        static int GdiCoordinate(double value)
+        {
+            if (value > GdiCoordinateLimit)
+            {
+                return GdiCoordinateLimit;
+            }
+            if (value < -GdiCoordinateLimit)
+            {
+                return -GdiCoordinateLimit;
+            }
+            if (double.IsNaN(value))
+            {
+                return GdiCoordinateLimit;
+            }
+            return (int)value;
+        }
+
         // Token: 0x060004B6 RID: 1206 RVA: 0x00018404 File Offset: 0x00016604
         void DrawFWHM(Graphics g)
         {
@@ -2608,7 +2650,27 @@ namespace BecquerelMonitor
             int num3 = -1;
             int y = -1;
             int num8;
-            for (int i = (int)energyResolutionResult.StartChannel; i <= (int)energyResolutionResult.EndChannel; i++)
+            // ⛔ (`AMBER23`, решение Amber 12.09.2026 «Только падение») ЛОМАНАЯ
+            // ПОДЛОЖКИ — ТОЛЬКО ПО КАНАЛАМ ВИДИМОГО ОКНА, тем же признаком, что
+            // спектр (`DrawLineChart`) и контуры пиков (`DrawPeakLineChart`).
+            // Прежде проецировались ВСЕ каналы выделения — единственная
+            // отрисовка вида, которая так делала, — а в линейной шкале при
+            // подгонке по видимому окну на пустом окне `verticalScale` ≈ M
+            // (максимум спектра, отсчётов/канал), и y уходил на ~height·M px:
+            // с ≈2³⁰ GDI+ отвечает `OverflowException` из `DrawLine`, и падал
+            // КАЖДЫЙ `OnPaint`. Замер полосы П25 (`FwhmOverflowProbe`, холст
+            // 800×600, высота поля 564): падение с M = 2·10⁶ при вертикальной
+            // прокрутке в начале и с M = 4·10⁶ при прокрутке от подгонки.
+            // Подгонку и потолок `verticalScale` по решению Amber НЕ трогать.
+            int visibleFrom = (int)energyResolutionResult.StartChannel;
+            int visibleTo = (int)energyResolutionResult.EndChannel;
+            if (this.TryGetVisibleChannelRange(this.energySpectrum, this.energyCalibration, false,
+                                               out int visibleStartChannel, out int visibleEndChannel))
+            {
+                visibleFrom = Math.Max(visibleFrom, visibleStartChannel);
+                visibleTo = Math.Min(visibleTo, visibleEndChannel);
+            }
+            for (int i = visibleFrom; i <= visibleTo; i++)
             {
                 double num4 = energyResolutionResult.StartValue + (energyResolutionResult.EndValue - energyResolutionResult.StartValue) * ((double)i - energyResolutionResult.StartChannel) / (energyResolutionResult.EndChannel - energyResolutionResult.StartChannel);
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
@@ -2618,17 +2680,17 @@ namespace BecquerelMonitor
                 int num5;
                 if (this.verticalScaleType == VerticalScaleType.LinearScale)
                 {
-                    num5 = this.height - (int)((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((num4 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else if (num4 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
                 {
                     double num6 = Log10(num4);
-                    num5 = this.height - (int)((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((num6 - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else if (num4 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
                     double num6 = Pow(num4);
-                    num5 = this.height - (int)((num6 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((num6 - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2637,11 +2699,11 @@ namespace BecquerelMonitor
                 if (this.horizontalUnit == HorizontalUnit.Energy)
                 {
                     double num7 = this.energyCalibration.ChannelToEnergy((double)i + 0.5);
-                    num8 = (int)((num7 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = GdiCoordinate((num7 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    num8 = (int)(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    num8 = GdiCoordinate(((double)i + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
                 if (num3 > 0)
                 {
@@ -2653,11 +2715,11 @@ namespace BecquerelMonitor
             if (this.horizontalUnit == HorizontalUnit.Energy)
             {
                 double num9 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.MaxChannel + 0.5);
-                num8 = (int)((num9 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                num8 = GdiCoordinate((num9 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
             }
             else
             {
-                num8 = (int)((energyResolutionResult.MaxChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                num8 = GdiCoordinate((energyResolutionResult.MaxChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
             }
             double num10 = energyResolutionResult.MaxValue;
             double num11 = energyResolutionResult.MaxBaseValue;
@@ -2671,13 +2733,13 @@ namespace BecquerelMonitor
             int y3;
             if (this.verticalScaleType == VerticalScaleType.LinearScale)
             {
-                y2 = this.height - (int)((num10 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
-                y3 = this.height - (int)((num11 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                y2 = this.height - GdiCoordinate((num10 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                y3 = this.height - GdiCoordinate((num11 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
             } else if (this.verticalScaleType == VerticalScaleType.PowerScale)
             {
                 if (num10 > 0.0)
                 {
-                    y2 = this.height - (int)((Pow(num10) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y2 = this.height - GdiCoordinate((Pow(num10) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2685,7 +2747,7 @@ namespace BecquerelMonitor
                 }
                 if (num11 > 0.0)
                 {
-                    y3 = this.height - (int)((Pow(num11) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y3 = this.height - GdiCoordinate((Pow(num11) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2696,7 +2758,7 @@ namespace BecquerelMonitor
             {
                 if (num10 > 0.0)
                 {
-                    y2 = this.height - (int)((Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y2 = this.height - GdiCoordinate((Log10(num10) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2704,7 +2766,7 @@ namespace BecquerelMonitor
                 }
                 if (num11 > 0.0)
                 {
-                    y3 = this.height - (int)((Log10(num11) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    y3 = this.height - GdiCoordinate((Log10(num11) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2726,13 +2788,13 @@ namespace BecquerelMonitor
                 {
                     double num12 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.LeftChannel + 0.5);
                     double num13 = this.energyCalibration.ChannelToEnergy(energyResolutionResult.RightChannel + 0.5);
-                    x = (int)((num12 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
-                    x2 = (int)((num13 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                    x = GdiCoordinate((num12 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
+                    x2 = GdiCoordinate((num13 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left;
                 }
                 else
                 {
-                    x = (int)((energyResolutionResult.LeftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
-                    x2 = (int)((energyResolutionResult.RightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    x = GdiCoordinate((energyResolutionResult.LeftChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
+                    x2 = GdiCoordinate((energyResolutionResult.RightChannel + 0.5) * this.horizontalScale) + this.scrollX + this.left;
                 }
                 double num14 = energyResolutionResult.HalfValue;
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.MeasurementTime != 0.0)
@@ -2742,15 +2804,15 @@ namespace BecquerelMonitor
                 int num5;
                 if (this.verticalScaleType == VerticalScaleType.LinearScale)
                 {
-                    num5 = this.height - (int)((num14 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((num14 - this.totalMinValue) / this.valueRange * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.LogarithmicScale)
                 {
-                    num5 = this.height - (int)((Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((Log10(num14) - this.totalMinValueLog) / this.valueRangeLog * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else if (num14 > 0.0 && this.verticalScaleType == VerticalScaleType.PowerScale)
                 {
-                    num5 = this.height - (int)((Pow(num14) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
+                    num5 = this.height - GdiCoordinate((Pow(num14) - this.totalMinValuePow) / this.valueRangePow * (double)this.height * this.verticalScale + this.scrollBaseY + (double)this.scrollY);
                 }
                 else
                 {
@@ -2758,31 +2820,14 @@ namespace BecquerelMonitor
                 }
                 if (num5 > 0 && num5 < this.height)
                 {
-                    try
-                    {
-                        g.DrawLine(Pens.Yellow, x, num5, x2, num5);
-                    }
-                    catch (Exception)
-                    {
-                        // Swallow bad coordinates (NaN/Infinity from a broken calibration).
-                        // Was MessageBox.Show("Found") - a modal dialog per channel per paint.
-                        //
-                        // ⛔ `A3`, третье и последнее такое место в файле (два
-                        // побратима выметены раньше — :2654 и :2825). Метод
-                        // зовётся из `DrawChart`, то есть на КАЖДУЮ отрисовку и
-                        // на каждый канал: подними здесь окно — и программу
-                        // нельзя ни закрыть, ни прощёлкать. Слово «Found» к
-                        // тому же непереводимо.
-                        //
-                        // ⚠ Честно о том, ЧТО ИМЕННО ловится. Здесь целочисленная
-                        // перегрузка `DrawLine` (`x`, `x2`, `num5` — `int`), так
-                        // что NaN и бесконечность до GDI+ не доходят, а `num5`
-                        // вдобавок проверен на попадание в высоту. НО `x` и `x2`
-                        // не проверены НИЧЕМ: испорченная калибровка уводит их
-                        // сколь угодно далеко, а туда GDI+ уже бросает. Так что
-                        // ветвь не мёртвая, хотя редкая, — и окна в ней быть не
-                        // может в любом случае.
-                    }
+                    // История места: было `MessageBox.Show("Found")` в `catch`
+                    // на каждый канал каждой отрисовки (`A3`, снято), затем
+                    // пустой `catch` «на испорченную калибровку» — `x` и `x2`
+                    // не были проверены ничем. С `AMBER23` каждая координата
+                    // этого метода проходит `GdiCoordinate` и в предел GDI+
+                    // попадает ПО ПОСТРОЕНИЮ; ловить здесь стало нечего, а
+                    // ловля вокруг `DrawLine` и была бы лечением симптома.
+                    g.DrawLine(Pens.Yellow, x, num5, x2, num5);
                 }
             }
         }

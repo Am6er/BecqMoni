@@ -1,0 +1,63 @@
+== полоса П25, `AMBER23`: OverflowException в DrawFWHM ==
+плечо: ДО правки (ожидаю OverflowException)
+
+сборка приложения: C:\Users\moroz\bqp25\tools\effmaker\probes\build_p25_before\BecquerelMonitor.exe
+собрана:           12.09.2026 20:23:00
+sha256 сборки:     2d5a8b525fdf0e7cf59b1af1d843ec44583e9e9af9cf339ac0e4f1a891034e7e
+рабочий каталог:   C:\Users\moroz\bqp25\tools\effmaker\probes\build_p25_before
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+холст:             800×600
+клип координат:    в сборке НЕТ (`EnergySpectrumView.GdiCoordinateLimit` не найдено — сборка ДО правки)
+
+§1 механизм — DrawLine(int…) на Bitmap 800×600
+  y = −(2³⁰+2¹⁶): OverflowException: Overflow error.
+  ✔ положительный контроль механизма: за пределом GDI+ бросает OverflowException
+
+§2 сцена 1 — пик 4000000 отсчётов/канал в канале 1000, выделение 950…1050, линейная шкала, MinMax, окно на нулях (×8, каналы 0…92, выделение правее окна), полный OnPaint
+  вид: height=564 width=742 verticalScale=4000200.000 scrollBaseY=-2256112236 scrollY=-2147483648 scrollX=0 окно подгонки: каналы 0…87 max=1.05 min=0.00 vScroll(вкл max=-2147483648 value=-2147483648)
+  исключение: System.OverflowException: Overflow error.
+  трасса содержит DrawFWHM=да DrawChart=да OnPaint=да
+  --- трасса ---
+     at System.Drawing.Graphics.CheckErrorStatus(Int32 status)
+     at System.Drawing.Graphics.DrawLine(Pen pen, Int32 x1, Int32 y1, Int32 x2, Int32 y2)
+     at BecquerelMonitor.EnergySpectrumView.DrawFWHM(Graphics g) in C:\Users\moroz\bqp25\BecquerelMonitor\EnergySpectrumView.cs:line 2648
+     at BecquerelMonitor.EnergySpectrumView.DrawChart(Graphics g) in C:\Users\moroz\bqp25\BecquerelMonitor\EnergySpectrumView.cs:line 2579
+     at BecquerelMonitor.EnergySpectrumView.OnPaint(PaintEventArgs pe) in C:\Users\moroz\bqp25\BecquerelMonitor\EnergySpectrumView.cs:line 1747
+  --------------
+  ✔ плечо ДО: сцена 1 даёт OverflowException
+  ✔ плечо ДО: трасса идёт DrawFWHM ← DrawChart ← OnPaint
+
+§3 развёртка по M (та же сцена 1) — порог падения при двух положениях вертикальной прокрутки и состояние `RecalcScrollBar`
+  M            | прокрутка | исход                | verticalScale  | scrollY      | vScroll: вкл  Maximum      Value
+  250000       | подгонка  | тишина               | 250200.0       | 141112236    | да   141112800    141112236
+  250000       | верх      | тишина               | 250200.0       | 0            | да   141112800    0
+  500000       | подгонка  | тишина               | 500200.0       | 282112235    | да   282112800    282112235
+  500000       | верх      | тишина               | 500200.0       | 0            | да   282112800    0
+  1000000      | подгонка  | тишина               | 1000200.0      | 564112236    | да   564112800    564112236
+  1000000      | верх      | тишина               | 1000200.0      | 0            | да   564112800    0
+  2000000      | подгонка  | тишина               | 2000200.0      | 1128112236   | да   1128112800   1128112236
+  2000000      | верх      | OverflowException    | 2000200.0      | 0            | да   1128112800   0
+  4000000      | подгонка  | OverflowException    | 4000200.0      | -2147483648  | да   -2147483648  -2147483648
+  4000000      | верх      | OverflowException    | 4000200.0      | -2147483648  | да   -2147483648  -2147483648
+  8000000      | подгонка  | OverflowException    | 8000200.0      | -2147483648  | да   -2147483648  -2147483648
+  8000000      | верх      | OverflowException    | 8000200.0      | -2147483648  | да   -2147483648  -2147483648
+  (факт для строки, не приёмка: при height·verticalScale > int.MaxValue `RecalcScrollBar` считает в int с переносом —
+   Maximum и Value полосы становятся int.MinValue; «верх» = человек увёл вертикальную прокрутку в начало)
+
+§4 сцена 2 — тот же спектр, весь на экране (FitHorizontalScale), выделение в окне, полный OnPaint
+  вид: height=564 width=742 verticalScale=1.000 scrollBaseY=0 scrollY=0 scrollX=0 окно подгонки: каналы 0…4091 max=4200210.00 min=0.00 vScroll(ВЫКЛ max=0 value=0)
+  ✔ scene2: без исключения (оба плеча)
+  жёлтых точек в кадре: 542; полуширина по выделению: 28.26 кан.
+  ✔ scene2: ломаная полуширины нарисована (жёлтых точек > 0)
+  ✔ scene2: verticalScale ≈ 1 (подгонка по видимому окну со всем спектром)
+  кадр: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p25-amber23\scene2_before.png  sha256 fb43d48313c8ce761e4efe2efac984ea66e54660e23c6d2ed77492e5884bea61
+
+§4 сцена 3 — увеличение ×8, окно на пике (каналы ≈957…1049), выделение 950…1050 видно частично, полный OnPaint
+  вид: height=564 width=742 verticalScale=1.000 scrollBaseY=0 scrollY=0 scrollX=-7656 окно подгонки: каналы 952…1044 max=4200210.00 min=1511.16 vScroll(ВЫКЛ max=0 value=0)
+  ✔ scene3: без исключения (оба плеча)
+  жёлтых точек в кадре: 764; полуширина по выделению: 28.26 кан.
+  ✔ scene3: ломаная полуширины нарисована (жёлтых точек > 0)
+  кадр: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p25-amber23\scene3_before.png  sha256 d0fced2493c36dc31e55357a23d37d37f70c36d516c4cd074c11d287a16735eb
+
+
+РАСХОЖДЕНИЙ НЕТ
