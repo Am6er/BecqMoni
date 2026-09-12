@@ -545,6 +545,37 @@ def room_lines():
     return _ROOM_CACHE
 
 
+def level_fallback_spectra(entries, fallback):
+    """(`T93`/`T195`) Какие спектры из `entries` несут линии родителей из
+    `fallback` (nucid-ы с ЗАПАСНОЙ ветвью правила уровня, см.
+    `chains.level_fallback_nucids`). Возвращает [(key, [nucid, …]), …].
+
+    Одно правило на сборщик и приёмку: `check_corpus.check_level_fallback`
+    зовёт ЭТУ функцию, а не держит свой обход (четвёртого соглашения о том,
+    что такое «родитель», не заводим — `D48`). Сопоставление — по именам тем
+    же `sample_lines`, которым собирается корпус: имя линии до « (», хвост
+    « room» снимается.
+    """
+    import chains
+    by_name = dict((chains.pretty(n), n) for n in fallback)
+    bad, memo = [], {}
+    for e in entries:
+        key = (tuple(e.get('chains') or []), tuple(e.get('nuclides') or []),
+               e.get('extra'))
+        if key not in memo:
+            hit = set()
+            for _, _, name in sample_lines(e):
+                token = name.split(' (', 1)[0]
+                if token.endswith(' room'):
+                    token = token[:-5]
+                if token in by_name:
+                    hit.add(by_name[token])
+            memo[key] = sorted(hit)
+        if memo[key]:
+            bad.append((e['key'], memo[key]))
+    return bad
+
+
 def sample_lines(entry):
     """Всё, что образец может излучить, с интенсивностью на распад родителя.
 
@@ -1781,6 +1812,24 @@ def main():
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
     os.makedirs(OUT_SPECTRA, exist_ok=True)
+
+    # (`T195`) Сводное число в ШАПКЕ пересборки, до стадии 1: сколько спектров
+    # собирается на строках СОСЕДНЕГО уровня родителя. Признак печатается в
+    # момент срабатывания (`sample_lines`) и роняет приёмку `check_corpus.py`
+    # (`T93`), но читающий шапку видел лишь россыпь предупреждений, а не число.
+    # Считается той же функцией, что и приёмка (`level_fallback_spectra`).
+    import chains as _chains
+    _c = _chains.conn()
+    _fallback = _chains.level_fallback_nucids(_c)
+    _c.close()
+    _on_fallback = level_fallback_spectra(entries, _fallback) if _fallback else []
+    print('запасная ветвь правила родителя (T93): родителей в базе %d%s; '
+          'спектров на ней %d из %d%s'
+          % (len(_fallback), (' — ' + ', '.join(_fallback)) if _fallback else '',
+             len(_on_fallback), len(entries),
+             (' — ' + ', '.join(k for k, _ in _on_fallback)) if _on_fallback else ''))
+    if _on_fallback:
+        print('  ⛔ такой корпус приёмку check_corpus.py НЕ ПРОЙДЁТ')
 
     # --- девятка: побайтная копия ---
     legacy_rows = []

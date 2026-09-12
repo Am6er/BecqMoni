@@ -34,10 +34,17 @@ namespace S109ActivityProbe
     ///
     /// ⚠ ДОПУЩЕНИЕ, И ОНО НАЗВАНО: окно спора соседей в приложении — половина
     /// ПШПВ ВЫДЕЛЕНИЯ (`SelectionFWHMinkev`, измеренная гауссовым фитом внутри
-    /// выделения). Здесь вместо неё берётся ПШПВ НАЙДЕННОГО ПИКА (`Peak.FWHM`,
-    /// тоже кэВ): выделение вокруг одного пика даёт ровно её. Число «спорных»
-    /// поэтому зависит от того, насколько широко человек выделяет, и является
-    /// оценкой при выделении «в одну ПШПВ».
+    /// выделения). Здесь вместо неё берётся ПШПВ НАЙДЕННОГО ПИКА (`Peak.FWHM`
+    /// — в КАНАЛАХ, и потому переводится в кэВ тем же выражением, что панель
+    /// поиска пиков и `PeakDetector`: `Peak.FwhmKev(calibration)`, разность
+    /// краёв по калибровке, а не «каналы × кэВ-на-канал» — калибровка
+    /// нелинейна, половинки растягиваются по-разному; `T183`): выделение
+    /// вокруг одного пика даёт ровно её. Число «спорных» поэтому зависит от
+    /// того, насколько широко человек выделяет, и является оценкой при
+    /// выделении «в одну ПШПВ». ⛔ До 12.09.2026 в `SelectionFWHMinkev`
+    /// уходили КАНАЛЫ (~~`T173`~~ → `T183`): окно спора было в разы шире
+    /// настоящего, и вся развёртка `--sel-mult` (574 / 494 / 391 / 337
+    /// «со спором») снята с той ошибкой — цитировать её нельзя.
     ///
     /// ⛔ ПОРОГ И ПРИЗНАК РЕНТГЕНА ЧИТАЮТСЯ ИЗ СОБРАННОЙ СБОРКИ, а не
     /// переписываются сюда: `MinimumActivityYieldPercent` — константа, и её
@@ -143,7 +150,10 @@ namespace S109ActivityProbe
                               selMult.ToString("G4", CultureInfo.InvariantCulture));
 
             var csv = new StringBuilder();
-            csv.AppendLine("spectrum,peak_kev,peak_counts,fwhm_kev,has_curve,nuclide,line_kev,"
+            // (`T183`) `fwhm_channels` — то, что лежит в `Peak.FWHM`; `fwhm_kev` —
+            // то, что уходит в окно спора. До 12.09.2026 колонка `fwhm_kev`
+            // несла каналы.
+            csv.AppendLine("spectrum,peak_kev,peak_counts,fwhm_channels,fwhm_kev,has_curve,nuclide,line_kev,"
                            + "intensity_pct,is_xray,low_yield,rivals,rival_factor,coeff_ok,bq_coeff,verdict");
 
             int spectra = 0, failed = 0, peaksTotal = 0;
@@ -175,6 +185,7 @@ namespace S109ActivityProbe
                     peaks = new List<Peak>();
                 }
                 bool hasCurve = rd.Efficiency != null;
+                EnergyCalibration cal = rd.EnergySpectrum != null ? rd.EnergySpectrum.EnergyCalibration : null;
 
                 foreach (Peak peak in peaks.OrderBy(p => p.Energy))
                 {
@@ -185,6 +196,10 @@ namespace S109ActivityProbe
                     double factor = 1.0;
                     bool xray = false, low = false, coeffOk = false;
                     double coeff = 0.0, coeffErr = 0.0;
+                    // (`T183`) ПШПВ в кэВ — ТЕМ ЖЕ выражением, что приложение
+                    // (`Peak.FwhmKev`: разность краёв по калибровке); ноль —
+                    // «не измерена» (ПШПВ ≤ 0 или калибровки нет).
+                    double fwhmKev = peak.FwhmKev(cal);
 
                     if (nd == null || !(nd.Intencity > 0.0))
                     {
@@ -196,7 +211,7 @@ namespace S109ActivityProbe
                     {
                         verdict = "кривой нет";
                     }
-                    else if (!(peak.FWHM > 0.0))
+                    else if (!(fwhmKev > 0.0))
                     {
                         // `SelectionFWHM > 0` — четвёртое условие ветки.
                         verdict = "ПШПВ пика не измерена";
@@ -204,7 +219,7 @@ namespace S109ActivityProbe
                     else
                     {
                         object an = Activator.CreateInstance(tAn, true);
-                        pFwhmKev.SetValue(an, peak.FWHM * selMult, null);
+                        pFwhmKev.SetValue(an, fwhmKev * selMult, null);
                         mScan.Invoke(view, new object[] { peak, an });
                         rivals = (int)pRivals.GetValue(an, null);
                         factor = (double)pFactor.GetValue(an, null);
@@ -242,7 +257,7 @@ namespace S109ActivityProbe
 
                     csv.AppendLine(string.Join(",",
                         name,
-                        F(peak.Energy, "F3"), F(peak.Count, "F1"), F(peak.FWHM, "F3"),
+                        F(peak.Energy, "F3"), F(peak.Count, "F1"), F(peak.FWHM, "F3"), F(fwhmKev, "F3"),
                         hasCurve ? "1" : "0",
                         nd == null ? "" : nd.Name.Replace(',', ';'),
                         nd == null ? "" : F(nd.Energy, "F3"),

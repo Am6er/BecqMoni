@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -73,7 +74,11 @@ namespace ReasonProbe
     /// и плечи цепочки, после `A165` — плечи ветвления, после `A174` — плечо
     /// <c>заголовок</c>. Прогон без старой сборки мерит пустоту.
     ///
-    ///     reasonprobe [--real]
+    ///     reasonprobe [--real] [--spoil]
+    ///
+    /// Ключ <c>--spoil</c> (`T197`) — положительный контроль двусторонности:
+    /// к сказанному в плечах <c>петля</c> и <c>предел</c> приписывается второй
+    /// знак сторожа, и прогон ОБЯЗАН отказать кодом 1 (эталон байт в байт).
     ///
     /// Ключ <c>--real</c> добавляет плечо на НАСТОЯЩЕМ отказе базы веществ: оно
     /// имеет смысл только в каталоге, где база не поднимается (сцена
@@ -83,6 +88,22 @@ namespace ReasonProbe
     static class Program
     {
         static int bad;
+
+        /// <summary>
+        /// (`T197`) ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ДВУСТОРОННОСТИ, ключ <c>--spoil</c>:
+        /// к сказанному дверью в плечах <c>петля</c> и <c>предел</c>
+        /// приписывается ВТОРОЙ знак сторожа « &lt;- …» — ровно та порча, с
+        /// которой плечо <c>петля через ветвь</c> до `A185` выходило кодом 0.
+        /// Односторонняя проверка («знаков ≥ 1», «кончается знаком») такую
+        /// порчу пропускает; сверка байт в байт с эталоном обязана дать код 1.
+        /// Прогон с ключом ОБЯЗАН отказать — это его смысл.
+        /// </summary>
+        static bool spoil;
+
+        static string Spoiled(string said)
+        {
+            return spoil ? said + " <- …" : said;
+        }
 
         static int Main(string[] args)
         {
@@ -95,6 +116,10 @@ namespace ReasonProbe
                 if (a == "--real")
                 {
                     real = true;
+                }
+                else if (a == "--spoil")
+                {
+                    spoil = true;
                 }
                 else
                 {
@@ -371,11 +396,24 @@ namespace ReasonProbe
                 return;
             }
 
+            said = Spoiled(said);
+            // (`T197`) Эталон: оба звена по разу, за ними ОДИН знак сторожа.
+            // До 12.09.2026 плечо смотрело лишь «кончается знаком» и лишний
+            // знак («<- … <- …», `A185`) пропускало — контроль ключом --spoil.
+            string want = Link(second) + " <- " + Link(first) + " <- …";
             Console.WriteLine("  сказано: {0}", OneLine(said));
             Say("петля", "оба звена названы",
                 Count(said, "второе звено петли") == 1 && Count(said, "первое звено петли") == 1);
             Say("петля", "сторож СКАЗАЛ О СЕБЕ",
                 said.EndsWith(" <- …", StringComparison.Ordinal));
+            Say("петля", "знак сторожа ОДИН", Count(said, " <- …") == 1);
+            Say("петля", "текст БАЙТ В БАЙТ эталонный",
+                string.Equals(said, want, StringComparison.Ordinal));
+            if (!string.Equals(said, want, StringComparison.Ordinal))
+            {
+                Console.WriteLine("    ожидалось: {0}", OneLine(want));
+                Console.WriteLine("    длина {0} знаков, ожидалось {1}", said.Length, want.Length);
+            }
         }
 
         /// <summary>
@@ -387,12 +425,25 @@ namespace ReasonProbe
         static void TooDeep()
         {
             Exception link = new InvalidOperationException("звено 0");
+            var chain = new List<Exception>();   // от внешнего к внутреннему
+            chain.Add(link);
             for (int i = 1; i <= ChainLimit + 4; i++)
             {
                 link = new InvalidOperationException("звено " + i, link);
+                chain.Insert(0, link);
             }
 
-            string said = AppUi.Reason(link);
+            string said = Spoiled(AppUi.Reason(link));
+            // (`T197`) Эталон из ТЕХ ЖЕ звеньев: названы ровно `ChainLimit`
+            // внешних (звено 20 … звено 5), за ними ОДИН знак сторожа. Число
+            // «приписок == предел» лишний знак ловило, но текст звеньев — нет.
+            var named = new List<string>();
+            for (int i = 0; i < ChainLimit; i++)
+            {
+                named.Add(Link(chain[i]));
+            }
+
+            string want = string.Join(" <- ", named.ToArray()) + " <- …";
             Console.WriteLine("ПЛЕЧО предел");
             Console.WriteLine("  цепочка {0} звеньев, названо {1}, предел пробы {2}",
                               ChainLimit + 5, Count(said, " <- "), ChainLimit);
@@ -403,6 +454,14 @@ namespace ReasonProbe
                 Count(said, " <- ") == ChainLimit);
             Say("предел", "самое внешнее названо первым",
                 said.IndexOf("звено " + (ChainLimit + 4), StringComparison.Ordinal) >= 0);
+            Say("предел", "знак сторожа ОДИН", Count(said, " <- …") == 1);
+            Say("предел", "текст БАЙТ В БАЙТ эталонный",
+                string.Equals(said, want, StringComparison.Ordinal));
+            if (!string.Equals(said, want, StringComparison.Ordinal))
+            {
+                Console.WriteLine("    ожидалось: {0}", OneLine(want));
+                Console.WriteLine("    длина {0} знаков, ожидалось {1}", said.Length, want.Length);
+            }
         }
 
         /// <summary>

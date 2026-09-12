@@ -106,7 +106,7 @@ from spectrum import Spectrum                         # noqa: E402
 # поэтому берётся у соседа, а не переписывается. Импорт стоит ПОСЛЕ `--base=head`
 # (см. `_load_from_head`): `gaussfit_check` тянет `gaussfit` и `corpus_calib`, и
 # к этому моменту в `sys.modules` уже лежат нужные их версии.
-from gaussfit_check import Coverage                   # noqa: E402
+from gaussfit_check import Coverage, frozen_keys      # noqa: E402
 
 RAW = os.path.join(HERE, '_corpus_raw')
 BAND_KEV = 200.0
@@ -551,7 +551,7 @@ def main():
     # нет и что не заморожено, — сломанный охват и код возврата 3.
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
-    cov = Coverage(requested=only)
+    cov = Coverage(requested=only, frozen=frozen_keys())   # мерка на _corpus_raw (T186)
     cov.add(u'вход мерки (NEW+VIBE+ETALON)', [e['key'] for e in entries],
             hard=True)
     print('спектров: %d, полоса: %.0f кэВ, порог значимости мерки: %.0f sigma'

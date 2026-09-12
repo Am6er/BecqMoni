@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Проставить выходы линий (`Intencity`), метку ряда (`Chain`) и разметку по
-наборам (`Sets`) в поставочный `config/NuclideDefinition.xml` из `nucdb.sqlite`.
+наборам (`Sets`) в поставочный `BecquerelMonitor/config/NuclideDefinition.xml` из `nucdb.sqlite`.
 
 Строка задачи — S28. Без этого на свежей установке полноспектральный разбор
 живёт одной встроенной таблицей на 11 нуклидов: образ по конфигу строится
