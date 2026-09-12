@@ -4452,6 +4452,42 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string GeometryEditorSourceIso {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceIso", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFieldRadius {
+            get {
+                return ResourceManager.GetString("GeometryEditorFieldRadius", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneIso {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneIso", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorFieldRadiusSmall {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorFieldRadiusSmall", resourceCulture);
+            }
+        }
+
+        public static string GeometrySourceIso {
+            get {
+                return ResourceManager.GetString("GeometrySourceIso", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchIso {
+            get {
+                return ResourceManager.GetString("EfficiencySketchIso", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerSetSkipped {
             get {
                 return ResourceManager.GetString("EfficiencyMakerSetSkipped", resourceCulture);

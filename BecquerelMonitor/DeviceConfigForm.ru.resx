@@ -418,9 +418,6 @@
   <data name="label23.Text" xml:space="preserve">
     <value>Фоновый спектр</value>
   </data>
-  <data name="tabPage7.Text" xml:space="preserve">
-    <value>МЭД</value>
-  </data>
   <data name="button12.Text" xml:space="preserve">
     <value>Дубль</value>
   </data>
@@ -4722,5 +4719,20 @@
   </data>
   <data name="centroidComCheckBox.Text" xml:space="preserve">
     <value>Центроида по центру масс</value>
+  </data>
+  <data name="lsrmGeometryDialogTitle" xml:space="preserve">
+    <value>Геометрия кривой ЛСРМ: файл .in, для которого она посчитана (Отмена — ввезти без геометрии)</value>
+  </data>
+  <data name="lsrmGeometryProblem" xml:space="preserve">
+    <value>Геометрию не удалось привязать к кривой «{0}»:
+{1}
+
+Кривая ввезена без геометрии; у мощности дозы нет масштаба, пока геометрия не задана кнопкой «Изменить…».</value>
+  </data>
+  <data name="lsrmGeometryNoCrystal" xml:space="preserve">
+    <value>{0}: не найдены размеры сцинтилляционного кристалла (DS_CrystalDiameter / DS_CrystalHeight или DS_CrystalBoxX / Y / Z) — это не геометрия сцинтиллятора в формате ЛСРМ.</value>
+  </data>
+  <data name="lsrmGeometryFieldScene" xml:space="preserve">
+    <value>{0}: сцена поля (DS_Scene = ISO) не может быть геометрией кривой ЛСРМ — эффективность ЛСРМ нормирована на испущенный квант, а не на единичный флюенс.</value>
   </data>
 </root>

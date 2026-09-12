@@ -10,7 +10,12 @@ using System.Xml.Serialization;
 // ReadElementString(), который читает элемент вместе с закрывающим тегом. Отсюда
 // была гипотеза, что XmlSerializer после этого закроет ещё один элемент и всё,
 // что идёт за Note — PolynomialEnergyCalibration, StabilizerConfig,
-// DoseRateConfig, PeakDetectionMethodConfig, — потеряется.
+// PeakDetectionMethodConfig, — потеряется.
+//
+// ⚠ 12.09.2026 (`AMBER18`): элемент `<DoseRateConfig>` из шаблона снят — у
+// `DeviceConfigInfo` этого свойства больше нет; старые файлы с ним читаются,
+// незнакомый элемент `XmlSerializer` пропускает молча (проверено
+// `DoseRateFromCurveProbe` на поставочном `RC-103.xml` с 36 точками).
 //
 // Проба это опровергает: во всех вариантах Note (пустой, текст, CDATA,
 // многострочный, записанный самим приложением) конфигурация читается целиком.
@@ -45,7 +50,6 @@ class DeviceConfigProbe
     <Coefficients><Coefficient>1</Coefficient><Coefficient>0.4</Coefficient><Coefficient>0</Coefficient></Coefficients>
   </PolynomialEnergyCalibration>
   <StabilizerConfig><TargetPeaks /></StabilizerConfig>
-  <DoseRateConfig><DoseRateCalibrationPoints /></DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR><FWHM_AT_0>10</FWHM_AT_0><Ch_Fwhm>1877</Ch_Fwhm><Width_Fwhm>101</Width_Fwhm>
     <Max_Items>40</Max_Items><Tolerance>77</Tolerance><Min_Range>11</Min_Range><Max_Range>2222</Max_Range>

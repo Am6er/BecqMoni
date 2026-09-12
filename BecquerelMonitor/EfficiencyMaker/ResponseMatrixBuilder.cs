@@ -496,6 +496,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Histories = options.Histories,
                 Options = options.Clone(),
                 Stamp = ResponseMatrix.ComputeStamp(geometry, options),
+                // (`AMBER13` (б)) Нормировка — по сцене, тем же правилом, что
+                // клеймо: у поля строки в см², у всех прочих — доли.
+                Normalization = ResponseMatrix.NormalizationOf(geometry),
                 CreatedUtc = DateTime.UtcNow
             };
 

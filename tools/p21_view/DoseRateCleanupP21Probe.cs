@@ -1,6 +1,12 @@
 // Читатель полосы П21, 10.09.2026: ИСПОЛНЕНЫ ЛИ ЧЕТЫРЕ РЕШЕНИЯ AMBER по вкладке
 // `DoseRate` (`AMBER13`) — числом, из СОБРАННОЙ сборки.
 //
+// ⛔ ПЕРЕВЕДЁН 12.09.2026 (полоса П1, `AMBER18`) на «вкладки нет»: решением
+// Amber 11.09.2026 вкладка `Dose Rate` снята ЦЕЛИКОМ вместе с
+// `comboDoseRateEfficiency` и `DoseRateConfig` прибора; §1 теперь ждёт, что
+// `tabPage7` в форме НЕТ, §4 — что `DeviceConfigInfo.DoseRateConfig` снят, а
+// старый XML с точками читается. §2 и §3 (ввоз ЛСРМ на Efficiency) — как были.
+//
 // Окно `BecqMoni` не поднимают: и вкладка прибора, и вкладка Efficiency
 // обмеряются ОТРАЖЕНИЕМ — форма строится без показа тем же приёмом, что у
 // `tools/p19_view/DoseRateTabP19Probe.cs` (дескриптор берётся у формы,
@@ -13,12 +19,9 @@
 //
 // Четыре раздела, по разделу на решение:
 //
-//  §1 СОСТАВ ВКЛАДКИ `DoseRate` (решения (1) «Чистить сразу», (2) «Снять
-//     целиком» и (4) в части снятия). Сколько на вкладке контролов и какие
-//     именно. Ожидание после чистки — РОВНО ОДИН, `comboDoseRateEfficiency`:
-//     решение (в) велит не снять его, а ЗАМЕСТИТЬ выбором вида облучения, и
-//     замещение приходит с пунктом (б), лежащим в запретном для полосы
-//     `EfficiencyMaker/**`.
+//  §1 ВКЛАДКИ `DoseRate` В ФОРМЕ НЕТ (`AMBER18`, 12.09.2026): ни поля
+//     `tabPage7`, ни `comboDoseRateEfficiency`, ни страницы с текстом «Dose
+//     Rate»/«МЭД» у `tabControl1`. До 12.09 здесь ждался ровно один контрол.
 //
 //  §2 ВВОЗ ЛСРМ НА ВКЛАДКЕ Efficiency (решение (4)). Кнопка есть, стоит
 //     ВНУТРИ шапки (панель обрезает детей молча — высота числом устаревает при
@@ -28,14 +31,11 @@
 //     та переживает сериализацию и чтение обратно — то есть «живёт в поле
 //     формы до закрытия окна» больше не про неё.
 //
-//  §4 ЦЕНА РЕШЕНИЯ (1), названная Amber заранее и принятая ею: у скольких
-//     конфигураций пропадает показание мощности дозы. Гейт —
-//     `MainForm.ShowDoseRate`: доза показывается ровно при
-//     `DoseRateConfig.DoseRateCalibrationPoints.Count > 0`. Раздел читает
-//     каталоги конфигураций ТЕМ ЖЕ разбором, что и приложение, и считает, у
-//     скольких гейт открыт. Плюс проверка «рудимент исчезает при
-//     пересохранении»: конфигурация, прочитанная и записанная обратно, больше
-//     не несёт элемента `DoseRateCalibrationPoints`.
+//  §4 `DoseRateConfig` СНЯТ ИЗ КОНФИГУРАЦИИ ПРИБОРА (`AMBER18`, решение (4)):
+//     свойства у `DeviceConfigInfo` нет, типов `DoseRateConfig` и
+//     `DoseRateCalibrationPoint` в сборке нет; каталоги конфигураций читаются
+//     ТЕМ ЖЕ разбором, что и приложение, без единого отказа — старый элемент
+//     пропускается молча, — и при пересохранении элемента нет.
 //
 //   doserstecleanupp21probe [--devices=<каталог>]...
 //   doserstecleanupp21probe --sabotage=absent|noheader|nosave   (ждёт ОТКАЗ)
@@ -44,7 +44,8 @@
 // РОВНО ОДНУ вещь и требует, чтобы свой раздел ОТКАЗАЛ; коды у него
 // перевёрнуты: 0 — отказ получен (читатель смотрит), 1 — не получен (слеп).
 //
-//   absent   — в ожидаемый состав вкладки добавлено имя, которого там нет;
+//   absent   — читателю §1 подсунуто имя поля, которое в форме ЕСТЬ
+//              (`efficiencyTabPage`): «вкладки нет» обязано отказать;
 //   noheader — экспорту ЛСРМ отрезана шапка: ввоз обязан отказать;
 //   nosave   — на проверку сохранности подсовывается кривая, НЕ положенная в
 //              конфигурацию: чтение после записи обязано её не найти.
@@ -72,13 +73,10 @@ namespace DoseRateCleanupP21Probe
         static string sabotage;
 
         /// <summary>
-        /// Что обязано остаться на вкладке `DoseRate` после чистки. ⚠ Список
-        /// не «мой вкус», а прямое следствие решений: (1) и (2) снимают
-        /// таблицу с эталоном, (4) уносит ввоз ЛСРМ на Efficiency, а
-        /// `comboDoseRateEfficiency` решением (в) НЕ снимается — он замещается
-        /// выбором вида облучения ICRP, и замещение делает пункт (б).
+        /// Чего в форме быть НЕ ДОЛЖНО (`AMBER18`, 12.09.2026): вкладка снята
+        /// целиком вместе с единственным оставшимся на ней списком.
         /// </summary>
-        static readonly string[] Expected = { "comboDoseRateEfficiency" };
+        static readonly string[] Gone = { "tabPage7", "comboDoseRateEfficiency", "efficiencyCurve" };
 
         static int Main(string[] args)
         {
@@ -99,7 +97,7 @@ namespace DoseRateCleanupP21Probe
                 return 2;
             }
 
-            Console.WriteLine("ЧИТАТЕЛЬ П21: четыре решения Amber 10.09.2026 по вкладке DoseRate");
+            Console.WriteLine("ЧИТАТЕЛЬ П21 (переведён П1 12.09.2026): вкладки DoseRate и DoseRateConfig нет");
             Console.WriteLine("сборка под рукой: " + typeof(DeviceConfigForm).Assembly.Location);
             if (sabotage != null)
             {
@@ -158,48 +156,61 @@ namespace DoseRateCleanupP21Probe
 
         static void TabComposition()
         {
-            Head("§1. СОСТАВ ВКЛАДКИ tabPage7 — решения (1), (2), (4) в части снятия");
+            Head("§1. ВКЛАДКИ tabPage7 В ФОРМЕ НЕТ — решение Amber 11.09.2026 (AMBER18)");
 
-            var expected = new List<string>(Expected);
+            var gone = new List<string>(Gone);
             if (sabotage == "absent")
             {
-                // Порча: ждём на вкладке имя, которого там нет.
-                expected.Add("buttonThatNeverWas");
+                // Порча: в список «чего нет» подсунуто имя, которое в форме ЕСТЬ.
+                gone.Add("efficiencyTabPage");
             }
 
             using (DeviceConfigForm form = BuildForm())
             {
-                var page = (TabPage)Field(form, "tabPage7");
-                if (page == null)
+                foreach (string name in gone)
                 {
-                    Ok(false, "вкладки tabPage7 в форме нет");
-                    return;
+                    object value = Field(form, name);
+                    Ok(value == null && FieldInfoOf(form, name) == null,
+                       value == null && FieldInfoOf(form, name) == null
+                           ? "поля " + name + " в форме нет"
+                           : "поле " + name + " всё ещё в форме");
                 }
 
-                Realize(form, page);
-
-                var all = new List<Control>();
-                Walk(page, all);
-
-                Console.WriteLine("  на вкладке контролов: {0}", all.Count);
-                foreach (Control c in all)
+                var tabs = (TabControl)Field(form, "tabControl1");
+                Ok(tabs != null, "tabControl1 на месте");
+                if (tabs != null)
                 {
-                    Console.WriteLine("  {0,-28} {1}", c.Name, c.GetType().Name);
+                    var titles = new List<string>();
+                    foreach (TabPage page in tabs.TabPages)
+                    {
+                        titles.Add(page.Name + " «" + page.Text + "»");
+                    }
+
+                    Console.WriteLine("  вкладок: {0}: {1}", tabs.TabPages.Count, string.Join(", ", titles.ToArray()));
+                    bool doseTab = false;
+                    foreach (TabPage page in tabs.TabPages)
+                    {
+                        if (page.Name == "tabPage7" || page.Text == "Dose Rate" || page.Text == "МЭД")
+                        {
+                            doseTab = true;
+                        }
+                    }
+
+                    Ok(!doseTab, doseTab ? "страница мощности дозы всё ещё в tabControl1" : "страницы «Dose Rate»/«МЭД» в tabControl1 нет");
                 }
-
-                Console.WriteLine();
-                var extra = all.Select(c => c.Name).Where(n => !expected.Contains(n)).ToList();
-                var missing = expected.Where(n => !all.Any(c => c.Name == n)).ToList();
-
-                Ok(extra.Count == 0,
-                   extra.Count == 0
-                       ? "лишнего на вкладке нет"
-                       : "на вкладке ОСТАЛОСЬ снимаемое: " + string.Join(", ", extra.ToArray()));
-                Ok(missing.Count == 0,
-                   missing.Count == 0
-                       ? "всё, что должно остаться, на месте: " + string.Join(", ", expected.ToArray())
-                       : "на вкладке НЕТ ожидаемого: " + string.Join(", ", missing.ToArray()));
             }
+        }
+
+        static FieldInfo FieldInfoOf(object target, string name)
+        {
+            for (Type t = target.GetType(); t != null; t = t.BaseType)
+            {
+                FieldInfo f = t.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic
+                                               | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                if (f != null) return f;
+            }
+
+            return null;
         }
 
         // ==================================================================
@@ -385,12 +396,17 @@ namespace DoseRateCleanupP21Probe
 
         static void PriceOfCleanup(List<string> dirs)
         {
-            Head("§4. ЦЕНА РЕШЕНИЯ (1): у скольких конфигураций пропадает показание дозы");
-            Console.WriteLine("  гейт MainForm.ShowDoseRate: доза показывается при");
-            Console.WriteLine("  DoseRateConfig.DoseRateCalibrationPoints.Count > 0");
+            Head("§4. DoseRateConfig СНЯТ ИЗ КОНФИГУРАЦИИ ПРИБОРА (AMBER18, решение (4)); старые файлы читаются");
+
+            Assembly app = typeof(DeviceConfigInfo).Assembly;
+            Ok(typeof(DeviceConfigInfo).GetProperty("DoseRateConfig") == null,
+               "у DeviceConfigInfo нет свойства DoseRateConfig");
+            Ok(app.GetType("BecquerelMonitor.DoseRateConfig") == null, "типа DoseRateConfig в сборке нет");
+            Ok(app.GetType("BecquerelMonitor.DoseRateCalibrationPoint") == null,
+               "типа DoseRateCalibrationPoint в сборке нет");
 
             var serializer = new XmlSerializer(typeof(DeviceConfigInfo));
-            int totalOpen = 0, totalFiles = 0;
+            int totalFiles = 0, totalRead = 0, totalWithElement = 0;
 
             foreach (string dir in dirs)
             {
@@ -403,40 +419,51 @@ namespace DoseRateCleanupP21Probe
                 }
 
                 string[] files = Directory.GetFiles(dir, "*.xml");
-                int open = 0;
+                int read = 0, withElement = 0;
                 foreach (string f in files)
                 {
+                    string text = File.ReadAllText(f, Encoding.UTF8);
+                    bool hasElement = text.IndexOf("<DoseRateConfig>", StringComparison.Ordinal) >= 0;
+                    int points = Count(text, "<DoseRateCalibrationPoint>");
                     DeviceConfigInfo cfg = Load(serializer, f);
-                    if (cfg == null || cfg.DoseRateConfig == null) continue;
-                    int n = cfg.DoseRateConfig.DoseRateCalibrationPoints == null
-                        ? 0 : cfg.DoseRateConfig.DoseRateCalibrationPoints.Count;
-                    if (n > 0)
+                    if (cfg == null) continue;
+                    read++;
+                    if (hasElement) withElement++;
+                    if (points > 0)
                     {
-                        open++;
-                        Console.WriteLine("    гейт ОТКРЫТ, точек {0,3}  {1}", n, Path.GetFileName(f));
+                        Console.WriteLine("    прочитан, в тексте точек {0,3}  {1}", points, Path.GetFileName(f));
                     }
                 }
 
-                Console.WriteLine("    ИТОГО: гейт открыт у {0} конфигураций из {1}", open, files.Length);
-                totalOpen += open;
+                Console.WriteLine("    ИТОГО: прочитано {0} из {1}, с элементом <DoseRateConfig> в тексте {2}",
+                                  read, files.Length, withElement);
                 totalFiles += files.Length;
+                totalRead += read;
+                totalWithElement += withElement;
             }
 
             Console.WriteLine();
-            Console.WriteLine("  ВСЕГО по прочитанным каталогам: гейт открыт у {0} из {1}",
-                              totalOpen, totalFiles);
-            Ok(totalOpen == 0,
-               totalOpen == 0
-                   ? "показание дозы не показывается НИ ОДНОЙ конфигурацией — цена решения (1) уплачена"
-                   : "гейт всё ещё открыт у " + totalOpen + " конфигураций");
+            Ok(totalRead == totalFiles,
+               string.Format(CultureInfo.InvariantCulture,
+                   "все конфигурации читаются без отказа: {0} из {1} (с рудиментом в тексте {2})",
+                   totalRead, totalFiles, totalWithElement));
 
-            // «Рудимент исчезает при пересохранении» — прямая проверка.
-            var device = new DeviceConfigInfo();
-            device.DoseRateConfig.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>
+            // «Рудимент исчезает при пересохранении» — прямая проверка на
+            // подставном XML с точками посреди полей.
+            string synthetic = "<?xml version=\"1.0\"?>\r\n<DeviceConfigInfo>\r\n  <Guid>p21</Guid>\r\n  <Name>old</Name>\r\n"
+                + "  <NumberOfChannels>2048</NumberOfChannels>\r\n  <DoseRateConfig>\r\n    <DoseRateCalibrationPoints>\r\n"
+                + "      <DoseRateCalibrationPoint><LowerBound>0</LowerBound><UpperBound>3000</UpperBound><CPS>100</CPS>"
+                + "<EtalonDoseRateValue>1</EtalonDoseRateValue></DoseRateCalibrationPoint>\r\n"
+                + "    </DoseRateCalibrationPoints>\r\n  </DoseRateConfig>\r\n  <BackgroundSpectrumPathname>bg</BackgroundSpectrumPathname>\r\n"
+                + "</DeviceConfigInfo>";
+            DeviceConfigInfo device;
+            using (var reader = new StringReader(synthetic))
             {
-                new DoseRateCalibrationPoint { LowerBound = 0, UpperBound = 3000, CPS = 100, EtalonDoseRateValue = 1 },
-                new DoseRateCalibrationPoint { LowerBound = 3000, UpperBound = 5000, CPS = 100, EtalonDoseRateValue = 1 },
-            };
+                device = (DeviceConfigInfo)serializer.Deserialize(reader);
+            }
+
+            Ok(device.Name == "old" && device.NumberOfChannels == 2048 && device.BackgroundSpectrumPathname == "bg",
+               "подставной XML с точками читается целиком: поля до и после элемента на месте");
 
             string xml;
             using (var writer = new StringWriter(CultureInfo.InvariantCulture))
@@ -445,10 +472,22 @@ namespace DoseRateCleanupP21Probe
                 xml = writer.ToString();
             }
 
-            bool gone = xml.IndexOf("DoseRateCalibrationPoint", StringComparison.Ordinal) < 0;
+            bool gone = xml.IndexOf("DoseRateC", StringComparison.Ordinal) < 0;
             Ok(gone, gone
-                ? "при пересохранении конфигурации точки НЕ пишутся — рудимент исчезает"
-                : "точки всё ещё уходят в XML при пересохранении");
+                ? "при пересохранении конфигурации ни DoseRateConfig, ни точек нет — рудимент исчезает"
+                : "элемент всё ещё уходит в XML при пересохранении");
+        }
+
+        static int Count(string text, string needle)
+        {
+            int n = 0;
+            for (int i = text.IndexOf(needle, StringComparison.Ordinal); i >= 0;
+                 i = text.IndexOf(needle, i + 1, StringComparison.Ordinal))
+            {
+                n++;
+            }
+
+            return n;
         }
 
         static DeviceConfigInfo Load(XmlSerializer serializer, string path)

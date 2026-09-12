@@ -738,15 +738,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             // прежнее. Разборщики клейма (`TryParseComputeStamp`,
             // `ResponseMatrix.PhysicsFromStamp`, `tools/check_curve_generation.py`)
             // читают свои куски по ключу и хвоста не замечают.
+            //
+            // `; norm=fluence` (`AMBER13` (б), 12.09.2026) — ТОЛЬКО у кривой
+            // сцены изотропного поля: её значения — эффективная площадь в см²,
+            // а не доля, и без этой строки такая кривая была бы неотличима от
+            // обычной. Правило то же, что у матрицы (`ResponseMatrix.NormalizationOf`).
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
                 sampleIsAir ? "; sample=air" : "",
                 storePhysics.KDipLight != 0
                     ? "; kdip=" + storePhysics.KDipLight.ToString(CultureInfo.InvariantCulture)
-                    : "");
+                    : "",
+                ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
+                    ? "; norm=fluence" : "");
             return result;
         }
     }

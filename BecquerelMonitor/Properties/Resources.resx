@@ -42826,6 +42826,24 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorSceneMaterial" xml:space="preserve">
     <value> · sample material set to "{0}"</value>
   </data>
+  <data name="GeometryEditorSourceIso" xml:space="preserve">
+    <value>Isotropic field (ISO)</value>
+  </data>
+  <data name="GeometryEditorFieldRadius" xml:space="preserve">
+    <value>Field sphere radius</value>
+  </data>
+  <data name="GeometryEditorSceneIso" xml:space="preserve">
+    <value>Isotropic field from 4π: the curve and the matrix are the effective area, cm² (response per unit fluence, not per source quantum). Sphere radius {0:F0} cm; the answer does not depend on it as long as it exceeds {1:F1} cm.</value>
+  </data>
+  <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
+    <value>The field sphere does not enclose the detector: {0:F1} mm against a minimum of {1:F1} mm.</value>
+  </data>
+  <data name="GeometrySourceIso" xml:space="preserve">
+    <value>isotropic field, sphere radius {0:F0} mm</value>
+  </data>
+  <data name="EfficiencySketchIso" xml:space="preserve">
+    <value>Isotropic field, sphere radius</value>
+  </data>
   <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
     <value>Nuclide set "{0}" cannot be used: {1}</value>
   </data>
@@ -43566,6 +43584,39 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="DoseRateNoEfficiency" xml:space="preserve">
     <value>Dose rate: no efficiency curve is selected.</value>
+  </data>
+  <data name="DoseRateNoGeometry" xml:space="preserve">
+    <value>Dose rate: the curve "{0}" has no geometry — without it the emission rate cannot be turned into a fluence at the detector, and the dose has no scale.</value>
+  </data>
+  <data name="DoseRateForeignMatrix" xml:space="preserve">
+    <value>Dose rate: the response matrix does not match the geometry of the curve "{0}".</value>
+  </data>
+  <data name="DoseRateEmptyMatrix" xml:space="preserve">
+    <value>Dose rate: the response matrix of the curve "{0}" has no rows.</value>
+  </data>
+  <data name="DoseRateOutsideMatrix" xml:space="preserve">
+    <value>Dose rate: {0:f1} keV is outside the response matrix ({1:f1}...{2:f1} keV).</value>
+  </data>
+  <data name="DoseRateNoGeometryModel" xml:space="preserve">
+    <value>Dose rate: the curve has no geometry.</value>
+  </data>
+  <data name="DoseRateNoCrystal" xml:space="preserve">
+    <value>Dose rate: the geometry has a crystal of zero depth.</value>
+  </data>
+  <data name="DoseRateSourceInCrystal" xml:space="preserve">
+    <value>Dose rate: the point source sits at the crystal centre — the fluence is undefined.</value>
+  </data>
+  <data name="DoseRateNoSampleVolume" xml:space="preserve">
+    <value>Dose rate: the sample in the geometry has no volume — there is nothing to average the fluence over.</value>
+  </data>
+  <data name="DoseRateAreaAboveBound" xml:space="preserve">
+    <value>Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV — more than the projected area of the sphere around the detector ({2:f1} cm²).</value>
+  </data>
+  <data name="DoseRateCurveNormalizationMismatch" xml:space="preserve">
+    <value>Dose rate: the curve "{0}" is normalised {1}, but its geometry ({2}) requires {3} — recompute the curve from the geometry.</value>
+  </data>
+  <data name="DoseRateMatrixNormalizationMismatch" xml:space="preserve">
+    <value>Dose rate: the response matrix is normalised {1}, but the curve "{0}" is {2} — square centimetres and fractions do not mix; recompute the matrix.</value>
   </data>
   <data name="DoseRateNoElement" xml:space="preserve">
     <value>Dose rate: element Z={0} is missing from the material database.</value>

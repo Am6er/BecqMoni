@@ -646,13 +646,59 @@ namespace BecquerelMonitor
         /// и попадание кривой в конфигурацию проверяются пробой без диалога.
         /// Геометрии у ввезённой кривой НЕТ — экспорт ЛСРМ её не несёт, — и
         /// это законное состояние: <see cref="EfficiencyConfigData"/> без
-        /// геометрии пользуется, но не пересчитывается.
+        /// геометрии пользуется, но не пересчитывается. Кривую С геометрией
+        /// заводит <see cref="ImportLsrmEfficiencyWithGeometry"/>; этот вход
+        /// оставлен ровно в прежней подписи — его зовёт отражением проба П21
+        /// (`DoseRateCleanupP21Probe`) по имени без списка параметров, и
+        /// перегрузка того же имени сломала бы ей `GetMethod`.
         /// </summary>
         /// <returns>Заведённая конфигурация или null, если файл негоден.</returns>
         internal static EfficiencyConfigData ImportLsrmEfficiency(
             DeviceConfigInfo device, string path, out string problem)
         {
+            string geometryProblem;
+            return ImportLsrmEfficiencyWithGeometry(device, path, null, out problem, out geometryProblem);
+        }
+
+        /// <summary>
+        /// Ввоз экспорта ЛСРМ ВМЕСТЕ С ГЕОМЕТРИЕЙ — `AMBER18`, решение Amber
+        /// 12.09.2026, вопросником, дословно: «Привязать геометрию при ввозе
+        /// ЛСРМ». С 12.09.2026 мощность дозы считается от кривой панели, и у
+        /// кривой БЕЗ геометрии дозы нет вовсе («у кривой «X» нет геометрии —
+        /// у дозы нет масштаба»): между «квант/с в 4π» и «квант/(см²·с) в
+        /// точке» стоит геометрия (`DoseRateGeometry.FluencePerPhoton`).
+        /// Единственный ввоз, дающий кривую без геометрии, — этот; ЛСРМ же
+        /// считает свою кривую из файла `.in` той же геометрии, и файл у
+        /// человека есть — его и спрашиваем вторым шагом.
+        ///
+        /// Правила:
+        ///  * <paramref name="geometryPath"/> == null — отказ от `.in` (Cancel):
+        ///    кривая ввозится как раньше, без геометрии, доза откажет словами;
+        ///  * `.in` негоден (нет файла, не разбирается, нет кристалла, сцена
+        ///    поля) — кривая ВСЁ РАВНО ввозится, без геометрии, а причина
+        ///    уходит в <paramref name="geometryProblem"/>: точки кривой от
+        ///    негодного `.in` не портятся, и терять их ради него незачем;
+        ///  * геометрия читается ТЕМ ЖЕ читателем, что конструктор кривой
+        ///    (<see cref="GeometryModel.Load"/>), — другого разбора `.in` в
+        ///    дереве нет и не должно быть;
+        ///  * `Origin` остаётся <see cref="EfficiencyOrigin.Lsrm"/>, а
+        ///    <see cref="EfficiencyConfigData.ComputeStamp"/> — ПУСТЫМ: клеймо
+        ///    значит «чем посчитана», а эту кривую считал ЛСРМ, не мы. Кривая с
+        ///    геометрией и пустым клеймом — не «посчитанная из геометрии»:
+        ///    матрицы у неё нет по построению, доза пойдёт со знаком «≈» (по
+        ///    пиковой), как велит решение (3) `AMBER18`. Откуда кривая и
+        ///    геометрия — в <see cref="EfficiencyConfigData.Note"/>.
+        /// </summary>
+        /// <param name="geometryPath">файл `.in` той же геометрии; null — без геометрии</param>
+        /// <param name="problem">почему кривая НЕ ввезена (null — ввезена)</param>
+        /// <param name="geometryProblem">почему геометрия НЕ привязана (null — привязана либо не просили)</param>
+        /// <returns>Заведённая конфигурация или null, если экспорт негоден.</returns>
+        public static EfficiencyConfigData ImportLsrmEfficiencyWithGeometry(
+            DeviceConfigInfo device, string path, string geometryPath,
+            out string problem, out string geometryProblem)
+        {
             problem = null;
+            geometryProblem = null;
             if (device == null)
             {
                 // Не подпись для человека, а страж вызова: с кнопки сюда с
@@ -675,8 +721,120 @@ namespace BecquerelMonitor
                 Curve = points,
             };
 
+            string note = string.Format(CultureInfo.InvariantCulture, "LSRM export: {0}",
+                                        Path.GetFileName(path));
+            if (geometryPath != null)
+            {
+                GeometryModel geometry = ReadLsrmGeometry(geometryPath, out geometryProblem);
+                if (geometry != null)
+                {
+                    config.Geometry = geometry;
+                    note += string.Format(CultureInfo.InvariantCulture, "; geometry: {0}",
+                                          Path.GetFileName(geometryPath));
+                    foreach (string warning in geometry.Warnings)
+                    {
+                        note += Environment.NewLine + warning;
+                    }
+                }
+            }
+
+            config.Note = new CDATA(note);
             device.EfficiencyConfigs.Add(config);
             return config;
+        }
+
+        /// <summary>
+        /// Прочитать `.in` для кривой ЛСРМ и ПРОВЕРИТЬ, что это геометрия, с
+        /// которой у дозы будет масштаб. null — негоден, причина в
+        /// <paramref name="problem"/>.
+        ///
+        /// ⚠ Проверка нужна потому, что читатель `.in` — разбор `ключ = значение`
+        /// и на чужом тексте НЕ падает: любой файл даёт модель с нулевым
+        /// кристаллом, и дефект всплыл бы не здесь, а в дозе («кристалл нулевой
+        /// глубины») — у человека, который никакого кристалла не трогал.
+        /// Коаксиальный `.in` ЛСРМ (`DC_*`) читателем не берётся — германий вне
+        /// работы, — и он же ловится здесь как «нет кристалла».
+        /// </summary>
+        public static GeometryModel ReadLsrmGeometry(string geometryPath, out string problem)
+        {
+            problem = null;
+            GeometryModel geometry;
+            try
+            {
+                geometry = GeometryModel.Load(geometryPath);
+            }
+            catch (Exception ex)
+            {
+                problem = string.Format(CultureInfo.InvariantCulture, "{0}: {1}", geometryPath, ex.Message);
+                return null;
+            }
+
+            bool crystal = geometry.Shape == CrystalShape.Box
+                ? geometry.CrystalBoxX > 0.0 && geometry.CrystalBoxY > 0.0 && geometry.CrystalBoxZ > 0.0
+                : geometry.CrystalDiameter > 0.0 && geometry.CrystalHeight > 0.0;
+            if (geometry.Raw.Count == 0 || !crystal)
+            {
+                problem = string.Format(CultureInfo.InvariantCulture,
+                    FormText("lsrmGeometryNoCrystal",
+                        "{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight"
+                        + " or DS_CrystalBoxX / Y / Z) - not an LSRM scintillator geometry."),
+                    geometryPath);
+                return null;
+            }
+
+            // Сцена поля — наше расширение, ЛСРМ его не знает; отклик там на
+            // единичный флюенс (см²), а кривая ЛСРМ — доли квантов источника.
+            // Пустить такую пару — значит получить в дозе отказ «пересчитайте
+            // кривую из геометрии», который для кривой ЛСРМ невыполним.
+            if (ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence)
+            {
+                problem = string.Format(CultureInfo.InvariantCulture,
+                    FormText("lsrmGeometryFieldScene",
+                        "{0}: a field scene (DS_Scene = ISO) cannot be the geometry of an LSRM curve"
+                        + " - the LSRM efficiency is per emitted quantum, not per unit fluence."),
+                    geometryPath);
+                return null;
+            }
+
+            return geometry;
+        }
+
+        /// <summary>
+        /// Автоподбор `.in`: одноимённый файл рядом с экспортом
+        /// (`X.txt` → `X.in`). null — такого нет; тогда диалог открывается
+        /// в каталоге экспорта пустым, и человек выбирает сам.
+        /// </summary>
+        public static string SuggestLsrmGeometryPath(string exportPath)
+        {
+            try
+            {
+                string candidate = Path.ChangeExtension(exportPath, ".in");
+                return File.Exists(candidate) ? candidate : null;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Строка из ресурсов САМОЙ ФОРМЫ (пара `DeviceConfigForm.resx` /
+        /// `DeviceConfigForm.ru.resx`, как у <c>crystalMaterialNotSet</c>) с
+        /// запасным английским текстом: подписи ввоза нужны этой вкладке и
+        /// нигде больше, а общие `Properties/Resources` правят другие полосы.
+        /// </summary>
+        static string FormText(string key, string fallback)
+        {
+            try
+            {
+                string value = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm))
+                    .GetString(key);
+                return string.IsNullOrEmpty(value) ? fallback : value;
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
 
         void efficiencyImportButton_Click(object sender, EventArgs e)
@@ -696,15 +854,59 @@ namespace BecquerelMonitor
                 return;
             }
 
-            string problem;
-            EfficiencyConfigData config = ImportLsrmEfficiency(
-                this.activeDeviceConfig, openFileDialog.FileName, out problem);
+            // Второй шаг (`AMBER18`, 12.09.2026): `.in` той же геометрии.
+            // Cancel — законный ответ: кривая ввозится без геометрии, как
+            // раньше, и доза по ней откажет словами, пока геометрию не зададут
+            // кнопкой «Изменить…».
+            string geometryPath = null;
+            using (OpenFileDialog geometryDialog = new OpenFileDialog())
+            {
+                geometryDialog.Title = FormText("lsrmGeometryDialogTitle",
+                    "Geometry of the LSRM curve: the .in file it was computed for (Cancel - import without geometry)");
+                geometryDialog.Filter = Resources.EfficiencyMakerGeometryFilter;
+                geometryDialog.RestoreDirectory = true;
+                string suggested = SuggestLsrmGeometryPath(openFileDialog.FileName);
+                if (suggested != null)
+                {
+                    geometryDialog.InitialDirectory = Path.GetDirectoryName(suggested);
+                    geometryDialog.FileName = Path.GetFileName(suggested);
+                }
+                else
+                {
+                    geometryDialog.InitialDirectory = Path.GetDirectoryName(openFileDialog.FileName);
+                }
+
+                if (geometryDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    geometryPath = geometryDialog.FileName;
+                }
+            }
+
+            string problem, geometryProblem;
+            EfficiencyConfigData config = ImportLsrmEfficiencyWithGeometry(
+                this.activeDeviceConfig, openFileDialog.FileName, geometryPath,
+                out problem, out geometryProblem);
             if (config == null)
             {
                 MessageBox.Show(this,
                     string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, problem),
                     this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            if (geometryProblem != null)
+            {
+                // Кривая уже в конфигурации — сказать надо про геометрию, а не
+                // про ввоз: иначе человек решит, что ввоз не удался, и повторит.
+                MessageBox.Show(this,
+                    string.Format(CultureInfo.CurrentCulture,
+                        FormText("lsrmGeometryProblem",
+                            "The geometry could not be attached to the curve \"{0}\":"
+                            + Environment.NewLine + "{1}" + Environment.NewLine + Environment.NewLine
+                            + "The curve is imported without geometry; the dose rate has no scale"
+                            + " until a geometry is added with Edit..."),
+                        config.Name, geometryProblem),
+                    this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             this.RefreshEfficiencyList(config.Guid);

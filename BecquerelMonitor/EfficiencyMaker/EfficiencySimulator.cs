@@ -100,6 +100,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ScoreEntranceOnly;
 
         /// <summary>
+        /// РЫЧАГ ПОРЧИ для приёмки сцены изотропного поля (`AMBER13` (б),
+        /// `IsoFieldProbe`): выбросить из веса истории множитель 4·cos θ,
+        /// которым ламбертово испускание сферы приводится к разыгранному
+        /// изотропному. С ним эффективная площадь выходит вчетверо меньше
+        /// настоящей, и сверка с S/4 (средняя проекция выпуклого тела по
+        /// Коши) ОБЯЗАНА отказать. На все прочие сцены не действует вовсе.
+        /// Не настройка расчёта — режим замера, как <see cref="ScoreEntranceOnly"/>.
+        /// </summary>
+        public bool IsoFieldNoCosineWeight;
+
+        /// <summary>
+        /// Нормирован ли отклик этой сцены на ЕДИНИЧНЫЙ ФЛЮЕНС (эффективная
+        /// площадь, см²), а не на квант, испущенный источником в 4π. Истина
+        /// ровно у сцены <see cref="GeometrySceneKind.Iso"/>; спрашивается по
+        /// собранному источнику, а не по геометрии, чтобы ответ не разошёлся
+        /// с тем, чем на деле считалось.
+        /// </summary>
+        public bool PerUnitFluence
+        {
+            get
+            {
+                this.EnsureBuilt();
+                return this.source is IsoFieldSampler;
+            }
+        }
+
+        /// <summary>
         /// Учитывать вылет самого электрона через близкую границу кристалла.
         /// Разыгрывается изотропное направление, пробег берётся из ESTAR
         /// (<see cref="ElectronData"/>), путь до границы считается по прямой,
@@ -1698,6 +1725,34 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.sphereR = Math.Sqrt(transverse * transverse
                                      + Math.Pow(0.5 * hc + tfr + tfg + tfc, 2.0)) + 1e-3;
 
+            // (`AMBER13` (б)) Изотропное поле: пробы и сосуда нет, источник —
+            // ламбертова сфера вокруг детектора. Решается ДО формы источника:
+            // форма у поля точечная (так файл читает ЛСРМ), но точечный
+            // источник здесь не строится.
+            if (g.Scene == GeometrySceneKind.Iso)
+            {
+                double sceneZ, sceneR;
+                if (!this.SceneBounds(out sceneZ, out sceneR))
+                {
+                    throw new InvalidOperationException("isotropic field: the scene is empty");
+                }
+
+                // Сфера строится вокруг центра ДЕТЕКТОРА (на него наводится
+                // конус взвешенной ветви), а накрывать обязана всю сцену с
+                // оправой: точка розыгрыша внутри габарита — не поле.
+                double need = Math.Abs(sceneZ - this.sphereZ) + sceneR;
+                if (!(g.FieldRadius > need))
+                {
+                    throw new InvalidOperationException(string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "isotropic field: radius {0:F2} cm does not enclose the detector (needs > {1:F2} cm)",
+                        g.FieldRadius, need));
+                }
+
+                this.source = new IsoFieldSampler(this.sphereZ, g.FieldRadius, this.IsoFieldNoCosineWeight);
+                return;
+            }
+
             switch (g.SourceType)
             {
                 case GeometrySourceType.Point:
@@ -1784,6 +1839,120 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             /// <summary>Машинная строка для дампа сцены (см, ось сцены).</summary>
             public abstract string Describe();
+
+            /// <summary>
+            /// Вес истории ПО НАПРАВЛЕНИЮ (`AMBER13` (б)). Обходы разыгрывают
+            /// направление сами — по всей сфере или конусом на габарит, с
+            /// весом телесного угла, — и у объёмного источника это и есть
+            /// «на квант, испущенный в 4π». Источник, у которого испускание
+            /// НЕ изотропно (поле: ламбертова сфера), правит вес здесь —
+            /// отношением своей плотности направлений к разыгранной. У всех
+            /// прочих — единица: умножение на 1.0 точное, и прежние сцены
+            /// остаются побитово прежними.
+            /// </summary>
+            public virtual double DirectionWeight(double x, double y, double z,
+                                                  double ux, double uy, double uz)
+            {
+                return 1.0;
+            }
+
+            /// <summary>
+            /// Требовать наведения конусом там, где обход умолчанием берёт
+            /// полную сферу (аналоговый континуум без `AnalogConeSampling`,
+            /// ε_полная при `TotalFullSphere`). У поля это не выбор, а
+            /// условие существования счёта: при R = 50 см в детектор попадает
+            /// одна история из тысячи, и без конуса континуум не набирается.
+            /// Матожидание конус не меняет — только дисперсию.
+            /// </summary>
+            public virtual bool PreferCone
+            {
+                get { return false; }
+            }
+        }
+
+        /// <summary>
+        /// ИЗОТРОПНОЕ ПОЛЕ (`AMBER13` (б), решение Amber 12.09.2026 «Оставь
+        /// только ISO»): точка равномерно по поверхности сферы радиуса R вокруг
+        /// центра детектора, направление — ВНУТРЬ по закону косинуса.
+        ///
+        /// Почему косинус, а не изотропно. Ламбертова сфера даёт внутри себя
+        /// однородное изотропное поле: яркость вдоль луча в пустоте сохраняется,
+        /// а у ламбертовой поверхности она одна во все стороны, — значит в любой
+        /// внутренней точке из любого направления приходит одна и та же
+        /// яркость. Изотропный розыгрыш с поверхности такого свойства не имеет:
+        /// поле растёт к стенке (замер 12.09.2026: в 1.63 раза на 0.9 R).
+        ///
+        /// Нормировка. Полное испускание N квантов с площади 4πR² при
+        /// ламбертовой яркости L: N = πL·4πR², а флюенс внутри Φ = 4πL, откуда
+        /// Φ = N/(πR²) — на ОДИН испущенный квант 1/(πR²) в любой точке. Отклик
+        /// на единичный флюенс (эффективная площадь, см²) есть поэтому
+        /// ⟨счёт на квант⟩·πR². Множитель сидит здесь, в весе истории:
+        /// обходы разыгрывают направление изотропно (плотность 1/(4π)) либо
+        /// конусом (та же плотность с весом Ω/(4π)), а ламбертова плотность
+        /// равна cos θ/π — отношение 4·cos θ; наружу (cos θ &lt; 0) — ноль.
+        /// Итого вес = 4·cos θ·πR² = 4πR²·cos θ [см²].
+        ///
+        /// ⛔ Сфера ОБЯЗАНА накрывать всю сцену: точка розыгрыша внутри
+        /// габарита — не поле. Проверяется при сборке сцены (`Build`), отказ
+        /// с числами, а не молчаливая подмена.
+        /// </summary>
+        sealed class IsoFieldSampler : Sampler
+        {
+            readonly double cz, r;
+            readonly bool noCosineWeight;
+
+            public IsoFieldSampler(double centerZ, double radiusCm, bool noCosineWeight)
+            {
+                this.cz = centerZ;
+                this.r = radiusCm;
+                this.noCosineWeight = noCosineWeight;
+            }
+
+            /// <summary>Радиус сферы, см.</summary>
+            public double RadiusCm
+            {
+                get { return this.r; }
+            }
+
+            public override void Next(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                double nx, ny, nz;
+                s.Isotropic(out nx, out ny, out nz);
+                x = this.r * nx;
+                y = this.r * ny;
+                z = this.cz + this.r * nz;
+            }
+
+            public override double DirectionWeight(double x, double y, double z,
+                                                  double ux, double uy, double uz)
+            {
+                // Внутренняя нормаль — к центру сферы.
+                double cos = -(x * ux + y * uy + (z - this.cz) * uz) / this.r;
+                if (!(cos > 0.0))
+                {
+                    return 0.0;
+                }
+
+                double area = Math.PI * this.r * this.r;
+                // Рычаг порчи для пробы (`IsoFieldNoCosineWeight`): множитель
+                // 4·cos θ выброшен — ровно та ошибка, что получилась бы,
+                // если бы ламбертову плотность приняли за разыгранную
+                // изотропную. Ответ выходит вчетверо меньше, и это обязана
+                // поймать сверка с S/4 (`IsoFieldProbe`).
+                return this.noCosineWeight ? area : 4.0 * cos * area;
+            }
+
+            public override bool PreferCone
+            {
+                get { return true; }
+            }
+
+            public override string Describe()
+            {
+                return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                     "source isofield {0:R} {1:R}{2}", this.cz, this.r,
+                                     this.noCosineWeight ? " no-cosine-weight" : "");
+            }
         }
 
         sealed class PointSampler : Sampler
@@ -4876,7 +5045,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
                 double weight = 1.0;
                 double ux, uy, uz;
-                if (!this.TotalFullSphere && dist > this.sphereR)
+                // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
+                if ((!this.TotalFullSphere || this.source.PreferCone) && dist > this.sphereR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
                     weight = 0.5 * (1.0 - cosMax);
@@ -4886,6 +5056,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     this.Isotropic(out ux, out uy, out uz);
                 }
+
+                // Вес по направлению источника: единица у всех, кроме поля.
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
                 double e = energyKev;
                 double travelled = 0.0;
@@ -6098,6 +6271,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.Isotropic(out ux, out uy, out uz);
                 }
 
+                // (`AMBER13` (б)) Вес по направлению источника: единица у всех,
+                // кроме поля, — умножение точное, прежние сцены побитово те же.
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+
                 double px = x, py = y, pz = z, tau;
                 double score = 0.0;
                 bool reached = this.ToCrystal(ref px, ref py, ref pz, ux, uy, uz, energyKev, out tau);
@@ -6250,7 +6427,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double weight = 1.0;
                 double coneZ, coneR;
                 double coneDist = 0.0;
-                if (this.AnalogConeSampling && this.SceneBounds(out coneZ, out coneR)
+                // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
+                if ((this.AnalogConeSampling || this.source.PreferCone)
+                    && this.SceneBounds(out coneZ, out coneR)
                     && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
@@ -6262,6 +6441,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     this.Isotropic(out ux, out uy, out uz);
                 }
+
+                // Вес по направлению источника: единица у всех, кроме поля.
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
                 this.lossAnnihilation = 0.0;
                 this.annihilationEscapes = 0;

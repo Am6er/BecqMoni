@@ -37,6 +37,11 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// ⚠ Считался только НЕРАССЕЯННЫЙ поток. Для площади фотопика это и есть
     /// ответ (рассеявшийся квант в пик не попадает), для континуума сцену надо
     /// брать шире.
+    ///
+    /// Третья сцена — ИЗОТРОПНОЕ ПОЛЕ (`AMBER13` (б), 12.09.2026) — устроена
+    /// иначе: пробы у неё нет, единственный размер (радиус сферы розыгрыша)
+    /// ответа не меняет, и правило здесь лишь ставит умолчание и стережёт
+    /// нижнюю границу. См. <see cref="Iso"/>.
     /// </summary>
     public static class GeometryScenes
     {
@@ -58,9 +63,95 @@ namespace BecquerelMonitor.EfficiencyMaker
                 case GeometrySceneKind.Borehole:
                     return Borehole(g, topEnergyKev);
 
+                case GeometrySceneKind.Iso:
+                    return Iso(g);
+
                 default:
                     return "";
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Изотропное поле (`AMBER13` (б))
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Умолчание радиуса сферы розыгрыша поля: 500 мм. Число взято из
+        /// постановки (`E35`: «посчитать на 50 и на 100 см»); физического
+        /// смысла у него нет — ответ от радиуса не зависит, лишь бы сфера
+        /// накрывала детектор с обвязкой (<see cref="MinFieldRadiusMm"/>).
+        /// </summary>
+        public const double DefaultFieldRadiusMm = 500.0;
+
+        /// <summary>
+        /// Во сколько раз радиус поля обязан превосходить габарит детектора.
+        /// Двойка — запас: конус наведения (`EfficiencySimulator.OneHistory`)
+        /// строится на объемлющую сферу ДЕТЕКТОРА, а сцена с оправой бывает
+        /// чуть шире неё; при двукратном запасе точка розыгрыша заведомо вне
+        /// обеих.
+        /// </summary>
+        public const double FieldRadiusMargin = 2.0;
+
+        /// <summary>
+        /// Наименьший радиус сферы поля, мм: габарит детектора с обвязкой и
+        /// оправой (половина диагонали описанного цилиндра) с запасом
+        /// <see cref="FieldRadiusMargin"/>. Считается из тех же полей, что
+        /// <see cref="DetectorOuterDiameterMm"/> и
+        /// <see cref="CrystalHeightAboveSampleMm"/>.
+        /// </summary>
+        public static double MinFieldRadiusMm(GeometryModel g)
+        {
+            double halfWidth = 0.5 * DetectorOuterDiameterMm(g);
+            double front = Math.Max(0.0, g.FrontReflectorThickness)
+                           + Math.Max(0.0, g.FrontGapThickness)
+                           + Math.Max(0.0, g.FrontCladdingThickness);
+            double depth;
+            if (g.Shape == CrystalShape.Box)
+            {
+                double halfX, halfY;
+                g.CrystalBoxInScene(out halfX, out halfY, out depth);
+            }
+            else
+            {
+                depth = g.CrystalHeight;
+            }
+
+            // Длина вдоль оси: передняя обвязка, кристалл и оправа за ним.
+            // Оправа считается ПОЗАДИ (умолчание симулятора, MountingInFront
+            // выключен) — впереди она входила бы в `front`, и половина
+            // диагонали была бы та же.
+            double length = front + Math.Max(0.0, depth) + Math.Max(0.0, g.MountingThickness);
+            return FieldRadiusMargin * Math.Sqrt(halfWidth * halfWidth + 0.25 * length * length);
+        }
+
+        /// <summary>
+        /// Изотропное внешнее поле: прибор в центре ламбертовой сферы радиуса
+        /// <see cref="GeometryModel.FieldRadius"/>. Пробы и сосуда нет, форма
+        /// источника — точка (см. <see cref="GeometrySceneKind.Iso"/>).
+        ///
+        /// В отличие от грунта и лунки, размер здесь не считается из пробега:
+        /// радиус — свободный параметр, от которого ответ не зависит. Поэтому
+        /// набранный человеком радиус СОХРАНЯЕТСЯ, если он годен; ставится
+        /// умолчание только на месте нуля или радиуса меньше габарита.
+        /// `pdistance` файла ставится равным радиусу — так программа ЛСРМ,
+        /// не знающая ключа, увидит точечный источник на том же расстоянии,
+        /// а в клеймо не попадает случайное число от прежней сцены.
+        ///
+        /// Возвращает пустую строку всегда: вещества пробы у поля нет, и
+        /// подменять нечего.
+        /// </summary>
+        public static string Iso(GeometryModel g)
+        {
+            g.Scene = GeometrySceneKind.Iso;
+            g.SourceType = GeometrySourceType.Point;
+            double floor = MinFieldRadiusMm(g);
+            if (!(g.FieldRadius >= floor))
+            {
+                g.FieldRadius = Math.Max(DefaultFieldRadiusMm, floor);
+            }
+
+            g.PointDistance = g.FieldRadius;
+            return "";
         }
 
         // ------------------------------------------------------------------
@@ -308,6 +399,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<Issue> issues = new List<Issue>();
             if (g == null)
             {
+                return issues;
+            }
+
+            if (g.Scene == GeometrySceneKind.Iso)
+            {
+                // (`AMBER13` (б)) Сфера поля обязана накрывать детектор с
+                // обвязкой: точка розыгрыша внутри габарита — не поле, а
+                // источник в приборе, и конус наведения на ней не строится.
+                double floor = MinFieldRadiusMm(g);
+                if (!(g.FieldRadius >= floor))
+                {
+                    issues.Add(new Issue
+                    {
+                        Field = "FieldRadius",
+                        Resource = "GeometryEditorErrorFieldRadiusSmall",
+                        Value = g.FieldRadius,
+                        Limit = floor,
+                    });
+                }
+
                 return issues;
             }
 

@@ -1451,6 +1451,24 @@
   <data name="GeometryEditorSceneMaterial" xml:space="preserve">
     <value> · вещество пробы поставлено «{0}»</value>
   </data>
+  <data name="GeometryEditorSourceIso" xml:space="preserve">
+    <value>Изотропное поле (ISO)</value>
+  </data>
+  <data name="GeometryEditorFieldRadius" xml:space="preserve">
+    <value>Радиус сферы поля</value>
+  </data>
+  <data name="GeometryEditorSceneIso" xml:space="preserve">
+    <value>Изотропное поле из 4π: кривая и матрица — эффективная площадь, см² (отклик на единичный флюенс, а не на квант источника). Радиус сферы {0:F0} см; ответ от него не зависит, пока он больше {1:F1} см.</value>
+  </data>
+  <data name="GeometryEditorErrorFieldRadiusSmall" xml:space="preserve">
+    <value>Сфера поля не накрывает детектор: {0:F1} мм при наименьшем {1:F1} мм.</value>
+  </data>
+  <data name="GeometrySourceIso" xml:space="preserve">
+    <value>изотропное поле, сфера радиуса {0:F0} мм</value>
+  </data>
+  <data name="EfficiencySketchIso" xml:space="preserve">
+    <value>Изотропное поле, радиус сферы</value>
+  </data>
   <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
     <value>Набор нуклидов «{0}» использовать нельзя: {1}</value>
   </data>
@@ -2315,6 +2333,39 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="DoseRateNoEfficiency" xml:space="preserve">
     <value>Мощность дозы: кривая эффективности не выбрана.</value>
+  </data>
+  <data name="DoseRateNoGeometry" xml:space="preserve">
+    <value>Мощность дозы: у кривой «{0}» нет геометрии — без неё скорость испускания не перевести в плотность потока у детектора, и у дозы нет масштаба.</value>
+  </data>
+  <data name="DoseRateForeignMatrix" xml:space="preserve">
+    <value>Мощность дозы: матрица отклика не отвечает геометрии кривой «{0}».</value>
+  </data>
+  <data name="DoseRateEmptyMatrix" xml:space="preserve">
+    <value>Мощность дозы: у матрицы отклика кривой «{0}» нет строк.</value>
+  </data>
+  <data name="DoseRateOutsideMatrix" xml:space="preserve">
+    <value>Мощность дозы: {0:f1} кэВ вне сетки матрицы отклика ({1:f1}...{2:f1} кэВ).</value>
+  </data>
+  <data name="DoseRateNoGeometryModel" xml:space="preserve">
+    <value>Мощность дозы: у кривой нет геометрии.</value>
+  </data>
+  <data name="DoseRateNoCrystal" xml:space="preserve">
+    <value>Мощность дозы: в геометрии кристалл нулевой глубины.</value>
+  </data>
+  <data name="DoseRateSourceInCrystal" xml:space="preserve">
+    <value>Мощность дозы: точечный источник стоит в центре кристалла — плотность потока не определена.</value>
+  </data>
+  <data name="DoseRateNoSampleVolume" xml:space="preserve">
+    <value>Мощность дозы: у пробы в геометрии нет объёма — усреднять плотность потока не по чему.</value>
+  </data>
+  <data name="DoseRateAreaAboveBound" xml:space="preserve">
+    <value>Мощность дозы: кривая сцены поля даёт {0} см² на {1:f1} кэВ — больше площади проекции сферы, описанной вокруг детектора ({2:f1} см²).</value>
+  </data>
+  <data name="DoseRateCurveNormalizationMismatch" xml:space="preserve">
+    <value>Мощность дозы: кривая «{0}» нормирована {1}, а её геометрия ({2}) требует {3} — пересчитайте кривую из геометрии.</value>
+  </data>
+  <data name="DoseRateMatrixNormalizationMismatch" xml:space="preserve">
+    <value>Мощность дозы: матрица отклика нормирована {1}, а кривая «{0}» — {2}; квадратные сантиметры с долями не смешиваются — пересчитайте матрицу.</value>
   </data>
   <data name="DoseRateNoElement" xml:space="preserve">
     <value>Мощность дозы: элемента Z={0} нет в базе веществ.</value>

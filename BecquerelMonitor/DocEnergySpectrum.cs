@@ -1257,6 +1257,9 @@ namespace BecquerelMonitor
                 this.EfficiencyChanged(this, EventArgs.Empty);
             }
 
+            // Мощность дозы считается от той же кривой (`AMBER18`): выбор здесь
+            // — тоже смена показания, его подхватит таймер главного окна.
+            this.UpdateDoseRate = true;
             return true;
         }
 

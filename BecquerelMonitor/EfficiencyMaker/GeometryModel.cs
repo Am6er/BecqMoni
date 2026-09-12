@@ -409,7 +409,42 @@ namespace BecquerelMonitor.EfficiencyMaker
         Ground,
 
         /// <summary>Прибор опущен в лунку; грунт вокруг и снизу.</summary>
-        Borehole
+        Borehole,
+
+        /// <summary>
+        /// ИЗОТРОПНОЕ ВНЕШНЕЕ ПОЛЕ (`AMBER13` (б), решение Amber 12.09.2026
+        /// «Оставь только ISO»): прибор стоит в однородном изотропном поле
+        /// квантов из 4π — геометрия облучения ICRP 74 «ISO». Пробы нет
+        /// вовсе, и это единственный вид сцены, у которого ИСТОЧНИКА в
+        /// сцене нет: сцена — это детектор в поле.
+        ///
+        /// Как считается. Кванты разыгрываются с поверхности сферы радиуса
+        /// <see cref="GeometryModel.FieldRadius"/> вокруг детектора, ВНУТРЬ
+        /// по закону косинуса — так внутри сферы получается однородное
+        /// изотропное поле (ламбертова сфера; проверено розыгрышем 12.09.2026:
+        /// флюенс в точках 0…0.9 R одинаков до 0.1 %, у изотропного розыгрыша
+        /// с поверхности он растёт к стенке в 1.63 раза). Радиус ответа не
+        /// меняет — это и есть даровой контроль правильности (посчитать на
+        /// 50 и 100 см, числа обязаны совпасть).
+        ///
+        /// ⛔ НОРМИРОВКА ДРУГАЯ. У всех прочих сцен строка матрицы и кривая
+        /// нормированы «на квант, испущенный источником в 4π», а для внешнего
+        /// поля такой нормировки не существует — поле задаётся ФЛЮЕНСОМ. У
+        /// сцены ISO отклик нормирован на ЕДИНИЧНЫЙ ФЛЮЕНС (1 квант/см²), то
+        /// есть строка матрицы и кривая — ЭФФЕКТИВНАЯ ПЛОЩАДЬ в см², а не
+        /// доля (<see cref="ResponseMatrixNormalization.PerUnitFluence"/>).
+        /// Перевод: флюенс на квант, испущенный ламбертовой сферой радиуса R,
+        /// равен 1/(πR²), значит A_эфф = π·R²·ε_R — множитель сидит в весе
+        /// истории (<c>EfficiencySimulator.IsoFieldSampler</c>).
+        ///
+        /// Форма источника в файле — <see cref="GeometrySourceType.Point"/>:
+        /// у поля, как у точки, нет ни сосуда, ни пробы, а программа ЛСРМ,
+        /// не знающая ключа <c>DS_Scene</c>, прочитает файл как точечный
+        /// источник на расстоянии радиуса поля — осмысленная подмена, а не
+        /// мусор. Потребитель — мощность дозы (`AMBER18`): она делит скорость
+        /// счёта на A_эфф(E) и получает флюенс, а из флюенса — H*(10).
+        /// </summary>
+        Iso
     }
 
     /// <summary>Форма кристалла.</summary>
@@ -718,6 +753,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Источник, мм
         public double PointDistance;
 
+        /// <summary>
+        /// Радиус сферы, с которой разыгрывается изотропное поле
+        /// (<see cref="GeometrySceneKind.Iso"/>), мм. Читается только у сцены
+        /// ISO; у остальных — ноль и в файл не пишется (правило «нет отличия
+        /// — нет строки», клеймо прежних сцен не меняется).
+        ///
+        /// Ответ от радиуса НЕ ЗАВИСИТ, пока сфера накрывает весь детектор с
+        /// обвязкой — это свойство ламбертовой сферы, а не допущение, и оно
+        /// же служит проверкой (`IsoFieldProbe`: 50 и 100 см обязаны сойтись).
+        /// Умолчание и нижнюю границу ставит <c>GeometryScenes.Iso</c>.
+        /// </summary>
+        public double FieldRadius;
+
         public double BeakerToDetectorDistance;
         public double BeakerDiameter;
         public double BeakerHeight;
@@ -919,6 +967,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MountingThickness *= factor;
 
             g.PointDistance *= factor;
+            g.FieldRadius *= factor;
 
             g.BeakerToDetectorDistance *= factor;
             g.BeakerDiameter *= factor;
@@ -1274,6 +1323,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     g.Scene = GeometrySceneKind.Borehole;
                 }
+                else if (scene.Equals("ISO", StringComparison.OrdinalIgnoreCase))
+                {
+                    // `AMBER13` (б): изотропное внешнее поле. Радиус сферы
+                    // розыгрыша — своим ключом; нет ключа — ноль, и
+                    // `GeometryScenes.Iso` поставит умолчание.
+                    g.Scene = GeometrySceneKind.Iso;
+                    g.FieldRadius = Len(kv, "DS_FieldRadius");
+                }
             }
 
             // `AMBER12`: измерение в защите (свинцовый домик). Ключа нет —
@@ -1553,8 +1610,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             switch (this.SourceType)
             {
                 case GeometrySourceType.Point:
-                    source = string.Format(CultureInfo.InvariantCulture,
-                        Resources.GeometrySourcePoint, this.PointDistance);
+                    // `AMBER13` (б): у поля форма источника точечная, но
+                    // источника в сцене нет — называется поле и его радиус.
+                    source = this.Scene == GeometrySceneKind.Iso
+                        ? string.Format(CultureInfo.InvariantCulture,
+                            Resources.GeometrySourceIso, this.FieldRadius)
+                        : string.Format(CultureInfo.InvariantCulture,
+                            Resources.GeometrySourcePoint, this.PointDistance);
                     break;
                 case GeometrySourceType.Cylinder:
                     source = string.Format(CultureInfo.InvariantCulture,

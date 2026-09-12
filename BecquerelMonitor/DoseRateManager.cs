@@ -1,9 +1,7 @@
-﻿using BecquerelMonitor.Utils;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Globalization;
+using System.IO;
 
 namespace BecquerelMonitor
 {
@@ -142,30 +140,300 @@ namespace BecquerelMonitor
     }
 
     // Token: 0x02000032 RID: 50
+    /// <summary>
+    /// Мощность амбиентного эквивалента дозы по спектру — от кривой
+    /// эффективности, ВЫБРАННОЙ НА ПАНЕЛИ (`AMBER18`, задача Amber 11.09.2026).
+    ///
+    /// ⛔ ДО 12.09.2026 здесь считали по ручным точкам калибровки
+    /// (`DoseRateConfig.DoseRateCalibrationPoints`, чувствительность
+    /// «доза на отсчёт» на диапазон, нормированная на эталон). Точки, эталон,
+    /// вкладка `Dose Rate` и сам `DoseRateConfig` сняты решениями Amber
+    /// 10–11.09.2026. Теперь вход один — <see cref="DoseRateInput"/>: полная
+    /// либо пиковая эффективность и геометрический множитель сцены, — а
+    /// единицы явные (<see cref="DoseRateCoefficients.DoseRatePerFluenceRate"/>).
+    ///
+    /// Расчёт по диапазонам геометрической сетки (<see cref="DoseRateEstimator.BuildGrid"/>)
+    /// на пересечении шкалы спектра, области входа и области коэффициентов:
+    ///
+    ///     N_i  = cps_i / ε(E_i)                 квантов/с, испущенных источником в 4π
+    ///     φ̇_i  = N_i · G                        квант/(см²·с) в центре кристалла
+    ///     Ḣ_i  = φ̇_i · Ḣ*(10)/φ̇ (E_i)           мкЗв/ч
+    ///
+    /// где ε — полная (сумма строки матрицы) или пиковая (кривая, «≈»),
+    /// G — <see cref="DoseRateInput.FluencePerPhoton"/>, E_i — середина
+    /// диапазона. Диапазон представлен одной энергией: это приближение того
+    /// же рода, что и прежнее (все отсчёты диапазона приписаны квантам его
+    /// середины), и цена его та же — снимается не здесь, а разложением спектра.
+    ///
+    /// Сцена поля `ISO` (`AMBER13` (б), 12.09.2026) идёт ТЕМ ЖЕ ходом: там ε —
+    /// эффективная площадь A_эфф(E) в см² (на квант/см² поля), G ≡ 1, и первая
+    /// строка сразу даёт φ̇_i = cps_i / A_эфф(E_i). Развёртка по матрице та же
+    /// (строка матрицы поля — тоже отклик на линию, только в см²), пометка
+    /// «≈» — та же (только кривая, A_пик). Признак нормировки сверяется при
+    /// сборке входа (<see cref="DoseRateInput.Of"/>), здесь он уже сошёлся.
+    /// </summary>
     public class DoseRateManager
     {
         private GlobalConfigManager globalConfigManager;
-        public DoseRateManager(GlobalConfigManager globalConfigManager) 
+        public DoseRateManager(GlobalConfigManager globalConfigManager)
         {
             this.globalConfigManager = globalConfigManager;
         }
 
+        /// <summary>
+        /// Доза по спектру и кривой, выбранной у него на панели
+        /// (<c>ResultData.Efficiency</c>). null — показывать НЕЧЕГО: кривая не
+        /// выбрана или у неё нет точек (решение «кривая не выбрана — пусто»);
+        /// всё остальное — число либо отказ с причиной в <see cref="DoseRate.Refusal"/>.
+        /// </summary>
+        public DoseRate Calculate(ResultData resultData)
+        {
+            if (resultData == null)
+            {
+                return null;
+            }
+
+            EfficiencyConfigData efficiency = resultData.Efficiency;
+            if (efficiency == null || !efficiency.HasCurve)
+            {
+                return null;
+            }
+
+            DoseRateInput input;
+            try
+            {
+                input = this.InputOf(efficiency);
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                DoseRate refused = new DoseRate();
+                refused.Refusal = ex.Message;
+                return refused;
+            }
+
+            return this.Calculate(resultData, input);
+        }
+
+        /// <summary>
+        /// Вход по кривой из склада матриц приложения — ТЕМ ЖЕ путём, что и
+        /// разбор FSA (<c>FsaAnalysisSession</c>): матрица читается, только
+        /// если у кривой есть геометрия и не снята галка «пускать матрицу»
+        /// (`W11`), и берётся, только если её клеймо сходится с геометрией
+        /// кривой. Не сошлось, не прочиталась, нет файла — считаем по пиковой
+        /// с пометкой; причина остаётся в <see cref="LastMatrixNote"/>.
+        ///
+        /// Кэш — по ссылке на кривую и по отметке файла матрицы: строка
+        /// состояния перерисовывается каждые 200 мс при наборе, а матрица —
+        /// полмегабайта разбора. Пересчитанная в форме матрица меняет отметку
+        /// файла, и кэш это видит.
+        /// </summary>
+        public DoseRateInput InputOf(EfficiencyConfigData efficiency)
+        {
+            if (efficiency == null)
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoEfficiency", "Dose rate: no efficiency curve is selected."));
+            }
+
+            string stamp = MatrixStamp(efficiency);
+            lock (this.cacheSync)
+            {
+                if (object.ReferenceEquals(this.cachedEfficiency, efficiency)
+                    && this.cachedInput != null && this.cachedStamp == stamp)
+                {
+                    return this.cachedInput;
+                }
+            }
+
+            ResponseMatrix matrix = null;
+            string note = "";
+            if (efficiency.HasGeometry && efficiency.UseResponseMatrix)
+            {
+                MatrixRefusal refusal;
+                int fileFormat;
+                matrix = ResponseMatrixStore.Load(efficiency.Guid, out refusal, out fileFormat);
+                if (matrix == null)
+                {
+                    note = refusal == MatrixRefusal.OldFormat
+                        ? string.Format(CultureInfo.InvariantCulture, "matrix file format {0}, need {1}",
+                                        fileFormat, ResponseMatrix.FormatVersion)
+                        : refusal.ToString();
+                }
+                else if (!matrix.IsValidFor(efficiency.Geometry))
+                {
+                    note = "matrix stamp does not match the geometry";
+                    matrix = null;
+                }
+            }
+            else if (!efficiency.HasGeometry)
+            {
+                note = "no geometry";
+            }
+            else
+            {
+                note = "UseResponseMatrix = false";
+            }
+
+            DoseRateInput input = DoseRateInput.Of(efficiency, matrix);
+            lock (this.cacheSync)
+            {
+                this.cachedEfficiency = efficiency;
+                this.cachedInput = input;
+                this.cachedStamp = stamp;
+                this.lastMatrixNote = note;
+            }
+
+            return input;
+        }
+
+        /// <summary>Почему у последнего входа нет матрицы; пусто — матрица есть.</summary>
+        public string LastMatrixNote
+        {
+            get
+            {
+                lock (this.cacheSync)
+                {
+                    return this.lastMatrixNote ?? "";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Отметка всего, от чего зависит вход, кроме самой ссылки на кривую:
+        /// файл матрицы (длина и время), галка «пускать матрицу», наличие
+        /// геометрии и Guid. Галка правится НА ТОМ ЖЕ объекте (форма «Матрица
+        /// отклика»), и без неё в отметке кэш отдавал бы вход с матрицей после
+        /// того, как её выключили, — поймано пробой `DoseRateFromCurveProbe` §7.
+        /// </summary>
+        static string MatrixStamp(EfficiencyConfigData efficiency)
+        {
+            string file;
+            try
+            {
+                string path = ResponseMatrixStore.PathOf(efficiency.Guid);
+                if (!File.Exists(path))
+                {
+                    file = "-";
+                }
+                else
+                {
+                    FileInfo info = new FileInfo(path);
+                    file = string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
+                                         info.Length, info.LastWriteTimeUtc.Ticks);
+                }
+            }
+            catch (Exception)
+            {
+                file = "?";
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, "{0}|{1}|{2}|{3}",
+                                 file, efficiency.UseResponseMatrix, efficiency.HasGeometry, efficiency.Guid);
+        }
+
+        /// <summary>
+        /// Доли отклика: `fractions[j][i]` — какая часть квантов энергии
+        /// E_j (середина диапазона j) даёт отсчёт В ДИАПАЗОНЕ i. Строка матрицы
+        /// растягивается на энергию линии тем же кодом, что у разбора
+        /// (<see cref="ResponseMatrix.Evaluate"/>), и раскладывается по
+        /// границам сетки; бин отклика — [b·шаг, (b+1)·шаг) поглощённой
+        /// энергии, судится по середине.
+        ///
+        /// ⛔ ЗАЧЕМ ЭТО, А НЕ ПРОСТО СУММА СТРОКИ (`AMBER18`, замер 12.09.2026).
+        /// Наивное «отсчёты диапазона ÷ сумма строки» приписывает ВСЕ отсчёты
+        /// диапазона квантам его середины — а внизу шкалы отсчёты почти целиком
+        /// континуум линий, стоящих выше. У живой ASN16 (Cs-137 на торце)
+        /// диапазон 10…13 кэВ при ε = 2.5e-5 давал 71 % показания. С матрицей
+        /// континуум ИЗВЕСТЕН: сверху вниз он вычитается, и знаменателем идёт
+        /// доля отклика линии В СВОЁМ диапазоне. Для отклика без континуума
+        /// (одна дельта в пике) обе записи тождественны.
+        /// </summary>
+        static double[][] ResponseFractions(DoseRateInput input, DoseRateRange[] ranges)
+        {
+            ResponseMatrix matrix = input.Matrix;
+            int bins = ranges.Length;
+            double step = matrix.BinKev;
+            if (!(step > 0.0))
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateEmptyMatrix", "Dose rate: the response matrix of the curve has no rows."));
+            }
+
+            int cells = (int)Math.Ceiling(ranges[bins - 1].HighKev / step) + 2;
+            var fractions = new double[bins][];
+            for (int j = 0; j < bins; j++)
+            {
+                double[] row = matrix.Evaluate(ranges[j].CenterKev, cells);
+                var share = new double[bins];
+                int i = 0;
+                for (int b = 0; b < row.Length; b++)
+                {
+                    double e = (b + 0.5) * step;
+                    while (i < bins && e >= ranges[i].HighKev)
+                    {
+                        i++;
+                    }
+
+                    if (i >= bins)
+                    {
+                        break;
+                    }
+
+                    if (e >= ranges[i].LowKev)
+                    {
+                        share[i] += row[b];
+                    }
+                }
+
+                fractions[j] = share;
+            }
+
+            return fractions;
+        }
+
+        /// <summary>
+        /// Пол эффективности: диапазон, у которого доля отклика в своём же
+        /// диапазоне меньше этой части от наибольшей по сетке, не
+        /// приписывается никому. Деление на почти ноль превращает горстку
+        /// отсчётов в тысячи квантов на см²: у ASN16 в 10…13 кэВ (ε = 2.5e-5,
+        /// 4 отсч/с) выходило 1200 квант/(см²·с) и 2.4 мкЗв/ч из 3.3. Отсчёты
+        /// такого диапазона уходят из покрытия, и приписка это показывает.
+        /// Одна сотая — от максимума ~0.2…0.26 это ε ≈ 2e-3, то есть ниже
+        /// ~15…17 кэВ у сцинтиллятора в обвязке; на числах корпуса порог
+        /// сдвигом вдвое в любую сторону меняет показание меньше чем на 1 %.
+        /// Пол ОТНОСИТЕЛЬНЫЙ нарочно: у сцены поля `ISO` те же величины идут
+        /// в см² (максимум ~46 у Ø63×63), и правило действует без пересчёта.
+        /// </summary>
+        public const double MinOwnEfficiencyFraction = 0.01;
+
         // Token: 0x060002B0 RID: 688 RVA: 0x0000D214 File Offset: 0x0000B414
-        public DoseRate Calculate(ResultData resultData, DoseRateConfig config)
+        /// <summary>
+        /// Доза по спектру и готовому входу. Единственный расчёт; всё, что
+        /// выше, только собирает вход.
+        /// </summary>
+        public DoseRate Calculate(ResultData resultData, DoseRateInput input)
         {
             // Доза — свойство ИЗМЕРЕННОГО спектра. Раньше сюда передавался
             // режим отображения графика, и при «фон вычтен» доза считалась по
             // разности — показание дозиметра менялось от галки отрисовки
             // (TODO G6). Дозиметр так себя не ведёт: фон — тоже доза.
-            EnergySpectrum energySpectrum = resultData.EnergySpectrum;
             DoseRate doseRate = new DoseRate();
+            if (input == null)
+            {
+                doseRate.Refusal = DoseRateCoefficients.Text(
+                    "DoseRateNoEfficiency", "Dose rate: no efficiency curve is selected.");
+                return doseRate;
+            }
+
+            doseRate.Approximate = input.Approximate;
+            EnergySpectrum energySpectrum = resultData == null ? null : resultData.EnergySpectrum;
 
             // ⛔ `C4(в)`. Негодный вход отказывается ВИДИМО. Прежде расчёт на
             // спектре без калибровки падал `NullReferenceException` где-то
             // внутри, а на спектре с нулевым временем возвращал ровный ноль —
             // и ноль уходил в строку состояния неотличимо от измеренного.
             if (energySpectrum == null || energySpectrum.Spectrum == null
-                || energySpectrum.NumberOfChannels < 1)
+                || energySpectrum.NumberOfChannels < 2)
             {
                 doseRate.Refusal = DoseRateCoefficients.Text(
                     "DoseRateEmptySpectrum", "Dose rate: the reference spectrum has no channels.");
@@ -191,10 +459,27 @@ namespace BecquerelMonitor
                 return doseRate;
             }
 
-            // Сколько отсчётов спектра вообще попало в откалиброванные
-            // диапазоны. Считается по флажкам каналов, а не сложением длин:
-            // диапазоны в конфигурации могут перекрываться, и сумма их
-            // содержимого была бы больше спектра.
+            double[] grid;
+            try
+            {
+                // Сетка — на пересечении шкалы САМОГО СПЕКТРА, области входа
+                // (кривая либо матрица) и области коэффициентов (10 кэВ…10 МэВ).
+                // Прежде сетка строилась по шкале ПРИБОРА, потому что точки
+                // хранились в его конфигурации; теперь ничего не хранится, и
+                // шкала спектра — та, по которой его каналы и переводятся в кэВ.
+                double scaleMin, scaleMax;
+                DoseRateEstimator.DeviceRange(null, energySpectrum, out scaleMin, out scaleMax);
+                grid = DoseRateEstimator.BuildGrid(Math.Max(scaleMin, input.MinKev),
+                                                   Math.Min(scaleMax, input.MaxKev));
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                doseRate.Refusal = ex.Message;
+                return doseRate;
+            }
+
+            // Сколько отсчётов спектра вообще попало в диапазоны сетки.
+            // Считается по флажкам каналов, а не сложением длин.
             bool[] covered = new bool[energySpectrum.Spectrum.Length];
 
             // ⛔ `A203`. Каналы, которым нечего давать в дозу, названы вслух —
@@ -205,35 +490,31 @@ namespace BecquerelMonitor
             // каналом молча теряло его.
             bool[] overflow = OverflowChannel.Mask(energySpectrum.Spectrum);
 
-            List<double> errors = new List<double>();
-            List<double> doseRates = new List<double>();
-            foreach (DoseRateCalibrationPoint point in config.DoseRateCalibrationPoints)
+            double seconds = energySpectrum.MeasurementTime;
+
+            // Шаг 1. Отсчёты по диапазонам — с картой покрытых каналов.
+            int bins = grid.Length - 1;
+            var ranges = new DoseRateRange[bins];
+            for (int k = 0; k < bins; k++)
             {
-                int startch = (int)calibration.EnergyToChannel(point.LowerBound, energySpectrum.NumberOfChannels);
-                int endch = (int)calibration.EnergyToChannel(point.UpperBound, energySpectrum.NumberOfChannels);
+                double fromE = grid[k];
+                double toE = grid[k + 1];
+
+                // ⛔ ОТБРАСЫВАНИЕ дробной части, одно правило на обоих концах
+                // (`C4`, `W19`): генератор и потребитель теперь одно место,
+                // и разойтись им негде, но правило остаётся названным.
+                int startch = (int)calibration.EnergyToChannel(fromE, energySpectrum.NumberOfChannels);
+                int endch = (int)calibration.EnergyToChannel(toE, energySpectrum.NumberOfChannels);
                 if (startch < 0) startch = 0;
-                // ⛔ Зажим В ДЛИНУ, а не в «длина − 1» (`A203`). Цикл ниже
-                // полуоткрыт, поэтому `Length − 1` делал последний канал
-                // недостижимым при ЛЮБОЙ верхней границе — правило «последний
-                // канал не считать» жило здесь умолчанием, безымянно и
-                // независимо от того, переполнение в нём или измерение.
-                // ⚠ Генератору точек (`DoseRateEstimator.Estimate`) эта правка
-                // видна НЕ БЫВАЕТ: его сетка строится по шкале прибора, верх
-                // сетки равен `ChannelToEnergy(N − 1)`, и его собственный
-                // `toChannel` до `N` не доходит. Обратный ход «построить точки
-                // по эталону — померить тот же эталон» остаётся 1.000000, что и
-                // проверяется пробой. Правка меняет счёт только у конфигураций,
-                // чьи диапазоны выходят ЗА шкалу, — у поставочного `RC-103.xml`
-                // (36 точек до 4997 кэВ) и у сеток, построенных до 05.09.2026.
+                // ⛔ Зажим В ДЛИНУ, а не в «длина − 1» (`A203`): цикл ниже
+                // полуоткрыт, и `Length − 1` делал последний канал недостижимым
+                // при ЛЮБОЙ верхней границе.
                 if (endch > energySpectrum.Spectrum.Length) endch = energySpectrum.Spectrum.Length;
+
                 double counts = 0.0;
-                // Полуоткрыто, [startch, endch): диапазоны в конфигурациях идут
-                // ВСТЫК (у поставочной RC-103 их 36, верх одного равен низу
-                // следующего), и замкнутая сумма считала граничный канал каждого
-                // диапазона дважды — 35 лишних каналов из ~900 на 1024-канальном
-                // спектре, доза завышалась. Генератор точек в DeviceConfigForm
-                // всегда суммировал полуоткрыто; расходились именно эти два
-                // места (W19, решение Amber 08.08.2026 — полуоткрыто везде).
+                // Полуоткрыто, [startch, endch): диапазоны идут ВСТЫК, и
+                // замкнутая сумма считала бы граничный канал дважды (W19,
+                // решение Amber 08.08.2026 — полуоткрыто везде).
                 for (int i = startch; i < endch; i++)
                 {
                     // Канал переполнения пропускается ИМЕНЕМ, а не границей
@@ -242,20 +523,138 @@ namespace BecquerelMonitor
                     counts += energySpectrum.Spectrum[i];
                     covered[i] = true;
                 }
-                if (counts == 0) continue;
-                double error = Math.Sqrt(counts) / counts;
-                double dr = counts * point.Sensitivity;
-                doseRates.Add(dr);
-                errors.Add(dr * error);
+
+                ranges[k] = new DoseRateRange
+                {
+                    LowKev = fromE,
+                    HighKev = toE,
+                    CenterKev = 0.5 * (fromE + toE),
+                    Counts = counts,
+                    Attributed = counts,
+                };
             }
 
-            // Доля отсчётов, попавшая в откалиброванные диапазоны (`C4(в)`).
+            // Шаг 2. Кому принадлежат отсчёты каждого диапазона — и какой
+            // эффективностью их делить.
+            double rate = 0.0;
+            double errorSquares = 0.0;
+            try
+            {
+                double[][] fractions = null;
+                if (input.Matrix != null)
+                {
+                    fractions = ResponseFractions(input, ranges);
+                }
+
+                // Пол вырожденной эффективности — от наибольшей по сетке:
+                // делить на ноль нельзя и на почти ноль тоже, см.
+                // <see cref="MinOwnEfficiencyFraction"/>.
+                double maxOwn = 0.0;
+                for (int k = 0; k < bins; k++)
+                {
+                    DoseRateRange r = ranges[k];
+                    r.Efficiency = input.EfficiencyAt(r.CenterKev);
+                    r.OwnEfficiency = fractions == null ? r.Efficiency : fractions[k][k];
+                    // Ровно ноль — не «маленькая эффективность», а пустая
+                    // строка матрицы или порча: отказ, а не пропуск. Малая,
+                    // но положительная — дело пола ниже.
+                    if (double.IsNaN(r.Efficiency) || double.IsInfinity(r.Efficiency) || !(r.Efficiency > 0.0))
+                    {
+                        throw new DoseRateRefusalException(string.Format(
+                            CultureInfo.InvariantCulture,
+                            DoseRateCoefficients.Text("DoseRateBadEfficiency",
+                                "Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless."),
+                            r.Efficiency, r.CenterKev));
+                    }
+
+                    maxOwn = Math.Max(maxOwn, r.OwnEfficiency);
+                }
+
+                if (!(maxOwn > 0.0))
+                {
+                    throw new DoseRateRefusalException(string.Format(
+                        CultureInfo.InvariantCulture,
+                        DoseRateCoefficients.Text("DoseRateBadEfficiency",
+                            "Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless."),
+                        0.0, ranges[bins - 1].CenterKev));
+                }
+
+                // Сверху вниз: континуум линий, приписанных ВЫШЕ, вычитается
+                // из диапазонов НИЖЕ (только с матрицей — у пиковой кривой
+                // континуума нет, и это ровно то, за что она «≈»).
+                var emitted = new double[bins];    // N_k, квантов/с
+                for (int k = bins - 1; k >= 0; k--)
+                {
+                    DoseRateRange r = ranges[k];
+                    double explained = 0.0;
+                    if (fractions != null)
+                    {
+                        for (int j = k + 1; j < bins; j++)
+                        {
+                            explained += emitted[j] * seconds * fractions[j][k];
+                        }
+                    }
+
+                    r.Explained = explained;
+                    r.Attributed = Math.Max(0.0, r.Counts - explained);
+                    r.DoseRatePerFluenceRate = DoseRateCoefficients.DoseRatePerFluenceRate(r.CenterKev);
+
+                    if (r.OwnEfficiency < MinOwnEfficiencyFraction * maxOwn)
+                    {
+                        // Диапазон не приписывается никому: его отсчёты
+                        // выходят из покрытия, о чём скажет приписка.
+                        r.Skipped = true;
+                        r.Cps = r.Attributed / seconds;
+                        continue;
+                    }
+
+                    r.Cps = r.Attributed / seconds;
+                    emitted[k] = r.Cps / r.OwnEfficiency;
+                    r.FluenceRate = emitted[k] * input.FluencePerPhoton;
+                    r.DoseRate = r.FluenceRate * r.DoseRatePerFluenceRate;
+
+                    if (r.Attributed > 0.0)
+                    {
+                        rate += r.DoseRate;
+                        // Пуассон по СЫРЫМ отсчётам диапазона: вычитание
+                        // континуума шум не убирает, а долю его увеличивает.
+                        double relative = Math.Sqrt(Math.Max(r.Counts, 1.0)) / r.Attributed;
+                        errorSquares += r.DoseRate * relative * (r.DoseRate * relative);
+                    }
+                }
+
+                // Пропущенные диапазоны — вон из покрытия.
+                for (int k = 0; k < bins; k++)
+                {
+                    if (!ranges[k].Skipped)
+                    {
+                        continue;
+                    }
+
+                    int startch = (int)calibration.EnergyToChannel(ranges[k].LowKev, energySpectrum.NumberOfChannels);
+                    int endch = (int)calibration.EnergyToChannel(ranges[k].HighKev, energySpectrum.NumberOfChannels);
+                    if (startch < 0) startch = 0;
+                    if (endch > covered.Length) endch = covered.Length;
+                    for (int i = startch; i < endch; i++)
+                    {
+                        covered[i] = false;
+                    }
+                }
+
+                doseRate.Ranges.AddRange(ranges);
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                doseRate.Ranges.Clear();
+                doseRate.Refusal = ex.Message;
+                return doseRate;
+            }
+
+            // Доля отсчётов, попавшая в диапазоны сетки (`C4(в)`).
             //
             // ⛔ Канал переполнения не считается НИ В ЗНАМЕНАТЕЛЕ, ни в числителе
             // (`A203`). Он не измерение, и держать его в знаменателе значит
-            // тянуть покрытие вниз тем, что покрыть НЕЛЬЗЯ: у ASN16 в последний
-            // канал уходит 0.142 отсчёта в секунду, и приписка о неполном
-            // покрытии (`A199`) появлялась бы от прибора, а не от сетки.
+            // тянуть покрытие вниз тем, что покрыть НЕЛЬЗЯ.
             double total = 0.0;
             double inside = 0.0;
             for (int i = 0; i < energySpectrum.Spectrum.Length; i++)
@@ -270,21 +669,30 @@ namespace BecquerelMonitor
 
             doseRate.Coverage = total > 0.0 ? inside / total : -1.0;
 
-            doseRate.Rate = doseRates.Sum();
-            if (double.IsNaN(doseRate.Rate) || double.IsInfinity(doseRate.Rate) || energySpectrum.MeasurementTime == 0.0)
+            if (double.IsNaN(rate) || double.IsInfinity(rate))
             {
-                doseRate.Rate = 0.0;
+                doseRate.Ranges.Clear();
                 doseRate.Refusal = DoseRateCoefficients.Text(
                     "DoseRateNotFinite",
-                    "Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable.");
+                    "Dose rate: the sum over the ranges is not a finite number — the efficiency input is unusable.");
                 return doseRate;
             }
 
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
             double errorLevel = (double)globalConfig.MeasurementConfig.ErrorLevel;
-            doseRate.Error = errorLevel * Math.Sqrt(errors.Sum(e => e * e)) / energySpectrum.MeasurementTime;
-            doseRate.Rate /= energySpectrum.MeasurementTime;
+            doseRate.Rate = rate;
+            doseRate.Error = errorLevel * Math.Sqrt(errorSquares);
             return doseRate;
         }
+
+        readonly object cacheSync = new object();
+
+        EfficiencyConfigData cachedEfficiency;
+
+        DoseRateInput cachedInput;
+
+        string cachedStamp;
+
+        string lastMatrixNote;
     }
 }

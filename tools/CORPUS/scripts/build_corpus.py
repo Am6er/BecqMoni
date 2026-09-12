@@ -1238,9 +1238,6 @@ DEVICE_TEMPLATE = """<?xml version="1.0"?>
   <StabilizerConfig>
     <TargetPeaks />
   </StabilizerConfig>
-  <DoseRateConfig>
-    <DoseRateCalibrationPoints />
-  </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR>
     <FWHM_AT_0>{fwhm0}</FWHM_AT_0>
