@@ -1,0 +1,22 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "09ca760899e3bebe75bb3bca83872492de25dc55ad7fdf1ea1d0e7a3d8e22629",
+ "corpus_dir": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus",
+ "corpus_files": 206,
+ "dirty": [
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs"
+ ],
+ "fields": {
+  "app_sha": "e965483af8ee3d414d1400b6fafd2fd5a63de5fa7a7eeb817b48a28b56883b24",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Debug_P13",
+  "keys": "--only=ASN16_Cs137",
+  "probe_sha": "079948f7e16d0100993952480210ccebd8395a9363a769c6fa45c766ba91b508",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p13z",
+  "store": "",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_app"
+ },
+ "head": "1f848663a1bdd481561c5d353faad49cd06a1f72",
+ "sources": "5ad520ec5e08808f1b98f547d1b3da346d94a7ffad73ddd86062ba0ea434e6ef",
+ "sources_files": 558,
+ "written": "2026-09-12 22:50:03"
+}

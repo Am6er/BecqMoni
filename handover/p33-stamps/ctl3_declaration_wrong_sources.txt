@@ -1,0 +1,42 @@
+ОБЪЯВЛЕНИЕ: ..\..\..\AppData\Local\Temp\claude\C--Users-moroz-source-repos-BQ-Eng-res--NET-4-8\c622bbcd-f473-47e4-9f7b-f2056ac28f0a\scratchpad\ctl\README_bad_sources.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+строк объявления взято: 4
+
+[ ОК ] полная `out_rev19_full` / понятная
+      каталог: tools\pie\out_rev19_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev19_full --part=known --members
+      сошлось: спектров 85, sum chi2/ndf 436.5, медиана 2.58, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] полная `out_rev19_full` / непонятная
+      каталог: tools\pie\out_rev19_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev19_full --part=unknown --members
+      сошлось: спектров 38, sum chi2/ndf 80.6, медиана 26.11, recall, % 5, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev19_mini` / понятная
+      каталог: tools\pie\out_rev19_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev19_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: спектров 43, sum chi2/ndf 306.4, медиана 4.11, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev19_mini` / непонятная
+      каталог: tools\pie\out_rev19_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev19_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: спектров 16, sum chi2/ndf 54.4, медиана 27.22, recall, % 7, фантомов 0, подавлен 0
+
+ОТПЕЧАТОК ОБЪЯВЛЕНИЯ (T249):
+  [ ОК ] корпус: объявлено 09ca760899e3 = 09ca760899e3 (206 файлов, дерево)
+  [ОТКАЗ] сборка: объявлено 01bf861eec4d46b801a2078c681dc61394676db34bc8894ee40a3e09b1f84820,
+          коммит head=48987c0d даёт 01bf861eec4d46b801a2078c681dc61394676db34bc8894ee40a3e09b1f84823 (557 файлов)
+      Прогон снят поколением, которого нет в коммите объявления: либо head= назван
+      не тот, либо стенд нёс незакоммиченные правки разбора. Переснять или назвать коммит.
+      к сведению: после head=48987c0d набор разбора менялся 5 коммит(ами); воспроизводит ли
+      нынешнее дерево объявленные числа, сторож не судит — это A/B на полном корпусе.
+      Первые: 1f848663 П30 (серия S): S65 S43 S105 S126 S127 закрыты замером, S91 — ; bb5df5ae П31 (A308): NnlsSolve сходится — прибор NnlsTraceSink в решат; cdf86bbf П27: A72 — электрон ведётся переносом ключом ElectronTranspor
+  [ -- ] полная `out_rev19_full`: клейма прогона нет, объявление говорит run=none (снят до клейма, head=48987c0d)
+  [ -- ] малая `out_rev19_mini`: клейма прогона нет, объявление говорит run=none (снят до клейма, head=48987c0d)
+
+ИТОГО: строк сверено 4, расхождений 0, без каталога 0; отпечатки: отказов 1
+
+ОСТАНОВ: отпечаток объявления НЕ СХОДИТСЯ — набор разбора объявления не тот, что в коммит head=48987c0d.
+Объявление ссылается на прогон, который нынешним корпусом или нынешней
+сборкой не воспроизводится. Переснять базу и переобъявить (строку отпечатка
+дают `.run.json` каталога прогона и `--fingerprints`).

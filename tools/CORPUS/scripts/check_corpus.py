@@ -28,6 +28,7 @@ import calibrate                                      # noqa: E402
 import corpus_calib                                   # noqa: E402
 import corpus_lock                                    # noqa: E402
 import corpus_def                                     # noqa: E402
+import corpus_stamp                                   # noqa: E402
 import build_corpus                                   # noqa: E402
 import spectrum                                       # noqa: E402
 import gaussfit                                      # noqa: E402
@@ -804,6 +805,12 @@ def main():
     # `T93` — ОТКАЗ: спектр, чьи линии взяты с СОСЕДНЕГО уровня родителя,
     # собран не по правилу, а признак этого раньше не читал никто.
     ok &= check_level_fallback()
+    # `T244` — ОТКАЗ: корпус, собранный НЕ ТЕМ генератором, что лежит в дереве,
+    # выглядит целым и проходит все проверки выше — они судят корпус САМ ПО
+    # СЕБЕ. Клеймо пишет полная пересборка (`build_corpus.py`), здесь оно
+    # сверяется с деревом; расхождение называет коммиты генератора, которые до
+    # данных не доехали. Без клейма — отказ: корпус неизвестного поколения.
+    ok &= corpus_stamp.check(os.path.join(LAB, 'corpus'))
     # Порядок намеренный: состав печатается ПОСЛЕ раздела, чтобы напоминание не
     # тонуло выше вердикта, и в код возврата не входит (см. `check_composition`).
     check_composition()
