@@ -1,0 +1,10 @@
+off code=0 23:46:40 probe=[--fit-floor=off] keys=[--infer]
+adc code=0 23:46:45 probe=[--fit-floor=adc] keys=[--infer]
+f20 code=0 23:46:51 probe=[--fit-floor=20] keys=[--infer]
+f35 code=0 23:46:57 probe=[--fit-floor=35] keys=[--infer]
+thr code=0 23:47:03 probe=[] keys=[--infer]
+f1618 code=0 23:47:09 probe=[--fit-floor=16.18] keys=[--infer]
+f1753 code=0 23:47:15 probe=[--fit-floor=17.53] keys=[--infer]
+f15 code=0 23:47:21 probe=[--fit-floor=15] keys=[--infer]
+f25 code=0 23:47:27 probe=[--fit-floor=25] keys=[--infer]
+done 23:47:27

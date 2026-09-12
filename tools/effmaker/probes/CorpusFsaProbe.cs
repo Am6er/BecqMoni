@@ -234,7 +234,7 @@ namespace CorpusFsaProbe
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
     ///                  [--spoil=manager]  (порча: поднять менеджер; ОБЯЗАН кончиться кодом 12)
     ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
-    ///                  [--fit-floor=off|adc|&lt;кэВ&gt;]   (`A302`, пол полосы ФИТА)
+    ///                  [--fit-floor=threshold[:&lt;доля&gt;]|off|adc|&lt;кэВ&gt;]   (`A302`/`A309`, пол полосы ФИТА)
     ///                  [--roughness=&lt;вес&gt;]
     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
@@ -744,9 +744,11 @@ namespace CorpusFsaProbe
                 // по-прежнему идёт от нулевого канала. Здесь режется САМА
                 // ПОЛОСА СЧЁТА, то есть меняются и χ², и невязка, и ndf.
                 //
-                // ⛔ Плечо ЗАМЕРА, а не правка поставки: поставочное значение
-                // `off` не отнимает ни одного канала и обязано воспроизвести
-                // базу побитово. Двигать поставку — решение Amber.
+                // ⛔ (`A309`) Поставка — ПРАВИЛО `threshold` (порог по рампе
+                // обоих спектров, решение Amber 12.09.2026); обратный ключ
+                // `off` не отнимает ни одного канала и воспроизводит базу до
+                // `A309` побитово. `threshold:<доля>` двигает долю уровня
+                // правила — рычаг A/B.
                 //
                 // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
                 // сам разбор (что режет) и заверение анализатора (что
@@ -756,16 +758,19 @@ namespace CorpusFsaProbe
                     o.FitFloorName = a.Substring(12);
                     FsaFitFloor fitSource;
                     double fitKev;
-                    if (!FsaBand.TryParseFitFloor(o.FitFloorName, out fitSource, out fitKev))
+                    double fitFraction;
+                    if (!FsaBand.TryParseFitFloor(o.FitFloorName, out fitSource, out fitKev,
+                                                  out fitFraction))
                     {
                         Console.Error.WriteLine(
                             "неизвестное значение --fit-floor=: {0}"
-                            + " (off | adc | <кэВ>)", o.FitFloorName);
+                            + " (threshold | threshold:<доля> | off | adc | <кэВ>)", o.FitFloorName);
                         Environment.Exit(64);
                     }
 
                     FsaBand.DefaultFitFloor = fitSource;
                     FsaBand.DefaultFitFloorKev = fitKev;
+                    FsaBand.DefaultThresholdLevelFraction = fitFraction;
                     continue;
                 }
 
@@ -1711,17 +1716,30 @@ namespace CorpusFsaProbe
                                       : "");
             }
 
-            // (`A302`) ПОЛ ПОЛОСЫ ФИТА — вслух и ВСЕГДА, в том числе
+            // (`A302`/`A309`) ПОЛ ПОЛОСЫ ФИТА — вслух и ВСЕГДА, в том числе
             // поставочный: плечо, которого не видно в шапке журнала, ничем не
-            // отличается от поставочного прогона.
-            Console.WriteLine("пол ПОЛОСЫ ФИТА: {0}",
-                              FsaBand.DefaultFitFloor == FsaBand.ShippedFitFloor
-                                  ? "выключен (поставочный) — фит от нулевого канала, как было"
-                                  : FsaBand.DefaultFitFloor == FsaFitFloor.Adc
-                                      ? "ПОРОГ АЦП спектра (НЕ умолчание, A/B)"
-                                      : string.Format(CultureInfo.InvariantCulture,
-                                                      "{0:F2} кэВ числом (НЕ умолчание, A/B)",
-                                                      FsaBand.DefaultFitFloorKev));
+            // отличается от поставочного прогона. Поставка — правило порога
+            // по рампе ОБОИХ спектров; чем взят порог у каждого спектра,
+            // печатает заверение `BandNote` первого разбора.
+            bool shippedFloor = FsaBand.DefaultFitFloor == FsaBand.ShippedFitFloor
+                && Math.Abs(FsaBand.DefaultThresholdLevelFraction
+                            - FsaBand.ShippedThresholdLevelFraction) <= 1e-12;
+            Console.WriteLine("пол ПОЛОСЫ ФИТА: {0}{1}",
+                              FsaBand.DefaultFitFloor == FsaFitFloor.Threshold
+                                  ? string.Format(CultureInfo.InvariantCulture,
+                                                  "ПОРОГ ПО РАМПЕ обоих спектров (проба и фон, пол = больший;"
+                                                  + " доля уровня {0:F2}, окно {1:F1} кэВ, рампа не шире {2:F0} кэВ)",
+                                                  FsaBand.DefaultThresholdLevelFraction,
+                                                  FsaBand.ThresholdLevelWindowKev,
+                                                  FsaBand.ThresholdRampMaxKev)
+                                  : FsaBand.DefaultFitFloor == FsaFitFloor.Off
+                                      ? "выключен — фит от нулевого канала, как было до `A309`"
+                                      : FsaBand.DefaultFitFloor == FsaFitFloor.Adc
+                                          ? "ПОРОГ АЦП спектра (первый ненулевой канал)"
+                                          : string.Format(CultureInfo.InvariantCulture,
+                                                          "{0:F2} кэВ числом",
+                                                          FsaBand.DefaultFitFloorKev),
+                              shippedFloor ? " (поставочный)" : " (НЕ умолчание, A/B)");
         }
 
         /// <summary>
@@ -4703,10 +4721,12 @@ namespace CorpusFsaProbe
             public string NoCurveFloorName;
 
             /// <summary>
-            /// (`A302`) Чем назначается пол ПОЛОСЫ ФИТА, ключ `--fit-floor=`
-            /// (`off` | `adc` | число в кэВ); пусто — не трогать умолчание
-            /// (<c>FsaBand.ShippedFitFloor</c> = `off`, то есть в точности
-            /// поведение до 10.09.2026: фит от нулевого канала).
+            /// (`A302`/`A309`) Чем назначается пол ПОЛОСЫ ФИТА, ключ `--fit-floor=`
+            /// (`threshold` | `threshold:&lt;доля&gt;` | `off` | `adc` | число в
+            /// кэВ); пусто — не трогать умолчание (<c>FsaBand.ShippedFitFloor</c>
+            /// = `threshold`, правило порога по рампе обоих спектров, решение
+            /// Amber 12.09.2026; `off` — поведение до `A309`, фит от нулевого
+            /// канала).
             /// </summary>
             public string FitFloorName;
 
