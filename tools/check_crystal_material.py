@@ -30,7 +30,9 @@ u"""Вещество кристалла у прибора: ГЕОМЕТРИЯ П
    `FractionsOfMaterial(spec.CrystalMaterialName)` (поле прибора), и только
    потом восстановление по `spec.CrystalElements`;
 5. `FsaCompositionInference` кладёт в спецификацию имя из
-   `DeviceConfig.CrystalMaterialName`;
+   `DeviceConfig.CrystalMaterialName` — прямо либо общим входом
+   `FsaSampleSpec.OfSpectrum` (`T257`, 12.09.2026: обстановка спектра
+   собирается одним местом в `FsaSampleLibrary.cs`, `Infer` его зовёт);
 6. `FsaAnalysisSession` берёт вещество поля ТОЛЬКО ветвью `else` от проверки
    геометрии — путь по пикам (умолчание разбора) обязан слушаться того же
    старшинства;
@@ -189,10 +191,20 @@ def judge(sources, names, loud=True):
             say(u'  4. порядок источников: геометрия -> поле прибора -> элементы')
 
     # --- 5. вывод состава кладёт имя ------------------------------------
-    if not re.search(u'spec\\.%s\\s*=\\s*resultData\\.DeviceConfig\\.%s' % (FIELD, FIELD), infer):
-        found.append(u'5. FsaCompositionInference не кладёт имя вещества из конфигурации прибора')
+    # С 12.09.2026 (`T257`, П11) обстановка спектра — включая имя вещества
+    # кристалла у прибора — собирается ОДНИМ местом, `FsaSampleSpec.OfSpectrum`
+    # в `FsaSampleLibrary.cs`, а `Infer` его зовёт. Принимаются обе формы:
+    # прямое присваивание в `Infer` (до 12.09) либо вызов общего входа И
+    # присваивание внутри него — и то и другое кладёт поле прибора в спецификацию.
+    direct = re.search(u'spec\\.%s\\s*=\\s*resultData\\.DeviceConfig\\.%s' % (FIELD, FIELD), infer)
+    via_common = (re.search(u'FsaSampleSpec\\.OfSpectrum\\s*\\(\\s*resultData\\s*\\)', infer)
+                  and re.search(u'spec\\.%s\\s*=\\s*rd\\.DeviceConfig\\.%s' % (FIELD, FIELD), sample))
+    if not (direct or via_common):
+        found.append(u'5. FsaCompositionInference не кладёт имя вещества из конфигурации прибора '
+                     u'(ни прямо, ни через FsaSampleSpec.OfSpectrum)')
     else:
-        say(u'  5. вывод состава берёт имя у конфигурации прибора')
+        say(u'  5. вывод состава берёт имя у конфигурации прибора'
+            + (u' (общим входом FsaSampleSpec.OfSpectrum)' if not direct else u''))
 
     # --- 6. путь по пикам: только ветвью else ---------------------------
     capture = body_of(session, u'Job Capture(')

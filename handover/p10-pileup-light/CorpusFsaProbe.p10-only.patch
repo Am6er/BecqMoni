@@ -1,0 +1,117 @@
+diff --git a/tools/effmaker/probes/CorpusFsaProbe.cs b/tools/effmaker/probes/CorpusFsaProbe.cs
+index 003b6ada..d57cded2 100644
+--- a/tools/effmaker/probes/CorpusFsaProbe.cs
++++ b/tools/effmaker/probes/CorpusFsaProbe.cs
+@@ -239,6 +239,7 @@ namespace CorpusFsaProbe
+     ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
+     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
+     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
++    ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
+     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
+     ///                  [--window=<секунды>]
+     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
+@@ -326,6 +327,18 @@ namespace CorpusFsaProbe
+                     continue;
+                 }
+                 if (a == "--no-pileup") { o.PileUp = false; continue; }
++                // (`S107`, П10 12.09.2026) Форма образа наложений по свету:
++                // `0` — выкл (умолчание анализатора), `1` — кривая по веществу
++                // кристалла, `energy` — той же формой, но координата
++                // тождественна энергии (плечо порчи), `NaI:Tl`/`CsI:Tl` —
++                // кривая поимённо на всех. Читатель — `SETUP` отражением и
++                // строка сводки «образ наложений по свету».
++                if (a.StartsWith("--pileup-light=", StringComparison.Ordinal))
++                {
++                    string v = a.Substring(15);
++                    o.PileUpLight = v == "0" || v == "off" ? "0" : v;
++                    continue;
++                }
+                 // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
+                 // правки снимается одним двоичным файлом, «было/стало» при
+                 // одной версии физики. Матрицу они не трогают вовсе (слой
+@@ -1516,6 +1529,15 @@ namespace CorpusFsaProbe
+                 analyzer.AnchorZeroKev = o.AnchorZeroKev;
+             }
+ 
++            // (`S107`, П10) форма наложений по свету: "0" — выкл, "1" — по
++            // веществу, иначе — имя кривой ("energy" — плечо порчи) на всех;
++            // ключ обязан ДОЕХАТЬ до анализатора, читатель — `SETUP` отражением
++            if (o.PileUpLight != null)
++            {
++                analyzer.PileUpLightForm = o.PileUpLight != "0";
++                analyzer.PileUpLightCurve = o.PileUpLight == "0" || o.PileUpLight == "1" ? null : o.PileUpLight;
++            }
++
+             return analyzer;
+         }
+ 
+@@ -2314,6 +2336,7 @@ namespace CorpusFsaProbe
+                 row.AnchorOffsetKev = result.AnchorOffsetKev;
+                 row.AnchorNote = result.AnchorNote ?? "";
+                 row.Anchors = result.ScaleAnchors;
++                row.PileUpCurve = analyzer.PileUpCurveUsed;    // (`S107`) null — старая форма
+                 // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
+                 // поднимается тогда и только тогда, когда хоть один образ
+                 // ОТЧЁТНОГО фита построен матрицей (`FitOnce`,
+@@ -3408,6 +3431,37 @@ namespace CorpusFsaProbe
+                                               : ", свет в нулевом канале " + o.AnchorZeroKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ",
+                                           adcOn, anchored + unanchored);
+                     }
++
++                    // (`S107`, П10 12.09.2026) ЧИТАТЕЛЬ ФОРМЫ НАЛОЖЕНИЙ ПО СВЕТУ:
++                    // у скольких спектров образ построен формой по свету и по
++                    // какой кривой («energy» — координата энергии той же
++                    // формой: вещество без кривой либо плечо порчи). Печатается,
++                    // когда ключ задан либо форма где-то включилась — умолчание
++                    // невидимым быть не должно (тот же разряд, что строки выше).
++                    var pileByCurve = new SortedDictionary<string, int>(StringComparer.Ordinal);
++                    foreach (Row r in of)
++                    {
++                        if (r.Error == null && !string.IsNullOrEmpty(r.PileUpCurve))
++                        {
++                            int n;
++                            pileByCurve.TryGetValue(r.PileUpCurve, out n);
++                            pileByCurve[r.PileUpCurve] = n + 1;
++                        }
++                    }
++
++                    if ((o.PileUpLight != null && o.PileUpLight != "0") || pileByCurve.Count > 0)
++                    {
++                        var pileParts = new List<string>();
++                        foreach (KeyValuePair<string, int> kv in pileByCurve)
++                        {
++                            pileParts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
++                        }
++
++                        Console.WriteLine("{0,-10} образ наложений по свету (S107): ключ {1}; формой по свету {2} из {3}", "",
++                                          o.PileUpLight ?? "(умолчание анализатора)",
++                                          pileParts.Count > 0 ? string.Join(", ", pileParts.ToArray()) : "0",
++                                          anchored + unanchored);
++                    }
+                 }
+             }
+ 
+@@ -4207,6 +4261,8 @@ namespace CorpusFsaProbe
+             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
+             public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc; null — умолчание анализатора
+             public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале карты adc, кэВ; NaN — умолчание анализатора
++            public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
++ // (S169) свет в нулевом канале карты adc, кэВ; NaN — умолчание анализатора
+ 
+             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
+             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
+@@ -4545,6 +4601,14 @@ namespace CorpusFsaProbe
+ 
+             public string AnchorNote = "";
+ 
++            /// <summary>
++            /// (`S107`, П10) Кривая, которой построен образ наложений формой по
++            /// свету: имя таблицы, «energy», либо null — старая форма или
++            /// образа нет. Читается у анализатора после разбора; в csv не
++            /// пишется — только в сводку прогона.
++            /// </summary>
++            public string PileUpCurve;
++
+             public List<FsaScaleAnchor> Anchors;
+ 
+             /// <summary>

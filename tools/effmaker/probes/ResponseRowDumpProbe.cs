@@ -51,6 +51,13 @@ namespace ResponseRowDumpProbe
     ///
     /// Матрица берётся из склада по Guid кривой эффективности спектра — тем же
     /// путём, каким её берёт приложение.
+    ///
+    /// ⛔ ПРОБА ОСНАСТКИ КОРПУСА: состава у неё нет вовсе (строки матрицы по
+    /// энергиям), и `NuclideDefinitionManager` ей не нужен. До 12.09.2026 она
+    /// поднимала его «на всякий случай» голым вызовом — в оснастке `AMBER19`
+    /// (без поставочного `config\NuclideDefinition.xml`) это падало броском
+    /// ещё до чтения спектра (`S100`). Теперь не поднимается; в конце
+    /// печатается счётчик обращений, не ноль — код 12 (П11).
     /// </summary>
     static class Program
     {
@@ -196,7 +203,8 @@ namespace ResponseRowDumpProbe
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` не поднимается (`AMBER19`, П11): состава
+            // у пробы нет, а в оснастке корпуса подъём падал бы броском.
 
             ResultData rd = Load(spectrumPath);
             Console.WriteLine("спектр : {0}", Path.GetFileName(spectrumPath));
@@ -327,7 +335,26 @@ namespace ResponseRowDumpProbe
             File.WriteAllLines(csv, rows, new UTF8Encoding(false));
             Console.WriteLine();
             Console.WriteLine("записано: {0} ({1} строк)", csv, rows.Count - 1);
-            return 0;
+            return SuppliedLibraryGate(0);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Гейт «поставочный список не поднимался» — счётчик
+        /// обращений печатается всегда, не ноль — код 12 (как у
+        /// `CorpusFsaProbe.RefuseIfManagerRaised`; по `isLoaded` подъёма не
+        /// видно — без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
         }
 
         /// <summary>

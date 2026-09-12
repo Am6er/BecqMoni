@@ -14,7 +14,20 @@ namespace CrystalXrayGateProbe
     /// СТОРОЖ ГЕЙТА СОБСТВЕННОГО РЕНТГЕНА КРИСТАЛЛА (`AMBER4`).
     ///
     ///     crystalxraygateprobe --spectrum=&lt;файл с матрицей отклика&gt;
-    ///                          [--set=&lt;имя нуклидного сета&gt;] [--kalpha=28.61]
+    ///                          --sample=&lt;nucid,...&gt; [--chain=Th-232] [--kalpha=28.61]
+    ///
+    /// ⛔ СОСТАВ — ИЗ БАЗЫ ПО КЛЮЧАМ (`AMBER19`, П11 12.09.2026). До того
+    /// состав ВЫВОДИЛСЯ из подписей пиков по поставочному сету (`--set=`), а
+    /// проба живёт в оснастке корпуса (матрица — из склада рядом с exe, без
+    /// неё раздел 1 мерить нечем), где по правилу Amber поставочного
+    /// `config\NuclideDefinition.xml` нет и подъём `NuclideDefinitionManager`
+    /// падал броском (`S100`). Теперь `--sample=` — nucid через запятую
+    /// («Cs-137» тоже понимается), `--chain=` — метки манифеста (Th-232,
+    /// Th-228, Ra-226, U-238, U-235, U-238u); спецификация — общим входом
+    /// `FsaSampleSpec.FromManifest` (`T257`), образ кристалла в ней — из
+    /// геометрии спектра, как и прежде; пики подписываются определениями из
+    /// той же базы. `--set=` — отказ с подсказкой; в конце печатается счётчик
+    /// обращений к менеджеру, не ноль — код 12.
     ///
     /// ⛔ ЗАЧЕМ ГЕЙТ. Довод Amber 08.09.2026: «физику не обманешь: если детектор
     /// NaI — должен быть вылет, его не может не быть». В сцинтилляторе
@@ -51,12 +64,23 @@ namespace CrystalXrayGateProbe
             // (`T243`) Эталон настроек — ДО разбора ключей.
             FsaTuningReport.Snapshot();
 
-            string path = null, setName = null;
+            string path = null;
+            var chains = new List<string>();
+            var nuclides = new List<string>();
             double kalpha = 28.61;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) path = a.Substring(11);
-                else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                    nuclides.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                    chains.AddRange(a.Substring(8).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    Console.Error.WriteLine("--set= снят (AMBER19): поставочный список в оснастке корпуса не поднимается; "
+                                            + "состав задаётся --sample=<nucid,...> и/или --chain=<Th-232,...>");
+                    return 2;
+                }
                 else if (a.StartsWith("--kalpha=", StringComparison.Ordinal))
                     kalpha = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -68,33 +92,50 @@ namespace CrystalXrayGateProbe
                 return 2;
             }
 
+            if (chains.Count == 0 && nuclides.Count == 0)
+            {
+                Console.Error.WriteLine("нужен состав: --sample=137CS[,40K] и/или --chain=Th-232 (AMBER19: из базы, не из поставочного списка)");
+                return 2;
+            }
+
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
             // ⛔ ОБЕ карты примитивов ROI — ДО ЛЮБОГО менеджера-одиночки (`T60`).
             ROIPrimitiveDefinition.InitializeROIPrimitiveDefinitions();
             ROIPrimitiveOperation.InitializeROIPrimitiveOperations();
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` НЕ поднимается (`AMBER19`, П11): прежний
+            // явный сет (`--set=`, урок 08.09.2026 про `Ba-131`) заменён
+            // ОБЪЯВЛЕННЫМ составом — вывода из подписей больше нет, и выводить
+            // не из чего.
 
-            // ⛔ Сет выбирается ЯВНО: `ActiveSet` — выбор на сеанс, у пробы он
-            // пуст, и без него проба меряет ДРУГУЮ библиотеку, чем окно.
-            // Цена ошибки измерена 08.09.2026: без сета вывод состава привёл на
-            // ториевый спектр `Ba-131`, и разбор той пробы был неверен.
-            if (setName != null && nuclides.NuclideSets != null)
-            {
-                foreach (NuclideSet set in nuclides.NuclideSets)
-                {
-                    if (string.Equals(set.Name, setName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        nuclides.ActiveSet = set;
-                    }
-                }
-            }
-
-            Console.WriteLine("активный сет: {0}",
-                              nuclides.ActiveSet != null ? nuclides.ActiveSet.Name : "(нет, все нуклиды)");
-
-            ResultData rd = Load(path, nuclides);
+            ResultData rd = Load(path);
             if (rd == null) return 2;
+
+            // Состав — из базы по объявленному составу (общий вход `T257`);
+            // образ кристалла в спецификации — из геометрии спектра. Флаги
+            // равновесия/рентгена ставит каждое плечо из настроек спектра.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, NucidsOf(nuclides), true, true);
+            Console.WriteLine("состав объявлен: {0}",
+                              string.Join(",", chains.ToArray()) + (chains.Count > 0 && nuclides.Count > 0 ? "," : "")
+                              + string.Join(",", nuclides.ToArray()));
+            rd.DetectedPeaks = new PeakDetector().DetectPeak(
+                rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                null, FsaSampleLibrary.AsDefinitions(FsaSampleLibrary.Build(spec)));
+            Console.WriteLine("SETUP\t{0}: пиков {1}, кривая {2}", Path.GetFileName(path),
+                              rd.DetectedPeaks.Count,
+                              rd.Efficiency != null ? rd.Efficiency.Name : "(нет)");
 
             EfficiencyConfigData efficiency = rd.Efficiency;
             if (efficiency == null || !efficiency.HasGeometry)
@@ -106,12 +147,46 @@ namespace CrystalXrayGateProbe
             MatrixSection(efficiency, kalpha);
 
             FsaCalculationOptions options = FsaCalculationOptions.Of(rd);
-            GateSection("2. С МАТРИЦЕЙ: образ кристалла снят", rd, options, efficiency, true);
-            GateSection("3. БЕЗ МАТРИЦЫ: образ кристалла на месте", rd, options, efficiency, false);
+            GateSection("2. С МАТРИЦЕЙ: образ кристалла снят", rd, spec, options, efficiency, true);
+            GateSection("3. БЕЗ МАТРИЦЫ: образ кристалла на месте", rd, spec, options, efficiency, false);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
-            return bad == 0 ? 0 : 1;
+            return SuppliedLibraryGate(bad == 0 ? 0 : 1);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Гейт «поставочный список не поднимался» — счётчик
+        /// обращений печатается всегда, не ноль — код 12 (как у
+        /// `CorpusFsaProbe.RefuseIfManagerRaised`; по `isLoaded` подъёма не
+        /// видно — без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
+        }
+
+        /// <summary>«Cs-137» → «137CS» (nucid, как его зовёт nucdb); nucid — как есть.</summary>
+        static List<string> NucidsOf(List<string> labels)
+        {
+            var nucids = new List<string>();
+            foreach (string label in labels)
+            {
+                int dash = label.IndexOf('-');
+                nucids.Add(dash < 0
+                    ? label.ToUpperInvariant()
+                    : label.Substring(dash + 1) + label.Substring(0, dash).ToUpperInvariant());
+            }
+
+            return nucids;
         }
 
         /// <summary>
@@ -175,7 +250,8 @@ namespace CrystalXrayGateProbe
         /// Разделы 2 и 3: тот же путь, каким считает сеанс разбора, с рычагом
         /// «матрица отклика».
         /// </summary>
-        static void GateSection(string title, ResultData rd, FsaCalculationOptions options,
+        static void GateSection(string title, ResultData rd, FsaSampleSpec spec,
+                                FsaCalculationOptions options,
                                 EfficiencyConfigData efficiency, bool useMatrix)
         {
             Console.WriteLine();
@@ -203,9 +279,7 @@ namespace CrystalXrayGateProbe
                 }
             }
 
-            FsaCompositionInference.Report inferred;
-            FsaSampleSpec spec = FsaCompositionInference.Infer(
-                new List<Peak>(rd.DetectedPeaks), rd, out inferred);
+            // Состав объявлен ключами (см. Main); флаги — из настроек спектра.
             options.ApplyTo(spec);
             List<FsaComponent> library = FsaSampleLibrary.Build(spec);
 
@@ -289,7 +363,7 @@ namespace CrystalXrayGateProbe
             if (!ok) bad++;
         }
 
-        static ResultData Load(string path, NuclideDefinitionManager nuclides)
+        static ResultData Load(string path)
         {
             if (!File.Exists(path))
             {
@@ -330,12 +404,7 @@ namespace CrystalXrayGateProbe
                 }
             }
 
-            rd.DetectedPeaks = new PeakDetector().DetectPeak(
-                rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            Console.WriteLine("SETUP\t{0}: пиков {1}, кривая {2}", Path.GetFileName(path),
-                              rd.DetectedPeaks.Count,
-                              rd.Efficiency != null ? rd.Efficiency.Name : "(нет)");
+            // Пики ищутся в Main — определениями из базы по объявленному составу.
             return rd;
         }
     }

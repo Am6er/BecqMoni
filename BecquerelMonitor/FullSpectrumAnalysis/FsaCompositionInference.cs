@@ -361,34 +361,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                           out Report report)
         {
             report = new Report { Coverage = coverage, Cut = cut };
-            var spec = new FsaSampleSpec();
             if (resultData == null)
             {
-                return spec;
+                return new FsaSampleSpec();
             }
 
-            // ⛔ Кривая спектра нужна библиотеке ровно за одним — назначить пол
-            // полосы (`FsaBandMode.LibraryToFitByCurve`, решение Amber
-            // 27.08.2026). Сам расчёт живёт в `FsaEfficiency.FloorAtFraction` и
-            // больше нигде; здесь только присваивание, чтобы у решения «где пол»
-            // не завелась вторая копия.
-            spec.Efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
+            // ⛔ Обстановка спектра — кривая ради пола полосы (`S98`), порог
+            // АЦП (`A73`), окно поиска пиков, вещество кристалла у прибора
+            // (`A276`), кристалл и элементы пробы из геометрии (`S84`) —
+            // берётся ОБЩИМ ВХОДОМ `FsaSampleSpec.OfSpectrum` (`T257`, 12.09.2026):
+            // до того здесь лежала одна из пяти копий этой сборки, и второй
+            // источник тех же порогов двигал бы энергию пика вылета.
+            FsaSampleSpec spec = FsaSampleSpec.OfSpectrum(resultData);
 
-            // ⛔ `A73`: порог АЦП САМОГО спектра — второй источник пола полосы,
-            // работающий там, где кривой нет. Здесь, как и с кривой, ОДНО
-            // присваивание; расчёт живёт в `FsaBand.AdcFloorOf`.
-            spec.AdcFloorKev = FsaBand.AdcFloorOf(resultData.EnergySpectrum);
-
-            // Окно — рабочий диапазон САМОГО поиска пиков. Иначе знаменатель
-            // доли считался бы по линиям, которых прибор не искал: у ASN16 низ
-            // стоит на 28.6 кэВ, и весь L-рентген ниже него в «ожидаемое»
-            // попадать не вправе.
+            // Окно доли считается по тому же диапазону, что и спецификация:
+            // у ASN16 низ стоит на 28.6 кэВ, и весь L-рентген ниже него в
+            // «ожидаемое» попадать не вправе.
             var peakConfig = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
-            if (peakConfig != null && peakConfig.Max_Range > peakConfig.Min_Range)
-            {
-                spec.MinEnergyKev = peakConfig.Min_Range;
-                spec.MaxEnergyKev = peakConfig.Max_Range;
-            }
 
             double minSnr = peakConfig != null && peakConfig.Min_SNR > 0.0 ? peakConfig.Min_SNR : 10.0;
             var found = new List<Peak>();
@@ -407,38 +396,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             found.Sort((a, b) => a.Energy.CompareTo(b.Energy));
             report.Peaks = found.Count;
 
-            // Вещества вокруг кванта — из геометрии, если она есть. Тот же
-            // источник и те же пороги, что у объявленного состава
-            // (`CorpusFsaProbe.SpecOf`): второй источник правды двигал бы
-            // энергию пика вылета, а она есть разность с Kα кристалла.
-            EfficiencyConfigData efficiencyConfig = resultData.Efficiency;
-
-            // ⛔ `A276`: вещество кристалла, названное человеком у ПРИБОРА, —
-            // запасной источник массовых долей там, где геометрии нет. Здесь
-            // ТОЛЬКО присваивание ссылки: старшинство источников держит
-            // `FsaSampleLibrary.CrystalFractionsOf` и больше никто, поэтому
-            // условия «а есть ли геометрия» тут нет и быть не должно — второе
-            // место, решающее тот же вопрос, разошлось бы с первым.
-            if (resultData.DeviceConfig != null)
-            {
-                spec.CrystalMaterialName = resultData.DeviceConfig.CrystalMaterialName;
-            }
-
-            if (efficiencyConfig != null && efficiencyConfig.HasGeometry)
-            {
-                GeometryModel geometry = efficiencyConfig.Geometry;
-                // ⚠ У КРИСТАЛЛА окна по Kα нет, и это не оплошность: элемент
-                // кристалла не только светит сам, но и уносит энергию вылетом,
-                // а пик вылета стоит на E − Kα, то есть внутри окна даже когда
-                // сама Kα ниже его низа (измерено 18.08.2026 на ASN16).
-                // Кристалл идёт целиком — с долями и именем вещества (`S84`):
-                // образ вылета у него ОДИН, и соотношение его членов задаёт
-                // вещество, а не фит.
-                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
-                    EfficiencySimulator.ScintillatorNameOf(geometry));
-                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
-                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
-            }
+            // Вещества вокруг кванта (кристалл с долями, элементы пробы из
+            // геометрии, вещество кристалла у прибора) уже лежат в `spec` —
+            // положены `FsaSampleSpec.OfSpectrum` выше, тем же источником и
+            // теми же порогами, что у объявленного состава корпуса.
 
             var candidates = Candidates(found, spec, report);
             var models = new List<Model>();

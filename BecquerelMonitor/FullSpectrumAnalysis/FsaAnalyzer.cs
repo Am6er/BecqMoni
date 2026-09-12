@@ -2097,6 +2097,60 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool PileUp { get; set; }
 
         /// <summary>
+        /// (`S107`, полоса П10 12.09.2026; решение Amber 12.09.2026 «Форма по
+        /// свету — полосой») ФОРМА ОБРАЗА НАЛОЖЕНИЙ ПО СВЕТУ: автосвёртка
+        /// спектра считается не в координате энергии, а в координате СВЕТА
+        /// Λ(E) = r(E)·E, где r(E) — фотонная кривая относительного света
+        /// вещества кристалла (<see cref="FsaLightScale"/>, та же таблица, что
+        /// у <see cref="AnchorLightPosition"/>), и обратно в энергию через ту
+        /// же Λ. Физика: тракт складывает АМПЛИТУДЫ импульсов, а калибровка
+        /// снята по одиночным пикам полного поглощения, то есть связывает
+        /// канал с Λ(E) одного кванта; сумма двух событий стоит там, где
+        /// Λ(E_вид) = Λ(E₁) + Λ(E₂), а не на E₁ + E₂. У NaI(Tl) 662+662 по
+        /// этой кривой встаёт на 1329.1 кэВ, у CsI(Tl) — на 1328.3 (энергия
+        /// дала бы 1323.3).
+        ///
+        /// ⚠ Кривая — ФОТОННАЯ (<see cref="FsaLightScale"/>), а не электронная
+        /// из `matdb` (<see cref="FsaCascadeSummer.ApparentSum"/>): по
+        /// электронной 662+662 у CsI встаёт на 1325.1, у NaI на 1324.8 — на
+        /// 3–4 кэВ ниже фотонной; фотонная — та, что сверена по опорам
+        /// привязки (П14–П21) и по которой считан склад. Двух таблиц в образе
+        /// нет — берётся одна, поимённо по веществу.
+        ///
+        /// Вместе с координатой форма по свету снимает и смещение бина: в
+        /// координате энергии сумма двух бинов ложилась в бин a+b, чей центр
+        /// на BinKev/2 (2 кэВ) НИЖЕ среднего истинной суммы; форма по свету
+        /// делит приход пополам между бинами a+b и a+b+1. В старой форме это
+        /// оставлено как есть — обратное плечо обязано быть побитово прежним.
+        ///
+        /// Вещество без кривой (LaBr3, CZT, германий, спектр без матрицы —
+        /// вещество ставит <c>FsaMatrixBinding</c>) — координата тождественна
+        /// энергии, но с делением бина. ВЫКЛ умолчанием: полярность и числа
+        /// A/B — у присваивания в конструкторе. Рычаг проб —
+        /// `--pileup-light=0|1|energy|NaI:Tl|CsI:Tl` у `CorpusFsaProbe`,
+        /// читатель — `SETUP` отражением.
+        /// </summary>
+        public bool PileUpLightForm { get; set; }
+
+        /// <summary>
+        /// (`S107`, П10) Кривая света для формы по свету ПОИМЁННО («NaI:Tl»,
+        /// «CsI:Tl» — <see cref="FsaLightScale"/>; «energy» — координата
+        /// тождественна энергии, плечо порчи) вместо выбора по веществу
+        /// кристалла. Пусто — по <see cref="ScintillatorMaterial"/>. Действует
+        /// только при <see cref="PileUpLightForm"/>; образец —
+        /// <see cref="AnchorLightCurve"/>.
+        /// </summary>
+        public string PileUpLightCurve { get; set; }
+
+        /// <summary>
+        /// (`S107`, П10) Имя кривой, которой на ЭТОМ разборе построен образ
+        /// наложений: имя таблицы, «energy» — координата энергии формой по
+        /// свету, null — старая форма или образа нет. Читается пробами
+        /// после <see cref="Analyze"/>; сбрасывается в его начале.
+        /// </summary>
+        public string PileUpCurveUsed { get; private set; }
+
+        /// <summary>
         /// Вещество кристалла в именах таблицы кривых света («CsI:Tl», «NaI:Tl»).
         /// Нужно каскадному суммированию: сумм-пик встаёт по сумме СВЕТА, а не
         /// энергий (S20). Пусто — суммы ставятся по энергии, как до 13.08.2026.
@@ -3279,6 +3333,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CascadeIsomerPartners = true;
             this.CoincidenceWindowSec = 0.0;
             this.PileUp = true;
+            // (`S107`, П10 12.09.2026) Форма образа наложений по свету — ВЫКЛ
+            // умолчанием до решения Amber по числам A/B малой базы (журнал
+            // `handover/handover-2026-09-12-p10-pileup-light.md`). Полярность
+            // стоит ЗДЕСЬ, у присваивания (`T82`). Обратное плечо —
+            // `--pileup-light=1` у `CorpusFsaProbe`.
+            this.PileUpLightForm = false;
+            this.PileUpLightCurve = null;
             this.PartialResidualGate = true;
 
             // (`AMBER3`) Потолок значимости у гейта формы — решение Amber
@@ -3378,6 +3439,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightCurveName = null;
             this.lightForm = LightForm.None;
             this.lightMarginBins = 0;
+            this.PileUpCurveUsed = null;
             // (`S169`) карта нуля — слово разбирается на каждый разбор; наклон
             // ставится циклом привязки, до первых опор — калибровка файла
             this.adcZeroWanted = ParseAnchorZero(this.AnchorZero);
@@ -7215,21 +7277,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// нигде. Фит его и находит: амплитуда колонки равна ровно 2τR.
         ///
         /// Считается ОДИН раз на разбор: от сетки дрейфа не зависит.
+        ///
+        /// (`S107`, П10 12.09.2026) КООРДИНАТА СВЁРТКИ выбирается ключом
+        /// <see cref="PileUpLightForm"/>: ВЫКЛ — энергия, как с 08.08.2026
+        /// (побитово прежний образ); ВКЛ — свет Λ(E) = r(E)·E по фотонной
+        /// кривой вещества (<see cref="FsaLightScale"/>), и сумма двух событий
+        /// встаёт там, где Λ(E_вид) = Λ(E₁) + Λ(E₂). Всё остальное — бин 4 кэВ,
+        /// отсечка пустых бинов, убыль, нормировка, перекладка на каналы с
+        /// сохранением площади — общее для обеих форм и написано один раз:
+        /// форма отличается ТОЛЬКО функцией координаты и делением бина суммы.
         /// </summary>
         FsaComponent BuildPileUpComponent(int[] raw, EnergyCalibration calibration,
                                           int chLo, int chHi, int channels)
         {
             const double BinKev = 4.0;
 
-            double topEnergy = EnergyAt(calibration, channels - 1);
+            // (`S107`) Кривая формы по свету: поимённо (`PileUpLightCurve`),
+            // иначе по веществу кристалла; «energy» — тождественная координата
+            // (плечо порчи); вещество без кривой — тоже тождественная, но уже
+            // формой по свету (с делением бина). null — старая форма.
+            string curve = null;
+            bool lightForm = this.PileUpLightForm;
+            if (lightForm)
+            {
+                string wanted = string.IsNullOrEmpty(this.PileUpLightCurve)
+                    ? FsaLightScale.CurveFor(this.ScintillatorMaterial)
+                    : this.PileUpLightCurve;
+                curve = FsaLightScale.Known(wanted) ? wanted : null;
+                this.PileUpCurveUsed = curve ?? "energy";
+            }
+
+            // Координата свёртки: Λ(E) = r(E)·E при кривой, иначе E. Порядок
+            // операций старой формы сохранён в точности: при curve == null
+            // функция возвращает свой довод, и числа не двигаются.
+            Func<double, double> coord = curve == null
+                ? (Func<double, double>)(e => e)
+                : e => e * FsaLightScale.Relative(curve, e);
+
+            double topEnergy = coord(EnergyAt(calibration, channels - 1));
             if (!(topEnergy > 0.0))
             {
                 return null;
             }
 
-            // Спектр в равномерную шкалу энергии: свёртка складывает ЭНЕРГИИ, а
-            // шкала каналов у нелинейной калибровки неравномерна, и складывать
-            // номера каналов было бы просто неверно.
+            // Спектр в равномерную шкалу координаты: свёртка складывает
+            // ЭНЕРГИИ (или СВЕТ), а шкала каналов у нелинейной калибровки
+            // неравномерна, и складывать номера каналов было бы просто неверно.
             int bins = (int)(topEnergy / BinKev) + 1;
             double[] byEnergy = new double[bins];
             double total = 0.0;
@@ -7240,7 +7333,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                int bin = (int)(EnergyAt(calibration, ch) / BinKev);
+                int bin = (int)(coord(EnergyAt(calibration, ch)) / BinKev);
                 if (bin >= 0 && bin < bins)
                 {
                     byEnergy[bin] += raw[ch];
@@ -7277,7 +7370,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         break;      // filled упорядочен, дальше только выше
                     }
 
-                    pile[s] += va * byEnergy[b];
+                    if (lightForm)
+                    {
+                        // (`S107`) Сумма двух бинов [4a, 4a+4) и [4b, 4b+4)
+                        // лежит в [4(a+b), 4(a+b)+8) со средним 4(a+b)+4 — на
+                        // границе бинов a+b и a+b+1. Старая форма клала всё в
+                        // a+b (центр на 2 кэВ ниже среднего); здесь приход
+                        // делится пополам, и среднее положение суммы точно.
+                        double half = 0.5 * va * byEnergy[b];
+                        pile[s] += half;
+                        if (s + 1 < bins)
+                        {
+                            pile[s + 1] += half;
+                        }
+                        else
+                        {
+                            pile[s] += half;
+                        }
+                    }
+                    else
+                    {
+                        pile[s] += va * byEnergy[b];
+                    }
                 }
             }
 
@@ -7296,13 +7410,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // Обратно на шкалу каналов, с сохранением площади: в канал идёт та
-            // доля бина, которая на него приходится.
+            // доля бина, которая на него приходится. Границы канала — в той же
+            // координате, что и бины: Λ монотонна, порядок краёв сохраняется.
             double[] template = new double[channels];
             bool any = false;
             for (int ch = chLo; ch <= chHi; ch++)
             {
-                double lo = EnergyAt(calibration, ch - 0.5);
-                double hi = EnergyAt(calibration, ch + 0.5);
+                double lo = coord(EnergyAt(calibration, ch - 0.5));
+                double hi = coord(EnergyAt(calibration, ch + 0.5));
                 if (!(hi > lo))
                 {
                     continue;

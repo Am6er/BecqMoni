@@ -22,11 +22,24 @@ namespace FsaComponentDumpProbe
     /// того компонента, которому её приписали.
     ///
     /// ⛔ Своего разбора здесь НЕТ: библиотека собирается тем же
-    /// `FsaLibrary.BuildFromPeaks`, которым её собирает окно, а считает тот же
-    /// `FsaAnalyzer`. Проба только печатает то, что у них получилось.
+    /// `FsaSampleLibrary.Build`, которым её собирает корпусный прогон, а
+    /// считает тот же `FsaAnalyzer`. Проба только печатает то, что у них
+    /// получилось.
     ///
-    ///     fsacomponentdumpprobe --spectrum=&lt;файл.xml&gt; [--out=&lt;префикс&gt;]
-    ///                           [--set=Имя] [--matrix-any]
+    ///     fsacomponentdumpprobe --spectrum=&lt;файл.xml&gt; --sample=137CS[,40K]
+    ///                           [--chain=Th-232] [--out=&lt;префикс&gt;] [--matrix-any]
+    ///
+    /// ⛔ СОСТАВ — ИЗ БАЗЫ ПО КЛЮЧАМ (`AMBER19`, П11 12.09.2026). До того
+    /// библиотека шла по подписям пиков из поставочного списка (`--set=`), а
+    /// проба живёт в ОСНАСТКЕ КОРПУСА (матрица — из склада рядом с exe), где
+    /// по правилу Amber поставочного `config\NuclideDefinition.xml` нет и
+    /// подъём `NuclideDefinitionManager` падал броском (`S100`). Теперь
+    /// `--sample=` — nucid через запятую («Cs-137» тоже понимается),
+    /// `--chain=` — метки манифеста (Th-232, Th-228, Ra-226, U-238, U-235,
+    /// U-238u); спецификация — общим входом `FsaSampleSpec.FromManifest`
+    /// (`T257`), пики подписываются определениями из той же базы. `--set=` —
+    /// отказ с подсказкой; в конце печатается счётчик обращений к менеджеру,
+    /// не ноль — код 12.
     ///
     /// Печатает состав библиотеки и состав разбора; пишет `&lt;префикс&gt;.csv`
     /// (канал, энергия, измерение, модель, лента каждого компонента) и
@@ -47,7 +60,8 @@ namespace FsaComponentDumpProbe
 
             string spectrumPath = null;
             string outPrefix = null;
-            string setName = null;
+            var chains = new List<string>();
+            var nuclides = new List<string>();
             bool matrixAny = false;
             bool noCascade = false;
             string stagesOf = null;
@@ -63,9 +77,19 @@ namespace FsaComponentDumpProbe
                 {
                     outPrefix = a.Substring(6);
                 }
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                {
+                    nuclides.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                }
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                {
+                    chains.AddRange(a.Substring(8).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                }
                 else if (a.StartsWith("--set=", StringComparison.Ordinal))
                 {
-                    setName = a.Substring(6);
+                    Console.Error.WriteLine("--set= снят (AMBER19): поставочный список в оснастке корпуса не поднимается; "
+                                            + "состав задаётся --sample=<nucid,...> и/или --chain=<Th-232,...>");
+                    return 2;
                 }
                 else if (a == "--matrix-any")
                 {
@@ -101,23 +125,31 @@ namespace FsaComponentDumpProbe
                 outPrefix = "components";
             }
 
+            if (chains.Count == 0 && nuclides.Count == 0)
+            {
+                Console.Error.WriteLine("нужен состав: --sample=137CS[,40K] и/или --chain=Th-232 (AMBER19: из базы, не из поставочного списка)");
+                return 2;
+            }
+
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` НЕ поднимается (`AMBER19`, П11).
 
             ResultData rd = Load(spectrumPath);
             Console.WriteLine("спектр : {0}", Path.GetFileName(spectrumPath));
             Console.WriteLine("прибор : {0}", ProbeDeviceConfig.Attach(rd));
-            if (setName != null)
-            {
-                foreach (NuclideSet set in nuclides.NuclideSets)
-                {
-                    if (set != null && string.Equals(set.Name, setName, StringComparison.Ordinal))
-                    {
-                        nuclides.ActiveSet = set;
-                    }
-                }
-            }
 
             MatrixRefusal refusal;
             int fileFormat;
@@ -137,13 +169,19 @@ namespace FsaComponentDumpProbe
                 return 1;
             }
 
+            // Состав — из базы по объявленному составу (общий вход `T257`);
+            // флаги равновесия/рентгена — умолчания, как у анализатора ниже.
+            // Пики подписываются определениями ИЗ ТОЙ ЖЕ базы.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, NucidsOf(nuclides), true, true);
+            List<FsaComponent> library = FsaSampleLibrary.Build(spec);
+            List<NuclideDefinition> definitions = FsaSampleLibrary.AsDefinitions(library);
             List<Peak> peaks = new PeakDetector().DetectPeak(
-                rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, nuclides.NuclideDefinitions);
+                rd, BackgroundMode.Invisible, SmoothingMethod.None, null, definitions);
 
-            Console.WriteLine("библиотека прибора: {0} определений",
-                              CountOf(nuclides.NuclideDefinitions));
+            Console.WriteLine("состав объявлен: {0}; определений из базы: {1}",
+                              string.Join(",", chains.ToArray()) + (chains.Count > 0 && nuclides.Count > 0 ? "," : "")
+                              + string.Join(",", nuclides.ToArray()),
+                              CountOf(definitions));
             Console.WriteLine("найдено пиков: {0}; образов собрано: {1}", peaks.Count, library.Count);
             Console.WriteLine();
             Console.WriteLine("=== СОСТАВ БИБЛИОТЕКИ: линии каждого образа ===");
@@ -328,7 +366,41 @@ namespace FsaComponentDumpProbe
             File.WriteAllLines(outPrefix + "-lines.csv", lineRows, new UTF8Encoding(false));
             Console.WriteLine();
             Console.WriteLine("записано: {0}.csv и {0}-lines.csv", outPrefix);
-            return 0;
+            return SuppliedLibraryGate(0);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Гейт «поставочный список не поднимался» — счётчик
+        /// обращений печатается всегда, не ноль — код 12 (как у
+        /// `CorpusFsaProbe.RefuseIfManagerRaised`; по `isLoaded` подъёма не
+        /// видно — без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
+        }
+
+        /// <summary>«Cs-137» → «137CS» (nucid, как его зовёт nucdb); nucid — как есть.</summary>
+        static List<string> NucidsOf(List<string> labels)
+        {
+            var nucids = new List<string>();
+            foreach (string label in labels)
+            {
+                int dash = label.IndexOf('-');
+                nucids.Add(dash < 0
+                    ? label.ToUpperInvariant()
+                    : label.Substring(dash + 1) + label.Substring(0, dash).ToUpperInvariant());
+            }
+
+            return nucids;
         }
 
         /// <summary>

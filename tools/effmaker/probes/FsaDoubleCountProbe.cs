@@ -24,6 +24,12 @@ namespace FsaDoubleCountProbe
     /// библиотека нуклидов к спектру не предъявляется (правило Amber
     /// 01.09.2026): пики подписываются определениями, собранными из nucdb по
     /// ОБЪЯВЛЕННОМУ составу, и из них же строится библиотека «по пикам».
+    /// ⛔ С 12.09.2026 (`AMBER19`, П11) `NuclideDefinitionManager` не
+    /// поднимается ВОВСЕ — в оснастке корпуса файла нет, и подъём падал
+    /// броском (`S100`); метки `--chain=` — словарь манифеста
+    /// (`FsaSampleChain.FromLabel`), `--sample=` — то же, что `--nuclides=`,
+    /// спецификация — общим входом `FsaSampleSpec.FromManifest` (`T257`).
+    /// В конце печатается счётчик обращений к менеджеру; не ноль — код 12.
     ///
     /// ЧТО МЕРИТСЯ, числом:
     ///
@@ -90,6 +96,7 @@ namespace FsaDoubleCountProbe
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--chain=", StringComparison.Ordinal)) chains.AddRange(a.Substring(8).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
                 else if (a.StartsWith("--nuclides=", StringComparison.Ordinal)) nuclides.AddRange(a.Substring(11).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal)) nuclides.AddRange(a.Substring(9).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
                 else if (a.StartsWith("--crystal=", StringComparison.Ordinal)) crystal.AddRange(a.Substring(10).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
                 else if (a == "--no-matrix") wantMatrix = false;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -107,9 +114,21 @@ namespace FsaDoubleCountProbe
                 return 2;
             }
 
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` здесь НЕ поднимается (`AMBER19`, П11).
 
             ResultData rd = Load(spectrumPath);
             if (rd == null)
@@ -261,8 +280,17 @@ namespace FsaDoubleCountProbe
                          escapeOn, escapes > 0);
                 }
 
-                Same(Cell(withMatrix, escapeOn) + ": Ann-511 " + (escapeOn ? "есть" : "нет"),
-                     escapeOn, annihilation > 0);
+                // (`AMBER7`, 08.09.2026) `Ann-511` не предъявляется фиту, когда у
+                // состава есть СВОЯ линия в окне 511 (у Th-ряда — Tl-208
+                // 510.8 кэВ): гейт столкновения снимает образ, и ожидание «есть»
+                // при столкновении было ложным отказом с 08.09 (найдено П11
+                // 12.09.2026 на `G1S16_Th228_P5`, воспроизведено HEAD-сборкой
+                // пробы с поставочным файлом — дефект ожидания, не разбора).
+                bool collides = !string.IsNullOrEmpty(analyzer.AnnihilationCollides);
+                bool expectAnnihilation = escapeOn && !collides;
+                Same(Cell(withMatrix, escapeOn) + ": Ann-511 "
+                     + (expectAnnihilation ? "есть" : collides ? "нет (столкновение с " + analyzer.AnnihilationCollides + ")" : "нет"),
+                     expectAnnihilation, annihilation > 0);
             }
 
             if (matrix != null)
@@ -542,7 +570,26 @@ namespace FsaDoubleCountProbe
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
-            return bad == 0 ? 0 : 1;
+            return SuppliedLibraryGate(bad == 0 ? 0 : 1);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Вторая дверь гейта «состав только из базы» — та же,
+        /// что у `CorpusFsaProbe.RefuseIfManagerRaised`: счётчик обращений к
+        /// поставочному менеджеру печатается ВСЕГДА, и не ноль — код 12 поверх
+        /// любого итога (по `isLoaded` подъёма не видно: без файла он бросает, `S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
         }
 
         static string Cell(bool withMatrix, bool escapeOn)
@@ -574,38 +621,17 @@ namespace FsaDoubleCountProbe
             return analyzer;
         }
 
+        /// <summary>
+        /// Спецификация состава — ОБЩИМ ВХОДОМ приложения
+        /// (`FsaSampleSpec.FromManifest`, `T257` хвост (2), 12.09.2026): метки
+        /// рядов словами манифеста, нуклиды nucid, элементы кристалла из
+        /// `--crystal=` — поверх (данные ключа, не приложения). До того здесь
+        /// лежала своя копия сборки — без элементов пробы из геометрии и с
+        /// `NucidOf` на метках рядов.
+        /// </summary>
         static FsaSampleSpec SpecOf(ResultData rd, List<string> chains, List<string> nuclides, List<string> crystal)
         {
-            var spec = new FsaSampleSpec
-            {
-                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
-                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
-            };
-            foreach (string label in chains)
-            {
-                spec.Chains.Add(new FsaSampleChain(NucidOf(label)));
-            }
-
-            foreach (string nucid in nuclides)
-            {
-                spec.Nuclides.Add(nucid);
-            }
-
-            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
-                && peakConfig.Max_Range > peakConfig.Min_Range)
-            {
-                spec.MinEnergyKev = peakConfig.Min_Range;
-                spec.MaxEnergyKev = peakConfig.Max_Range;
-            }
-
-            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
-                ? rd.Efficiency.Geometry : null;
-            if (geometry != null)
-            {
-                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
-                    EfficiencySimulator.ScintillatorNameOf(geometry));
-            }
-
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, nuclides, true, true);
             foreach (string symbol in crystal)
             {
                 int z = MaterialDatabase.ZOf(symbol);
@@ -616,18 +642,6 @@ namespace FsaDoubleCountProbe
             }
 
             return spec;
-        }
-
-        /// <summary>«Th-232» → «232TH»: nucid, как его зовёт nucdb.</summary>
-        static string NucidOf(string label)
-        {
-            int dash = label.IndexOf('-');
-            if (dash < 0)
-            {
-                return label.ToUpperInvariant();
-            }
-
-            return label.Substring(dash + 1) + label.Substring(0, dash).ToUpperInvariant();
         }
 
         static int CountEscape(List<FsaComponent> library)

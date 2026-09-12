@@ -1,0 +1,10 @@
+CsI:Tl electron rows: 70 range (1.0, 1.0942256225565417) (3000.0, 0.9976710614762717)
+  661.657+661.657 = 1323.31 : electron(matdb) 1325.10 (+1.79) ; photon(FsaLightScale) 1328.31 (+5.00)
+  201.83+306.78 = 508.61 : electron(matdb) 511.57 (+2.96) ; photon(FsaLightScale) 513.15 (+4.54)
+  1173.2+1332.5 = 2505.70 : electron(matdb) 2507.81 (+2.11) ; photon(FsaLightScale) 2506.32 (+0.62)
+  r_el(662)=1.0000 r_el(1324)=0.9987 ; r_ph(662)=1.0067 r_ph(1324)=1.0029
+NaI:Tl electron rows: 70 range (1.0, 1.1431949391884102) (3000.0, 0.9981163601477562)
+  661.657+661.657 = 1323.31 : electron(matdb) 1324.82 (+1.50) ; photon(FsaLightScale) 1329.10 (+5.79)
+  201.83+306.78 = 508.61 : electron(matdb) 510.89 (+2.28) ; photon(FsaLightScale) 512.56 (+3.95)
+  1173.2+1332.5 = 2505.70 : electron(matdb) 2507.36 (+1.66) ; photon(FsaLightScale) 2511.94 (+6.24)
+  r_el(662)=1.0000 r_el(1324)=0.9989 ; r_ph(662)=1.0076 r_ph(1324)=1.0032

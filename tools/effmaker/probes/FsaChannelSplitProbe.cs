@@ -60,6 +60,16 @@ namespace FsaChannelSplitProbe
     ///                        [--band=470-560] [--floor=0] [--dump=out.csv]
     ///                        [--no-anchor] [--spoil=cf]
     ///
+    /// ⛔ ПРОБА ОСНАСТКИ КОРПУСА (`wd_app`): ей нужны корпусные конфигурации
+    /// приборов и склад матриц, а по правилу `AMBER19` в оснастке нет
+    /// поставочного `config\NuclideDefinition.xml` и поднимать
+    /// `NuclideDefinitionManager` там незаконно. Состав — ТОЛЬКО ключами:
+    /// `--chain=` (метки манифеста: Th-232, Th-228, Ra-226, U-238, U-235,
+    /// U-238u) и `--nuclides=`/`--sample=` (nucid через запятую: 40K,137CS;
+    /// «Cs-137» тоже понимается), спецификация — общим входом приложения
+    /// `FsaSampleSpec.FromManifest` (`T257`). В конце печатается счётчик
+    /// обращений к менеджеру; не ноль — код 12, как у `CorpusFsaProbe`.
+    ///
     /// (`AMBER15`, остаток П10, закрыт 12.09.2026 полосой П3) Проверки «`CF`
     /// тронул канал полного поглощения» СУДЯТ ТОЛЬКО ТАМ, ГДЕ КАСКАД ЕСТЬ.
     /// На сцене без каскада (одиночная линия, партнёров по совпадению нет)
@@ -136,9 +146,12 @@ namespace FsaChannelSplitProbe
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
-                else if (a.StartsWith("--chain=", StringComparison.Ordinal)) chains.Add(a.Substring(8));
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                    chains.AddRange(a.Substring(8).Split(','));
                 else if (a.StartsWith("--nuclides=", StringComparison.Ordinal))
                     nuclides.AddRange(a.Substring(11).Split(','));
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                    nuclides.AddRange(a.Substring(9).Split(','));
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
                 else if (a.StartsWith("--floor=", StringComparison.Ordinal))
                     floorKev = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
@@ -167,13 +180,27 @@ namespace FsaChannelSplitProbe
 
             if (chains.Count == 0 && nuclides.Count == 0)
             {
-                Console.Error.WriteLine("нужен состав: --chain=Th-232 и/или --nuclides=176LU");
+                Console.Error.WriteLine("нужен состав: --chain=Th-232 и/или --nuclides=176LU (--sample=)");
                 return 2;
+            }
+
+            // Метки рядов проверяются ДО чтения спектра — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in chains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
             }
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager.GetInstance();
+            // ⛔ `NuclideDefinitionManager` здесь НЕ поднимается (`AMBER19`, П11
+            // 12.09.2026): состав — из базы по ключам, а в оснастке корпуса
+            // поставочного списка нет, и подъём падал бы броском (`S100`).
 
             ResultData rd = Load(spectrumPath);
             Console.WriteLine("спектр  : {0}", Path.GetFileName(spectrumPath));
@@ -396,7 +423,27 @@ namespace FsaChannelSplitProbe
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ИТОГ: всё сошлось" : "ИТОГ: расхождений " + bad);
-            return bad == 0 ? 0 : 1;
+            return SuppliedLibraryGate(bad == 0 ? 0 : 1);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11) Вторая дверь гейта «состав только из базы» — та же,
+        /// что у `CorpusFsaProbe.RefuseIfManagerRaised`: счётчик обращений к
+        /// поставочному менеджеру печатается ВСЕГДА, и не ноль — код 12 поверх
+        /// любого итога. Считать по `isLoaded` нельзя: безоконный подъём без
+        /// файла бросает, и по нему подъёма не видно (`S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
         }
 
         // ==================================================================
@@ -1436,42 +1483,27 @@ namespace FsaChannelSplitProbe
             return result;
         }
 
+        /// <summary>
+        /// Спецификация состава — ОБЩИМ ВХОДОМ приложения
+        /// (`FsaSampleSpec.FromManifest`, `T257` хвост (2), 12.09.2026): метки
+        /// рядов словами манифеста, нуклиды nucid. До того здесь лежала своя
+        /// копия сборки — без элементов пробы из геометрии и с `NucidOf` на
+        /// метках рядов, который «U-238u» превратил бы в корень «238uU» молча.
+        /// Флаги равновесия/рентгена ставит вызывающий из настроек спектра
+        /// (`FsaCalculationOptions.Of(rd).ApplyTo(spec)`), здесь — умолчания.
+        /// </summary>
         static FsaSampleSpec SpecOf(ResultData rd, List<string> chains, List<string> nuclides)
         {
-            var spec = new FsaSampleSpec
-            {
-                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
-                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
-            };
-            foreach (string label in chains)
-            {
-                spec.Chains.Add(new FsaSampleChain(NucidOf(label)));
-            }
-
+            var nucids = new List<string>();
             foreach (string nucid in nuclides)
             {
-                spec.Nuclides.Add(NucidOf(nucid));
+                nucids.Add(NucidOf(nucid));
             }
 
-            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
-                && peakConfig.Max_Range > peakConfig.Min_Range)
-            {
-                spec.MinEnergyKev = peakConfig.Min_Range;
-                spec.MaxEnergyKev = peakConfig.Max_Range;
-            }
-
-            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
-                ? rd.Efficiency.Geometry : null;
-            if (geometry != null)
-            {
-                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
-                    EfficiencySimulator.ScintillatorNameOf(geometry));
-            }
-
-            return spec;
+            return FsaSampleSpec.FromManifest(rd, chains, nucids, true, true);
         }
 
-        /// <summary>«Th-232» → «232TH»: nucid, как его зовёт nucdb.</summary>
+        /// <summary>«Cs-137» → «137CS»: nucid, как его зовёт nucdb; nucid как есть.</summary>
         static string NucidOf(string label)
         {
             int dash = label.IndexOf('-');
