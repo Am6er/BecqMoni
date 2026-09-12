@@ -36,7 +36,10 @@ namespace BecquerelMonitor.Probes
     ///
     /// ⚠ Правило берётся ОТРАЖЕНИЕМ, а не прямой ссылкой, чтобы один и тот же
     /// исходник пробы собирался и против сборки ДО правки (поля нет), и против
-    /// сборки ПОСЛЕ. Иначе «до» померить нечем.
+    /// сборки ПОСЛЕ. ⛔ Но ЗАПАСНОЙ КОПИИ текста правила здесь больше нет
+    /// (`D48`, 12.09.2026): сборка без поля — отказ кодом 2, а не тихая мера по
+    /// своему тексту. Копия, «на всякий случай» лежащая в пробе, — ровно то
+    /// второе соглашение о родителе, которое ловит `tools/check_parent_rule.py`.
     ///
     /// Положительные контроли:
     ///   * `--clause=<заведомо неверный текст>` — правило подменяется, числа
@@ -52,15 +55,6 @@ namespace BecquerelMonitor.Probes
     {
         /// <summary>Снятое правило C — только как «было». В приложении его нет.</summary>
         const string RetiredClauseC = " and l_seqno = 0";
-
-        /// <summary>
-        /// Текст A на день правки — запасной, если поля в сборке ещё нет
-        /// (то есть проба гоняется против сборки ДО правки).
-        /// </summary>
-        const string FallbackClauseA =
-            " and l_seqno = (select min(l_seqno) from decay_chain x"
-            + " where x.nucid = d.nucid and x.daughter_nucid = d.daughter_nucid"
-            + " and x.dec_type = d.dec_type)";
 
         /// <summary>Сколько обращений к правилу ждём в приложении.</summary>
         const int ExpectedUses = 4;
@@ -116,7 +110,14 @@ namespace BecquerelMonitor.Probes
 
             // ----------------------------------------------------------------
             string live = LiveClause();
-            string clause = clauseOverride ?? live ?? FallbackClauseA;
+            if (live == null && clauseOverride == null)
+            {
+                Console.Error.WriteLine("⛔ в сборке нет DecayParentRule.ChainLevelClause (сборка ДО правки T78);"
+                                        + " запасного текста правила в пробе нет (D48) — мерить нечем");
+                return 2;
+            }
+
+            string clause = clauseOverride ?? live;
             Console.WriteLine("РАЗДЕЛ 1. СВОДИМОСТЬ ПО ДЕРЕВУ ПРИЛОЖЕНИЯ");
             Scan(src);
             Console.WriteLine();
@@ -124,8 +125,7 @@ namespace BecquerelMonitor.Probes
             Console.WriteLine("РАЗДЕЛ 2. КОНТРАКТ ПРАВИЛА");
             Console.WriteLine("  источник: {0}",
                               clauseOverride != null ? "ПОДМЕНА ключом --clause"
-                              : live != null ? "DecayParentRule.ChainLevelClause (отражением)"
-                              : "поля в сборке НЕТ — запасной текст A (сборка ДО правки)");
+                              : "DecayParentRule.ChainLevelClause (отражением)");
             Console.WriteLine("  текст:    «{0}»", Squeeze(clause));
             Contract(clause, live != null && clauseOverride == null);
             Console.WriteLine();

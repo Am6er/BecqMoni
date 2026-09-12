@@ -721,6 +721,13 @@ def main(argv):
     log(u'спектров стадии 1: %d (семёрка LEGACY копируется побайтно и стадию 1 не проходит)'
         % len(entries))
 
+    # `V15`: свой цикл чтения сырья — свой охват (общий `Coverage`, семёрка
+    # `LEGACY` объяснена; всё прочее потерянное — ⛔ и код 3). Режим `--stage2`
+    # охват получает из `ecal_extrapolation.build_state`.
+    import ecal_extrapolation as ee
+    cov = ee.coverage_for(entries)
+    cov.add(ee.STAGE_IN, [e['key'] for e in entries], hard=True)
+    read_ok = []
     arms, per_spec, calib_dump, state = [], [], {}, {}
     t0 = time.time()
     for e in entries:
@@ -730,6 +737,7 @@ def main(argv):
             log(u'%-22s НЕТ КОПИИ %s' % (key, raw))
             continue
         sp = Spectrum(raw)
+        read_ok.append(key)
         cal0, pairs0, r662, tag0 = bc.calibrate_one(sp, e)
         res_a = r662 * np.sqrt(662.0)
         stored = cc.Ecal(sp.ecal, sp.n)
@@ -789,6 +797,10 @@ def main(argv):
                '%.3f ПШПВ %s' % (rec['shift_weakest_fwhm'], rec['shift_weakest_cause'])
                if rec['shift_weakest_fwhm'] is not None else u'нет места'))
     log(u'время: %.0f с' % (time.time() - t0))
+    cov.add(ee.STAGE_READ, read_ok, hard=True)
+    if cov.report(u'ОХВАТ мерки нулевого плеча (стадия 1 на сырье)'):
+        raise SystemExit(3)
+    log(u'  %s' % cov.tag(ee.STAGE_READ))
 
     with io.open(os.path.join(a['out'], 'arms_%s.csv' % tag), 'w', encoding='utf-8',
                  newline='') as f:
