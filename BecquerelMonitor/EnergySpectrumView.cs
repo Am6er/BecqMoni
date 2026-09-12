@@ -1422,40 +1422,50 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// ⛔ ПОДПИСЬ ПОД КУРСОРОМ — ЭТО ПОДПИСЬ ПИКА, В КОТОРОМ СТОИТ КУРСОР
-        /// (`A228`, решение Amber 06.09.2026 — «свести отбор в одно место»).
+        /// ⛔ ФЛАЖОК ПОД КУРСОРОМ — ПОДСКАЗКА ПО ВСЕЙ БИБЛИОТЕКЕ НУКЛИДОВ, а не
+        /// подпись пика (`AMBER21`, задача Amber 12.09.2026, консоль, дословно:
+        /// «Раньше при движении мышки на позицию отрисовки курсора отображались
+        /// флажки из всей библиотеки изотопов, радиус подбора — согласно
+        /// настройке [«Mouse cursor peak settings», Pitch / Percent]. Сейчас
+        /// отображаются флажки только обнаруженных пиков» → «вернуть отображение
+        /// как было … флажок под курсором перебирал ВСЮ библиотеку нуклидов сам
+        /// — отбор „ближайшая видимая линия в окне Pitch + E·Percent/100“ и
+        /// только про него»).
         ///
-        /// ⛔ Своего отбора здесь БОЛЬШЕ НЕТ, и это вся суть правки. Прежде
-        /// флажок под курсором перебирал библиотеку сам, и правило у него было
-        /// СВОЁ: «ближайшая ВИДИМАЯ линия в окне `EnergyPitch + E·EnergyPercent`»
-        /// — ни порога по выходу (`S134`), ни окна по разрешению прибора, ни
-        /// принадлежности активному набору, ни подтверждения второй линией
-        /// (`A197`, `A227`), ни списка кандидатов (`S64`). Два пути подписи
-        /// расходились на глазах у человека: измерено по корпусу (129 спектров,
-        /// 1522 пика, поставочная библиотека) — курсор, поставленный В САМ ПИК,
-        /// показывал НЕ ТО, что таблица состава, у 679 пиков из 1522, и среди
-        /// расхождений стоит ровно тот случай, ради которого строка заведена:
-        /// `AS1Pro_Ra226` @153.17 кэВ — под курсором «Pu-238», в таблице
-        /// «U-235». Развёртка по всей шкале того же корпуса: из 62968 положений
-        /// курсора ВНУТРИ найденного пика разошлись 39334.
+        /// ⛔ ЭТО РЕШЕНИЕ Amber 12.09.2026 ПОВЕРХ РЕШЕНИЯ 06.09.2026, А НЕ ОТКАТ
+        /// ПО НЕДОСМОТРУ. Полоса F49 (`A228`, коммит `fe5ba764`) по решению
+        /// «свести отбор в одно место» сделала подпись под курсором подписью
+        /// ближайшего найденного пика (`DetectedPeaks`, окно
+        /// <see cref="PeakDetector.MaximumLabelMissInFwhm"/>) — и цену того
+        /// решения измерила: имя нуклида над голым континуумом исчезло
+        /// (80333 положений курсора → 0), курсор в найденном пике сошёлся с
+        /// таблицей (679 расхождений из 1522 → 0). Amber посмотрела на результат
+        /// и назвала подсказку по библиотеке под курсором ОТДЕЛЬНОЙ ФУНКЦИЕЙ, а
+        /// не вторым путём подписи: человек ведёт курсор по шкале и хочет
+        /// видеть, какая линия библиотеки ближе всего к этой энергии, — в том
+        /// числе там, где найденного пика нет. Цена возврата принята той же
+        /// задачей: флажок под курсором и таблица состава снова расходятся
+        /// (порядок 679 пиков из 1522 на корпусе с поставочной библиотекой), и
+        /// имя стоит над континуумом (порядок 122936 положений из 333316 вне
+        /// пиков). Замер полосы П15 — `handover/handover-2026-09-12-p15-cursor-library.md`.
         ///
-        /// Теперь отбор ОДИН — тот, что в `PeakDetector` (`MatchNuclides` плюс
-        /// `ConfirmLabels`), а здесь только чтение его ответа: подпись под
-        /// курсором это `Peak` из `DetectedPeaks`, и рисуется она тем же
-        /// `DrawPeakFlag` и тем же `PeakDetector.PeakLabel`, каким подписан сам
-        /// пик и колонка таблицы (`DCPeakDetectionView`). Совпадение теперь не
-        /// достигается, а НЕВОЗМОЖНО нарушить: показывается тот же объект.
+        /// Тело ниже — ДОСЛОВНО состояние `fe5ba764^` (`git show
+        /// fe5ba764^:BecquerelMonitor/EnergySpectrumView.cs`, строки 1211–1256):
+        /// вся библиотека `nuclideManager.NuclideDefinitions`, только `Visible`
+        /// (галка «показывать» в `NuclideDefinitionForm`, `S31`), окно
+        /// `(int)EnergyPitch + E·(int)EnergyPercent/100` из `ChartViewConfig`
+        /// («Mouse cursor peak settings» в `GlobalConfigForm`, умолчания
+        /// 5 кэВ и 1 %), ближайшая по |ΔE|, синтетический `Peak{Energy, Nuclide}`
+        /// — его рисует тот же `DrawPeakFlag` → `PeakDetector.PeakLabel` одним
+        /// именем (`NuclideCandidates` без списка отдаёт победителя).
         ///
-        /// ⚠ ЦЕНА НАЗВАНА ЧИСЛОМ. Флажок пропадает там, где найденного пика
-        /// нет: на корпусе подпись показывалась в 122936 положениях курсора из
-        /// 333316 вне всяких пиков — 36.9 % шкалы вне пиков. Это и была та
-        /// самая «структура без улики»: имя нуклида над голым континуумом,
-        /// которое никакое правило подписи не подтверждало.
-        ///
-        /// ⛔ Окно «курсор в этом пике» — <see cref="PeakDetector.MaximumLabelMissInFwhm"/>,
-        /// то же самое, каким приложение решает «линия принадлежит этому пику».
-        /// Своего числа здесь не заводится нарочно: второе число — это второе
-        /// место, где их можно развести, а именно этим и была `A228`.
+        /// ⛔ Подпись САМОГО ПИКА (таблица состава, флажок над пиком) этим не
+        /// трогается: она по-прежнему идёт `PeakDetector.MatchNuclides` +
+        /// `ConfirmLabels` (`S134`, `S64`, `A197`, `A227`), и `LabelTruthProbe`
+        /// обязан давать Δ = 0 по всем разрядам. Встроенное ожидание
+        /// `LabelPathProbeF49` «0 расхождений курсора с таблицей» с 12.09.2026
+        /// ОТКАЗЫВАЕТ по построению — это положительный контроль возврата, а
+        /// не дефект; число прогона задаётся ключом `--expect-cursor-mismatch=`.
         /// </summary>
         void EnsureCursorNuclidePeak()
         {
@@ -1467,45 +1477,43 @@ namespace BecquerelMonitor
             this.nuclideCursorPeak = null;
             this.nuclideCursorPeakDirty = false;
 
-            if (!this.validCursor || this.cursorChannel < 0 || this.activeResultData == null)
+            if (!this.validCursor || this.cursorChannel < 0 || this.nuclideManager == null || this.nuclideManager.NuclideDefinitions == null)
             {
                 return;
             }
 
-            List<Peak> detectedPeaks = this.activeResultData.DetectedPeaks;
-            EnergySpectrum spectrum = this.activeResultData.EnergySpectrum;
-            if (detectedPeaks == null || spectrum == null || spectrum.EnergyCalibration == null)
-            {
-                return;
-            }
+            int percent = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPercent;
+            int pitch = (int)this.globalConfigManager.GlobalConfig.ChartViewConfig.EnergyPitch;
+            double bestEnergy = 0.0;
+            NuclideDefinition bestNuclide = null;
 
-            // Ширина пика В КЭВ — тем же выражением, что везде
-            // (`Peak.FwhmKev`); поле `Peak.FWHM` В КАНАЛАХ, и подставлять его
-            // сюда нельзя (`T173`).
-            Peak nearest = null;
-            double nearestMiss = 0.0;
-            foreach (Peak peak in detectedPeaks)
+            foreach (NuclideDefinition nuclideDefinition in this.nuclideManager.NuclideDefinitions)
             {
-                double fwhmKev = peak.FwhmKev(spectrum.EnergyCalibration);
-                if (!(fwhmKev > 0.0))
+                if (!nuclideDefinition.Visible)
                 {
                     continue;
                 }
 
-                double miss = Math.Abs(this.cursorEnergy - peak.Energy);
-                if (miss > PeakDetector.MaximumLabelMissInFwhm * fwhmKev)
+                double delta = (double)pitch + nuclideDefinition.Energy * (double)percent / 100.0;
+                if (this.cursorEnergy < nuclideDefinition.Energy - delta || this.cursorEnergy > nuclideDefinition.Energy + delta)
                 {
                     continue;
                 }
 
-                if (nearest == null || miss < nearestMiss)
+                if (bestNuclide == null || Math.Abs(this.cursorEnergy - bestEnergy) > Math.Abs(this.cursorEnergy - nuclideDefinition.Energy))
                 {
-                    nearest = peak;
-                    nearestMiss = miss;
+                    bestEnergy = nuclideDefinition.Energy;
+                    bestNuclide = nuclideDefinition;
                 }
             }
 
-            this.nuclideCursorPeak = nearest;
+            if (bestNuclide != null)
+            {
+                Peak peak = new Peak();
+                peak.Energy = bestEnergy;
+                peak.Nuclide = bestNuclide;
+                this.nuclideCursorPeak = peak;
+            }
         }
 
         // Token: 0x060004AD RID: 1197 RVA: 0x00016630 File Offset: 0x00014830
