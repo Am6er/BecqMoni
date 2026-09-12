@@ -2296,6 +2296,7 @@ namespace CorpusFsaProbe
                 row.RefitZState = analyzer.RefitZState;
                 row.RefitZUsed = analyzer.RefitZUsed;
                 row.RefitZTopZ = analyzer.RefitZTopZ;
+                row.RefitZAbs = analyzer.RefitZ;
                 // ⛔ `T105`. `FsaAnalyzer.BandNote` — заверение анализатора о
                 // полосе, которую фит взял НА ДЕЛЕ (режим, каналы, кэВ), — до
                 // сих пор не имело во всём дереве НИ ОДНОГО читателя. Шапка
@@ -3597,8 +3598,24 @@ namespace CorpusFsaProbe
             int applied = 0, allBelow = 0, nothingBelow = 0, notRequested = 0;
             double topMin = double.NaN, topMax = double.NaN;
             var below = new List<string>();
+            // (`A266`, П24) спектры, где доля вершины СВЯЗАЛА порог: фактический
+            // порог ниже абсолютного. На корпусе под `--lib=sample` вершины
+            // высоки (П14: 8.29 и 164.98), и доля 0.3 связывает порог только при
+            // z_max < RefitZ / 0.3 — без этого счёта нулевой сдвиг чисел A/B
+            // нельзя отличить от «ключ не доехал».
+            var bound = new List<string>();
             foreach (Row r in rows)
             {
+                // Только там, где отсев заказан и судил: у неразобранных
+                // спектров поля стоят нулями анализатора, а не NaN.
+                if (r.RefitZState != FsaAnalyzer.RefitZOutcome.NotRequested
+                    && !double.IsNaN(r.RefitZUsed) && !double.IsNaN(r.RefitZAbs)
+                    && r.RefitZUsed < r.RefitZAbs)
+                {
+                    bound.Add(string.Format(CultureInfo.InvariantCulture, "{0} ({1:F2} при вершине {2:F2})",
+                                            r.Key, r.RefitZUsed, r.RefitZTopZ));
+                }
+
                 switch (r.RefitZState)
                 {
                     case FsaAnalyzer.RefitZOutcome.Applied: applied++; break;
@@ -3641,6 +3658,34 @@ namespace CorpusFsaProbe
                                   topMin.ToString("F2", CultureInfo.InvariantCulture),
                                   topMax.ToString("F2", CultureInfo.InvariantCulture));
             }
+
+            // Наименьшие вершины среди судимых — чтобы «связала у 0» читалось
+            // как «вершины выше RefitZ / доли», а не как молчание счётчика.
+            var judged = new List<Row>();
+            foreach (Row r in rows)
+            {
+                if (r.RefitZState != FsaAnalyzer.RefitZOutcome.NotRequested && !double.IsNaN(r.RefitZTopZ))
+                {
+                    judged.Add(r);
+                }
+            }
+
+            judged.Sort((x, y) => x.RefitZTopZ.CompareTo(y.RefitZTopZ));
+            var lowest = new List<string>();
+            for (int i = 0; i < Math.Min(5, judged.Count); i++)
+            {
+                lowest.Add(string.Format(CultureInfo.InvariantCulture, "{0} {1:F2}", judged[i].Key, judged[i].RefitZTopZ));
+            }
+
+            Console.WriteLine("  наименьшие вершины среди судимых: {0}", string.Join(", ", lowest.ToArray()));
+            Console.WriteLine("  доля вершины связала порог (ниже абсолютного) у {0}{1}",
+                              bound.Count,
+                              bound.Count == 0
+                                  ? ""
+                                  : ": " + string.Join(", ", bound.GetRange(0, Math.Min(10, bound.Count)).ToArray())
+                                    + (bound.Count > 10
+                                           ? string.Format(CultureInfo.InvariantCulture, " … и ещё {0}", bound.Count - 10)
+                                           : ""));
 
             if (below.Count > 0)
             {
@@ -4678,6 +4723,15 @@ namespace CorpusFsaProbe
 
             public double RefitZUsed = double.NaN;
             public double RefitZTopZ = double.NaN;
+
+            /// <summary>
+            /// (`A266`, П24 12.09.2026) Абсолютный порог отсева анализатора на
+            /// этом разборе — чтобы перепись могла сказать, у скольких спектров
+            /// доля вершины СВЯЗАЛА порог (<see cref="RefitZUsed"/> ниже него).
+            /// Без этого «доля ничего не изменила» неотличимо от «доле нечего
+            /// было менять» (`A266`, дописка П14).
+            /// </summary>
+            public double RefitZAbs = double.NaN;
             public double MinRangeKev = double.NaN;
             public double CurveFloorKev = double.NaN;
 

@@ -1,0 +1,18 @@
+AS80x80_spline_anchors.csv         строк    6 /   26  расхождений по ключу 0
+AS80x80_spline_components.csv      строк   20 /   31  расхождений по ключу 0
+AS80x80_spline_limits.csv          строк    3 /    4  расхождений по ключу 0
+AS80x80_spline_runs.csv            строк    9 /    9  расхождений по ключу 1
+ASN16_spline_anchors.csv           строк    8 /    8  расхождений по ключу 0
+ASN16_spline_components.csv        строк    8 /    8  расхождений по ключу 0
+ASN16_spline_limits.csv            строк    3 /    3  расхождений по ключу 0
+ASN16_spline_runs.csv              строк   12 /   12  расхождений по ключу 0
+G1S16_spline_anchors.csv           строк  109 /  109  расхождений по ключу 0
+G1S16_spline_components.csv        строк   44 /   44  расхождений по ключу 0
+G1S16_spline_limits.csv            строк   23 /   23  расхождений по ключу 0
+G1S16_spline_runs.csv              строк   23 /   23  расхождений по ключу 0
+G1S24_spline_anchors.csv           строк   74 /   74  расхождений по ключу 0
+G1S24_spline_components.csv        строк   37 /   37  расхождений по ключу 0
+G1S24_spline_limits.csv            строк   15 /   15  расхождений по ключу 0
+G1S24_spline_runs.csv              строк   15 /   15  расхождений по ключу 0
+ИТОГО строк A 409, расхождений 1, только в A 0, только в B 32 (ключи: {'runs': ['spectrum'], 'components': ['spectrum', 'component'], 'anchors': ['spectrum', 'line_kev', 'energy_kev', 'kev', 'nuclide'], 'limits': ['spectrum', 'component', 'nuclide']})
+  AS80_Th232Medal: AS80x80_spline_anchors.csv:только в B; AS80x80_spline_components.csv:только в B; AS80x80_spline_limits.csv:только в B; AS80x80_spline_runs.csv:part,chi2ndf,inflate,gain,offset_ch,matrix_applied,matrix_note,cascade,efficiency,components,error,chi2ndf_pois,model_residual_pct,library_note,matrix_found,
