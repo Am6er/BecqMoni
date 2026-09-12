@@ -34,12 +34,72 @@ namespace ResponseChannelProbe
     /// * **комптон** обрывается на краю E/(1+2E/511) и не имеет права заходить
     ///   выше него сколько-нибудь заметно.
     ///
+    /// ⛔ ПИК ВЫЛЕТА ИЩЕТСЯ В СВЕТОВОЙ ШКАЛЕ И СУДИТСЯ В ИСТОРИЯХ (`AMBER15`,
+    /// находка П7, закрыта 12.09.2026 полосой П3). До этого дня «пик
+    /// выступает» значило «три бина из двадцати пяти вокруг `E − 1022` держат
+    /// больше 36 %», и число это было снято на `G1S`. На `AS80_point0`,
+    /// 2614 кэВ, это давало 18.7 % при 200 000 историй, 30.4 при 400 000, 24.4
+    /// при 800 000 и 39.1 при 400 000 на 2614.5 — числа без опоры.
+    ///
+    /// Причина — ПИК СТОИТ НЕ ТАМ, ГДЕ ЭНЕРГИЯ. Строка отклика переложена по
+    /// координате СВЕТА (`RemapLightScale`, физика F11/П19): пик DE у обеих
+    /// сцен стоит в бине 794 (`AS80`: 203.5 историй), а `E − 1022` = 1592 кэВ —
+    /// это бин 796; окно ±1 бин по энергии держало 46.5 + 4.9 + 2.1 — ХВОСТ
+    /// пика, и «18.7 %» было долей хвоста, а её колебания по n и по 2614/2614.5
+    /// — шумом хвоста (по вложенным кускам по 200 000, зерно одно: 18.7 / 42 /
+    /// 18 — то есть σ около десяти пунктов). Пик SE стоит в бинах 1052–1053 при
+    /// энергетическом 1052 — сдвиг меньше бина, оттого SE «проходил». Разница
+    /// сцен (`AS80` в среднем ≈ 29 %, `G1S` ≈ 45 % по старой мере) — тоже доля
+    /// хвоста, а не «плато у крупного кристалла»: с окном на пике обе дают
+    /// 90.9 и 94.6 %. А при 800 000 историй ОДНА история в чужом канале давала
+    /// «100 % от окрестности» — проверка «в чужом канале пика нет» так же
+    /// была слепа к счёту событий.
+    ///
+    /// Теперь оба утверждения — статистические и про пик, найденный В СВЕТОВОЙ
+    /// ШКАЛЕ: центр окна — максимум канала в ±12 бинах от энергетического
+    /// места (сдвиг печатается — это и есть положение пика по свету), окно —
+    /// 25 бинов вокруг него, статистика — k событий в трёх бинах у максимума
+    /// из N событий окна. Вопрос тот же, что был записан словами («иначе это
+    /// не пик, а ровное плато»): пик ВЫСТУПАЕТ, если k невероятно при ровном
+    /// плато — хвост P(S ≥ k | плато) ниже 1.35e-3 (односторонние 3σ), где
+    /// нуль разыгрывается С ТЕМ ЖЕ поиском максимума (<see cref="NullTail"/>;
+    /// бином не годится — выбор максимума сдвигает долю плато вверх); в ЧУЖОМ
+    /// канале пика НЕТ, если тот же хвост НЕ ниже. Порога в процентах,
+    /// зависящего от сцены, нет. Событий для приговора должно хватать: окно DE
+    /// добирается историями (×2 до ×16 от `--n`, то же зерно — старшая выборка
+    /// содержит младшую) до <see cref="MinWindowHistories"/>, а если и после
+    /// этого их меньше — контроль ПРОВАЛИВАЕТСЯ вслух, а не молчит (`T219`).
+    /// Счёт событий — из долей: континуум считается аналоговой веткой с
+    /// единичными весами, доля × n у Σ окна — целое с точностью до перелива
+    /// света через два края окна (< 2); больший остаток — отказ.
+    ///
     ///     responsechannelprobe --geometry=X.in [--e=662,2614] [--n=200000] [--bin=2]
+    ///                          [--spoil=merge|flat]
+    ///
+    /// Ключи порчи — положительный контроль приговора. `--spoil=merge`: канал
+    /// DE ссыпается в канал SE (прежняя слитая раскладка) — проба ОБЯЗАНА
+    /// отказать: канал DE пуст, пик DE не выступает (судить нечем), пик DE
+    /// найден в ЧУЖОМ канале. `--spoil=flat`: канал DE в ±12 бинах от пика
+    /// разравнивается в плато той же площади — «пик DE выступает» ОБЯЗАН
+    /// отказать, остальное — стоять.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ».
     /// </summary>
     static class Program
     {
+        /// <summary>
+        /// Сколько событий в окне 25 бинов нужно, чтобы приговор «выступает /
+        /// плато» имел силу: при 100 событиях σ доли у пика в 36 % — 4.8
+        /// пункта, и плато (12 %) от него отстоит на пять σ.
+        /// </summary>
+        const int MinWindowHistories = 100;
+
+        /// <summary>Односторонние 3σ нормального закона — порог хвоста.</summary>
+        const double ThreeSigmaTail = 1.35E-3;
+
+        static bool spoilMerge;
+        static bool spoilFlat;
+
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -55,6 +115,8 @@ namespace ResponseChannelProbe
                 if (a.StartsWith("--geometry=", StringComparison.Ordinal)) geometryPath = a.Substring(11);
                 else if (a.StartsWith("--n=", StringComparison.Ordinal)) histories = int.Parse(a.Substring(4));
                 else if (a.StartsWith("--bin=", StringComparison.Ordinal)) binKev = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                else if (a == "--spoil=merge") spoilMerge = true;
+                else if (a == "--spoil=flat") spoilFlat = true;
                 else if (a.StartsWith("--e=", StringComparison.Ordinal))
                 {
                     string[] parts = a.Substring(4).Split(',');
@@ -97,6 +159,14 @@ namespace ResponseChannelProbe
                 // есть» ничего не доказывало бы: это могла быть другая выборка.
                 double[][] split = Make(geometry, histories, true)
                                        .ResponseByChannel(energy, binKev, out err3);
+                if (spoilMerge)
+                {
+                    // Порча — ОБОИМ плечам одинаково, чтобы её видели только
+                    // проверки пиков вылета, а не сверка плеч по прочим каналам.
+                    Merge(channels);
+                    Merge(split);
+                    Console.WriteLine("⚠ ПОРЧА --spoil=merge: канал DE ссыпан в канал SE");
+                }
 
                 // --- 1. Сумма каналов против обычного отклика ----------------
                 int mismatch = 0;
@@ -186,6 +256,13 @@ namespace ResponseChannelProbe
                     // бы SE и DE лежали вперемешку: это она и не различала.
                     // Теперь у каждого свой канал, и вторым числом печатается,
                     // сколько того же пика осталось в ЧУЖОМ канале.
+                    //
+                    // ⛔ (П3, 12.09.2026) ПРИГОВОР — В ИСТОРИЯХ, см. шапку. Окно
+                    // DE у крупного кристалла при штатных 200 000 историй
+                    // держит десятки событий, и доля в нём — шум с σ около
+                    // десяти пунктов; поэтому сначала ДОБОР историй тем же
+                    // зерном до `MinWindowHistories` в окне DE (оно беднее SE),
+                    // потом точный биномиальный хвост против ровного плато.
                     var where = new[]
                     {
                         new { Shift = 511.0, Own = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation,
@@ -193,24 +270,107 @@ namespace ResponseChannelProbe
                         new { Shift = 1022.0, Own = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble,
                               Other = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation, Name = "DE" }
                     };
+                    double[][] escapeArm = channels;
+                    int escapeHistories = histories;
+                    int deAt = EfficiencySimulator.PeakBin(energy - 1022.0, binKev);
+                    int deChannel = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble;
+                    for (int mult = 2; mult <= 16; mult *= 2)
+                    {
+                        double deWindow = Window(escapeArm[deChannel], deAt - 12, deAt + 12) * escapeHistories;
+                        if (deWindow >= MinWindowHistories)
+                        {
+                            break;
+                        }
+
+                        double topUpErr;
+                        escapeHistories = histories * mult;
+                        escapeArm = Make(geometry, escapeHistories, false)
+                                        .ResponseByChannel(energy, binKev, out topUpErr);
+                        if (spoilMerge)
+                        {
+                            Merge(escapeArm);
+                        }
+
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                          "--   окно DE бедно ({0:F0} событий при {1} историях) — добор до {2} историй тем же зерном",
+                                          deWindow, escapeHistories / mult, escapeHistories));
+                    }
+
                     foreach (var w in where)
                     {
                         int at = EfficiencySimulator.PeakBin(energy - w.Shift, binKev);
-                        double local = Window(channels[w.Own], at - 1, at + 1);
-                        double around = Window(channels[w.Own], at - 12, at + 12);
-                        // Пик вылета обязан ВЫСТУПАТЬ над своей окрестностью:
-                        // три бина из двадцати пяти держат заметно больше трёх
-                        // двадцать пятых, иначе это не пик, а ровное плато.
-                        bool stands = around > 0.0 && local / around > 3.0 * 3.0 / 25.0;
-                        bad += Report(stands, "пик {0} на {1:F0} кэВ выступает в своём канале: {2:F1} % от окрестности",
-                                      w.Name, energy - w.Shift, around > 0.0 ? 100.0 * local / around : 0.0);
+                        // ⛔ ПИК ИЩЕТСЯ, А НЕ БЕРЁТСЯ ПО ЭНЕРГИИ (П3, 12.09.2026).
+                        // В строке отклика бины переложены по координате
+                        // СВЕТА (`RemapLightScale`, физика F11/П19), и пик DE у
+                        // `AS80_point0` стоит в бине 794 при `E − 1022` в 796:
+                        // −4 кэВ. Окно ±1 бин по энергии ловило ХВОСТ, и вся
+                        // находка П7 (18.7 % против 36 %) была шумом доли хвоста.
+                        // Центр — максимум в ±12 бинах от энергетического места;
+                        // сдвиг печатается: это и есть положение пика по свету.
+                        int center, local, around;
+                        if (spoilFlat && w.Own == deChannel)
+                        {
+                            // Порча «плато»: пик DE разравнивается по своему
+                            // окну — площадь та же, выступа нет. Второму плечу
+                            // — то же, чтобы сверку плеч «побитово» порча не
+                            // тревожила: её предмет — только приговор о пике.
+                            Flatten(escapeArm[deChannel], at);
+                            if (ReferenceEquals(escapeArm, channels))
+                            {
+                                Flatten(split[deChannel], at);
+                            }
 
-                        double alien = Window(channels[w.Other], at - 1, at + 1);
-                        double alienAround = Window(channels[w.Other], at - 12, at + 12);
-                        bool quiet = !(alienAround > 0.0) || alien / alienAround <= 3.0 * 3.0 / 25.0;
-                        bad += Report(quiet, "пика {0} в ЧУЖОМ канале нет: {1:F1} % от окрестности (было бы {2:F1} % при слиянии)",
-                                      w.Name, alienAround > 0.0 ? 100.0 * alien / alienAround : 0.0,
-                                      100.0 * 3.0 / 25.0);
+                            Console.WriteLine("⚠ ПОРЧА --spoil=flat: канал DE в окне пика разровнен в плато");
+                        }
+
+                        if (!PeakStat(escapeArm[w.Own], at, escapeHistories, out center, out local, out around))
+                        {
+                            bad += Report(false, "пик {0}: Σ окна × n не целое — веса историй не единичны, счёт событий недостоверен",
+                                          w.Name);
+                            continue;
+                        }
+
+                        Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                                          "--   окно {0}: по энергии {1:F0} кэВ (бин {2}), максимум в бине {3} — сдвиг по свету {4:+0.0;-0.0;0.0} кэВ; "
+                                          + "историй по бинам: {5}",
+                                          w.Name, energy - w.Shift, at, center, (center - at) * binKev,
+                                          WindowText(escapeArm[w.Own], center, escapeHistories)));
+
+                        // Пик вылета обязан ВЫСТУПАТЬ над своей окрестностью:
+                        // k из N событий окна в трёх бинах вокруг максимума
+                        // невероятны при ровном плато. Нуль — розыгрышем, с тем
+                        // же поиском максимума (`NullTail`).
+                        if (around < MinWindowHistories)
+                        {
+                            bad += Report(false, "пик {0} на {1:F0} кэВ: в окне {2} событий из {3} нужных даже после добора — "
+                                          + "судить НЕЧЕМ; возьмите больше историй (--n=)",
+                                          w.Name, energy - w.Shift, around, MinWindowHistories);
+                        }
+                        else
+                        {
+                            double tail = NullTail(around, local);
+                            bad += Report(tail < ThreeSigmaTail,
+                                          "пик {0} выступает в своём канале: {1} из {2} событий окна в трёх бинах у максимума "
+                                          + "({3:F1} %), P(≥ k | плато) = {4:E2} < {5:E2}",
+                                          w.Name, local, around, 100.0 * local / around, tail, ThreeSigmaTail);
+                        }
+
+                        int alienCenter, alien, alienAround;
+                        if (!PeakStat(escapeArm[w.Other], at, escapeHistories, out alienCenter, out alien, out alienAround))
+                        {
+                            bad += Report(false, "пик {0} в чужом канале: Σ окна × n не целое — веса историй не единичны", w.Name);
+                            continue;
+                        }
+
+                        // В ЧУЖОМ канале пика НЕТ, если то, что там лежит,
+                        // совместимо с ровным плато. Одна история в центре окна
+                        // (`G1S_point5`, 800 000 историй, 2103 кэВ) — это 100 %
+                        // «от окрестности» и не пик.
+                        double alienTail = alienAround > 0 ? NullTail(alienAround, alien) : 1.0;
+                        bad += Report(alienTail >= ThreeSigmaTail,
+                                      "пика {0} в ЧУЖОМ канале нет: {1} из {2} событий окна в трёх бинах у максимума (бин {3}), "
+                                      + "P(≥ k | плато) = {4:E2} (пик — ниже {5:E2})",
+                                      w.Name, alien, alienAround, alienCenter, alienTail, ThreeSigmaTail);
                     }
                 }
 
@@ -520,6 +680,165 @@ namespace ResponseChannelProbe
             }
 
             return total;
+        }
+
+        /// <summary>
+        /// События окна В ИСТОРИЯХ: доля × n у центральных трёх бинов
+        /// (`at−1…at+1`) и у всего окна (`at−12…at+12`). Континуум считается
+        /// аналоговой веткой с единичными весами (конус выключен), но ПОСЛЕ
+        /// счёта бины перекладываются по координате света
+        /// (`RemapLightScale`, физика F11): вес бина делится между двумя
+        /// соседними, и целым остаётся лишь Σ по окну — с точностью до
+        /// перелива через ДВА края окна, то есть меньше двух историй. Больший
+        /// остаток — веса не единичны, и метод отказывает.
+        /// </summary>
+        static bool Count(double[] row, int at, int histories, out int local, out int around)
+        {
+            double l = Window(row, at - 1, at + 1) * histories;
+            double a = Window(row, at - 12, at + 12) * histories;
+            local = (int)Math.Round(l);
+            around = (int)Math.Round(a);
+            return Math.Abs(a - around) < 2.0;
+        }
+
+        /// <summary>
+        /// Пик в окне: максимум ищется в ±12 бинах от энергетического места
+        /// `at` (в световой шкале пик стоит не там), окно из 25 бинов
+        /// центрируется на нём, `local` — три бина у максимума, `around` — всё
+        /// окно; оба в историях. Ложь при нецелой Σ окна — см. <see cref="Count"/>.
+        /// </summary>
+        static bool PeakStat(double[] row, int at, int histories,
+                             out int center, out int local, out int around)
+        {
+            center = at;
+            double top = -1.0;
+            for (int b = Math.Max(0, at - 12); b <= at + 12 && b < row.Length; b++)
+            {
+                if (row[b] > top)
+                {
+                    top = row[b];
+                    center = b;
+                }
+            }
+
+            return Count(row, center, histories, out local, out around);
+        }
+
+        /// <summary>
+        /// Нуль «ровное плато» С ТЕМ ЖЕ ПОИСКОМ МАКСИМУМА: N событий
+        /// рассыпаются равномерно по 25 бинам, максимум берётся среди тех, у
+        /// кого есть оба соседа, статистика — сумма трёх бинов у максимума.
+        /// Хвост P(S ≥ k) — долей розыгрышей. Бином здесь не годится: выбор
+        /// максимума сдвигает долю «плато» с 12 % вверх, и тем сильнее, чем
+        /// меньше N. Зерно фиксировано — приговор воспроизводим побитово.
+        /// </summary>
+        static double NullTail(int n, int k)
+        {
+            if (k <= 0)
+            {
+                return 1.0;
+            }
+
+            if (n <= 0)
+            {
+                return 0.0;
+            }
+
+            const int Trials = 20000;
+            var rng = new Random(20260912);
+            int[] bins = new int[25];
+            int hits = 0;
+            for (int t = 0; t < Trials; t++)
+            {
+                Array.Clear(bins, 0, bins.Length);
+                for (int i = 0; i < n; i++)
+                {
+                    bins[rng.Next(25)]++;
+                }
+
+                int best = -1, at = 1;
+                for (int b = 1; b < 24; b++)
+                {
+                    if (bins[b] > best)
+                    {
+                        best = bins[b];
+                        at = b;
+                    }
+                }
+
+                if (bins[at - 1] + bins[at] + bins[at + 1] >= k)
+                {
+                    hits++;
+                }
+            }
+
+            return (double)hits / Trials;
+        }
+
+        /// <summary>Окно канала в историях, бин за бином — для чтения глазами.</summary>
+        static string WindowText(double[] row, int at, int histories)
+        {
+            var sb = new StringBuilder();
+            for (int b = Math.Max(0, at - 12); b <= at + 12 && b < row.Length; b++)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.Append(' ');
+                }
+
+                if (b == at - 1 || b == at + 2)
+                {
+                    sb.Append('|');
+                }
+
+                sb.Append((row[b] * histories).ToString("F1", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Ключ порчи `--spoil=flat`: ±12 бинов вокруг максимума в ±12 бинах
+        /// от `at` заменяются средним — плато той же площади.
+        /// </summary>
+        static void Flatten(double[] row, int at)
+        {
+            int center = at;
+            double top = -1.0;
+            for (int b = Math.Max(0, at - 12); b <= at + 12 && b < row.Length; b++)
+            {
+                if (row[b] > top)
+                {
+                    top = row[b];
+                    center = b;
+                }
+            }
+
+            int lo = Math.Max(0, center - 12), hi = Math.Min(row.Length - 1, center + 12);
+            double mean = Window(row, lo, hi) / (hi - lo + 1);
+            for (int b = lo; b <= hi; b++)
+            {
+                row[b] = mean;
+            }
+
+            // Крошечный выступ в центре, чтобы поиск максимума нашёл ЭТО же
+            // окно, а не его край: иначе половина окна ушла бы в неразровненное.
+            row[center] = mean * (1.0 + 1.0E-9);
+        }
+
+        /// <summary>
+        /// Ключ порчи `--spoil=merge`: канал DE ссыпается в канал SE — прежняя
+        /// слитая раскладка, которую проба обязана отличить.
+        /// </summary>
+        static void Merge(double[][] channels)
+        {
+            int se = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilation;
+            int de = (int)EfficiencySimulator.ResponseChannel.EscapeAnnihilationDouble;
+            for (int b = 0; b < channels[de].Length; b++)
+            {
+                channels[se][b] += channels[de][b];
+                channels[de][b] = 0.0;
+            }
         }
 
         static int Report(bool ok, string format, params object[] args)
