@@ -1,0 +1,6 @@
+corpus=09ca760899e3bebe75bb3bca83872492de25dc55ad7fdf1ea1d0e7a3d8e22629
+sources=5ad520ec5e08808f1b98f547d1b3da346d94a7ffad73ddd86062ba0ea434e6ef
+head=1f848663a1bdd481561c5d353faad49cd06a1f72
+corpus_files=206
+sources_files=558
+dirty=BecquerelMonitor/FullSpectrumAnalysis/FsaCompositionInference.cs

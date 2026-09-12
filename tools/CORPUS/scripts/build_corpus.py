@@ -60,6 +60,7 @@ sys.path.insert(0, HERE)
 import calibrate                                     # noqa: E402
 import corpus_calib                                  # noqa: E402
 import corpus_def                                    # noqa: E402
+import corpus_stamp                                  # noqa: E402
 from corpus_paths import resolve                     # noqa: E402
 from spectrum import Spectrum                        # noqa: E402
 from chains import (chain_lines, CHAINS,             # noqa: E402
@@ -2082,6 +2083,17 @@ def main():
         # `--only` в state лежит один детектор, и запись стёрла бы остальные,
         # превратив сторожа в источник ложных «ПРОПАЛО».
         write_inputs(state, res_coef, legacy_rows)
+        # `T244`: клеймо ГЕНЕРАТОРА — чем собран корпус — тоже только при полной
+        # пересборке: после `--only` корпус смесь двух поколений, и клеймо
+        # «собрано нынешним» было бы ложью. Читатели: `check_corpus.py`
+        # (шаг 4/4 пересборки) и `tools/check_corpus_generator.py` в приёмке.
+        stamp_path, stamp = corpus_stamp.write(CORPUS)
+        print('клеймо генератора: %s (%d файлов, отпечаток %s, HEAD %s%s)'
+              % (stamp_path, len(stamp['files']), stamp['fp'][:16], stamp['head'][:8],
+                 ('; ⚠ генератор ГРЯЗЕН: ' + ', '.join(stamp['dirty'])) if stamp['dirty'] else ''))
+    else:
+        print('клеймо генератора (T244) при --only НЕ обновляется: корпус теперь смесь двух')
+        print('  поколений, и check_corpus.py будет красен, пока не пройдёт полная пересборка')
 
     with open(os.path.join(HERE, 'corpus_state.json'), 'w', encoding='utf-8') as fh:
         json.dump({k: dict(det=v['det'], ecal=[float(c) for c in v['ecal'].coef],

@@ -171,6 +171,16 @@ if ($bad -gt 0) {
 $probe = Join-Path $Wd 'CorpusFsaProbe.exe'
 if (-not (Test-Path -LiteralPath $probe)) { throw "нет $probe" }
 
+# ⛔ КЛЕЙМО ПРОГОНА (`T249`, 12.09.2026, П33). Объявление базы несёт отпечаток
+#    корпуса и сборки, которыми снят прогон, и `tools/check_declared_base.py`
+#    сверяет его с `<Out>\.run.json`. Клеймо пишет ТОТ ЖЕ сторож
+#    (`--write-run-stamp`): один код и на запись, и на чтение. Старое клеймо
+#    снимается ДО запуска пробы, новое кладётся только при коде 0 — иначе
+#    отказавший прогон оставил бы в каталоге клеймо удачного прошлого.
+$stampTool = Join-Path $repo 'tools\check_declared_base.py'
+$stampFile = Join-Path $Out '.run.json'
+if (Test-Path -LiteralPath $stampFile) { Remove-Item -LiteralPath $stampFile -Force }
+
 $argv = @("--corpus=$Corpus", "--out=$Out") + $Extra
 Write-Host ("запуск: CorpusFsaProbe.exe " + ($argv -join ' '))
 
@@ -180,5 +190,24 @@ try {
     $rc = $LASTEXITCODE
 } finally {
     Pop-Location
+}
+
+if ($rc -eq 0 -and (Test-Path -LiteralPath $Out)) {
+    # ⚠ Имя переменной НЕ `$bin`: параметр `[string]$Bin` выше — та же переменная
+    #   (регистр PowerShell не различает), и объект отметки, присвоенный ей,
+    #   молча превращался в строку — поле `app_sha` уходило пустым (П33, 12.09.2026).
+    $binaries = $(if ($st -and $st.sources -and $st.sources.binaries) { $st.sources.binaries } else { $null })
+    $fields = @(
+        "--field", ("keys=" + ($Extra -join ' ')),
+        "--field", "wd=$Wd", "--field", "bin=$Bin", "--field", "probes=$ProbeBuild", "--field", "store=$Store",
+        "--field", ("app_sha=" + $(if ($binaries) { [string]$binaries.app } else { '' })),
+        "--field", ("probe_sha=" + $(if ($binaries -and $binaries.probes -and $binaries.probes.PSObject.Properties['corpusfsaprobe']) { [string]$binaries.probes.corpusfsaprobe } else { '' }))
+    )
+    $env:PYTHONIOENCODING = 'utf-8'
+    & python $stampTool "--write-run-stamp=$Out" "--corpus=$Corpus" @fields
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "⛔ КЛЕЙМО ПРОГОНА НЕ ЗАПИСАНО (код $LASTEXITCODE): каталог $Out объявлять нельзя (T249)" -ForegroundColor Red
+        exit 66
+    }
 }
 exit $rc
