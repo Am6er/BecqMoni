@@ -798,6 +798,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 LightBinUnified = options.LightBinUnified,
                 PeakChannelByTolerance = options.PeakChannelByTolerance,
                 LYieldSupply = options.LYieldSupply,
+                // ⛔ (`A72`, П27 12.09.2026, решение Amber «Вести электрон
+                // переносом») Без этой строки ключ был бы МЁРТВ (`S130`).
+                // Умолчание ВЫКЛ до единого счёта склада.
+                ElectronTransport = options.ElectronTransport,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,
                 // ⛔ (`E34`, решение Amber 06.09.2026, ветка «а») ВЕТКА
