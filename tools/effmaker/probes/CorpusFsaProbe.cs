@@ -445,6 +445,28 @@ namespace CorpusFsaProbe
                     o.AnchorSkip = list.ToArray();
                     continue;
                 }
+                // (`S169`, П8 12.09.2026) нуль шкалы образа: `calib` (умолчание
+                // анализатора — калибровкой файла) или `adc` (пропорционально
+                // каналу от нуля АЦП); плечо A/B, читатель — `SETUP` отражением.
+                // `--anchor-zero-kev=` — свет в нулевом канале карты adc, кэВ
+                // (рычаг порчи: ±5 обязаны ухудшить числа).
+                if (a.StartsWith("--anchor-zero=", StringComparison.Ordinal))
+                {
+                    string zero = a.Substring(14);
+                    if (zero != "calib" && zero != "adc")
+                    {
+                        Console.Error.WriteLine("--anchor-zero= знает calib и adc; дано: {0}", zero);
+                        return 2;
+                    }
+
+                    o.AnchorZero = zero;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-kev=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroKev = double.Parse(a.Substring(18), CultureInfo.InvariantCulture);
+                    continue;
+                }
                 // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
                 // живой матрице — то есть вернуть поведение до правки 03.09.2026.
                 // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
@@ -1480,6 +1502,18 @@ namespace CorpusFsaProbe
             if (o.AnchorSkip != null && o.AnchorSkip.Length > 0)
             {
                 analyzer.AnchorSkipKev = o.AnchorSkip;
+            }
+
+            // (`S169`) нуль шкалы образа; ключ обязан ДОЕХАТЬ до анализатора
+            // (`A268`), читатель — строка `SETUP` отражением
+            if (o.AnchorZero != null)
+            {
+                analyzer.AnchorZero = o.AnchorZero;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroKev))
+            {
+                analyzer.AnchorZeroKev = o.AnchorZeroKev;
             }
 
             return analyzer;
@@ -3350,6 +3384,30 @@ namespace CorpusFsaProbe
                                           // (П19) форма применения — из ключа либо из первой строки со светом
                                           ", форма " + (o.AnchorForm ?? FirstAnchorForm(of) ?? "(умолчание анализатора)"));
                     }
+
+                    // (`S169`, П8) ЧИТАТЕЛЬ НУЛЯ ШКАЛЫ ОБРАЗА: у скольких спектров
+                    // карта "adc" включилась (служебная строка привязки несёт
+                    // «нуль adc: …» только тогда). Печатается, когда ключ задан
+                    // либо карта где-то включилась — умолчание невидимым быть
+                    // не должно (тот же разряд, что строка света выше).
+                    int adcOn = 0;
+                    foreach (Row r in of)
+                    {
+                        if (r.Error == null && r.AnchorNote != null && r.AnchorNote.Contains("нуль adc:"))
+                        {
+                            adcOn++;
+                        }
+                    }
+
+                    if (o.AnchorZero != null || adcOn > 0)
+                    {
+                        Console.WriteLine("{0,-10} нуль шкалы образа (S169): ключ {1}{2}; карта adc включилась у {3} из {4}", "",
+                                          o.AnchorZero ?? "(умолчание анализатора)",
+                                          double.IsNaN(o.AnchorZeroKev)
+                                              ? ""
+                                              : ", свет в нулевом канале " + o.AnchorZeroKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ",
+                                          adcOn, anchored + unanchored);
+                    }
                 }
             }
 
@@ -4147,6 +4205,8 @@ namespace CorpusFsaProbe
             public string AnchorForm = null;     // (П19) форма применения bin|line|peak|anchor; null — умолчание анализатора
             public double[] AnchorSkip = null;   // (П16/П18) выброс узла
             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
+            public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc; null — умолчание анализатора
+            public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале карты adc, кэВ; NaN — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
