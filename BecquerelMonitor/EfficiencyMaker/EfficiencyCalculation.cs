@@ -521,6 +521,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // умолчание 0, строка ничего не меняет; единый счёт склада
                 // перевернёт его, и кривая пойдёт следом сама.
                 LYieldSupply = storePhysics.LYieldSupply,
+                // (`A72`, П27 12.09.2026) Перенос электрона — тем же путём:
+                // вылет электрона двигает ПИК, то есть саму кривую, и кривая
+                // обязана считать его той же физикой, что склад. Пока
+                // умолчание ВЫКЛ, строка ничего не меняет.
+                ElectronTransport = storePhysics.ElectronTransport,
             };
 
             log(geometry.Describe());
@@ -646,6 +651,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         LightSubKevCurve = simulator.LightSubKevCurve,
                         LightCascadeSplit = simulator.LightCascadeSplit,
                         LYieldSupply = simulator.LYieldSupply,
+                        ElectronTransport = simulator.ElectronTransport,
                     };
                 },
                 (range, loop, worker) =>
@@ -753,8 +759,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `; lys=N` (`M9`, П23 12.09.2026) — по тому же правилу, что
             // `kdip=`: только при ненулевом уровне, иначе кривая с поставкой ω_L
             // была бы неотличима от кривой без неё (`T42`).
+            // `; etr=1` (`A72`, П27 12.09.2026) — по тому же правилу: только
+            // при включённом переносе электрона.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -765,6 +773,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.LYieldSupply != 0
                     ? "; lys=" + storePhysics.LYieldSupply.ToString(CultureInfo.InvariantCulture)
                     : "",
+                storePhysics.ElectronTransport ? "; etr=1" : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
                     ? "; norm=fluence" : "");
             return result;

@@ -39,8 +39,12 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// Один экземпляр — один поток: и генератор (state), и ленивая сборка
     /// сцены (EnsureBuilt) без замков. Параллельный счёт заводит по
     /// экземпляру на поток (см. EfficiencyCalculation.Run).
+    ///
+    /// Класс РАЗДЕЛЁН НА ДВА ФАЙЛА (`A72`, П27 12.09.2026): перенос электрона
+    /// по кристаллу — в `ElectronTransport.cs`, той же половиной класса;
+    /// настроечные поля все здесь (их читает сторож `tools/check_matrix_keys.py`).
     /// </summary>
-    public sealed class EfficiencySimulator
+    public sealed partial class EfficiencySimulator
     {
         // Судьба электрона (ElectronEscape, Bremsstrahlung) считается отдельно:
         // пока она не учтена, расчёт молча кладёт всю энергию электрона на
@@ -243,6 +247,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// мелкой меньше, ровно в ту сторону, куда показал арбитр.
         /// </summary>
         public double ElectronEscapeCurve = 1.0;
+
+        /// <summary>
+        /// ✅ **ВЕСТИ ЭЛЕКТРОН ПЕРЕНОСОМ (`A72`) — решение Amber 12.09.2026,
+        /// вопросником, дословно: «Вести электрон переносом».** Умолчанием
+        /// ВЫКЛЮЧЕН (П27, 12.09.2026) — до единого счёта склада; в матрице —
+        /// `etr=1` клейма (<see cref="ResponseMatrixOptions.ElectronTransport"/>).
+        ///
+        /// Включённый — электрон ведётся сгущённой историей по кристаллу
+        /// (`ElectronTransport.cs`): направление рождения по процессу
+        /// (Заутер—Гаврила, кинематика комптона, Цай для пары), шаг по
+        /// пробегу CSDA, многократное рассеяние случайным шарниром с шириной
+        /// Хайленда, вылет через грань — реальный, с остатком энергии.
+        /// Выключенный — прежняя эффективная глубина
+        /// (<see cref="ElectronEscapeSlope"/>, ~~`A63`~~, ~~`A70`~~) до
+        /// последнего бита и без единого лишнего случайного числа.
+        /// Тормозное считается одинаково при обоих положениях.
+        ///
+        /// Ключ подчинён <see cref="ElectronEscape"/>: выключенный вылет
+        /// глушит и перенос (абляция `--no-esc` меряет то же, что прежде).
+        /// </summary>
+        public bool ElectronTransport = false;
+
+        /// <summary>
+        /// Доля остаточного пробега на один шаг переноса
+        /// (<see cref="ElectronTransport"/>). Калибровка сходимости по шагу
+        /// (П27 §3: 0.05 / 0.1 / 0.2 на RC103 1461 кэВ); двигает `G4RawProbe
+        /// --etr-step=`. В клеймо не входит: единый счёт идёт умолчанием.
+        /// </summary>
+        public double ElectronStepFraction = 0.1;
 
         /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
@@ -3681,10 +3714,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // достаётся `e − E_связи`, а остаток релаксации
                         // раскладывается по электронам EADL; без ключа — прежний
                         // один кусок `e − xray − casc`.
+                        //
+                        // (`A72`, П27) Направление кванта уходит вместе с
+                        // электроном: с ключом переноса фотоэлектрон рождается
+                        // по Заутеру относительно него; без ключа не читается.
                         double electron = this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0
                             ? this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                                       xray, kLine, casc, cascadeRolled, depth)
-                            : this.ElectronLoss(x, y, z, e - xray - casc, depth);
+                                                       xray, kLine, casc, cascadeRolled, depth,
+                                                       ux, uy, uz)
+                            : this.ElectronLoss(x, y, z, e - xray - casc, depth,
+                                                ElectronBirth.Photo, ux, uy, uz);
                         // Метка канала — только НЕПОМЕЧЕННЫЙ остаток вылета:
                         // вложенная рекурсия свои вылеты уже пометила (её метка
                         // точнее — она знает, ЧЕМ квант вылетел), и прибавка
@@ -3732,10 +3771,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0)
                     {
                         return lost + this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                                               0.0, -1, 0.0, false, depth);
+                                                               0.0, -1, 0.0, false, depth,
+                                                               ux, uy, uz);
                     }
 
-                    return lost + this.ElectronLoss(x, y, z, e, depth);
+                    return lost + this.ElectronLoss(x, y, z, e, depth, ElectronBirth.Photo, ux, uy, uz);
                 }
 
                 if (pick < photo + compton)
@@ -3745,7 +3785,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int vacancyZ;
                     double scattered = this.ComptonScatter(this.geometry.Crystal, e, out cos,
                                                            out vacancy, out vacancyZ);
+                    // (`A72`, П27) Направление ДО поворота — для импульса
+                    // электрона отдачи: p_e = p_γ(до) − p_γ(после). Без ключа
+                    // переноса вектор не читается; случайных чисел не тянет.
+                    double ux0 = ux, uy0 = uy, uz0 = uz;
                     this.Rotate(ref ux, ref uy, ref uz, cos);
+                    double edx, edy, edz;
+                    ComptonElectronDirection(e, ux0, uy0, uz0, scattered, ux, uy, uz,
+                                             out edx, out edy, out edz);
 
                     // ⛔ ВАКАНСИЯ ОБОЛОЧКИ (`A61`). Энергию связи забирает
                     // характеристический квант, а не электрон: он рождается тут
@@ -3801,11 +3848,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                     {
                         lost += this.VacancyElectronsSplit(x, y, z, toElectron + vacancyXray, vacancyZ,
                                                            vacancy, vacancyXray, vacancyLine,
-                                                           vacancyRolled, depth);
+                                                           vacancyRolled, depth, edx, edy, edz);
                     }
                     else
                     {
-                        lost += this.ElectronLoss(x, y, z, toElectron, depth);
+                        lost += this.ElectronLoss(x, y, z, toElectron, depth,
+                                                  ElectronBirth.Given, edx, edy, edz);
                     }
 
                     e = scattered;
@@ -3843,10 +3891,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Электрон и позитрон — ПОРОЗНЬ (`S120`): свет считается по
                     // начальной энергии каждого, а она у них своя. Деление
                     // равномерное, довод — при ключе.
+                    // (`A72`, П27) С ключом переноса лептоны рождаются вперёд
+                    // по Цаю относительно кванта; без ключа опорное
+                    // направление не читается.
                     double share = this.Uniform();
                     escaped = lost
-                           + this.ElectronLoss(x, y, z, kinetic * share, depth)
-                           + this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth);
+                           + this.ElectronLoss(x, y, z, kinetic * share, depth,
+                                               ElectronBirth.Pair, ux, uy, uz)
+                           + this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth,
+                                               ElectronBirth.Pair, ux, uy, uz);
                     if (this.PositronOffset)
                     {
                         this.PositronStop(kinetic * (1.0 - share),
@@ -3855,7 +3908,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
                 else
                 {
-                    escaped = lost + this.ElectronLoss(x, y, z, kinetic, depth);
+                    escaped = lost + this.ElectronLoss(x, y, z, kinetic, depth,
+                                                       ElectronBirth.Pair, ux, uy, uz);
                 }
 
                 double ax, ay, az;
@@ -3977,8 +4031,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// считается в точке рождения пары, с включённым — электрон и
         /// позитрон приходят порознь, а точку аннигиляции ставит
         /// <see cref="PositronStop"/>.
+        ///
+        /// ⛔ (`A72`, П27) Всё выше — ветка БЕЗ ключа
+        /// <see cref="ElectronTransport"/>. С ключом статья 2 считается
+        /// переносом (`ElectronTransport.cs`): направление рождения —
+        /// по процессу <paramref name="birth"/> относительно опорного
+        /// направления (<paramref name="rx"/>, <paramref name="ry"/>,
+        /// <paramref name="rz"/>), путь — шагами по пробегу с многократным
+        /// рассеянием, вылет — по пересечению грани. Статья 1 (тормозное)
+        /// одна на обе ветки. Вызов без направления — изотропное рождение
+        /// (оже-электроны каскада).
         /// </summary>
         double ElectronLoss(double x, double y, double z, double te, int depth)
+        {
+            return this.ElectronLoss(x, y, z, te, depth, ElectronBirth.Isotropic, 0.0, 0.0, 0.0);
+        }
+
+        double ElectronLoss(double x, double y, double z, double te, int depth,
+                            ElectronBirth birth, double rx, double ry, double rz)
         {
             if (this.electron == null || !(te > 1.0) || depth > 12)
             {
@@ -4037,7 +4107,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             double escapedSelf = 0.0;
-            if (this.ElectronEscape)
+            if (this.ElectronEscape && this.ElectronTransport)
+            {
+                // ⛔ (`A72`, П27) ПЕРЕНОС: направление рождения по процессу,
+                // шаги по пробегу, многократное рассеяние, вылет по грани.
+                // Унести больше, чем осталось после тормозного, нельзя — тот
+                // же зажим, что у ветки ниже.
+                double ux, uy, uz;
+                this.ElectronBirthDirection(birth, te, rx, ry, rz, out ux, out uy, out uz);
+                escapedSelf = this.TransportElectron(x, y, z, ux, uy, uz, te, te - radiated);
+                lost += escapedSelf;
+            }
+            else if (this.ElectronEscape)
             {
                 double density = this.geometry.Crystal.Density;
                 double range = ElectronData.RangeOf(this.electron, te) / density;   // см
@@ -4095,16 +4176,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (рассогласование таблиц) — прежний один кусок.
         /// </summary>
         double PhotoElectronsSplit(double x, double y, double z, double e, int atomZ, int shell,
-                                   double xray, int kLine, double casc, bool cascadeRolled, int depth)
+                                   double xray, int kLine, double casc, bool cascadeRolled, int depth,
+                                   double ux, double uy, double uz)
         {
+            // (`A72`, П27) Фотоэлектрон — по Заутеру относительно кванта
+            // (ux, uy, uz); электроны каскада ниже — изотропно.
             MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
             double binding = relax == null ? 0.0 : relax.BindingKev(shell);
             if (!(binding > 0.0) || e <= binding)
             {
-                return this.ElectronLoss(x, y, z, e - xray - casc, depth);
+                return this.ElectronLoss(x, y, z, e - xray - casc, depth, ElectronBirth.Photo, ux, uy, uz);
             }
 
-            double lost = this.ElectronLoss(x, y, z, e - binding, depth);
+            double lost = this.ElectronLoss(x, y, z, e - binding, depth, ElectronBirth.Photo, ux, uy, uz);
             lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray - casc,
                                              xray, kLine, casc, cascadeRolled, depth);
             return lost;
@@ -4121,17 +4205,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// подоболочка — прежний один кусок.
         /// </summary>
         double VacancyElectronsSplit(double x, double y, double z, double total, int atomZ,
-                                     double bindingKev, double xray, int kLine, bool rolled, int depth)
+                                     double bindingKev, double xray, int kLine, bool rolled, int depth,
+                                     double edx, double edy, double edz)
         {
+            // (`A72`, П27) Электрон отдачи — по кинематике комптона
+            // (edx, edy, edz — ненормированный импульс); каскад — изотропно.
             MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
             int shell = relax == null ? 0 : relax.ShellByBinding(bindingKev);
             double binding = shell > 0 ? relax.BindingKev(shell) : 0.0;
             if (!(binding > 0.0) || total <= binding)
             {
-                return this.ElectronLoss(x, y, z, total - xray, depth);
+                return this.ElectronLoss(x, y, z, total - xray, depth, ElectronBirth.Given, edx, edy, edz);
             }
 
-            double lost = this.ElectronLoss(x, y, z, total - binding, depth);
+            double lost = this.ElectronLoss(x, y, z, total - binding, depth, ElectronBirth.Given, edx, edy, edz);
             lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray,
                                              xray, kLine, 0.0, false, depth, rolled);
             return lost;

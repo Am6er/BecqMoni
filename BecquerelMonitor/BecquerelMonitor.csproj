@@ -309,6 +309,7 @@
     </Compile>
     <Compile Include="EfficiencyMaker\AttenuationData.cs" />
     <Compile Include="EfficiencyMaker\ElectronData.cs" />
+    <Compile Include="EfficiencyMaker\ElectronTransport.cs" />
     <Compile Include="EfficiencyMaker\EstarCalculator.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />

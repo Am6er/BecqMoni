@@ -23,6 +23,17 @@ namespace G4RawProbe
     ///                [--n=2000000] [--bin=1] [--seed=20260902]
     ///                [--out=raw.csv] [--scene=scene.txt]
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
+    ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
+    ///
+    /// `--kdip=N` (заведено П27): K-провал/раздельный каскад, умолчание 1 —
+    /// как у склада с 12.09.2026; `--kdip=0` воспроизводит сверки до П27.
+    ///
+    /// `--etr=1` (П27 12.09.2026, приёмка `A72` — решение Amber «Вести
+    /// электрон переносом»): ключ `ElectronTransport` — электрон ведётся
+    /// переносом по кристаллу вместо эффективной глубины вылета; `--etr-step=`
+    /// — доля остаточного пробега на шаг (`ElectronStepFraction`, умолчание
+    /// 0.1) для замера сходимости по шагу. Мерка: голые RC103 / OBS / AS80,
+    /// `--no-light --bin=1` против `g4cf vacuum hist` (П20 §3, П27 §3–4).
     ///
     /// `--lys=N` (П23 12.09.2026, приёмка `M9` — решение Amber «ω_L из
     /// fluorescence_yield + f13 в СЛЕДУЮЩИЙ единый счёт склада»): уровень
@@ -79,6 +90,9 @@ namespace G4RawProbe
             bool noLXray = false;                       // `A60`
             bool noKLCascade = false;                   // `A101`
             int lys = 0;                                // `M9`, П23
+            bool etr = false;                           // `A72`, П27
+            double etrStep = -1.0;                      // <0 — умолчание симулятора
+            int kdip = 1;                               // `F11` (а)/П17: K-провал и раздельный каскад — как у склада (kdip=1)
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -111,6 +125,40 @@ namespace G4RawProbe
                 if (a.StartsWith("--lys=", StringComparison.Ordinal))
                 {
                     lys = int.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // `A72` (П27): перенос электрона вместо эффективной глубины.
+                if (a.StartsWith("--etr=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(6);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--etr= принимает только 0 или 1: " + a);
+                        return 2;
+                    }
+
+                    etr = v == "1";
+                    continue;
+                }
+                // ⛔ `F11` (а)/П17 (заведено П27 12.09.2026): уровень K-провала —
+                // обе половины теми же выражениями, что у построителя матрицы
+                // (KDipCurveHalf / KDipCascadeHalf). УМОЛЧАНИЕ 1 — как у склада с
+                // 12.09.2026 (ResponseMatrixOptions.KDipLight): проба обязана
+                // мерить ту физику, которой считает склад («проверять то, что
+                // БУДЕТ ИСПОЛЬЗОВАНО»). До П27 ключа не было, и все сверки с
+                // арбитром шли при 0 — воспроизводятся `--kdip=0`. Для `--no-light`
+                // значима только половина каскада: фотоэлектрон получает
+                // e − E_связи, релаксация — электронами EADL, а не одним куском;
+                // на 59.5 кэВ это решает полосы 32…54 (П27 §4: без раздельного
+                // каскада перенос давал +39/−23/−21 %, с ним −2/+8/−2 %).
+                if (a.StartsWith("--kdip=", StringComparison.Ordinal))
+                {
+                    kdip = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--etr-step=", StringComparison.Ordinal))
+                {
+                    etrStep = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
                     continue;
                 }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
@@ -218,6 +266,10 @@ namespace G4RawProbe
             simulator.LXrayEscape = !noLXray;           // `A60`
             simulator.KLCascade = !noKLCascade;         // `A101`
             simulator.LYieldSupply = lys;               // `M9`, П23
+            simulator.ElectronTransport = etr;          // `A72`, П27
+            simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
+            simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
+            if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
             simulator.XrayEscape = xray;
@@ -250,6 +302,12 @@ namespace G4RawProbe
                               : lys == 1 ? "1 — ω_L из xraylib (fluorescence_yield), переходы f12/f13/f23 по EADL"
                               : "2 — ω_L и переходы из xraylib (coster_kronig)");
             Console.WriteLine("розыгрыш аналоговой: {0}", cone ? "КОНУС на габарит сцены (`A57`)" : "полная сфера");
+            Console.WriteLine("K-провал/каскад (`F11` (а), --kdip=): {0} (кривая света {1}, раздельный каскад {2})", kdip,
+                              simulator.LightSubKevCurve ? "ВКЛ" : "выкл", simulator.LightCascadeSplit ? "ВКЛ" : "выкл");
+            Console.WriteLine("вылет электрона (`A72`, --etr=): {0}",
+                              !esc ? "ВЫКЛЮЧЕН (--no-esc)"
+                              : etr ? "ПЕРЕНОС (Заутер/кинематика/Цай, шаг " + simulator.ElectronStepFraction.ToString("0.###", CultureInfo.InvariantCulture) + " пробега, Хайленд, вылет по грани)"
+                              : "эффективная глубина (как до 12.09.2026)");
 
             if (scenePath != null)
             {
