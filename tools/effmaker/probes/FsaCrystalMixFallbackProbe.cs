@@ -17,13 +17,22 @@ namespace FsaCrystalMixFallbackProbe
     /// Решением Amber 01.09.2026 (`A29`) собственный рентген кристалла идёт
     /// ОДНИМ образом на вещество (`Xray-CsI`): элементы CsI разделить данными
     /// нельзя — Kα иода 28.61 и цезия 30.97 кэВ отстоят на 2.4 кэВ при ПШПВ
-    /// прибора около девяти в этой полосе. Но в
-    /// <c>FsaSampleLibrary.AddCrystalFluorescence</c> стоит заслон: если элемент
+    /// прибора около девяти в этой полосе. До 12.09.2026 в
+    /// <c>FsaSampleLibrary.AddAtomic</c> стоял заслон: если элемент
     /// кристалла УЖЕ занят образом пробы или защиты, вещество не сводится и
-    /// возвращается прежний поэлементный путь. Заслон поставлен намеренно
+    /// возвращается прежний поэлементный путь. Заслон был поставлен намеренно
     /// (общий образ спорил бы за те же отсчёты со своей же половиной), но
     /// случай не был разобран: у корпуса такого совпадения нет, и цена его
-    /// не измерена (`A30`).
+    /// не была измерена (`A30`).
+    ///
+    /// ⛔ ЗАСЛОН СНЯТ 12.09.2026 (решение Amber, дословно: «Снять заслон:
+    /// сводить кристалл ВСЕГДА», полоса П21): кристалл занимает свои элементы
+    /// ПЕРВЫМ, образ пробы или защиты на тот же элемент не строится. Прежний
+    /// порядок остался под ключом <c>FsaSampleSpec.CrystalShield</c>, и эта
+    /// проба меряет ОБА: умолчание — что сведение при занятом элементе
+    /// держится и течи гейта нет; ключ — что цена заслона по-прежнему та,
+    /// что измерена 10.09.2026 (положительный контроль: ключ обязан
+    /// возвращать ровно измеренное, иначе «снят» ничего не значит).
     ///
     /// ⛔ Случай НЕ выдуман: элементы защиты приложение выводит ИЗ ПОДПИСЕЙ
     /// ПИКОВ (<c>FsaCompositionInference</c>: всякий пик с подписью-элементом
@@ -35,10 +44,12 @@ namespace FsaCrystalMixFallbackProbe
     ///
     /// Четыре раздела, и каждое утверждение — числом:
     ///
-    ///   1. ЗАСЛОН СРАБАТЫВАЕТ И НАЗВАН. Три спецификации: чистая (сведение
-    ///      есть), с занятым элементом кристалла (сведения нет, две колонки),
-    ///      с ПОСТОРОННИМ элементом (сведение на месте — отрицательный
-    ///      контроль: рушит не всякий элемент).
+    ///   1. ЗАСЛОН СНЯТ ПО УМОЛЧАНИЮ И СРАБАТЫВАЕТ ПОД КЛЮЧОМ. Умолчание: с
+    ///      занятым элементом кристалла сведение ЕСТЬ, образа защиты на тот
+    ///      же элемент нет, пропуск назван в отчёте сборки. Под ключом — три
+    ///      прежние спецификации: чистая (сведение есть), с занятым элементом
+    ///      (сведения нет, две колонки), с ПОСТОРОННИМ элементом (сведение на
+    ///      месте — отрицательный контроль: рушит не всякий элемент).
     ///   2. ЦЕНА БЕЗ МАТРИЦЫ. Искусственный спектр строится ИЗ сведённого
     ///      образа, поэтому истина известна до знака: площадь рентгена
     ///      кристалла задана. Оба плеча считают одно и то же, а расходятся
@@ -47,7 +58,9 @@ namespace FsaCrystalMixFallbackProbe
     ///      колонки по флагу <c>FromCrystal</c>. У сведённого образа флаг один
     ///      на всё вещество, у запасного пути занятая половина приходит из
     ///      ПРОБЫ и флага не несёт — значит остаётся свободной колонкой на
-    ///      отсчёты, которые матрица уже несёт сама.
+    ///      отсчёты, которые матрица уже несёт сама. С 12.09.2026 тут же
+    ///      третье плечо — УМОЛЧАНИЕ при занятом элементе: свободных колонок
+    ///      рентгена кристалла обязано остаться ноль.
     ///   4. ДВА ПОЛОЖИТЕЛЬНЫХ КОНТРОЛЯ, и оба обязаны показать ВЫЖИВШУЮ пару,
     ///      иначе число раздела 2 меряет не вырожденность, а мою ошибку:
     ///      (а) ТА ЖЕ пара CsI при сигнале в двадцать раз сильнее — колонки
@@ -130,8 +143,31 @@ namespace FsaCrystalMixFallbackProbe
         static void Section1()
         {
             Console.WriteLine();
-            Console.WriteLine("=== 1. ЗАСЛОН: КОГДА СРАБАТЫВАЕТ И ЧТО ГОВОРИТ ===");
+            Console.WriteLine("=== 1. ЗАСЛОН: СНЯТ ПО УМОЛЧАНИЮ, ПОД КЛЮЧОМ — КАК БЫЛ ===");
 
+            // УМОЛЧАНИЕ (с 12.09.2026): кристалл сводится ВСЕГДА, цезий защиты
+            // на кристалле CsI своего образа не получает.
+            FsaSampleLibrary.Report always;
+            List<FsaComponent> kept = Csi(new[] { 55 }, false, out always);
+            Report("умолчание: цезий занят защитой, заслон снят", kept, always);
+            Same("умолчание: сведение ЕСТЬ при занятом элементе", 1, Count(kept, "Xray-CsI"));
+            Same("умолчание: образа защиты `Xray-Cs` НЕТ", 0, Count(kept, "Xray-Cs"));
+            Same("умолчание: поэлементного `Xray-I` НЕТ", 0, Count(kept, "Xray-I"));
+            Same("умолчание: от кристалла помечен ровно один образ", 1, CrystalXrayCount(kept));
+            Same("умолчание: прежний заслон молчит", false, Noted(always));
+            Same("умолчание: пропуск элемента защиты НАЗВАН в отчёте сборки", true, Skipped(always));
+
+            // ⛔ Умолчание с занятым элементом обязано давать ТОТ ЖЕ образ, что
+            // чистая сцена: иначе «сводить всегда» сводило бы по-разному.
+            FsaSampleLibrary.Report clean0;
+            List<FsaComponent> free0 = Csi(new int[0], false, out clean0);
+            Same("умолчание: линий в образе кристалла столько же, что у чистой сцены",
+                 LinesOf(free0, "Xray-CsI"), LinesOf(kept, "Xray-CsI"));
+            Same("умолчание: чистая сцена пропусков не называет", false, Skipped(clean0));
+
+            // ПОД КЛЮЧОМ — как до 12.09.2026.
+            Console.WriteLine();
+            Console.WriteLine("  --- под ключом CrystalShield (как до 12.09.2026) ---");
             FsaSampleLibrary.Report clean;
             List<FsaComponent> free = Csi(new int[0], out clean);
             Report("чистая сцена", free, clean);
@@ -185,20 +221,28 @@ namespace FsaCrystalMixFallbackProbe
             List<FsaComponent> merged = Csi(new int[0], out r1);
             FsaSampleLibrary.Report r2;
             List<FsaComponent> split = Csi(new[] { 55 }, out r2);
+            // (`A30`, П21) Третье плечо: тот же занятый элемент, заслон снят.
+            FsaSampleLibrary.Report r3;
+            List<FsaComponent> always = Csi(new[] { 55 }, false, out r3);
 
             int[] spectrum = Sample(Expected(merged, "Xray-CsI", XrayArea), null);
 
-            int droppedMerged, droppedSplit;
+            int droppedMerged, droppedSplit, droppedAlways;
             List<string> leftMerged = XrayAfterGate(spectrum, merged, matrix, "сведено", out droppedMerged);
             List<string> leftSplit = XrayAfterGate(spectrum, split, matrix, "запасное", out droppedSplit);
+            List<string> leftAlways = XrayAfterGate(spectrum, always, matrix, "умолчание", out droppedAlways);
 
             Console.WriteLine("  сведено : снято гейтом {0}, свободных колонок рентгена кристалла осталось {1}",
                               droppedMerged, leftMerged.Count);
             Console.WriteLine("  запасное: снято гейтом {0}, свободных колонок рентгена кристалла осталось {1} ({2})",
                               droppedSplit, leftSplit.Count, Join(leftSplit));
+            Console.WriteLine("  умолчание (занят, заслон снят): снято гейтом {0}, свободных колонок осталось {1} ({2})",
+                              droppedAlways, leftAlways.Count, Join(leftAlways));
 
             Same("сведено: гейт снял образ кристалла", 1, droppedMerged);
             Same("сведено: свободного рентгена кристалла в разборе НЕТ", 0, leftMerged.Count);
+            Same("умолчание при занятом элементе: гейт снял образ кристалла", 1, droppedAlways);
+            Same("умолчание при занятом элементе: течи гейта НЕТ — свободных колонок ноль", 0, leftAlways.Count);
             Same("запасное: гейт снял только помеченную половину", 1, droppedSplit);
 
             // ⛔ ЭТО И ЕСТЬ ЦЕНА ЗАСЛОНА, и она названа числом: половина
@@ -396,15 +440,35 @@ namespace FsaCrystalMixFallbackProbe
         // Сцены
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// Сцена CsI ПОД КЛЮЧОМ заслона — прежний порядок сборки. Все
+        /// измерения цены (разделы 2–4) идут им: они меряют, что заслон
+        /// ДЕЛАЛ, и ключ обязан это воспроизводить.
+        /// </summary>
         static List<FsaComponent> Csi(int[] shield, out FsaSampleLibrary.Report report)
         {
-            return Library("CsI", 53, 55, new[] { 0.4884, 0.5116 }, shield, out report);
+            return Csi(shield, true, out report);
+        }
+
+        static List<FsaComponent> Csi(int[] shield, bool crystalShield, out FsaSampleLibrary.Report report)
+        {
+            return Library("CsI", 53, 55, new[] { 0.4884, 0.5116 }, shield, crystalShield, out report);
         }
 
         static List<FsaComponent> Library(string crystal, int zLight, int zHeavy, double[] fractions,
                                           int[] shield, out FsaSampleLibrary.Report report)
         {
+            return Library(crystal, zLight, zHeavy, fractions, shield, true, out report);
+        }
+
+        static List<FsaComponent> Library(string crystal, int zLight, int zHeavy, double[] fractions,
+                                          int[] shield, bool crystalShield, out FsaSampleLibrary.Report report)
+        {
             var spec = new FsaSampleSpec();
+            // (`A30`, П21) Заслон снят 12.09.2026; здесь он поднимается ключом,
+            // потому что проба меряет его цену. Умолчание проверяет раздел 1
+            // и третье плечо раздела 3.
+            spec.CrystalShield = crystalShield;
             spec.MinEnergyKev = 10.0;
             spec.MaxEnergyKev = 2000.0;
             // ⛔ НУКЛИД ВЗЯТ БЕЗ РЕНТГЕНА, И ЭТО НЕ ПРИДИРКА. Первым здесь стоял
@@ -922,6 +986,38 @@ namespace FsaCrystalMixFallbackProbe
             }
 
             return double.NaN;
+        }
+
+        /// <summary>Назван ли в отчёте сборки пропуск элемента пробы/защиты, сведённого в кристалл (`A30`).</summary>
+        static bool Skipped(FsaSampleLibrary.Report report)
+        {
+            if (report == null || report.Notes == null)
+            {
+                return false;
+            }
+
+            foreach (string note in report.Notes)
+            {
+                if (note != null && note.IndexOf("элемент кристалла, сведён", StringComparison.Ordinal) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static int LinesOf(List<FsaComponent> library, string name)
+        {
+            foreach (FsaComponent component in library)
+            {
+                if (component.Name == name)
+                {
+                    return component.Lines.Count;
+                }
+            }
+
+            return -1;
         }
 
         static bool Noted(FsaSampleLibrary.Report report)
