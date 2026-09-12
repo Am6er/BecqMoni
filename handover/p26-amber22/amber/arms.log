@@ -1,0 +1,21 @@
+infer code=0 20:30:28 keys=[--infer]
+done 20:30:28
+sample code=2 20:30:45 keys=[--sample=232TH]
+infer_nomx code=0 20:30:48 keys=[--infer --no-matrix]
+sample_nomx code=2 20:30:48 keys=[--sample=232TH --no-matrix]
+infer_noeq code=0 20:30:51 keys=[--infer --no-equilibrium]
+infer_noanch code=0 20:30:53 keys=[--infer --no-anchor]
+infer_k32 code=0 20:30:57 keys=[--infer --knots=32]
+infer_k512 code=0 20:31:00 keys=[--infer --knots=512]
+infer_noatom code=0 20:31:03 keys=[--infer --no-atomic]
+infer_nobs code=0 20:31:06 keys=[--infer --no-backscatter]
+infer_z0 code=0 20:31:09 keys=[--infer --refit-z=0]
+done 20:31:09
+infer_kf2 code=0 20:31:44 keys=[--infer --knots=2]
+infer_kf8 code=0 20:31:47 keys=[--infer --knots=8]
+infer_nomx2 code=0 20:31:51 keys=[--infer --no-matrix]
+done 20:31:51
+infer_nomx2 code=0 20:32:12 keys=[--infer --no-matrix]
+done 20:32:12
+infer_nomx2 code=0 20:32:28 keys=[--infer --no-matrix]
+done 20:32:28
