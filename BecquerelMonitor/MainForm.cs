@@ -682,15 +682,29 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A4E RID: 2638 RVA: 0x0003D3C0 File Offset: 0x0003B5C0
+        /// <summary>
+        /// Мощность дозы в строке состояния — от кривой эффективности,
+        /// ВЫБРАННОЙ НА ПАНЕЛИ (`AMBER18`, задача Amber 11.09.2026:
+        /// «Привязаться к текущей выбранной эффективности на ControlPanel»).
+        ///
+        /// ⛔ До 12.09.2026 гейт стоял на ручных точках
+        /// `DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0`, и
+        /// с 10.09.2026 (точки под `[XmlIgnore]`) строка была ПУСТА у всех
+        /// приборов. Теперь: кривая не выбрана или без точек — пусто
+        /// (`Calculate` отдаёт null); есть матрица — число по полной
+        /// эффективности; нет матрицы — число со знаком «≈»; нет геометрии —
+        /// отказ словами. Всё это решает `DoseRateManager`, здесь только показ.
+        /// </summary>
         public void ShowDoseRate()
         {
-            if (this.activeDocument != null && this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig != null && 
-                this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig.DoseRateCalibrationPoints.Count > 0)
+            DoseRate doseRate = this.activeDocument == null
+                ? null
+                : this.doseRateManager.Calculate(this.activeDocument.ActiveResultData);
+            if (doseRate != null)
             {
-                DoseRate doseRate = this.doseRateManager.Calculate(this.activeDocument.ActiveResultData,
-                    this.activeDocument.ActiveResultData.DeviceConfig.DoseRateConfig);
                 SetStatusTextRight(Resources.DoseRate + " " + doseRate.ToString());
-            } else
+            }
+            else
             {
                 ClearStatusTextRight();
             }

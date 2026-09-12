@@ -138,8 +138,6 @@ namespace BecquerelMonitor
             this.button7 = new System.Windows.Forms.Button();
             this.label23 = new System.Windows.Forms.Label();
             this.textBox17 = new System.Windows.Forms.TextBox();
-            this.tabPage7 = new System.Windows.Forms.TabPage();
-            this.comboDoseRateEfficiency = new System.Windows.Forms.ComboBox();
             this.button12 = new System.Windows.Forms.Button();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
@@ -169,7 +167,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown16)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).BeginInit();
             this.tabPage4.SuspendLayout();
-            this.tabPage7.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -245,7 +242,6 @@ namespace BecquerelMonitor
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Controls.Add(this.tabPage5);
             this.tabControl1.Controls.Add(this.tabPage4);
-            this.tabControl1.Controls.Add(this.tabPage7);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Selecting += new System.Windows.Forms.TabControlCancelEventHandler(this.tabControl1_Selecting);
@@ -976,21 +972,6 @@ namespace BecquerelMonitor
             this.textBox17.Name = "textBox17";
             this.textBox17.TextChanged += new System.EventHandler(this.textBox17_TextChanged);
             //
-            // tabPage7
-            // 
-            this.tabPage7.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage7.Controls.Add(this.comboDoseRateEfficiency);
-            resources.ApplyResources(this.tabPage7, "tabPage7");
-            this.tabPage7.Name = "tabPage7";
-            //
-            // comboDoseRateEfficiency
-            //
-            this.comboDoseRateEfficiency.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.comboDoseRateEfficiency.FormattingEnabled = true;
-            resources.ApplyResources(this.comboDoseRateEfficiency, "comboDoseRateEfficiency");
-            this.comboDoseRateEfficiency.Name = "comboDoseRateEfficiency";
-            this.comboDoseRateEfficiency.SelectedIndexChanged += new System.EventHandler(this.comboDoseRateEfficiency_SelectedIndexChanged);
-            //
             // button12
             // 
             resources.ApplyResources(this.button12, "button12");
@@ -1082,8 +1063,6 @@ namespace BecquerelMonitor
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownWidenFactor)).EndInit();
             this.tabPage4.ResumeLayout(false);
             this.tabPage4.PerformLayout();
-            this.tabPage7.ResumeLayout(false);
-            this.tabPage7.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -1264,8 +1243,6 @@ namespace BecquerelMonitor
 		// Token: 0x0400028E RID: 654
 		System.Windows.Forms.TabPage tabPage6;
 
-        System.Windows.Forms.TabPage tabPage7;
-
         // Token: 0x0400028F RID: 655
         System.Windows.Forms.Label label2;
 
@@ -1399,8 +1376,6 @@ namespace BecquerelMonitor
 		// Token: 0x040002BA RID: 698
 		XPTable.Models.NumberColumn numberColumn4;
 
-		// dose rate calculation
-        private System.Windows.Forms.ComboBox comboDoseRateEfficiency;
         private GroupBox peakSpecgroupBox;
         private ComboBox peakTypecomboBox;
         private Label peakTypelabel;

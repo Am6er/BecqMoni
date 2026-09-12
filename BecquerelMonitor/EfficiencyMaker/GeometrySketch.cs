@@ -401,9 +401,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             switch (m.SourceType)
             {
                 case GeometrySourceType.Point:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
-                                            Resources.EfficiencySketchPoint,
-                                            Math.Max(m.PointDistance, 0.0)));
+                    // (`AMBER13` (б)) У поля форма точечная, но строка своя:
+                    // расстояния у поля нет, есть радиус сферы.
+                    lines.Add(m.Scene == GeometrySceneKind.Iso
+                        ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
+                                        Resources.EfficiencySketchIso,
+                                        Math.Max(m.FieldRadius, 0.0))
+                        : string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
+                                        Resources.EfficiencySketchPoint,
+                                        Math.Max(m.PointDistance, 0.0)));
                     break;
 
                 case GeometrySourceType.Box:
@@ -580,9 +586,48 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Источник
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// Окружность, которой на чертеже показано изотропное поле
+        /// (`AMBER13` (б)): центр и радиус в мм сцены. НЕ В МАСШТАБЕ нарочно —
+        /// сфера поля в полметра свела бы детектор в точку, а её радиус
+        /// ответа не меняет; окружность берётся чуть шире габарита детектора
+        /// с оправой, число же стоит подписью.
+        /// </summary>
+        static void FieldRing(GeometryModel m, double zFace, out double centerZ, out double radius)
+        {
+            double depth;
+            if (m.Shape == CrystalShape.Box)
+            {
+                double hx, hy;
+                m.CrystalBoxInScene(out hx, out hy, out depth);
+            }
+            else
+            {
+                depth = m.CrystalHeight;
+            }
+
+            double zBack = Math.Max(depth, 0.0) + Math.Max(m.MountingThickness, 0.0);
+            double halfLength = 0.5 * (zBack - zFace);
+            double halfWidth = 0.5 * GeometryScenes.DetectorOuterDiameterMm(m);
+            centerZ = 0.5 * (zFace + zBack);
+            radius = 1.35 * Math.Sqrt(halfWidth * halfWidth + halfLength * halfLength);
+        }
+
         void SourceBounds(GeometryModel m, double zFace,
                           out double left, out double right, out double top, out double bottom)
         {
+            // (`AMBER13` (б)) Поле: кадр — окружность вокруг детектора.
+            if (m.Scene == GeometrySceneKind.Iso)
+            {
+                double zc, rr;
+                FieldRing(m, zFace, out zc, out rr);
+                left = -rr;
+                right = rr;
+                top = zc - rr;
+                bottom = zc + rr;
+                return;
+            }
+
             switch (m.SourceType)
             {
                 case GeometrySourceType.Point:
@@ -661,6 +706,34 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         void DrawSource(Graphics g, GeometryModel m, double zFace)
         {
+            // (`AMBER13` (б)) Изотропное поле: штриховая окружность вокруг
+            // детектора и восемь стрелок ВНУТРЬ — квант приходит со всех
+            // сторон. Окружность не в масштабе (см. FieldRing).
+            if (m.Scene == GeometrySceneKind.Iso)
+            {
+                double zc, rr;
+                FieldRing(m, zFace, out zc, out rr);
+                float cx = this.X(0.0), cy = this.Y(zc), pr = this.L(rr);
+                using (Pen ring = new Pen(SampleColor, 1.2f) { DashStyle = DashStyle.Dash })
+                {
+                    g.DrawEllipse(ring, cx - pr, cy - pr, 2f * pr, 2f * pr);
+                }
+
+                using (Pen arrow = new Pen(SampleColor, 1.4f))
+                {
+                    arrow.CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4f, 6f);
+                    for (int k = 0; k < 8; k++)
+                    {
+                        double a = k * Math.PI / 4.0;
+                        float ex = (float)Math.Cos(a), ey = (float)Math.Sin(a);
+                        g.DrawLine(arrow, cx + ex * pr, cy + ey * pr,
+                                   cx + ex * pr * 0.72f, cy + ey * pr * 0.72f);
+                    }
+                }
+
+                return;
+            }
+
             switch (m.SourceType)
             {
                 case GeometrySourceType.Point:
@@ -763,6 +836,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             using (Pen pen = new Pen(Ink, 1f))
             using (Brush ink = new SolidBrush(Ink))
             {
+                // (`AMBER13` (б)) Поле: единственный размер — радиус сферы, и
+                // он подписан числом над окружностью, а не размерной линией:
+                // окружность не в масштабе, и линия по ней лгала бы.
+                if (m.Scene == GeometrySceneKind.Iso)
+                {
+                    double zc, rr;
+                    FieldRing(m, zFace, out zc, out rr);
+                    string text = "R = " + Format(Math.Max(m.FieldRadius, 0.0));
+                    SizeF size = g.MeasureString(text, this.Font);
+                    bool lit = this.Lit("FieldRadius");
+                    using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
+                    {
+                        g.DrawString(text, this.Font, lit ? litInk : ink,
+                                     this.X(0.0) - size.Width / 2f, this.Y(zc - rr) - size.Height - 2f);
+                    }
+
+                    return;
+                }
+
                 switch (m.SourceType)
                 {
                     case GeometrySourceType.Point:

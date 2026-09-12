@@ -2640,54 +2640,6 @@
   <metadata name="tableModel4.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>662, 17</value>
   </metadata>
-  <data name="comboDoseRateEfficiency.Location" type="System.Drawing.Point, System.Drawing">
-    <value>162, 445</value>
-  </data>
-  <data name="comboDoseRateEfficiency.Size" type="System.Drawing.Size, System.Drawing">
-    <value>290, 21</value>
-  </data>
-  <data name="comboDoseRateEfficiency.TabIndex" type="System.Int32, mscorlib">
-    <value>22</value>
-  </data>
-  <data name="&gt;&gt;comboDoseRateEfficiency.Name" xml:space="preserve">
-    <value>comboDoseRateEfficiency</value>
-  </data>
-  <data name="&gt;&gt;comboDoseRateEfficiency.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;comboDoseRateEfficiency.Parent" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;comboDoseRateEfficiency.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="tabPage7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="tabPage7.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="tabPage7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>490, 599</value>
-  </data>
-  <data name="tabPage7.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="tabPage7.Text" xml:space="preserve">
-    <value>Dose Rate</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Name" xml:space="preserve">
-    <value>tabPage7</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.Parent" xml:space="preserve">
-    <value>tabControl1</value>
-  </data>
-  <data name="&gt;&gt;tabPage7.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="tabControl1.Location" type="System.Drawing.Point, System.Drawing">
     <value>408, 4</value>
   </data>
@@ -7211,5 +7163,20 @@
   </data>
   <data name="centroidComCheckBox.Text" xml:space="preserve">
     <value>Centroid by center of mass</value>
+  </data>
+  <data name="lsrmGeometryDialogTitle" xml:space="preserve">
+    <value>Geometry of the LSRM curve: the .in file it was computed for (Cancel - import without geometry)</value>
+  </data>
+  <data name="lsrmGeometryProblem" xml:space="preserve">
+    <value>The geometry could not be attached to the curve "{0}":
+{1}
+
+The curve is imported without geometry; the dose rate has no scale until a geometry is added with Edit...</value>
+  </data>
+  <data name="lsrmGeometryNoCrystal" xml:space="preserve">
+    <value>{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight or DS_CrystalBoxX / Y / Z) - not an LSRM scintillator geometry.</value>
+  </data>
+  <data name="lsrmGeometryFieldScene" xml:space="preserve">
+    <value>{0}: a field scene (DS_Scene = ISO) cannot be the geometry of an LSRM curve - the LSRM efficiency is per emitted quantum, not per unit fluence.</value>
   </data>
 </root>

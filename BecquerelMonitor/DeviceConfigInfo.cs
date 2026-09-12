@@ -284,21 +284,15 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000338 RID: 824
-        // (get) Token: 0x06000C1B RID: 3099 RVA: 0x000481E8 File Offset: 0x000463E8
-        // (set) Token: 0x06000C1C RID: 3100 RVA: 0x000481F0 File Offset: 0x000463F0
-        [XmlElement(typeof(DoseRateConfig))]
-        public DoseRateConfig DoseRateConfig
-        {
-            get
-            {
-                return this.doseRateConfig;
-            }
-            set
-            {
-                this.doseRateConfig = value;
-            }
-        }
+        // ⛔ `DoseRateConfig` СНЯТ ЦЕЛИКОМ (`AMBER18`, решение (4) Amber
+        // 11.09.2026: «Снять целиком»). Здесь стояло свойство с ручными
+        // точками калибровки мощности дозы; доза теперь считается от кривой
+        // эффективности, выбранной на панели (`DoseRateManager`). Старые
+        // файлы с элементом `<DoseRateConfig>` читаются как прежде: незнакомый
+        // элемент `XmlSerializer` пропускает молча, а при пересохранении он не
+        // пишется — «рудимент исчезнет» дословно. Поставочные
+        // `config/device/*.xml` не трогаются (приказ 05.09.2026): 36 точек
+        // `RC-103.xml` остаются на месте, их просто перестают читать.
 
         // Token: 0x17000339 RID: 825
         // (get) Token: 0x06000C1D RID: 3101 RVA: 0x000481FC File Offset: 0x000463FC
@@ -476,7 +470,6 @@ namespace BecquerelMonitor
         {
             this.inputDeviceConfig = new AudioInputDeviceConfig();
             this.energyCalibration = new PolynomialEnergyCalibration();
-            this.doseRateConfig = new DoseRateConfig();
             this.stabilizerConfig = new StabilizerConfig();
             this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
         }
@@ -509,10 +502,6 @@ namespace BecquerelMonitor
                 this.thermometerConfig = info.thermometerConfig.Clone();
             }
             this.energyCalibration = info.energyCalibration.Clone();
-            if (info.doseRateConfig != null)
-            {
-                this.doseRateConfig = info.doseRateConfig.Clone();
-            }
             if (info.stabilizerConfig != null)
             {
                 this.stabilizerConfig = info.stabilizerConfig.Clone();
@@ -684,9 +673,6 @@ namespace BecquerelMonitor
 
         // Token: 0x0400079F RID: 1951
         StabilizerConfig stabilizerConfig;
-
-        // Token: 0x040007A0 RID: 1952
-        DoseRateConfig doseRateConfig;
 
         // Token: 0x040007A1 RID: 1953
         PeakDetectionMethodConfig peakDetectionMethodConfig;

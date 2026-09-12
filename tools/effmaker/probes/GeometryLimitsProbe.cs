@@ -41,6 +41,7 @@ namespace BecquerelMonitor.Probes
             WallEatsClearance();
             BoxWallCountsTwice();
             BoreholeSceneIsConsistent();
+            IsoSceneIsConsistent();
 
             Console.WriteLine();
             Console.WriteLine(failed == 0 ? "ВСЕ ПРОВЕРКИ ПРОШЛИ"
@@ -263,6 +264,42 @@ namespace BecquerelMonitor.Probes
                 Check(string.Format("на земле, грунт {0:F1} г/см3", density),
                       Issues(ground).Count == 0, Names(Issues(ground)));
             }
+        }
+
+        /// <summary>
+        /// Сцена изотропного поля (`AMBER13` (б)): радиус, поставленный
+        /// правилом, проходит связку; радиус внутри габарита детектора —
+        /// отзывается на поле «FieldRadius» и только на него. У бруска
+        /// габарит берётся по диагонали обвязки, как у лунки.
+        /// </summary>
+        static void IsoSceneIsConsistent()
+        {
+            Console.WriteLine();
+            Console.WriteLine("изотропное поле (ISO): радиус против габарита детектора:");
+            GeometryModel g = GeometryEditorPanel.Blank();
+            g.Scene = GeometrySceneKind.Iso;
+            GeometryScenes.Apply(g, 2614.0);
+            Check(string.Format("радиус по правилу {0:F0} мм проходит", g.FieldRadius),
+                  Issues(g).Count == 0 && g.SourceType == GeometrySourceType.Point,
+                  Names(Issues(g)));
+
+            double floor = GeometryScenes.MinFieldRadiusMm(g);
+            g.FieldRadius = 0.5 * floor;
+            Check(string.Format("радиус {0:F1} мм при габарите {1:F1} — отказ по FieldRadius",
+                                g.FieldRadius, floor),
+                  Issues(g).Count == 1
+                  && Has(Issues(g), "FieldRadius", "GeometryEditorErrorFieldRadiusSmall"),
+                  Names(Issues(g)));
+
+            GeometryModel b = GeometryEditorPanel.Blank();
+            b.Shape = CrystalShape.Box;
+            b.CrystalBoxX = 15.0;
+            b.CrystalBoxY = 18.0;
+            b.CrystalBoxZ = 60.0;
+            b.Scene = GeometrySceneKind.Iso;
+            GeometryScenes.Apply(b, 2614.0);
+            Check(string.Format("брусок 15x18x60: радиус по правилу {0:F0} мм проходит", b.FieldRadius),
+                  Issues(b).Count == 0, Names(Issues(b)));
         }
     }
 }

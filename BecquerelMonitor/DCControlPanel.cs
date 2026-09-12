@@ -690,6 +690,10 @@ namespace BecquerelMonitor
             }
 
             this.mainForm.ShowMeasurementResult(true);
+            // Мощность дозы считается ОТ ЭТОЙ ЖЕ кривой (`AMBER18`): смена
+            // кривой — смена показания в строке состояния, сразу, а не при
+            // следующем наборе.
+            this.mainForm.ShowDoseRate();
             // От кривой зависит и сам график: нормировка по эффективности
             // делится на неё, разложение FSA берёт её в образ. Без перерисовки
             // на экране оставался спектр, посчитанный по прежней кривой.
@@ -712,6 +716,9 @@ namespace BecquerelMonitor
             activeDocument.Dirty = true;
             this.ShowDocumentStatus();
             this.mainForm.ShowMeasurementResult(true);
+            // Кривой нет — нет и мощности дозы (`AMBER18`): строка состояния
+            // очищается тем же движением.
+            this.mainForm.ShowDoseRate();
             // Снятая кривая обязана уйти и с графика: режим нормировки по
             // эффективности возвращается к обычному виду внутри RefreshView.
             activeDocument.RefreshView();

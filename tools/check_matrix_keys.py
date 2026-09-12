@@ -290,6 +290,13 @@ SIM = [
     (u'CoherentFractionOfTotal', False, False, u'неприменимо', u'выходное число сцены, не настройка'),
     (u'MountingInFront', False, False, u'неприменимо', u'признак сцены; двигает LayerProbe'),
     (u'ScoreEntranceOnly', False, False, u'неприменимо', u'режим замера; двигает ResponseProbe'),
+    # (`AMBER13` (б), 12.09.2026) Рычаг порчи приёмки сцены изотропного поля:
+    # выбросить множитель 4·cos θ ламбертова испускания. Не настройка расчёта --
+    # тот же разряд, что ScoreEntranceOnly; двигает IsoFieldProbe --sabotage=nocos.
+    # Сама сцена ISO ключа не имеет: её задаёт геометрия (DS_Scene = ISO), и
+    # нормировка матрицы (хвост NORM, norm=fluence в клейме) идёт от геометрии же.
+    (u'IsoFieldNoCosineWeight', False, False, u'неприменимо',
+     u'режим замера порчи; двигает IsoFieldProbe'),
 ]
 
 # Поля `EfficiencySimulator`, которые настройками НЕ являются: выход прогона,

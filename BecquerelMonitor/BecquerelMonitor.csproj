@@ -289,8 +289,6 @@
     </Compile>
     <Compile Include="DocumentManager.cs" />
     <Compile Include="DoseRate.cs" />
-    <Compile Include="DoseRateCalibrationPoint.cs" />
-    <Compile Include="DoseRateConfig.cs" />
     <Compile Include="DoseRateManager.cs" />
     <Compile Include="DoubleTextBox.cs">
       <SubType>Component</SubType>

@@ -2,72 +2,67 @@
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading;
-using System.Windows.Forms;
 using System.Xml.Serialization;
 
 namespace DoseRateProbe
 {
     /// <summary>
-    /// Вкладка «Dose Rate» конфигурации устройства — задача `C4`.
+    /// Расчёт мощности дозы — задача `C4` и её наследники (`A203`, `T174`,
+    /// `AMBER18`).
     ///
-    /// Меряется ровно то, ради чего строка заведена.
+    /// ⛔ ПЕРЕПИСАНА 12.09.2026 (полоса П1, `AMBER18`): ручные точки калибровки,
+    /// эталонный спектр, `DoseRateConfig` и вкладка `Dose Rate` сняты целиком
+    /// решениями Amber 10–11.09.2026. Ушли разделы, мерившие снятое: обратный
+    /// ход «построить точки по эталону — померить эталон», цена обрезания
+    /// 40…3000 кэВ старой и новой сеткой, списки `C4(а)`/`C4(б)`, раскладка и
+    /// подписи вкладки. Их числа остались в журналах полос `C4`, `A203`, П19 и
+    /// П21. Приёмка нового расчёта — `DoseRateFromCurveProbe`.
     ///
-    ///  1. **Коэффициенты.** Пятнадцать диапазонов 40–3000 кэВ, шестнадцать
-    ///     значений μ_en/ρ и шестнадцать значений перевода Р→Зв лежали
-    ///     безымянными массивами внутри `CalculateDoseRateConfig`. Здесь новые
-    ///     значения μ_en/ρ, посчитанные из XCOM (`matdb.sqlite`), сверяются со
-    ///     вшитыми на тех же шестнадцати энергиях. ⚠ Положительный контроль
-    ///     физики — доля энергии, переданной электрону при комптоновском
-    ///     рассеянии: она обязана сойтись с опорными числами Аттикса, иначе
-    ///     сходимость μ_en/ρ ничего не значит. ⛔ Таблицу h*(10)/K_air эта
-    ///     проба НЕ судит (`T201`): её единственный судья — `DoseCoefProbeO2`
-    ///     (узлы дословно, порча отражением, схема между узлами).
+    /// Что меряется здесь:
     ///
-    ///  2. **Цена молчаливого обрезания.** Всё ниже 40 и выше 3000 кэВ в дозу
-    ///     не входило независимо от шкалы прибора. Считается сквозным
-    ///     прогоном: калибровка по эталону старым и новым путём, затем
-    ///     измерение ДРУГОГО спектра обоими наборами точек. На эталоне разницы
-    ///     нет по построению (нормировка), она вылезает на спектре с иной
-    ///     формой — америциевом (12.9 % отсчётов ниже 40 кэВ) и на бразильских
-    ///     орехах (2.1 % выше 3000 кэВ).
+    ///  1. **Коэффициенты.** μ_en/ρ из XCOM (`matdb.sqlite`) против прежней
+    ///     вшитой таблицы на её шестнадцати энергиях; положительный контроль
+    ///     физики — доля энергии электрону по Клейну — Нишине против чисел
+    ///     Аттикса. ⛔ Таблицу h*(10)/K_air эта проба НЕ судит (`T201`): её
+    ///     единственный судья — `DoseCoefProbeO2`.
     ///
-    ///  3. **Положительный контроль отказов.** Энергия вне таблицы XCOM,
-    ///     пустая шкала прибора, спектр без калибровки, нулевое время,
-    ///     вырожденная кривая — расчёт обязан отказать ВИДИМО. Молчаливое
-    ///     число — находка. Отрицательный вход: годные данные обязаны пройти.
+    ///  2. **Положительный контроль отказов.** Энергия вне таблиц, пустая
+    ///     шкала, вырожденная калибровка, кривая из одной точки, кривая с
+    ///     нулём, кривая без геометрии, чужая матрица, спектр без калибровки,
+    ///     нулевое время — расчёт обязан отказать ВИДИМО. Отрицательный вход:
+    ///     годные данные обязаны пройти числом.
     ///
-    ///  4. **`C4(а)`** — конфигурация с N кривыми предлагает ровно N, с нулём
-    ///     кривых предлагает пусто, а путь из файла ЛСРМ остаётся цел.
+    ///  3. **Разбор экспорта ЛСРМ** (`ReadLsrmEfficiencyExport`): оба
+    ///     разделителя дробной части, пустой файл жалуется; `T174` — восемь
+    ///     настоящих экспортов против якоря, снятого глазами, порча файла
+    ///     обязана отказать; цена отсечения первой точки для покрытия Am-241
+    ///     — по пиковой, с геометрией корпусной ASN16.
     ///
-    ///  5. **`C4(б)`** — открытые спектры предлагаются без второго диалога;
-    ///     спектр без калибровки в список не попадает.
+    ///  4. **`A203` — канал переполнения.** Правило против корпуса; что
+    ///     складывает `DoseRateManager` (сумма по диапазонам против независимой
+    ///     суммы каналов без переполнения); насыпанный нулевой канал; и
+    ///     линейность: вдвое больше отсчётов — вдвое больше дозы, вдвое больше
+    ///     G — вдвое больше дозы.
     ///
-    ///  6. **`A202` и `A201` — РАСКЛАДКА и ПОДПИСИ вкладки.** Списки живут в
-    ///     конструкторе форм, а не строятся кодом по чужим координатам; полей
-    ///     «путь к файлу», которые прятались `Visible = false`, в форме нет
-    ///     вовсе; ни один контрол не выходит за страницу и не налезает на
-    ///     соседа; подпись помещается в свой контрол НА ОБЕИХ культурах и не
-    ///     обещает ни ЛСРМ, ни «40 кэВ – 3 МэВ». Плюс снимок вкладки в PNG —
-    ///     ВСЕГДА, а не только по ключу (`T231`): без `--shots=` снимки идут
-    ///     в `%TEMP%\doserateprobe-shots`, и число проверок от набора ключей
-    ///     не зависит.
+    ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;кривые&gt;]
+    ///   doserateprobe --sabotage=mu|lsrm|overflow   (ждёт ОТКАЗ)
     ///
-    ///   doserateprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;кривые&gt;] [--shots=&lt;куда PNG&gt;]
-    ///   doserateprobe --sabotage=long|word|hidden|overlap   (ждёт ОТКАЗ)
+    /// ⛔ Приёмка, которая проходит всегда, не мерит ничего. `--sabotage`
+    /// портит РОВНО ОДНУ вещь и требует отказа своего раздела; коды у него
+    /// перевёрнуты: 0 — отказ получен (сторож смотрит), 1 — не получен
+    /// (сторож слеп).
     ///
-    /// ⛔ Приёмка, которая проходит всегда, не мерит ничего. Ключ `--sabotage`
-    /// портит РОВНО ОДНУ вещь в уже построенной форме и требует, чтобы раздел
-    /// раскладки отказал и назвал испорченное имя; без порчи он же обязан
-    /// молчать. Коды возврата у `--sabotage` перевёрнуты: 0 — отказ получен
-    /// (сторож смотрит), 1 — не получен (сторож слеп).
+    ///   mu       — в прежней таблице μ_en/ρ испорчен узел 300 кэВ (×1.5):
+    ///              сверка с XCOM обязана отказать;
+    ///   lsrm     — у якоря первого экспорта подменена эффективность
+    ///              оставшейся точки: сверка обязана отказать;
+    ///   overflow — ожидаемое число отброшенных отсчётов сдвинуто на единицу:
+    ///              сквозной замер обязан отказать.
     /// </summary>
     static class Program
     {
@@ -85,39 +80,17 @@ namespace DoseRateProbe
             { 0.006694, 0.004031, 0.003004, 0.002393, 0.002318, 0.002494, 0.002672, 0.002872,
               0.002949, 0.002966, 0.002953, 0.002882, 0.002787, 0.002545, 0.002342, 0.002054 };
 
-        static readonly double[] OldRToSv =
-            { 1.29, 1.46, 1.52, 1.51, 1.44, 1.31, 1.22, 1.15, 1.10, 1.07, 1.04, 1.02, 1.01,
-              0.99, 0.99, 0.98 };
-
         static string corpusDir = @"tools\CORPUS\corpus";
 
         static string lsrmDir = @"LSRM Geometries\Exported Curves";
 
-        /// <summary>
-        /// Куда класть снимки вкладки. ⛔ Снимок делается ВСЕГДА (`T231`): без
-        /// ключа `--shots=` он идёт в `%TEMP%\doserateprobe-shots`, и проба
-        /// называет этот каталог вслух. Прежде без ключа две проверки «снимок
-        /// не фон» молча не выполнялись, и два прогона на одном дереве давали
-        /// 141 и 143 проверки, оба зелёные, — итог зависел от набора ключей,
-        /// а приёмка «не меньше, чем было» этого не видела.
-        /// </summary>
-        static string shotDir;
-
-        /// <summary>Задан ли каталог снимков ключом (иначе — умолчание).</summary>
-        static bool shotDirFromKey;
-
         /// <summary>Что испортить ради положительного контроля; null — ничего.</summary>
         static string sabotage;
 
-        [STAThread]
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            // ⛔ (`T247`) Культура ЦЕЛИКОМ инвариантная, приказ Amber 05.09.2026. Проба
-            //    не ставила её ВОВСЕ, и на русской машине часть её чисел шла с ЗАПЯТОЙ
-            //    (замер 10.09.2026, полоса П8: мест без поставщика культуры — 13).
-            //    Инвариант ЦЕЛИКОМ, а не клон с подменённым разделителем: клон
-            //    чинит печать и оставляет РАЗБОР системным (`T245`).
+            // ⛔ (`T247`) Культура ЦЕЛИКОМ инвариантная, приказ Amber 05.09.2026.
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             foreach (string a in args)
             {
@@ -128,11 +101,6 @@ namespace DoseRateProbe
                 else if (a.StartsWith("--lsrm=", StringComparison.Ordinal))
                 {
                     lsrmDir = a.Substring(7);
-                }
-                else if (a.StartsWith("--shots=", StringComparison.Ordinal))
-                {
-                    shotDir = a.Substring(8);
-                    shotDirFromKey = true;
                 }
                 else if (a.StartsWith("--sabotage=", StringComparison.Ordinal))
                 {
@@ -145,33 +113,25 @@ namespace DoseRateProbe
                 }
             }
 
-            if (!shotDirFromKey)
+            if (sabotage != null && sabotage != "mu" && sabotage != "lsrm" && sabotage != "overflow")
             {
-                shotDir = Path.Combine(Path.GetTempPath(), "doserateprobe-shots");
+                Console.Error.WriteLine("--sabotage= принимает mu, lsrm или overflow");
+                return 2;
             }
 
-            // Пропусков по ключам у пробы нет: что она мерит, не зависит от
-            // набора ключей, и каталог снимков называется в обоих случаях.
-            Console.WriteLine(shotDirFromKey
-                ? "снимки вкладки: " + shotDir + " (ключ --shots=)"
-                : "снимки вкладки: " + shotDir + " (ключ --shots= не задан, каталог по умолчанию)");
+            if (sabotage != null)
+            {
+                Console.WriteLine("⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: испорчено «" + sabotage + "», ждём ОТКАЗ");
+            }
 
             try
             {
-                if (sabotage == null)
-                {
-                    ComptonControl();
-                    MuEnAgreement();
-                    Refusals();
-                    OfferedCurves();
-                    OfferedSpectra();
-                    LsrmReaderStillWorks();
-                    LsrmRealExports();
-                    OverflowRule();
-                    TruncationPrice();
-                }
-
-                TabLayout();
+                ComptonControl();
+                MuEnAgreement();
+                Refusals();
+                LsrmReaderStillWorks();
+                LsrmRealExports();
+                OverflowRule();
             }
             catch (Exception ex)
             {
@@ -238,12 +198,19 @@ namespace DoseRateProbe
             Console.WriteLine();
             Console.WriteLine("== μ_en/ρ сухого воздуха: XCOM против вшитой таблицы ==");
             Console.WriteLine("   E, кэВ    вшито, м²/кг    XCOM, м²/кг    расх., %");
+            double[] table = (double[])OldMu.Clone();
+            if (sabotage == "mu")
+            {
+                table[7] *= 1.5;
+                Console.WriteLine("   ⚠ ПОРЧА: узел 300 кэВ прежней таблицы ×1.5");
+            }
+
             double worst = 0.0;
             string worstAt = "";
             for (int i = 0; i < OldEnergies.Length; i++)
             {
                 double now = DoseRateCoefficients.MassEnergyAbsorptionAir(OldEnergies[i]);
-                double diff = 100.0 * (now - OldMu[i]) / OldMu[i];
+                double diff = 100.0 * (now - table[i]) / table[i];
                 if (Math.Abs(diff) > Math.Abs(worst))
                 {
                     worst = diff;
@@ -252,7 +219,7 @@ namespace DoseRateProbe
 
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                     "  {0,7:f0}    {1,12:f6}   {2,12:f6}    {3,8:+0.00;-0.00}",
-                    OldEnergies[i], OldMu[i], now, diff));
+                    OldEnergies[i], table[i], now, diff));
             }
 
             // Порог 3 % — не подгонка, а граница «та же величина, тот же
@@ -263,18 +230,9 @@ namespace DoseRateProbe
                 "худшая точка {0} кэВ: {1:+0.00;-0.00} %", worstAt, worst));
         }
 
-        // ⛔ h*(10)/K_air здесь НЕ судится (`T201`, 06.09.2026). Прежний раздел
-        // `AmbientAgreement` сверял таблицу приложения с вшитым «RToSv» на
-        // шестнадцати узлах с допуском 5 % — а вшитое от ICRP 74 × 0.876
-        // отличается по-настоящему (+2.20 % на 800 кэВ), так что допуск
-        // «дословно» против него невозможен, а допуск 5 % пропустил бы вчетверо
-        // больший промах молча. Единственный судья таблицы —
-        // `DoseCoefProbeO2`: все 25 узлов дословно (5e-13), порча узла
-        // отражением с ожиданием отказа, схема интерполяции на 401 точке
-        // между узлами и опора Cs-137. Сравнение с прежней таблицей там же,
-        // колонками `old_RToSv_over_0876` / `code_over_old_percent` файла
-        // `o2-a198-icrp74-nodes.csv`. `OldRToSv` остаётся: им строится
-        // ПРЕЖНЯЯ кривая в сквозном замере цены обрезания (`TruncationPrice`).
+        // ⛔ h*(10)/K_air здесь НЕ судится (`T201`, 06.09.2026): единственный
+        // судья таблицы — `DoseCoefProbeO2` (все 25 узлов дословно, порча узла
+        // отражением с ожиданием отказа, схема интерполяции между узлами).
 
         // ==================================================================
         // 2. Отказы
@@ -311,52 +269,6 @@ namespace DoseRateProbe
                 flatScale.EnergyCalibration = zero;
                 DoseRateEstimator.DeviceRange(flatScale, null, out a, out b);
             });
-
-            // ⛔ Найдено этой пробой: `DoseRateConfig.DoseRateCalibrationPoints`
-            // в сеттере зовёт `List.Sort()`, а у точки не было `IComparable` —
-            // любое присваивание списка длиннее одного элемента валило
-            // программу `InvalidOperationException`. Заодно выяснилось, что
-            // заявленная сеттером сортировка не работала никогда.
-            checks++;
-            try
-            {
-                DoseRateConfig sorting = new DoseRateConfig();
-                sorting.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>
-                {
-                    new DoseRateCalibrationPoint { LowerBound = 300, UpperBound = 400 },
-                    new DoseRateCalibrationPoint { LowerBound = 40, UpperBound = 60 },
-                    new DoseRateCalibrationPoint { LowerBound = 100, UpperBound = 200 },
-                };
-
-                List<DoseRateCalibrationPoint> sorted = sorting.DoseRateCalibrationPoints;
-                bool ordered = sorted[0].LowerBound == 40 && sorted[1].LowerBound == 100
-                               && sorted[2].LowerBound == 300;
-                checks--;
-                Ok(ordered, string.Format(
-                    "присвоение списка точек не валит программу и сортирует: {0}, {1}, {2}",
-                    sorted[0].LowerBound, sorted[1].LowerBound, sorted[2].LowerBound));
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                Console.WriteLine("  ПРОВАЛ присвоение списка точек: "
-                                  + ex.GetType().Name + " " + Short(ex.Message));
-            }
-
-            EnergySpectrum noCalibration = MakeSpectrum(1024, null, 100.0);
-            Refuses("спектр без калибровки", () =>
-                DoseRateEstimator.Estimate(noCalibration, FlatCurve(), 1.0,
-                                           DoseRateEstimator.BuildGrid(40.0, 3000.0), null));
-
-            EnergySpectrum noTime = MakeSpectrum(1024, Linear(3.0), 0.0);
-            Refuses("нулевое время набора", () =>
-                DoseRateEstimator.Estimate(noTime, FlatCurve(), 1.0,
-                                           DoseRateEstimator.BuildGrid(40.0, 3000.0), null));
-
-            EnergySpectrum good = MakeSpectrum(1024, Linear(3.0), 100.0);
-            Refuses("объявленная мощность дозы эталона равна нулю", () =>
-                DoseRateEstimator.Estimate(good, FlatCurve(), 0.0,
-                                           DoseRateEstimator.BuildGrid(40.0, 3000.0), null));
             Refuses("кривая из одной точки", () =>
                 DoseRateEstimator.CurveOf(new List<ROIEfficiencyData>
                     { new ROIEfficiencyData { Energy = 100, Efficiency = 0.1 } }));
@@ -367,35 +279,44 @@ namespace DoseRateProbe
                     new ROIEfficiencyData { Energy = 200, Efficiency = 0.0 },
                 }));
 
-            // ⚠ ОТРИЦАТЕЛЬНЫЙ вход к тому же контролю: годные данные обязаны
-            // ПРОЙТИ. Проверка, которая отказывает всегда, ничего не меряет.
-            checks++;
-            try
+            // Вход от кривой (`AMBER18`): чего у кривой не хватает — названо.
+            Refuses("кривой нет вовсе", () => DoseRateInput.Of(null, null));
+            Refuses("кривая без точек", () => DoseRateInput.Of(new EfficiencyConfigData("пустая") { Geometry = PointGeometry(100.0) }, null));
+            Refuses("кривая без геометрии", () => DoseRateInput.Of(new EfficiencyConfigData("без геометрии") { Curve = FlatCurvePoints() }, null));
+            Refuses("матрица чужой геометрии", () =>
             {
-                List<DoseRateCalibrationPoint> points = DoseRateEstimator.Estimate(
-                    good, FlatCurve(), 1.0, DoseRateEstimator.BuildGrid(40.0, 3000.0), null);
-                Ok(points.Count > 0, string.Format("годный вход прошёл: точек {0}", points.Count));
-                checks--;
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                Console.WriteLine("  ПРОВАЛ годный вход отказан: " + ex.Message);
-            }
+                var curve = new EfficiencyConfigData("своя") { Curve = FlatCurvePoints(), Geometry = PointGeometry(100.0) };
+                var foreign = new ResponseMatrix { Stamp = "чужое клеймо", Options = new ResponseMatrixOptions() };
+                DoseRateInput.Of(curve, foreign);
+            });
 
-            // Отказ ПОКАЗЫВАЕТСЯ, а не превращается в ноль: строка состояния
-            // главного окна печатает `DoseRate.ToString()`.
+            // Спектры: без калибровки и с нулевым временем — отказ ПОКАЗЫВАЕТСЯ,
+            // а не превращается в ноль: строка состояния главного окна печатает
+            // `DoseRate.ToString()`.
+            DoseRateInput input = DoseRateInput.Of(
+                new EfficiencyConfigData("плоская") { Curve = FlatCurvePoints(), Geometry = PointGeometry(100.0) }, null);
+            var manager = new DoseRateManager(Config());
+
             ResultData bad = new ResultData();
-            bad.EnergySpectrum = noCalibration;
-            DoseRateConfig config = new DoseRateConfig();
-            config.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>
-            {
-                new DoseRateCalibrationPoint { LowerBound = 40, UpperBound = 100, CPS = 1, EtalonDoseRateValue = 1 },
-            };
-
-            DoseRate shown = new DoseRateManager(Config()).Calculate(bad, config);
+            bad.EnergySpectrum = MakeSpectrum(1024, null, 100.0);
+            DoseRate shown = manager.Calculate(bad, input);
             Ok(!string.IsNullOrEmpty(shown.Refusal) && shown.ToString().IndexOf("0.000") < 0,
-               "спектр без калибровки в строке состояния: «" + shown + "»");
+               "спектр без калибровки в строке состояния: «" + Short(shown.ToString()) + "»");
+
+            ResultData noTime = new ResultData();
+            noTime.EnergySpectrum = MakeSpectrum(1024, Linear(3.0), 0.0);
+            DoseRate zeroTime = manager.Calculate(noTime, input);
+            Ok(!string.IsNullOrEmpty(zeroTime.Refusal),
+               "нулевое время набора: «" + Short(zeroTime.ToString()) + "»");
+
+            // ⚠ ОТРИЦАТЕЛЬНЫЙ вход к тому же контролю: годные данные обязаны
+            // ПРОЙТИ числом. Проверка, которая отказывает всегда, ничего не меряет.
+            ResultData good = new ResultData();
+            good.EnergySpectrum = MakeSpectrum(1024, Linear(3.0), 100.0);
+            DoseRate fine = manager.Calculate(good, input);
+            Ok(fine.Refusal.Length == 0 && fine.Rate > 0.0 && fine.Ranges.Count > 0 && fine.Approximate,
+               string.Format(CultureInfo.InvariantCulture,
+                   "годный вход прошёл: {0} диапазонов, «{1}»", fine.Ranges.Count, Short(fine.ToString())));
         }
 
         static void Refuses(string what, Action action)
@@ -431,87 +352,13 @@ namespace DoseRateProbe
         }
 
         // ==================================================================
-        // 3. C4(а): кривые самой конфигурации прибора
-        // ==================================================================
-
-        static void OfferedCurves()
-        {
-            Console.WriteLine();
-            Console.WriteLine("== C4(а): вкладка предлагает кривые конфигурации прибора ==");
-
-            for (int n = 0; n <= 3; n++)
-            {
-                DeviceConfigInfo config = new DeviceConfigInfo();
-                for (int i = 0; i < n; i++)
-                {
-                    EfficiencyConfigData curve = new EfficiencyConfigData("кривая " + (i + 1));
-                    curve.Curve = new List<ROIEfficiencyData>
-                    {
-                        new ROIEfficiencyData { Energy = 40, Efficiency = 0.02 },
-                        new ROIEfficiencyData { Energy = 662, Efficiency = 0.01 },
-                        new ROIEfficiencyData { Energy = 3000, Efficiency = 0.003 },
-                    };
-
-                    config.EfficiencyConfigs.Add(curve);
-                }
-
-                int offered = DoseRateEstimator.OfferedEfficiencies(config).Count;
-                Ok(offered == n, string.Format("кривых в конфигурации {0} → предложено {1}", n, offered));
-            }
-
-            // Геометрия БЕЗ посчитанной кривой делить не на что — она не кривая.
-            DeviceConfigInfo geometryOnly = new DeviceConfigInfo();
-            geometryOnly.EfficiencyConfigs.Add(new EfficiencyConfigData("только геометрия"));
-            Ok(DoseRateEstimator.OfferedEfficiencies(geometryOnly).Count == 0,
-               "конфигурация без посчитанной кривой не предлагается");
-
-            Ok(DoseRateEstimator.OfferedEfficiencies(null).Count == 0,
-               "конфигурации нет вовсе → список пуст, без падения");
-        }
-
-        // ==================================================================
-        // 4. C4(б): уже открытые спектры
-        // ==================================================================
-
-        static void OfferedSpectra()
-        {
-            Console.WriteLine();
-            Console.WriteLine("== C4(б): вкладка предлагает уже открытые спектры ==");
-
-            var titles = new List<string>();
-            var results = new List<ResultData>();
-
-            ResultData good = new ResultData();
-            good.EnergySpectrum = MakeSpectrum(1024, Linear(3.0), 100.0);
-            titles.Add("годный");
-            results.Add(good);
-
-            ResultData noCal = new ResultData();
-            noCal.EnergySpectrum = MakeSpectrum(1024, null, 100.0);
-            titles.Add("без калибровки");
-            results.Add(noCal);
-
-            ResultData noTime = new ResultData();
-            noTime.EnergySpectrum = MakeSpectrum(1024, Linear(3.0), 0.0);
-            titles.Add("нулевое время");
-            results.Add(noTime);
-
-            List<DoseRateSpectrumChoice> offered = DoseRateEstimator.OfferedSpectra(titles, results);
-            Ok(offered.Count == 1 && offered[0].Title == "годный",
-               string.Format("из трёх открытых документов предложен {0} (годный один)", offered.Count));
-
-            Ok(DoseRateEstimator.OfferedSpectra(null, null).Count == 0,
-               "открытых документов нет → список пуст, старый путь из файла цел");
-        }
-
-        // ==================================================================
-        // 5. Старый путь: разбор экспорта ЛСРМ
+        // 3. Разбор экспорта ЛСРМ
         // ==================================================================
 
         static void LsrmReaderStillWorks()
         {
             Console.WriteLine();
-            Console.WriteLine("== старый путь: разбор текстового экспорта ЛСРМ ==");
+            Console.WriteLine("== разбор текстового экспорта ЛСРМ (вкладка Efficiency) ==");
 
             MethodInfo reader = typeof(DeviceConfigForm).GetMethod(
                 "ReadLsrmEfficiencyExport", BindingFlags.NonPublic | BindingFlags.Static);
@@ -551,8 +398,7 @@ namespace DoseRateProbe
             }
 
             // Отрицательный вход: пустой файл обязан пожаловаться, а не отдать
-            // пустой список молча (прежде разбор глотал исключение и строил по
-            // пустому списку сплайн).
+            // пустой список молча.
             string empty = Path.Combine(Path.GetTempPath(), "doserateprobe_lsrm_empty.txt");
             File.WriteAllText(empty, "Energy, keV\tEfficiency\tUncertainty, %\r\n", new UTF8Encoding(false));
             object[] call2 = { empty, null };
@@ -561,10 +407,6 @@ namespace DoseRateProbe
 
             File.Delete(empty);
         }
-
-        // ==================================================================
-        // 6. `T174` — ВОСЕМЬ НАСТОЯЩИХ экспортов ЛСРМ
-        // ==================================================================
 
         /// <summary>
         /// Якорь одного файла, снятый ГЛАЗАМИ из самого файла, а не тем кодом,
@@ -692,6 +534,13 @@ namespace DoseRateProbe
                     continue;
                 }
 
+                double keptEff = a.KeptEff;
+                if (sabotage == "lsrm" && ReferenceEquals(a, LsrmAnchors[0]))
+                {
+                    keptEff *= 1.01;
+                    Console.WriteLine("  ⚠ ПОРЧА: у якоря «" + a.File + "» эффективность оставшейся точки ×1.01");
+                }
+
                 string problem;
                 List<ROIEfficiencyData> points = ReadLsrm(path, out problem);
                 int expected = a.DataRows - 1;   // отсекается РОВНО первая точка
@@ -701,7 +550,7 @@ namespace DoseRateProbe
                 bool ok = problem == null
                           && points.Count == expected
                           && Close(points[0].Energy, a.KeptEnergy)
-                          && Close(points[0].Efficiency, a.KeptEff)
+                          && Close(points[0].Efficiency, keptEff)
                           && Close(points[points.Count - 1].Energy, a.LastEnergy)
                           && Close(points[points.Count - 1].Efficiency, a.LastEff)
                           && Close(points[points.Count - 1].ErrorPercent, a.LastError);
@@ -735,48 +584,37 @@ namespace DoseRateProbe
 
         /// <summary>
         /// ⚠ ЦЕНА ОТСЕЧЕНИЯ — та ли она, что у покрытия Am-241 ШИРИНОЙ кривой:
-        /// сетка мощности дозы обрезана протяжённостью кривой, поставочные
-        /// кривые `config/ROI/*.xml` идут ровно 40…3000 кэВ, и низ Am-241
-        /// остаётся вне счёта. Отсечение по погрешности эту ширину МЕНЯЕТ —
-        /// оно снимает самую нижнюю точку каждого экспорта, — поэтому вопрос
-        /// «попадает ли оно в ту же цену» разрешается только замером.
+        /// сетка мощности дозы обрезана протяжённостью кривой, и отсечение по
+        /// погрешности эту ширину МЕНЯЕТ — оно снимает самую нижнюю точку
+        /// каждого экспорта. Вопрос «попадает ли оно в ту же цену» разрешается
+        /// только замером.
         ///
-        /// ⛔ Ширина ПОСТАВОЧНЫХ кривых здесь не находка и не задача: поставочные
-        /// `config/ROI/*.xml` по приказу Amber 05.09.2026 не трогаются и дефекты
-        /// на них не принимаются (таблица «Чего делать НЕ надо» в `TODO.md`);
-        /// здесь мерятся файлы `LSRM Geometries/Exported Curves`.
+        /// ⛔ С 12.09.2026 (`AMBER18`) замер идёт ПО ПИКОВОЙ с пометкой, как и
+        /// в приложении у кривой без матрицы; геометрия кривой — точечная
+        /// сцена корпусного `ASN16_Cs137` (у экспорта ЛСРМ своей нет, а без
+        /// геометрии у дозы нет масштаба). Мерятся два экспорта того же прибора,
+        /// что и спектр Am-241: цилиндр и маринелли; их отсечённые точки лежат
+        /// на 20 и 10 кэВ — ровно там, где живёт низ америция.
         /// </summary>
         static void LsrmCutPrice()
         {
             Console.WriteLine();
-            Console.WriteLine("  -- цена отсечения для покрытия Am-241 (поставочные кривые не трогаются, приказ 05.09.2026) --");
+            Console.WriteLine("  -- цена отсечения для покрытия Am-241 (по пиковой, геометрия ASN16_Cs137) --");
 
-            string devicePath = Path.Combine(corpusDir, "devices",
-                "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml");
             string spectra = Path.Combine(corpusDir, "spectra");
-            ResultData etalon = LoadSpectrum(Path.Combine(spectra, "ASN16_Cs137.xml"));
+            ResultData carrier = LoadSpectrum(Path.Combine(spectra, "ASN16_Cs137.xml"));
             ResultData americium = LoadSpectrum(Path.Combine(spectra, "ASN16_Am241.xml"));
-            if (!File.Exists(devicePath) || etalon == null || americium == null)
+            if (carrier == null || carrier.Efficiency == null || !carrier.Efficiency.HasGeometry || americium == null)
             {
-                Console.WriteLine("     нет прибора или спектров корпуса — замер пропущен");
+                Console.WriteLine("     нет спектров корпуса или геометрии у ASN16_Cs137 — замер пропущен");
                 failed++;
                 checks++;
                 return;
             }
 
-            DeviceConfigInfo device;
-            using (var fs = new FileStream(devicePath, FileMode.Open, FileAccess.Read))
-            {
-                device = (DeviceConfigInfo)new XmlSerializer(typeof(DeviceConfigInfo)).Deserialize(fs);
-            }
-
-            double deviceMin, deviceMax;
-            DoseRateEstimator.DeviceRange(device, null, out deviceMin, out deviceMax);
+            GeometryModel geometry = carrier.Efficiency.Geometry;
             var manager = new DoseRateManager(Config());
 
-            // Мерятся ДВА экспорта ЛСРМ того же прибора, что и спектры ASN16:
-            // цилиндр и маринелли. Их отсечённые точки лежат на 20 и 10 кэВ —
-            // ровно там, где живёт низ америция.
             foreach (LsrmAnchor a in LsrmAnchors.Where(x => x.File.StartsWith("Nano 16", StringComparison.Ordinal)
                                                             && x.File.IndexOf("5cm", StringComparison.Ordinal) < 0))
             {
@@ -795,54 +633,47 @@ namespace DoseRateProbe
                 };
                 whole.AddRange(cut);
 
-                double cutRate, cutCoverage, cutLow;
-                double wholeRate, wholeCoverage, wholeLow;
-                AmericiumWith(manager, device, deviceMin, deviceMax, etalon, americium, cut,
-                              out cutRate, out cutCoverage, out cutLow);
-                AmericiumWith(manager, device, deviceMin, deviceMax, etalon, americium, whole,
-                              out wholeRate, out wholeCoverage, out wholeLow);
+                DoseRate cutDose = PeakDose(manager, americium, geometry, cut, a.File + " (после отсечения)");
+                DoseRate wholeDose = PeakDose(manager, americium, geometry, whole, a.File + " (с точкой)");
+                double cutLow = cutDose.Ranges.Count > 0 ? cutDose.Ranges[0].LowKev : double.NaN;
+                double wholeLow = wholeDose.Ranges.Count > 0 ? wholeDose.Ranges[0].LowKev : double.NaN;
 
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "     {0}:", a.File));
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "     {0}:", a.File));
+                    "        С точкой {0:f1} кэВ ({1:f0} %): низ сетки {2:f1} кэВ, Am-241 {3}, покрытие {4:f2} %",
+                    a.FirstEnergy, a.FirstError, wholeLow, wholeDose, 100.0 * wholeDose.Coverage));
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "        С точкой {0:f1} кэВ ({1:f0} %): низ сетки {2:f1} кэВ,"
-                    + " Am-241 {3:e4} мкЗв/ч, покрытие {4:f2} %",
-                    a.FirstEnergy, a.FirstError, wholeLow, wholeRate, 100.0 * wholeCoverage));
-                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "        БЕЗ неё:                 низ сетки {0:f1} кэВ,"
-                    + " Am-241 {1:e4} мкЗв/ч, покрытие {2:f2} %",
-                    cutLow, cutRate, 100.0 * cutCoverage));
-                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "        отсечение стоит {0:+0.00;-0.00} п.п. покрытия и {1:+0.0;-0.0} % дозы",
-                    100.0 * (cutCoverage - wholeCoverage),
-                    wholeRate > 0.0 ? 100.0 * (cutRate - wholeRate) / wholeRate : double.NaN));
+                    "        БЕЗ неё:                 низ сетки {0:f1} кэВ, Am-241 {1}, покрытие {2:f2} %",
+                    cutLow, cutDose, 100.0 * cutDose.Coverage));
+                if (cutDose.Refusal.Length == 0 && wholeDose.Refusal.Length == 0)
+                {
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "        отсечение стоит {0:+0.00;-0.00} п.п. покрытия и {1:+0.0;-0.0} % дозы",
+                        100.0 * (cutDose.Coverage - wholeDose.Coverage),
+                        wholeDose.Rate > 0.0 ? 100.0 * (cutDose.Rate - wholeDose.Rate) / wholeDose.Rate : double.NaN));
+                }
 
                 // ⛔ Числа сравнимы только тогда, когда обе кривые вообще годны.
-                Ok(cutRate > 0.0 && wholeRate > 0.0 && cutLow > wholeLow,
+                Ok(cutDose.Refusal.Length == 0 && wholeDose.Refusal.Length == 0 && cutDose.Rate > 0.0
+                   && wholeDose.Rate > 0.0 && cutLow > wholeLow,
                    string.Format(CultureInfo.InvariantCulture,
                        "{0}: отсечение поднимает низ сетки {1:f1} → {2:f1} кэВ, покрытие {3:f2} → {4:f2} %",
-                       a.File, wholeLow, cutLow, 100.0 * wholeCoverage, 100.0 * cutCoverage));
+                       a.File, wholeLow, cutLow, 100.0 * wholeDose.Coverage, 100.0 * cutDose.Coverage));
             }
         }
 
-        static void AmericiumWith(DoseRateManager manager, DeviceConfigInfo device,
-                                  double deviceMin, double deviceMax,
-                                  ResultData etalon, ResultData americium,
-                                  List<ROIEfficiencyData> points,
-                                  out double rate, out double coverage, out double gridLow)
+        static DoseRate PeakDose(DoseRateManager manager, ResultData data, GeometryModel geometry,
+                                 List<ROIEfficiencyData> points, string name)
         {
-            DoseRateCurve curve = DoseRateEstimator.CurveOf(points);
-            double low = Math.Max(deviceMin, curve.MinKev);
-            double high = Math.Min(deviceMax, curve.MaxKev);
-            double[] grid = DoseRateEstimator.BuildGrid(low, high);
-            gridLow = grid[0];
-
-            var config = new DoseRateConfig();
-            config.DoseRateCalibrationPoints = DoseRateEstimator.Estimate(
-                etalon.EnergySpectrum, curve, 1.0, grid, null);
-            DoseRate dose = manager.Calculate(americium, config);
-            rate = dose.Rate;
-            coverage = dose.Coverage;
+            try
+            {
+                var curve = new EfficiencyConfigData(name) { Curve = points, Geometry = geometry, Origin = EfficiencyOrigin.Lsrm };
+                return manager.Calculate(data, DoseRateInput.Of(curve, null));
+            }
+            catch (DoseRateRefusalException ex)
+            {
+                return new DoseRate { Refusal = ex.Message };
+            }
         }
 
         /// <summary>Значение порога — из самого приложения, не переписанное сюда.</summary>
@@ -906,14 +737,11 @@ namespace DoseRateProbe
             File.WriteAllLines(tmp, allBad.ToArray(), new UTF8Encoding(false));
             Refuses("после отсечения осталась одна точка", tmp);
 
-            // ⚠ А ВОТ ЭТО отказом быть НЕ ДОЛЖНО, и это моё решение, названное
-            // вслух. Настоящий экспорт разделяет колонки двумя-тремя
-            // табуляциями подряд; тот же файл с ОДИНОЧНЫМИ табуляциями — это то,
-            // что делает с ним любой текстовый редактор, и никакой информации в
-            // нём не потеряно. Прежний разбор требовал шести полей на строку и
-            // читал такой файл как ПУСТОЙ; теперь он читается ЦЕЛИКОМ и даёт те
-            // же числа. Строка задания ждала здесь отказа — отказ был бы хуже:
-            // порядок колонок закреплён проверенной шапкой, гадать не о чем.
+            // ⚠ А ВОТ ЭТО отказом быть НЕ ДОЛЖНО (решение полосы `T174`):
+            // настоящий экспорт разделяет колонки двумя-тремя табуляциями
+            // подряд; тот же файл с ОДИНОЧНЫМИ табуляциями — это то, что
+            // делает с ним любой текстовый редактор, и информации в нём не
+            // потеряно. Он читается ЦЕЛИКОМ и даёт те же числа.
             var single = lines.Select(l => System.Text.RegularExpressions.Regex.Replace(l, "\t+", "\t")).ToArray();
             File.WriteAllLines(tmp, single, new UTF8Encoding(false));
             string problem;
@@ -928,8 +756,6 @@ namespace DoseRateProbe
                 "одиночные табуляции читаются ЦЕЛИКОМ (решение полосы): точек {0}, у оригинала {1}, жалоб «{2}»",
                 collapsed.Count, original.Count, Short(problem)));
 
-            // ...и ложной тревоги на нетронутых восьми нет — это проверено выше
-            // по якорю, здесь только повторяется исходником порчи.
             Ok(ignored == null && original.Count == LsrmAnchors[0].DataRows - 1,
                string.Format("исходник порчи читается без жалоб: точек {0}", original.Count));
 
@@ -946,7 +772,7 @@ namespace DoseRateProbe
         }
 
         // ==================================================================
-        // 7. `A203` — канал переполнения назван вслух
+        // 4. `A203` — канал переполнения назван вслух
         // ==================================================================
 
         /// <summary>
@@ -1068,7 +894,7 @@ namespace DoseRateProbe
             }
 
             Console.WriteLine();
-            Console.WriteLine("  -- что складывает DoseRateManager (диапазон шире шкалы, чувствительность 1) --");
+            Console.WriteLine("  -- что складывает DoseRateManager (плоская кривая 10…10000 кэВ, точечная сцена) --");
             WholeScale("ASN16_Cs137 — переполнение в последнем канале", withOverflow, true);
             WholeScale("G1S24_Th228_P5 — последний канал ОБЫЧНЫЙ", plain, false);
 
@@ -1094,19 +920,19 @@ namespace DoseRateProbe
             WholeScale("G1S24_Th228_P5 с насыпанным нулевым каналом", zero, true, pile);
 
             // ⛔ Отрицательный контроль правила: у нетронутого спектра нулевой
-            // канал переполнением не объявляется (иначе первая проверка прошла
-            // бы у чего угодно).
+            // канал переполнением не объявляется.
             Ok(!OverflowChannel.IsOverflow(plain.EnergySpectrum.Spectrum, 0),
                "у нетронутого G1S24_Th228_P5 нулевой канал переполнением НЕ объявлен");
 
-            RoundTripOnPlainSpectrum(plain);
+            Linearity(plain);
         }
 
         /// <summary>
-        /// Один диапазон шире всей шкалы и чувствительность 1: тогда
-        /// <c>Rate · время</c> — это ровно сумма каналов, которые
-        /// <see cref="DoseRateManager"/> счёл. Сумма спектра берётся здесь
-        /// напрямую, не тем кодом, который меряется.
+        /// Плоская кривая 10…10000 кэВ и точечная сцена: сумма `Counts` по
+        /// диапазонам, которые сложил <see cref="DoseRateManager"/>, против
+        /// НЕЗАВИСИМОЙ суммы каналов от низа сетки до конца шкалы без каналов
+        /// переполнения. Сумма спектра берётся здесь напрямую, не тем кодом,
+        /// который меряется.
         /// </summary>
         static void WholeScale(string what, ResultData data, bool expectDropped, int expectedDrop = -1)
         {
@@ -1122,32 +948,42 @@ namespace DoseRateProbe
                 }
             }
 
-            // Границы берутся у самой калибровки, чтобы диапазон заведомо
-            // накрыл всю шкалу с обоих концов. Чувствительность 1 получается
-            // через CPS и Etalon: своего сеттера у неё нет.
-            EnergyCalibration cal = spectrum.EnergyCalibration;
-            var point = new DoseRateCalibrationPoint
+            DoseRateInput input = DoseRateInput.Of(
+                new EfficiencyConfigData("плоская") { Curve = FlatCurvePoints(), Geometry = PointGeometry(100.0) }, null);
+            DoseRate dose = new DoseRateManager(Config()).Calculate(data, input);
+            if (dose.Refusal.Length > 0)
             {
-                LowerBound = cal.ChannelToEnergy(0.0) - 1000.0,
-                UpperBound = cal.ChannelToEnergy(v.Length) + 1000.0,
-                CPS = 1.0,
-            };
-            point.EtalonDoseRateValue = 1.0;
+                Ok(false, what + ": отказ «" + Short(dose.Refusal) + "»");
+                return;
+            }
 
-            var config = new DoseRateConfig();
-            config.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint> { point };
+            double counted = dose.Ranges.Sum(r => r.Counts);
+            // Независимо: каналы от низа сетки (тем же отбрасыванием) до конца
+            // шкалы, минус крайние каналы, которые правило называет переполнением.
+            int fromChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(dose.Ranges[0].LowKev, spectrum.NumberOfChannels);
+            if (fromChannel < 0) fromChannel = 0;
+            // Ниже сетки — БЕЗ насыпанного нулевого канала: он переполнение, и
+            // ему положено оказаться среди «отброшенных», а не «ниже сетки».
+            double belowGrid = 0.0;
+            for (int i = expectedDrop >= 0 ? 1 : 0; i < fromChannel && i < v.Length; i++)
+            {
+                belowGrid += v[i];
+            }
 
-            DoseRate dose = new DoseRateManager(Config()).Calculate(data, config);
-            double counted = dose.Rate * spectrum.MeasurementTime;
-            double dropped = all - counted;
+            double dropped = all - belowGrid - counted;
             double expected = expectedDrop >= 0
                 ? expectedDrop
                 : (expectDropped ? v[v.Length - 1] : 0.0);
+            if (sabotage == "overflow")
+            {
+                expected += 1.0;
+            }
 
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  {0}: каналов {1}, в спектре {2:f0} отсчётов, посчитано {3:f0}, отброшено {4:f0}"
-                + " (последний канал {5}, покрытие {6:f2} %)",
-                what, v.Length, all, counted, dropped, v[v.Length - 1], 100.0 * dose.Coverage));
+                "  {0}: каналов {1}, в спектре {2:f0} отсчётов, ниже сетки ({3:f1} кэВ) {4:f0}, посчитано {5:f0},"
+                + " отброшено {6:f0} (последний канал {7}, покрытие {8:f2} %, доза {9})",
+                what, v.Length, all, dose.Ranges[0].LowKev, belowGrid, counted, dropped, v[v.Length - 1],
+                100.0 * dose.Coverage, dose));
             Ok(Math.Abs(dropped - expected) < 0.5,
                string.Format(CultureInfo.InvariantCulture,
                    "{0}: отброшено {1:f0}, ожидалось {2:f0}", what, dropped, expected));
@@ -1156,7 +992,7 @@ namespace DoseRateProbe
             {
                 // ⛔ Отдельно и вслух: СТАРОЕ правило отбросило бы последний
                 // канал и здесь. Именно это `A203` и называет дефектом.
-                Ok(Math.Abs(counted - all) < 0.5 && Math.Abs(all - exceptLast) > 0.5,
+                Ok(Math.Abs(counted + belowGrid - all) < 0.5 && Math.Abs(all - exceptLast) > 0.5,
                    string.Format(CultureInfo.InvariantCulture,
                        "последний канал ТЕПЕРЬ посчитан: {0:f0} отсчётов, которые старое правило теряло",
                        all - exceptLast));
@@ -1164,279 +1000,38 @@ namespace DoseRateProbe
         }
 
         /// <summary>
-        /// ⚠ Что правка НЕ должна была сломать: обратный ход «построить точки по
-        /// эталону — померить тот же эталон» на спектре БЕЗ переполнения в
-        /// последнем канале. Генератор точек (`DoseRateEstimator`) не тронут, и
-        /// сойтись обязано ровно потому, что его сетка до последнего канала не
-        /// достаёт, — если бы доставала, здесь была бы видна расходимость.
+        /// Расчёт линеен по отсчётам и по геометрическому множителю: вдвое
+        /// больше того или другого — ровно вдвое больше дозы. Замена прежнего
+        /// обратного хода по эталону (эталона больше нет).
         /// </summary>
-        static void RoundTripOnPlainSpectrum(ResultData plain)
+        static void Linearity(ResultData plain)
         {
-            double min, max;
-            DoseRateEstimator.DeviceRange(null, plain.EnergySpectrum, out min, out max);
-            DoseRateCurve curve = FlatCurve();
-            double low = Math.Max(min, curve.MinKev);
-            double high = Math.Min(max, curve.MaxKev);
-            double[] grid = DoseRateEstimator.BuildGrid(low, high);
+            var manager = new DoseRateManager(Config());
+            var curve = new EfficiencyConfigData("плоская") { Curve = FlatCurvePoints(), Geometry = PointGeometry(100.0) };
+            DoseRate one = manager.Calculate(plain, DoseRateInput.Of(curve, null));
 
-            const double Declared = 1.0;
-            var config = new DoseRateConfig();
-            config.DoseRateCalibrationPoints = DoseRateEstimator.Estimate(
-                plain.EnergySpectrum, curve, Declared, grid, null);
-            DoseRate back = new DoseRateManager(Config()).Calculate(plain, config);
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  обратный ход на спектре БЕЗ переполнения ({0:f1}…{1:f0} кэВ, {2} диапазонов): {3:f6}",
-                grid[0], grid[grid.Length - 1], grid.Length - 1, back.Rate));
-            Ok(Math.Abs(back.Rate - Declared) < 1e-9,
-               string.Format(CultureInfo.InvariantCulture,
-                   "правка не развела генератор с потребителем: невязка {0:e2}",
-                   Math.Abs(back.Rate - Declared)));
-        }
-
-        // ==================================================================
-        // 8. Цена молчаливого обрезания 40–3000 кэВ
-        // ==================================================================
-
-        static void TruncationPrice()
-        {
-            Console.WriteLine();
-            Console.WriteLine("== цена молчаливого обрезания 40–3000 кэВ ==");
-
-            string devices = Path.Combine(corpusDir, "devices");
-            string spectra = Path.Combine(corpusDir, "spectra");
-            string devicePath = Path.Combine(devices, "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml");
-            if (!File.Exists(devicePath))
+            ResultData doubled = LoadSpectrum(Path.Combine(corpusDir, "spectra", "G1S24_Th228_P5.xml"));
+            int[] d = doubled.EnergySpectrum.Spectrum;
+            for (int i = 0; i < d.Length; i++)
             {
-                Console.WriteLine("  нет " + devicePath + " — замер пропущен");
-                failed++;
-                checks++;
-                return;
+                d[i] *= 2;
             }
 
-            DeviceConfigInfo device;
-            using (var fs = new FileStream(devicePath, FileMode.Open, FileAccess.Read))
-            {
-                device = (DeviceConfigInfo)new XmlSerializer(typeof(DeviceConfigInfo)).Deserialize(fs);
-            }
-
-            double deviceMin, deviceMax;
-            DoseRateEstimator.DeviceRange(device, null, out deviceMin, out deviceMax);
+            DoseRate two = manager.Calculate(doubled, DoseRateInput.Of(curve, null));
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  шкала прибора {0}: {1:f0}...{2:f0} кэВ на {3} каналах",
-                device.Name, deviceMin, deviceMax, device.NumberOfChannels));
+                "  линейность: {0:f6} → {1:f6} мкЗв/ч при удвоении отсчётов (×{2:f6})",
+                one.Rate, two.Rate, two.Rate / one.Rate));
+            Ok(Math.Abs(two.Rate / one.Rate - 2.0) < 1e-9, "удвоение отсчётов удваивает дозу");
 
-            ResultData etalon = LoadSpectrum(Path.Combine(spectra, "ASN16_Cs137.xml"));
-            ResultData americium = LoadSpectrum(Path.Combine(spectra, "ASN16_Am241.xml"));
-            ResultData nuts = LoadSpectrum(Path.Combine(spectra, "ASN16_BrazilNuts.xml"));
-            if (etalon == null || americium == null || nuts == null)
-            {
-                Console.WriteLine("  нет спектров корпуса — замер пропущен");
-                failed++;
-                checks++;
-                return;
-            }
-
-            // Кривая эффективности пробы — вероятность взаимодействия в голом
-            // кристалле NaI толщиной 40 мм, посчитанная по ослаблению XCOM.
-            // Названа прямо: поставочные кривые идут ровно от 40 до 3000 кэВ,
-            // то есть сами обрезаны теми же двумя числами, и на них цена
-            // обрезания не измерима вовсе. Форма кривой на цену влияет, поэтому
-            // ниже тот же замер повторён на ПОСТОЯННОЙ эффективности —
-            // это верхняя граница цены низа.
-            List<ROIEfficiencyData> naiCurve = NaICurve();
-            List<ROIEfficiencyData> flat = FlatCurvePoints();
-
-            Measure("кристалл NaI 40 мм по XCOM", device, deviceMin, deviceMax,
-                    etalon, americium, nuts, naiCurve);
-            Measure("постоянная эффективность", device, deviceMin, deviceMax,
-                    etalon, americium, nuts, flat);
-        }
-
-        static void Measure(string curveName, DeviceConfigInfo device,
-                            double deviceMin, double deviceMax,
-                            ResultData etalon, ResultData americium, ResultData nuts,
-                            List<ROIEfficiencyData> curvePoints)
-        {
-            Console.WriteLine();
-            Console.WriteLine("  --- кривая: " + curveName + " ---");
-
-            DoseRateCurve curve = DoseRateEstimator.CurveOf(curvePoints);
-
-            double low = Math.Max(deviceMin, curve.MinKev);
-            double high = Math.Min(deviceMax, curve.MaxKev);
-            double[] newGrid = DoseRateEstimator.BuildGrid(low, high);
+            // Удвоение G: точка на расстоянии R√2 даёт вдвое меньший G — доза вдвое меньше.
+            double r0 = 0.5 * 5.0 + 0.1 + 0.2 + 10.0;
+            double rFar = r0 * Math.Sqrt(2.0);
+            var farCurve = new EfficiencyConfigData("плоская, дальше") { Curve = FlatCurvePoints(), Geometry = PointGeometry(10.0 * (rFar - 0.5 * 5.0 - 0.3)) };
+            DoseRate half = manager.Calculate(plain, DoseRateInput.Of(farCurve, null));
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  сетка: старая 40...3000 кэВ, {0} диапазонов; новая {1:f1}...{2:f0} кэВ, {3} диапазонов",
-                OldEnergies.Length - 1, newGrid[0], newGrid[newGrid.Length - 1], newGrid.Length - 1));
-
-            // Обе калибровки — по одному эталону с одной объявленной дозой.
-            const double Declared = 1.0;   // мкЗв/ч
-            DoseRateConfig oldConfig = new DoseRateConfig();
-            oldConfig.DoseRateCalibrationPoints = OldEstimate(
-                etalon.EnergySpectrum, curve, Declared);
-
-            DoseRateConfig newConfig = new DoseRateConfig();
-            newConfig.DoseRateCalibrationPoints = DoseRateEstimator.Estimate(
-                etalon.EnergySpectrum, curve, Declared, newGrid, null);
-
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  точек калибровки: старым путём {0}, новым {1}",
-                oldConfig.DoseRateCalibrationPoints.Count, newConfig.DoseRateCalibrationPoints.Count));
-
-            DoseRateManager manager = new DoseRateManager(Config());
-
-            // На САМОМ эталоне разницы нет по построению — это контроль того,
-            // что оба пути нормированы на одно и то же.
-            DoseRate etalonOld = manager.Calculate(etalon, oldConfig);
-            DoseRate etalonNew = manager.Calculate(etalon, newConfig);
-            // ⚠ Старый путь ЗДЕСЬ И ДОЛЖЕН промахиваться: он приводил границу к
-            // каналу округлением, а потребитель — отбрасыванием, и обратный ход
-            // не сходился (см. правку в DoseRateEstimator.Estimate). Новый путь
-            // обязан сойтись точно.
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  обратный ход на самом эталоне: старый путь {0:f6}, новый {1:f6} мкЗв/ч"
-                + " (объявлено {2:f6})", etalonOld.Rate, etalonNew.Rate, Declared));
-            Ok(Math.Abs(etalonNew.Rate - Declared) / Declared < 1e-9,
-               string.Format(CultureInfo.InvariantCulture,
-                   "новый путь сходится сам с собой: невязка {0:e2}",
-                   Math.Abs(etalonNew.Rate - Declared) / Declared));
-
-            WhereWindowsDiffer(etalon.EnergySpectrum, newConfig.DoseRateCalibrationPoints);
-
-            Compare(manager, "Am-241 (12.9 % отсчётов ниже 40 кэВ)", americium, oldConfig, newConfig);
-            Compare(manager, "бразильские орехи (2.1 % отсчётов выше 3000 кэВ)", nuts, oldConfig, newConfig);
-        }
-
-        /// <summary>
-        /// Где именно генератор точек и их потребитель видят РАЗНЫЕ каналы.
-        /// Печатает первые расхождения: без этого «обратный ход не сошёлся»
-        /// остаётся числом без причины.
-        /// </summary>
-        static void WhereWindowsDiffer(EnergySpectrum spectrum, List<DoseRateCalibrationPoint> points)
-        {
-            int shown = 0;
-            for (int i = 0; i < points.Count; i++)
-            {
-                DoseRateCalibrationPoint p = points[i];
-                // как считает потребитель (DoseRateManager)
-                int startch = (int)spectrum.EnergyCalibration.EnergyToChannel(
-                    p.LowerBound, spectrum.NumberOfChannels);
-                int endch = (int)spectrum.EnergyCalibration.EnergyToChannel(
-                    p.UpperBound, spectrum.NumberOfChannels);
-                if (startch < 0) startch = 0;
-                // Как считает потребитель ПОСЛЕ `A203`: зажим в длину, канал
-                // переполнения пропускается именем.
-                if (endch > spectrum.Spectrum.Length) endch = spectrum.Spectrum.Length;
-                bool[] overflow = OverflowChannel.Mask(spectrum.Spectrum);
-                double counts = 0.0;
-                for (int j = startch; j < endch; j++)
-                {
-                    if (overflow[j]) continue;
-                    counts += spectrum.Spectrum[j];
-                }
-
-                double consumerCps = counts / spectrum.MeasurementTime;
-                if (Math.Abs(consumerCps - p.CPS) > 1e-9 * Math.Max(1.0, p.CPS) && shown < 6)
-                {
-                    shown++;
-                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                        "     расхождение окна {0:f1}-{1:f1} кэВ: генератор cps={2:f4}, потребитель cps={3:f4}"
-                        + " (каналы потребителя {4}..{5})",
-                        p.LowerBound, p.UpperBound, p.CPS, consumerCps, startch, endch));
-                }
-            }
-
-            if (shown == 0)
-            {
-                Console.WriteLine("     окна каналов у генератора и потребителя совпали все");
-            }
-        }
-
-        static void Compare(DoseRateManager manager, string what, ResultData data,
-                            DoseRateConfig oldConfig, DoseRateConfig newConfig)
-        {
-            DoseRate before = manager.Calculate(data, oldConfig);
-            DoseRate after = manager.Calculate(data, newConfig);
-            double delta = after.Rate - before.Rate;
-            double percent = before.Rate > 0.0 ? 100.0 * delta / before.Rate : double.NaN;
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  {0}:", what));
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "     старым кодом {0:f4} мкЗв/ч (покрытие {1:f1} % отсчётов)",
-                before.Rate, 100.0 * before.Coverage));
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "     новым  кодом {0:f4} мкЗв/ч (покрытие {1:f1} % отсчётов)",
-                after.Rate, 100.0 * after.Coverage));
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "     разница {0:+0.0000;-0.0000} мкЗв/ч = {1:+0.00;-0.00} %", delta, percent));
-        }
-
-        /// <summary>
-        /// Старый расчёт — дословно, как он лежал в
-        /// `DeviceConfigForm.CalculateDoseRateConfig` до 05.09.2026. Нужен
-        /// эталоном сравнения: без него «новое лучше» нечем подтвердить.
-        /// </summary>
-        static List<DoseRateCalibrationPoint> OldEstimate(
-            EnergySpectrum spectrum, DoseRateCurve efficiency, double expectedDoseRate)
-        {
-            // Те же CubicSplineMonotone на тех же шестнадцати узлах, что и в
-            // старом коде: DoseRateEstimator.CurveOf строит ровно её.
-            ShapeCurve muCurve = TableCurve(OldEnergies, OldMu);
-            ShapeCurve rToSvCurve = TableCurve(OldEnergies, OldRToSv);
-
-            double doseRate = 0;
-            var rangeCpsList = new List<double>();
-            var rangeEffList = new List<double>();
-            var rangeFactorList = new List<double>();
-            for (int i = 0; i < OldEnergies.Length - 1; i++)
-            {
-                double fromE = OldEnergies[i];
-                double toE = OldEnergies[i + 1];
-                int fromChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(
-                    fromE, maxChannels: spectrum.NumberOfChannels));
-                int toChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(
-                    toE, maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
-                double centerE = (fromE + toE) / 2;
-
-                double factor = muCurve.At(centerE) * rToSvCurve.At(centerE) * centerE;
-                rangeFactorList.Add(factor);
-
-                double rangeEff = efficiency.At(centerE);
-                rangeEffList.Add(rangeEff);
-
-                double rangeCounts = 0;
-                if (fromChannel < 0) fromChannel = 0;
-                for (int j = fromChannel; j < toChannel; j++)
-                {
-                    rangeCounts += spectrum.Spectrum[j];
-                }
-
-                double rangeCps = rangeCounts / spectrum.MeasurementTime;
-                rangeCpsList.Add(rangeCps);
-                doseRate += rangeCps * factor / rangeEff;
-            }
-
-            double coefficient = expectedDoseRate / doseRate;
-            var points = new List<DoseRateCalibrationPoint>();
-            for (int i = 0; i < OldEnergies.Length - 1; i++)
-            {
-                double sensitivity = coefficient * rangeFactorList[i] / rangeEffList[i];
-                double rangeCps = rangeCpsList[i];
-                if (!(rangeCps > 0.0))
-                {
-                    continue;
-                }
-
-                points.Add(new DoseRateCalibrationPoint
-                {
-                    LowerBound = OldEnergies[i],
-                    UpperBound = OldEnergies[i + 1],
-                    CPS = rangeCps,
-                    EtalonDoseRateValue = sensitivity * rangeCps,
-                });
-            }
-
-            return points;
+                "  линейность по G: R {0:f3} → {1:f3} см, доза {2:f6} → {3:f6} мкЗв/ч (×{4:f6})",
+                r0, rFar, one.Rate, half.Rate, half.Rate / one.Rate));
+            Ok(Math.Abs(half.Rate / one.Rate - 0.5) < 1e-6, "удвоение расстояния² вдвое снижает дозу");
         }
 
         // ==================================================================
@@ -1506,498 +1101,21 @@ namespace DoseRateProbe
             return points;
         }
 
-        static DoseRateCurve FlatCurve()
+        /// <summary>Точечная сцена: цилиндр Ø50×50 мм, обвязка 1+2 мм, источник на заданном расстоянии (мм).</summary>
+        static GeometryModel PointGeometry(double distanceMm)
         {
-            return DoseRateEstimator.CurveOf(FlatCurvePoints());
-        }
-
-        /// <summary>
-        /// Табличная ФОРМА из пары массивов — тем же сплайном, что у приложения,
-        /// но для величины, которая эффективностью НЕ ЯВЛЯЕТСЯ (`A258`).
-        ///
-        /// ⛔ Через неё проходят прежние вшитые таблицы старого расчёта: μ
-        /// (0.002…0.0067) и «RToSv» (0.98…1.52 бэр/Р). Второй ряд выше единицы,
-        /// и граница ε ≤ 1 в `DoseRateEstimator.CurveOf` (~~`A222`~~) отвергает
-        /// его СПРАВЕДЛИВО: эффективность — доля зарегистрированных квантов,
-        /// больше единицы не бывает. Граница ВЕРНА и здесь НЕ ОСЛАБЛЯЕТСЯ —
-        /// разведены случаи: пробе эти таблицы нужны одной лишь формой, чтобы
-        /// повторить старый расчёт дословно.
-        ///
-        /// ⚠ Нормировка стоит ровно ноль: делится на наименьшую степень двойки,
-        /// не меньшую наибольшего значения, а <see cref="ShapeCurve.At"/>
-        /// умножает обратно. Обе операции точны в двоичной плавающей точке,
-        /// монотонный сплайн однороден по значениям первой степени — кривая
-        /// прежняя до последнего бита. Мерит это `DoseBoundProbeF65`, он же
-        /// сторожит, что настоящая кривая с ε &gt; 1 по-прежнему отвергается.
-        /// </summary>
-        static ShapeCurve TableCurve(double[] x, double[] y)
-        {
-            return ShapeCurve.Of(x, y);
-        }
-
-        /// <summary>Кривая-ФОРМА: сплайн приложения на величине, не ограниченной единицей.</summary>
-        sealed class ShapeCurve
-        {
-            readonly DoseRateCurve curve;
-            readonly double scale;
-
-            ShapeCurve(DoseRateCurve curve, double scale)
-            {
-                this.curve = curve;
-                this.scale = scale;
-            }
-
-            public double MinKev { get { return this.curve.MinKev; } }
-
-            public double MaxKev { get { return this.curve.MaxKev; } }
-
-            public double At(double energyKev)
-            {
-                return this.curve.At(energyKev) * this.scale;
-            }
-
-            /// <summary>Наименьшая степень двойки, не меньшая наибольшего значения.</summary>
-            public static double ScaleFor(double[] y)
-            {
-                double max = 0.0;
-                for (int i = 0; i < y.Length; i++)
-                {
-                    if (y[i] > max)
-                    {
-                        max = y[i];
-                    }
-                }
-
-                double scale = 1.0;
-                while (scale < max)
-                {
-                    scale *= 2.0;
-                }
-
-                return scale;
-            }
-
-            public static ShapeCurve Of(double[] x, double[] y)
-            {
-                double scale = ScaleFor(y);
-                var points = new List<ROIEfficiencyData>();
-                for (int i = 0; i < x.Length; i++)
-                {
-                    points.Add(new ROIEfficiencyData
-                    {
-                        Energy = x[i],
-                        Efficiency = y[i] / scale,
-                        ErrorPercent = 1.0,
-                    });
-                }
-
-                return new ShapeCurve(DoseRateEstimator.CurveOf(points), scale);
-            }
-        }
-
-        /// <summary>
-        /// Вероятность взаимодействия в кристалле NaI толщиной 40 мм по
-        /// ослаблению XCOM: 1 − exp(−μ ρ d). Это НЕ эффективность полного
-        /// поглощения — она нужна пробе только формой, чтобы делить на что-то
-        /// физически убывающее, а не на постоянную.
-        /// </summary>
-        static List<ROIEfficiencyData> NaICurve()
-        {
-            const double Density = 3.667;    // г/см³
-            const double Thickness = 4.0;    // см
-            var points = new List<ROIEfficiencyData>();
-            for (double e = 10.0; e <= 10000.0; e *= 1.15)
-            {
-                // NaI: массовые доли Na 0.153373, I 0.846627
-                double mu = 0.153373 * AttenuationData.MassAttenuation(11, e)
-                            + 0.846627 * AttenuationData.MassAttenuation(53, e);
-                double value = 1.0 - Math.Exp(-mu * Density * Thickness);
-                if (value < 1e-6)
-                {
-                    value = 1e-6;
-                }
-
-                points.Add(new ROIEfficiencyData { Energy = e, Efficiency = value, ErrorPercent = 1.0 });
-            }
-
-            points.Add(new ROIEfficiencyData { Energy = 10000.0, Efficiency = 1e-3, ErrorPercent = 1.0 });
-            return points;
-        }
-
-        // ==================================================================
-        // 6. Раскладка вкладки (`A202`) и её подписи (`A201`)
-        // ==================================================================
-
-        /// <summary>Слова, снятые с вкладки `C4`: модель больше не ЛСРМ, полосы 40–3000 нет.</summary>
-        static readonly string[] StaleWords =
-            { "LSRM", "ЛСРМ", "effcalc", "40 keV", "3MeV", "3 MeV", "40 кэВ", "3 МэВ" };
-
-        /// <summary>
-        /// Вкладка строится ЖИВЬЁМ, а разбирается двумя способами разом:
-        /// отражением (какие поля у формы есть и откуда взялись) и геометрией
-        /// уже построенных контролов. Окно при этом НЕ показывается: форма
-        /// строится, у неё берётся дескриптор, и снимок снимается прямо с
-        /// вкладки.
-        /// </summary>
-        static void TabLayout()
-        {
-            Console.WriteLine();
-            Console.WriteLine("== вкладка «Dose Rate»: раскладка из конструктора форм, подписи из resx ==");
-
-            // Раскладка не должна жить в двух местах: полей «путь к файлу», с
-            // которых списки снимали Location/Size/TabIndex, в форме больше
-            // нет вовсе (`A202`).
-            foreach (string gone in new[] { "textBoxEffFile", "textBoxDoseRateSpectrumFile" })
-            {
-                Ok(FormField(gone) == null,
-                    "снятого поля " + gone + " в форме нет");
-            }
-
-            foreach (string live in new[] { "comboDoseRateSpectrum", "comboDoseRateEfficiency" })
-            {
-                FieldInfo f = FormField(live);
-                Ok(f != null && f.FieldType == typeof(ComboBox),
-                    "список " + live + " объявлен полем формы типа ComboBox");
-            }
-
-            // Тот же вопрос со стороны РЕСУРСА: раскладка обоих списков обязана
-            // лежать в `DeviceConfigForm.resx`, иначе она снова окажется в коде.
-            string resx = ResxPath();
-            string text = resx == null ? "" : File.ReadAllText(resx, Encoding.UTF8);
-            Ok(resx != null, "найден " + (resx ?? "DeviceConfigForm.resx — НЕ НАЙДЕН"));
-            foreach (string key in new[] { "comboDoseRateSpectrum.Location", "comboDoseRateSpectrum.Size",
-                                           "comboDoseRateEfficiency.Location", "comboDoseRateEfficiency.Size" })
-            {
-                Ok(text.Contains("\"" + key + "\""), "в resx есть " + key);
-            }
-
-            foreach (string key in new[] { "textBoxEffFile", "textBoxDoseRateSpectrumFile" })
-            {
-                Ok(!text.Contains("\"" + key + "."), "в resx не осталось раскладки " + key);
-            }
-
-            DeviceType.InitializeDeviceTypes();
-            ThermometerType.InitializeThermometerTypes();
-
-            TabOnCulture("en-US");
-            TabOnCulture("ru-RU");
-        }
-
-        static FieldInfo FormField(string name)
-        {
-            return typeof(DeviceConfigForm).GetField(
-                name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-        }
-
-        static string ResxPath()
-        {
-            foreach (string candidate in new[]
-                     {
-                         Path.Combine("BecquerelMonitor", "DeviceConfigForm.resx"),
-                         Path.Combine("..", "..", "..", "..", "BecquerelMonitor", "DeviceConfigForm.resx"),
-                     })
-            {
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>Построить форму на заданной культуре и обмерить вкладку.</summary>
-        static void TabOnCulture(string culture)
-        {
-            Console.WriteLine();
-            Console.WriteLine("  --- культура {0} ---", culture);
-            CultureInfo previous = Thread.CurrentThread.CurrentUICulture;
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
-            try
-            {
-                using (var form = new DeviceConfigForm())
-                {
-                    var page = (TabPage)Instance(form, "tabPage7");
-                    if (page == null)
-                    {
-                        Ok(false, "вкладки tabPage7 в форме нет");
-                        return;
-                    }
-
-                    // Дескриптор нужен, чтобы контролы получили свои шрифты и
-                    // чтобы снимок не вышел пустым; окно не показывается.
-                    var tabs = (TabControl)Instance(form, "tabControl1");
-                    if (tabs != null && tabs.TabPages.Contains(page))
-                    {
-                        tabs.SelectedTab = page;
-                    }
-
-                    IntPtr ignored = form.Handle;
-                    GC.KeepAlive(ignored);
-
-                    // ⛔ Открытый `CreateControl()` у НЕВИДИМОЙ формы не делает
-                    // ничего, и `DrawToBitmap` отдаёт ровный фон — измерено:
-                    // 0.0 % точек, отличных от фона. Дескрипторы детей создаёт
-                    // внутренняя перегрузка с `ignoreVisible`; окно при этом не
-                    // показывается.
-                    MethodInfo create = typeof(Control).GetMethod(
-                        "CreateControl", BindingFlags.Instance | BindingFlags.NonPublic,
-                        null, new[] { typeof(bool) }, null);
-                    if (create != null)
-                    {
-                        create.Invoke(page, new object[] { true });
-                    }
-
-                    Filling(form, page, culture);
-                    Apply(page, culture);
-                    Measure(page, culture);
-                    Shot(page, culture);
-                }
-            }
-            finally
-            {
-                Thread.CurrentThread.CurrentUICulture = previous;
-            }
-        }
-
-        /// <summary>
-        /// Списки переехали в конструктор форм — наполняться они обязаны
-        /// по-прежнему. ⚠ Перенос, при котором раскладка верна, а связь кода с
-        /// контролом порвана, снимком не виден вовсе: пустой список выглядит
-        /// как список без кривых.
-        /// </summary>
-        static void Filling(DeviceConfigForm form, TabPage page, string culture)
-        {
-            var config = new DeviceConfigInfo();
-            for (int i = 0; i < 3; i++)
-            {
-                var curve = new EfficiencyConfigData("кривая " + (i + 1));
-                curve.Curve = new List<ROIEfficiencyData>
-                {
-                    new ROIEfficiencyData { Energy = 40, Efficiency = 0.02 },
-                    new ROIEfficiencyData { Energy = 662, Efficiency = 0.01 },
-                    new ROIEfficiencyData { Energy = 3000, Efficiency = 0.003 },
-                };
-
-                config.EfficiencyConfigs.Add(curve);
-            }
-
-            MethodInfo load = typeof(DeviceConfigForm).GetMethod(
-                "LoadDoseRateTab", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (load == null)
-            {
-                Ok(false, "у формы нет LoadDoseRateTab");
-                return;
-            }
-
-            load.Invoke(form, new object[] { config });
-
-            var combo = (ComboBox)Child(page, "comboDoseRateEfficiency");
-            Ok(combo.Items.Count == 3, string.Format(CultureInfo.InvariantCulture,
-                "{0}: три кривые конфигурации доехали до списка вкладки (в списке {1})",
-                culture, combo.Items.Count));
-            Ok(combo.SelectedIndex == combo.Items.Count - 1,
-                string.Format("{0}: выбран последний пункт ({1})", culture, combo.SelectedIndex));
-
-            // Кривая выбранного пункта дошла до расчёта — иначе кнопка «Оценить»
-            // осталась бы выключенной при полном списке.
-            object curveField = Instance(form, "efficiencyCurve");
-            Ok(curveField != null, culture + ": выбранная кривая доехала до расчёта");
-        }
-
-        /// <summary>Порча ради положительного контроля — ровно одна вещь.</summary>
-        static void Apply(TabPage page, string culture)
-        {
-            if (sabotage == null)
-            {
-                return;
-            }
-
-            Control victim = Child(page, "labelEffNote");
-            switch (sabotage)
-            {
-                case "long":
-                    victim.Text = new string('W', 200);
-                    break;
-                case "word":
-                    victim.Text = "*only curve shape is important (LSRM effcalc, 40 keV - 3MeV)";
-                    break;
-                case "hidden":
-                    victim.Visible = false;
-                    break;
-                case "overlap":
-                    victim.Location = Child(page, "buttonLoadEff").Location;
-                    break;
-                default:
-                    throw new InvalidOperationException("неизвестная порча: " + sabotage);
-            }
-
-            Console.WriteLine("     ПОРЧА «{0}» наложена на labelEffNote ({1})", sabotage, culture);
-        }
-
-        static Control Child(TabPage page, string name)
-        {
-            foreach (Control c in page.Controls)
-            {
-                if (c.Name == name)
-                {
-                    return c;
-                }
-            }
-
-            throw new InvalidOperationException("на вкладке нет контрола " + name);
-        }
-
-        /// <summary>Геометрия и подписи прямых детей вкладки.</summary>
-        static void Measure(TabPage page, string culture)
-        {
-            var kids = new List<Control>();
-            foreach (Control c in page.Controls)
-            {
-                kids.Add(c);
-            }
-
-            Ok(kids.Count > 0, string.Format("детей у вкладки: {0}", kids.Count));
-
-            // ⚠ `Control.Visible` у ребёнка невыбранной вкладки врёт (он ложен
-            // потому, что ложен родитель). Спрашивается СОБСТВЕННОЕ состояние
-            // контрола — тот самый бит, который ставил `Visible = false`.
-            foreach (Control c in kids)
-            {
-                Ok(SelfVisible(c), "виден: " + Name(c));
-            }
-
-            Rectangle field = new Rectangle(Point.Empty, page.Size);
-            foreach (Control c in kids)
-            {
-                Ok(field.Contains(c.Bounds), string.Format(CultureInfo.InvariantCulture,
-                    "{0} внутри страницы {1}x{2}: {3}", Name(c), field.Width, field.Height, c.Bounds));
-            }
-
-            int overlaps = 0;
-            for (int i = 0; i < kids.Count; i++)
-            {
-                for (int j = i + 1; j < kids.Count; j++)
-                {
-                    if (kids[i].Bounds.IntersectsWith(kids[j].Bounds))
-                    {
-                        overlaps++;
-                        Console.WriteLine("     налезают: {0} на {1}", Name(kids[i]), Name(kids[j]));
-                    }
-                }
-            }
-
-            Ok(overlaps == 0, string.Format("контролы не налезают друг на друга (пар: {0})", overlaps));
-
-            // Подпись обязана ПОМЕЩАТЬСЯ. Метка с AutoSize = false и кнопка
-            // обрезают текст молча, и на второй культуре это самый частый
-            // способ потерять половину строки.
-            foreach (Control c in kids)
-            {
-                if (!(c is Label) && !(c is Button))
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrEmpty(c.Text))
-                {
-                    continue;
-                }
-
-                int need = TextRenderer.MeasureText(c.Text, c.Font).Width + (c is Button ? 10 : 2);
-                Ok(need <= c.Width, string.Format(CultureInfo.InvariantCulture,
-                    "{0}: подписи нужно {1} тчк, дано {2} — «{3}»", Name(c), need, c.Width, c.Text));
-            }
-
-            // `A201`: снятые слова не должны остаться ни в одной подписи.
-            foreach (Control c in kids)
-            {
-                if (string.IsNullOrEmpty(c.Text))
-                {
-                    continue;
-                }
-
-                foreach (string word in StaleWords)
-                {
-                    if (c.Text.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        Ok(false, string.Format("{0} обещает снятое «{1}»: «{2}»", Name(c), word, c.Text));
-                    }
-                }
-            }
-
-            Ok(true, string.Format("подписи вкладки ({0}) снятых слов не содержат", culture));
-
-            foreach (Control c in kids)
-            {
-                Console.WriteLine("     {0,-28} {1,-22} «{2}»", Name(c), c.Bounds.ToString(), Shorten(c.Text));
-            }
-        }
-
-        static string Shorten(string text)
-        {
-            text = text ?? "";
-            return text.Length <= 70 ? text : text.Substring(0, 67) + "...";
-        }
-
-        static string Name(Control c)
-        {
-            return string.IsNullOrEmpty(c.Name) ? c.GetType().Name : c.Name;
-        }
-
-        /// <summary>Собственный бит видимости, не зависящий от родителя.</summary>
-        static bool SelfVisible(Control c)
-        {
-            MethodInfo m = typeof(Control).GetMethod(
-                "GetState", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(int) }, null);
-            if (m == null)
-            {
-                return c.Visible;
-            }
-
-            return (bool)m.Invoke(c, new object[] { 2 });   // STATE_VISIBLE
-        }
-
-        /// <summary>
-        /// Снимок вкладки. ⚠ Проверяется не только то, что файл записан, но и
-        /// то, что он НЕ ПУСТ: `DrawToBitmap` на контроле без дескриптора
-        /// отдаёт ровный фон, и такой снимок выглядит как удачный.
-        /// ⛔ Раннего выхода «каталог не задан» здесь больше нет (`T231`):
-        /// каталог есть всегда, см. <see cref="shotDir"/>.
-        /// </summary>
-        static void Shot(TabPage page, string culture)
-        {
-            Directory.CreateDirectory(shotDir);
-            string path = Path.Combine(shotDir, "doserate-tab-" + culture + ".png");
-            using (var bmp = new Bitmap(page.Width, page.Height))
-            {
-                page.DrawToBitmap(bmp, new Rectangle(0, 0, page.Width, page.Height));
-                bmp.Save(path, ImageFormat.Png);
-
-                int ink = 0;
-                Color ground = bmp.GetPixel(bmp.Width - 2, bmp.Height - 2);
-                for (int y = 0; y < bmp.Height; y += 2)
-                {
-                    for (int x = 0; x < bmp.Width; x += 2)
-                    {
-                        if (bmp.GetPixel(x, y) != ground)
-                        {
-                            ink++;
-                        }
-                    }
-                }
-
-                double share = 100.0 * ink / (bmp.Width / 2.0 * (bmp.Height / 2.0));
-                Ok(share > 1.0, string.Format(CultureInfo.InvariantCulture,
-                    "снимок {0}: не фон {1:f1} % точек", path, share));
-            }
-        }
-
-        static object Instance(object target, string name)
-        {
-            FieldInfo f = target.GetType().GetField(
-                name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-            return f == null ? null : f.GetValue(target);
+            var g = new GeometryModel();
+            g.IsScintillator = true;
+            g.Shape = CrystalShape.Cylinder;
+            g.CrystalDiameter = 50.0;
+            g.CrystalHeight = 50.0;
+            g.FrontReflectorThickness = 1.0;
+            g.FrontCladdingThickness = 2.0;
+            g.SideReflectorThickness = 1.0;
+            g.SideCladdingThickness = 2.0;
+            g.SourceType = GeometrySourceType.Point;
+            g.PointDistance = distanceMm;
+            return g;
         }
     }
 }

@@ -8,6 +8,26 @@ using System.Text;
 namespace BecquerelMonitor.EfficiencyMaker
 {
     /// <summary>
+    /// На что нормирован отклик — строки матрицы и кривая эффективности
+    /// (`AMBER13` (б)). Номера — байт хвоста `NORM` файла матрицы; менять
+    /// нельзя.
+    /// </summary>
+    public enum ResponseMatrixNormalization
+    {
+        /// <summary>
+        /// На квант, испущенный источником в 4π: значение — ДОЛЯ (имп/квант).
+        /// Все сцены с источником; так же читаются все файлы без хвоста `NORM`.
+        /// </summary>
+        PerEmittedQuantum = 0,
+
+        /// <summary>
+        /// На единичный флюенс (1 квант/см² изотропно): значение —
+        /// ЭФФЕКТИВНАЯ ПЛОЩАДЬ, см². Сцена <see cref="GeometrySceneKind.Iso"/>.
+        /// </summary>
+        PerUnitFluence = 1
+    }
+
+    /// <summary>
     /// Отклик детектора для одной геометрии: как распределяется ПОГЛОЩЁННАЯ
     /// энергия, если в детектор летит квант заданной энергии.
     ///
@@ -21,6 +41,15 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// ПОГЛОЩЁННОЙ энергии, нормированные на квант, испущенный источником в 4π
     /// (та же нормировка, что у <see cref="EfficiencySimulator.Efficiency"/>).
     /// Последний значащий бин строки — пик полного поглощения.
+    ///
+    /// ⛔ ИСКЛЮЧЕНИЕ — СЦЕНА ИЗОТРОПНОГО ПОЛЯ (`AMBER13` (б), решение Amber
+    /// 10.09.2026 «Внести в (б) требованием»): у неё источника в сцене нет, и
+    /// «на квант источника» не определено вовсе. Её строки нормированы на
+    /// ЕДИНИЧНЫЙ ФЛЮЕНС — 1 квант/см² изотропно из 4π, — то есть значение
+    /// бина есть эффективная площадь в см². Признак носится ЯВНО:
+    /// <see cref="Normalization"/>, хвост `NORM` файла, строка `norm=fluence`
+    /// в клейме. Потребитель, складывающий отклики двух матриц, ОБЯЗАН
+    /// сверить признак — см² с долями не складываются.
     ///
     /// ГДЕ ЛЕЖИТ. Отдельным файлом рядом с конфигурацией устройства, а не внутри
     /// неё. Причина жёсткая: `ResultData.DeviceConfig` сериализуется в файл
@@ -306,6 +335,27 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Отпечаток геометрии и физики, с которыми считалось.</summary>
         public string Stamp { get; set; }
+
+        /// <summary>
+        /// На что нормированы строки (`AMBER13` (б)). Ставится строителем по
+        /// сцене (<see cref="NormalizationOf"/>), пишется хвостом `NORM` и
+        /// читается оттуда; у файла без хвоста — <see cref="ResponseMatrixNormalization.PerEmittedQuantum"/>,
+        /// то есть ровно то, чем были все матрицы до 12.09.2026 (сцены поля
+        /// тогда не существовало, и иной нормировки быть не могло).
+        /// </summary>
+        public ResponseMatrixNormalization Normalization { get; set; }
+
+        /// <summary>
+        /// Нормировка, положенная геометрии: единичный флюенс у сцены поля,
+        /// квант источника у всех прочих. ОДНО правило на строителя, клеймо и
+        /// кривую — второе однажды разошлось бы с первым молча (`S37`).
+        /// </summary>
+        public static ResponseMatrixNormalization NormalizationOf(GeometryModel geometry)
+        {
+            return geometry != null && geometry.Scene == GeometrySceneKind.Iso
+                ? ResponseMatrixNormalization.PerUnitFluence
+                : ResponseMatrixNormalization.PerEmittedQuantum;
+        }
 
         /// <summary>
         /// Параметры, с которыми матрица посчитана. Хранятся, а не
@@ -861,6 +911,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                       .Append(options.LightEtaEh.ToString("R", CultureInfo.InvariantCulture))
                       .Append(';');
                 }
+            }
+
+            // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
+            // пишется ТОЛЬКО у сцены поля. Текст геометрии её и так несёт
+            // (`DS_Scene = ISO`), но нормировка — свойство МАТРИЦЫ, а не
+            // размера, и клеймо обязано называть её само, а не через ключ
+            // файла, который однажды переименуют.
+            if (NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence)
+            {
+                sb.Append("norm=fluence;");
             }
 
             sb.Append("geom=").Append(GeometryText(geometry));
@@ -1836,6 +1896,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(flags.KDipLight);
                 writer.Write(Encoding.ASCII.GetBytes("LETA"));
                 writer.Write(flags.LightEtaEh);
+
+                // ⛔ ДВЕНАДЦАТЫЙ ХВОСТ, `NORM` — НОРМИРОВКА СТРОК (`AMBER13` (б),
+                // решение Amber 10.09.2026 «Внести в (б) требованием»). Один
+                // байт: 0 — на квант источника (доли), 1 — на единичный
+                // флюенс (эффективная площадь, см²). Не настройка, а свойство
+                // матрицы, положенное сценой (<see cref="NormalizationOf"/>);
+                // в клеймо входит строкой `norm=fluence` у сцены поля, и без
+                // хвоста матрица поля после чтения стала бы «долями» —
+                // потребитель сложил бы см² с долями молча. Формат НЕ поднят:
+                // у прежнего файла хвоста нет, поле остаётся 0 — ровно тем,
+                // чем были все матрицы до появления сцены поля, — и клеймо
+                // сходится побайтно. Ни одна из 44 корпусных матриц не
+                // устарела.
+                writer.Write(Encoding.ASCII.GetBytes("NORM"));
+                writer.Write((byte)this.Normalization);
             }
 
             if (File.Exists(path))
@@ -2125,6 +2200,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LETA")
                             {
                                 matrix.Options.LightEtaEh = reader.ReadDouble();
+
+                                // ⛔ ДВЕНАДЦАТЫЙ ХВОСТ, `NORM` (`AMBER13` (б)):
+                                // нормировка строк. Читается здесь же по тем же
+                                // двум причинам, что хвосты выше; у файлов до
+                                // 12.09.2026 его нет — поле остаётся
+                                // `PerEmittedQuantum`, то есть ровно тем, чем
+                                // они и были при счёте.
+                                if (stream.Length - stream.Position >= 5
+                                    && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "NORM")
+                                {
+                                    matrix.Normalization =
+                                        (ResponseMatrixNormalization)reader.ReadByte();
+                                }
                             }
                         }
                     }

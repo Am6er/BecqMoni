@@ -40,7 +40,7 @@ namespace EditorShot
     /// `Bitmap`, как в `SketchShot`. Молчащая проба — это `MessageBox` за
     /// кадром.
     ///
-    ///   editorshot &lt;куда.png&gt; [--scene=1|2] [--energy=3000]
+    ///   editorshot &lt;куда.png&gt; [--scene=1|2|3] [--energy=3000]
     ///     --scene=1 — «Детектор на земле», =2 — «Детектор в лунке», 0 — без сцены
     ///
     ///   editorshot --check [--dir=&lt;куда класть PNG&gt;] [--tag=before|after]
@@ -62,7 +62,7 @@ namespace EditorShot
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             if (args.Length < 1)
             {
-                Console.Error.WriteLine("editorshot <куда.png> [--scene=1|2] [--energy=3000]");
+                Console.Error.WriteLine("editorshot <куда.png> [--scene=1|2|3] [--energy=3000]");
                 Console.Error.WriteLine("editorshot --check [--dir=] [--tag=] [--only=] [--expect=ok|fail]");
                 return 2;
             }
@@ -149,6 +149,11 @@ namespace EditorShot
                 {
                     GeometryScenes.Borehole(g, energy);
                 }
+                else if (scene == 3)
+                {
+                    // (`AMBER13` (б)) Изотропное поле — седьмая строка списка.
+                    GeometryScenes.Iso(g);
+                }
 
                 panel.SetSceneEnergy(energy);
                 // Сцена въезжает МОДЕЛЬЮ, а не выбором в списке: так проверяется
@@ -171,7 +176,7 @@ namespace EditorShot
                     return 1;
                 }
 
-                int want = scene == 1 ? 4 : scene == 2 ? 5 : 0;
+                int want = scene == 1 ? 4 : scene == 2 ? 5 : scene == 3 ? 6 : 0;
                 if (types.SelectedIndex != want)
                 {
                     Console.Error.WriteLine("список типов встал на строку {0}, а ожидалась {1}",
@@ -669,13 +674,14 @@ namespace EditorShot
         }
 
         /// <summary>
-        /// Список типов источника узнаётся по числу строк: их шесть — четыре
-        /// формы и две съёмки в поле (E27). Списки веществ на той же вкладке
+        /// Список типов источника узнаётся по числу строк: их семь — четыре
+        /// формы, две съёмки в поле (E27) и изотропное поле (`AMBER13` (б),
+        /// 12.09.2026). Списки веществ на той же вкладке
         /// длиной в библиотеку, спутать нельзя. Привязка к порядку контролов
         /// сломалась бы от любой правки разметки — ровно того, что проба и
         /// проверяет.
         /// </summary>
-        const int SourceKindCount = 6;
+        const int SourceKindCount = 7;
 
         static ComboBox FindSourceTypes(Control root)
         {

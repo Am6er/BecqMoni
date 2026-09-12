@@ -449,7 +449,6 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             this.LoadEfficiencyTab(config);
-            this.LoadDoseRateTab(config);
             this.LoadCrystalMaterial(config);
             this.textBox1.Text = config.Name;
             this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
@@ -828,14 +827,12 @@ namespace BecquerelMonitor
                     targetPeak.Error = (decimal)row.Cells[2].Data;
                     config.StabilizerConfig.TargetPeaks.Add(targetPeak);
                 }
-                // ⛔ `AMBER13`: точки калибровки дозы форма больше не пишет —
-                // ни из таблицы (её нет), ни как пустой список. Пустой список
-                // здесь был бы ТИХОЙ ПОТЕРЕЙ содержимого поставочных файлов у
-                // человека, который просто открыл конфигурацию и нажал
-                // «Сохранить»; вместо этого поле не сериализуется вовсе
-                // (`DoseRateConfig.DoseRateCalibrationPoints`, `[XmlIgnore]`),
-                // и рудимент исчезает при первом же пересохранении — ровно
-                // так, как сказала Amber 10.09.2026.
+                // ⛔ `AMBER13`/`AMBER18`: точек калибровки дозы у конфигурации
+                // больше нет вовсе — `DeviceConfigInfo.DoseRateConfig` снят
+                // целиком 12.09.2026 (решение (4) Amber 11.09.2026). Старый
+                // элемент `<DoseRateConfig>` при чтении пропускается молча и
+                // при пересохранении не пишется — рудимент исчезает, как
+                // сказала Amber 10.09.2026; поставочные файлы не трогаются.
                 FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
@@ -2520,88 +2517,23 @@ namespace BecquerelMonitor
         PolynomialEnergyCalibration rc_EnergyCalibration;
 
 
-        private DoseRateCurve efficiencyCurve;
-
-        // --- `AMBER13`, решения Amber 10.09.2026 -----------------------------
+        // --- `AMBER13` (10.09.2026) и `AMBER18` (11–12.09.2026), решения Amber ---
         //
-        // ⛔ «Чистить сразу» и «Снять целиком»: с вкладки `DoseRate` сняты
-        // ручная таблица точек, эталонный спектр с объявленной дозой и кнопка
-        // оценки. ⛔ «Снять и завести ввоз на Efficiency»: ввоз экспорта ЛСРМ
-        // (`buttonLoadEff` / `labelEffNote`) уехал на вкладку Efficiency, где
-        // ввезённая кривая наконец СОХРАНЯЕТСЯ в конфигурации прибора —
-        // см. `DeviceConfigForm.Efficiency.cs`, `ImportLsrmEfficiency`.
+        // ⛔ Вкладки `Dose Rate` (`tabPage7`) В ФОРМЕ БОЛЬШЕ НЕТ. 10.09.2026 с
+        // неё сняты ручная таблица точек, эталонный спектр с объявленной дозой,
+        // кнопка оценки и ввоз ЛСРМ (уехал на вкладку Efficiency —
+        // `ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`); остался
+        // один список `comboDoseRateEfficiency`, и 11.09.2026 по снимку с ним
+        // Amber сказала дословно: «Привязаться к текущей выбранной
+        // эффективности на ControlPanel. Этот Combobox удалить, вся привязка
+        // уже должна быть на Control Panel саму вкладку - удалить.»
         //
-        // ⚠ На вкладке остался ОДИН контрол — `comboDoseRateEfficiency`. Его
-        // судьба решением (в) названа отдельно: «на его место — выбор вида
-        // облучения и сцены поля», то есть он не снимается, а ЗАМЕЩАЕТСЯ, и
-        // замещение приходит с пунктом (б) (`GeometrySceneKind`: `AP`/`PA`/
-        // `ISO`/`ROT`), который лежит в `EfficiencyMaker/**` и этой полосе
-        // запрещён. До того список стоит на месте без потребителя: расчёт по
-        // кривой ПРОБЫ снят вместе с кнопкой оценки.
-
-        /// <summary>
-        /// Наполнить список кривых. Зовётся при загрузке конфигурации: набор
-        /// кривых у каждой конфигурации свой.
-        /// </summary>
-        void LoadDoseRateTab(DeviceConfigInfo config)
-        {
-            if (this.comboDoseRateEfficiency == null)
-            {
-                return;
-            }
-
-            this.FillDoseRateEfficiencyCombo(config);
-        }
-
-        void FillDoseRateEfficiencyCombo(DeviceConfigInfo config)
-        {
-            this.comboDoseRateEfficiency.Items.Clear();
-
-            // Кривые САМОЙ конфигурации прибора — то, чего вкладка не видела
-            // вовсе (`C4(а)`).
-            foreach (EfficiencyConfigData item in DoseRateEstimator.OfferedEfficiencies(config))
-            {
-                this.comboDoseRateEfficiency.Items.Add(item);
-            }
-
-            if (this.comboDoseRateEfficiency.Items.Count > 0)
-            {
-                this.comboDoseRateEfficiency.SelectedIndex = this.comboDoseRateEfficiency.Items.Count - 1;
-            }
-            else
-            {
-                this.efficiencyCurve = null;
-            }
-        }
-
-        void comboDoseRateEfficiency_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            object selected = this.comboDoseRateEfficiency.SelectedItem;
-            try
-            {
-                EfficiencyConfigData data = selected as EfficiencyConfigData;
-                List<ROIEfficiencyData> points = data == null ? null : data.Curve;
-
-                this.efficiencyCurve = points == null ? null : DoseRateEstimator.CurveOf(points);
-            }
-            catch (DoseRateRefusalException ex)
-            {
-                this.efficiencyCurve = null;
-
-                // ⚠ Во время загрузки конфигурации окно НЕ показывается: список
-                // наполняется сам, человек ничего не выбирал, и негодная кривая
-                // из хранилища встретила бы его модальным окном на открытии
-                // формы. Причина при этом не теряется — она уходит в журнал.
-                if (this.contentsLoading)
-                {
-                    Trace.WriteLine("Dose rate: " + ex.Message);
-                }
-                else
-                {
-                    MessageBox.Show(this, ex.Message, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-            }
-        }
+        // Сняты 12.09.2026: `tabPage7`, `comboDoseRateEfficiency`,
+        // `LoadDoseRateTab`, `FillDoseRateEfficiencyCombo`,
+        // `comboDoseRateEfficiency_SelectedIndexChanged`, поле `efficiencyCurve`
+        // (три записи, ноль чтений), обе пары ресурсов в `.resx`/`.ru.resx`.
+        // Мощность дозы считается от кривой, выбранной на панели, —
+        // `DoseRateManager.Calculate(ResultData)`.
 
         // ⛔ `AMBER13`, решение Amber 10.09.2026 «Чистить сразу»: ввоз
         // эталонного спектра (`buttonLoadDoseRateSpectrum_Click`) снят вместе
@@ -2807,10 +2739,10 @@ namespace BecquerelMonitor
         //  * `EvaluateButtonEstimateDRState` — состояние снятой кнопки;
         //  * `buttonClearDoseRate_Click` — очистка снятой таблицы.
         //
-        // ⚠ Сам ГЕНЕРАТОР точек (`DoseRateEstimator.Estimate`) не снят: по
-        // пункту (а) строки его переводят с пиковой эффективности на полную,
-        // и он же остаётся читателем `ReadLsrmEfficiencyExport`, которую ниже
-        // зовёт вкладка Efficiency.
+        // ⛔ 12.09.2026 (`AMBER18`): генератор точек `DoseRateEstimator.Estimate`
+        // снят вместе с самими точками — расчёт идёт от кривой панели одним
+        // проходом в `DoseRateManager`. `ReadLsrmEfficiencyExport` ниже
+        // остаётся: её зовёт ввоз на вкладке Efficiency.
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {

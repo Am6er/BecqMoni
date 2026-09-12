@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Xml.Serialization;
@@ -43,11 +44,12 @@ namespace DoseCoefProbeO2
     ///     которую узловая сверка `A198` не трогает.
     ///
     ///  5. **Цена для показаний на Co-60 и K-40.** Развёртка по ОДНОЙ величине:
-    ///     сетка, μ_en/ρ, кривая эффективности, эталон и спектр — общие, меняется
-    ///     только таблица h*(10)/K_air (прежняя против ICRP 74). Прибор
-    ///     Gamma-1S UDS-GC 63x63, эталон `G1S16_Cs137_P5` с объявленной дозой
-    ///     1.000 мкЗв/ч, измеряются `G1S16_Co60_P5` и `G1S16_K40_Mar` — все
-    ///     одного прибора, чтобы шкала не подменяла ответ.
+    ///     сетка, μ_en/ρ, кривая эффективности, геометрия и спектр — общие,
+    ///     меняется только таблица h*(10)/K_air (прежняя против ICRP 74).
+    ///     Прибор Gamma-1S UDS-GC 63x63, спектры `G1S16_Cs137_P5`,
+    ///     `G1S16_Co60_P5`, `G1S16_K40_Mar` — все одного прибора, чтобы шкала
+    ///     не подменяла ответ. ⛔ С 12.09.2026 (`AMBER18`) эталона нет: доза
+    ///     абсолютная, и цена — прямое отношение показаний двумя таблицами.
     ///
     ///   dosecoefprobeo2 [--dir=&lt;корпус&gt;] [--csv=&lt;каталог&gt;]
     ///   dosecoefprobeo2 --tamper=&lt;кэВ&gt;:&lt;множитель&gt;   (ждёт ОТКАЗ)
@@ -804,6 +806,15 @@ namespace DoseCoefProbeO2
 
             // 5.2 Сквозной прогон. Развёртка по ОДНОЙ величине: всё общее,
             // меняется только таблица h.
+            //
+            // ⛔ С 12.09.2026 (`AMBER18`) ЭТАЛОНА НЕТ: прежде обе таблицы
+            // нормировались на объявленную дозу эталона Cs-137, и на самом
+            // эталоне цена выходила нулевой по построению, а на спектрах иной
+            // формы — остатком. Теперь доза абсолютная, и цена таблицы — это
+            // ПРЯМОЕ отношение показаний двумя таблицами на каждом спектре;
+            // нормировки, которая «забирала» сдвиг на 662 кэВ, больше нет,
+            // поэтому у жёстких спектров цена — те самые +1.9…2.2 %, что и у
+            // самой таблицы выше 600 кэВ.
             string devicePath = Path.Combine(corpusDir, "devices",
                 "Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016).xml");
             string spectra = Path.Combine(corpusDir, "spectra");
@@ -820,61 +831,64 @@ namespace DoseCoefProbeO2
                 device = (DeviceConfigInfo)new XmlSerializer(typeof(DeviceConfigInfo)).Deserialize(fs);
             }
 
-            ResultData etalon = LoadSpectrum(Path.Combine(spectra, "G1S16_Cs137_P5.xml"));
+            ResultData caesium = LoadSpectrum(Path.Combine(spectra, "G1S16_Cs137_P5.xml"));
             ResultData cobalt = LoadSpectrum(Path.Combine(spectra, "G1S16_Co60_P5.xml"));
             ResultData potassium = LoadSpectrum(Path.Combine(spectra, "G1S16_K40_Mar.xml"));
-            // ⚠ Третья и четвёртая сцены НЕ для полноты. Эталон стоит на
-            // 662 кэВ, там таблицы расходятся на +1.9 %, и нормировка этот
-            // сдвиг ЗАБИРАЕТ. Поэтому у жёстких спектров цена обязана выйти
-            // почти нулевой, а весь остаток — у спектров ИНОЙ формы, где
-            // таблицы сходятся (ниже 500 кэВ, ≤ 0.7 %). Без мягкой сцены
-            // «цена ≈ 0» была бы свойством выбранных спектров, а не ответом.
+            // ⚠ Мягкие сцены НЕ для полноты: у жёстких спектров цена — сдвиг
+            // таблицы выше 600 кэВ, у мягких — там, где таблицы сходятся
+            // (ниже 500 кэВ, ≤ 0.7 %). Без мягкой сцены «цена ≈ 2 %» была бы
+            // свойством выбранных спектров, а не ответом.
             ResultData americium = LoadSpectrum(Path.Combine(spectra, "G1S16_Am241_P5.xml"));
             ResultData barium = LoadSpectrum(Path.Combine(spectra, "G1S16_Ba133_P5.xml"));
-            if (etalon == null || cobalt == null || potassium == null)
+            if (caesium == null || cobalt == null || potassium == null || caesium.Efficiency == null
+                || !caesium.Efficiency.HasGeometry)
             {
-                Ok(false, "спектров корпуса нет — замер пропущен");
+                Ok(false, "спектров корпуса нет или у G1S16_Cs137_P5 нет геометрии — замер пропущен");
                 return;
             }
 
-            double deviceMin, deviceMax;
-            DoseRateEstimator.DeviceRange(device, null, out deviceMin, out deviceMax);
-            DoseRateCurve efficiency = DoseRateEstimator.CurveOf(NaICurve());
-            double low = Math.Max(deviceMin, efficiency.MinKev);
-            double high = Math.Min(deviceMax, efficiency.MaxKev);
-
-            // ⛔ Сетка обрезается по 40…3000 кэВ НАРОЧНО, и это не мелочь.
-            // Прежняя таблица за этими двумя числами не существует вовсе, и
-            // всякое значение, подставленное туда, было бы выдумкой: на 10 кэВ
-            // ICRP 74 даёт 0.008, а удержание края прежней таблицы дало бы
-            // 1.47 — разница в 184 раза, и развёртка мерила бы РАСШИРЕНИЕ
-            // СЕТКИ (`C4`; ширина поставочных кривых `config/ROI/*.xml` —
-            // по приказу Amber 05.09.2026 не задача, таблица «Чего делать НЕ
-            // надо» в `TODO.md`), а не смену чисел (`A198`). Первый заход
-            // именно так и соврал: 92.5 % на точке калибровки и +12.8 % на
-            // Co-60. Здесь полоса одна на оба плеча.
-            double[] grid = DoseRateEstimator.BuildGrid(
-                Math.Max(low, OldEnergies[0]),
-                Math.Min(high, OldEnergies[OldEnergies.Length - 1]));
+            // Кривая пробы — форма NaI 63×63 по XCOM (пиковый путь, с пометкой
+            // «≈»); геометрия — точечная сцена самого спектра (G1S_point5): без
+            // геометрии у дозы нет масштаба, а масштаб здесь в отношении
+            // сокращается, так что любая годная сцена даёт ту же цену.
+            // ⛔ Область — 40…3000 кэВ НАРОЧНО (`C4`): прежняя таблица за этими
+            // числами не существует, и всякое значение там было бы выдумкой.
+            List<ROIEfficiencyData> naiPoints = NaICurve()
+                .Where(pt => pt.Energy >= OldEnergies[0] && pt.Energy <= OldEnergies[OldEnergies.Length - 1])
+                .ToList();
+            var curve = new EfficiencyConfigData("NaI 63x63 по XCOM")
+            {
+                Curve = naiPoints,
+                Geometry = caesium.Efficiency.Geometry,
+            };
+            DoseRateInput input = DoseRateInput.Of(curve, null);
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  прибор {0}: {1:f0}...{2:f0} кэВ, {3} каналов",
-                device.Name, deviceMin, deviceMax, device.NumberOfChannels));
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  полоса развёртки {0:f0}...{1:f0} кэВ (общая обоим плечам), {2} диапазонов",
-                grid[0], grid[grid.Length - 1], grid.Length - 1));
-
-            const double Declared = 1.0;   // мкЗв/ч
+                "  прибор {0}: {1} каналов; вход по пиковой {2:f0}…{3:f0} кэВ; {4}",
+                device.Name, device.NumberOfChannels, input.MinKev, input.MaxKev, input.GeometryNote));
 
             // Плечо A — прежняя таблица h. Ставится ОТРАЖЕНИЕМ на место живой,
-            // чтобы весь остальной путь (сетка, μ, окна каналов, нормировка)
+            // чтобы весь остальной путь (сетка, μ, окна каналов, единицы)
             // остался буква в букву тем же.
             double[] energyField = Field("AmbientEnergyKev");
             double[] valueField = Field("AmbientConversion");
             double[] keepValue = (double[])valueField.Clone();
 
-            DoseRateConfig configNew = new DoseRateConfig();
-            configNew.DoseRateCalibrationPoints =
-                DoseRateEstimator.Estimate(etalon.EnergySpectrum, efficiency, Declared, grid, null);
+            DoseRateManager manager = new DoseRateManager(Config());
+            var arms = new List<Tuple<string, ResultData>>
+            {
+                Tuple.Create("Cs-137 (сдвиг таблицы на 662 кэВ +1.9 %)", caesium),
+                Tuple.Create("Co-60", cobalt),
+                Tuple.Create("K-40", potassium),
+            };
+            if (americium != null) arms.Add(Tuple.Create("Am-241 (мягкий)", americium));
+            if (barium != null) arms.Add(Tuple.Create("Ba-133 (середина шкалы)", barium));
+
+            var withNew = new List<DoseRate>();
+            var withOld = new List<DoseRate>();
+            foreach (var arm in arms)
+            {
+                withNew.Add(manager.Calculate(arm.Item2, input));
+            }
 
             for (int i = 0; i < energyField.Length; i++)
             {
@@ -886,64 +900,40 @@ namespace DoseCoefProbeO2
                 valueField[i] = oldCurve.At(clamped);
             }
 
-            DoseRateConfig configOld = new DoseRateConfig();
-            configOld.DoseRateCalibrationPoints =
-                DoseRateEstimator.Estimate(etalon.EnergySpectrum, efficiency, Declared, grid, null);
+            foreach (var arm in arms)
+            {
+                withOld.Add(manager.Calculate(arm.Item2, input));
+            }
 
             Array.Copy(keepValue, valueField, keepValue.Length);
 
-            // Положительный контроль развёртки: плечи обязаны РАЗЛИЧАТЬСЯ.
-            // Совпавшие точки значили бы, что подмена не доехала до счёта.
-            double maxPoint = 0.0;
-            for (int i = 0; i < configNew.DoseRateCalibrationPoints.Count
-                            && i < configOld.DoseRateCalibrationPoints.Count; i++)
+            double maxPercent = 0.0, minPercent = double.MaxValue;
+            for (int i = 0; i < arms.Count; i++)
             {
-                double a = configNew.DoseRateCalibrationPoints[i].EtalonDoseRateValue;
-                double b = configOld.DoseRateCalibrationPoints[i].EtalonDoseRateValue;
-                maxPoint = Math.Max(maxPoint, Math.Abs(a - b) / Math.Max(1e-30, b));
+                DoseRate was = withOld[i];
+                DoseRate now = withNew[i];
+                double percent = was.Rate > 0.0 ? 100.0 * (now.Rate - was.Rate) / was.Rate : double.NaN;
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "  {0}: прежней таблицей {1:f6}, ICRP 74 {2:f6} мкЗв/ч, {3:+0.000;-0.000} %"
+                    + " (покрытие {4:f1} %{5})", arms[i].Item1, was.Rate, now.Rate, percent,
+                    100.0 * now.Coverage, now.Approximate ? ", по пиковой" : ""));
+                if (!double.IsNaN(percent))
+                {
+                    maxPercent = Math.Max(maxPercent, Math.Abs(percent));
+                    minPercent = Math.Min(minPercent, Math.Abs(percent));
+                }
             }
 
-            // Два условия сразу, и второе важнее первого. Первое — подмена
-            // доехала до счёта (иначе плечи мерили бы одно и то же). Второе —
-            // она доехала ТОЛЬКО своей величиной: таблицы расходятся не больше
-            // чем на 2.24 %, и точка калибровки, разошедшаяся на десятки
-            // процентов, значила бы, что в развёртку затесалось что-то ещё.
-            Ok(maxPoint > 1e-6 && 100.0 * maxPoint < 5.0, string.Format(CultureInfo.InvariantCulture,
-                "подмена доехала до точек калибровки и только своей величиной:"
-                + " худшая точка разошлась на {0:f2} %", 100.0 * maxPoint));
-
-            DoseRateManager manager = new DoseRateManager(Config());
-            Compare(manager, "эталон Cs-137 (контроль нормировки)", etalon, configOld, configNew, Declared);
-            Compare(manager, "Co-60", cobalt, configOld, configNew, double.NaN);
-            Compare(manager, "K-40", potassium, configOld, configNew, double.NaN);
-            if (americium != null)
-            {
-                Compare(manager, "Am-241 (мягкий, форма иная, чем у эталона)",
-                        americium, configOld, configNew, double.NaN);
-            }
-
-            if (barium != null)
-            {
-                Compare(manager, "Ba-133 (середина шкалы)", barium, configOld, configNew, double.NaN);
-            }
-        }
-
-        static void Compare(DoseRateManager manager, string what, ResultData data,
-                            DoseRateConfig configOld, DoseRateConfig configNew, double declared)
-        {
-            DoseRate was = manager.Calculate(data, configOld);
-            DoseRate now = manager.Calculate(data, configNew);
-            double percent = was.Rate > 0.0 ? 100.0 * (now.Rate - was.Rate) / was.Rate : double.NaN;
-            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "  {0}: прежней таблицей {1:f6}, ICRP 74 {2:f6} мкЗв/ч, {3:+0.000;-0.000} %"
-                + " (покрытие {4:f1} %)", what, was.Rate, now.Rate, percent, 100.0 * now.Coverage));
-
-            if (!double.IsNaN(declared))
-            {
-                Ok(Math.Abs(now.Rate - declared) / declared < 1e-9
-                   && Math.Abs(was.Rate - declared) / declared < 1e-9,
-                   "оба плеча возвращают эталону объявленную дозу — нормировка не подменяет ответ");
-            }
+            // Два условия сразу. Первое — подмена доехала до счёта (иначе плечи
+            // мерили бы одно и то же). Второе — она доехала ТОЛЬКО своей
+            // величиной: таблицы расходятся не больше чем на 2.24 %, и
+            // показание, разошедшееся сильнее, значило бы, что в развёртку
+            // затесалось что-то ещё.
+            Ok(minPercent > 1e-6 && maxPercent < 5.0, string.Format(CultureInfo.InvariantCulture,
+                "подмена доехала до показаний и только своей величиной: цена {0:f3}…{1:f3} %",
+                minPercent, maxPercent));
+            Ok(withNew.All(d => d.Refusal.Length == 0) && withOld.All(d => d.Refusal.Length == 0),
+               "оба плеча дали число на всех спектрах");
         }
 
         // ==================================================================

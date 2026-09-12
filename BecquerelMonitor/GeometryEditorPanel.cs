@@ -84,10 +84,17 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// Строки списка «Тип источника» по порядку: форма плюс вид съёмки
-        /// (E27). Две последние — съёмки в поле; форма у них штатная, и весь
-        /// расчёт идёт прежним кодом, а вид говорит, каким правилом считаются
-        /// размеры. Таблица одна на список, чтение и запись — чтобы порядок
-        /// строк нельзя было развести по трём местам.
+        /// (E27). Строки после четырёх форм — съёмки в поле; форма у них
+        /// штатная, и весь расчёт идёт прежним кодом, а вид говорит, каким
+        /// правилом считаются размеры. Таблица одна на список, чтение и
+        /// запись — чтобы порядок строк нельзя было развести по трём местам.
+        ///
+        /// Седьмая строка — ИЗОТРОПНОЕ ПОЛЕ (`AMBER13` (б), решение Amber
+        /// 12.09.2026 «Оставь только ISO»; решение 11.09.2026 `AMBER18` (1):
+        /// вид облучения живёт «В геометрии кривой», то есть здесь). Форма у
+        /// него точечная — единственная без сосуда и пробы; из полей точки
+        /// остаётся один радиус сферы поля, а расстояние до детектора
+        /// снимается. Виды `AP`/`PA`/`ROT` НЕ заводятся тем же решением.
         /// </summary>
         static readonly KeyValuePair<GeometrySourceType, GeometrySceneKind>[] SourceKinds =
         {
@@ -103,6 +110,8 @@ namespace BecquerelMonitor
                 GeometrySourceType.Cylinder, GeometrySceneKind.Ground),
             new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
                 GeometrySourceType.Marinelli, GeometrySceneKind.Borehole),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Point, GeometrySceneKind.Iso),
         };
 
         static int IndexOfSource(GeometryModel g)
@@ -831,6 +840,7 @@ namespace BecquerelMonitor
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBox);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceGround);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBorehole);
+            this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceIso);
             this.sourceTypeCombo.Width = 260;
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
             page.Controls.Add(typeLabel);
@@ -851,6 +861,14 @@ namespace BecquerelMonitor
             this.pointPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
             int y = 0;
             this.Row(this.pointPanel, ref y, "PointDistance", Resources.GeometryEditorPointDistance);
+            // (`AMBER13` (б)) Радиус сферы изотропного поля — строка той же
+            // панели: у поля форма точечная. Показывается ТОЛЬКО у сцены поля,
+            // а расстояние до детектора у неё снимается (ApplySceneFields).
+            this.Row(this.pointPanel, ref y, "FieldRadius", Resources.GeometryEditorFieldRadius);
+            // Снята сразу: список форм ещё не выбран, а строка поля у точки
+            // не показывается; ApplySceneFields вернёт её сцене поля.
+            this.ShowRow("FieldRadius", false, null);
+            this.Reflow(this.pointPanel);
             page.Controls.Add(this.pointPanel);
 
             this.cylinderPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620, Visible = false };
@@ -1313,6 +1331,11 @@ namespace BecquerelMonitor
             add("FwhmAt662Percent", g => g.FwhmAt662Percent, (g, v) => g.FwhmAt662Percent = v);
 
             add("PointDistance", g => g.PointDistance, (g, v) => g.PointDistance = v);
+            // (`AMBER13` (б)) Радиус сферы поля — читается и пишется только у
+            // сцены поля: у прочих в модели остаётся ноль, и ключ в файл не
+            // уезжает (клеймо прежних сцен не меняется).
+            add("FieldRadius", g => g.FieldRadius,
+                (g, v) => g.FieldRadius = g.Scene == GeometrySceneKind.Iso ? v : 0.0);
 
             add("BeakerDiameter", g => g.BeakerDiameter, (g, v) => g.BeakerDiameter = v);
             add("BeakerHeight", g => g.BeakerHeight, (g, v) => g.BeakerHeight = v);
@@ -1832,6 +1855,19 @@ namespace BecquerelMonitor
             }
 
             GeometryModel g = this.BuildModel();
+
+            // (`AMBER13` (б)) У поля ни пробега, ни пробы: строка говорит,
+            // ЧТО считается — эффективная площадь в см², — и что радиус
+            // ответа не меняет; без неё число в см² на месте долей читалось
+            // бы как ошибка.
+            if (g.Scene == GeometrySceneKind.Iso)
+            {
+                this.sceneLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                    Resources.GeometryEditorSceneIso, g.FieldRadius / GeometryModel.MmPerCm,
+                    GeometryScenes.MinFieldRadiusMm(g) / GeometryModel.MmPerCm);
+                return;
+            }
+
             double mfp = GeometryScenes.MeanFreePathMm(g.Source, this.sceneEnergyKev);
             double volume = GeometryScenes.SampleVolumeCm3(g);
             double mass = volume * (g.Source != null ? g.Source.Density : 0.0);
@@ -2060,7 +2096,17 @@ namespace BecquerelMonitor
         {
             bool ground = scene == GeometrySceneKind.Ground;
             bool hole = scene == GeometrySceneKind.Borehole;
-            bool vessel = !ground && !hole;
+            bool iso = scene == GeometrySceneKind.Iso;
+            bool vessel = !ground && !hole && !iso;
+
+            // (`AMBER13` (б)) Изотропное поле: из полей точки остаётся один
+            // радиус сферы, расстояние до детектора снимается — расстояния
+            // у поля нет. Вещество ПРОБЫ тоже снимается: пробы нет, а не
+            // «проба из воздуха». Само вещество в модели остаётся нетронутым,
+            // как и стенка сосуда у грунта.
+            this.ShowRow("PointDistance", !iso, null);
+            this.ShowRow("FieldRadius", iso, null);
+            this.Reflow(this.pointPanel);
 
             this.ShowRow("BeakerHeight", vessel, null);
             this.ShowRow("BeakerSideWallThickness", vessel, null);
@@ -2092,6 +2138,7 @@ namespace BecquerelMonitor
             this.Reflow(this.marinelliPanel);
 
             this.ShowMaterialRow("BeakerWall", vessel);
+            this.ShowMaterialRow("Source", !iso);
             this.ReflowMaterials();
         }
 

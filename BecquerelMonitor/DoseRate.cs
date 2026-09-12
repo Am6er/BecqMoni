@@ -83,6 +83,35 @@ namespace BecquerelMonitor
             set { this.coverage = value; }
         }
 
+        /// <summary>
+        /// Число посчитано по ПИКОВОЙ эффективности, а не по полной —
+        /// решение (3) Amber 11.09.2026 (`AMBER18`), дословно: «По пиковой с
+        /// пометкой». Пометка — знак «≈» перед числом в строке состояния.
+        ///
+        /// Почему это «≈», а не число: все отсчёты диапазона делятся на
+        /// эффективность ПИКА ПОЛНОГО ПОГЛОЩЕНИЯ, а в диапазон попадает и
+        /// комптоновский континуум чужих линий; отношение пик/полное
+        /// энергозависимо, и одним множителем это не выправляется (дефект (1)
+        /// `AMBER13`). Полная эффективность — сумма строки матрицы отклика — у
+        /// кривой без матрицы взяться неоткуда, и человек с одной кривой ЛСРМ
+        /// без дозы не остаётся.
+        /// </summary>
+        public bool Approximate
+        {
+            get { return this.approximate; }
+            set { this.approximate = value; }
+        }
+
+        /// <summary>
+        /// Разбивка по диапазонам сетки — то, из чего сложилось число.
+        /// Пусто у отказа. Нужна пробе и журналу: «сколько дал каждый
+        /// диапазон» иначе не посмотреть.
+        /// </summary>
+        public List<DoseRateRange> Ranges
+        {
+            get { return this.ranges; }
+        }
+
         public override string ToString()
         {
             if (!string.IsNullOrEmpty(this.refusal))
@@ -139,6 +168,13 @@ namespace BecquerelMonitor
 
             string text = String.Format(CultureInfo.InvariantCulture, "{0} ±{1} ({2}%) {3}", rate_str, error_str, epsilon_str, uom);
 
+            // Пометка «по пиковой» — знаком ПЕРЕД числом, чтобы её нельзя было
+            // не заметить: число со знаком «≈» и число без него — разные величины.
+            if (this.approximate)
+            {
+                text = ApproximateMark + " " + text;
+            }
+
             // Приписка только когда есть о чём: полное покрытие молчит.
             if (this.coverage >= 0.0 && this.coverage < CoverageNoticeThreshold)
             {
@@ -154,6 +190,9 @@ namespace BecquerelMonitor
         /// <summary>Ниже этой доли покрытия показание получает приписку.</summary>
         public const double CoverageNoticeThreshold = 0.95;
 
+        /// <summary>Знак «по пиковой с пометкой» (решение (3) `AMBER18`).</summary>
+        public const string ApproximateMark = "≈";
+
         // Token: 0x040000F4 RID: 244
         double rate = 0.0;
 
@@ -163,6 +202,78 @@ namespace BecquerelMonitor
         string refusal;
 
         double coverage = -1.0;
+
+        bool approximate;
+
+        readonly List<DoseRateRange> ranges = new List<DoseRateRange>();
+    }
+
+    /// <summary>
+    /// Один диапазон сетки мощности дозы: что в нём насчитано и во что это
+    /// превратилось. Все величины названы своей единицей — здесь нет
+    /// «множителя с точностью до общего», эталон снят (`AMBER18`).
+    /// </summary>
+    public sealed class DoseRateRange
+    {
+        /// <summary>Границы диапазона, кэВ; счёт полуоткрытый, [низ, верх).</summary>
+        public double LowKev;
+
+        public double HighKev;
+
+        /// <summary>Энергия, которой представлен диапазон (середина), кэВ.</summary>
+        public double CenterKev;
+
+        /// <summary>Отсчётов в диапазоне без каналов переполнения — как есть.</summary>
+        public double Counts;
+
+        /// <summary>
+        /// Сколько из них объяснено континуумом линий, приписанных диапазонам
+        /// ВЫШЕ (только с матрицей; у пиковой кривой — 0).
+        /// </summary>
+        public double Explained;
+
+        /// <summary>Отсчёты, приписанные квантам ЭТОГО диапазона: `Counts − Explained`, не ниже нуля.</summary>
+        public double Attributed;
+
+        /// <summary>Скорость счёта приписанных отсчётов, отсчёт/с.</summary>
+        public double Cps;
+
+        /// <summary>
+        /// Эффективность на <see cref="CenterKev"/>: доля квантов, испущенных
+        /// источником в 4π, что дали отсчёт ГДЕ УГОДНО, — ПОЛНАЯ (сумма строки
+        /// матрицы) либо ПИКОВАЯ (кривая), см. <see cref="DoseRate.Approximate"/>.
+        /// У сцены поля `ISO` (<see cref="DoseRateInput.Normalization"/> =
+        /// <see cref="ResponseMatrixNormalization.PerUnitFluence"/>) — та же
+        /// величина в **см²**: эффективная площадь на квант/см² поля.
+        /// </summary>
+        public double Efficiency;
+
+        /// <summary>
+        /// Знаменатель расчёта: доля квантов диапазона, давших отсчёт В ЭТОМ
+        /// ЖЕ диапазоне (с матрицей); у пиковой кривой — та же <see cref="Efficiency"/>.
+        /// У сцены поля — в см², как и <see cref="Efficiency"/>.
+        /// </summary>
+        public double OwnEfficiency;
+
+        /// <summary>
+        /// Диапазон не приписан никому: эффективность ниже пола
+        /// <see cref="DoseRateManager.MinOwnEfficiencyFraction"/>; его отсчёты
+        /// вне покрытия.
+        /// </summary>
+        public bool Skipped;
+
+        /// <summary>
+        /// Плотность потока, квант/(см²·с): у сцены с источником — в центре
+        /// кристалла (<see cref="DoseRateInput.FluencePerPhoton"/>), у сцены
+        /// поля `ISO` — само однородное поле (`Cps / A_эфф`, G ≡ 1).
+        /// </summary>
+        public double FluenceRate;
+
+        /// <summary>Коэффициент перехода, мкЗв/ч на квант/(см²·с).</summary>
+        public double DoseRatePerFluenceRate;
+
+        /// <summary>Вклад диапазона в мощность дозы, мкЗв/ч.</summary>
+        public double DoseRate;
     }
 
     /// <summary>
@@ -195,10 +306,15 @@ namespace BecquerelMonitor
     ///   из XCOM не выводится вовсе — она получена переносом в антропоморфном
     ///   фантоме, — поэтому таблица остаётся таблицей, но названной.
     ///
-    /// ⚠ Обе величины входят в расчёт ТОЛЬКО формой кривой: чувствительность
-    /// диапазона нормируется на объявленную мощность дозы эталона, и общий
-    /// множитель сокращается. Поэтому h*(10)/K_air хранится здесь в
-    /// опубликованном виде (Зв/Гр), без множителя 0.876.
+    /// ⛔ ЭТАЛОНА БОЛЬШЕ НЕТ, И МНОЖИТЕЛЬ НЕ СОКРАЩАЕТСЯ (`AMBER18`, 12.09.2026).
+    /// До 12.09.2026 обе величины входили в расчёт только формой кривой:
+    /// чувствительность диапазона нормировалась на объявленную мощность дозы
+    /// эталона, и общий множитель сокращался. Ручные точки и эталон сняты
+    /// решениями Amber 10–11.09.2026, и доза стала АБСОЛЮТНОЙ: из
+    /// эффективности, геометрии сцены и этих двух величин. Поэтому здесь
+    /// появился явный перевод единиц — <see cref="DoseRatePerFluenceRate"/>;
+    /// h*(10)/K_air по-прежнему хранится в опубликованном виде (Зв/Гр), без
+    /// множителя 0.876 — он в расчёт не входит.
     /// </summary>
     public static class DoseRateCoefficients
     {
@@ -468,12 +584,59 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Множитель диапазона: доза на один отсчёт с точностью до общего
-        /// множителя (он сокращается при нормировке на эталон).
+        /// Множитель (μ_en/ρ)_air · h*(10)/K_air · E — в единицах
+        /// **м²/кг · Зв/Гр · кэВ**, то есть БЕЗ перевода в мкЗв/ч. Ровно то,
+        /// что здесь лежало и раньше; перевод — отдельным множителем в
+        /// <see cref="DoseRatePerFluenceRate"/>, чтобы прежние сверки
+        /// (`DoseCoefProbeO2`, `DoseAirProbeF63`) читали прежнее число.
         /// </summary>
         public static double Factor(double energyKev)
         {
             return MassEnergyAbsorptionAir(energyKev) * AmbientDoseConversion(energyKev) * energyKev;
+        }
+
+        // ------------------------------------------------------------------
+        // ⛔ ЯВНЫЕ ЕДИНИЦЫ (`AMBER18`, решение (3) Amber 10.09.2026 в `AMBER13`:
+        //    «`Factor` получает явный множитель единиц»). Размерность каждой
+        //    величины расчёта, чтобы её нельзя было потерять молча:
+        //
+        //    φ̇   плотность потока квантов в точке, где стоит центр
+        //         кристалла, квант/(см²·с);
+        //    μ_en/ρ  массовый коэффициент поглощения энергии воздуха, м²/кг
+        //         (<see cref="MassEnergyAbsorptionAir"/>; ×10 — см²/г);
+        //    E    энергия кванта, кэВ; 1 кэВ = 1.602176634e-16 Дж (точно, СИ 2019);
+        //    K̇_air = φ̇ · E · (μ_en/ρ) — мощность кермы воздуха, Гр/с
+        //         (Гр = Дж/кг; см²/г · 1000 г/кг · Дж · 1/(см²·с) = Дж/(кг·с));
+        //    h*(10)/K_air — Зв/Гр (<see cref="AmbientDoseConversion"/>);
+        //    Ḣ*(10) = K̇_air · h*(10)/K_air — Зв/с; ×1e6 мкЗв/Зв ×3600 с/ч → мкЗв/ч.
+        //
+        //    Сверка уровня (проба `DoseRateFromCurveProbe` §1, 12.09.2026): на
+        //    662 кэВ μ_en/ρ = 2.9395e-3 м²/кг, h*(10)/K_a = 1.2032, и Ḣ*(10)/φ̇
+        //    выходит 1.3504e-2 мкЗв/ч на квант/(см²·с) = 3.751 пЗв·см² на
+        //    квант; ICRP 74, табл. A.1 и A.21, дают K_a/Φ = 3.08 пГр·см²
+        //    (600…800 кэВ логарифмически) × h*(10)/K_a = 1.20 → 3.696 пЗв·см²,
+        //    расхождение +1.49 % — на уровне интерполяции таблицы.
+        // ------------------------------------------------------------------
+
+        /// <summary>1 кэВ в джоулях — точное значение (СИ 2019).</summary>
+        public const double JoulePerKev = 1.602176634e-16;
+
+        /// <summary>
+        /// Перевод произведения <see cref="Factor"/> (м²/кг · Зв/Гр · кэВ) в
+        /// мкЗв/ч на квант/(см²·с): 10 (м²/кг → см²/г) · 1000 (г/кг) ·
+        /// <see cref="JoulePerKev"/> · 1e6 (мкЗв/Зв) · 3600 (с/ч).
+        /// </summary>
+        public const double MicroSievertPerHourPerFactor =
+            10.0 * 1000.0 * JoulePerKev * 1.0e6 * 3600.0;
+
+        /// <summary>
+        /// Мощность амбиентного эквивалента дозы на единичную плотность потока
+        /// квантов энергии <paramref name="energyKev"/>: **мкЗв/ч на
+        /// квант/(см²·с)**. Единственное место, где доза получает единицы.
+        /// </summary>
+        public static double DoseRatePerFluenceRate(double energyKev)
+        {
+            return Factor(energyKev) * MicroSievertPerHourPerFactor;
         }
 
         /// <summary>
@@ -672,31 +835,19 @@ namespace BecquerelMonitor
     }
 
     /// <summary>
-    /// Спектр, предложенный вкладке «Dose Rate» без второго диалога открытия
-    /// файла (`C4(б)`).
-    /// </summary>
-    public class DoseRateSpectrumChoice
-    {
-        public string Title { get; set; }
-
-        public EnergySpectrum Spectrum { get; set; }
-
-        /// <summary>Своя кривая эффективности спектра, если она у него есть.</summary>
-        public EfficiencyConfigData Efficiency { get; set; }
-
-        public override string ToString()
-        {
-            return this.Title ?? "";
-        }
-    }
-
-    /// <summary>
-    /// Оценка точек калибровки мощности дозы по эталонному спектру.
+    /// Сетка диапазонов, шкала и кривая — то, из чего собирается расчёт
+    /// мощности дозы. Вынесено из `DeviceConfigForm` (`C4(в)`), чтобы это
+    /// можно было посмотреть и проверить без окна.
     ///
-    /// Вынесено из `DeviceConfigForm` (`C4(в)`) по двум причинам. Первая: сетка
-    /// и коэффициенты были вшиты в обработчик кнопки, и посмотреть на них можно
-    /// было только в исходнике. Вторая: пока расчёт жил внутри формы, проверить
-    /// его без окна было нельзя, а окно `BecqMoni` пробе запускать нечем.
+    /// ⛔ ЭТАЛОНА И ТОЧЕК КАЛИБРОВКИ ЗДЕСЬ БОЛЬШЕ НЕТ (`AMBER18`, 12.09.2026).
+    /// Прежний `Estimate` строил по эталонному спектру с объявленной дозой
+    /// таблицу `DoseRateCalibrationPoint`, которую хранила конфигурация
+    /// прибора и по которой считал `DoseRateManager`. Решениями Amber
+    /// 10–11.09.2026 таблица, эталон и вкладка сняты целиком; расчёт идёт от
+    /// кривой, ВЫБРАННОЙ НА ПАНЕЛИ (<see cref="DoseRateInput"/>), в один
+    /// проход — <see cref="DoseRateManager.Calculate(ResultData, DoseRateInput)"/>.
+    /// Списки «что предложить вкладке» (`OfferedEfficiencies`, `OfferedSpectra`,
+    /// `DoseRateSpectrumChoice`) ушли вместе с ней.
     /// </summary>
     public static class DoseRateEstimator
     {
@@ -780,8 +931,16 @@ namespace BecquerelMonitor
                     "Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on."));
             }
 
+            // ⛔ Верх шкалы — ВЕРХНЯЯ ГРАНИЦА ПОСЛЕДНЕГО КАНАЛА, `E(N)`, а не
+            // `E(N − 1)` (12.09.2026, `AMBER18`, поймано `DoseRateProbe`). Канал
+            // `N − 1` занимает [E(N−1), E(N)); сетка, обрезанная по E(N−1),
+            // до него не доходила, и последний канал не считался НИКОГДА —
+            // ровно та беда `A203`, которую зажим `Length − 1` у потребителя
+            // уже лечил: у `G1S24_Th228_P5` терялись 127 отсчётов обычного
+            // последнего канала. Прежде это скрывал генератор точек («его
+            // собственный toChannel до N не доходит»), теперь генератора нет.
             double a = calibration.ChannelToEnergy(0.0);
-            double b = calibration.ChannelToEnergy(channels - 1);
+            double b = calibration.ChannelToEnergy(channels);
             minKev = Math.Min(a, b);
             maxKev = Math.Max(a, b);
             if (!(maxKev > minKev) || double.IsNaN(minKev) || double.IsNaN(maxKev))
@@ -795,247 +954,6 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Точки калибровки по эталонному спектру с объявленной мощностью дозы.
-        ///
-        /// Отказывается ВИДИМО (исключением с текстом), а не возвращает ноль:
-        /// нет спектра, нет калибровки, пустая шкала, нулевое время набора,
-        /// эталон без отсчётов, неположительная объявленная доза, кривая
-        /// эффективности с нулём или отрицательным значением.
-        /// </summary>
-        public static List<DoseRateCalibrationPoint> Estimate(
-            EnergySpectrum spectrum, DoseRateCurve efficiency,
-            double expectedDoseRate, double[] energies, IList<string> log)
-        {
-            if (spectrum == null)
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoSpectrum", "Dose rate: no reference spectrum is selected."));
-            }
-
-            if (spectrum.EnergyCalibration == null)
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoCalibration",
-                    "Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV."));
-            }
-
-            if (spectrum.Spectrum == null || spectrum.NumberOfChannels < 2)
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateEmptySpectrum", "Dose rate: the reference spectrum has no channels."));
-            }
-
-            if (!(spectrum.MeasurementTime > 0.0))
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoTime", "Dose rate: the reference spectrum has zero measurement time."));
-            }
-
-            if (efficiency == null)
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoEfficiency", "Dose rate: no efficiency curve is selected."));
-            }
-
-            if (!(expectedDoseRate > 0.0))
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoExpected", "Dose rate: the declared dose rate of the source must be positive."));
-            }
-
-            if (energies == null || energies.Length < 2)
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateNoGrid", "Dose rate: the energy grid is empty."));
-            }
-
-            int bins = energies.Length - 1;
-            var rangeCps = new double[bins];
-            var rangeEff = new double[bins];
-            var rangeFactor = new double[bins];
-            double modelDoseRate = 0.0;
-
-            for (int i = 0; i < bins; i++)
-            {
-                double fromE = energies[i];
-                double toE = energies[i + 1];
-                double centerE = 0.5 * (fromE + toE);
-
-                // Отказ ЗДЕСЬ, а не молчаливое нулевое слагаемое: коэффициент
-                // вне таблицы значит, что диапазон построен неверно.
-                rangeFactor[i] = DoseRateCoefficients.Factor(centerE);
-
-                double eff = efficiency.At(centerE);
-                if (!(eff > 0.0) || double.IsNaN(eff) || double.IsInfinity(eff))
-                {
-                    throw new DoseRateRefusalException(string.Format(
-                        CultureInfo.InvariantCulture,
-                        DoseRateCoefficients.Text("DoseRateBadEfficiency",
-                            "Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless."),
-                        eff, centerE));
-                }
-
-                rangeEff[i] = eff;
-
-                // ⛔ ОТБРАСЫВАНИЕ дробной части, а не округление (найдено
-                // 05.09.2026, `C4`). `DoseRateManager` — потребитель этих точек
-                // — приводит границу к каналу приведением `(int)`, то есть
-                // отбрасыванием; здесь стояло `Convert.ToInt32`, то есть
-                // округление. Генератор и потребитель расходились на полканала
-                // у каждой границы, и обратный ход «посчитать точки по эталону,
-                // потом померить тот же эталон» давал не объявленную дозу, а
-                // 1.0005 от неё на пятнадцати диапазонах и 1.002 на
-                // двадцати одном — ошибка росла с ЧИСЛОМ границ. Ровно та же
-                // болезнь, что `W19`, и лечится так же: одно правило на обоих
-                // концах.
-                int fromChannel = (int)spectrum.EnergyCalibration.EnergyToChannel(
-                    fromE, maxChannels: spectrum.NumberOfChannels);
-                // ⚠ Верхний зажим — `NumberOfChannels - 1`, как у потребителя:
-                // `DoseRateManager` последний канал не считает НИКОГДА (у него
-                // `endch = Spectrum.Length - 1`, а цикл строгий). Стоило
-                // генератору взять на канал больше — и на ASN16 обратный ход
-                // разошёлся на 0.19 %: в последнем канале лежит переполнение,
-                // 0.142 отсчёта в секунду против 0.012 во всём диапазоне
-                // 2614–3453 кэВ. У переполнения энергии нет, и в дозу ему
-                // нечего давать.
-                int toChannel = Math.Min(
-                    (int)spectrum.EnergyCalibration.EnergyToChannel(
-                        toE, maxChannels: spectrum.NumberOfChannels),
-                    spectrum.NumberOfChannels - 1);
-                if (fromChannel < 0)
-                {
-                    fromChannel = 0;
-                }
-
-                double counts = 0.0;
-                // Полуоткрыто, как и в DoseRateManager: диапазоны идут встык,
-                // и граничный канал принадлежит следующему (W19).
-                for (int j = fromChannel; j < toChannel && j < spectrum.Spectrum.Length; j++)
-                {
-                    counts += spectrum.Spectrum[j];
-                }
-
-                rangeCps[i] = counts / spectrum.MeasurementTime;
-                modelDoseRate += rangeCps[i] * rangeFactor[i] / rangeEff[i];
-            }
-
-            if (!(modelDoseRate > 0.0))
-            {
-                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
-                    "DoseRateEtalonEmpty",
-                    "Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against."));
-            }
-
-            double coefficient = expectedDoseRate / modelDoseRate;
-            var points = new List<DoseRateCalibrationPoint>();
-            for (int i = 0; i < bins; i++)
-            {
-                // Чувствительность диапазона — доза на один отсчёт; в точке она
-                // лежит частным Etalon/CPS. Прежде сюда клали CPS = 1, и колонка
-                // не значила ничего: посмотреть, сколько эталон реально дал в
-                // этом диапазоне, было негде. Теперь в CPS идёт ИЗМЕРЕННАЯ
-                // скорость счёта диапазона, а в Etalon — пришедшаяся на него
-                // доза; частное, то есть сама чувствительность, прежнее
-                // (C4(г), решение Amber 08.08.2026).
-                double sensitivity = coefficient * rangeFactor[i] / rangeEff[i];
-                if (!(rangeCps[i] > 0.0))
-                {
-                    // Диапазон, в котором эталон не дал ни одного отсчёта,
-                    // откалибровать по нему НЕЛЬЗЯ: частное 0/0 не определено, а
-                    // прежняя запись подставляла туда чистую модель, выдавая
-                    // измерением то, что измерением не было.
-                    if (log != null)
-                    {
-                        log.Add(string.Format(CultureInfo.InvariantCulture,
-                            "Dose rate: диапазон {0:f1}–{1:f1} кэВ пуст в эталонном спектре, точка не заведена.",
-                            energies[i], energies[i + 1]));
-                    }
-
-                    continue;
-                }
-
-                points.Add(new DoseRateCalibrationPoint
-                {
-                    LowerBound = energies[i],
-                    UpperBound = energies[i + 1],
-                    CPS = rangeCps[i],
-                    EtalonDoseRateValue = sensitivity * rangeCps[i],
-                });
-            }
-
-            return points;
-        }
-
-        // ------------------------------------------------------------------
-        // Что предложить человеку вместо диалога открытия файла
-        // ------------------------------------------------------------------
-
-        /// <summary>
-        /// Кривые эффективности, которые живут в САМОЙ конфигурации прибора
-        /// (`C4(а)`). Годится та, у которой есть кривая: геометрия без
-        /// посчитанной кривой делить не на что.
-        /// </summary>
-        public static List<EfficiencyConfigData> OfferedEfficiencies(DeviceConfigInfo config)
-        {
-            var list = new List<EfficiencyConfigData>();
-            if (config == null || config.EfficiencyConfigs == null)
-            {
-                return list;
-            }
-
-            foreach (EfficiencyConfigData item in config.EfficiencyConfigs)
-            {
-                if (item != null && item.HasCurve)
-                {
-                    list.Add(item);
-                }
-            }
-
-            return list;
-        }
-
-        /// <summary>
-        /// Уже открытые спектры, годные в эталонные (`C4(б)`). Годен спектр с
-        /// калибровкой, каналами и ненулевым временем набора: остальным вкладке
-        /// нечего предложить, и молча подсовывать их нельзя.
-        /// </summary>
-        public static List<DoseRateSpectrumChoice> OfferedSpectra(IList<string> titles, IList<ResultData> results)
-        {
-            var list = new List<DoseRateSpectrumChoice>();
-            if (results == null)
-            {
-                return list;
-            }
-
-            for (int i = 0; i < results.Count; i++)
-            {
-                ResultData data = results[i];
-                if (data == null || data.EnergySpectrum == null)
-                {
-                    continue;
-                }
-
-                EnergySpectrum spectrum = data.EnergySpectrum;
-                if (spectrum.EnergyCalibration == null || spectrum.NumberOfChannels < 2
-                    || !(spectrum.MeasurementTime > 0.0))
-                {
-                    continue;
-                }
-
-                list.Add(new DoseRateSpectrumChoice
-                {
-                    Title = titles != null && i < titles.Count && !string.IsNullOrEmpty(titles[i])
-                        ? titles[i]
-                        : string.Format(CultureInfo.InvariantCulture, "#{0}", i + 1),
-                    Spectrum = spectrum,
-                    Efficiency = data.FileEfficiency ?? data.Efficiency,
-                });
-            }
-
-            return list;
-        }
-
-        /// <summary>
         /// Кривая из точек — с проверкой входа, которой у вкладки не было
         /// (собственное `TODO: add input data validation`). Отказ называет, что
         /// именно не так.
@@ -1044,8 +962,28 @@ namespace BecquerelMonitor
         /// по ним. Поставочные кривые (`config/ROI/*`) идут ровно от 40 до
         /// 3000 кэВ — те самые два числа, что были вшиты; кривая, посчитанная
         /// из геометрии, шире.
+        ///
+        /// Эта запись — для кривой В ДОЛЯХ (нормировка «на квант источника»,
+        /// потолок единица). Кривая сцены поля `ISO` — в см², и её ведут через
+        /// <see cref="CurveOf(IList{ROIEfficiencyData}, ResponseMatrixNormalization, double)"/>.
         /// </summary>
         public static DoseRateCurve CurveOf(IList<ROIEfficiencyData> points)
+        {
+            return CurveOf(points, ResponseMatrixNormalization.PerEmittedQuantum, 1.0);
+        }
+
+        /// <summary>
+        /// То же с явной нормировкой кривой (`AMBER13` (б), 12.09.2026).
+        /// <paramref name="upperBound"/> — потолок значения: у кривой в долях
+        /// единица (`A222`), у кривой сцены поля — площадь проекции сферы,
+        /// описанной вокруг обвязанного детектора, см²
+        /// (<see cref="DoseRateGeometry.ProjectedAreaBoundCm2"/>): больше
+        /// неё эффективная площадь выпуклого тела быть не может (Коши), и
+        /// такая точка — та же невозможная величина, что доля выше единицы.
+        /// </summary>
+        public static DoseRateCurve CurveOf(IList<ROIEfficiencyData> points,
+                                            ResponseMatrixNormalization normalization,
+                                            double upperBound)
         {
             if (points == null || points.Count < 2)
             {
@@ -1126,7 +1064,14 @@ namespace BecquerelMonitor
                 // верно: уровень у неё условный, а мощность дозы — величина
                 // абсолютная. Прежде она давала число, ошибочное в неизвестное
                 // число раз, и молча.
-                if (!(point.Efficiency <= 1.0))
+                //
+                // У сцены поля `ISO` (`AMBER13` (б)) кривая — эффективная
+                // площадь в см², и единица ей не потолок (у Ø63×63 NaI на
+                // 662 кэВ A_пик = 13.8 см²); её потолок — площадь проекции
+                // описанной сферы, тем же правом: больше неё выпуклое тело
+                // в изотропном поле не собирает (Коши, S/4 ≤ πr²).
+                if (normalization == ResponseMatrixNormalization.PerEmittedQuantum
+                    && !(point.Efficiency <= 1.0))
                 {
                     throw new DoseRateRefusalException(string.Format(
                         CultureInfo.InvariantCulture,
@@ -1135,6 +1080,17 @@ namespace BecquerelMonitor
                             + " Efficiency is the fraction of the emitted photons registered"
                             + " and cannot exceed 1."),
                         point.Efficiency, point.Energy));
+                }
+
+                if (normalization == ResponseMatrixNormalization.PerUnitFluence
+                    && !(point.Efficiency <= upperBound))
+                {
+                    throw new DoseRateRefusalException(string.Format(
+                        CultureInfo.InvariantCulture,
+                        DoseRateCoefficients.Text("DoseRateAreaAboveBound",
+                            "Dose rate: the field-scene curve gives {0} cm² at {1:f1} keV —"
+                            + " more than the projected area of the sphere around the detector ({2:f1} cm²)."),
+                        point.Efficiency, point.Energy, upperBound));
                 }
 
                 // Дубли по энергии сплайн валят: узлы обязаны строго расти.
@@ -1181,6 +1137,545 @@ namespace BecquerelMonitor
 
             return new DoseRateCurve(interpolation,
                                      energies[0], energies[energies.Count - 1], energies.Count);
+        }
+    }
+
+    /// <summary>
+    /// ВХОД расчёта мощности дозы, собранный из кривой эффективности, ВЫБРАННОЙ
+    /// НА ПАНЕЛИ (`AMBER18`, задача Amber 11.09.2026: «Привязаться к текущей
+    /// выбранной эффективности на ControlPanel»). Чем делить отсчёты и чем
+    /// превращать «квантов в секунду» в плотность потока.
+    ///
+    /// Три состояния, по решениям Amber 11.09.2026:
+    ///
+    ///  * у кривой есть геометрия и годная матрица отклика — эффективность
+    ///    ПОЛНАЯ: сумма строки матрицы на энергии линии (строка нормирована «на
+    ///    квант, испущенный источником в 4π», <see cref="ResponseMatrix"/>),
+    ///    для ЛЮБОЙ сцены — решение (2): «Показывать мощность дозы из текущей
+    ///    геометрии, пусть даже проба»;
+    ///  * геометрия есть, матрицы нет (не посчитана, старого формата,
+    ///    выключена галкой) — эффективность ПИКОВАЯ, из кривой, число идёт с
+    ///    пометкой «≈» — решение (3): «По пиковой с пометкой»;
+    ///  * геометрии нет (ввоз ЛСРМ одним экспортом, кривая руками) — ОТКАЗ с
+    ///    причиной: у кривой без геометрии нет и масштаба, см.
+    ///    <see cref="DoseRateGeometry"/>. ⚠ Это расхождение с буквой решения
+    ///    (3), которое обещало «≈» и такой кривой; названо в журнале полосы
+    ///    П1 12.09.2026 и вынесено Amber вопросом.
+    ///
+    /// Сцена поля `ISO` (`AMBER13` (б), полоса П6 12.09.2026) — те же три
+    /// состояния, но нормировка другая: строка матрицы и кривая — ЭФФЕКТИВНАЯ
+    /// ПЛОЩАДЬ в см² на квант/см² изотропного поля
+    /// (<see cref="ResponseMatrixNormalization.PerUnitFluence"/>), и тогда
+    /// `отсчёт/с ÷ A_эфф(E)` — уже плотность потока, G ≡ 1. Признак
+    /// (<see cref="Normalization"/>) читается с трёх сторон — у геометрии
+    /// (сцена), у кривой (клеймо `norm=fluence`) и у матрицы (хвост `NORM`) —
+    /// и обязан сойтись: см² с долями не смешиваются, расхождение — отказ
+    /// словами, а не число.
+    /// </summary>
+    public sealed class DoseRateInput
+    {
+        DoseRateInput()
+        {
+        }
+
+        /// <summary>Имя кривой — в отказы и журнал.</summary>
+        public string Name { get; private set; }
+
+        /// <summary>Пиковая кривая; null, когда считают по матрице.</summary>
+        public DoseRateCurve PeakCurve { get; private set; }
+
+        /// <summary>Матрица отклика; null — считают по пиковой.</summary>
+        public ResponseMatrix Matrix { get; private set; }
+
+        /// <summary>
+        /// На что нормированы эффективность и матрица этого входа: на квант
+        /// источника (доля) либо на единичный флюенс (см², сцена поля `ISO`).
+        /// Положена геометрией кривой (<see cref="ResponseMatrix.NormalizationOf"/>)
+        /// и сверена с клеймом кривой и признаком матрицы в <see cref="Of"/>.
+        /// </summary>
+        public ResponseMatrixNormalization Normalization { get; private set; }
+
+        /// <summary>
+        /// Геометрический множитель сцены: плотность потока в точке, где стоит
+        /// центр кристалла, на один квант, испущенный источником в 4π,
+        /// **1/см²** (<see cref="DoseRateGeometry.FluencePerPhoton"/>).
+        /// У сцены поля `ISO` — ровно 1: отклик там уже на единицу флюенса.
+        /// </summary>
+        public double FluencePerPhoton { get; private set; }
+
+        /// <summary>Как получен множитель — для журнала и пробы.</summary>
+        public string GeometryNote { get; private set; }
+
+        /// <summary>Низ области, где вход что-то значит, кэВ.</summary>
+        public double MinKev { get; private set; }
+
+        /// <summary>Верх области, где вход что-то значит, кэВ.</summary>
+        public double MaxKev { get; private set; }
+
+        /// <summary>Считают по пиковой — число пойдёт с пометкой «≈».</summary>
+        public bool Approximate
+        {
+            get { return this.Matrix == null; }
+        }
+
+        /// <summary>
+        /// Собрать вход из кривой. <paramref name="matrix"/> — матрица этой же
+        /// кривой или null; матрица чужой геометрии — отказ, а не молчаливый
+        /// откат на пиковую: подсунуть чужую матрицу можно только нарочно.
+        /// </summary>
+        public static DoseRateInput Of(EfficiencyConfigData curve, ResponseMatrix matrix)
+        {
+            if (curve == null)
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoEfficiency", "Dose rate: no efficiency curve is selected."));
+            }
+
+            string name = string.IsNullOrEmpty(curve.Name) ? "?" : curve.Name;
+            if (!curve.HasCurve)
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateCurveTooShort",
+                        "Dose rate: the efficiency curve has {0} point(s), at least two are needed."),
+                    curve.Curve == null ? 0 : curve.Curve.Count));
+            }
+
+            if (!curve.HasGeometry)
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateNoGeometry",
+                        "Dose rate: the curve \"{0}\" has no geometry — without it the emission rate"
+                        + " cannot be turned into a fluence at the detector, and the dose has no scale."),
+                    name));
+            }
+
+            if (matrix != null && !matrix.IsValidFor(curve.Geometry))
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateForeignMatrix",
+                        "Dose rate: the response matrix does not match the geometry of the curve \"{0}\"."),
+                    name));
+            }
+
+            // ⛔ НОРМИРОВКА — С ТРЁХ СТОРОН, И ВСЕ ТРИ ОБЯЗАНЫ СОЙТИСЬ
+            // (`AMBER13` (б)). Правило кладёт геометрия (сцена поля → см²,
+            // всё прочее → доли); кривая несёт его клеймом `norm=fluence`
+            // (`EfficiencyCalculation.Run`), матрица — хвостом `NORM`
+            // (`ResponseMatrix.Normalization`). Кривая в долях у геометрии,
+            // переключённой в поле руками, или кривая в см² у сцены с
+            // источником делила бы отсчёты не на ту величину на порядки — и
+            // молча, потому что число выходит «какое-то». Поэтому отказ.
+            ResponseMatrixNormalization normalization = ResponseMatrix.NormalizationOf(curve.Geometry);
+            ResponseMatrixNormalization curveNormalization = StampNormalization(curve.ComputeStamp);
+            if (curveNormalization != normalization)
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateCurveNormalizationMismatch",
+                        "Dose rate: the curve \"{0}\" is normalised {1}, but its geometry ({2}) requires {3}"
+                        + " — recompute the curve from the geometry."),
+                    name, Describe(curveNormalization), curve.Geometry.Scene, Describe(normalization)));
+            }
+
+            if (matrix != null && matrix.Normalization != normalization)
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateMatrixNormalizationMismatch",
+                        "Dose rate: the response matrix is normalised {1}, but the curve \"{0}\" is {2}"
+                        + " — square centimetres and fractions do not mix; recompute the matrix."),
+                    name, Describe(matrix.Normalization), Describe(normalization)));
+            }
+
+            string note;
+            double fluence = DoseRateGeometry.FluencePerPhoton(curve.Geometry, out note);
+
+            var input = new DoseRateInput
+            {
+                Name = name,
+                Matrix = matrix,
+                Normalization = normalization,
+                FluencePerPhoton = fluence,
+                GeometryNote = note,
+            };
+
+            if (matrix != null)
+            {
+                if (matrix.Energies == null || matrix.Energies.Length == 0 || matrix.Rows == null)
+                {
+                    throw new DoseRateRefusalException(string.Format(
+                        CultureInfo.InvariantCulture,
+                        DoseRateCoefficients.Text("DoseRateEmptyMatrix",
+                            "Dose rate: the response matrix of the curve \"{0}\" has no rows."),
+                        name));
+                }
+
+                input.MinKev = matrix.Energies[0];
+                input.MaxKev = matrix.Energies[matrix.Energies.Length - 1];
+            }
+            else
+            {
+                input.PeakCurve = DoseRateEstimator.CurveOf(
+                    curve.Curve, normalization,
+                    normalization == ResponseMatrixNormalization.PerUnitFluence
+                        ? DoseRateGeometry.ProjectedAreaBoundCm2(curve.Geometry)
+                        : 1.0);
+                input.MinKev = input.PeakCurve.MinKev;
+                input.MaxKev = input.PeakCurve.MaxKev;
+            }
+
+            return input;
+        }
+
+        /// <summary>Строка `norm=fluence` в клейме кривой — единицы см².</summary>
+        public const string FluenceStampMark = "norm=fluence";
+
+        /// <summary>
+        /// Нормировка, объявленная клеймом кривой: `norm=fluence` пишет ТОЛЬКО
+        /// кривая сцены поля (`EfficiencyCalculation.Run`, тем же правилом
+        /// `T42`, что клеймо матрицы); пустое клеймо (ввоз ЛСРМ, кривая
+        /// руками) и клеймо без строки — доли.
+        /// </summary>
+        public static ResponseMatrixNormalization StampNormalization(string computeStamp)
+        {
+            return computeStamp != null && computeStamp.IndexOf(FluenceStampMark, StringComparison.Ordinal) >= 0
+                ? ResponseMatrixNormalization.PerUnitFluence
+                : ResponseMatrixNormalization.PerEmittedQuantum;
+        }
+
+        /// <summary>Нормировка словами — в отказы (инвариантно, как клеймо).</summary>
+        static string Describe(ResponseMatrixNormalization normalization)
+        {
+            return normalization == ResponseMatrixNormalization.PerUnitFluence
+                ? "per unit fluence (cm²)"
+                : "per emitted quantum (fraction)";
+        }
+
+        /// <summary>
+        /// Эффективность на энергии: доля квантов, испущенных источником в 4π,
+        /// что дали отсчёт ГДЕ УГОДНО по шкале (матрица) либо в пике (кривая);
+        /// у сцены поля — то же в см² (<see cref="Normalization"/>).
+        /// За краями области — отказ, как у <see cref="DoseRateCurve.At"/>:
+        /// матрица за краями сетки удерживает крайний узел, и это была бы
+        /// выдумка, выданная измерением.
+        /// </summary>
+        public double EfficiencyAt(double energyKev)
+        {
+            if (this.Matrix == null)
+            {
+                return this.PeakCurve.At(energyKev);
+            }
+
+            if (energyKev < this.MinKev || energyKev > this.MaxKev)
+            {
+                throw new DoseRateRefusalException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateOutsideMatrix",
+                        "Dose rate: {0:f1} keV is outside the response matrix ({1:f1}...{2:f1} keV)."),
+                    energyKev, this.MinKev, this.MaxKev));
+            }
+
+            return FullEfficiency(this.Matrix, energyKev);
+        }
+
+        /// <summary>
+        /// ПОЛНАЯ эффективность регистрации на энергии линии — сумма строки
+        /// матрицы, интерполированной между узлами ТЕМ ЖЕ кодом, что и разбор
+        /// (<see cref="ResponseMatrix.Evaluate"/>). Один бин приёмника: перенос
+        /// сохраняет площадь, вклады за краем зажимаются в крайний бин, и в
+        /// единственный бин ложится вся строка целиком — ровно её сумма.
+        /// </summary>
+        public static double FullEfficiency(ResponseMatrix matrix, double energyKev)
+        {
+            double[] one = matrix.Evaluate(energyKev, 1);
+            return one.Length > 0 ? one[0] : 0.0;
+        }
+    }
+
+    /// <summary>
+    /// ⛔ ЕДИНСТВЕННОЕ МЕСТО, ГДЕ НОРМИРОВКА СТРОКИ ПРЕВРАЩАЕТСЯ В ДОЗУ
+    /// (`AMBER18`, 12.09.2026).
+    ///
+    /// Что дано. Эффективность — и пиковая, и строка матрицы — нормирована
+    /// «на квант, испущенный источником в 4π» (<see cref="ResponseMatrix"/>,
+    /// <see cref="EfficiencySimulator.Efficiency"/>). Значит
+    /// `отсчёт/с ÷ ε(E)` — это N(E), квантов в секунду, испущенных
+    /// источником сцены. Доза же — свойство ПОТОКА в точке: K̇_air =
+    /// φ̇ · E · μ_en/ρ. Между N и φ̇ стоит геометрия: φ̇ = N · G, где G —
+    /// плотность потока в точке от одного испущенного кванта, 1/см².
+    ///
+    /// Что считается здесь. G = ⟨1/(4π r²)⟩ по объёму источника, r — от
+    /// ЦЕНТРА КРИСТАЛЛА до точки источника, БЕЗ ослабления: у точечного
+    /// источника это 1/(4π R²), у сосуда и маринелли — интеграл по телу
+    /// (по ρ аналитически, по z квадратурой), у кюветы — квадратура по трём
+    /// осям. Сцена строится ТЕМИ ЖЕ правилами, что у симулятора
+    /// (`EfficiencySimulator.Build`): расстояния от переднего торца корпуса,
+    /// торцевые толщины обвязки, разворот бруска боком к пробе.
+    ///
+    /// ⚠ ЦЕНА, названная вслух. (1) Ослабление в самой пробе сюда не входит:
+    /// N посчитан верно (ε его несёт), а поток в центре от НЕослабляющей
+    /// пробы выше настоящего — у объёмной пробы доза ЗАВЫШЕНА на её
+    /// самопоглощение (вода в маринелли на 662 кэВ — десятки процентов, оксид
+    /// лютеция на 200 кэВ — в разы). (2) Точка отсчёта — центр кристалла; у
+    /// источника на торце большого кристалла поток по кристаллу меняется в
+    /// разы, и «доза в центре» — соглашение. (3) Обвязка и оправа поток не
+    /// ослабляют (доли процента у сцинтиллятора). Всё это снимает сцена ПОЛЯ
+    /// (`AMBER13` (б), `ISO`): её строка нормируется на ЕДИНИЧНЫЙ ФЛЮЕНС, и
+    /// тогда G ≡ 1, а самопоглощения и центра нет по построению.
+    ///
+    /// ✅ Сцена поля `ISO` (решение Amber 12.09.2026 «Оставь только ISO»;
+    /// производитель — полоса П2, потребитель — П6 того же дня): для неё
+    /// этот метод возвращает ровно 1.0 — отклик уже на единицу флюенса
+    /// (<see cref="ResponseMatrixNormalization.PerUnitFluence"/>), и в самом
+    /// расчёте ничего больше не меняется: `отсчёт/с ÷ A_эфф(E) [см²]` есть
+    /// плотность потока квант/(см²·с). Прочие виды ICRP (`AP`/`PA`/`ROT`)
+    /// не заводятся тем же решением.
+    /// </summary>
+    public static class DoseRateGeometry
+    {
+        /// <summary>Шагов квадратуры вдоль оси (и по каждой оси кюветы).</summary>
+        const int AxialSteps = 2000;
+
+        const int BoxSteps = 48;
+
+        /// <summary>
+        /// Плотность потока в центре кристалла на один квант, испущенный
+        /// источником в 4π, **1/см²**. Отказ — на сцене, которой нельзя
+        /// поверить: без кристалла, без объёма пробы, с источником в центре
+        /// кристалла. У сцены поля `ISO` — ровно 1 (см. выше).
+        /// </summary>
+        public static double FluencePerPhoton(GeometryModel model, out string note)
+        {
+            if (model == null)
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoGeometryModel", "Dose rate: the curve has no geometry."));
+            }
+
+            // Сцена поля: источника нет, отклик — эффективная площадь на
+            // единичный флюенс, и множителю здесь взяться неоткуда. ⛔ Ветка
+            // стоит ДО разбора формы источника нарочно: в файле поле записано
+            // точкой на расстоянии радиуса сферы (`GeometryScenes.Iso`,
+            // `pdistance = R`), и общий ход дал бы 1/(4πR²) — множитель,
+            // которого у поля нет, — молча и на четыре порядка.
+            if (ResponseMatrix.NormalizationOf(model) == ResponseMatrixNormalization.PerUnitFluence)
+            {
+                note = string.Format(CultureInfo.InvariantCulture,
+                    "iso field: response per unit fluence (cm²), G = 1; sphere R = {0:f1} cm (answer independent of it)",
+                    model.FieldRadius / GeometryModel.MmPerCm);
+                return 1.0;
+            }
+
+            // Сантиметры — на той же границе, что у симулятора (`InCentimeters`).
+            GeometryModel g = model.InCentimeters();
+
+            double hc;
+            double ax = 0.0, ay = 0.0;
+            if (g.Shape == CrystalShape.Box)
+            {
+                g.CrystalBoxInScene(out ax, out ay, out hc);
+            }
+            else
+            {
+                hc = g.CrystalHeight;
+            }
+
+            if (!(hc > 0.0))
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoCrystal", "Dose rate: the geometry has a crystal of zero depth."));
+            }
+
+            // Торцевые толщины обвязки — с разворотом при боковой постановке,
+            // как в `EfficiencySimulator.Build`. Оправа стоит ЗА кристаллом
+            // (умолчание симулятора) и на расстояния не влияет.
+            double tfr = g.FrontReflectorThickness, tsr = g.SideReflectorThickness;
+            double tfc = g.FrontCladdingThickness, tsc = g.SideCladdingThickness;
+            double tfg = Math.Max(0.0, g.FrontGapThickness);
+            double tsg = Math.Max(0.0, g.SideGapThickness);
+            if (g.Facing == GeometryDetectorFacing.Side)
+            {
+                double t = tfr; tfr = tsr; tsr = t;
+                t = tfc; tfc = tsc; tsc = t;
+                t = tfg; tfg = tsg; tsg = t;
+            }
+
+            double zFace = -(tfr + tfg + tfc);
+            double zc = 0.5 * hc;                     // центр кристалла
+
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Point:
+                {
+                    double r = zc - (zFace - g.PointDistance);
+                    if (!(r > 0.0))
+                    {
+                        throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                            "DoseRateSourceInCrystal",
+                            "Dose rate: the point source sits at the crystal centre — the fluence is undefined."));
+                    }
+
+                    note = string.Format(CultureInfo.InvariantCulture,
+                        "point: R = {0:f3} cm to crystal centre, G = 1/(4πR²)", r);
+                    return 1.0 / (4.0 * Math.PI * r * r);
+                }
+
+                case GeometrySourceType.Cylinder:
+                {
+                    double rOut = 0.5 * g.BeakerDiameter;
+                    double rIn = Math.Max(0.0, rOut - g.BeakerSideWallThickness);
+                    double zTop = zFace - g.BeakerToDetectorDistance - g.BeakerEndWallThickness;
+                    double zBottom = zTop - g.SourceHeight;
+                    double volume, integral;
+                    Revolution(0.0, rIn, zBottom, zTop, zc, out volume, out integral);
+                    return Finish(volume, integral, out note,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "cylinder: r ≤ {0:f3} cm, z {1:f3}…{2:f3} cm from crystal centre",
+                            rIn, zBottom - zc, zTop - zc));
+                }
+
+                case GeometrySourceType.Marinelli:
+                {
+                    double rh = 0.5 * g.MarinelliHoleDiameter;
+                    double ths = g.MarinelliHoleSideThickness;
+                    double the = g.MarinelliHoleEndWallThickness;
+                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
+                    double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+                    double hs = g.MarinelliSourceHeight;
+                    double hh = g.MarinelliHoleHeight;
+                    double zCeiling = zFace - g.MarinelliToDetectorDistance;
+                    double cap = Math.Max(0.0, hs - hh);
+                    double zSrc0 = zCeiling - the - cap;
+
+                    double v1, i1, v2, i2;
+                    // Проба над потолком колодца (под детектором) …
+                    Revolution(0.0, rh + ths, zSrc0, zCeiling - the, zc, out v1, out i1);
+                    // … и кольцо вокруг колодца.
+                    Revolution(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, zc, out v2, out i2);
+                    return Finish(v1 + v2, i1 + i2, out note,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "marinelli: ring {0:f3}…{1:f3} cm, height {2:f3} cm, cap {3:f3} cm",
+                            rh + ths, rSrcOut, hs, cap));
+                }
+
+                default:
+                {
+                    // Прямоугольная кювета (`GeometrySourceType.Box`).
+                    double axOut = 0.5 * g.BoxSourceX, ayOut = 0.5 * g.BoxSourceY;
+                    double axIn = Math.Max(0.0, axOut - g.BoxSideWallThickness);
+                    double ayIn = Math.Max(0.0, ayOut - g.BoxSideWallThickness);
+                    double zTop = zFace - g.BoxToDetectorDistance - g.BoxEndWallThickness;
+                    double zBottom = zTop - g.BoxSourceHeight;
+                    double volume, integral;
+                    Box(axIn, ayIn, zBottom, zTop, zc, out volume, out integral);
+                    return Finish(volume, integral, out note,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "box: ±{0:f3} × ±{1:f3} cm, z {2:f3}…{3:f3} cm from crystal centre",
+                            axIn, ayIn, zBottom - zc, zTop - zc));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Потолок эффективной площади сцены поля, см²: площадь проекции
+        /// сферы, описанной вокруг обвязанного детектора (половина диагонали
+        /// того же цилиндра, из которого `GeometryScenes.MinFieldRadiusMm`
+        /// берёт нижнюю границу радиуса поля). По Коши средняя проекция
+        /// выпуклого тела S/4 не больше проекции описанной сферы πr², а
+        /// собрать квантов больше, чем на него падает, детектор не может;
+        /// у Ø63×63 NaI в обвязке это 73.8 см² при S/4 = 46.8 голого кристалла.
+        /// </summary>
+        public static double ProjectedAreaBoundCm2(GeometryModel model)
+        {
+            if (model == null)
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoGeometryModel", "Dose rate: the curve has no geometry."));
+            }
+
+            double halfDiagonalCm = GeometryScenes.MinFieldRadiusMm(model)
+                                    / GeometryScenes.FieldRadiusMargin / GeometryModel.MmPerCm;
+            return Math.PI * halfDiagonalCm * halfDiagonalCm;
+        }
+
+        static double Finish(double volume, double integral, out string note, string what)
+        {
+            if (!(volume > 0.0))
+            {
+                throw new DoseRateRefusalException(DoseRateCoefficients.Text(
+                    "DoseRateNoSampleVolume",
+                    "Dose rate: the sample in the geometry has no volume — there is nothing to average the fluence over."));
+            }
+
+            double g = integral / volume;
+            note = string.Format(CultureInfo.InvariantCulture,
+                "{0}, V = {1:f3} cm³, G = <1/(4πr²)> = {2:e4} 1/cm²", what, volume, g);
+            return g;
+        }
+
+        /// <summary>
+        /// Тело вращения ρ ∈ [ρ0, ρ1], z ∈ [z0, z1] вокруг оси сцены; точка
+        /// отсчёта на оси в z = zc. Объём и ∫ dV / (4π r²): по ρ — аналитически
+        /// (∫ ρ dρ / (2(ρ² + d²)) = ¼ ln((ρ1² + d²)/(ρ0² + d²))), по z —
+        /// серединная квадратура.
+        /// </summary>
+        static void Revolution(double r0, double r1, double z0, double z1, double zc,
+                               out double volume, out double integral)
+        {
+            volume = 0.0;
+            integral = 0.0;
+            if (!(r1 > r0) || !(z1 > z0))
+            {
+                return;
+            }
+
+            volume = Math.PI * (r1 * r1 - r0 * r0) * (z1 - z0);
+            double dz = (z1 - z0) / AxialSteps;
+            double sum = 0.0;
+            for (int i = 0; i < AxialSteps; i++)
+            {
+                double d = z0 + (i + 0.5) * dz - zc;
+                double d2 = d * d;
+                sum += 0.25 * Math.Log((r1 * r1 + d2) / (r0 * r0 + d2));
+            }
+
+            integral = sum * dz;
+        }
+
+        /// <summary>Кювета |x| ≤ ax, |y| ≤ ay, z ∈ [z0, z1]; та же величина квадратурой по трём осям.</summary>
+        static void Box(double ax, double ay, double z0, double z1, double zc,
+                        out double volume, out double integral)
+        {
+            volume = 0.0;
+            integral = 0.0;
+            if (!(ax > 0.0) || !(ay > 0.0) || !(z1 > z0))
+            {
+                return;
+            }
+
+            volume = 4.0 * ax * ay * (z1 - z0);
+            int nz = AxialSteps / 4;
+            double dx = 2.0 * ax / BoxSteps, dy = 2.0 * ay / BoxSteps, dz = (z1 - z0) / nz;
+            double sum = 0.0;
+            for (int k = 0; k < nz; k++)
+            {
+                double d = z0 + (k + 0.5) * dz - zc;
+                double d2 = d * d;
+                for (int i = 0; i < BoxSteps; i++)
+                {
+                    double x = -ax + (i + 0.5) * dx;
+                    for (int j = 0; j < BoxSteps; j++)
+                    {
+                        double y = -ay + (j + 0.5) * dy;
+                        sum += 1.0 / (4.0 * Math.PI * (x * x + y * y + d2));
+                    }
+                }
+            }
+
+            integral = sum * dx * dy * dz;
         }
     }
 }
