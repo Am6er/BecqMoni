@@ -1,0 +1,3 @@
+scene,E_keV,material,rho,eps,err_pct,eps_air,err_air_pct,F_mc,Cs_mc,Cs_mc_err_pct,Cs_deb_total,Cs_deb_nocoh,Cs_formula,d_mc_deb_total_pct,d_mc_formula_pct,mu_rho_total,mu_rho_nocoh
+J,238.6,H2O,1,1.240840E-001,0.425,1.427046E-001,0.408,0.86952,1.15006,0.589,1.14046,1.13935,,0.842,,0.128694,0.127715
+J,238.6,SiO2,1.6,1.159400E-001,0.437,1.427046E-001,0.408,0.81245,1.23085,0.598,1.20874,1.20510,1.20561,1.829,2.093,0.117328,0.115394
