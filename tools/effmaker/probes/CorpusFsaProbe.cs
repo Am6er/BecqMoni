@@ -242,6 +242,7 @@ namespace CorpusFsaProbe
     ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
     ///                  [--sum-light=electron|photon]   (`S167`, П18: кривая света каскадной суммы)
     ///                  [--loss-joint=0|1]   (`S166`, П18: вынос из пика с совместной эффективностью κ)
+    ///                  [--crystal-shield=0|1]   (`A30`, П21: заслон сведения рентгена кристалла — как до 12.09.2026)
     ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
     ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
@@ -373,6 +374,23 @@ namespace CorpusFsaProbe
                     }
 
                     o.LossJoint = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`A30`, П21 12.09.2026) Заслон сведения рентгена кристалла:
+                // `1` — прежний порядок «проба, защита, кристалл» с заслоном по
+                // занятому элементу; `0` — кристалл сводится всегда. Уходит в
+                // `FsaSampleSpec.CrystalShield` (см. <c>SpecOf</c>), анализатор
+                // его не видит — потому и печатается в шапке прогона рукой.
+                if (a.StartsWith("--crystal-shield=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(17);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--crystal-shield= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.CrystalShield = v == "1";
                     continue;
                 }
                 // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
@@ -1321,6 +1339,11 @@ namespace CorpusFsaProbe
                                     // которая уходит в `FsaSampleSpec.Equilibrium`
                                     // (см. <c>SpecOf</c> и ветку `infer`).
                                     + ", равновесие ряда " + (o.Equilibrium ? "вкл" : "ВЫКЛ")
+                                    // (`A30`, П21) Заслон — ключ БИБЛИОТЕКИ, отражение
+                                    // `SETUP` по анализатору его не видит; печатается та
+                                    // же переменная, что уходит в `FsaSampleSpec`.
+                                    + ", заслон сведения кристалла "
+                                    + (o.CrystalShield ? "ВКЛ (как до 12.09.2026)" : "снят")
                                   : "");
             if (o.Library != "peaks")
             {
@@ -2500,6 +2523,9 @@ namespace CorpusFsaProbe
             // до прогона тем же `FromLabel`.
             FsaSampleSpec spec = FsaSampleSpec.FromManifest(
                 rd, sample.Chains, sample.Nuclides, o.Equilibrium, o.Atomic);
+            // (`A30`, П21) Ключ библиотеки, а не анализатора: заслон живёт в
+            // `FsaSampleLibrary.AddAtomic`, и ключ обязан доехать до неё.
+            spec.CrystalShield = o.CrystalShield;
 
             AddElements(spec.CrystalElements, sample.Crystal);
             AddElements(spec.SampleElements, sample.SampleMatter);
@@ -4418,6 +4444,13 @@ namespace CorpusFsaProbe
             /// `--no-equilibrium` возвращает свободную амплитуду каждому члену.
             /// </summary>
             public bool Equilibrium = true;
+
+            /// <summary>
+            /// (`A30`, П21) Заслон сведения рентгена кристалла — прежний
+            /// порядок сборки атомных образов. Уходит в
+            /// `FsaSampleSpec.CrystalShield`; A/B-сторона `--crystal-shield=1`.
+            /// </summary>
+            public bool CrystalShield;
 
             /// <summary>
             /// (S70) Печатать СОСТАВ БИБЛИОТЕКИ построчно — мерка приёмки

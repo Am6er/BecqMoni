@@ -344,6 +344,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool AtomicXray = true;
 
         /// <summary>
+        /// ЗАСЛОН СВЕДЕНИЯ РЕНТГЕНА КРИСТАЛЛА — прежнее поведение, снятое
+        /// решением Amber 12.09.2026 (`A30`, дословно: «Снять заслон: сводить
+        /// кристалл ВСЕГДА»).
+        ///
+        /// Выключен — вещество кристалла сводится в ОДИН образ (`Xray-CsI`,
+        /// `A29`) всегда, и образ пробы или защиты на тот же элемент НЕ
+        /// строится: иод пробы I-131 на NaI, цезий защиты на CsI уходят в образ
+        /// кристалла, второй колонки на те же отсчёты нет. Пропущенный элемент
+        /// называется в <see cref="FsaSampleLibrary.Report.Notes"/>.
+        ///
+        /// Включён — как до 12.09.2026: сперва проба и защита, и если элемент
+        /// кристалла уже занят их образом, вещество не сводится, а строится
+        /// поэлементно — та самая вырожденная пара, которую заслон и порождал.
+        /// Цена измерена полосой П2 10.09.2026 (`FsaCrystalMixFallbackProbe`,
+        /// журнал `handover-2026-09-10-p2-branches-without-corpus.md` §2): при
+        /// рентгене кристалла в 0.2 % спектра сведённый образ доживает до
+        /// разбора 12 раз из 12, пара — 0 из 12, то есть человек видит спектр
+        /// БЕЗ рентгена кристалла; при живой матрице половина вещества
+        /// (`Xray-Cs`, 51.5 % веса K-серии) остаётся свободной колонкой мимо
+        /// гейта `AMBER4`, потому что флага <see cref="FsaComponent.FromCrystal"/>
+        /// у колонки из пробы нет по построению.
+        ///
+        /// Ключ оставлен ради положительного контроля лестницы плеч
+        /// (`CorpusFsaProbe --crystal-shield=1`) и той же пробы; в приложении
+        /// не поднимается.
+        /// </summary>
+        public bool CrystalShield;
+
+        /// <summary>
         /// Наименьшая накопленная доля ветвления, при которой член ряда идёт в
         /// состав отдельным образом.
         ///
@@ -1533,11 +1562,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                               HashSet<string> declared, Report report)
         {
             var seen = new HashSet<int>();
-            AddFluorescence(spec, spec.SampleElements, "проба", result, report, seen);
-            AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
-            if (!AddCrystalFluorescence(spec, result, report, seen))
+
+            // ⛔ КРИСТАЛЛ ПЕРВЫМ (`A30`, решение Amber 12.09.2026: «Снять заслон:
+            // сводить кристалл ВСЕГДА»). Занятость элемента решает ПОРЯДОК:
+            // кто построил образ раньше, тот элемент и держит (`seen`). До
+            // 12.09.2026 первыми шли проба и защита, и элемент кристалла,
+            // встреченный у них, ронял сведение вещества — заслон в
+            // <see cref="AddCrystalFluorescence"/>. Теперь кристалл занимает
+            // свои элементы до всех, а образ пробы или защиты на тот же элемент
+            // не строится: второй колонки на те же отсчёты нет, и гейт
+            // `AMBER4` снимает весь рентген кристалла одним флагом.
+            //
+            // Прежний порядок — ключом <see cref="FsaSampleSpec.CrystalShield"/>,
+            // ради положительного контроля лестницы плеч.
+            if (spec.CrystalShield)
             {
-                AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen, true);
+                AddFluorescence(spec, spec.SampleElements, "проба", result, report, seen);
+                AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
+                if (!AddCrystalFluorescence(spec, result, report, seen))
+                {
+                    AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen, true);
+                }
+            }
+            else
+            {
+                if (!AddCrystalFluorescence(spec, result, report, seen))
+                {
+                    AddFluorescence(spec, spec.CrystalElements, "кристалл", result, report, seen, true);
+                }
+
+                AddFluorescence(spec, spec.SampleElements, "проба", result, report, seen);
+                AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
             }
 
             AddEscape(spec, result, declared, report);
@@ -1571,9 +1626,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// кэВ, ω_K 0.894 против 0.884.
         ///
         /// Возвращает false, если вещества кристалла нет (тогда зовущий строит
-        /// образы поэлементно, как раньше) или если элемент кристалла уже занят
-        /// образом пробы либо защиты: тогда общий образ спорил бы за те же
-        /// отсчёты со своей же половиной, и прежний путь честнее.
+        /// образы поэлементно, как раньше).
+        ///
+        /// ⛔ ЗАСЛОН ПО ЗАНЯТОМУ ЭЛЕМЕНТУ СНЯТ (`A30`, решение Amber 12.09.2026).
+        /// Проверка «элемент кристалла уже занят образом пробы либо защиты →
+        /// не сводить» ниже осталась, но при штатном порядке
+        /// <see cref="AddAtomic"/> кристалл идёт ПЕРВЫМ и `seen` пуст — она не
+        /// срабатывает никогда. Срабатывает она только под ключом
+        /// <see cref="FsaSampleSpec.CrystalShield"/>, где порядок прежний; довод
+        /// заслона («общий образ спорил бы за те же отсчёты со своей же
+        /// половиной») перевешен измеренной ценой: пара колонок не доживает до
+        /// разбора, а сведённый образ доживает (журнал П2 10.09.2026 §2.2).
         /// </summary>
         static bool AddCrystalFluorescence(FsaSampleSpec spec, List<FsaComponent> result,
                                            Report report, HashSet<int> seen)
@@ -1651,8 +1714,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             foreach (int z in elements)
             {
-                if (z <= 0 || !seen.Add(z))
+                if (z <= 0)
                 {
+                    continue;
+                }
+
+                if (!seen.Add(z))
+                {
+                    // (`A30`) Элемент пробы или защиты, который уже держит
+                    // образ кристалла, называется, а не пропадает молча: по
+                    // этой заметке в `LibraryNote` прогона видно, у каких
+                    // спектров случай вообще возник. Дубль пробы в защите
+                    // (свинец там и там) — не находка, о нём молчим, как и
+                    // прежде; под ключом заслона кристалл идёт последним, и
+                    // заметка была бы ложью — там молчим тоже.
+                    if (!fromCrystal && !spec.CrystalShield && spec.CrystalElements.Contains(z))
+                    {
+                        report.Notes.Add("рентген " + what + ": Z="
+                                         + z.ToString(CultureInfo.InvariantCulture)
+                                         + " — элемент кристалла, сведён в его образ, свой не строится");
+                    }
+
                     continue;
                 }
 
