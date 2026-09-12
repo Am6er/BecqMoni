@@ -1378,6 +1378,164 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         int lightMarginBins;
 
+        /// <summary>
+        /// (`S169`) Карта "adc" ЗАКАЗАНА на этот разбор — <see cref="AnchorZero"/>,
+        /// разобранное один раз в <see cref="Analyze"/>.
+        /// </summary>
+        bool adcZeroWanted;
+
+        /// <summary>
+        /// (`S169`) РАСТЯЖЕНИЕ карты "adc": свет x (кэВ шкалы образа) идёт в
+        /// канал КАЛИБРОВКОЙ файла, но по энергии
+        /// E꜀(x) = E(0) + (x − z₀)·<see cref="adcScale"/>, где E(0) =
+        /// <see cref="adcE0"/> — энергия калибровки в нулевом канале, z₀ =
+        /// <see cref="adcZeroKev"/>. То есть форма полинома (его кривизна —
+        /// у G1S она настоящая, см. ниже) сохранена, а его нуль перенесён в
+        /// нулевой канал: p(z₀) = 0, p(x₁) = EnergyToChannel(x₁) у верхней
+        /// принятой опоры (растяжение подобрано ровно так). У линейной
+        /// калибровки это в точности прямая от нулевого канала. Нуль —
+        /// карта не включена (не заказана; заказана, но привязки или матрицы
+        /// нет; калибровка нулевому каналу энергии не даёт): тогда
+        /// <see cref="LightToChannel"/> идёт калибровкой как есть, до бита
+        /// как прежде. Ставится ОДИН РАЗ в начале <see cref="Analyze"/>
+        /// (<see cref="AdcScaleOf"/>) по верхней линии библиотеки и живёт
+        /// весь разбор; усиление и ноль `AMBER17` считаются поверх неё с
+        /// первого прохода. Поле, а не параметр — по тем же доводам, что
+        /// <see cref="driftLight"/>.
+        ///
+        /// ⚠ Включать карту ПОСЛЕ первого прохода привязки (как β света)
+        /// НЕЛЬЗЯ — измерено П8: усиление и ноль, найденные калибровкой на
+        /// первом проходе, несут в себе поправку того самого нуля, который
+        /// карта затем переносит сама, и низ шкалы уезжал дважды:
+        /// `G1S16_Cs137_P5` рентген 32 кэВ оказался на −6.85 кэВ от данных,
+        /// отказ «shift», опор 2 → 1, χ²/ndf 8.06 → 29.76; малая база
+        /// 306.4 → 357.4. С картой с первого прохода МНК опор считает
+        /// усиление и ноль сразу на ней.
+        ///
+        /// ⛔ ПОЧЕМУ НЕ ЧИСТАЯ ПРЯМАЯ ОТ НУЛЕВОГО КАНАЛА — измерено полосой П8
+        /// 12.09.2026 на малой базе. Прямая p = g·x через нулевой канал и
+        /// верхнюю опору дала Σχ² понятной части 306.4 → 557.2 (+82 %),
+        /// `G1S24_Th228_P5` 20.3 → 127.5 при опорах 7 → 0. Нуль света по
+        /// принятым опорам плеча `calib` (МНК «канал ↔ свет» по спектрам с
+        /// ≥ 2 опорами, `tools/pie/p8_zero.py`): у спектров с опорами НИЖЕ
+        /// ~700 кэВ (Ba-133, Cd-109, Ce-139, Cs-137 на G1S16 и G1S24) нуль
+        /// стоит на кан −0.06…+0.9 — то есть В НУЛЕВОМ КАНАЛЕ, как и мерила
+        /// П4 §3; у спектров с опорами ВЫШЕ (Co-60, Y-88, Na-22, Th-228 с
+        /// 2614, Eu-152 с 1408) — на кан 6…11, и остатки от прямой через
+        /// нуль и верх растут с энергией до +6 кан на 500…900 кэВ у Th-228.
+        /// Прямая от нуля верна внизу шкалы — там, где живёт вылет, — и
+        /// ложна вверху, где полином калибровки несёт кривизну, которой у
+        /// таблицы света нет (тракт G1S сжимает большие амплитуды либо
+        /// r(E) выше 662 кэВ переоценён — разводить незачем: калибровка
+        /// подогнана по этим же пикам и кривизну ЗНАЕТ). Отсюда форма:
+        /// нуль — от прибора, кривизна — от калибровки.
+        /// </summary>
+        double adcScale;
+
+        /// <summary>(`S169`) Энергия калибровки в нулевом канале, кэВ — E(0) на этот разбор.</summary>
+        double adcE0;
+
+        /// <summary>(`S169`) Верхняя линия библиотеки, кэВ, по которой взято растяжение; для служебной строки.</summary>
+        double adcTopKev;
+
+        /// <summary>(`S169`) Свет в нулевом канале карты "adc", кэВ — <see cref="AnchorZeroKev"/> на этот разбор.</summary>
+        double adcZeroKev;
+
+        /// <summary>
+        /// (`S169`) ОДНО МЕСТО перевода «свет x (кэВ шкалы образа) → канал до
+        /// дрейфа» для всех, кто ставит образ на шкалу: таблица бинов
+        /// <see cref="DepositChannels"/>, линия ядра опоры, окно пика, голые
+        /// пики. Карта "calib" (и "adc" до первых опор) — калибровка файла;
+        /// карта "adc" — та же калибровка по энергии E(0) + (x − z₀)·s
+        /// (<see cref="adcScale"/>). Расходиться этим местам нельзя: пик,
+        /// поставленный одной картой, и ядро опоры, построенное другой, дали
+        /// бы промах привязки из ничего.
+        /// </summary>
+        double LightToChannel(EnergyCalibration calibration, double lightKev, int channels)
+        {
+            if (this.adcScale > 0.0)
+            {
+                return EnergyToChannelSafe(calibration,
+                                           this.adcE0 + (lightKev - this.adcZeroKev) * this.adcScale,
+                                           channels);
+            }
+
+            return EnergyToChannelSafe(calibration, lightKev, channels);
+        }
+
+        /// <summary>
+        /// (`S169`) Растяжение карты "adc" по ВЕРХНЕЙ ЛИНИИ БИБЛИОТЕКИ:
+        /// s = (x₁ − E(0))/(x₁ − z₀), x₁ — наибольшая энергия линии среди
+        /// нуклидных образов (без готовых столбцов). Тогда E꜀(x₁) = x₁ —
+        /// верх шкалы стоит там же, где ставит его калибровка, и опоры
+        /// первого прохода находятся; E꜀(z₀) = E(0) — свет z₀ стоит в
+        /// нулевом канале. Какая именно линия взята верхней, на физику не
+        /// влияет: при одной опоре усиление растягивает образ вокруг
+        /// нулевого канала (нуль остаётся на месте), при двух и более с
+        /// плечом ноль подбирается МНК; линия лишь задаёт, насколько модель
+        /// до привязки близка к калибровочной. Нуль — линий нет, растяжение
+        /// не положительно, калибровка нулевому каналу энергии не даёт.
+        /// </summary>
+        double AdcScaleOf(List<FsaComponent> library, EnergyCalibration calibration)
+        {
+            double topKev = 0.0;
+            foreach (FsaComponent component in library)
+            {
+                if (component == null || component.FixedTemplate != null || component.Lines == null)
+                {
+                    continue;
+                }
+
+                foreach (FsaLine line in component.Lines)
+                {
+                    if (line.Energy > topKev && line.Intensity > 0.0)
+                    {
+                        topKev = line.Energy;
+                    }
+                }
+            }
+
+            if (!(topKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            double e0;
+            try
+            {
+                e0 = calibration.ChannelToEnergy(0.0);
+            }
+            catch (Exception)
+            {
+                return 0.0;
+            }
+
+            double light = topKev - this.adcZeroKev;
+            if (!Finite(e0) || !(light > 0.0) || !(topKev - e0 > 0.0))
+            {
+                return 0.0;
+            }
+
+            this.adcE0 = e0;
+            this.adcTopKev = topKev;
+            double scale = (topKev - e0) / light;
+            return PositiveFinite(scale) ? scale : 0.0;
+        }
+
+        /// <summary>(`S169`) Разобрать слово <see cref="AnchorZero"/>: "calib" (умолчание) или "adc".</summary>
+        static bool ParseAnchorZero(string word)
+        {
+            string w = (word ?? "").Trim().ToLowerInvariant();
+            switch (w)
+            {
+                case "":
+                case "calib": return false;
+                case "adc": return true;
+                default:
+                    throw new ArgumentException("AnchorZero: неизвестное слово «" + (word ?? "") + "»; ждали calib | adc");
+            }
+        }
+
         /// <summary>(П19) Формы применения световой координаты — см. <see cref="AnchorLightForm"/>.</summary>
         enum LightForm
         {
@@ -1717,6 +1875,94 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Пусто умолчанием; рычаг — `--anchor-skip=`.
         /// </summary>
         public double[] AnchorSkipKev { get; set; }
+
+        /// <summary>
+        /// (`S169`, П8 12.09.2026; решение Amber 12.09.2026 вопросником,
+        /// дословно: «(а) Образ от нуля АЦП — полосой сейчас») НУЛЬ ШКАЛЫ,
+        /// ОТ КОТОРОГО РАСТЯГИВАЕТСЯ ОБРАЗ. Слово; умолчание — в конструкторе.
+        ///
+        ///   * "calib" — как было: бин гистограммы поглощения (световой кэВ x)
+        ///     переводится в канал КАЛИБРОВКОЙ файла, `EnergyToChannel(x)`.
+        ///     Нуль этой шкалы — свободный член калибровки, то есть
+        ///     ЭКСТРАПОЛЯЦИЯ полинома, подогнанного по пикам ≥ 59.5 кэВ: у
+        ///     `G1S16_Am241_P5` 0 кэВ стоит на кан 4.57 (кан 0 = −13.03 кэВ),
+        ///     у 46 спектров малой базы из 59 нулевой канал сидит на
+        ///     отрицательной энергии (до −43.9 кэВ). Прибор же кладёт свет
+        ///     ПРОПОРЦИОНАЛЬНО КАНАЛУ ОТ НУЛЯ АЦП: три структуры трёх нуклидов
+        ///     на `G1S16` (Ag K 22.6 / I-вылет 30.3 / Ba K 33.0 кэВ → кан
+        ///     9.23 / 11.69 / 12.88) дают нуль света на кан 0…1.4 (П4 §3).
+        ///     При двух и более опорах привязка `AMBER17` подбирает ноль сама
+        ///     и промах съедает (−7.0 кэВ у `G1S16_Cd109_P5`); при ОДНОЙ опоре
+        ///     подбирается только усиление, и всё ниже опорной линии модель
+        ///     растягивает от не того нуля: модельный K-вылет Am-241 встаёт
+        ///     на +2.15 кан (+6.2 кэВ) выше данных, в их провал — 12 421
+        ///     против 1 389 отсчётов на кан 15 («×9», П4 §4).
+        ///   * "adc" — образ от нуля АЦП: нуль калибровки переносится в
+        ///     НУЛЕВОЙ КАНАЛ, форма полинома сохраняется. Канал бина —
+        ///     p(x) = EnergyToChannel(E(0) + (x − z₀)·s), где E(0) — энергия
+        ///     калибровки в нулевом канале, z₀ = <see cref="AnchorZeroKev"/>
+        ///     (свет в нулевом канале; умолчанием — сам нуль АЦП, число стоит
+        ///     в конструкторе), а растяжение s берётся там, где калибровке
+        ///     верить можно: на ВЕРХНЕЙ принятой опоре, s = (x₁ − E(0))/(x₁ −
+        ///     z₀), x₁ — положение её линии в шкале образа (с множителем
+        ///     света). Так пик верхней опоры стоит ровно там же, что и в
+        ///     "calib", свет z₀ стоит в нулевом канале, а всё между —
+        ///     вылеты, комптон, рентген серии — идёт по форме калибровки к
+        ///     нулевому каналу вместо её свободного члена; у линейной
+        ///     калибровки это в точности прямая от нулевого канала.
+        ///     Усиление и ноль `AMBER17` считаются поверх, как прежде, и при
+        ///     двух и более опорах с плечом ноль по-прежнему подбирается.
+        ///     ⛔ Чистая прямая от нулевого канала ОТВЕРГНУТА замером
+        ///     (доводы и числа — у поля <see cref="adcScale"/>): внизу шкалы
+        ///     нуль света по опорам стоит в нулевом канале, но вверху
+        ///     полином несёт кривизну, которой у таблицы света нет.
+        ///     Карта стоит С НАЧАЛА разбора (растяжение — по верхней линии
+        ///     библиотеки, <see cref="AdcScaleOf"/>), и привязка `AMBER17`
+        ///     считает усиление и ноль сразу на ней; действует только при
+        ///     матрице отклика и включённой привязке — голые пики без матрицы
+        ///     и разбор без привязки идут как без ключа. Три места считают
+        ///     от одного нуля через <see cref="LightToChannel"/>: таблица
+        ///     «бин → канал» образа (<see cref="DepositChannels"/>, ею же
+        ///     идёт ядро опоры <see cref="BuildLineBlue"/>), положение линии
+        ///     ядра в <see cref="CollectScaleAnchors"/> и окно пика
+        ///     <see cref="MarkPeakWindow"/>; голые пики без матрицы
+        ///     (<see cref="BuildTemplate"/>) — той же картой.
+        ///
+        /// ⛔ Это НЕ возврат сетки дрейфа (~~`S95`~~, ~~`A36`~~, сняты
+        /// решением Amber 01.09.2026: свободный ноль по χ² уходит на край
+        /// сетки и рушит состав). Ноль здесь — не параметр, подбираемый по
+        /// невязке, а физика прибора; χ² его не двигает. Сетка нуля
+        /// (`--offset-range=15`) на четырёх Am-241 брала −5.7…−6.8 кэВ и
+        /// снимала треть χ², но вылет двигала лишь на −1 кан: ноль сдвигает
+        /// и пик, усиление возвращает пик на место, вылету достаётся
+        /// b·(1 − 30.9/59.5) — а до совпадения нужен ноль ≈ −13 кэВ, ровно
+        /// калибровочный кан 0, куда χ² не идёт (П4 §4).
+        ///
+        /// «Ноль АЦП» для полиномиальной калибровки с ненулевым свободным
+        /// членом: калибровка `E(ch)` — это полином через пики; его свободный
+        /// член `E(0)` — экстраполяция, а не измерение того, где стоит нуль
+        /// света. Поля «нуль АЦП» нет ни у <c>EnergyCalibration</c>, ни у
+        /// <c>ResultData</c>; <see cref="FsaBand.AdcFloorOf"/> — ПОРОГ
+        /// регистрации (первый канал с отсчётами, `A302`/П17), не нуль. Нуль
+        /// света — свойство тракта (код АЦП 0 = нулевая амплитуда), и единствен-
+        /// ный его замер — П4 §3: кан 0…1.4 на `G1S16`; отсюда z₀ в нуле
+        /// шкалы (число — в конструкторе) и рычаг <see cref="AnchorZeroKev"/>
+        /// для порчи.
+        ///
+        /// Рычаг проб — `--anchor-zero=calib|adc` у `CorpusFsaProbe`
+        /// (читатель — `SETUP` отражением); числа A/B — в журнале
+        /// `handover/handover-2026-09-12-p8-anchor-zero.md`.
+        /// </summary>
+        public string AnchorZero { get; set; }
+
+        /// <summary>
+        /// (`S169`, РЫЧАГ ЗАМЕРА) Свет в НУЛЕВОМ КАНАЛЕ, кэВ, для карты "adc":
+        /// нуль — сам нуль АЦП (так стоит в конструкторе); ±5 — намеренная
+        /// порча (положительный контроль: числа обязаны ухудшиться); E(0)
+        /// калибровки — карта "adc" сходится с "calib" у линейной калибровки.
+        /// Не действует у "calib". Рычаг — `--anchor-zero-kev=`.
+        /// </summary>
+        public double AnchorZeroKev { get; set; }
 
         /// <summary>
         /// Добавлять образы обратного рассеяния, выведенные из найденного
@@ -2302,7 +2548,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     // (П19) у форм line/peak после привязки пик линии стоит
                     // в образе на E + s(E) — искать его там же.
-                    double p = EnergyToChannelSafe(calibration, this.LinePositionKev(owner.Lines[j].Energy), channels);
+                    // (`S169`) той же картой нуля, что строит образ.
+                    double p = this.LightToChannel(calibration, this.LinePositionKev(owner.Lines[j].Energy), channels);
                     if (!Finite(p))
                     {
                         continue;
@@ -3001,6 +3248,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorLightForm = "line";
             this.AnchorLightReferenceKev = 661.657;
             this.AnchorLightMaxKev = 0.0;
+            // (`S169`, П8 12.09.2026) НУЛЬ ШКАЛЫ ОБРАЗА — прежний, калибровкой
+            // файла, ПОКА Amber не решит по числам A/B (журнал полосы П8);
+            // полярность стоит ЗДЕСЬ, у присваивания (`T82`). Плечо —
+            // `--anchor-zero=adc` у `CorpusFsaProbe`.
+            this.AnchorZero = "calib";
+            this.AnchorZeroKev = 0.0;
             // ⚠ Порог узости ВЫКЛЮЧЕН (ноль) по замеру, а не по вкусу: с
             // порогом в три канала рентгены 22…40 кэВ на 1024-канальных G1S
             // выпадали из опор, и малая база давала Σχ² 398.2 против 349.9 без
@@ -3125,6 +3378,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.lightCurveName = null;
             this.lightForm = LightForm.None;
             this.lightMarginBins = 0;
+            // (`S169`) карта нуля — слово разбирается на каждый разбор; наклон
+            // ставится циклом привязки, до первых опор — калибровка файла
+            this.adcZeroWanted = ParseAnchorZero(this.AnchorZero);
+            this.adcScale = 0.0;
+            this.adcE0 = 0.0;
+            this.adcTopKev = 0.0;
+            this.adcZeroKev = this.AnchorZeroKev;
+            // Карта "adc" — только там, где есть чем её проверить и поправить:
+            // матрица (образ с вылетами и комптоном) и привязка (усиление и
+            // ноль по опорам поверх карты). Голые пики без матрицы и разбор
+            // без привязки — как без ключа.
+            if (this.adcZeroWanted && this.AnchorScale && this.ResponseMatrix != null)
+            {
+                this.adcScale = this.AdcScaleOf(originalLibrary, spectrum.EnergyCalibration);
+            }
 
             // (`AMBER16` п. 4) Правило переноса строки между узлами — матрице,
             // из настройки разбора, на каждом разборе: матрица между вызовами
@@ -3918,6 +4186,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 "; свет {0}: β {1:F3}, форма {2}", this.lightCurveName, this.driftLight,
                                 LightFormName(this.lightForm));
                         }
+
+                        // (`S169`) карта нуля — в ту же служебную строку, и
+                        // ТОЛЬКО когда включилась: у "calib" строка прежняя
+                        // до буквы (контроль «ключ ВЫКЛ ничего не двигает»).
                     }
 
                     if (this.AnchorLightPosition && this.lightCurveName == null)
@@ -3933,6 +4205,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             else
             {
                 this.anchorNote = "привязка выключена ключом";
+            }
+
+            // (`S169`) карта нуля — в ту же служебную строку при любом исходе
+            // привязки, и ТОЛЬКО когда включена: у "calib" строка прежняя до
+            // буквы (контроль «ключ ВЫКЛ ничего не двигает»).
+            if (this.adcScale > 0.0)
+            {
+                this.anchorNote = (this.anchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
+                    "; нуль adc: кан 0 = {0:F2} кэВ калибровки, свет {1:F2} кэВ, растяжение {2:F5} по {3:F1} кэВ",
+                    this.adcE0, this.adcZeroKev, this.adcScale, this.adcTopKev);
             }
 
             // (S78) Всё, что было ПРЕДЪЯВЛЕНО фиту, и с какой значимостью его
@@ -6035,7 +6317,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            double position = EnergyToChannelSafe(calibration, energy, channels);
+            // (`S169`) окно — той же картой нуля, что ставит образ
+            double position = this.LightToChannel(calibration, energy, channels);
             if (!Finite(position))
             {
                 return false;
@@ -8468,10 +8751,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         double[] DepositChannels(EnergyCalibration calibration, double bin, int count, int channels)
         {
+            // (`S169`) карта нуля — часть ключа кэша: смена наклона "adc" в
+            // цикле привязки обязана перестроить таблицу, иначе образ после
+            // включения карты остался бы калибровочным молча.
             if (this.depositChannels != null && this.depositChannels.Length >= count
                 && this.depositChannelsBin == bin
                 && object.ReferenceEquals(this.depositChannelsCalibration, calibration)
-                && this.depositChannelsCount == channels)
+                && this.depositChannelsCount == channels
+                && this.depositChannelsAdcScale == this.adcScale)
             {
                 return this.depositChannels;
             }
@@ -8479,13 +8766,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
-                table[b] = EnergyToChannelSafe(calibration, b * bin, channels);
+                table[b] = this.LightToChannel(calibration, b * bin, channels);
             }
 
             this.depositChannels = table;
             this.depositChannelsBin = bin;
             this.depositChannelsCalibration = calibration;
             this.depositChannelsCount = channels;
+            this.depositChannelsAdcScale = this.adcScale;
             return table;
         }
 
@@ -8505,6 +8793,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         double depositChannelsBin;
         EnergyCalibration depositChannelsCalibration;
         int depositChannelsCount;
+        /// <summary>(`S169`) Растяжение карты "adc", с которым построена таблица; 0 — калибровкой как есть.</summary>
+        double depositChannelsAdcScale;
         ShapeKernelBank kernelBank;
 
         /// <summary>
@@ -8619,7 +8909,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool any = false;
             foreach (FsaLine line in component.Lines)
             {
-                double position = EnergyToChannelSafe(calibration, line.Energy, channels);
+                // (`S169`) голый пик — той же картой нуля, что образ по матрице
+                double position = this.LightToChannel(calibration, line.Energy, channels);
                 if (!Finite(position))
                 {
                     continue;
