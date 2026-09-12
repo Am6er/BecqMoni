@@ -1,0 +1,17 @@
+infer code=0 21:34:57 keys=[--infer]
+huber0 code=0 21:35:01 keys=[--infer --huber=0]
+done 21:35:01
+h3_noanch code=0 21:37:58 keys=[--infer --no-anchor]
+h0_noanch code=0 21:38:02 keys=[--infer --huber=0 --no-anchor]
+done 21:38:02
+adc_h3 code=0 21:48:51 probe=[--fit-floor=adc] keys=[--infer]
+adc_h0 code=0 21:48:54 probe=[--fit-floor=adc] keys=[--infer --huber=0]
+adc_h3_noanch code=0 21:48:57 probe=[--fit-floor=adc] keys=[--infer --no-anchor]
+adc_h0_noanch code=0 21:49:00 probe=[--fit-floor=adc] keys=[--infer --huber=0 --no-anchor]
+f20_h3 code=0 21:49:03 probe=[--fit-floor=20] keys=[--infer]
+f20_h0 code=0 21:49:06 probe=[--fit-floor=20] keys=[--infer --huber=0]
+huber05 code=0 21:49:10 probe=[] keys=[--infer --huber=0.5]
+done 21:49:10
+f35_h3 code=0 21:55:53 probe=[--fit-floor=35] keys=[--infer]
+f35_h0 code=0 21:55:56 probe=[--fit-floor=35] keys=[--infer --huber=0]
+done 21:55:56
