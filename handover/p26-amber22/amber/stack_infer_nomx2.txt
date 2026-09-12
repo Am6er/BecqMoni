@@ -1,0 +1,41 @@
+BecqMoni: main config: C:\Users\moroz\bqp26_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp26_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp26_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 16
+состав: выведено из пиков: 11 из 16 подписаны, родителей 1 из 3, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 53 % (8/15, пиков 8) — доля выше порога; Ba-131 17 % (1/6, пиков 1) — доля ниже порога; K-40 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 0 кандидатов
+⚠ БЕЗ МАТРИЦЫ (--no-matrix): разложение другое, числа не сравнивать
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15
+шкала: усиление 1.000000, сдвиг 0.000 канала
+chi2/ndf 2.580, невязка модели 13.7 %, суммирование нет
+отсев по значимости: ПРИМЕНЁН, порог 3, судимых 17 (отсеяно 8), наибольшая значимость 155.78
+ROW	Ac-228	Single	31.705	Th-232
+ROW	Tl-208	Single	23.506	Th-232
+ROW	Pb-212	Single	18.023	Th-232
+ROW	Bi-212	Single	3.424	Th-232
+ROW	Ra-224	Single	1.434	Th-232
+ROW	Th-228	Single	0.205	Th-232
+ROW	Rn-220	Single	0.039	Th-232
+ROW	Th-232	Single	0.011	Th-232
+ROW	Xray-Pb	Nuisance	9.194	-
+ROW	Xray-Th	Nuisance	4.170	-
+ROW	Backscatter	Nuisance	4.097	-
+ROW	SE-1588	Nuisance	1.629	-
+ROW	DE-1631	Nuisance	1.406	-
+ROW	Xray-NaI	Nuisance	0.496	-
+ROW	SE-1631	Nuisance	0.409	-
+ROW	Xray-Th-L	Nuisance	0.253	-
+CUT	DE-1588	Nuisance	z=2.93
+CUT	DE-2615	Nuisance	z=0.00
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	SE-2615	Nuisance	z=1.88
+CUT	Xray-Ba	Nuisance	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Pb-L	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 24
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p26-amber22\amber\stack_infer_nomx2.png: 15–2800 кэВ, потолок 3997, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p26-amber22\amber\dump_infer_nomx2.csv: 8192 каналов, колонок слоёв 16

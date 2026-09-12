@@ -1,0 +1,14 @@
+ours AS80_bare_gap5_661.657 code=0 20:10:12
+ours AS80_th_disk_238.632 code=0 20:11:57
+ours AS80_th_disk_583.187 code=0 20:13:05
+ours AS80_th_disk_911.204 code=0 20:14:01
+ours AS80_th_disk_2614.511 code=0 20:14:52
+done ours 20:14:52
+g4 AS80_bare_gap5_661.657_vacuum code=0 20:16:31
+g4 AS80_th_disk_238.632_air code=0 20:17:35
+g4 AS80_th_disk_583.187_air code=0 20:18:23
+g4 AS80_th_disk_911.204_air code=0 20:19:52
+g4 AS80_th_disk_2614.511_air code=0 20:21:33
+g4 AS80_th_disk_583.187_vacuum code=0 20:22:25
+g4 AS80_th_disk_2614.511_vacuum code=0 20:24:03
+done g4 20:24:03
