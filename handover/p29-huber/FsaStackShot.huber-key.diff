@@ -1,0 +1,44 @@
+--- handover/p29-huber/FsaStackShot.cs.before	2026-09-12 20:54:31.943682900 +0300
++++ tools/effmaker/probes/FsaStackShot.cs	2026-09-12 20:54:53.048936000 +0300
+@@ -38,7 +38,7 @@
+     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
+     ///                [--refit-z-rel=0.1]
+     ///                [--no-drift] [--no-anchor] [--gain-steps=N] [--offset-steps=N]
+-    ///                [--knots=4]
++    ///                [--knots=4] [--huber=3]
+     ///                [--calculating]
+     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
+     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
+@@ -126,6 +126,9 @@
+             // (`AMBER17`) Плечо A/B: привязка шкалы по пикам выключена.
+             bool anchor = true;
+             double knots = double.NaN;
++            // (`AMBER22`, П29) Порог Хубера в сигмах, как `CorpusFsaProbe --huber=`:
++            // 0 выключает перевзвешивание; NaN — не трогать умолчание анализатора.
++            double huberM = double.NaN;
+             bool showCalculating = false;
+             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
+             int width = 1400, height = 700;
+@@ -172,6 +175,8 @@
+                 else if (a == "--calculating") showCalculating = true;
+                 else if (a.StartsWith("--knots=", StringComparison.Ordinal))
+                     knots = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
++                else if (a.StartsWith("--huber=", StringComparison.Ordinal))
++                    huberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
+@@ -411,6 +416,13 @@
+                 analyzer.ContinuumKnotFwhm = knots;
+             }
+ 
++            // (`AMBER22`, П29) Ключ обязан доехать до анализатора (как `--refit-z-rel=`
++            // выше); читатель — строка «HuberM 3 → …» у `FsaTuningReport.Print`.
++            if (!double.IsNaN(huberM))
++            {
++                analyzer.HuberM = huberM;
++            }
++
+             analyzer.AnchorScale = anchor;
+             if (gainSteps > 0)
+             {

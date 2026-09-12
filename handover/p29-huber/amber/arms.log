@@ -1,0 +1,22 @@
+infer code=0 20:59:25 keys=[--infer]
+done 20:59:25
+huber0 code=0 21:00:17 keys=[--infer --huber=0]
+huber2 code=0 21:00:21 keys=[--infer --huber=2]
+huber5 code=0 21:00:25 keys=[--infer --huber=5]
+huber10 code=0 21:00:28 keys=[--infer --huber=10]
+huber20 code=0 21:00:31 keys=[--infer --huber=20]
+huber100 code=0 21:00:33 keys=[--infer --huber=100]
+done 21:00:33
+huber1 code=0 21:06:52 keys=[--infer --huber=1]
+huber05 code=0 21:06:56 keys=[--infer --huber=0.5]
+huber4 code=0 21:06:59 keys=[--infer --huber=4]
+done 21:06:59
+h0_sample code=0 21:11:22 keys=[--sample=232TH --huber=0]
+h0_noatom code=0 21:11:24 keys=[--infer --huber=0 --no-atomic]
+h0_z0 code=0 21:11:27 keys=[--infer --huber=0 --refit-z=0]
+h0_noanch code=0 21:11:29 keys=[--infer --huber=0 --no-anchor]
+sample code=0 21:11:31 keys=[--sample=232TH]
+done 21:11:31
+h3_noanch code=0 21:13:02 keys=[--infer --no-anchor]
+h05_noanch code=0 21:13:05 keys=[--infer --huber=0.5 --no-anchor]
+done 21:13:05

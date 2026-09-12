@@ -1,0 +1,8 @@
+mk_appwd code=0 21:08:15
+ctl code=0 21:08:25 extra=[]
+done 21:08:25
+h0 code=0 21:08:50 extra=[--huber=0]
+h10 code=0 21:09:00 extra=[--huber=10]
+h1 code=0 21:09:10 extra=[--huber=1]
+h05 code=0 21:09:20 extra=[--huber=0.5]
+done 21:09:20
