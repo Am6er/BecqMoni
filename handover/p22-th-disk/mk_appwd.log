@@ -1,0 +1,51 @@
+
+⛔⛔ ОТКАЗ: ОСНАСТКУ НЕ ИЗ ЧЕГО СОБИРАТЬ
+   НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 5, добавлено 0, удалено 0
+           becquerelmonitor\efficiencymaker\efficiencycalculation.cs
+           becquerelmonitor\efficiencymaker\efficiencysimulator.cs
+           becquerelmonitor\efficiencymaker\materialdatabase.cs
+           becquerelmonitor\efficiencymaker\responsematrix.cs
+           becquerelmonitor\efficiencymaker\responsematrixbuilder.cs
+           отпечаток набора: заверено 79676785ffce -> в дереве cb39287c5063
+           Пересоберите приложение и перегоните build_all.ps1.
+   ПРОБЫ СОБРАНЫ ИЗ ДРУГОГО НАБОРА ИСХОДНИКОВ (T226/T233): 1 шт.
+           CorpusMatrixProbe.exe: заверено ffdc840e210e -> в дереве d236610fad98
+           Содержимое разошлось с заверенным — по времени такое не всегда видно.
+
+⚠⚠ -Force: оснастка собирается из ПРОТУХШЕЙ сборки.
+  положено файлов: 452
+  вынесено постороннего: DosePointsProbeF9.exe, DosePointsProbeF9.exe.config, config\NuclideDefinition.xml
+
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p22
+  конфигураций приборов: 24, матриц: 45
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p22
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_P22
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p22
+  сверено  : 452 файлов по sha256 за 2.79 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+
+⛔⛔ ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ — ПРОГОН НЕ ЗАПУСКАЕТСЯ
+   1. НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 5, добавлено 0, удалено 0
+           becquerelmonitor\efficiencymaker\efficiencycalculation.cs
+           becquerelmonitor\efficiencymaker\efficiencysimulator.cs
+           becquerelmonitor\efficiencymaker\materialdatabase.cs
+           becquerelmonitor\efficiencymaker\responsematrix.cs
+           becquerelmonitor\efficiencymaker\responsematrixbuilder.cs
+           отпечаток набора: заверено 79676785ffce -> в дереве cb39287c5063
+           Пересоберите приложение и перегоните build_all.ps1.
+   2. ПРОБЫ СОБРАНЫ ИЗ ДРУГОГО НАБОРА ИСХОДНИКОВ (T226/T233): 1 шт.
+           CorpusMatrixProbe.exe: заверено ffdc840e210e -> в дереве d236610fad98
+           Содержимое разошлось с заверенным — по времени такое не всегда видно.
+
+  Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21).
+  Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1.
+
+⚠⚠ ПРОЩЕНО ключом -Force: 2 находок, все — про протухшую сборку (T41). Числа такого прогона в журнал НЕ ГОДЯТСЯ.
+запуск прогона — ТОЛЬКО через сторожа, оператором вызова & (T84/T91):
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\run_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p22' -Out 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_app'
+  ключи пробы — массивом: -Extra '--band=whole','--only=ASN16_Cs137'
+проверить оснастку отдельно:
+  & 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\check_appwd.ps1' -Wd 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p22'
