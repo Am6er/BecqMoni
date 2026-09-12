@@ -1007,7 +1007,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Веса `1.0·(1−t)` и `1.0·t` равны `1−t` и `t` до бита, так что
             // прежний собственный обход узлов здесь заменён общим без единого
             // изменившегося числа (сверено sha256 выписки пробы, 11.09.2026).
-            this.Accumulate(result, energyKev, 1.0, -1, 0.0);
+            this.Accumulate(result, energyKev, 1.0, -1, 0.0, 1.0);
             return result;
         }
 
@@ -1023,7 +1023,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// ключом <see cref="TransferByChannel"/>.
         /// </summary>
         void Stretch(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
-                     double shiftBins)
+                     double shiftBins, double lightScale)
         {
             if (row == null || !(nodeEnergy > 0.0) || !(weight > 0.0))
             {
@@ -1039,7 +1039,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                double position = b * scale + shiftBins;
+                // (П19) множитель положения по свету — на ВЫХОД, после
+                // масштаба узла; единица не меняет ни бита.
+                double position = b * scale * lightScale + shiftBins;
                 int at = (int)position;
                 double frac = position - at;
 
@@ -1062,7 +1064,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public void Accumulate(double[] target, double energyKev, double weight)
         {
-            this.Accumulate(target, energyKev, weight, -1, 0.0);
+            this.Accumulate(target, energyKev, weight, -1, 0.0, 1.0);
         }
 
         /// <summary>
@@ -1071,7 +1073,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public void AccumulateChannel(double[] target, double energyKev, double weight, int channel)
         {
-            this.Accumulate(target, energyKev, weight, channel, 0.0);
+            this.Accumulate(target, energyKev, weight, channel, 0.0, 1.0);
         }
 
         /// <summary>
@@ -1089,7 +1091,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                                       double shiftKev)
         {
             this.Accumulate(target, energyKev, weight, channel,
-                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0);
+                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0, 1.0);
+        }
+
+        /// <summary>
+        /// (`F11` (в), П19 12.09.2026) То же, но ВЕСЬ перенесённый отклик ещё
+        /// и умножен по шкале на <paramref name="lightScale"/>: бин, вставший
+        /// бы на x кэВ, встаёт на x·k (плюс сдвиг). Это точная карта положения
+        /// по свету для отклика ОДНОЙ линии: `RemapLightScale` при счёте
+        /// матрицы нормирует все бины строки на свет ПИКА этой линии, значит
+        /// на шкале прибора, линейной по свету и откалиброванной по E₀, вся
+        /// строка линии E стоит с множителем k = r(E)/r(E₀) — и пик, и её
+        /// комптон, и её вылеты. Множитель 1 — побитово прежние числа
+        /// (`x·1.0 == x`); узлы сетки выбираются по <paramref name="energyKev"/>
+        /// (физика отклика — у кванта E), множитель применяется к ВЫХОДУ.
+        /// </summary>
+        public void AccumulateLight(double[] target, double energyKev, double weight, int channel,
+                                    double shiftKev, double lightScale)
+        {
+            this.Accumulate(target, energyKev, weight, channel,
+                            this.BinKev > 0.0 ? shiftKev / this.BinKev : 0.0,
+                            lightScale > 0.0 ? lightScale : 1.0);
         }
 
         /// <summary>Есть ли у матрицы раскладка по каналам.</summary>
@@ -1099,7 +1121,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         void Accumulate(double[] target, double energyKev, double weight, int channel,
-                        double shiftBins)
+                        double shiftBins, double lightScale)
         {
             // Просили КОНКРЕТНЫЙ канал, а такого нет (матрица без каналов или
             // чужой номер) — вклад пустой. Молчаливый откат на суммарные
@@ -1128,21 +1150,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             int hi = Array.BinarySearch(this.Energies, energyKev);
             if (hi >= 0)
             {
-                this.Place(rows, hi, energyKev, weight, target, channel, shiftBins);
+                this.Place(rows, hi, energyKev, weight, target, channel, shiftBins, lightScale);
                 return;
             }
 
             hi = ~hi;
             if (hi <= 0)
             {
-                this.Place(rows, 0, energyKev, weight, target, channel, shiftBins);
+                this.Place(rows, 0, energyKev, weight, target, channel, shiftBins, lightScale);
                 return;
             }
 
             if (hi >= this.Energies.Length)
             {
                 int last = this.Energies.Length - 1;
-                this.Place(rows, last, energyKev, weight, target, channel, shiftBins);
+                this.Place(rows, last, energyKev, weight, target, channel, shiftBins, lightScale);
                 return;
             }
 
@@ -1152,8 +1174,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             int lo = hi - 1;
             double span = this.Energies[hi] - this.Energies[lo];
             double t = span > 0.0 ? (energyKev - this.Energies[lo]) / span : 0.0;
-            this.Place(rows, lo, energyKev, weight * (1.0 - t), target, channel, shiftBins);
-            this.Place(rows, hi, energyKev, weight * t, target, channel, shiftBins);
+            this.Place(rows, lo, energyKev, weight * (1.0 - t), target, channel, shiftBins, lightScale);
+            this.Place(rows, hi, energyKev, weight * t, target, channel, shiftBins, lightScale);
         }
 
         /// <summary>
@@ -1167,18 +1189,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// каналов, каждый своим переносом.
         /// </summary>
         void Place(float[][] rows, int node, double energyKev, double weight, double[] target,
-                   int channel, double shiftBins)
+                   int channel, double shiftBins, double lightScale)
         {
             if (!this.TransferByChannel || !this.HasChannels)
             {
-                this.Stretch(rows[node], this.Energies[node], energyKev, weight, target, shiftBins);
+                this.Stretch(rows[node], this.Energies[node], energyKev, weight, target, shiftBins,
+                             lightScale);
                 return;
             }
 
             if (channel >= 0)
             {
                 this.Transfer(rows[node], this.Energies[node], energyKev, weight, target, shiftBins,
-                              channel);
+                              channel, lightScale);
                 return;
             }
 
@@ -1191,7 +1214,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 this.Transfer(channelRows[node], this.Energies[node], energyKev, weight, target,
-                              shiftBins, c);
+                              shiftBins, c, lightScale);
             }
         }
 
@@ -1294,7 +1317,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// правила.
         /// </summary>
         void Transfer(float[] row, double nodeEnergy, double lineEnergy, double weight, double[] target,
-                      double shiftBins, int channel)
+                      double shiftBins, int channel, double lightScale)
         {
             if (row == null || !(nodeEnergy > 0.0) || !(lineEnergy > 0.0) || !(weight > 0.0)
                 || !(this.BinKev > 0.0))
@@ -1302,11 +1325,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
+            // (П19) `lightScale` — множитель положения по свету на ВЫХОД
+            // правила канала (после его сдвига или карты, до `shiftBins`);
+            // единица не меняет ни бита: `x·1.0 == x`.
             if (lineEnergy == nodeEnergy)
             {
                 for (int b = 0; b < row.Length; b++)
                 {
-                    Put(target, b + shiftBins, weight * row[b]);
+                    Put(target, b * lightScale + shiftBins, weight * row[b]);
                 }
 
                 return;
@@ -1319,7 +1345,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                             - EfficiencySimulator.PeakBin(nodeEnergy, this.BinKev);
                 for (int b = 0; b < row.Length; b++)
                 {
-                    Put(target, b + shift + shiftBins, weight * row[b]);
+                    Put(target, (b + shift) * lightScale + shiftBins, weight * row[b]);
                 }
 
                 return;
@@ -1330,7 +1356,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double shift = (lineEnergy - nodeEnergy) / this.BinKev;
                 for (int b = 0; b < row.Length; b++)
                 {
-                    Put(target, b + shift + shiftBins, weight * row[b]);
+                    Put(target, (b + shift) * lightScale + shiftBins, weight * row[b]);
                 }
 
                 return;
@@ -1360,7 +1386,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double slope = (image[segment + 1] - image[segment])
                                / (source[segment + 1] - source[segment]);
                 double mapped = image[segment] + (x - source[segment]) * slope;
-                Put(target, mapped / this.BinKev + shiftBins, weight * value);
+                Put(target, mapped / this.BinKev * lightScale + shiftBins, weight * value);
             }
         }
 
@@ -2726,23 +2752,42 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// в семнадцать раз. Ветвь рассеяния возвращена — комптоновский канал
         /// 0.004667 → 0.008550, но не раздут до 0.009127.
         ///
-        /// ⛔ **УМОЛЧАНИЕ ПОКА ВЫКЛЮЧЕНО, и это не отмена решения.** Ключ пишется
-        /// в клеймо включённым (`peakb=1`), а склад посчитан без него: код,
-        /// ожидающий `peakb=1`, не сойдётся клеймом ни с одной из 44 матриц, и
-        /// гвард честно откажет («ОТПЕЧАТОК НЕ СОШЁЛСЯ» — проверено 11.09.2026,
-        /// проба отказалась читать склад). Тогда разбор корпуса пошёл бы БЕЗ
-        /// матрицы, а объявленная база `out_rev14_*` перестала бы
-        /// воспроизводиться. **Включается тем же движением, каким пойдёт счёт
-        /// склада** — единым счётным заходом вместе с разведением SE/DE
-        /// (`AMBER15`) и K/L (`AMBER16` п. 1), как и решила Amber: «Остановить
-        /// сейчас, разобрать `AMBER16`, потом посчитать ОДИН раз».
+        /// ✅ **УМОЛЧАНИЕМ ВКЛЮЧЁН С 12.09.2026 — тем же движением, каким
+        /// посчитан склад.** До того он был выключен НЕ как отказ от решения, а
+        /// потому, что ключ пишется в клеймо включённым (`peakb=1`), а склад был
+        /// посчитан без него: код, ожидающий `peakb=1`, не сошёлся бы клеймом
+        /// ни с одной из 44 матриц, гвард честно отказал бы («ОТПЕЧАТОК НЕ
+        /// СОШЁЛСЯ» — проверено 11.09.2026), и разбор корпуса пошёл бы БЕЗ
+        /// матрицы. Единый счётный заход (П20, ночь 12.09.2026, решение Amber
+        /// «Запустить сейчас, на ночь»: `--peakb=1 --xrkl=1 --kdip=1`, 44 сцены,
+        /// 472.7 мин) посчитал склад С ключом, утренняя полоса П21 перенесла
+        /// его в `corpus/geometries` и этим же движением включила умолчание —
+        /// как и решила Amber 11.09.2026: «Остановить сейчас, разобрать
+        /// `AMBER16`, потом посчитать ОДИН раз».
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `PKBN` (посчитанные до 11.09.2026) при
+        /// чтении получают НЕ это умолчание, а `false` — ровно то, чем ключ был
+        /// при их счёте (<see cref="ResponseMatrix.ReadOptions"/>); иначе такая
+        /// матрица перестала бы сходиться клеймом сама с собой.
+        ///
+        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») этого ключа НЕ берёт, и
+        /// это не расхождение с решением Amber 12.09.2026 «Да — одна физика для
+        /// кривой и матрицы»: у кривой нет сетки, а значит нет и полубина; её
+        /// допуск — ПШПВ(E)/2 из геометрии всегда (`E34`,
+        /// `EfficiencyCalculation.Run` → `GeometryModel.PeakHalfWidthKev`).
+        /// Одна физика доезжает до кривой тем, что у неё есть: K-провалом
+        /// (<see cref="KDipLight"/>, умолчание этого класса читает
+        /// `EfficiencyCalculation`). ⚠ П21 (оборванная) записала здесь, что
+        /// кривая берёт допуск «тем же правилом `ResponseMatrixBuilder.PeakTolerance`»
+        /// — код так не делал и не делает; фраза снята П21б 12.09.2026.
         /// </summary>
-        public bool PeakToleranceHalfBin;
+        public bool PeakToleranceHalfBin = true;
 
         /// <summary>
         /// ✅ **РАЗВЕСТИ K- И L-ВЫЛЕТ РЕНТГЕНА ОТДЕЛЬНЫМИ КАНАЛАМИ — решение
         /// Amber 11.09.2026, дословно: «Развести K и L отдельными каналами»**
-        /// (`AMBER16` п. 1). Умолчанием ВЫКЛЮЧЕН.
+        /// (`AMBER16` п. 1). Умолчанием ВКЛЮЧЁН с 12.09.2026 — тем же
+        /// движением, каким посчитан склад (ниже).
         ///
         /// Повод — не «некрасивое имя», а замер трассировкой: канал № 3 звался
         /// «вылет K-рентгена», а на 32.194 кэВ ВСЕ 22 его истории были L-серией
@@ -2754,14 +2799,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// ⛔ **Ключ двигает ЧИСЛА уже существующего канала**, а не только
         /// добавляет новый: № 3 теряет весь L-вылет, № 5 его получает. Поэтому
-        /// он входит в клеймо (`xrkl=1`) и пишется в файл хвостом `XRKL` — и
-        /// поэтому умолчанием ВЫКЛЮЧЕН: склад из 44 матриц посчитан без него,
-        /// включённое умолчание не сошлось бы клеймом ни с одной из них, разбор
-        /// корпуса пошёл бы БЕЗ матрицы, а объявленная база `out_rev14_*`
-        /// перестала бы воспроизводиться. **Включается тем же движением, каким
-        /// пойдёт счёт склада** — вместе с
-        /// <see cref="PeakToleranceHalfBin"/>, как и решила Amber: «Остановить
-        /// сейчас, разобрать `AMBER16`, потом посчитать ОДИН раз».
+        /// он входит в клеймо (`xrkl=1`) и пишется в файл хвостом `XRKL`.
+        ///
+        /// ✅ **УМОЛЧАНИЕМ ВКЛЮЧЁН С 12.09.2026 — тем же движением, каким
+        /// посчитан склад.** До того был выключен НЕ как отказ от решения, а
+        /// потому, что склад из 44 матриц был посчитан без него: включённое
+        /// умолчание не сошлось бы клеймом ни с одной из них, разбор корпуса
+        /// пошёл бы БЕЗ матрицы, а объявленная база перестала бы
+        /// воспроизводиться. Единый счётный заход (П20, ночь 12.09.2026,
+        /// решение Amber «Запустить сейчас, на ночь»: `--peakb=1 --xrkl=1
+        /// --kdip=1`, 44 сцены, 472.7 мин) посчитал склад С ключом, утренняя
+        /// полоса П21/П21б перенесла его в `corpus/geometries` и этим же
+        /// движением включила умолчание — вместе с
+        /// <see cref="PeakToleranceHalfBin"/> и <see cref="KDipLight"/>, как
+        /// и решила Amber 11.09.2026: «Остановить сейчас, разобрать `AMBER16`,
+        /// потом посчитать ОДИН раз».
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `XRKL` (посчитанные до 11.09.2026) при
+        /// чтении получают НЕ это умолчание, а `false` — ровно то, чем ключ был
+        /// при их счёте (<see cref="ResponseMatrix.Load"/>); иначе такая
+        /// матрица перестала бы сходиться клеймом сама с собой.
+        ///
+        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») этого ключа не берёт и не
+        /// может: раскладка по каналам — свойство МАТРИЦЫ, кривая отдаёт число
+        /// на узел, а сумму отклика ключ не меняет ни на бит (реестр
+        /// `tools/check_matrix_keys.py`, `SIM`). Решение «одна физика для
+        /// кривой и матрицы» здесь исполнено пустотой.
         ///
         /// ⚠ ЧИСЛО КАНАЛОВ В ФАЙЛЕ ОТ КЛЮЧА НЕ ЗАВИСИТ — их всегда
         /// <see cref="EfficiencySimulator.ResponseChannelCount"/> (шесть с
@@ -2771,12 +2834,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// отсутствующий номер отдаёт пустоту — доказано с обеих сторон при
         /// заведении пятого канала (`AMBER15`).
         /// </summary>
-        public bool SplitXrayShells;
+        public bool SplitXrayShells = true;
 
         /// <summary>
         /// ✅ **K-ПРОВАЛ КРИВОЙ СВЕТА — решение Amber 11.09.2026, дословно:
         /// «F11 (а) K-провал — следующей полосой»** (полоса П17). Умолчанием
-        /// 0 — ВЫКЛЮЧЕН.
+        /// 1 — обе половины, ВКЛЮЧЁН с 12.09.2026 тем же движением, каким
+        /// посчитан склад (ниже).
         ///
         /// Уровни: 1 — обе половины (кривая электронов в коде с продолжением
         /// ниже 1 кэВ и обрывом короткого трека + раздельный оже-каскад по
@@ -2790,14 +2854,61 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// ⛔ Ключ двигает положение всего ниже ~120 кэВ относительно пика
         /// у ВСЕХ матриц склада, поэтому входит в клеймо (`kdip=N`) и пишется
-        /// хвостом `KDIP` — и поэтому умолчанием ВЫКЛЮЧЕН: склад посчитан без
-        /// него, включённое умолчание не сошлось бы клеймом ни с одной из
-        /// матриц. **Включается тем же движением, каким пойдёт счёт склада** —
-        /// вместе с <see cref="PeakToleranceHalfBin"/> и
-        /// <see cref="SplitXrayShells"/>, как и решила Amber («в единый счёт
-        /// вместе с `--peakb`/`--xrkl`/SE-DE»).
+        /// хвостом `KDIP`.
+        ///
+        /// ✅ **УМОЛЧАНИЕМ 1 С 12.09.2026 — тем же движением, каким посчитан
+        /// склад.** До того был 0 НЕ как отказ от решения, а потому, что склад
+        /// был посчитан без него: включённое умолчание не сошлось бы клеймом ни
+        /// с одной из матриц, и разбор корпуса пошёл бы БЕЗ матрицы. Единый
+        /// счётный заход (П20, ночь 12.09.2026, решение Amber «Запустить сейчас,
+        /// на ночь»: `--peakb=1 --xrkl=1 --kdip=1`, 44 сцены, 472.7 мин)
+        /// посчитал склад С ключом, утренняя полоса П21/П21б перенесла его в
+        /// `corpus/geometries` и этим же движением включила умолчание — вместе
+        /// с <see cref="PeakToleranceHalfBin"/> и <see cref="SplitXrayShells"/>,
+        /// как и решила Amber («в единый счёт вместе с `--peakb`/`--xrkl`/SE-DE»).
+        /// η при этом остаётся табличным (<see cref="LightEtaEh"/> = 0 —
+        /// решение Amber 11.09.2026 «Оставить 0.33»).
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `KDIP` (посчитанные до 11.09.2026) при
+        /// чтении получают НЕ это умолчание, а 0 — ровно то, чем ключ был при
+        /// их счёте (<see cref="ResponseMatrix.Load"/>); иначе такая матрица
+        /// перестала бы сходиться клеймом сама с собой.
+        ///
+        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») берёт обе половины
+        /// K-провала ОТСЮДА ЖЕ — из умолчания этого поля
+        /// (`EfficiencyCalculation.Run` → <see cref="KDipCurveHalf(int)"/> /
+        /// <see cref="KDipCascadeHalf(int)"/>, те же выражения, что у
+        /// `ResponseMatrixBuilder.MakeSimulator`) — решение Amber 12.09.2026,
+        /// дословно: «Да — одна физика для кривой и матрицы». До того кривая
+        /// брала умолчание симулятора (ВЫКЛ) и ниже ~120 кэВ расходилась со
+        /// складом на глубину провала.
         /// </summary>
-        public int KDipLight;
+        public int KDipLight = 1;
+
+        /// <summary>
+        /// Половина K-провала «кривая электронов в коде» по уровню
+        /// <see cref="KDipLight"/> (1 и 2). ОДНО выражение на оба пути —
+        /// матрицы (`ResponseMatrixBuilder.MakeSimulator`) и кривой
+        /// (`EfficiencyCalculation.Run`): второе правило для одной величины
+        /// однажды разъехалось бы молча (`S37`). Уровень передаётся ЧИСЛОМ, а
+        /// не читается из `this`, нарочно: сторож `tools/check_matrix_keys.py`
+        /// (правило B, «ключ мёртв») ищет в построителе чтение
+        /// `options.KDipLight` по тексту, и свойство-обёртка сделало бы ключ
+        /// невидимым для него.
+        /// </summary>
+        public static bool KDipCurveHalf(int level)
+        {
+            return level == 1 || level == 2;
+        }
+
+        /// <summary>
+        /// Половина K-провала «раздельный оже-каскад» по уровню
+        /// <see cref="KDipLight"/> (1 и 3); довод — у <see cref="KDipCurveHalf(int)"/>.
+        /// </summary>
+        public static bool KDipCascadeHalf(int level)
+        {
+            return level == 1 || level == 3;
+        }
 
         /// <summary>
         /// ✅ **η МОДЕЛИ ПЕЙНА КЛЮЧОМ — решение Amber 11.09.2026, дословно:

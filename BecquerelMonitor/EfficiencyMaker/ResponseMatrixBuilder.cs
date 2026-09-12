@@ -779,9 +779,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ключи K-провала и η были бы МЕРТВЫ (`S130`): поле в
                 // настройках, клеймо и хвост файла есть, а симулятор считает
                 // свет по таблице. Уровень 1 — обе половины, 2 — только
-                // кривая, 3 — только каскад.
-                LightSubKevCurve = options.KDipLight == 1 || options.KDipLight == 2,
-                LightCascadeSplit = options.KDipLight == 1 || options.KDipLight == 3,
+                // кривая, 3 — только каскад. Выражения — у самих настроек
+                // (`KDipCurveHalf`/`KDipCascadeHalf`): путь КРИВОЙ
+                // (`EfficiencyCalculation.Run`) берёт те же по решению Amber
+                // 12.09.2026 «Да — одна физика для кривой и матрицы», и
+                // второе правило для одной величины разъехалось бы молча (`S37`).
+                LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(options.KDipLight),
+                LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(options.KDipLight),
                 LightEtaEh = options.LightEtaEh,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,

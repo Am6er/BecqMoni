@@ -261,13 +261,29 @@ namespace CorpusFsaProbe
                     continue;
                 }
                 // (`F11` (в), П18 11.09.2026) положение пика линии ПО СВЕТУ —
-                // третья координата привязки: 0 — выкл (умолчание анализатора),
+                // третья координата привязки: 0 — выкл (обратное плечо; с
+                // 12.09.2026 умолчание анализатора — ВКЛ, форма `line`, П21б),
                 // 1 — кривая по веществу кристалла, `NaI:Tl`/`CsI:Tl` — кривая
                 // поимённо на всех (контроль «копия П17 = дерево»).
+                // (П19) `bin`/`line`/`peak`/`anchor` — включить С ЭТОЙ ФОРМОЙ
+                // применения, кривая по веществу; `--anchor-form=` — форма
+                // отдельно (к кривой поимённо).
                 if (a.StartsWith("--anchor-light=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(15);
+                    if (v == "bin" || v == "line" || v == "peak" || v == "anchor")
+                    {
+                        o.AnchorLight = "1";
+                        o.AnchorForm = v;
+                        continue;
+                    }
+
                     o.AnchorLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-form=", StringComparison.Ordinal))
+                {
+                    o.AnchorForm = a.Substring(14);
                     continue;
                 }
                 // (П18, рычаг замера) верхняя граница световой координаты, кэВ
@@ -1262,6 +1278,12 @@ namespace CorpusFsaProbe
                 analyzer.AnchorLightCurve = o.AnchorLight == "0" || o.AnchorLight == "1" ? null : o.AnchorLight;
             }
 
+            // (П19) форма применения; null — умолчание анализатора
+            if (o.AnchorForm != null)
+            {
+                analyzer.AnchorLightForm = o.AnchorForm;
+            }
+
             if (o.AnchorLightMax >= 0.0)
             {
                 analyzer.AnchorLightMaxKev = o.AnchorLightMax;
@@ -1525,6 +1547,20 @@ namespace CorpusFsaProbe
         static bool MatrixFound(Row row)
         {
             return row.Matrix == MatrixState.Found;
+        }
+
+        /// <summary>(П19) Форма применения световой координаты у первой строки, где она есть; null — ни у одной.</summary>
+        static string FirstAnchorForm(List<Row> rows)
+        {
+            foreach (Row r in rows)
+            {
+                if (r.Error == null && !string.IsNullOrEmpty(r.AnchorForm))
+                {
+                    return r.AnchorForm;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -2052,6 +2088,7 @@ namespace CorpusFsaProbe
                 row.AnchorsUsed = result.ScaleAnchorsUsed;
                 row.AnchorLight = result.AnchorLightCurve ?? "";
                 row.AnchorBeta = result.AnchorLightBeta;
+                row.AnchorForm = result.AnchorLightForm ?? "";
                 row.AnchorOffsetKev = result.AnchorOffsetKev;
                 row.AnchorNote = result.AnchorNote ?? "";
                 row.Anchors = result.ScaleAnchors;
@@ -3102,7 +3139,12 @@ namespace CorpusFsaProbe
                         }
                     }
 
-                    if (o.AnchorLight != null && o.AnchorLight != "0")
+                    // (П21б 12.09.2026) Строка печатается и БЕЗ ключа, когда
+                    // свет применился хоть у одного спектра: умолчание
+                    // анализатора с этого дня ВКЛ, и разбор без ключа обязан
+                    // говорить, чем считал, — иначе умолчание было бы невидимо
+                    // в сводке (тот же разряд, что `A77`/«признак без читателя»).
+                    if ((o.AnchorLight != null && o.AnchorLight != "0") || byCurve.Count > 0 || lightMissing > 0)
                     {
                         var parts = new List<string>();
                         foreach (KeyValuePair<string, int> kv in byCurve)
@@ -3110,13 +3152,15 @@ namespace CorpusFsaProbe
                             parts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
                         }
 
-                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}; со светом {2}{3}; без кривой {4}", "",
-                                          o.AnchorLight,
+                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}{5}; со светом {2}{3}; без кривой {4}", "",
+                                          o.AnchorLight ?? "(умолчание анализатора)",
                                           parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "0",
                                           o.AnchorSkip != null && o.AnchorSkip.Length > 0
                                               ? "; выброс узла: " + string.Join(",", Array.ConvertAll(o.AnchorSkip, x => x.ToString("F1", CultureInfo.InvariantCulture)))
                                               : "",
-                                          lightMissing);
+                                          lightMissing,
+                                          // (П19) форма применения — из ключа либо из первой строки со светом
+                                          ", форма " + (o.AnchorForm ?? FirstAnchorForm(of) ?? "(умолчание анализатора)"));
                     }
                 }
             }
@@ -3314,7 +3358,9 @@ namespace CorpusFsaProbe
                                    // найденное привязкой), служебная строка.
                                    + "anchors_used,anchor_offset_kev,anchor_note,"
                                    // (`F11` (в), П18) положение по свету: кривая и β — В КОНЕЦ
-                                   + "anchor_light,anchor_beta");
+                                   + "anchor_light,anchor_beta,"
+                                   // (П19) форма применения световой координаты — В КОНЕЦ
+                                   + "anchor_form");
                     // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
                     // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
                     // подложкой, ровно та же величина, что печатает легенда на
@@ -3393,7 +3439,8 @@ namespace CorpusFsaProbe
                             F(r.AnchorOffsetKev, "F3"),
                             Csv(r.AnchorNote),
                             Csv(r.AnchorLight ?? ""),
-                            F(r.AnchorBeta, "F4")));
+                            F(r.AnchorBeta, "F4"),
+                            Csv(r.AnchorForm ?? "")));
 
                         if (r.Result == null)
                         {
@@ -3903,6 +3950,7 @@ namespace CorpusFsaProbe
             public double AnchorFloor = -1.0;
             public double AnchorMinFwhm = -1.0;
             public string AnchorLight = null;    // (П18) "0" выкл, "1" по веществу, имя кривой; null — умолчание анализатора
+            public string AnchorForm = null;     // (П19) форма применения bin|line|peak|anchor; null — умолчание анализатора
             public double[] AnchorSkip = null;   // (П16/П18) выброс узла
             public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
 
@@ -4233,6 +4281,7 @@ namespace CorpusFsaProbe
 
             public double AnchorOffsetKev;
             public string AnchorLight;     // (П18) кривая световой координаты
+            public string AnchorForm;      // (П19) форма применения световой координаты
             public double AnchorBeta;      // (П18) итоговый β
 
             public string AnchorNote = "";

@@ -765,6 +765,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorLightReferenceKev { get; set; }
 
         /// <summary>
+        /// (П19) Форма применения световой координаты этого разбора
+        /// («bin» / «line» / «peak» / «anchor» — <c>FsaAnalyzer.AnchorLightForm</c>);
+        /// пусто — координата выключена или кривой для вещества нет.
+        /// </summary>
+        public string AnchorLightForm { get; set; }
+
+        /// <summary>
         /// Служебная строка о привязке для проб и журнала: сколько опор,
         /// усиление, ноль, либо почему шкала не тронута; (П18) при световой
         /// координате — ещё «свет &lt;кривая&gt;: β». По-русски и не для
