@@ -115,6 +115,8 @@ RIG_PROBES = [
      "три прогона с матрицей из склада; `--rebuild` пишет туда же"),
     ("tools/effmaker/probes/CrystalXrayGateProbe.cs",
      "раздел 1 — вылет K-рентгена по строкам матрицы из склада"),
+    ("tools/effmaker/probes/PeakOriginProbe.cs",
+     "обход всего корпуса: состав каждого спектра из manifest.csv (`P5`, П19)"),
 ]
 
 # Что запрещено пробам оснастки: подъём менеджера и его поля. `BuildFromPeaks`

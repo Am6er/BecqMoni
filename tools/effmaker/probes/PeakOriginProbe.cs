@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -43,12 +44,35 @@ namespace PeakOriginProbe
     ///
     /// Окно поиска — как у InterSpec: max(1, min(0.5·ПШПВ, 15)) кэВ.
     ///
-    ///     peakoriginprobe --spectra=spectra [--nucdb=nucdb.sqlite]
-    ///                     [--csv=out.csv] [--group=ASN16]
+    ///     peakoriginprobe --spectra=spectra [--manifest=manifest.csv]
+    ///                     [--sample=137CS,40K] [--chain=Th-232]
+    ///                     [--nucdb=nucdb.sqlite] [--csv=out.csv] [--group=ASN16]
     ///
     /// Ожидания «ВСЕ СОШЛИСЬ» нет: это измерение, а не проверка. Печатается,
     /// сколько пиков объяснено и сколько из объяснённых УЖЕ ПОДПИСАНЫ нуклидом
     /// — последнее и есть цена вопроса.
+    ///
+    /// **Набор нуклидов — СВОЙ у каждого спектра (`P5`, полоса П19 12.09.2026;
+    /// первый постулат `S56`).** До того пики подписывались из поставочного
+    /// `NuclideDefinition.xml` через активный набор — то есть весь список,
+    /// предъявленный любому спектру, и столбец «из них подписаны» мерил не то,
+    /// что снято, а то, что есть в поставке. Теперь состав спектра берётся из
+    /// `manifest.csv` корпуса (колонки `chains`, `nuclides`; строка ищется по
+    /// имени файла спектра = `key`), библиотека собирается общим входом
+    /// приложения — `FsaSampleSpec.FromManifest` → `FsaSampleLibrary.Build` →
+    /// `AsDefinitions` — из `nucdb`/`matdb`, как у `CorpusFsaProbe --lib=sample`
+    /// и восьми проб полосы П11. `--sample=`/`--chain=` задают ОДИН состав всем
+    /// спектрам каталога (для каталога из одного спектра) и манифест тогда не
+    /// читается. Спектр, которого в манифесте нет или чей состав пуст, —
+    /// отказ ДО прогона кодом 2 со списком: молча пропущенный спектр выглядел
+    /// бы как «пиков нет». `NuclideDefinitionManager` не поднимается; счётчик
+    /// его обращений печатается всегда, не ноль — код 12 (`AMBER19`).
+    ///
+    /// ⚠ Фон (`manifest.background`) — файл, а не нуклиды: проба ищет пики с
+    /// `BackgroundMode.Invisible` (фон не вычитается, как и было), поэтому
+    /// пики фона (K-40, ряды) у образца, где их нет в составе, остаются БЕЗ
+    /// подписи. Это цена постулата, а не дефект: подписывать их «из общего
+    /// списка» значило бы вернуть то, от чего строка ушла.
     /// </summary>
     static class Program
     {
@@ -64,12 +88,29 @@ namespace PeakOriginProbe
             string nucdbPath = null;
             string csvPath = null;
             string group = "";
+            string manifestPath = null;
+            var oneChains = new List<string>();
+            var oneNuclides = new List<string>();
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectra=", StringComparison.Ordinal)) spectraDir = a.Substring(10);
                 else if (a.StartsWith("--nucdb=", StringComparison.Ordinal)) nucdbPath = a.Substring(8);
                 else if (a.StartsWith("--csv=", StringComparison.Ordinal)) csvPath = a.Substring(6);
                 else if (a.StartsWith("--group=", StringComparison.Ordinal)) group = a.Substring(8);
+                else if (a.StartsWith("--manifest=", StringComparison.Ordinal)) manifestPath = a.Substring(11);
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                    oneNuclides.AddRange(a.Substring(9).Split(','));
+                else if (a.StartsWith("--nuclides=", StringComparison.Ordinal))
+                    oneNuclides.AddRange(a.Substring(11).Split(','));
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                    oneChains.AddRange(a.Substring(8).Split(','));
+                else if (a.StartsWith("--set=", StringComparison.Ordinal))
+                {
+                    // Поставочного набора у этой пробы больше нет (`P5`, `AMBER19`).
+                    Console.Error.WriteLine("--set= снят: состав берётся из manifest.csv "
+                                            + "(или --sample=/--chain= одним составом на каталог)");
+                    return 2;
+                }
                 // `A263`: неизвестное ИМЯ ключа — отказ, а не молчание.
                 else
                 {
@@ -84,6 +125,45 @@ namespace PeakOriginProbe
             {
                 Console.Error.WriteLine("нет каталога {0}", spectraDir);
                 return 2;
+            }
+
+            // Метки рядов проверяются ДО чтения спектров — тем же словарём, каким
+            // их читает манифест корпуса (`FsaSampleChain.FromLabel`).
+            foreach (string label in oneChains)
+            {
+                if (FsaSampleChain.FromLabel(label) == null)
+                {
+                    Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}",
+                                            label, string.Join(", ", FsaSampleChain.KnownLabels));
+                    return 2;
+                }
+            }
+
+            string[] files = Directory.GetFiles(spectraDir, "*.xml")
+                                      .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                      .ToArray();
+            Dictionary<string, Composition> compositions;
+            if (oneChains.Count > 0 || oneNuclides.Count > 0)
+            {
+                compositions = new Dictionary<string, Composition>(StringComparer.Ordinal);
+                foreach (string file in files)
+                {
+                    compositions[Path.GetFileNameWithoutExtension(file)] =
+                        new Composition(oneChains, oneNuclides);
+                }
+                Console.WriteLine("состав: один на каталог (--sample=/--chain=): ряды [{0}], нуклиды [{1}]",
+                                  string.Join(", ", oneChains), string.Join(", ", oneNuclides));
+            }
+            else
+            {
+                if (manifestPath == null)
+                    manifestPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(spectraDir)) ?? ".",
+                                                "manifest.csv");
+                compositions = ReadManifest(manifestPath, files);
+                if (compositions == null)
+                    return 2;
+                Console.WriteLine("состав: из {0} ({1} спектров), линии из nucdb/matdb "
+                                  + "(FsaSampleLibrary, --lib=sample)", manifestPath, compositions.Count);
             }
 
             Coincidences coinc;
@@ -102,8 +182,6 @@ namespace PeakOriginProbe
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
-            NuclideSet set = nuclides.ActiveSet;
 
             var csv = new StringBuilder();
             csv.AppendLine("group,spectrum,energy_kev,counts,fwhm_kev,fwhm_expected_kev,"
@@ -117,8 +195,8 @@ namespace PeakOriginProbe
             var byOrigin = new Dictionary<string, int>();
             var namedByOrigin = new Dictionary<string, int>();
 
-            foreach (string file in Directory.GetFiles(spectraDir, "*.xml")
-                                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            int definitionsTotal = 0;
+            foreach (string file in files)
             {
                 string name = Path.GetFileNameWithoutExtension(file);
                 List<Peak> peaks;
@@ -137,9 +215,20 @@ namespace PeakOriginProbe
                         nch,
                         rd.FwhmCalibration != null && rd.FwhmCalibration.NotCalibrated()
                             ? "не выполнена" : "есть");
+                    // Состав спектра — из манифеста, линии — из базы, общим входом
+                    // приложения (`T257`); набор `null` нарочно: список уже свой,
+                    // и `HideUnknownPeaks` чужого набора вычеркнул бы пики (см.
+                    // `FsaSampleLibrary.AsDefinitions`).
+                    Composition composition = compositions[name];
+                    FsaSampleSpec spec = FsaSampleSpec.FromManifest(
+                        rd, composition.Chains, composition.Nuclides, true, true);
+                    FsaCalculationOptions.Of(rd).ApplyTo(spec);
+                    List<NuclideDefinition> definitions =
+                        FsaSampleLibrary.AsDefinitions(FsaSampleLibrary.Build(spec));
+                    definitionsTotal += definitions.Count;
                     peaks = new PeakDetector().DetectPeak(
                         rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                        set, nuclides.NuclideDefinitions);
+                        null, definitions);
                 }
                 catch (Exception e)
                 {
@@ -206,10 +295,11 @@ namespace PeakOriginProbe
             }
 
             int explained = byOrigin.Values.Sum();
-            Console.WriteLine("группа {0}: пиков {1}, подписаны нуклидом {2},"
+            Console.WriteLine("группа {0}: пиков {1}, подписаны нуклидом {2} (определений из базы {5}),"
                               + " объяснены устройством {3} ({4:F1} %)",
                               group == "" ? "(без имени)" : group, totalPeaks, totalNamed,
-                              explained, totalPeaks > 0 ? 100.0 * explained / totalPeaks : 0.0);
+                              explained, totalPeaks > 0 ? 100.0 * explained / totalPeaks : 0.0,
+                              definitionsTotal);
             foreach (string key in byOrigin.Keys.OrderBy(k => k))
             {
                 int named;
@@ -232,7 +322,149 @@ namespace PeakOriginProbe
                     w.Write(text);
                 }
             }
-            return 0;
+            return SuppliedLibraryGate(0);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, П11/П19) Вторая дверь гейта «состав только из базы» — та
+        /// же, что у `CorpusFsaProbe.RefuseIfManagerRaised`: счётчик обращений
+        /// к поставочному менеджеру печатается ВСЕГДА, и не ноль — код 12 поверх
+        /// любого итога. Считать по `isLoaded` нельзя: безоконный подъём без
+        /// файла бросает, и по нему подъёма не видно (`S100`).
+        /// </summary>
+        static int SuppliedLibraryGate(int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0}", raised);
+            if (raised > 0)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: поставочную библиотеку поднимали {0} раз(а) — числа негодны", raised);
+                return 12;
+            }
+
+            return code;
+        }
+
+        /// <summary>Объявленный состав одного спектра — словами манифеста.</summary>
+        sealed class Composition
+        {
+            public readonly List<string> Chains = new List<string>();
+            public readonly List<string> Nuclides = new List<string>();
+
+            public Composition(IEnumerable<string> chains, IEnumerable<string> nuclides)
+            {
+                foreach (string s in chains) if (s.Length > 0) Chains.Add(s);
+                foreach (string s in nuclides) if (s.Length > 0) Nuclides.Add(NucidOf(s));
+            }
+
+            /// <summary>«Cs-137» → «137CS»: nucid, как его зовёт nucdb; nucid как есть.</summary>
+            static string NucidOf(string label)
+            {
+                string nucid = FsaSampleLibrary.NucidOf(label);
+                return string.IsNullOrEmpty(nucid) ? label : nucid;
+            }
+        }
+
+        /// <summary>
+        /// Состав каждого спектра каталога из `manifest.csv` (колонки `key`,
+        /// `chains`, `nuclides`; разделитель внутри колонки — `;`). Читается
+        /// так же, как в `CorpusFsaProbe.ReadTruth`: неизвестная метка ряда,
+        /// спектр без строки или с пустым составом — отказ ДО прогона, с
+        /// перечислением; вернуть <c>null</c> значит «не мерить».
+        /// </summary>
+        static Dictionary<string, Composition> ReadManifest(string path, string[] files)
+        {
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("нет {0} — состав спектров брать неоткуда "
+                                        + "(--manifest=<файл> или --sample=/--chain=)", path);
+                return null;
+            }
+
+            var byKey = new Dictionary<string, Composition>(StringComparer.Ordinal);
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            if (lines.Length == 0)
+            {
+                Console.Error.WriteLine("{0} пуст", path);
+                return null;
+            }
+
+            List<string> head = SplitCsv(lines[0].TrimStart('﻿'));
+            int iKey = head.IndexOf("key"), iChains = head.IndexOf("chains"),
+                iNuclides = head.IndexOf("nuclides");
+            if (iKey < 0 || iChains < 0 || iNuclides < 0)
+            {
+                Console.Error.WriteLine("{0}: нет колонок key/chains/nuclides", path);
+                return null;
+            }
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Length == 0) continue;
+                List<string> cells = SplitCsv(lines[i]);
+                if (cells.Count <= Math.Max(iKey, Math.Max(iChains, iNuclides))) continue;
+                var chains = cells[iChains].Split(';');
+                foreach (string label in chains)
+                {
+                    if (label.Length > 0 && FsaSampleChain.FromLabel(label) == null)
+                    {
+                        Console.Error.WriteLine("манифест: неизвестный ряд '{0}' у {1}; известные: {2}",
+                                                label, cells[iKey],
+                                                string.Join(", ", FsaSampleChain.KnownLabels));
+                        return null;
+                    }
+                }
+
+                byKey[cells[iKey]] = new Composition(chains, cells[iNuclides].Split(';'));
+            }
+
+            var silent = new List<string>();
+            var result = new Dictionary<string, Composition>(StringComparer.Ordinal);
+            foreach (string file in files)
+            {
+                string key = Path.GetFileNameWithoutExtension(file);
+                Composition c;
+                if (!byKey.TryGetValue(key, out c))
+                    silent.Add(key);
+                else if (c.Chains.Count == 0 && c.Nuclides.Count == 0)
+                    silent.Add(key + " (состав пуст)");
+                else
+                    result[key] = c;
+            }
+
+            if (silent.Count > 0)
+            {
+                Console.Error.WriteLine("в манифесте нет состава для: " + string.Join(", ", silent));
+                return null;
+            }
+
+            return result;
+        }
+
+        static List<string> SplitCsv(string line)
+        {
+            var cells = new List<string>();
+            var sb = new StringBuilder();
+            bool quoted = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (quoted)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
+                        else quoted = false;
+                    }
+                    else sb.Append(c);
+                }
+                else if (c == '"') quoted = true;
+                else if (c == ',') { cells.Add(sb.ToString()); sb.Length = 0; }
+                else sb.Append(c);
+            }
+
+            cells.Add(sb.ToString());
+            return cells;
         }
 
         /// <summary>Окно поиска сопутствующего пика, кэВ — как у InterSpec.</summary>

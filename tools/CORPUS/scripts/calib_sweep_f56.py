@@ -59,6 +59,11 @@ def build_cache(path, raw, only=None, log=print):
     cc.MODEL_TEST, cc.MODEL_TEST_SCOPE, cc.MAX_ORDER = 'margin', 'all', 2
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
+    # `V15`: свой цикл чтения сырья — свой охват (общий `Coverage`, семёрка
+    # `LEGACY` объяснена; всё прочее потерянное — ⛔ и код 3).
+    import ecal_extrapolation as ee
+    cov = ee.coverage_for(entries)
+    cov.add(ee.STAGE_IN, [e['key'] for e in entries], hard=True)
     out = {}
     t0 = time.time()
     for e in entries:
@@ -78,6 +83,10 @@ def build_cache(path, raw, only=None, log=print):
                                     else v) for k, v in a.items()} for a in pairs0])
         log(u'%-24s n=%2d %s' % (key, len(pairs0), tag0))
     cc.MODEL_TEST, cc.MODEL_TEST_SCOPE, cc.MAX_ORDER = keep
+    cov.add(ee.STAGE_READ, list(out), hard=True)
+    if cov.report(u'ОХВАТ кэша опор (стадия 1 на сырье)'):
+        raise SystemExit(3)
+    log(u'  %s' % cov.tag(ee.STAGE_READ))
     with io.open(path, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     log(u'кэш опор: %s (%d спектров, %.0f с)' % (path, len(out), time.time() - t0))

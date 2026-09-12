@@ -29,6 +29,21 @@
 
     python tools/CORPUS/scripts/ecal_extrapolation.py [--only=KEY,KEY]
                                                       [--csv=файл] [--pass1]
+                                                      [--coverage-only]
+
+⚖ **ОХВАТ (`V15`, 12.09.2026).** Мерка живёт на `_corpus_raw`, где у семёрки
+`corpus_def.LEGACY` копий нет по построению корпуса, и до 12.09.2026 «по всему
+корпусу» здесь молча значило 124 спектра из 131 — а по непонятной части 32 из
+39; правило проекта «каждое число называет свою часть» нарушалось молча (`T76`).
+Охват считается ОДНИМ `gaussfit_check.Coverage` и печатается в `build_state` —
+там, где спектры и теряются, — так что его получают и мерки, живущие на
+`build_state` (`calib_quality_f56.py`, `calib_null_check.py --stage2`): вход
+мерки и чтение стадии 1 — стадии `hard`, семёрка `LEGACY` объяснена как
+замороженная, всё прочее потерянное — ⛔ и код возврата 3 (`SystemExit` из
+самой `build_state`, чтобы читатель был у КАЖДОГО вызывающего, а не только у
+этого файла). Ключ `--coverage-only` останавливает мерку сразу после стадии 1
+— вход читателя `tools/check_corpus_coverage.py`. Рядом с итоговыми числами
+печатается тег охвата их населения (`опоры есть`, `главная мерка`).
 """
 import os
 import sys
@@ -44,6 +59,7 @@ import corpus_def                                     # noqa: E402
 import corpus_calib                                   # noqa: E402
 import build_corpus                                   # noqa: E402
 from spectrum import Spectrum                         # noqa: E402
+from gaussfit_check import Coverage, frozen_keys      # noqa: E402  охват — ОДИН на мерки (T76/V15)
 
 # T137: cp1251-консоль не роняет печать знаков вне неё (⛔, →, σ): приговор кодом важнее вида.
 for _stream in (sys.stdout, sys.stderr):
@@ -53,6 +69,29 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 RAW = os.path.join(HERE, '_corpus_raw')
+
+#: (`V15`) Охват последнего `build_state` — для вызывающего, который хочет
+#: поставить теги у СВОИХ чисел (`Coverage.tag`/`warn`) или добавить стадии.
+LAST_COVERAGE = None
+
+STAGE_IN = u'вход мерки (NEW+VIBE+ETALON)'
+STAGE_READ = u'стадия 1 прочитана из _corpus_raw'
+
+
+def coverage_for(entries):
+    u"""`Coverage` под набор записей, поданных в `build_state`.
+
+    Знаменатель — ВЕСЬ объявленный корпус (`corpus/parts.csv`), если записи
+    покрывают весь вход конвейера (NEW+VIBE+ETALON): тогда семёрка `LEGACY`
+    объяснена как замороженная (`frozen_keys`). Если подано подмножество
+    (`--only=`), знаменатель — оно само: иначе всё незапрошенное считалось бы
+    потерянным. Вызывающие `build_state` (`calib_*`) ключ `--only` сюда не
+    передают, поэтому подмножество распознаётся ПО ЗАПИСЯМ, а не по ключу.
+    """
+    keys = [e['key'] for e in entries]
+    full = set(e['key'] for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON)
+    requested = None if set(keys) >= full else set(keys)
+    return Coverage(requested=requested, frozen=frozen_keys())
 
 
 def working_low(counts, frac=1e-4):
@@ -71,13 +110,23 @@ def working_low(counts, frac=1e-4):
     return int(idx[0]) if len(idx) else 0
 
 
-def build_state(entries, two_pass=True):
+def build_state(entries, two_pass=True, strict=True):
     """Стадии 1 и 2а конвейера корпуса на своих копиях, без библиотеки.
 
     Повторяет `build_corpus.main` ровно в той части, что определяет
     энергокалибровку; верность повторения проверяется сверкой метки режима с
     `corpus/manifest.csv` (ключ `--csv` печатает её).
+
+    ⚖ **Охват считается и печатается ЗДЕСЬ (`V15`)**, потому что здесь спектры
+    и теряются: нет копии в `_corpus_raw`, ошибка стадии 1. Обе стадии —
+    `hard`: всё потерянное, что не заморожено (`LEGACY`), — ⛔; при
+    `strict=True` (умолчание) это `SystemExit(3)` — читатель у каждого
+    вызывающего, а не только у `main` этого файла. Охват доступен потом как
+    `LAST_COVERAGE` — вызывающий ставит теги у своих чисел.
     """
+    global LAST_COVERAGE
+    cov = coverage_for(entries)
+    cov.add(STAGE_IN, [e['key'] for e in entries], hard=True)
     state = {}
     for e in entries:
         raw = os.path.join(RAW, e['key'] + '.xml')
@@ -92,6 +141,12 @@ def build_state(entries, two_pass=True):
             continue
         state[e['key']] = dict(entry=e, det=e['det'], sp=sp, ecal=ecal,
                                accepted=acc, r662=r662, mode=mode)
+    cov.add(STAGE_READ, list(state), hard=True)
+    LAST_COVERAGE = cov
+    bad = cov.report(u'ОХВАТ build_state (стадия 1 на _corpus_raw)')
+    print(u'  %s' % cov.tag(STAGE_READ))
+    if bad and strict:
+        raise SystemExit(3)
     if not two_pass:
         return state
 
@@ -259,8 +314,13 @@ def main():
     out_csv = None
     dump = None
     two_pass = '--pass1' not in sys.argv[1:]
+    # `V15`: вход читателя кодов возврата (`tools/check_corpus_coverage.py`) —
+    # остановить мерку сразу после стадии 1, там, где считается охват.
+    coverage_only = '--coverage-only' in sys.argv[1:]
     for a in sys.argv[1:]:
-        if a.startswith('--only='):
+        if a in ('--pass1', '--coverage-only'):
+            continue
+        elif a.startswith('--only='):
             only = set(a.split('=', 1)[1].split(','))
         elif a.startswith('--csv='):
             out_csv = a.split('=', 1)[1]
@@ -294,7 +354,15 @@ def main():
     entries = [e for e in corpus_def.NEW + corpus_def.VIBE + corpus_def.ETALON
                if only is None or e['key'] in only]
     print('проходов: %d, спектров: %d' % (2 if two_pass else 1, len(entries)))
-    state = build_state(entries, two_pass=two_pass)
+    # Охват печатается САМОЙ `build_state` (там теряются спектры); сломанный
+    # охват — `SystemExit(3)` оттуда же. Здесь только стадии населения мерок.
+    state = build_state(entries, two_pass=two_pass and not coverage_only)
+    cov = LAST_COVERAGE
+    if coverage_only:
+        print(u'')
+        print(u'--coverage-only: посчитаны ТОЛЬКО стадии охвата (вход и стадия 1); '
+              u'мерок и их чисел тут нет.')
+        return 0
 
     rows = []
     for key, st in state.items():
@@ -353,12 +421,20 @@ def main():
                  r['loo_fwhm']))
 
     print()
-    print('спектров разобрано: %d' % len(rows))
+    cov.add(u'опоры есть (строки таблицы)', [r['key'] for r in rows])
+    cov.add(u'главная мерка: линии ниже %.0f кэВ найдены' % LOW_BAND_KEV,
+            [r['key'] for r in rows if r['band_n']])
+    print('спектров разобрано: %d  (%s)'
+          % (len(rows), cov.tag(u'опоры есть (строки таблицы)')))
+    cov.warn(u'опоры есть (строки таблицы)', u'«спектров разобрано»')
     band = [abs(r['band_fwhm']) for r in rows if r['band_n']]
     print('⚖ ГЛАВНАЯ МЕРКА: промах по линиям НИЖЕ %.0f кэВ (население не зависит '
           'от выбора опор)' % LOW_BAND_KEV)
-    print('   спектров с такими линиями %d, линий найдено %d'
-          % (len(band), sum(r['band_n'] for r in rows)))
+    print('   спектров с такими линиями %d, линий найдено %d  (%s)'
+          % (len(band), sum(r['band_n'] for r in rows),
+             cov.tag(u'главная мерка: линии ниже %.0f кэВ найдены' % LOW_BAND_KEV)))
+    cov.warn(u'главная мерка: линии ниже %.0f кэВ найдены' % LOW_BAND_KEV,
+             u'«главная мерка»')
     if band:
         print('   наибольший промах: медиана %.3f ПШПВ, три четверти %.3f, максимум %.3f'
               % (float(np.median(band)), float(np.percentile(band, 75)), max(band)))
@@ -437,7 +513,8 @@ def main():
             w.writeheader()
             w.writerows(rows)
         print('\nтаблица: %s' % out_csv)
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -27,11 +27,14 @@ u"""ЧИТАТЕЛЬ ОХВАТА КОРПУСНЫХ МЕРОК (`T76`).
 этом сказано вслух, а не умолчано.
 
 **2. Не завелась ли мерка БЕЗ охвата.** Всякий скрипт в
-`tools/CORPUS/scripts`, который читает `_corpus_raw` или строит состояние
-`ecal_extrapolation.build_state`, обязан считать охват (`Coverage`) — иначе он
-повторит `T76` заново. Освобождённые перечислены поимённо ниже, у каждого —
-причина и строка реестра; список освобождённых печатается каждый прогон, чтобы
-он не превратился в глушилку.
+`tools/CORPUS/scripts`, который читает `_corpus_raw` САМ, обязан считать охват
+(`Coverage`) — иначе он повторит `T76` заново. Скрипт, который сырьё не читает,
+а строит состояние `ecal_extrapolation.build_state`, охват получает ОТТУДА
+(`V15`, 12.09.2026: охват печатается и судится в самой `build_state`, код 3 —
+`SystemExit` из неё); сторож поэтому отдельно проверяет, что `build_state`
+охват несёт, — иначе «получает оттуда» стало бы пустым словом. Освобождённые
+перечислены поимённо ниже, у каждого — причина и строка реестра; список
+освобождённых печатается каждый прогон, чтобы он не превратился в глушилку.
 
     python tools/check_corpus_coverage.py            # быстро (~2 с)
     python tools/check_corpus_coverage.py --deep     # + две долгие мерки (~2.5 мин)
@@ -56,6 +59,7 @@ MEASURES = [
     (u'gaussfit_check.py', [u'--coverage-only'], False),
     (u'gate_blind_check.py', [u'--coverage-only'], True),
     (u'ecal_accept_check.py', [u'--coverage-only'], True),
+    (u'ecal_extrapolation.py', [u'--coverage-only'], True),     # `V15`: ~2 мин
 ]
 
 #: Скрипты, которые живут на сырье/`build_state`, но охвата НЕ считают.
@@ -64,20 +68,15 @@ MEASURES = [
 EXEMPT = {
     u'build_corpus.py':
         u'не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ',
-    u'ecal_extrapolation.py':
-        u'мерка без охвата — открытая строка `V15` (там же пересчёт приёмки `V12`)',
-    u'calib_null_check.py':
-        u'мерка на `build_state` без охвата — строка `T76`, остаток',
-    u'calib_quality_f56.py':
-        u'мерка на `build_state` без охвата — строка `T76`, остаток',
-    u'calib_sweep_f56.py':
-        u'мерка на `build_state` без охвата — строка `T76`, остаток',
 }
 
-#: По чему судим «живёт на сырье»: чтение своих копий либо стадия 1+2а.
-LIVES_ON_RAW = re.compile(u'_corpus_raw|build_state')
+#: По чему судим «читает сырьё САМ»: путь к своим копиям в тексте.
+LIVES_ON_RAW = re.compile(u'_corpus_raw')
 #: По чему судим «охват считается».
 HAS_COVERAGE = re.compile(u'Coverage')
+#: Тот, у кого охват получают мерки на `build_state` (`V15`): обязан и сам
+#: читать сырьё, и нести `Coverage` — проверяется явно, см. `audit_scripts`.
+STATE_HOLDER = u'ecal_extrapolation.py'
 
 
 def _utf8_console():
@@ -121,6 +120,17 @@ def audit_scripts(repo):
     u"""Мерки без охвата. -> (список нарушителей, список освобождённых)."""
     d = scripts_dir(repo)
     bad, exempt_seen = [], []
+    # (`V15`) Носитель охвата для мерок на `build_state`: без `Coverage` в
+    # нём их освобождение — дыра, поэтому он судится первым и поимённо.
+    holder = os.path.join(d, STATE_HOLDER)
+    try:
+        with open(holder, 'rb') as f:
+            htext = f.read().decode('utf-8', 'replace')
+        if not (u'def build_state' in htext and HAS_COVERAGE.search(htext)):
+            bad.append((STATE_HOLDER, u'носитель `build_state` без `Coverage` — '
+                                      u'мерки на `build_state` остались без охвата'))
+    except OSError as ex:
+        bad.append((STATE_HOLDER, u'не прочитан: %s' % ex))
     for name in sorted(os.listdir(d)):
         if not name.endswith('.py'):
             continue
@@ -138,7 +148,7 @@ def audit_scripts(repo):
         if name in EXEMPT:
             exempt_seen.append((name, EXEMPT[name]))
             continue
-        bad.append((name, u'читает сырьё/`build_state`, а охвата (`Coverage`) не считает'))
+        bad.append((name, u'читает сырьё (`_corpus_raw`) САМ, а охвата (`Coverage`) не считает'))
     return bad, exempt_seen
 
 
