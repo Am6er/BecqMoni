@@ -1,0 +1,3371 @@
+[g4cf] WARNING: key "vacuum" NOT given - the arbiter world is AIR.
+[g4cf] Na golom kristalle eto oshibka: mir reshaet 42% polosy 55...59 keV.
+[g4cf] 8.232e-4 (air) vs 5.794e-4 (vacuum); bins 57...59 - x3. See T133.
+
+**************************************************************
+ Geant4 version Name: geant4-11-04-patch-02 [MT]   (12-June-2026)
+  << in Multi-threaded mode >> 
+                       Copyright : Geant4 Collaboration
+                      References : NIM A 506 (2003), 250-303
+                                 : IEEE-TNS 53 (2006), 270-278
+                                 : NIM A 835 (2016), 186-225
+                             WWW : http://geant4.org/
+**************************************************************
+
+Accumulable registered as "any"
+Accumulable registered as "w0"
+Accumulable registered as "h0"
+Accumulable registered as "h1"
+Accumulable registered as "h2"
+Accumulable registered as "h3"
+Accumulable registered as "h4"
+Accumulable registered as "h5"
+Accumulable registered as "h6"
+Accumulable registered as "h7"
+Accumulable registered as "h8"
+Accumulable registered as "h9"
+Accumulable registered as "h10"
+Accumulable registered as "h11"
+Accumulable registered as "h12"
+Accumulable registered as "h13"
+Accumulable registered as "h14"
+Accumulable registered as "h15"
+Accumulable registered as "h16"
+Accumulable registered as "h17"
+Accumulable registered as "h18"
+Accumulable registered as "h19"
+Accumulable registered as "h20"
+Accumulable registered as "h21"
+Accumulable registered as "h22"
+Accumulable registered as "h23"
+Accumulable registered as "h24"
+Accumulable registered as "h25"
+Accumulable registered as "h26"
+Accumulable registered as "h27"
+Accumulable registered as "h28"
+Accumulable registered as "h29"
+Accumulable registered as "h30"
+Accumulable registered as "h31"
+Accumulable registered as "h32"
+Accumulable registered as "h33"
+Accumulable registered as "h34"
+Accumulable registered as "h35"
+Accumulable registered as "h36"
+Accumulable registered as "h37"
+Accumulable registered as "h38"
+Accumulable registered as "h39"
+Accumulable registered as "h40"
+Accumulable registered as "h41"
+Accumulable registered as "h42"
+Accumulable registered as "h43"
+Accumulable registered as "h44"
+Accumulable registered as "h45"
+Accumulable registered as "h46"
+Accumulable registered as "h47"
+Accumulable registered as "h48"
+Accumulable registered as "h49"
+Accumulable registered as "h50"
+Accumulable registered as "h51"
+Accumulable registered as "h52"
+Accumulable registered as "h53"
+Accumulable registered as "h54"
+Accumulable registered as "h55"
+Accumulable registered as "h56"
+Accumulable registered as "h57"
+Accumulable registered as "h58"
+Accumulable registered as "h59"
+Accumulable registered as "h60"
+Accumulable registered as "h61"
+Accumulable registered as "h62"
+Accumulable registered as "h63"
+Accumulable registered as "h64"
+Accumulable registered as "h65"
+Accumulable registered as "h66"
+Accumulable registered as "h67"
+Accumulable registered as "h68"
+Accumulable registered as "h69"
+Accumulable registered as "h70"
+Accumulable registered as "h71"
+Accumulable registered as "h72"
+Accumulable registered as "h73"
+Accumulable registered as "h74"
+Accumulable registered as "h75"
+Accumulable registered as "h76"
+Accumulable registered as "h77"
+Accumulable registered as "h78"
+Accumulable registered as "h79"
+Accumulable registered as "h80"
+Accumulable registered as "h81"
+Accumulable registered as "h82"
+Accumulable registered as "h83"
+Accumulable registered as "h84"
+Accumulable registered as "h85"
+Accumulable registered as "h86"
+Accumulable registered as "h87"
+Accumulable registered as "h88"
+Accumulable registered as "h89"
+Accumulable registered as "h90"
+Accumulable registered as "h91"
+Accumulable registered as "h92"
+Accumulable registered as "h93"
+Accumulable registered as "h94"
+Accumulable registered as "h95"
+Accumulable registered as "h96"
+Accumulable registered as "h97"
+Accumulable registered as "h98"
+Accumulable registered as "h99"
+Accumulable registered as "h100"
+Accumulable registered as "h101"
+Accumulable registered as "h102"
+Accumulable registered as "h103"
+Accumulable registered as "h104"
+Accumulable registered as "h105"
+Accumulable registered as "h106"
+Accumulable registered as "h107"
+Accumulable registered as "h108"
+Accumulable registered as "h109"
+Accumulable registered as "h110"
+Accumulable registered as "h111"
+Accumulable registered as "h112"
+Accumulable registered as "h113"
+Accumulable registered as "h114"
+Accumulable registered as "h115"
+Accumulable registered as "h116"
+Accumulable registered as "h117"
+Accumulable registered as "h118"
+Accumulable registered as "h119"
+Accumulable registered as "h120"
+Accumulable registered as "h121"
+Accumulable registered as "h122"
+Accumulable registered as "h123"
+Accumulable registered as "h124"
+Accumulable registered as "h125"
+Accumulable registered as "h126"
+Accumulable registered as "h127"
+Accumulable registered as "h128"
+Accumulable registered as "h129"
+Accumulable registered as "h130"
+Accumulable registered as "h131"
+Accumulable registered as "h132"
+Accumulable registered as "h133"
+Accumulable registered as "h134"
+Accumulable registered as "h135"
+Accumulable registered as "h136"
+Accumulable registered as "h137"
+Accumulable registered as "h138"
+Accumulable registered as "h139"
+Accumulable registered as "h140"
+Accumulable registered as "h141"
+Accumulable registered as "h142"
+Accumulable registered as "h143"
+Accumulable registered as "h144"
+Accumulable registered as "h145"
+Accumulable registered as "h146"
+Accumulable registered as "h147"
+Accumulable registered as "h148"
+Accumulable registered as "h149"
+Accumulable registered as "h150"
+Accumulable registered as "h151"
+Accumulable registered as "h152"
+Accumulable registered as "h153"
+Accumulable registered as "h154"
+Accumulable registered as "h155"
+Accumulable registered as "h156"
+Accumulable registered as "h157"
+Accumulable registered as "h158"
+Accumulable registered as "h159"
+Accumulable registered as "h160"
+Accumulable registered as "h161"
+Accumulable registered as "h162"
+Accumulable registered as "h163"
+Accumulable registered as "h164"
+Accumulable registered as "h165"
+Accumulable registered as "h166"
+Accumulable registered as "h167"
+Accumulable registered as "h168"
+Accumulable registered as "h169"
+Accumulable registered as "h170"
+Accumulable registered as "h171"
+Accumulable registered as "h172"
+Accumulable registered as "h173"
+Accumulable registered as "h174"
+Accumulable registered as "h175"
+Accumulable registered as "h176"
+Accumulable registered as "h177"
+Accumulable registered as "h178"
+Accumulable registered as "h179"
+Accumulable registered as "h180"
+Accumulable registered as "h181"
+Accumulable registered as "h182"
+Accumulable registered as "h183"
+Accumulable registered as "h184"
+Accumulable registered as "h185"
+Accumulable registered as "h186"
+Accumulable registered as "h187"
+Accumulable registered as "h188"
+Accumulable registered as "h189"
+Accumulable registered as "h190"
+Accumulable registered as "h191"
+Accumulable registered as "h192"
+Accumulable registered as "h193"
+Accumulable registered as "h194"
+Accumulable registered as "h195"
+Accumulable registered as "h196"
+Accumulable registered as "h197"
+Accumulable registered as "h198"
+Accumulable registered as "h199"
+Accumulable registered as "h200"
+область 3 целиком затенена областью 2 — выброшена (в сцене симулятора она тоже недостижима)
+Checking overlaps for volume r9:0 (G4Tubs) ... OK! 
+Checking overlaps for volume r8:0 (G4Tubs) ... OK! 
+Checking overlaps for volume r7:0 (G4Tubs) ... OK! 
+Checking overlaps for volume r6:0 (G4Box) ... OK! 
+Checking overlaps for volume r5:0 (G4Box) ... OK! 
+Checking overlaps for volume r4:0 (G4Box) ... OK! 
+Checking overlaps for volume r2:0 (G4Box) ... OK! 
+Checking overlaps for volume r1:0 (G4Box) ... OK! 
+Checking overlaps for volume r0:0 (G4Box) ... OK! 
+=======================================================================
+======                 Electromagnetic Physics Parameters      ========
+=======================================================================
+LPM effect enabled                                 1
+Enable creation and use of sampling tables         0
+Apply cuts on all EM processes                     0
+Use combined TransportationWithMsc                 Disabled
+Use general process                                1
+Enable linear polarisation for gamma               0
+Enable photoeffect sampling below K-shell          1
+Enable sampling of quantum entanglement            0
+X-section factor for integral approach             0.8
+Min kinetic energy for tables                      100 eV 
+Max kinetic energy for tables                      100 TeV
+Number of bins per decade of a table               20
+Verbose level                                      1
+Verbose level for worker thread                    0
+Bremsstrahlung energy threshold above which 
+  primary e+- is added to the list of secondary    100 TeV
+Bremsstrahlung energy threshold above which primary
+  muon/hadron is added to the list of secondary    100 TeV
+Positron annihilation at rest model                AllisonPositronium
+Enable 3 gamma annihilation on fly                 1
+Lowest triplet kinetic energy                      1 MeV
+Enable sampling of gamma linear polarisation       0
+5D gamma conversion model type                     0
+5D gamma conversion model on isolated ion          0
+Use RiGe 5D e+e- pair production model by muons    0
+Livermore data directory                           epics_2017
+=======================================================================
+======                 Ionisation Parameters                   ========
+=======================================================================
+Step function for e+-                              (0.2, 0.01 mm)
+Step function for muons/hadrons                    (0.1, 0.05 mm)
+Step function for light ions                       (0.1, 0.02 mm)
+Step function for general ions                     (0.1, 0.001 mm)
+Lowest e+e- kinetic energy                         100 eV 
+Lowest muon/hadron kinetic energy                  1 keV
+Use ICRU90 data                                    1
+Fluctuations of dE/dx are enabled                  1
+Type of fluctuation model for leptons and hadrons  Urban
+Use built-in Birks saturation                      0
+Build CSDA range enabled                           0
+Use cut as a final range enabled                   0
+Enable angular generator interface                 1
+Max kinetic energy for CSDA tables                 1 GeV
+Max kinetic energy for NIEL computation            1 MeV
+Linear loss limit                                  0.01
+Read data from file for e+e- pair production by mu 0
+=======================================================================
+======                 Multiple Scattering Parameters          ========
+=======================================================================
+Type of msc step limit algorithm for e+-           2
+Type of msc step limit algorithm for muons/hadrons 0
+Msc lateral displacement for e+- enabled           1
+Msc lateral displacement for muons and hadrons     1
+Urban msc model lateral displacement alg96         1
+Range factor for msc step limit for e+-            0.08
+Range factor for msc step limit for muons/hadrons  0.2
+Geometry factor for msc step limitation of e+-     2.5
+Safety factor for msc step limit for e+-           0.6
+Skin parameter for msc step limitation of e+-      3
+Lambda limit for msc step limit for e+-            1 mm
+Use Mott correction for e- scattering              1
+Factor used for dynamic computation of angular 
+  limit between single and multiple scattering     1
+Fixed angular limit between single 
+  and multiple scattering                          3.1416 rad
+Upper energy limit for e+- multiple scattering     100 MeV
+Type of electron single scattering model           0
+Type of nuclear form-factor                        1
+Screening factor                                   1
+=======================================================================
+======                 Atomic Deexcitation Parameters          ========
+=======================================================================
+Fluorescence enabled                               1
+Directory in G4LEDATA for fluorescence data files  fluor
+Auger electron cascade enabled                     1
+PIXE atomic de-excitation enabled                  0
+De-excitation module ignores cuts                  1
+Type of PIXE cross section for hadrons             Empirical
+Type of PIXE cross section for e+-                 Livermore
+=======================================================================
+
+### ===  Deexcitation model UAtomDeexcitation is activated for 1 region:
+          DefaultRegionForTheWorld  1  1  0
+### ===  Auger flag: 1
+### ===  Ignore cuts flag:   1
+
+phot:  for gamma SubType=12 BuildTable=0
+      LambdaPrime table from 200 keV to 100 TeV in 174 bins 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+ LivermorePhElectric : Emin=    0 eV  Emax=  100 TeV  SauterGavrila Fluo
+
+compt:  for gamma SubType=13 BuildTable=1
+      Lambda table from 100 eV  to 1 MeV, 20 bins/decade, spline: 1
+      LambdaPrime table from 1 MeV to 100 TeV in 160 bins 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+   LowEPComptonModel : Emin=    0 eV  Emax=   20 MeV Fluo
+        KleinNishina : Emin=   20 MeV Emax=  100 TeV Fluo
+
+conv:  for gamma SubType=14 BuildTable=1
+      Lambda table from 1.022 MeV to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+      BetheHeitler5D : Emin=    0 eV  Emax=  100 TeV  ModifiedTsai
+
+Rayl:  for gamma SubType=11 BuildTable=1
+      Lambda table from 100 eV  to 150 keV, 20 bins/decade, spline: 0
+      LambdaPrime table from 150 keV to 100 TeV in 176 bins 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+   LivermoreRayleigh : Emin=    0 eV  Emax=  100 TeV  CullenGenerator
+
+msc:  for e-  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  GoudsmitSaunderson : Emin=    0 eV  Emax=  100 MeV Nbins=120 100 eV  - 100 MeV
+          StepLim=SafetyPlus Rfact=0.08 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+        WentzelVIUni : Emin=  100 MeV Emax=  100 TeV Nbins=120 100 MeV - 100 TeV
+          StepLim=SafetyPlus Rfact=0.08 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+eIoni:  for e-  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.2, 0.01 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+             PenIoni : Emin=    0 eV  Emax=  100 keV
+        MollerBhabha : Emin=  100 keV Emax=  100 TeV  deltaVI
+
+eBrem:  for e-  XStype:4  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      LPM flag: 1 for E > 1 GeV,  VertexHighEnergyTh(GeV)= 100000
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+             eBremSB : Emin=    0 eV  Emax=    1 GeV  AngularGen2BS
+            eBremLPM : Emin=    1 GeV Emax=  100 TeV  AngularGen2BS
+
+ePairProd:  for e-  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 0
+      Sampling table 25x1001; from 0.1 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           ePairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for e- XStype:1 SubType=1 BuildTable=1
+      Lambda table from 100 MeV to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=  100 MeV Emax=  100 TeV
+
+msc:  for e+  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  GoudsmitSaunderson : Emin=    0 eV  Emax=  100 MeV Nbins=120 100 eV  - 100 MeV
+          StepLim=SafetyPlus Rfact=0.08 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+        WentzelVIUni : Emin=  100 MeV Emax=  100 TeV Nbins=120 100 MeV - 100 TeV
+          StepLim=SafetyPlus Rfact=0.08 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+eIoni:  for e+  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.2, 0.01 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+             PenIoni : Emin=    0 eV  Emax=  100 keV
+        MollerBhabha : Emin=  100 keV Emax=  100 TeV  deltaVI
+
+eBrem:  for e+  XStype:4  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      LPM flag: 1 for E > 1 GeV,  VertexHighEnergyTh(GeV)= 100000
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+             eBremSB : Emin=    0 eV  Emax=    1 GeV  AngularGen2BS
+            eBremLPM : Emin=    1 GeV Emax=  100 TeV  AngularGen2BS
+
+ePairProd:  for e+  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 0
+      Sampling table 25x1001; from 0.1 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           ePairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+annihil:  for e+ XStype:2 SubType=5 AtRestModel:Allison BuildTable=0
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+    eplusTo2or3gamma : Emin=    0 eV  Emax=  100 TeV
+
+CoulombScat:  for e+ XStype:1 SubType=1 BuildTable=1
+      Lambda table from 100 MeV to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=  100 MeV Emax=  100 TeV
+
+msc:  for proton  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for proton  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               Bragg : Emin=    0 eV  Emax=    2 MeV  deltaVI
+          BetheBloch : Emin=    2 MeV Emax=  100 TeV  deltaVI
+
+hBrems:  for proton  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for proton  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 17x1001, from 7.50618 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for proton XStype:1 SubType=1 BuildTable=1
+      Lambda table from threshold  to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+nuclearStopping:  for proton SubType=8 BuildTable=0
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+   ICRU49NucStopping : Emin=    0 eV  Emax=    1 MeV
+
+msc:  for GenericIon  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            UrbanMsc : Emin=    0 eV  Emax=  100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+ionIoni:  for GenericIon  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.001 mm), integ: 3, fluct: 1, linLossLim= 0.02
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+    LindhardSorensen : Emin=    0 eV  Emax=  100 TeV  deltaVI
+
+nuclearStopping:  for GenericIon SubType=8 BuildTable=0
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+   ICRU49NucStopping : Emin=    0 eV  Emax=    1 MeV
+======================================================================
+======          Radioactive Decay Physics Parameters           =======
+======================================================================
+min MeanLife (from G4NuclideTable)                1 ns 
+Max life time (from G4DeexPrecoParameters)        1000 ps 
+Internal e- conversion flag                       1
+Stored internal conversion coefficients           1
+Enabled atomic relaxation mode                    1
+Enable correlated gamma emission                  0
+Max 2J for sampling of angular correlations       10
+Atomic de-excitation enabled                      1
+Auger electron emission enabled                   1
+Check EM cuts disabled for atomic de-excitation   1
+Use Bearden atomic level energies                 0
+Use ANSTO fluorescence model                      0
+Threshold for very long decay time at rest        1 y  
+======================================================================
+
+====================================================================
+                  HADRONIC PROCESSES SUMMARY (verbose level 1)
+-------------------------------------------------------------------------
+                           Hadronic Processes for GenericIon
+  Process: RadioactiveDecay
+
+msc:  for alpha  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            UrbanMsc : Emin=    0 eV  Emax=  100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+ionIoni:  for alpha  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.02 mm), integ: 3, fluct: 1, linLossLim= 0.02
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            BraggIon : Emin=    0 eV  Emax=7.9452 MeV  deltaVI
+          BetheBloch : Emin=7.9452 MeV Emax=  100 TeV  deltaVI
+
+nuclearStopping:  for alpha SubType=8 BuildTable=0
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+   ICRU49NucStopping : Emin=    0 eV  Emax=    1 MeV
+
+msc:  for anti_proton  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for anti_proton  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            ICRU73QO : Emin=    0 eV  Emax=    2 MeV  deltaVI
+          BetheBloch : Emin=    2 MeV Emax=  100 TeV  deltaVI
+
+hBrems:  for anti_proton  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for anti_proton  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 17x1001, from 7.50618 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for anti_proton XStype:1 SubType=1 BuildTable=1
+      Lambda table from threshold  to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for kaon+  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for kaon+  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               Bragg : Emin=    0 eV  Emax=1.05231 MeV  deltaVI
+          BetheBloch : Emin=1.05231 MeV Emax=  100 TeV  deltaVI
+
+hBrems:  for kaon+  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for kaon+  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 18x1001, from 3.94942 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for kaon+ XStype:1 SubType=1 BuildTable=1
+      Lambda table from threshold  to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for kaon-  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for kaon-  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            ICRU73QO : Emin=    0 eV  Emax=1.05231 MeV  deltaVI
+          BetheBloch : Emin=1.05231 MeV Emax=  100 TeV  deltaVI
+
+hBrems:  for kaon-  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for kaon-  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 18x1001, from 3.94942 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for kaon- XStype:1 SubType=1 BuildTable=1
+      Used Lambda table of kaon+
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for mu+  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+muIoni:  for mu+  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               Bragg : Emin=    0 eV  Emax=  200 keV  deltaVI
+        MuBetheBloch : Emin=  200 keV Emax=  100 TeV  deltaVI
+
+muBrems:  for mu+  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+              MuBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+muPairProd:  for mu+  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 21x1001, from 0.85 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+          muPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for mu+ XStype:1 SubType=1 BuildTable=1
+      Lambda table from threshold  to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for mu-  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+muIoni:  for mu-  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            ICRU73QO : Emin=    0 eV  Emax=  200 keV  deltaVI
+        MuBetheBloch : Emin=  200 keV Emax=  100 TeV  deltaVI
+
+muBrems:  for mu-  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+              MuBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+muPairProd:  for mu-  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 21x1001, from 0.85 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+          muPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for mu- XStype:1 SubType=1 BuildTable=1
+      Used Lambda table of mu+
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for pi+  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for pi+  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               Bragg : Emin=    0 eV  Emax=297.505 keV  deltaVI
+          BetheBloch : Emin=297.505 keV Emax=  100 TeV  deltaVI
+
+hBrems:  for pi+  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for pi+  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 20x1001, from 1.11656 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for pi+ XStype:1 SubType=1 BuildTable=1
+      Lambda table from threshold  to 100 TeV, 20 bins/decade, spline: 0
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+
+msc:  for pi-  SubType= 10
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+        WentzelVIUni : Emin=    0 eV  Emax=  100 TeV Nbins=240 100 eV  - 100 TeV
+          StepLim=Minimal Rfact=0.2 Gfact=2.5 Sfact=0.6 DispFlag:1 Skin=3 Llim=1 mm
+
+hIoni:  for pi-  XStype:3  SubType=2
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      StepFunction=(0.1, 0.05 mm), integ: 3, fluct: 1, linLossLim= 0.01
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+            ICRU73QO : Emin=    0 eV  Emax=297.505 keV  deltaVI
+          BetheBloch : Emin=297.505 keV Emax=  100 TeV  deltaVI
+
+hBrems:  for pi-  XStype:1  SubType=3
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+               hBrem : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+hPairProd:  for pi-  XStype:1  SubType=4
+      dE/dx and range tables from 100 eV  to 100 TeV in 240 bins
+      Lambda tables from threshold to 100 TeV, 20 bins/decade, spline: 1
+      Sampling table 20x1001, from 1.11656 GeV to 100 TeV 
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+           hPairProd : Emin=    0 eV  Emax=  100 TeV  ModifiedMephi
+
+CoulombScat:  for pi- XStype:1 SubType=1 BuildTable=1
+      Used Lambda table of pi+
+      ThetaMin(p) < Theta(degree) < 180, pLimit(GeV^1)= 0.139531
+      ===== EM models for the G4Region  DefaultRegionForTheWorld ======
+  eCoulombScattering : Emin=    0 eV  Emax=  100 TeV
+G4WT10 > Accumulable registered as "any"
+G4WT10 > Accumulable registered as "w0"
+G4WT10 > Accumulable registered as "h0"
+G4WT10 > Accumulable registered as "h1"
+G4WT10 > Accumulable registered as "h2"
+G4WT10 > Accumulable registered as "h3"
+G4WT10 > Accumulable registered as "h4"
+G4WT10 > Accumulable registered as "h5"
+G4WT10 > Accumulable registered as "h6"
+G4WT10 > Accumulable registered as "h7"
+G4WT10 > Accumulable registered as "h8"
+G4WT10 > Accumulable registered as "h9"
+G4WT10 > Accumulable registered as "h10"
+G4WT10 > Accumulable registered as "h11"
+G4WT10 > Accumulable registered as "h12"
+G4WT10 > Accumulable registered as "h13"
+G4WT10 > Accumulable registered as "h14"
+G4WT10 > Accumulable registered as "h15"
+G4WT10 > Accumulable registered as "h16"
+G4WT10 > Accumulable registered as "h17"
+G4WT10 > Accumulable registered as "h18"
+G4WT10 > Accumulable registered as "h19"
+G4WT10 > Accumulable registered as "h20"
+G4WT10 > Accumulable registered as "h21"
+G4WT10 > Accumulable registered as "h22"
+G4WT10 > Accumulable registered as "h23"
+G4WT10 > Accumulable registered as "h24"
+G4WT10 > Accumulable registered as "h25"
+G4WT10 > Accumulable registered as "h26"
+G4WT10 > Accumulable registered as "h27"
+G4WT10 > Accumulable registered as "h28"
+G4WT10 > Accumulable registered as "h29"
+G4WT10 > Accumulable registered as "h30"
+G4WT10 > Accumulable registered as "h31"
+G4WT10 > Accumulable registered as "h32"
+G4WT10 > Accumulable registered as "h33"
+G4WT10 > Accumulable registered as "h34"
+G4WT10 > Accumulable registered as "h35"
+G4WT10 > Accumulable registered as "h36"
+G4WT10 > Accumulable registered as "h37"
+G4WT10 > Accumulable registered as "h38"
+G4WT10 > Accumulable registered as "h39"
+G4WT10 > Accumulable registered as "h40"
+G4WT10 > Accumulable registered as "h41"
+G4WT10 > Accumulable registered as "h42"
+G4WT10 > Accumulable registered as "h43"
+G4WT10 > Accumulable registered as "h44"
+G4WT10 > Accumulable registered as "h45"
+G4WT10 > Accumulable registered as "h46"
+G4WT10 > Accumulable registered as "h47"
+G4WT10 > Accumulable registered as "h48"
+G4WT10 > Accumulable registered as "h49"
+G4WT10 > Accumulable registered as "h50"
+G4WT10 > Accumulable registered as "h51"
+G4WT10 > Accumulable registered as "h52"
+G4WT10 > Accumulable registered as "h53"
+G4WT10 > Accumulable registered as "h54"
+G4WT3 > Accumulable registered as "any"
+G4WT10 > Accumulable registered as "h55"
+G4WT3 > Accumulable registered as "w0"
+G4WT3 > Accumulable registered as "h0"
+G4WT10 > Accumulable registered as "h56"
+G4WT3 > Accumulable registered as "h1"
+G4WT10 > Accumulable registered as "h57"
+G4WT3 > Accumulable registered as "h2"
+G4WT10 > Accumulable registered as "h58"
+G4WT3 > Accumulable registered as "h3"
+G4WT10 > Accumulable registered as "h59"
+G4WT3 > Accumulable registered as "h4"
+G4WT10 > Accumulable registered as "h60"
+G4WT3 > Accumulable registered as "h5"
+G4WT10 > Accumulable registered as "h61"
+G4WT3 > Accumulable registered as "h6"
+G4WT10 > Accumulable registered as "h62"
+G4WT3 > Accumulable registered as "h7"
+G4WT10 > Accumulable registered as "h63"
+G4WT3 > Accumulable registered as "h8"
+G4WT10 > Accumulable registered as "h64"
+G4WT3 > Accumulable registered as "h9"
+G4WT10 > Accumulable registered as "h65"
+G4WT3 > Accumulable registered as "h10"
+G4WT10 > Accumulable registered as "h66"
+G4WT3 > Accumulable registered as "h11"
+G4WT10 > Accumulable registered as "h67"
+G4WT3 > Accumulable registered as "h12"
+G4WT10 > Accumulable registered as "h68"
+G4WT3 > Accumulable registered as "h13"
+G4WT10 > Accumulable registered as "h69"
+G4WT3 > Accumulable registered as "h14"
+G4WT10 > Accumulable registered as "h70"
+G4WT3 > Accumulable registered as "h15"
+G4WT10 > Accumulable registered as "h71"
+G4WT3 > Accumulable registered as "h16"
+G4WT10 > Accumulable registered as "h72"
+G4WT3 > Accumulable registered as "h17"
+G4WT10 > Accumulable registered as "h73"
+G4WT3 > Accumulable registered as "h18"
+G4WT10 > Accumulable registered as "h74"
+G4WT3 > Accumulable registered as "h19"
+G4WT10 > Accumulable registered as "h75"
+G4WT3 > Accumulable registered as "h20"
+G4WT10 > Accumulable registered as "h76"
+G4WT3 > Accumulable registered as "h21"
+G4WT10 > Accumulable registered as "h77"
+G4WT3 > Accumulable registered as "h22"
+G4WT10 > Accumulable registered as "h78"
+G4WT3 > Accumulable registered as "h23"
+G4WT10 > Accumulable registered as "h79"
+G4WT3 > Accumulable registered as "h24"
+G4WT3 > Accumulable registered as "h25"
+G4WT10 > Accumulable registered as "h80"
+G4WT3 > Accumulable registered as "h26"
+G4WT10 > Accumulable registered as "h81"
+G4WT3 > Accumulable registered as "h27"
+G4WT10 > Accumulable registered as "h82"
+G4WT3 > Accumulable registered as "h28"
+G4WT10 > Accumulable registered as "h83"
+G4WT3 > Accumulable registered as "h29"
+G4WT10 > Accumulable registered as "h84"
+G4WT3 > Accumulable registered as "h30"
+G4WT10 > Accumulable registered as "h85"
+G4WT3 > Accumulable registered as "h31"
+G4WT10 > Accumulable registered as "h86"
+G4WT3 > Accumulable registered as "h32"
+G4WT10 > Accumulable registered as "h87"
+G4WT3 > Accumulable registered as "h33"
+G4WT10 > Accumulable registered as "h88"
+G4WT3 > Accumulable registered as "h34"
+G4WT10 > Accumulable registered as "h89"
+G4WT3 > Accumulable registered as "h35"
+G4WT10 > Accumulable registered as "h90"
+G4WT3 > Accumulable registered as "h36"
+G4WT10 > Accumulable registered as "h91"
+G4WT3 > Accumulable registered as "h37"
+G4WT3 > Accumulable registered as "h38"
+G4WT3 > Accumulable registered as "h39"
+G4WT3 > Accumulable registered as "h40"
+G4WT3 > Accumulable registered as "h41"
+G4WT3 > Accumulable registered as "h42"
+G4WT3 > Accumulable registered as "h43"
+G4WT3 > Accumulable registered as "h44"
+G4WT3 > Accumulable registered as "h45"
+G4WT10 > Accumulable registered as "h92"
+G4WT3 > Accumulable registered as "h46"
+G4WT10 > Accumulable registered as "h93"
+G4WT3 > Accumulable registered as "h47"
+G4WT10 > Accumulable registered as "h94"
+G4WT3 > Accumulable registered as "h48"
+G4WT10 > Accumulable registered as "h95"
+G4WT3 > Accumulable registered as "h49"
+G4WT10 > Accumulable registered as "h96"
+G4WT3 > Accumulable registered as "h50"
+G4WT10 > Accumulable registered as "h97"
+G4WT3 > Accumulable registered as "h51"
+G4WT10 > Accumulable registered as "h98"
+G4WT3 > Accumulable registered as "h52"
+G4WT10 > Accumulable registered as "h99"
+G4WT3 > Accumulable registered as "h53"
+G4WT10 > Accumulable registered as "h100"
+G4WT3 > Accumulable registered as "h54"
+G4WT10 > Accumulable registered as "h101"
+G4WT3 > Accumulable registered as "h55"
+G4WT10 > Accumulable registered as "h102"
+G4WT10 > Accumulable registered as "h103"
+G4WT3 > Accumulable registered as "h56"
+G4WT10 > Accumulable registered as "h104"
+G4WT3 > Accumulable registered as "h57"
+G4WT10 > Accumulable registered as "h105"
+G4WT3 > Accumulable registered as "h58"
+G4WT10 > Accumulable registered as "h106"
+G4WT3 > Accumulable registered as "h59"
+G4WT10 > Accumulable registered as "h107"
+G4WT3 > Accumulable registered as "h60"
+G4WT10 > Accumulable registered as "h108"
+G4WT3 > Accumulable registered as "h61"
+G4WT10 > Accumulable registered as "h109"
+G4WT3 > Accumulable registered as "h62"
+G4WT10 > Accumulable registered as "h110"
+G4WT3 > Accumulable registered as "h63"
+G4WT10 > Accumulable registered as "h111"
+G4WT3 > Accumulable registered as "h64"
+G4WT10 > Accumulable registered as "h112"
+G4WT3 > Accumulable registered as "h65"
+G4WT10 > Accumulable registered as "h113"
+G4WT3 > Accumulable registered as "h66"
+G4WT10 > Accumulable registered as "h114"
+G4WT3 > Accumulable registered as "h67"
+G4WT10 > Accumulable registered as "h115"
+G4WT3 > Accumulable registered as "h68"
+G4WT10 > Accumulable registered as "h116"
+G4WT3 > Accumulable registered as "h69"
+G4WT10 > Accumulable registered as "h117"
+G4WT3 > Accumulable registered as "h70"
+G4WT10 > Accumulable registered as "h118"
+G4WT3 > Accumulable registered as "h71"
+G4WT10 > Accumulable registered as "h119"
+G4WT3 > Accumulable registered as "h72"
+G4WT10 > Accumulable registered as "h120"
+G4WT3 > Accumulable registered as "h73"
+G4WT10 > Accumulable registered as "h121"
+G4WT3 > Accumulable registered as "h74"
+G4WT10 > Accumulable registered as "h122"
+G4WT3 > Accumulable registered as "h75"
+G4WT10 > Accumulable registered as "h123"
+G4WT3 > Accumulable registered as "h76"
+G4WT10 > Accumulable registered as "h124"
+G4WT3 > Accumulable registered as "h77"
+G4WT10 > Accumulable registered as "h125"
+G4WT3 > Accumulable registered as "h78"
+G4WT10 > Accumulable registered as "h126"
+G4WT3 > Accumulable registered as "h79"
+G4WT10 > Accumulable registered as "h127"
+G4WT3 > Accumulable registered as "h80"
+G4WT10 > Accumulable registered as "h128"
+G4WT3 > Accumulable registered as "h81"
+G4WT10 > Accumulable registered as "h129"
+G4WT3 > Accumulable registered as "h82"
+G4WT10 > Accumulable registered as "h130"
+G4WT3 > Accumulable registered as "h83"
+G4WT10 > Accumulable registered as "h131"
+G4WT3 > Accumulable registered as "h84"
+G4WT10 > Accumulable registered as "h132"
+G4WT3 > Accumulable registered as "h85"
+G4WT7 > Accumulable registered as "any"
+G4WT10 > Accumulable registered as "h133"
+G4WT10 > Accumulable registered as "h134"
+G4WT7 > Accumulable registered as "w0"
+G4WT10 > Accumulable registered as "h135"
+G4WT7 > Accumulable registered as "h0"
+G4WT10 > Accumulable registered as "h136"
+G4WT7 > Accumulable registered as "h1"
+G4WT10 > Accumulable registered as "h137"
+G4WT7 > Accumulable registered as "h2"
+G4WT10 > Accumulable registered as "h138"
+G4WT7 > Accumulable registered as "h3"
+G4WT7 > Accumulable registered as "h4"
+G4WT7 > Accumulable registered as "h5"
+G4WT7 > Accumulable registered as "h6"
+G4WT10 > Accumulable registered as "h139"
+G4WT3 > Accumulable registered as "h86"
+G4WT10 > Accumulable registered as "h140"
+G4WT3 > Accumulable registered as "h87"
+G4WT3 > Accumulable registered as "h88"
+G4WT10 > Accumulable registered as "h141"
+G4WT3 > Accumulable registered as "h89"
+G4WT3 > Accumulable registered as "h90"
+G4WT10 > Accumulable registered as "h142"
+G4WT3 > Accumulable registered as "h91"
+G4WT10 > Accumulable registered as "h143"
+G4WT3 > Accumulable registered as "h92"
+G4WT10 > Accumulable registered as "h144"
+G4WT3 > Accumulable registered as "h93"
+G4WT10 > Accumulable registered as "h145"
+G4WT3 > Accumulable registered as "h94"
+G4WT7 > Accumulable registered as "h7"
+G4WT10 > Accumulable registered as "h146"
+G4WT3 > Accumulable registered as "h95"
+G4WT10 > Accumulable registered as "h147"
+G4WT7 > Accumulable registered as "h8"
+G4WT10 > Accumulable registered as "h148"
+G4WT3 > Accumulable registered as "h96"
+G4WT10 > Accumulable registered as "h149"
+G4WT3 > Accumulable registered as "h97"
+G4WT7 > Accumulable registered as "h9"
+G4WT10 > Accumulable registered as "h150"
+G4WT3 > Accumulable registered as "h98"
+G4WT7 > Accumulable registered as "h10"
+G4WT10 > Accumulable registered as "h151"
+G4WT3 > Accumulable registered as "h99"
+G4WT7 > Accumulable registered as "h11"
+G4WT10 > Accumulable registered as "h152"
+G4WT3 > Accumulable registered as "h100"
+G4WT7 > Accumulable registered as "h12"
+G4WT10 > Accumulable registered as "h153"
+G4WT3 > Accumulable registered as "h101"
+G4WT7 > Accumulable registered as "h13"
+G4WT10 > Accumulable registered as "h154"
+G4WT7 > Accumulable registered as "h14"
+G4WT3 > Accumulable registered as "h102"
+G4WT10 > Accumulable registered as "h155"
+G4WT7 > Accumulable registered as "h15"
+G4WT3 > Accumulable registered as "h103"
+G4WT7 > Accumulable registered as "h16"
+G4WT3 > Accumulable registered as "h104"
+G4WT7 > Accumulable registered as "h17"
+G4WT3 > Accumulable registered as "h105"
+G4WT7 > Accumulable registered as "h18"
+G4WT3 > Accumulable registered as "h106"
+G4WT7 > Accumulable registered as "h19"
+G4WT3 > Accumulable registered as "h107"
+G4WT7 > Accumulable registered as "h20"
+G4WT3 > Accumulable registered as "h108"
+G4WT7 > Accumulable registered as "h21"
+G4WT3 > Accumulable registered as "h109"
+G4WT7 > Accumulable registered as "h22"
+G4WT3 > Accumulable registered as "h110"
+G4WT8 > Accumulable registered as "any"
+G4WT7 > Accumulable registered as "h23"
+G4WT3 > Accumulable registered as "h111"
+G4WT8 > Accumulable registered as "w0"
+G4WT7 > Accumulable registered as "h24"
+G4WT3 > Accumulable registered as "h112"
+G4WT8 > Accumulable registered as "h0"
+G4WT7 > Accumulable registered as "h25"
+G4WT3 > Accumulable registered as "h113"
+G4WT8 > Accumulable registered as "h1"
+G4WT7 > Accumulable registered as "h26"
+G4WT3 > Accumulable registered as "h114"
+G4WT8 > Accumulable registered as "h2"
+G4WT5 > Accumulable registered as "any"
+G4WT7 > Accumulable registered as "h27"
+G4WT5 > Accumulable registered as "w0"
+G4WT8 > Accumulable registered as "h3"
+G4WT3 > Accumulable registered as "h115"
+G4WT5 > Accumulable registered as "h0"
+G4WT7 > Accumulable registered as "h28"
+G4WT8 > Accumulable registered as "h4"
+G4WT3 > Accumulable registered as "h116"
+G4WT5 > Accumulable registered as "h1"
+G4WT7 > Accumulable registered as "h29"
+G4WT8 > Accumulable registered as "h5"
+G4WT3 > Accumulable registered as "h117"
+G4WT5 > Accumulable registered as "h2"
+G4WT7 > Accumulable registered as "h30"
+G4WT3 > Accumulable registered as "h118"
+G4WT8 > Accumulable registered as "h6"
+G4WT7 > Accumulable registered as "h31"
+G4WT3 > Accumulable registered as "h119"
+G4WT5 > Accumulable registered as "h3"
+G4WT7 > Accumulable registered as "h32"
+G4WT8 > Accumulable registered as "h7"
+G4WT3 > Accumulable registered as "h120"
+G4WT5 > Accumulable registered as "h4"
+G4WT7 > Accumulable registered as "h33"
+G4WT8 > Accumulable registered as "h8"
+G4WT3 > Accumulable registered as "h121"
+G4WT5 > Accumulable registered as "h5"
+G4WT8 > Accumulable registered as "h9"
+G4WT3 > Accumulable registered as "h122"
+G4WT5 > Accumulable registered as "h6"
+G4WT7 > Accumulable registered as "h34"
+G4WT3 > Accumulable registered as "h123"
+G4WT5 > Accumulable registered as "h7"
+G4WT7 > Accumulable registered as "h35"
+G4WT8 > Accumulable registered as "h10"
+G4WT3 > Accumulable registered as "h124"
+G4WT5 > Accumulable registered as "h8"
+G4WT8 > Accumulable registered as "h11"
+G4WT7 > Accumulable registered as "h36"
+G4WT5 > Accumulable registered as "h9"
+G4WT3 > Accumulable registered as "h125"
+G4WT8 > Accumulable registered as "h12"
+G4WT7 > Accumulable registered as "h37"
+G4WT3 > Accumulable registered as "h126"
+G4WT8 > Accumulable registered as "h13"
+G4WT7 > Accumulable registered as "h38"
+G4WT3 > Accumulable registered as "h127"
+G4WT7 > Accumulable registered as "h39"
+G4WT8 > Accumulable registered as "h14"
+G4WT3 > Accumulable registered as "h128"
+G4WT8 > Accumulable registered as "h15"
+G4WT5 > Accumulable registered as "h10"
+G4WT7 > Accumulable registered as "h40"
+G4WT3 > Accumulable registered as "h129"
+G4WT5 > Accumulable registered as "h11"
+G4WT7 > Accumulable registered as "h41"
+G4WT5 > Accumulable registered as "h12"
+G4WT3 > Accumulable registered as "h130"
+G4WT7 > Accumulable registered as "h42"
+G4WT5 > Accumulable registered as "h13"
+G4WT3 > Accumulable registered as "h131"
+G4WT7 > Accumulable registered as "h43"
+G4WT5 > Accumulable registered as "h14"
+G4WT3 > Accumulable registered as "h132"
+G4WT7 > Accumulable registered as "h44"
+G4WT5 > Accumulable registered as "h15"
+G4WT3 > Accumulable registered as "h133"
+G4WT7 > Accumulable registered as "h45"
+G4WT5 > Accumulable registered as "h16"
+G4WT3 > Accumulable registered as "h134"
+G4WT7 > Accumulable registered as "h46"
+G4WT5 > Accumulable registered as "h17"
+G4WT3 > Accumulable registered as "h135"
+G4WT7 > Accumulable registered as "h47"
+G4WT5 > Accumulable registered as "h18"
+G4WT7 > Accumulable registered as "h48"
+G4WT3 > Accumulable registered as "h136"
+G4WT10 > Accumulable registered as "h156"
+G4WT5 > Accumulable registered as "h19"
+G4WT10 > Accumulable registered as "h157"
+G4WT5 > Accumulable registered as "h20"
+G4WT3 > Accumulable registered as "h137"
+G4WT5 > Accumulable registered as "h21"
+G4WT10 > Accumulable registered as "h158"
+G4WT7 > Accumulable registered as "h49"
+G4WT3 > Accumulable registered as "h138"
+G4WT5 > Accumulable registered as "h22"
+G4WT10 > Accumulable registered as "h159"
+G4WT7 > Accumulable registered as "h50"
+G4WT3 > Accumulable registered as "h139"
+G4WT5 > Accumulable registered as "h23"
+G4WT3 > Accumulable registered as "h140"
+G4WT7 > Accumulable registered as "h51"
+G4WT10 > Accumulable registered as "h160"
+G4WT7 > Accumulable registered as "h52"
+G4WT5 > Accumulable registered as "h24"
+G4WT10 > Accumulable registered as "h161"
+G4WT7 > Accumulable registered as "h53"
+G4WT3 > Accumulable registered as "h141"
+G4WT5 > Accumulable registered as "h25"
+G4WT10 > Accumulable registered as "h162"
+G4WT5 > Accumulable registered as "h26"
+G4WT7 > Accumulable registered as "h54"
+G4WT3 > Accumulable registered as "h142"
+G4WT10 > Accumulable registered as "h163"
+G4WT5 > Accumulable registered as "h27"
+G4WT3 > Accumulable registered as "h143"
+G4WT10 > Accumulable registered as "h164"
+G4WT3 > Accumulable registered as "h144"
+G4WT5 > Accumulable registered as "h28"
+G4WT10 > Accumulable registered as "h165"
+G4WT7 > Accumulable registered as "h55"
+G4WT3 > Accumulable registered as "h145"
+G4WT5 > Accumulable registered as "h29"
+G4WT10 > Accumulable registered as "h166"
+G4WT7 > Accumulable registered as "h56"
+G4WT3 > Accumulable registered as "h146"
+G4WT7 > Accumulable registered as "h57"
+G4WT5 > Accumulable registered as "h30"
+G4WT3 > Accumulable registered as "h147"
+G4WT10 > Accumulable registered as "h167"
+G4WT7 > Accumulable registered as "h58"
+G4WT10 > Accumulable registered as "h168"
+G4WT5 > Accumulable registered as "h31"
+G4WT7 > Accumulable registered as "h59"
+G4WT3 > Accumulable registered as "h148"
+G4WT7 > Accumulable registered as "h60"
+G4WT5 > Accumulable registered as "h32"
+G4WT10 > Accumulable registered as "h169"
+G4WT7 > Accumulable registered as "h61"
+G4WT5 > Accumulable registered as "h33"
+G4WT3 > Accumulable registered as "h149"
+G4WT10 > Accumulable registered as "h170"
+G4WT7 > Accumulable registered as "h62"
+G4WT3 > Accumulable registered as "h150"
+G4WT10 > Accumulable registered as "h171"
+G4WT7 > Accumulable registered as "h63"
+G4WT5 > Accumulable registered as "h34"
+G4WT3 > Accumulable registered as "h151"
+G4WT5 > Accumulable registered as "h35"
+G4WT7 > Accumulable registered as "h64"
+G4WT10 > Accumulable registered as "h172"
+G4WT3 > Accumulable registered as "h152"
+G4WT5 > Accumulable registered as "h36"
+G4WT3 > Accumulable registered as "h153"
+G4WT5 > Accumulable registered as "h37"
+G4WT7 > Accumulable registered as "h65"
+G4WT3 > Accumulable registered as "h154"
+G4WT5 > Accumulable registered as "h38"
+G4WT7 > Accumulable registered as "h66"
+G4WT10 > Accumulable registered as "h173"
+G4WT3 > Accumulable registered as "h155"
+G4WT5 > Accumulable registered as "h39"
+G4WT7 > Accumulable registered as "h67"
+G4WT10 > Accumulable registered as "h174"
+G4WT3 > Accumulable registered as "h156"
+G4WT5 > Accumulable registered as "h40"
+G4WT10 > Accumulable registered as "h175"
+G4WT7 > Accumulable registered as "h68"
+G4WT5 > Accumulable registered as "h41"
+G4WT10 > Accumulable registered as "h176"
+G4WT7 > Accumulable registered as "h69"
+G4WT5 > Accumulable registered as "h42"
+G4WT10 > Accumulable registered as "h177"
+G4WT9 > Accumulable registered as "any"
+G4WT7 > Accumulable registered as "h70"
+G4WT10 > Accumulable registered as "h178"
+G4WT9 > Accumulable registered as "w0"
+G4WT3 > Accumulable registered as "h157"
+G4WT9 > Accumulable registered as "h0"
+G4WT5 > Accumulable registered as "h43"
+G4WT10 > Accumulable registered as "h179"
+G4WT8 > Accumulable registered as "h16"
+G4WT5 > Accumulable registered as "h44"
+G4WT10 > Accumulable registered as "h180"
+G4WT3 > Accumulable registered as "h158"
+G4WT5 > Accumulable registered as "h45"
+G4WT9 > Accumulable registered as "h1"
+G4WT3 > Accumulable registered as "h159"
+G4WT5 > Accumulable registered as "h46"
+G4WT9 > Accumulable registered as "h2"
+G4WT10 > Accumulable registered as "h181"
+G4WT8 > Accumulable registered as "h17"
+G4WT10 > Accumulable registered as "h182"
+G4WT3 > Accumulable registered as "h160"
+G4WT5 > Accumulable registered as "h47"
+G4WT9 > Accumulable registered as "h3"
+G4WT5 > Accumulable registered as "h48"
+G4WT7 > Accumulable registered as "h71"
+G4WT10 > Accumulable registered as "h183"
+G4WT5 > Accumulable registered as "h49"
+G4WT9 > Accumulable registered as "h4"
+G4WT3 > Accumulable registered as "h161"
+G4WT5 > Accumulable registered as "h50"
+G4WT8 > Accumulable registered as "h18"
+G4WT10 > Accumulable registered as "h184"
+G4WT9 > Accumulable registered as "h5"
+G4WT7 > Accumulable registered as "h72"
+G4WT3 > Accumulable registered as "h162"
+G4WT10 > Accumulable registered as "h185"
+G4WT5 > Accumulable registered as "h51"
+G4WT7 > Accumulable registered as "h73"
+G4WT9 > Accumulable registered as "h6"
+G4WT8 > Accumulable registered as "h19"
+G4WT3 > Accumulable registered as "h163"
+G4WT5 > Accumulable registered as "h52"
+G4WT9 > Accumulable registered as "h7"
+G4WT3 > Accumulable registered as "h164"
+G4WT8 > Accumulable registered as "h20"
+G4WT10 > Accumulable registered as "h186"
+G4WT3 > Accumulable registered as "h165"
+G4WT5 > Accumulable registered as "h53"
+G4WT7 > Accumulable registered as "h74"
+G4WT5 > Accumulable registered as "h54"
+G4WT8 > Accumulable registered as "h21"
+G4WT10 > Accumulable registered as "h187"
+G4WT8 > Accumulable registered as "h22"
+G4WT3 > Accumulable registered as "h166"
+G4WT8 > Accumulable registered as "h23"
+G4WT5 > Accumulable registered as "h55"
+G4WT10 > Accumulable registered as "h188"
+G4WT3 > Accumulable registered as "h167"
+G4WT7 > Accumulable registered as "h75"
+G4WT5 > Accumulable registered as "h56"
+G4WT7 > Accumulable registered as "h76"
+G4WT10 > Accumulable registered as "h189"
+G4WT3 > Accumulable registered as "h168"
+G4WT8 > Accumulable registered as "h24"
+G4WT2 > Accumulable registered as "any"
+G4WT5 > Accumulable registered as "h57"
+G4WT5 > Accumulable registered as "h58"
+G4WT9 > Accumulable registered as "h8"
+G4WT5 > Accumulable registered as "h59"
+G4WT10 > Accumulable registered as "h190"
+G4WT5 > Accumulable registered as "h60"
+G4WT9 > Accumulable registered as "h9"
+G4WT2 > Accumulable registered as "w0"
+G4WT5 > Accumulable registered as "h61"
+G4WT9 > Accumulable registered as "h10"
+G4WT10 > Accumulable registered as "h191"
+G4WT9 > Accumulable registered as "h11"
+G4WT7 > Accumulable registered as "h77"
+G4WT10 > Accumulable registered as "h192"
+G4WT8 > Accumulable registered as "h25"
+G4WT5 > Accumulable registered as "h62"
+G4WT8 > Accumulable registered as "h26"
+G4WT9 > Accumulable registered as "h12"
+G4WT5 > Accumulable registered as "h63"
+G4WT7 > Accumulable registered as "h78"
+G4WT10 > Accumulable registered as "h193"
+G4WT2 > Accumulable registered as "h0"
+G4WT3 > Accumulable registered as "h169"
+G4WT10 > Accumulable registered as "h194"
+G4WT2 > Accumulable registered as "h1"
+G4WT5 > Accumulable registered as "h64"
+G4WT10 > Accumulable registered as "h195"
+G4WT8 > Accumulable registered as "h27"
+G4WT10 > Accumulable registered as "h196"
+G4WT7 > Accumulable registered as "h79"
+G4WT3 > Accumulable registered as "h170"
+G4WT8 > Accumulable registered as "h28"
+G4WT5 > Accumulable registered as "h65"
+G4WT7 > Accumulable registered as "h80"
+G4WT3 > Accumulable registered as "h171"
+G4WT2 > Accumulable registered as "h2"
+G4WT7 > Accumulable registered as "h81"
+G4WT9 > Accumulable registered as "h13"
+G4WT3 > Accumulable registered as "h172"
+G4WT9 > Accumulable registered as "h14"
+G4WT8 > Accumulable registered as "h29"
+G4WT9 > Accumulable registered as "h15"
+G4WT5 > Accumulable registered as "h66"
+G4WT10 > Accumulable registered as "h197"
+G4WT3 > Accumulable registered as "h173"
+G4WT10 > Accumulable registered as "h198"
+G4WT7 > Accumulable registered as "h82"
+G4WT9 > Accumulable registered as "h16"
+G4WT2 > Accumulable registered as "h3"
+G4WT5 > Accumulable registered as "h67"
+G4WT2 > Accumulable registered as "h4"
+G4WT8 > Accumulable registered as "h30"
+G4WT2 > Accumulable registered as "h5"
+G4WT3 > Accumulable registered as "h174"
+G4WT11 > Accumulable registered as "any"
+G4WT7 > Accumulable registered as "h83"
+G4WT3 > Accumulable registered as "h175"
+G4WT9 > Accumulable registered as "h17"
+G4WT11 > Accumulable registered as "w0"
+G4WT5 > Accumulable registered as "h68"
+G4WT2 > Accumulable registered as "h6"
+G4WT11 > Accumulable registered as "h0"
+G4WT6 > Accumulable registered as "any"
+G4WT3 > Accumulable registered as "h176"
+G4WT6 > Accumulable registered as "w0"
+G4WT7 > Accumulable registered as "h84"
+G4WT9 > Accumulable registered as "h18"
+G4WT3 > Accumulable registered as "h177"
+G4WT5 > Accumulable registered as "h69"
+G4WT7 > Accumulable registered as "h85"
+G4WT10 > Accumulable registered as "h199"
+G4WT11 > Accumulable registered as "h1"
+G4WT6 > Accumulable registered as "h0"
+G4WT8 > Accumulable registered as "h31"
+G4WT6 > Accumulable registered as "h1"
+G4WT3 > Accumulable registered as "h178"
+G4WT2 > Accumulable registered as "h7"
+G4WT8 > Accumulable registered as "h32"
+G4WT7 > Accumulable registered as "h86"
+G4WT9 > Accumulable registered as "h19"
+G4WT3 > Accumulable registered as "h179"
+G4WT2 > Accumulable registered as "h8"
+G4WT7 > Accumulable registered as "h87"
+G4WT3 > Accumulable registered as "h180"
+G4WT2 > Accumulable registered as "h9"
+G4WT8 > Accumulable registered as "h33"
+G4WT7 > Accumulable registered as "h88"
+G4WT3 > Accumulable registered as "h181"
+G4WT5 > Accumulable registered as "h70"
+G4WT7 > Accumulable registered as "h89"
+G4WT3 > Accumulable registered as "h182"
+G4WT10 > Accumulable registered as "h200"
+G4WT11 > Accumulable registered as "h2"
+G4WT5 > Accumulable registered as "h71"
+G4WT3 > Accumulable registered as "h183"
+G4WT8 > Accumulable registered as "h34"
+G4WT2 > Accumulable registered as "h10"
+G4WT3 > Accumulable registered as "h184"
+G4WT8 > Accumulable registered as "h35"
+G4WT5 > Accumulable registered as "h72"
+G4WT8 > Accumulable registered as "h36"
+G4WT11 > Accumulable registered as "h3"
+G4WT9 > Accumulable registered as "h20"
+G4WT6 > Accumulable registered as "h2"
+G4WT11 > Accumulable registered as "h4"
+G4WT3 > Accumulable registered as "h185"
+G4WT2 > Accumulable registered as "h11"
+G4WT8 > Accumulable registered as "h37"
+G4WT5 > Accumulable registered as "h73"
+G4WT6 > Accumulable registered as "h3"
+G4WT3 > Accumulable registered as "h186"
+G4WT2 > Accumulable registered as "h12"
+G4WT7 > Accumulable registered as "h90"
+G4WT3 > Accumulable registered as "h187"
+G4WT11 > Accumulable registered as "h5"
+G4WT8 > Accumulable registered as "h38"
+G4WT7 > Accumulable registered as "h91"
+G4WT6 > Accumulable registered as "h4"
+G4WT5 > Accumulable registered as "h74"
+G4WT2 > Accumulable registered as "h13"
+G4WT6 > Accumulable registered as "h5"
+G4WT5 > Accumulable registered as "h75"
+G4WT11 > Accumulable registered as "h6"
+G4WT8 > Accumulable registered as "h39"
+G4WT7 > Accumulable registered as "h92"
+G4WT11 > Accumulable registered as "h7"
+G4WT9 > Accumulable registered as "h21"
+G4WT2 > Accumulable registered as "h14"
+G4WT9 > Accumulable registered as "h22"
+G4WT2 > Accumulable registered as "h15"
+G4WT3 > Accumulable registered as "h188"
+G4WT2 > Accumulable registered as "h16"
+G4WT11 > Accumulable registered as "h8"
+G4WT6 > Accumulable registered as "h6"
+G4WT7 > Accumulable registered as "h93"
+G4WT11 > Accumulable registered as "h9"
+G4WT9 > Accumulable registered as "h23"
+G4WT8 > Accumulable registered as "h40"
+G4WT3 > Accumulable registered as "h189"
+G4WT9 > Accumulable registered as "h24"
+G4WT7 > Accumulable registered as "h94"
+G4WT8 > Accumulable registered as "h41"
+G4WT6 > Accumulable registered as "h7"
+G4WT4 > Accumulable registered as "any"
+G4WT6 > Accumulable registered as "h8"
+G4WT4 > Accumulable registered as "w0"
+G4WT6 > Accumulable registered as "h9"
+G4WT11 > Accumulable registered as "h10"
+G4WT9 > Accumulable registered as "h25"
+G4WT11 > Accumulable registered as "h11"
+G4WT7 > Accumulable registered as "h95"
+G4WT9 > Accumulable registered as "h26"
+G4WT11 > Accumulable registered as "h12"
+G4WT5 > Accumulable registered as "h76"
+G4WT4 > Accumulable registered as "h0"
+G4WT3 > Accumulable registered as "h190"
+G4WT6 > Accumulable registered as "h10"
+G4WT3 > Accumulable registered as "h191"
+G4WT8 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h17"
+G4WT8 > Accumulable registered as "h43"
+G4WT2 > Accumulable registered as "h18"
+G4WT7 > Accumulable registered as "h96"
+G4WT5 > Accumulable registered as "h77"
+G4WT4 > Accumulable registered as "h1"
+G4WT3 > Accumulable registered as "h192"
+G4WT6 > Accumulable registered as "h11"
+G4WT9 > Accumulable registered as "h27"
+G4WT11 > Accumulable registered as "h13"
+G4WT8 > Accumulable registered as "h44"
+G4WT2 > Accumulable registered as "h19"
+G4WT7 > Accumulable registered as "h97"
+G4WT5 > Accumulable registered as "h78"
+G4WT7 > Accumulable registered as "h98"
+G4WT4 > Accumulable registered as "h2"
+G4WT3 > Accumulable registered as "h193"
+G4WT4 > Accumulable registered as "h3"
+G4WT6 > Accumulable registered as "h12"
+G4WT9 > Accumulable registered as "h28"
+G4WT4 > Accumulable registered as "h4"
+G4WT8 > Accumulable registered as "h45"
+G4WT9 > Accumulable registered as "h29"
+G4WT5 > Accumulable registered as "h79"
+G4WT8 > Accumulable registered as "h46"
+G4WT3 > Accumulable registered as "h194"
+G4WT11 > Accumulable registered as "h14"
+G4WT6 > Accumulable registered as "h13"
+G4WT11 > Accumulable registered as "h15"
+G4WT6 > Accumulable registered as "h14"
+G4WT7 > Accumulable registered as "h99"
+G4WT9 > Accumulable registered as "h30"
+G4WT5 > Accumulable registered as "h80"
+G4WT5 > Accumulable registered as "h81"
+G4WT8 > Accumulable registered as "h47"
+G4WT3 > Accumulable registered as "h195"
+G4WT2 > Accumulable registered as "h20"
+G4WT4 > Accumulable registered as "h5"
+G4WT11 > Accumulable registered as "h16"
+G4WT4 > Accumulable registered as "h6"
+G4WT6 > Accumulable registered as "h15"
+G4WT7 > Accumulable registered as "h100"
+G4WT9 > Accumulable registered as "h31"
+G4WT5 > Accumulable registered as "h82"
+G4WT9 > Accumulable registered as "h32"
+G4WT8 > Accumulable registered as "h48"
+G4WT5 > Accumulable registered as "h83"
+G4WT2 > Accumulable registered as "h21"
+G4WT8 > Accumulable registered as "h49"
+G4WT4 > Accumulable registered as "h7"
+G4WT8 > Accumulable registered as "h50"
+G4WT7 > Accumulable registered as "h101"
+G4WT3 > Accumulable registered as "h196"
+G4WT9 > Accumulable registered as "h33"
+G4WT7 > Accumulable registered as "h102"
+G4WT5 > Accumulable registered as "h84"
+G4WT9 > Accumulable registered as "h34"
+G4WT5 > Accumulable registered as "h85"
+G4WT2 > Accumulable registered as "h22"
+G4WT5 > Accumulable registered as "h86"
+G4WT8 > Accumulable registered as "h51"
+G4WT2 > Accumulable registered as "h23"
+G4WT7 > Accumulable registered as "h103"
+G4WT0 > Accumulable registered as "any"
+G4WT6 > Accumulable registered as "h16"
+G4WT7 > Accumulable registered as "h104"
+G4WT4 > Accumulable registered as "h8"
+G4WT4 > Accumulable registered as "h9"
+G4WT3 > Accumulable registered as "h197"
+G4WT8 > Accumulable registered as "h52"
+G4WT3 > Accumulable registered as "h198"
+G4WT8 > Accumulable registered as "h53"
+G4WT9 > Accumulable registered as "h35"
+G4WT0 > Accumulable registered as "w0"
+G4WT5 > Accumulable registered as "h87"
+G4WT0 > Accumulable registered as "h0"
+G4WT6 > Accumulable registered as "h17"
+G4WT0 > Accumulable registered as "h1"
+G4WT4 > Accumulable registered as "h10"
+G4WT6 > Accumulable registered as "h18"
+G4WT3 > Accumulable registered as "h199"
+G4WT8 > Accumulable registered as "h54"
+G4WT7 > Accumulable registered as "h105"
+G4WT3 > Accumulable registered as "h200"
+G4WT2 > Accumulable registered as "h24"
+G4WT0 > Accumulable registered as "h2"
+G4WT0 > Accumulable registered as "h3"
+G4WT4 > Accumulable registered as "h11"
+G4WT6 > Accumulable registered as "h19"
+G4WT9 > Accumulable registered as "h36"
+G4WT6 > Accumulable registered as "h20"
+G4WT5 > Accumulable registered as "h88"
+G4WT8 > Accumulable registered as "h55"
+G4WT6 > Accumulable registered as "h21"
+G4WT2 > Accumulable registered as "h25"
+G4WT4 > Accumulable registered as "h12"
+G4WT2 > Accumulable registered as "h26"
+G4WT4 > Accumulable registered as "h13"
+G4WT2 > Accumulable registered as "h27"
+G4WT7 > Accumulable registered as "h106"
+G4WT2 > Accumulable registered as "h28"
+G4WT0 > Accumulable registered as "h4"
+G4WT2 > Accumulable registered as "h29"
+G4WT8 > Accumulable registered as "h56"
+G4WT9 > Accumulable registered as "h37"
+G4WT4 > Accumulable registered as "h14"
+G4WT5 > Accumulable registered as "h89"
+G4WT9 > Accumulable registered as "h38"
+G4WT4 > Accumulable registered as "h15"
+G4WT0 > Accumulable registered as "h5"
+G4WT9 > Accumulable registered as "h39"
+G4WT4 > Accumulable registered as "h16"
+G4WT7 > Accumulable registered as "h107"
+G4WT9 > Accumulable registered as "h40"
+G4WT8 > Accumulable registered as "h57"
+G4WT7 > Accumulable registered as "h108"
+G4WT2 > Accumulable registered as "h30"
+G4WT0 > Accumulable registered as "h6"
+G4WT8 > Accumulable registered as "h58"
+G4WT4 > Accumulable registered as "h17"
+G4WT9 > Accumulable registered as "h41"
+G4WT5 > Accumulable registered as "h90"
+G4WT7 > Accumulable registered as "h109"
+G4WT9 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h31"
+G4WT7 > Accumulable registered as "h110"
+G4WT2 > Accumulable registered as "h32"
+G4WT11 > Accumulable registered as "h17"
+G4WT2 > Accumulable registered as "h33"
+G4WT5 > Accumulable registered as "h91"
+G4WT0 > Accumulable registered as "h7"
+G4WT11 > Accumulable registered as "h18"
+G4WT8 > Accumulable registered as "h59"
+G4WT0 > Accumulable registered as "h8"
+G4WT8 > Accumulable registered as "h60"
+G4WT9 > Accumulable registered as "h43"
+G4WT2 > Accumulable registered as "h34"
+G4WT5 > Accumulable registered as "h92"
+G4WT2 > Accumulable registered as "h35"
+G4WT11 > Accumulable registered as "h19"
+G4WT7 > Accumulable registered as "h111"
+G4WT4 > Accumulable registered as "h18"
+G4WT7 > Accumulable registered as "h112"
+G4WT0 > Accumulable registered as "h9"
+G4WT8 > Accumulable registered as "h61"
+G4WT9 > Accumulable registered as "h44"
+G4WT5 > Accumulable registered as "h93"
+G4WT8 > Accumulable registered as "h62"
+G4WT11 > Accumulable registered as "h20"
+G4WT1 > Accumulable registered as "any"
+G4WT8 > Accumulable registered as "h63"
+G4WT9 > Accumulable registered as "h45"
+G4WT11 > Accumulable registered as "h21"
+G4WT1 > Accumulable registered as "w0"
+G4WT4 > Accumulable registered as "h19"
+G4WT9 > Accumulable registered as "h46"
+G4WT5 > Accumulable registered as "h94"
+G4WT1 > Accumulable registered as "h0"
+G4WT4 > Accumulable registered as "h20"
+G4WT5 > Accumulable registered as "h95"
+G4WT1 > Accumulable registered as "h1"
+G4WT11 > Accumulable registered as "h22"
+G4WT5 > Accumulable registered as "h96"
+G4WT0 > Accumulable registered as "h10"
+G4WT2 > Accumulable registered as "h36"
+G4WT8 > Accumulable registered as "h64"
+G4WT6 > Accumulable registered as "h22"
+G4WT8 > Accumulable registered as "h65"
+G4WT9 > Accumulable registered as "h47"
+G4WT6 > Accumulable registered as "h23"
+G4WT11 > Accumulable registered as "h23"
+G4WT9 > Accumulable registered as "h48"
+G4WT1 > Accumulable registered as "h2"
+G4WT11 > Accumulable registered as "h24"
+G4WT2 > Accumulable registered as "h37"
+G4WT4 > Accumulable registered as "h21"
+G4WT2 > Accumulable registered as "h38"
+G4WT4 > Accumulable registered as "h22"
+G4WT5 > Accumulable registered as "h97"
+G4WT4 > Accumulable registered as "h23"
+G4WT0 > Accumulable registered as "h11"
+G4WT4 > Accumulable registered as "h24"
+G4WT1 > Accumulable registered as "h3"
+G4WT0 > Accumulable registered as "h12"
+G4WT1 > Accumulable registered as "h4"
+G4WT0 > Accumulable registered as "h13"
+G4WT1 > Accumulable registered as "h5"
+G4WT11 > Accumulable registered as "h25"
+G4WT7 > Accumulable registered as "h113"
+G4WT5 > Accumulable registered as "h98"
+G4WT11 > Accumulable registered as "h26"
+G4WT8 > Accumulable registered as "h66"
+G4WT11 > Accumulable registered as "h27"
+G4WT6 > Accumulable registered as "h24"
+G4WT11 > Accumulable registered as "h28"
+G4WT0 > Accumulable registered as "h14"
+G4WT6 > Accumulable registered as "h25"
+G4WT4 > Accumulable registered as "h25"
+G4WT6 > Accumulable registered as "h26"
+G4WT2 > Accumulable registered as "h39"
+G4WT4 > Accumulable registered as "h26"
+G4WT9 > Accumulable registered as "h49"
+G4WT8 > Accumulable registered as "h67"
+G4WT9 > Accumulable registered as "h50"
+G4WT11 > Accumulable registered as "h29"
+G4WT0 > Accumulable registered as "h15"
+G4WT7 > Accumulable registered as "h114"
+G4WT5 > Accumulable registered as "h99"
+G4WT6 > Accumulable registered as "h27"
+G4WT2 > Accumulable registered as "h40"
+G4WT1 > Accumulable registered as "h6"
+G4WT8 > Accumulable registered as "h68"
+G4WT9 > Accumulable registered as "h51"
+G4WT11 > Accumulable registered as "h30"
+G4WT0 > Accumulable registered as "h16"
+G4WT11 > Accumulable registered as "h31"
+G4WT0 > Accumulable registered as "h17"
+G4WT11 > Accumulable registered as "h32"
+G4WT0 > Accumulable registered as "h18"
+G4WT11 > Accumulable registered as "h33"
+G4WT2 > Accumulable registered as "h41"
+G4WT1 > Accumulable registered as "h7"
+G4WT2 > Accumulable registered as "h42"
+G4WT7 > Accumulable registered as "h115"
+G4WT5 > Accumulable registered as "h100"
+G4WT7 > Accumulable registered as "h116"
+G4WT4 > Accumulable registered as "h27"
+G4WT0 > Accumulable registered as "h19"
+G4WT4 > Accumulable registered as "h28"
+G4WT11 > Accumulable registered as "h34"
+G4WT0 > Accumulable registered as "h20"
+G4WT4 > Accumulable registered as "h29"
+G4WT9 > Accumulable registered as "h52"
+G4WT1 > Accumulable registered as "h8"
+G4WT6 > Accumulable registered as "h28"
+G4WT5 > Accumulable registered as "h101"
+G4WT7 > Accumulable registered as "h117"
+G4WT6 > Accumulable registered as "h29"
+G4WT2 > Accumulable registered as "h43"
+G4WT0 > Accumulable registered as "h21"
+G4WT11 > Accumulable registered as "h35"
+G4WT4 > Accumulable registered as "h30"
+G4WT9 > Accumulable registered as "h53"
+G4WT11 > Accumulable registered as "h36"
+G4WT4 > Accumulable registered as "h31"
+G4WT11 > Accumulable registered as "h37"
+G4WT7 > Accumulable registered as "h118"
+G4WT11 > Accumulable registered as "h38"
+G4WT2 > Accumulable registered as "h44"
+G4WT11 > Accumulable registered as "h39"
+G4WT1 > Accumulable registered as "h9"
+G4WT11 > Accumulable registered as "h40"
+G4WT8 > Accumulable registered as "h69"
+G4WT9 > Accumulable registered as "h54"
+G4WT6 > Accumulable registered as "h30"
+G4WT8 > Accumulable registered as "h70"
+G4WT0 > Accumulable registered as "h22"
+G4WT2 > Accumulable registered as "h45"
+G4WT7 > Accumulable registered as "h119"
+G4WT5 > Accumulable registered as "h102"
+G4WT2 > Accumulable registered as "h46"
+G4WT11 > Accumulable registered as "h41"
+G4WT2 > Accumulable registered as "h47"
+G4WT9 > Accumulable registered as "h55"
+G4WT11 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h48"
+G4WT0 > Accumulable registered as "h23"
+G4WT11 > Accumulable registered as "h43"
+G4WT2 > Accumulable registered as "h49"
+G4WT4 > Accumulable registered as "h32"
+G4WT2 > Accumulable registered as "h50"
+G4WT6 > Accumulable registered as "h31"
+G4WT8 > Accumulable registered as "h71"
+G4WT9 > Accumulable registered as "h56"
+G4WT1 > Accumulable registered as "h10"
+G4WT8 > Accumulable registered as "h72"
+G4WT9 > Accumulable registered as "h57"
+G4WT1 > Accumulable registered as "h11"
+G4WT8 > Accumulable registered as "h73"
+G4WT4 > Accumulable registered as "h33"
+G4WT1 > Accumulable registered as "h12"
+G4WT6 > Accumulable registered as "h32"
+G4WT11 > Accumulable registered as "h44"
+G4WT5 > Accumulable registered as "h103"
+G4WT0 > Accumulable registered as "h24"
+G4WT5 > Accumulable registered as "h104"
+G4WT9 > Accumulable registered as "h58"
+G4WT5 > Accumulable registered as "h105"
+G4WT0 > Accumulable registered as "h25"
+G4WT5 > Accumulable registered as "h106"
+G4WT1 > Accumulable registered as "h13"
+G4WT4 > Accumulable registered as "h34"
+G4WT6 > Accumulable registered as "h33"
+G4WT1 > Accumulable registered as "h14"
+G4WT2 > Accumulable registered as "h51"
+G4WT6 > Accumulable registered as "h34"
+G4WT2 > Accumulable registered as "h52"
+G4WT6 > Accumulable registered as "h35"
+G4WT2 > Accumulable registered as "h53"
+G4WT5 > Accumulable registered as "h107"
+G4WT11 > Accumulable registered as "h45"
+G4WT4 > Accumulable registered as "h35"
+G4WT8 > Accumulable registered as "h74"
+G4WT1 > Accumulable registered as "h15"
+G4WT9 > Accumulable registered as "h59"
+G4WT8 > Accumulable registered as "h75"
+G4WT7 > Accumulable registered as "h120"
+G4WT6 > Accumulable registered as "h36"
+G4WT2 > Accumulable registered as "h54"
+G4WT5 > Accumulable registered as "h108"
+G4WT6 > Accumulable registered as "h37"
+G4WT4 > Accumulable registered as "h36"
+G4WT5 > Accumulable registered as "h109"
+G4WT6 > Accumulable registered as "h38"
+G4WT9 > Accumulable registered as "h60"
+G4WT5 > Accumulable registered as "h110"
+G4WT4 > Accumulable registered as "h37"
+G4WT11 > Accumulable registered as "h46"
+G4WT4 > Accumulable registered as "h38"
+G4WT11 > Accumulable registered as "h47"
+G4WT4 > Accumulable registered as "h39"
+G4WT11 > Accumulable registered as "h48"
+G4WT4 > Accumulable registered as "h40"
+G4WT11 > Accumulable registered as "h49"
+G4WT9 > Accumulable registered as "h61"
+G4WT5 > Accumulable registered as "h111"
+G4WT2 > Accumulable registered as "h55"
+G4WT9 > Accumulable registered as "h62"
+G4WT0 > Accumulable registered as "h26"
+G4WT6 > Accumulable registered as "h39"
+G4WT7 > Accumulable registered as "h121"
+G4WT4 > Accumulable registered as "h41"
+G4WT11 > Accumulable registered as "h50"
+G4WT1 > Accumulable registered as "h16"
+G4WT5 > Accumulable registered as "h112"
+G4WT8 > Accumulable registered as "h76"
+G4WT9 > Accumulable registered as "h63"
+G4WT8 > Accumulable registered as "h77"
+G4WT2 > Accumulable registered as "h56"
+G4WT9 > Accumulable registered as "h64"
+G4WT8 > Accumulable registered as "h78"
+G4WT7 > Accumulable registered as "h122"
+G4WT9 > Accumulable registered as "h65"
+G4WT11 > Accumulable registered as "h51"
+G4WT5 > Accumulable registered as "h113"
+G4WT11 > Accumulable registered as "h52"
+G4WT0 > Accumulable registered as "h27"
+G4WT6 > Accumulable registered as "h40"
+G4WT2 > Accumulable registered as "h57"
+G4WT6 > Accumulable registered as "h41"
+G4WT2 > Accumulable registered as "h58"
+G4WT6 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h59"
+G4WT9 > Accumulable registered as "h66"
+G4WT5 > Accumulable registered as "h114"
+G4WT11 > Accumulable registered as "h53"
+G4WT5 > Accumulable registered as "h115"
+G4WT11 > Accumulable registered as "h54"
+G4WT1 > Accumulable registered as "h17"
+G4WT7 > Accumulable registered as "h123"
+G4WT6 > Accumulable registered as "h43"
+G4WT2 > Accumulable registered as "h60"
+G4WT9 > Accumulable registered as "h67"
+G4WT2 > Accumulable registered as "h61"
+G4WT0 > Accumulable registered as "h28"
+G4WT8 > Accumulable registered as "h79"
+G4WT5 > Accumulable registered as "h116"
+G4WT8 > Accumulable registered as "h80"
+G4WT11 > Accumulable registered as "h55"
+G4WT8 > Accumulable registered as "h81"
+G4WT7 > Accumulable registered as "h124"
+G4WT4 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h62"
+G4WT9 > Accumulable registered as "h68"
+G4WT0 > Accumulable registered as "h29"
+G4WT1 > Accumulable registered as "h18"
+G4WT5 > Accumulable registered as "h117"
+G4WT0 > Accumulable registered as "h30"
+G4WT11 > Accumulable registered as "h56"
+G4WT1 > Accumulable registered as "h19"
+G4WT0 > Accumulable registered as "h31"
+G4WT7 > Accumulable registered as "h125"
+G4WT11 > Accumulable registered as "h57"
+G4WT0 > Accumulable registered as "h32"
+G4WT6 > Accumulable registered as "h44"
+G4WT0 > Accumulable registered as "h33"
+G4WT5 > Accumulable registered as "h118"
+G4WT6 > Accumulable registered as "h45"
+G4WT2 > Accumulable registered as "h63"
+G4WT5 > Accumulable registered as "h119"
+G4WT9 > Accumulable registered as "h69"
+G4WT2 > Accumulable registered as "h64"
+G4WT5 > Accumulable registered as "h120"
+G4WT9 > Accumulable registered as "h70"
+G4WT8 > Accumulable registered as "h82"
+G4WT5 > Accumulable registered as "h121"
+G4WT9 > Accumulable registered as "h71"
+G4WT11 > Accumulable registered as "h58"
+G4WT4 > Accumulable registered as "h43"
+G4WT2 > Accumulable registered as "h65"
+G4WT4 > Accumulable registered as "h44"
+G4WT1 > Accumulable registered as "h20"
+G4WT0 > Accumulable registered as "h34"
+G4WT8 > Accumulable registered as "h83"
+G4WT6 > Accumulable registered as "h46"
+G4WT0 > Accumulable registered as "h35"
+G4WT7 > Accumulable registered as "h126"
+G4WT6 > Accumulable registered as "h47"
+G4WT2 > Accumulable registered as "h66"
+G4WT4 > Accumulable registered as "h45"
+G4WT1 > Accumulable registered as "h21"
+G4WT5 > Accumulable registered as "h122"
+G4WT8 > Accumulable registered as "h84"
+G4WT9 > Accumulable registered as "h72"
+G4WT0 > Accumulable registered as "h36"
+G4WT9 > Accumulable registered as "h73"
+G4WT11 > Accumulable registered as "h59"
+G4WT0 > Accumulable registered as "h37"
+G4WT7 > Accumulable registered as "h127"
+G4WT2 > Accumulable registered as "h67"
+G4WT4 > Accumulable registered as "h46"
+G4WT2 > Accumulable registered as "h68"
+G4WT4 > Accumulable registered as "h47"
+G4WT6 > Accumulable registered as "h48"
+G4WT9 > Accumulable registered as "h74"
+G4WT11 > Accumulable registered as "h60"
+G4WT9 > Accumulable registered as "h75"
+G4WT0 > Accumulable registered as "h38"
+G4WT9 > Accumulable registered as "h76"
+G4WT7 > Accumulable registered as "h128"
+G4WT0 > Accumulable registered as "h39"
+G4WT8 > Accumulable registered as "h85"
+G4WT2 > Accumulable registered as "h69"
+G4WT4 > Accumulable registered as "h48"
+G4WT8 > Accumulable registered as "h86"
+G4WT11 > Accumulable registered as "h61"
+G4WT8 > Accumulable registered as "h87"
+G4WT5 > Accumulable registered as "h123"
+G4WT11 > Accumulable registered as "h62"
+G4WT7 > Accumulable registered as "h129"
+G4WT5 > Accumulable registered as "h124"
+G4WT6 > Accumulable registered as "h49"
+G4WT5 > Accumulable registered as "h125"
+G4WT1 > Accumulable registered as "h22"
+G4WT9 > Accumulable registered as "h77"
+G4WT1 > Accumulable registered as "h23"
+G4WT8 > Accumulable registered as "h88"
+G4WT1 > Accumulable registered as "h24"
+G4WT11 > Accumulable registered as "h63"
+G4WT1 > Accumulable registered as "h25"
+G4WT7 > Accumulable registered as "h130"
+G4WT1 > Accumulable registered as "h26"
+G4WT5 > Accumulable registered as "h126"
+G4WT6 > Accumulable registered as "h50"
+G4WT5 > Accumulable registered as "h127"
+G4WT6 > Accumulable registered as "h51"
+G4WT2 > Accumulable registered as "h70"
+G4WT6 > Accumulable registered as "h52"
+G4WT4 > Accumulable registered as "h49"
+G4WT7 > Accumulable registered as "h131"
+G4WT1 > Accumulable registered as "h27"
+G4WT9 > Accumulable registered as "h78"
+G4WT0 > Accumulable registered as "h40"
+G4WT5 > Accumulable registered as "h128"
+G4WT8 > Accumulable registered as "h89"
+G4WT5 > Accumulable registered as "h129"
+G4WT6 > Accumulable registered as "h53"
+G4WT8 > Accumulable registered as "h90"
+G4WT2 > Accumulable registered as "h71"
+G4WT8 > Accumulable registered as "h91"
+G4WT7 > Accumulable registered as "h132"
+G4WT2 > Accumulable registered as "h72"
+G4WT9 > Accumulable registered as "h79"
+G4WT7 > Accumulable registered as "h133"
+G4WT11 > Accumulable registered as "h64"
+G4WT7 > Accumulable registered as "h134"
+G4WT4 > Accumulable registered as "h50"
+G4WT5 > Accumulable registered as "h130"
+G4WT4 > Accumulable registered as "h51"
+G4WT8 > Accumulable registered as "h92"
+G4WT0 > Accumulable registered as "h41"
+G4WT2 > Accumulable registered as "h73"
+G4WT6 > Accumulable registered as "h54"
+G4WT2 > Accumulable registered as "h74"
+G4WT1 > Accumulable registered as "h28"
+G4WT6 > Accumulable registered as "h55"
+G4WT7 > Accumulable registered as "h135"
+G4WT5 > Accumulable registered as "h131"
+G4WT7 > Accumulable registered as "h136"
+G4WT5 > Accumulable registered as "h132"
+G4WT9 > Accumulable registered as "h80"
+G4WT0 > Accumulable registered as "h42"
+G4WT7 > Accumulable registered as "h137"
+G4WT2 > Accumulable registered as "h75"
+G4WT0 > Accumulable registered as "h43"
+G4WT6 > Accumulable registered as "h56"
+G4WT2 > Accumulable registered as "h76"
+G4WT8 > Accumulable registered as "h93"
+G4WT5 > Accumulable registered as "h133"
+G4WT11 > Accumulable registered as "h65"
+G4WT5 > Accumulable registered as "h134"
+G4WT1 > Accumulable registered as "h29"
+G4WT5 > Accumulable registered as "h135"
+G4WT4 > Accumulable registered as "h52"
+G4WT6 > Accumulable registered as "h57"
+G4WT2 > Accumulable registered as "h77"
+G4WT6 > Accumulable registered as "h58"
+G4WT9 > Accumulable registered as "h81"
+G4WT2 > Accumulable registered as "h78"
+G4WT7 > Accumulable registered as "h138"
+G4WT9 > Accumulable registered as "h82"
+G4WT0 > Accumulable registered as "h44"
+G4WT5 > Accumulable registered as "h136"
+G4WT4 > Accumulable registered as "h53"
+G4WT8 > Accumulable registered as "h94"
+G4WT4 > Accumulable registered as "h54"
+G4WT6 > Accumulable registered as "h59"
+G4WT8 > Accumulable registered as "h95"
+G4WT2 > Accumulable registered as "h79"
+G4WT6 > Accumulable registered as "h60"
+G4WT7 > Accumulable registered as "h139"
+G4WT9 > Accumulable registered as "h83"
+G4WT0 > Accumulable registered as "h45"
+G4WT7 > Accumulable registered as "h140"
+G4WT11 > Accumulable registered as "h66"
+G4WT0 > Accumulable registered as "h46"
+G4WT1 > Accumulable registered as "h30"
+G4WT11 > Accumulable registered as "h67"
+G4WT2 > Accumulable registered as "h80"
+G4WT1 > Accumulable registered as "h31"
+G4WT11 > Accumulable registered as "h68"
+G4WT4 > Accumulable registered as "h55"
+G4WT11 > Accumulable registered as "h69"
+G4WT7 > Accumulable registered as "h141"
+G4WT8 > Accumulable registered as "h96"
+G4WT0 > Accumulable registered as "h47"
+G4WT6 > Accumulable registered as "h61"
+G4WT8 > Accumulable registered as "h97"
+G4WT0 > Accumulable registered as "h48"
+G4WT6 > Accumulable registered as "h62"
+G4WT1 > Accumulable registered as "h32"
+G4WT4 > Accumulable registered as "h56"
+G4WT11 > Accumulable registered as "h70"
+G4WT7 > Accumulable registered as "h142"
+G4WT4 > Accumulable registered as "h57"
+G4WT2 > Accumulable registered as "h81"
+G4WT9 > Accumulable registered as "h84"
+G4WT8 > Accumulable registered as "h98"
+G4WT2 > Accumulable registered as "h82"
+G4WT6 > Accumulable registered as "h63"
+G4WT8 > Accumulable registered as "h99"
+G4WT11 > Accumulable registered as "h71"
+G4WT7 > Accumulable registered as "h143"
+G4WT4 > Accumulable registered as "h58"
+G4WT0 > Accumulable registered as "h49"
+G4WT9 > Accumulable registered as "h85"
+G4WT0 > Accumulable registered as "h50"
+G4WT1 > Accumulable registered as "h33"
+G4WT2 > Accumulable registered as "h83"
+G4WT6 > Accumulable registered as "h64"
+G4WT8 > Accumulable registered as "h100"
+G4WT6 > Accumulable registered as "h65"
+G4WT11 > Accumulable registered as "h72"
+G4WT6 > Accumulable registered as "h66"
+G4WT9 > Accumulable registered as "h86"
+G4WT11 > Accumulable registered as "h73"
+G4WT0 > Accumulable registered as "h51"
+G4WT1 > Accumulable registered as "h34"
+G4WT0 > Accumulable registered as "h52"
+G4WT1 > Accumulable registered as "h35"
+G4WT7 > Accumulable registered as "h144"
+G4WT8 > Accumulable registered as "h101"
+G4WT4 > Accumulable registered as "h59"
+G4WT6 > Accumulable registered as "h67"
+G4WT9 > Accumulable registered as "h87"
+G4WT4 > Accumulable registered as "h60"
+G4WT2 > Accumulable registered as "h84"
+G4WT9 > Accumulable registered as "h88"
+G4WT4 > Accumulable registered as "h61"
+G4WT1 > Accumulable registered as "h36"
+G4WT7 > Accumulable registered as "h145"
+G4WT4 > Accumulable registered as "h62"
+G4WT1 > Accumulable registered as "h37"
+G4WT6 > Accumulable registered as "h68"
+G4WT7 > Accumulable registered as "h146"
+G4WT1 > Accumulable registered as "h38"
+G4WT2 > Accumulable registered as "h85"
+G4WT7 > Accumulable registered as "h147"
+G4WT1 > Accumulable registered as "h39"
+G4WT2 > Accumulable registered as "h86"
+G4WT0 > Accumulable registered as "h53"
+G4WT9 > Accumulable registered as "h89"
+G4WT6 > Accumulable registered as "h69"
+G4WT9 > Accumulable registered as "h90"
+G4WT6 > Accumulable registered as "h70"
+G4WT11 > Accumulable registered as "h74"
+G4WT5 > Accumulable registered as "h137"
+G4WT4 > Accumulable registered as "h63"
+G4WT1 > Accumulable registered as "h40"
+G4WT2 > Accumulable registered as "h87"
+G4WT4 > Accumulable registered as "h64"
+G4WT8 > Accumulable registered as "h102"
+G4WT7 > Accumulable registered as "h148"
+G4WT9 > Accumulable registered as "h91"
+G4WT8 > Accumulable registered as "h103"
+G4WT11 > Accumulable registered as "h75"
+G4WT7 > Accumulable registered as "h149"
+G4WT8 > Accumulable registered as "h104"
+G4WT1 > Accumulable registered as "h41"
+G4WT2 > Accumulable registered as "h88"
+G4WT4 > Accumulable registered as "h65"
+G4WT1 > Accumulable registered as "h42"
+G4WT2 > Accumulable registered as "h89"
+G4WT0 > Accumulable registered as "h54"
+G4WT7 > Accumulable registered as "h150"
+G4WT11 > Accumulable registered as "h76"
+G4WT8 > Accumulable registered as "h105"
+G4WT6 > Accumulable registered as "h71"
+G4WT5 > Accumulable registered as "h138"
+G4WT9 > Accumulable registered as "h92"
+G4WT5 > Accumulable registered as "h139"
+G4WT4 > Accumulable registered as "h66"
+G4WT9 > Accumulable registered as "h93"
+G4WT2 > Accumulable registered as "h90"
+G4WT0 > Accumulable registered as "h55"
+G4WT11 > Accumulable registered as "h77"
+G4WT8 > Accumulable registered as "h106"
+G4WT6 > Accumulable registered as "h72"
+G4WT1 > Accumulable registered as "h43"
+G4WT6 > Accumulable registered as "h73"
+G4WT5 > Accumulable registered as "h140"
+G4WT6 > Accumulable registered as "h74"
+G4WT9 > Accumulable registered as "h94"
+G4WT7 > Accumulable registered as "h151"
+G4WT2 > Accumulable registered as "h91"
+G4WT0 > Accumulable registered as "h56"
+G4WT11 > Accumulable registered as "h78"
+G4WT0 > Accumulable registered as "h57"
+G4WT4 > Accumulable registered as "h67"
+G4WT11 > Accumulable registered as "h79"
+G4WT5 > Accumulable registered as "h141"
+G4WT11 > Accumulable registered as "h80"
+G4WT9 > Accumulable registered as "h95"
+G4WT5 > Accumulable registered as "h142"
+G4WT8 > Accumulable registered as "h107"
+G4WT2 > Accumulable registered as "h92"
+G4WT1 > Accumulable registered as "h44"
+G4WT0 > Accumulable registered as "h58"
+G4WT2 > Accumulable registered as "h93"
+G4WT1 > Accumulable registered as "h45"
+G4WT0 > Accumulable registered as "h59"
+G4WT11 > Accumulable registered as "h81"
+G4WT9 > Accumulable registered as "h96"
+G4WT5 > Accumulable registered as "h143"
+G4WT11 > Accumulable registered as "h82"
+G4WT6 > Accumulable registered as "h75"
+G4WT11 > Accumulable registered as "h83"
+G4WT7 > Accumulable registered as "h152"
+G4WT6 > Accumulable registered as "h76"
+G4WT2 > Accumulable registered as "h94"
+G4WT0 > Accumulable registered as "h60"
+G4WT8 > Accumulable registered as "h108"
+G4WT2 > Accumulable registered as "h95"
+G4WT0 > Accumulable registered as "h61"
+G4WT5 > Accumulable registered as "h144"
+G4WT0 > Accumulable registered as "h62"
+G4WT2 > Accumulable registered as "h96"
+G4WT7 > Accumulable registered as "h153"
+G4WT0 > Accumulable registered as "h63"
+G4WT2 > Accumulable registered as "h97"
+G4WT4 > Accumulable registered as "h68"
+G4WT2 > Accumulable registered as "h98"
+G4WT1 > Accumulable registered as "h46"
+G4WT5 > Accumulable registered as "h145"
+G4WT1 > Accumulable registered as "h47"
+G4WT6 > Accumulable registered as "h77"
+G4WT1 > Accumulable registered as "h48"
+G4WT0 > Accumulable registered as "h64"
+G4WT6 > Accumulable registered as "h78"
+G4WT7 > Accumulable registered as "h154"
+G4WT11 > Accumulable registered as "h84"
+G4WT2 > Accumulable registered as "h99"
+G4WT4 > Accumulable registered as "h69"
+G4WT9 > Accumulable registered as "h97"
+G4WT2 > Accumulable registered as "h100"
+G4WT5 > Accumulable registered as "h146"
+G4WT6 > Accumulable registered as "h79"
+G4WT0 > Accumulable registered as "h65"
+G4WT7 > Accumulable registered as "h155"
+G4WT0 > Accumulable registered as "h66"
+G4WT11 > Accumulable registered as "h85"
+G4WT4 > Accumulable registered as "h70"
+G4WT1 > Accumulable registered as "h49"
+G4WT9 > Accumulable registered as "h98"
+G4WT1 > Accumulable registered as "h50"
+G4WT2 > Accumulable registered as "h101"
+G4WT6 > Accumulable registered as "h80"
+G4WT2 > Accumulable registered as "h102"
+G4WT0 > Accumulable registered as "h67"
+G4WT7 > Accumulable registered as "h156"
+G4WT0 > Accumulable registered as "h68"
+G4WT11 > Accumulable registered as "h86"
+G4WT0 > Accumulable registered as "h69"
+G4WT5 > Accumulable registered as "h147"
+G4WT11 > Accumulable registered as "h87"
+G4WT1 > Accumulable registered as "h51"
+G4WT6 > Accumulable registered as "h81"
+G4WT1 > Accumulable registered as "h52"
+G4WT6 > Accumulable registered as "h82"
+G4WT7 > Accumulable registered as "h157"
+G4WT9 > Accumulable registered as "h99"
+G4WT7 > Accumulable registered as "h158"
+G4WT0 > Accumulable registered as "h70"
+G4WT9 > Accumulable registered as "h100"
+G4WT11 > Accumulable registered as "h88"
+G4WT9 > Accumulable registered as "h101"
+G4WT11 > Accumulable registered as "h89"
+G4WT11 > Accumulable registered as "h90"
+G4WT6 > Accumulable registered as "h83"
+G4WT5 > Accumulable registered as "h148"
+G4WT7 > Accumulable registered as "h159"
+G4WT5 > Accumulable registered as "h149"
+G4WT0 > Accumulable registered as "h71"
+G4WT7 > Accumulable registered as "h160"
+G4WT0 > Accumulable registered as "h72"
+G4WT7 > Accumulable registered as "h161"
+G4WT9 > Accumulable registered as "h102"
+G4WT8 > Accumulable registered as "h109"
+G4WT9 > Accumulable registered as "h103"
+G4WT8 > Accumulable registered as "h110"
+G4WT2 > Accumulable registered as "h103"
+G4WT5 > Accumulable registered as "h150"
+G4WT8 > Accumulable registered as "h111"
+G4WT2 > Accumulable registered as "h104"
+G4WT7 > Accumulable registered as "h162"
+G4WT8 > Accumulable registered as "h112"
+G4WT11 > Accumulable registered as "h91"
+G4WT8 > Accumulable registered as "h113"
+G4WT1 > Accumulable registered as "h53"
+G4WT11 > Accumulable registered as "h92"
+G4WT5 > Accumulable registered as "h151"
+G4WT1 > Accumulable registered as "h54"
+G4WT9 > Accumulable registered as "h104"
+G4WT5 > Accumulable registered as "h152"
+G4WT6 > Accumulable registered as "h84"
+G4WT4 > Accumulable registered as "h71"
+G4WT8 > Accumulable registered as "h114"
+G4WT2 > Accumulable registered as "h105"
+G4WT8 > Accumulable registered as "h115"
+G4WT11 > Accumulable registered as "h93"
+G4WT2 > Accumulable registered as "h106"
+G4WT7 > Accumulable registered as "h163"
+G4WT9 > Accumulable registered as "h105"
+G4WT5 > Accumulable registered as "h153"
+G4WT7 > Accumulable registered as "h164"
+G4WT9 > Accumulable registered as "h106"
+G4WT5 > Accumulable registered as "h154"
+G4WT8 > Accumulable registered as "h116"
+G4WT5 > Accumulable registered as "h155"
+G4WT11 > Accumulable registered as "h94"
+G4WT2 > Accumulable registered as "h107"
+G4WT5 > Accumulable registered as "h156"
+G4WT6 > Accumulable registered as "h85"
+G4WT7 > Accumulable registered as "h165"
+G4WT1 > Accumulable registered as "h55"
+G4WT9 > Accumulable registered as "h107"
+G4WT1 > Accumulable registered as "h56"
+G4WT8 > Accumulable registered as "h117"
+G4WT9 > Accumulable registered as "h108"
+G4WT1 > Accumulable registered as "h57"
+G4WT9 > Accumulable registered as "h109"
+G4WT2 > Accumulable registered as "h108"
+G4WT5 > Accumulable registered as "h157"
+G4WT6 > Accumulable registered as "h86"
+G4WT7 > Accumulable registered as "h166"
+G4WT11 > Accumulable registered as "h95"
+G4WT7 > Accumulable registered as "h167"
+G4WT8 > Accumulable registered as "h118"
+G4WT11 > Accumulable registered as "h96"
+G4WT8 > Accumulable registered as "h119"
+G4WT9 > Accumulable registered as "h110"
+G4WT2 > Accumulable registered as "h109"
+G4WT5 > Accumulable registered as "h158"
+G4WT6 > Accumulable registered as "h87"
+G4WT2 > Accumulable registered as "h110"
+G4WT7 > Accumulable registered as "h168"
+G4WT1 > Accumulable registered as "h58"
+G4WT11 > Accumulable registered as "h97"
+G4WT8 > Accumulable registered as "h120"
+G4WT0 > Accumulable registered as "h73"
+G4WT0 > Accumulable registered as "h74"
+G4WT4 > Accumulable registered as "h72"
+G4WT5 > Accumulable registered as "h159"
+G4WT6 > Accumulable registered as "h88"
+G4WT2 > Accumulable registered as "h111"
+G4WT7 > Accumulable registered as "h169"
+G4WT1 > Accumulable registered as "h59"
+G4WT11 > Accumulable registered as "h98"
+G4WT9 > Accumulable registered as "h111"
+G4WT1 > Accumulable registered as "h60"
+G4WT0 > Accumulable registered as "h75"
+G4WT1 > Accumulable registered as "h61"
+G4WT5 > Accumulable registered as "h160"
+G4WT6 > Accumulable registered as "h89"
+G4WT2 > Accumulable registered as "h112"
+G4WT7 > Accumulable registered as "h170"
+G4WT6 > Accumulable registered as "h90"
+G4WT4 > Accumulable registered as "h73"
+G4WT11 > Accumulable registered as "h99"
+G4WT0 > Accumulable registered as "h76"
+G4WT11 > Accumulable registered as "h100"
+G4WT1 > Accumulable registered as "h62"
+G4WT5 > Accumulable registered as "h161"
+G4WT8 > Accumulable registered as "h121"
+G4WT5 > Accumulable registered as "h162"
+G4WT9 > Accumulable registered as "h112"
+G4WT7 > Accumulable registered as "h171"
+G4WT6 > Accumulable registered as "h91"
+G4WT4 > Accumulable registered as "h74"
+G4WT7 > Accumulable registered as "h172"
+G4WT11 > Accumulable registered as "h101"
+G4WT7 > Accumulable registered as "h173"
+G4WT2 > Accumulable registered as "h113"
+G4WT7 > Accumulable registered as "h174"
+G4WT5 > Accumulable registered as "h163"
+G4WT9 > Accumulable registered as "h113"
+G4WT0 > Accumulable registered as "h77"
+G4WT4 > Accumulable registered as "h75"
+G4WT0 > Accumulable registered as "h78"
+G4WT4 > Accumulable registered as "h76"
+G4WT11 > Accumulable registered as "h102"
+G4WT4 > Accumulable registered as "h77"
+G4WT2 > Accumulable registered as "h114"
+G4WT4 > Accumulable registered as "h78"
+G4WT1 > Accumulable registered as "h63"
+G4WT9 > Accumulable registered as "h114"
+G4WT8 > Accumulable registered as "h122"
+G4WT6 > Accumulable registered as "h92"
+G4WT0 > Accumulable registered as "h79"
+G4WT7 > Accumulable registered as "h175"
+G4WT0 > Accumulable registered as "h80"
+G4WT5 > Accumulable registered as "h164"
+G4WT11 > Accumulable registered as "h103"
+G4WT2 > Accumulable registered as "h115"
+G4WT5 > Accumulable registered as "h165"
+G4WT1 > Accumulable registered as "h64"
+G4WT9 > Accumulable registered as "h115"
+G4WT8 > Accumulable registered as "h123"
+G4WT1 > Accumulable registered as "h65"
+G4WT8 > Accumulable registered as "h124"
+G4WT4 > Accumulable registered as "h79"
+G4WT11 > Accumulable registered as "h104"
+G4WT2 > Accumulable registered as "h116"
+G4WT11 > Accumulable registered as "h105"
+G4WT5 > Accumulable registered as "h166"
+G4WT11 > Accumulable registered as "h106"
+G4WT7 > Accumulable registered as "h176"
+G4WT0 > Accumulable registered as "h81"
+G4WT9 > Accumulable registered as "h116"
+G4WT7 > Accumulable registered as "h177"
+G4WT8 > Accumulable registered as "h125"
+G4WT6 > Accumulable registered as "h93"
+G4WT2 > Accumulable registered as "h117"
+G4WT6 > Accumulable registered as "h94"
+G4WT5 > Accumulable registered as "h167"
+G4WT11 > Accumulable registered as "h107"
+G4WT1 > Accumulable registered as "h66"
+G4WT0 > Accumulable registered as "h82"
+G4WT4 > Accumulable registered as "h80"
+G4WT0 > Accumulable registered as "h83"
+G4WT9 > Accumulable registered as "h117"
+G4WT8 > Accumulable registered as "h126"
+G4WT2 > Accumulable registered as "h118"
+G4WT6 > Accumulable registered as "h95"
+G4WT5 > Accumulable registered as "h168"
+G4WT8 > Accumulable registered as "h127"
+G4WT7 > Accumulable registered as "h178"
+G4WT8 > Accumulable registered as "h128"
+G4WT6 > Accumulable registered as "h96"
+G4WT0 > Accumulable registered as "h84"
+G4WT6 > Accumulable registered as "h97"
+G4WT2 > Accumulable registered as "h119"
+G4WT11 > Accumulable registered as "h108"
+G4WT2 > Accumulable registered as "h120"
+G4WT5 > Accumulable registered as "h169"
+G4WT7 > Accumulable registered as "h179"
+G4WT5 > Accumulable registered as "h170"
+G4WT9 > Accumulable registered as "h118"
+G4WT8 > Accumulable registered as "h129"
+G4WT0 > Accumulable registered as "h85"
+G4WT8 > Accumulable registered as "h130"
+G4WT1 > Accumulable registered as "h67"
+G4WT0 > Accumulable registered as "h86"
+G4WT8 > Accumulable registered as "h131"
+G4WT1 > Accumulable registered as "h68"
+G4WT8 > Accumulable registered as "h132"
+G4WT5 > Accumulable registered as "h171"
+G4WT6 > Accumulable registered as "h98"
+G4WT9 > Accumulable registered as "h119"
+G4WT5 > Accumulable registered as "h172"
+G4WT4 > Accumulable registered as "h81"
+G4WT9 > Accumulable registered as "h120"
+G4WT5 > Accumulable registered as "h173"
+G4WT7 > Accumulable registered as "h180"
+G4WT1 > Accumulable registered as "h69"
+G4WT8 > Accumulable registered as "h133"
+G4WT7 > Accumulable registered as "h181"
+G4WT1 > Accumulable registered as "h70"
+G4WT11 > Accumulable registered as "h109"
+G4WT1 > Accumulable registered as "h71"
+G4WT9 > Accumulable registered as "h121"
+G4WT4 > Accumulable registered as "h82"
+G4WT5 > Accumulable registered as "h174"
+G4WT2 > Accumulable registered as "h121"
+G4WT0 > Accumulable registered as "h87"
+G4WT2 > Accumulable registered as "h122"
+G4WT8 > Accumulable registered as "h134"
+G4WT7 > Accumulable registered as "h182"
+G4WT11 > Accumulable registered as "h110"
+G4WT9 > Accumulable registered as "h122"
+G4WT6 > Accumulable registered as "h99"
+G4WT6 > Accumulable registered as "h100"
+G4WT5 > Accumulable registered as "h175"
+G4WT0 > Accumulable registered as "h88"
+G4WT5 > Accumulable registered as "h176"
+G4WT2 > Accumulable registered as "h123"
+G4WT0 > Accumulable registered as "h89"
+G4WT1 > Accumulable registered as "h72"
+G4WT2 > Accumulable registered as "h124"
+G4WT11 > Accumulable registered as "h111"
+G4WT6 > Accumulable registered as "h101"
+G4WT11 > Accumulable registered as "h112"
+G4WT8 > Accumulable registered as "h135"
+G4WT6 > Accumulable registered as "h102"
+G4WT7 > Accumulable registered as "h183"
+G4WT8 > Accumulable registered as "h136"
+G4WT1 > Accumulable registered as "h73"
+G4WT7 > Accumulable registered as "h184"
+G4WT2 > Accumulable registered as "h125"
+G4WT4 > Accumulable registered as "h83"
+G4WT2 > Accumulable registered as "h126"
+G4WT0 > Accumulable registered as "h90"
+G4WT6 > Accumulable registered as "h103"
+G4WT9 > Accumulable registered as "h123"
+G4WT8 > Accumulable registered as "h137"
+G4WT5 > Accumulable registered as "h177"
+G4WT9 > Accumulable registered as "h124"
+G4WT11 > Accumulable registered as "h113"
+G4WT4 > Accumulable registered as "h84"
+G4WT2 > Accumulable registered as "h127"
+G4WT0 > Accumulable registered as "h91"
+G4WT6 > Accumulable registered as "h104"
+G4WT0 > Accumulable registered as "h92"
+G4WT1 > Accumulable registered as "h74"
+G4WT6 > Accumulable registered as "h105"
+G4WT7 > Accumulable registered as "h185"
+G4WT1 > Accumulable registered as "h75"
+G4WT6 > Accumulable registered as "h106"
+G4WT11 > Accumulable registered as "h114"
+G4WT7 > Accumulable registered as "h186"
+G4WT2 > Accumulable registered as "h128"
+G4WT7 > Accumulable registered as "h187"
+G4WT0 > Accumulable registered as "h93"
+G4WT5 > Accumulable registered as "h178"
+G4WT0 > Accumulable registered as "h94"
+G4WT5 > Accumulable registered as "h179"
+G4WT4 > Accumulable registered as "h85"
+G4WT6 > Accumulable registered as "h107"
+G4WT8 > Accumulable registered as "h138"
+G4WT11 > Accumulable registered as "h115"
+G4WT9 > Accumulable registered as "h125"
+G4WT11 > Accumulable registered as "h116"
+G4WT2 > Accumulable registered as "h129"
+G4WT9 > Accumulable registered as "h126"
+G4WT0 > Accumulable registered as "h95"
+G4WT5 > Accumulable registered as "h180"
+G4WT4 > Accumulable registered as "h86"
+G4WT6 > Accumulable registered as "h108"
+G4WT7 > Accumulable registered as "h188"
+G4WT8 > Accumulable registered as "h139"
+G4WT6 > Accumulable registered as "h109"
+G4WT11 > Accumulable registered as "h117"
+G4WT2 > Accumulable registered as "h130"
+G4WT9 > Accumulable registered as "h127"
+G4WT5 > Accumulable registered as "h181"
+G4WT0 > Accumulable registered as "h96"
+G4WT4 > Accumulable registered as "h87"
+G4WT5 > Accumulable registered as "h182"
+G4WT1 > Accumulable registered as "h76"
+G4WT8 > Accumulable registered as "h140"
+G4WT11 > Accumulable registered as "h118"
+G4WT8 > Accumulable registered as "h141"
+G4WT9 > Accumulable registered as "h128"
+G4WT2 > Accumulable registered as "h131"
+G4WT7 > Accumulable registered as "h189"
+G4WT9 > Accumulable registered as "h129"
+G4WT4 > Accumulable registered as "h88"
+G4WT6 > Accumulable registered as "h110"
+G4WT1 > Accumulable registered as "h77"
+G4WT11 > Accumulable registered as "h119"
+G4WT8 > Accumulable registered as "h142"
+G4WT0 > Accumulable registered as "h97"
+G4WT8 > Accumulable registered as "h143"
+G4WT5 > Accumulable registered as "h183"
+G4WT0 > Accumulable registered as "h98"
+G4WT9 > Accumulable registered as "h130"
+G4WT7 > Accumulable registered as "h190"
+G4WT4 > Accumulable registered as "h89"
+G4WT6 > Accumulable registered as "h111"
+G4WT1 > Accumulable registered as "h78"
+G4WT11 > Accumulable registered as "h120"
+G4WT6 > Accumulable registered as "h112"
+G4WT8 > Accumulable registered as "h144"
+G4WT6 > Accumulable registered as "h113"
+G4WT0 > Accumulable registered as "h99"
+G4WT9 > Accumulable registered as "h131"
+G4WT0 > Accumulable registered as "h100"
+G4WT9 > Accumulable registered as "h132"
+G4WT2 > Accumulable registered as "h132"
+G4WT9 > Accumulable registered as "h133"
+G4WT5 > Accumulable registered as "h184"
+G4WT2 > Accumulable registered as "h133"
+G4WT8 > Accumulable registered as "h145"
+G4WT7 > Accumulable registered as "h191"
+G4WT4 > Accumulable registered as "h90"
+G4WT0 > Accumulable registered as "h101"
+G4WT4 > Accumulable registered as "h91"
+G4WT1 > Accumulable registered as "h79"
+G4WT0 > Accumulable registered as "h102"
+G4WT9 > Accumulable registered as "h134"
+G4WT6 > Accumulable registered as "h114"
+G4WT5 > Accumulable registered as "h185"
+G4WT6 > Accumulable registered as "h115"
+G4WT8 > Accumulable registered as "h146"
+G4WT7 > Accumulable registered as "h192"
+G4WT11 > Accumulable registered as "h121"
+G4WT4 > Accumulable registered as "h92"
+G4WT1 > Accumulable registered as "h80"
+G4WT11 > Accumulable registered as "h122"
+G4WT2 > Accumulable registered as "h134"
+G4WT9 > Accumulable registered as "h135"
+G4WT5 > Accumulable registered as "h186"
+G4WT2 > Accumulable registered as "h135"
+G4WT7 > Accumulable registered as "h193"
+G4WT4 > Accumulable registered as "h93"
+G4WT7 > Accumulable registered as "h194"
+G4WT8 > Accumulable registered as "h147"
+G4WT4 > Accumulable registered as "h94"
+G4WT11 > Accumulable registered as "h123"
+G4WT6 > Accumulable registered as "h116"
+G4WT8 > Accumulable registered as "h148"
+G4WT0 > Accumulable registered as "h103"
+G4WT6 > Accumulable registered as "h117"
+G4WT8 > Accumulable registered as "h149"
+G4WT1 > Accumulable registered as "h81"
+G4WT8 > Accumulable registered as "h150"
+G4WT4 > Accumulable registered as "h95"
+G4WT11 > Accumulable registered as "h124"
+G4WT4 > Accumulable registered as "h96"
+G4WT5 > Accumulable registered as "h187"
+G4WT2 > Accumulable registered as "h136"
+G4WT7 > Accumulable registered as "h195"
+G4WT6 > Accumulable registered as "h118"
+G4WT0 > Accumulable registered as "h104"
+G4WT7 > Accumulable registered as "h196"
+G4WT1 > Accumulable registered as "h82"
+G4WT7 > Accumulable registered as "h197"
+G4WT11 > Accumulable registered as "h125"
+G4WT4 > Accumulable registered as "h97"
+G4WT5 > Accumulable registered as "h188"
+G4WT2 > Accumulable registered as "h137"
+G4WT4 > Accumulable registered as "h98"
+G4WT0 > Accumulable registered as "h105"
+G4WT8 > Accumulable registered as "h151"
+G4WT1 > Accumulable registered as "h83"
+G4WT7 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h84"
+G4WT11 > Accumulable registered as "h126"
+G4WT7 > Accumulable registered as "h199"
+G4WT6 > Accumulable registered as "h119"
+G4WT5 > Accumulable registered as "h189"
+G4WT6 > Accumulable registered as "h120"
+G4WT4 > Accumulable registered as "h99"
+G4WT0 > Accumulable registered as "h106"
+G4WT8 > Accumulable registered as "h152"
+G4WT4 > Accumulable registered as "h100"
+G4WT0 > Accumulable registered as "h107"
+G4WT8 > Accumulable registered as "h153"
+G4WT4 > Accumulable registered as "h101"
+G4WT11 > Accumulable registered as "h127"
+G4WT4 > Accumulable registered as "h102"
+G4WT6 > Accumulable registered as "h121"
+G4WT11 > Accumulable registered as "h128"
+G4WT6 > Accumulable registered as "h122"
+G4WT9 > Accumulable registered as "h136"
+G4WT6 > Accumulable registered as "h123"
+G4WT0 > Accumulable registered as "h108"
+G4WT8 > Accumulable registered as "h154"
+G4WT9 > Accumulable registered as "h137"
+G4WT6 > Accumulable registered as "h124"
+G4WT1 > Accumulable registered as "h85"
+G4WT9 > Accumulable registered as "h138"
+G4WT11 > Accumulable registered as "h129"
+G4WT5 > Accumulable registered as "h190"
+G4WT9 > Accumulable registered as "h139"
+G4WT0 > Accumulable registered as "h109"
+G4WT5 > Accumulable registered as "h191"
+G4WT2 > Accumulable registered as "h138"
+G4WT5 > Accumulable registered as "h192"
+G4WT7 > Accumulable registered as "h200"
+G4WT1 > Accumulable registered as "h86"
+G4WT11 > Accumulable registered as "h130"
+G4WT4 > Accumulable registered as "h103"
+G4WT11 > Accumulable registered as "h131"
+G4WT8 > Accumulable registered as "h155"
+G4WT0 > Accumulable registered as "h110"
+G4WT8 > Accumulable registered as "h156"
+G4WT6 > Accumulable registered as "h125"
+G4WT0 > Accumulable registered as "h111"
+G4WT8 > Accumulable registered as "h157"
+G4WT6 > Accumulable registered as "h126"
+G4WT0 > Accumulable registered as "h112"
+G4WT4 > Accumulable registered as "h104"
+G4WT11 > Accumulable registered as "h132"
+G4WT8 > Accumulable registered as "h158"
+G4WT5 > Accumulable registered as "h193"
+G4WT11 > Accumulable registered as "h133"
+G4WT9 > Accumulable registered as "h140"
+G4WT0 > Accumulable registered as "h113"
+G4WT6 > Accumulable registered as "h127"
+G4WT9 > Accumulable registered as "h141"
+G4WT0 > Accumulable registered as "h114"
+G4WT1 > Accumulable registered as "h87"
+G4WT0 > Accumulable registered as "h115"
+G4WT5 > Accumulable registered as "h194"
+G4WT0 > Accumulable registered as "h116"
+G4WT2 > Accumulable registered as "h139"
+G4WT0 > Accumulable registered as "h117"
+G4WT6 > Accumulable registered as "h128"
+G4WT9 > Accumulable registered as "h142"
+G4WT8 > Accumulable registered as "h159"
+G4WT6 > Accumulable registered as "h129"
+G4WT11 > Accumulable registered as "h134"
+G4WT1 > Accumulable registered as "h88"
+G4WT5 > Accumulable registered as "h195"
+G4WT2 > Accumulable registered as "h140"
+G4WT0 > Accumulable registered as "h118"
+G4WT5 > Accumulable registered as "h196"
+G4WT9 > Accumulable registered as "h143"
+G4WT8 > Accumulable registered as "h160"
+G4WT6 > Accumulable registered as "h130"
+G4WT11 > Accumulable registered as "h135"
+G4WT1 > Accumulable registered as "h89"
+G4WT11 > Accumulable registered as "h136"
+G4WT4 > Accumulable registered as "h105"
+G4WT11 > Accumulable registered as "h137"
+G4WT5 > Accumulable registered as "h197"
+G4WT9 > Accumulable registered as "h144"
+G4WT8 > Accumulable registered as "h161"
+G4WT6 > Accumulable registered as "h131"
+G4WT2 > Accumulable registered as "h141"
+G4WT1 > Accumulable registered as "h90"
+G4WT6 > Accumulable registered as "h132"
+G4WT11 > Accumulable registered as "h138"
+G4WT4 > Accumulable registered as "h106"
+G4WT1 > Accumulable registered as "h91"
+G4WT9 > Accumulable registered as "h145"
+G4WT4 > Accumulable registered as "h107"
+G4WT4 > Accumulable registered as "h108"
+G4WT4 > Accumulable registered as "h109"
+G4WT5 > Accumulable registered as "h198"
+G4WT11 > Accumulable registered as "h139"
+G4WT8 > Accumulable registered as "h162"
+G4WT11 > Accumulable registered as "h140"
+G4WT1 > Accumulable registered as "h92"
+G4WT11 > Accumulable registered as "h141"
+G4WT2 > Accumulable registered as "h142"
+G4WT6 > Accumulable registered as "h133"
+G4WT9 > Accumulable registered as "h146"
+G4WT4 > Accumulable registered as "h110"
+G4WT5 > Accumulable registered as "h199"
+G4WT8 > Accumulable registered as "h163"
+G4WT4 > Accumulable registered as "h111"
+G4WT0 > Accumulable registered as "h119"
+G4WT11 > Accumulable registered as "h142"
+G4WT4 > Accumulable registered as "h112"
+G4WT2 > Accumulable registered as "h143"
+G4WT6 > Accumulable registered as "h134"
+G4WT4 > Accumulable registered as "h113"
+G4WT8 > Accumulable registered as "h164"
+G4WT4 > Accumulable registered as "h114"
+G4WT8 > Accumulable registered as "h165"
+G4WT1 > Accumulable registered as "h93"
+G4WT8 > Accumulable registered as "h166"
+G4WT11 > Accumulable registered as "h143"
+G4WT9 > Accumulable registered as "h147"
+G4WT11 > Accumulable registered as "h144"
+G4WT0 > Accumulable registered as "h120"
+G4WT9 > Accumulable registered as "h148"
+G4WT0 > Accumulable registered as "h121"
+G4WT5 > Accumulable registered as "h200"
+G4WT8 > Accumulable registered as "h167"
+G4WT1 > Accumulable registered as "h94"
+G4WT8 > Accumulable registered as "h168"
+G4WT6 > Accumulable registered as "h135"
+G4WT11 > Accumulable registered as "h145"
+G4WT4 > Accumulable registered as "h115"
+G4WT6 > Accumulable registered as "h136"
+G4WT11 > Accumulable registered as "h146"
+G4WT2 > Accumulable registered as "h144"
+G4WT11 > Accumulable registered as "h147"
+G4WT8 > Accumulable registered as "h169"
+G4WT2 > Accumulable registered as "h145"
+G4WT11 > Accumulable registered as "h148"
+G4WT9 > Accumulable registered as "h149"
+G4WT8 > Accumulable registered as "h170"
+G4WT6 > Accumulable registered as "h137"
+G4WT9 > Accumulable registered as "h150"
+G4WT0 > Accumulable registered as "h122"
+G4WT6 > Accumulable registered as "h138"
+G4WT1 > Accumulable registered as "h95"
+G4WT6 > Accumulable registered as "h139"
+G4WT11 > Accumulable registered as "h149"
+G4WT1 > Accumulable registered as "h96"
+G4WT2 > Accumulable registered as "h146"
+G4WT9 > Accumulable registered as "h151"
+G4WT1 > Accumulable registered as "h97"
+G4WT2 > Accumulable registered as "h147"
+G4WT4 > Accumulable registered as "h116"
+G4WT2 > Accumulable registered as "h148"
+G4WT11 > Accumulable registered as "h150"
+G4WT8 > Accumulable registered as "h171"
+G4WT9 > Accumulable registered as "h152"
+G4WT8 > Accumulable registered as "h172"
+G4WT9 > Accumulable registered as "h153"
+G4WT6 > Accumulable registered as "h140"
+G4WT0 > Accumulable registered as "h123"
+G4WT2 > Accumulable registered as "h149"
+G4WT0 > Accumulable registered as "h124"
+G4WT11 > Accumulable registered as "h151"
+G4WT2 > Accumulable registered as "h150"
+G4WT8 > Accumulable registered as "h173"
+G4WT2 > Accumulable registered as "h151"
+G4WT9 > Accumulable registered as "h154"
+G4WT2 > Accumulable registered as "h152"
+G4WT1 > Accumulable registered as "h98"
+G4WT0 > Accumulable registered as "h125"
+G4WT4 > Accumulable registered as "h117"
+G4WT1 > Accumulable registered as "h99"
+G4WT6 > Accumulable registered as "h141"
+G4WT1 > Accumulable registered as "h100"
+G4WT0 > Accumulable registered as "h126"
+G4WT2 > Accumulable registered as "h153"
+G4WT6 > Accumulable registered as "h142"
+G4WT4 > Accumulable registered as "h118"
+G4WT6 > Accumulable registered as "h143"
+G4WT9 > Accumulable registered as "h155"
+G4WT4 > Accumulable registered as "h119"
+G4WT11 > Accumulable registered as "h152"
+G4WT0 > Accumulable registered as "h127"
+G4WT8 > Accumulable registered as "h174"
+G4WT2 > Accumulable registered as "h154"
+G4WT0 > Accumulable registered as "h128"
+G4WT6 > Accumulable registered as "h144"
+G4WT2 > Accumulable registered as "h155"
+G4WT4 > Accumulable registered as "h120"
+G4WT11 > Accumulable registered as "h153"
+G4WT6 > Accumulable registered as "h145"
+G4WT8 > Accumulable registered as "h175"
+G4WT9 > Accumulable registered as "h156"
+G4WT0 > Accumulable registered as "h129"
+G4WT2 > Accumulable registered as "h156"
+G4WT4 > Accumulable registered as "h121"
+G4WT2 > Accumulable registered as "h157"
+G4WT11 > Accumulable registered as "h154"
+G4WT8 > Accumulable registered as "h176"
+G4WT11 > Accumulable registered as "h155"
+G4WT1 > Accumulable registered as "h101"
+G4WT11 > Accumulable registered as "h156"
+G4WT1 > Accumulable registered as "h102"
+G4WT6 > Accumulable registered as "h146"
+G4WT2 > Accumulable registered as "h158"
+G4WT9 > Accumulable registered as "h157"
+G4WT2 > Accumulable registered as "h159"
+G4WT8 > Accumulable registered as "h177"
+G4WT9 > Accumulable registered as "h158"
+G4WT1 > Accumulable registered as "h103"
+G4WT8 > Accumulable registered as "h178"
+G4WT11 > Accumulable registered as "h157"
+G4WT1 > Accumulable registered as "h104"
+G4WT6 > Accumulable registered as "h147"
+G4WT1 > Accumulable registered as "h105"
+G4WT11 > Accumulable registered as "h158"
+G4WT1 > Accumulable registered as "h106"
+G4WT6 > Accumulable registered as "h148"
+G4WT8 > Accumulable registered as "h179"
+G4WT9 > Accumulable registered as "h159"
+G4WT8 > Accumulable registered as "h180"
+G4WT4 > Accumulable registered as "h122"
+G4WT0 > Accumulable registered as "h130"
+G4WT1 > Accumulable registered as "h107"
+G4WT0 > Accumulable registered as "h131"
+G4WT6 > Accumulable registered as "h149"
+G4WT9 > Accumulable registered as "h160"
+G4WT11 > Accumulable registered as "h159"
+G4WT8 > Accumulable registered as "h181"
+G4WT11 > Accumulable registered as "h160"
+G4WT4 > Accumulable registered as "h123"
+G4WT1 > Accumulable registered as "h108"
+G4WT0 > Accumulable registered as "h132"
+G4WT6 > Accumulable registered as "h150"
+G4WT9 > Accumulable registered as "h161"
+G4WT8 > Accumulable registered as "h182"
+G4WT9 > Accumulable registered as "h162"
+G4WT11 > Accumulable registered as "h161"
+G4WT1 > Accumulable registered as "h109"
+G4WT4 > Accumulable registered as "h124"
+G4WT0 > Accumulable registered as "h133"
+G4WT4 > Accumulable registered as "h125"
+G4WT6 > Accumulable registered as "h151"
+G4WT0 > Accumulable registered as "h134"
+G4WT9 > Accumulable registered as "h163"
+G4WT2 > Accumulable registered as "h160"
+G4WT1 > Accumulable registered as "h110"
+G4WT2 > Accumulable registered as "h161"
+G4WT8 > Accumulable registered as "h183"
+G4WT1 > Accumulable registered as "h111"
+G4WT0 > Accumulable registered as "h135"
+G4WT6 > Accumulable registered as "h152"
+G4WT0 > Accumulable registered as "h136"
+G4WT4 > Accumulable registered as "h126"
+G4WT2 > Accumulable registered as "h162"
+G4WT1 > Accumulable registered as "h112"
+G4WT2 > Accumulable registered as "h163"
+G4WT8 > Accumulable registered as "h184"
+G4WT1 > Accumulable registered as "h113"
+G4WT9 > Accumulable registered as "h164"
+G4WT6 > Accumulable registered as "h153"
+G4WT0 > Accumulable registered as "h137"
+G4WT4 > Accumulable registered as "h127"
+G4WT6 > Accumulable registered as "h154"
+G4WT11 > Accumulable registered as "h162"
+G4WT8 > Accumulable registered as "h185"
+G4WT4 > Accumulable registered as "h128"
+G4WT9 > Accumulable registered as "h165"
+G4WT8 > Accumulable registered as "h186"
+G4WT2 > Accumulable registered as "h164"
+G4WT8 > Accumulable registered as "h187"
+G4WT1 > Accumulable registered as "h114"
+G4WT0 > Accumulable registered as "h138"
+G4WT4 > Accumulable registered as "h129"
+G4WT1 > Accumulable registered as "h115"
+G4WT6 > Accumulable registered as "h155"
+G4WT1 > Accumulable registered as "h116"
+G4WT2 > Accumulable registered as "h165"
+G4WT8 > Accumulable registered as "h188"
+G4WT11 > Accumulable registered as "h163"
+G4WT9 > Accumulable registered as "h166"
+G4WT11 > Accumulable registered as "h164"
+G4WT4 > Accumulable registered as "h130"
+G4WT1 > Accumulable registered as "h117"
+G4WT4 > Accumulable registered as "h131"
+G4WT1 > Accumulable registered as "h118"
+G4WT4 > Accumulable registered as "h132"
+G4WT6 > Accumulable registered as "h156"
+G4WT11 > Accumulable registered as "h165"
+G4WT9 > Accumulable registered as "h167"
+G4WT2 > Accumulable registered as "h166"
+G4WT9 > Accumulable registered as "h168"
+G4WT0 > Accumulable registered as "h139"
+G4WT2 > Accumulable registered as "h167"
+G4WT4 > Accumulable registered as "h133"
+G4WT2 > Accumulable registered as "h168"
+G4WT6 > Accumulable registered as "h157"
+G4WT4 > Accumulable registered as "h134"
+G4WT8 > Accumulable registered as "h189"
+G4WT9 > Accumulable registered as "h169"
+G4WT1 > Accumulable registered as "h119"
+G4WT8 > Accumulable registered as "h190"
+G4WT11 > Accumulable registered as "h166"
+G4WT2 > Accumulable registered as "h169"
+G4WT6 > Accumulable registered as "h158"
+G4WT4 > Accumulable registered as "h135"
+G4WT1 > Accumulable registered as "h120"
+G4WT4 > Accumulable registered as "h136"
+G4WT8 > Accumulable registered as "h191"
+G4WT11 > Accumulable registered as "h167"
+G4WT0 > Accumulable registered as "h140"
+G4WT2 > Accumulable registered as "h170"
+G4WT0 > Accumulable registered as "h141"
+G4WT6 > Accumulable registered as "h159"
+G4WT9 > Accumulable registered as "h170"
+G4WT1 > Accumulable registered as "h121"
+G4WT4 > Accumulable registered as "h137"
+G4WT1 > Accumulable registered as "h122"
+G4WT11 > Accumulable registered as "h168"
+G4WT2 > Accumulable registered as "h171"
+G4WT0 > Accumulable registered as "h142"
+G4WT11 > Accumulable registered as "h169"
+G4WT2 > Accumulable registered as "h172"
+G4WT4 > Accumulable registered as "h138"
+G4WT9 > Accumulable registered as "h171"
+G4WT1 > Accumulable registered as "h123"
+G4WT2 > Accumulable registered as "h173"
+G4WT4 > Accumulable registered as "h139"
+G4WT0 > Accumulable registered as "h143"
+G4WT6 > Accumulable registered as "h160"
+G4WT8 > Accumulable registered as "h192"
+G4WT11 > Accumulable registered as "h170"
+G4WT6 > Accumulable registered as "h161"
+G4WT1 > Accumulable registered as "h124"
+G4WT6 > Accumulable registered as "h162"
+G4WT11 > Accumulable registered as "h171"
+G4WT4 > Accumulable registered as "h140"
+G4WT9 > Accumulable registered as "h172"
+G4WT11 > Accumulable registered as "h172"
+G4WT8 > Accumulable registered as "h193"
+G4WT9 > Accumulable registered as "h173"
+G4WT6 > Accumulable registered as "h163"
+G4WT1 > Accumulable registered as "h125"
+G4WT2 > Accumulable registered as "h174"
+G4WT1 > Accumulable registered as "h126"
+G4WT0 > Accumulable registered as "h144"
+G4WT2 > Accumulable registered as "h175"
+G4WT8 > Accumulable registered as "h194"
+G4WT0 > Accumulable registered as "h145"
+G4WT2 > Accumulable registered as "h176"
+G4WT4 > Accumulable registered as "h141"
+G4WT1 > Accumulable registered as "h127"
+G4WT4 > Accumulable registered as "h142"
+G4WT9 > Accumulable registered as "h174"
+G4WT6 > Accumulable registered as "h164"
+G4WT8 > Accumulable registered as "h195"
+G4WT0 > Accumulable registered as "h146"
+G4WT6 > Accumulable registered as "h165"
+G4WT8 > Accumulable registered as "h196"
+G4WT6 > Accumulable registered as "h166"
+G4WT4 > Accumulable registered as "h143"
+G4WT11 > Accumulable registered as "h173"
+G4WT2 > Accumulable registered as "h177"
+G4WT11 > Accumulable registered as "h174"
+G4WT1 > Accumulable registered as "h128"
+G4WT11 > Accumulable registered as "h175"
+G4WT8 > Accumulable registered as "h197"
+G4WT1 > Accumulable registered as "h129"
+G4WT11 > Accumulable registered as "h176"
+G4WT8 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h130"
+G4WT11 > Accumulable registered as "h177"
+G4WT8 > Accumulable registered as "h199"
+G4WT1 > Accumulable registered as "h131"
+G4WT11 > Accumulable registered as "h178"
+G4WT8 > Accumulable registered as "h200"
+G4WT2 > Accumulable registered as "h178"
+G4WT11 > Accumulable registered as "h179"
+G4WT6 > Accumulable registered as "h167"
+G4WT11 > Accumulable registered as "h180"
+G4WT9 > Accumulable registered as "h175"
+G4WT1 > Accumulable registered as "h132"
+G4WT4 > Accumulable registered as "h144"
+G4WT1 > Accumulable registered as "h133"
+G4WT0 > Accumulable registered as "h147"
+G4WT1 > Accumulable registered as "h134"
+G4WT11 > Accumulable registered as "h181"
+G4WT2 > Accumulable registered as "h179"
+G4WT9 > Accumulable registered as "h176"
+G4WT11 > Accumulable registered as "h182"
+G4WT2 > Accumulable registered as "h180"
+G4WT0 > Accumulable registered as "h148"
+G4WT1 > Accumulable registered as "h135"
+G4WT6 > Accumulable registered as "h168"
+G4WT4 > Accumulable registered as "h145"
+G4WT9 > Accumulable registered as "h177"
+G4WT11 > Accumulable registered as "h183"
+G4WT2 > Accumulable registered as "h181"
+G4WT0 > Accumulable registered as "h149"
+G4WT11 > Accumulable registered as "h184"
+G4WT6 > Accumulable registered as "h169"
+G4WT0 > Accumulable registered as "h150"
+G4WT9 > Accumulable registered as "h178"
+G4WT1 > Accumulable registered as "h136"
+G4WT2 > Accumulable registered as "h182"
+G4WT4 > Accumulable registered as "h146"
+G4WT11 > Accumulable registered as "h185"
+G4WT2 > Accumulable registered as "h183"
+G4WT0 > Accumulable registered as "h151"
+G4WT9 > Accumulable registered as "h179"
+G4WT4 > Accumulable registered as "h147"
+G4WT0 > Accumulable registered as "h152"
+G4WT9 > Accumulable registered as "h180"
+G4WT4 > Accumulable registered as "h148"
+G4WT2 > Accumulable registered as "h184"
+G4WT9 > Accumulable registered as "h181"
+G4WT4 > Accumulable registered as "h149"
+G4WT2 > Accumulable registered as "h185"
+G4WT9 > Accumulable registered as "h182"
+G4WT4 > Accumulable registered as "h150"
+G4WT6 > Accumulable registered as "h170"
+G4WT9 > Accumulable registered as "h183"
+G4WT4 > Accumulable registered as "h151"
+G4WT11 > Accumulable registered as "h186"
+G4WT11 > Accumulable registered as "h187"
+G4WT0 > Accumulable registered as "h153"
+G4WT2 > Accumulable registered as "h186"
+G4WT6 > Accumulable registered as "h171"
+G4WT9 > Accumulable registered as "h184"
+G4WT4 > Accumulable registered as "h152"
+G4WT4 > Accumulable registered as "h153"
+G4WT11 > Accumulable registered as "h188"
+G4WT4 > Accumulable registered as "h154"
+G4WT0 > Accumulable registered as "h154"
+G4WT4 > Accumulable registered as "h155"
+G4WT6 > Accumulable registered as "h172"
+G4WT9 > Accumulable registered as "h185"
+G4WT6 > Accumulable registered as "h173"
+G4WT9 > Accumulable registered as "h186"
+G4WT11 > Accumulable registered as "h189"
+G4WT0 > Accumulable registered as "h155"
+G4WT4 > Accumulable registered as "h156"
+G4WT11 > Accumulable registered as "h190"
+G4WT0 > Accumulable registered as "h156"
+G4WT9 > Accumulable registered as "h187"
+G4WT0 > Accumulable registered as "h157"
+G4WT6 > Accumulable registered as "h174"
+G4WT0 > Accumulable registered as "h158"
+G4WT4 > Accumulable registered as "h157"
+G4WT11 > Accumulable registered as "h191"
+G4WT4 > Accumulable registered as "h158"
+G4WT11 > Accumulable registered as "h192"
+G4WT4 > Accumulable registered as "h159"
+G4WT11 > Accumulable registered as "h193"
+G4WT0 > Accumulable registered as "h159"
+G4WT9 > Accumulable registered as "h188"
+G4WT6 > Accumulable registered as "h175"
+G4WT1 > Accumulable registered as "h137"
+G4WT4 > Accumulable registered as "h160"
+G4WT0 > Accumulable registered as "h160"
+G4WT4 > Accumulable registered as "h161"
+G4WT9 > Accumulable registered as "h189"
+G4WT4 > Accumulable registered as "h162"
+G4WT11 > Accumulable registered as "h194"
+G4WT4 > Accumulable registered as "h163"
+G4WT6 > Accumulable registered as "h176"
+G4WT11 > Accumulable registered as "h195"
+G4WT1 > Accumulable registered as "h138"
+G4WT9 > Accumulable registered as "h190"
+G4WT1 > Accumulable registered as "h139"
+G4WT4 > Accumulable registered as "h164"
+G4WT1 > Accumulable registered as "h140"
+G4WT6 > Accumulable registered as "h177"
+G4WT0 > Accumulable registered as "h161"
+G4WT6 > Accumulable registered as "h178"
+G4WT0 > Accumulable registered as "h162"
+G4WT6 > Accumulable registered as "h179"
+G4WT11 > Accumulable registered as "h196"
+G4WT1 > Accumulable registered as "h141"
+G4WT11 > Accumulable registered as "h197"
+G4WT9 > Accumulable registered as "h191"
+G4WT1 > Accumulable registered as "h142"
+G4WT0 > Accumulable registered as "h163"
+G4WT9 > Accumulable registered as "h192"
+G4WT4 > Accumulable registered as "h165"
+G4WT9 > Accumulable registered as "h193"
+G4WT2 > Accumulable registered as "h187"
+G4WT9 > Accumulable registered as "h194"
+G4WT0 > Accumulable registered as "h164"
+G4WT11 > Accumulable registered as "h198"
+G4WT6 > Accumulable registered as "h180"
+G4WT11 > Accumulable registered as "h199"
+G4WT2 > Accumulable registered as "h188"
+G4WT9 > Accumulable registered as "h195"
+G4WT0 > Accumulable registered as "h165"
+G4WT9 > Accumulable registered as "h196"
+G4WT1 > Accumulable registered as "h143"
+G4WT0 > Accumulable registered as "h166"
+G4WT9 > Accumulable registered as "h197"
+G4WT11 > Accumulable registered as "h200"
+G4WT0 > Accumulable registered as "h167"
+G4WT4 > Accumulable registered as "h166"
+G4WT2 > Accumulable registered as "h189"
+G4WT1 > Accumulable registered as "h144"
+G4WT9 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h145"
+G4WT6 > Accumulable registered as "h181"
+G4WT4 > Accumulable registered as "h167"
+G4WT6 > Accumulable registered as "h182"
+G4WT2 > Accumulable registered as "h190"
+G4WT6 > Accumulable registered as "h183"
+G4WT9 > Accumulable registered as "h199"
+G4WT6 > Accumulable registered as "h184"
+G4WT0 > Accumulable registered as "h168"
+G4WT1 > Accumulable registered as "h146"
+G4WT2 > Accumulable registered as "h191"
+G4WT9 > Accumulable registered as "h200"
+G4WT2 > Accumulable registered as "h192"
+G4WT4 > Accumulable registered as "h168"
+G4WT0 > Accumulable registered as "h169"
+G4WT4 > Accumulable registered as "h169"
+G4WT1 > Accumulable registered as "h147"
+G4WT6 > Accumulable registered as "h185"
+G4WT0 > Accumulable registered as "h170"
+G4WT4 > Accumulable registered as "h170"
+G4WT2 > Accumulable registered as "h193"
+G4WT6 > Accumulable registered as "h186"
+G4WT1 > Accumulable registered as "h148"
+G4WT2 > Accumulable registered as "h194"
+G4WT0 > Accumulable registered as "h171"
+G4WT1 > Accumulable registered as "h149"
+G4WT2 > Accumulable registered as "h195"
+G4WT4 > Accumulable registered as "h171"
+G4WT2 > Accumulable registered as "h196"
+G4WT1 > Accumulable registered as "h150"
+G4WT0 > Accumulable registered as "h172"
+G4WT6 > Accumulable registered as "h187"
+G4WT0 > Accumulable registered as "h173"
+G4WT6 > Accumulable registered as "h188"
+G4WT2 > Accumulable registered as "h197"
+G4WT1 > Accumulable registered as "h151"
+G4WT0 > Accumulable registered as "h174"
+G4WT6 > Accumulable registered as "h189"
+G4WT2 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h152"
+G4WT6 > Accumulable registered as "h190"
+G4WT0 > Accumulable registered as "h175"
+G4WT1 > Accumulable registered as "h153"
+G4WT2 > Accumulable registered as "h199"
+G4WT1 > Accumulable registered as "h154"
+G4WT2 > Accumulable registered as "h200"
+G4WT1 > Accumulable registered as "h155"
+G4WT0 > Accumulable registered as "h176"
+G4WT6 > Accumulable registered as "h191"
+G4WT1 > Accumulable registered as "h156"
+G4WT0 > Accumulable registered as "h177"
+G4WT6 > Accumulable registered as "h192"
+G4WT1 > Accumulable registered as "h157"
+G4WT0 > Accumulable registered as "h178"
+G4WT6 > Accumulable registered as "h193"
+G4WT1 > Accumulable registered as "h158"
+G4WT0 > Accumulable registered as "h179"
+G4WT6 > Accumulable registered as "h194"
+G4WT1 > Accumulable registered as "h159"
+G4WT4 > Accumulable registered as "h172"
+G4WT6 > Accumulable registered as "h195"
+G4WT4 > Accumulable registered as "h173"
+G4WT6 > Accumulable registered as "h196"
+G4WT0 > Accumulable registered as "h180"
+G4WT6 > Accumulable registered as "h197"
+G4WT4 > Accumulable registered as "h174"
+G4WT6 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h160"
+G4WT4 > Accumulable registered as "h175"
+G4WT6 > Accumulable registered as "h199"
+G4WT4 > Accumulable registered as "h176"
+G4WT6 > Accumulable registered as "h200"
+G4WT4 > Accumulable registered as "h177"
+G4WT4 > Accumulable registered as "h178"
+G4WT4 > Accumulable registered as "h179"
+G4WT4 > Accumulable registered as "h180"
+G4WT4 > Accumulable registered as "h181"
+G4WT4 > Accumulable registered as "h182"
+G4WT4 > Accumulable registered as "h183"
+G4WT4 > Accumulable registered as "h184"
+G4WT1 > Accumulable registered as "h161"
+G4WT4 > Accumulable registered as "h185"
+G4WT4 > Accumulable registered as "h186"
+G4WT4 > Accumulable registered as "h187"
+G4WT4 > Accumulable registered as "h188"
+G4WT4 > Accumulable registered as "h189"
+G4WT4 > Accumulable registered as "h190"
+G4WT4 > Accumulable registered as "h191"
+G4WT4 > Accumulable registered as "h192"
+G4WT4 > Accumulable registered as "h193"
+G4WT4 > Accumulable registered as "h194"
+G4WT4 > Accumulable registered as "h195"
+G4WT4 > Accumulable registered as "h196"
+G4WT4 > Accumulable registered as "h197"
+G4WT4 > Accumulable registered as "h198"
+G4WT4 > Accumulable registered as "h199"
+G4WT4 > Accumulable registered as "h200"
+G4WT1 > Accumulable registered as "h162"
+G4WT1 > Accumulable registered as "h163"
+G4WT1 > Accumulable registered as "h164"
+G4WT1 > Accumulable registered as "h165"
+G4WT1 > Accumulable registered as "h166"
+G4WT1 > Accumulable registered as "h167"
+G4WT1 > Accumulable registered as "h168"
+G4WT1 > Accumulable registered as "h169"
+G4WT1 > Accumulable registered as "h170"
+G4WT1 > Accumulable registered as "h171"
+G4WT1 > Accumulable registered as "h172"
+G4WT1 > Accumulable registered as "h173"
+G4WT1 > Accumulable registered as "h174"
+G4WT1 > Accumulable registered as "h175"
+G4WT1 > Accumulable registered as "h176"
+G4WT1 > Accumulable registered as "h177"
+G4WT1 > Accumulable registered as "h178"
+G4WT1 > Accumulable registered as "h179"
+G4WT1 > Accumulable registered as "h180"
+G4WT1 > Accumulable registered as "h181"
+G4WT1 > Accumulable registered as "h182"
+G4WT1 > Accumulable registered as "h183"
+G4WT1 > Accumulable registered as "h184"
+G4WT1 > Accumulable registered as "h185"
+G4WT1 > Accumulable registered as "h186"
+G4WT1 > Accumulable registered as "h187"
+G4WT1 > Accumulable registered as "h188"
+G4WT1 > Accumulable registered as "h189"
+G4WT1 > Accumulable registered as "h190"
+G4WT1 > Accumulable registered as "h191"
+G4WT1 > Accumulable registered as "h192"
+G4WT1 > Accumulable registered as "h193"
+G4WT1 > Accumulable registered as "h194"
+G4WT1 > Accumulable registered as "h195"
+G4WT1 > Accumulable registered as "h196"
+G4WT1 > Accumulable registered as "h197"
+G4WT1 > Accumulable registered as "h198"
+G4WT1 > Accumulable registered as "h199"
+G4WT1 > Accumulable registered as "h200"
+G4WT0 > Accumulable registered as "h181"
+G4WT0 > Accumulable registered as "h182"
+G4WT0 > Accumulable registered as "h183"
+G4WT0 > Accumulable registered as "h184"
+G4WT0 > Accumulable registered as "h185"
+G4WT0 > Accumulable registered as "h186"
+G4WT0 > Accumulable registered as "h187"
+G4WT0 > Accumulable registered as "h188"
+G4WT0 > Accumulable registered as "h189"
+G4WT0 > Accumulable registered as "h190"
+G4WT0 > Accumulable registered as "h191"
+G4WT0 > Accumulable registered as "h192"
+G4WT0 > Accumulable registered as "h193"
+G4WT0 > Accumulable registered as "h194"
+G4WT0 > Accumulable registered as "h195"
+G4WT0 > Accumulable registered as "h196"
+G4WT0 > Accumulable registered as "h197"
+G4WT0 > Accumulable registered as "h198"
+G4WT0 > Accumulable registered as "h199"
+G4WT0 > Accumulable registered as "h200"
+RESULT decays=100000
+RESULT any=8498 eps_total=8.498000e-02
+RESULT window=200.000 counts=5780 eps=5.780000e-02
+HISTBEGIN bins=201 bin_kev=1.000000 decays=100000
+HIST 0 3
+HIST 1 5
+HIST 2 5
+HIST 3 7
+HIST 4 3
+HIST 5 6
+HIST 6 9
+HIST 7 7
+HIST 8 9
+HIST 9 6
+HIST 10 11
+HIST 11 4
+HIST 12 10
+HIST 13 7
+HIST 14 12
+HIST 15 9
+HIST 16 12
+HIST 17 7
+HIST 18 9
+HIST 19 13
+HIST 20 11
+HIST 21 12
+HIST 22 31
+HIST 23 26
+HIST 24 20
+HIST 25 8
+HIST 26 25
+HIST 27 7
+HIST 28 15
+HIST 29 7
+HIST 30 15
+HIST 31 10
+HIST 32 10
+HIST 33 10
+HIST 34 5
+HIST 35 2
+HIST 36 7
+HIST 37 5
+HIST 38 6
+HIST 39 2
+HIST 40 8
+HIST 41 4
+HIST 42 4
+HIST 43 6
+HIST 44 7
+HIST 45 7
+HIST 46 10
+HIST 47 13
+HIST 48 13
+HIST 49 10
+HIST 50 17
+HIST 51 18
+HIST 52 20
+HIST 53 146
+HIST 54 282
+HIST 55 3
+HIST 56 5
+HIST 57 5
+HIST 58 9
+HIST 59 9
+HIST 60 7
+HIST 61 124
+HIST 62 8
+HIST 63 38
+HIST 64 9
+HIST 65 5
+HIST 66 9
+HIST 67 9
+HIST 68 7
+HIST 69 2
+HIST 70 5
+HIST 71 5
+HIST 72 7
+HIST 73 1
+HIST 74 9
+HIST 75 7
+HIST 76 5
+HIST 77 5
+HIST 78 7
+HIST 79 3
+HIST 80 10
+HIST 81 3
+HIST 82 7
+HIST 83 2
+HIST 84 5
+HIST 85 11
+HIST 86 9
+HIST 87 6
+HIST 88 4
+HIST 89 3
+HIST 90 7
+HIST 91 2
+HIST 92 3
+HIST 93 6
+HIST 95 3
+HIST 96 3
+HIST 97 3
+HIST 98 2
+HIST 99 3
+HIST 100 6
+HIST 101 3
+HIST 102 7
+HIST 103 6
+HIST 104 6
+HIST 105 1
+HIST 106 4
+HIST 107 4
+HIST 108 6
+HIST 109 3
+HIST 110 5
+HIST 111 2
+HIST 112 4
+HIST 113 4
+HIST 114 10
+HIST 115 9
+HIST 116 12
+HIST 117 5
+HIST 118 15
+HIST 119 8
+HIST 120 12
+HIST 121 12
+HIST 122 10
+HIST 123 11
+HIST 124 10
+HIST 125 14
+HIST 126 9
+HIST 127 15
+HIST 128 13
+HIST 129 11
+HIST 130 15
+HIST 131 13
+HIST 132 10
+HIST 133 17
+HIST 134 15
+HIST 135 8
+HIST 136 2
+HIST 137 15
+HIST 138 13
+HIST 139 9
+HIST 140 14
+HIST 141 16
+HIST 142 11
+HIST 143 20
+HIST 144 10
+HIST 145 9
+HIST 146 17
+HIST 147 11
+HIST 148 18
+HIST 149 10
+HIST 150 12
+HIST 151 16
+HIST 152 7
+HIST 153 16
+HIST 154 10
+HIST 155 13
+HIST 156 13
+HIST 157 12
+HIST 158 12
+HIST 159 11
+HIST 160 11
+HIST 161 13
+HIST 162 7
+HIST 163 8
+HIST 164 14
+HIST 165 13
+HIST 166 19
+HIST 167 20
+HIST 168 22
+HIST 169 65
+HIST 170 7
+HIST 171 38
+HIST 172 26
+HIST 173 11
+HIST 174 20
+HIST 175 15
+HIST 176 18
+HIST 177 18
+HIST 178 16
+HIST 179 18
+HIST 180 16
+HIST 181 13
+HIST 182 28
+HIST 183 18
+HIST 184 23
+HIST 185 23
+HIST 186 27
+HIST 187 20
+HIST 188 14
+HIST 189 13
+HIST 190 24
+HIST 191 20
+HIST 192 17
+HIST 193 13
+HIST 194 29
+HIST 195 12
+HIST 196 19
+HIST 197 14
+HIST 198 17
+HIST 199 19
+HIST 200 5780
+HISTEND

@@ -1,0 +1,105 @@
+BecqMoni: main config: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\device: 10 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\NuclideDefinition.xml: 152 entries
+SETUP	прибор: прибора «Atom Spectra 80x80» (33100348-421f-475d-adda-33736e6af7f8) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	спектр: AS80_UGlass.xml
+SETUP	SNR=10	допуск=10	диапазон=30…2800 кэВ
+SETUP	кривая: нет
+SETUP	найдено пиков: 12
+PEAK	61.7	Am-241
+PEAK	93.1	Pb x-ray
+PEAK	144.3	U-235
+PEAK	186.0	Ra-226
+PEAK	347.7	Eu-152
+PEAK	600.1	Bi-214
+PEAK	770.7	Bi-214
+PEAK	1002.5	Pa-234m
+PEAK	1131.4	Bi-214
+PEAK	1462.2	K-40
+PEAK	1770.8	Bi-214
+PEAK	2663.7	—
+
+=== ОТЧЁТ ВЫВОДА СОСТАВА ===
+правило обрыва ряда: Only (умолчание приложения); якоря вкл, новизна вкл
+REPORT	выведено из пиков: 11 из 12 подписаны, родителей 2 из 6, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Ra-226 50 % (5/10, пиков 5) — доля выше порога; U-235 14 % (1/7, пиков 1) — доля ниже порога; Eu-152 14 % (1/7, пиков 1) — доля ниже порога; Am-241 8 % (1/13, пиков 1) — доля ниже порога; U-238 4 % (1/23, пиков 1) — доля ниже порога; оборванный ряд: подцепочка разобрана у 0 кандидатов
+
+CAND	принят 	40K	K-40 100 % (1/1, пиков 1) — доля выше порога
+MEMBER	40K	40K@0 1/1
+MEMBER	40K	40AR@1 0/0
+MEMBER	40K	40CA@1 0/0
+CAND	принят 	226RA	Ra-226 50 % (5/10, пиков 5) — доля выше порога
+MEMBER	226RA	226RA@0 1/1
+MEMBER	226RA	222RN@1 0/0
+MEMBER	226RA	218PO@2 0/0
+MEMBER	226RA	214PB@3 0/4
+MEMBER	226RA	214BI@4 4/5
+MEMBER	226RA	210PB@5 0/0
+MEMBER	226RA	214PO@5 0/0
+MEMBER	226RA	210BI@6 0/0
+MEMBER	226RA	210PO@7 0/0
+MEMBER	226RA	206PB@8 0/0
+CAND	отвергнут	235U	U-235 14 % (1/7, пиков 1) — доля ниже порога
+MEMBER	235U	235U@0 1/2
+MEMBER	235U	231TH@1 0/0
+MEMBER	235U	231PA@2 0/0
+MEMBER	235U	227AC@3 0/0
+MEMBER	235U	223FR@4 0/0
+MEMBER	235U	227TH@4 0/1
+MEMBER	235U	223RA@5 0/2
+MEMBER	235U	219RN@6 0/1
+MEMBER	235U	215PO@7 0/0
+MEMBER	235U	211PB@8 0/0
+MEMBER	235U	211BI@9 0/1
+MEMBER	235U	207TL@10 0/0
+MEMBER	235U	211PO@10 0/0
+MEMBER	235U	207PB@11 0/0
+CAND	отвергнут	152EU	Eu-152 14 % (1/7, пиков 1) — доля ниже порога
+MEMBER	152EU	152EU@0 1/7
+MEMBER	152EU	152GD@1 0/0
+MEMBER	152EU	152SM@1 0/0
+MEMBER	152EU	148SM@2 0/0
+MEMBER	152EU	144ND@3 0/0
+MEMBER	152EU	140CE@4 0/0
+CAND	отвергнут	241AM	Am-241 8 % (1/13, пиков 1) — доля ниже порога
+MEMBER	241AM	241AM@0 1/1
+MEMBER	241AM	237NP@1 0/0
+MEMBER	241AM	233PA@2 0/3
+MEMBER	241AM	233U@3 0/0
+MEMBER	241AM	229TH@4 0/5
+MEMBER	241AM	225RA@5 0/1
+MEMBER	241AM	225AC@6 0/0
+MEMBER	241AM	221FR@7 0/1
+MEMBER	241AM	217AT@8 0/0
+MEMBER	241AM	213BI@9 0/1
+MEMBER	241AM	209TL@10 0/1
+MEMBER	241AM	213PO@10 0/0
+MEMBER	241AM	209PB@11 0/0
+MEMBER	241AM	209BI@12 0/0
+MEMBER	241AM	205TL@13 0/0
+CAND	отвергнут	238U	U-238 4 % (1/23, пиков 1) — доля ниже порога
+MEMBER	238U	238U@0 0/0
+MEMBER	238U	234TH@1 0/3
+MEMBER	238U	234PAm1@2 1/1
+MEMBER	238U	234U@3 0/0
+MEMBER	238U	230TH@4 0/0
+MEMBER	238U	226RA@5 0/1
+MEMBER	238U	222RN@6 0/0
+MEMBER	238U	218PO@7 0/0
+MEMBER	238U	214PB@8 0/6
+MEMBER	238U	214BI@9 0/11
+MEMBER	238U	210PB@10 0/1
+MEMBER	238U	214PO@10 0/0
+MEMBER	238U	210BI@11 0/0
+MEMBER	238U	210PO@12 0/0
+MEMBER	238U	206PB@13 0/0
+
+=== СОСТАВ (FsaSampleSpec) ===
+SPEC	рядов 2, одиночек 0, элементов пробы 0, кристалла 0
+SPEC	ряд	40K	весь ряд
+SPEC	ряд	226RA	весь ряд
+
+=== БИБЛИОТЕКА ===
+LIBSIZE	10
+
+ВЕРДИКТ	разбор не пуст (компонентов 10, родителей принято 2)
+модальных окон за прогон: 0

@@ -250,7 +250,7 @@ namespace CorpusFsaProbe
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
     ///                  [--no-escape-gate]
-    ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B]
+    ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B] [--gamma-map=<каталог прогона>]
     ///                  [--bg-rebin]
     ///                  [--offset-range=&lt;кэВ&gt;] [--offset-steps=N]
     ///                  [--gain-range=&lt;ДОЛЯ: 0.02 = ±2 %&gt;] [--gain-steps=N]
@@ -289,6 +289,15 @@ namespace CorpusFsaProbe
     /// с ним на уровне МДА (проверка пропусков против β); библиотека и настройки
     /// не меняются, поиск пиков не перезапускается. Дорого — 2·N разборов на
     /// нуклид: запускать с `--only=` и, при нужде, `--mc-component=`.
+    /// ⛔ Для ЧЛЕНА РЯДА (`DecayChainRoot` не пуст) «без нуклида» значит без
+    /// ВСЕГО ряда, и впрыскивается тоже весь ряд в масштабе МДА/a члена (П30
+    /// 12.09.2026, `S106`): снятый в одиночку член связка равновесия
+    /// восстанавливала из дочерних, и `G1S16_Th228_P25` давал «ложных 100/100».
+    ///
+    /// `--gamma-map=<каталог>` (`S43`, остаток ~~`S51`~~; П30 12.09.2026) — γ
+    /// составного шума КАЖДОМУ спектру равным его же невязке ε
+    /// (`model_residual_pct`/100) из `*_spline_runs.csv` прежнего прогона —
+    /// прямая проверка «ε и есть γ, оценённый по фиту»; печатается по спектру.
     ///
     /// Запускать из каталога, где рядом лежат `config\NuclideDefinition.xml`
     /// (ПОСТАВОЧНЫЙ, а не сеты `mkconfig.py` с обманками), `config\device\*.xml`
@@ -932,6 +941,19 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--beta=", StringComparison.Ordinal))
                 {
                     o.NoiseBeta = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gamma-map=", StringComparison.Ordinal))
+                {
+                    // (`S43`, остаток ~~`S51`~~; полоса П30 12.09.2026) γ КАЖДОМУ
+                    // спектру — его же измеренная невязка ε прежнего прогона
+                    // (`model_residual_pct` из `*_spline_runs.csv` каталога);
+                    // прямая проверка гипотезы «ε — это и есть γ, оценённый по
+                    // фиту». Спектр без строки в каталоге идёт с `--gamma=`.
+                    o.GammaMap = ReadGammaMap(a.Substring(12));
+                    if (o.GammaMap == null)
+                    {
+                        return 2;
+                    }
                 }
                 else
                 {
@@ -2204,6 +2226,15 @@ namespace CorpusFsaProbe
                 // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
                 // которого их берёт на печать шапка.
                 FsaAnalyzer analyzer = NewAnalyzer(o);
+                double gammaMapped;
+                if (o.GammaMap != null && o.GammaMap.TryGetValue(sample.Key, out gammaMapped))
+                {
+                    // (`S43`) γ = ε этого же спектра; печатается, чтобы плечо
+                    // нельзя было спутать с глобальным `--gamma=`.
+                    analyzer.NoiseGamma = gammaMapped;
+                    Console.WriteLine("  {0}: γ по невязке прежнего прогона = {1}",
+                                      sample.Key, gammaMapped.ToString("F4", CultureInfo.InvariantCulture));
+                }
                 if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
                 {
                     analyzer.MinEnergy = peakConfig.Min_Range;
@@ -2676,6 +2707,63 @@ namespace CorpusFsaProbe
         }
 
         /// <summary>
+        /// (`S43`) Карта «спектр → ε» из `*_spline_runs.csv` каталога прежнего
+        /// прогона: `model_residual_pct` (проценты) → доля. Строки `ERROR` и
+        /// пустые пропускаются. null — каталога нет или строк не нашлось.
+        /// </summary>
+        static Dictionary<string, double> ReadGammaMap(string dir)
+        {
+            if (!Directory.Exists(dir))
+            {
+                Console.Error.WriteLine("--gamma-map: каталога нет: " + dir);
+                return null;
+            }
+
+            var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (string file in Directory.GetFiles(dir, "*_spline_runs.csv"))
+            {
+                string[] lines = File.ReadAllLines(file);
+                if (lines.Length < 2)
+                {
+                    continue;
+                }
+
+                string[] header = lines[0].TrimStart('﻿').Split(',');
+                int iSpec = Array.IndexOf(header, "spectrum");
+                int iEps = Array.IndexOf(header, "model_residual_pct");
+                if (iSpec < 0 || iEps < 0)
+                {
+                    continue;
+                }
+
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    List<string> cells = SplitCsv(lines[i]);
+                    if (cells.Count <= Math.Max(iSpec, iEps))
+                    {
+                        continue;
+                    }
+
+                    double eps;
+                    if (double.TryParse(cells[iEps], NumberStyles.Float, CultureInfo.InvariantCulture, out eps)
+                        && eps > 0.0)
+                    {
+                        map[cells[iSpec]] = eps / 100.0;
+                    }
+                }
+            }
+
+            if (map.Count == 0)
+            {
+                Console.Error.WriteLine("--gamma-map: в каталоге нет строк с невязкой: " + dir);
+                return null;
+            }
+
+            Console.WriteLine("γ по невязке прежнего прогона (--gamma-map): спектров {0}, каталог {1}", map.Count, dir);
+            return map;
+        }
+
+        /// <summary>
         /// Только `materials.csv`, и только колонки прибора, — для `--lib=infer`.
         ///
         /// Отдельный читатель, а не флаг у <see cref="ReadTruth"/>, нарочно:
@@ -2884,6 +2972,32 @@ namespace CorpusFsaProbe
                 }
 
                 double mdaAmplitude = c.DetectionLimitRate * liveTime;
+
+                // (`S106`, полоса П30 12.09.2026) Нулевая гипотеза ЧЛЕНА РЯДА —
+                // ряд целиком. Снятый из модели один член связка равновесия
+                // восстанавливает из его же дочерних (Th-228 из Pb-212/Tl-208),
+                // и «ложных 100/100» мерило связку, а не порог. Поэтому из
+                // модели вынимаются ВСЕ компоненты с тем же корнем ряда, и
+                // впрыскиваются они же — в масштабе МДА/a самого члена.
+                var family = new List<FsaComponentResult> { c };
+                if (!string.IsNullOrEmpty(c.DecayChainRoot))
+                {
+                    foreach (FsaComponentResult other in result.Components)
+                    {
+                        if (!ReferenceEquals(other, c) && other.Curve != null
+                            && string.Equals(other.DecayChainRoot, c.DecayChainRoot, StringComparison.Ordinal))
+                        {
+                            family.Add(other);
+                        }
+                    }
+                }
+
+                if (family.Count > 1)
+                {
+                    Console.WriteLine("  {0}: {1} — член ряда {2}: нулевая гипотеза и впрыск — ряд целиком ({3} компонентов)",
+                                      key, c.Name, c.DecayChainRoot, family.Count);
+                }
+
                 double[] mu0 = new double[channels];
                 double[] mu1 = new double[channels];
                 for (int i = 0; i < channels; i++)
@@ -2896,7 +3010,13 @@ namespace CorpusFsaProbe
                         continue;
                     }
 
-                    double without = result.Model[i] - c.Curve[i];
+                    double familyCurve = 0.0;
+                    foreach (FsaComponentResult member in family)
+                    {
+                        familyCurve += member.Curve[i];
+                    }
+
+                    double without = result.Model[i] - familyCurve;
                     if (without < 0.0)
                     {
                         without = 0.0;
@@ -2904,7 +3024,7 @@ namespace CorpusFsaProbe
 
                     double bg = result.Background != null ? result.Background[i] : 0.0;
                     mu0[i] = without + bg;
-                    mu1[i] = mu0[i] + mdaAmplitude * (c.Curve[i] / amplitude);
+                    mu1[i] = mu0[i] + mdaAmplitude * (familyCurve / amplitude);
                 }
 
                 int falsePositives = 0, detections = 0, failed = 0;
@@ -4411,6 +4531,9 @@ namespace CorpusFsaProbe
 
             /// <summary>(S43) β коррелированности вычитаемого фона; 0 — выключено.</summary>
             public double NoiseBeta;
+
+            /// <summary>(S43) `--gamma-map=`: γ по спектру из невязки ε прежнего прогона; null — нет.</summary>
+            public Dictionary<string, double> GammaMap;
 
             /// <summary>(P6) Считать парциальные невязки (дорого: рефит на компонент).</summary>
             public bool Partial;

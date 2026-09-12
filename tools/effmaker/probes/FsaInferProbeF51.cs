@@ -29,11 +29,18 @@ namespace FsaInferProbeF51
     ///
     ///   FsaInferProbeF51 --spectrum=X.xml [--set=Имя] [--efficiency=Имя]
     ///                    [--cut=whole|criterion|only] [--lib-dump]
-    ///                    [--modal-control]
+    ///                    [--no-anchor] [--no-novel] [--modal-control]
     ///
     /// `--cut=` заставляет правило обрыва ряда; БЕЗ ключа зовётся ровно та
     /// перегрузка, которой пользуется приложение, — то есть меряется умолчание,
-    /// а не догадка о нём.
+    /// а не догадка о нём. `--no-anchor` / `--no-novel` (`S66`, полоса П30
+    /// 12.09.2026) выключают два дополнительных условия приёма `S57` — якорь и
+    /// проверку новизны; это те же рычаги, что `--no-infer-anchor` /
+    /// `--no-infer-novel` у `CorpusFsaProbe`, только тот на корпусе режим
+    /// `--lib=infer` отвергает кодом 12, а экран «Из NucBase» меряется здесь.
+    /// Любой из трёх ключей (`--cut=`, `--no-anchor`, `--no-novel`) переводит
+    /// вызов на полную перегрузку `Infer`; остальные два довода при этом равны
+    /// умолчанию приложения (`DefaultCut`, якоря вкл, новизна вкл).
     ///
     /// ⛔ Сторож модальных окон поднят ПЕРВЫМ ДЕЛОМ (образец —
     /// `CultureProbeO14`): безоконный путь, упершийся в `MessageBox`, вешает
@@ -54,6 +61,7 @@ namespace FsaInferProbeF51
             string spectrumPath = null, setName = null, efficiencyName = null;
             string cutName = null;
             bool libDump = false, modalControl = false;
+            bool anchors = true, novelty = true;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -61,6 +69,8 @@ namespace FsaInferProbeF51
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
                 else if (a.StartsWith("--cut=", StringComparison.Ordinal)) cutName = a.Substring(6);
                 else if (a == "--lib-dump") libDump = true;
+                else if (a == "--no-anchor") anchors = false;
+                else if (a == "--no-novel") novelty = false;
                 else if (a == "--modal-control") modalControl = true;
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
@@ -129,7 +139,7 @@ namespace FsaInferProbeF51
 
             FsaCompositionInference.Report report;
             FsaSampleSpec spec;
-            if (cutName == null)
+            if (cutName == null && anchors && novelty)
             {
                 // ⛔ ТА ЖЕ перегрузка, что у `FsaAnalysisSession.Compute`: меряем
                 //    умолчание приложения, а не своё представление о нём.
@@ -140,6 +150,7 @@ namespace FsaInferProbeF51
                 FsaChainCut cut;
                 switch (cutName)
                 {
+                    case null: cut = FsaCompositionInference.DefaultCut; break;
                     case "whole": cut = FsaChainCut.Whole; break;
                     case "criterion": cut = FsaChainCut.Criterion; break;
                     case "only": cut = FsaChainCut.Only; break;
@@ -150,13 +161,15 @@ namespace FsaInferProbeF51
                 }
 
                 spec = FsaCompositionInference.Infer(peaks, rd, FsaCompositionInference.DefaultCoverage,
-                                                    true, true, cut, out report);
+                                                    anchors, novelty, cut, out report);
             }
 
             Console.WriteLine();
             Console.WriteLine("=== ОТЧЁТ ВЫВОДА СОСТАВА ===");
-            Console.WriteLine("правило обрыва ряда: {0}{1}", report.Cut,
-                              cutName == null ? " (умолчание приложения)" : " (--cut=" + cutName + ")");
+            Console.WriteLine("правило обрыва ряда: {0}{1}; якоря {2}, новизна {3}", report.Cut,
+                              cutName == null ? " (умолчание приложения)" : " (--cut=" + cutName + ")",
+                              anchors ? "вкл" : "ВЫКЛ (--no-anchor)",
+                              novelty ? "вкл" : "ВЫКЛ (--no-novel)");
             Console.WriteLine("REPORT\t{0}", report);
             Console.WriteLine();
             foreach (FsaParentEvidence candidate in report.Candidates)
