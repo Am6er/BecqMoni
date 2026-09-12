@@ -9645,6 +9645,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        /// <summary>
+        /// (`A308`) ПРИБОР РЕШАТЕЛЯ — приёмник трассы каждого вызова
+        /// <see cref="NnlsSolve"/>: Грам (уже со штрафом на излом), правая
+        /// часть, решение, активные и забаненные колонки, потраченные итерации
+        /// внешнего цикла, число сходов только что добавленной колонки и
+        /// признак исчерпанного бюджета. Ставится безоконной пробой
+        /// (`FsaNnlsDumpProbe`) на время разбора; в приложении не задан, и
+        /// тогда решатель ничего не копирует и никого не зовёт.
+        /// </summary>
+        public static Action<NnlsTrace> NnlsTraceSink { get; set; }
+
+        /// <summary>(`A308`) Трасса одного вызова <see cref="NnlsSolve"/> для <see cref="NnlsTraceSink"/>.</summary>
+        public sealed class NnlsTrace
+        {
+            public double[,] Gram;
+            public double[] C;
+            public double[] X;
+            public bool[] Active;
+            public bool[] Banned;
+            public double Tol;
+            public int Iterations;
+            public int Budget;
+            /// <summary>Сколько раз только что добавленная колонка тут же выпала из активного набора (шаг α = 0).</summary>
+            public int Drops;
+        }
+
         /// <summary>Быстрый NNLS (Bro &amp; de Jong) на готовых нормальных уравнениях.</summary>
         static double[] NnlsSolve(double[,] gram, double[] c, int m, out bool[] active)
         {
@@ -9657,7 +9683,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double tol = 1e-10 * MaxDiagonal(gram, m);
             double[] w = (double[])c.Clone();
 
-            for (int iteration = 0; iteration < 30 * m; iteration++)
+            // (`A308`) Счётчики прибора: итерации внешнего цикла и сходы только
+            // что добавленной колонки; читаются приёмником `NnlsTraceSink`.
+            int budget = 30 * m;
+            int iteration = 0;
+            int drops = 0;
+            for (; iteration < budget; iteration++)
             {
                 int j = -1;
                 double wmax = tol;
@@ -9725,6 +9756,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             active[k] = false;
                         }
                     }
+
+                    if (!active[j])
+                    {
+                        drops++;
+                    }
                 }
 
                 for (int a = 0; a < m; a++)
@@ -9740,6 +9776,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     w[a] = s;
                 }
+            }
+
+            Action<NnlsTrace> sink = NnlsTraceSink;
+            if (sink != null)
+            {
+                sink(new NnlsTrace
+                {
+                    Gram = gram, C = c, X = x, Active = active, Banned = banned, Tol = tol,
+                    Iterations = iteration, Budget = budget, Drops = drops
+                });
             }
 
             return x;
