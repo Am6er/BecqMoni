@@ -161,6 +161,12 @@ namespace BecquerelMonitor
         /// </summary>
         public static NuclideDefinitionManager GetInstance()
         {
+            // ⛔ Счёт обращений — ПЕРВЫМ действием, до попытки чтения (`AMBER19`):
+            // гейт корпусного прогона спрашивает «поднимали ли менеджер», а не
+            // «поднялся ли». Безоконный вызов без файла бросает выше по тексту,
+            // и `isLoaded` остаётся ложью; исключение же проба глотает в
+            // `row.Error` — по одному `isLoaded` подъём был бы невидим.
+            NuclideDefinitionManager.raiseCount++;
             if (!NuclideDefinitionManager.instance.LoadDefinitionFile())
             {
                 string filename = NuclideDefinitionManager.instance.nuclideDefinitionFilename;
@@ -304,6 +310,22 @@ namespace BecquerelMonitor
         }
 
         string nuclideDefinitionFilename = Package.GetInstance().NuclideDefinition;
+
+        /// <summary>
+        /// Сколько раз звали <see cref="GetInstance"/> за время жизни процесса
+        /// — в том числе вызовы, кончившиеся броском (безоконный запуск без
+        /// файла, <c>S100</c>). Признак «поднимали ли поставочную библиотеку»
+        /// для гейта корпусного прогона (`AMBER19`): корпус считается только по
+        /// нуклидам из базы, и ни одно обращение к менеджеру там не законно.
+        /// Читатель — <c>CorpusFsaProbe</c>, в конце прогона; сбросить нельзя
+        /// нарочно.
+        /// </summary>
+        public static int RaiseCount
+        {
+            get { return NuclideDefinitionManager.raiseCount; }
+        }
+
+        static int raiseCount;
 
         // Token: 0x04000513 RID: 1299
         static NuclideDefinitionManager instance = new NuclideDefinitionManager();
