@@ -880,6 +880,21 @@ function Test-AppWdStamp {
                  "`n           Соберите: pwsh mk_appwd.ps1")
     } elseif (-not (Read-AppWdStamp -Wd $Plan.Wd)) {
         $bad.Add("ОТМЕТКА $($script:AppWdStampName) НЕ РАЗБИРАЕТСЯ КАК JSON — чем и из чего собрана оснастка, проверить нечем")
+    } else {
+        # ⛔ (`T68` (2), 13.09.2026) Отметка без манифеста `files_sha` — оснастка
+        #    собрана `mk_appwd.ps1` до 13.09.2026: проба на ней откажет кодом 3
+        #    сама, но сторож обязан сказать это ПЕРВЫМ и теми же словами, что и
+        #    на прочие протухшие оснастки, — «пересоберите», а не «проба упала».
+        $st = Read-AppWdStamp -Wd $Plan.Wd
+        $m = if ($st.PSObject.Properties['files_sha']) { $st.files_sha } else { $null }
+        if (-not $m -or -not $m.PSObject.Properties['sha']) {
+            $bad.Add("ОТМЕТКА $($script:AppWdStampName) БЕЗ МАНИФЕСТА files_sha (оснастка собрана до T68 (2), 13.09.2026) — проба откажет кодом 3" +
+                     "`n           Соберите заново: mk_appwd.ps1")
+        } elseif (-not $m.PSObject.Properties['algo'] -or $m.algo -ne $script:AppWdLayoutAlgo) {
+            $bad.Add("МАНИФЕСТ files_sha ПИСАН ДРУГИМ АЛГОРИТМОМ ($($m.algo)) — проба знает $($script:AppWdLayoutAlgo)")
+        } elseif (-not $m.PSObject.Properties['n'] -or [int]$m.n -lt 1) {
+            $bad.Add("МАНИФЕСТ files_sha ПУСТ — оснастка «собрана» из нуля файлов")
+        }
     }
     [pscustomobject]@{ Bad = @($bad) }
 }
@@ -1336,8 +1351,50 @@ function Write-AppWdStamp {
                 probes   = $probeBins
             }
         }
+        # ⛔ МАНИФЕСТ ПОЛОЖЕННЫХ ФАЙЛОВ (`T68` (2), 13.09.2026, полоса П39): sha256
+        #    КАЖДОГО файла плана ПО МЕСТУ В ОСНАСТКЕ (`Dst`) — по тем же
+        #    `$Plan.Pairs`, которыми клали, второго списка нет (урок `T61`).
+        #    Читатель — САМА ПРОБА: `CorpusFsaProbe` на старте считает sha256 тех
+        #    же файлов в своём каталоге (`AppWdGuard`) и отказывает кодом 3 на
+        #    любом расхождении. Так закрыт документированный обходной путь
+        #    `cd wd_app; .\CorpusFsaProbe.exe …`, который шёл мимо `run_appwd.ps1`.
+        #    ⚠ Манифест пишется ВМЕСТЕ с читателем и не раньше: манифест без
+        #    читателя — ровно дефект, что чинила `T63`.
+        #    Хэшируется `Dst`, а не `Src`: сторож `Test-AppWdPlan` ПЕРЕД отметкой
+        #    уже доказал, что они равны, а проба сверяет то, что лежит У НЕЁ.
+        #    Пути — относительно оснастки, разделитель `\`, регистр как в плане
+        #    (проба сравнивает через файловую систему, ей регистр безразличен).
+        #    Пропавший `Dst` здесь НЕ отказ, а пропуск: отказ на нём дал сторож
+        #    до этой строки, а на синтетическом стенде `build_all.ps1` (`T226`)
+        #    план шире стенда по замыслу.
+        files_sha = (Get-AppWdLayoutManifest -Plan $Plan)
     }
     ($stamp | ConvertTo-Json -Depth 6) | Set-Content -LiteralPath (Join-Path $Plan.Wd $script:AppWdStampName) -Encoding utf8
+}
+
+# Алгоритм манифеста положенных файлов — тот же текст знает `CorpusFsaProbe`
+# (`AppWdGuard.Algo`): отметка с другим словом читателю негодна, а не «совместима».
+$script:AppWdLayoutAlgo = 'sha256(содержимое)/v1'
+
+# Манифест `files_sha` (`T68` (2)): `algo`, `n` и карта «путь в оснастке -> sha256».
+function Get-AppWdLayoutManifest {
+    param([Parameter(Mandatory)]$Plan)
+    $wd  = $Plan.Wd.TrimEnd('\') + '\'
+    $map = [ordered]@{}
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        foreach ($p in ($Plan.Pairs | Sort-Object { $_.Dst })) {
+            if (-not (Test-Path -LiteralPath $p.Dst)) { continue }
+            $full = (Get-Item -LiteralPath $p.Dst -Force).FullName
+            $rel  = if ($full.StartsWith($wd, [StringComparison]::OrdinalIgnoreCase)) { $full.Substring($wd.Length) } else { $full }
+            if ($map.Contains($rel)) { continue }
+            $fs = [System.IO.File]::Open($full, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            try { $h = [System.BitConverter]::ToString($sha.ComputeHash($fs)).Replace('-', '').ToLowerInvariant() }
+            finally { $fs.Dispose() }
+            $map[$rel] = $h
+        }
+    } finally { $sha.Dispose() }
+    [ordered]@{ algo = $script:AppWdLayoutAlgo; n = $map.Count; sha = $map }
 }
 
 # Снять отметку. Зовётся ПЕРЕД первым копированием (`mk_appwd.ps1`): иначе
