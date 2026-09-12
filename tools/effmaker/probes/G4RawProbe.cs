@@ -22,7 +22,15 @@ namespace G4RawProbe
     ///     g4rawprobe --geometry=X.in [--spectrum=X.xml] --energy=661.657
     ///                [--n=2000000] [--bin=1] [--seed=20260902]
     ///                [--out=raw.csv] [--scene=scene.txt]
-    ///                [--bands=1-12,13-25,55-59] [--peakw]
+    ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
+    ///
+    /// `--lys=N` (П23 12.09.2026, приёмка `M9` — решение Amber «ω_L из
+    /// fluorescence_yield + f13 в СЛЕДУЮЩИЙ единый счёт склада»): уровень
+    /// ключа `LYieldSupply` — 0 (умолчание) EADL без переходов Костера—Кронига;
+    /// 1 — ω_L из xraylib + переходы EADL; 2 — и переходы из xraylib (таблица
+    /// `coster_kronig`, без неё отказ). Мерка ~~`A101`~~: голый NaI Ø80×80,
+    /// 59.541 кэВ, `--no-light --bin=1 --bands=55-56,55-59` против Geant4
+    /// (5.268e-4 / 5.794e-4 на историю).
     ///
     /// `--out=` — `keV,response` (доля на историю; ПОСЛЕДНИЙ бин — пик полного
     /// поглощения, см. <see cref="EfficiencySimulator.Response"/>).
@@ -70,6 +78,7 @@ namespace G4RawProbe
             bool xray = true, esc = true, brem = true;
             bool noLXray = false;                       // `A60`
             bool noKLCascade = false;                   // `A101`
+            int lys = 0;                                // `M9`, П23
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -98,6 +107,12 @@ namespace G4RawProbe
                 // в расчёте матрицы, — иначе проба мерила бы не то, что склад.
                 // Ключ выключает его для абляции.
                 if (a == "--no-klcasc") { noKLCascade = true; continue; }
+                // `M9` (П23): источник ω_L и переходы Костера—Кронига, уровень 0/1/2.
+                if (a.StartsWith("--lys=", StringComparison.Ordinal))
+                {
+                    lys = int.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                    continue;
+                }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
                 {
                     escSoft = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
@@ -202,6 +217,7 @@ namespace G4RawProbe
             simulator.LightNonproportionality = light;
             simulator.LXrayEscape = !noLXray;           // `A60`
             simulator.KLCascade = !noKLCascade;         // `A101`
+            simulator.LYieldSupply = lys;               // `M9`, П23
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
             simulator.XrayEscape = xray;
@@ -229,6 +245,10 @@ namespace G4RawProbe
                               simulator.PeakHalfWidthKev.ToString("F3", CultureInfo.InvariantCulture),
                               peakw ? "ИЗ ГЕОМЕТРИИ, --peakw (`E34`)" : "ноль, как у поставочного склада");
             Console.WriteLine("шкала: {0}", light ? "СВЕТ (как в матрице)" : "энерговыделение (как у Geant4)");
+            Console.WriteLine("выходы L-флуоресценции (`M9`, --lys=): {0}",
+                              lys == 0 ? "0 — EADL, переходов Костера—Кронига нет (как до 12.09.2026)"
+                              : lys == 1 ? "1 — ω_L из xraylib (fluorescence_yield), переходы f12/f13/f23 по EADL"
+                              : "2 — ω_L и переходы из xraylib (coster_kronig)");
             Console.WriteLine("розыгрыш аналоговой: {0}", cone ? "КОНУС на габарит сцены (`A57`)" : "полная сфера");
 
             if (scenePath != null)

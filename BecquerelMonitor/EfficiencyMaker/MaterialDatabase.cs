@@ -229,6 +229,96 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// <summary>Выход флуоресценции подоболочек L1, L2, L3 (EADL).</summary>
             public double[] OmegaL;
 
+            /// <summary>
+            /// (`M9`, П23 12.09.2026) ТЕ ЖЕ выходы L1, L2, L3 из ПОСТАВКИ —
+            /// `fluorescence_yield`, `source = 'xraylib'` (Krause ORNL-5399 с
+            /// заменами Campbell-2009 по L1). null — у элемента поставки нет
+            /// (Z &lt; 12: у xraylib L-серия начинается с магния), и тогда
+            /// <see cref="OmegaLAt"/> отдаёт EADL и на включённом ключе — у
+            /// таких элементов ω_L ≲ 1e-3 и L-линии ниже 0.1 кэВ, различать
+            /// нечего; проба `LYieldProbe` такой откат называет поимённо.
+            ///
+            /// Отдельным полем, а не подменой <see cref="OmegaL"/>, по тому
+            /// же доводу, что <see cref="OmegaKMeasured"/>: расчёт и поставка
+            /// расходятся систематикой (~~`N17`~~: ω_L1 у EADL занижен вдвое
+            /// на тяжёлых — W 0.069 против 0.130, Pb 0.098 против 0.128),
+            /// и выбор делает расчёт ключом
+            /// (<see cref="EfficiencySimulator.LYieldSupply"/>), а не загрузчик.
+            /// </summary>
+            public double[] OmegaLSupply;
+
+            /// <summary>
+            /// (`M9`) ПЕРЕХОДЫ КОСТЕРА—КРОНИГА f12, f13, f23 по EADL —
+            /// суммы `eadl_auger` по (вакансия L1, откуда L2), (L1, L3),
+            /// (L2, L3); тем же счётом, что `tools/nucdb/compare_coster_kronig.py`.
+            /// Нули — переходов нет (лёгкие элементы). ⚠ Сверка 24.08.2026:
+            /// f12 (медиана наша/xraylib 0.99) и f23 (1.07) годны, **f13
+            /// систематически завышен** (медиана 1.12, на вольфраме 1.88).
+            /// </summary>
+            public double[] CkEadl;
+
+            /// <summary>
+            /// (`M9`) ТЕ ЖЕ f12, f13, f23 из ПОСТАВКИ xraylib (`coster_kronig`,
+            /// таблица, которую заводит `tools/nucdb/import_coster_kronig.py`
+            /// — Krause-1979 с заменами, последнее вхождение). null — таблицы в
+            /// базе нет или элемента в ней нет; на уровне 2 ключа отсутствие
+            /// ТАБЛИЦЫ — отказ (<see cref="MaterialDatabase.HasCosterKronigSupply"/>),
+            /// отсутствие элемента — ноль (у xraylib f23 не задан ниже Z = 29,
+            /// там переход L2→L3 закрыт).
+            /// </summary>
+            public double[] CkSupply;
+
+            /// <summary>
+            /// (`M9`) Выход подоболочки `li` (0 = L1, 1 = L2, 2 = L3) по уровню
+            /// ключа: 0 — EADL (как до 12.09.2026), 1 и 2 — поставка xraylib,
+            /// если она есть у элемента. ОДНО место выбора, как у
+            /// <see cref="Omega(bool)"/> для K.
+            /// </summary>
+            public double OmegaLAt(int li, int level)
+            {
+                if (level > 0 && this.OmegaLSupply != null && li < this.OmegaLSupply.Length
+                    && this.OmegaLSupply[li] > 0.0)
+                {
+                    return this.OmegaLSupply[li];
+                }
+
+                return this.OmegaL != null && li < this.OmegaL.Length ? this.OmegaL[li] : 0.0;
+            }
+
+            /// <summary>
+            /// (`M9`) Переход Костера—Кронига `j` (0 = f12, 1 = f13, 2 = f23)
+            /// по уровню ключа: 0 — переходов нет (дырка остаётся на своей
+            /// подоболочке, как до 12.09.2026), 1 — EADL, 2 — поставка xraylib.
+            /// </summary>
+            public double CkAt(int j, int level)
+            {
+                double[] ck = level == 2 ? this.CkSupply : level == 1 ? this.CkEadl : null;
+                return ck != null && j < ck.Length ? ck[j] : 0.0;
+            }
+
+            /// <summary>
+            /// (`M9`) ПОЛНЫЙ радиационный выход дырки на подоболочке `li` с
+            /// учётом переходов Костера—Кронига: ν₃ = ω₃; ν₂ = ω₂ + f23·ω₃;
+            /// ν₁ = ω₁ + f12·ν₂ + f13·ω₃. На уровне 0 переходов нет и ν = ω —
+            /// ровно прежний счёт.
+            /// </summary>
+            public double LYield(int li, int level)
+            {
+                double w3 = this.OmegaLAt(2, level);
+                if (li == 2)
+                {
+                    return w3;
+                }
+
+                double w2 = this.OmegaLAt(1, level) + this.CkAt(2, level) * w3;
+                if (li == 1)
+                {
+                    return w2;
+                }
+
+                return this.OmegaLAt(0, level) + this.CkAt(0, level) * w2 + this.CkAt(1, level) * w3;
+            }
+
             /// <summary>Энергии линий каждой L-подоболочки, кэВ.</summary>
             public double[][] LineKevL;
 
@@ -814,6 +904,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         static Dictionary<int, double> atomicMass;
         static Dictionary<int, string> symbols;
         static Dictionary<int, Fluorescence> fluorescence;
+        static bool hasCosterKronigSupply;
+
+        /// <summary>
+        /// (`M9`) Есть ли в базе таблица `coster_kronig` (переходы
+        /// Костера—Кронига поставки xraylib). Уровень 2 ключа
+        /// <see cref="EfficiencySimulator.LYieldSupply"/> без неё ОТКАЗЫВАЕТ
+        /// (<see cref="EfficiencySimulator.EnsureBuilt"/>): молчаливый откат
+        /// на EADL дал бы матрицу с клеймом `lys=2` и числами уровня 1 —
+        /// ровно беда `A77`/`T114`.
+        /// </summary>
+        public static bool HasCosterKronigSupply
+        {
+            get
+            {
+                Load();
+                return hasCosterKronigSupply;
+            }
+        }
         static readonly Dictionary<int, PhotoShellModel> photoShells =
             new Dictionary<int, PhotoShellModel>();
         static readonly Dictionary<string, LightYieldCurve> lightYields =
@@ -1962,6 +2070,113 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 f.LineWeightL[li] = w;
                             }
                         }
+
+                        // (`M9`, П23 12.09.2026) ВЫХОДЫ L ИЗ ПОСТАВКИ — рядом с
+                        // EADL, отдельным полем: выбор делает ключ расчёта
+                        // (`EfficiencySimulator.LYieldSupply`), а не загрузчик,
+                        // и выключенный ключ читает ровно прежние числа.
+                        // Источник назван в запросе ЯВНО (`source = 'xraylib'`):
+                        // в таблице лежат ДВЕ поставки порознь, и без условия
+                        // `xraydb` (Krause-1979 без правки Campbell по L1)
+                        // перекрыл бы нужную молча (правило «каждому своё»,
+                        // `database/scheme.md` §0а).
+                        command.CommandText =
+                            "select z, shell, omega from fluorescence_yield" +
+                            " where source = 'xraylib' and shell in ('L1', 'L2', 'L3')";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Fluorescence f;
+                                if (!fluo.TryGetValue(reader.GetInt32(0), out f) || f.LEdgeKev == null)
+                                {
+                                    continue;
+                                }
+
+                                if (f.OmegaLSupply == null)
+                                {
+                                    f.OmegaLSupply = new double[lShells.Length];
+                                }
+
+                                string shell = reader.GetString(1);
+                                int li = shell == "L1" ? 0 : shell == "L2" ? 1 : 2;
+                                f.OmegaLSupply[li] = reader.GetDouble(2);
+                            }
+                        }
+
+                        // (`M9`) ПЕРЕХОДЫ КОСТЕРА—КРОНИГА ПО EADL — суммы
+                        // `eadl_auger` по (вакансия, откуда пришёл электрон):
+                        // f12 = (L1, L2), f13 = (L1, L3), f23 = (L2, L3). Тот же
+                        // счёт, что у меры `tools/nucdb/compare_coster_kronig.py`
+                        // — второе правило для одной величины разъехалось бы
+                        // молча (`S37`).
+                        command.CommandText =
+                            "select z, vacancy_shell, from_shell, sum(probability) from eadl_auger" +
+                            " where (vacancy_shell = 3 and from_shell in (5, 6))" +
+                            " or (vacancy_shell = 5 and from_shell = 6)" +
+                            " group by z, vacancy_shell, from_shell";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                Fluorescence f;
+                                if (!fluo.TryGetValue(reader.GetInt32(0), out f) || f.LEdgeKev == null)
+                                {
+                                    continue;
+                                }
+
+                                if (f.CkEadl == null)
+                                {
+                                    f.CkEadl = new double[3];
+                                }
+
+                                int vacancy = reader.GetInt32(1), from = reader.GetInt32(2);
+                                int j = vacancy == 3 ? (from == 5 ? 0 : 1) : 2;
+                                f.CkEadl[j] = reader.GetDouble(3);
+                            }
+                        }
+
+                        // (`M9`) ТЕ ЖЕ ПЕРЕХОДЫ ИЗ ПОСТАВКИ xraylib — таблица
+                        // `coster_kronig`, которой в базе может НЕ БЫТЬ: её
+                        // заводит `tools/nucdb/import_coster_kronig.py`, а
+                        // базу пишет только Amber (приказ 09.08.2026). Наличие
+                        // спрашивается у `sqlite_master`, а не ловится
+                        // исключением; отсутствие запоминается признаком
+                        // (`HasCosterKronigSupply`), и уровень 2 ключа на нём
+                        // ОТКАЗЫВАЕТ, а не откатывается на EADL молча.
+                        command.CommandText =
+                            "select count(*) from sqlite_master" +
+                            " where type = 'table' and name = 'coster_kronig'";
+                        bool ckSupply = Convert.ToInt64(command.ExecuteScalar(),
+                                                        CultureInfo.InvariantCulture) > 0;
+                        if (ckSupply)
+                        {
+                            command.CommandText =
+                                "select z, transition, probability from coster_kronig" +
+                                " where source = 'xraylib'";
+                            using (SqliteDataReader reader = command.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    Fluorescence f;
+                                    if (!fluo.TryGetValue(reader.GetInt32(0), out f) || f.LEdgeKev == null)
+                                    {
+                                        continue;
+                                    }
+
+                                    if (f.CkSupply == null)
+                                    {
+                                        f.CkSupply = new double[3];
+                                    }
+
+                                    string transition = reader.GetString(1);
+                                    int j = transition == "f12" ? 0 : transition == "f13" ? 1 : 2;
+                                    f.CkSupply[j] = reader.GetDouble(2);
+                                }
+                            }
+                        }
+
+                        hasCosterKronigSupply = ckSupply;
 
                         command.CommandText =
                             "select z, sum(probability) from eadl_radiative" +

@@ -911,6 +911,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                       .Append(options.LightEtaEh.ToString("R", CultureInfo.InvariantCulture))
                       .Append(';');
                 }
+
+                // ⛔ (П23 12.09.2026: `A267`, `A306`, `M9` — три решения Amber
+                // «в СЛЕДУЮЩИЙ единый счёт склада») — тем же правилом `T42`:
+                // пишутся, ТОЛЬКО когда включены. Все три двигают матрицу
+                // (шкалу бинов, раскладку по каналам, L-линии отклика), и
+                // матрица с любым из них обязана быть отличима от склада;
+                // выключенные — ни строки, и клеймо склада сходится побайтно.
+                // Три ключа, а не один «физика 17», нарочно: единый счёт
+                // включит все, а замер сможет включать по одному.
+                if (options.LightBinUnified)
+                {
+                    sb.Append("lbin=1;");
+                }
+
+                if (options.PeakChannelByTolerance)
+                {
+                    sb.Append("pkch=1;");
+                }
+
+                if (options.LYieldSupply != 0)
+                {
+                    sb.Append("lys=")
+                      .Append(options.LYieldSupply.ToString(CultureInfo.InvariantCulture))
+                      .Append(';');
+                }
             }
 
             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
@@ -1911,6 +1936,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // устарела.
                 writer.Write(Encoding.ASCII.GetBytes("NORM"));
                 writer.Write((byte)this.Normalization);
+
+                // ⛔ ТРИНАДЦАТЫЙ, ЧЕТЫРНАДЦАТЫЙ И ПЯТНАДЦАТЫЙ ХВОСТЫ — `LBIN`,
+                // `PKCH`, `LYSP` (П23 12.09.2026: `A267`, `A306`, `M9`, три
+                // решения Amber «в СЛЕДУЮЩИЙ единый счёт склада»). Те же два
+                // довода, что у `PKBN`/`XRKL`/`KDIP`: ключи входят в КЛЕЙМО
+                // (`lbin=1`, `pkch=1`, `lys=N`), и без хвоста матрица не
+                // сходилась бы САМА С СОБОЙ. Формат НЕ поднят: у прежнего
+                // файла хвостов нет, поля остаются умолчаниями (`false`,
+                // `false`, 0) — ровно тем, чем они были при его счёте, — и
+                // клеймо сходится побайтно. Ни одна из 44 матриц склада не
+                // устарела.
+                writer.Write(Encoding.ASCII.GetBytes("LBIN"));
+                writer.Write(flags.LightBinUnified);
+                writer.Write(Encoding.ASCII.GetBytes("PKCH"));
+                writer.Write(flags.PeakChannelByTolerance);
+                writer.Write(Encoding.ASCII.GetBytes("LYSP"));
+                writer.Write(flags.LYieldSupply);
             }
 
             if (File.Exists(path))
@@ -2212,6 +2254,30 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 {
                                     matrix.Normalization =
                                         (ResponseMatrixNormalization)reader.ReadByte();
+
+                                    // ⛔ ХВОСТЫ `LBIN`, `PKCH`, `LYSP` (П23
+                                    // 12.09.2026: `A267`, `A306`, `M9`):
+                                    // читаются здесь же и по тем же двум
+                                    // причинам, что хвосты выше; у файлов до
+                                    // 12.09.2026 их нет — поля остаются
+                                    // `false`/`false`/0, то есть ровно тем,
+                                    // чем были при их счёте, и клеймо
+                                    // сходится само с собой.
+                                    if (stream.Length - stream.Position >= 5
+                                        && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBIN")
+                                    {
+                                        matrix.Options.LightBinUnified = reader.ReadBoolean();
+                                        if (stream.Length - stream.Position >= 5
+                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "PKCH")
+                                        {
+                                            matrix.Options.PeakChannelByTolerance = reader.ReadBoolean();
+                                            if (stream.Length - stream.Position >= 8
+                                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LYSP")
+                                            {
+                                                matrix.Options.LYieldSupply = reader.ReadInt32();
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3012,6 +3078,102 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `LETA` по тому же доводу, что <see cref="KDipLight"/>.
         /// </summary>
         public double LightEtaEh;
+
+        /// <summary>
+        /// ✅ **СВЕТ ИСТОРИИ — В БИН ЕЁ ВЕСА (`A267`) — решение Amber
+        /// 12.09.2026, дословно: «BinOf — в СЛЕДУЮЩИЙ единый счёт склада».**
+        /// Умолчанием ВЫКЛЮЧЕН (П23, 12.09.2026) — до единого счёта склада.
+        ///
+        /// Что делает — у <see cref="EfficiencySimulator.LightBinUnified"/>:
+        /// `ScoreLight` берёт бин у `BinOf`, тем же правилом, что `Deposit`,
+        /// и якорь световой шкалы перестаёт пилить по узлам (П20 §1: до
+        /// +2.70 % на 32.993 кэВ при полубине, класс непуст на 20 узлах из
+        /// 42 в полосе 10…70 кэВ).
+        ///
+        /// ⛔ Ключ двигает ШКАЛУ БИНОВ всех строк матрицы ниже ~70 кэВ,
+        /// поэтому входит в клеймо (`lbin=1`) и пишется хвостом `LBIN`.
+        ///
+        /// ⛔ Умолчание ВЫКЛЮЧЕНО, и это не отмена решения, а порядок счёта
+        /// (тот же, что был у <see cref="PeakToleranceHalfBin"/>,
+        /// <see cref="SplitXrayShells"/>, <see cref="KDipLight"/> до
+        /// 12.09.2026): склад посчитан без ключа, и включённое умолчание
+        /// объявило бы его чужим. Умолчание переворачивается ЕДИНЫМ счётом
+        /// склада вместе с <see cref="PeakChannelByTolerance"/> и
+        /// <see cref="LYieldSupply"/> (и `A72`, если Amber решит), тогда же
+        /// поднимается <see cref="ResponseMatrix.PhysicsVersion"/> 16 → 17 —
+        /// НЕ здесь и не раньше.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `LBIN` при чтении получают `false` —
+        /// ровно то, чем ключ был при их счёте.
+        ///
+        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») этого ключа не берёт и не
+        /// может: пересчёт в шкалу света — свойство МАТРИЦЫ, у кривой нет ни
+        /// гистограммы, ни якоря (реестр `tools/check_matrix_keys.py`, `SIM`).
+        /// </summary>
+        public bool LightBinUnified;
+
+        /// <summary>
+        /// ✅ **КАНАЛ `Peak` ПРИНИМАЕТ ИСТОРИЮ В ДОПУСКЕ (`A306`) — решение
+        /// Amber 12.09.2026, дословно: «Канал Peak принимает историю в
+        /// допуске».** Умолчанием ВЫКЛЮЧЕН (П23, 12.09.2026) — до единого
+        /// счёта склада.
+        ///
+        /// Что делает — у <see cref="EfficiencySimulator.PeakChannelByTolerance"/>:
+        /// рассеявшаяся до кристалла история, чей суммарный недобор
+        /// укладывается в допуск пика (полубин 1.0 кэВ умолчанием склада),
+        /// идёт в канал `Peak`, а не в `Compton` — правило одно на бин и на
+        /// канал, `InPeak` решает оба. Цена расхождения измерена П20 §2:
+        /// 4.14 % бина полного поглощения на 32.194 кэВ лежало в канале
+        /// `compton`, и каскадная поправка `CF` (правит только канал `Peak`)
+        /// этих 4 % не видела; на 661.657 кэВ — 0.03 %.
+        ///
+        /// ⛔ Ключ двигает ЧИСЛА каналов `Peak` и `Compton` при ПРЕЖНЕЙ сумме
+        /// строки, поэтому входит в клеймо (`pkch=1`) и пишется хвостом
+        /// `PKCH` — по тому же доводу, что <see cref="SplitXrayShells"/>:
+        /// одно клеймо на два ответа «сколько в канале пика» — беда
+        /// `A77`/`T114`. Умолчание — как у <see cref="LightBinUnified"/>:
+        /// переворачивается единым счётом склада, не здесь.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `PKCH` при чтении получают `false`.
+        /// Путь КРИВОЙ ключа не берёт: каналов у кривой нет.
+        /// </summary>
+        public bool PeakChannelByTolerance;
+
+        /// <summary>
+        /// ✅ **ω_L ИЗ ПОСТАВКИ + ПЕРЕХОДЫ КОСТЕРА—КРОНИГА (`M9`) — решение
+        /// Amber 12.09.2026, дословно: «ω_L из fluorescence_yield + f13 в
+        /// СЛЕДУЮЩИЙ единый счёт склада».** Умолчанием 0 (П23, 12.09.2026) —
+        /// до единого счёта склада.
+        ///
+        /// Уровни — у <see cref="EfficiencySimulator.LYieldSupply"/>: 0 —
+        /// EADL без переходов (как до 12.09.2026); 1 — ω_L1/L2/L3 из
+        /// `fluorescence_yield` (xraylib: Krause с заменами Campbell-2009) и
+        /// переходы f12/f13/f23 из EADL (`eadl_auger`); 2 — и переходы из
+        /// xraylib (таблица `coster_kronig`, заводит
+        /// `tools/nucdb/import_coster_kronig.py`; базу пишет только Amber,
+        /// без таблицы уровень 2 ОТКАЗЫВАЕТ, а не откатывается).
+        ///
+        /// ⚠ Таблица `fluorescence_yield` переходов НЕ ДЕРЖИТ (сверено по
+        /// схеме 12.09.2026: только `z, shell, omega, source`), поэтому
+        /// «+ f13» решения исполняется двумя уровнями: EADL уже в базе (f12 и
+        /// f23 сверены и годны, f13 завышен — W ×1.88, Pb ×1.13, I ×1.16),
+        /// xraylib — после импорта. Какой уровень переворачивать в единый
+        /// счёт — за Amber (вопрос П23).
+        ///
+        /// ⛔ Ключ двигает ОТКЛИК (L-линии в образе и в вылете) и ПОТОК
+        /// случайных чисел (до трёх розыгрышей на радиационную L-дырку),
+        /// поэтому входит в клеймо (`lys=N`) и пишется хвостом `LYSP`.
+        /// Умолчание — как у <see cref="LightBinUnified"/>: переворачивается
+        /// единым счётом склада вместе с подъёмом физики 16 → 17.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `LYSP` при чтении получают 0.
+        ///
+        /// ⚠ Путь КРИВОЙ («Посчитать из геометрии») берёт уровень ОТСЮДА ЖЕ —
+        /// из умолчания этого поля (`EfficiencyCalculation.Run`), как
+        /// <see cref="KDipLight"/> — решение Amber 12.09.2026 «Да — одна
+        /// физика для кривой и матрицы»; в клеймо кривой уходит `lys=N`.
+        /// </summary>
+        public int LYieldSupply;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
