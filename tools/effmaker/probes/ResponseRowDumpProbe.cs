@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -42,17 +42,37 @@ namespace ResponseRowDumpProbe
     ///
     ///     responserowdumpprobe --spectrum=&lt;файл.xml&gt; [--e=32.194,661.657]
     ///                          [--out=&lt;префикс&gt;] [--direct] [--peakw=1|0|both]
-    ///                          [--matrix-any]
+    ///                          [--matrix-any] [--matrix-transfer=channel|stretch]
+    ///
+    /// `--matrix-transfer=` — правило переноса у плеча `store_interp`
+    /// (`AMBER16` п. 4): `channel` (умолчание, как у разбора) или `stretch`
+    /// (прежний общий масштаб) — плечо A/B для чтения, что именно перенос
+    /// делает с особенностями строки.
     ///
     /// Матрица берётся из склада по Guid кривой эффективности спектра — тем же
     /// путём, каким её берёт приложение.
     /// </summary>
     static class Program
     {
+        // ⚠ Параллельно `EfficiencySimulator.ResponseChannel`, все ШЕСТЬ: до
+        // 12.09.2026 (П3) имён было пять, и после разведения K/L (`AMBER16`
+        // п. 1, склад пересчитан 12.09) `Emit` молча ронял канал L, а `total`
+        // его включал — столбцы не сходились с суммой.
         static readonly string[] ChannelNames =
         {
-            "peak", "compton", "esc_se", "esc_xray", "esc_de"
+            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_lx"
         };
+
+        /// <summary>
+        /// (`AMBER16` п. 4, остаток П8; П3 12.09.2026) Правило переноса строки
+        /// узла на энергию линии у плеча `store_interp`: `channel` — по
+        /// каналам, каждый своим правилом (умолчание разбора с 11.09.2026,
+        /// `f8dad9cf`), `stretch` — прежний общий масштаб `E/E_узла`. Матрица,
+        /// прочитанная со склада напрямую, сама несёт `TransferByChannel =
+        /// false`, и без этого ключа проба показывала бы НЕ ТО, что получает
+        /// разбор.
+        /// </summary>
+        static bool transferByChannel = true;
 
         static int Main(string[] args)
         {
@@ -103,6 +123,17 @@ namespace ResponseRowDumpProbe
                 else if (a == "--no-acont")
                 {
                     noAnalogContinuum = true;
+                }
+                else if (a.StartsWith("--matrix-transfer=", StringComparison.Ordinal))
+                {
+                    string rule = a.Substring(18);
+                    if (rule != "channel" && rule != "stretch")
+                    {
+                        Console.Error.WriteLine("--matrix-transfer= знает channel и stretch; дано: {0}", rule);
+                        return 2;
+                    }
+
+                    transferByChannel = rule == "channel";
                 }
                 else if (a.StartsWith("--trace=", StringComparison.Ordinal))
                 {
@@ -228,6 +259,14 @@ namespace ResponseRowDumpProbe
                 return 1;
             }
 
+            // Правило переноса — ключ ЧТЕНИЯ матрицы, не счёта: в клеймо не
+            // входит, и ставится тем же движением, каким его ставит разбор
+            // (`FsaAnalyzer.MatrixTransferByChannel` → `ResponseMatrix.TransferByChannel`).
+            matrix.TransferByChannel = transferByChannel;
+            Console.WriteLine("перенос: {0}", transferByChannel
+                              ? "по каналам (channel, как у разбора)"
+                              : "общий масштаб (stretch, прежнее правило)");
+
             var rows = new List<string>();
             rows.Add("arm;line_kev;node_kev;bin;dep_kev;" + string.Join(";", ChannelNames) + ";total");
 
@@ -320,8 +359,15 @@ namespace ResponseRowDumpProbe
             double t = span > 0.0 ? (energyKev - grid[lo]) / span : 0.0;
             Console.WriteLine("узлы сетки: {0} (№ {1}) и {2} (№ {3}), вес верхнего t = {4}",
                               F(grid[lo], 4), lo, F(grid[hi], 4), hi, F(t, 5));
-            Console.WriteLine("перенос: каждая строка растягивается со своего узла на энергию линии "
-                              + "(доля от энергии сохраняется), затем смешивается с весами {0} и {1}",
+            // Описание обязано говорить о ТОМ правиле, что действует: до П3
+            // здесь всегда стоял текст про общий масштаб — и при переносе по
+            // каналам он был ложью (пик уже стоял в бине линии целиком).
+            Console.WriteLine(matrix.TransferByChannel
+                              ? "перенос: каждая строка переносится со своего узла на энергию линии ПО КАНАЛАМ "
+                                + "(пик — сдвиг на целое число бинов, вылеты — на E − E_узла, комптон — кусочно-линейно), "
+                                + "затем смешивается с весами {0} и {1}"
+                              : "перенос: каждая строка растягивается со своего узла на энергию линии "
+                                + "(доля от энергии сохраняется), затем смешивается с весами {0} и {1}",
                               F(1.0 - t, 5), F(t, 5));
         }
 

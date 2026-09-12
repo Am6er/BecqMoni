@@ -58,6 +58,26 @@ namespace FsaChannelSplitProbe
     ///
     ///   fsachannelsplitprobe --spectrum=X.xml --chain=Th-232 [--nuclides=40K]
     ///                        [--band=470-560] [--floor=0] [--dump=out.csv]
+    ///                        [--no-anchor] [--spoil=cf]
+    ///
+    /// (`AMBER15`, остаток П10, закрыт 12.09.2026 полосой П3) Проверки «`CF`
+    /// тронул канал полного поглощения» СУДЯТ ТОЛЬКО ТАМ, ГДЕ КАСКАД ЕСТЬ.
+    /// На сцене без каскада (одиночная линия, партнёров по совпадению нет)
+    /// поправка тождественно равна единице, и требовать от неё сдвига значило
+    /// бы требовать от модели того, чего в ней нет по построению; проба
+    /// возвращала код 1 на `AS80_Cs137_0cm`, и плечо A/B привязки
+    /// (`--no-anchor`) там читалось по числам, а не по коду. Признак «в составе
+    /// есть каскад» берётся НЕ ПО ИМЕНИ нуклида (имён в коде FSA быть не
+    /// должно) и НЕ У ПРОВЕРЯЕМОГО ПЛЕЧА, а у самого сумматора
+    /// (`FsaCascadeSummer.For` по библиотеке, с настройками плеча): есть ли
+    /// линия, у которой множитель отличен от единицы. Без каскада печатается
+    /// «каскада нет — проверка не применима», а взамен спрашивается ТОЖДЕСТВО
+    /// плеч: раз поправки нет, плечо «CF без сумм-пиков» обязано совпасть с
+    /// плечом «без каскада» ровно. ⚠ Ключ порчи `--spoil=cf` гасит `CF` у
+    /// проверяемого плеча: на сцене с каскадом сумматор по-прежнему говорит
+    /// «каскад есть», проверка ВЫПОЛНЯЕТСЯ и обязана отказать (код 1) — это
+    /// положительный контроль того, что условие «не применима» не заслоняет
+    /// саму проверку.
     ///
     /// Запускать из рабочего каталога корпуса (`mk_appwd.ps1`).
     /// </summary>
@@ -67,6 +87,20 @@ namespace FsaChannelSplitProbe
 
         /// <summary>(`AMBER17`) Плечо A/B: `--no-anchor` — привязка шкалы по пикам выключена.</summary>
         static bool anchor = true;
+
+        /// <summary>
+        /// (`AMBER15`) Ключ порчи `--spoil=cf`: плечо «CF без сумм-пиков» идёт
+        /// БЕЗ каскадной поправки. Только для положительного контроля проверки
+        /// «`CF` тронул канал полного поглощения» на сцене с каскадом.
+        /// </summary>
+        static bool spoilCf;
+
+        /// <summary>
+        /// Порог «множитель отличен от единицы» — ТОТ ЖЕ, что у разбора
+        /// (`FsaAnalyzer`: `corrected = |cf − 1| ≥ 1e-6`). Иначе проба и разбор
+        /// разошлись бы на линии, у которой поправка есть, но меньше порога.
+        /// </summary>
+        const double CfUnitTol = 1.0E-6;
 
         /// <summary>
         /// Допуск тождества. Числа — суммы сотен тысяч слагаемых порядка 1e5
@@ -109,6 +143,7 @@ namespace FsaChannelSplitProbe
                 else if (a.StartsWith("--floor=", StringComparison.Ordinal))
                     floorKev = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a == "--no-anchor") anchor = false;
+                else if (a == "--spoil=cf") spoilCf = true;
                 else if (a.StartsWith("--band=", StringComparison.Ordinal))
                 {
                     string[] parts = a.Substring(7).Split('-');
@@ -312,11 +347,19 @@ namespace FsaChannelSplitProbe
             FsaAnalyzer noCascadeAnalyzer, cfOnlyAnalyzer;
             FsaResult noCascade = Run(rd, byPeaks, matrix, material, false, false, floorKev,
                                       "без каскада", out noCascadeAnalyzer);
-            FsaResult cfOnly = Run(rd, byPeaks, matrix, material, true, false, floorKev,
-                                   "CF без сумм-пиков", out cfOnlyAnalyzer);
+            // ⚠ `--spoil=cf` гасит поправку у проверяемого плеча — положительный
+            // контроль: проверка ниже обязана это заметить и отказать.
+            FsaResult cfOnly = Run(rd, byPeaks, matrix, material, !spoilCf, false, floorKev,
+                                   spoilCf ? "CF без сумм-пиков (ПОРЧА: CF погашен)" : "CF без сумм-пиков",
+                                   out cfOnlyAnalyzer);
+
+            // (`AMBER15`) ЕСТЬ ЛИ В СОСТАВЕ КАСКАД — спрашивается у сумматора по
+            // библиотеке, а не у плеча: у плеча этот признак и есть предмет
+            // проверки, и, взятый оттуда, он гасил бы её вместе с порчей.
+            bool cascade = HasCascade(cfOnlyAnalyzer ?? noCascadeAnalyzer, matrix, material, byPeaks);
             if (noCascade != null && cfOnly != null)
             {
-                CompareChannels(noCascade, cfOnly);
+                CompareChannels(noCascade, cfOnly, cascade);
             }
 
             // ⚠ ТО ЖЕ СРАВНЕНИЕ ДО УШИРЕНИЯ — по гистограммам из кэша.
@@ -328,7 +371,7 @@ namespace FsaChannelSplitProbe
             // читалось бы как «`CF` протёк в комптон».
             if (noCascadeAnalyzer != null && cfOnlyAnalyzer != null)
             {
-                CompareDeposits(noCascadeAnalyzer, cfOnlyAnalyzer);
+                CompareDeposits(noCascadeAnalyzer, cfOnlyAnalyzer, cascade);
             }
 
             // ---------------------------------------------------------------
@@ -652,8 +695,11 @@ namespace FsaChannelSplitProbe
         /// <summary>
         /// Каскадный `CF` включается ТОЛЬКО в канале пика: три остальных канала
         /// обязаны совпасть с плечом без каскада побитово.
+        /// `cascade` — есть ли в составе линия с `CF` ≠ 1 (по сумматору): без
+        /// неё «`CF` тронул канал пика» не применимо, и вместо него
+        /// спрашивается тождество плеч.
         /// </summary>
-        static void CompareChannels(FsaResult without, FsaResult with)
+        static void CompareChannels(FsaResult without, FsaResult with, bool cascade)
         {
             double withRate = with.LiveTime > 0.0 ? with.LiveTime : 1.0;
             var byName = new Dictionary<string, FsaComponentResult>(StringComparer.Ordinal);
@@ -663,8 +709,8 @@ namespace FsaChannelSplitProbe
             }
 
             int compared = 0, peakMoved = 0;
-            double worstOther = 0.0;
-            string worstName = null;
+            double worstOther = 0.0, worstOfTemplate = 0.0;
+            string worstName = null, worstOfTemplateName = null;
             foreach (FsaComponentResult c in with.Components)
             {
                 FsaComponentResult other;
@@ -696,13 +742,21 @@ namespace FsaChannelSplitProbe
                         worstOther = gap;
                         worstName = c.Name + "/" + ChannelNames[ch];
                     }
+
+                    double gapOfTemplate = TemplateGap(c, other, withRate, ch);
+                    if (gapOfTemplate > worstOfTemplate)
+                    {
+                        worstOfTemplate = gapOfTemplate;
+                        worstOfTemplateName = c.Name + "/" + ChannelNames[ch];
+                    }
                 }
             }
 
             Console.WriteLine("сравнено компонентов {0}, канал пика тронут у {1}", compared, peakMoved);
-            Console.WriteLine("худшее расхождение ОСТАЛЬНЫХ каналов: {0} ({1})",
-                              worstOther.ToString("E3", CultureInfo.InvariantCulture), worstName ?? "-");
-            Same("CF тронул канал полного поглощения", true, peakMoved > 0);
+            Console.WriteLine("худшее расхождение ОСТАЛЬНЫХ каналов: {0} ({1}) от своего канала; {2} ({3}) от ленты образа",
+                              worstOther.ToString("E3", CultureInfo.InvariantCulture), worstName ?? "-",
+                              worstOfTemplate.ToString("E3", CultureInfo.InvariantCulture), worstOfTemplateName ?? "-");
+            CascadeCheck("CF тронул канал полного поглощения", cascade, peakMoved);
 
             // ⚠ ПОСЛЕ УШИРЕНИЯ СТРОГОГО НУЛЯ ЗДЕСЬ НЕ БУДЕТ, и это не протечка
             // физики: порог отсечки уширения — `top·1e-5` от МАКСИМУМА полной
@@ -713,8 +767,46 @@ namespace FsaChannelSplitProbe
             // есть критерий). Держать здесь критерием «ровно ноль» значило бы
             // объявить дефектом свойство общего порога — того самого, который
             // и делает каналы частями ОДНОЙ ленты.
-            Same("комптон и вылеты не тронуты заметно (≤ 1e-3, общий порог отсечки)",
-                 true, worstOther <= 1.0E-3);
+            //
+            // ⛔ МЕРА — ОТ ЛЕНТЫ ОБРАЗА, А НЕ ОТ СВОЕГО КАНАЛА (12.09.2026,
+            // полоса П3). Дрожание у порога отсечки ограничено СВЕРХУ
+            // абсолютно — бинов у порога × `top·1e-5`, — а канал бывает
+            // ничтожен: у `Bi-212` (линии ≥ 727 кэВ) канал K-вылета — доли
+            // процента ленты, и та же пара бинов давала ему 1.197E-3 «от
+            // своего канала» на `G1S16_Th228_P5` при строгом нуле ДО уширения
+            // (сборка до П3 — то же число: это не правка, а сцена). Мера от
+            // своего канала для этого механизма неограничена и мерит размер
+            // канала, а не протечку; мера от ленты — ограничена, и настоящая
+            // протечка (`CF` на всех каналах, беда `S37`) на ней — порядка
+            // `|CF − 1|` × доля комптона, то есть 1e-2 и выше, а не 1e-3.
+            // Число «от своего канала» печатается рядом для чтения.
+            Same("комптон и вылеты не тронуты заметно (≤ 1e-3 ленты образа, общий порог отсечки)",
+                 true, worstOfTemplate <= 1.0E-3);
+        }
+
+        /// <summary>
+        /// Расхождение канала В ЕДИНИЦАХ ОБРАЗА, отнесённое к ЛЕНТЕ ОБРАЗА
+        /// (Σ всех каналов на единицу амплитуды), а не к самому каналу.
+        /// </summary>
+        static double TemplateGap(FsaComponentResult a, FsaComponentResult b, double liveTime, int channel)
+        {
+            double ampA = a.CountRate * liveTime, ampB = b.CountRate * liveTime;
+            if (!(ampA > 0.0) || !(ampB > 0.0))
+            {
+                return 0.0;
+            }
+
+            double templateA = 0.0, templateB = 0.0;
+            for (int ch = 0; ch < a.ChannelCurves.Length && ch < b.ChannelCurves.Length; ch++)
+            {
+                templateA += Sum(a.ChannelCurves[ch]);
+                templateB += Sum(b.ChannelCurves[ch]);
+            }
+
+            double perA = Sum(a.ChannelCurves[channel]) / ampA;
+            double perB = Sum(b.ChannelCurves[channel]) / ampB;
+            double scale = Math.Max(Math.Abs(templateA / ampA), Math.Abs(templateB / ampB));
+            return scale > 0.0 ? Math.Abs(perA - perB) / scale : 0.0;
         }
 
         /// <summary>
@@ -723,11 +815,85 @@ namespace FsaChannelSplitProbe
         /// к той же величине у второго плеча.
         /// </summary>
         /// <summary>
+        /// (`AMBER15`) Одна проверка «`CF` тронул канал полного поглощения» в
+        /// двух местах — после уширения и до него. Судит ТОЛЬКО при каскаде в
+        /// составе; без него печатает «каскада нет — проверка не применима» и
+        /// взамен требует, чтобы плечи СОВПАЛИ: раз множителя нет, разница
+        /// между «без каскада» и «CF без сумм-пиков» — дефект, а не физика.
+        /// </summary>
+        static void CascadeCheck(string title, bool cascade, int peakMoved)
+        {
+            if (cascade)
+            {
+                Same(title, true, peakMoved > 0);
+                return;
+            }
+
+            Console.WriteLine("{0}: каскада нет — проверка не применима", title);
+            Same(title + " — каскада нет, плечи совпали (канал пика не тронут вовсе)",
+                 true, peakMoved == 0);
+        }
+
+        /// <summary>
+        /// (`AMBER15`) Есть ли в библиотеке линия, у которой каскадный множитель
+        /// отличен от единицы, — по сумматору, построенному С НАСТРОЙКАМИ
+        /// ПЛЕЧА (окно совпадения, партнёры), а не по флагу самого плеча.
+        /// Печатает, сколько линий тронуто и у скольких компонентов.
+        /// </summary>
+        static bool HasCascade(FsaAnalyzer arm, ResponseMatrix matrix, string material,
+                               List<FsaComponent> library)
+        {
+            FsaCascadeSummer summer = arm != null
+                ? FsaCascadeSummer.Create(matrix, material, arm.CoincidenceWindowSec,
+                                          arm.CascadeXrayPartners, arm.CascadeAnnihilationPartners,
+                                          arm.CascadeIsomerPartners, arm.CascadeDecayTimeProbability)
+                : FsaCascadeSummer.Create(matrix, material);
+            int linesTouched = 0, componentsTouched = 0, linesSeen = 0;
+            if (summer != null)
+            {
+                foreach (FsaComponent component in library)
+                {
+                    FsaCascadeSummer.Correction correction = summer.For(component);
+                    if (correction == null || !correction.Any || correction.LineFactors == null)
+                    {
+                        continue;
+                    }
+
+                    int touched = 0;
+                    for (int i = 0; i < component.Lines.Count && i < correction.LineFactors.Length; i++)
+                    {
+                        FsaLine line = component.Lines[i];
+                        if (!(line.Energy > 0.0) || !(line.Intensity > 0.0))
+                        {
+                            continue;
+                        }
+
+                        linesSeen++;
+                        if (Math.Abs(correction.LineFactors[i] - 1.0) >= CfUnitTol)
+                        {
+                            touched++;
+                        }
+                    }
+
+                    if (touched > 0)
+                    {
+                        componentsTouched++;
+                        linesTouched += touched;
+                    }
+                }
+            }
+
+            Console.WriteLine("каскад в составе (по сумматору): {0} — линий с CF ≠ 1: {1} из {2}, компонентов {3}",
+                              linesTouched > 0 ? "да" : "нет", linesTouched, linesSeen, componentsTouched);
+            return linesTouched > 0;
+        }
+
+        /// <summary>
         /// Каналы ГИСТОГРАММ двух плеч — до всякого уширения и без
         /// всякой амплитуды. Здесь утверждение «`CF` правит только канал
         /// полного поглощения» проверяется в чистом виде.
         /// </summary>
-        static void CompareDeposits(FsaAnalyzer without, FsaAnalyzer with)
+        static void CompareDeposits(FsaAnalyzer without, FsaAnalyzer with, bool cascade)
         {
             Dictionary<string, double[][]> a = DepositChannels(without);
             Dictionary<string, double[][]> b = DepositChannels(with);
@@ -776,7 +942,7 @@ namespace FsaChannelSplitProbe
             Console.WriteLine("гистограммы: худшее расхождение ОСТАЛЬНЫХ каналов: {0} ({1})",
                               worstOther.ToString("E3", CultureInfo.InvariantCulture), worstName ?? "-");
             Same("до уширения: сверено больше нуля гистограмм", true, compared > 0);
-            Same("до уширения: `CF` тронул канал полного поглощения", true, peakMoved > 0);
+            CascadeCheck("до уширения: `CF` тронул канал полного поглощения", cascade, peakMoved);
             Same("до уширения: комптон и вылеты не тронуты ВОВСЕ", 0.0, worstOther);
         }
 
