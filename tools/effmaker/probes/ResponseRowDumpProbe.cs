@@ -67,6 +67,7 @@ namespace ResponseRowDumpProbe
             bool matrixAny = false;
             int trace = -2;                    // −2 — трассировка не просилась
             var ablations = new List<string>();
+            bool noAnalogContinuum = false;
 
             foreach (string a in args)
             {
@@ -98,6 +99,10 @@ namespace ResponseRowDumpProbe
                 else if (a == "--matrix-any")
                 {
                     matrixAny = true;
+                }
+                else if (a == "--no-acont")
+                {
+                    noAnalogContinuum = true;
                 }
                 else if (a.StartsWith("--trace=", StringComparison.Ordinal))
                 {
@@ -156,6 +161,7 @@ namespace ResponseRowDumpProbe
             }
 
             Trace = trace;
+            NoAnalogContinuum = noAnalogContinuum;
 
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
@@ -408,9 +414,22 @@ namespace ResponseRowDumpProbe
                 options.Bremsstrahlung = false;
             }
 
-            string arm = ablation != null
-                ? "direct_no_" + ablation
-                : (peakTolerance ? "direct_peakw1" : "direct_peakw0");
+            // ⛔ (`AMBER16`) АНАЛОГОВЫЙ КОНТИНУУМ ВЫКЛЮЧАЕТСЯ ЦЕЛИКОМ — и это
+            // единственный способ сравнить плечи допуска ПРИ ОДНОЙ ФИЗИКЕ.
+            // `ResponseMatrix.SingleScatterErased` гасит ветвь однократного
+            // рассеяния только при ВКЛЮЧЁННОМ аналоговом континууме (первое же
+            // условие: `!options.AnalogContinuum → return false`), поэтому при
+            // выключенном она работает при любом допуске, и разница сумм
+            // говорит о допуске, а не о составе расчёта.
+            if (NoAnalogContinuum)
+            {
+                options.AnalogContinuum = false;
+            }
+
+            string arm = (ablation != null
+                    ? "direct_no_" + ablation
+                    : (peakTolerance ? "direct_peakw1" : "direct_peakw0"))
+                + (NoAnalogContinuum ? "_noacont" : "");
 
             // ⛔ Трассировка пишет в ОДИН список, поэтому поток ровно один:
             // иначе строки разных историй перемешаются, и выписка перестанет
@@ -469,6 +488,9 @@ namespace ResponseRowDumpProbe
 
         /// <summary>Какой канал трассировать; −2 — не просили, −1 — любой.</summary>
         static int Trace = -2;
+
+        /// <summary>Считать ли отклик ОДНОЙ взвешенной ветвью (`--no-acont`).</summary>
+        static bool NoAnalogContinuum;
 
         static int NearestNode(double[] grid, double energyKev)
         {
