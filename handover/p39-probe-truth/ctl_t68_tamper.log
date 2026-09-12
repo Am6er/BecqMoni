@@ -1,0 +1,6 @@
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p39\config\NuclideDefinition.xml
+⛔ ОТКАЗ (T68): КАТАЛОГ ПРОБЫ НЕ СООТВЕТСТВУЕТ МАНИФЕСТУ .appwd.json — расхождений 1, сошлось 473
+    1. ПОДМЕНЁН: ru\BecquerelMonitor.resources.dll — в манифесте a9c0cf28db4f, в каталоге 80608026139d (13.09 00:48:13)
+   Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21). В --out= ни файла.
+   Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1 -> run_appwd.ps1.
+

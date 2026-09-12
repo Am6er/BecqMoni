@@ -188,6 +188,597 @@ namespace CorpusFsaProbe
     }
 
     /// <summary>
+    /// ⛔ ОСНАСТКА СВЕРЯЕТСЯ САМОЙ ПРОБОЙ (`T68` (2), 13.09.2026, полоса П39).
+    ///
+    /// Внешний сторож `run_appwd.ps1` (`T63`) держит только тех, кто идёт через
+    /// него. Документированный обходной путь — `cd wd_app; .\CorpusFsaProbe.exe …`
+    /// — шёл мимо, и внешний сторож его не видел по построению (25.08.2026,
+    /// встречная проверка `T63`). Поэтому читатель стоит ЗДЕСЬ, у самой пробы:
+    /// `mk_appwd.ps1` пишет в `.appwd.json` манифест `files_sha` — sha256 КАЖДОГО
+    /// положенного файла по тому же плану `Get-AppWdPlan`, которым и клали
+    /// (второго списка нет, урок `T61`), — а проба на старте, ДО чтения корпуса
+    /// и баз, считает sha256 тех же файлов в своём каталоге и ОТКАЗЫВАЕТ кодом
+    /// <see cref="ExitCode"/>, называя каждый файл, которого нет, который не
+    /// сошёлся или который не удалось прочесть. Нет отметки или манифеста в ней
+    /// (оснастка старше 13.09.2026) — тоже отказ: собрать заново `mk_appwd.ps1`.
+    ///
+    /// ⛔ Ключа «пропустить сверку» НЕТ и заводить его нельзя: именно такой ключ
+    /// и становится новым обходным путём. Осознанный прогон старой оснасткой
+    /// делается через `run_appwd.ps1 -Force` — а он всё равно свежую отметку
+    /// требует, то есть «старая» там значит «протухшая сборка», а не «подменённый
+    /// файл».
+    ///
+    /// Каталог — <see cref="AppDomain.BaseDirectory"/>, а не текущий: грузится
+    /// то, что лежит рядом с exe. Манифест читается своим разбором JSON
+    /// (<see cref="Json"/>): у проб нет ссылок ни на `System.Web.Extensions`, ни
+    /// на `System.Runtime.Serialization`, а `ConvertTo-Json` пишет ровно то
+    /// подмножество формата, что разбирается здесь.
+    ///
+    /// Положительный контроль (П39, 13.09.2026): в копии оснастки подменён один
+    /// файл при сохранённом времени — прямой запуск пробы из неё кончился кодом 3
+    /// с именем файла; отметка без `files_sha` — код 3; честная оснастка — дверь
+    /// пройдена, прогон идёт.
+    /// </summary>
+    static class AppWdGuard
+    {
+        public const int ExitCode = 3;
+        public const string StampName = ".appwd.json";
+
+        /// <summary>Алгоритм манифеста — тот же текст, что пишет `Write-AppWdStamp`.</summary>
+        public const string Algo = "sha256(содержимое)/v1";
+
+        /// <summary>Сколько расхождений печатать поимённо; остальные — числом.</summary>
+        const int PrintLimit = 20;
+
+        public static int Refuse()
+        {
+            string dir = AppDomain.CurrentDomain.BaseDirectory;
+            string stamp = Path.Combine(dir, StampName);
+            if (!File.Exists(stamp))
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): нет {0} в {1}", StampName, dir);
+                Console.Error.WriteLine("   Каталог не собран mk_appwd.ps1 либо его сборка не прошла самопроверку —");
+                Console.Error.WriteLine("   чем и из чего он собран, проверить нечем. Прогон отменён, в --out= ни файла.");
+                return ExitCode;
+            }
+
+            object root;
+            try
+            {
+                root = Json.Parse(File.ReadAllText(stamp, Encoding.UTF8));
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): {0} не разбирается как JSON: {1}", stamp, e.Message);
+                return ExitCode;
+            }
+
+            var top = root as Dictionary<string, object>;
+            object manifestObj;
+            var manifest = top != null && top.TryGetValue("files_sha", out manifestObj)
+                ? manifestObj as Dictionary<string, object>
+                : null;
+            object mapObj;
+            var map = manifest != null && manifest.TryGetValue("sha", out mapObj)
+                ? mapObj as Dictionary<string, object>
+                : null;
+            if (manifest == null || map == null)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): в {0} нет манифеста files_sha — отметка старше 13.09.2026", stamp);
+                Console.Error.WriteLine("   (mk_appwd.ps1 до T68 (2) манифеста не писал). Пересоберите оснастку: mk_appwd.ps1 -Wd <оснастка>.");
+                return ExitCode;
+            }
+
+            object algoObj;
+            string algo = manifest.TryGetValue("algo", out algoObj) ? algoObj as string : null;
+            if (!string.Equals(algo, Algo, StringComparison.Ordinal))
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): манифест files_sha посчитан алгоритмом «{0}», проба знает «{1}» — сверять нечем",
+                                        algo ?? "нет", Algo);
+                return ExitCode;
+            }
+
+            if (map.Count == 0)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): манифест files_sha ПУСТ — оснастка «собрана» из нуля файлов");
+                return ExitCode;
+            }
+
+            var bad = new List<string>();
+            int ok = 0;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                foreach (KeyValuePair<string, object> kv in map)
+                {
+                    string rel = kv.Key;
+                    string want = kv.Value as string;
+                    string full = Path.Combine(dir, rel);
+                    if (want == null || want.Length != 64)
+                    {
+                        bad.Add("МАНИФЕСТ ИСПОРЧЕН: " + rel + " — отпечаток не sha256");
+                        continue;
+                    }
+
+                    if (!File.Exists(full))
+                    {
+                        bad.Add("НЕТ В КАТАЛОГЕ: " + rel);
+                        continue;
+                    }
+
+                    string got;
+                    try
+                    {
+                        // Поток, а не `ReadAllBytes`: матрицы и базы — десятки
+                        // мегабайт, и держать их все в памяти незачем.
+                        using (FileStream f = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            got = BitConverter.ToString(sha.ComputeHash(f)).Replace("-", "").ToLowerInvariant();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        bad.Add("НЕ СМОГ ПОСЧИТАТЬ ОТПЕЧАТОК: " + rel + " — " + e.GetType().Name + ": " + e.Message);
+                        continue;
+                    }
+
+                    if (!string.Equals(got, want.ToLowerInvariant(), StringComparison.Ordinal))
+                    {
+                        bad.Add("ПОДМЕНЁН: " + rel + " — в манифесте " + want.Substring(0, 12)
+                                + ", в каталоге " + got.Substring(0, 12)
+                                + " (" + File.GetLastWriteTime(full).ToString("dd.MM HH:mm:ss", CultureInfo.InvariantCulture) + ")");
+                    }
+                    else
+                    {
+                        ok++;
+                    }
+                }
+            }
+
+            clock.Stop();
+            if (bad.Count == 0)
+            {
+                Console.WriteLine("оснастка (T68): {0} файлов из {1} сошлись с манифестом {2} по sha256 за {3} с",
+                                  ok.ToString(CultureInfo.InvariantCulture), StampName, Algo,
+                                  clock.Elapsed.TotalSeconds.ToString("F2", CultureInfo.InvariantCulture));
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ (T68): КАТАЛОГ ПРОБЫ НЕ СООТВЕТСТВУЕТ МАНИФЕСТУ {0} — расхождений {1}, сошлось {2}",
+                                    StampName, bad.Count.ToString(CultureInfo.InvariantCulture),
+                                    ok.ToString(CultureInfo.InvariantCulture));
+            int i = 0;
+            foreach (string b in bad)
+            {
+                i++;
+                if (i > PrintLimit)
+                {
+                    Console.Error.WriteLine("   … и ещё {0}", (bad.Count - PrintLimit).ToString(CultureInfo.InvariantCulture));
+                    break;
+                }
+
+                Console.Error.WriteLine("   {0,2}. {1}", i.ToString(CultureInfo.InvariantCulture), b);
+            }
+
+            Console.Error.WriteLine("   Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21). В --out= ни файла.");
+            Console.Error.WriteLine("   Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1 -> run_appwd.ps1.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Разбор JSON ровно того подмножества, что пишет `ConvertTo-Json`:
+        /// объекты, массивы, строки с экранированием (включая `\uXXXX`), числа,
+        /// `true`/`false`/`null`. Возвращает `Dictionary&lt;string, object&gt;`,
+        /// `List&lt;object&gt;`, `string`, `double`, `bool` или `null`.
+        /// Ошибка формата — исключение с позицией.
+        /// </summary>
+        internal static class Json
+        {
+            public static object Parse(string text)
+            {
+                int i = 0;
+                object v = ReadValue(text, ref i);
+                SkipWs(text, ref i);
+                if (i != text.Length)
+                {
+                    throw new FormatException("лишний текст после значения, позиция " + i.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return v;
+            }
+
+            static void SkipWs(string s, ref int i)
+            {
+                // `\uFEFF` — BOM: `Set-Content -Encoding utf8` в Windows PowerShell 5.1 его пишет.
+                while (i < s.Length && (s[i] == ' ' || s[i] == '\t' || s[i] == '\r' || s[i] == '\n' || s[i] == '\uFEFF'))
+                {
+                    i++;
+                }
+            }
+
+            static object ReadValue(string s, ref int i)
+            {
+                SkipWs(s, ref i);
+                if (i >= s.Length)
+                {
+                    throw new FormatException("обрыв текста");
+                }
+
+                char c = s[i];
+                if (c == '{')
+                {
+                    return ReadObject(s, ref i);
+                }
+
+                if (c == '[')
+                {
+                    return ReadArray(s, ref i);
+                }
+
+                if (c == '"')
+                {
+                    return ReadString(s, ref i);
+                }
+
+                if (Match(s, ref i, "true"))
+                {
+                    return true;
+                }
+
+                if (Match(s, ref i, "false"))
+                {
+                    return false;
+                }
+
+                if (Match(s, ref i, "null"))
+                {
+                    return null;
+                }
+
+                int start = i;
+                while (i < s.Length && "+-0123456789.eE".IndexOf(s[i]) >= 0)
+                {
+                    i++;
+                }
+
+                if (i == start)
+                {
+                    throw new FormatException("неожиданный символ '" + c + "' в позиции " + start.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return double.Parse(s.Substring(start, i - start), NumberStyles.Float, CultureInfo.InvariantCulture);
+            }
+
+            static bool Match(string s, ref int i, string word)
+            {
+                if (i + word.Length <= s.Length && string.CompareOrdinal(s, i, word, 0, word.Length) == 0)
+                {
+                    i += word.Length;
+                    return true;
+                }
+
+                return false;
+            }
+
+            static Dictionary<string, object> ReadObject(string s, ref int i)
+            {
+                var o = new Dictionary<string, object>(StringComparer.Ordinal);
+                i++; // {
+                SkipWs(s, ref i);
+                if (i < s.Length && s[i] == '}')
+                {
+                    i++;
+                    return o;
+                }
+
+                while (true)
+                {
+                    SkipWs(s, ref i);
+                    if (i >= s.Length || s[i] != '"')
+                    {
+                        throw new FormatException("ожидался ключ в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    string key = ReadString(s, ref i);
+                    SkipWs(s, ref i);
+                    if (i >= s.Length || s[i] != ':')
+                    {
+                        throw new FormatException("ожидалось ':' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    i++;
+                    o[key] = ReadValue(s, ref i);
+                    SkipWs(s, ref i);
+                    if (i < s.Length && s[i] == ',')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    if (i < s.Length && s[i] == '}')
+                    {
+                        i++;
+                        return o;
+                    }
+
+                    throw new FormatException("ожидалось ',' или '}' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            static List<object> ReadArray(string s, ref int i)
+            {
+                var a = new List<object>();
+                i++; // [
+                SkipWs(s, ref i);
+                if (i < s.Length && s[i] == ']')
+                {
+                    i++;
+                    return a;
+                }
+
+                while (true)
+                {
+                    a.Add(ReadValue(s, ref i));
+                    SkipWs(s, ref i);
+                    if (i < s.Length && s[i] == ',')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    if (i < s.Length && s[i] == ']')
+                    {
+                        i++;
+                        return a;
+                    }
+
+                    throw new FormatException("ожидалось ',' или ']' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            static string ReadString(string s, ref int i)
+            {
+                var b = new StringBuilder();
+                i++; // "
+                while (i < s.Length)
+                {
+                    char c = s[i++];
+                    if (c == '"')
+                    {
+                        return b.ToString();
+                    }
+
+                    if (c != '\\')
+                    {
+                        b.Append(c);
+                        continue;
+                    }
+
+                    if (i >= s.Length)
+                    {
+                        break;
+                    }
+
+                    char e = s[i++];
+                    switch (e)
+                    {
+                        case '"': b.Append('"'); break;
+                        case '\\': b.Append('\\'); break;
+                        case '/': b.Append('/'); break;
+                        case 'b': b.Append('\b'); break;
+                        case 'f': b.Append('\f'); break;
+                        case 'n': b.Append('\n'); break;
+                        case 'r': b.Append('\r'); break;
+                        case 't': b.Append('\t'); break;
+                        case 'u':
+                            if (i + 4 > s.Length)
+                            {
+                                throw new FormatException("обрыв \\u в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                            }
+
+                            b.Append((char)int.Parse(s.Substring(i, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+                            i += 4;
+                            break;
+                        default:
+                            throw new FormatException("неизвестное экранирование \\" + e + " в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+                }
+
+                throw new FormatException("незакрытая строка");
+            }
+        }
+    }
+
+    /// <summary>
+    /// ⛔ ПРОБА ГОВОРИТ ПРАВДУ О СВОИХ КЛЮЧАХ ОДНИМ МЕХАНИЗМОМ, А НЕ СТРОКАМИ,
+    /// НАПИСАННЫМИ РУКАМИ (`T115`, остаток `T65`; 13.09.2026, полоса П39).
+    ///
+    /// Сличение `FsaTuningReport` (`T65`, `T243`) накрывает ключи, доехавшие до
+    /// `FsaAnalyzer`: отражением по полям настроенного анализатора против чистого.
+    /// Ключи, которые до анализатора НЕ ДОХОДЯТ, применяет сама проба:
+    /// `--no-matrix` (матрицу подбирает и подаёт она), `--no-background` (фон
+    /// подаёт или не подаёт она), `--no-atomic`, `--no-equilibrium`,
+    /// `--crystal-shield=` (уходят в `FsaSampleSpec`, по спектру за раз). В строке
+    /// `T115` назван ещё `--no-room` — поле вездесущих рядов снято 01.09.2026
+    /// вместе с механизмом (`S110`), ключа больше нет; `--crystal-shield=` заведён
+    /// позже строки (`A30`, П21) и того же рода. До 13.09.2026 шапка печатала их
+    /// фразами вида `o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА"` — то есть читала
+    /// ПОЛЕ `Options`, а не точку применения: ключ, который перестал бы
+    /// применяться, шапка продолжала бы объявлять, а ключ, заведённый без строки
+    /// в шапке, не печатался бы вовсе.
+    ///
+    /// Два конца, оба механические, ни одной строки про конкретный ключ:
+    ///   * ЗАКАЗАНО — <see cref="Asked"/>: отражением по public-полям
+    ///     <c>Options</c> против <c>new Options()</c>. Ключ, заведённый в поле,
+    ///     попадает в строку `KEYS` сам; забыть напечатать его нельзя.
+    ///   * ПРИМЕНЕНО — <see cref="Witness"/>: ТОЧКА ПРИМЕНЕНИЯ свидетельствует,
+    ///     что она применила, и значение читается у ПОТРЕБИТЕЛЯ (у
+    ///     `FsaSampleSpec` перед сборкой библиотеки, у ветки выбора матрицы, у
+    ///     поданного фона), а не у `Options`. Имя свидетеля обязано быть именем
+    ///     поля `Options` — по нему <see cref="Verdict"/> находит заказанное
+    ///     отражением; свидетель с именем, которого у `Options` нет, — отказ.
+    ///
+    /// <see cref="Verdict"/> — после прогона, ДО записи результата: каждое
+    /// свидетельство сверяется с заказанным, строка `APPLIED` печатается всегда;
+    /// расхождение — код <see cref="ExitCode"/>, в `--out=` ни файла.
+    /// Положительный контроль — `--spoil=key`: точка применения атомных образов
+    /// нарочно применяет умолчание вместо ключа; прогон с `--no-atomic --spoil=key`
+    /// ОБЯЗАН кончиться кодом 13.
+    /// </summary>
+    static class ProbeSwitches
+    {
+        public const int ExitCode = 13;
+
+        /// <summary>
+        /// Поля `Options`, которые НЕ ключи, а адреса: печатаются своими строками
+        /// шапки («корпус:», каталог `--out=`) и в сличение не идут.
+        /// </summary>
+        static readonly HashSet<string> Addresses = new HashSet<string>(StringComparer.Ordinal) { "Corpus", "Out" };
+
+        /// <summary>имя поля -> (значение словами -> сколько раз засвидетельствовано)</summary>
+        static readonly SortedDictionary<string, SortedDictionary<string, int>> seen =
+            new SortedDictionary<string, SortedDictionary<string, int>>(StringComparer.Ordinal);
+
+        /// <summary>Заказано ключами: расхождения `Options` с умолчаниями, отражением.</summary>
+        public static string Asked(object options)
+        {
+            Type t = options.GetType();
+            object stock = Activator.CreateInstance(t, true);
+            var changed = new List<string>();
+            foreach (System.Reflection.FieldInfo f in t.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                if (Addresses.Contains(f.Name))
+                {
+                    continue;
+                }
+
+                string a = Value(f.GetValue(options));
+                string b = Value(f.GetValue(stock));
+                if (!string.Equals(a, b, StringComparison.Ordinal))
+                {
+                    changed.Add(f.Name + " " + b + " → " + a);
+                }
+            }
+
+            changed.Sort(StringComparer.Ordinal);
+            return changed.Count == 0
+                ? "НИЧЕГО (все ключи пробы — умолчания)"
+                : string.Join("; ", changed.ToArray());
+        }
+
+        /// <summary>Точка применения свидетельствует: поле <paramref name="field"/> применено как <paramref name="value"/>.</summary>
+        public static void Witness(string field, object value)
+        {
+            SortedDictionary<string, int> values;
+            if (!seen.TryGetValue(field, out values))
+            {
+                values = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                seen[field] = values;
+            }
+
+            string v = Value(value);
+            int n;
+            values.TryGetValue(v, out n);
+            values[v] = n + 1;
+        }
+
+        /// <summary>
+        /// Сверить свидетельства с заказанным. Печатает `APPLIED` всегда;
+        /// расхождение — отказ кодом <see cref="ExitCode"/>.
+        /// </summary>
+        public static int Verdict(object options)
+        {
+            Type t = options.GetType();
+            var applied = new List<string>();
+            var bad = new List<string>();
+            foreach (KeyValuePair<string, SortedDictionary<string, int>> kv in seen)
+            {
+                System.Reflection.FieldInfo f = t.GetField(kv.Key, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                var parts = new List<string>();
+                foreach (KeyValuePair<string, int> vc in kv.Value)
+                {
+                    parts.Add(vc.Key + " ×" + vc.Value.ToString(CultureInfo.InvariantCulture));
+                }
+
+                applied.Add(kv.Key + "=" + string.Join("|", parts.ToArray()));
+                if (f == null)
+                {
+                    bad.Add(kv.Key + ": свидетель называет поле, которого у Options НЕТ — применено то, чего никто не заказывал");
+                    continue;
+                }
+
+                string asked = Value(f.GetValue(options));
+                foreach (KeyValuePair<string, int> vc in kv.Value)
+                {
+                    if (!string.Equals(vc.Key, asked, StringComparison.Ordinal))
+                    {
+                        bad.Add(kv.Key + ": заказано " + asked + ", применено " + vc.Key
+                                + " (" + vc.Value.ToString(CultureInfo.InvariantCulture) + " спектр(ов))");
+                    }
+                }
+            }
+
+            Console.WriteLine("APPLIED\tприменено по свидетельствам точек применения (T115): {0}",
+                              applied.Count == 0 ? "свидетельств нет (ни один спектр до точек применения не дошёл)"
+                                                 : string.Join("; ", applied.ToArray()));
+            if (bad.Count == 0)
+            {
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ (T115): ПРОБА ПРИМЕНИЛА НЕ ТО, ЧТО ЗАКАЗАНО КЛЮЧАМИ — расхождений {0}:",
+                                    bad.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (string b in bad)
+            {
+                Console.Error.WriteLine("   " + b);
+            }
+
+            Console.Error.WriteLine("   Результат в --out= НЕ ЗАПИСАН: шапка такого прогона назвала бы не то, чем считали.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Значение словами, инвариантной культурой. Перечисления (списки,
+        /// массивы, словари) — числом элементов и первыми тремя, чтобы `--only=`
+        /// на 59 спектров не превращал строку в простыню: полный список и так
+        /// уходит в клеймо прогона `.run.json` (`keys=`).
+        /// </summary>
+        static string Value(object v)
+        {
+            if (v == null)
+            {
+                return "нет";
+            }
+
+            string s = v as string;
+            if (s != null)
+            {
+                return s.Length == 0 ? "пусто" : s;
+            }
+
+            var e = v as System.Collections.IEnumerable;
+            if (e != null)
+            {
+                var items = new List<string>();
+                int n = 0;
+                foreach (object x in e)
+                {
+                    n++;
+                    if (items.Count < 3)
+                    {
+                        items.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
+                    }
+                }
+
+                return "{" + n.ToString(CultureInfo.InvariantCulture) + ": " + string.Join(", ", items.ToArray())
+                       + (n > 3 ? ", …" : "") + "}";
+            }
+
+            return Convert.ToString(v, CultureInfo.InvariantCulture);
+        }
+    }
+
+    /// <summary>
     /// Полноспектральный разбор ВСЕГО корпуса кодом ПРИЛОЖЕНИЯ (TODO S1).
     ///
     /// Зачем ещё один обход, когда есть `tools/pie/run_corpus.ps1`: у того
@@ -226,13 +817,13 @@ namespace CorpusFsaProbe
     ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
     ///                  [--lib=sample]   (peaks/infer ЗАПРЕЩЕНЫ, отказ кодом 12)
     ///                  [--infer-head] [--infer-head-only]
-    ///                  [--no-infer-novel]
     ///                  [--no-atomic] [--no-equilibrium] [--audit] [--lib-dump]
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
-    ///                  [--spoil=manager]  (порча: поднять менеджер; ОБЯЗАН кончиться кодом 12)
+    ///                  [--spoil=manager|key]  (порча: поднять менеджер — ОБЯЗАН кончиться кодом 12;
+    ///                                          применить умолчание вместо ключа `--no-atomic` — кодом 13, `T115`)
     ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
     ///                  [--fit-floor=threshold[:&lt;доля&gt;]|off|adc|&lt;кэВ&gt;]   (`A302`/`A309`, пол полосы ФИТА)
     ///                  [--roughness=&lt;вес&gt;]
@@ -263,6 +854,18 @@ namespace CorpusFsaProbe
     /// (`T94`) `--print-settings` — печатает настройки анализатора (шапку прогона,
     /// полосу и сличение с поставочным разбором) и выходит кодом 0, НЕ читая корпуса:
     /// так читается поставочное значение любой настройки без единого спектра.
+    ///
+    /// ⛔ (`T68` (2), 13.09.2026) КАТАЛОГ ПРОБЫ СВЕРЯЕТСЯ С МАНИФЕСТОМ `.appwd.json`
+    /// САМОЙ ПРОБОЙ, до чтения корпуса — <see cref="AppWdGuard"/>: нет отметки,
+    /// нет в ней `files_sha`, подменён или пропал хоть один положенный файл —
+    /// код 3, в `--out=` ни файла. Внешний сторож `run_appwd.ps1` остаётся, но
+    /// прямой запуск `.\CorpusFsaProbe.exe …` из оснастки теперь тоже под сторожем.
+    ///
+    /// ⛔ (`T115`, 13.09.2026) ЧЕМ СЧИТАЛИ — ДВУМЯ МЕХАНИЧЕСКИМИ СТРОКАМИ, а не
+    /// фразами руками: `KEYS` в шапке (отражением по `Options` против умолчаний)
+    /// и `APPLIED` в конце (свидетельства точек применения); расхождение —
+    /// код 13 — <see cref="ProbeSwitches"/>. Настройки анализатора — по-прежнему
+    /// `SETUP` (`FsaTuningReport`).
     ///
     /// ⛔ **«НАЙДЕНА» и «ПРИМЕНЕНА» — РАЗНЫЕ слова с 27.08.2026** (`T85`).
     /// `matrix_found` = матрица прочитана и отпечаток сошёлся с геометрией;
@@ -299,12 +902,14 @@ namespace CorpusFsaProbe
     /// (`model_residual_pct`/100) из `*_spline_runs.csv` прежнего прогона —
     /// прямая проверка «ε и есть γ, оценённый по фиту»; печатается по спектру.
     ///
-    /// Запускать из каталога, где рядом лежат `config\NuclideDefinition.xml`
-    /// (ПОСТАВОЧНЫЙ, а не сеты `mkconfig.py` с обманками), `config\device\*.xml`
-    /// корпуса и `config\device\response\*.rmx`. Такой каталог собирает
-    /// `tools/CORPUS/scripts/mk_appwd.ps1`. Конфиг Amber (`%AppData%\BecqMoni`)
-    /// при этом не задействован: приложение считает себя standalone всегда,
-    /// кроме ClickOnce, и пути идут от рабочего каталога.
+    /// Запускать ТОЛЬКО через `tools/CORPUS/scripts/run_appwd.ps1` из оснастки,
+    /// которую собирает `mk_appwd.ps1`: рядом с exe лежат `config\BecquerelMonitor.xml`,
+    /// `config\device\*.xml` корпуса и `config\device\response\*.rmx`, а
+    /// `config\NuclideDefinition.xml` там быть НЕ ДОЛЖНО (`AMBER19`, отказ кодом 12;
+    /// до 13.09.2026 этот абзац звал класть его рядом). Оснастка заверена
+    /// `.appwd.json`, и проба сверяет с ним свой каталог сама (`T68`). Конфиг Amber
+    /// (`%AppData%\BecqMoni`) при этом не задействован: приложение считает себя
+    /// standalone всегда, кроме ClickOnce, и пути идут от рабочего каталога.
     /// </summary>
     static class Program
     {
@@ -571,8 +1176,12 @@ namespace CorpusFsaProbe
                 if (a == "--lib=sample") { o.Library = "sample"; continue; }
                 if (a == "--lib=peaks") { o.Library = "peaks"; continue; }
                 if (a == "--lib=infer") { o.Library = "infer"; continue; }
-                if (a == "--no-infer-anchor") { o.InferAnchors = false; continue; }
-                if (a == "--no-infer-novel") { o.InferNovelty = false; continue; }
+                // ⛔ Ключи `--no-infer-anchor` и `--no-infer-novel` СНЯТЫ 13.09.2026
+                //    (П39, находка П35): якорь снят из приложения решением Amber
+                //    (`S66`, `c4d94c5a`), а новизну проба не звала никогда —
+                //    `FsaCompositionInference.Infer` из неё не зовётся вовсе, и
+                //    оба поля жили только в печати «библиотека:». Режим
+                //    `--lib=infer` отвергается кодом 12 с 01.09.2026.
                 // S65: ОБОРВАННЫЙ ряд. Два ключа, а не один, потому что это два
                 // РАЗНЫХ утверждения: `--infer-head` меняет один знаменатель
                 // доли (в состав, как велит правило Amber, идёт весь ряд),
@@ -809,14 +1418,16 @@ namespace CorpusFsaProbe
                 // ЗАВЕДОМЫМ рассинхроном, ничем не отличается от сторожа,
                 // который всегда молчит.
                 if (a == "--band-selftest") { o.BandSelfTest = true; continue; }
-                // (`AMBER19`) Порча для положительного контроля гейта библиотеки:
-                // единственное значение — `manager`; иное — отказ разбора ключей.
+                // (`AMBER19`) Порча для положительного контроля гейта библиотеки —
+                // `manager`; (`T115`) порча для контроля свидетелей ключей — `key`
+                // (точка применения атомных образов применяет умолчание вместо
+                // ключа). Иное значение — отказ разбора ключей.
                 if (a.StartsWith("--spoil=", StringComparison.Ordinal))
                 {
                     o.Spoil = a.Substring(8);
-                    if (o.Spoil != "manager")
+                    if (o.Spoil != "manager" && o.Spoil != "key")
                     {
-                        Console.Error.WriteLine("--spoil= знает только manager; дано: {0}", o.Spoil);
+                        Console.Error.WriteLine("--spoil= знает только manager и key; дано: {0}", o.Spoil);
                         return 2;
                     }
                     continue;
@@ -1012,6 +1623,18 @@ namespace CorpusFsaProbe
                 return suppliedFile;
             }
 
+            // ⛔ (`T68` (2), 13.09.2026) ДВЕРЬ ОСНАСТКИ — тоже ДО чтения корпуса и
+            // до первого обращения к базам: каталог рядом с exe сверяется с
+            // манифестом `files_sha` его же `.appwd.json` по sha256. Стоит здесь,
+            // а не первым действием `Main`, по той же причине, что и дверь выше:
+            // `--print-settings` и `--band-selftest` корпуса не считают и зовутся
+            // из каталога проб ДО того, как `build_all.ps1` его заверит.
+            int appwd = AppWdGuard.Refuse();
+            if (appwd != 0)
+            {
+                return appwd;
+            }
+
             string partsPath = Path.Combine(o.Corpus, "parts.csv");
             if (!File.Exists(partsPath))
             {
@@ -1085,6 +1708,16 @@ namespace CorpusFsaProbe
             if (managerRaised != 0)
             {
                 return managerRaised;
+            }
+
+            // ⛔ (`T115`) ПРИМЕНЕНО ПРОТИВ ЗАКАЗАННОГО — ДО записи результата:
+            // свидетельства точек применения (`ProbeSwitches.Witness` в `RunOne`)
+            // сверяются с полями `Options` по имени; расхождение — код 13, в
+            // `--out=` ни файла. Строка `APPLIED` печатается и при согласии.
+            int switches = ProbeSwitches.Verdict(o);
+            if (switches != 0)
+            {
+                return switches;
             }
 
             Write(rows, o);
@@ -1323,23 +1956,34 @@ namespace CorpusFsaProbe
                               + "гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём "
                               + "NuclideDefinitionManager — отказ кодом 12",
                               o.Library);
-            // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
-            // подбирает и подаёт сама проба, фон она подаёт или не подаёт
-            // отдельным доводом. Их и печатаем у себя; всё остальное —
-            // у того объекта, который считает.
-            Console.WriteLine("матрица {0}, суммирование {1}, наложения {2}, рассеяние {3}, вылеты {4}, фон {5}",
-                              o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА",
+            // Настройки, которые живут У АНАЛИЗАТОРА, печатаются с него — с того
+            // самого объекта, каким считается каждый спектр (`T65`).
+            Console.WriteLine("суммирование {0}, наложения {1}, рассеяние {2}, вылеты {3}",
                               head.CascadeSumming ? "вкл" : "выкл",
                               head.PileUp ? "вкл" : "выкл",
                               head.Backscatter ? "вкл" : "выкл",
-                              head.EscapeAndAnnihilation ? "вкл" : "выкл",
-                              o.Background ? "вычитается, если есть" : "НЕ вычитается");
+                              head.EscapeAndAnnihilation ? "вкл" : "выкл");
+            // ⛔ (`T115`, 13.09.2026) КЛЮЧИ, КОТОРЫЕ ДО АНАЛИЗАТОРА НЕ ДОХОДЯТ, —
+            // матрица, фон, атомные образы, равновесие ряда, заслон кристалла —
+            // здесь БОЛЬШЕ НЕ ПЕЧАТАЮТСЯ фразами руками (`o.Matrix ? "по спектру"
+            // : "ВЫКЛЮЧЕНА"` и т. п.): такая фраза читала поле, а не точку
+            // применения, и ключ, заведённый без своей фразы, в шапку не попадал
+            // вовсе. Вместо них — ОДНА механическая строка `KEYS` (всё, что
+            // отличается от умолчаний `Options`, отражением) здесь и строка
+            // `APPLIED` (свидетельства точек применения) в конце прогона; их
+            // сличение — `ProbeSwitches.Verdict`, расхождение — код 13.
+            Console.WriteLine("KEYS\tключи пробы против умолчаний (T115, отражением по Options; настройки анализатора — строка SETUP): {0}",
+                              ProbeSwitches.Asked(o));
             // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
             // это единица измерения всего прогона: recall и число фантомов
             // считаются ОТНОСИТЕЛЬНО предъявленного списка, и сужение списка
             // улучшает обе мерки само по себе. Прогон, у которого эта строка не
             // записана, с прежней базой сравнивать нельзя.
-            Console.WriteLine("библиотека: {0}{1}",
+            // (П39, 13.09.2026) Слова «якоря вкл/ВЫКЛ» и «новизна вкл/ВЫКЛ» сняты
+            // вместе с ключами: якорь снят из приложения (`S66`), новизну проба
+            // не звала никогда. Ветка `infer` мертва кодом 12 с 01.09.2026 и
+            // печатается здесь только как след прежних замеров `S57`.
+            Console.WriteLine("библиотека: {0}",
                               o.Library == "sample"
                                   ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
                                   : o.Library == "infer"
@@ -1348,30 +1992,12 @@ namespace CorpusFsaProbe
                                         // формат `P` ставит разделитель разрядов выше 1000 %.
                                         + (100.0 * InferTheta(o)).ToString("F0", CultureInfo.InvariantCulture)
                                         + " %"
-                                        + ", якоря " + (o.InferAnchors ? "вкл" : "ВЫКЛ")
-                                        + ", новизна " + (o.InferNovelty ? "вкл" : "ВЫКЛ")
                                         + ", оборванный ряд: "
                                         + (o.InferCut == FsaChainCut.Whole ? "не ищется"
                                            : o.InferCut == FsaChainCut.Criterion
                                                ? "ГОЛОВА СУДИТ, состав весь"
                                                : "ГОЛОВА СУДИТ И ИДЁТ В СОСТАВ")
-                                      : "по подписям поиска пиков (как до 18.08.2026)",
-                              o.Library != "peaks"
-                                  ? "; атомные образы " + (o.Atomic ? "вкл" : "ВЫКЛ")
-                                    // (`T65`) Равновесие ряда МЕНЯЕТ ЧИСЛО СВОБОДНЫХ
-                                    // АМПЛИТУД, а не список компонентов, и до
-                                    // 25.08.2026 не печаталось вовсе: прогон
-                                    // `--no-equilibrium` выглядел в журнале в точности
-                                    // как умолчательный. Печатается ТА ЖЕ переменная,
-                                    // которая уходит в `FsaSampleSpec.Equilibrium`
-                                    // (см. <c>SpecOf</c> и ветку `infer`).
-                                    + ", равновесие ряда " + (o.Equilibrium ? "вкл" : "ВЫКЛ")
-                                    // (`A30`, П21) Заслон — ключ БИБЛИОТЕКИ, отражение
-                                    // `SETUP` по анализатору его не видит; печатается та
-                                    // же переменная, что уходит в `FsaSampleSpec`.
-                                    + ", заслон сведения кристалла "
-                                    + (o.CrystalShield ? "ВКЛ (как до 12.09.2026)" : "снят")
-                                  : "");
+                                      : "по подписям поиска пиков (как до 18.08.2026)");
             if (o.Library != "peaks")
             {
                 Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
@@ -2133,6 +2759,13 @@ namespace CorpusFsaProbe
                 ResultData rd = Load(path);
                 EnergySpectrum background = o.Background ? rd.BackgroundEnergySpectrum : null;
                 row.HasBackground = background != null;
+                // (`T115`) Свидетель точки применения `--no-background`: что
+                // ПОДАНО анализатору, а не что стоит в поле. Судится только там,
+                // где у спектра фон есть, — без фона ключ ненаблюдаем.
+                if (rd.BackgroundEnergySpectrum != null)
+                {
+                    ProbeSwitches.Witness("Background", background != null);
+                }
 
                 // ⛔ S56, первый постулат (Amber 17.08.2026). Состав библиотеки
                 // задаёт ОБЪЯВЛЕННАЯ проба, а не подписи поиска пиков: корпус
@@ -2156,6 +2789,14 @@ namespace CorpusFsaProbe
                     // спрашиваются `Min_Range` и ФАКТИЧЕСКИЙ пол по кривой —
                     // второй копии этих двух чисел в пробе быть не должно.
                     FsaSampleSpec spec = SpecOf(rd, sample, o);
+                    // (`T115`) Свидетели точек применения `--no-atomic`,
+                    // `--no-equilibrium`, `--crystal-shield=`: читаются у
+                    // ПОТРЕБИТЕЛЯ — у спецификации, которую сейчас съест
+                    // `FsaSampleLibrary.Build`, — а не у `Options`. Имена — имена
+                    // полей `Options`, по ним `Verdict` находит заказанное.
+                    ProbeSwitches.Witness("Atomic", spec.AtomicXray);
+                    ProbeSwitches.Witness("Equilibrium", spec.Equilibrium);
+                    ProbeSwitches.Witness("CrystalShield", spec.CrystalShield);
                     library = FsaSampleLibrary.Build(spec, out built);
                     row.LibraryNote = built.ToString();
                     row.MinRangeKev = spec.MinEnergyKev;
@@ -2323,6 +2964,11 @@ namespace CorpusFsaProbe
                 {
                     row.Matrix = MatrixState.OffByKey;
                 }
+
+                // (`T115`) Свидетель точки применения `--no-matrix`: какой веткой
+                // ПОШЛИ — матрицу искали (любое состояние, кроме `OffByKey`) или
+                // отключили ключом. Читается исход ветки, а не поле.
+                ProbeSwitches.Witness("Matrix", row.Matrix != MatrixState.OffByKey);
 
                 FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
                 row.EfficiencyName = rd.Efficiency != null ? rd.Efficiency.Name : "";
@@ -2576,6 +3222,14 @@ namespace CorpusFsaProbe
             // (`A30`, П21) Ключ библиотеки, а не анализатора: заслон живёт в
             // `FsaSampleLibrary.AddAtomic`, и ключ обязан доехать до неё.
             spec.CrystalShield = o.CrystalShield;
+            // (`T115`) Порча `--spoil=key` — положительный контроль свидетелей:
+            // точка применения атомных образов ПРИМЕНЯЕТ УМОЛЧАНИЕ вместо ключа.
+            // Ровно так выглядела бы правка, оборвавшая путь ключа до потребителя;
+            // `ProbeSwitches.Verdict` обязан назвать её и кончить прогон кодом 13.
+            if (o.Spoil == "key")
+            {
+                spec.AtomicXray = new FsaSampleSpec().AtomicXray;
+            }
 
             AddElements(spec.CrystalElements, sample.Crystal);
             AddElements(spec.SampleElements, sample.SampleMatter);
@@ -4599,18 +5253,11 @@ namespace CorpusFsaProbe
             /// </summary>
             public double InferTheta = -1.0;
 
-            /// <summary>
-            /// (S57) Второй путь в состав — неспутываемая главная линия.
-            /// A/B-сторона <c>--no-infer-anchor</c>: якорь оправдан, только если он
-            /// НАБИРАЕТ recall быстрее, чем набирает фантомов.
-            /// </summary>
-            public bool InferAnchors = true;
-
-            /// <summary>
-            /// (S57) Третье условие приёма — кандидат обязан принести СВОЮ
-            /// структуру, а не сесть на чужую. A/B-сторона <c>--no-infer-novel</c>.
-            /// </summary>
-            public bool InferNovelty = true;
+            // ⛔ Поля `InferAnchors` (`--no-infer-anchor`) и `InferNovelty`
+            //    (`--no-infer-novel`) СНЯТЫ 13.09.2026 (П39, находка П35): якорь
+            //    снят из приложения решением Amber (`S66`), новизну проба не
+            //    звала никогда — оба поля жили только в печати «библиотека:»,
+            //    а строка `KEYS` (`T115`) печатает отражением всё, что есть.
 
             /// <summary>
             /// (S65) Что делать с ОБОРВАННЫМ рядом: `--infer-head` /
@@ -4735,7 +5382,9 @@ namespace CorpusFsaProbe
             public bool BandSelfTest;
 
             /// <summary>(`AMBER19`) Порча для положительного контроля гейта
-            /// библиотеки: `manager` — поднять менеджер посреди прогона. Пусто —
+            /// библиотеки: `manager` — поднять менеджер посреди прогона;
+            /// (`T115`) `key` — применить умолчание вместо ключа `--no-atomic`
+            /// в точке применения (свидетели обязаны поймать, код 13). Пусто —
             /// порчи нет.</summary>
             public string Spoil = "";
 

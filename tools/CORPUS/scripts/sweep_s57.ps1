@@ -1,5 +1,15 @@
 # Развёртка порога значимости S57 по всему корпусу.
 #
+# ⛔⛔ СЦЕНАРИЙ СНЯТ 13.09.2026 (полоса П39) — ОСТАВЛЕН КАК ЗАПИСЬ ТОГО, КАК
+#    МЕРИЛАСЬ `S57` (18.08.2026). Оба его плеча мертвы кодом 12 с 01.09.2026:
+#    режимы `--lib=peaks` и `--lib=infer` `CorpusFsaProbe` отвергает (глобальное
+#    правило Amber — поставочная библиотека на корпусе не используется), и
+#    `Run-One` на первом же плече выйдет кодом 12. Ключ `-NoAnchor`
+#    (`--no-infer-anchor`) снят вместе с самим ключом пробы: якорь снят из
+#    приложения решением Amber 12.09.2026 (`S66`). Запуск ниже отказывает СРАЗУ,
+#    не трогая оснастки, — чтобы «мёртвый сценарий» не выглядел как «отказала
+#    оснастка».
+#
 # ⛔ Величина порога «весомого количества» обязана быть ВЫВЕДЕНА замером, а не
 # назначена (строка S57). Скрипт гоняет `--lib=infer` с сеткой `--infer-theta=`
 # и снимает мерку обеими частями корпуса; крайние точки сетки — `--lib=peaks`
@@ -26,11 +36,13 @@ param(
     [string] $Repo   = 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8',
     [string] $Wd     = 'tools\CORPUS\scripts\wd_s57',
     [string] $Tag    = 's57',
-    [double[]] $Theta = @(0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60),
-    [switch] $NoAnchor
+    [double[]] $Theta = @(0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.60)
 )
 
 $ErrorActionPreference = 'Stop'
+# ⛔ Снят 13.09.2026 (см. шапку): оба плеча развёртки отвергаются пробой кодом 12.
+Write-Host '⛔ sweep_s57.ps1 СНЯТ 13.09.2026: режимы --lib=peaks / --lib=infer отвергаются CorpusFsaProbe кодом 12 с 01.09.2026 (правило Amber). Развёртка S57 — история, см. шапку.' -ForegroundColor Red
+exit 12
 $env:PYTHONIOENCODING = 'utf-8'
 $corpus = Join-Path $Repo 'tools\CORPUS\corpus'
 $runner = Join-Path $Repo 'tools\CORPUS\scripts\run_appwd.ps1'
@@ -76,8 +88,6 @@ function Run-One([string] $out, [string[]] $extra) {
 }
 
 $results = @()
-$anchorArgs = if ($NoAnchor) { @('--no-infer-anchor') } else { @() }
-$suffix     = if ($NoAnchor) { '_noanchor' } else { '' }
 
 Write-Host '=== A-сторона: подписи поиска пиков как есть (--lib=peaks) ==='
 $results += [pscustomobject]@{ Mode = 'peaks'; Theta = [double]::NaN
@@ -89,8 +99,8 @@ foreach ($t in $Theta) {
     $name = $t.ToString('F2', [cultureinfo]::InvariantCulture).Replace('.', '')
     Write-Host "=== вывод состава, порог доли $($t.ToString('P0')) ==="
     $results += [pscustomobject]@{ Mode = 'infer'; Theta = $t
-                                   R = (Run-One (Join-Path $Repo "tools\pie\out_${Tag}_i${name}${suffix}") `
-                                                (@('--lib=infer', "--infer-theta=$($t.ToString([cultureinfo]::InvariantCulture))") + $anchorArgs)) }
+                                   R = (Run-One (Join-Path $Repo "tools\pie\out_${Tag}_i${name}") `
+                                                (@('--lib=infer', "--infer-theta=$($t.ToString([cultureinfo]::InvariantCulture))"))) }
 }
 
 Write-Host '=== верхняя граница: объявленная проба (--lib=sample) ==='
