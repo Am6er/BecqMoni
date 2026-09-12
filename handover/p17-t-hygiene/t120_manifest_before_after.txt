@@ -1,0 +1,63 @@
+T120: манифест ClickOnce, сборка Release БЕЗ /p:GenerateManifests=false, деревья из git archive
+  до  = a828c194 (родитель b164d082, коммита T72 31.08.2026)
+  после = HEAD 27c2d3c9 (12.09.2026)
+файлов <file>: до 27, после 27
+зависимостей <dependentAssembly codebase>: до 16, после 16
+только до: нет
+только после: нет
+размеры разошлись (код и данные за 12 дней): [('BecquerelMonitor.pdb', '4355584', '4802048'), ('schemedb.sqlite', '28090368', '28127232')]
+записи config\ в манифесте ПОСЛЕ:
+    config\BecquerelMonitor.xml
+    config\NuclideDefinition.xml
+    config\ROI\Atom Nano 3.xml
+    config\ROI\Atom Nano 8.xml
+    config\ROI\Atom Spectra 2 Маринелли 40х40.xml
+    config\ROI\Atom Spectra 2.xml
+    config\ROI\Cs134,Cs137,K40.xml
+    config\ROI\Obsidian Marinelli 0.5.xml
+    config\ROI\Ra-226 Intensities.xml
+    config\ROI\Ra226 + K40.xml
+    config\ROI\RadiaCode Cs-137.xml
+    config\ROI\RadiaCode Marinelli 0.5.xml
+    config\ROI\Th-232 Intensities.xml
+    config\ROI\Th-232.xml
+    config\device\AtomSpectraVCP.xml
+    config\layout\ExpertMode.xml
+строк диффа без <hash>: 8
+-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="BecquerelMonitor.exe" size="10788352">
++    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="BecquerelMonitor.exe" size="11327488">
+-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ru\BecquerelMonitor.resources.dll" size="1495040">
++    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ru\BecquerelMonitor.resources.dll" size="1523712">
+-  <file name="BecquerelMonitor.pdb" size="4355584">
++  <file name="BecquerelMonitor.pdb" size="4802048">
+-  <file name="schemedb.sqlite" size="28090368">
++  <file name="schemedb.sqlite" size="28127232">
+
+все 27 <file> ПОСЛЕ:
+    BecquerelMonitor.exe.config 1253
+    BecquerelMonitor.ico 255867
+    BecquerelMonitor.pdb 4802048
+    config\BecquerelMonitor.xml 5689
+    config\device\AtomSpectraVCP.xml 1819
+    config\layout\ExpertMode.xml 8636
+    config\NuclideDefinition.xml 50814
+    config\ROI\Atom Nano 3.xml 7092
+    config\ROI\Atom Nano 8.xml 7092
+    config\ROI\Atom Spectra 2 Маринелли 40х40.xml 4645
+    config\ROI\Atom Spectra 2.xml 10478
+    config\ROI\Cs134,Cs137,K40.xml 5539
+    config\ROI\Obsidian Marinelli 0.5.xml 26891
+    config\ROI\Ra226 + K40.xml 13864
+    config\ROI\Ra-226 Intensities.xml 8388
+    config\ROI\RadiaCode Cs-137.xml 4887
+    config\ROI\RadiaCode Marinelli 0.5.xml 26738
+    config\ROI\Th-232 Intensities.xml 5845
+    config\ROI\Th-232.xml 4979
+    logo_becqmoni.ico 255867
+    matdb.sqlite 20393984
+    nucdb.sqlite 10895360
+    runtimes\win-arm\native\e_sqlite3.dll 1153024
+    runtimes\win-x64\native\e_sqlite3.dll 1638912
+    runtimes\win-x86\native\e_sqlite3.dll 1246720
+    schemedb.sqlite 28127232
+    SpecUtilsNet.dll 2374144

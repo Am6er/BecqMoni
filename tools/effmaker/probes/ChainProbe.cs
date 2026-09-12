@@ -35,7 +35,9 @@ namespace ChainProbe
     ///
     /// Конфиг берётся ТОЛЬКО из текущего каталога: пробу запускают из копии.
     ///
-    /// Ожидание: «ВСЕ СОШЛИСЬ».
+    /// Ожидание: «ВСЕ СОШЛИСЬ». На сцене БЕЗ БАЗ (нет `<проба>.exe.config`)
+    /// — «НЕ СОШЛОСЬ: 24», и все 24 в разделах, помеченных `[база]`
+    /// (разобрано 12.09.2026, `T151`; вердикт печатает разбивку по разделам).
     /// </summary>
     static class Program
     {
@@ -53,19 +55,63 @@ namespace ChainProbe
             //    05.09.2026). Разбор «0.353» инвариант держит так же.
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-            int bad = 0;
-            bad += CheckParsing();
-            bad += CheckPersistence();
-            bad += CheckConsumers();
-            bad += CheckBranches();
-            bad += CheckTwoWalks();
-            bad += CheckKSeriesEditor();
-            bad += CheckSearch();
-            bad += CheckForm();
+            // ⛔ (`T151`) Вердикт называет несошедшееся ПО РАЗДЕЛАМ, а не одной
+            //    суммой. «НЕ СОШЛОСЬ: 24» на сцене без баз (каталог без
+            //    `<проба>.exe.config` — поставщик SQLite не поднимается, обе базы
+            //    отказывают) служило якорем «не сдвинулось» с ~~`A92`~~, и никто
+            //    не написал, ЧТО за ним стоит. Разобрано 12.09.2026 поимённо:
+            //    ветвление от корня 11 (члены рядов Th-232/Th-228/Ra-226 и доли
+            //    ветвей — нули), два обхода ряда 9 (пять рядов «1 член,
+            //    расходится 1» и четыре суммы Ra-226 → 210PB…206PB — нули),
+            //    поиск по ряду 3 (Tl-208 2614.51 и Ac-228 911.20 в таблице —
+            //    нули), K-серия 1 («линий Lu-176 не пришло») — итого 24, и все
+            //    24 — сверки, которым нужна база нуклидов; четыре раздела без
+            //    базы (разбор подписи, хранение, согласие потребителей, форма)
+            //    сходятся. Значит якорь на такой сцене честен только НАПОЛОВИНУ:
+            //    регрессию в сверках с базой он не видит по построению (они и так
+            //    все красные), сдвиг ловится лишь у четырёх разделов без базы —
+            //    для них сумма 24 обязана остаться ровно 24. Разбивка ниже
+            //    печатается всякий раз, чтобы этот вопрос больше не возникал.
+            KeyValuePair<string, int>[] sections =
+            {
+                new KeyValuePair<string, int>("разбор подписи", CheckParsing()),
+                new KeyValuePair<string, int>("хранение", CheckPersistence()),
+                new KeyValuePair<string, int>("согласие потребителей", CheckConsumers()),
+                new KeyValuePair<string, int>("ветвление от корня [база]", CheckBranches()),
+                new KeyValuePair<string, int>("два обхода ряда [база]", CheckTwoWalks()),
+                new KeyValuePair<string, int>("K-серия в редакторе [база]", CheckKSeriesEditor()),
+                new KeyValuePair<string, int>("поиск по ряду [база]", CheckSearch()),
+                new KeyValuePair<string, int>("форма редактора", CheckForm()),
+            };
+
+            int bad = 0, badDb = 0;
+            var parts = new List<string>();
+            foreach (KeyValuePair<string, int> s in sections)
+            {
+                bad += s.Value;
+                if (s.Key.EndsWith("[база]", StringComparison.Ordinal)) badDb += s.Value;
+                if (s.Value > 0) parts.Add(string.Format("{0} {1}", s.Key, s.Value));
+            }
 
             Console.WriteLine();
-            Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
-            return bad == 0 ? 0 : 1;
+            if (bad == 0)
+            {
+                Console.WriteLine("ВСЕ СОШЛИСЬ");
+                return 0;
+            }
+
+            Console.WriteLine("НЕ СОШЛОСЬ: {0} ({1})", bad, string.Join(", ", parts.ToArray()));
+            if (badDb == bad)
+            {
+                Console.WriteLine("  все {0} — сверки, которым нужна база нуклидов (разделы [база]); "
+                                  + "разделы без базы сошлись. На сцене без баз это ожидаемо, и якорь "
+                                  + "«не сдвинулось» там мерит только разделы без базы (T151).", bad);
+            }
+            else if (badDb > 0)
+            {
+                Console.WriteLine("  из них с базой {0}, без базы {1}", badDb, bad - badDb);
+            }
+            return 1;
         }
 
         static int CheckParsing()

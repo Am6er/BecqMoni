@@ -296,23 +296,10 @@ def check_level_fallback():
         print('  СОШЛОСЬ: запасная ветвь не нужна никому')
         return True
 
-    by_name = dict((chains.pretty(n), n) for n in fallback)
     chains.reset_level_fallback_hits()
-    bad, memo = [], {}
-    for e in corpus_def.ALL:
-        key = (tuple(e.get('chains') or []), tuple(e.get('nuclides') or []),
-               e.get('extra'))
-        if key not in memo:
-            hit = set()
-            for _, _, name in build_corpus.sample_lines(e):
-                token = name.split(' (', 1)[0]
-                if token.endswith(' room'):
-                    token = token[:-5]
-                if token in by_name:
-                    hit.add(by_name[token])
-            memo[key] = sorted(hit)
-        if memo[key]:
-            bad.append((e['key'], memo[key]))
+    # (`T195`) Обход — общий со сборщиком (`build_corpus.level_fallback_spectra`):
+    # шапка пересборки печатает то же число тем же правилом.
+    bad = build_corpus.level_fallback_spectra(corpus_def.ALL, fallback)
     hits = chains.level_fallback_hits()
     print('  спектров с линиями таких родителей: %d из %d; признак сработал у: %s'
           % (len(bad), len(corpus_def.ALL), ', '.join(hits) or '—'))

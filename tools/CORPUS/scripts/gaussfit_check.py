@@ -182,20 +182,24 @@ class Coverage(object):
     def __init__(self, requested=None, frozen=None):
         u"""`frozen` — ключи, отсутствие которых ОЖИДАЕМО и не есть дефект.
 
-        ⛔ Умолчание (`frozen_keys()`) верно только для мерок, живущих на
-        `scripts/_corpus_raw`. Мерке, читающей `corpus/spectra`, семёрка
+        ⛔ ОБЯЗАТЕЛЕН, умолчания нет (`T186`, 12.09.2026). Прежнее умолчание
+        `frozen_keys()` было верно только для мерок, живущих на
+        `scripts/_corpus_raw`; мерке, читающей `corpus/spectra`, семёрка
         `LEGACY` доступна наравне со всеми, и «объяснить» её пропажу значило
-        бы завести новую немую дыру ровно того рода, о котором `T76`. Такая
-        мерка передаёт `frozen=set()` явно.
+        бы завести новую немую дыру ровно того рода, о котором `T76`. Поэтому
+        мерка НАЗЫВАЕТ, что заморожено: на `_corpus_raw` — `frozen_keys()`,
+        на `corpus/spectra` — `set()`; забытый довод — отказ словами, а не
+        молчаливая семёрка «ожидаемо отсутствующих».
         """
+        if frozen is None:
+            sys.exit(u'Coverage: довод frozen обязателен (T186): frozen_keys() для '
+                     u'мерки на _corpus_raw, set() для мерки на corpus/spectra')
         self.part = parts_of()
         self.want = [e['key'] for e in corpus_def.ALL
                      if requested is None or e['key'] in requested]
         self.subset = requested is not None
         self.unknown_keys = (sorted(set(requested) - set(self.want))
                              if requested else [])
-        if frozen is None:
-            frozen = frozen_keys()
         self.frozen = set(frozen) & set(self.want)
         self.stages = []          # [(имя, множество ключей, hard)]
 
@@ -273,6 +277,10 @@ class Coverage(object):
         u"""Печатает таблицу охвата; возвращает число НЕОБЪЯСНЁННЫХ пропусков."""
         print(u'')
         print(u'=== %s: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===' % title)
+        # (`T186`) Что заморожено — вслух: читатель сводки видит, чьё
+        # отсутствие мерка считает ожидаемым, а не узнаёт это по молчанию.
+        print(u'заморожено (отсутствие ОЖИДАЕМО): %s'
+              % (u', '.join(sorted(self.frozen)) if self.frozen else u'ничего'))
         if self.subset:
             print(u'⚠ прогон по ключу --only: знаменатель — запрошенные %d '
                   u'спектров, а не весь корпус' % len(self.want))
@@ -479,9 +487,23 @@ def main():
 
     res_by_det = det_res_a()
     part_of = parts_of()
-    cov = Coverage(requested=only)
+    cov = Coverage(requested=only, frozen=frozen_keys())   # мерка на _corpus_raw (T186)
     if os.path.abspath(raw_dir) != os.path.abspath(RAW):
         print(u'⚠ сырьё берётся НЕ из scripts/_corpus_raw, а из %s' % raw_dir)
+    # (`T205`) ИЗЛИШЕК сырья — вслух. `Coverage` видит недостачу (объявлено, но не
+    # посчитано), а файлы, которых в `corpus_def.ALL` нет вовсе, до 12.09.2026 не
+    # видел никто: каталог назывался «копией стадии 1», а держал 28 чужих спектров
+    # (`AS21_PuAm`, `CZT_*`, `OBS_*`, `*_25cm`…). Пары `*_bg` — законные (фон к
+    # спектру), в излишек не идут. Мерки чужое не читают, числа целы, поэтому это
+    # печать, а не отказ.
+    known = set(e['key'] for e in corpus_def.ALL)
+    stray = sorted(f[:-4] for f in os.listdir(raw_dir)
+                   if f.lower().endswith('.xml') and f[:-4] not in known
+                   and not f[:-4].endswith('_bg'))
+    print(u'в %s спектров сверх corpus_def.ALL: %d%s'
+          % (os.path.basename(os.path.normpath(raw_dir)), len(stray),
+             (u' — ' + u', '.join(stray[:8]) + (u', …' if len(stray) > 8 else u''))
+             if stray else u''))
     read_ok = []                  # спектры, до которых мерка вообще дошла
     rows = []
     detail = []

@@ -10,14 +10,19 @@
       "status": {"A89": "~~открыто~~ **СДЕЛАНО 04.09.2026**"},
       "prepend": {"A89": "⛔ **НЕ БРАТЬ В РАБОТУ до решения Amber.** "},
       "append": {"A89": " ✅ **СДЕЛАНО.** Мерено пробой …"},
+      "replace": {"T143": [["~~`T142`~~", "`T142`"]], "A89": ["старое", "новое"]},
       "files":  {"A89": "`BecquerelMonitor/EfficiencyMaker/MaterialDatabase.cs`"},
       "after":  [["A104", "| **A105** | открыто | … | файл |"]]
     }
 
 `status` заменяет ВТОРУЮ клетку, `append` дописывает в КОНЕЦ клетки ОПИСАНИЯ,
-`prepend` — в её НАЧАЛО, `files` заменяет последнюю клетку, `after` вставляет
-строки за названной. `cols3` перечисляет строки без колонки файлов (три клетки
-вместо четырёх).
+`prepend` — в её НАЧАЛО, `replace` меняет подстроку ВНУТРИ описания (`T171`;
+пара «старое → новое» либо список пар; старое обязано встречаться в описании
+РОВНО ОДИН РАЗ — при 0 или больше одного вхождений отказ словами, файл не
+тронут), `files` заменяет последнюю клетку, `after` вставляет строки за
+названной. `cols3` перечисляет строки без колонки файлов (три клетки вместо
+четырёх). Порядок правок одной строки: `status`, `prepend`, `replace`,
+`append`, `files` — `replace` видит описание уже с `prepend`, но без `append`.
 
 `prepend` нужен для того, что читатель обязан увидеть ПЕРВЫМ, — например
 «не брать в работу, пока не решено». Дописанное в конец длинной строки
@@ -84,7 +89,22 @@ def main():
 
     cols3 = set(job.get('cols3', []))
     touched = (set(job.get('status', {})) | set(job.get('append', {}))
-               | set(job.get('prepend', {})) | set(job.get('files', {})))
+               | set(job.get('prepend', {})) | set(job.get('files', {}))
+               | set(job.get('replace', {})))
+
+    # (`T171`) Замены разбираются ДО первой правки: отказ на второй строке
+    # задания не должен оставлять первую уже записанной.
+    plan_replace = {}
+    for rid, pairs in job.get('replace', {}).items():
+        if (isinstance(pairs, list) and len(pairs) == 2
+                and all(isinstance(x, str) for x in pairs)):
+            pairs = [pairs]
+        for pair in pairs:
+            if not (isinstance(pair, list) and len(pair) == 2 and all(isinstance(x, str) for x in pair)):
+                sys.exit('replace %s: ждали пару [старое, новое] или список пар' % rid)
+            if not pair[0]:
+                sys.exit('replace %s: пустое «старое» — заменять нечего' % rid)
+        plan_replace[rid] = pairs
 
     for rid in sorted(touched):
         i = row_index(lines, rid)
@@ -98,6 +118,18 @@ def main():
             parts[2] = ' ' + job['status'][rid] + ' '
         if rid in job.get('prepend', {}):
             parts[3] = ' ' + job['prepend'][rid] + parts[3].lstrip()
+        if rid in plan_replace:
+            # Описание — всё между клеткой состояния и клеткой файлов, с
+            # ВНУТРЕННИМИ трубами: вхождение считается по нему целиком, иначе
+            # подстрока, лежащая через трубу, была бы не видна.
+            body = '|'.join(parts[3:tail + 1])
+            for old, new in plan_replace[rid]:
+                n = body.count(old)
+                if n != 1:
+                    sys.exit('replace %s: «%s» встречается в описании %d раз, а надо ровно 1 — '
+                             'файл не тронут' % (rid, old, n))
+                body = body.replace(old, new, 1)
+            parts[3:tail + 1] = body.split('|')
         if rid in job.get('append', {}):
             parts[tail] = parts[tail].rstrip() + job['append'][rid] + ' '
         if rid in job.get('files', {}):
