@@ -1,0 +1,264 @@
+accept.ps1: начало 12.09 20:29:06, Repo=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8 Suffix=P25
+== 1. приложение -> bin\Debug_P25
+
+  BecquerelMonitor -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P25\BecquerelMonitor.exe
+msbuild код 0
+sha256 exe: 48083fff06aebe707b87c8a348902ebc9dd216de529c48db54909f467f2c8657
+== 2. build_all.ps1 -Bin BecquerelMonitor\bin\Debug_P25 -Out tools\effmaker\probes\build_p25
+build_all.ps1: начало, pid 5384, 12.09 20:29:07
+  -Bin C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P25
+  -Out C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p25
+довески без Main: _TargetFramework.cs, FsaTuningReport.cs, GadrasDetector.cs, ProbeDeviceConfig.cs, ResidualScan.cs
+целевая платформа проб: довесок _TargetFramework.cs
+ok   EtlCheck.cs
+ok   MeasuredPoint.cs
+ok   Program.cs
+ok   Simulate.cs
+ok   AngularProbe.cs
+ok   AnnihilationGateProbe.cs
+ok   BackscatterShapeProbe.cs
+ok   BoundProbeF59.cs
+ok   BoundScatterProbe.cs
+ok   BoxCylStampProbeF64.cs
+ok   BoxDeadFieldsProbe.cs
+ok   BoxSourceProbe.cs
+ok   BqActivityProbe.cs
+ok   BqCoeffProbe.cs
+ok   BremSpectrumProbe.cs
+ok   CalcRestoreProbe.cs
+ok   CalibGraphProbeF35.cs
+ok   CalibGuardProbeF77.cs
+ok   CalibrationDoorsProbe.cs
+ok   CalibrationNanProbeF48.cs
+ok   CascadeClampProbe.cs
+ok   CascadeJointProbe.cs
+ok   CascadeXrayProbe.cs
+ok   ChainProbe.cs
+ok   ChainRuleProbeF58.cs
+ok   CoincCfProbe.cs
+ok   CorpusEffProbe.cs
+ok   CorpusFsaProbe.cs
+ok   CorpusGeomProbe.cs
+ok   CorpusMatrixProbe.cs
+ok   CrashLogProbe.cs
+ok   CrystalMaterialProbe.cs
+ok   CrystalXrayGateProbe.cs
+ok   CultureProbeO14.cs
+ok   CurveGenerationProbe.cs
+ok   CylinderGeomProbe.cs
+ok   DecayReadersProbe.cs
+ok   DensityFromPartsProbe.cs
+ok   DeviceAnalysisProbe.cs
+ok   DeviceTabProbe.cs
+ok   DoseAirProbeF63.cs
+ok   DoseBoundProbeF65.cs
+ok   DoseCoefProbeO2.cs
+ok   DoseRateFromCurveProbe.cs
+ok   DoseRateProbe.cs
+ok   EditorProbe.cs
+ok   EditorShot.cs
+ok   EffCoverProbe.cs
+ok   EffDipProbe.cs
+ok   EffGridRangeProbe.cs
+ok   EfficiencyConfigProbe.cs
+ok   EfficiencyListProbe.cs
+ok   EscapeGateProbe.cs
+ok   EscapeMarginProbe.cs
+ok   EscapeOrphanProbe.cs
+ok   EscapeParentsProbe.cs
+ok   FacingProbe.cs
+ok   FsaAnchorGlyphProbe.cs
+ok   FsaBackgroundMarkProbeF48.cs
+ok   FsaCascadeProbe.cs
+ok   FsaChannelShot.cs
+ok   FsaChannelSplitProbe.cs
+ok   FsaComponentDumpProbe.cs
+ok   FsaCrystalMixFallbackProbe.cs
+ok   FsaDeterminismProbeF29.cs
+ok   FsaDoubleCountProbe.cs
+ok   FsaFlagsProbe.cs
+ok   FsaGateRescueProbe.cs
+ok   FsaInferProbeF51.cs
+ok   FsaMatchingProbe.cs
+ok   FsaMatrixFloorProbe.cs
+ok   FsaNdfProbe.cs
+ok   FsaPaletteProbe.cs
+ok   FsaQualityRowProbe.cs
+ok   FsaRefitZClassProbe.cs
+ok   FsaReportViewProbe.cs
+ok   FsaResidualProbeF21.cs
+ok   FsaRobustnessProbe.cs
+ok   FsaSelectionProbeF16.cs
+ok   FsaSessionProbe.cs
+ok   FsaStackShot.cs
+ok   FsaStampProbe.cs
+ok   FsaSumPeakAccountProbe.cs
+ok   FsaViewGroupsProbe.cs
+ok   FwhmOverflowProbe.cs
+ok   FwhmPowerProbe.cs
+ok   FwhmReaderProbeF62.cs
+ok   FwhmRescaleProbe.cs
+ok   FwhmViewReachProbeO13.cs
+ok   FwhmVoiceProbeF54.cs
+ok   G4CompareProbe.cs
+ok   G4RawProbe.cs
+ok   GadrasProbe.cs
+ok   GapProbeAmber1.cs
+ok   GeomEncodingProbe.cs
+ok   GeometryLayoutProbe.cs
+ok   GeometryLimitsProbe.cs
+ok   GraphCultureProbeF27.cs
+ok   GridStampProbeF45.cs
+ok   GroundScenesProbe.cs
+ok   ImportEmptyConfigProbeF23.cs
+ok   IncidenceResponseProbe.cs
+ok   IntensityLinesProbe.cs
+ok   IsoFieldProbe.cs
+ok   KappaPeakTotalProbe.cs
+ok   LabelFitProbe.cs
+ok   LabelPathProbeF49.cs
+ok   LabelTruthProbe.cs
+ok   LayerProbe.cs
+ok   LightAnchorProbe.cs
+ok   LightScaleProbe.cs
+ok   LSeriesProbe.cs
+ok   LsrmGeometryImportProbe.cs
+ok   LYieldProbe.cs
+ok   MakerSaveProbe.cs
+ok   MaterialDbProbe.cs
+ok   MaterialNameProbeF67.cs
+ok   MaterialOrderProbe.cs
+ok   MatrixAuditProbe.cs
+ok   MatrixDiffProbe.cs
+ok   MatrixLayoutProbe.cs
+ok   MatrixPeakProbeF76.cs
+ok   MatrixRangeProbe.cs
+ok   MatrixRebuildProbe.cs
+ok   MatrixRefusalProbeP8.cs
+ok   MatrixStampProbe.cs
+ok   MineProbe.cs
+ok   ModalReachProbeF22.cs
+ok   ModalThreadProbeO25.cs
+ok   N42BoundaryProbeG6.cs
+ok   N42DoorsProbeF54.cs
+ok   N42RoundTripProbe.cs
+ok   NucidProbe.cs
+ok   NuclideSetMemoryProbe.cs
+ok   NumericCultureProbeF68.cs
+ok   OmegaProbe.cs
+ok   OrderProbe.cs
+ok   PackGeometryProbe.cs
+ok   PairThresholdProbe.cs
+ok   PeakAgreeProbe.cs
+ok   PeakFwhmUnitsProbeF41.cs
+ok   PeakHighlightProbeG9.cs
+ok   PeakOriginProbe.cs
+ok   RawCarryProbe.cs
+ok   ReasonProbe.cs
+ok   RefusalWordsProbe.cs
+ok   ResponseChannelProbe.cs
+ok   ResponseInterpProbe.cs
+ok   ResponseMatrixFormProbe.cs
+ok   ResponseMatrixProbe.cs
+ok   ResponseNoiseProbe.cs
+ok   ResponseProbe.cs
+ok   ResponseRowDumpProbe.cs
+ok   ResponseShapeProbe.cs
+ok   ResponseTransferProbe.cs
+ok   RestCultureProbeF28.cs
+ok   RestCultureProbeF47.cs
+ok   RoiActivityProbe.cs
+ok   RoiLoadProbe.cs
+ok   RoiSupplyProbe.cs
+ok   RoundTrip.cs
+ok   S109ActivityProbe.cs
+ok   SbKeysProbe.cs
+ok   SceneCostProbe.cs
+ok   SceneOfSpectrumProbe.cs
+ok   ScoutProbe.cs
+ok   SeedStampProbeF69.cs
+ok   SelectionPanelProbeG10.cs
+ok   SetColorProbe.cs
+ok   SetProbe.cs
+ok   SketchShot.cs
+ok   SpectrumEfficiencyProbe.cs
+ok   StartTimeProbeF52.cs
+ok   StringsProbeF55.cs
+ok   SumPeakLightProbe.cs
+ok   TrustFloorProbe.cs
+ok   UnitsProbe.cs
+ok   VisibleRuleProbe.cs
+ok   XrayLabelProbeF53.cs
+ok   XrayLinesProbe.cs
+----
+сверено рядом с пробами: 230 файлов по sha256 с источником
+    поставочный конфиг         2
+    поставочный конфиг\device  10
+    поставочный конфиг\ROI     12
+    сборка                     22
+    сборка\ru                  1
+    сборка\runtimes            3
+    exe.config пробы           180
+  (сверять не с чем ещё у 180 проб и 0 посторонних: их источник — сам этот каталог)
+приложение рядом с пробами сошлось со сборкой: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P25
+библиотека нуклидов: 152 записей, sha 7aaa0b01c9bd (поставочная)
+все собрались: 180 файлов (плюс 5 без Main, идут довеском)
+  сторож полосы (`S101`): один рычаг двигает ОБА конца на всех ЧЕТЫРЁХ режимах; подставленный рассинхрон НАЗВАН, согласные концы не тревожат. СОШЛОСЬ.
+  СОШЛОСЬ: состояний разметки проверено 56, уползших контролов нет
+каталог заверен (T226): наборы — приложение 4c0635c13d4f (548 файлов), пробы 4e88888e1e86 (185), довесков 5
+описания FSA сверены с кодом (T86): tools\check_fsa_docs.py — код 0
+  САМОПРОВЕРКА ПРОШЛА: все 17 образцов и 3 уведённых умолчаний пойманы, якоря разобраны.
+  FsaAnalyzer.cs: описаний 263, умолчаний 77 (из них конструктор ставит 53)
+  ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+build_all код 0
+== 3. проба из каталога проб
+== полоса П25, `AMBER23`: OverflowException в DrawFWHM ==
+плечо: ПОСЛЕ правки (ожидаю тишину)
+
+сборка приложения: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p25\BecquerelMonitor.exe
+собрана:           12.09.2026 20:20:47
+sha256 сборки:     48083fff06aebe707b87c8a348902ebc9dd216de529c48db54909f467f2c8657
+рабочий каталог:   C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p25
+процесс пробы:     целевая платформа входной сборки=.NETFramework,Version=v4.8, NoAsyncCurrentCulture=по умолчанию платформы
+холст:             800×600
+клип координат:    GdiCoordinateLimit = 536870912
+
+§1 механизм — DrawLine(int…) на Bitmap 800×600
+  y = −(2³⁰+2¹⁶): OverflowException: Overflow error.
+  ✔ положительный контроль механизма: за пределом GDI+ бросает OverflowException
+  отрезки на пределе клипа ±536870912: диагональ тишина; антидиагональ тишина; одна координата тишина
+  ✔ предел клипа приложения GDI+ принимает (обе диагонали и одна координата)
+  GdiCoordinate: NaN→536870912 Infinity→536870912 -Infinity→-536870912 1E+300→536870912 -1E+300→-536870912 12.7→12 -12.7→-12 0→0
+  ✔ GdiCoordinate держит NaN/±∞/±1e300 в пределе и не трогает обычные числа
+
+§2 сцена 1 — пик 4000000 отсчётов/канал в канале 1000, выделение 950…1050, линейная шкала, MinMax, окно на нулях (×8, каналы 0…92, выделение правее окна), полный OnPaint
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p25\config\BecquerelMonitor.xml
+BecqMoni: nuclide library: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p25\config\NuclideDefinition.xml: 152 entries
+  вид: height=564 width=742 verticalScale=4000200.000 scrollBaseY=-2256112236 scrollY=-2147483648 scrollX=0 окно подгонки: каналы 0…87 max=1.05 min=0.00 vScroll(вкл max=-2147483648 value=-2147483648)
+  исключения нет; жёлтых точек в кадре: 0
+  ✔ плечо ПОСЛЕ: сцена 1 без исключения
+
+§3 развёртка по M (та же сцена 1) — порог падения при двух положениях вертикальной прокрутки и состояние `RecalcScrollBar`
+  M            | прокрутка | исход                | verticalScale  | scrollY      | vScroll: вкл  Maximum      Value
+  1000000      | подгонка  | тишина               | 1000200.0      | 564112236    | да   564112800    564112236
+  1000000      | верх      | тишина               | 1000200.0      | 0            | да   564112800    0
+  (факт для строки, не приёмка: при height·verticalScale > int.MaxValue `RecalcScrollBar` считает в int с переносом —
+   Maximum и Value полосы становятся int.MinValue; «верх» = человек увёл вертикальную прокрутку в начало)
+
+§4 сцена 2 — тот же спектр, весь на экране (FitHorizontalScale), выделение в окне, полный OnPaint
+  вид: height=564 width=742 verticalScale=1.000 scrollBaseY=0 scrollY=0 scrollX=0 окно подгонки: каналы 0…4091 max=4200210.00 min=0.00 vScroll(ВЫКЛ max=0 value=0)
+  ✔ scene2: без исключения (оба плеча)
+  жёлтых точек в кадре: 542; полуширина по выделению: 28.26 кан.
+  ✔ scene2: ломаная полуширины нарисована (жёлтых точек > 0)
+  ✔ scene2: verticalScale ≈ 1 (подгонка по видимому окну со всем спектром)
+
+§4 сцена 3 — увеличение ×8, окно на пике (каналы ≈957…1049), выделение 950…1050 видно частично, полный OnPaint
+  вид: height=564 width=742 verticalScale=1.000 scrollBaseY=0 scrollY=0 scrollX=-7656 окно подгонки: каналы 952…1044 max=4200210.00 min=1511.16 vScroll(ВЫКЛ max=0 value=0)
+  ✔ scene3: без исключения (оба плеча)
+  жёлтых точек в кадре: 764; полуширина по выделению: 28.26 кан.
+  ✔ scene3: ломаная полуширины нарисована (жёлтых точек > 0)
+
+
+РАСХОЖДЕНИЙ НЕТ
+проба код 0
+accept.ps1: конец 12.09 20:30:21, коды msbuild=0 build_all=0 проба=0
