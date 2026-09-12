@@ -138,22 +138,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// модели, и одна эта подпороговая полоса даёт 55.8 % χ² всего спектра
     /// (измерено полосой П9 при `A283`).
     ///
-    /// ⛔ ПОСТАВЛЯЕТСЯ <see cref="Off"/>, то есть в точности прежнее
-    /// поведение. Пол полосы фита двигает ВСЕ числа корпуса и требует
-    /// переобъявления базы — это решение Amber, а не правка полосы; здесь
-    /// заведён РЫЧАГ ДЛЯ ЗАМЕРА, и поставочное плечо обязано воспроизводить
-    /// базу побитово.
+    /// ⛔ ПОСТАВЛЯЕТСЯ <see cref="Threshold"/> — решение Amber 12.09.2026 по
+    /// строке `A309`, вопросником, дословно: «Закрыть A308, строка на ПРАВИЛО
+    /// пола по порогу обоих спектров». До того поставлялось <see cref="Off"/>
+    /// (рычаг замера `A302`); плечо `off` по-прежнему воспроизводит прежнюю
+    /// базу побитово и остаётся обратным ключом.
     /// </summary>
     public enum FsaFitFloor
     {
-        /// <summary>Как было: фит от нулевого канала (кроме `FitToLibrary`).</summary>
+        /// <summary>Как было до `A309`: фит от нулевого канала (кроме `FitToLibrary`).</summary>
         Off,
 
         /// <summary>
         /// ПОРОГ АЦП САМОГО СПЕКТРА — наименьшая ПОЛОЖИТЕЛЬНАЯ энергия, на
         /// которой у спектра есть отсчёты (<see cref="FsaBand.AdcFloorOf"/>).
         /// Ровно то, что просит строка `A302`: величина есть у каждого спектра
-        /// и кривой не требует.
+        /// и кривой не требует. ⚠ Измерено П31 (`A308`): это лишь ПОЛОВИНА
+        /// лекарства — первый ненулевой канал лежит НИЖЕ рампы порога, и
+        /// рампа целиком остаётся в полосе.
         /// </summary>
         Adc,
 
@@ -162,9 +164,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="FsaBand.DefaultFitFloorKev"/>). Второе плечо того же
         /// замера: порог АЦП у прибора без аппаратного реза лежит у самого
         /// нуля и режет одни отрицательные каналы, а вопрос строки — ещё и
-        /// про подпороговый вал ВЫШЕ нуля.
+        /// про подпороговый вал ВЫШЕ нуля. ⚠ Число одно на все приборы, и
+        /// оно не годится в поставку: у Cd-109 корпуса основная структура
+        /// (K-рентген серебра) лежит НИЖЕ него, у Ba-133/Eu-152 — сразу над.
         /// </summary>
-        Fixed
+        Fixed,
+
+        /// <summary>
+        /// ⛔ ПРАВИЛО (`A309`): ПОРОГ ПО РАМПЕ ОБОИХ СПЕКТРОВ — у пробы И у
+        /// фона порознь, пол = больший из двух
+        /// (<see cref="FsaBand.AdcThresholdOf(int[], EnergyCalibration, out string)"/>).
+        /// Порог — первый канал ВЫШЕ рампы порога, а не первый ненулевой:
+        /// у прибора с аналоговым триггером (AS80, AS1Pro) отсчёты идут не
+        /// ступенькой, а S-кривой от пустых каналов к уровню континуума, и
+        /// внутри S-кривой данные подавлены, а модель — нет. Там, где рампы
+        /// нет (жёсткий рез ASN8/G1S, шум без реза ASN16), правило отдаёт
+        /// первый ненулевой канал, то есть совпадает с <see cref="Adc"/>.
+        /// </summary>
+        Threshold
     }
 
     /// <summary>
@@ -345,12 +362,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// без разделения строка «(умолчание)» врёт на всяком прогоне, где пол
         /// сдвинут ключом.
         ///
-        /// Поставляется <see cref="FsaFitFloor.Off"/> — прежнее поведение, и
-        /// это положительный контроль самого рычага: прогон поставочным
-        /// умолчанием обязан воспроизвести базу ПОБИТОВО, и только тогда числа
-        /// других плеч принадлежат плечу, а не правке.
+        /// Поставляется <see cref="FsaFitFloor.Threshold"/> — решение Amber
+        /// 12.09.2026 (`A309`). Обратный ключ — <see cref="FsaFitFloor.Off"/>:
+        /// плечо `--fit-floor=off` не отнимает ни одного канала и обязано
+        /// воспроизвести базу `out_rev19_*` ПОБИТОВО — это положительный
+        /// контроль самой правки, и только при нём числа других плеч
+        /// принадлежат плечу, а не правке.
         /// </summary>
-        public const FsaFitFloor ShippedFitFloor = FsaFitFloor.Off;
+        public const FsaFitFloor ShippedFitFloor = FsaFitFloor.Threshold;
 
         /// <summary>
         /// Чем назначается пол полосы ФИТА (`A302`). Двигается ключом пробы
@@ -372,17 +391,151 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static double DefaultFitFloorKev = ShippedFitFloorKev;
 
         /// <summary>
-        /// ⛔ ПОЛ ПОЛОСЫ ФИТА — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A302`), по образцу
-        /// <see cref="NoCurveFloor"/>. Возвращает 0, когда пола нет: тогда фит,
-        /// как и до `A302`, начинается с нулевого канала.
+        /// ⛔ ДОЛЯ УРОВНЯ, с которой канал считается ВЫШЕДШИМ ИЗ РАМПЫ
+        /// (`A309`): канал <c>c</c> — порог, если его отсчёты не меньше этой
+        /// доли от медианы следующего окна <see cref="ThresholdLevelWindowKev"/>.
+        /// Числа здесь нет нарочно (`T82`) — оно стоит строкой ниже.
+        ///
+        /// Откуда: рампа аналогового триггера — S-кривая (erf) от пустых
+        /// каналов к уровню континуума; по профилю корпуса (П34, 12.09.2026,
+        /// `handover/p34-fit-floor/profile_raw.csv`) её ширина между десятой и
+        /// девятью десятыми уровня у AS80 одна и та же на всех спектрах
+        /// прибора — около трёх кэВ, у AS1Pro — около четырёх. Доля НИЗКАЯ
+        /// нарочно — она ловит СЕРЕДИНУ рампы, а верх достраивается по её
+        /// форме (<see cref="ThresholdTailShare"/>): сравнение с уровнем
+        /// следующего окна ломает всякий континуум, РАСТУЩИЙ сразу за рампой,
+        /// и чем выше доля, тем меньший подъём её ломает — L-рентген Am-241 на
+        /// AS80 поднимает уровень следующего окна на четверть, и при доле в
+        /// девять десятых рампа у такой пробы не находится вовсе, при восьми —
+        /// на грани шума (контроль 5 пробы `FsaFitFloorProfileProbe`; в корпусе
+        /// такую пробу выручает фон, у пробы без фона правило отступило бы к
+        /// первому каналу). Семь десятых терпят подъём в полтора раза за окно.
+        /// Рычаг A/B — `--fit-floor=threshold:&lt;доля&gt;`.
+        /// </summary>
+        public const double ShippedThresholdLevelFraction = 0.7;
+
+        /// <summary>
+        /// ХВОСТ РАМПЫ ВЫШЕ СЕРЕДИНЫ — долей от измеренной ширины подъёма
+        /// (первый ненулевой канал → канал доли уровня). Это геометрия
+        /// S-кривой, а не подгонка: у erf от первого отсчёта (доля уровня в
+        /// тысячные) до середины лежит около трёх ширин шума триггера, а от
+        /// середины до девяти десятых — ещё одна, то есть треть пройденного.
+        /// Канал порога = канал доли уровня плюс этот хвост; контроль 1 пробы
+        /// `FsaFitFloorProfileProbe` — чистая S-кривая — обязан дать порог у
+        /// девяти десятых уровня.
+        /// </summary>
+        public const double ThresholdTailShare = 1.0 / 3.0;
+
+        /// <summary>
+        /// Доля уровня правила порога; двигается ключом пробы
+        /// `--fit-floor=threshold:&lt;доля&gt;` — рычаг A/B, живёт ОДНОЙ
+        /// статикой (`S101`).
+        /// </summary>
+        public static double DefaultThresholdLevelFraction = ShippedThresholdLevelFraction;
+
+        /// <summary>
+        /// Окно, по которому берётся УРОВЕНЬ после кандидата в пороги, кэВ;
+        /// в каналах — не меньше <see cref="ThresholdMinWindowChannels"/>.
+        /// Взято равным ширине рампы AS80 между десятой и девятью десятыми
+        /// уровня: окно от следующего канала покрывает ровно одну рампу, так
+        /// что медиана в нём — уже уровень континуума, а не рампы. Окно шире
+        /// втягивало бы в «уровень» структуру над порогом (L-рентген Am-241
+        /// на AS80 начинается через полтора кэВ после конца рампы), уже —
+        /// само лежало бы на рампе.
+        /// </summary>
+        public const double ThresholdLevelWindowKev = 3.0;
+
+        /// <summary>
+        /// Меньше стольких каналов окно уровня не бывает: у грубой шкалы
+        /// (G1S, около трёх кэВ на канал) окно в три кэВ — это один канал, а
+        /// медиана одного канала — не уровень, а его шум.
+        /// </summary>
+        public const int ThresholdMinWindowChannels = 4;
+
+        /// <summary>
+        /// ⛔ ШИРЕ ЭТОГО РАМПА НЕ БЫВАЕТ, кэВ — от подошвы (канал, где отсчёты
+        /// впервые достигают <see cref="ThresholdFootFraction"/> уровня) до
+        /// канала доли уровня. Подъём шире — не триггер, а физика (поглощение
+        /// в окне и корпусе, рост континуума, шумовой горб), и порог тогда —
+        /// первый ненулевой канал, как у <see cref="FsaFitFloor.Adc"/>.
+        /// ⚠ Мерить от ПЕРВОГО ненулевого канала нельзя: он зависит от
+        /// статистики (у фона в двести тысяч секунд первый отсчёт лежит на
+        /// три-четыре ширины шума ниже середины рампы, у короткой пробы — на
+        /// две-три), и синтетический подъём поглощения при такой мерке
+        /// проходил за рампу (контроль 4 пробы `FsaFitFloorProfileProbe`).
+        ///
+        /// Откуда граница: по профилю корпуса ширина от подошвы до доли уровня
+        /// у AS80 и AS1Pro — около трёх кэВ на всех спектрах (это 2.4 ширины
+        /// шума erf, то есть шум триггера чуть больше кэВ); у фонов G1S тот же
+        /// отрезок — около четырнадцати кэВ, у горба RC103 — десять, и это
+        /// поглощение в корпусе кристалла и структура, а не рампа: пик
+        /// K-рентгена Cd-109 на G1S стоит В этом подъёме с гауссовым нижним
+        /// склоном, то есть подавления там нет. Граница стоит между тремя и
+        /// десятью с запасом в полтора раза от AS80.
+        /// </summary>
+        public const double ThresholdRampMaxKev = 5.0;
+
+        /// <summary>
+        /// Докуда искать кандидата от первого ненулевого канала, кэВ: дальше
+        /// рампы нет ни у одного прибора корпуса, а шумовой горб ASN16 (вершина
+        /// в одиннадцати кэВ) и структуры над резом сюда влезают и обязаны
+        /// быть отвергнуты шириной или падением, а не тем, что до них не
+        /// дошли.
+        /// </summary>
+        public const double ThresholdScanKev = 20.0;
+
+        /// <summary>
+        /// Доля уровня, от которой мерится ширина рампы (подошва,
+        /// <see cref="ThresholdRampMaxKev"/>). Три сотых, а не десятая: у erf
+        /// подошва на трёх сотых лежит почти на две ширины шума ниже середины,
+        /// и рампа AS80 при этом остаётся втрое уже подъёма фона G1S; при
+        /// десятой доле фон `G1S16` (P25) отстоял от границы лишь на полкэВ
+        /// (поймано на профиле корпуса), и ошибка стоила бы K-рентгена Cd-109
+        /// на тех спектрах. Ниже трёх сотых подошва у слабой пробы
+        /// (`AS80_Charoite`, уровень около сотни) стала бы единицами отсчётов и
+        /// гуляла бы с шумом.
+        /// </summary>
+        public const double ThresholdFootFraction = 0.03;
+
+        /// <summary>
+        /// ДОЛЯ, ниже которой уровень после порога упасть не должен в окне
+        /// <see cref="ThresholdPersistWindowKev"/>: рампа выходит на континуум,
+        /// который держится, а пик на пороге (K-рентген серебра у Cd-109 на
+        /// G1S, K-рентген цезия у Ba-133) — на склон, который падает. Подъём,
+        /// кончившийся падением, рампой не считается, и порог тогда — первый
+        /// ненулевой канал. Доля вдвое ниже единицы, чтобы шум пуассоновского
+        /// уровня в сотню отсчётов (AS80_Charoite) не рвал правило.
+        /// </summary>
+        public const double ThresholdPersistFraction = 0.5;
+
+        /// <summary>
+        /// ОКНО, в котором уровень после порога обязан держаться, кэВ — втрое
+        /// шире окна уровня <see cref="ThresholdLevelWindowKev"/>. Окно уровня
+        /// для этого коротко: на мелкой шкале (AS80) кандидат на склоне пика
+        /// ложится у его вершины, где за три кэВ пик с полушириной в пять–шесть
+        /// кэВ падает лишь на треть, и склон прошёл бы за рампу (поймано
+        /// контролем 3 пробы `FsaFitFloorProfileProbe`). Девяти кэВ хватает
+        /// пройти дальнюю половину пика NaI/CsI на этих энергиях
+        /// (полуширина до десяти кэВ у RC103) до половины вершины.
+        /// </summary>
+        public const double ThresholdPersistWindowKev = 3.0 * ThresholdLevelWindowKev;
+
+        /// <summary>
+        /// ⛔ ПОЛ ПОЛОСЫ ФИТА — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A302`, `A309`), по
+        /// образцу <see cref="NoCurveFloor"/>. Возвращает 0, когда пола нет:
+        /// тогда фит, как и до `A302`, начинается с нулевого канала.
         ///
         /// Спрашивают его двое — сам <see cref="FsaAnalyzer.Analyze"/> (что
         /// режет) и <see cref="FsaAnalyzer.BandNote"/> (что печатается), — и
         /// оба обязаны звать ИМЕННО ЭТОТ метод: разойдясь в нём, они повторили
         /// бы `S101` на новом месте.
         /// </summary>
-        /// <param name="adcFloorKev">порог АЦП спектра, кэВ; 0 — неизвестен.</param>
-        public static double FitFloor(double adcFloorKev)
+        /// <param name="adcFloorKev">порог АЦП спектра (первый ненулевой канал), кэВ; 0 — неизвестен.</param>
+        /// <param name="thresholdKev">
+        /// порог по рампе ОБОИХ спектров — больший из порогов пробы и фона
+        /// (<see cref="PairThreshold"/>), кэВ; 0 — неизвестен.
+        /// </param>
+        public static double FitFloor(double adcFloorKev, double thresholdKev)
         {
             switch (DefaultFitFloor)
             {
@@ -390,14 +543,290 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return adcFloorKev > 0.0 ? adcFloorKev : 0.0;
                 case FsaFitFloor.Fixed:
                     return DefaultFitFloorKev > 0.0 ? DefaultFitFloorKev : 0.0;
+                case FsaFitFloor.Threshold:
+                    return thresholdKev > 0.0 ? thresholdKev : 0.0;
                 default:
                     return 0.0;
             }
         }
 
         /// <summary>
-        /// Разобрать значение ключа `--fit-floor=`: `off` (как было), `adc`
-        /// (порог АЦП спектра) или число в кэВ.
+        /// ⛔ ПОРОГ ПО РАМПЕ ОДНОГО СПЕКТРА, кэВ (`A309`) — энергия первого
+        /// канала ВЫШЕ рампы порога АЦП. Правило, все константы — выше:
+        ///
+        /// 1. <c>c0</c> — первый канал с отсчётами на положительной энергии
+        ///    (тот же, что у <see cref="AdcFloorOf(int[], EnergyCalibration)"/>).
+        /// 2. От <c>c0</c> вверх, не дальше <see cref="ThresholdScanKev"/>:
+        ///    канал <c>c</c> — кандидат (середина рампы), если его отсчёты не
+        ///    меньше <see cref="DefaultThresholdLevelFraction"/> медианы
+        ///    следующего окна (<see cref="ThresholdLevelWindowKev"/>, не меньше
+        ///    <see cref="ThresholdMinWindowChannels"/> каналов) — уровня.
+        ///    Жёсткий рез (первый канал уже на уровне) даёт <c>c0</c> сразу;
+        ///    частично заполненный краевой канал (ASN8, ASN3) пропускается.
+        /// 3. Кандидата нет — уровень так и не устоялся (рост континуума
+        ///    RC101): порог = <c>c0</c>.
+        /// 4. Подошва рампы — первый канал с отсчётами не ниже
+        ///    <see cref="ThresholdFootFraction"/> уровня; от подошвы до
+        ///    кандидата шире <see cref="ThresholdRampMaxKev"/> — не рампа, а
+        ///    физика (поглощение окна у G1S, шумовой горб ASN16, горб RC103):
+        ///    порог = <c>c0</c>.
+        /// 5. В окне <see cref="ThresholdPersistWindowKev"/> за кандидатом
+        ///    уровень падает ниже <see cref="ThresholdPersistFraction"/> от
+        ///    него — подъём был склоном пика на пороге (Cd-109, Ba-133 на
+        ///    G1S), а не рампой: порог = <c>c0</c>.
+        /// 6. Иначе порог = кандидат плюс хвост рампы —
+        ///    <see cref="ThresholdTailShare"/> от ширины подъёма
+        ///    <c>c0</c>…кандидат в каналах (у жёсткого реза хвоста нет).
+        ///
+        /// Возвращает 0, если спектра, калибровки или отсчётов нет («назначить
+        /// нечем» — законный ответ). <paramref name="how"/> — чем порог взят,
+        /// словами, для заверения: читатель обязан видеть, сработала рампа или
+        /// правило отступило к первому каналу, и почему.
+        /// </summary>
+        public static double AdcThresholdOf(int[] counts, EnergyCalibration calibration, out string how)
+        {
+            how = "нет данных";
+            if (counts == null || calibration == null)
+            {
+                return 0.0;
+            }
+
+            int c0 = -1;
+            for (int ch = 0; ch < counts.Length; ch++)
+            {
+                if (counts[ch] <= 0)
+                {
+                    continue;
+                }
+
+                double energy = calibration.ChannelToEnergy(ch);
+                if (energy > 0.0 && !double.IsNaN(energy) && !double.IsInfinity(energy))
+                {
+                    c0 = ch;
+                    break;
+                }
+            }
+
+            if (c0 < 0)
+            {
+                return 0.0;
+            }
+
+            double e0 = calibration.ChannelToEnergy(c0);
+            double pitch = c0 + 1 < counts.Length
+                ? calibration.ChannelToEnergy(c0 + 1) - e0
+                : 0.0;
+            int window = ThresholdMinWindowChannels;
+            if (pitch > 0.0 && !double.IsNaN(pitch) && !double.IsInfinity(pitch))
+            {
+                window = Math.Max(window, (int)Math.Ceiling(ThresholdLevelWindowKev / pitch));
+            }
+
+            double fraction = DefaultThresholdLevelFraction;
+            int candidate = -1;
+            double level = 0.0;
+            for (int c = c0; c < counts.Length; c++)
+            {
+                double energy = calibration.ChannelToEnergy(c);
+                if (energy - e0 > ThresholdScanKev)
+                {
+                    break;
+                }
+
+                int from = c + 1;
+                int to = Math.Min(counts.Length, from + window);
+                if (to - from < 2)
+                {
+                    break;
+                }
+
+                double median = MedianOf(counts, from, to);
+                if (counts[c] >= fraction * median)
+                {
+                    candidate = c;
+                    level = median;
+                    break;
+                }
+            }
+
+            if (candidate < 0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "уровень не устоялся в {0:F0} кэВ от {1:F2} кэВ (растущий континуум) — порог по первому каналу",
+                    ThresholdScanKev, e0);
+                return e0;
+            }
+
+            int foot = c0;
+            while (foot < candidate && counts[foot] < ThresholdFootFraction * level)
+            {
+                foot++;
+            }
+
+            double footKev = calibration.ChannelToEnergy(foot);
+            double width = calibration.ChannelToEnergy(candidate) - footKev;
+            if (width > ThresholdRampMaxKev)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём {0:F2}→{1:F2} кэВ (от подошвы к уровню {2:F0}) шире рампы ({3:F0} кэВ) — порог по первому каналу {4:F2}",
+                    footKev, calibration.ChannelToEnergy(candidate), level, ThresholdRampMaxKev, e0);
+                return e0;
+            }
+
+            int persistWindow = window;
+            if (pitch > 0.0 && !double.IsNaN(pitch) && !double.IsInfinity(pitch))
+            {
+                persistWindow = Math.Max(window, (int)Math.Ceiling(ThresholdPersistWindowKev / pitch));
+            }
+
+            int pfrom = candidate + 1;
+            int pto = Math.Min(counts.Length, pfrom + persistWindow);
+            int least = int.MaxValue;
+            for (int c = pfrom; c < pto; c++)
+            {
+                least = Math.Min(least, counts[c]);
+            }
+
+            if (least < ThresholdPersistFraction * counts[candidate])
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "подъём от {0:F2} кэВ кончается падением (пик на пороге) — порог по первому каналу",
+                    e0);
+                return e0;
+            }
+
+            if (candidate == c0)
+            {
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "жёсткий рез {0:F2} кэВ (канал {1} уже на уровне {2:F0})", e0, c0, level);
+                return e0;
+            }
+
+            int tail = (int)Math.Round(ThresholdTailShare * (candidate - c0));
+            int top = Math.Min(counts.Length - 1, candidate + tail);
+            double kev = calibration.ChannelToEnergy(top);
+            how = string.Format(CultureInfo.InvariantCulture,
+                "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
+                e0, kev, c0, top, footKev, candidate, level, tail);
+            return kev;
+        }
+
+        /// <summary>Медиана отсчётов каналов <c>[from, to)</c> — окно уровня правила порога.</summary>
+        static double MedianOf(int[] counts, int from, int to)
+        {
+            int n = to - from;
+            int[] copy = new int[n];
+            Array.Copy(counts, from, copy, 0, n);
+            Array.Sort(copy);
+            return (n & 1) == 1
+                ? copy[n / 2]
+                : 0.5 * (copy[n / 2 - 1] + copy[n / 2]);
+        }
+
+        /// <summary>
+        /// ⛔ ПОРОГ ПО РАМПЕ ОБОИХ СПЕКТРОВ, кэВ (`A309`): больший из порогов
+        /// пробы и фона. Фон считается В СВОЕЙ шкале — той же, в которой его
+        /// перекладывает на шкалу пробы разбор (`S45`); у корпусного диска
+        /// AS80 (П31 §5.3) это и есть вся разница: фон `Фон дом.xml` своей
+        /// калибровкой ставит ту же аппаратную рампу (те же каналы, тот же
+        /// профиль, что у встроенного фона `AS80_K40`) на отрицательные
+        /// энергии, и порог фона выходит ниже порога пробы — правило отдаёт
+        /// порог пробы, а «raw − фон &lt; 0» в 20–33 кэВ остаётся: это
+        /// калибровка фона, а не порог, и полом это не лечится.
+        ///
+        /// Фон без калибровки (поканальное вычитание,
+        /// <see cref="FsaAnalyzer.RebinBackgroundToSpectrum"/> выключен)
+        /// считается в шкале пробы: канал порога фона — энергией пробы.
+        /// </summary>
+        public static double PairThreshold(int[] sampleCounts, EnergyCalibration sampleCalibration,
+                                           EnergySpectrum background, bool backgroundInOwnScale,
+                                           out string sampleHow, out string backgroundHow)
+        {
+            backgroundHow = null;
+            double sampleKev = AdcThresholdOf(sampleCounts, sampleCalibration, out sampleHow);
+            if (background == null || background.Spectrum == null || sampleCalibration == null)
+            {
+                return sampleKev;
+            }
+
+            EnergyCalibration scale = backgroundInOwnScale && background.EnergyCalibration != null
+                ? background.EnergyCalibration
+                : sampleCalibration;
+            double backgroundKev = AdcThresholdOf(background.Spectrum, scale, out backgroundHow);
+            return Math.Max(sampleKev, backgroundKev);
+        }
+
+        /// <summary>
+        /// ⛔ РЕЖЕТ ЛИ ПОЛ ХОТЬ ОДИН ОТСЧЁТ (`A309`). Пол, ниже которого пусто
+        /// И у пробы, И у фона, не меняет в данных ничего — но сдвигает сетку
+        /// узлов континуума, которая строится от нижнего края полосы
+        /// (механизм назван П17, 10.09.2026): на малой базе срез ПЯТИ ПУСТЫХ
+        /// каналов под жёстким резом G1S двигал χ²/ndf `G1S24_Bi207_P5` 20.2 →
+        /// 23.6, `G1S16_Cs137_P5` 8.0 → 10.2, `G1S24_Na22_P25` 6.2 → 8.4 (и
+        /// столько же в другую сторону у соседей) — при нуле отрезанных
+        /// отсчётов. Такой пол при правиле порога НЕ ПРИМЕНЯЕТСЯ, и заверение
+        /// это называет. Плечи `adc` и числом этой проверки не проходят
+        /// нарочно: их числа П17/П31 обязаны воспроизводиться.
+        ///
+        /// Фон судится в той шкале, в которой его перекладывает разбор
+        /// (<see cref="PairThreshold"/>); каналы с отрицательной энергией лежат
+        /// ниже любого пола и считаются.
+        /// </summary>
+        public static bool FloorCutsData(int[] sampleCounts, EnergyCalibration sampleCalibration,
+                                         EnergySpectrum background, bool backgroundInOwnScale,
+                                         double floorKev)
+        {
+            if (AnyCountsBelow(sampleCounts, sampleCalibration, floorKev))
+            {
+                return true;
+            }
+
+            if (background == null || background.Spectrum == null)
+            {
+                return false;
+            }
+
+            EnergyCalibration scale = backgroundInOwnScale && background.EnergyCalibration != null
+                ? background.EnergyCalibration
+                : sampleCalibration;
+            return AnyCountsBelow(background.Spectrum, scale, floorKev);
+        }
+
+        static bool AnyCountsBelow(int[] counts, EnergyCalibration calibration, double floorKev)
+        {
+            if (counts == null || calibration == null)
+            {
+                return false;
+            }
+
+            for (int ch = 0; ch < counts.Length; ch++)
+            {
+                double energy = calibration.ChannelToEnergy(ch);
+                if (!(energy < floorKev))
+                {
+                    // шкала монотонна: выше пола данных не судим
+                    if (!double.IsNaN(energy))
+                    {
+                        break;
+                    }
+
+                    continue;
+                }
+
+                if (counts[ch] > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Разобрать значение ключа `--fit-floor=`: `off` (как было до
+        /// `A309`), `adc` (первый ненулевой канал), `threshold` (правило
+        /// порога по рампе обоих спектров, поставочное; `threshold:&lt;доля&gt;`
+        /// двигает <see cref="DefaultThresholdLevelFraction"/>) или число в кэВ.
         ///
         /// ⛔ Возвращает false на непонятном значении, а НЕ «умолчание молча»:
         /// старый разбор, счётший новое значение ключа за «не ноль», стоил трёх
@@ -405,8 +834,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static bool TryParseFitFloor(string name, out FsaFitFloor source, out double kev)
         {
+            // ⛔ Вызывающий без третьего выхода долю уровня никуда не денет —
+            // значит `threshold:<доля>` для него НЕПОНЯТНОЕ значение, и
+            // отвечать надо отказом, а не «правило с поставочной долей молча»:
+            // так `FsaNnlsDumpProbe` (П31) на плече `threshold:0.9` считал
+            // поставочные семь десятых и выдавал плечо, побитово равное
+            // умолчанию (поймано П34 на сцене Amber — `A77` в новом месте).
+            double fraction;
+            bool ok = TryParseFitFloor(name, out source, out kev, out fraction);
+            return ok && Math.Abs(fraction - DefaultThresholdLevelFraction) <= 1e-12;
+        }
+
+        /// <summary>То же, с долей уровня правила порога (`threshold:&lt;доля&gt;`).</summary>
+        public static bool TryParseFitFloor(string name, out FsaFitFloor source, out double kev,
+                                            out double levelFraction)
+        {
             source = DefaultFitFloor;
             kev = DefaultFitFloorKev;
+            levelFraction = DefaultThresholdLevelFraction;
             if (string.IsNullOrEmpty(name))
             {
                 return false;
@@ -427,6 +872,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return true;
             }
 
+            if (string.Equals(s, "threshold", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(s, "ramp", StringComparison.OrdinalIgnoreCase))
+            {
+                source = FsaFitFloor.Threshold;
+                return true;
+            }
+
+            if (s.StartsWith("threshold:", StringComparison.OrdinalIgnoreCase))
+            {
+                double f;
+                if (double.TryParse(s.Substring(10), NumberStyles.Float, CultureInfo.InvariantCulture, out f)
+                    && f > 0.0 && f <= 1.0)
+                {
+                    source = FsaFitFloor.Threshold;
+                    levelFraction = f;
+                    return true;
+                }
+
+                return false;
+            }
+
             double value;
             if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
                 && value > 0.0)
@@ -440,24 +906,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Пол полосы фита словами — хвост заверения. Пусто, когда рычаг
-        /// выключен: поставочное плечо обязано печатать в точности прежнюю
-        /// строку, иначе A/B по журналу не отличить от A/B по правке.
+        /// Пол полосы фита словами — хвост заверения. Пусто при
+        /// <see cref="FsaFitFloor.Off"/>: плечо `off` обязано печатать в
+        /// точности прежнюю строку, иначе A/B по журналу не отличить от A/B по
+        /// правке. При правиле порога называются ОБА порога (проба и фон, чем
+        /// каждый взят) и выбранный пол — читатель обязан видеть, что
+        /// сработало.
         /// </summary>
-        public static string FitFloorNote(double fitFloorKev)
+        public static string FitFloorNote(double fitFloorKev, string sampleHow, string backgroundHow,
+                                          bool applied)
         {
-            if (DefaultFitFloor == ShippedFitFloor)
+            if (DefaultFitFloor == FsaFitFloor.Off)
             {
                 return "";
             }
 
+            string tail = DefaultFitFloor == ShippedFitFloor
+                          && Math.Abs(DefaultThresholdLevelFraction - ShippedThresholdLevelFraction) <= 1e-12
+                ? " (умолчание)"
+                : " (НЕ умолчание, A/B)";
+            if (DefaultFitFloor == FsaFitFloor.Threshold)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "; пол ПОЛОСЫ ФИТА — порог по рампе обоих спектров, доля уровня {0:F2}:"
+                    + " проба {1}; фон {2} → пол {3:F2} кэВ{4}{5}",
+                    DefaultThresholdLevelFraction,
+                    sampleHow ?? "нет данных",
+                    backgroundHow ?? "нет",
+                    fitFloorKev,
+                    applied ? "" : " — НЕ ПРИМЕНЁН: ниже него нет ни одного отсчёта ни у пробы, ни у фона",
+                    tail);
+            }
+
             return string.Format(CultureInfo.InvariantCulture,
-                "; пол ПОЛОСЫ ФИТА — {0} = {1:F2} кэВ (НЕ умолчание, A/B)",
+                "; пол ПОЛОСЫ ФИТА — {0} = {1:F2} кэВ{2}",
                 DefaultFitFloor == FsaFitFloor.Adc
                     ? "порог АЦП спектра"
                     : string.Format(CultureInfo.InvariantCulture, "{0:F1} кэВ числом",
                                     DefaultFitFloorKev),
-                fitFloorKev);
+                fitFloorKev, tail);
         }
 
         /// <summary>
@@ -3927,9 +4414,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 chLo = 1;
             }
 
-            // ⛔ `A302`: ПОЛ ПОЛОСЫ ФИТА. Рычаг ЗАМЕРА, по умолчанию выключен —
-            // и тогда ни одного канала не отнимает, то есть поставочное плечо
-            // побитово прежнее.
+            double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
+            if (liveTime <= 0.0)
+            {
+                liveTime = 1.0;
+            }
+
+            // Фон, поданный и НЕ ВЗЯТЫЙ, — это отказ, и он обязан быть назван
+            // (S44). До 15.08.2026 обе ветки ниже молча обнуляли ссылку: у
+            // одиннадцати спектров G1S корпуса фон лежал в файле обрезанным на
+            // 12–20 верхних каналов, манифест писал «встроен», проба печатала
+            // background=1 — а вычитания не было ни в одном прогоне.
+            //
+            // (`A309`) Проверка стоит ЗДЕСЬ, до пола полосы фита: пол считается
+            // по ОБОИМ спектрам, и фон, которого разбор не возьмёт, порога не
+            // задаёт.
+            string backgroundRejected = null;
+            EnergySpectrum background = backgroundSpectrum;
+            if (background != null && background.Spectrum == null)
+            {
+                backgroundRejected = Resources.FSABackgroundNoCounts;
+                background = null;
+            }
+            else if (background != null && background.NumberOfChannels != channels)
+            {
+                backgroundRejected = string.Format(CultureInfo.InvariantCulture,
+                    Resources.FSABackgroundChannelMismatch,
+                    background.NumberOfChannels, channels);
+                background = null;
+            }
+
+            double backgroundScale = 0.0;
+            if (background != null)
+            {
+                double backgroundLive = background.LiveTime > 0.0 ? background.LiveTime : background.MeasurementTime;
+                if (backgroundLive > 0.0)
+                {
+                    backgroundScale = liveTime / backgroundLive;
+                }
+                else
+                {
+                    backgroundRejected = Resources.FSABackgroundNoLiveTime;
+                    background = null;
+                }
+            }
+
+            // ⛔ `A302`/`A309`: ПОЛ ПОЛОСЫ ФИТА. Поставляется ПРАВИЛОМ порога по
+            // рампе обоих спектров (решение Amber 12.09.2026); плечо `off` не
+            // отнимает ни одного канала, то есть воспроизводит базу до `A309`
+            // побитово.
             //
             // Зачем он вообще нужен: `chLo = 0` выше означает «от нулевого
             // канала», а нулевой канал у 37 спектров понятной части малой базы
@@ -3939,15 +4472,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // мой замер 10.09.2026 по колонке `fit_lo_keV` дампа `--band-audit=`).
             // Цена измерена: у `ASN16_Cs137` полоса начинается с −14.3 кэВ, и
             // срез одних только отрицательных каналов — 0.46 % отсчётов — даёт
-            // χ²/ndf 60.807 -> 47.298.
+            // χ²/ndf 60.807 -> 47.298. А ВЫШЕ первого ненулевого канала лежит
+            // рампа порога: на сцене Amber (П31, `A308`) каналы 11–14 кэВ несут
+            // данных 13 → 300 при модели 137 → 154, и один такой канал стоит
+            // χ² больше пика.
             //
             // ⛔ Пол ищется ПО ЭНЕРГИИ КАНАЛА, а не пересчётом энергии в номер
             // канала: `EnergyToChannelSafe` округляет, и канал, чья энергия
             // ниже пола, остался бы в полосе — то есть ключ доехал бы до
             // печати, но не до решения.
+            string floorSampleHow;
+            string floorBackgroundHow;
             double fitFloorKev = FsaBand.FitFloor(
-                FsaBand.AdcFloorOf(spectrum.Spectrum, calibration));
-            if (fitFloorKev > 0.0)
+                FsaBand.AdcFloorOf(spectrum.Spectrum, calibration),
+                FsaBand.PairThreshold(spectrum.Spectrum, calibration, background,
+                                      this.RebinBackgroundToSpectrum,
+                                      out floorSampleHow, out floorBackgroundHow));
+            // (`A309`) Пол, ниже которого пусто у обоих спектров, не режет
+            // данных и лишь двигал бы сетку узлов сплайна (П17) — при правиле
+            // порога он не применяется; `adc` и число режут как в П17/П31.
+            bool floorApplied = fitFloorKev > 0.0
+                && (FsaBand.DefaultFitFloor != FsaFitFloor.Threshold
+                    || FsaBand.FloorCutsData(spectrum.Spectrum, calibration, background,
+                                             this.RebinBackgroundToSpectrum, fitFloorKev));
+            // (`A309`) Край полосы ДО пола — от него строится сетка узлов
+            // континуума (см. `BuildHatBasis` ниже): пол режет каналы, а не
+            // переставляет узлы.
+            int chLoGrid = chLo;
+            if (floorApplied)
             {
                 while (chLo < chHi && calibration.ChannelToEnergy(chLo) < fitFloorKev)
                 {
@@ -3989,9 +4541,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.BandNote = string.Format(CultureInfo.InvariantCulture,
                 "{0}{1}; фит {2}…{3} ({4:F1}…{5:F1} кэВ)",
                 FsaBand.Describe(this.Band, noteFloor, this.MinEnergy, this.MaxEnergy, noteNoCurve),
-                // `A302`: пол полосы ФИТА называется вслух и ТЕМ ЖЕ числом,
-                // каким он резал, — иначе заверение и решение разъедутся молча.
-                FsaBand.FitFloorNote(fitFloorKev),
+                // `A302`/`A309`: пол полосы ФИТА называется вслух и ТЕМ ЖЕ
+                // числом, каким он резал, и с ОБОИМИ порогами (проба, фон) —
+                // иначе заверение и решение разъедутся молча.
+                FsaBand.FitFloorNote(fitFloorKev, floorSampleHow, floorBackgroundHow, floorApplied),
                 chLo, chHi, calibration.ChannelToEnergy(chLo), calibration.ChannelToEnergy(chHi));
 
             // (`T240`) Исход отсева — состояние ЭТОГО разбора, и от прошлого
@@ -4011,53 +4564,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.EscapeOrphansDropped = 0;
             this.AnnihilationCollides = null;
 
-            double liveTime = spectrum.LiveTime > 0.0 ? spectrum.LiveTime : spectrum.MeasurementTime;
-            if (liveTime <= 0.0)
-            {
-                liveTime = 1.0;
-            }
-
             int[] raw = spectrum.Spectrum;
             double[] y = new double[channels];
             double[] variance = new double[channels];
             double[] backgroundCurve = new double[channels];
             int[] snipContinuum = null;
 
-            // Фон, поданный и НЕ ВЗЯТЫЙ, — это отказ, и он обязан быть назван
-            // (S44). До 15.08.2026 обе ветки ниже молча обнуляли ссылку: у
-            // одиннадцати спектров G1S корпуса фон лежал в файле обрезанным на
-            // 12–20 верхних каналов, манифест писал «встроен», проба печатала
-            // background=1 — а вычитания не было ни в одном прогоне.
-            string backgroundRejected = null;
-            EnergySpectrum background = backgroundSpectrum;
-            if (background != null && background.Spectrum == null)
-            {
-                backgroundRejected = Resources.FSABackgroundNoCounts;
-                background = null;
-            }
-            else if (background != null && background.NumberOfChannels != channels)
-            {
-                backgroundRejected = string.Format(CultureInfo.InvariantCulture,
-                    Resources.FSABackgroundChannelMismatch,
-                    background.NumberOfChannels, channels);
-                background = null;
-            }
-
-            double backgroundScale = 0.0;
-            if (background != null)
-            {
-                double backgroundLive = background.LiveTime > 0.0 ? background.LiveTime : background.MeasurementTime;
-                if (backgroundLive > 0.0)
-                {
-                    backgroundScale = liveTime / backgroundLive;
-                }
-                else
-                {
-                    backgroundRejected = Resources.FSABackgroundNoLiveTime;
-                    background = null;
-                }
-            }
-
+            // (проверка фона и `liveTime` — выше, до пола полосы фита, `A309`)
             if (this.Mode == ContinuumMode.Snip)
             {
                 snipContinuum = Snip(fwhmCalibration, spectrum);
@@ -4134,10 +4647,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<double[]> fixedColumns = new List<double[]>();
             if (this.Mode == ContinuumMode.Spline)
             {
+                // ⛔ (`A309`) СЕТКА УЗЛОВ СТРОИТСЯ ОТ КРАЯ ПОЛОСЫ ДО ПОЛА, а не
+                // от `chLo` после него. Механизм назвала П17 (10.09.2026): базис
+                // шёл от `chLo`, и пол полосы фита двигал ВСЕ узлы сплайна —
+                // срез, уносящий ноль отсчётов (пять пустых каналов под жёстким
+                // резом G1S) или три канала отрицательной энергии, переставлял
+                // континуум по всей шкале: на полном корпусе `G1S16_Mix_Denta100`
+                // терял Ti-44 (доля 14 %, z 16 → не найден), на малой базе
+                // `G1S24_Bi207_P5` χ²/ndf 20.2 → 23.6, `G1S16_Cs137_P5` 8.0 →
+                // 10.2 при том же составе данных. Теперь узлы те же, что без
+                // пола (плечо `off` — побитово прежнее), а пол лишь снимает
+                // шапки, целиком лежащие ниже него: колонка, пустая во всей
+                // полосе, — нулевая диагональ Грама, и в счёт узлов штрафа на
+                // излом ей входить нельзя. Шапка, срезанная полом посередине,
+                // остаётся — её верхний склон в полосе есть.
                 List<int> knots;
-                fixedColumns.AddRange(BuildHatBasis(fwhmCalibration, chLo, chHi, channels,
-                                                   this.ContinuumKnotDivisor,
-                                                   this.ContinuumKnotFwhm, out knots));
+                List<double[]> hats = BuildHatBasis(fwhmCalibration, chLoGrid, chHi, channels,
+                                                    this.ContinuumKnotDivisor,
+                                                    this.ContinuumKnotFwhm, out knots);
+                if (chLo > chLoGrid)
+                {
+                    int keepFrom = 0;
+                    while (keepFrom < hats.Count - 1 && knots[keepFrom + 1] <= chLo)
+                    {
+                        keepFrom++;
+                    }
+
+                    if (keepFrom > 0)
+                    {
+                        hats.RemoveRange(0, keepFrom);
+                        knots.RemoveRange(0, keepFrom);
+                    }
+                }
+
+                fixedColumns.AddRange(hats);
                 this.continuumKnots = knots;
             }
             else

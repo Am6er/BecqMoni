@@ -1,0 +1,6 @@
+off code=0 23:48:14 (25 s) extra=[--fit-floor=off] out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p34_mini_off
+thr code=0 23:48:37 (22 s) extra=[] out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p34_mini_thr
+done 23:48:37
+full off code=0 23:49:44 (66 s) extra=[--fit-floor=off] out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p34_full_off
+full thr code=0 23:50:48 (64 s) extra=[] out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p34_full_thr
+done 23:50:49

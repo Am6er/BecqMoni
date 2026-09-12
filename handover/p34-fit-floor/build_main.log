@@ -1,0 +1,9 @@
+start 00:05:24 HEAD 2d4f16054c7ebe2c2f3b387ad752303defa241a8
+00:05:25 restore  exit=0 (1 s)
+00:05:31 msbuild  exit=0 (6 s)
+  exe: 11341824 байт, 13.09.2026 0:05:31, sha256 8AA9D959E2A4FB96
+00:07:21 probes   exit=0 (110 s)
+00:07:37 mkwd     exit=0 (16 s)
+  матриц в оснастке: 45
+  sha256 exe проб = приложения: True
+СБОРКА ПРОШЛА
