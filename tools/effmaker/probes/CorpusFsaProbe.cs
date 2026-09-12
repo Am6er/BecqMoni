@@ -240,6 +240,8 @@ namespace CorpusFsaProbe
     ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
     ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
     ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
+    ///                  [--sum-light=electron|photon]   (`S167`, П18: кривая света каскадной суммы)
+    ///                  [--loss-joint=0|1]   (`S166`, П18: вынос из пика с совместной эффективностью κ)
     ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
     ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
@@ -339,6 +341,38 @@ namespace CorpusFsaProbe
                 {
                     string v = a.Substring(15);
                     o.PileUpLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
+                // (`S167`, П18 12.09.2026) Кривая света, которой ставится
+                // каскадная сумма: `electron` — из `matdb` (умолчание
+                // анализатора), `photon` — фотонная таблица `FsaLightScale`
+                // по веществу кристалла. Читатель — `SETUP` отражением
+                // (`CascadeSumPhotonLight`).
+                if (a.StartsWith("--sum-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "electron" && v != "photon")
+                    {
+                        Console.Error.WriteLine("--sum-light= знает electron и photon; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.SumLight = v;
+                    continue;
+                }
+                // (`S166`, П18 12.09.2026) Вынос из пика с совместной
+                // эффективностью κ(k,j) из таблицы матрицы: `1` — вкл, `0` —
+                // выкл. Читатель — `SETUP` отражением (`CascadeLossJointFactor`).
+                if (a.StartsWith("--loss-joint=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(13);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--loss-joint= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.LossJoint = v == "1" ? 1 : 0;
                     continue;
                 }
                 // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
@@ -1563,6 +1597,19 @@ namespace CorpusFsaProbe
             {
                 analyzer.PileUpLightForm = o.PileUpLight != "0";
                 analyzer.PileUpLightCurve = o.PileUpLight == "0" || o.PileUpLight == "1" ? null : o.PileUpLight;
+            }
+
+            // (`S167`, П18) кривая каскадной суммы; ключ обязан ДОЕХАТЬ до
+            // анализатора, читатель — `SETUP` отражением
+            if (o.SumLight != null)
+            {
+                analyzer.CascadeSumPhotonLight = o.SumLight == "photon";
+            }
+
+            // (`S166`, П18) совместная эффективность в выносе из пика
+            if (o.LossJoint >= 0)
+            {
+                analyzer.CascadeLossJointFactor = o.LossJoint == 1;
             }
 
             return analyzer;
@@ -4236,6 +4283,8 @@ namespace CorpusFsaProbe
             public double AnchorZeroShare = double.NaN; // (S169, П13) порог доли синего у кандидата нуля съёмки; NaN — умолчание анализатора
             public double AnchorZeroMax = double.NaN;   // (S169, П13) верхняя граница света кандидата нуля съёмки, кэВ; NaN — умолчание анализатора
             public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
+            public string SumLight = null;       // (S167, П18) кривая света каскадной суммы: "electron" | "photon"; null — умолчание анализатора
+            public int LossJoint = -1;           // (S166, П18) вынос из пика с κ: 1 вкл, 0 выкл; -1 — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`

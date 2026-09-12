@@ -1,0 +1,67 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p18
+  сборка   : BecquerelMonitor\bin\Debug_P18
+  пробы    : tools\effmaker\probes\build_p18
+  собрана  : 2026-09-12 17:05:45 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_P18
+  наборы   : приложение 44631009538d (548 файлов), пробы bba40166c3d4 (181)
+  сверено  : 447 файлов по sha256 за 3.76 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 447 файлов сошлись
+
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=tools\pie\out_p18_libdump --only=G1S16_Co60_P5,G1S16_Cd109_P5 --lib-dump
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p18\config\NuclideDefinition.xml
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p18\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p18\config\device: 24 loaded
+корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus
+спектров под отбор: 2 (часть: all, режим: spline)
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+матрица по спектру, суммирование вкл, наложения вкл, рассеяние вкл, вылеты вкл, фон вычитается, если есть
+библиотека: ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv); атомные образы вкл, равновесие ряда вкл
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+изомеры по sandia_symbol: вкл
+время жизни уровня: ВЕРОЯТНОСТНО (A289, умолчание)
+атомные партнёры каскада: рентген вкл, аннигиляция вкл; окно совпадения 1.000E-006 с (умолчание)
+сетка дрейфа: ноль ±8.00 кэВ, узлов 1 (один узел, дрейф не ищется); усиление ±2.00 %, узлов 1 (один узел, дрейф не ищется)
+полоса ОБОИХ концов: анализатор LibraryToFitByCurve/10.00 кэВ, библиотека LibraryToFitByCurve/10.00 кэВ — СОШЛИСЬ
+доля пола по кривой: 1.000 % (поставочная)
+пол ПОЛОСЫ ФИТА: выключен (поставочный) — фит от нулевого канала, как было
+SETUP	против поставочного разбора изменено: НИЧЕГО (все настройки анализатора — умолчания приложения)
+
+LIB	G1S16_Cd109_P5	Cd-109	Single	5
+LIB	G1S16_Cd109_P5	Xray-NaI	Nuisance	3
+LIB	G1S16_Cd109_P5	Esc-NaI	Nuisance	1
+полоса ПЕРВОГО разбора (G1S16_Cd109_P5): полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); фит 0…1023 (-6.4…3034.0 кэВ)
+CUT	G1S16_Cd109_P5	Esc-NaI	Nuisance	1.29
+CUT	G1S16_Cd109_P5	pile-up	Nuisance	0.00
+G1S16_Cd109_P5         G1S16      known    chi2/ndf    3.057  σ× 1.748  пиков   3  комп.  3  матрица: НАЙДЕНА, применена                                      503 мс
+LIB	G1S16_Co60_P5	Co-60	Single	2
+LIB	G1S16_Co60_P5	Xray-NaI	Nuisance	3
+LIB	G1S16_Co60_P5	SE-1332	Nuisance	1
+LIB	G1S16_Co60_P5	DE-1332	Nuisance	1
+LIB	G1S16_Co60_P5	SE-1173	Nuisance	1
+LIB	G1S16_Co60_P5	DE-1173	Nuisance	1
+LIB	G1S16_Co60_P5	Ann-511	Nuisance	1
+CUT	G1S16_Co60_P5	Ann-511	Nuisance	1.71
+CUT	G1S16_Co60_P5	pile-up	Nuisance	0.00
+G1S16_Co60_P5          G1S16      known    chi2/ndf    9.320  σ× 3.053  пиков   9  комп.  7  матрица: НАЙДЕНА, применена                                      133 мс
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+
+записано групп: 1 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p18\tools\pie\out_p18_libdump
+
+=== итог по частям корпуса (1 с на часах, 1 с ЦП) ===
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+known             2        2         2       12.4       6.19        0        0        0
+           привязка шкалы (AMBER17): с опорами 2, без опор 0; крупнейшие сдвиги: G1S16_Cd109_P5 (2 оп., усил. +0.16 %, ноль -1.23 кэВ); G1S16_Co60_P5 (2 оп., усил. +0.38 %, ноль +0.00 кэВ)
+           положение по свету (F11 в): ключ (умолчание анализатора), форма line; со светом NaI:Tl 2; без кривой 0
+           нуль шкалы образа (S169): ключ (умолчание анализатора); карта adc включилась у 2 из 2 (нуль по съёмке 1, по прибору 1; заказана и не включилась 0)
+           образ наложений по свету (S107): ключ (умолчание анализатора); формой по свету NaI:Tl 2 из 2
+
+отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 2, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 0, не заказан у 0
+  наибольшая значимость первого прохода: от 122.59 до 298.04 — с ней и сличается доля `RefitZRelative`
+
+⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;
+  «понятная» считана с матрицей отклика, «непонятная» — из одних пиков.
+Фантомы и recall — tools\pie\out_p18_libdump\..\score.py по этим же файлам:
+  python tools/pie/score.py --mode=spline --out-dir=tools\pie\out_p18_libdump --part=all

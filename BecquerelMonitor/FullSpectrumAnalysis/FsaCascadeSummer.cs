@@ -591,7 +591,68 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Имя кривой света, по которой ставятся суммы; пусто — по энергии.</summary>
         public string LightYieldName
         {
-            get { return this.light == null ? "" : this.light.Material; }
+            get
+            {
+                if (this.PhotonLightCurve != null)
+                {
+                    return this.PhotonLightCurve + " (фотонная)";
+                }
+
+                return this.light == null ? "" : this.light.Material;
+            }
+        }
+
+        /// <summary>
+        /// (`S167`, П18-FSA-замеры 12.09.2026) ФОТОННАЯ кривая света для
+        /// <see cref="ApparentSum"/> — имя таблицы <see cref="FsaLightScale"/>
+        /// («NaI:Tl», «CsI:Tl»). null — прежний счёт: ЭЛЕКТРОННАЯ кривая из
+        /// `matdb` (<see cref="MaterialDatabase.LightYieldOf"/>), побитово.
+        ///
+        /// Зачем два имени одной величины. Таблиц света в дереве ДВЕ (полоса
+        /// П10 12.09.2026): электронная — выход на электрон энергии E, 70 узлов
+        /// `scint_electron_light_yield`; фотонная — свет ПИКА ПОЛНОГО
+        /// ПОГЛОЩЕНИЯ на кэВ линии (снята `LightScaleProbe` тем же переносом,
+        /// что считает матрицу, с K-провалом). Привязка шкалы
+        /// (<c>FsaAnalyzer.AnchorLightPosition</c>) и образ наложений
+        /// (<c>PileUpLightForm</c>) берут фотонную; каскадная сумма — пока
+        /// электронную, и на 662+662 они расходятся на 3–4 кэВ (CsI 1325.1
+        /// против 1328.3). Физически у суммы двух ПОЛНОСТЬЮ поглощённых квантов
+        /// свет складывается из светов двух пиков полного поглощения — то есть
+        /// из фотонной кривой; электронная верна лишь для кванта, отдавшего
+        /// энергию одним электроном. Что ставит сумм-пик на данные — вопрос
+        /// замера (`S167`), умолчание — решение Amber; рычаг проб —
+        /// `--sum-light=electron|photon` у `CorpusFsaProbe`.
+        ///
+        /// Ставится СНАРУЖИ сразу после <see cref="Create(ResponseMatrix, string)"/>,
+        /// до первого <see cref="For"/>: поправки кэшируются на экземпляре, и
+        /// кривая, сменённая после первого расчёта, до кэша уже не доедет.
+        /// </summary>
+        public string PhotonLightCurve { get; set; }
+
+        /// <summary>
+        /// (`S166`, П18-FSA-замеры 12.09.2026) ВЫНОС ИЗ ПИКА С СОВМЕСТНОЙ
+        /// ЭФФЕКТИВНОСТЬЮ: в <see cref="SurviveAll"/> для потери линии k
+        /// полная эффективность партнёра j домножается на κ(k,j) из таблицы
+        /// матрицы — той же, что у сумм-пиков (`JNTK`, κ_pp): κ_pT измерена
+        /// равной κ_pp в пределах шума. false — прежний счёт, побитово.
+        /// Выживание ПАРЫ (третий квант при обоих в пике) не трогается: это
+        /// тройная совместность, и таблицы под неё нет. Умолчание — у
+        /// анализатора (<c>FsaAnalyzer.CascadeLossJointFactor</c>), рычаг проб —
+        /// `--loss-joint=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
+        /// </summary>
+        public bool LossJointFactor { get; set; }
+
+        /// <summary>
+        /// Имя фотонной таблицы по веществу кристалла («NaI:Tl», «CsI:Tl»);
+        /// null — таблицы для вещества нет. Обёртка над внутренней
+        /// <see cref="FsaLightScale.CurveFor"/> для проб: у тех к внутреннему
+        /// классу доступа нет, а второй список «какому веществу какая кривая»
+        /// разошёлся бы молча.
+        /// </summary>
+        public static string PhotonCurveFor(string scintillator)
+        {
+            return FsaLightScale.CurveFor(scintillator);
         }
 
         /// <summary>
@@ -697,11 +758,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// отдаёт энергию каскадом электронов разной энергии. Точная Λ(E) есть
         /// только у симулятора (`EfficiencySimulator.lightDeposit`), суммирователю
         /// она недоступна. Это ровно та формула, которой мерена цена в S20.
+        /// (`S167`, П18 12.09.2026) Снятая с того же симулятора ФОТОННАЯ кривая
+        /// (свет пика полного поглощения на кэВ) подставляется вместо L(E)
+        /// через <see cref="PhotonLightCurve"/>; без неё счёт прежний.
         /// </summary>
         public double ApparentSum(double first, double second, double third = 0.0)
         {
             double plain = first + second + third;
-            if (this.light == null || !(plain > 0.0))
+            if ((this.light == null && this.PhotonLightCurve == null) || !(plain > 0.0))
             {
                 return plain;
             }
@@ -727,9 +791,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return 0.5 * (lo + hi);
         }
 
+        /// <summary>
+        /// Λ(E) = L(E)·E — свет одного полностью поглощённого кванта. Кривая —
+        /// фотонная (<see cref="PhotonLightCurve"/>), если названа, иначе
+        /// электронная; ниже первого узла и выше последнего фотонная таблица
+        /// отдаёт крайнее значение (так же, как в привязке шкалы).
+        /// </summary>
         double Light(double energyKev)
         {
-            return this.light.Of(energyKev) * energyKev;
+            if (this.PhotonLightCurve != null)
+            {
+                double r = FsaLightScale.Relative(this.PhotonLightCurve, energyKev);
+                if (!double.IsNaN(r) && r > 0.0)
+                {
+                    return r * energyKev;
+                }
+            }
+
+            return this.light != null ? this.light.Of(energyKev) * energyKev : energyKev;
         }
 
         /// <summary>
@@ -1008,7 +1087,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Вынос: любой партнёр, оставивший в кристалле хоть что-нибудь,
             // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
             // зарегистрирован», и считается она через выживание.
-            loss = 1.0 - this.SurviveAll(data, Partners(data, energy), SupplyOf(data, energy));
+            loss = 1.0 - this.SurviveAll(data, Partners(data, energy), SupplyOf(data, energy),
+                                         this.LossJointFactor ? energy : 0.0);
 
             // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
             // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
@@ -1364,7 +1444,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             HashSet<double> supply;
             Dictionary<double, double> third = MergedThird(data, pair[0], pair[1], out supply);
-            return this.SurviveAll(data, third, supply);
+            // (`S166`, П18) Условие «оба кванта пары в пике» — тройная
+            // совместность, таблицы под неё нет; третий квант считается
+            // по-прежнему, без множителя.
+            return this.SurviveAll(data, third, supply, 0.0);
         }
 
         /// <summary>
@@ -1390,7 +1473,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// вероятности поставки не несут признака ветви. Родня: `S145`.
         /// </summary>
         double SurviveAll(NuclideData data, Dictionary<double, double> partners,
-                          HashSet<double> supply)
+                          HashSet<double> supply, double referenceKev)
         {
             double survive = 1.0;
             foreach (KeyValuePair<double, double> partner in partners)
@@ -1399,6 +1482,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (!(efficiency > 0.0) || !(partner.Value > 0.0))
                 {
                     continue;
+                }
+
+                // (`S166`, П18 12.09.2026) Полная эффективность партнёра —
+                // УСЛОВНАЯ на том, что опорный квант поглощён целиком:
+                // ⟨ε_p(k)·ε_T(j)⟩/⟨ε_p(k)⟩ = κ_pT(k,j)·ε_T(j). Своей таблицы у
+                // κ_pT нет; замер `KappaPeakTotalProbe` на двух сценах Lu-176
+                // дал κ_pT = κ_pp в пределах ±2 % (1.293 против 1.289…1.293 на
+                // `ASN16_lu_side`, 1.106 против 1.104…1.106 на `AS80_lu_front`),
+                // поэтому берётся таблица κ_pp матрицы (`JointFactor`). Ноль
+                // опорной энергии — множителя нет (прежний счёт, побитово).
+                if (referenceKev > 0.0)
+                {
+                    efficiency = Math.Min(1.0, efficiency * this.JointFactor(referenceKev, partner.Key));
                 }
 
                 // ⛔ КРАТНОСТЬ ПАРТНЁРА (`S147`). У аннигиляции `Partners` несёт
