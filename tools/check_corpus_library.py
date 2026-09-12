@@ -21,11 +21,31 @@
 `FsaLibrary.BuildFromPeaks`. Комментарии и строки-объяснения не в счёт: правило
 надо УМЕТЬ обсуждать, запрещено его ИСПОЛНЯТЬ.
 
+⛔ **ДЫРА, которой сторож не видел до 12.09.2026 (`AMBER19`).** Корпусный путь
+зовёт `new PeakDetector()` (с явным списком), а `PeakDetector` — код
+ПРИЛОЖЕНИЯ — поднимал `NuclideDefinitionManager` ИНИЦИАЛИЗАТОРОМ ПОЛЯ, то есть
+при каждом `new`, независимо от того, дали ли список. Файл
+`config\\NuclideDefinition.xml` в каталоге прогона был от этого ОБЯЗАТЕЛЕН (безоконный
+подъём без файла бросает, `S100`), оснастка клала его туда нарочно, и сторож
+здесь был зелен, потому что смотрел только в пробу. Теперь сторож судит и
+`BecquerelMonitor/PeakDetector.cs` — ОСОБЫМ правилом, потому что приложению
+менеджер там нужен по праву: `GetInstance` допустим ТОЛЬКО ВНУТРИ МЕТОДА
+(ленивая ветвь «списка не дали»), а в ТЕЛЕ КЛАССА (инициализатор поля) или в
+КОНСТРУКТОРЕ — отказ. Решается ГЛУБИНОЙ ФИГУРНЫХ СКОБОК: `namespace{ class{` —
+глубина 2, это тело класса; метод — глубина 3 и глубже. Конструктор
+распознаётся по заголовку члена `PeakDetector(` без типа возврата.
+
+Гейт ВРЕМЕНИ ИСПОЛНЕНИЯ — в самой пробе (`SuppliedLibraryGuard`, код 12 на
+файле в каталоге прогона и на счётчике `NuclideDefinitionManager.RaiseCount`);
+этот сторож — текстовая половина той же двери.
+
     python tools/check_corpus_library.py            # проверить дерево
     python tools/check_corpus_library.py --selftest # доказать, что отказывает
 
 ⚠ Сторож без доказанного отказа — это `T69`, поэтому `--selftest` подкладывает
 нарушение в копию файла и требует от проверки кода 1; на чистом дереве — 0.
+Для `PeakDetector.cs` контроль трёхсторонний: инициализатор поля — отказ,
+конструктор — отказ, ленивый метод — тишина.
 """
 
 import io
@@ -45,6 +65,17 @@ WATCHED = [
     "tools/effmaker/probes/CorpusFsaProbe.cs",
     "tools/CORPUS/scripts/mkconfig.py",
 ]
+
+# Код ПРИЛОЖЕНИЯ, который корпусный путь зовёт с явным списком, — судится
+# особым правилом (`AMBER19`): менеджер только ЛЕНИВО, внутри метода.
+LAZY_ONLY = [
+    "BecquerelMonitor/PeakDetector.cs",
+]
+
+GET_INSTANCE = re.compile(r"NuclideDefinitionManager\s*\.\s*GetInstance")
+# Заголовок конструктора класса PeakDetector: модификаторы, имя, скобка — и НЕТ
+# типа возврата перед именем (метод `X PeakDetector(` сюда не попадает).
+CTOR = re.compile(r"^\s*(?:(?:public|internal|private|protected|static)\s+)*PeakDetector\s*\(")
 
 # Что считается ИСПОЛНЕНИЕМ запрета (а не разговором о нём).
 FORBIDDEN = [
@@ -73,8 +104,69 @@ def offences(path, text):
     return out
 
 
-def check(paths):
+def strip_noise(line):
+    """Строка без комментария и без содержимого строковых литералов —
+    для счёта скобок и поиска исполнения."""
+    bare = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
+    bare = re.sub(r"'(?:[^'\\]|\\.)*'", "''", bare)
+    bare = re.sub(r"//.*$", "", bare)
+    return bare
+
+
+def lazy_offences(path, text):
+    """`PeakDetector.cs`: `GetInstance` в теле класса (инициализатор поля) или в
+    конструкторе — отказ; внутри обычного метода — допустимо."""
+    out = []
+    depth = 0          # глубина фигурных скобок ДО строки
+    ctor_depth = None  # глубина, на которой открыт конструктор; None — вне его
+    in_block_comment = False
+    for n, line in enumerate(text.split("\n"), 1):
+        raw = line
+        if in_block_comment:
+            if "*/" in raw:
+                raw = raw.split("*/", 1)[1]
+                in_block_comment = False
+            else:
+                continue
+        if "/*" in raw and "*/" not in raw.split("/*", 1)[1]:
+            raw = raw.split("/*", 1)[0]
+            in_block_comment = True
+        bare = strip_noise(raw)
+        if COMMENT.match(line):
+            bare = ""
+        if depth == 2 and ctor_depth is None and CTOR.search(bare):
+            ctor_depth = depth
+        if GET_INSTANCE.search(bare):
+            if depth <= 2:
+                out.append((n, "поднимает NuclideDefinitionManager ИНИЦИАЛИЗАТОРОМ ПОЛЯ — "
+                               "при каждом new PeakDetector(), и с явным списком тоже (AMBER19)",
+                            line.strip()[:100]))
+            elif ctor_depth is not None:
+                out.append((n, "поднимает NuclideDefinitionManager в КОНСТРУКТОРЕ — "
+                               "при каждом new PeakDetector(), и с явным списком тоже (AMBER19)",
+                            line.strip()[:100]))
+        depth += bare.count("{") - bare.count("}")
+        if ctor_depth is not None and depth <= ctor_depth and "}" in bare:
+            ctor_depth = None
+    return out
+
+
+def check(paths, lazy=()):
     bad = 0
+    for path in lazy:
+        if not os.path.isfile(path):
+            print("  ⛔ НЕТ ФАЙЛА: %s" % path)
+            bad += 1
+            continue
+        text = io.open(path, encoding="utf-8-sig", newline="").read()
+        found = lazy_offences(path, text)
+        if not found:
+            print("  ЧИСТО   %s (менеджер только лениво, внутри метода)" % path)
+            continue
+        for n, why, line in found:
+            print("  ⛔ %s:%d  %s" % (path, n, why))
+            print("       %s" % line)
+            bad += 1
     for path in paths:
         if not os.path.isfile(path):
             print("  ⛔ НЕТ ФАЙЛА: %s" % path)
@@ -95,7 +187,7 @@ def check(paths):
 def selftest():
     """Двусторонний контроль: подложенное нарушение обязано УРОНИТЬ проверку."""
     print("положительный контроль (чистое дерево):")
-    clean = check(WATCHED)
+    clean = check(WATCHED, LAZY_ONLY)
     print("  находок: %d" % clean)
 
     print("отрицательный контроль (подложенное нарушение):")
@@ -118,7 +210,53 @@ def selftest():
         print("  ⛔ ложная тревога <разговор>:%d  %s" % (n, why))
     print("  находок: %d (ожидался 0)" % len(noise))
 
-    ok = clean == 0 and len(found) >= 3 and len(noise) == 0
+    print("контроль PeakDetector.cs (AMBER19): инициализатор поля и конструктор — отказ, ленивый метод — тишина:")
+    field_init = ("namespace BecquerelMonitor\n"
+                  "{\n"
+                  "    public class PeakDetector\n"
+                  "    {\n"
+                  "        public List<Peak> DetectPeak() { return null; }\n"
+                  "        NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();\n"
+                  "    }\n"
+                  "}\n")
+    ctor = ("namespace BecquerelMonitor\n"
+            "{\n"
+            "    public class PeakDetector\n"
+            "    {\n"
+            "        public PeakDetector()\n"
+            "        {\n"
+            "            this.nuclideManager = NuclideDefinitionManager.GetInstance();\n"
+            "        }\n"
+            "        NuclideDefinitionManager nuclideManager;\n"
+            "    }\n"
+            "}\n")
+    lazy = ("namespace BecquerelMonitor\n"
+            "{\n"
+            "    public class PeakDetector\n"
+            "    {\n"
+            "        // NuclideDefinitionManager.GetInstance() в комментарии — не в счёт\n"
+            "        List<NuclideDefinition> SuppliedDefinitions()\n"
+            "        {\n"
+            "            if (this.nuclideManager == null)\n"
+            "            {\n"
+            "                this.nuclideManager = NuclideDefinitionManager.GetInstance();\n"
+            "            }\n"
+            "            return this.nuclideManager.NuclideDefinitions;\n"
+            "        }\n"
+            "        NuclideDefinitionManager nuclideManager;\n"
+            "    }\n"
+            "}\n")
+    f1 = lazy_offences("<инициализатор поля>", field_init)
+    f2 = lazy_offences("<конструктор>", ctor)
+    f3 = lazy_offences("<ленивый метод>", lazy)
+    for name, f in (("<инициализатор поля>", f1), ("<конструктор>", f2), ("<ленивый метод>", f3)):
+        for n, why, line in f:
+            print("  ⛔ %s:%d  %s" % (name, n, why))
+    print("  находок: инициализатор %d (ожидался 1), конструктор %d (ожидался 1), ленивый метод %d (ожидался 0)"
+          % (len(f1), len(f2), len(f3)))
+    lazy_ok = len(f1) == 1 and len(f2) == 1 and len(f3) == 0
+
+    ok = clean == 0 and len(found) >= 3 and len(noise) == 0 and lazy_ok
     print("СОШЛОСЬ" if ok else "НЕ СОШЛОСЬ")
     return 0 if ok else 1
 
@@ -127,8 +265,8 @@ def main():
     if "--selftest" in sys.argv[1:]:
         return selftest()
     print("⛔ поставочный NuclideDefinition.xml на корпусе не используется "
-          "(правило Amber 01.09.2026)")
-    bad = check(WATCHED)
+          "(правило Amber 01.09.2026; гейт AMBER19 12.09.2026)")
+    bad = check(WATCHED, LAZY_ONLY)
     print("НАХОДОК: %d" % bad)
     return 1 if bad else 0
 

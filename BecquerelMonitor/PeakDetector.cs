@@ -16,7 +16,13 @@ namespace BecquerelMonitor
             // catch-all в DCPeakDetectionView гасит этим всю детекцию в одну
             // строку Trace. Копию снимает вызывающий — на UI-потоке; null для
             // однопоточных вызовов (харнесс).
-            this.nuclideDefinitions = nuclideDefinitions ?? this.nuclideManager.NuclideDefinitions;
+            //
+            // ⛔ (`AMBER19`, 12.09.2026) Явный список ЗАМЕНЯЕТ менеджер, а не
+            // дублирует его: поставочная библиотека поднимается ТОЛЬКО когда
+            // списка не дали (см. `SuppliedDefinitions`). Корпусный путь
+            // (`CorpusFsaProbe`) подаёт список всегда — пустой или собранный
+            // из `nucdb` — и менеджера не касается вовсе.
+            this.nuclideDefinitions = nuclideDefinitions ?? this.SuppliedDefinitions();
 
             FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
             EnergySpectrum inferenceSpectrum;
@@ -1220,7 +1226,40 @@ namespace BecquerelMonitor
             return finder;
         }
 
-        NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
+        /// <summary>
+        /// Поставочная библиотека — ЛЕНИВО и только когда явного списка не дали.
+        ///
+        /// ⛔ (`AMBER19`, задача Amber 12.09.2026) До 12.09.2026 менеджер стоял
+        /// ИНИЦИАЛИЗАТОРОМ ПОЛЯ: каждый <c>new PeakDetector()</c> поднимал
+        /// <c>NuclideDefinitionManager</c> и читал поставочный
+        /// <c>config\NuclideDefinition.xml</c> — в том числе на корпусном пути,
+        /// где список подаётся явно и содержимое файла не используется. Файл
+        /// при этом был ОБЯЗАТЕЛЕН (без него безоконный запуск бросает,
+        /// <c>S100</c>), и оснастка корпуса клала его в каталог прогона «как
+        /// поставочный конфиг», а сторож без него отказывал, — то есть правило
+        /// «корпус только по нуклидам из базы» держалось на комментарии
+        /// «менеджер не поднимается», который был неверен.
+        ///
+        /// Поведение ПРИЛОЖЕНИЯ не меняется: единственный оконный вызов
+        /// (<c>DCPeakDetectionView</c>) подаёт снимок списка явно, а менеджер к
+        /// тому моменту давно поднят панелью. Ветвь ниже — для вызовов без
+        /// списка (пробы, харнесс): там менеджер поднимается ровно тогда, когда
+        /// он и правда нужен.
+        ///
+        /// ⚠ Сторож <c>tools/check_corpus_library.py</c> судит этот файл по
+        /// ГЛУБИНЕ СКОБОК: <c>GetInstance</c> в теле класса (инициализатор
+        /// поля) или в конструкторе — отказ; внутри метода — допустимо.
+        /// </summary>
+        List<NuclideDefinition> SuppliedDefinitions()
+        {
+            if (this.nuclideManager == null)
+            {
+                this.nuclideManager = NuclideDefinitionManager.GetInstance();
+            }
+            return this.nuclideManager.NuclideDefinitions;
+        }
+
+        NuclideDefinitionManager nuclideManager;
 
         // Снимок NuclideDefinitions на время одного прогона DetectPeak.
         List<NuclideDefinition> nuclideDefinitions;

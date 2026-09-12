@@ -39,9 +39,127 @@ namespace CorpusFsaProbe
     /// недостижимая ветвь разбора бросает <see cref="Rule"/> — правка, вернувшая
     /// другой режим, упадёт, а не посчитает корпус чужим списком. Механическая
     /// проверка тех же ворот — `tools/check_corpus_library.py`.
+    ///
+    /// ⛔⛔ ГЕЙТ СТРОГИЙ С 12.09.2026 (`AMBER19`, задача Amber, дословно:
+    /// «берётся список известных нуклидов в этом спектре и дёргается всё из
+    /// базы. Никаких поставочных конфигов из приложения. Если надо — сделай это
+    /// правило гейтом прогонки»). Ворота по ключу ловили только РЕЖИМ; ДЫРА,
+    /// которой они не видели: `new PeakDetector()` поднимал
+    /// `NuclideDefinitionManager` инициализатором поля, тот читал поставочный
+    /// `config\NuclideDefinition.xml` из каталога прогона, оснастка клала файл
+    /// туда нарочно, а сторож оснастки без него ОТКАЗЫВАЛ. Содержимое файла в
+    /// числа не попадало (список подаётся явно), но «не поднимается вовсе»
+    /// было ложью. Теперь две двери, обе кодом 12:
+    ///
+    ///  * <see cref="RefuseIfSuppliedFile"/> — НА СТАРТЕ: файл лежит там, откуда
+    ///    его прочёл бы менеджер (каталог сборки, `Package.NuclideDefinition`),
+    ///    или в текущем каталоге — отказ ДО чтения корпуса, ни одного файла в
+    ///    `--out=`;
+    ///  * <see cref="RefuseIfManagerRaised"/> — В КОНЦЕ, до записи результата:
+    ///    менеджер поднимали хоть раз (<c>NuclideDefinitionManager.RaiseCount</c>)
+    ///    — отказ, результат не пишется. Счётчик, а не `isLoaded`: безоконный
+    ///    подъём без файла БРОСАЕТ (`S100`), исключение уходит в `row.Error`,
+    ///    и по одному «загрузился ли» подъём был бы невидим.
+    ///
+    /// Положительный контроль второй двери — ключ `--spoil=manager`: поднимает
+    /// менеджер ОТРАЖЕНИЕМ нарочно (текстовый сторож `check_corpus_library.py`
+    /// не должен видеть в контроле нарушения — его ловит гейт времени
+    /// исполнения) и обязан кончиться кодом 12.
     /// </summary>
     static class SuppliedLibraryGuard
     {
+        /// <summary>
+        /// Пути, по которым поставочная библиотека ДОСТУПНА прогону: тот, что
+        /// откроет менеджер (от каталога сборки — `Package`, `S102`), и тот же
+        /// относительный от текущего каталога (в штатной оснастке они совпадают:
+        /// `run_appwd.ps1` зовёт `wd_app\CorpusFsaProbe.exe` из `wd_app`).
+        /// </summary>
+        public static List<string> SuppliedFilePaths()
+        {
+            var paths = new List<string>();
+            string managers = Package.GetInstance().NuclideDefinition;
+            paths.Add(Path.GetFullPath(managers));
+            string cwd = Path.GetFullPath(Path.Combine(
+                Directory.GetCurrentDirectory(), "config", "NuclideDefinition.xml"));
+            if (!string.Equals(cwd, paths[0], StringComparison.OrdinalIgnoreCase))
+            {
+                paths.Add(cwd);
+            }
+            return paths;
+        }
+
+        /// <summary>Первая дверь: поставочный файл в каталоге прогона — отказ.</summary>
+        public static int RefuseIfSuppliedFile()
+        {
+            List<string> paths = SuppliedFilePaths();
+            var present = new List<string>();
+            foreach (string p in paths)
+            {
+                if (File.Exists(p))
+                {
+                    present.Add(p);
+                }
+            }
+
+            if (present.Count == 0)
+            {
+                Console.WriteLine("гейт библиотеки (AMBER19): поставочного config\\NuclideDefinition.xml "
+                                  + "в каталоге прогона НЕТ — проверено: " + string.Join("; ", paths));
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine("   В каталоге прогона ЛЕЖИТ поставочная библиотека — гейт AMBER19 (12.09.2026):");
+            foreach (string p in present)
+            {
+                Console.Error.WriteLine("   " + p);
+            }
+            Console.Error.WriteLine("   Корпус считается по нуклидам из nucdb по manifest.csv; файл из каталога "
+                                    + "прогона убрать (mk_appwd.ps1 с 12.09.2026 его не кладёт).");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Вторая дверь: менеджер поднимали — отказ. Зовётся ДО записи
+        /// результата, чтобы прогон-нарушитель не оставил в `--out=` ни файла.
+        /// </summary>
+        public static int RefuseIfManagerRaised()
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            if (raised == 0)
+            {
+                Console.WriteLine("гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)");
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine("   За прогон NuclideDefinitionManager поднимали {0} раз(а) — гейт AMBER19 (12.09.2026).",
+                                    raised.ToString(CultureInfo.InvariantCulture));
+            Console.Error.WriteLine("   Результат в --out= НЕ ЗАПИСАН: числа прогона, коснувшегося поставочной библиотеки, корпусными не считаются.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Порча для положительного контроля второй двери (`--spoil=manager`):
+        /// поднять менеджер отражением, исключение (безоконный запуск без файла
+        /// бросает, `S100`) — проглотить, как глотает его `RunOne`. Ровно так
+        /// выглядел бы чужой подъём менеджера посреди прогона.
+        /// </summary>
+        public static void SpoilRaiseManager()
+        {
+            try
+            {
+                typeof(NuclideDefinitionManager)
+                    .GetMethod("GetInstance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .Invoke(null, null);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("--spoil=manager: подъём менеджера кончился {0} — проглочено, как в RunOne",
+                                        (ex.InnerException ?? ex).GetType().Name);
+            }
+        }
+
         /// <summary>Само правило одной строкой — им же говорит отказ.</summary>
         public const string Rule =
             "поставочный config\\NuclideDefinition.xml на корпусе НЕ используется " +
@@ -96,7 +214,11 @@ namespace CorpusFsaProbe
     /// правило Amber): поставочный `config\NuclideDefinition.xml` на корпусе не
     /// используется НИКОГДА, и прежние ключи `--lib=peaks` / `--lib=infer`
     /// ОТКАЗЫВАЮТ кодом 12 — см. <see cref="SuppliedLibraryGuard"/>.
-    /// `NuclideDefinitionManager` этой пробой больше не поднимается вовсе.
+    /// ⛔ С 12.09.2026 (`AMBER19`) это ДОКАЗЫВАЕТСЯ, а не обещается: проба
+    /// отказывает кодом 12 на старте, если поставочный файл лежит в каталоге
+    /// прогона, и в конце, если `NuclideDefinitionManager` за прогон поднимали
+    /// хоть раз (до 12.09.2026 его поднимал сам `new PeakDetector()`, и фраза
+    /// «не поднимается вовсе» здесь была неверна) — см. <see cref="SuppliedLibraryGuard"/>.
     /// ⚠ Мерки при этом сменили смысл ещё в августе: recall и число фантомов
     /// считаются относительно ПРЕДЪЯВЛЕННОГО списка, и сужение списка улучшает
     /// их само по себе; числа прежних режимов корпусными не считать.
@@ -110,6 +232,7 @@ namespace CorpusFsaProbe
     ///                  [--band-audit=&lt;файл.csv&gt;]
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
+    ///                  [--spoil=manager]  (порча: поднять менеджер; ОБЯЗАН кончиться кодом 12)
     ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
     ///                  [--fit-floor=off|adc|&lt;кэВ&gt;]   (`A302`, пол полосы ФИТА)
     ///                  [--roughness=&lt;вес&gt;]
@@ -225,6 +348,22 @@ namespace CorpusFsaProbe
                 // `--anchor-share=` — порог доли синего канала для развёртки,
                 // `--anchor-passes=` и `--anchor-offset-min=` — рычаги замера.
                 if (a == "--no-anchor") { o.Anchor = false; continue; }
+                // (`AMBER16` п. 4) Перенос строки узла: `channel` (умолчание
+                // разбора) или `stretch` (прежний общий масштаб) — обратное
+                // плечо A/B; читатель ключа — строка `SETUP` отражением.
+                if (a.StartsWith("--matrix-transfer=", StringComparison.Ordinal))
+                {
+                    string rule = a.Substring(18);
+                    if (rule != "channel" && rule != "stretch")
+                    {
+                        Console.Error.WriteLine("--matrix-transfer= знает channel и stretch; дано: {0}", rule);
+                        return 2;
+                    }
+
+                    o.MatrixTransfer = rule == "channel" ? 1 : 0;
+                    continue;
+                }
+
                 if (a.StartsWith("--anchor-share=", StringComparison.Ordinal))
                 {
                     o.AnchorShare = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
@@ -552,6 +691,18 @@ namespace CorpusFsaProbe
                 // ЗАВЕДОМЫМ рассинхроном, ничем не отличается от сторожа,
                 // который всегда молчит.
                 if (a == "--band-selftest") { o.BandSelfTest = true; continue; }
+                // (`AMBER19`) Порча для положительного контроля гейта библиотеки:
+                // единственное значение — `manager`; иное — отказ разбора ключей.
+                if (a.StartsWith("--spoil=", StringComparison.Ordinal))
+                {
+                    o.Spoil = a.Substring(8);
+                    if (o.Spoil != "manager")
+                    {
+                        Console.Error.WriteLine("--spoil= знает только manager; дано: {0}", o.Spoil);
+                        return 2;
+                    }
+                    continue;
+                }
 
                 if (a.StartsWith("--knot-fwhm=", StringComparison.Ordinal))
                 {
@@ -719,6 +870,17 @@ namespace CorpusFsaProbe
                 return 0;
             }
 
+            // ⛔ (`AMBER19`) ПЕРВАЯ ДВЕРЬ гейта библиотеки — ДО чтения корпуса:
+            // поставочный файл в каталоге прогона — отказ кодом 12, и в `--out=`
+            // не появляется ни файла. Стоит ПОСЛЕ `--print-settings` и
+            // `--band-selftest` нарочно: те корпуса не считают, а зовутся из
+            // каталога проб, где поставочные конфиги лежат по праву (`T149`).
+            int suppliedFile = SuppliedLibraryGuard.RefuseIfSuppliedFile();
+            if (suppliedFile != 0)
+            {
+                return suppliedFile;
+            }
+
             string partsPath = Path.Combine(o.Corpus, "parts.csv");
             if (!File.Exists(partsPath))
             {
@@ -759,6 +921,11 @@ namespace CorpusFsaProbe
             // состав брался из `nucdb`, — то есть корпусный путь держал за руку
             // файл, которым ему пользоваться нельзя. Цена нарушения измерена и
             // носит имя: фантом `Pu-238` (`N18`).
+            // ⛔ (`AMBER19`, 12.09.2026) И это больше не обещание: до 12.09.2026
+            // менеджера поднимал САМ `new PeakDetector()` инициализатором поля —
+            // строка выше была ложью с первого дня. Теперь подъём ловит счётчик
+            // `NuclideDefinitionManager.RaiseCount`, спрашивается он в конце
+            // прогона (`RefuseIfManagerRaised`), и любой подъём — код 12.
 
             // (`T65`) Настройки прогона печатаются У АНАЛИЗАТОРА — у того
             // самого объекта, каким потом считается каждый спектр. Шапка,
@@ -772,7 +939,21 @@ namespace CorpusFsaProbe
             var clock = System.Diagnostics.Stopwatch.StartNew();
             foreach (Sample sample in samples)
             {
+                // (`AMBER19`) Порча: чужой подъём менеджера посреди прогона.
+                if (o.Spoil == "manager" && rows.Count == 0)
+                {
+                    SuppliedLibraryGuard.SpoilRaiseManager();
+                }
+
                 rows.Add(RunOne(sample, o));
+            }
+
+            // ⛔ (`AMBER19`) ВТОРАЯ ДВЕРЬ гейта библиотеки — ДО записи результата:
+            // менеджер за прогон поднимали — код 12, в `--out=` ни файла.
+            int managerRaised = SuppliedLibraryGuard.RefuseIfManagerRaised();
+            if (managerRaised != 0)
+            {
+                return managerRaised;
             }
 
             Write(rows, o);
@@ -1007,7 +1188,9 @@ namespace CorpusFsaProbe
             // видно, что они стояли, — иначе правило живёт только в комментарии.
             Console.WriteLine("библиотека: --lib={0} — состав из manifest.csv, линии из nucdb/matdb; "
                               + "поставочный config\\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его "
-                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026)",
+                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026); "
+                              + "гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём "
+                              + "NuclideDefinitionManager — отказ кодом 12",
                               o.Library);
             // ⚠ `o.Matrix` и `o.Background` — НЕ поля анализатора: матрицу
             // подбирает и подаёт сама проба, фон она подаёт или не подаёт
@@ -1236,6 +1419,11 @@ namespace CorpusFsaProbe
             // (`AMBER17`) Ключ обязан ДОЕХАТЬ до анализатора (`A268`): читатель —
             // строка `FsaTuningReport.Print` отражением.
             analyzer.AnchorScale = o.Anchor;
+            if (o.MatrixTransfer >= 0)
+            {
+                analyzer.MatrixTransferByChannel = o.MatrixTransfer == 1;
+            }
+
             if (o.AnchorShare >= 0.0)
             {
                 analyzer.AnchorShareThreshold = o.AnchorShare;
@@ -2891,7 +3079,7 @@ namespace CorpusFsaProbe
                 cpuSeconds += r.CpuMs / 1000.0;
             }
 
-            Console.WriteLine("=== итог по частям корпуса ({0:n0} с на часах, {1:n0} с ЦП) ===",
+            Console.WriteLine("=== итог по частям корпуса ({0:f0} с на часах, {1:f0} с ЦП) ===",
                               seconds, cpuSeconds);
             // (`T85`) ДВЕ колонки вместо одной «с матр.»: она называлась так,
             // будто считает найденные матрицы, а считала ПРИМЕНЁННЫЕ. Числа
@@ -3943,6 +4131,12 @@ namespace CorpusFsaProbe
             // анализатора (`T65`: числа здесь не повторяются).
             public bool Anchor = true;
             public double AnchorShare = -1.0;
+
+            // (`AMBER16` п. 4, остаток П8; П3 12.09.2026) Правило переноса
+            // строки узла на энергию линии: −1 — ключ не задан, умолчание у
+            // анализатора (по каналам с 11.09.2026, `f8dad9cf`); 0 — `stretch`,
+            // прежний общий масштаб (обратное плечо A/B); 1 — `channel`.
+            public int MatrixTransfer = -1;
             public int AnchorPasses = -1;
             public int AnchorOffsetMin = -1;
             public double AnchorZ = -1.0;
@@ -4180,6 +4374,11 @@ namespace CorpusFsaProbe
             /// <summary>(`S101`) Положительный контроль сторожа полосы,
             /// ключ `--band-selftest`; корпус при нём не читается.</summary>
             public bool BandSelfTest;
+
+            /// <summary>(`AMBER19`) Порча для положительного контроля гейта
+            /// библиотеки: `manager` — поднять менеджер посреди прогона. Пусто —
+            /// порчи нет.</summary>
+            public string Spoil = "";
 
             /// <summary>(`T94`) Напечатать настройки и выйти кодом 0, не читая
             /// корпуса, — ключ `--print-settings`.</summary>

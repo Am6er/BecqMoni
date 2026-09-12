@@ -116,10 +116,13 @@ $script:AppWdExecutableExt = @('.exe', '.dll')
 $script:AppWdStampName   = '.appwd.json'
 
 # Ниже этого числа записей `config\NuclideDefinition.xml` — не библиотека.
-# 4 записи пишет САМО приложение, когда файла нет
+# 4 записи пишет САМО приложение, когда файла нет — В ОКНАХ; безоконный
+# запуск без файла БРОСАЕТ и ничего не пишет (`S100`, 27.08.2026)
 # (`NuclideDefinitionManager.InitializeNuclideDefinitionFile`), поставочная
 # библиотека на 25.08.2026 несёт 152. Порог стоит между ними с большим запасом
 # в обе стороны: состав библиотеки задаёт и поиск пиков, и разбор FSA.
+# ⛔ С 12.09.2026 (`AMBER19`) порог судит ТОЛЬКО КАТАЛОГ ПРОБ (`-ProbeCatalog`):
+#    в оснастке КОРПУСА файла быть НЕ ДОЛЖНО вовсе — см. `Test-AppWdLibrary`.
 $script:AppWdNuclideMin = 100
 
 # ⛔ ИСХОДНИКИ ПРОБ — ОДИН ПЕРЕБОР НА ДВОИХ (`T89`, остаток `T83`; 05.09.2026).
@@ -487,7 +490,29 @@ function Get-AppWdPlan {
     # 4. Конфиг — ПОСТАВОЧНЫЙ, а не сгенерированный `mkconfig.py`: в `wd_<группа>`
     #    лежат сеты-обманки `[decoy]` под изучение гейта, и разбор по ним мерит
     #    не тот состав библиотеки.
-    foreach ($n in @('NuclideDefinition.xml', 'BecquerelMonitor.xml')) {
+    #
+    # ⛔ `NuclideDefinition.xml` В ОСНАСТКУ КОРПУСА НЕ КЛАДЁТСЯ (`AMBER19`, задача
+    #    Amber 12.09.2026: «берётся список известных нуклидов в этом спектре и
+    #    дёргается всё из базы. Никаких поставочных конфигов из приложения»).
+    #    Состав корпусу даёт `manifest.csv`, линии — `nucdb`/`matdb`
+    #    (`FsaSampleLibrary`); поставочный список там не нужен, а до 12.09.2026
+    #    был ОБЯЗАТЕЛЕН только потому, что `new PeakDetector()` поднимал
+    #    `NuclideDefinitionManager` инициализатором поля. Теперь менеджер
+    #    ленивый, файл в оснастке — НАРУШЕНИЕ (сторож `Test-AppWdLibrary`
+    #    отказывает, проба отказывает кодом 12), и `Remove-AppWdExtra` выносит
+    #    его из прежних оснасток как постороннее загружаемое.
+    #    Каталогу ПРОБ (`-ProbeCatalog`) файл кладётся по-прежнему: там живут
+    #    десятки проб приложения, которым поставочная библиотека нужна по праву
+    #    (`FsaStackShot`, `IntensityLinesProbe`, …), и `--band-selftest` из
+    #    `build_all.ps1` корпуса не считает.
+    #    ✅ `BecquerelMonitor.xml` остаётся в обеих (решение Amber 12.09.2026,
+    #    дословно: «Оставить»): правило — о нуклидах; корпусный путь читает из
+    #    него сглаживание (не применяется, `SmoothingMethod.None`) и язык
+    #    подписей, и полоса П5 доказала замером A/B, что числа корпуса от него
+    #    не зависят (`handover/handover-2026-09-12-p5-nuclide-gate.md`).
+    $supplied = if ($ProbeCatalog) { @('NuclideDefinition.xml', 'BecquerelMonitor.xml') }
+                else               { @('BecquerelMonitor.xml') }
+    foreach ($n in $supplied) {
         $pairs.Add([pscustomobject]@{
             Src = (Join-Path $Repo "BecquerelMonitor\config\$n")
             Dst = (Join-Path $Wd   "config\$n")
@@ -533,6 +558,11 @@ function Get-AppWdPlan {
     [pscustomobject]@{
         Repo = $Repo; Bin = $Bin; Wd = $Wd
         Corpus = $corpus; Response = $response; ProbeBuild = $probeBuild
+        # `AMBER19`: план каталога ПРОБ или оснастки КОРПУСА — по нему
+        # `Test-AppWdLibrary` решает, обязан ли файл библиотеки лежать или
+        # обязан отсутствовать. Признак живёт в плане, а не в параметре
+        # сторожа: сторож обязан судить ТОТ ЖЕ план, по которому клали.
+        ProbeCatalog = [bool]$ProbeCatalog
         # `S138`: с чем сверять клейма. У штатного прогона — склад корпуса.
         Store = $storeDir
         Pairs = @($pairs)
@@ -841,18 +871,45 @@ function Get-AppWdLibraryName {
     return 'СВОЯ — ни поставочная, ни корневая'
 }
 
+# ⛔ ДВА РЕЖИМА, И ОНИ ПРОТИВОПОЛОЖНЫ (`AMBER19`, 12.09.2026):
+#    * оснастка КОРПУСА (`$Plan.ProbeCatalog` = $false): файл ОБЯЗАН
+#      ОТСУТСТВОВАТЬ — корпус считается по нуклидам из базы, и поставочный
+#      список в каталоге прогона — нарушение (проба отказывает кодом 12 на
+#      старте, сторож — здесь). Прежняя проверка «файл есть и в нём >= 100
+#      записей» была ОБРАТНОЙ: она требовала положить то, чего быть не должно,
+#      и держалась на ложной посылке, что без файла «прогон возьмёт
+#      заготовку» — безоконный запуск без файла не пишет заготовку, а бросает
+#      (`S100`);
+#    * каталог ПРОБ (`$Plan.ProbeCatalog` = $true): по-прежнему файл ОБЯЗАН
+#      ЛЕЖАТЬ и нести не меньше `$script:AppWdNuclideMin` записей — пробы
+#      приложения читают поставочную библиотеку по праву (`T66`, `T73`).
+#    Поле `Note` — что сторож ПЕЧАТАЕТ про библиотеку, когда файла нет по праву.
 function Test-AppWdLibrary {
     param([Parameter(Mandatory)]$Plan)
 
     $bad = [System.Collections.Generic.List[string]]::new()
     $f = Join-Path $Plan.Wd 'config\NuclideDefinition.xml'
-    $empty = [pscustomobject]@{ Bad = @(); Count = 0; Sha = ''; Raw = ''; Eol = ''; Which = '' }
+    $empty = [pscustomobject]@{ Bad = @(); Count = 0; Sha = ''; Raw = ''; Eol = ''; Which = ''; Note = '' }
     if (-not (Test-Path -LiteralPath $Plan.Wd)) {
         # Про отсутствие оснастки целиком кричит `Test-AppWdPlan`, второй раз незачем.
         return $empty
     }
+    $forProbes = ($Plan.PSObject.Properties['ProbeCatalog'] -and [bool]$Plan.ProbeCatalog)
+    if (-not $forProbes) {
+        if (Test-Path -LiteralPath $f) {
+            $fp = Get-AppWdLibraryPrint -Path $f
+            $which = Get-AppWdLibraryName -Repo $Plan.Repo -Print $fp.Print
+            $bad.Add(("В ОСНАСТКЕ КОРПУСА ЛЕЖИТ config\NuclideDefinition.xml (отпечаток {0}, {1}) — ПРАВИЛО AMBER19 (12.09.2026):" -f $fp.Print, $which) +
+                     "`n           корпус считается по нуклидам из базы по manifest.csv, поставочного списка в каталоге прогона быть НЕ ДОЛЖНО." +
+                     "`n           Пересоберите оснастку: mk_appwd.ps1 с 12.09.2026 файл не кладёт и выносит прежний как постороннее.")
+            $empty.Bad = @($bad)
+            return $empty
+        }
+        $empty.Note = 'в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb'
+        return $empty
+    }
     if (-not (Test-Path -LiteralPath $f)) {
-        $bad.Add("В ОСНАСТКЕ НЕТ config\NuclideDefinition.xml — прогон возьмёт ЗАГОТОВКУ, которую напишет сам")
+        $bad.Add("В КАТАЛОГЕ ПРОБ НЕТ config\NuclideDefinition.xml — пробы приложения без библиотеки отказывают (S100)")
         $empty.Bad = @($bad)
         return $empty
     }
@@ -871,7 +928,7 @@ function Test-AppWdLibrary {
                  "`n           4 записи пишет само приложение, когда файла нет; в поставке их 152." +
                  "`n           Состав библиотеки задаёт и поиск пиков, и разбор FSA — прогонять НЕЛЬЗЯ.")
     }
-    [pscustomobject]@{ Bad = @($bad); Count = $n; Sha = $sha; Raw = $fp.Raw; Eol = $fp.Eol; Which = $which }
+    [pscustomobject]@{ Bad = @($bad); Count = $n; Sha = $sha; Raw = $fp.Raw; Eol = $fp.Eol; Which = $which; Note = '' }
 }
 
 # Сверка СБОРОК с исходниками — ПО НАБОРУ, ИЗ КОТОРОГО ОНИ СОБРАНЫ (`T226`).
@@ -1320,6 +1377,11 @@ function Invoke-AppWdGuard {
     #    замера обязан нести, какой из них считал. Отпечаток — по
     #    нормализованным концам строк, поэтому он один и тот же у дерева,
     #    выписанного с LF, и у выписанного с CRLF.
+    # (`AMBER19`) В оснастке КОРПУСА библиотеки нет по правилу — и это печатается
+    # словами: «сторож промолчал» и «сторожу нечего было судить» выглядят одинаково.
+    if ($l.PSObject.Properties['Note'] -and $l.Note) {
+        Write-Host ("  библиотека: {0}" -f $l.Note)
+    }
     if ($l.Sha) {
         Write-Host ("  библиотека: {0} записей, {1}, отпечаток {2}, концы строк {3}" -f
                     $l.Count, $l.Which, $l.Sha, $l.Eol)
