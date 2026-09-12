@@ -509,6 +509,91 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double LightTrackEndKev = 1.0;
 
         /// <summary>
+        /// ⛔ (`A267`, решение Amber 12.09.2026, дословно: «BinOf — в
+        /// СЛЕДУЮЩИЙ единый счёт склада») СВЕТ ИСТОРИИ — В БИН ЕЁ ВЕСА.
+        /// Умолчанием ВЫКЛЮЧЕН до единого счёта склада (П23).
+        ///
+        /// Что меняет. <see cref="ScoreLight"/> до правки считал бин
+        /// СВОИМ округлением, без оговорки <see cref="InPeak"/>, и свет
+        /// истории, чей вес <see cref="Deposit"/> положил в `peak−1`,
+        /// уходил в `lightSum[peak]` — ЯКОРЬ всей световой шкалы
+        /// (<see cref="RemapLightScale"/>). С ключом бин света берётся у
+        /// <see cref="BinOf"/>, тем же правилом, что бин веса: якорь
+        /// перестаёт пилить по узлам (П20: до +2.70 % на 32.993 кэВ при
+        /// полубине, 20 узлов из 42 в полосе 10…70 кэВ; П1: до +6.7 % при
+        /// нулевом допуске).
+        ///
+        /// ⚠ Ключ НЕ ТРОГАЕТ РОЗЫГРЫША — ни одного случайного числа, только
+        /// индекс копилки. Выключенный — побитово прежний счёт; счётчики
+        /// расходящегося класса (<see cref="CountLightBinSplit"/>,
+        /// <see cref="WeightLightBinSplit"/>) копятся при любом положении
+        /// ключа, а вычитаемый из якоря свет (<see cref="lightBinSplit"/>)
+        /// — только при выключенном, когда он в якоре и вправду лежит; с
+        /// включённым ключом обе оценки якоря
+        /// (<see cref="LastPhotonLightScale"/>, <see cref="LastPhotonLightScaleSplit"/>)
+        /// совпадают до бита. В матрице — `lbin=1` клейма
+        /// (<see cref="ResponseMatrixOptions.LightBinUnified"/>).
+        /// </summary>
+        public bool LightBinUnified;
+
+        /// <summary>
+        /// ⛔ (`A306`, решение Amber 12.09.2026, дословно: «Канал Peak
+        /// принимает историю в допуске») ПРАВИЛО ОДНО НА БИН И НА КАНАЛ.
+        /// Умолчанием ВЫКЛЮЧЕН до единого счёта склада (П23).
+        ///
+        /// Что меняет. История, рассеявшаяся ДО кристалла
+        /// (<see cref="ScatteredRun"/>), получала принудительный перевод
+        /// канала `Peak → Compton` — «в пик она не попадёт при любом исходе
+        /// внутри». При ненулевом допуске это неправда: её БИН решает
+        /// <see cref="InPeak"/> по суммарному недобору, и при полубине
+        /// 1.0 кэВ рассеяние вперёд на 32 кэВ укладывается в допуск при
+        /// всех углах до ~60°. Бин и канал разошлись: на 32.194 кэВ в бине
+        /// пика 4.14 % веса лежало в канале `compton` (П20 §2), и каскадная
+        /// поправка `CF`, правящая только канал `Peak`, этих 4 % не видела.
+        /// С ключом канал такой истории — `Peak`, когда
+        /// <see cref="InPeak"/> берёт её в пик, иначе как прежде.
+        ///
+        /// ⚠ Ключ НЕ ТРОГАЕТ РОЗЫГРЫША и не меняет СУММУ отклика — только
+        /// раскладку по каналам. Выключенный — побитово прежний. В матрице
+        /// — `pkch=1` клейма (<see cref="ResponseMatrixOptions.PeakChannelByTolerance"/>).
+        /// </summary>
+        public bool PeakChannelByTolerance;
+
+        /// <summary>
+        /// ⛔ (`M9`, решение Amber 12.09.2026, дословно: «ω_L из
+        /// fluorescence_yield + f13 в СЛЕДУЮЩИЙ единый счёт склада»)
+        /// ИСТОЧНИК ВЫХОДОВ L-ФЛУОРЕСЦЕНЦИИ И ПЕРЕХОДЫ КОСТЕРА—КРОНИГА.
+        /// Умолчанием 0 до единого счёта склада (П23).
+        ///
+        /// Уровни:
+        /// * 0 — как до 12.09.2026: ω_L1/L2/L3 суммой `eadl_radiative`, дырка
+        ///   остаётся на своей подоболочке (переходов Костера—Кронига нет);
+        /// * 1 — ω_L из поставки xraylib (`fluorescence_yield`, Krause с
+        ///   заменами Campbell-2009 по L1), переходы f12/f13/f23 по EADL
+        ///   (`eadl_auger`; f13 на тяжёлых завышен — W ×1.88, Pb ×1.13);
+        /// * 2 — ω_L из xraylib И переходы из xraylib (`coster_kronig`,
+        ///   таблица `tools/nucdb/import_coster_kronig.py`; без неё —
+        ///   ОТКАЗ в <see cref="EnsureBuilt"/>, не откат).
+        ///
+        /// Что меняет физически. Дырка на L1 отвечает не только своей
+        /// линией (ω₁), но и — переехав на L2/L3 — их линиями: полный выход
+        /// ν₁ = ω₁ + f12·ν₂ + f13·ω₃ (<see cref="MaterialDatabase.Fluorescence.LYield"/>).
+        /// У иода ν₁ = 0.088 против ω₁ = 0.043; у свинца ν₁ = 0.605 против
+        /// 0.098 (уровень 1). Кому это видно: L-линии иода в образе NaI при
+        /// 59.5 кэВ (остаток ~~`A101`~~ — 16 % недобора против Geant4),
+        /// L-серия свинцовой защиты (10.5…12.6 кэВ).
+        ///
+        /// ⚠ Ненулевой уровень ТЯНЕТ ДОПОЛНИТЕЛЬНЫЕ случайные числа (до
+        /// двух на радиационную L-дырку — выбор подоболочки после перехода),
+        /// поэтому матрица с ним — другая по потоку, а не только по физике.
+        /// Уровень 0 — побитово прежний счёт. В матрице — `lys=N` клейма
+        /// (<see cref="ResponseMatrixOptions.LYieldSupply"/>); путь кривой
+        /// берёт уровень от умолчания настроек матрицы («одна физика для
+        /// кривой и матрицы», решение Amber 12.09.2026).
+        /// </summary>
+        public int LYieldSupply;
+
+        /// <summary>
         /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
         ///
         /// Формула узкого пучка `exp(-tau)` считает потерянным всё, что
@@ -978,6 +1063,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.regions.Count > 0)
             {
                 return;
+            }
+
+            // (`M9`) Уровень 2 ключа требует таблицы поставки; без неё —
+            // отказ ЗДЕСЬ, до первой истории, с именем импортёра. Молчаливый
+            // откат на EADL отдал бы матрицу с клеймом `lys=2` и числами
+            // уровня 1 — та же беда, что `A77`/`T114`.
+            if (this.LYieldSupply == 2 && !MaterialDatabase.HasCosterKronigSupply)
+            {
+                throw new InvalidOperationException(
+                    "LYieldSupply=2: в matdb.sqlite нет таблицы coster_kronig (переходы "
+                    + "Костера—Кронига xraylib); её заводит tools/nucdb/import_coster_kronig.py "
+                    + "--apply — базу пишет только Amber. Уровень 1 берёт переходы из EADL.");
+            }
+
+            if (this.LYieldSupply < 0 || this.LYieldSupply > 2)
+            {
+                throw new ArgumentOutOfRangeException("LYieldSupply",
+                    "LYieldSupply: допустимы 0, 1, 2");
             }
 
             this.Build();
@@ -3184,12 +3287,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (this.channelHistograms != null)
                 {
                     // Квант рассеялся ДО кристалла и принёс меньше энергии
-                    // линии — в пик он не попадёт при любом исходе внутри.
-                    // Канал берётся по тем же меткам: если внутри ушёл рентген
-                    // или аннигиляционный квант, история принадлежит им, иначе
-                    // это недобор.
+                    // линии. Канал берётся по тем же меткам: если внутри ушёл
+                    // рентген или аннигиляционный квант, история принадлежит
+                    // им, иначе это недобор.
+                    //
+                    // ⛔ (`A306`, решение Amber 12.09.2026 «Канал Peak
+                    // принимает историю в допуске», П23) Прежняя оговорка
+                    // «в пик он не попадёт при любом исходе внутри» верна
+                    // ТОЛЬКО при нулевом допуске: при полубине `InPeak` берёт
+                    // в бин пика историю, чей суммарный недобор (потеря при
+                    // рассеянии плюс вылет) укладывается в допуск, а канал
+                    // принудительно уходил в `Compton` — бин и канал
+                    // расходились (4.14 % бина на 32.194 кэВ, П20 §2). С
+                    // ключом <see cref="PeakChannelByTolerance"/> канал
+                    // решает ТО ЖЕ правило, что бин: `Peak`, когда `InPeak`.
+                    // Без ключа — прежний перевод, побитово.
                     ResponseChannel channel = this.ChannelOf(sEscaped);
-                    if (channel == ResponseChannel.Peak)
+                    if (channel == ResponseChannel.Peak
+                        && !(this.PeakChannelByTolerance && this.InPeak(energyKev, deposited)))
                     {
                         channel = ResponseChannel.Compton;
                     }
@@ -4339,24 +4454,31 @@ namespace BecquerelMonitor.EfficiencyMaker
             double edge = kFraction * omega;
             for (int li = 0; li < f.OmegaL.Length && li < lFrac.Length; li++)
             {
-                if (!(f.OmegaL[li] > 0.0) || f.LineKevL[li] == null
+                // (`M9`) Выход дырки — ПОЛНЫЙ, с переходами Костера—Кронига
+                // (<see cref="MaterialDatabase.Fluorescence.LYield"/>); на
+                // уровне 0 это ровно `OmegaL[li]`, число то же до бита.
+                double yield = f.LYield(li, this.LYieldSupply);
+                if (!(yield > 0.0) || f.LineKevL[li] == null
                     || energyKev <= f.LEdgeKev[li])
                 {
                     continue;               // подоболочка закрыта на этой энергии
                 }
 
-                edge += lFrac[li] * f.OmegaL[li];
+                edge += lFrac[li] * yield;
                 if (u < edge)
                 {
                     this.CountLXray++;
-                    double lkev = PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+                    // (`M9`) Линия — той подоболочки, КУДА дырка доехала:
+                    // без ключа это `li`, с ключом — L2/L3 после перехода.
+                    int emit = this.LSubshellAfterCk(f, li);
+                    double lkev = PickLine(this.Uniform(), f.LineKevL[emit], f.LineWeightL[emit]);
                     // (`AMBER16` п. 1) ЕДИНСТВЕННОЕ место, где признак серии
                     // становится истиной: дальше по нему вылет уйдёт в свой
                     // канал `EscapeXrayL`.
                     this.lastXrayIsL = true;
-                    this.lastAbsorbShell = li == 0 ? 3 : (li == 1 ? 5 : 6);   // EADL: L1=3, L2=5, L3=6
+                    this.lastAbsorbShell = emit == 0 ? 3 : (emit == 1 ? 5 : 6);   // EADL: L1=3, L2=5, L3=6
                     this.traceZ = f0.Z[k];
-                    this.traceShell = (char)('1' + li);   // подоболочка L1 / L2 / L3
+                    this.traceShell = (char)('1' + emit);   // подоболочка L1 / L2 / L3
                     this.traceXrayKev = lkev;
                     return lkev;
                 }
@@ -4400,7 +4522,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         continue;
                     }
 
-                    double w = lFrac[li] * (1.0 - f.OmegaL[li]);
+                    // (`M9`) «Не квант» — против ПОЛНОГО выхода дырки, с
+                    // переходами; на уровне 0 — ровно `1 − OmegaL[li]`.
+                    double w = lFrac[li] * (1.0 - f.LYield(li, this.LYieldSupply));
                     if (li == 0) wL1 = w; else if (li == 1) wL2 = w; else wL3 = w;
                     lSum += lFrac[li];
                 }
@@ -4451,8 +4575,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Kα1 -> L3 (индекс 2), Kα2 -> L2 (индекс 1), Kβ -> мимо L.
             int li = kLine == 0 ? 2 : (kLine == 1 ? 1 : -1);
+            // (`M9`) Выход дырки — ПОЛНЫЙ, с переходами Костера—Кронига
+            // (у L2 это ω₂ + f23·ω₃); на уровне 0 — ровно `OmegaL[li]`.
+            double yield = li < 0 ? 0.0 : f.LYield(li, this.LYieldSupply);
             if (li < 0 || li >= f.OmegaL.Length || f.LineKevL[li] == null
-                || !(f.OmegaL[li] > 0.0))
+                || !(yield > 0.0))
             {
                 return;
             }
@@ -4468,14 +4595,71 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`F11` (а), П17) Судьба L-дырки решена ЗДЕСЬ — раздельный каскад
             // при оже-исходе разряжает её только безрадиационно.
             this.lastCascadeRolled = true;
-            if (this.Uniform() >= f.OmegaL[li])
+            if (this.Uniform() >= yield)
             {
                 return;                     // ответил оже-электрон
             }
 
             this.CountKLCascade++;
+            // (`M9`) Линия — той подоболочки, куда дырка доехала (L2 → L3
+            // с весом f23·ω₃); без ключа — своя.
+            int emit = this.LSubshellAfterCk(f, li);
             this.pendingCascadeKev =
-                PickLine(this.Uniform(), f.LineKevL[li], f.LineWeightL[li]);
+                PickLine(this.Uniform(), f.LineKevL[emit], f.LineWeightL[emit]);
+        }
+
+        /// <summary>
+        /// (`M9`, П23) ГДЕ ДЫРКА ОТВЕЧАЕТ КВАНТОМ — подоболочка после
+        /// переходов Костера—Кронига, при УСЛОВИИ, что квант вообще будет
+        /// (это решено вызывающим по полному выходу
+        /// <see cref="MaterialDatabase.Fluorescence.LYield"/>). Условные
+        /// веса: у дырки на L_i — своя линия ω_i против переезда;
+        /// L1 → L2 с весом f12·ν₂, L1 → L3 с весом f13·ω₃; L2 → L3 с весом
+        /// f23·ω₃. L3 дальше не едет.
+        ///
+        /// ⚠ Тянет ДО ТРЁХ случайных чисел и ТОЛЬКО при ненулевом
+        /// <see cref="LYieldSupply"/>: на уровне 0 переходов нет, ответ — сама
+        /// подоболочка без единого розыгрыша, поток прежний до бита. Целевая
+        /// подоболочка без линий (в EADL нет её радиационных переходов) —
+        /// остаёмся на своей: линии не выдумываются.
+        /// </summary>
+        int LSubshellAfterCk(MaterialDatabase.Fluorescence f, int li)
+        {
+            int level = this.LYieldSupply;
+            if (level == 0 || li >= 2)
+            {
+                return li;
+            }
+
+            double own = f.OmegaLAt(li, level);
+            double total = f.LYield(li, level);
+            if (!(total > own) || this.Uniform() * total < own)
+            {
+                return li;                  // ответила своей линией
+            }
+
+            if (li == 1)
+            {
+                return f.LineKevL[2] != null ? 2 : li;      // L2 → L3
+            }
+
+            // L1: на L2 (и, быть может, дальше) или сразу на L3
+            double toL2 = f.CkAt(0, level) * f.LYield(1, level);
+            double toL3 = f.CkAt(1, level) * f.OmegaLAt(2, level);
+            if (!(toL2 + toL3 > 0.0))
+            {
+                return li;
+            }
+
+            if (this.Uniform() * (toL2 + toL3) < toL2)
+            {
+                double own2 = f.OmegaLAt(1, level);
+                double total2 = f.LYield(1, level);
+                int at = !(total2 > own2) || this.Uniform() * total2 < own2 ? 1 : 2;
+                return f.LineKevL[at] != null ? at : (f.LineKevL[1] != null ? 1 : li);
+            }
+
+            return f.LineKevL[2] != null ? 2 : li;
         }
 
         /// <summary>Линия по разыгранному числу и весам; веса в сумме единица.</summary>
@@ -6768,6 +6952,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// расходящегося класса копится отдельно
         /// (<see cref="lightBinSplit"/>), и <see cref="RemapLightScale"/>
         /// отдаёт ОБЕ оценки якоря из одного прогона.
+        ///
+        /// ✅ (`A267`, решение Amber 12.09.2026 «BinOf — в СЛЕДУЮЩИЙ единый
+        /// счёт склада», П23) Правка принята КЛЮЧОМ
+        /// <see cref="LightBinUnified"/>: с ним свет идёт в единый бин, и
+        /// вычитать из якоря нечего — <see cref="lightBinSplit"/> остаётся
+        /// нулём, обе оценки якоря совпадают. Умолчание ВЫКЛ до единого
+        /// счёта склада; выключенный ключ — прежний счёт до бита.
         /// </summary>
         void ScoreLight(double binKev, double energyKev, double deposited, double weight)
         {
@@ -6788,14 +6979,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 bin = peak;
             }
 
-            if (bin != this.BinOf(peak, binKev, energyKev, deposited))
+            int unified = this.BinOf(peak, binKev, energyKev, deposited);
+            if (bin != unified)
             {
                 this.CountLightBinSplit++;
                 this.WeightLightBinSplit += weight;
-                this.lightBinSplit += weight * this.lightDeposit;
+                if (!this.LightBinUnified)
+                {
+                    this.lightBinSplit += weight * this.lightDeposit;
+                }
             }
 
-            this.lightSum[bin] += weight * this.lightDeposit;
+            this.lightSum[this.LightBinUnified ? unified : bin] += weight * this.lightDeposit;
         }
 
         /// <summary>

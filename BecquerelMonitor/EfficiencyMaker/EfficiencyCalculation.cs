@@ -515,6 +515,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Histories = Math.Max(1000, options.Histories),
                 LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(storePhysics.KDipLight),
                 LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storePhysics.KDipLight),
+                // (`M9`, П23 12.09.2026) Источник ω_L и переходы Костера—Кронига
+                // — ТЕМ ЖЕ путём, что K-провал выше: от умолчания настроек
+                // матрицы, чтобы кривая и склад считали одну физику. Пока
+                // умолчание 0, строка ничего не меняет; единый счёт склада
+                // перевернёт его, и кривая пойдёт следом сама.
+                LYieldSupply = storePhysics.LYieldSupply,
             };
 
             log(geometry.Describe());
@@ -639,6 +645,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // стоял бы у головного, а считали бы рабочие без него.
                         LightSubKevCurve = simulator.LightSubKevCurve,
                         LightCascadeSplit = simulator.LightCascadeSplit,
+                        LYieldSupply = simulator.LYieldSupply,
                     };
                 },
                 (range, loop, worker) =>
@@ -743,14 +750,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             // сцены изотропного поля: её значения — эффективная площадь в см²,
             // а не доля, и без этой строки такая кривая была бы неотличима от
             // обычной. Правило то же, что у матрицы (`ResponseMatrix.NormalizationOf`).
+            // `; lys=N` (`M9`, П23 12.09.2026) — по тому же правилу, что
+            // `kdip=`: только при ненулевом уровне, иначе кривая с поставкой ω_L
+            // была бы неотличима от кривой без неё (`T42`).
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
                 sampleIsAir ? "; sample=air" : "",
                 storePhysics.KDipLight != 0
                     ? "; kdip=" + storePhysics.KDipLight.ToString(CultureInfo.InvariantCulture)
+                    : "",
+                storePhysics.LYieldSupply != 0
+                    ? "; lys=" + storePhysics.LYieldSupply.ToString(CultureInfo.InvariantCulture)
                     : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
                     ? "; norm=fluence" : "");

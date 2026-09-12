@@ -27,7 +27,17 @@ namespace LightAnchorProbe
     ///
     ///     lightanchorprobe --geometry=X.in [--energies=59.5,662,...]
     ///                      [--n=400000] [--bin=1] [--peakw] [--peakb] [--store]
-    ///                      [--nodes=lo-hi] [--seed=N]
+    ///                      [--nodes=lo-hi] [--seed=N] [--binof]
+    ///
+    /// `--binof` (П23 12.09.2026, приёмка `A267` — решение Amber «BinOf — в
+    /// СЛЕДУЮЩИЙ единый счёт склада»): включить ключ
+    /// `EfficiencySimulator.LightBinUnified` (клеймо `lbin=1`) — свет истории
+    /// идёт в бин её веса. С ключом обе оценки якоря совпадают ПО ПОСТРОЕНИЮ,
+    /// поэтому мерка плеча — не «сдвиг», а РАВЕНСТВО его действующего якоря
+    /// («свет/E») единому якорю плеча БЕЗ ключа на том же зерне: единая
+    /// колонка П1/П20 гладкая и монотонная, и ключ обязан дать ровно её.
+    /// Проба с `--binof` печатает столбец «свет/E» и отказывает (код 1), если
+    /// хоть на одном узле её оценки якоря разошлись.
     ///
     /// `--store` (П20 12.09.2026, замер `A267` «на умолчаниях склада»): ключи
     /// физики, которые симулятор САМ по умолчанию держит иначе, чем строитель
@@ -70,6 +80,7 @@ namespace LightAnchorProbe
             bool peakw = false;
             bool peakb = false;     // `AMBER16` п.2/3: допуск по ПОЛУБИНУ — решение Amber 11.09.2026
             bool store = false;     // П20: ключи физики как у строителя склада
+            bool binof = false;     // П23: ключ `LightBinUnified` (`A267`)
             double nodesLo = -1.0, nodesHi = -1.0;
             var energies = new List<double>
             {
@@ -81,6 +92,7 @@ namespace LightAnchorProbe
                 if (a == "--peakw") { peakw = true; continue; }
                 if (a == "--peakb") { peakb = true; continue; }
                 if (a == "--store") { store = true; continue; }
+                if (a == "--binof") { binof = true; continue; }
                 if (a.StartsWith("--nodes=", StringComparison.Ordinal))
                 {
                     string[] pair = a.Substring(8).Split('-');
@@ -172,6 +184,9 @@ namespace LightAnchorProbe
                 peakw ? "ИЗ ГЕОМЕТРИИ (--peakw, `E34`) — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ, класс обязан быть пуст"
                 : peakb ? "ПОЛУБИН (--peakb, `AMBER16` — решение Amber 11.09.2026 «Допуск по БИНУ»): класс обязан быть пуст"
                       : "НОЛЬ (как у поставочного склада)");
+            Console.WriteLine("бин света: {0}",
+                binof ? "ЕДИНЫЙ (--binof, ключ LightBinUnified, `A267`) — свет в бин веса; «свет/E» обязан совпасть с «единое» плеча без ключа"
+                      : "СВОИМ округлением (как склад до единого счёта); «единое» — то, что даст ключ");
             Console.WriteLine();
             Console.WriteLine("     E, кэВ   допуск   свет/E     единое     сдвиг %   класс: историй    вес/пик %");
 
@@ -195,6 +210,11 @@ namespace LightAnchorProbe
                     sim.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storeOptions.KDipLight);
                     sim.LightEtaEh = storeOptions.LightEtaEh;
                 }
+
+                // (П23, `A267`) Ключ не тянет случайных чисел, поэтому плечо с
+                // ним и без него — ОДИН поток: «свет/E» здесь обязан равняться
+                // «единое» там до последнего знака.
+                sim.LightBinUnified = binof;
 
                 if (seed != 0)
                 {
@@ -234,6 +254,29 @@ namespace LightAnchorProbe
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "наибольший сдвиг якоря: {0:F3} % на {1:F3} кэВ; класс непуст на {2} узлах из {3}.",
                 worstShift, worstAt, nonEmpty, energies.Count));
+            if (binof)
+            {
+                // ⛔ (П23) С ключом обе оценки якоря обязаны совпасть ДО БИТА —
+                // это свойство самого ключа (`lightBinSplit` при нём не
+                // копится), и его нарушение значило бы, что ключ не доехал
+                // до `ScoreLight`. Класс при этом по-прежнему считается — он
+                // мерит, сколько историй ключ ПЕРЕЛОЖИЛ, — и пустым быть не
+                // обязан.
+                if (worstShift != 0.0)
+                {
+                    Console.Error.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "⛔ С --binof оценки якоря разошлись на {0:F6} % — ключ LightBinUnified не доехал до ScoreLight.",
+                        worstShift));
+                    return 1;
+                }
+
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "КЛЮЧ ДЕЙСТВУЕТ: с --binof обе оценки якоря совпали на всех {0} узлах; переложено историй на {1} узлах. "
+                    + "Приёмка — сверить столбец «свет/E» с «единое» плеча без ключа на том же зерне.",
+                    energies.Count, nonEmpty));
+                return 0;
+            }
+
             if (peakw)
             {
                 // ⛔ Контроль СУДИТ, а не украшает: пустой класс на этом плече —

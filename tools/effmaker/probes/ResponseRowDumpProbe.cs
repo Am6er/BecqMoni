@@ -45,7 +45,22 @@ namespace ResponseRowDumpProbe
     ///                          [--peakb=1|0]
     ///                          [--matrix-any] [--matrix-transfer=channel|stretch]
     ///     responserowdumpprobe --geometry=&lt;файл.in&gt; --direct [--e=…] [--peakw=…]
-    ///                          [--peakb=1|0] [--ablate=…] [--out=…]
+    ///                          [--peakb=1|0] [--pkch=1|0] [--lys=0|1|2] [--ablate=…] [--out=…]
+    ///
+    /// `--lys=N` (П23 12.09.2026, приёмка `M9`): уровень ключа `LYieldSupply` у
+    /// прямого плеча — источник ω_L и переходы Костера—Кронига (0 — EADL без
+    /// переходов, 1 — ω_L xraylib + переходы EADL, 2 — и переходы xraylib);
+    /// плечо зовётся с хвостом `_lysN`. Мерка — L-линии вещества сцены в
+    /// строке отклика (у свинцового стакана — бины 10…13 кэВ).
+    ///
+    /// `--pkch=1|0` (П23 12.09.2026, приёмка `A306` — решение Amber «Канал Peak
+    /// принимает историю в допуске»): ключ `PeakChannelByTolerance` у прямого
+    /// плеча — канал `Peak` берёт рассеявшуюся до кристалла историю, чей
+    /// суммарный недобор укладывается в допуск; сумма строки та же, меняется
+    /// только раскладка по каналам. Без ключа — умолчание класса (ВЫКЛ до
+    /// единого счёта склада). Плечо с ключом зовётся с хвостом `_pkch1`.
+    /// Проба печатает по каждому узлу долю `compton` в бине пика и Σ канала
+    /// `peak` против веса бина пика — это и есть мерка `A306`.
     ///
     /// `--geometry=` (П20 12.09.2026, замер `A306` при полубине): только прямое
     /// плечо, настройки — УМОЛЧАНИЯ `ResponseMatrixOptions`, то есть склад
@@ -100,6 +115,15 @@ namespace ResponseRowDumpProbe
         /// </summary>
         static bool? PeakToleranceHalfBin;
 
+        /// <summary>
+        /// (П23 12.09.2026) Ключ `--pkch=`: канал `Peak` по допуску (`A306`)
+        /// у прямого плеча. `null` — не трогать (умолчание класса, ВЫКЛ).
+        /// </summary>
+        static bool? PeakChannelByTolerance;
+
+        /// <summary>(П23 12.09.2026) Ключ `--lys=`: уровень `LYieldSupply` (`M9`); `null` — умолчание класса (0).</summary>
+        static int? LYieldSupply;
+
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -112,6 +136,8 @@ namespace ResponseRowDumpProbe
             bool direct = false;
             string peakw = "both";
             string peakb = null;             // null — не трогать (склад: у матрицы; геометрия: умолчание класса)
+            string pkch = null;              // П23: null — умолчание класса (ВЫКЛ)
+            string lys = null;               // П23: null — умолчание класса (0)
             bool matrixAny = false;
             int trace = -2;                    // −2 — трассировка не просилась
             var ablations = new List<string>();
@@ -147,6 +173,24 @@ namespace ResponseRowDumpProbe
                 else if (a.StartsWith("--peakb=", StringComparison.Ordinal))
                 {
                     peakb = a.Substring(8);
+                }
+                else if (a.StartsWith("--pkch=", StringComparison.Ordinal))
+                {
+                    pkch = a.Substring(7);
+                    if (pkch != "0" && pkch != "1")
+                    {
+                        Console.Error.WriteLine("--pkch= ждёт 1 или 0; дано: {0}", pkch);
+                        return 2;
+                    }
+                }
+                else if (a.StartsWith("--lys=", StringComparison.Ordinal))
+                {
+                    lys = a.Substring(6);
+                    if (lys != "0" && lys != "1" && lys != "2")
+                    {
+                        Console.Error.WriteLine("--lys= ждёт 0, 1 или 2; дано: {0}", lys);
+                        return 2;
+                    }
                 }
                 else if (a.StartsWith("--geometry=", StringComparison.Ordinal))
                 {
@@ -236,6 +280,8 @@ namespace ResponseRowDumpProbe
             Trace = trace;
             NoAnalogContinuum = noAnalogContinuum;
             PeakToleranceHalfBin = peakb == null ? (bool?)null : peakb == "1";
+            PeakChannelByTolerance = pkch == null ? (bool?)null : pkch == "1";
+            LYieldSupply = lys == null ? (int?)null : int.Parse(lys, CultureInfo.InvariantCulture);
 
             if (geometryPath != null)
             {
@@ -602,6 +648,17 @@ namespace ResponseRowDumpProbe
             {
                 options.PeakToleranceHalfBin = PeakToleranceHalfBin.Value;
             }
+            // (П23 12.09.2026, `A306`) Канал `Peak` по допуску — ключом клейма,
+            // тем же путём, что полубин: настройка → штатный строитель.
+            if (PeakChannelByTolerance.HasValue)
+            {
+                options.PeakChannelByTolerance = PeakChannelByTolerance.Value;
+            }
+            // (П23 12.09.2026, `M9`) Уровень поставки ω_L — тем же путём.
+            if (LYieldSupply.HasValue)
+            {
+                options.LYieldSupply = LYieldSupply.Value;
+            }
             if (ablation == "scat")
             {
                 options.SingleScatter = false;
@@ -631,6 +688,8 @@ namespace ResponseRowDumpProbe
                     ? "direct_no_" + ablation
                     : (peakTolerance ? "direct_peakw1" : "direct_peakw0"))
                 + (options.PeakToleranceHalfBin ? "" : "_peakb0")
+                + (options.PeakChannelByTolerance ? "_pkch1" : "")
+                + (options.LYieldSupply != 0 ? "_lys" + options.LYieldSupply.ToString(CultureInfo.InvariantCulture) : "")
                 + (NoAnalogContinuum ? "_noacont" : "");
 
             // ⛔ Трассировка пишет в ОДИН список, поэтому поток ровно один:
@@ -690,9 +749,81 @@ namespace ResponseRowDumpProbe
             foreach (double e in energies)
             {
                 DumpNode(rows, arm, fresh, e);
+                PeakBinShares(arm, fresh, e);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// (П23 12.09.2026, мерка `A306`) По узлу: вес бина пика, доля каждого
+        /// канала в нём и Σ канала `peak` по ВСЕЙ строке против веса бина пика.
+        /// «Правило одно на бин и на канал» значит: в бине пика чужих каналов
+        /// нет, а канал `peak` не живёт вне бина пика — обе разности печатаются
+        /// числом, а не словом. ⚠ У узла НИЖЕ середины бина (E &lt; 2·peak при
+        /// бине 2) история с недобором в допуске может округлиться в `peak−1`
+        /// (`BinOf`), и там её канал перекрывает аналоговый континуум — Σ
+        /// канала `peak` тогда меньше веса бина на этот класс; у 32.194 он
+        /// пуст (2·16 = 32 &lt; 32.194), у 661.657 — [660.657, 661).
+        /// </summary>
+        static void PeakBinShares(string arm, ResponseMatrix matrix, double energyKev)
+        {
+            int index = NearestNode(matrix.Energies, energyKev);
+            int channels = matrix.ChannelRows.Length;
+            int peak = -1;
+            for (int c = 0; c < channels; c++)
+            {
+                float[] row = matrix.ChannelRows[c][index];
+                if (row != null && row.Length - 1 > peak)
+                {
+                    peak = row.Length - 1;
+                }
+            }
+
+            if (peak < 0)
+            {
+                return;
+            }
+
+            double binTotal = 0.0, rowTotal = 0.0, peakChannelSum = 0.0;
+            double[] inPeakBin = new double[channels];
+            for (int c = 0; c < channels; c++)
+            {
+                float[] row = matrix.ChannelRows[c][index];
+                if (row == null)
+                {
+                    continue;
+                }
+
+                for (int b = 0; b < row.Length; b++)
+                {
+                    rowTotal += row[b];
+                    if (c == 0)
+                    {
+                        peakChannelSum += row[b];
+                    }
+                }
+
+                inPeakBin[c] = peak < row.Length ? row[peak] : 0.0;
+                binTotal += inPeakBin[c];
+            }
+
+            var sb = new StringBuilder();
+            sb.Append("   мерка A306, узел ").Append(F(matrix.Energies[index], 3))
+              .Append(" кэВ, бин пика ").Append(peak.ToString(CultureInfo.InvariantCulture))
+              .Append(": вес бина ").Append(E(binTotal))
+              .Append(", Σ строки ").Append(E(rowTotal))
+              .Append("; в бине пика:");
+            for (int c = 0; c < channels && c < ChannelNames.Length; c++)
+            {
+                sb.Append(' ').Append(ChannelNames[c]).Append('=')
+                  .Append(F(binTotal > 0.0 ? 100.0 * inPeakBin[c] / binTotal : 0.0, 3)).Append('%');
+            }
+
+            sb.Append("; Σ канала peak по строке ").Append(E(peakChannelSum))
+              .Append(" (").Append(F(binTotal > 0.0 ? 100.0 * peakChannelSum / binTotal : 0.0, 3))
+              .Append(" % веса бина пика)");
+            Console.WriteLine(sb.ToString());
         }
 
         /// <summary>Какой канал трассировать; −2 — не просили, −1 — любой.</summary>
