@@ -3342,6 +3342,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeDecayTimeProbability { get; set; }
 
         /// <summary>
+        /// (`S167`, полоса П18-FSA-замеры 12.09.2026) КАКОЙ КРИВОЙ СВЕТА
+        /// СТАВИТСЯ КАСКАДНАЯ СУММА: с этим ключом — фотонной таблицей
+        /// <see cref="FsaLightScale"/> по веществу кристалла (той же, что у
+        /// <see cref="AnchorLightPosition"/> и <see cref="PileUpLightForm"/>),
+        /// без него — электронной кривой из `matdb`, как считалось до этого
+        /// дня (<see cref="FsaCascadeSummer.ApparentSum"/>). Таблиц света в
+        /// дереве две (полоса П10), и они расходятся на 3–4 кэВ на 662+662;
+        /// сумм-пик после привязки кладётся по видимой энергии суммы с
+        /// множителем r(E_вид)/r(E₀) ОДИН раз (П19), то есть с электронной
+        /// кривой положение — смесь двух таблиц, с фотонной — одна таблица
+        /// насквозь: Σ E_k·r(E_k)/r(E₀). Полярность умолчания и числа A/B — у
+        /// присваивания в конструкторе; рычаг проб —
+        /// `--sum-light=electron|photon` у `CorpusFsaProbe`; читатель —
+        /// `SETUP` отражением. Вещество без таблицы (LaBr3, CZT, германий, без
+        /// матрицы) — счёт без ключа.
+        /// </summary>
+        public bool CascadeSumPhotonLight { get; set; }
+
+        /// <summary>
+        /// (`S166`, полоса П18-FSA-замеры 12.09.2026) ВЫНОС ИЗ ПИКА С
+        /// СОВМЕСТНОЙ ЭФФЕКТИВНОСТЬЮ: с этим ключом потеря линии k партнёром j
+        /// считается по κ(k,j)·ε_T(j) — таблицей совместной эффективности
+        /// матрицы (`JNTK`), той же, что у сумм-пиков; без него — по ε_T(j)
+        /// среднему по объёму, как считалось до этого дня
+        /// (<see cref="FsaCascadeSummer.LossJointFactor"/>). Замер
+        /// `KappaPeakTotalProbe` на двух сценах Lu-176: κ_pT равна κ_pp в
+        /// пределах ±2 %, своей таблицы не нужно. На точечном источнике κ = 1 и
+        /// ключ ничего не меняет. Полярность умолчания и числа A/B — у
+        /// присваивания в конструкторе; рычаг проб — `--loss-joint=0|1` у
+        /// `CorpusFsaProbe`; читатель — `SETUP` отражением.
+        /// </summary>
+        public bool CascadeLossJointFactor { get; set; }
+
+        /// <summary>
         /// Считать ли аннигиляционные кванты партнёром совпадения (S27).
         /// ⛔ Пара 511 + 511 не заводится ни при каком значении — кванты летят
         /// спина к спине, см. <see cref="CascadeAtomicData.AnnihilationQuanta"/>.
@@ -3605,6 +3639,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CascadeAnnihilationPartners = true;
             this.CascadeIsomerPartners = true;
             this.CoincidenceWindowSec = 0.0;
+            // (`S167`, П18 12.09.2026) Кривая каскадной суммы — ЭЛЕКТРОННАЯ
+            // (выключено), как до правки: умолчание не менялось, ключ заведён
+            // замером, решение — Amber по числам журнала П18-FSA-замеры.
+            this.CascadeSumPhotonLight = false;
+            // (`S166`, П18 12.09.2026) Вынос из пика — БЕЗ совместного
+            // множителя (выключено), как до правки: ключ заведён замером,
+            // решение — Amber по числам журнала П18-FSA-замеры.
+            this.CascadeLossJointFactor = false;
             this.PileUp = true;
             // (`S107`, П10/П13 12.09.2026) Форма образа наложений по свету —
             // ВКЛ умолчанием. Решение Amber 12.09.2026, вопросником, дословно:
@@ -3754,6 +3796,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                           this.CascadeIsomerPartners,
                                           this.CascadeDecayTimeProbability)
                 : null;
+            // (`S167`, П18) Фотонная кривая суммы — ДО первого `For`: поправки
+            // кэшируются на экземпляре сумматора. Вещество без таблицы даёт
+            // null, то есть прежний счёт электронной кривой.
+            if (this.cascade != null && this.CascadeSumPhotonLight)
+            {
+                this.cascade.PhotonLightCurve = FsaLightScale.CurveFor(this.ScintillatorMaterial);
+            }
+
+            // (`S166`, П18) совместная эффективность в выносе — тоже до первого `For`
+            if (this.cascade != null)
+            {
+                this.cascade.LossJointFactor = this.CascadeLossJointFactor;
+            }
+
             this.cascadeApplied = false;
 
             EnergyCalibration calibration = spectrum.EnergyCalibration;
