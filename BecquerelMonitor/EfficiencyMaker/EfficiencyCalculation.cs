@@ -446,15 +446,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// <paramref name="physics"/> (`E29`, П41) — настройки склада, от
         /// которых кривая берёт свои ключи физики; null — умолчания класса,
-        /// то есть ровно то, чем считает приложение. Нужно ТОЛЬКО пробам
-        /// (`CorpusEffProbe --imp=1`): у кривой в UI рычагов физики нет
-        /// намеренно, и этот вход их не заводит — он даёт пробе включить ключ
-        /// склада на пути кривой, не заводя второй копии правил (`S37`).
+        /// то есть ровно то, чем считает приложение. Нужно ТОЛЬКО пробам:
+        /// у кривой в UI рычагов физики нет намеренно, и этот вход их не
+        /// заводит — он даёт пробе передать физику склада на путь кривой, не
+        /// заводя второй копии правил (`S37`).
+        ///
+        /// <paramref name="importanceSampling"/> (`E29`, П43 13.09.2026) —
+        /// ЯВНОЕ значение ключа розыгрыша точки вылета (проба `--imp=0|1`);
+        /// null — автоматика <see cref="ImportanceSamplingFor"/>: полевая
+        /// сцена — ВКЛ, прочие — умолчание склада. Явное сильнее автоматики в
+        /// обе стороны, иначе абляцию «поле без розыгрыша» было бы не снять.
         /// </summary>
         public static EfficiencyFitResult Run(GeometryModel geometry,
                                               EfficiencyCalculationOptions options,
                                               Action<string> log, Func<bool> cancelled,
-                                              ResponseMatrixOptions physics = null)
+                                              ResponseMatrixOptions physics = null,
+                                              bool? importanceSampling = null)
         {
             if (options == null)
             {
@@ -518,16 +525,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Число и уровень — в клеймо кривой (`kdip=N` ниже), иначе кривая
             // с провалом была бы неотличима от кривой без него (`T42`).
             ResponseMatrixOptions storePhysics = physics ?? new ResponseMatrixOptions();
+            // (`E29`, П43 13.09.2026) Розыгрыш точки вылета у кривой — ОДНИМ
+            // правилом `ImportanceSamplingFor` (его же читает `CorpusEffProbe`
+            // для гварда пересчёта, `S37`): явное значение пробы сильнее
+            // всего; без него полевая сцена (земля, лунка) — ВКЛ по решению
+            // Amber 13.09.2026 «ВКЛ автоматически для полевых сцен», прочие
+            // сцены — умолчание склада (ВЫКЛ по решению 10.09.2026), то есть
+            // сосуды считаются посимвольно и побитово как прежде.
+            bool importance = ImportanceSamplingFor(geometry, storePhysics, importanceSampling);
+            bool importanceAuto = !importanceSampling.HasValue && importance
+                                  && !storePhysics.ImportanceSampling;
             EfficiencySimulator simulator = new EfficiencySimulator(geometry)
             {
                 Histories = Math.Max(1000, options.Histories),
                 // (`E29`, П41 13.09.2026) Важностный розыгрыш точки вылета —
-                // тем же путём, от умолчания настроек склада (ВЫКЛ по решению
-                // Amber 10.09.2026): у кривой полевой сцены ровно тот же
-                // разброс, что у матрицы, и включать его кривой и складу можно
-                // только одним решением. Пока ВЫКЛ — признак разброса ниже
-                // говорит об этом вслух (`NodeSpread`).
-                ImportanceSampling = storePhysics.ImportanceSampling,
+                // у полевой сцены ВКЛ автоматикой (П43), у прочих от умолчания
+                // настроек склада: у кривой полевой сцены ровно тот же разброс,
+                // что у матрицы (26…56 % на узел), и без розыгрыша признак
+                // разброса ниже (`NodeSpread`) кричит о шумной кривой.
+                ImportanceSampling = importance,
                 LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(storePhysics.KDipLight),
                 LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storePhysics.KDipLight),
                 // (`M9`, П23 12.09.2026) Источник ω_L и переходы Костера—Кронига
@@ -580,6 +596,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             log(simulator.DescribeScene());
+
+            // (`E29`, П43) Автоматика — вслух: человек за экраном «Посчитать из
+            // геометрии» иначе не узнал бы, почему у полевой сцены кривая
+            // несёт `imp=1`, а у сосуда — нет. Печатается ТОЛЬКО когда ключ
+            // включила сцена, а не явное значение и не умолчание склада.
+            if (importanceAuto)
+            {
+                log(Resources.EfficiencyMakerImportanceAuto);
+            }
+
             log(string.Format(CultureInfo.InvariantCulture,
                 "{0}: {1}; {2}: {3}; {4}",
                 Resources.EfficiencyMakerCrossSections,
@@ -817,8 +843,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             // половинами; когерентное в проводке — только включённое.
             // `; imp=1` (`E29`, П41 13.09.2026) — тем же именем, что у клейма
             // матрицы, и по тому же правилу: только при включённом важностном
-            // розыгрыше точки вылета; ВЫКЛ по решению Amber — клеймо
-            // посимвольно прежнее.
+            // розыгрыше точки вылета — ДЕЙСТВУЮЩЕМ (`importance`), а не по
+            // умолчанию склада: у полевой сцены его включает автоматика (П43),
+            // и клеймо обязано это нести; у сосуда — клеймо посимвольно прежнее.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
                 "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
@@ -838,8 +865,43 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.RayleighToCrystal ? "; rayl2=1" : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
                     ? "; norm=fluence" : "",
-                storePhysics.ImportanceSampling ? "; imp=1" : "");
+                importance ? "; imp=1" : "");
             return result;
+        }
+
+        /// <summary>
+        /// Розыгрыш точки вылета, которым СЧИТАЕТСЯ кривая (`E29`, П43
+        /// 13.09.2026) — одно правило на путь кривой и на гвард пересчёта
+        /// `CorpusEffProbe` (`S37`: второй копии правила быть не должно).
+        /// Порядок, сверху вниз, берётся первое:
+        /// 1. <paramref name="explicitValue"/> задано (проба `--imp=0|1`) —
+        ///    оно, в обе стороны: «ВЫКЛ на поле» нужен абляции, «ВКЛ на сосуде»
+        ///    — замеру безвредности (П41 §3.5);
+        /// 2. сцена полевая (<see cref="GeometryScenes.IsField"/>) — ВКЛ:
+        ///    решение Amber 13.09.2026, дословно «ВКЛ автоматически для
+        ///    полевых сцен (Ground/Borehole)»;
+        /// 3. иначе — умолчание склада <see cref="ResponseMatrixOptions.ImportanceSampling"/>
+        ///    (ВЫКЛ, решение 10.09.2026): сосуды и точечные сцены — как прежде.
+        ///
+        /// ⛔ Путь МАТРИЦЫ (`ResponseMatrixBuilder.MakeSimulator`) этого правила
+        /// не читает и автоматики не получает — решение Amber покрывало кривую;
+        /// склад считается ключом и только им.
+        /// </summary>
+        public static bool ImportanceSamplingFor(GeometryModel geometry,
+                                                 ResponseMatrixOptions physics,
+                                                 bool? explicitValue)
+        {
+            if (explicitValue.HasValue)
+            {
+                return explicitValue.Value;
+            }
+
+            if (GeometryScenes.IsField(geometry))
+            {
+                return true;
+            }
+
+            return (physics ?? new ResponseMatrixOptions()).ImportanceSampling;
         }
 
         /// <summary>

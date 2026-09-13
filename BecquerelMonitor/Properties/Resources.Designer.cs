@@ -3891,6 +3891,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerImportanceAuto {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerImportanceAuto", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerPoints {
             get {
                 return ResourceManager.GetString("EfficiencyMakerPoints", resourceCulture);

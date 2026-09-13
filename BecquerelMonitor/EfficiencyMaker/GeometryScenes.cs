@@ -46,6 +46,23 @@ namespace BecquerelMonitor.EfficiencyMaker
     public static class GeometryScenes
     {
         /// <summary>
+        /// ПОЛЕВАЯ сцена — прибор на земле или в лунке (`E29`, решение Amber
+        /// 13.09.2026 «ВКЛ автоматически для полевых сцен (Ground/Borehole)»).
+        /// Это сцены, у которых проба — грунт в тысячи литров, и равномерный
+        /// розыгрыш точки вылета уходит в дальний грунт, который ничего не
+        /// даёт (П18 §3.3: 26…56 % разброса на узел при штатных 200 000
+        /// историй); путь кривой (<see cref="EfficiencyCalculation.Run"/>)
+        /// включает у них важностный розыгрыш сам. Изотропное поле
+        /// (<see cref="GeometrySceneKind.Iso"/>) сюда не входит нарочно: пробы
+        /// у него нет, и розыгрышу точки вылета там нечего двигать.
+        /// </summary>
+        public static bool IsField(GeometryModel g)
+        {
+            return g != null
+                   && (g.Scene == GeometrySceneKind.Ground || g.Scene == GeometrySceneKind.Borehole);
+        }
+
+        /// <summary>
         /// Разложить размеры сцены по её виду. Возвращает имя вещества, которое
         /// пришлось подставить пробе, или пустую строку; для обычных сцен не
         /// делает ничего.
