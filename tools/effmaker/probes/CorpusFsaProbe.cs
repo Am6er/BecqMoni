@@ -896,6 +896,17 @@ namespace CorpusFsaProbe
     /// ВСЕГО ряда, и впрыскивается тоже весь ряд в масштабе МДА/a члена (П30
     /// 12.09.2026, `S106`): снятый в одиночку член связка равновесия
     /// восстанавливала из дочерних, и `G1S16_Th228_P25` давал «ложных 100/100».
+    /// ⛔ Две причины нулевой оценки на уровне МДА названы П46 13.09.2026
+    /// (журнал `handover/handover-2026-09-13-p46-s106-mc-chain.md`): веса
+    /// решателя по данным (сдвиг −Σφ/μ ≈ число каналов образа, в отсчётах) и
+    /// привязка шкалы, которую копия без пиков теряет. Сводка печатает сдвиг
+    /// по каждому компоненту; поверку формулы гнать с `--no-anchor`.
+    /// `--mc-level=F` (П46 13.09.2026) — множитель уровня впрыска: 0 —
+    /// положительный контроль (пропусков обязано быть ~100/100), больше 1 —
+    /// развёртка уровня, на котором компонент находится.
+    /// `--mc-dump=K` (П46 13.09.2026) — печатать первые K розыгрышей каждой
+    /// серии: оценки членов семьи, подавленные образы, счётчики гейта и отсева,
+    /// состав копии, шкалу и χ²/ndf — инструмент, которым названа причина нулей.
     ///
     /// `--gamma-map=<каталог>` (`S43`, остаток ~~`S51`~~; П30 12.09.2026) — γ
     /// составного шума КАЖДОМУ спектру равным его же невязке ε
@@ -1460,6 +1471,16 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--mc-component=", StringComparison.Ordinal))
                 {
                     o.McComponent = a.Substring(15);
+                    continue;
+                }
+                if (a.StartsWith("--mc-dump=", StringComparison.Ordinal))
+                {
+                    o.McDump = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--mc-level=", StringComparison.Ordinal))
+                {
+                    o.McLevel = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
                     continue;
                 }
                 if (a.StartsWith("--near=", StringComparison.Ordinal))
@@ -3643,7 +3664,12 @@ namespace CorpusFsaProbe
                     continue;
                 }
 
-                double mdaAmplitude = c.DetectionLimitRate * liveTime;
+                double mdaAmplitude = c.DetectionLimitRate * liveTime * o.McLevel;
+                if (o.McLevel != 1.0)
+                {
+                    Console.WriteLine("  {0}: {1} — уровень впрыска {2:F3} × МДА (ключ --mc-level)",
+                                      key, c.Name, o.McLevel);
+                }
 
                 // (`S106`, полоса П30 12.09.2026) Нулевая гипотеза ЧЛЕНА РЯДА —
                 // ряд целиком. Снятый из модели один член связка равновесия
@@ -3699,6 +3725,92 @@ namespace CorpusFsaProbe
                     mu1[i] = mu0[i] + mdaAmplitude * (familyCurve / amplitude);
                 }
 
+                // (`S106`, П46 13.09.2026) ДВЕ ПРИЧИНЫ, по которым впрыск на
+                // уровне МДА даёт нулевую оценку, — обе названы дампом
+                // (`--mc-dump`) и обе печатаются здесь, чтобы читатель сводки
+                // видел их без дампа.
+                //
+                // 1. Веса решателя — по ДАННЫМ (1/max(y,1), FsaAnalyzer.Analyze):
+                //    E[(y−μ)/y] ≈ −1/μ, и градиент по колонке φ несёт сдвиг
+                //    −Σφ/μ, не зависящий от амплитуды. В отсчётах он равен
+                //    примерно числу каналов, по которым размазан образ: ряд
+                //    Th-228 на G1S16 — ~1000 отсчётов при впрыске 1127, Lu-176
+                //    на ASN16 — 426 при впрыске 308, Cs-137 — 51 при 935.
+                //    Формула пределов описывает несмещённый линейный оценщик и
+                //    этого сдвига не знает; NNLS обрезает смещённую оценку
+                //    нулём. Отсюда же «ложных 0/100» П28 и «σ0 розыгрыша в
+                //    2.4…7.4 раза меньше» — нулевая оценка сидит на −3σ.
+                // 2. Привязка шкалы ВКЛ: копия без пиков опор не находит, и
+                //    усиление/ноль/свет/нуль adc уходят к умолчаниям прибора —
+                //    образ копии стоит не там, где впрыск (у Th-228 на G1S16:
+                //    β 1 → 0, усиление 1.0082 → 1, нуль −0.93 → 0 кан). Для
+                //    поверки ФОРМУЛЫ обе стороны обязаны быть на одной шкале:
+                //    ключ `--no-anchor`.
+                double biasGradient = 0.0, biasGram = 0.0, familySum = 0.0;
+                for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                {
+                    double phi = 0.0;
+                    foreach (FsaComponentResult member in family)
+                    {
+                        phi += member.Curve[i];
+                    }
+
+                    phi /= amplitude;
+                    double v = Math.Max(1.0, mu0[i]);
+                    biasGradient += phi / v;
+                    biasGram += phi * phi / v;
+                    familySum += phi;
+                }
+
+                double biasAmplitude = biasGram > 0.0 ? biasGradient / biasGram : double.NaN;
+                Console.WriteLine("  {0}: {1} — сдвиг оценки от весов по данным (−Σφ/μ, П46): ≈ {2:F0} отсч. = {3:F2} × МДА = {4:F2} × a*{5}",
+                                  key, c.Name, biasAmplitude * familySum,
+                                  mdaAmplitude > 0.0 ? biasAmplitude / mdaAmplitude : double.NaN,
+                                  c.DecisionThresholdRate > 0.0 ? biasAmplitude / (c.DecisionThresholdRate * liveTime) : double.NaN,
+                                  analyzer.AnchorScale
+                                      ? "; ⚠ привязка ВКЛ: копия без пиков теряет опоры, образ копии не на шкале впрыска — поверять формулу с --no-anchor"
+                                      : "");
+
+                if (o.McDump > 0)
+                {
+                    double injected = 0.0, familyTotal = 0.0, modelTotal = 0.0;
+                    for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                    {
+                        injected += mu1[i] - mu0[i];
+                        modelTotal += Math.Max(0.0, result.Model[i]);
+                        foreach (FsaComponentResult member in family)
+                        {
+                            familyTotal += member.Curve[i];
+                        }
+                    }
+
+                    Console.WriteLine("  МК-дамп {0} {1}: живое {2:F1} с; окно фита {3}..{4}; модель в окне {5:E3} отсч.,"
+                                      + " семья {6:E3} отсч. ({7} комп.), амплитуда члена {8:E3} (= {9:E3} имп/с);"
+                                      + " впрыск Σ(mu1−mu0) = {10:E3} отсч. = {11:F3} × семья; МДА/a* = {12:F3};"
+                                      + " исходный: χ²/ndf {13:F3}, σ× {14:F3}, усил. {15:F4}, ноль {16:F2} кан., опор {17}",
+                                      key, c.Name, liveTime, result.FirstChannel, result.LastChannel,
+                                      modelTotal, familyTotal, family.Count, amplitude, c.CountRate,
+                                      injected, familyTotal > 0.0 ? injected / familyTotal : double.NaN,
+                                      c.DecisionThresholdRate > 0.0 ? c.DetectionLimitRate / c.DecisionThresholdRate : double.NaN,
+                                      result.Chi2Ndf, result.SigmaInflation, result.Gain, result.OffsetChannels,
+                                      result.ScaleAnchorsUsed);
+                    foreach (FsaComponentResult member in family)
+                    {
+                        double memberTotal = 0.0;
+                        for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                        {
+                            memberTotal += member.Curve[i];
+                        }
+
+                        Console.WriteLine("    семья: {0,-10} кол.{1,-8} имп/с {2:E3} z {3:F2} a* {4:E3} МДА {5:E3} лента {6:E3} отсч. ΔD {7:F1}",
+                                          member.Name, member.ChainRoot ?? "-", member.CountRate, member.Z,
+                                          member.DecisionThresholdRate, member.DetectionLimitRate,
+                                          memberTotal, member.ZoneDeltaD);
+                    }
+
+                    DumpReplay(result, analyzer, family, "исходный", -1, key);
+                }
+
                 int falsePositives = 0, detections = 0, failed = 0;
                 var nullEstimates = new List<double>();
                 var injectedEstimates = new List<double>();
@@ -3715,14 +3827,35 @@ namespace CorpusFsaProbe
                         {
                             falsePositives++;
                         }
+
+                        if (run < o.McDump)
+                        {
+                            DumpReplay(replay, analyzer, family, "нуль", run, key);
+                        }
                     }
                     else
                     {
                         failed++;
                     }
 
-                    replay = RunSynthetic(rd, background, library, analyzer, efficiency,
-                                          mu1, rng);
+                    int[] drawn;
+                    FsaAnalyzer.NnlsTrace lastTrace = null;
+                    int traceCalls = 0;
+                    if (run < o.McDump)
+                    {
+                        FsaAnalyzer.NnlsTraceSink = t => { lastTrace = t; traceCalls++; };
+                    }
+
+                    try
+                    {
+                        replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                              mu1, rng, out drawn);
+                    }
+                    finally
+                    {
+                        FsaAnalyzer.NnlsTraceSink = null;
+                    }
+
                     if (replay != null)
                     {
                         double estimate;
@@ -3732,6 +3865,13 @@ namespace CorpusFsaProbe
                         }
 
                         injectedEstimates.Add(estimate);
+                        if (run < o.McDump)
+                        {
+                            DumpReplay(replay, analyzer, family, "впрыск", run, key);
+                            DumpResidual(replay, drawn, mu0, mu1, rd, "впрыск", run, mdaAmplitude);
+                            DumpShape(replay, result, family, mu0, mu1, rd, run);
+                            DumpTrace(lastTrace, traceCalls, library, run);
+                        }
                     }
                     else
                     {
@@ -3791,6 +3931,168 @@ namespace CorpusFsaProbe
         }
 
         /// <summary>
+        /// (`S106`, П46 13.09.2026) Один розыгрыш МК-поверки словами: оценка
+        /// и порог каждого члена семьи по строкам пределов копии, подавленные
+        /// образы копии (кто был предъявлен и до отчёта не дожил, с z), счётчики
+        /// гейта по парциальной невязке и отсева по значимости у анализатора,
+        /// состав копии (имя = имп/с, z), шкала и χ²/ndf. Печатается для первых
+        /// `--mc-dump=K` розыгрышей каждой серии.
+        /// </summary>
+        static void DumpReplay(FsaResult replay, FsaAnalyzer analyzer, List<FsaComponentResult> family,
+                               string label, int run, string key)
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture, "    {0} #{1}:", label, run);
+            foreach (FsaComponentResult member in family)
+            {
+                FsaCharacteristicLimit found = null;
+                foreach (FsaCharacteristicLimit limit in replay.CharacteristicLimits)
+                {
+                    if (string.Equals(limit.Name, member.Name, StringComparison.Ordinal))
+                    {
+                        found = limit;
+                        break;
+                    }
+                }
+
+                if (found == null)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " {0}=НЕТ СТРОКИ;", member.Name);
+                    continue;
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}={1:E3} a*={2:E3}{3}{4};",
+                                member.Name, found.CountRate, found.DecisionThresholdRate,
+                                found.Detected ? " вошёл" : " НЕ вошёл",
+                                found.Degenerate ? " ВЫРОЖДЕН" : "");
+            }
+
+            sb.Append(" | подавлены:");
+            if (replay.SuppressedImages == null || replay.SuppressedImages.Count == 0)
+            {
+                sb.Append(" нет");
+            }
+            else
+            {
+                foreach (FsaSuppressedImage image in replay.SuppressedImages)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " {0}(z {1:F2})", image.Name, image.Z);
+                }
+            }
+
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            " | гейт: судил {0}, пощадил {1}, вернул {2}; отсев: {3}, судил {4}, оставил {5}",
+                            analyzer.GateNuclidesJudged, analyzer.GateNuclidesSpared, analyzer.GateNuclidesRescued,
+                            analyzer.RefitZState, analyzer.RefitZJudged, analyzer.RefitZKept);
+            sb.Append(" | состав:");
+            foreach (FsaComponentResult component in replay.Components)
+            {
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}={1:E2}(z {2:F1}{3})",
+                                component.Name, component.CountRate, component.Z,
+                                double.IsNaN(component.ZoneDeltaD) ? "" : string.Format(CultureInfo.InvariantCulture, ", ΔD {0:F1}", component.ZoneDeltaD));
+            }
+
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            " | χ²/ndf {0:F3}, σ× {1:F3}, усил. {2:F4}, ноль {3:F2} кан., опор {4}, окно {5}..{6}; свет: {7} β={8:F4} форма {9}; привязка: {10}",
+                            replay.Chi2Ndf, replay.SigmaInflation, replay.Gain, replay.OffsetChannels,
+                            replay.ScaleAnchorsUsed, replay.FirstChannel, replay.LastChannel,
+                            replay.AnchorLightCurve, replay.AnchorLightBeta, replay.AnchorLightForm,
+                            replay.AnchorNote ?? "-");
+            Console.WriteLine(sb.ToString());
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Форма образа компонента в КОПИИ против формы, которой
+        /// он впрыснут (лента исходного разбора): обе нормируются на единицу
+        /// амплитуды, печатается коэффициент корреляции по окну фита, а по трём
+        /// самым сильным пикам впрыска — положение вершины у обеих (канал) и
+        /// отношение высот. Печатается только когда компонент в копию вошёл
+        /// (иначе его ленты в результате нет).
+        /// </summary>
+        static void DumpShape(FsaResult replay, FsaResult original, List<FsaComponentResult> family,
+                              double[] mu0, double[] mu1, ResultData rd, int run)
+        {
+            int channels = replay.Model.Length;
+            double[] replayCurve = new double[channels];
+            double replayRate = 0.0;
+            foreach (FsaComponentResult member in family)
+            {
+                foreach (FsaComponentResult rc in replay.Components)
+                {
+                    if (string.Equals(rc.Name, member.Name, StringComparison.Ordinal) && rc.Curve != null)
+                    {
+                        replayRate = rc.CountRate;
+                        for (int i = 0; i < channels; i++)
+                        {
+                            replayCurve[i] += rc.Curve[i];
+                        }
+                    }
+                }
+            }
+
+            if (!(replayRate > 0.0))
+            {
+                Console.WriteLine("      форма #{0}: компонент в копию не вошёл — ленты нет, сравнивать нечего", run);
+                return;
+            }
+
+            int lo = Math.Max(0, replay.FirstChannel), hi = Math.Min(channels - 1, replay.LastChannel);
+            double sxy = 0.0, sxx = 0.0, syy = 0.0, sumA = 0.0, sumB = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double a = mu1[i] - mu0[i];
+                double b = replayCurve[i];
+                sxy += a * b; sxx += a * a; syy += b * b; sumA += a; sumB += b;
+            }
+
+            double corr = sxx > 0.0 && syy > 0.0 ? sxy / Math.Sqrt(sxx * syy) : double.NaN;
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      форма #{0}: корреляция впрыска с лентой копии {1:F4}; Σ впрыска {2:E3}, Σ ленты копии {3:E3} (имп/с копии {4:E3})",
+                            run, corr, sumA, sumB, replayRate);
+
+            var taken = new List<int>();
+            for (int pick = 0; pick < 3; pick++)
+            {
+                int best = -1;
+                for (int i = lo; i <= hi; i++)
+                {
+                    double d = mu1[i] - mu0[i];
+                    if (!(d > 0.0)) continue;
+                    bool near = false;
+                    foreach (int t in taken)
+                    {
+                        double f = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(t));
+                        if (Math.Abs(i - t) <= 2.0 * f) { near = true; break; }
+                    }
+
+                    if (near) continue;
+                    if (best < 0 || d > mu1[best] - mu0[best]) best = i;
+                }
+
+                if (best < 0) break;
+                taken.Add(best);
+                double fwhm = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(best));
+                int a0 = Math.Max(lo, (int)Math.Floor(best - 1.5 * fwhm)), b0 = Math.Min(hi, (int)Math.Ceiling(best + 1.5 * fwhm));
+                int bestReplay = a0;
+                double injWin = 0.0, repWin = 0.0;
+                for (int i = a0; i <= b0; i++)
+                {
+                    if (replayCurve[i] > replayCurve[bestReplay]) bestReplay = i;
+                    injWin += mu1[i] - mu0[i];
+                    repWin += replayCurve[i];
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                                "; пик {0:F0} кэВ: вершина впрыска кан. {1}, копии кан. {2} (Δ {3:+0;-0} кан., ПШПВ {4:F1}); площадь ±1.5 ПШПВ: впрыск {5:F0}, копия {6:F0} (доля от Σ: {7:F4} / {8:F4})",
+                                rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(best), best, bestReplay, bestReplay - best, fwhm,
+                                injWin, repWin, sumA > 0 ? injWin / sumA : double.NaN, sumB > 0 ? repWin / sumB : double.NaN);
+            }
+
+            Console.WriteLine(sb.ToString());
+        }
+
+        /// <summary>
         /// Один синтетический разбор: розыгрыш каналов пуассоном вокруг
         /// заданных средних, тот же анализатор, та же библиотека. null —
         /// разбор не удался.
@@ -3799,6 +4101,15 @@ namespace CorpusFsaProbe
                                       FsaAnalyzer analyzer, FsaEfficiency efficiency,
                                       double[] mean, Random rng)
         {
+            int[] drawn;
+            return RunSynthetic(rd, background, library, analyzer, efficiency, mean, rng, out drawn);
+        }
+
+        /// <summary>То же, но с разыгранными отсчётами наружу — для дампа невязки (`--mc-dump`).</summary>
+        static FsaResult RunSynthetic(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                      FsaAnalyzer analyzer, FsaEfficiency efficiency,
+                                      double[] mean, Random rng, out int[] drawn)
+        {
             EnergySpectrum synthetic = rd.EnergySpectrum.Clone();
             int[] counts = synthetic.Spectrum;
             for (int i = 0; i < counts.Length; i++)
@@ -3806,7 +4117,177 @@ namespace CorpusFsaProbe
                 counts[i] = SamplePoisson(rng, mean[i]);
             }
 
+            drawn = counts;
             return analyzer.Analyze(synthetic, background, rd.FwhmCalibration, library, efficiency);
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Последний вызов решателя копии (финальный фит): по
+        /// каждой колонке — решение x, активна / забанена, градиент
+        /// w = c − G·x при решении, диагональ Грама и правая часть. Первые
+        /// колонки идут в порядке библиотеки (после матричного образа — его
+        /// подпороговый хвост без компонента), дальше — шапки континуума и
+        /// прочие готовые колонки; имена печатаются по порядку библиотеки как
+        /// ПОДСКАЗКА, не как факт (колонки без образа пропущены решателем).
+        /// </summary>
+        static void DumpTrace(FsaAnalyzer.NnlsTrace t, int calls, List<FsaComponent> library, int run)
+        {
+            if (t == null)
+            {
+                Console.WriteLine("      трасса #{0}: решатель не звался", run);
+                return;
+            }
+
+            int m = t.X.Length;
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      трасса #{0}: вызовов решателя {1}; последний: колонок {2}, итераций {3}/{4}, сходов {5}, порог {6:E2}; библиотека:",
+                            run, calls, m, t.Iterations, t.Budget, t.Drops, t.Tol);
+            foreach (FsaComponent component in library)
+            {
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}[{1}{2}]", component.Name, component.Kind,
+                                component.Derived ? ",произв." : "");
+            }
+
+            Console.WriteLine(sb.ToString());
+            int active = 0, banned = 0;
+            for (int k = 0; k < m; k++)
+            {
+                if (t.Active[k]) active++;
+                if (t.Banned[k]) banned++;
+            }
+
+            Console.WriteLine("        активных {0}, забанено {1}; первые 12 колонок (индекс: x, состояние, w=c−Gx, G_kk, c_k):", active, banned);
+            for (int k = 0; k < Math.Min(12, m); k++)
+            {
+                double gx = 0.0;
+                for (int b = 0; b < m; b++)
+                {
+                    if (t.X[b] != 0.0)
+                    {
+                        gx += t.Gram[k, b] * t.X[b];
+                    }
+                }
+
+                Console.WriteLine("        {0,3}: x={1:E3} {2}{3} w={4:E3} G={5:E3} c={6:E3}",
+                                  k, t.X[k], t.Active[k] ? "АКТ" : "нет", t.Banned[k] ? " БАН" : "",
+                                  t.C[k] - gx, t.Gram[k, k], t.C[k]);
+            }
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Куда делся впрыск — по невязке копии. Печатает
+        /// согласованный отклик остатка на форму впрыска (1 — весь впрыск
+        /// остался в остатке, 0 — фит его целиком куда-то забрал) и по трём
+        /// самым сильным пикам формы впрыска (окно ±1 ПШПВ): впрыснуто отсчётов,
+        /// остаток фита, на сколько подложка копии поднялась над нулевой
+        /// моделью, на сколько поднялась вся модель копии.
+        /// </summary>
+        static void DumpResidual(FsaResult replay, int[] drawn, double[] mu0, double[] mu1,
+                                 ResultData rd, string label, int run, double injectedAmplitude)
+        {
+            int channels = replay.Model.Length;
+            int lo = Math.Max(0, replay.FirstChannel), hi = Math.Min(channels - 1, replay.LastChannel);
+            double[] r = new double[channels];
+            double num = 0.0, den = 0.0, injectedTotal = 0.0, w0 = 0.0, c0 = 0.0, g0 = 0.0;
+            double w0True = 0.0, g0True = 0.0, biasPred = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double bg = replay.Background != null ? replay.Background[i] : 0.0;
+                r[i] = drawn[i] - bg - replay.Model[i];
+                double d = mu1[i] - mu0[i];
+                double v = Math.Max(1.0, mu1[i]);
+                num += r[i] * d / v;
+                den += d * d / v;
+                injectedTotal += d;
+                // Те же величины в весах решателя (1/max(raw,1)) и в масштабе
+                // колонки φ = d / a_inj — чтобы сравнить с трассой решателя.
+                double wi = 1.0 / Math.Max(1.0, drawn[i]);
+                double phi = injectedAmplitude > 0.0 ? d / injectedAmplitude : 0.0;
+                w0 += wi * phi * r[i];
+                c0 += wi * phi * (drawn[i] - bg);
+                g0 += wi * phi * phi;
+                // Те же суммы с весами по ОЖИДАНИЮ (1/μ) и предсказанный сдвиг
+                // градиента от весов по данным: E[(y−μ)/y] ≈ −1/μ ⇒ −Σ φ/μ.
+                w0True += phi * r[i] / v;
+                g0True += phi * phi / v;
+                biasPred += phi / v;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      невязка {0} #{1}: впрыснуто {2:E3} отсч.; в остатке осталось {3:F3} впрыска (согласованный отклик); в весах решателя по форме впрыска: w0={4:E3} c0={5:E3} G00={6:E3} (w0/G00 = {7:E3} = {8:F3} впрыска); веса 1/μ: w0={9:E3} G00={10:E3} ({11:F3} впрыска); предсказанный сдвиг весов по данным −Σφ/μ = {12:E3} (измерено w0(1/y) − w0(1/μ) = {13:E3}), в отсчётах впрыска {14:F0}",
+                            label, run, injectedTotal, den > 0.0 ? num / den : double.NaN,
+                            w0, c0, g0, g0 > 0.0 ? w0 / g0 : double.NaN,
+                            g0 > 0.0 && injectedAmplitude > 0.0 ? w0 / g0 / injectedAmplitude : double.NaN,
+                            w0True, g0True, g0True > 0.0 && injectedAmplitude > 0.0 ? w0True / g0True / injectedAmplitude : double.NaN,
+                            -biasPred, w0 - w0True,
+                            g0True > 0.0 && injectedAmplitude > 0.0 ? biasPred / g0True / injectedAmplitude * injectedTotal : double.NaN);
+
+            // Три самых сильных пика формы впрыска: локальные максимумы d по окну ±1 ПШПВ.
+            double[] d2 = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                d2[i] = mu1[i] - mu0[i];
+            }
+
+            var taken = new List<int>();
+            for (int pick = 0; pick < 3; pick++)
+            {
+                int best = -1;
+                for (int i = lo; i <= hi; i++)
+                {
+                    if (!(d2[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    bool near = false;
+                    foreach (int t in taken)
+                    {
+                        double f = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(t));
+                        if (Math.Abs(i - t) <= 2.0 * f)
+                        {
+                            near = true;
+                            break;
+                        }
+                    }
+
+                    if (near)
+                    {
+                        continue;
+                    }
+
+                    if (best < 0 || d2[i] > d2[best])
+                    {
+                        best = i;
+                    }
+                }
+
+                if (best < 0)
+                {
+                    break;
+                }
+
+                taken.Add(best);
+                double fwhm = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(best));
+                int a = Math.Max(lo, (int)Math.Floor(best - fwhm)), b = Math.Min(hi, (int)Math.Ceiling(best + fwhm));
+                double inj = 0.0, res = 0.0, contRise = 0.0, modelRise = 0.0;
+                for (int i = a; i <= b; i++)
+                {
+                    double bg = replay.Background != null ? replay.Background[i] : 0.0;
+                    inj += d2[i];
+                    res += r[i];
+                    contRise += replay.Continuum[i] + bg - mu0[i];
+                    modelRise += replay.Model[i] + bg - mu0[i];
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                                "; пик {0:F0} кэВ (кан. {1}..{2}): впрыск {3:F0}, остаток {4:F0}, подложка +{5:F0}, модель +{6:F0}",
+                                rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(best), a, b, inj, res, contRise, modelRise);
+            }
+
+            Console.WriteLine(sb.ToString());
         }
 
         /// <summary>
@@ -5111,6 +5592,22 @@ namespace CorpusFsaProbe
 
             /// <summary>Поверять только этот компонент (`--limits-mc`); null — все.</summary>
             public string McComponent;
+
+            /// <summary>
+            /// (`S106`, П46 13.09.2026) Дамп первых K розыгрышей каждой серии
+            /// МК-поверки: оценка и порог каждого члена семьи, кто подавлен и
+            /// чем (гейт по парциальной невязке / отсев), состав копии, шкала,
+            /// χ²/ndf. 0 — не печатать.
+            /// </summary>
+            public int McDump;
+
+            /// <summary>
+            /// (`S106`, П46) Множитель уровня впрыска: 1 — на уровне МДА (штатно);
+            /// 0 — положительный контроль мерки (впрыска нет, пропусков обязано
+            /// быть ~100/100); больше 1 — развёртка «на каком уровне компонент
+            /// вообще находится».
+            /// </summary>
+            public double McLevel = 1.0;
 
             /// <summary>Окно энергий, про которое спрашивают отдельно (V4: ~460 кэВ).</summary>
             public double NearFrom, NearTo;
