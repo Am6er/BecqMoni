@@ -84,6 +84,62 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double[] Energy;      // МэВ
             public double[] Range;       // г/см²
             public double[] Yield;       // доля энергии в тормозное излучение
+
+            // ⚡ (`A43`, П45) Логарифмы трёх таблиц, посчитанные один раз.
+            // `LogLog` брал пять логарифмов на вызов, четыре из них — от чисел
+            // таблицы, которые не меняются; перенос электрона зовёт
+            // `EnergyOfRange` дважды на шаг. Памятка неизменяемая и
+            // публикуется одной ссылкой (объект общий на все потоки — вшитые
+            // вещества статические); помнит, от КАКИХ массивов посчитана, и
+            // пересчитывается, если поля переставили. Числа те же до бита: та
+            // же функция от того же аргумента (приём `T43`, `Element.LogEnergyKev`).
+            internal sealed class Logs
+            {
+                public readonly double[] SourceEnergy, SourceRange, SourceYield;
+                public readonly double[] Energy, Range, Yield;
+
+                public Logs(double[] energy, double[] range, double[] yield)
+                {
+                    this.SourceEnergy = energy;
+                    this.SourceRange = range;
+                    this.SourceYield = yield;
+                    this.Energy = Of(energy);
+                    this.Range = Of(range);
+                    this.Yield = Of(yield);
+                }
+
+                static double[] Of(double[] t)
+                {
+                    if (t == null)
+                    {
+                        return null;
+                    }
+
+                    double[] l = new double[t.Length];
+                    for (int i = 0; i < t.Length; i++)
+                    {
+                        l[i] = Math.Log(t[i]);
+                    }
+
+                    return l;
+                }
+            }
+
+            internal Logs logs;
+
+            internal Logs LogsNow()
+            {
+                Logs l = this.logs;
+                if (l == null || !ReferenceEquals(l.SourceEnergy, this.Energy)
+                    || !ReferenceEquals(l.SourceRange, this.Range)
+                    || !ReferenceEquals(l.SourceYield, this.Yield))
+                {
+                    l = new Logs(this.Energy, this.Range, this.Yield);
+                    this.logs = l;
+                }
+
+                return l;
+            }
         }
 
         // Сетка энергий у всех четырёх материалов одна и та же.
@@ -847,13 +903,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Пробег CSDA, г/см², по кинетической энергии в кэВ.</summary>
         public static double RangeOf(Material m, double energyKev)
         {
-            return LogLog(m.Energy, m.Range, energyKev * 1e-3);
+            Material.Logs l = m.LogsNow();
+            return LogLog(m.Energy, l.Energy, m.Range, l.Range, energyKev * 1e-3);
         }
 
         /// <summary>Доля энергии, уходящая в тормозное излучение.</summary>
         public static double YieldOf(Material m, double energyKev)
         {
-            return LogLog(m.Energy, m.Yield, energyKev * 1e-3);
+            Material.Logs l = m.LogsNow();
+            return LogLog(m.Energy, l.Energy, m.Yield, l.Yield, energyKev * 1e-3);
         }
 
         /// <summary>
@@ -873,13 +931,71 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0.0;
             }
 
-            return LogLog(m.Range, m.Energy, range) * 1e3;
+            Material.Logs l = m.LogsNow();
+            return LogLog(m.Range, l.Range, m.Energy, l.Energy, range) * 1e3;
         }
 
         /// <summary>
         /// Интерполяция по двойному логарифму с продолжением по крайнему
         /// наклону. Обе величины степенные по энергии, на логарифмах это почти
         /// прямая, ошибка внутри сетки — доли процента.
+        /// </summary>
+        /// <summary>
+        /// ⚡ (`A43`, П45) То же, что <see cref="LogLog(double[], double[], double)"/>,
+        /// но логарифмы узлов обеих таблиц взяты готовыми
+        /// (<see cref="Material.Logs"/>). Значение побитово то же: те же узлы,
+        /// та же формула.
+        /// </summary>
+        static double LogLog(double[] x, double[] logX, double[] y, double[] logY, double v)
+        {
+            if (logX == null || logY == null)
+            {
+                return LogLog(x, y, v);
+            }
+
+            int n = x.Length;
+            if (!(v > 0.0))
+            {
+                return y[0];
+            }
+
+            int i;
+            if (v <= x[0])
+            {
+                i = 0;
+            }
+            else if (v >= x[n - 1])
+            {
+                i = n - 2;
+            }
+            else
+            {
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) >> 1;
+                    if (x[mid] <= v)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                i = lo;
+            }
+
+            double lx0 = logX[i], lx1 = logX[i + 1];
+            double ly0 = logY[i], ly1 = logY[i + 1];
+            double t = (Math.Log(v) - lx0) / (lx1 - lx0);
+            return Math.Exp(ly0 + t * (ly1 - ly0));
+        }
+
+        /// <summary>
+        /// ⚠ ЭТАЛОН: горячий путь идёт через перегрузку с готовыми логарифмами
+        /// выше (`A43`, П45); правя одно, править и другое.
         /// </summary>
         static double LogLog(double[] x, double[] y, double v)
         {
