@@ -3879,6 +3879,18 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencyMakerNodeSpread {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpread", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNodeSpreadWarning {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpreadWarning", resourceCulture);
+            }
+        }
+
         public static string EfficiencyMakerPoints {
             get {
                 return ResourceManager.GetString("EfficiencyMakerPoints", resourceCulture);

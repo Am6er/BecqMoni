@@ -42541,6 +42541,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerSampleIsAir" xml:space="preserve">
     <value>WARNING: the sample material is still air ("{0}", {1:F6} g/cm3) while the sample is {2:F1} mm high - self-absorption is NOT accounted for, and the curve can be off by a factor</value>
   </data>
+  <data name="EfficiencyMakerNodeSpread" xml:space="preserve">
+    <value>spread per point: median {0:F2} %, worst {1:F2} % at {2:F1} keV (effective sample {3:F0} of {4:F0} histories)</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
+    <value>WARNING: the curve is NOISY - a typical point carries {0:F1} % spread against the {1:F0} % limit ({2:F0} histories promise about a percent; {3} of {4} points are above the limit). On a large sample (detector on the ground, in a borehole) the histories are spent on far soil that contributes nothing; raise the histories per point or narrow the sample</value>
+  </data>
   <data name="EfficiencyMakerPoints" xml:space="preserve">
     <value>Points:</value>
   </data>

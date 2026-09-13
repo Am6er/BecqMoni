@@ -1,0 +1,60 @@
+build start 2026-09-13 10:36:37
+app code=0 10:36:41
+probes code=0 10:37:47
+app exe sha256 081959f2408f274c8e0a7ff7fb07ee8e89b3c5798faf305043846f3ade7f7e6a
+probes exe sha256 081959f2408f274c8e0a7ff7fb07ee8e89b3c5798faf305043846f3ade7f7e6a
+build end 10:37:47
+ctrl_a start 2026-09-13 10:40:44
+ctrl_a sha256 store BEFORE cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_a matrix code=0 10:46:06
+ctrl_a diff code=0 10:46:07
+ctrl_a sha256 store AFTER  cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_a sha256 ctrl         41ff0f672713e96d5520504a0565b51bf64c48df4ef9869df135a66b46db3fd8
+probes rebuild start 10:46:29
+probes rebuild code=1 10:47:26
+probes rebuild start 10:47:46
+probes rebuild code=0 10:48:49
+ctrl_b start 2026-09-13 10:49:04
+ctrl_c start 2026-09-13 10:49:20
+ctrl_c ground OFF code=1 (ОБЯЗАН быть 1: шумная кривая) 10:49:27
+ctrl_c ground imp=1 code=0 (ОБЯЗАН быть 0) 10:49:34
+ctrl_c vessel OFF code=0 (ОБЯЗАН быть 0) 10:49:40
+ctrl_c end 10:49:40
+ctrl_b ab662 code=0 11:00:09
+ctrl_b ab100 code=1 11:13:10
+build_b start 2026-09-13 11:14:52
+app_b code=0 11:14:56
+probes_b code=0 11:16:05
+app_b exe sha256 a72ec821e96481cef466382e5f765d4c8dbc53b35ff63b25f73fec943e6f2c29
+probes_b exe sha256 a72ec821e96481cef466382e5f765d4c8dbc53b35ff63b25f73fec943e6f2c29
+build_b end 11:16:05
+ctrl_b borehole662 code=0 11:20:14
+ctrl_b imp1_662 code=0 11:21:10
+ctrl_b end 11:21:10
+final start 2026-09-13 11:23:48
+build start 2026-09-13 11:23:48
+app code=0 11:23:50
+probes code=0 11:25:08
+app exe sha256 0919aebb0225fd3dac905fad6ba30ddd9886066bf0459c34f8ca5f406f84ed2a
+probes exe sha256 0919aebb0225fd3dac905fad6ba30ddd9886066bf0459c34f8ca5f406f84ed2a
+build end 11:25:08
+final build code=0 11:25:08
+ctrl_a start 2026-09-13 11:25:08
+ctrl_a sha256 store BEFORE cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_a matrix code=0 11:30:34
+ctrl_a diff code=0 11:30:34
+ctrl_a sha256 store AFTER  cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_a sha256 ctrl         f2213ea9efccc40f825b90f23d5ae9436a059d5c47000045767a2da45c6b226f
+ctrl_b start 2026-09-13 11:30:34
+ctrl_b ab662 code=0 11:41:18
+ctrl_b ab100 code=0 11:54:09
+ctrl_b borehole662 code=0 12:00:10
+ctrl_b imp1_662 code=0 12:01:00
+ctrl_b vessel4m code=0 12:02:28
+ctrl_b end 12:02:28
+ctrl_c start 2026-09-13 12:02:28
+ctrl_c ground OFF code=1 (ОБЯЗАН быть 1: шумная кривая) 12:02:34
+ctrl_c ground imp=1 code=0 (ОБЯЗАН быть 0) 12:02:41
+ctrl_c vessel OFF code=0 (ОБЯЗАН быть 0) 12:02:47
+ctrl_c end 12:02:47
+final end 12:02:47
