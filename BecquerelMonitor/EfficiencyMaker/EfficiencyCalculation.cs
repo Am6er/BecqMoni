@@ -567,6 +567,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 PositronTransport = storePhysics.PositronTransport,
                 PositronOffset = storePhysics.PositronOffset,
                 RayleighToCrystal = storePhysics.RayleighToCrystal,
+                // (`N4`/`F11` (г) и `M3`, П44 13.09.2026) Электрон в
+                // произвольном веществе и тормозное вдоль пути — тем же
+                // путём: от умолчания настроек склада (оба ВЫКЛ до единого
+                // счёта физики 18), чтобы кривая и склад считали одну физику.
+                ElectronAnyMaterial = storePhysics.ElectronAnyMaterial,
+                BremAlongPath = storePhysics.BremAlongPath,
             };
 
             log(geometry.Describe());
@@ -707,6 +713,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         PositronOffset = simulator.PositronOffset,
                         RayleighToCrystal = simulator.RayleighToCrystal,
                         ImportanceSampling = simulator.ImportanceSampling,
+                        ElectronAnyMaterial = simulator.ElectronAnyMaterial,
+                        BremAlongPath = simulator.BremAlongPath,
                     };
                 },
                 (range, loop, worker) =>
@@ -846,8 +854,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // розыгрыше точки вылета — ДЕЙСТВУЮЩЕМ (`importance`), а не по
             // умолчанию склада: у полевой сцены его включает автоматика (П43),
             // и клеймо обязано это нести; у сосуда — клеймо посимвольно прежнее.
+            // `; ecomp=1` и `; bpath=N` (`N4`/`F11` (г), `M3`, П44 13.09.2026) —
+            // теми же именами, что у клейма матрицы, только включёнными.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -865,7 +875,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.RayleighToCrystal ? "; rayl2=1" : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
                     ? "; norm=fluence" : "",
-                importance ? "; imp=1" : "");
+                importance ? "; imp=1" : "",
+                storePhysics.ElectronAnyMaterial ? "; ecomp=1" : "",
+                storePhysics.BremAlongPath != 0
+                    ? "; bpath=" + storePhysics.BremAlongPath.ToString(CultureInfo.InvariantCulture)
+                    : "");
             return result;
         }
 

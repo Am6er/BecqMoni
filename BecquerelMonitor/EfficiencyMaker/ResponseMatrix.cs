@@ -990,6 +990,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     sb.Append("etr=1;");
                 }
+
+                // ⛔ (`N4`/`F11` (г) и `M3`, П44 13.09.2026) — тем же правилом
+                // `T42`: пишутся, ТОЛЬКО когда включены. Оба двигают отклик
+                // (тормозное обвязки — континуум сцен с пробой; тормозное
+                // вдоль пути — пик и континуум) и поток случайных чисел;
+                // выключенные — ни строки, клеймо склада сходится побайтно.
+                // Уровень `bpath` — числом: 1 и 2 дают разные матрицы.
+                if (options.ElectronAnyMaterial)
+                {
+                    sb.Append("ecomp=1;");
+                }
+
+                if (options.BremAlongPath != 0)
+                {
+                    sb.Append("bpath=")
+                      .Append(options.BremAlongPath.ToString(CultureInfo.InvariantCulture))
+                      .Append(';');
+                }
             }
 
             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
@@ -2026,6 +2044,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // сходится побайтно. Ни одна из 45 матриц склада не устарела.
                 writer.Write(Encoding.ASCII.GetBytes("IMPS"));
                 writer.Write(flags.ImportanceSampling);
+
+                // ⛔ ВОСЕМНАДЦАТЫЙ И ДЕВЯТНАДЦАТЫЙ ХВОСТЫ — `ECMP` и `BPTH`
+                // (`N4`/`F11` (г) и `M3`, П44 13.09.2026). Те же два довода:
+                // ключи входят в клеймо (`ecomp=1`, `bpath=N`), и без хвоста
+                // матрица не сходилась бы сама с собой. Формат НЕ поднят: у
+                // прежнего файла хвостов нет, поля остаются `false` и 0 —
+                // ровно тем, чем были при его счёте, — и клеймо сходится
+                // побайтно. Ни одна из 45 матриц склада не устарела.
+                writer.Write(Encoding.ASCII.GetBytes("ECMP"));
+                writer.Write(flags.ElectronAnyMaterial);
+                writer.Write(Encoding.ASCII.GetBytes("BPTH"));
+                writer.Write(flags.BremAlongPath);
             }
 
             if (File.Exists(path))
@@ -2368,6 +2398,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "IMPS")
                                                     {
                                                         matrix.Options.ImportanceSampling = reader.ReadBoolean();
+
+                                                        // ⛔ ХВОСТЫ `ECMP`, `BPTH` (П44
+                                                        // 13.09.2026): у файлов до
+                                                        // 13.09.2026 их нет — поля
+                                                        // остаются `false` и 0, чем и
+                                                        // были при их счёте.
+                                                        if (stream.Length - stream.Position >= 5
+                                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ECMP")
+                                                        {
+                                                            matrix.Options.ElectronAnyMaterial = reader.ReadBoolean();
+                                                            if (stream.Length - stream.Position >= 8
+                                                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "BPTH")
+                                                            {
+                                                                matrix.Options.BremAlongPath = reader.ReadInt32();
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -3385,6 +3431,53 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `SceneCostProbe --imp=1`.
         /// </summary>
         public bool ImportanceSampling = false;
+
+        /// <summary>
+        /// ✅ **ЭЛЕКТРОН В ПРОИЗВОЛЬНОМ ВЕЩЕСТВЕ (`N4`, `F11` (г)) — ключом
+        /// ВЫКЛ (П44, 13.09.2026), до единого счёта физики 18.**
+        ///
+        /// Что делает — у <see cref="EfficiencySimulator.ElectronAnyMaterial"/>:
+        /// (1) пробег CSDA заносимого электрона считается по СОСТАВУ слоя
+        /// (<see cref="ElectronData.ForComposition"/>, тот же ESTAR из
+        /// `matdb`), а не подставляется водой, когда состав не из тринадцати
+        /// вшитых; (2) электрон, рождённый ВНЕ кристалла (фото, комптон, пара в
+        /// пробе, оправе, стенке), излучает тормозное по сечениям Зельцера —
+        /// Бергера своего вещества (<see cref="ThickTargetBrem"/> на состав),
+        /// и кванты ведутся к кристаллу тем же обходом, что аннигиляционные —
+        /// до П44 тормозное вне кристалла не считалось вовсе; (3) кривая света
+        /// сцинтиллятора без таблицы NIST `estar_collision_stopping`
+        /// (LaBr₃:Ce, CeBr₃) считается из тормозной способности
+        /// <see cref="EstarCalculator.Stopping"/> — `F11` (г).
+        ///
+        /// ⛔ Ключ двигает континуум сцен с обвязкой и пробой (низ шкалы у
+        /// тяжёлых проб) и поток случайных чисел, поэтому входит в клеймо
+        /// (`ecomp=1`) и пишется хвостом `ECMP` — только включённым (`T42`);
+        /// ВЫКЛ умолчанием — склад физики 17 не тронут. Умолчание поля
+        /// симулятора берётся отсюда (правило I); путь КРИВОЙ — тоже отсюда,
+        /// как <see cref="ElectronTransport"/>. Рычаги — `CorpusMatrixProbe
+        /// --ecomp=1`, `G4RawProbe --ecomp=1`, `CorpusEffProbe --ecomp=1`,
+        /// `LightScaleProbe --ecomp=1`.
+        /// </summary>
+        public bool ElectronAnyMaterial = false;
+
+        /// <summary>
+        /// ✅ **ТОРМОЗНОЕ ВДОЛЬ ПУТИ ЭЛЕКТРОНА (остаток `M3`) — ключом ВЫКЛ
+        /// (П44, 13.09.2026), до единого счёта физики 18.** Уровни: 0 — квант
+        /// испускается в точке рождения электрона толстой мишенью (как было);
+        /// 1 — на шагах переноса (<see cref="ElectronTransport"/>) тонкой
+        /// мишенью при текущей энергии, направление изотропное; 2 — то же, и
+        /// направление кванта по электрону (модифицированный Цай, как у
+        /// Geant4 `G4SeltzerBergerModel`). Без переноса (`etr=0`) ключ
+        /// бездействует — пути нет.
+        ///
+        /// ⛔ Двигает пик (вылет тормозного у поверхности) и континуум всех
+        /// строк и поток случайных чисел, поэтому входит в клеймо (`bpath=N`)
+        /// и пишется хвостом `BPTH` — только включённым (`T42`). Умолчание
+        /// поля симулятора — отсюда (правило I); путь КРИВОЙ — тоже отсюда.
+        /// Рычаги — `CorpusMatrixProbe --bpath=N`, `G4RawProbe --bpath=N`,
+        /// `CorpusEffProbe --bpath=N`.
+        /// </summary>
+        public int BremAlongPath = 0;
 
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;

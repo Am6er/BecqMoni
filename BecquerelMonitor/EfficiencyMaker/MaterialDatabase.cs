@@ -1139,14 +1139,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// null — у материала нет строки параметров или тормозной (германий,
         /// CZT, LaBr3 — та же «шкала пропорциональна», что у таблицы).
+        ///
+        /// (`F11` (г), П44 13.09.2026) <paramref name="computedStopping"/> —
+        /// ключ <see cref="EfficiencySimulator.ElectronAnyMaterial"/>: у
+        /// сцинтиллятора БЕЗ таблицы NIST `estar_collision_stopping` (LaBr₃:Ce,
+        /// CeBr₃ — ESTAR их не знает) тормозная способность считается из
+        /// базы тем же алгоритмом ESTAR (<see cref="EstarCalculator.Stopping"/>
+        /// по составу <see cref="ElectronData.CompoundByName"/>, I по Брэггу),
+        /// J для Joy — Luo — то же I. У CsI и NaI таблица NIST есть, и ключ
+        /// их не трогает: кривые склада побитово прежние.
         /// </summary>
         public static LightYieldCurve LightYieldPayne(string material, double etaOverride,
-                                                      bool subKevExtension, double trackEndKev)
+                                                      bool subKevExtension, double trackEndKev,
+                                                      bool computedStopping = false)
         {
             string key = material + "|payne|"
                 + etaOverride.ToString("R", CultureInfo.InvariantCulture) + "|"
                 + (subKevExtension ? "1" : "0") + "|"
-                + trackEndKev.ToString("R", CultureInfo.InvariantCulture);
+                + trackEndKev.ToString("R", CultureInfo.InvariantCulture)
+                + (computedStopping ? "|ecomp" : "");
             lock (Gate)
             {
                 LightYieldCurve cached;
@@ -1158,7 +1169,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 LightYieldCurve curve;
                 try
                 {
-                    curve = LoadLightYieldPayne(material, etaOverride, subKevExtension, trackEndKev);
+                    curve = LoadLightYieldPayne(material, etaOverride, subKevExtension, trackEndKev,
+                                                computedStopping);
                 }
                 catch (FileNotFoundException)
                 {
@@ -1183,7 +1195,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         static LightYieldCurve LoadLightYieldPayne(string material, double etaOverride,
-                                                   bool subKevExtension, double trackEndKev)
+                                                   bool subKevExtension, double trackEndKev,
+                                                   bool computedStopping)
         {
             string path = DatabasePath();
             if (!File.Exists(path))
@@ -1193,9 +1206,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             string starName = StarNameOf(material);
+            // (`F11` (г), П44) Соединение без таблицы NIST: тормозная из базы
+            // по составу — только под ключом; без него, как было, null.
+            EstarCalculator.Compound computed = null;
             if (starName == null)
             {
-                return null;
+                if (!computedStopping)
+                {
+                    return null;
+                }
+
+                int colon = material.IndexOf(':');
+                computed = ElectronData.CompoundByName(colon > 0 ? material.Substring(0, colon) : material);
+                if (computed == null)
+                {
+                    return null;
+                }
             }
 
             double eta = 0.0, ons = 0.0, trap = 0.0, birks = 0.0;
@@ -1232,41 +1258,60 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 int starId = -1;
-                using (SqliteCommand command = connection.CreateCommand())
+                if (computed == null)
                 {
-                    command.CommandText =
-                        "select id, density_g_cm3, potential_ev from star_materials where name = $n";
-                    command.Parameters.AddWithValue("$n", starName);
-                    using (SqliteDataReader reader = command.ExecuteReader())
+                    using (SqliteCommand command = connection.CreateCommand())
                     {
-                        if (reader.Read())
+                        command.CommandText =
+                            "select id, density_g_cm3, potential_ev from star_materials where name = $n";
+                        command.Parameters.AddWithValue("$n", starName);
+                        using (SqliteDataReader reader = command.ExecuteReader())
                         {
-                            starId = reader.GetInt32(0);
-                            density = reader.GetDouble(1);
-                            potentialEv = reader.GetDouble(2);
+                            if (reader.Read())
+                            {
+                                starId = reader.GetInt32(0);
+                                density = reader.GetDouble(1);
+                                potentialEv = reader.GetDouble(2);
+                            }
+                        }
+                    }
+
+                    if (starId < 0)
+                    {
+                        return null;
+                    }
+
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select energy_mev, collision_mev_cm2_g from estar_collision_stopping" +
+                            " where material_star_id = " + starId.ToString(CultureInfo.InvariantCulture) +
+                            " order by energy_mev";
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                estarKev.Add(reader.GetDouble(0) * 1000.0);
+                                estarCm.Add(reader.GetDouble(1) * density);
+                            }
                         }
                     }
                 }
+            }
 
-                if (starId < 0)
+            if (computed != null)
+            {
+                // (`F11` (г), П44) Тормозная способность соединения — счётом
+                // ESTAR из базы на его собственной сетке (113 точек от 1 кэВ),
+                // плотность — та, с которой считается пробег того же вещества.
+                double[] energyMev, collision, radiative;
+                EstarCalculator.Stopping(computed, out energyMev, out collision, out radiative,
+                                         out potentialEv);
+                density = computed.DensityGCm3;
+                for (int i = 0; i < energyMev.Length; i++)
                 {
-                    return null;
-                }
-
-                using (SqliteCommand command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "select energy_mev, collision_mev_cm2_g from estar_collision_stopping" +
-                        " where material_star_id = " + starId.ToString(CultureInfo.InvariantCulture) +
-                        " order by energy_mev";
-                    using (SqliteDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            estarKev.Add(reader.GetDouble(0) * 1000.0);
-                            estarCm.Add(reader.GetDouble(1) * density);
-                        }
-                    }
+                    estarKev.Add(energyMev[i] * 1000.0);
+                    estarCm.Add(collision[i] * density);
                 }
             }
 
@@ -1356,6 +1401,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             string variant = "Payne η=" + eta.ToString("0.####", CultureInfo.InvariantCulture)
                 + (etaOverride > 0.0 ? " (ключ)" : " (база)")
+                + (computed != null
+                    ? ", тормозная ESTAR по составу (ecomp), I=" + potentialEv.ToString("0.#", CultureInfo.InvariantCulture) + " эВ"
+                    : "")
                 + (subKevExtension ? ", ниже 1 кэВ Joy-Luo от 0.01" : "")
                 + (trackEndKev > 0.0
                     ? ", обрыв E_q=" + trackEndKev.ToString("0.###", CultureInfo.InvariantCulture) + " кэВ"

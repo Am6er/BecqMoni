@@ -64,6 +64,17 @@ namespace BecquerelMonitor.EfficiencyMaker
     ///
     /// ⛔ Список веществ от этого НЕ расширился и расшириться здесь не должен:
     /// произвольный состав — это `N4`.
+    ///
+    /// ✅ `N4` (П44, 13.09.2026): ПРОИЗВОЛЬНЫЙ СОСТАВ считается тем же
+    /// <see cref="EstarCalculator"/> по вызову <see cref="ForComposition"/> —
+    /// под ключом <see cref="EfficiencySimulator.ElectronAnyMaterial"/>
+    /// (клеймо `ecomp=1`, ВЫКЛ до единого счёта физики 18). Список
+    /// <see cref="Compositions"/> при этом по-прежнему закрыт: тринадцать
+    /// вшитых опознаются <see cref="Match"/> первыми (их плотности —
+    /// калиброванные, а не из геометрии), а всё, что `Match` не узнал —
+    /// оправа, стенка, проба, отражатель — считается по своим Z, массовым
+    /// долям и плотности из геометрии и кэшируется по составу. Без ключа
+    /// потребители по-прежнему подставляют воду.
     /// </summary>
     public static class ElectronData
     {
@@ -734,6 +745,103 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Ключ СОСТАВА вещества геометрии: Z и массовые доли, отсортированные
+        /// по Z, плюс плотность. Один текст на два кэша — таблиц пробега
+        /// (<see cref="ForComposition"/>) и спектров тормозного
+        /// (<see cref="ThickTargetBrem.For"/>): по имени кэшировать нельзя —
+        /// имена веществ в библиотеке повторяются при разном составе.
+        /// </summary>
+        public static string CompositionKey(GeometryMaterial material)
+        {
+            var key = new System.Text.StringBuilder();
+            key.Append("rho=").Append(material.Density.ToString(
+                "R", System.Globalization.CultureInfo.InvariantCulture));
+            List<int> ordered = new List<int>(material.Fractions.Keys);
+            ordered.Sort();
+            foreach (int z in ordered)
+            {
+                key.Append('|').Append(z.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                   .Append(':')
+                   .Append(material.Fractions[z].ToString(
+                       "R", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            return key.ToString();
+        }
+
+        static readonly Dictionary<string, Material> byComposition =
+            new Dictionary<string, Material>();
+
+        /// <summary>
+        /// (`N4`, П44) Пробег CSDA и выход тормозного ДЛЯ ПРОИЗВОЛЬНОГО
+        /// СОСТАВА — тем же <see cref="EstarCalculator"/>, что и тринадцать
+        /// вшитых, по Z, массовым долям и плотности вещества геометрии.
+        /// Массовые доли переводятся в числа атомов формулы (wᵢ/Aᵢ — ESTAR
+        /// принимает любую нормировку), I — табличное из `star_materials`,
+        /// если состав совпал с готовым веществом, иначе по Брэггу; всё, как у
+        /// <see cref="Compositions"/>. Таблица считается один раз на состав и
+        /// кэшируется процессом: счёт одного состава — десятки миллисекунд, а
+        /// <see cref="RangeOf"/> зовётся на каждую историю.
+        ///
+        /// null — состава нет (пустое вещество) или элемент вне таблиц базы.
+        /// Имя таблицы — <see cref="CompositionKey"/>: оно же входит в ключ
+        /// кэша спектров тормозного.
+        /// </summary>
+        public static Material ForComposition(GeometryMaterial material)
+        {
+            if (material == null || material.Fractions.Count == 0 || !(material.Density > 0.0))
+            {
+                return null;
+            }
+
+            string key = CompositionKey(material);
+            lock (Gate)
+            {
+                Material found;
+                if (byComposition.TryGetValue(key, out found))
+                {
+                    return found;
+                }
+
+                List<int> zs = new List<int>();
+                List<double> atoms = new List<double>();
+                Dictionary<int, double> mass = MaterialDatabase.AtomicMass;
+                foreach (KeyValuePair<int, double> pair in material.Fractions)
+                {
+                    double a;
+                    if (pair.Value > 0.0 && mass.TryGetValue(pair.Key, out a) && a > 0.0)
+                    {
+                        zs.Add(pair.Key);
+                        atoms.Add(pair.Value / a);
+                    }
+                }
+
+                Material built = null;
+                if (zs.Count > 0)
+                {
+                    EstarCalculator.Compound compound = new EstarCalculator.Compound
+                    {
+                        Name = key,
+                        Z = zs.ToArray(),
+                        Atoms = atoms.ToArray(),
+                        DensityGCm3 = material.Density,
+                    };
+                    EstarCalculator.Result result = EstarCalculator.Compute(compound, Grid);
+                    built = new Material
+                    {
+                        Name = key,
+                        Energy = Grid,
+                        Range = result.RangeGCm2,
+                        Yield = result.Yield,
+                    };
+                }
+
+                byComposition[key] = built;
+                return built;
+            }
         }
 
         /// <summary>Пробег CSDA, г/см², по кинетической энергии в кэВ.</summary>

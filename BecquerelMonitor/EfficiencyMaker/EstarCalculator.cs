@@ -32,6 +32,13 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// только на тринадцати вшитых (<see cref="ElectronData"/>). Пустить сюда
     /// произвольную оправу, стенку и пробу — это `N4`, физика, и она обесценит
     /// все посчитанные матрицы отклика. Здесь такого хода нет намеренно.
+    ///
+    /// ✅ `N4` (П44, 13.09.2026): ход появился — <see cref="ElectronData.ForComposition"/>
+    /// зовёт <see cref="Compute"/> на любом веществе геометрии, а
+    /// <see cref="Stopping"/> даёт тормозную способность соединениям, которых
+    /// нет в `estar_collision_stopping` (кривая света LaBr₃:Ce / CeBr₃, `F11` (г)).
+    /// Оба хода — под ключом <see cref="EfficiencySimulator.ElectronAnyMaterial"/>,
+    /// ВЫКЛ до единого счёта физики 18; склад матриц ключом не тронут.
     /// </summary>
     public static class EstarCalculator
     {
