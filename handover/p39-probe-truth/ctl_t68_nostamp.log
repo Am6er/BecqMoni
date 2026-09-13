@@ -1,5 +1,0 @@
-гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p39\config\NuclideDefinition.xml
-⛔ ОТКАЗ (T68): нет .appwd.json в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p39\
-   Каталог не собран mk_appwd.ps1 либо его сборка не прошла самопроверку —
-   чем и из чего он собран, проверить нечем. Прогон отменён, в --out= ни файла.
-

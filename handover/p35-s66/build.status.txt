@@ -1,3 +1,0 @@
-22:49:57 restore  exit=0 (3 s)
-22:50:06 msbuild  exit=0 (9 s)
-22:52:16 probes   exit=0 (130 s)

@@ -1,7 +1,0 @@
-off RC103_bare_gap5 code=1 t=23.8s 21:44:55
-on RC103_bare_gap5 code=1 t=28.1s 21:45:24
-off ASN16_point0 code=0 t=34s 21:45:58
-on ASN16_point0 code=0 t=34.4s 21:46:32
-off AS80_point0 code=0 t=36.4s 21:47:08
-on AS80_point0 code=1 t=36.6s 21:47:45
-done 21:47:45

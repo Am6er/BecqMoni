@@ -102,6 +102,11 @@ def selftest():
 
 
 def main():
+    # Консоль здесь cp1251: заголовок строки с «⛔» ронял печать UnicodeEncodeError
+    # ДО записи (13.09.2026, перенос 97 строк) — отказ безопасный, но без причины.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     apply_it = "--apply" in sys.argv[1:]
     if "--selftest" in sys.argv[1:]:
         selftest()

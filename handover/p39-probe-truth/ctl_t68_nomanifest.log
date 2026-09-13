@@ -1,4 +1,0 @@
-гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p39\config\NuclideDefinition.xml
-⛔ ОТКАЗ (T68): в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p39\.appwd.json нет манифеста files_sha — отметка старше 13.09.2026
-   (mk_appwd.ps1 до T68 (2) манифеста не писал). Пересоберите оснастку: mk_appwd.ps1 -Wd <оснастка>.
-
