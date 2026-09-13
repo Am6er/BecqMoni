@@ -1,5 +1,0 @@
-run lin_skip exit=0 (43 s), ключи: --anchor-light=0 --anchor-skip=121.782,80.998,244.697,344.279,583.187,860.557
-оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p21b
-ОСНАСТКА СВЕЖАЯ: 442 файлов сошлись
-known            84       84        84      455.5       2.78        0        0        0
-unknown          39        0         0       80.6      26.11       36        0        0

@@ -1,9 +1,0 @@
-g4 RC103_bare_gap5_661.657 code=0 20:49:33
-g4 OBS_bare_gap5_661.657 code=0 20:50:16
-g4 RC103_bare_gap5_59.541 code=0 20:51:25
-g4 OBS_bare_gap5_59.541 code=0 20:52:20
-g4 AS80_bare_gap5_59.541 code=0 20:53:05
-g4 RC103_bare_gap5_2614.511 code=0 20:55:27
-g4 OBS_bare_gap5_2614.511 code=0 20:57:57
-g4 AS80_bare_gap5_2614.511 code=0 20:58:40
-done g4 20:58:40

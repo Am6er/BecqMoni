@@ -1,6 +1,0 @@
-run line exit=0 (63 s), ключи: --dump-curves=C:\Users\moroz\p21b_out\line_dump --anchor-light=line
-оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p21b
-ОСНАСТКА СВЕЖАЯ: 442 файлов сошлись
-known            84       84        84      437.6       2.66        0        0        0
-unknown          39        0         0       80.6      26.11       36        0        0
-дампов: 87

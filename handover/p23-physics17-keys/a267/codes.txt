@@ -1,5 +1,0 @@
-AS80_point0 off code=0
-AS80_point0 binof code=0
-ASN16_lu_side off code=0
-ASN16_lu_side binof code=0
-done 19:10:58

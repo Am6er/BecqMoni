@@ -1,1 +1,0 @@
-BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_f72c\config\BecquerelMonitor.xml

@@ -1,9 +1,0 @@
-ctrl0 AS80_point0 code=0
-store_p1 AS80_point0 code=0
-store_nodes AS80_point0 code=0
-peakw_nodes AS80_point0 code=0
-ctrl0 ASN16_lu_side code=0
-store_p1 ASN16_lu_side code=0
-store_nodes ASN16_lu_side code=0
-peakw_nodes ASN16_lu_side code=0
-done 18:13:54

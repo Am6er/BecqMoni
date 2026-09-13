@@ -1,5 +1,0 @@
-﻿spectrum,det,part,component,kind,detected,decay_s,dt_decay_s,mda_decay_s,degenerate,collinearity,mda_peak_counts,total_yield_pct
-AS80_Th232Medal,AS80x80,known,Th-232,chain,1,8.5806E+002,3.5155E+000,7.0551E+000,0,0.8384,103111.8,237.9770
-AS80_Th232WT20,AS80x80,unknown,Th-232,chain,1,8.4022E+002,5.6942E+000,1.1415E+001,0,0.5745,146990.6,237.9770
-AS80_Cs137_0cm,AS80x80,known,Cs-137,single,1,5.2419E+003,2.9801E+000,5.9908E+000,0,0.5145,3761.6,93.0229
-AS80_Lu176,AS80x80,known,Lu-176,single,1,8.5320E+002,2.1477E+000,4.3100E+000,0,0.3327,2870.0,242.7079
