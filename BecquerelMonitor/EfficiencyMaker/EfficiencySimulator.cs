@@ -1177,6 +1177,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double[] Fraction;
             public MaterialDatabase.Fluorescence[] Data;
             public MaterialDatabase.PhotoShellModel[] Shells;
+
+            // ⚡ (`A43`, П45) Буфер весов розыгрыша элемента — один на
+            // вещество вместо `new double[]` на каждое фотопоглощение.
+            // Таблица живёт в кэше ЭКЗЕМПЛЯРА симулятора (один поток), и
+            // `SampleFluorescence` не входит в себя повторно.
+            public double[] Weight;
         }
 
         readonly Dictionary<GeometryMaterial, Fluorescers> fluorescers =
@@ -1191,6 +1197,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             public int[] Z;
             public double[] MassFraction;
             public ScatteringData.Atom[] Atom;
+
+            // ⚡ (`A43`, П45) Вклады элементов в канал на ПОСЛЕДНЕЙ энергии —
+            // по памятке на канал (некогерентный, когерентный). `PickAtom`
+            // считал каждый вклад ДВАЖДЫ за вызов (сумма, потом бег по
+            // ней), а на первичной энергии узла зовётся на каждое рассеяние
+            // с тем же ответом. Таблица живёт в кэше экземпляра (один поток).
+            // Числа те же до бита: те же произведения, та же сумма в том же
+            // порядке; бег по памятке складывает ровно те же слагаемые.
+            // (Поля вложенного типа, не настройки симулятора; `internal`, чтобы
+            // сторож `check_matrix_keys.py` не принял их за настроечные.)
+            internal double[] ProductIncoherent, ProductCoherent;
+            internal double EnergyIncoherent = -1.0, EnergyCoherent = -1.0;
+            internal double TotalIncoherent, TotalCoherent;
         }
 
         public EfficiencySimulator(GeometryModel model)
@@ -1457,6 +1476,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Fraction = fractions.ToArray(),
                 Data = data.ToArray(),
                 Shells = shells.ToArray(),
+                Weight = new double[zs.Count],
             };
         }
 
@@ -1514,6 +1534,248 @@ namespace BecquerelMonitor.EfficiencyMaker
             double muTotal, muNoCoherent, muIncoherent, muCoherent, muPair;
             bool hasTotal, hasNoCoherent, hasIncoherent, hasCoherent, hasPair;
 
+            // --- ⚡ (`A43`, П45) СНИМОК СОСТАВА И ПАРА УЗЛОВ НА ЭНЕРГИЮ ---
+            //
+            // Четыре величины выше считались КАЖДАЯ своим проходом по словарю
+            // состава: на каждый элемент — поиск в словаре поставки, двоичный
+            // поиск по сетке и логарифм энергии, и так до четырёх раз на одну
+            // энергию. У рассеявшегося кванта энергия своя на каждом шаге, и
+            // кэш значений выше ему не помогает; на узле 2614 кэВ диска это
+            // 30 % счёта (профиль 13.09.2026: `Region.Mu` 15 %,
+            // `LinearChannel` 12 %, `Bracket` 11 %).
+            //
+            // Здесь состав снят один раз массивами В ТОМ ЖЕ ПОРЯДКЕ, что
+            // перечисляет словарь (порядок слагаемых — часть числа), а пара
+            // узлов и логарифм энергии считаются один раз на энергию и служат
+            // всем четырём каналам. Слагаемые и порядок сложения те же, что у
+            // <see cref="GeometryMaterial.LinearAttenuation"/> и соседей, — те
+            // остаются эталоном для остальных вызывающих; правя одно, править
+            // и другое.
+            MaterialDatabase.Element[] elements;    // null — элемента нет в поставке
+            int[] elementZ;
+            double[] fractions;
+            int[] bracketLo, bracketHi;             // lo < 0 — пары нет (нет элемента/сетки)
+            double density;
+            double logEnergy;
+            bool snapshot, bracketed;
+
+            void Snapshot()
+            {
+                if (this.snapshot)
+                {
+                    return;
+                }
+
+                GeometryMaterial m = this.Material;
+                int n = m.Fractions.Count;
+                MaterialDatabase.Element[] els = new MaterialDatabase.Element[n];
+                int[] zs = new int[n];
+                double[] fr = new double[n];
+                int i = 0;
+                foreach (KeyValuePair<int, double> pair in m.Fractions)
+                {
+                    zs[i] = pair.Key;
+                    fr[i] = pair.Value;
+                    MaterialDatabase.Element element;
+                    els[i] = MaterialDatabase.TryGet(pair.Key, out element) ? element : null;
+                    i++;
+                }
+
+                this.elements = els;
+                this.elementZ = zs;
+                this.fractions = fr;
+                this.bracketLo = new int[n];
+                this.bracketHi = new int[n];
+                this.density = m.Density;
+                this.snapshot = true;
+            }
+
+            void EnsureBracket(double energyKev)
+            {
+                if (this.bracketed)
+                {
+                    return;
+                }
+
+                this.Snapshot();
+                this.logEnergy = Math.Log(energyKev);
+                MaterialDatabase.Element[] els = this.elements;
+                for (int i = 0; i < els.Length; i++)
+                {
+                    int lo = -1, hi = -1;
+                    if (els[i] == null || !MaterialDatabase.Bracket(els[i].EnergyKev, energyKev, out lo, out hi))
+                    {
+                        lo = -1;
+                    }
+
+                    this.bracketLo[i] = lo;
+                    this.bracketHi[i] = hi;
+                }
+
+                this.bracketed = true;
+            }
+
+            /// <summary>= <see cref="GeometryMaterial.LinearAttenuation"/>, теми же слагаемыми.</summary>
+            double Total(double energyKev)
+            {
+                if (!(energyKev > 0.0))
+                {
+                    return 0.0;
+                }
+
+                this.EnsureBracket(energyKev);
+                double mass = 0.0;
+                for (int i = 0; i < this.elements.Length; i++)
+                {
+                    double value = 0.0;
+                    int lo = this.bracketLo[i];
+                    if (lo >= 0)
+                    {
+                        MaterialDatabase.Element element = this.elements[i];
+                        value = MaterialDatabase.Interpolate(
+                            element.EnergyKev, element.LogEnergyKev,
+                            element.Total, element.LogTotal, lo, this.bracketHi[i],
+                            energyKev, this.logEnergy);
+                    }
+
+                    mass += this.fractions[i] * value;
+                }
+
+                return mass * this.density;
+            }
+
+            /// <summary>= <see cref="GeometryMaterial.LinearAttenuationWithoutCoherent"/>, теми же слагаемыми.</summary>
+            double NoCoherent(double energyKev)
+            {
+                if (!(energyKev > 0.0))
+                {
+                    return 0.0;
+                }
+
+                this.EnsureBracket(energyKev);
+                double mass = 0.0;
+                for (int i = 0; i < this.elements.Length; i++)
+                {
+                    double value = 0.0;
+                    int lo = this.bracketLo[i];
+                    if (lo >= 0)
+                    {
+                        MaterialDatabase.Element element = this.elements[i];
+                        int hi = this.bracketHi[i];
+                        value = MaterialDatabase.Interpolate(
+                            element.EnergyKev, element.LogEnergyKev,
+                            element.Total, element.LogTotal, lo, hi, energyKev, this.logEnergy);
+                        value -= PartialCrossSections.MassCrossSection(
+                            element, lo, hi, energyKev, this.logEnergy, PhotonProcess.Coherent);
+                    }
+
+                    mass += this.fractions[i] * Math.Max(0.0, value);
+                }
+
+                return mass * this.density;
+            }
+
+            /// <summary>= `GeometryMaterial.LinearChannel` (некогерентное, когерентное, пары без порога).</summary>
+            double Channel(double energyKev, PhotonProcess process)
+            {
+                if (!(energyKev > 0.0))
+                {
+                    return 0.0;
+                }
+
+                this.EnsureBracket(energyKev);
+                double mass = 0.0;
+                for (int i = 0; i < this.elements.Length; i++)
+                {
+                    int lo = this.bracketLo[i];
+                    if (lo >= 0)
+                    {
+                        mass += this.fractions[i] * PartialCrossSections.MassCrossSection(
+                            this.elements[i], lo, this.bracketHi[i], energyKev, this.logEnergy, process);
+                    }
+                }
+
+                return mass * this.density;
+            }
+
+            /// <summary>
+            /// ⚡ (`A43`, П45) Подготовить пару узлов и логарифм для энергии
+            /// <paramref name="energyKev"/> — тем, кто считает сечения по
+            /// элементам сам (`SampleFluorescence`, `CrystalChannels`): у них
+            /// та же энергия и то же вещество, что у ослабления на этом шаге,
+            /// и та же пара узлов. Возвращает число элементов снимка.
+            /// </summary>
+            public int PrepareElements(double energyKev)
+            {
+                this.Retune(energyKev);
+                if (!(energyKev > 0.0))
+                {
+                    this.Snapshot();
+                    return -1;              // сечений нет: как у `MassCrossSection` при E ≤ 0
+                }
+
+                this.EnsureBracket(energyKev);
+                return this.elements.Length;
+            }
+
+            /// <summary>Z элемента снимка (порядок — порядок словаря состава).</summary>
+            public int ElementZ(int i)
+            {
+                return this.elementZ[i];
+            }
+
+            /// <summary>Есть ли элемент в поставке (= `MaterialDatabase.TryGet`).</summary>
+            public bool ElementKnown(int i)
+            {
+                return this.elements[i] != null;
+            }
+
+            public double ElementFraction(int i)
+            {
+                return this.fractions[i];
+            }
+
+            /// <summary>
+            /// = <see cref="PartialCrossSections.MassCrossSection(int, double, PhotonProcess)"/>
+            /// для элемента <paramref name="i"/> снимка на подготовленной энергии:
+            /// нет элемента или пары узлов — ноль, как там.
+            /// </summary>
+            public double ElementCrossSection(int i, double energyKev, PhotonProcess process, bool thresholdPair)
+            {
+                int lo = this.bracketLo[i];
+                if (lo < 0)
+                {
+                    return 0.0;
+                }
+
+                return PartialCrossSections.MassCrossSection(
+                    this.elements[i], lo, this.bracketHi[i], energyKev, this.logEnergy, process, thresholdPair);
+            }
+
+            /// <summary>= <see cref="GeometryMaterial.LinearPair"/> с пороговой интерполяцией (`S121`).</summary>
+            double PairThreshold(double energyKev)
+            {
+                if (!(energyKev > 0.0))
+                {
+                    return 0.0;
+                }
+
+                this.EnsureBracket(energyKev);
+                double mass = 0.0;
+                for (int i = 0; i < this.elements.Length; i++)
+                {
+                    int lo = this.bracketLo[i];
+                    if (lo >= 0)
+                    {
+                        mass += this.fractions[i] * PartialCrossSections.MassCrossSection(
+                            this.elements[i], lo, this.bracketHi[i], energyKev, this.logEnergy,
+                            PhotonProcess.PairProduction, true);
+                    }
+                }
+
+                return mass * this.density;
+            }
+
             /// <summary>
             /// Линейное ослабление области на этой энергии, с кэшем на одно
             /// значение (`T43`, 17.08.2026).
@@ -1538,7 +1800,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     if (!this.hasNoCoherent)
                     {
-                        this.muNoCoherent = this.Material.LinearAttenuationWithoutCoherent(energyKev);
+                        this.muNoCoherent = this.NoCoherent(energyKev);
                         this.hasNoCoherent = true;
                     }
 
@@ -1547,7 +1809,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (!this.hasTotal)
                 {
-                    this.muTotal = this.Material.LinearAttenuation(energyKev);
+                    this.muTotal = this.Total(energyKev);
                     this.hasTotal = true;
                 }
 
@@ -1560,7 +1822,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.Retune(energyKev);
                 if (!this.hasIncoherent)
                 {
-                    this.muIncoherent = this.Material.LinearIncoherent(energyKev);
+                    this.muIncoherent = this.Channel(energyKev, PhotonProcess.Incoherent);
                     this.hasIncoherent = true;
                 }
 
@@ -1573,7 +1835,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.Retune(energyKev);
                 if (!this.hasCoherent)
                 {
-                    this.muCoherent = this.Material.LinearCoherent(energyKev);
+                    this.muCoherent = this.Channel(energyKev, PhotonProcess.Coherent);
                     this.hasCoherent = true;
                 }
 
@@ -1586,7 +1848,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.Retune(energyKev);
                 if (!this.hasPair)
                 {
-                    this.muPair = this.Material.LinearPair(energyKev, thresholdPair);
+                    this.muPair = thresholdPair
+                        ? this.PairThreshold(energyKev)
+                        : this.Channel(energyKev, PhotonProcess.PairProduction);
                     this.hasPair = true;
                 }
 
@@ -1606,6 +1870,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.hasIncoherent = false;
                 this.hasCoherent = false;
                 this.hasPair = false;
+                this.bracketed = false;
             }
 
             public bool Contains(double x, double y, double z)
@@ -2796,6 +3061,39 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Сетка у него общая, энергия одна и та же; было три поиска
                 // элемента в словаре, три двоичных поиска и три логарифма от
                 // одного числа. Слагаемые и порядок сложения прежние.
+                // ⚡ (`A43`, П45) Пара узлов и логарифм — из снимка области
+                // кристалла (`Region.PrepareElements`): на этой энергии их уже
+                // считало ослабление шага. Те же элементы в том же порядке, те
+                // же слагаемые. Кристалла-области нет или вещество другое —
+                // прежний проход по словарю.
+                Region c = this.crystal;
+                int count = c != null && ReferenceEquals(c.Material, m) && m.Fractions.Count > 0
+                    ? c.PrepareElements(energyKev) : -2;
+                if (count >= 0 && count == m.Fractions.Count)
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (!c.ElementKnown(i))
+                        {
+                            continue;       // элемента нет в поставке — как `TryGet` false
+                        }
+
+                        double fraction = c.ElementFraction(i);
+                        double sigmaPhoto = c.ElementCrossSection(i, energyKev, PhotonProcess.Photoelectric, false);
+                        double sigmaCompton = c.ElementCrossSection(i, energyKev, PhotonProcess.Incoherent, false);
+                        double sigmaPair = c.ElementCrossSection(i, energyKev, PhotonProcess.PairProduction,
+                                                                 this.XcomPairThreshold);
+                        photo += fraction * sigmaPhoto;
+                        compton += fraction * sigmaCompton;
+                        pair += fraction * sigmaPair;
+                    }
+
+                    photo *= m.Density;
+                    compton *= m.Density;
+                    pair *= m.Density;
+                    return;
+                }
+
                 double logEnergyKev = energyKev > 0.0 ? Math.Log(energyKev) : 0.0;
                 foreach (KeyValuePair<int, double> f in m.Fractions)
                 {
@@ -4011,12 +4309,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                         {
                             scattered = energyKev;
                             this.Rotate(ref sx, ref sy, ref sz,
-                                        this.RayleighCosine(here.Material, energyKev));
+                                        this.RayleighCosine(here, energyKev));
                         }
                         else
                         {
                             double cos;
-                            scattered = this.ComptonScatter(here.Material, energyKev, out cos);
+                            scattered = this.ComptonScatter(here, energyKev, out cos);
                             this.Rotate(ref sx, ref sy, ref sz, cos);
                         }
 
@@ -4234,7 +4532,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // фотоэлектрон, оже-каскад, мягкие линии). Сумма всегда
                     // равна энергии поглощённого кванта, ничего не теряется и
                     // не появляется.
-                    double xray = this.SampleFluorescence(this.geometry.Crystal, e);
+                    double xray = this.SampleFluorescence(this.crystal, e);
                     // (`A101`) Второй квант каскада K→L. Забирается СРАЗУ: ниже
                     // идёт рекурсия `InCrystal`, и её собственная флуоресценция
                     // перетёрла бы поле. При выключенном ключе он всегда ноль,
@@ -4335,7 +4633,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double cos;
                     double vacancy;
                     int vacancyZ;
-                    double scattered = this.ComptonScatter(this.geometry.Crystal, e, out cos,
+                    double scattered = this.ComptonScatter(this.crystal, e, out cos,
                                                            out vacancy, out vacancyZ);
                     // (`A72`, П27) Направление ДО поворота — для импульса
                     // электрона отдачи: p_e = p_γ(до) − p_γ(после). Без ключа
@@ -4425,7 +4723,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Когерентное рассеяние: энергия та же, направление другое.
                     // Ни отсчёта, ни потери — только новый путь до выхода.
                     this.Rotate(ref ux, ref uy, ref uz,
-                                this.RayleighCosine(this.geometry.Crystal, e));
+                                this.RayleighCosine(this.crystal, e));
                     continue;
                 }
 
@@ -4743,7 +5041,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             // (`A72`, П27) Фотоэлектрон — по Заутеру относительно кванта
             // (ux, uy, uz); электроны каскада ниже — изотропно.
-            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
+            MaterialDatabase.Relaxation relax = this.RelaxationOf(atomZ);
             double binding = relax == null ? 0.0 : relax.BindingKev(shell);
             if (!(binding > 0.0) || e <= binding)
             {
@@ -4772,7 +5070,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             // (`A72`, П27) Электрон отдачи — по кинематике комптона
             // (edx, edy, edz — ненормированный импульс); каскад — изотропно.
-            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(atomZ);
+            MaterialDatabase.Relaxation relax = this.RelaxationOf(atomZ);
             int shell = relax == null ? 0 : relax.ShellByBinding(bindingKev);
             double binding = shell > 0 ? relax.BindingKev(shell) : 0.0;
             if (!(binding > 0.0) || total <= binding)
@@ -4960,8 +5258,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Дальше — попала ли дырка в K-оболочку (доля из скачка сечения на
         /// крае) и ответил ли атом квантом (выход флуоресценции).
         /// </summary>
-        double SampleFluorescence(GeometryMaterial material, double energyKev)
+        double SampleFluorescence(Region region, double energyKev)
         {
+            // ⚡ (`A43`, П45) Вещество — у области: у неё же пара узлов сетки и
+            // логарифм на эту энергию (`PrepareElements`), которыми ниже
+            // считаются сечения фотоэффекта без повторного поиска.
+            GeometryMaterial material = region.Material;
             // (`A101`) Каскадный квант принадлежит ТОЛЬКО этому вызову. Гасим
             // его здесь, а не у читателя: у функции три места вызова, и
             // забытое обнуление отдало бы прошлый квант чужому поглощению —
@@ -4985,42 +5287,96 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // вес элемента — его вклад в фотопоглощение на этой энергии
+            //
+            // ⚡ (`A43`, П45) Веса элементов-флуоресцентов и знаменатель — полное
+            // фотопоглощение вещества — считаются ОДНИМ проходом по составу:
+            // сечение каждого элемента спрашивается один раз, а не дважды
+            // (каждый запрос — поиск элемента, двоичный поиск по сетке и
+            // логарифм). Флуоресценты (`BuildFluorescers`) — подпоследовательность
+            // того же перечисления состава, поэтому веса ложатся в том же
+            // порядке, а обе суммы копятся теми же слагаемыми в том же порядке,
+            // что и прежде, — до бита. Если подпоследовательность не сошлась
+            // (состав перечислился иначе, чем при сборке таблицы), — прежние два
+            // прохода, чтобы порядок сумм остался прежним и тогда.
             double sum = 0.0;
-            double[] weight = new double[f0.Z.Length];
-            for (int i = 0; i < f0.Z.Length; i++)
+            double all = 0.0;
+            double[] weight = f0.Weight;
+            int next = 0;
+            int count = region.PrepareElements(energyKev);
+            bool bySnapshot = count == material.Fractions.Count;
+            int index = 0;
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
             {
-                // ⛔ (`A60`) Элемент годится и тогда, когда K-оболочка ещё
-                // закрыта, а L уже открыта. Прежнее условие выбрасывало из
-                // розыгрыша ровно тот случай, ради которого L-канал и нужен:
-                // свинец ниже своего K-края (88 кэВ) отвечает ТОЛЬКО L-серией
-                // (9.2…15.2 кэВ), а до правки не отвечал ничем.
-                MaterialDatabase.Fluorescence fi = f0.Data[i];
-                bool kOpen = energyKev > fi.KEdgeKev;
-                bool lOpen = this.LXrayEscape && fi.HasL
-                    && energyKev > fi.LEdgeKev[fi.LEdgeKev.Length - 1];
-                if (!kOpen && !lOpen)
+                // Сечение — по снимку области (та же пара узлов, что у
+                // ослабления шага), если снимок сошёлся со словарём по длине и
+                // по Z; иначе — прежний поиск. Значение одно и то же.
+                double photo = bySnapshot && region.ElementZ(index) == pair.Key
+                    ? region.ElementCrossSection(index, energyKev, PhotonProcess.Photoelectric, false)
+                    : PartialCrossSections.MassCrossSection(
+                        pair.Key, energyKev, PhotonProcess.Photoelectric);
+                index++;
+                // Знаменатель — полное фотопоглощение вещества, включая
+                // элементы без K-края на этой энергии: они тоже поглощают, и их
+                // доля обязана уменьшать вероятность рентгена, а не выпадать из
+                // счёта.
+                all += pair.Value * photo;
+                if (next < f0.Z.Length && f0.Z[next] == pair.Key)
                 {
-                    continue;               // ни одной доступной оболочки
+                    // ⛔ (`A60`) Элемент годится и тогда, когда K-оболочка ещё
+                    // закрыта, а L уже открыта. Прежнее условие выбрасывало из
+                    // розыгрыша ровно тот случай, ради которого L-канал и нужен:
+                    // свинец ниже своего K-края (88 кэВ) отвечает ТОЛЬКО L-серией
+                    // (9.2…15.2 кэВ), а до правки не отвечал ничем.
+                    MaterialDatabase.Fluorescence fi = f0.Data[next];
+                    bool kOpen = energyKev > fi.KEdgeKev;
+                    bool lOpen = this.LXrayEscape && fi.HasL
+                        && energyKev > fi.LEdgeKev[fi.LEdgeKev.Length - 1];
+                    if (kOpen || lOpen)
+                    {
+                        weight[next] = f0.Fraction[next] * photo;
+                        sum += weight[next];
+                    }
+                    else
+                    {
+                        weight[next] = 0.0;     // ни одной доступной оболочки
+                    }
+
+                    next++;
+                }
+            }
+
+            if (next != f0.Z.Length)
+            {
+                // подпоследовательность не сошлась — прежний путь, два прохода
+                sum = 0.0;
+                for (int i = 0; i < f0.Z.Length; i++)
+                {
+                    MaterialDatabase.Fluorescence fi = f0.Data[i];
+                    bool kOpen = energyKev > fi.KEdgeKev;
+                    bool lOpen = this.LXrayEscape && fi.HasL
+                        && energyKev > fi.LEdgeKev[fi.LEdgeKev.Length - 1];
+                    if (!kOpen && !lOpen)
+                    {
+                        weight[i] = 0.0;
+                        continue;
+                    }
+
+                    weight[i] = f0.Fraction[i] * PartialCrossSections.MassCrossSection(
+                        f0.Z[i], energyKev, PhotonProcess.Photoelectric);
+                    sum += weight[i];
                 }
 
-                weight[i] = f0.Fraction[i] * PartialCrossSections.MassCrossSection(
-                    f0.Z[i], energyKev, PhotonProcess.Photoelectric);
-                sum += weight[i];
+                all = 0.0;
+                foreach (KeyValuePair<int, double> pair in material.Fractions)
+                {
+                    all += pair.Value * PartialCrossSections.MassCrossSection(
+                        pair.Key, energyKev, PhotonProcess.Photoelectric);
+                }
             }
 
             if (!(sum > 0.0))
             {
                 return 0.0;
-            }
-
-            // Знаменатель — полное фотопоглощение вещества, включая элементы без
-            // K-края на этой энергии: они тоже поглощают, и их доля обязана
-            // уменьшать вероятность рентгена, а не выпадать из счёта.
-            double all = 0.0;
-            foreach (KeyValuePair<int, double> pair in material.Fractions)
-            {
-                all += pair.Value * PartialCrossSections.MassCrossSection(
-                    pair.Key, energyKev, PhotonProcess.Photoelectric);
             }
 
             if (!(all > 0.0) || this.Uniform() * all >= sum)
@@ -5195,7 +5551,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             pick -= wL2;
             if (pick < wL3) return 6;
             // M и глубже: самая глубокая подоболочка за L3 с краем ниже энергии
-            MaterialDatabase.Relaxation relax = MaterialDatabase.RelaxationOf(this.lastAbsorbZ);
+            MaterialDatabase.Relaxation relax = this.RelaxationOf(this.lastAbsorbZ);
             return relax == null ? 0 : relax.AbsorbingShell(energyKev, 7);
         }
 
@@ -5488,7 +5844,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 Z = zs.ToArray(),
                 MassFraction = mass.ToArray(),
-                Atom = atoms.ToArray()
+                Atom = atoms.ToArray(),
+                ProductIncoherent = new double[zs.Count],
+                ProductCoherent = new double[zs.Count],
             };
             this.scatterers[material] = built;
             return built;
@@ -5503,6 +5861,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         ScatteringData.Atom PickAtom(GeometryMaterial material, double energyKev,
                                      PhotonProcess process)
         {
+            return this.PickAtom(material, energyKev, process, null);
+        }
+
+        /// <summary>
+        /// ⚡ (`A43`, П45) То же, но с ОБЛАСТЬЮ, где случилось рассеяние: у неё
+        /// на эту энергию уже есть пара узлов сетки и логарифм
+        /// (<see cref="Region.PrepareElements"/>), и сечения элементов берутся
+        /// оттуда без повторного поиска. Элементы таблицы рассеяния —
+        /// подпоследовательность снимка области (оба идут по словарю состава);
+        /// не сошлась — прежний расчёт. Значения те же до бита.
+        /// </summary>
+        ScatteringData.Atom PickAtom(GeometryMaterial material, double energyKev,
+                                     PhotonProcess process, Region region)
+        {
             Scatterers s = this.ScatterersOf(material);
             int n = s.Atom.Length;
             if (n == 0)
@@ -5515,11 +5887,77 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return s.Atom[0];
             }
 
-            double total = 0.0;
-            for (int i = 0; i < n; i++)
+            // ⚡ (`A43`, П45) Вклады — из памятки канала, если энергия та же;
+            // иначе считаются один раз и запоминаются. Прежде каждый вклад
+            // считался дважды за вызов (сумма и бег по ней) и заново на
+            // каждом вызове.
+            double[] product;
+            double total;
+            if (process == PhotonProcess.Incoherent && energyKev == s.EnergyIncoherent)
             {
-                total += s.MassFraction[i]
-                         * PartialCrossSections.MassCrossSection(s.Z[i], energyKev, process);
+                product = s.ProductIncoherent;
+                total = s.TotalIncoherent;
+            }
+            else if (process == PhotonProcess.Coherent && energyKev == s.EnergyCoherent)
+            {
+                product = s.ProductCoherent;
+                total = s.TotalCoherent;
+            }
+            else
+            {
+                product = process == PhotonProcess.Incoherent ? s.ProductIncoherent
+                        : process == PhotonProcess.Coherent ? s.ProductCoherent
+                        : new double[n];
+                total = 0.0;
+                bool done = false;
+                if (region != null && ReferenceEquals(region.Material, material))
+                {
+                    int count = region.PrepareElements(energyKev);
+                    int at = 0;
+                    int matched = 0;
+                    for (int i = 0; i < n && count >= 0; i++)
+                    {
+                        while (at < count && region.ElementZ(at) != s.Z[i])
+                        {
+                            at++;
+                        }
+
+                        if (at >= count)
+                        {
+                            break;
+                        }
+
+                        product[i] = s.MassFraction[i]
+                                     * region.ElementCrossSection(at, energyKev, process, false);
+                        total += product[i];
+                        at++;
+                        matched++;
+                    }
+
+                    done = matched == n;
+                }
+
+                if (!done)
+                {
+                    total = 0.0;
+                    for (int i = 0; i < n; i++)
+                    {
+                        product[i] = s.MassFraction[i]
+                                     * PartialCrossSections.MassCrossSection(s.Z[i], energyKev, process);
+                        total += product[i];
+                    }
+                }
+
+                if (process == PhotonProcess.Incoherent)
+                {
+                    s.EnergyIncoherent = energyKev;
+                    s.TotalIncoherent = total;
+                }
+                else if (process == PhotonProcess.Coherent)
+                {
+                    s.EnergyCoherent = energyKev;
+                    s.TotalCoherent = total;
+                }
             }
 
             if (!(total > 0.0))
@@ -5531,8 +5969,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double running = 0.0;
             for (int i = 0; i < n; i++)
             {
-                running += s.MassFraction[i]
-                           * PartialCrossSections.MassCrossSection(s.Z[i], energyKev, process);
+                running += product[i];
                 if (pick <= running)
                 {
                     return s.Atom[i];
@@ -5577,12 +6014,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double ComptonScatter(GeometryMaterial material, double energyKev, out double cos,
                                      out double vacancyKev, out int vacancyZ)
         {
+            return this.ComptonScatter(material, energyKev, out cos, out vacancyKev, out vacancyZ, null);
+        }
+
+        /// <summary>⚡ (`A43`, П45) Рассеяние В ОБЛАСТИ: сечения элементов — из её снимка.</summary>
+        double ComptonScatter(Region region, double energyKev, out double cos)
+        {
+            double vacancyKev;
+            int vacancyZ;
+            return this.ComptonScatter(region.Material, energyKev, out cos, out vacancyKev, out vacancyZ, region);
+        }
+
+        double ComptonScatter(Region region, double energyKev, out double cos,
+                              out double vacancyKev, out int vacancyZ)
+        {
+            return this.ComptonScatter(region.Material, energyKev, out cos, out vacancyKev, out vacancyZ, region);
+        }
+
+        double ComptonScatter(GeometryMaterial material, double energyKev, out double cos,
+                              out double vacancyKev, out int vacancyZ, Region region)
+        {
             vacancyKev = 0.0;
             vacancyZ = 0;
             ScatteringData.Atom atom = null;
             if ((this.BoundCompton || this.DopplerBroadening) && material != null)
             {
-                atom = this.PickAtom(material, energyKev, PhotonProcess.Incoherent);
+                atom = this.PickAtom(material, energyKev, PhotonProcess.Incoherent, region);
             }
 
             cos = this.ComptonCosine(energyKev, this.BoundCompton ? atom : null);
@@ -5716,7 +6173,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double RayleighCosine(GeometryMaterial material, double energyKev)
         {
-            ScatteringData.Atom atom = this.PickAtom(material, energyKev, PhotonProcess.Coherent);
+            return this.RayleighCosine(material, energyKev, null);
+        }
+
+        /// <summary>⚡ (`A43`, П45) Когерентное В ОБЛАСТИ: сечения элементов — из её снимка.</summary>
+        double RayleighCosine(Region region, double energyKev)
+        {
+            return this.RayleighCosine(region.Material, energyKev, region);
+        }
+
+        double RayleighCosine(GeometryMaterial material, double energyKev, Region region)
+        {
+            ScatteringData.Atom atom = this.PickAtom(material, energyKev, PhotonProcess.Coherent, region);
             double xMax = ScatteringData.InverseCmPerKev * energyKev;
             double tMax = xMax * xMax;
             if (atom == null || !(tMax > 0.0))
@@ -5959,7 +6427,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 // Когерентное: энергия та же, направление другое.
                                 // Ни отсчёта, ни потери — квант летит дальше.
                                 this.Rotate(ref ux, ref uy, ref uz,
-                                            this.RayleighCosine(here.Material, e));
+                                            this.RayleighCosine(here, e));
                                 continue;
                             }
 
@@ -6040,7 +6508,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 }
 
                                 double xrayOut = this.SampleFluorescenceOutside
-                                    ? this.SampleFluorescence(here.Material, e) : 0.0;
+                                    ? this.SampleFluorescence(here, e) : 0.0;
                                 if (xrayOut > 0.0)
                                 {
                                     this.Isotropic(out ux, out uy, out uz);
@@ -6068,7 +6536,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                             }
 
                             double cos;
-                            double after = this.ComptonScatter(here.Material, e, out cos);
+                            double after = this.ComptonScatter(here, e, out cos);
                             // Комптон-электрон: занос считается ДО поворота
                             // фотона — направлением электрона берётся направление
                             // налетающего кванта (см. шапку ElectronReachesCrystal).
@@ -6260,7 +6728,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double density = here != null ? here.Material.Density : AirDensity;
                 ElectronData.Material medium = here != null
-                    ? this.CarryMedium(here.Material) : ElectronData.ByName("Water");
+                    ? this.CarryMedium(here.Material) : this.WaterTable();
                 double range = ElectronData.RangeOf(medium, energyKev)
                                * this.ElectronCarryDetour;
                 used += step * density / Math.Max(range, 1e-12);
@@ -6279,6 +6747,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         const double AirDensity = 1.205e-3;             // г/см³, сухой воздух
+
+        // ⚡ (`A43`, П45) Таблица воды для пустоты — одной ссылкой на экземпляр:
+        // `ElectronData.ByName` перебирает имена веществ строкой на каждом шаге
+        // прохода электрона по пустой области. Тот же объект, числа те же.
+        ElectronData.Material waterTable;
+
+        ElectronData.Material WaterTable()
+        {
+            return this.waterTable ?? (this.waterTable = ElectronData.ByName("Water"));
+        }
 
         readonly Dictionary<GeometryMaterial, ElectronData.Material> carryCache =
             new Dictionary<GeometryMaterial, ElectronData.Material>();
@@ -6592,6 +7070,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         // выделять память на каждое поглощение. Глубина каскада иода — ~50
         // дырок, 128 — с запасом на любой Z.
         readonly int[] cascadeStack = new int[128];
+
+        // ⚡ (`A43`, П45) Таблицы разрядки по Z — СВОЯ памятка симулятора.
+        // `MaterialDatabase.RelaxationOf` берёт `lock` на общий кэш процесса
+        // при КАЖДОМ вызове, а зовётся он на каждое фотопоглощение из трёх
+        // мест (`PhotoElectronsSplit`, `VacancyElectronsSplit`,
+        // `PickShellWithoutXray`). Симулятор узла живёт в одном потоке, и
+        // десять потоков склада толкались на одном замке ради ссылки, которая
+        // не меняется. Здесь та же ссылка запоминается по Z; `null` («данных
+        // нет») запоминается тоже. Числа те же до бита: тот же объект.
+        MaterialDatabase.Relaxation[] relaxByZ;
+        bool[] relaxKnown;
+
+        MaterialDatabase.Relaxation RelaxationOf(int z)
+        {
+            if (z < 0 || z >= 120)
+            {
+                return MaterialDatabase.RelaxationOf(z);
+            }
+
+            if (this.relaxKnown == null)
+            {
+                this.relaxByZ = new MaterialDatabase.Relaxation[120];
+                this.relaxKnown = new bool[120];
+            }
+
+            if (!this.relaxKnown[z])
+            {
+                this.relaxByZ[z] = MaterialDatabase.RelaxationOf(z);
+                this.relaxKnown[z] = true;
+            }
+
+            return this.relaxByZ[z];
+        }
 
         /// <summary>
         /// (`F11` (а), П17) Сколько раз каскад упёрся в стек или в несведённый
@@ -7523,7 +8034,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 {
                                     // Когерентное: только поворот, энергия та же.
                                     this.Rotate(ref ux, ref uy, ref uz,
-                                                this.RayleighCosine(here.Material, e));
+                                                this.RayleighCosine(here, e));
                                     continue;
                                 }
 
@@ -7607,7 +8118,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     }
 
                                     double xrayOut = this.SampleFluorescenceOutside
-                                        ? this.SampleFluorescence(here.Material, e) : 0.0;
+                                        ? this.SampleFluorescence(here, e) : 0.0;
                                     if (xrayOut > 0.0)
                                     {
                                         this.Isotropic(out ux, out uy, out uz);
@@ -7637,7 +8148,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 }
 
                                 double cos;
-                                double after = this.ComptonScatter(here.Material, e, out cos);
+                                double after = this.ComptonScatter(here, e, out cos);
                                 comptonOutside = true;              // замер `S55`
                                 // Занос комптон-электрона — ДО поворота фотона (см.
                                 // шапку ElectronReachesCrystal); фотон летит дальше.

@@ -358,6 +358,52 @@ namespace BecquerelMonitor.EfficiencyMaker
             internal double[][] tableE;    // [оболочка][узлы], кэВ
             internal double[][] tableCs;   // барн
 
+            // ⚡ (`A43`, П45) Логарифмы узлов и сечений, посчитанные при
+            // загрузке. `InterpTable` брал ПЯТЬ логарифмов на вызов — четыре от
+            // чисел таблицы, которые не меняются, и один от энергии, одной на
+            // все шестнадцать оболочек прохода; на низком узле это 4 % счёта
+            // (профиль 13.09.2026, математика ucrt из `InterpTable` и
+            // `LFractions`). Числа те же до бита: та же функция от того же
+            // аргумента, посчитанная один раз. Тот же приём, что у
+            // <see cref="Element.LogEnergyKev"/> (`T43`).
+            internal double[][] logTableE;
+            internal double[][] logTableCs;
+
+            /// <summary>Заполнить логарифмы из таблиц — один раз после загрузки.</summary>
+            internal void IndexLogs()
+            {
+                if (this.tableE == null || this.tableCs == null)
+                {
+                    return;
+                }
+
+                this.logTableE = LogsOf(this.tableE);
+                this.logTableCs = LogsOf(this.tableCs);
+            }
+
+            static double[][] LogsOf(double[][] tables)
+            {
+                double[][] logs = new double[tables.Length][];
+                for (int s = 0; s < tables.Length; s++)
+                {
+                    double[] t = tables[s];
+                    if (t == null)
+                    {
+                        continue;
+                    }
+
+                    double[] l = new double[t.Length];
+                    for (int i = 0; i < t.Length; i++)
+                    {
+                        l[i] = Math.Log(t[i]);
+                    }
+
+                    logs[s] = l;
+                }
+
+                return logs;
+            }
+
             /// <summary>
             /// Доля фотопоглощений на K-оболочке при энергии кванта
             /// <paramref name="energyKev"/>. Ниже K-края — ноль.
@@ -386,9 +432,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // это 88..187 кэВ): табличные векторы по оболочкам, доля — как
                 // отношение оболочки K к сумме всех доступных.
                 double num = 0.0, den = 0.0;
+                double logEnergyKev = Math.Log(energyKev);
                 for (int s = 0; s < this.tableE.Length; s++)
                 {
-                    double v = InterpTable(this.tableE[s], this.tableCs[s], energyKev);
+                    double v = this.InterpShell(s, energyKev, logEnergyKev);
                     den += v;
                     if (s == 0)
                     {
@@ -468,7 +515,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // прежняя пара полей «энергия» + «массив» писалась ими вразнобой,
                 // и читатель ловил энергию своего прохода вместе с массивом
                 // ЧУЖОГО. Разбор — <see cref="Memo"/>.
-                Memo memo = this.lastFrac;
+                // ⚡ (`A43`, П45) Памяток НЕСКОЛЬКО, ячейка — по битам энергии.
+                // Одна памятка держала только первичную энергию узла, а
+                // поглощения характеристических квантов (дискретные линии K/L
+                // кристалла — те же несколько энергий снова и снова) и
+                // рассеянных квантов выталкивали её по очереди; на низком узле
+                // `LFractions` стоила 6–8 % счёта. Каждая ячейка — та же
+                // неизменяемая памятка одной ссылкой (`A104`), что и прежде.
+                Memo[] memos = this.lastFracs;
+                int slot = MemoSlot(energyKev);
+                Memo memo = memos[slot];
                 if (memo != null && memo.EnergyKev == energyKev)
                 {
                     return memo.Fractions;
@@ -479,9 +535,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (rest > 0.0)
                 {
                     double den = 0.0;
+                    double logEnergyKev = Math.Log(energyKev);
                     for (int s = 1; s < this.tableE.Length; s++)
                     {
-                        double v = InterpTable(this.tableE[s], this.tableCs[s], energyKev);
+                        double v = this.InterpShell(s, energyKev, logEnergyKev);
                         if (v > 0.0)
                         {
                             den += v;
@@ -511,7 +568,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Публикация — ОДНИМ присваиванием ссылки: оно неделимо, и
                 // читатель получает либо прежнюю памятку целиком, либо новую
                 // целиком, но никогда половину одной и половину другой.
-                this.lastFrac = new Memo(energyKev, result);
+                memos[slot] = new Memo(energyKev, result);
                 return result;
             }
 
@@ -554,7 +611,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            Memo lastFrac;
+            readonly Memo[] lastFracs = new Memo[64];
+
+            static int MemoSlot(double energyKev)
+            {
+                ulong bits = (ulong)BitConverter.DoubleToInt64Bits(energyKev);
+                bits *= 0x9E3779B97F4A7C15UL;
+                return (int)(bits >> 58);       // 6 старших бит → 0..63
+            }
 
             /// <summary>σ(E) = Σ aᵢ/Eⁱ; E в кэВ снаружи, в МэВ внутри.</summary>
             static double EvalFit(double[] a, double energyKev)
@@ -571,8 +635,68 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             /// <summary>
+            /// ⚡ (`A43`, П45) Сечение оболочки <paramref name="s"/> по таблице
+            /// с ГОТОВЫМИ логарифмами (<see cref="IndexLogs"/>) и логарифмом
+            /// энергии, посчитанным вызывающим один раз на проход. Значение
+            /// побитово то же, что у <see cref="InterpTable"/>: те же узлы, та
+            /// же формула, логарифмы те же — взяты из памяти, а не посчитаны.
+            /// Без логарифмов (модель собрана мимо загрузки) — прежний путь.
+            /// </summary>
+            double InterpShell(int s, double x, double logX)
+            {
+                double[] grid = this.tableE[s], values = this.tableCs[s];
+                double[][] logE = this.logTableE, logCs = this.logTableCs;
+                if (logE == null || logCs == null || logE[s] == null || logCs[s] == null)
+                {
+                    return InterpTable(grid, values, x);
+                }
+
+                int n = grid.Length;
+                if (n == 0 || x < grid[0])
+                {
+                    return 0.0;
+                }
+
+                if (x >= grid[n - 1])
+                {
+                    return values[n - 1];
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (grid[mid] <= x)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                if (!(grid[hi] > grid[lo]))
+                {
+                    return values[hi];
+                }
+
+                double[] logGrid = logE[s], logValues = logCs[s];
+                double f = (logX - logGrid[lo]) / (logGrid[hi] - logGrid[lo]);
+                if (!(values[lo] > 0.0) || !(values[hi] > 0.0))
+                {
+                    return values[lo] + f * (values[hi] - values[lo]);
+                }
+
+                return Math.Exp(logValues[lo] + f * (logValues[hi] - logValues[lo]));
+            }
+
+            /// <summary>
             /// Лог-лог внутри домена таблицы, за краями — ноль слева (оболочка
             /// ещё закрыта) и крайнее значение справа.
+            ///
+            /// ⚠ ЭТАЛОН: горячий путь идёт через <see cref="InterpShell"/> с
+            /// готовыми логарифмами (`A43`, П45); правя одно, править и другое.
             /// </summary>
             static double InterpTable(double[] grid, double[] values, double x)
             {
@@ -643,6 +767,40 @@ namespace BecquerelMonitor.EfficiencyMaker
             internal double[] energyKev;   // строго по возрастанию
             internal double[] yieldRel;
 
+            // ⚡ (`A43`, П45) Логарифмы узлов — один раз. Памятка — ОДИН
+            // неизменяемый объект одной ссылкой (объект кривой общий на потоки,
+            // `A104`); помнит, от какого массива посчитана. `Of` брал три
+            // логарифма на каждый вклад света, два — от таблицы. Числа те же:
+            // `Math.Log` от того же узла.
+            sealed class LogMemo
+            {
+                public readonly double[] Source, Logs;
+
+                public LogMemo(double[] source)
+                {
+                    this.Source = source;
+                    this.Logs = new double[source.Length];
+                    for (int i = 0; i < source.Length; i++)
+                    {
+                        this.Logs[i] = Math.Log(source[i]);
+                    }
+                }
+            }
+
+            LogMemo logNodes;
+
+            double[] LogNodes(double[] e)
+            {
+                LogMemo m = this.logNodes;
+                if (m == null || !ReferenceEquals(m.Source, e))
+                {
+                    m = new LogMemo(e);
+                    this.logNodes = m;
+                }
+
+                return m.Logs;
+            }
+
             /// <summary>
             /// Относительный выход для электрона начальной энергии
             /// <paramref name="electronKev"/>. Линейная интерполяция по log E;
@@ -677,8 +835,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                double f = (Math.Log(electronKev) - Math.Log(e[lo]))
-                           / (Math.Log(e[hi]) - Math.Log(e[lo]));
+                double[] le = this.LogNodes(e);
+                double f = (Math.Log(electronKev) - le[lo])
+                           / (le[hi] - le[lo]);
                 return this.yieldRel[lo] + f * (this.yieldRel[hi] - this.yieldRel[lo]);
             }
         }
@@ -706,6 +865,63 @@ namespace BecquerelMonitor.EfficiencyMaker
             internal int[] shellsByBinding;
             internal double[] bindingByOrder;
 
+            /// <summary>
+            /// ⚡ (`A43`, П45) ТЕ ЖЕ ТАБЛИЦЫ МАССИВАМИ ПО ОБОЗНАЧЕНИЮ EADL.
+            /// Каскад (<see cref="EfficiencySimulator"/>, `RelaxationElectrons`)
+            /// спрашивает энергию связи и переходы по нескольку раз на каждое
+            /// фотопоглощение, и на низком узле поиск по двум словарям стоил
+            /// 6 % счёта (профиль 13.09.2026: `Dictionary.TryGetValue` из
+            /// `Relaxation.Step` 3.5 %, из `RelaxationElectrons` 2.5 %).
+            /// Обозначения EADL — малые целые (K=1 … Q1=61), так что индекс
+            /// прямой. Словари остаются источником при загрузке; отсутствующая
+            /// подоболочка — ноль и `null`, как отвечали словари.
+            /// Числа те же до бита: та же таблица, другой способ найти строку.
+            /// </summary>
+            internal double[] bindingByShell;
+            internal Transitions[] transitionsByShell;
+
+            /// <summary>Заполнить массивы из словарей — один раз после загрузки.</summary>
+            internal void IndexByShell()
+            {
+                int max = 0;
+                foreach (int shell in this.bindingKev.Keys)
+                {
+                    if (shell > max) max = shell;
+                }
+
+                foreach (int shell in this.transitions.Keys)
+                {
+                    if (shell > max) max = shell;
+                }
+
+                double[] binding = new double[max + 1];
+                Transitions[] byShell = new Transitions[max + 1];
+                foreach (KeyValuePair<int, double> pair in this.bindingKev)
+                {
+                    if (pair.Key >= 0) binding[pair.Key] = pair.Value;
+                }
+
+                foreach (KeyValuePair<int, Transitions> pair in this.transitions)
+                {
+                    if (pair.Key >= 0) byShell[pair.Key] = pair.Value;
+                }
+
+                this.bindingByShell = binding;
+                this.transitionsByShell = byShell;
+            }
+
+            Transitions TransitionsOf(int shell)
+            {
+                Transitions[] byShell = this.transitionsByShell;
+                if (byShell != null)
+                {
+                    return (uint)shell < (uint)byShell.Length ? byShell[shell] : null;
+                }
+
+                Transitions t;
+                return this.transitions.TryGetValue(shell, out t) ? t : null;
+            }
+
             internal sealed class Transitions
             {
                 // радиационные: кумулятивная вероятность, энергия кванта, откуда пришёл электрон
@@ -721,6 +937,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// <summary>Энергия связи подоболочки, кэВ; ноль, если её нет.</summary>
             public double BindingKev(int shell)
             {
+                double[] byShell = this.bindingByShell;
+                if (byShell != null)
+                {
+                    return (uint)shell < (uint)byShell.Length ? byShell[shell] : 0.0;
+                }
+
                 double b;
                 return this.bindingKev.TryGetValue(shell, out b) ? b : 0.0;
             }
@@ -786,8 +1008,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// </summary>
             public int VacancyAfterPhoton(int shell, double lineKev, double u)
             {
-                Transitions t;
-                if (!this.transitions.TryGetValue(shell, out t) || t.radKev == null || t.radKev.Length == 0)
+                Transitions t = this.TransitionsOf(shell);
+                if (t == null || t.radKev == null || t.radKev.Length == 0)
                 {
                     return 0;
                 }
@@ -824,8 +1046,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// <summary>Есть ли у подоболочки хоть один переход.</summary>
             public bool HasTransitions(int shell)
             {
-                Transitions t;
-                return this.transitions.TryGetValue(shell, out t) && (t.radSum + t.augSum) > 0.0;
+                Transitions t = this.TransitionsOf(shell);
+                return t != null && (t.radSum + t.augSum) > 0.0;
             }
 
             /// <summary>
@@ -846,8 +1068,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 kev = 0.0;
                 from = 0;
                 ejected = 0;
-                Transitions t;
-                if (!this.transitions.TryGetValue(shell, out t))
+                Transitions t = this.TransitionsOf(shell);
+                if (t == null)
                 {
                     return false;
                 }
@@ -1617,6 +1839,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 model.transitions[v] = t;
             }
 
+            model.IndexByShell();
             return model;
         }
 
@@ -1775,6 +1998,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
                     }
 
+                    model.IndexLogs();
                     return model;
                 }
             }

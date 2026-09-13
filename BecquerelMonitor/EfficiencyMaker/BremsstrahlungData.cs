@@ -267,6 +267,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double MinKev { get; private set; }
 
         double[] node;            // сетка, кэВ: и по T, и по k — одна и та же
+        // ⚡ (`A43`, П45) Логарифмы узлов сетки — один раз при сборке таблицы:
+        // `Interpolate` и `SampleFrom` брали по два логарифма от узлов на
+        // каждый вызов. Числа те же: `Math.Log` от того же узла.
+        double[] logNode;
         double[][] cumulative;    // [T][k]: доля квантов ВЫШЕ node[k], от 1 до 0
         double[] photons;         // среднее число квантов выше MinKev
         double[] radiatedKev;     // средняя энергия этих квантов
@@ -414,7 +418,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double c0 = cum[lo], c1 = cum[hi];
             double f = c0 > c1 ? (c0 - u) / (c0 - c1) : 0.0;
-            double e0 = Math.Log(this.node[lo]), e1 = Math.Log(this.node[hi]);
+            double[] ln = this.logNode;
+            double e0 = ln[lo], e1 = ln[hi];
             return Math.Exp(e0 + f * (e1 - e0));
         }
 
@@ -569,10 +574,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] thinPhotons, thinRadiated;
             BuildThin(zs, weights, tables, node, out thinAbove, out thinPhotons, out thinRadiated);
 
+            double[] logNode = new double[node.Length];
+            for (int i = 0; i < node.Length; i++)
+            {
+                logNode[i] = Math.Log(node[i]);
+            }
+
             return new ThickTargetBrem
             {
                 MinKev = minKev,
                 node = node,
+                logNode = logNode,
                 cumulative = cumulative,
                 photons = photons,
                 radiatedKev = radiated,
@@ -825,7 +837,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return values[lo];
             }
 
-            double f = (Math.Log(teKev) - Math.Log(g[lo])) / (Math.Log(g[hi]) - Math.Log(g[lo]));
+            double[] ln = this.logNode;
+            double f = (Math.Log(teKev) - ln[lo]) / (ln[hi] - ln[lo]);
             return values[lo] + f * (values[hi] - values[lo]);
         }
     }
