@@ -56,9 +56,10 @@ namespace BecquerelMonitor
         /// оснастки, а не выведено: exe пробы КЛАДЁТСЯ В рабочий каталог и
         /// зовётся оттуда же — <c>run_appwd.ps1</c> берёт
         /// <c>wd_app\CorpusFsaProbe.exe</c> и делает туда <c>Push-Location</c>;
-        /// так же устроены <c>tools/effmaker/run.ps1</c>,
-        /// <c>run_peakorigin.ps1</c>, <c>tools/pie/run_corpus.ps1</c> и
-        /// <c>sweep_s57.ps1</c>. Каталог сборки и текущий там один и тот же.
+        /// так же устроены <c>tools/effmaker/run_peakorigin.ps1</c>,
+        /// <c>tools/pie/run_corpus.ps1</c> и <c>sweep_s57.ps1</c> (был и
+        /// <c>tools/effmaker/run.ps1</c> — снят 13.09.2026 вместе с фитом
+        /// кривой, `AMBER25`). Каталог сборки и текущий там один и тот же.
         ///
         /// ⚠ Ветка ClickOnce (<c>%AppData%\BecqMoni</c>) не тронута: там путь и
         /// был абсолютным.

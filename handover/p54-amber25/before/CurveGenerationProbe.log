@@ -1,0 +1,38 @@
+== поколение сборки ==
+  ResponseMatrix.PhysicsVersion = 17, FormatVersion = 8
+
+== решение ==
+  всё поколения 16                   -> сообщений 0
+  кривая 11, матрица 16, сборка 16   -> сообщений 2
+        Curve computed with transport generation 11, this build computes generation 16 — recompute it.
+        Curve is generation 11, its response matrix is generation 16 — two generations side by side.
+  кривая 11, матрица 11, сборка 16   -> сообщений 1
+        Curve computed with transport generation 11, this build computes generation 16 — recompute it.
+  кривая 16, матрица 12, сборка 16   -> сообщений 1
+        Curve is generation 16, its response matrix is generation 12 — two generations side by side.
+  кривая 11, матрицы нет             -> сообщений 1
+        Curve computed with transport generation 11, this build computes generation 16 — recompute it.
+  клейма нет                         -> сообщений 0
+  клеймо без phys=                   -> сообщений 0
+  клеймо-мусор                       -> сообщений 0
+  кривая 17, сборка 16               -> сообщений 1
+        Curve computed with transport generation 17, this build computes generation 16 — recompute it.
+
+== две культуры ==
+  en: Curve computed with transport generation 11, this build computes generation 16 — recompute it.
+  ru: Кривая посчитана переносом поколения 11, а эта сборка считает поколением 16 — пересчитайте.
+  en: Curve is generation 11, its response matrix is generation 16 — two generations side by side.
+  ru: Кривая поколения 11, а её матрица отклика — поколения 16: рядом лежат два разных поколения.
+
+== высота подписи ==
+  пусто          -> 0 точек
+  одно (ru)      -> 26 точек
+  два (en)       -> 26 точек
+  два (ru)       -> 52 точек
+
+== заголовок матрицы ==
+  наш файл       -> прочитан, формат 8, физика 13
+  чужая метка    -> отказ
+  пустой guid    -> отказ
+
+ВСЕ СОШЛИСЬ

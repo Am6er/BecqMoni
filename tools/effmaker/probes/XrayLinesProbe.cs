@@ -30,10 +30,9 @@ namespace XrayLinesProbe
     ///     амплитудой: активности за ним нет, и в «пирог» долей он не входит.
     ///     Попади он туда как нуклид — доли всех остальных поехали бы, а на
     ///     экране это выглядит как правдоподобный ответ.
-    ///  5. **Кривая эффективности.** Метод делит площадь пика на выход НА
-    ///     РАСПАД, которого у флуоресценции нет вовсе. Линия с заполненной
-    ///     «интенсивностью» выглядит для конструктора кривой годной — и портит
-    ///     кривую тихо.
+    ///  5. ~~**Кривая эффективности.**~~ Раздел снят 13.09.2026: эмпирическое
+    ///     восстановление кривой по спектрам (`EfficiencyLibrary.BuildChains`)
+    ///     убрано по решению Amber (`AMBER25`), потребителя у проверки нет.
     ///
     ///     xrayprobe
     ///
@@ -58,7 +57,6 @@ namespace XrayLinesProbe
             LinesComeFromDatabase();
             DefinitionNameHasNoMassNumber();
             ElementXrayIsNuisanceInFsa();
-            ElementXrayStaysOutOfEfficiencyCurve();
 
             Console.WriteLine();
             Console.WriteLine(failed == 0 ? "ВСЕ СОШЛИСЬ" : "РАСХОЖДЕНИЙ: " + failed);
@@ -343,50 +341,9 @@ namespace XrayLinesProbe
             }
         }
 
-        /// <summary>
-        /// Кривая эффективности стоит на выходе НА РАСПАД: линия рентгена в неё
-        /// не идёт, даже когда «интенсивность» у неё заполнена.
-        /// </summary>
-        static void ElementXrayStaysOutOfEfficiencyCurve()
-        {
-            Console.WriteLine();
-            Console.WriteLine("=== В кривую эффективности не идёт");
-            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
-            if (manager == null || manager.NuclideSets == null)
-            {
-                Fail("менеджер определений не поднялся — запускать надо из копии конфига");
-                return;
-            }
-
-            NuclideSet set = new NuclideSet { Id = Guid.NewGuid(), Name = "~проба рентгена" };
-            manager.NuclideSets.Add(set);
-            // Две годные линии нуклида плюс рентген с заполненной долей: без
-            // отбора он вошёл бы в кривую третьей точкой.
-            manager.NuclideDefinitions.Add(InSet(Definition("Cs-137", 661.657, 85.1), set));
-            manager.NuclideDefinitions.Add(InSet(Definition("K-40", 1460.822, 10.66), set));
-            manager.NuclideDefinitions.Add(InSet(Definition("W x-ray", 59.318, 50.05), set));
-
-            Dictionary<string, List<BecquerelMonitor.EfficiencyMaker.EfficiencyLine>> chains =
-                BecquerelMonitor.EfficiencyMaker.EfficiencyLibrary.BuildChains();
-            List<BecquerelMonitor.EfficiencyMaker.EfficiencyLine> lines;
-            if (!chains.TryGetValue("~проба рентгена", out lines))
-            {
-                Fail("набор пробы в кривые не попал вовсе");
-                return;
-            }
-
-            Same("линий в кривой", lines.Count, 2);
-            foreach (BecquerelMonitor.EfficiencyMaker.EfficiencyLine line in lines)
-            {
-                if (Math.Abs(line.Energy - 59.318) < 0.01)
-                {
-                    Fail("рентген вольфрама вошёл в кривую — площадь пика поделят на долю K-серии");
-                    return;
-                }
-            }
-
-            Console.WriteLine("    ок: рентген отброшен, в кривой остались две линии распада");
-        }
+        // Раздел 5 — «в кривую эффективности не идёт» (`EfficiencyLibrary
+        // .BuildChains` отбрасывал рентген элемента) — снят 13.09.2026 вместе с
+        // фитом по спектрам (`AMBER25`, решение Amber): потребителя нет.
 
         // --------------------------------------------------------------
 
@@ -399,12 +356,6 @@ namespace XrayLinesProbe
                 Intencity = intensity,
                 Visible = true,
             };
-        }
-
-        static NuclideDefinition InSet(NuclideDefinition definition, NuclideSet set)
-        {
-            definition.Sets.Add(set.Id);
-            return definition;
         }
 
         static Peak Peak(NuclideDefinition definition)

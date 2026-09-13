@@ -61,44 +61,8 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Efficiency maker</value>
   </data>
-  <data name="spectraLabel.Text" xml:space="preserve">
-    <value>Spectra measured in this geometry:</value>
-  </data>
-  <data name="spectraAddButton.Text" xml:space="preserve">
-    <value>Add spectra...</value>
-  </data>
-  <data name="spectraRemoveButton.Text" xml:space="preserve">
-    <value>Remove selected</value>
-  </data>
   <data name="calculateButton.Text" xml:space="preserve">
     <value>Calculate from geometry</value>
-  </data>
-  <data name="spectraClearButton.Text" xml:space="preserve">
-    <value>Clear list</value>
-  </data>
-  <data name="optionsGroupBox.Text" xml:space="preserve">
-    <value>Settings</value>
-  </data>
-  <data name="orderLabel.Text" xml:space="preserve">
-    <value>Polynomial order:</value>
-  </data>
-  <data name="minIntensityLabel.Text" xml:space="preserve">
-    <value>Min. Intensity, %:</value>
-  </data>
-  <data name="minSignificanceLabel.Text" xml:space="preserve">
-    <value>Min. z of a line:</value>
-  </data>
-  <data name="backgroundCheckBox.Text" xml:space="preserve">
-    <value>Subtract background</value>
-  </data>
-  <data name="anchorLabel.Text" xml:space="preserve">
-    <value>Level anchor, keV / eps:</value>
-  </data>
-  <data name="anchorHintLabel.Text" xml:space="preserve">
-    <value>Measurements give the shape only; the absolute level comes from the source curve or from this anchor.</value>
-  </data>
-  <data name="runButton.Text" xml:space="preserve">
-    <value>Build curve</value>
   </data>
   <data name="saveButton.Text" xml:space="preserve">
     <value>Save curve</value>

@@ -1,0 +1,54 @@
+== кривая из геометрии умолчаниями приложения ==
+  геометрия: AS80_point0: crystal Sodium iodide cylinder 80.00x80.00 mm, rho 3.667; source - point, 0.0 mm, Air, dry
+  умолчания: 5-3000 кэВ, Standard, узлов 34, историй 200000
+  счёт: 10.2 с
+  узлов: 38, клеймо: phys=17; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1
+  sha256 узлов: 7e031b8ab6445e97da2657db29a41ff6508d0425289e490570a079fd6391e6a8
+  записано: D:\BqMoni_Claude\p54\after\curve_AS80_point0.txt
+== окно конструктора отражением ==
+  вкладок: 2
+    - «Geometry editor» ()
+    - «Calculate from geometry» (tabPageCalculate)
+  поле tabPageFit: нет
+  поле spectraGrid: нет
+  поле spectrumFiles: нет
+  поле runButton: нет
+  поле optionsGroupBox: нет
+  поле orderNumericUpDown: нет
+  поле minIntensityNumericUpDown: нет
+  поле minSignificanceNumericUpDown: нет
+  поле backgroundCheckBox: нет
+  поле anchorEnergyTextBox: нет
+  поле anchorEfficiencyTextBox: нет
+  поле chainNames: нет
+  метод BuildInput: нет
+  метод AskFallbackDevice: нет
+  метод PackGeometryComplaints: нет
+  метод runButton_Click: нет
+  метод LoadChains: нет
+  метод ReloadNuclideSets: нет
+  метод GuessChain: нет
+  метод UpdateGraphMode: нет
+  кнопка «Save» (): Click есть
+  кнопка «Clone...» (): Click есть
+  кнопка «Delete» (): Click есть
+  кнопка «From device calibration» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «Import from LSRM...» (): Click есть
+  кнопка «Calculate from geometry» (calculateButton): Click есть
+  кнопка «Save curve» (saveButton): Click есть
+  кнопка «Export CSV...» (exportButton): Click есть
+  EfficiencyCurveGraph.ShowDifference: нет
+  тип EfficiencyFitter в сборке: нет
+  тип EfficiencyFitInput: нет
+  тип EfficiencyObservation: нет
+  тип EfficiencyLibrary: нет
+  тип EfficiencyLine: нет
+  EfficiencyLevelSource: None, Simulation
+ВСЕ СОШЛИСЬ
+AcceptP54 exit=0

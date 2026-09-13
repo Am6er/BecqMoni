@@ -64,7 +64,7 @@ static class Real
             }
         }
 
-        ResultData rd = EfficiencyFitter.LoadResultData(path, 0);
+        ResultData rd = EfficiencyCurveIo.LoadResultData(path, 0);
         EnergySpectrum spec = rd.EnergySpectrum;
         EnergyCalibration cal = spec.EnergyCalibration;
         FwhmCalibration fwhmCal = rd.FwhmCalibration;

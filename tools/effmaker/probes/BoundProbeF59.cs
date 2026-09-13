@@ -22,7 +22,8 @@ namespace BoundProbeF59
     ///    кривой, а не рассуждением; затем считается, сколько точек и в скольких
     ///    файлах отвергает новая граница — отдельно на ВВОЗЕ (где точку и так
     ///    снимает правило «погрешность выше 100 % не брать») и на СЫРЫХ данных.
-    ///    Отдельно мерится вторая половина строки — опорная кривая фиттера.
+    ///    Вторая половина строки — опорная кривая фиттера — мерилась здесь до
+    ///    13.09.2026; снята вместе с самим фитом по спектрам (`AMBER25`).
     /// 2. **`A183`, знак вне кодовой страницы 1251.** Положительный контроль —
     ///    ТА САМАЯ снятая строка `File.WriteAllText(..., Encoding.GetEncoding(1251))`,
     ///    выполняемая здесь дословно: она обязана дать `?` там, где новый
@@ -96,7 +97,6 @@ namespace BoundProbeF59
                 A222_WholeLsrmSet();
                 A222_ShippedCurve();
                 A222_BoundItself();
-                A222_FitterReference();
                 A183_Encoding();
                 A183_HealthyGeometries();
                 A120_Defaults();
@@ -293,67 +293,9 @@ namespace BoundProbeF59
                    two == null ? 0 : two.Count, two == null ? double.NaN : two.At(150.0)));
         }
 
-        /// <summary>
-        /// Вторая половина строки `A222`, которой прежняя правка не касалась:
-        /// ОПОРНАЯ кривая фиттера. По ней снимается уровень и по ней же
-        /// `Evaluate` продолжает кривую ниже измеренных линий — там невозможная
-        /// точка и работает.
-        /// </summary>
-        static void A222_FitterReference()
-        {
-            Say("");
-            Say("-- A222.5: опорная кривая фиттера --");
-
-            List<double[]> roi = RoiCurve(Path.Combine(repo,
-                @"BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml"));
-            List<ROIEfficiencyData> whole = roi
-                .Select(p => new ROIEfficiencyData { Energy = p[0], Efficiency = p[1], ErrorPercent = p[2] })
-                .ToList();
-
-            MethodInfo believable = typeof(EfficiencyFitter).GetMethod(
-                "Believable", BindingFlags.NonPublic | BindingFlags.Static);
-            if (believable == null)
-            {
-                Ok(false, "в `EfficiencyFitter` нет `Believable` — просеивания опорной кривой не существует");
-                return;
-            }
-
-            var log = new List<string>();
-            Action<string> sink = log.Add;
-            var kept = (List<ROIEfficiencyData>)believable.Invoke(null, new object[] { whole, sink });
-
-            Ok(kept.Count == whole.Count - 1 && log.Count == 1,
-               string.Format(CultureInfo.InvariantCulture,
-                   "снята ровно одна точка из {0}, и она названа в журнале: {1}",
-                   whole.Count, log.Count == 1 ? Short(log[0]) : "(строк " + log.Count + ")"));
-
-            // ЦЕНА, которую снимает просеивание: продолжение кривой ВНИЗ.
-            double withBad = Extrapolated(whole, 20.0);
-            double withGood = Extrapolated(kept, 20.0);
-            double ratio = withGood > 0.0 ? withBad / withGood : double.NaN;
-            Say(string.Format(CultureInfo.InvariantCulture,
-                "   продолжение кривой на 20 кэВ: с невозможной точкой {0:G4}, без неё {1:G4} — в {2:G4} раза",
-                withBad, withGood, ratio));
-            Ok(ratio > 1000.0,
-               string.Format(CultureInfo.InvariantCulture,
-                   "невозможная точка задирала экстраполяцию вниз более чем в тысячу раз ({0:G4})", ratio));
-        }
-
-        /// <summary>`Evaluate` за нижним краем измеренных линий.</summary>
-        static double Extrapolated(List<ROIEfficiencyData> reference, double energy)
-        {
-            var result = new EfficiencyFitResult
-            {
-                Coefficients = new double[0],
-                Level = Math.Log(0.003),
-                MinEnergy = 40.0,
-                MaxEnergy = 1500.0,
-                ReferenceCurve = reference,
-                LevelSource = EfficiencyLevelSource.Reference,
-            };
-
-            return EfficiencyFitter.Evaluate(result, energy);
-        }
+        // A222.5 — «опорная кривая фиттера» — снята 13.09.2026 вместе с самим
+        // фитом по спектрам (`AMBER25`, решение Amber):
+        // мерить больше нечего.
 
         // ==================================================================
         // A183 — знак, которого в 1251 нет

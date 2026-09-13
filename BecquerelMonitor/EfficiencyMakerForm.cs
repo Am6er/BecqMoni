@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -16,31 +13,27 @@ namespace BecquerelMonitor
     /// <summary>
     /// Конструктор кривой эффективности регистрации.
     ///
-    /// На вход — пачка спектров, снятых В ОДНОЙ геометрии, и, если она есть,
-    /// прежняя кривая. На выход — ROI-файл с кривой, восстановленной из самих
-    /// измерений: линии одной цепочки в вековом равновесии обязаны лечь на одну
-    /// кривую, и по их разбросу кривая и строится (см. EfficiencyFitter).
+    /// Кривая берётся из геометрии прибора и пробы монте-карловским переносом
+    /// (<see cref="EfficiencyCalculation"/>): геометрия правится в редакторе на
+    /// первой вкладке (или ввозится из файла LSRM `.in`), расчёт запускается со
+    /// второй, результат ложится на график и сохраняется в привязанную
+    /// конфигурацию эффективности прибора. Уровень кривой АБСОЛЮТНЫЙ — он
+    /// следует из геометрии, а не подгоняется.
     ///
     /// Кривая привязана к прибору И геометрии: эффективность полного
-    /// поглощения зависит от телесного угла и самопоглощения в пробе. Пачка
-    /// спектров разных геометрий даст бессмысленную среднюю кривую, и форма об
-    /// этом предупреждает в заголовке списка.
+    /// поглощения зависит от телесного угла и самопоглощения в пробе, поэтому
+    /// у одной конфигурации прибора — одна геометрия и одна кривая.
     ///
-    /// Второй путь — «Посчитать из геометрии»: кривая берётся не из измерений,
-    /// а из файла геометрии `.in`, монте-карловским переносом
-    /// (<see cref="EfficiencyCalculation"/>). Спектры для него не нужны вовсе, и
-    /// уровень получается АБСОЛЮТНЫЙ, а не подогнанный: восстановление из
-    /// равновесия даёт только форму. Оба пути кладут результат в одно и то же
-    /// место, так что кривую можно посмотреть на графике и сохранить одинаково.
+    /// Второго пути — эмпирического восстановления кривой из пачки спектров по
+    /// вековому равновесию (вкладка «Fit to measured spectra» и её движок) —
+    /// с 13.09.2026 нет: снят по решению Amber (`AMBER25`, «Этот функционал
+    /// нужно убрать. Его не должно остаться»).
     /// </summary>
     public partial class EfficiencyMakerForm : Form
     {
-        readonly List<string> spectrumFiles = new List<string>();
         /// <summary>
-        /// Исходная кривая, по которой берётся АБСОЛЮТНЫЙ уровень подгонки, —
-        /// кривая привязанной конфигурации прибора (см. <see cref="BindTo"/>).
-        /// Её нет — уровень остаётся взять опорной точкой, иначе подгонка даёт
-        /// одну форму, и так и написано в отчёте.
+        /// Кривая привязанной конфигурации прибора (см. <see cref="BindTo"/>):
+        /// график рисует её пунктиром рядом с только что посчитанной.
         /// </summary>
         List<ROIEfficiencyData> referenceCurve = null;
         EfficiencyFitResult lastResult;
@@ -58,10 +51,7 @@ namespace BecquerelMonitor
             // Прежде кнопку включал только импорт, и выбранный готовый детектор
             // посчитать было нельзя.
             this.calculateButton.Enabled = true;
-            LoadChains();
-            UpdateGraphMode();
             UpdateGeometryLayout();
-            SetUpHints();
         }
 
         GeometryEditorPanel geometryPanel;
@@ -519,8 +509,9 @@ namespace BecquerelMonitor
         /// <summary>
         /// Привязать окно к конфигурации эффективности конкретного прибора.
         /// С этого момента «Сохранить» пишет В НЕЁ, а не в файл, и она же даёт
-        /// исходную кривую — ту, с которой берётся абсолютный уровень подгонки.
-        /// Раньше её выбирали ROI-файлом; выбирать больше нечего, кривая своя.
+        /// исходную кривую — ту, что график рисует пунктиром рядом с
+        /// посчитанной. Раньше её выбирали ROI-файлом; выбирать больше нечего,
+        /// кривая своя.
         ///
         /// Конфигурация правится НА МЕСТЕ, и это осознанно: список на вкладке
         /// прибора и это окно смотрят на один объект, поэтому «Сохранить»
@@ -536,7 +527,8 @@ namespace BecquerelMonitor
             }
 
             // Геометрии может не быть — так открывается и новая конфигурация, и
-            // кривая, восстановленная по измерениям. Тогда в поля заезжает
+            // старая кривая, у которой геометрии нет (ввезена или восстановлена
+            // по измерениям до 13.09.2026). Тогда в поля заезжает
             // ЗАГОТОВКА (SetModel(null) — сцинтиллятор в типичной обвязке), и
             // считать разрешено сразу: расчёт всё равно берёт геометрию из полей,
             // а не из того, что когда-то загрузили. Запертая кнопка означала бы,
@@ -550,8 +542,8 @@ namespace BecquerelMonitor
             // допуск пика нулевой и поправка SingleScatter не даёт ничего.
             this.geometryPanel.SetFwhmSuggestion(FwhmPercentAt662(device));
 
-            // Кривая конфигурации становится исходной: по ней подгонка получает
-            // уровень, и по ней же график рисует полосу отличий.
+            // Кривая конфигурации становится исходной: график рисует её
+            // пунктиром рядом с посчитанной.
             this.referenceCurve = config.HasCurve ? config.Curve : null;
             this.graph.SetData(this.referenceCurve, this.lastResult);
 
@@ -633,11 +625,11 @@ namespace BecquerelMonitor
                 }
 
                 this.boundConfig.Curve = curve;
-                this.boundConfig.Origin = this.lastResult.LevelSource == EfficiencyLevelSource.Simulation
-                    ? EfficiencyOrigin.Simulation
-                    : EfficiencyOrigin.Measurement;
-                // Клеймо едет вместе с кривой (E12): у измерительной кривой
-                // оно пустое, и это тоже правда — физики переноса в ней нет.
+                // Кривую здесь даёт только расчёт из геометрии (`AMBER25`,
+                // 13.09.2026): прежняя развилка по `LevelSource` на
+                // `EfficiencyOrigin.Measurement` ушла вместе с фитом.
+                this.boundConfig.Origin = EfficiencyOrigin.Simulation;
+                // Клеймо едет вместе с кривой (E12).
                 this.boundConfig.ComputeStamp = this.lastResult.ComputeStamp ?? "";
             }
 
@@ -672,7 +664,7 @@ namespace BecquerelMonitor
             {
                 height = this.saveButton.Top - this.tabControl.Top - 12;
             }
-            else if (this.tabControl.SelectedTab == this.tabPageCalculate)
+            else
             {
                 // По СОДЕРЖИМОМУ, а не числом: панель параметров стоит под
                 // подсказкой, подсказка авторазмерная и по-русски на строку
@@ -680,10 +672,6 @@ namespace BecquerelMonitor
                 // константа была снята с прежнего содержимого — подсказки и
                 // одной кнопки — и панель параметров она обрезала.
                 height = this.calculateButton.Bottom + 12 + this.TabChromeHeight;
-            }
-            else
-            {
-                height = FitTabHeight;
             }
 
             this.tabControl.Height = height;
@@ -708,8 +696,10 @@ namespace BecquerelMonitor
             get { return this.tabControl.Height - this.tabControl.DisplayRectangle.Height; }
         }
 
-        /// <summary>Список спектров и рамка настроек — по самой высокой из них.</summary>
-        const int FitTabHeight = 282;
+        void tabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateGeometryLayout();
+        }
 
         /// <summary>
         /// Когда «Сохранить» доступна. Правка геометрии сохраняется САМА ПО
@@ -759,424 +749,8 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Подсказки к настройкам. Пишутся для того, кто спектрометрией не
-        /// занимается: что это число делает с кривой и что будет, если его
-        /// подвинуть, — без слов «полином», «сигма» и «квантовый выход» там,
-        /// где без них можно обойтись.
-        ///
-        /// Подсказка висит и на подписи, и на самом поле: мышь ведут к тому,
-        /// что читают, а читают подпись.
-        /// </summary>
-        void SetUpHints()
-        {
-            // Тексты длинные, и пяти секунд по умолчанию на них не хватает:
-            // подсказка гаснет на середине фразы.
-            this.hints.AutoPopDelay = 30000;
-            this.hints.InitialDelay = 400;
-            this.hints.ReshowDelay = 100;
-
-            Action<Control, Control, string> hint = (label, field, text) =>
-            {
-                if (label != null)
-                {
-                    this.hints.SetToolTip(label, text);
-                }
-
-                if (field != null)
-                {
-                    this.hints.SetToolTip(field, text);
-                }
-            };
-
-            hint(this.orderLabel, this.orderNumericUpDown, Resources.EfficiencyMakerTipOrder);
-            hint(this.minIntensityLabel, this.minIntensityNumericUpDown,
-                 Resources.EfficiencyMakerTipMinIntensity);
-            hint(this.minSignificanceLabel, this.minSignificanceNumericUpDown,
-                 Resources.EfficiencyMakerTipMinSignificance);
-            hint(this.anchorLabel, this.anchorEnergyTextBox, Resources.EfficiencyMakerTipAnchorEnergy);
-            hint(null, this.anchorEfficiencyTextBox, Resources.EfficiencyMakerTipAnchorEfficiency);
-        }
-
-        /// <summary>
-        /// Отличия от исходной кривой показываются только на вкладке подгонки.
-        /// Расчёт из геометрии не поправляет прежнюю кривую, а даёт свою с
-        /// абсолютным уровнем; показывать его расхождение с чужой кривой как
-        /// «отличие» — выдавать за поправку то, что поправкой не является.
-        /// </summary>
-        void UpdateGraphMode()
-        {
-            this.graph.ShowDifference = this.tabControl.SelectedTab == this.tabPageFit;
-        }
-
-        void tabControl_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateGraphMode();
-            UpdateGeometryLayout();
-        }
-
-        /// <summary>Наборы нуклидов, доступные в выпадающем списке строки.</summary>
-        readonly List<string> chainNames = new List<string>();
-
-        void LoadChains()
-        {
-            this.spectrumColumn.HeaderText = Resources.EfficiencyMakerColumnSpectrum;
-            this.nuclideSetColumn.HeaderText = Resources.EfficiencyMakerColumnNuclideSet;
-            this.ReloadNuclideSets(true);
-        }
-
-        /// <summary>
-        /// Перечитать наборы нуклидов из конфига и обновить выпадающий список.
-        ///
-        /// Список строился один раз при открытии формы, а наборы заводят в
-        /// соседнем окне, не закрывая эту: только что созданный набор в списке
-        /// не появлялся. Теперь список перечитывается ещё и в тот момент, когда
-        /// его раскрывают, — это единственный момент, когда он кому-то нужен.
-        ///
-        /// Наборы, которые в кривую не годятся, НАЗЫВАЮТСЯ в журнале с причиной.
-        /// Молчаливое исчезновение неотличимо от «программа не видит мой набор»,
-        /// а причина всегда чинится руками: дописать выходы, добавить вторую
-        /// линию, развести одинаковые имена.
-        /// </summary>
-        /// <param name="verbose">Писать ли причины в журнал.</param>
-        void ReloadNuclideSets(bool verbose)
-        {
-            List<EfficiencyLibrary.SetReject> rejected;
-            Dictionary<string, List<EfficiencyLine>> chains = EfficiencyLibrary.BuildChains(out rejected);
-            List<string> fresh = chains.Keys.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
-            if (fresh.SequenceEqual(this.chainNames, StringComparer.Ordinal) && !verbose)
-            {
-                return;
-            }
-
-            this.chainNames.Clear();
-            this.chainNames.AddRange(fresh);
-
-            // Значения ячеек запоминаются до подмены списка: у ячейки
-            // выпадающего списка значение обязано быть среди его строк, иначе
-            // таблица ругается на каждую отрисовку.
-            List<string> chosen = new List<string>();
-            foreach (DataGridViewRow row in this.spectraGrid.Rows)
-            {
-                chosen.Add(row.Cells[1].Value as string);
-            }
-
-            this.nuclideSetColumn.Items.Clear();
-            // Первая строка — вся библиотека: в спектре ищутся линии всех
-            // наборов, и каждый набор входит своей серией со своей свободной
-            // активностью. Так работал прежний вариант, когда не отмечали
-            // ничего, и это разумное умолчание — спектр не выпадает из счёта
-            // только потому, что его забыли разметить. Разметка нужна, когда
-            // известно, ЧТО в пробе: лишние наборы дают лишние серии, а слабая
-            // серия отбрасывается по разбросу и тратит линии впустую.
-            this.nuclideSetColumn.Items.Add(Resources.EfficiencyMakerWholeLibrary);
-            foreach (string name in this.chainNames)
-            {
-                this.nuclideSetColumn.Items.Add(name);
-            }
-
-            for (int i = 0; i < this.spectraGrid.Rows.Count; i++)
-            {
-                // Набор мог исчезнуть из конфига, пока форма открыта. Строка не
-                // теряется, но выбор в ней сбрасывается, и об этом говорится.
-                bool known = !string.IsNullOrEmpty(chosen[i])
-                             && this.nuclideSetColumn.Items.Contains(chosen[i]);
-                this.spectraGrid.Rows[i].Cells[1].Value =
-                    known ? chosen[i] : Resources.EfficiencyMakerWholeLibrary;
-                if (!known && !string.IsNullOrEmpty(chosen[i]))
-                {
-                    AppendLog(string.Format(CultureInfo.InvariantCulture,
-                                            Resources.EfficiencyMakerSetGone, chosen[i]));
-                }
-            }
-
-            if (!verbose)
-            {
-                return;
-            }
-
-            if (this.chainNames.Count == 0)
-            {
-                AppendLog(Resources.EfficiencyMakerNoChains);
-            }
-
-            foreach (EfficiencyLibrary.SetReject reject in rejected)
-            {
-                AppendLog(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerSetSkipped,
-                                        reject.Name, reject.Reason));
-            }
-        }
-
-        /// <summary>
-        /// Список раскрывают — самое время перечитать наборы: соседнее окно
-        /// могло завести новый, пока эта форма открыта.
-        /// </summary>
-        void spectraGrid_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
-        {
-            if (e.ColumnIndex == 1)
-            {
-                this.ReloadNuclideSets(false);
-            }
-        }
-
-        /// <summary>
-        /// Возврат в окно — тоже повод перечитать. Набор заводят в соседнем
-        /// окне и возвращаются сюда; ждать, пока раскроют список, незачем, а
-        /// подмена состава списка вне режима правки ячейки безопаснее.
-        /// </summary>
-        protected override void OnActivated(EventArgs e)
-        {
-            base.OnActivated(e);
-            this.ReloadNuclideSets(false);
-        }
-
-        /// <summary>
-        /// Своя обработка вместо стандартного окна с ошибкой. Расхождение
-        /// значения ячейки со списком — не повод показывать пользователю
-        /// диалог с трассировкой; строка чинится на месте.
-        /// </summary>
-        void spectraGrid_DataError(object sender, DataGridViewDataErrorEventArgs e)
-        {
-            if (e.ColumnIndex == 1 && e.RowIndex >= 0 && e.RowIndex < this.spectraGrid.Rows.Count)
-            {
-                this.spectraGrid.Rows[e.RowIndex].Cells[1].Value =
-                    Resources.EfficiencyMakerWholeLibrary;
-            }
-
-            e.ThrowException = false;
-        }
-
-        /// <summary>
-        /// Набор, угаданный по имени файла: «ASN16_Th232.xml» -> «Th-232».
-        ///
-        /// Имя набора ищется в имени файла как подстрока, у обоих выброшены
-        /// разделители: «Th-232» -> «th232» находится в «asn16th232». Совпадение
-        /// короче трёх знаков не в счёт, и подойти должен РОВНО один набор —
-        /// иначе остаётся вся библиотека. Пачку в двадцать файлов иначе
-        /// размечать руками, а угадать неправильно хуже, чем не угадать: выбор
-        /// виден в ячейке, но проверять его станут не все.
-        /// </summary>
-        /// <summary>
-        /// (E6) Чем спектры пачки различаются по СЪЁМКЕ. Пусто — расхождений не
-        /// нашлось (или сравнивать не по чему, и это тоже сказано).
-        ///
-        /// Сравнивается то, что в самом файле спектра и что задаёт геометрию:
-        /// прибор (разный прибор — разная съёмка заведомо), геометрия
-        /// прикреплённой кривой, масса и объём пробы. Ни одно из них не
-        /// «геометрия» целиком, но расхождение любого означает, что пачку
-        /// усредняют зря. Отказом это НЕ делается: бывает и осознанная сборная
-        /// пачка, а вот молчать нельзя.
-        ///
-        /// Файлы читаются облегчённо — без разбора калибровок и без обращения к
-        /// конфигурациям устройств: те же файлы всё равно прочтёт фиттер, а
-        /// упасть здесь на спектре, который он прочитал бы, было бы хуже
-        /// молчания. Любая беда чтения — строка в журнале, и только.
-        /// </summary>
-        List<string> PackGeometryComplaints()
-        {
-            var devices = new Dictionary<string, List<string>>();
-            var geometries = new Dictionary<string, List<string>>();
-            var amounts = new Dictionary<string, List<string>>();
-            var complaints = new List<string>();
-
-            foreach (string path in this.spectrumFiles)
-            {
-                string shown = Path.GetFileNameWithoutExtension(path);
-                ResultData data;
-                try
-                {
-                    var serializer = new System.Xml.Serialization.XmlSerializer(typeof(ResultDataFile));
-                    using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    {
-                        var file = (ResultDataFile)serializer.Deserialize(stream);
-                        data = file.ResultDataList != null && file.ResultDataList.Count > 0
-                            ? file.ResultDataList[0]
-                            : null;
-                    }
-                }
-                catch (Exception)
-                {
-                    continue;
-                }
-
-                if (data == null)
-                {
-                    continue;
-                }
-
-                Add(devices, data.DeviceConfigReference == null
-                    ? "" : data.DeviceConfigReference.Name ?? "", shown);
-
-                EfficiencyConfigData eff = data.Efficiency ?? data.FileEfficiency;
-                Add(geometries, eff != null && eff.HasGeometry ? eff.Geometry.Describe() : "", shown);
-
-                Add(amounts, data.SampleInfo == null ? "" : string.Format(
-                    CultureInfo.InvariantCulture, "{0:0.###} г / {1:0.###} мл",
-                    data.SampleInfo.Weight, data.SampleInfo.Volume), shown);
-            }
-
-            Complain(complaints, devices, Resources.EfficiencyMakerPackDevices);
-            Complain(complaints, geometries, Resources.EfficiencyMakerPackGeometries);
-            Complain(complaints, amounts, Resources.EfficiencyMakerPackAmounts);
-            return complaints;
-        }
-
-        static void Add(Dictionary<string, List<string>> map, string key, string spectrum)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                return;
-            }
-
-            List<string> list;
-            if (!map.TryGetValue(key, out list))
-            {
-                list = new List<string>();
-                map[key] = list;
-            }
-
-            list.Add(spectrum);
-        }
-
-        static void Complain(List<string> complaints, Dictionary<string, List<string>> map, string caption)
-        {
-            if (map.Count < 2)
-            {
-                return;
-            }
-
-            var parts = new List<string>();
-            foreach (KeyValuePair<string, List<string>> pair in map)
-            {
-                parts.Add(string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
-                                        pair.Key, string.Join(", ", pair.Value.ToArray())));
-            }
-
-            complaints.Add(string.Format(CultureInfo.InvariantCulture, caption,
-                                         map.Count, string.Join("; ", parts.ToArray())));
-        }
-
-        string GuessChain(string path)
-        {
-            string name = Simplify(Path.GetFileNameWithoutExtension(path));
-            string found = null;
-            foreach (string chain in this.chainNames)
-            {
-                string token = Simplify(chain);
-                if (token.Length >= 3 && name.IndexOf(token, StringComparison.Ordinal) >= 0)
-                {
-                    if (found != null)
-                    {
-                        return Resources.EfficiencyMakerWholeLibrary;
-                    }
-
-                    found = chain;
-                }
-            }
-
-            return found ?? Resources.EfficiencyMakerWholeLibrary;
-        }
-
-        static string Simplify(string value)
-        {
-            StringBuilder text = new StringBuilder();
-            foreach (char c in value ?? "")
-            {
-                if (char.IsLetterOrDigit(c))
-                {
-                    text.Append(char.ToLowerInvariant(c));
-                }
-            }
-
-            return text.ToString();
-        }
-
-        // ------------------------------------------------------------------
-        // Ввод
-        // ------------------------------------------------------------------
-
-
-        void spectraAddButton_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog dialog = new OpenFileDialog())
-            {
-                dialog.Filter = Resources.EfficiencyMakerSpectrumFilter;
-                dialog.Multiselect = true;
-                if (dialog.ShowDialog(this) != DialogResult.OK)
-                {
-                    return;
-                }
-
-                foreach (string file in dialog.FileNames)
-                {
-                    if (this.spectrumFiles.Contains(file, StringComparer.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    this.spectrumFiles.Add(file);
-                    int row = this.spectraGrid.Rows.Add(Path.GetFileNameWithoutExtension(file),
-                                                        this.GuessChain(file));
-                    // Полный путь живёт в строке, а не в ячейке: показывать его
-                    // целиком незачем, а одинаковые имена в разных каталогах
-                    // встречаются.
-                    this.spectraGrid.Rows[row].Tag = file;
-                }
-            }
-        }
-
-        void spectraRemoveButton_Click(object sender, EventArgs e)
-        {
-            List<int> rows = new List<int>();
-            foreach (DataGridViewCell cell in this.spectraGrid.SelectedCells)
-            {
-                if (!rows.Contains(cell.RowIndex))
-                {
-                    rows.Add(cell.RowIndex);
-                }
-            }
-
-            foreach (int index in rows.OrderByDescending(i => i))
-            {
-                this.spectrumFiles.Remove((string)this.spectraGrid.Rows[index].Tag);
-                this.spectraGrid.Rows.RemoveAt(index);
-            }
-        }
-
-        void spectraClearButton_Click(object sender, EventArgs e)
-        {
-            this.spectrumFiles.Clear();
-            this.spectraGrid.Rows.Clear();
-        }
-
-
-        void runButton_Click(object sender, EventArgs e)
-        {
-            if (Busy())
-            {
-                this.cancelRequested = true;
-                return;
-            }
-
-            if (this.spectrumFiles.Count == 0)
-            {
-                MessageBox.Show(this, Resources.EfficiencyMakerNoSpectra, this.Text,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            EfficiencyFitInput input = BuildInput();
-            if (input == null)
-            {
-                return;
-            }
-
-            Start(this.runButton, this.calculateButton, Resources.EfficiencyMakerRunning,
-                  (log, cancelled) => EfficiencyFitter.Run(input, log, cancelled));
-        }
-
-        /// <summary>
-        /// Второй путь к кривой: посчитать её из геометрии, а не восстановить из
-        /// измерений. Спектры для этого не нужны вовсе — нужен файл геометрии.
+        /// Посчитать кривую из геометрии, лежащей в полях редактора. Спектры
+        /// для этого не нужны вовсе. Повторное нажатие во время счёта — стоп.
         /// </summary>
         void calculateButton_Click(object sender, EventArgs e)
         {
@@ -1205,9 +779,8 @@ namespace BecquerelMonitor
 
             GeometryModel model = this.geometry;
             EfficiencyCalculationOptions options = CurrentCalcOptions();
-            Start(this.calculateButton, this.runButton, Resources.EfficiencyMakerCalculating,
-                  (log, cancelled) => EfficiencyCalculation.Run(
-                      model, options, log, cancelled));
+            Start(Resources.EfficiencyMakerCalculating,
+                  (log, cancelled) => EfficiencyCalculation.Run(model, options, log, cancelled));
         }
 
         bool Busy()
@@ -1216,30 +789,29 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Общая обвязка обоих прогонов: кнопка запуска становится «Стоп»,
-        /// вторая гаснет, счёт идёт в фоне, отмена опрашивается заданием.
+        /// Обвязка прогона: кнопка запуска становится «Стоп», счёт идёт в фоне,
+        /// отмена опрашивается заданием. До 13.09.2026 обвязка была общей на два
+        /// прогона (фит по спектрам и расчёт из геометрии); фит снят (`AMBER25`),
+        /// кнопка осталась одна.
         /// </summary>
-        void Start(Button trigger, Button other, string status,
-                   Func<Action<string>, Func<bool>, EfficiencyFitResult> job)
+        void Start(string status, Func<Action<string>, Func<bool>, EfficiencyFitResult> job)
         {
             // Журнал НЕ чистится — ни здесь, ни где-либо ещё, пока окно не
-            // закрыли. Он общий на обе вкладки, и причины отбраковки наборов
-            // нуклидов попадают в него при разборе набора, задолго до прогона;
-            // очистка перед расчётом из геометрии стирала разбор, к которому
-            // расчёт вообще не относится, и понять, почему набор не виден,
-            // становилось не по чему.
+            // закрыли: предупреждения разбора геометрии попадают в него при
+            // импорте, задолго до прогона, и очистка перед расчётом стирала бы
+            // то, к чему расчёт не относится.
             if (this.logTextBox.TextLength > 0)
             {
                 AppendLog("");
             }
 
             this.cancelRequested = false;
+            Button trigger = this.calculateButton;
             string caption = trigger.Text;
             trigger.Text = Resources.EfficiencyMakerStop;
-            other.Enabled = false;
-            // Параметры запираются на любой прогон, а не только на свой: они
-            // сняты в начале счёта, и правка в полях по ходу дела относилась бы
-            // уже к следующему разу — а выглядела бы как относящаяся к этому.
+            // Параметры запираются на прогон: они сняты в начале счёта, и
+            // правка в полях по ходу дела относилась бы уже к следующему разу
+            // — а выглядела бы как относящаяся к этому.
             this.calcOptionsGroup.Enabled = false;
             this.saveButton.Enabled = false;
             this.exportButton.Enabled = false;
@@ -1248,14 +820,13 @@ namespace BecquerelMonitor
 
             // Язык интерфейса выставлен только на потоке формы (MainForm), а
             // счёт идёт на потоке BackgroundWorker: без переноса культуры все
-            // строки прогона — причины отбраковки, итог фита, ошибки — брались
+            // строки прогона — сводка разброса, предупреждения, ошибки — брались
             // бы из нейтрального ресурса вместо выбранного языка.
             //
-            // ⚠ (`A244`) Культура СЧЁТА переносится уже НЕ ради чисел: числа
-            // фиттера печатаются инвариантом сами (05.09.2026), и подмена
-            // разделителя в `MainForm` им больше не нужна. Перенос оставлен
-            // потому, что из фита зовётся и код вне этой полосы; снимается он
-            // вместе с самим костылём `MainForm`, последней полосой `A244`.
+            // ⚠ (`A244`) Культура СЧЁТА переносится уже НЕ ради чисел: расчёт
+            // печатает их инвариантом сам, и подмена разделителя в `MainForm`
+            // ему не нужна. Перенос оставлен до снятия самого костыля
+            // `MainForm`, последней полосой `A244`.
             CultureInfo ui = CultureInfo.CurrentUICulture;
             CultureInfo formatting = CultureInfo.CurrentCulture;
 
@@ -1283,11 +854,6 @@ namespace BecquerelMonitor
                 this.progressBar.Visible = false;
                 trigger.Text = caption;
                 this.calcOptionsGroup.Enabled = true;
-                // Обе кнопки запуска доступны всегда: в редакторе всегда лежит
-                // геометрия (см. конструктор). Прежний возврат «как было»
-                // гасил расчёт навсегда, если первым прошёл фит, — this.geometry
-                // до первого импорта пуст, хотя считать есть по чему.
-                other.Enabled = true;
                 if (args.Error != null)
                 {
                     this.statusLabel.Text = args.Error.Message;
@@ -1302,144 +868,6 @@ namespace BecquerelMonitor
                 Finish((EfficiencyFitResult)args.Result);
             };
             this.worker.RunWorkerAsync();
-        }
-
-        EfficiencyFitInput BuildInput()
-        {
-            // Правка ячейки могла остаться незакрытой — без этого выбор в
-            // последней тронутой строке в модель не попадёт.
-            this.spectraGrid.EndEdit();
-
-            // Пустой список спектров называется своим именем. Раньше он
-            // доходил до счётчика наборов и получал «набор не выбран» — жалоба
-            // не на то, чего не хватает.
-            if (this.spectrumFiles.Count == 0)
-            {
-                MessageBox.Show(this, Resources.EfficiencyMakerNoSpectra, this.Text,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return null;
-            }
-
-            // (E6) Пачка обязана быть ОДНОЙ геометрии: эффективность зависит от
-            // телесного угла и самопоглощения в пробе, и спектры разных съёмок
-            // дают бессмысленную среднюю кривую. Прежде форма писала об этом
-            // только в заголовке списка — предупреждением ВООБЩЕ, которое нечем
-            // соотнести с тем, что человек сейчас положил.
-            foreach (string line in this.PackGeometryComplaints())
-            {
-                AppendLog(line);
-            }
-
-            EfficiencyFitInput input = new EfficiencyFitInput();
-            input.SpectrumFiles.AddRange(this.spectrumFiles);
-            int assigned = 0;
-            foreach (DataGridViewRow row in this.spectraGrid.Rows)
-            {
-                string path = row.Tag as string;
-                string chain = row.Cells[1].Value as string;
-                if (string.IsNullOrEmpty(path))
-                {
-                    continue;
-                }
-
-                bool whole = string.IsNullOrEmpty(chain)
-                             || chain == Resources.EfficiencyMakerWholeLibrary;
-                input.ChainsBySpectrum[path] = whole
-                    ? new List<string>(this.chainNames)
-                    : new List<string> { chain };
-                if (input.ChainsBySpectrum[path].Count > 0)
-                {
-                    assigned++;
-                }
-            }
-
-            if (assigned == 0)
-            {
-                MessageBox.Show(this, Resources.EfficiencyMakerNoChainsChecked, this.Text,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return null;
-            }
-
-            if (!this.AskFallbackDevice(input))
-            {
-                return null;
-            }
-
-            input.PolynomialOrder = (int)this.orderNumericUpDown.Value;
-            input.MinIntensity = (double)this.minIntensityNumericUpDown.Value;
-            input.MinSignificance = (double)this.minSignificanceNumericUpDown.Value;
-            input.SubtractBackground = this.backgroundCheckBox.Checked;
-            input.Reference = this.referenceCurve;
-
-            double anchorEnergy, anchorEfficiency;
-            if (TryParse(this.anchorEnergyTextBox.Text, out anchorEnergy)
-                && TryParse(this.anchorEfficiencyTextBox.Text, out anchorEfficiency))
-            {
-                input.AnchorEnergy = anchorEnergy;
-                input.AnchorEfficiency = anchorEfficiency;
-            }
-
-            return input;
-        }
-
-        /// <summary>
-        /// Спектр без своей калибровки ПШПВ берёт её у конфигурации прибора, на
-        /// которую ссылается. Ссылка может никуда не вести: так бывает у файлов,
-        /// переживших переименование прибора. Прежде такой спектр просто
-        /// выпадал из прогона с сообщением, и сделать с этим было нечего —
-        /// подставить конфигурацию было нечем.
-        ///
-        /// Теперь спрашиваем. Именно спрашиваем, а не подставляем: от
-        /// конфигурации зависят обе калибровки, и молча взятая чужая даёт
-        /// правдоподобные и неверные площади.
-        ///
-        /// false — от выбора отказались, прогон не начинаем.
-        /// </summary>
-        bool AskFallbackDevice(EfficiencyFitInput input)
-        {
-            List<DeviceConfigInfo> devices = DeviceConfigManager.GetInstance().DeviceConfigList;
-            HashSet<string> missing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int count = 0;
-            foreach (string path in input.SpectrumFiles)
-            {
-                string device;
-                if (Utils.SpectrumScout.NeedsDeviceConfig(path, out device)
-                    && !devices.Exists(d => string.Equals(d.Guid, device, StringComparison.OrdinalIgnoreCase)))
-                {
-                    count++;
-                    missing.Add(device);
-                }
-            }
-
-            if (count == 0)
-            {
-                return true;
-            }
-
-            string[] names = new string[missing.Count];
-            missing.CopyTo(names);
-            DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
-                Resources.EfficiencyMakerDeviceGoneTitle,
-                string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerDeviceGoneQuestion,
-                              count, string.Join(", ", names)),
-                devices.ConvertAll<object>(d => d), null);
-            if (chosen == null)
-            {
-                return false;
-            }
-
-            input.FallbackDeviceGuid = chosen.Guid;
-            AppendLog(string.Format(CultureInfo.InvariantCulture,
-                                    Resources.EfficiencyMakerDeviceGoneQuestion, count,
-                                    string.Join(", ", names)) + " " + chosen.Name);
-            return true;
-        }
-
-        static bool TryParse(string text, out double value)
-        {
-            text = (text ?? "").Trim().Replace(',', '.');
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-                && value > 0.0;
         }
 
         void Finish(EfficiencyFitResult result)
@@ -1466,48 +894,15 @@ namespace BecquerelMonitor
 
             this.UpdateSaveState();
 
-            string level;
-            switch (result.LevelSource)
-            {
-                case EfficiencyLevelSource.Reference:
-                    level = Resources.EfficiencyMakerLevelReference;
-                    break;
-                case EfficiencyLevelSource.Anchor:
-                    level = Resources.EfficiencyMakerLevelAnchor;
-                    break;
-                case EfficiencyLevelSource.Simulation:
-                    level = Resources.EfficiencyMakerLevelSimulation;
-                    break;
-                default:
-                    level = Resources.EfficiencyMakerLevelShapeOnly;
-                    break;
-            }
-
-            // У расчёта из геометрии нет ни серий, ни χ²: там нечего подгонять,
-            // и итог другой — сколько точек и в каком диапазоне.
-            this.statusLabel.Text = result.LevelSource == EfficiencyLevelSource.Simulation
-                ? string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
-                                (int)result.MinEnergy, (int)result.MaxEnergy, level)
-                : string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerStatus,
-                                result.AcceptedCount, result.SeriesKeys.Count,
-                                result.Chi2Ndf, level);
+            // Итог расчёта из геометрии: сколько точек, в каком диапазоне и
+            // откуда уровень (он всегда абсолютный, из геометрии).
+            this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                Resources.EfficiencyMakerCalcStatus, result.Curve.Count,
+                (int)result.MinEnergy, (int)result.MaxEnergy,
+                Resources.EfficiencyMakerLevelSimulation);
 
             AppendLog("");
             AppendLog(this.statusLabel.Text);
-            foreach (var group in result.Observations.GroupBy(o => o.SeriesKey))
-            {
-                AppendLog(group.Key);
-                foreach (EfficiencyObservation o in group.OrderBy(o => o.Energy))
-                {
-                    AppendLog(string.Format(CultureInfo.InvariantCulture,
-                        "    {0,8:F1} keV  I={1,6:F2}%  net={2,12:F0}  z={3,7:F1}  {4}",
-                        o.Energy, o.Intensity, o.NetCounts, o.Significance,
-                        o.Accepted
-                            ? string.Format(CultureInfo.InvariantCulture,
-                                "eps={0:E3}  d(ln)={1:F3}", o.MeasuredEfficiency, o.Residual)
-                            : "- " + o.Reason));
-                }
-            }
         }
 
         /// <summary>
@@ -1553,7 +948,7 @@ namespace BecquerelMonitor
 
                 try
                 {
-                    EfficiencyFitter.ExportCsv(dialog.FileName, this.lastResult);
+                    EfficiencyCurveIo.ExportCsv(dialog.FileName, this.lastResult);
                     this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
                                                           Resources.EfficiencyMakerSaved, dialog.FileName);
                 }
@@ -1565,10 +960,10 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Отмена проверяется между спектрами, и прогон по пачке может идти
-        /// ещё долго после закрытия окна. Держать окно до конца нельзя,
-        /// поэтому оно закрывается сразу, счёт получает сигнал отмены, а
-        /// запоздавшие обработчики гасятся проверкой IsDisposed.
+        /// Отмена проверяется между узлами кривой, и расчёт может идти ещё
+        /// долго после закрытия окна. Держать окно до конца нельзя, поэтому
+        /// оно закрывается сразу, счёт получает сигнал отмены, а запоздавшие
+        /// обработчики гасятся проверкой IsDisposed.
         /// </summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
@@ -1578,9 +973,10 @@ namespace BecquerelMonitor
 
         void AppendLog(string message)
         {
-            // Строка добавляется, а не переписывается целиком: в отчёте по
-            // пачке спектров строк тысячи, и присваивание Text на каждой из
-            // них перестраивало весь текст заново — окно вставало.
+            // Строка добавляется, а не переписывается целиком: журнал расчёта
+            // (узлы кривой, разбор геометрии) идёт на сотни строк, и
+            // присваивание Text на каждой из них перестраивало весь текст
+            // заново — окно вставало.
             if (this.IsDisposed || this.Disposing)
             {
                 return;

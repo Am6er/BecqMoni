@@ -105,8 +105,8 @@ namespace BecquerelMonitor
         /// ⚠ Заслон стоит ПОСЛЕ строк, считающих <c>maxChannels</c> и
         /// <c>maxEnergy</c>: их побочное действие нужно тем вызывающим, кто
         /// зовёт проверку ради него и ответ отбрасывает
-        /// (<c>EfficiencyFitter</c>, пробы), и на годном входе поведение
-        /// обязано остаться прежним до бита.
+        /// (<c>EfficiencyCurveIo.LoadResultData</c>, пробы), и на годном входе
+        /// поведение обязано остаться прежним до бита.
         /// </summary>
         public bool CheckCalibration(int channels = 8192)
         {

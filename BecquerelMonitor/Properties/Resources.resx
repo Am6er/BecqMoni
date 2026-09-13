@@ -8531,15 +8531,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="GeometryMaterialsDensityDone" xml:space="preserve">
     <value>Density from composition: {0:0.###} g/cm³.</value>
   </data>
-  <data name="EfficiencyMakerPackDevices" xml:space="preserve">
-    <value>⚠ The pack mixes {0} devices: {1}. One curve belongs to one device and one geometry.</value>
-  </data>
-  <data name="EfficiencyMakerPackGeometries" xml:space="preserve">
-    <value>⚠ The pack mixes {0} geometries: {1}. Averaging them gives a curve that fits none.</value>
-  </data>
-  <data name="EfficiencyMakerPackAmounts" xml:space="preserve">
-    <value>⚠ The pack mixes {0} sample amounts: {1}. Self-absorption differs, so the curve does too.</value>
-  </data>
   <data name="FSAModelResidualRow" xml:space="preserve">
     <value>model residual</value>
   </data>
@@ -42349,15 +42340,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerMenu" xml:space="preserve">
     <value>Efficiency maker...</value>
   </data>
-  <data name="EfficiencyMakerNoSpectra" xml:space="preserve">
-    <value>No spectra selected.</value>
-  </data>
-  <data name="EfficiencyMakerNoChains" xml:space="preserve">
-    <value>No nuclide sets with Intensity found: chains cannot be built.</value>
-  </data>
-  <data name="EfficiencyMakerNoChainsChecked" xml:space="preserve">
-    <value>No chain is checked.</value>
-  </data>
   <data name="EfficiencyMakerNoGeometry" xml:space="preserve">
     <value>No geometry file loaded.</value>
   </data>
@@ -42439,68 +42421,17 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencyMakerCancelled" xml:space="preserve">
     <value>Stopped by user.</value>
   </data>
-  <data name="EfficiencyMakerTooFewLines" xml:space="preserve">
-    <value>Only {0} usable lines: not enough to fit a curve.</value>
-  </data>
-  <data name="EfficiencyMakerNoLiveTime" xml:space="preserve">
-    <value>{0}: no live time, skipped.</value>
-  </data>
-  <data name="EfficiencyMakerSpectrumDone" xml:space="preserve">
-    <value>{0}: {1} lines measured, live {2:F0} s</value>
-  </data>
-  <data name="EfficiencyMakerFitDone" xml:space="preserve">
-    <value>Fit: {0} lines, {1} series, chi2/ndf {2:F2}, range {3:F0}-{4:F0} keV</value>
-  </data>
-  <data name="EfficiencyMakerSingular" xml:space="preserve">
-    <value>Normal equations are singular.</value>
-  </data>
   <data name="EfficiencyMakerNoDeviceConfig" xml:space="preserve">
     <value>Device config not found: {0}</value>
   </data>
   <data name="EfficiencyMakerNoFwhm" xml:space="preserve">
     <value>No FWHM calibration for this spectrum.</value>
   </data>
-  <data name="EfficiencyMakerReasonBlend" xml:space="preserve">
-    <value>blend with {0} {1:F1} keV</value>
-  </data>
-  <data name="EfficiencyMakerReasonWindow" xml:space="preserve">
-    <value>window too narrow</value>
-  </data>
-  <data name="EfficiencyMakerReasonNoPeak" xml:space="preserve">
-    <value>no peak</value>
-  </data>
-  <data name="EfficiencyMakerReasonWeak" xml:space="preserve">
-    <value>weak, z={0:F1}</value>
-  </data>
-  <data name="EfficiencyMakerReasonLoneLine" xml:space="preserve">
-    <value>lone line in the series</value>
-  </data>
-  <data name="EfficiencyMakerRun" xml:space="preserve">
-    <value>Build curve</value>
-  </data>
   <data name="EfficiencyMakerStop" xml:space="preserve">
     <value>Stop</value>
   </data>
-  <data name="EfficiencyMakerRunning" xml:space="preserve">
-    <value>Measuring lines...</value>
-  </data>
-  <data name="EfficiencyMakerStatus" xml:space="preserve">
-    <value>{0} lines, {1} series, chi2/ndf {2:F2}. Level: {3}</value>
-  </data>
-  <data name="EfficiencyMakerLevelReference" xml:space="preserve">
-    <value>from the source curve</value>
-  </data>
-  <data name="EfficiencyMakerLevelAnchor" xml:space="preserve">
-    <value>from the anchor point</value>
-  </data>
-  <data name="EfficiencyMakerLevelShapeOnly" xml:space="preserve">
-    <value>SHAPE ONLY, level is arbitrary</value>
-  </data>
   <data name="EfficiencyMakerSaved" xml:space="preserve">
     <value>Saved: {0}</value>
-  </data>
-  <data name="EfficiencyMakerSpectrumFilter" xml:space="preserve">
-    <value>Spectra (*.xml)|*.xml|All files (*.*)|*.*</value>
   </data>
   <data name="EfficiencyMakerCsvFilter" xml:space="preserve">
     <value>CSV (*.csv)|*.csv|All files (*.*)|*.*</value>
@@ -42513,9 +42444,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerTabCalculate" xml:space="preserve">
     <value>Calculate from geometry</value>
-  </data>
-  <data name="EfficiencyMakerTabFit" xml:space="preserve">
-    <value>Fit to measured spectra</value>
   </data>
   <data name="EfficiencyMakerCalcHint" xml:space="preserve">
     <value>The curve is computed from the geometry file by Monte-Carlo transport - no spectra needed. Unlike the fit, this gives the ABSOLUTE level, not just the shape.</value>
@@ -42555,30 +42483,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencyMakerHistoriesLabel" xml:space="preserve">
     <value>Histories per point:</value>
-  </data>
-  <data name="EfficiencyMakerGraphDiffAxis" xml:space="preserve">
-    <value>new / source - 1, %</value>
-  </data>
-  <data name="EfficiencyMakerGraphDiffNoReference" xml:space="preserve">
-    <value>Load the source curve to see the difference</value>
-  </data>
-  <data name="EfficiencyMakerReasonSeriesScatter" xml:space="preserve">
-    <value>series scatter x{0:F1}</value>
-  </data>
-  <data name="EfficiencyMakerReasonOutlier" xml:space="preserve">
-    <value>outlier {0:F1} sigma</value>
-  </data>
-  <data name="EfficiencyMakerSeriesDropped" xml:space="preserve">
-    <value>series dropped: {0} (scatter x{1:F1})</value>
-  </data>
-  <data name="EfficiencyMakerReasonImpossible" xml:space="preserve">
-    <value>impossible eps={0:F2}</value>
-  </data>
-  <data name="EfficiencyMakerReasonImpossibleLog" xml:space="preserve">
-    <value>{0}: {1:F1} keV dropped, eps={2:F2} &gt; 1</value>
-  </data>
-  <data name="EfficiencyMakerReferenceImpossibleLog" xml:space="preserve">
-    <value>Reference curve: {0:F1} keV dropped, eps={1:G3} - efficiency is the fraction of the emitted photons registered and cannot exceed 1.</value>
   </data>
   <data name="GeometryEditorTitle" xml:space="preserve">
     <value>Geometry editor</value>
@@ -42778,24 +42682,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryWarningFractionType" xml:space="preserve">
     <value>WARNING - {0}: unknown fraction type "{1}", read as mass fractions.</value>
   </data>
-  <data name="EfficiencyMakerGraphDiffNoResult" xml:space="preserve">
-    <value>Build the curve to see the difference</value>
-  </data>
-  <data name="EfficiencyMakerColumnSpectrum" xml:space="preserve">
-    <value>Spectrum</value>
-  </data>
-  <data name="EfficiencyMakerColumnNuclideSet" xml:space="preserve">
-    <value>Nuclide set</value>
-  </data>
-  <data name="EfficiencyMakerNoSetForSpectrum" xml:space="preserve">
-    <value>{0}: no nuclide set chosen, skipped.</value>
-  </data>
-  <data name="EfficiencyMakerImpossibleCurve" xml:space="preserve">
-    <value>The fitted curve is physically impossible: efficiency {1:G3} at {0:F0} keV. {2} lines against {3} free parameters - lower the polynomial order or add spectra.</value>
-  </data>
-  <data name="EfficiencyMakerWholeLibrary" xml:space="preserve">
-    <value>(whole library)</value>
-  </data>
   <data name="GeometryEditorPreset" xml:space="preserve">
     <value>Known detector:</value>
   </data>
@@ -42895,24 +42781,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencySketchIso" xml:space="preserve">
     <value>Isotropic field, sphere radius</value>
   </data>
-  <data name="EfficiencyMakerSetSkipped" xml:space="preserve">
-    <value>Nuclide set "{0}" cannot be used: {1}</value>
-  </data>
-  <data name="EfficiencyMakerSetNoIntensity" xml:space="preserve">
-    <value>{0} of its {1} lines have no Intensity: {2}. The curve is built from peak area divided by Intensity, so such a line cannot be used - {3} usable of {1} left, and at least 2 are needed. Fill Intensity in the nuclide editor.</value>
-  </data>
-  <data name="EfficiencyMakerSetTooFewLines" xml:space="preserve">
-    <value>it holds {0} usable line(s), and at least two are needed - one line has nothing to be compared with.</value>
-  </data>
-  <data name="EfficiencyMakerSetElementXray" xml:space="preserve">
-    <value>Another {0} line(s) are element X-ray fluorescence: {1}. Their intensity is a share within the K series, not a yield per decay, so the curve does not use them.</value>
-  </data>
-  <data name="EfficiencyMakerSetDuplicateName" xml:space="preserve">
-    <value>another set with the same name comes first.</value>
-  </data>
-  <data name="EfficiencyMakerSetGone" xml:space="preserve">
-    <value>Nuclide set "{0}" is gone from the config; the rows that used it fall back to the whole library.</value>
-  </data>
   <data name="BqCoeffAuto" xml:space="preserve">
     <value>Auto from efficiency</value>
   </data>
@@ -42972,21 +42840,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="BqCoeffTipAuto" xml:space="preserve">
     <value>K converts the count rate into becquerels: Bq = cps * K. Ticked, it is computed from the efficiency curve chosen for the spectrum and the Intensity of this zone: K = 100 / (efficiency * Intensity). Unticked, the number in the field is used, as before. The stored number stays either way and is used when there is no curve.</value>
-  </data>
-  <data name="EfficiencyMakerTipOrder" xml:space="preserve">
-    <value>How bendy the curve is allowed to be. 1 is a straight line in log-log axes, 3 is a gentle S. Higher orders follow the measured points more closely, but with few lines they start to swing wildly between them - if the fit is refused as impossible, lower this first.</value>
-  </data>
-  <data name="EfficiencyMakerTipMinIntensity" xml:space="preserve">
-    <value>Weak lines are skipped. The number is Intensity: how many gammas of this energy are emitted per 100 decays. At 1% a line emitted once per hundred decays still counts; raise the value if faint lines are dragging the curve around.</value>
-  </data>
-  <data name="EfficiencyMakerTipMinSignificance" xml:space="preserve">
-    <value>How far a peak must stand out of the background noise to be measured, in units of that noise. 4 means four times the noise - roughly "certainly a peak, not a bump". Lower it to catch weak lines at the cost of chance ones, raise it to keep only the solid peaks.</value>
-  </data>
-  <data name="EfficiencyMakerTipAnchorEnergy" xml:space="preserve">
-    <value>Energy of the point whose efficiency you know, in keV - for example 662 for a Cs-137 source. Left empty together with the field on the right, the curve keeps its shape but has no absolute level.</value>
-  </data>
-  <data name="EfficiencyMakerTipAnchorEfficiency" xml:space="preserve">
-    <value>Efficiency at that energy, as a fraction rather than a percentage: 0.01 means one gamma out of a hundred emitted lands in the full-absorption peak. This single number sets the level of the whole curve; the measurements alone give only its shape.</value>
   </data>
   <data name="EfficiencySketchCylinder" xml:space="preserve">
     <value>Cylinder</value>
@@ -43131,12 +42984,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="FsaNoFwhmSource" xml:space="preserve">
     <value>Device configuration "{0}" has no FWHM calibration either.</value>
-  </data>
-  <data name="EfficiencyMakerDeviceGoneTitle" xml:space="preserve">
-    <value>Spectra without a device configuration</value>
-  </data>
-  <data name="EfficiencyMakerDeviceGoneQuestion" xml:space="preserve">
-    <value>{0} of the chosen spectra carry no FWHM calibration, and the device configuration they refer to is not in your config ({1}). Both calibrations come from it, so the substitute is yours to name:</value>
   </data>
   <data name="EfficiencyTabImportLsrm" xml:space="preserve">
     <value>Import LSRM...</value>

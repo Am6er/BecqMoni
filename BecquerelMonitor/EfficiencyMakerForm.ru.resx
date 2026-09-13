@@ -61,44 +61,8 @@
   <data name="$this.Text" xml:space="preserve">
     <value>Конструктор кривой эффективности</value>
   </data>
-  <data name="spectraLabel.Text" xml:space="preserve">
-    <value>Спектры, снятые в этой геометрии:</value>
-  </data>
-  <data name="spectraAddButton.Text" xml:space="preserve">
-    <value>Добавить спектры…</value>
-  </data>
-  <data name="spectraRemoveButton.Text" xml:space="preserve">
-    <value>Убрать выбранные</value>
-  </data>
   <data name="calculateButton.Text" xml:space="preserve">
     <value>Посчитать из геометрии</value>
-  </data>
-  <data name="spectraClearButton.Text" xml:space="preserve">
-    <value>Очистить список</value>
-  </data>
-  <data name="optionsGroupBox.Text" xml:space="preserve">
-    <value>Настройки</value>
-  </data>
-  <data name="orderLabel.Text" xml:space="preserve">
-    <value>Порядок полинома:</value>
-  </data>
-  <data name="minIntensityLabel.Text" xml:space="preserve">
-    <value>Мин. интенсивность, %:</value>
-  </data>
-  <data name="minSignificanceLabel.Text" xml:space="preserve">
-    <value>Мин. z линии:</value>
-  </data>
-  <data name="backgroundCheckBox.Text" xml:space="preserve">
-    <value>Вычитать фон</value>
-  </data>
-  <data name="anchorLabel.Text" xml:space="preserve">
-    <value>Опора уровня, кэВ / ε:</value>
-  </data>
-  <data name="anchorHintLabel.Text" xml:space="preserve">
-    <value>Измерения дают только форму кривой; абсолютный уровень берётся с исходной кривой или с этой опорной точки.</value>
-  </data>
-  <data name="runButton.Text" xml:space="preserve">
-    <value>Построить кривую</value>
   </data>
   <data name="saveButton.Text" xml:space="preserve">
     <value>Сохранить кривую</value>
