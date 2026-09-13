@@ -1,4 +1,4 @@
-using BecquerelMonitor.EfficiencyMaker;
+﻿using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -25,6 +25,18 @@ namespace LightScaleProbe
     ///     lightscaleprobe --geometry=X.in [--energies=10,20,...]
     ///                     [--n=400000] [--bin=1] [--off]
     ///                     [--kdip=0|1|2|3] [--eta=η] [--eq=кэВ] [--curve=файл]
+    ///                     [--ecomp=0|1]
+    ///
+    /// ⛔ УМОЛЧАНИЕ `--kdip=` — СКЛАДА (`ResponseMatrixOptions.KDipLight`, 1 с
+    /// 12.09.2026), половины — той же раскладкой `KDipCurveHalf`/`KDipCascadeHalf`,
+    /// что у построителя (правило I; остаток П40 закрыт П44 13.09.2026: до того
+    /// проба ставила половины сама от своего `kdip = 0`). Прежние числа —
+    /// явным `--kdip=0`.
+    ///
+    /// `--ecomp=1` (`F11` (г), П44): кривая света сцинтиллятора БЕЗ таблицы
+    /// NIST (LaBr₃:Ce, CeBr₃) — из тормозной способности ESTAR по составу
+    /// (`EstarCalculator.Stopping`); без ключа у них «шкала пропорциональна».
+    /// Умолчание — склада (ВЫКЛ).
     ///
     /// --off считает с выключенным ключом: колонка света обязана стать
     /// пустой, а кривая эффективности — не измениться ни на бит.
@@ -47,7 +59,9 @@ namespace LightScaleProbe
             int histories = 400000;
             double binKev = 1.0;
             bool off = false;
-            int kdip = 0;
+            var store = new ResponseMatrixOptions();
+            int kdip = store.KDipLight;                 // умолчание склада (правило I)
+            bool ecomp = store.ElectronAnyMaterial;     // `F11` (г), П44
             double eta = 0.0;
             double trackEnd = double.NaN;
             string curvePath = null;
@@ -67,6 +81,17 @@ namespace LightScaleProbe
                 else if (a.StartsWith("--eta=", StringComparison.Ordinal)) eta = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--eq=", StringComparison.Ordinal)) trackEnd = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--curve=", StringComparison.Ordinal)) curvePath = a.Substring(8);
+                else if (a.StartsWith("--ecomp=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(8);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--ecomp= принимает только 0 или 1: " + a);
+                        return 2;
+                    }
+
+                    ecomp = v == "1";
+                }
                 else if (a.StartsWith("--energies=", StringComparison.Ordinal))
                 {
                     energies.Clear();
@@ -92,9 +117,10 @@ namespace LightScaleProbe
             Action<EfficiencySimulator> setup = sim =>
             {
                 sim.LightNonproportionality = !off;
-                sim.LightSubKevCurve = kdip == 1 || kdip == 2;
-                sim.LightCascadeSplit = kdip == 1 || kdip == 3;
+                sim.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
+                sim.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
                 sim.LightEtaEh = eta;
+                sim.ElectronAnyMaterial = ecomp;        // `F11` (г), П44
                 if (!double.IsNaN(trackEnd))
                 {
                     sim.LightTrackEndKev = trackEnd;
@@ -103,9 +129,10 @@ namespace LightScaleProbe
             var first = new EfficiencySimulator(geometry.Clone());
             setup(first);
             Console.WriteLine("геометрия: {0}", geometry.Describe());
-            Console.WriteLine("кривая света: {0}; историй {1}, бин {2:F2} кэВ; kdip={3}",
+            Console.WriteLine("кривая света: {0}; историй {1}, бин {2:F2} кэВ; kdip={3}{4}; ecomp={5}{6}",
                 first.LightYieldName == "" ? "НЕТ (шкала пропорциональна)" : first.LightYieldName,
-                histories, binKev, kdip);
+                histories, binKev, kdip, kdip == store.KDipLight ? " (умолчание склада)" : " (ключом)",
+                ecomp ? 1 : 0, ecomp == store.ElectronAnyMaterial ? " (умолчание склада)" : " (ключом)");
             if (curvePath != null && first.LightYieldCurve != null)
             {
                 // (`F11` (а), П17) Кривая электронов прогона — точками таблицы

@@ -284,6 +284,67 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double ElectronStepFraction = 0.1;
 
         /// <summary>
+        /// (`M3`, П44) РЕЖИМ ЗАМЕРА, не настройка: не пользоваться ранним
+        /// выходом по ближайшей грани — электрон шагает до конца пробега и в
+        /// глубине кристалла (`ElectronTransport.cs`). Нужен `BremPathProbe`:
+        /// в кристалле 20×20 см из центра ранний выход срабатывает у КАЖДОГО
+        /// электрона, и баланс «шаги против толстой мишени» без этого рычага
+        /// сравнивал бы толстую мишень саму с собой (П44: положительный
+        /// контроль `--step=1.0` не разошёлся — так и нашлось). Ни один
+        /// штатный путь его не ставит.
+        /// </summary>
+        public bool ElectronTransportNoEarlyExit;
+
+        /// <summary>
+        /// ✅ **ЭЛЕКТРОН В ПРОИЗВОЛЬНОМ ВЕЩЕСТВЕ (`N4`, `F11` (г)) — ключом
+        /// ВЫКЛ (П44, 13.09.2026).** Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronAnyMaterial"/>, правило I).
+        ///
+        /// Включённый: (1) вещество слоя, которое <see cref="ElectronData.Match"/>
+        /// не узнал, получает СВОЮ таблицу пробега ESTAR по составу
+        /// (<see cref="ElectronData.ForComposition"/>) вместо воды —
+        /// занос электронов (<see cref="ElectronWalkToCrystal"/>); то же у
+        /// кристалла неизвестного состава; (2) электрон, рождённый вне
+        /// кристалла — фото, комптон, пара в пробе, оправе, стенке, —
+        /// излучает тормозное по спектру толстой мишени своего вещества
+        /// (<see cref="OutsideBremsstrahlung"/>), кванты ведутся к кристаллу
+        /// тем же обходом, что аннигиляционные от пары вне кристалла (`A52`),
+        /// а занос идёт с остатком после излучения; (3) кривая света
+        /// сцинтиллятора без таблицы NIST (LaBr₃:Ce, CeBr₃) считается из
+        /// тормозной способности <see cref="EstarCalculator.Stopping"/>.
+        /// Выключенный — прежние подстановки до последнего бита и без
+        /// единого лишнего случайного числа.
+        /// </summary>
+        public bool ElectronAnyMaterial = new ResponseMatrixOptions().ElectronAnyMaterial;
+
+        /// <summary>
+        /// ✅ **ТОРМОЗНОЕ ВДОЛЬ ПУТИ (остаток `M3`) — ключом ВЫКЛ (П44,
+        /// 13.09.2026).** Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.BremAlongPath"/>, правило I).
+        ///
+        /// 0 — кванты тормозного разыгрываются в точке рождения электрона
+        /// толстой мишенью (<see cref="ThickTargetBrem.Photons"/>), как было;
+        /// 1 — с переносом (<see cref="ElectronTransport"/>) кванты рождаются
+        /// на КАЖДОМ ШАГЕ переноса тонкой мишенью при энергии середины шага
+        /// (<see cref="ThickTargetBrem.StepPhotons"/>), в случайной точке
+        /// прямого хода до шарнира, направление изотропное; 2 — то же, и
+        /// направление кванта по электрону (модифицированный Цай, как у
+        /// Geant4). Уровень квантов подтянут к ESTAR множителем
+        /// <see cref="ThickTargetBrem.Anchor"/> по начальной энергии, так что
+        /// по всему пути торможения число квантов то же, что у толстой
+        /// мишени (поверка `BremPathProbe`). Без переноса ключ бездействует.
+        /// </summary>
+        public int BremAlongPath = new ResponseMatrixOptions().BremAlongPath;
+
+        /// <summary>
+        /// (`M3`, П44) Счётчики квантов тормозного, рождённых в кристалле
+        /// (обе ветки — в точке рождения и вдоль пути), и их энергия, кэВ —
+        /// читаются пробой `BremPathProbe` после прогона; не настройка.
+        /// </summary>
+        public long CountBremPhotons;
+        public double SumBremKev;
+
+        /// <summary>
         /// Сколько энергии событие может потерять и всё-таки остаться в пике,
         /// кэВ. Пик имеет ширину, и утечка в единицы кэВ из него не выводит.
         /// Ноль (умолчание) — прежний строгий счёт: в пик идёт только история,
@@ -1252,14 +1313,23 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.crystalHasPartials = this.CrystalHasPartials();
-            this.electron = ElectronData.Match(this.geometry.Crystal);
+            this.pushAnalog = this.PushPending;
+            this.pushTotal = this.PushTotalPending;
+            // (`N4`, П44) Кристалл неизвестного состава — под ключом своя
+            // таблица ESTAR по составу вместо «поправки нет».
+            this.electron = ElectronData.Match(this.geometry.Crystal)
+                ?? (this.ElectronAnyMaterial ? ElectronData.ForComposition(this.geometry.Crystal) : null);
             // (`F11` (а), П17) Кривая в коде — только под ключом либо при
-            // заданном η; иначе таблица базы, как было.
+            // заданном η; иначе таблица базы, как было. (`F11` (г), П44) Под
+            // ключом `ElectronAnyMaterial` тормозная способность соединения
+            // без таблицы NIST (LaBr₃:Ce, CeBr₃) считается из базы
+            // (`EstarCalculator.Stopping`) — кривая перестаёт быть null.
             this.lightYield = this.LightNonproportionality && this.electron != null
                 ? (this.LightSubKevCurve || this.LightEtaEh > 0.0
                     ? MaterialDatabase.LightYieldPayne(ScintillatorNameOf(this.electron),
                                                        this.LightEtaEh, this.LightSubKevCurve,
-                                                       this.LightSubKevCurve ? this.LightTrackEndKev : 0.0)
+                                                       this.LightSubKevCurve ? this.LightTrackEndKev : 0.0,
+                                                       this.ElectronAnyMaterial)
                     : MaterialDatabase.LightYieldOf(ScintillatorNameOf(this.electron)))
                 : null;
             this.bremTable = this.Bremsstrahlung && this.BremFromData && this.electron != null
@@ -2865,6 +2935,41 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.pendUz[k] = uz;
             this.pendE[k] = energyKev;
         }
+
+        // (`N4`, П44) Очередь квантов тормозного обвязки у обхода ПОЛНОЙ
+        // эффективности — своя, чтобы не связывать два обхода скрытым
+        // состоянием (см. `TotalEfficiency`). Переполнение считается тем же
+        // счётчиком, что у общей очереди.
+        readonly double[] totPendX = new double[PendMax], totPendY = new double[PendMax], totPendZ = new double[PendMax];
+        readonly double[] totPendUx = new double[PendMax], totPendUy = new double[PendMax], totPendUz = new double[PendMax];
+        readonly double[] totPendE = new double[PendMax];
+        int totPendCount;
+
+        void PushTotalPending(double x, double y, double z,
+                              double ux, double uy, double uz, double energyKev)
+        {
+            if (this.totPendCount >= PendMax)
+            {
+                this.CountPendingDropped++;
+                System.Threading.Interlocked.Increment(ref TotalPendingDropped);
+                return;
+            }
+
+            int k = this.totPendCount++;
+            this.totPendX[k] = x;
+            this.totPendY[k] = y;
+            this.totPendZ[k] = z;
+            this.totPendUx[k] = ux;
+            this.totPendUy[k] = uy;
+            this.totPendUz[k] = uz;
+            this.totPendE[k] = energyKev;
+        }
+
+        // Делегаты очередей — один раз на экземпляр: `OutsideBremsstrahlung`
+        // зовётся на каждое взаимодействие вне кристалла, и группа методов в
+        // аргументе выделяла бы делегат на каждый вызов.
+        Action<double, double, double, double, double, double, double> pushAnalog;
+        Action<double, double, double, double, double, double, double> pushTotal;
 
         public long CountPeakBinDropped, CountAnalogScored;
 
@@ -4512,7 +4617,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // считать их энергию ещё и здесь значило бы засчитать свет дважды.
             double radiated = 0.0;
 
-            if (this.Bremsstrahlung)
+            // (`M3`, П44) Тормозное ВДОЛЬ ПУТИ: кванты рождаются на шагах
+            // переноса (`TransportElectron`), а не здесь. Только при переносе
+            // и табличном спектре; иначе — точка рождения, как было.
+            bool alongPath = this.BremAlongPath != 0 && this.Bremsstrahlung && this.BremFromData
+                             && this.bremTable != null && this.ElectronEscape && this.ElectronTransport;
+
+            if (this.Bremsstrahlung && !alongPath)
             {
                 const double MinKev = 5.0;      // ниже кванту не выйти ниоткуда
                 if (te > MinKev)
@@ -4548,6 +4659,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         }
 
                         radiated += kUse;
+                        this.CountBremPhotons++;
+                        this.SumBremKev += kUse;
                         lost += this.InCrystal(x, y, z, ax, ay, az, kUse, depth + 1);
                     }
                 }
@@ -4559,10 +4672,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ⛔ (`A72`, П27) ПЕРЕНОС: направление рождения по процессу,
                 // шаги по пробегу, многократное рассеяние, вылет по грани.
                 // Унести больше, чем осталось после тормозного, нельзя — тот
-                // же зажим, что у ветки ниже.
+                // же зажим, что у ветки ниже. (`M3`, П44) С `alongPath`
+                // тормозное рождается внутри переноса, `radiated` растёт там.
                 double ux, uy, uz;
                 this.ElectronBirthDirection(birth, te, rx, ry, rz, out ux, out uy, out uz);
-                escapedSelf = this.TransportElectron(x, y, z, ux, uy, uz, te, te - radiated);
+                escapedSelf = this.TransportElectron(x, y, z, ux, uy, uz, te, alongPath, depth,
+                                                     ref radiated, ref lost);
                 lost += escapedSelf;
             }
             else if (this.ElectronEscape)
@@ -5890,8 +6005,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 if (pairMu > 0.0 && channel >= muKill - pairMu
                                     && e > 2.0 * ElectronMassKev)
                                 {
+                                    // (`N4`, П44) Тормозное кинетики пары в веществе
+                                    // слоя — под ключом, в свою очередь этого обхода.
                                     if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
-                                                                    e - 2.0 * ElectronMassKev))
+                                                                    e - 2.0 * ElectronMassKev
+                                                                    - this.OutsideBremsstrahlung(
+                                                                        x, y, z, e - 2.0 * ElectronMassKev,
+                                                                        here.Material, this.pushTotal)))
                                     {
                                         score = weight;
                                         break;
@@ -5924,7 +6044,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 if (xrayOut > 0.0)
                                 {
                                     this.Isotropic(out ux, out uy, out uz);
-                                    if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e - xrayOut))
+                                    if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                                    e - xrayOut - this.OutsideBremsstrahlung(
+                                                                        x, y, z, e - xrayOut,
+                                                                        here.Material, this.pushTotal)))
                                     {
                                         score = weight;
                                         break;
@@ -5934,7 +6057,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     continue;           // квант летит дальше
                                 }
 
-                                if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e))
+                                if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                                e - this.OutsideBremsstrahlung(
+                                                                    x, y, z, e, here.Material, this.pushTotal)))
                                 {
                                     score = weight;
                                 }
@@ -5947,7 +6072,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                             // Комптон-электрон: занос считается ДО поворота
                             // фотона — направлением электрона берётся направление
                             // налетающего кванта (см. шапку ElectronReachesCrystal).
-                            if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz, e - after))
+                            // (`N4`, П44) Сперва тормозное в веществе слоя (под ключом).
+                            if (this.ElectronReachesCrystal(x, y, z, ux, uy, uz,
+                                                            e - after - this.OutsideBremsstrahlung(
+                                                                x, y, z, e - after, here.Material, this.pushTotal)))
                             {
                                 score = weight;
                                 break;
@@ -5972,9 +6100,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // сколько раз. Свой путь у второго кванта считается заново,
                     // ограничение `limit` — тоже: это одно событие прибора, но
                     // два разных луча.
-                    if (score > 0.0 || pending == 0)
+                    if (score > 0.0)
                     {
                         break;
+                    }
+
+                    if (pending == 0)
+                    {
+                        // (`N4`, П44) Кванты тормозного обвязки — из своей
+                        // очереди этого обхода; без ключа она всегда пуста, и
+                        // ход тот же, что был.
+                        if (this.totPendCount == 0)
+                        {
+                            break;
+                        }
+
+                        int k = --this.totPendCount;
+                        x = this.totPendX[k];
+                        y = this.totPendY[k];
+                        z = this.totPendZ[k];
+                        ux = this.totPendUx[k];
+                        uy = this.totPendUy[k];
+                        uz = this.totPendUz[k];
+                        e = this.totPendE[k];
+                        travelled = 0.0;
+                        continue;
                     }
 
                     pending = 0;
@@ -5988,6 +6138,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     travelled = 0.0;
                 }
 
+                // (`N4`, П44) Очередь тормозного этого обхода — пустая к началу
+                // следующей истории (засчитанная история могла оставить кванты).
+                this.totPendCount = 0;
                 sum += score;
                 sum2 += score * score;
             }
@@ -6135,11 +6288,86 @@ namespace BecquerelMonitor.EfficiencyMaker
             ElectronData.Material found;
             if (!this.carryCache.TryGetValue(material, out found))
             {
-                found = ElectronData.Match(material) ?? ElectronData.ByName("Water");
+                // (`N4`, П44) Под ключом неопознанный состав считается СВОЕЙ
+                // таблицей ESTAR, а не водой; без ключа — вода, как было.
+                found = ElectronData.Match(material)
+                        ?? (this.ElectronAnyMaterial ? ElectronData.ForComposition(material) : null)
+                        ?? ElectronData.ByName("Water");
                 this.carryCache[material] = found;
             }
 
             return found;
+        }
+
+        readonly Dictionary<GeometryMaterial, ThickTargetBrem> layerBremCache =
+            new Dictionary<GeometryMaterial, ThickTargetBrem>();
+
+        /// <summary>
+        /// (`N4`, П44) Спектр тормозного толстой мишени ВЕЩЕСТВА СЛОЯ — по
+        /// его составу и его же таблице пробега (<see cref="CarryMedium"/>);
+        /// null — сечений нет. Кэш на экземпляр, таблица — общий кэш по
+        /// составу (<see cref="ThickTargetBrem.For"/>).
+        /// </summary>
+        ThickTargetBrem LayerBrem(GeometryMaterial material)
+        {
+            ThickTargetBrem found;
+            if (!this.layerBremCache.TryGetValue(material, out found))
+            {
+                found = ThickTargetBrem.For(material, this.CarryMedium(material), 5.0);
+                this.layerBremCache[material] = found;
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`N4`, П44) ТОРМОЗНОЕ ЭЛЕКТРОНА, РОЖДЁННОГО ВНЕ КРИСТАЛЛА — только
+        /// под ключом <see cref="ElectronAnyMaterial"/> и при включённом
+        /// <see cref="Bremsstrahlung"/>; без них не тянет ни одного случайного
+        /// числа и возвращает ноль. Число квантов и их энергии — толстая
+        /// мишень вещества слоя (<see cref="LayerBrem"/>), направление
+        /// изотропное, точка — точка рождения электрона (как в кристалле до
+        /// `bpath`; пробег электрона в оправе — доли миллиметра, а к кристаллу
+        /// квант всё равно летит через тот же слой). Кванты кладутся в
+        /// очередь <paramref name="push"/> и ведутся тем же обходом, что
+        /// аннигиляционные от пары вне кристалла (`A52`). Возвращает
+        /// излучённую энергию, кэВ, — занос электрона идёт с остатком.
+        /// Сумма квантов не больше энергии электрона (тот же зажим, что в
+        /// <see cref="ElectronLoss"/>).
+        /// </summary>
+        double OutsideBremsstrahlung(double x, double y, double z, double te, GeometryMaterial material,
+                                     Action<double, double, double, double, double, double, double> push)
+        {
+            const double MinKev = 5.0;
+            if (!this.ElectronAnyMaterial || !this.Bremsstrahlung || !(te > MinKev) || material == null)
+            {
+                return 0.0;
+            }
+
+            ThickTargetBrem table = this.LayerBrem(material);
+            if (table == null)
+            {
+                return 0.0;
+            }
+
+            double radiated = 0.0;
+            int n = this.Poisson(table.Photons(te));
+            for (int i = 0; i < n; i++)
+            {
+                double k = table.SampleKev(te, this.Uniform());
+                double ax, ay, az;
+                this.Isotropic(out ax, out ay, out az);
+                double kUse = Math.Min(k, te - radiated);
+                if (!(kUse > 0.0))
+                {
+                    continue;
+                }
+
+                radiated += kUse;
+                push(x, y, z, ax, ay, az, kUse);
+            }
+
+            return radiated;
         }
 
         /// <summary>
@@ -7350,8 +7578,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     if (pairMu > 0.0 && channel >= muKill - pairMu
                                         && e > 2.0 * ElectronMassKev)
                                     {
+                                        // (`N4`, П44) Кинетика пары излучает
+                                        // тормозное вещества слоя — под ключом;
+                                        // без ключа ноль и ни одного розыгрыша.
                                         if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                      e - 2.0 * ElectronMassKev,
+                                                                      e - 2.0 * ElectronMassKev
+                                                                      - this.OutsideBremsstrahlung(
+                                                                          x, y, z, e - 2.0 * ElectronMassKev,
+                                                                          here.Material, this.pushAnalog),
                                                                       out carried))
                                         {
                                             deposited += carried;
@@ -7378,7 +7612,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     {
                                         this.Isotropic(out ux, out uy, out uz);
                                         if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
-                                                                      e - xrayOut, out carried))
+                                                                      e - xrayOut
+                                                                      - this.OutsideBremsstrahlung(
+                                                                          x, y, z, e - xrayOut,
+                                                                          here.Material, this.pushAnalog),
+                                                                      out carried))
                                         {
                                             deposited += carried;
                                         }
@@ -7387,7 +7625,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         continue;           // квант летит дальше
                                     }
 
-                                    if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e, out carried))
+                                    if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                                  e - this.OutsideBremsstrahlung(
+                                                                      x, y, z, e, here.Material, this.pushAnalog),
+                                                                  out carried))
                                     {
                                         deposited += carried;
                                     }
@@ -7400,7 +7641,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                                 comptonOutside = true;              // замер `S55`
                                 // Занос комптон-электрона — ДО поворота фотона (см.
                                 // шапку ElectronReachesCrystal); фотон летит дальше.
-                                if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz, e - after, out carried))
+                                // (`N4`, П44) Сперва тормозное электрона в веществе
+                                // слоя (под ключом), занос — с остатком.
+                                if (this.ElectronCarryDeposit(x, y, z, ux, uy, uz,
+                                                              e - after - this.OutsideBremsstrahlung(
+                                                                  x, y, z, e - after, here.Material, this.pushAnalog),
+                                                              out carried))
                                 {
                                     deposited += carried;
                                 }

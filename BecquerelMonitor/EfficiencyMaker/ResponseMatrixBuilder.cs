@@ -835,6 +835,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // путём: не доехав до построителя, ключ мёртв (`S130`), а
                 // клеймо `imp=1` при этом лгало бы о происхождении матрицы.
                 ImportanceSampling = options.ImportanceSampling,
+                // ⛔ (`N4`/`F11` (г) и `M3`, П44 13.09.2026) Электрон в
+                // произвольном веществе и тормозное вдоль пути — тем же
+                // путём: не доехав до построителя, ключ мёртв (`S130`), а
+                // клеймо `ecomp=1`/`bpath=N` лгало бы о происхождении матрицы.
+                ElectronAnyMaterial = options.ElectronAnyMaterial,
+                BremAlongPath = options.BremAlongPath,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор

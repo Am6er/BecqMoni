@@ -246,6 +246,20 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// по-прежнему совпадает с точкой рождения электрона (остаток M3). Ниже
     /// 10 кэВ таблица пробега ESTAR кончается, и интеграл там обрезан: на
     /// энергию квантов выше 5 кэВ это не влияет.
+    ///
+    /// ✅ ОСТАТОК `M3` (П44, 13.09.2026) — ключом
+    /// <see cref="EfficiencySimulator.BremAlongPath"/> (клеймо `bpath=N`, ВЫКЛ
+    /// до единого счёта физики 18): с переносом электрона (`etr=1`) кванты
+    /// рождаются НА ШАГАХ переноса, там, где электрон реально теряет энергию,
+    /// — тонкой мишенью при текущей энергии (<see cref="StepPhotons"/>,
+    /// <see cref="SampleStepKev"/>); толстая мишень остаётся у ветки без
+    /// переноса и у ключа ВЫКЛ. Уровень 2 — квант ещё и летит по электрону
+    /// (модифицированный Цай), а не изотропно.
+    ///
+    /// ✅ `N4` (П44): та же таблица строится для ЛЮБОГО вещества сцены —
+    /// электрон, рождённый в оправе, стенке или пробе, излучает по своему
+    /// составу (<see cref="EfficiencySimulator.ElectronAnyMaterial"/>,
+    /// клеймо `ecomp=1`); до П44 тормозное вне кристалла не считалось вовсе.
     /// </summary>
     public sealed class ThickTargetBrem
     {
@@ -257,6 +271,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         double[] photons;         // среднее число квантов выше MinKev
         double[] radiatedKev;     // средняя энергия этих квантов
         double[] anchorFactor;    // во сколько раз уровень подтянут к ESTAR
+
+        // (`M3`, П44) ТОНКАЯ МИШЕНЬ — тормозное на ШАГЕ переноса при текущей
+        // энергии электрона, без интеграла по пути: [T][k] — квантов ВЫШЕ
+        // node[k] на 1 г/см² пути у электрона энергии node[T] (Σ wᵢ N_A/Aᵢ ∫ dσᵢ/dk).
+        double[][] thinAbove;
+        double[] thinPhotons;     // то же выше MinKev — thinAbove[T][0]
+        double[] thinRadiated;    // излучённая энергия на 1 г/см² выше MinKev
 
         static readonly object Gate = new object();
         static readonly Dictionary<string, ThickTargetBrem> cache =
@@ -278,19 +299,12 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Ключ — по СОСТАВУ, а не по имени: имена веществ в библиотеке
             // повторяются, а таблица зависит от Z и долей. Совпадение имён при
-            // разном составе дало бы чужой спектр молча.
-            var key = new System.Text.StringBuilder();
-            key.Append(electron.Name).Append('|')
-               .Append(minKev.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
-            List<int> ordered = new List<int>(material.Fractions.Keys);
-            ordered.Sort();
-            foreach (int z in ordered)
-            {
-                key.Append('|').Append(z.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(':')
-                   .Append(material.Fractions[z].ToString(
-                       "R", System.Globalization.CultureInfo.InvariantCulture));
-            }
-            string cacheKey = key.ToString();
+            // разном составе дало бы чужой спектр молча. Текст состава — общий
+            // с кэшем пробегов (`ElectronData.CompositionKey`, П44); имя
+            // таблицы электрона у вещества по составу — тот же текст.
+            string cacheKey = electron.Name + "|"
+                + minKev.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + ElectronData.CompositionKey(material);
             lock (Gate)
             {
                 ThickTargetBrem found;
@@ -337,8 +351,47 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public double SampleKev(double teKev, double u)
         {
+            return this.SampleFrom(this.cumulative, teKev, u);
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Среднее число квантов выше <see cref="MinKev"/>,
+        /// рождённых НА ШАГЕ переноса длиной <paramref name="stepGCm2"/> г/см²
+        /// при энергии электрона <paramref name="teKev"/> — тонкая мишень:
+        /// сечение Зельцера — Бергера при текущей энергии, без интеграла по
+        /// пути. Уровень подтянут к ESTAR тем же множителем, что толстая
+        /// мишень (<see cref="Anchor"/> по НАЧАЛЬНОЙ энергии электрона —
+        /// передаётся вызывающим, потому что здесь начальная энергия
+        /// неизвестна): интеграл шагов по всему пути торможения обязан дать
+        /// то же число квантов, что <see cref="Photons"/> (поверка
+        /// `BremPathProbe`).
+        /// </summary>
+        public double StepPhotons(double teKev, double stepGCm2, double anchor)
+        {
+            double perGram = Interpolate(this.thinPhotons, teKev);
+            return perGram > 0.0 && stepGCm2 > 0.0 ? perGram * stepGCm2 * anchor : 0.0;
+        }
+
+        /// <summary>Энергия, излучённая на 1 г/см² выше <see cref="MinKev"/>, кэВ — для поверки баланса.</summary>
+        public double StepRadiatedPerGram(double teKev)
+        {
+            return Interpolate(this.thinRadiated, teKev);
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Энергия кванта, рождённого на шаге при энергии
+        /// электрона <paramref name="teKev"/>, по равномерному числу — форма
+        /// тонкой мишени с ближайшего снизу узла, как у <see cref="SampleKev"/>.
+        /// </summary>
+        public double SampleStepKev(double teKev, double u)
+        {
+            return this.SampleFrom(this.thinAbove, teKev, u);
+        }
+
+        double SampleFrom(double[][] table, double teKev, double u)
+        {
             int j = IndexBelow(teKev);
-            double[] cum = this.cumulative[j];
+            double[] cum = table[j];
             // cum убывает от 1 (на MinKev) до 0 (на node[j]) — ищем, где u
             int lo = 0, hi = j;
             if (hi <= lo)
@@ -512,6 +565,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 radiated[j] *= anchor[j];
             }
 
+            double[][] thinAbove;
+            double[] thinPhotons, thinRadiated;
+            BuildThin(zs, weights, tables, node, out thinAbove, out thinPhotons, out thinRadiated);
+
             return new ThickTargetBrem
             {
                 MinKev = minKev,
@@ -519,7 +576,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 cumulative = cumulative,
                 photons = photons,
                 radiatedKev = radiated,
-                anchorFactor = anchor
+                anchorFactor = anchor,
+                thinAbove = thinAbove,
+                thinPhotons = thinPhotons,
+                thinRadiated = thinRadiated,
             };
         }
 
@@ -613,19 +673,90 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                double kappa = kKev / t;
-                double perGram = 0.0;
-                for (int i = 0; i < tables.Count; i++)
-                {
-                    double z = zs[i];
-                    double chi = tables[i].Chi(t, kappa);
-                    perGram += weights[i] * chi * MilliBarnCm2 * z * z / (beta2 * kKev);
-                }
-
+                double perGram = PerGram(zs, weights, tables, kKev, t, beta2);
                 sum += perGram * inverseStopping * width;
             }
 
             return sum;
+        }
+
+        /// <summary>
+        /// dσ/dk на грамм вещества, см²/(г·кэВ), при энергии электрона
+        /// <paramref name="tKev"/> и кванта <paramref name="kKev"/>: Σᵢ wᵢ·(N_A/Aᵢ)·χᵢ·Z²/(β²·k).
+        /// Одно выражение на толстую мишень (<see cref="Differential"/>) и на
+        /// шаг тонкой (<see cref="StepPhotons"/>, `M3`), иначе две формулы
+        /// одной величины разошлись бы молча (`S37`).
+        /// </summary>
+        static double PerGram(List<int> zs, List<double> weights,
+                              List<SeltzerBergerData.Element> tables,
+                              double kKev, double tKev, double beta2)
+        {
+            double kappa = kKev / tKev;
+            double perGram = 0.0;
+            for (int i = 0; i < tables.Count; i++)
+            {
+                double z = zs[i];
+                double chi = tables[i].Chi(tKev, kappa);
+                perGram += weights[i] * chi * MilliBarnCm2 * z * z / (beta2 * kKev);
+            }
+
+            return perGram;
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Таблицы тонкой мишени: у электрона энергии node[j] на
+        /// 1 г/см² пути — квантов выше node[i] и излучённая энергия выше
+        /// MinKev. Трапеция по той же логарифмической сетке k, что у толстой
+        /// мишени; нули при k ≥ T.
+        /// </summary>
+        static void BuildThin(List<int> zs, List<double> weights,
+                              List<SeltzerBergerData.Element> tables,
+                              double[] node, out double[][] thinAbove,
+                              out double[] thinPhotons, out double[] thinRadiated)
+        {
+            int n = node.Length;
+            thinAbove = new double[n][];
+            thinPhotons = new double[n];
+            thinRadiated = new double[n];
+            for (int j = 0; j < n; j++)
+            {
+                double[] cum = new double[n];
+                thinAbove[j] = cum;
+                if (j < 2)
+                {
+                    continue;
+                }
+
+                double t = node[j];
+                double gamma = 1.0 + t / ElectronMassKev;
+                double beta2 = 1.0 - 1.0 / (gamma * gamma);
+                if (!(beta2 > 0.0))
+                {
+                    continue;
+                }
+
+                double total = 0.0, energy = 0.0;
+                double[] above = new double[n];
+                for (int i = j - 1; i >= 0; i--)
+                {
+                    double dk = node[i + 1] - node[i];
+                    double d0 = PerGram(zs, weights, tables, node[i], t, beta2);
+                    double d1 = i + 1 < j ? PerGram(zs, weights, tables, node[i + 1], t, beta2) : 0.0;
+                    total += 0.5 * (d0 + d1) * dk;
+                    energy += 0.5 * (d0 * node[i] + d1 * node[i + 1]) * dk;
+                    above[i] = total;
+                }
+
+                thinPhotons[j] = total;
+                thinRadiated[j] = energy;
+                if (total > 0.0)
+                {
+                    for (int i = 0; i < j; i++)
+                    {
+                        cum[i] = above[i] / total;
+                    }
+                }
+            }
         }
 
         /// <summary>

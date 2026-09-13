@@ -1,0 +1,7 @@
+LaBr3_bare_gap5 ecomp1 code=0 t=29s
+LaBr3_bare_gap5 ecomp0 code=0 t=29s
+CeBr3_bare_gap5 ecomp1 code=0 t=30s
+CeBr3_bare_gap5 ecomp0 code=0 t=28s
+AS80 ecomp1 code=0 t=25s
+AS80 ecomp0 code=0
+done 13:17:09

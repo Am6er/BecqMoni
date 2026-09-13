@@ -25,6 +25,14 @@ namespace G4RawProbe
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
     ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
+    ///                [--ecomp=0|1] [--bpath=0|1|2]
+    ///
+    /// `--ecomp=1` (`N4`/`F11` (г), П44 13.09.2026): электрон в произвольном
+    /// веществе — пробег по составу слоя и тормозное электронов, рождённых вне
+    /// кристалла (проба, оправа, стенка). `--bpath=N` (`M3`, П44): тормозное
+    /// вдоль пути переноса (1 изотропно, 2 по электрону). Умолчания — склада
+    /// (оба ВЫКЛ до единого счёта физики 18). Мерка: голые RC103 / AS80 на
+    /// 662 / 2614 и диск `AS80_th_disk` 2614 против `g4cf` по полосам.
     ///
     /// ⛔ УМОЛЧАНИЯ КЛЮЧЕЙ ФИЗИКИ — ОТ СКЛАДА, а не литералами (П37
     /// 13.09.2026, физика 17): `--lys=`, `--etr=`, `--kdip=`, `--positron=`,
@@ -125,6 +133,8 @@ namespace G4RawProbe
             bool etr = store.ElectronTransport;         // `A72`, П27 — умолчание склада (ВКЛ с 13.09.2026)
             double etrStep = -1.0;                      // <0 — умолчание симулятора
             int kdip = store.KDipLight;                 // `F11` (а)/П17: K-провал и раздельный каскад — умолчание склада (1)
+            bool ecomp = store.ElectronAnyMaterial;     // `N4`/`F11` (г), П44 — умолчание склада (ВЫКЛ)
+            int bpath = store.BremAlongPath;            // `M3`, П44 — умолчание склада (0)
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -195,6 +205,25 @@ namespace G4RawProbe
                 if (a.StartsWith("--etr-step=", StringComparison.Ordinal))
                 {
                     etrStep = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // `N4`/`F11` (г) и `M3` (П44): электрон в произвольном веществе,
+                // тормозное вдоль пути.
+                if (a.StartsWith("--ecomp=", StringComparison.Ordinal))
+                {
+                    ecomp = Flag01(a, 8);
+                    continue;
+                }
+                if (a.StartsWith("--bpath=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(8);
+                    if (v != "0" && v != "1" && v != "2")
+                    {
+                        Console.Error.WriteLine("--bpath= принимает только 0, 1 или 2: " + a);
+                        return 2;
+                    }
+
+                    bpath = int.Parse(v, CultureInfo.InvariantCulture);
                     continue;
                 }
                 if (a.StartsWith("--esc-soft=", StringComparison.Ordinal))
@@ -303,6 +332,8 @@ namespace G4RawProbe
             simulator.KLCascade = !noKLCascade;         // `A101`
             simulator.LYieldSupply = lys;               // `M9`, П23
             simulator.ElectronTransport = etr;          // `A72`, П27
+            simulator.ElectronAnyMaterial = ecomp;      // `N4`/`F11` (г), П44
+            simulator.BremAlongPath = bpath;            // `M3`, П44
             simulator.LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(kdip);
             simulator.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
@@ -353,6 +384,12 @@ namespace G4RawProbe
                               !esc ? "ВЫКЛЮЧЕН (--no-esc)"
                               : etr ? "ПЕРЕНОС (Заутер/кинематика/Цай, шаг " + simulator.ElectronStepFraction.ToString("0.###", CultureInfo.InvariantCulture) + " пробега, Хайленд, вылет по грани)"
                               : "эффективная глубина (как до 12.09.2026)");
+            Console.WriteLine("электрон в произвольном веществе (`N4`, --ecomp=): {0}{1}",
+                              ecomp ? "ВКЛ (пробег и тормозное обвязки по составу)" : "выкл (вода, тормозного обвязки нет)",
+                              ecomp == store.ElectronAnyMaterial ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("тормозное вдоль пути (`M3`, --bpath=): {0}{1}",
+                              bpath == 0 ? "выкл (в точке рождения)" : bpath == 1 ? "1 (на шагах переноса, изотропно)" : "2 (на шагах переноса, по электрону)",
+                              bpath == store.BremAlongPath ? " (умолчание склада)" : " (ключом)");
 
             if (scenePath != null)
             {

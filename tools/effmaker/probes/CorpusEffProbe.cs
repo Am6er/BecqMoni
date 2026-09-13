@@ -1,4 +1,4 @@
-using BecquerelMonitor;
+﻿using BecquerelMonitor;
 using BecquerelMonitor.EfficiencyMaker;
 using System;
 using System.Collections.Generic;
@@ -47,6 +47,10 @@ using System.Xml.Serialization;
 //   corpuseffprobe [--dir=tools\CORPUS\corpus\geometries]
 //                  [--spectra=tools\CORPUS\corpus\spectra] [--n=200000]
 //                  [--only=<ключ геометрии>] [--dry] [--imp=0|1] [--allow-noisy] [--log]
+//                  [--ecomp=0|1] [--bpath=0|1|2]
+//
+// `--ecomp=`, `--bpath=` (П44 13.09.2026, `N4`/`F11` (г), `M3`) — физика
+// кривой ключами склада (умолчания ВЫКЛ); в клеймо кривой — `ecomp=1`, `bpath=N`.
 //
 // ⛔ ПРИЗНАК РАЗБРОСА НА УЗЕЛ (`E29`, П41 13.09.2026). Кривая — Монте-Карло, и
 // её узлы шумят; на полевой сцене («детектор на земле») при штатных 200 000
@@ -112,6 +116,28 @@ class CorpusEffProbe
                 }
 
                 importance = v == "1";
+            }
+            else if (a.StartsWith("--ecomp=", StringComparison.Ordinal))
+            {
+                string v = a.Substring(8);
+                if (v != "0" && v != "1")
+                {
+                    Console.Error.WriteLine("⛔ ключ --ecomp= понимает только 0 и 1, а получил «" + v + "»");
+                    return 2;
+                }
+
+                physics.ElectronAnyMaterial = v == "1";
+            }
+            else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
+            {
+                string v = a.Substring(8);
+                if (v != "0" && v != "1" && v != "2")
+                {
+                    Console.Error.WriteLine("⛔ ключ --bpath= понимает только 0, 1 и 2, а получил «" + v + "»");
+                    return 2;
+                }
+
+                physics.BremAlongPath = int.Parse(v, CultureInfo.InvariantCulture);
             }
             else if (a == "--allow-noisy") allowNoisy = true;
             else if (a == "--log") echoLog = true;

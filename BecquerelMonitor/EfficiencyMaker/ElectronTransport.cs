@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -60,6 +60,19 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// 5. Тормозное — КАК БЫЛО: кванты разыгрываются в точке рождения по
     ///    <see cref="ThickTargetBrem"/>, излучённое зажимает уносимую энергию
     ///    (`M3` — отдельная строка, не трогается).
+    ///    ✅ (`M3`, П44 13.09.2026) Под ключом
+    ///    <see cref="EfficiencySimulator.BremAlongPath"/> кванты рождаются
+    ///    НА ШАГАХ переноса — в точке шарнира, тонкой мишенью при энергии
+    ///    середины шага (<see cref="ThickTargetBrem.StepPhotons"/>), уровень
+    ///    подтянут к ESTAR множителем по начальной энергии; направление —
+    ///    изотропное (уровень 1) или по электрону модифицированным Цаем
+    ///    (уровень 2). Электрон, который по раннему выходу погибнет внутри,
+    ///    отдаёт остаток тормозного толстой мишенью в точке выхода: его
+    ///    остаточный пробег короче расстояния до грани, и для КВАНТА (пробег
+    ///    сантиметры) смещение точки на доли миллиметра ничего не решает.
+    ///    Энергия электрона на шаге — по CSDA, то есть средняя радиационная
+    ///    потеря в ней уже сидит; разыгранный квант её не вычитает второй раз,
+    ///    а зажимается суммой (радиация + унос ≤ T), как в точечной ветке.
     ///
     /// ЦЕНА. Горячее ядро: <see cref="EfficiencySimulator.ElectronLoss"/>
     /// зовётся на каждое взаимодействие. Чтобы платить только там, где вылет
@@ -329,10 +342,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Провести электрон кинетической энергии <paramref name="te"/> из точки
         /// (x, y, z) в направлении (ux, uy, uz) до гибели или до грани.
         /// Возвращает энергию, унесённую через грань (0 — погиб внутри), не
-        /// больше <paramref name="cap"/> (то, что осталось после тормозного).
+        /// больше `te − radiated` (то, что осталось после тормозного).
+        ///
+        /// (`M3`, П44) <paramref name="alongPath"/> — тормозное рождается на
+        /// шагах здесь (<see cref="StepBremsstrahlung"/>), излучённое копится в
+        /// <paramref name="radiated"/>, вылет квантов — в <paramref name="lost"/>;
+        /// без него ни одного лишнего розыгрыша, ход тот же, что до П44.
         /// </summary>
         double TransportElectron(double x, double y, double z, double ux, double uy, double uz,
-                                 double te, double cap)
+                                 double te, bool alongPath, int depth,
+                                 ref double radiated, ref double lost)
         {
             double density = this.geometry.Crystal.Density;
             double x0 = this.CrystalRadiationLength();
@@ -344,8 +363,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Ранний выход: пробег короче расстояния до ближайшей грани —
             // погибнет внутри при любой траектории.
-            if (residual / density <= this.CrystalNearestFace(x, y, z))
+            if (!this.ElectronTransportNoEarlyExit
+                && residual / density <= this.CrystalNearestFace(x, y, z))
             {
+                if (alongPath)
+                {
+                    this.RestBremsstrahlung(x, y, z, ux, uy, uz, te, te, depth, ref radiated, ref lost);
+                }
+
                 return 0.0;
             }
 
@@ -354,6 +379,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 fraction = 1.0;
             }
+
+            // (`M3`) Подтяжка уровня к ESTAR — по НАЧАЛЬНОЙ энергии, одна на
+            // весь путь: так интеграл шагов даёт число квантов толстой мишени.
+            double anchor = alongPath ? this.bremTable.Anchor(te) : 1.0;
 
             double t = te;
             for (int step = 0; step < TransportMaxSteps && t > TransportCutKev; step++)
@@ -366,7 +395,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
                 if (first >= toEdge)
                 {
-                    return this.EscapeEnergy(residual - toEdge * density, cap);
+                    return this.EscapeEnergy(residual - toEdge * density, te - radiated);
                 }
 
                 x += ux * first;
@@ -380,6 +409,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     tMid = TransportCutKev;
                 }
 
+                if (alongPath)
+                {
+                    // (`M3`, П44) Тормозное ШАГА — в точке шарнира, при энергии
+                    // середины шага, по направлению электрона ДО поворота.
+                    this.StepBremsstrahlung(x, y, z, ux, uy, uz, tMid, stepG, anchor, te, depth,
+                                            ref radiated, ref lost);
+                }
+
                 double theta0 = HighlandTheta0(tMid, stepG / x0);
                 this.Rotate(ref ux, ref uy, ref uz, 1.0 - this.SampleHingeMu(theta0));
 
@@ -388,7 +425,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 toEdge = this.CrystalPath(x, y, z, ux, uy, uz);
                 if (second >= toEdge)
                 {
-                    return this.EscapeEnergy(residual - (first + toEdge) * density, cap);
+                    return this.EscapeEnergy(residual - (first + toEdge) * density, te - radiated);
                 }
 
                 x += ux * second;
@@ -397,13 +434,91 @@ namespace BecquerelMonitor.EfficiencyMaker
                 residual -= stepG;
                 t = ElectronData.EnergyOfRange(this.electron, residual);
 
-                if (residual / density <= this.CrystalNearestFace(x, y, z))
+                if (!this.ElectronTransportNoEarlyExit
+                    && residual / density <= this.CrystalNearestFace(x, y, z))
                 {
+                    if (alongPath)
+                    {
+                        this.RestBremsstrahlung(x, y, z, ux, uy, uz, t, te, depth, ref radiated, ref lost);
+                    }
+
                     return 0.0;
                 }
             }
 
             return 0.0;
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Кванты тормозного ОДНОГО ШАГА переноса: среднее число —
+        /// тонкая мишень при энергии <paramref name="tKev"/> на пути
+        /// <paramref name="stepG"/> г/см² (<see cref="ThickTargetBrem.StepPhotons"/>),
+        /// энергия — <see cref="ThickTargetBrem.SampleStepKev"/>, направление —
+        /// изотропное (уровень 1) либо по электрону модифицированным Цаем
+        /// (уровень 2, как `G4SeltzerBergerModel`). Сумма квантов не больше
+        /// начальной энергии <paramref name="te"/> за вычетом уже излучённого —
+        /// тот же зажим, что у точечной ветки; розыгрыши делаются всегда.
+        /// </summary>
+        void StepBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                double tKev, double stepG, double anchor, double te, int depth,
+                                ref double radiated, ref double lost)
+        {
+            int n = this.Poisson(this.bremTable.StepPhotons(tKev, stepG, anchor));
+            for (int i = 0; i < n; i++)
+            {
+                double k = this.bremTable.SampleStepKev(tKev, this.Uniform());
+                this.EmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, te, depth, ref radiated, ref lost);
+            }
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Остаток тормозного электрона, который погибнет внутри
+        /// (ранний выход по ближайшей грани): толстая мишень от текущей
+        /// энергии <paramref name="tKev"/> в точке выхода из переноса.
+        /// </summary>
+        void RestBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                double tKev, double te, int depth,
+                                ref double radiated, ref double lost)
+        {
+            if (!(tKev > this.bremTable.MinKev))
+            {
+                return;
+            }
+
+            int n = this.Poisson(this.bremTable.Photons(tKev));
+            for (int i = 0; i < n; i++)
+            {
+                double k = this.bremTable.SampleKev(tKev, this.Uniform());
+                this.EmitBremsstrahlung(x, y, z, ux, uy, uz, k, tKev, te, depth, ref radiated, ref lost);
+            }
+        }
+
+        /// <summary>Один квант тормозного из точки (x, y, z): направление по уровню ключа, зажим, проводка.</summary>
+        void EmitBremsstrahlung(double x, double y, double z, double ux, double uy, double uz,
+                                double k, double tKev, double te, int depth,
+                                ref double radiated, ref double lost)
+        {
+            double ax, ay, az;
+            if (this.BremAlongPath >= 2)
+            {
+                ax = ux; ay = uy; az = uz;
+                this.Rotate(ref ax, ref ay, ref az, this.TsaiCosine(tKev));
+            }
+            else
+            {
+                this.Isotropic(out ax, out ay, out az);
+            }
+
+            double kUse = Math.Min(k, te - radiated);
+            if (!(kUse > 0.0))
+            {
+                return;
+            }
+
+            radiated += kUse;
+            this.CountBremPhotons++;
+            this.SumBremKev += kUse;
+            lost += this.InCrystal(x, y, z, ax, ay, az, kUse, depth + 1);
         }
 
         /// <summary>Энергия электрона на грани по остаточному пробегу, кэВ, не больше зажима.</summary>
