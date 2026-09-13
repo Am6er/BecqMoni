@@ -1,0 +1,10 @@
+mk_appwd code=0 11:00:49
+disk code=0 11:00:55 extra=[]
+kfwhm2 code=0 11:01:01 extra=[--knot-fwhm=2]
+huber0 code=0 11:01:06 extra=[--huber=0]
+nomatrix code=0 11:01:10 extra=[--no-matrix]
+noeq code=0 11:01:15 extra=[--no-equilibrium]
+nocascade code=0 11:01:20 extra=[--no-cascade]
+noanchor code=0 11:01:25 extra=[--no-anchor]
+nobg code=0 11:01:30 extra=[--no-background]
+done 11:01:30

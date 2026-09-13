@@ -2994,6 +2994,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         void AccumulateLine(EfficiencyMaker.ResponseMatrix matrix, double[] target,
                             double energyKev, double weight, int channel)
         {
+            if (channel >= 0 && (this.MatrixChannelMask & (1 << channel)) == 0)
+            {
+                return; // (`AMBER22`, П42) канал снят маской замера
+            }
+
             double shift = this.LineLightShiftKev(energyKev);
             if (shift == 0.0)
             {
@@ -3042,6 +3047,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         void AccumulateSumContinuum(EfficiencyMaker.ResponseMatrix matrix, double[] target,
                                     double thirdKev, double weight, int channel, double shiftKev)
         {
+            if (channel >= 0 && (this.MatrixChannelMask & (1 << channel)) == 0)
+            {
+                return; // (`AMBER22`, П42) канал снят маской замера
+            }
+
             if (this.lightForm == LightForm.Line && this.driftLight != 0.0 && thirdKev > 0.0)
             {
                 double third = this.LineLightShiftKev(thirdKev);
@@ -4201,7 +4211,40 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // и правда снят в другой настройке; из них крупно портится ровно
             // один, `AS80_Lu176` (+31 %, строка `S52`).
             this.RebinBackgroundToSpectrum = true;
+
+            // (`AMBER22`, П42 13.09.2026) РЫЧАГ ЗАМЕРА, не настройка: хук проб
+            // на свежесозданный анализатор — ставится безоконной пробой
+            // (`FsaP42ArmProbe`) на время разбора ради абляций тех ключей, до
+            // которых у чужой пробы (`FsaStackShot`) своих ключей нет
+            // (суммирование каскада, маска каналов матрицы). В приложении не
+            // задан — тогда конструктор никого не зовёт, и умолчания побитово
+            // прежние. Тот же довод, что у `NnlsTraceSink` (`A308`).
+            this.MatrixChannelMask = -1;
+            Action<FsaAnalyzer> setup = ProbeSetup;
+            if (setup != null)
+            {
+                setup(this);
+            }
         }
+
+        /// <summary>
+        /// (`AMBER22`, П42) Хук проб на конструктор — см. довод у вызова в
+        /// конце конструктора. В приложении всегда null.
+        /// </summary>
+        public static Action<FsaAnalyzer> ProbeSetup { get; set; }
+
+        /// <summary>
+        /// (`AMBER22`, П42) РЫЧАГ ЗАМЕРА: битовая маска каналов отклика
+        /// (<see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannel"/>),
+        /// которые кладутся в образы; бит c — канал c. Умолчание −1 — все
+        /// каналы, побитово прежние числа. Маска 1 — только канал полного
+        /// поглощения: образ без континуума матрицы при СОХРАНЁННОЙ пиковой
+        /// эффективности матрицы и суммировании — плечо «континуум образов»
+        /// чище, чем снятие матрицы целиком (П26 `infer_nomx2`, где пик
+        /// шёл от кривой, а суммирования не было). Матрицу без каналов
+        /// (channel −1) маска не трогает.
+        /// </summary>
+        public int MatrixChannelMask { get; set; }
 
         /// <summary>
         /// Разложить спектр. Возвращает null, если разложение невозможно:

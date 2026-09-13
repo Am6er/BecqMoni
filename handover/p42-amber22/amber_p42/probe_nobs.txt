@@ -1,0 +1,33 @@
+BecqMoni: main config: C:\Users\moroz\bqp42_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp42_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp42_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 16
+состав: выведено из пиков: 11 из 16 подписаны, родителей 1 из 3, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 53 % (8/15, пиков 8) — доля выше порога; Ba-131 17 % (1/6, пиков 1) — доля ниже порога; K-40 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 0 кандидатов
+SETUP	против поставочного разбора изменено: Backscatter True → False; CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.006112, сдвиг -7.568 канала
+chi2/ndf 2.898, невязка модели 14.1 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 9 (отсеяно 6), наибольшая значимость 182.15
+ROW	Ac-228	Single	36.783	Th-232
+ROW	Tl-208	Single	27.748	Th-232
+ROW	Pb-212	Single	17.869	Th-232
+ROW	Bi-212	Single	4.842	Th-232
+ROW	Ra-224	Single	1.414	Th-232
+ROW	Th-228	Single	0.209	Th-232
+ROW	Rn-220	Single	0.039	Th-232
+ROW	Th-232	Single	0.012	Th-232
+ROW	Xray-Pb	Nuisance	9.957	-
+ROW	Xray-Th	Nuisance	1.125	-
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	Xray-Ba	Nuisance	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Pb-L	Nuisance	z=0.00
+CUT	Xray-Th-L	Nuisance	z=2.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 25
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\nobs\stack.png: 15–2800 кэВ, потолок 4179, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\nobs\dump.csv: 8192 каналов, колонок слоёв 10
+nnls-dump: вызовов 19, записано целиком 1, код снимка 0, каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\nobs

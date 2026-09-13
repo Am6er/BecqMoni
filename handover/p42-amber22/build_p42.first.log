@@ -1,0 +1,5 @@
+start 10:36:17 tag=p42 commit=60a2a5d5
+10:37:24 probes   exit=0 (67 s)
+  sha256 exe проб = приложения: True
+  FsaStackShot.exe sha256 4A3F83453F4165A0
+СБОРКА ПРОШЛА

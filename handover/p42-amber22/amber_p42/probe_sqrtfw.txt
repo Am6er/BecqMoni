@@ -1,0 +1,26 @@
+BecqMoni: main config: C:\Users\moroz\bqp42_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp42_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp42_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 12
+состав: выведено из пиков: 9 из 12 подписаны, родителей 1 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 57 % (8/14, пиков 8) — доля выше порога; K-40 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 0 кандидатов
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.006367, сдвиг -10.571 канала
+chi2/ndf 3.048, невязка модели 15.6 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 3 (отсеяно 2), наибольшая значимость 146.99
+ROW	Ac-228	Single	41.575	Th-232
+ROW	Tl-208	Single	33.153	Th-232
+ROW	Pb-212	Single	18.669	Th-232
+ROW	Bi-212	Single	4.772	Th-232
+ROW	Ra-224	Single	1.629	Th-232
+ROW	Th-228	Single	0.149	Th-232
+ROW	Rn-220	Single	0.049	Th-232
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 22
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\sqrtfw\stack.png: 15–2800 кэВ, потолок 3594, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\sqrtfw\dump.csv: 8192 каналов, колонок слоёв 7
+nnls-dump: вызовов 19, записано целиком 1, код снимка 0, каталог C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\sqrtfw
