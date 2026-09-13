@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = 'C:\Users\moroz\bqp14'
 $msb  = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
+# история (перенесено из корня профиля 13.09.2026): ключ /p:GenerateManifests=false стоит в вызове msbuild ниже (стр. 31)
 $proj = "$root\BecquerelMonitor\BecquerelMonitor.csproj"
 $bin  = "$root\BecquerelMonitor\bin\Debug_p14"
 $prb  = "$root\tools\effmaker\probes\build_p14"

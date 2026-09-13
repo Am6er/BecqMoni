@@ -1172,6 +1172,9 @@
   <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
     <value>ВНИМАНИЕ: кривая ШУМНАЯ — типичная точка несёт {0:F1} % разброса при пороге {1:F0} % ({2:F0} историй обещают около процента; точек выше порога {3} из {4}). На большой пробе (прибор на земле, в лунке) истории уходят в дальний грунт, который ничего не даёт; увеличьте число историй на точку или сузьте пробу</value>
   </data>
+  <data name="EfficiencyMakerImportanceAuto" xml:space="preserve">
+    <value>важностный розыгрыш точки вылета включён: полевая сцена (прибор на земле / в лунке) — кривая несёт клеймо imp=1; сосуд по-прежнему разыгрывается равномерно</value>
+  </data>
   <data name="EfficiencyMakerPoints" xml:space="preserve">
     <value>Точек:</value>
   </data>

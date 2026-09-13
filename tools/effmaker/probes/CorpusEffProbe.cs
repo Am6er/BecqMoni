@@ -59,11 +59,14 @@ using System.Xml.Serialization;
 // как есть — те самые строки, что видит человек в окне «Посчитать из
 // геометрии», включая сводку разброса и предупреждение о шумной кривой.
 //
-// `--imp=1` (`E29`, решение Amber 10.09.2026 «Ключом, ВЫКЛ по умолчанию,
-// только полевым») — важностный розыгрыш точки вылета на пути КРИВОЙ: ключ
-// склада (`ResponseMatrixOptions.ImportanceSampling`) передаётся в
-// `EfficiencyCalculation.Run` явной физикой, клеймо кривой получает `imp=1`.
-// Умолчанием ВЫКЛ — то, чем считает приложение.
+// `--imp=0|1` (`E29`) — важностный розыгрыш точки вылета на пути КРИВОЙ,
+// ЯВНЫМ значением: оно сильнее автоматики в обе стороны. Без ключа — то, чем
+// считает приложение (`EfficiencyCalculation.ImportanceSamplingFor`, П43,
+// решение Amber 13.09.2026 «ВКЛ автоматически для полевых сцен
+// (Ground/Borehole)»): полевая сцена — ВКЛ, клеймо кривой `imp=1`; сосуд и
+// точка — умолчание склада (`ResponseMatrixOptions.ImportanceSampling`, ВЫКЛ
+// по решению 10.09.2026), клеймо посимвольно прежнее. `--imp=0` на полевой
+// сцене — абляция: кривая шумная, признак разброса обязан отказать.
 class CorpusEffProbe
 {
     // Порядок свойств ResultData, по которому XmlSerializer читает файл:
@@ -85,9 +88,11 @@ class CorpusEffProbe
         bool allowNoisy = false;
         bool echoLog = false;
         var options = new EfficiencyCalculationOptions();
-        // Физика кривой — умолчания склада, как в приложении; `--imp=` двигает
-        // единственный ключ, который здесь есть чем двигать (`E29`).
+        // Физика кривой — умолчания склада, как в приложении. `--imp=` — ЯВНОЕ
+        // значение розыгрыша точки вылета (`E29`, П43): null — автоматика
+        // пути кривой (полевая сцена ВКЛ, прочие — умолчание склада).
         var physics = new ResponseMatrixOptions();
+        bool? importance = null;
         foreach (string a in args)
         {
             if (a.StartsWith("--dir=", StringComparison.Ordinal)) dir = a.Substring(6);
@@ -106,7 +111,7 @@ class CorpusEffProbe
                     return 2;
                 }
 
-                physics.ImportanceSampling = v == "1";
+                importance = v == "1";
             }
             else if (a == "--allow-noisy") allowNoisy = true;
             else if (a == "--log") echoLog = true;
@@ -150,7 +155,13 @@ class CorpusEffProbe
         Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел; розыгрыш точки вылета: {3};"
                           + " порог шумной кривой (медиана узлов) {4:F0} %",
                           options.MinEnergyKev, options.MaxEnergyKev, options.Histories,
-                          physics.ImportanceSampling ? "ВАЖНОСТНЫЙ (--imp=1, клеймо imp=1)" : "равномерный",
+                          importance.HasValue
+                              ? (importance.Value
+                                     ? "ВАЖНОСТНЫЙ ЯВНО (--imp=1, клеймо imp=1)"
+                                     : "равномерный ЯВНО (--imp=0, на полевой сцене — абляция)")
+                              : (physics.ImportanceSampling
+                                     ? "автоматика (умолчание склада ВКЛ — важностный у всех)"
+                                     : "автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный)"),
                           EfficiencyCalculation.NodeSpreadWarnPercent);
         Console.WriteLine();
         int noisyCurves = 0;
@@ -187,6 +198,23 @@ class CorpusEffProbe
             GeometryModel geometry = GeometryModel.Load(geomPath);
             string guid = StableGuid(key);
 
+            // (`E29`, П43) Розыгрыш ЭТОЙ кривой — тем же правилом, что путь
+            // кривой (`S37`): гвард пересчёта ниже сверяет клеймо с тем, что
+            // кривая получила бы сейчас, а не с ключом прогона.
+            bool curveImportance = EfficiencyCalculation.ImportanceSamplingFor(geometry, physics, importance);
+            Console.WriteLine("   розыгрыш : {0}",
+                              curveImportance
+                                  ? (importance.HasValue
+                                         ? "важностный (--imp=1)"
+                                         : GeometryScenes.IsField(geometry)
+                                               ? "важностный — полевая сцена, автоматика (клеймо imp=1)"
+                                               : "важностный — умолчание склада")
+                                  : (importance.HasValue
+                                         ? (GeometryScenes.IsField(geometry)
+                                                ? "равномерный (--imp=0 на полевой сцене — абляция)"
+                                                : "равномерный (--imp=0)")
+                                         : "равномерный"));
+
             // ГВАРД ГЛОБАЛЬНОГО ПЕРЕСЧЁТА (указание Amber 16.08.2026), пара к
             // такому же в `CorpusMatrixProbe`. Кривая — Монте-Карло, и считать
             // её заново, когда ни геометрия, ни физика не менялись, значит жечь
@@ -199,7 +227,7 @@ class CorpusEffProbe
             // сам, без ключа: ровно тот случай, ради которого глобальный и
             // нужен.
             if (!force && CurveIsCurrent(spectraDir, byGeometry[key], geometry, guid, options,
-                                         physics.ImportanceSampling))
+                                         curveImportance))
             {
                 Console.WriteLine("   пропущена: клеймо и геометрия сошлись у всех её спектров");
                 Console.WriteLine();
@@ -212,7 +240,8 @@ class CorpusEffProbe
             {
                 log = line => Console.WriteLine("   | " + line);
             }
-            EfficiencyFitResult result = EfficiencyCalculation.Run(geometry, options, log, null, physics);
+            EfficiencyFitResult result = EfficiencyCalculation.Run(geometry, options, log, null, physics,
+                                                                   importance);
             if (!string.IsNullOrEmpty(result.Error))
             {
                 Console.WriteLine("   РАСЧЁТ КРИВОЙ НЕ ПОШЁЛ: {0}", result.Error);
