@@ -517,15 +517,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                 LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storePhysics.KDipLight),
                 // (`M9`, П23 12.09.2026) Источник ω_L и переходы Костера—Кронига
                 // — ТЕМ ЖЕ путём, что K-провал выше: от умолчания настроек
-                // матрицы, чтобы кривая и склад считали одну физику. Пока
-                // умолчание 0, строка ничего не меняет; единый счёт склада
-                // перевернёт его, и кривая пойдёт следом сама.
+                // матрицы, чтобы кривая и склад считали одну физику. С
+                // 13.09.2026 (физика 17, П37) умолчание 2 — кривая пошла
+                // следом сама, как и было задумано.
                 LYieldSupply = storePhysics.LYieldSupply,
                 // (`A72`, П27 12.09.2026) Перенос электрона — тем же путём:
                 // вылет электрона двигает ПИК, то есть саму кривую, и кривая
-                // обязана считать его той же физикой, что склад. Пока
-                // умолчание ВЫКЛ, строка ничего не меняет.
+                // обязана считать его той же физикой, что склад. С 13.09.2026
+                // (физика 17, П37) умолчание ВКЛ.
                 ElectronTransport = storePhysics.ElectronTransport,
+                // (`S126`/`S127`, П37 13.09.2026, физика 17) Пара и когерентное
+                // в проводке — тем же путём. До 13.09.2026 кривая брала их
+                // умолчанием СИМУЛЯТОРА (ВЫКЛ), и с включённым умолчанием
+                // склада разошлась бы с ним на вылете 511 (пик и полная выше
+                // порога пар) и на 1.5…1.8 % внизу шкалы у тонких кристаллов
+                // (П30 §9.2). Умолчание живёт у настроек матрицы, кривая его
+                // читает, а не держит копию (`S37`).
+                PositronTransport = storePhysics.PositronTransport,
+                PositronOffset = storePhysics.PositronOffset,
+                RayleighToCrystal = storePhysics.RayleighToCrystal,
             };
 
             log(geometry.Describe());
@@ -652,6 +662,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         LightCascadeSplit = simulator.LightCascadeSplit,
                         LYieldSupply = simulator.LYieldSupply,
                         ElectronTransport = simulator.ElectronTransport,
+                        PositronTransport = simulator.PositronTransport,
+                        PositronOffset = simulator.PositronOffset,
+                        RayleighToCrystal = simulator.RayleighToCrystal,
                     };
                 },
                 (range, loop, worker) =>
@@ -761,8 +774,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // была бы неотличима от кривой без неё (`T42`).
             // `; etr=1` (`A72`, П27 12.09.2026) — по тому же правилу: только
             // при включённом переносе электрона.
+            // `; e+tr=1; e+off=N` и `; rayl2=1` (`S126`/`S127`, П37 13.09.2026,
+            // физика 17) — теми же именами, что у клейма матрицы
+            // (`ResponseMatrix.ComputeStamp`), и по тому же правилу: пара —
+            // только при включённом переносе позитрона, и тогда с обеими
+            // половинами; когерентное в проводке — только включённое.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -774,6 +792,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                     ? "; lys=" + storePhysics.LYieldSupply.ToString(CultureInfo.InvariantCulture)
                     : "",
                 storePhysics.ElectronTransport ? "; etr=1" : "",
+                storePhysics.PositronTransport
+                    ? "; e+tr=1; e+off=" + (storePhysics.PositronOffset ? "1" : "0")
+                    : "",
+                storePhysics.RayleighToCrystal ? "; rayl2=1" : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
                     ? "; norm=fluence" : "");
             return result;

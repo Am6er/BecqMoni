@@ -793,14 +793,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // ⛔ (П23 12.09.2026: `A267`, `A306`, `M9` — три решения Amber
                 // «в СЛЕДУЮЩИЙ единый счёт склада») Без этих трёх строк ключи
                 // были бы МЕРТВЫ (`S130`): поле в настройках, клеймо и хвост
-                // файла есть, а симулятор считает по-старому. Умолчания ВЫКЛ
-                // до единого счёта склада.
+                // файла есть, а симулятор считает по-старому. Умолчания
+                // настроек ВКЛ с 13.09.2026 (физика 17, П37).
                 LightBinUnified = options.LightBinUnified,
                 PeakChannelByTolerance = options.PeakChannelByTolerance,
                 LYieldSupply = options.LYieldSupply,
                 // ⛔ (`A72`, П27 12.09.2026, решение Amber «Вести электрон
                 // переносом») Без этой строки ключ был бы МЁРТВ (`S130`).
-                // Умолчание ВЫКЛ до единого счёта склада.
+                // Умолчание настроек ВКЛ с 13.09.2026 (физика 17, П37).
                 ElectronTransport = options.ElectronTransport,
                 CoherentPassesThrough = options.CoherentPassesThrough,
                 Bremsstrahlung = options.Bremsstrahlung,

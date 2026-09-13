@@ -24,9 +24,21 @@ namespace G4RawProbe
     ///                [--out=raw.csv] [--scene=scene.txt]
     ///                [--bands=1-12,13-25,55-59] [--peakw] [--lys=0|1|2]
     ///                [--etr=0|1] [--etr-step=0.1] [--kdip=0|1|2|3]
+    ///                [--positron=0|1] [--posoffset=0|1] [--rayl2[=0|1]]
     ///
-    /// `--kdip=N` (заведено П27): K-провал/раздельный каскад, умолчание 1 —
-    /// как у склада с 12.09.2026; `--kdip=0` воспроизводит сверки до П27.
+    /// ⛔ УМОЛЧАНИЯ КЛЮЧЕЙ ФИЗИКИ — ОТ СКЛАДА, а не литералами (П37
+    /// 13.09.2026, физика 17): `--lys=`, `--etr=`, `--kdip=`, `--positron=`,
+    /// `--posoffset=`, `--rayl2=` берут умолчание у `ResponseMatrixOptions`
+    /// (то, чем считается склад матриц), и проба без ключей мерит ТУ ЖЕ
+    /// физику, что склад («проверять то, что БУДЕТ ИСПОЛЬЗОВАНО»; П27 уже
+    /// платила за литерал `kdip`: до неё проба мерила не тот каскад, что
+    /// склад). Сверки прежних полос воспроизводятся явными ключами:
+    /// П20/П27 — `--etr=0 --lys=0 --positron=0 --rayl2=0` (и `--kdip=0` для
+    /// сверок до П27), П23 §3 — `--etr=0 --positron=0 --rayl2=0 --lys=N`.
+    /// Печать «умолчание склада» / «ключом» у каждого — ниже в выводе.
+    ///
+    /// `--kdip=N` (заведено П27): K-провал/раздельный каскад, умолчание —
+    /// склада (1 с 12.09.2026); `--kdip=0` воспроизводит сверки до П27.
     ///
     /// `--etr=1` (П27 12.09.2026, приёмка `A72` — решение Amber «Вести
     /// электрон переносом»): ключ `ElectronTransport` — электрон ведётся
@@ -37,9 +49,9 @@ namespace G4RawProbe
     ///
     /// `--lys=N` (П23 12.09.2026, приёмка `M9` — решение Amber «ω_L из
     /// fluorescence_yield + f13 в СЛЕДУЮЩИЙ единый счёт склада»): уровень
-    /// ключа `LYieldSupply` — 0 (умолчание) EADL без переходов Костера—Кронига;
-    /// 1 — ω_L из xraylib + переходы EADL; 2 — и переходы из xraylib (таблица
-    /// `coster_kronig`, без неё отказ). Мерка ~~`A101`~~: голый NaI Ø80×80,
+    /// ключа `LYieldSupply` — 0 EADL без переходов Костера—Кронига;
+    /// 1 — ω_L из xraylib + переходы EADL; 2 (умолчание склада с 13.09.2026)
+    /// — и переходы из xraylib (таблица `coster_kronig`, без неё отказ). Мерка ~~`A101`~~: голый NaI Ø80×80,
     /// 59.541 кэВ, `--no-light --bin=1 --bands=55-56,55-59` против Geant4
     /// (5.268e-4 / 5.794e-4 на историю).
     ///
@@ -61,6 +73,18 @@ namespace G4RawProbe
     /// </summary>
     static class Program
     {
+        /// <summary>`--ключ=0|1` — только эти два значения, иначе отказ (как у `--etr=`).</summary>
+        static bool Flag01(string arg, int prefix)
+        {
+            string v = arg.Substring(prefix);
+            if (v != "0" && v != "1")
+            {
+                throw new ArgumentException(arg.Substring(0, prefix) + " принимает только 0 или 1: " + arg);
+            }
+
+            return v == "1";
+        }
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -82,17 +106,25 @@ namespace G4RawProbe
             bool peakw = false;
             // Конус на габарит сцены в аналоговой ветви (`A57`) — ключ замера A/B.
             bool cone = false;
-            // Когерентное своим каналом во взвешенной ветви (`N13`) — рычаг `A58`.
-            bool rayl2 = false;
+            // ⛔ Умолчания ключей физики — У СКЛАДА (`ResponseMatrixOptions`),
+            // не литералами здесь: копия числа разошлась бы с полем при первой
+            // же смене умолчания молча (`S37`; П27 платила за `kdip`).
+            var store = new ResponseMatrixOptions();
+            // Когерентное своим каналом во взвешенной ветви (`N13`) — рычаг `A58`;
+            // умолчание — склада (ВКЛ с 13.09.2026, физика 17).
+            bool rayl2 = store.RayleighToCrystal;
+            // Пара: раздельный перенос позитрона и смещение вершины (`S126`);
+            // умолчание — склада (обе половины ВКЛ с 13.09.2026).
+            bool positron = store.PositronTransport, posoffset = store.PositronOffset;
             double escT0 = -1.0;      // <0 — не трогать умолчание (`A63`)
             // Ключи АБЛЯЦИИ каналов утечки (`A63`): чем держится каждая полоса.
             bool xray = true, esc = true, brem = true;
             bool noLXray = false;                       // `A60`
             bool noKLCascade = false;                   // `A101`
-            int lys = 0;                                // `M9`, П23
-            bool etr = false;                           // `A72`, П27
+            int lys = store.LYieldSupply;               // `M9`, П23 — умолчание склада (2 с 13.09.2026)
+            bool etr = store.ElectronTransport;         // `A72`, П27 — умолчание склада (ВКЛ с 13.09.2026)
             double etrStep = -1.0;                      // <0 — умолчание симулятора
-            int kdip = 1;                               // `F11` (а)/П17: K-провал и раздельный каскад — как у склада (kdip=1)
+            int kdip = store.KDipLight;                 // `F11` (а)/П17: K-провал и раздельный каскад — умолчание склада (1)
             double escSlope = -1.0;
             double escSoft = -1.0, escSoftKev = -1.0;   // `A63`
             double escCurve = -1.0;                     // `A70`
@@ -111,6 +143,10 @@ namespace G4RawProbe
                 if (a == "--peakw") { peakw = true; continue; }
                 if (a == "--cone") { cone = true; continue; }
                 if (a == "--rayl2") { rayl2 = true; continue; }
+                if (a.StartsWith("--rayl2=", StringComparison.Ordinal)) { rayl2 = Flag01(a, 8); continue; }
+                // `S126` (П37): обе половины пары — умолчание склада, ключи для абляции.
+                if (a.StartsWith("--positron=", StringComparison.Ordinal)) { positron = Flag01(a, 11); continue; }
+                if (a.StartsWith("--posoffset=", StringComparison.Ordinal)) { posoffset = Flag01(a, 12); continue; }
                 if (a == "--no-xray") { xray = false; continue; }
                 if (a == "--no-esc") { esc = false; continue; }
                 if (a == "--no-brem") { brem = false; continue; }
@@ -272,6 +308,8 @@ namespace G4RawProbe
             if (etrStep > 0.0) { simulator.ElectronStepFraction = etrStep; }
             simulator.AnalogConeSampling = cone;
             simulator.RayleighToCrystal = rayl2;
+            simulator.PositronTransport = positron;     // `S126`, П37
+            simulator.PositronOffset = posoffset;
             simulator.XrayEscape = xray;
             simulator.ElectronEscape = esc;
             simulator.Bremsstrahlung = brem;
@@ -302,6 +340,13 @@ namespace G4RawProbe
                               : lys == 1 ? "1 — ω_L из xraylib (fluorescence_yield), переходы f12/f13/f23 по EADL"
                               : "2 — ω_L и переходы из xraylib (coster_kronig)");
             Console.WriteLine("розыгрыш аналоговой: {0}", cone ? "КОНУС на габарит сцены (`A57`)" : "полная сфера");
+            Console.WriteLine("когерентное в проводке своим каналом (`S127`, --rayl2=): {0}{1}",
+                              rayl2 ? "ВКЛ" : "выкл",
+                              rayl2 == store.RayleighToCrystal ? " (умолчание склада)" : " (ключом)");
+            Console.WriteLine("пара (`S126`, --positron= / --posoffset=): перенос позитрона {0}, смещение вершины {1}{2}",
+                              positron ? "ВКЛ" : "выкл", posoffset ? "ВКЛ" : "выкл",
+                              positron == store.PositronTransport && posoffset == store.PositronOffset
+                                  ? " (умолчание склада)" : " (ключом)");
             Console.WriteLine("K-провал/каскад (`F11` (а), --kdip=): {0} (кривая света {1}, раздельный каскад {2})", kdip,
                               simulator.LightSubKevCurve ? "ВКЛ" : "выкл", simulator.LightCascadeSplit ? "ВКЛ" : "выкл");
             Console.WriteLine("вылет электрона (`A72`, --etr=): {0}",

@@ -196,6 +196,9 @@ XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit.edge_ev`).
 | `scint_npsm_params` | mat | 9 | параметры модели света Пейна: η, S_Trap, S_Birks на вещество | Payne 2014 + калибровка по Ходюку (§5в) | 2014/26 |
 | `scint_electron_light_yield` | mat | 210 | кривые L(E)/E электронов, 1.0 на 662 кэВ | посчитаны из модели (§5в) | 2026 |
 | `estar_collision_stopping` | mat | 164 | коллизионная тормозная соединений CsI и NaI | веб-ESTAR NIST (§5в) | 2026 |
+| `fluorescence_yield` | mat | 2152 | ИЗМЕРЕННЫЕ выходы флуоресценции ω по оболочкам K…N7, две поставки порознь (`source` = xraylib 1076 / xraydb 1076) | Krause ORNL-5399 с заменами Campbell-2009 / Elam–Ravel–Sieber-2002 (§5д) | 1978–2021 |
+| `fluorescence_k` | mat | 87 | K-серия по измеренным ω_K: край, доля K, ω_K, энергии и веса Kα1/Kα2/Kβ (`omega_source` xraylib, `line_source` xraydb) | те же (§5д) | 1978–2021 |
+| `coster_kronig` | mat | 241 | переходы Костера—Кронига f12/f13/f23 между подоболочками L | xraylib `xraylib_coskron.dat` (Krause-1979 с блоками замен; §5д) | 1979 |
 | `g4_level` | scheme | 191816 | уровни всех схем: энергия, период, спин-чётность | PhotonEvaporation 6.1.2 (§5г) | 2024 |
 | `g4_gamma` | scheme | 297055 | переходы: привязка к уровню, мультипольность, смешивание, полный α и доли K/L/M | там же (§5г) | 2024 |
 
@@ -205,7 +208,10 @@ XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit.edge_ev`).
 `tools/nucdb/import_geant4.py` (всё из G4EMLOW, §5б; запускать ПОСЛЕ
 import_xcom_star — он же заменяет ω_K),
 `tools/nucdb/import_photon_evaporation.py` (схемы уровней, §5г; запускать
-ПОСЛЕ import_ensdf — вторым проходом он добирает недостающее из `ensdf_*`). Ядерная часть
+ПОСЛЕ import_ensdf — вторым проходом он добирает недостающее из `ensdf_*`),
+`tools/nucdb/import_fluor_yield.py` (измеренные ω, `fluorescence_yield` и
+`fluorescence_k`, §5д), `tools/nucdb/import_coster_kronig.py` (переходы
+Костера—Кронига, `coster_kronig`, §5д). Ядерная часть
 (`nuclides`…`cumulative_fission`) втянута раньше и своего импортёра в репозитории
 **не имеет** — см. открытые пункты.
 
@@ -993,6 +999,56 @@ A₂₂, A₄₄ и вся развёртка W(θ) побитово прежн�
 * **Неоднозначные записи ENSDF** при доборе: `M1,E2`, `D`, `Q`, `1,2+`.
   Записи в круглых и квадратных скобках берутся — это оценка составителя,
   а не неоднозначность.
+
+---
+
+## 5д. Измеренные выходы флуоресценции и переходы Костера—Кронига (xraylib / xraydb; 09.08.2026 и 12.09.2026)
+
+Три таблицы одной темы — «что делает атом с дыркой в оболочке» — по ИЗМЕРЕНИЯМ,
+а не по расчёту EADL (§5б): у EADL систематика, и она оплачена числом (ω_K
+занижен на 4–9 % при Z = 20…35; ω_L1 занижен вдвое на тяжёлых — W 0.533, Pb 0.767
+против измеренных; f13 завышен — W ×1.88, Pb ×1.13, I ×1.16). Поставки лежат вне
+дерева (`C:\Users\moroz\source\repos\_supply_omega\`, загрузка 09.08.2026),
+в базу их кладут только импортёры и только рукой Amber (`--apply`).
+
+* **`fluorescence_yield`** — 2152 строки, `(z, shell, omega, source)`; выходы ω по
+  оболочкам K, L1…L3, M1…M5, N1…N7; две поставки ПОРОЗНЬ, потому что они не копии
+  друг друга (медиана отношения 1.0009, разброс 0.949…1.839): `xraylib`
+  (`fluor_yield.dat` — Krause, Nestor, Sparks, Ricci, ORNL-5399, 1978, с заменами
+  Campbell-2009 по L1, Ayri-2021 W/Re, Kaur-2021 Sn/Sb) и `xraydb`
+  (`xray_levels.fluorescence_yield` — свод Elam–Ravel–Sieber-2002 поверх
+  Krause-1979). K — Z = 3…98 (96 элементов), L1…L3 — Z = 12…98 (87), M/N — с того
+  Z, где оболочка есть. Импортёр `tools/nucdb/import_fluor_yield.py` (втянуто
+  09.08.2026, `N15`). Потребители: `MaterialDatabase.Fluorescence.OmegaKMeasured`
+  (ω_K с физики 11) и с 12.09.2026 `OmegaLSupply` — ω_L1/L2/L3 при
+  `LYieldSupply ≥ 1` (`M9`). Подробности и сверка с EADL —
+  [`omega-vs-measurement-2026-08-09.md`](omega-vs-measurement-2026-08-09.md).
+* **`fluorescence_k`** — 87 строк, K-серия по измеренным ω: `k_edge_ev`,
+  `k_fraction`, `omega_k` (`omega_source` = xraylib), энергии и веса Kα1/Kα2/Kβ
+  (`line_source` = xraydb). Тот же импортёр. Рядом с производной
+  `xray_fluorescence` (§5а, ω_K из EADL) — старшинство по `--no-omega-meas`.
+* **`coster_kronig`** — 241 строка, `(z, transition, probability, source)`,
+  `transition` ∈ {`f12`, `f13`, `f23`}, `source` = `xraylib`; первичный ключ
+  `(z, transition, source)` — источник назван в каждой строке, как у
+  `fluorescence_yield` (правило «каждому своё», §0а). Вероятности того, что дырка
+  на L1 переедет на L2 (f12) или L3 (f13), а с L2 — на L3 (f23). Состав: f12 —
+  Z = 12…96 (85 строк, 0.035…0.32), f13 — Z = 12…97 (86, 0.279…0.66), f23 —
+  Z = 29…98 (70, 0.026…0.228): у xraylib нет f23 ниже Z = 29 (переход L2→L3 там
+  закрыт) и f13 у Z = 98 — строки не заводятся, читатель отдаёт ноль. Откуда:
+  `xraylib_coskron.dat` (Krause-1979 с блоками ЗАМЕН; один Z встречается до трёх
+  раз, побеждает ПОСЛЕДНЕЕ вхождение — так читает сам xraylib). Импортёр
+  `tools/nucdb/import_coster_kronig.py` (без `--apply` — только печать и
+  расхождение против EADL `eadl_auger`; тот же разбор, что у меры
+  `tools/nucdb/compare_coster_kronig.py`); занесена Amber 12.09.2026
+  (`639bfee9`), решение вопросником по `M9`: «втянуть xraylib в базу, счёт
+  `--lys=2`». **Сверка с EADL на веществах сцен** (из вывода импорта Amber,
+  отношение xraylib/EADL): f12 0.79…1.11, f13 1.03…1.88 (W 1.88), f23 0.32…1.16 —
+  EADL завышает именно f13, и на W втрое сильнее прочих. Потребитель:
+  `MaterialDatabase.Fluorescence.CkSupply` → `LYield` (ν₁ = ω₁ + f12·ν₂ + f13·ω₃,
+  ν₂ = ω₂ + f23·ω₃) при `LYieldSupply = 2` — умолчание склада с 13.09.2026
+  (физика 17, П37); уровень 1 берёт те же переходы из EADL (`eadl_auger`), уровень
+  0 — переходов нет. Без таблицы уровень 2 ОТКАЗЫВАЕТ (`EnsureBuilt` называет
+  импортёр), а не откатывается на EADL молча.
 
 ---
 
