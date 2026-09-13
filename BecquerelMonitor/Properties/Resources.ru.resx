@@ -1427,6 +1427,48 @@
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(выбрать и подставить)</value>
   </data>
+  <data name="GeometryEditorTemplateSave" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="GeometryEditorTemplateClone" xml:space="preserve">
+    <value>Клонировать...</value>
+  </data>
+  <data name="GeometryEditorTemplateDelete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="GeometryEditorTemplateOwn" xml:space="preserve">
+    <value>{0} (свой)</value>
+  </data>
+  <data name="GeometryEditorTemplateSaveTip" xml:space="preserve">
+    <value>Переписать выбранный свой шаблон текущими полями детектора</value>
+  </data>
+  <data name="GeometryEditorTemplateCloneTip" xml:space="preserve">
+    <value>Новый свой шаблон из текущих полей детектора (вшитые остаются как есть)</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteTip" xml:space="preserve">
+    <value>Удалить выбранный свой шаблон</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTitle" xml:space="preserve">
+    <value>Имя шаблона детектора</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteConfirm" xml:space="preserve">
+    <value>Удалить шаблон детектора «{0}»?</value>
+  </data>
+  <data name="GeometryEditorTemplateNameEmpty" xml:space="preserve">
+    <value>Имя шаблона пустое.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameBuiltin" xml:space="preserve">
+    <value>«{0}» — вшитый детектор, а вшитые не меняются. Выберите другое имя.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTaken" xml:space="preserve">
+    <value>Свой шаблон с именем «{0}» уже есть.</value>
+  </data>
+  <data name="GeometryEditorTemplateWriteError" xml:space="preserve">
+    <value>Файл шаблонов детекторов не записан: {0}</value>
+  </data>
+  <data name="GeometryEditorTemplateLoadError" xml:space="preserve">
+    <value>Файл шаблонов детекторов не прочитан: в списке только вшитые детекторы, и поверх него ничего не пишется: {0}</value>
+  </data>
   <data name="EfficiencyMakerGridEdge" xml:space="preserve">
     <value>K-край Z={0} на {1:F2} кэВ разрешён парой узлов: ослабление «{3}» скачет в {2:F1} раза</value>
   </data>

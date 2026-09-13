@@ -42802,6 +42802,48 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorPresetPrompt" xml:space="preserve">
     <value>(choose to fill in)</value>
   </data>
+  <data name="GeometryEditorTemplateSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="GeometryEditorTemplateClone" xml:space="preserve">
+    <value>Clone...</value>
+  </data>
+  <data name="GeometryEditorTemplateDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="GeometryEditorTemplateOwn" xml:space="preserve">
+    <value>{0} (own)</value>
+  </data>
+  <data name="GeometryEditorTemplateSaveTip" xml:space="preserve">
+    <value>Overwrite the selected own template with the current detector fields</value>
+  </data>
+  <data name="GeometryEditorTemplateCloneTip" xml:space="preserve">
+    <value>New own template from the current detector fields (built-in ones stay as they are)</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteTip" xml:space="preserve">
+    <value>Delete the selected own template</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTitle" xml:space="preserve">
+    <value>Detector template name</value>
+  </data>
+  <data name="GeometryEditorTemplateDeleteConfirm" xml:space="preserve">
+    <value>Delete the detector template "{0}"?</value>
+  </data>
+  <data name="GeometryEditorTemplateNameEmpty" xml:space="preserve">
+    <value>The template name is empty.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameBuiltin" xml:space="preserve">
+    <value>"{0}" is a built-in detector, and built-in ones cannot be changed. Choose another name.</value>
+  </data>
+  <data name="GeometryEditorTemplateNameTaken" xml:space="preserve">
+    <value>An own template named "{0}" already exists.</value>
+  </data>
+  <data name="GeometryEditorTemplateWriteError" xml:space="preserve">
+    <value>The detector template file was not written: {0}</value>
+  </data>
+  <data name="GeometryEditorTemplateLoadError" xml:space="preserve">
+    <value>The detector template file could not be read, so only built-in detectors are listed and nothing is written over it: {0}</value>
+  </data>
   <data name="EfficiencyMakerGridEdge" xml:space="preserve">
     <value>K edge of Z={0} at {1:F2} keV resolved by a pair of nodes: attenuation of "{3}" steps up {2:F1} times</value>
   </data>

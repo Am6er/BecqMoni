@@ -4709,6 +4709,90 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        public static string GeometryEditorTemplateSave {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateSave", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateClone {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateClone", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDelete {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDelete", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateOwn {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateOwn", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateSaveTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateSaveTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateCloneTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateCloneTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDeleteTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDeleteTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameTitle {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameTitle", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDeleteConfirm {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDeleteConfirm", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameEmpty {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameEmpty", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameBuiltin {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameBuiltin", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameTaken {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameTaken", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateWriteError {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateWriteError", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateLoadError {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateLoadError", resourceCulture);
+            }
+        }
+        
         public static string EfficiencySketchDetector {
             get {
                 return ResourceManager.GetString("EfficiencySketchDetector", resourceCulture);
