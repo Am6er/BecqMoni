@@ -1,0 +1,19 @@
+start 2026-09-12 23:49:11
+restore code=0 23:52:36
+app code=0 23:52:42
+probes code=0 23:54:02
+app exe sha256 ac13ce354715349d9a32a3e72cae96f970c9fdce12b25c2fc4e6128162ad35ba
+probes exe sha256 ac13ce354715349d9a32a3e72cae96f970c9fdce12b25c2fc4e6128162ad35ba
+end 23:54:02
+ctrl_a start 2026-09-12 23:54:56
+ctrl_a matrix code=0 00:00:22
+ctrl_a diff code=0 00:00:23
+ctrl_b start 2026-09-13 00:01:07; rmx in store before: 0
+ctrl_b matrix code=0 00:15:03
+ctrl_b diff AS80_lu_front code=0
+ctrl_b diff AS80_point0 code=0
+ctrl_b tails code=0 00:15:04
+store start 2026-09-13 00:16:46 cmd pid 9840
+curves start 2026-09-13 08:31:52; rmx in store: 45
+audit code=1
+curves code=0 08:38:52

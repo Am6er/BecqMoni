@@ -7,8 +7,8 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// ⛔ (`A72`, П27 12.09.2026; решение Amber 12.09.2026, вопросником,
     /// дословно: «Вести электрон переносом») ПЕРЕНОС ЭЛЕКТРОНА ПО КРИСТАЛЛУ —
     /// вторая половина <see cref="EfficiencySimulator"/>, под ключом
-    /// <see cref="EfficiencySimulator.ElectronTransport"/> (умолчание ВЫКЛ до
-    /// единого счёта склада; клеймо `etr=1`, хвост файла `ETRN`).
+    /// <see cref="EfficiencySimulator.ElectronTransport"/> (умолчание склада
+    /// ВКЛ с 13.09.2026 — физика 17, П37; клеймо `etr=1`, хвост файла `ETRN`).
     ///
     /// ЧТО БЫЛО НЕ ТАК. Вылет электрона считался ЭФФЕКТИВНОЙ ГЛУБИНОЙ
     /// (<see cref="EfficiencySimulator.ElectronLoss"/>, ветка без ключа):
