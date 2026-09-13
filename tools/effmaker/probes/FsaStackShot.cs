@@ -39,7 +39,7 @@ namespace FsaStackShot
     ///                [--refit-z-rel=0.1]
     ///                [--no-drift] [--no-anchor] [--gain-steps=N] [--offset-steps=N]
     ///                [--knots=4] [--huber=3]
-    ///                [--calculating]
+    ///                [--calculating] [--spoil=manager]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///
@@ -85,6 +85,14 @@ namespace FsaStackShot
     /// вывод из подписей его не увидит никогда, — а путь `--set=` есть
     /// поставочная библиотека на корпусе, что запрещено (`S56`). Снимок при этом
     /// остаётся снимком ПРИЛОЖЕНИЯ: отрисовка, анализатор, матрица и отчёт — те же.
+    /// (`T257`, 13.09.2026) Спецификация — общим входом `FsaSampleSpec.Declared`;
+    /// поставочный `NuclideDefinition.xml` при `--sample=` НЕ ЧИТАЕТСЯ (одиночке
+    /// менеджера подложен пустой список, гейт в конце — код 12, если список
+    /// оказался непустым), и оснастка корпуса без этого файла пробе годится; под
+    /// снимком — полоса с надписью пробы «Состав ОБЪЯВЛЕН … (nucdb: …)», потому
+    /// что переключатель «Источник состава» в окне отчёта — состояние
+    /// приложения, и положения «объявлен» у него нет (решение Amber 13.09.2026:
+    /// «Надпись от пробы вне графика»).
     /// </summary>
     static class Program
     {
@@ -122,6 +130,12 @@ namespace FsaStackShot
             // Объявленный состав (`--sample=`): null — ключа не было. Пустой
             // список — отказ ниже, а не молчаливый разбор без единого образа.
             List<string> sampleNuclides = null;
+            // Порча для положительного контроля гейта `AMBER19` (как
+            // `CorpusFsaProbe --spoil=manager`): пустышку одиночке НЕ
+            // подкладывать. При поставочном файле рядом список поднимется
+            // настоящим, и гейт в конце обязан дать код 12; без файла — упасть
+            // до счёта, как падала проба до `T257` (3).
+            bool spoilManager = false;
             int gainSteps = 0, offsetSteps = 0;
             // (`AMBER17`) Плечо A/B: привязка шкалы по пикам выключена.
             bool anchor = true;
@@ -151,6 +165,7 @@ namespace FsaStackShot
                         if (nucid.Trim().Length > 0) sampleNuclides.Add(nucid.Trim().ToUpperInvariant());
                     }
                 }
+                else if (a == "--spoil=manager") spoilManager = true;
                 else if (a == "--no-matrix") needMatrix = false;
                 else if (a == "--lib-dump") libDump = true;
                 else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
@@ -202,9 +217,33 @@ namespace FsaStackShot
                 return 2;
             }
 
+            // (`T257` (3), `AMBER19`) При ОБЪЯВЛЕННОМ составе поставочный список
+            // не нужен вовсе — и подниматься не должен: в оснастке корпуса файла
+            // `config\NuclideDefinition.xml` нет по правилу, и безусловный
+            // `GetInstance()` здесь ронял пробу до счёта (П14 12.09.2026). Но
+            // код ПОКАЗА приложения зовёт менеджер сам — конструктор
+            // `EnergySpectrumView` (исключение глотает) и отпечаток сеанса
+            // `FsaAnalysisSession.BuildStamp` → `NuclideSetStamp` (не глотает),
+            // а без отпечатка окно отчёта заказало бы свой счёт поверх
+            // подложенного. Поэтому при `--sample=` одиночке подкладывается
+            // ПУСТОЙ список (ноль определений, ноль наборов) — то же, что
+            // `EnergySpectrumView.CreateNuclideDefinitionManagerFallback` делает
+            // для вида: файл не открывается, а состав снимка из него взять
+            // неоткуда. Гейт в конце (`SuppliedLibraryGate`) это и проверяет.
+            if (sampleNuclides != null && !spoilManager)
+            {
+                PrimeEmptySuppliedLibrary();
+            }
+            else if (spoilManager)
+            {
+                Console.WriteLine("--spoil=manager: пустышка одиночке НЕ подложена — контроль гейта AMBER19");
+            }
+
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
-            NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
+            NuclideDefinitionManager nuclides = sampleNuclides != null
+                ? null
+                : NuclideDefinitionManager.GetInstance();
 
             ResultData rd = Load(spectrumPath);
             if (efficiencyName != null && !AttachEfficiency(rd, efficiencyName))
@@ -234,11 +273,24 @@ namespace FsaStackShot
                                   ? rd.DeviceConfig.InputDeviceConfig.DeadTime().ToString("G4", CultureInfo.InvariantCulture)
                                   : "?");
 
-            List<Peak> peaks = new PeakDetector().DetectPeak(
-                rd, BackgroundMode.Invisible, SmoothingMethod.None,
-                nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            Console.WriteLine("SETUP\tнайдено пиков: {0}", peaks.Count);
+            // (`T257` (3)) Поиск пиков с подписями поставочного списка — только
+            // там, где состав идёт от подписей. При `--sample=` этот проход
+            // всё равно выбрасывался (ниже пики ищутся заново с подписями из
+            // базы), а менеджера для него нет.
+            List<Peak> peaks = null;
+            if (sampleNuclides == null)
+            {
+                peaks = new PeakDetector().DetectPeak(
+                    rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                    nuclides.ActiveSet, nuclides.NuclideDefinitions);
+                Console.WriteLine("SETUP\tнайдено пиков: {0}", peaks.Count);
+            }
+
             List<FsaComponent> library;
+            // (`T257` (1)) Надпись ПРОБЫ под снимком — откуда состав. Решение
+            // Amber 13.09.2026, вопросником: «Надпись от пробы вне графика»
+            // (третьего положения переключателя в приложении не заводить).
+            string caption = null;
             if (infer)
             {
                 FsaCompositionInference.Report report;
@@ -258,13 +310,36 @@ namespace FsaStackShot
                 // поиск пиков с подписями из неё же. Подписи задают то, что
                 // человек прочтёт над пиками, и брать их из поставочной, когда
                 // состав объявлен, значило бы подписать Ti-44 чужим именем.
+                // (`T257` (2)) Спецификация — ОБЩИМ входом приложения
+                // (`FsaSampleSpec.Declared`, П11 12.09.2026), а не своей копией:
+                // их было пять, и они уже расходились.
                 FsaSampleLibrary.Report built;
-                FsaSampleSpec spec = DeclaredSpec(rd, sampleNuclides, equilibrium, atomic);
+                FsaSampleSpec spec = FsaSampleSpec.Declared(rd, null, sampleNuclides, equilibrium, atomic);
                 library = FsaSampleLibrary.Build(spec, out built);
                 Console.WriteLine("состав объявлен: {0}; {1}", string.Join(", ", sampleNuclides), built);
                 peaks = new PeakDetector().DetectPeak(
                     rd, BackgroundMode.Invisible, SmoothingMethod.None,
                     null, FsaSampleLibrary.AsDefinitions(library));
+                Console.WriteLine("SETUP\tнайдено пиков: {0} (подписи из базы)", peaks.Count);
+
+                // Окно отчёта на снимке показывает переключатель «Источник
+                // состава» ПРИЛОЖЕНИЯ, у которого положения «объявлен» нет, —
+                // и при `--sample=` оно врало бы о механизме. Надпись — от
+                // пробы, ВНЕ графика (полосой под снимком), приложение не
+                // трогается. Список — образы распада, как их собрала база.
+                var decays = new List<string>();
+                foreach (FsaComponent c in library)
+                {
+                    if (c.Kind == FsaComponentKind.Single || c.Kind == FsaComponentKind.Chain)
+                    {
+                        decays.Add(c.Name);
+                    }
+                }
+
+                caption = "Состав ОБЪЯВЛЕН ключом --sample= (nucdb: " + string.Join(", ", sampleNuclides)
+                          + " → " + string.Join(", ", decays) + "); поставочная библиотека не читалась.\n"
+                          + "Переключатель «Источник состава» в окне отчёта — состояние приложения, "
+                          + "положения «объявлен» у него нет; к этому снимку он не относится.";
             }
             else
             {
@@ -688,13 +763,21 @@ namespace FsaStackShot
                                       EnergySpectrumView.FsaStatusText((FsaAnalysisSession)overlay) ?? "");
                 }
 
-                // Отчёт — настоящим окном на том же сеансе, справа от стека.
-                using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer))
+                // Отчёт — настоящим окном на том же сеансе, справа от стека;
+                // надпись пробы (если есть) — полосой ПОД обоими.
+                using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer, caption))
                 {
                     combined.Save(outPath, ImageFormat.Png);
                 }
                 Console.WriteLine("{0}: {1}–{2:F0} кэВ, потолок {3:F0}, шкала {4}",
                                   outPath, fromKev, toKev, ceiling, scale);
+                if (caption != null)
+                {
+                    foreach (string line in caption.Split('\n'))
+                    {
+                        Console.WriteLine("НАДПИСЬ\t{0}", line);
+                    }
+                }
 
                 if (dumpPath != null)
                 {
@@ -704,7 +787,81 @@ namespace FsaStackShot
                 }
             }
 
-            return 0;
+            return SuppliedLibraryGate(sampleNuclides != null, 0);
+        }
+
+        /// <summary>
+        /// (`T257` (3), `AMBER19`) Подложить одиночке `NuclideDefinitionManager`
+        /// ПУСТОЙ список и пометить его загруженным: `GetInstance()` после этого
+        /// файл не открывает и не бросает, а кто бы его ни спросил, получит
+        /// ноль определений и ноль наборов. Ровно то, что делает для себя
+        /// `EnergySpectrumView.CreateNuclideDefinitionManagerFallback`, — только
+        /// для одиночки, которую зовёт код показа приложения
+        /// (`FsaAnalysisSession.NuclideSetStamp`), и которую пробе иначе не
+        /// обойти, не трогая приложение. Зовётся ДО первого обращения к
+        /// менеджеру; поставочный файл при этом не читается ни при каком пути.
+        /// </summary>
+        static void PrimeEmptySuppliedLibrary()
+        {
+            var stub = new NuclideDefinitionManager { NuclideDefinitionFile = new NuclideDefinitionFile() };
+            Field(typeof(NuclideDefinitionManager), "isLoaded").SetValue(stub, true);
+            FieldInfo instance = typeof(NuclideDefinitionManager).GetField(
+                "instance", BindingFlags.Static | BindingFlags.NonPublic);
+            if (instance == null)
+            {
+                throw new InvalidOperationException("нет поля instance у NuclideDefinitionManager");
+            }
+
+            instance.SetValue(null, stub);
+        }
+
+        /// <summary>
+        /// (`AMBER19`, порядок П11) Гейт «поставочный список не читался» — в
+        /// конце всегда, счётчик обращений печатается всегда.
+        ///
+        /// ⚠ У этой пробы, в отличие от восьми проб оснастки, счётчик при
+        /// `--sample=` НЕ НОЛЬ по праву: менеджер зовёт код ПОКАЗА приложения
+        /// (конструктор вида, отпечаток сеанса для окна отчёта), и обойти это
+        /// можно только правкой приложения. Поэтому судится не число обращений,
+        /// а ЧТО они получили: одиночка обязана остаться пустышкой
+        /// (<see cref="PrimeEmptySuppliedLibrary"/>) — ноль определений, ноль
+        /// наборов. Список с определениями при объявленном составе — код 12:
+        /// значит, поставочный файл всё же прочитан, и подписи или состав могли
+        /// прийти из него. Без `--sample=` список нужен по праву (подписи,
+        /// `--infer`), и гейт только печатает счётчик.
+        /// </summary>
+        static int SuppliedLibraryGate(bool declared, int code)
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            if (!declared)
+            {
+                Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0} (состав от подписей — поставочный список нужен по праву)",
+                                  raised.ToString(CultureInfo.InvariantCulture));
+                return code;
+            }
+
+            // Через одиночку, а не `GetInstance()`: тот сам увеличил бы счётчик.
+            var instance = (NuclideDefinitionManager)typeof(NuclideDefinitionManager)
+                .GetField("instance", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            int definitions = instance.NuclideDefinitionFile != null && instance.NuclideDefinitionFile.NuclideDefinitions != null
+                ? instance.NuclideDefinitionFile.NuclideDefinitions.Count : -1;
+            int sets = instance.NuclideDefinitionFile != null && instance.NuclideDefinitionFile.NuclideSets != null
+                ? instance.NuclideDefinitionFile.NuclideSets.Count : -1;
+            bool empty = definitions == 0 && sets == 0;
+            Console.WriteLine("NuclideDefinitionManager за прогон: обращений {0} (код показа приложения); список у одиночки: определений {1}, наборов {2}{3}",
+                              raised.ToString(CultureInfo.InvariantCulture),
+                              definitions.ToString(CultureInfo.InvariantCulture),
+                              sets.ToString(CultureInfo.InvariantCulture),
+                              empty ? " — пустышка пробы, поставочный файл не читался" : " — НАСТОЯЩИЙ список");
+            if (!empty)
+            {
+                Console.Error.WriteLine("⛔ AMBER19: при --sample= поставочный список поднялся с {0} определениями и {1} наборами — числа негодны",
+                                        definitions.ToString(CultureInfo.InvariantCulture),
+                                        sets.ToString(CultureInfo.InvariantCulture));
+                return 12;
+            }
+
+            return code;
         }
         /// <summary>
         /// (`T240`) ЧТО СЛУЧИЛОСЬ С ОТСЕВОМ ПО ЗНАЧИМОСТИ — вслух, после счёта.
@@ -856,10 +1013,20 @@ namespace FsaStackShot
         /// справа к снимку стека. Окно живёт в форме-носителе, показанной ради
         /// создания ручек (как `EditorShot`); ширина — обычная ширина
         /// dock-панели.
+        ///
+        /// (`T257` (1)) <paramref name="caption"/> — надпись ПРОБЫ, полосой под
+        /// стеком и отчётом, строки через '\n'; null — полосы нет, и снимок
+        /// той же высоты, что прежде. Это единственное, что проба рисует сама,
+        /// и рисует ВНЕ графика: на самом стеке по-прежнему только код
+        /// приложения.
         /// </summary>
-        static Bitmap WithReport(Bitmap stack, FsaAnalysisSession session, ResultData rd, bool infer)
+        static Bitmap WithReport(Bitmap stack, FsaAnalysisSession session, ResultData rd, bool infer,
+                                 string caption)
         {
             const int reportWidth = 320;
+            string[] captionLines = caption != null ? caption.Split('\n') : new string[0];
+            const int captionLineHeight = 22;
+            int captionHeight = captionLines.Length > 0 ? captionLines.Length * captionLineHeight + 12 : 0;
 
             // Окно читает НАСТРОЙКИ из конфигурации спектра, а результат здесь
             // подложен и посчитан анализатором пробы: радиокнопка источника
@@ -890,7 +1057,7 @@ namespace FsaStackShot
                 report.SetProbeSource(session, rd);
                 Application.DoEvents();
 
-                var combined = new Bitmap(stack.Width + reportWidth, stack.Height);
+                var combined = new Bitmap(stack.Width + reportWidth, stack.Height + captionHeight);
                 using (Graphics g = Graphics.FromImage(combined))
                 {
                     g.Clear(Color.White);
@@ -899,6 +1066,25 @@ namespace FsaStackShot
                     {
                         report.DrawToBitmap(shot, new Rectangle(0, 0, reportWidth, stack.Height));
                         g.DrawImageUnscaled(shot, stack.Width, 0);
+                    }
+
+                    // Полоса надписи — ниже стека и отчёта, своим цветом, чтобы
+                    // её нельзя было принять за часть окна приложения.
+                    if (captionHeight > 0)
+                    {
+                        var band = new Rectangle(0, stack.Height, combined.Width, captionHeight);
+                        using (var back = new SolidBrush(Color.FromArgb(255, 250, 205)))
+                        using (var font = new Font("Segoe UI", 10.0f, FontStyle.Regular, GraphicsUnit.Point))
+                        using (var pen = new Pen(Color.FromArgb(180, 140, 0)))
+                        {
+                            g.FillRectangle(back, band);
+                            g.DrawLine(pen, band.Left, band.Top, band.Right, band.Top);
+                            for (int i = 0; i < captionLines.Length; i++)
+                            {
+                                g.DrawString(captionLines[i], font, Brushes.Black,
+                                             8, band.Top + 6 + i * captionLineHeight);
+                            }
+                        }
                     }
                 }
 
@@ -1037,54 +1223,6 @@ namespace FsaStackShot
 
             Console.Error.WriteLine("набора «{0}» нет; есть: {1}", name, string.Join(", ", have.ToArray()));
             return false;
-        }
-
-        /// <summary>
-        /// Спецификация пробы по ОБЪЯВЛЕННОМУ составу — те же поля и те же
-        /// пороги, что у <c>CorpusFsaProbe.SpecOf</c> для строки манифеста без
-        /// рядов и без `materials.csv`: кривая и порог АЦП ради пола полосы
-        /// (`S98`, `A73`), окно — рабочий диапазон поиска пиков, кристалл и
-        /// тяжёлые элементы пробы — из геометрии спектра (`S84`), вещество
-        /// кристалла прибора — запасной источник долей (`A276`).
-        /// ⚠ Это ТРЕТЬЯ копия этой сборки (первые две — `SpecOf` пробы корпуса и
-        /// `FsaCompositionInference.Infer`); заведена нарочно ровно тем же
-        /// текстом, чтобы снимок разбирал спектр тем же образом, что прогон.
-        /// </summary>
-        static FsaSampleSpec DeclaredSpec(ResultData rd, List<string> nuclides,
-                                          bool equilibrium, bool atomic)
-        {
-            var spec = new FsaSampleSpec
-            {
-                AtomicXray = atomic,
-                Equilibrium = equilibrium,
-                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
-                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
-            };
-            spec.Nuclides.AddRange(nuclides);
-
-            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
-                && peakConfig.Max_Range > peakConfig.Min_Range)
-            {
-                spec.MinEnergyKev = peakConfig.Min_Range;
-                spec.MaxEnergyKev = peakConfig.Max_Range;
-            }
-
-            if (rd.DeviceConfig != null)
-            {
-                spec.CrystalMaterialName = rd.DeviceConfig.CrystalMaterialName;
-            }
-
-            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
-                ? rd.Efficiency.Geometry : null;
-            if (geometry != null)
-            {
-                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
-                    EfficiencySimulator.ScintillatorNameOf(geometry));
-                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
-                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
-            }
-
-            return spec;
         }
 
         static bool AttachEfficiency(ResultData rd, string name)

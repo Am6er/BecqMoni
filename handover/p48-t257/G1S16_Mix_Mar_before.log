@@ -1,0 +1,35 @@
+BecqMoni: main config: D:\BqMoni_Claude\p48\wd_head_file\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p48\wd_head_file\config\device: 24 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p48\wd_head_file\config\NuclideDefinition.xml: 143 entries
+SETUP	прибор: Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2016)
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ	мёртвое=0.0003628 с
+SETUP	найдено пиков: 16
+состав объявлен: 241AM, 44TI, 152EU, 137CS; распад 4, атомных 2, линий 53; полоса сведена ПОЛОМ ПО КРИВОЙ 20.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание), из них ниже Min_Range 3; вылет от линий состава: SE-1408, DE-1408, SE-1299, DE-1299, SE-1213, DE-1213
+LIB	Am-241	Single	2
+LIB	Ti-44	Single	2
+LIB	Eu-152	Single	30
+LIB	Cs-137	Single	5
+LIB	Xray-NaI	Nuisance	3
+LIB	Esc-NaI	Nuisance	4
+LIB	SE-1408	Nuisance	1
+LIB	DE-1408	Nuisance	1
+LIB	SE-1299	Nuisance	1
+LIB	DE-1299	Nuisance	1
+LIB	SE-1213	Nuisance	1
+LIB	DE-1213	Nuisance	1
+LIB	Ann-511	Nuisance	1
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.000292, сдвиг 1.509 канала
+chi2/ndf 34.822, невязка модели 31.6 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 6 (отсеяно 1), наибольшая значимость 38.08
+ROW	Eu-152	Single	41.655	-
+ROW	Cs-137	Single	19.066	-
+ROW	Am-241	Single	14.725	-
+ROW	Ti-44	Single	5.815	-
+ROW	Esc-NaI	Nuisance	18.727	-
+ROW	continuum	Nuisance	0.012	-
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 19
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p48-t257\G1S16_Mix_Mar_before_pow4.png: 0–3053 кэВ, потолок 113615, шкала pow
