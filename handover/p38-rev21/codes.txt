@@ -1,0 +1,29 @@
+build start 2026-09-13 09:02:17
+app code=0 09:02:20
+probes code=0 09:03:19
+app exe sha256 f43bfdf6b80d7237c2c53c91b8f66abad8eca7ca929fdd477a40fd072bc5f8d1
+probes exe sha256 f43bfdf6b80d7237c2c53c91b8f66abad8eca7ca929fdd477a40fd072bc5f8d1
+build end 09:03:19
+ctrl0 start 2026-09-13 09:05:12
+ctrl0 matrix code=0 09:10:45
+ctrl0 diff code=0 09:10:45
+ctrl0 sha256 wt   cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl0 sha256 ctrl b00b2a8b13cc4f60acbb259c1481ee375ffa44fc8c4e6520840ab8d2266ad5e4
+arm a start 2026-09-13 09:12:06
+arm a full code=0 09:12:34 (28 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p38_full_a
+arm a mini code=0 09:12:44 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p38_mini_a
+arm a score full known code=0
+arm a score mini known code=0
+arm a score full unknown code=0
+arm a score mini unknown code=0
+arm a end 09:12:45
+curves start 2026-09-13 09:22:20; rmx in store: 45
+curves code=0 09:29:09
+arm rev21 start 2026-09-13 09:32:51
+arm rev21 full code=0 09:33:19 (28 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_full
+arm rev21 mini code=0 09:33:29 (11 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev21_mini
+arm rev21 score full known code=0
+arm rev21 score mini known code=0
+arm rev21 score full unknown code=0
+arm rev21 score mini unknown code=0
+arm rev21 end 09:33:30

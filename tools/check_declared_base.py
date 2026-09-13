@@ -320,7 +320,12 @@ def tree_dirty(sources, corpus_dir):
     Судится членство в наборе, а не каталог целиком: грязная проба со своим
     `Main` (не довесок) в `CorpusFsaProbe.exe` не входит и `head=` не мешает.
     """
-    st = _git('status', '--porcelain', '--', 'BecquerelMonitor', 'tools/effmaker', 'tools/CORPUS/corpus')
+    # `-c core.quotepath=false`: без него git берёт пути с пробелами и кириллицей
+    # в кавычки с экранированием (`"tools/CORPUS/corpus/devices/ASN8 1024 ch.xml"`),
+    # и такая строка не совпадает с набором — грязный файл выглядел чистым, а `head=`
+    # писался на грязном стенде (П38 13.09.2026: из 19 грязных устройств виделись 3).
+    st = _git('-c', 'core.quotepath=false', 'status', '--porcelain', '--',
+              'BecquerelMonitor', 'tools/effmaker', 'tools/CORPUS/corpus')
     if not st:
         return []
     corpus_rel = 'tools/CORPUS/corpus/'
@@ -332,6 +337,8 @@ def tree_dirty(sources, corpus_dir):
         if not line.strip():
             continue
         path = line[3:].strip().replace('\\', '/')
+        if len(path) >= 2 and path[0] == '"' and path[-1] == '"':
+            path = path[1:-1]                      # кавычки git, если quotepath всё же сработал
         if ' -> ' in path:
             path = path.split(' -> ')[-1]
         if path in wanted:

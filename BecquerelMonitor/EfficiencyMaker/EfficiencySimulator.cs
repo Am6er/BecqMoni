@@ -251,10 +251,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// ✅ **ВЕСТИ ЭЛЕКТРОН ПЕРЕНОСОМ (`A72`) — решение Amber 12.09.2026,
         /// вопросником, дословно: «Вести электрон переносом».** Умолчание
-        /// ПОЛЯ симулятора — ВЫКЛ (П27, 12.09.2026: так меряют пробы, зовущие
-        /// симулятор напрямую); умолчание СКЛАДА и кривой — ВКЛ с 13.09.2026
-        /// (физика 17, П37, <see cref="ResponseMatrixOptions.ElectronTransport"/>,
-        /// клеймо `etr=1`) — оба пути приложения ставят поле оттуда.
+        /// ПОЛЯ — умолчание СКЛАДА (<see cref="ResponseMatrixOptions.ElectronTransport"/>,
+        /// ВКЛ с 13.09.2026, физика 17, П37, клеймо `etr=1`) — ОДНО МЕСТО
+        /// ИСТИНЫ: решение Amber 13.09.2026, вопросником, дословно:
+        /// «Перевернуть — одна физика для всех» (П38). Пробы, зовущие
+        /// симулятор напрямую, с этого дня меряют ту же физику, что склад и
+        /// кривая; прежние числа — явным `ElectronTransport = false` (до
+        /// 13.09.2026 поле было ВЫКЛ, П27). Оба пути приложения ставят поле
+        /// от настроек склада либо их умолчания.
         ///
         /// Включённый — электрон ведётся сгущённой историей по кристаллу
         /// (`ElectronTransport.cs`): направление рождения по процессу
@@ -269,7 +273,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Ключ подчинён <see cref="ElectronEscape"/>: выключенный вылет
         /// глушит и перенос (абляция `--no-esc` меряет то же, что прежде).
         /// </summary>
-        public bool ElectronTransport = false;
+        public bool ElectronTransport = new ResponseMatrixOptions().ElectronTransport;
 
         /// <summary>
         /// Доля остаточного пробега на один шаг переноса
@@ -546,8 +550,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// ⛔ (`A267`, решение Amber 12.09.2026, дословно: «BinOf — в
         /// СЛЕДУЮЩИЙ единый счёт склада») СВЕТ ИСТОРИИ — В БИН ЕЁ ВЕСА.
-        /// Умолчание ПОЛЯ — ВЫКЛ (П23); умолчание СКЛАДА — ВКЛ с 13.09.2026
-        /// (физика 17, П37, <see cref="ResponseMatrixOptions.LightBinUnified"/>).
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.LightBinUnified"/>, ВКЛ с
+        /// 13.09.2026, физика 17, П37) — одно место истины, решение Amber
+        /// 13.09.2026 «Перевернуть — одна физика для всех» (П38); прежние
+        /// числа проб — явным `LightBinUnified = false` (до того поле было
+        /// ВЫКЛ, П23).
         ///
         /// Что меняет. <see cref="ScoreLight"/> до правки считал бин
         /// СВОИМ округлением, без оговорки <see cref="InPeak"/>, и свет
@@ -570,13 +578,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// совпадают до бита. В матрице — `lbin=1` клейма
         /// (<see cref="ResponseMatrixOptions.LightBinUnified"/>).
         /// </summary>
-        public bool LightBinUnified;
+        public bool LightBinUnified = new ResponseMatrixOptions().LightBinUnified;
 
         /// <summary>
         /// ⛔ (`A306`, решение Amber 12.09.2026, дословно: «Канал Peak
         /// принимает историю в допуске») ПРАВИЛО ОДНО НА БИН И НА КАНАЛ.
-        /// Умолчание ПОЛЯ — ВЫКЛ (П23); умолчание СКЛАДА — ВКЛ с 13.09.2026
-        /// (физика 17, П37, <see cref="ResponseMatrixOptions.PeakChannelByTolerance"/>).
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.PeakChannelByTolerance"/>, ВКЛ с
+        /// 13.09.2026, физика 17, П37) — одно место истины, решение Amber
+        /// 13.09.2026 «Перевернуть — одна физика для всех» (П38); прежние
+        /// числа проб — явным `PeakChannelByTolerance = false` (до того поле
+        /// было ВЫКЛ, П23).
         ///
         /// Что меняет. История, рассеявшаяся ДО кристалла
         /// (<see cref="ScatteredRun"/>), получала принудительный перевод
@@ -594,14 +606,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// раскладку по каналам. Выключенный — побитово прежний. В матрице
         /// — `pkch=1` клейма (<see cref="ResponseMatrixOptions.PeakChannelByTolerance"/>).
         /// </summary>
-        public bool PeakChannelByTolerance;
+        public bool PeakChannelByTolerance = new ResponseMatrixOptions().PeakChannelByTolerance;
 
         /// <summary>
         /// ⛔ (`M9`, решение Amber 12.09.2026, дословно: «ω_L из
         /// fluorescence_yield + f13 в СЛЕДУЮЩИЙ единый счёт склада»)
         /// ИСТОЧНИК ВЫХОДОВ L-ФЛУОРЕСЦЕНЦИИ И ПЕРЕХОДЫ КОСТЕРА—КРОНИГА.
-        /// Умолчание ПОЛЯ — 0 (П23); умолчание СКЛАДА и кривой — 2 с
-        /// 13.09.2026 (физика 17, П37, <see cref="ResponseMatrixOptions.LYieldSupply"/>).
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.LYieldSupply"/>, 2 с 13.09.2026,
+        /// физика 17, П37) — одно место истины, решение Amber 13.09.2026
+        /// «Перевернуть — одна физика для всех» (П38); прежние числа проб —
+        /// явным `LYieldSupply = 0` (до того поле было 0, П23). ⚠ Уровень 2
+        /// требует таблицы `coster_kronig` в `matdb.sqlite` — проба со старой
+        /// базой теперь ОТКАЗЫВАЕТ в <see cref="EnsureBuilt"/>, а не молчит.
         ///
         /// Уровни:
         /// * 0 — как до 12.09.2026: ω_L1/L2/L3 суммой `eadl_radiative`, дырка
@@ -629,7 +646,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// берёт уровень от умолчания настроек матрицы («одна физика для
         /// кривой и матрицы», решение Amber 12.09.2026).
         /// </summary>
-        public int LYieldSupply;
+        public int LYieldSupply = new ResponseMatrixOptions().LYieldSupply;
 
         /// <summary>
         /// Разыгрывать ОДНО комптоновское рассеяние на пути к кристаллу.
@@ -776,11 +793,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Считается, как и у комптона, ОДНО рассеяние; второе и дальше
         /// отброшены сознательно, поэтому поправка остаётся нижней оценкой.
         ///
-        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН: выключенный, он не
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.RayleighToCrystal"/>, ВКЛ с
+        /// 13.09.2026, физика 17, П37, `S127`, клеймо `rayl2=1`, строго вместе
+        /// с `pkch=1`) — одно место истины, решение Amber 13.09.2026
+        /// «Перевернуть — одна физика для всех» (П38). Выключенный
+        /// (`RayleighToCrystal = false` — так поле было до 13.09.2026, П30) не
         /// тянет ни одного лишнего случайного числа и оставляет прежний
         /// результат до последнего бита.
         /// </summary>
-        public bool RayleighToCrystal = false;
+        public bool RayleighToCrystal = new ResponseMatrixOptions().RayleighToCrystal;
 
         /// <summary>
         /// ⛔ (`S121`) Брать сечение рождения пар ПОРОГОВОЙ интерполяцией
@@ -863,21 +885,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Аннигиляция НА ЛЕТУ не моделируется: кванты по-прежнему строго по
         /// 511 кэВ и строго встречные (решение Amber 02.09.2026).
         ///
-        /// Ключ измерительный и УМОЛЧАНИЕМ ВЫКЛЮЧЕН: выключенный, он не тянет
-        /// ни одного лишнего случайного числа и оставляет прежний результат
-        /// до последнего бита. Мерить обе половины ОТДЕЛЬНО
-        /// (<see cref="PositronOffset"/>): свет и геометрия — разные ошибки, и
-        /// вместе они могут погасить друг друга.
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.PositronTransport"/>, ВКЛ с
+        /// 13.09.2026, физика 17, П37, `S126`, клеймо `e+tr=1`) — одно место
+        /// истины, решение Amber 13.09.2026 «Перевернуть — одна физика для
+        /// всех» (П38). Выключенный (`PositronTransport = false` — так поле
+        /// было до 13.09.2026, П30) не тянет ни одного лишнего случайного
+        /// числа и оставляет прежний результат до последнего бита. Мерить обе
+        /// половины ОТДЕЛЬНО (<see cref="PositronOffset"/>): свет и геометрия
+        /// — разные ошибки, и вместе они могут погасить друг друга.
         /// </summary>
-        public bool PositronTransport = false;
+        public bool PositronTransport = new ResponseMatrixOptions().PositronTransport;
 
         /// <summary>
         /// Половина ключа <see cref="PositronTransport"/>, отвечающая за
         /// СМЕЩЕНИЕ точки аннигиляции. Выключенная — кванты по-прежнему летят
         /// из вершины конверсии, а порознь считается только свет. Нужна,
-        /// чтобы развести две ошибки по отдельным замерам.
+        /// чтобы развести две ошибки по отдельным замерам. Умолчание ПОЛЯ —
+        /// умолчание СКЛАДА (<see cref="ResponseMatrixOptions.PositronOffset"/>,
+        /// ВКЛ; было ВКЛ и до 13.09.2026) — одно место истины (П38).
         /// </summary>
-        public bool PositronOffset = true;
+        public bool PositronOffset = new ResponseMatrixOptions().PositronOffset;
 
         /// <summary>
         /// Относительная ошибка КОНТИНУУМА последнего прогона отклика, % полной
