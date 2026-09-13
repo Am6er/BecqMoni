@@ -1,0 +1,18 @@
+П38 13.09.2026 09:04 — умолчания полей EfficiencySimulator ОТРАЖЕНИЕМ из сборки шага 0
+(pwsh: [Reflection.Assembly]::LoadFrom(tools\effmaker\probes\build_p38\BecquerelMonitor.exe);
+ new EfficiencySimulator(null) против new ResponseMatrixOptions(); поле = GetField(имя).GetValue)
+
+LightBinUnified          sim=True   store=True
+PeakChannelByTolerance   sim=True   store=True
+LYieldSupply             sim=2      store=2
+ElectronTransport        sim=True   store=True
+PositronTransport        sim=True   store=True
+PositronOffset           sim=True   store=True
+RayleighToCrystal        sim=True   store=True
+KLCascade                sim=True   store=True
+LightSubKevCurve         sim=False  store=-        (у склада KDipLight=1 -> половины через KDipCurveHalf/KDipCascadeHalf)
+LightCascadeSplit        sim=False  store=-
+SplitXrayShells          sim=False  store=True
+PhysicsVersion=17
+
+exe: sha256 f43bfdf6b80d7237c2c53c91b8f66abad8eca7ca929fdd477a40fd072bc5f8d1 (= bin\Release_p38\BecquerelMonitor.exe)

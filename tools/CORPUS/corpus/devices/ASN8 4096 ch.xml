@@ -26,9 +26,6 @@
   <StabilizerConfig>
     <TargetPeaks />
   </StabilizerConfig>
-  <DoseRateConfig>
-    <DoseRateCalibrationPoints />
-  </DoseRateConfig>
   <PeakDetectionMethodConfig>
     <Min_SNR>4</Min_SNR>
     <FWHM_AT_0>0.001</FWHM_AT_0>
