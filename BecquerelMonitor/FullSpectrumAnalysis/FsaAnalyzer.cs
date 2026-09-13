@@ -1446,6 +1446,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         List<int> continuumKnots;
 
+        /// <summary>
+        /// (`A310`) Слагаемые дисперсии, НЕ зависящие от модели, — для весов по
+        /// модели (<see cref="ModelWeights"/>): `Subtracted` — что вычтено из
+        /// сырого отсчёта, чтобы получить `y` (континуум SNIP и фон), то есть
+        /// `μ̂_сырой = модель + Subtracted`; `Extra` — всё, что в дисперсии
+        /// сверх пуассоновского члена (погрешность континуума ξ, шум вычтенного
+        /// фона, составной шум S43). Ставится в <c>Analyze</c> там же, где
+        /// строятся веса решателя, и читается только <c>FitHuber</c>; null —
+        /// веса по данным.
+        /// </summary>
+        sealed class NoiseTerms
+        {
+            public double[] Subtracted;
+            public double[] Extra;
+        }
+
+        NoiseTerms noiseTerms;
+
         public double MinEnergy { get; set; }
 
         public double MaxEnergy { get; set; }
@@ -1455,6 +1473,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Порог хуберовского перевзвешивания, в сигмах. 0 — выключено.</summary>
         public double HuberM { get; set; }
+
+        /// <summary>
+        /// (`A310`, полоса П47 13.09.2026) ВЕСА РЕШАТЕЛЯ — ПО МОДЕЛИ (Пирсон), а
+        /// не по данным. Без ключа дисперсия канала берётся от ОТСЧЁТА:
+        /// `max(N, 1)` плюс шум вычтенного фона, — и это смещает оценку: у
+        /// пуассоновского канала `E[(y − μ)/y] ≈ −1/μ`, градиент нормальных
+        /// уравнений по колонке образа φ несёт систематический член `−Σ φ/μ`,
+        /// не зависящий от амплитуды, — в отсчётах порядка числа каналов, по
+        /// которым размазан образ. Слабый широкий компонент (ряд, рентген-богатый
+        /// нуклид) занижается на постоянную величину, и NNLS обрезает его нулём;
+        /// найдено П46 МК-поверкой `S106` (ряд Th-228 на `G1S16_Th228_P25` —
+        /// сдвиг 0.91 МДА, Lu-176 на `ASN16_Lu176_P0` — 1.33 МДА, пропусков
+        /// 98–100/100 при впрыске на уровне МДА). Отсюда же ~~`A281`~~ — рост
+        /// χ²/ndf с набором при весе 1/y.
+        ///
+        /// С ключом дисперсия берётся от ОЖИДАНИЯ: после каждого прохода
+        /// <c>FitHuber</c> `Var = max(μ̂, 1) + (те же члены фона и составного
+        /// шума)`, где μ̂ — модель предыдущего прохода в шкале сырых отсчётов
+        /// (образы + сплайн + вычтенный континуум и фон). Модель гладкая и от
+        /// шума отдельного канала почти не зависит, поэтому корреляция веса с
+        /// отклонением, дающая `−Σ φ/μ`, уходит. Сочетание с Хубером —
+        /// одним IRLS: на каждом проходе и порог `m·σ`, и вес `1/σ²` берутся от
+        /// σ модели (канал с провалом вниз при весе по данным выглядел выбросом
+        /// только потому, что его σ схлопывалась вместе с отсчётом); без
+        /// Хубера проходов два — данные как затравка, затем модель.
+        /// Сетка дрейфа сравнивает узлы ОДНИМИ весами по данным — общей меркой,
+        /// не зависящей от модели узла. Пределы `S9` берут дисперсию того же
+        /// оценщика (<c>FitResult.Variance</c>): нулевая гипотеза — `μ̂ − a·φ`.
+        /// Отчётная метрика (<see cref="FsaResult.Chi2NdfPoisson"/>) считается
+        /// ПРЕЖНИМИ весами и между плечами сравнима; χ² решателя
+        /// (<see cref="FsaResult.Chi2Ndf"/>) при этом ключе — другая метрика.
+        /// Полярность умолчания, дата её смены и числа A/B стоят у присваивания
+        /// в конструкторе (`T82`). Обратное плечо проб —
+        /// `--weights=data|model` у `CorpusFsaProbe` и `FsaP42ArmProbe`;
+        /// читатель — `SETUP` отражением.
+        /// </summary>
+        public bool ModelWeights { get; set; }
 
         /// <summary>
         /// (S43) Коэффициент γ составного шума: дисперсия канала берётся
@@ -3967,6 +4022,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.MaxEnergy = 2800.0;
             this.Xi = 0.03;
             this.HuberM = 3.0;
+            // (`A310`, П47 13.09.2026) Веса решателя по МОДЕЛИ (Пирсон) — ВКЛ.
+            // Решение Amber 13.09.2026, вопросником, дословно: «Веса по модели
+            // (Пирсон) + полный корпус, переобъявить базу». Полярность стоит
+            // ЗДЕСЬ, у присваивания (`T82`); до этого дня веса были по данным
+            // (1/max(N,1) плюс шум фона), и ряд Th-228 на `G1S16_Th228_P25`
+            // при впрыске на уровне МДА терялся 98/100 (П46). Плечо ВКЛ на
+            // малой базе 43: recall 100 %, фантомов 0, состав нуклидов тот же;
+            // МК-поверка четырёх клеток: пропусков 3/3/0/0 из 100 при ложных
+            // 1/3/1/3 (Th-228, Lu-176, Cs-137, Y-88). Обратное плечо —
+            // `--weights=data` у `CorpusFsaProbe`; числа A/B — журнал
+            // `handover/handover-2026-09-13-p47-a310-model-weights.md`.
+            this.ModelWeights = true;
             this.RefitZ = 3.0;
             // (`A266`, П11/П24 12.09.2026) ДОЛЯ ВЕРШИНЫ В ПОРОГЕ ОТСЕВА — ВКЛ.
             // Решение Amber 12.09.2026, вопросником, дословно: «ВКЛ 0.3 + полный
@@ -5014,6 +5081,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 baseWeights[i] = 1.0 / variance[i];
             }
 
+            // (`A310`) Веса по модели: запоминается, чем `y` отличается от
+            // сырого отсчёта и что в дисперсии сверх пуассона, — `FitHuber`
+            // собирает из этого `max(μ̂, 1) + Extra` на каждом проходе. Считается
+            // ЗДЕСЬ, после всех слагаемых дисперсии, чтобы плечо ВЫКЛ осталось
+            // ровно прежним `max(N, 1) + Extra`.
+            this.noiseTerms = null;
+            if (this.ModelWeights)
+            {
+                NoiseTerms terms = new NoiseTerms
+                {
+                    Subtracted = new double[channels],
+                    Extra = new double[channels]
+                };
+                for (int i = 0; i < channels; i++)
+                {
+                    terms.Subtracted[i] = raw[i] - y[i];
+                    terms.Extra[i] = variance[i] - Math.Max(raw[i], 1.0);
+                }
+
+                this.noiseTerms = terms;
+            }
+
             // --offset задан в кэВ; в каналы переводится по фактическому наклону
             // шкалы на границах фита, иначе одна и та же величина означала бы
             // разное для 1024- и 8192-канальных приборов.
@@ -5916,6 +6005,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<int> A = fit.ActiveIndices;
             double[,] H = fit.ActiveInverse;
             double[] W = fit.Weights;
+            // (`A310`) Дисперсия ТОГО оценщика, что дал амплитуды: при весах по
+            // модели — от модели финального фита, и нулевая гипотеза ниже
+            // читается `μ̂ − a·φ`; при весах по данным — поданная, как прежде.
+            double[] V = fit.Variance ?? variance;
             // (`A281`) Тот же множитель, что домножил σ, — берётся у фита, а не
             // считается заново: две копии формулы разошлись бы молча.
             double inflate = fit.SigmaInflation;
@@ -6108,7 +6201,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     double w = W[i] * p;
-                    double v0 = variance[i] - amplitude * phi[i];
+                    double v0 = V[i] - amplitude * phi[i];
                     if (v0 < 1.0)
                     {
                         v0 = 1.0;
@@ -7517,6 +7610,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public double[] Weights;
 
+            /// <summary>
+            /// (`A310`) Дисперсия каналов, от которой построены <see cref="Weights"/>
+            /// финального прохода: при весах по данным — та же, что подана в
+            /// <c>FitHuber</c>; при весах по модели — `max(μ̂, 1) + Extra` модели
+            /// предпоследнего прохода. Пределы `S9` берут её как дисперсию ТОГО
+            /// оценщика, что дал амплитуды.
+            /// </summary>
+            public double[] Variance;
+
+            /// <summary>Модель фита в каналах полосы (сумма колонок с амплитудами), в шкале `y`.</summary>
+            public double[] Model;
+
             /// <summary>Матрица нормальных уравнений всех колонок фита.</summary>
             public double[,] Gram;
 
@@ -7547,8 +7652,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                            List<FsaComponent> subset)
         {
             double[] weights = (double[])baseWeights.Clone();
+            // Дисперсия, от которой берутся вес `1/σ²` и порог Хубера `m·σ`
+            // ТЕКУЩЕГО перевзвешивания: по данным — поданная `variance`; по
+            // модели (`A310`) — пересобирается от модели каждого прохода.
+            double[] scale = variance;
+            bool pearson = this.ModelWeights && this.noiseTerms != null;
             FitResult best = null;
             int passes = this.HuberM > 0.0 ? 3 : 1;
+            if (pearson && passes < 2)
+            {
+                // Без Хубера веса по модели всё равно требуют второго прохода:
+                // первый — по данным, затравкой.
+                passes = 2;
+            }
+
             for (int pass = 0; pass < passes; pass++)
             {
                 best = FitOnce(library, fixedColumns, calibration, fwhmCalibration, efficiency,
@@ -7558,13 +7675,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     break;
                 }
 
+                if (pearson)
+                {
+                    scale = this.ModelVariance(best, variance, chLo, chHi);
+                }
+
                 for (int i = chLo; i <= chHi; i++)
                 {
-                    double sigma = Math.Sqrt(variance[i]);
-                    double residual = Math.Abs(best.Residual[i]);
-                    double m = this.HuberM * sigma;
-                    weights[i] = residual > m ? (1.0 / variance[i]) * (m / residual) : 1.0 / variance[i];
+                    double w = 1.0 / scale[i];
+                    if (this.HuberM > 0.0)
+                    {
+                        double sigma = Math.Sqrt(scale[i]);
+                        double residual = Math.Abs(best.Residual[i]);
+                        double m = this.HuberM * sigma;
+                        if (residual > m)
+                        {
+                            w *= m / residual;
+                        }
+                    }
+
+                    weights[i] = w;
                 }
+            }
+
+            if (best != null)
+            {
+                best.Variance = scale;
             }
 
             // Тот же остаток — ПРЕЖНЕЙ метрикой: единственное число, которым
@@ -7693,6 +7829,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// существует). Потребитель в этом случае остаётся на прежней
         /// договорённости `n − активных` — приближении, но названном.
         /// </summary>
+        /// <summary>
+        /// (`A310`) Дисперсия каналов ОТ МОДЕЛИ прохода: `max(μ̂, 1) + Extra`,
+        /// μ̂ = модель фита + вычтенное (континуум SNIP, фон) — ожидание сырого
+        /// отсчёта. Вне полосы фита остаётся дисперсия по данным: там ни веса,
+        /// ни пределы не читаются. Массив — НОВЫЙ на каждый проход: поданная
+        /// `variance` живёт у вызывающего и другим фитам нужна нетронутой.
+        /// </summary>
+        double[] ModelVariance(FitResult fit, double[] variance, int chLo, int chHi)
+        {
+            double[] v = (double[])variance.Clone();
+            NoiseTerms terms = this.noiseTerms;
+            if (fit == null || fit.Model == null || terms == null)
+            {
+                return v;
+            }
+
+            for (int i = chLo; i <= chHi; i++)
+            {
+                double mu = fit.Model[i] + terms.Subtracted[i];
+                v[i] = Math.Max(mu, 1.0) + terms.Extra[i];
+            }
+
+            return v;
+        }
+
         static double ReportNdf(FitResult fit, double[] report, int chLo, int chHi)
         {
             if (fit == null || report == null || fit.Columns == null
@@ -8198,6 +8359,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Residual = residual,
                 FromResponseMatrix = fromMatrix,
                 Weights = weights,
+                Model = model,
                 Gram = gram,
                 Active = active,
                 ActiveIndices = activeIndices,

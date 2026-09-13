@@ -1,0 +1,6 @@
+def code=0 17:04:35 wrap=nnls probe=[] keys=[--infer]
+wdata code=0 17:04:38 wrap=p42 probe=[--weights=data] keys=[--infer]
+wmodel code=0 17:04:40 wrap=p42 probe=[--weights=model] keys=[--infer]
+wmodelh0 code=0 17:04:43 wrap=p42 probe=[--weights=model] keys=[--infer --huber=0]
+wdatah0 code=0 17:04:45 wrap=p42 probe=[--weights=data] keys=[--infer --huber=0]
+done 17:04:45

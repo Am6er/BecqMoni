@@ -839,6 +839,7 @@ namespace CorpusFsaProbe
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
     ///                  [--window=<секунды>]
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
+    ///                  [--weights=data|model]   (`A310`, П47: веса решателя по данным 1/max(N,1) или по модели, Пирсон)
     ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B] [--gamma-map=<каталог прогона>]
@@ -1538,6 +1539,21 @@ namespace CorpusFsaProbe
                 else if (a.StartsWith("--huber=", StringComparison.Ordinal))
                 {
                     o.HuberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--weights=", StringComparison.Ordinal))
+                {
+                    // (`A310`, П47 13.09.2026) Веса решателя: `data` — по
+                    // отсчёту, `model` — по модели (Пирсон). Уходит в
+                    // `FsaAnalyzer.ModelWeights`; читатель — `SETUP`
+                    // отражением.
+                    string v = a.Substring(10);
+                    if (v != "data" && v != "model")
+                    {
+                        Console.Error.WriteLine("--weights= знает data и model; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.Weights = v;
                 }
                 else if (a == "--no-escape-gate")
                 {
@@ -2307,6 +2323,13 @@ namespace CorpusFsaProbe
             if (o.LossJoint >= 0)
             {
                 analyzer.CascadeLossJointFactor = o.LossJoint == 1;
+            }
+
+            // (`A310`, П47) веса решателя; ключ обязан ДОЕХАТЬ до анализатора,
+            // читатель — `SETUP` отражением (`ModelWeights`)
+            if (o.Weights != null)
+            {
+                analyzer.ModelWeights = o.Weights == "model";
             }
 
             return analyzer;
@@ -3763,12 +3786,19 @@ namespace CorpusFsaProbe
                 }
 
                 double biasAmplitude = biasGram > 0.0 ? biasGradient / biasGram : double.NaN;
-                Console.WriteLine("  {0}: {1} — сдвиг оценки от весов по данным (−Σφ/μ, П46): ≈ {2:F0} отсч. = {3:F2} × МДА = {4:F2} × a*{5}",
+                // (`A310`, П47) При весах по МОДЕЛИ (`ModelWeights`) сдвиг
+                // −Σφ/μ не действует — печатается как справка «был бы при
+                // весах по данным», чтобы читатель плеча ВКЛ не принял его за
+                // ожидание.
+                Console.WriteLine("  {0}: {1} — сдвиг оценки от весов по данным (−Σφ/μ, П46){6}: ≈ {2:F0} отсч. = {3:F2} × МДА = {4:F2} × a*{5}",
                                   key, c.Name, biasAmplitude * familySum,
                                   mdaAmplitude > 0.0 ? biasAmplitude / mdaAmplitude : double.NaN,
                                   c.DecisionThresholdRate > 0.0 ? biasAmplitude / (c.DecisionThresholdRate * liveTime) : double.NaN,
                                   analyzer.AnchorScale
                                       ? "; ⚠ привязка ВКЛ: копия без пиков теряет опоры, образ копии не на шкале впрыска — поверять формулу с --no-anchor"
+                                      : "",
+                                  analyzer.ModelWeights
+                                      ? " — НЕ ДЕЙСТВУЕТ: веса решателя по МОДЕЛИ (A310), справочно"
                                       : "");
 
                 if (o.McDump > 0)
@@ -5645,6 +5675,7 @@ namespace CorpusFsaProbe
             public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
             public string SumLight = null;       // (S167, П18) кривая света каскадной суммы: "electron" | "photon"; null — умолчание анализатора
             public int LossJoint = -1;           // (S166, П18) вынос из пика с κ: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public string Weights = null;        // (A310, П47) веса решателя: "data" | "model"; null — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
             // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
