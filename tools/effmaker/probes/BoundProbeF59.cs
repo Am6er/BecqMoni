@@ -30,7 +30,13 @@ namespace BoundProbeF59
     ///    `GeometryWriter.Save` обязан отказать и НАЗВАТЬ знак.
     /// 3. **`A120`, умолчания семи ключей хвоста `OPTF`.** Умолчание поля
     ///    печатается из самого объявления, а поведение старого файла (без байта)
-    ///    мерится кругом «записал — обрезал — прочитал».
+    ///    мерится кругом «записал — обрезал — прочитал». ⚠ Ожидания — ФИЗИКИ 18
+    ///    (П51, 14.09.2026): из семи флагов `OPTF` включены пять (`LXrayEscape`,
+    ///    `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`),
+    ///    семь ключей физики 17 и два ключа физики 18 (`ecomp=1`, `bpath=2`) — ВКЛ
+    ///    умолчанием класса; `PositronOffset` двигает клеймо ТОЛЬКО при включённом
+    ///    `PositronTransport`. До того проба ждала физику 16 и с 13.09.2026 краснела
+    ///    (П54 §6.2: «включённых умолчанием: 5 (ждали 3)»).
     ///
     /// ⛔ Проверка, которая проходит всегда, ничего не меряет: у каждого
     /// утверждения здесь есть заведомо плохой вход, на котором проба ОТКАЗЫВАЕТ.
@@ -38,8 +44,8 @@ namespace BoundProbeF59
     ///   `--break=bound`  — граница дозиметра поднята до 1e9 (точка 1471.85
     ///                      проходит насквозь);
     ///   `--break=encode` — запись идёт снятой строкой (знак становится `?`);
-    ///   `--break=defaults` — ожидание «умолчаний true ровно три» подменяется
-    ///                      на два, как гласил старый комментарий.
+    ///   `--break=defaults` — ожидание «умолчаний true ровно пять» подменяется
+    ///                      на три, как ждала проба до физики 17.
     ///
     /// ⛔ Ни один файл дерева не переписывается: цель записи всегда во
     /// временном каталоге, геометрии дерева только читаются.
@@ -466,13 +472,43 @@ namespace BoundProbeF59
                 Say(string.Format(CultureInfo.InvariantCulture, "   {0,-20} = {1}", f.Key, f.Value ? "true" : "false"));
             }
 
+            // ⛔ Ожидание — ФИЗИКА 18 (П51, 14.09.2026): из семи флагов хвоста `OPTF`
+            //    включены пять — `LXrayEscape`, `KLCascade` (физика 16) и `PositronTransport`,
+            //    `PositronOffset`, `RayleighToCrystal` (семь ключей физики 17, решения Amber
+            //    12.09.2026 «Оба ВКЛ в единый счёт, rayl2 только с pkch=1»); выключены
+            //    `XcomPairThreshold` и `AnalogConeSampling`. До 14.09.2026 проба ждала три
+            //    (физика 16) и краснела «включённых умолчанием: 5 (ждали 3)» (П54 §6.2).
+            //    `--break=defaults` подставляет прежние три — и обязан валить пробу.
             int trues = flags.Count(f => f.Value);
-            int expected = breakage == "defaults" ? 2 : 3;
+            int expected = breakage == "defaults" ? 3 : 5;
             Ok(trues == expected, string.Format(CultureInfo.InvariantCulture,
-                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronOffset`",
+                "включённых умолчанием: {0} (ждали {1}) — `LXrayEscape`, `KLCascade`, `PositronTransport`, `PositronOffset`, `RayleighToCrystal`",
                 trues, expected));
             Ok(options.KLCascade,
                "умолчание `KLCascade` — ВКЛЮЧЕНО; прежний комментарий `Load` говорил «умолчание false»");
+            Ok(!options.XcomPairThreshold && !options.AnalogConeSampling,
+               "`XcomPairThreshold` и `AnalogConeSampling` умолчанием ВЫКЛЮЧЕНЫ (абляции, не физика склада)");
+
+            // Семь ключей физики 17 (П37/П38: `lbin` `pkch` `lys=2` `etr` `e+tr` `e+off` `rayl2`)
+            // и два ключа физики 18 (`ecomp=1` `bpath=2`, П50; решение Amber 13.09.2026
+            // «ecomp=1 + bpath=2») — умолчания КЛАССА, одно место истины (правило I
+            // `check_matrix_keys.py`): путь склада, путь кривой и поля симулятора берут их отсюда.
+            Say("");
+            Say("-- A120: умолчания физики 17 и 18 (склад = кривая = симулятор) --");
+            Say(string.Format(CultureInfo.InvariantCulture, "   PhysicsVersion       = {0}", ResponseMatrix.PhysicsVersion));
+            Say(string.Format(CultureInfo.InvariantCulture, "   LightBinUnified      = {0}", options.LightBinUnified));
+            Say(string.Format(CultureInfo.InvariantCulture, "   PeakChannelByTolerance = {0}", options.PeakChannelByTolerance));
+            Say(string.Format(CultureInfo.InvariantCulture, "   LYieldSupply         = {0}", options.LYieldSupply));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronTransport    = {0}", options.ElectronTransport));
+            Say(string.Format(CultureInfo.InvariantCulture, "   ElectronAnyMaterial  = {0}", options.ElectronAnyMaterial));
+            Say(string.Format(CultureInfo.InvariantCulture, "   BremAlongPath        = {0}", options.BremAlongPath));
+            Ok(ResponseMatrix.PhysicsVersion == 18,
+               string.Format(CultureInfo.InvariantCulture, "версия физики склада — 18 (есть {0})", ResponseMatrix.PhysicsVersion));
+            Ok(options.LightBinUnified && options.PeakChannelByTolerance && options.LYieldSupply == 2
+               && options.ElectronTransport && options.PositronTransport && options.PositronOffset && options.RayleighToCrystal,
+               "семь ключей физики 17 умолчанием ВКЛ: lbin=1 pkch=1 lys=2 etr=1 e+tr=1 e+off=1 rayl2=1");
+            Ok(options.ElectronAnyMaterial && options.BremAlongPath == 2,
+               "два ключа физики 18 умолчанием ВКЛ: ecomp=1 bpath=2");
         }
 
         /// <summary>
@@ -569,8 +605,16 @@ namespace BoundProbeF59
             string byDefault = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions());
             string on = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { KLCascade = true });
             string off = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { KLCascade = false });
+            // ⛔ С физики 17 (П37, 13.09.2026) `PositronTransport` умолчанием ВКЛ, и клеймо пишет
+            //    `e+tr=1;e+off=N;` — половины `S126` обязаны различаться (`ResponseMatrix.ComputeStamp`).
+            //    Прежнее ожидание «`PositronOffset` сам по себе клейма НЕ двигает» было верно при
+            //    `PositronTransport = false` умолчанием (физика 16) и краснело с 13.09 (П54 §6.2);
+            //    сам смысл — «смещение пишется ТОЛЬКО вместе с переносом позитрона» — проверяется
+            //    теперь обеими половинами: при переносе ВКЛ смещение клеймо ДВИГАЕТ, при ВЫКЛ — нет.
             string offsetOn = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { PositronOffset = true });
             string offsetOff = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { PositronOffset = false });
+            string noTrOffsetOn = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { PositronTransport = false, PositronOffset = true });
+            string noTrOffsetOff = ResponseMatrix.ComputeStamp(model, new ResponseMatrixOptions { PositronTransport = false, PositronOffset = false });
 
             Say("   клеймо умолчания: " + byDefault);
             Say("   клеймо ВЫКЛ:      " + off);
@@ -579,8 +623,12 @@ namespace BoundProbeF59
                "клеймо умолчания РАВНО клейму с явно включённым каскадом — умолчание и есть `true`");
             Ok(!string.Equals(byDefault, off, StringComparison.Ordinal),
                "клеймо с выключенным каскадом ОТЛИЧАЕТСЯ — ключ до клейма доходит");
-            Ok(string.Equals(offsetOn, offsetOff, StringComparison.Ordinal),
-               "`PositronOffset` сам по себе клейма НЕ двигает — его пишет только `PositronTransport`");
+            Ok(new ResponseMatrixOptions().PositronTransport,
+               "`PositronTransport` умолчанием ВКЛ (физика 17, `e+tr=1`)");
+            Ok(!string.Equals(offsetOn, offsetOff, StringComparison.Ordinal),
+               "при переносе позитрона ВКЛ `PositronOffset` клеймо ДВИГАЕТ (`e+off=1` / `e+off=0`) — половины S126 различимы");
+            Ok(string.Equals(noTrOffsetOn, noTrOffsetOff, StringComparison.Ordinal),
+               "при переносе позитрона ВЫКЛ `PositronOffset` клеймо НЕ двигает — его пишет только `PositronTransport`");
         }
 
         static ResponseMatrix Tiny()
