@@ -133,9 +133,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Порядки мультиполей из кода Geant4: 1…7 = E0,E1,M1,E2,M2,E3,M3,
-        /// смесь — 100·Nx+Ny. false — код неизвестен или это E0 (монополь
-        /// гамма-квантом не излучается вовсе).
+        /// Порядки мультиполей из кода Geant4: 1…9 = E0,E1,M1,E2,M2,E3,M3,E4,M4
+        /// (`scheme.md` §5г), смесь — 100·Nx+Ny. false — код неизвестен или
+        /// это E0 (монополь гамма-квантом не излучается вовсе).
+        ///
+        /// ⚠ E4/M4 (коды 8, 9) добавлены 13.09.2026 (П49): прежде переход
+        /// такого порядка считался изотропным молча, а у Bi-207 линия 1063.7
+        /// (13/2⁺ → 5/2⁻) — M4, и её пара с 569.7 — самый сильный каскад
+        /// нуклида. Члены выше k = 4 (у L = 4 есть A₆₆) по-прежнему не
+        /// считаются — разложение хранит два коэффициента.
         /// </summary>
         static bool Multipoles(int code, out int l, out int lPrime)
         {
@@ -164,7 +170,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 case 5: return 2;    // M2
                 case 6: return 3;    // E3
                 case 7: return 3;    // M3
-                default: return 0;   // E0 (кодом 1) и всё незнакомое
+                case 8: return 4;    // E4
+                case 9: return 4;    // M4
+                default: return 0;   // E0 (кодом 1), E5+ и всё незнакомое
             }
         }
 
@@ -437,6 +445,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             /// <summary>
+            /// Переход по ПАРЕ УРОВНЕЙ (`N14`): номера уровней у
+            /// <see cref="CascadeAtomicData.Transition"/> — из той же таблицы
+            /// `g4_gamma`, и сопоставление по ним не знает ни допуска по
+            /// энергии, ни самозванца. null — такого перехода в схеме нет
+            /// (в том числе отсеянного нулевой интенсивностью).
+            /// </summary>
+            public Transition FindSeq(int fromSeq, int toSeq)
+            {
+                foreach (Transition t in this.Transitions)
+                {
+                    if (t.FromSeq == fromSeq && t.ToSeq == toSeq)
+                    {
+                        return t;
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>
             /// Коэффициенты каскада «переход a, затем переход b». Каскадом они
             /// являются только если конец первого совпал с началом второго;
             /// иначе это не каскад, и корреляции между ними нет.
@@ -562,6 +590,468 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return scheme.Transitions.Count > 0 ? scheme : null;
+        }
+
+        // ------------------------------------------------------------------
+        // Пара линий распада → коэффициенты (`N14`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Допуск сопоставления линии распада строке <c>GammaIntensity</c> —
+        /// тот же, что у сумматора для линии компонента (0.3 кэВ): линия
+        /// таблицы совпадений и линия <c>decay_radiations</c> — одна поставка,
+        /// но записаны с разным округлением.
+        /// </summary>
+        const double LineMatchKev = 0.3;
+
+        /// <summary>
+        /// Коэффициенты A₂₂, A₄₄ для пары линий ОДНОГО РАСПАДА по ключу
+        /// нуклида — тем же путём, каким сумматор берёт переходы для рентгена
+        /// и гейта по времени (<see cref="CascadeAtomicData"/>): линия →
+        /// строка выходов → переход схемы своей ВЕТВИ (Z, A дочернего) →
+        /// спины и мультипольности из <see cref="SchemeOf"/>.
+        ///
+        /// Изотропно (нули), когда: атомных данных нет; линии не сопоставлен
+        /// переход; линии из РАЗНЫХ ветвей (у Eu-152 схема Sm-152 и схема
+        /// Gd-152 — разные события); переходы не смежны (конец одного —
+        /// не начало другого); спина или мультипольности нет.
+        ///
+        /// ⚠ ПРИБЛИЖЕНИЕ НАЗВАНО: пара, между переходами которой лежит
+        /// НЕНАБЛЮДАЕМЫЙ промежуточный переход, считается изотропной, а у неё
+        /// корреляция лишь ослаблена множителями U_k промежуточного. Это
+        /// занижает поправку, а не завышает.
+        /// </summary>
+        public static Coefficients ForPair(string nuclideKey, double firstKev, double secondKev)
+        {
+            if (string.IsNullOrEmpty(nuclideKey))
+            {
+                return Isotropic;
+            }
+
+            CascadeAtomicData atomic = CascadeAtomicData.Of(nuclideKey);
+            if (atomic == null || atomic.Branches == null)
+            {
+                return Isotropic;
+            }
+
+            CascadeAtomicData.Transition first = TransitionOf(atomic, firstKev);
+            CascadeAtomicData.Transition second = TransitionOf(atomic, secondKev);
+            if (first == null || second == null
+                || first.BranchIndex < 0 || first.BranchIndex != second.BranchIndex
+                || first.BranchIndex >= atomic.Branches.Count)
+            {
+                return Isotropic;
+            }
+
+            CascadeAtomicData.Branch branch = atomic.Branches[first.BranchIndex];
+            Scheme scheme = SchemeOf(branch.Z, branch.A);
+            if (scheme == null)
+            {
+                return Isotropic;
+            }
+
+            Transition a = scheme.FindSeq(first.FromSeq, first.ToSeq);
+            Transition b = scheme.FindSeq(second.FromSeq, second.ToSeq);
+            if (a == null || b == null)
+            {
+                return Isotropic;
+            }
+
+            Coefficients w = scheme.Cascade(a, b);
+            if (w.IsIsotropic)
+            {
+                w = scheme.Cascade(b, a);
+            }
+
+            return w;
+        }
+
+        /// <summary>
+        /// Переход, стоящий у СИЛЬНЕЙШЕЙ строки выходов в допуске
+        /// <see cref="LineMatchKev"/>; null — строки нет или переход ей не
+        /// сопоставлен.
+        /// </summary>
+        static CascadeAtomicData.Transition TransitionOf(CascadeAtomicData atomic, double energyKev)
+        {
+            CascadeAtomicData.GammaLine best = null;
+            foreach (CascadeAtomicData.GammaLine row in atomic.GammaIntensity)
+            {
+                if (row == null || row.Transition == null
+                    || Math.Abs(row.EnergyKev - energyKev) > LineMatchKev)
+                {
+                    continue;
+                }
+
+                if (best == null || row.IntensityPct > best.IntensityPct)
+                {
+                    best = row;
+                }
+            }
+
+            return best != null ? best.Transition : null;
+        }
+    }
+
+    /// <summary>
+    /// Коэффициенты ослабления угловой корреляции Q_k(E) сцены (`N14`) —
+    /// ГЕОМЕТРИЧЕСКАЯ половина, которой у сумматора нет: у него только матрица.
+    ///
+    /// ЧТО ЭТО. Моменты угловой эффективности пика по Лежандру:
+    ///
+    ///     Q_k(E) = ∫ ε_p(E, θ)·P_k(cos θ) dΩ / ∫ ε_p(E, θ) dΩ,   k = 2, 4,
+    ///
+    /// где θ — угол вылета кванта к оси «точка распада → центр кристалла»,
+    /// а для протяжённой пробы среднее берётся и по точкам розыгрыша.
+    /// Вероятность поглотить в пике ОБА кванта каскада с корреляцией
+    /// W(θ₁₂) = 1 + Σ A_kk·P_k(cos θ₁₂) по теореме сложения полиномов Лежандра
+    /// (осевая симметрия, член m = 0):
+    ///
+    ///     ε_пары = ε_p(1)·ε_p(2)·(1 + A₂₂·Q₂(1)·Q₂(2) + A₄₄·Q₄(1)·Q₄(2)).
+    ///
+    /// ПРЕДЕЛЫ, по которым таблица проверяется: точечный источник далеко от
+    /// кристалла (малый телесный угол) — Q_k → 1, корреляция входит целиком;
+    /// геометрия 4π (поле, маринелли) — ε(θ) почти постоянна, Q_k → 0, и
+    /// изотропное произведение верно само по себе.
+    ///
+    /// ⚠ ПРИБЛИЖЕНИЯ НАЗВАНЫ: (а) члены m ≠ 0 теоремы сложения у точки вне
+    /// оси отброшены — ось берётся на центр кристалла, где они наименьшие;
+    /// (б) среднее по точкам берётся ПОРОЗНЬ для двух энергий (Q_k(1)·Q_k(2)
+    /// вместо ⟨q_k(r,1)·q_k(r,2)⟩) — связь точек двух квантов уже несёт κ.
+    ///
+    /// ОТКУДА. Считается пробой `AngularQkProbe` тем же переносом, что и
+    /// матрица (<c>EfficiencySimulator</c>), и лежит САЙДКАРОМ рядом с
+    /// матрицей: текстовый файл `*.qk` в каталоге склада матриц, малый и
+    /// пригодный для git. Ключ соответствия — ОТПЕЧАТОК ГЕОМЕТРИИ
+    /// (<see cref="FingerprintOf"/>), а не клеймо матрицы: Q_k — свойство
+    /// формы сцены, и смена физики склада его не обесценивает (порядок
+    /// 0.1 %), тогда как клеймо меняется каждым единым счётом.
+    /// </summary>
+    public sealed class AngularAttenuation
+    {
+        public const int Format = 1;
+        public const string Extension = ".qk";
+
+        public string Scene;
+        public string GeometrySha;
+        public string MatrixStamp;
+        public int Histories;
+        public int Seed;
+        public string Built;
+
+        public double[] Energies;
+        public double[] Q2;
+        public double[] Q4;
+        public double[] Q2Err;
+        public double[] Q4Err;
+        public double[] PeakEff;
+
+        /// <summary>
+        /// Те же моменты для ПОЛНОЙ эффективности (квант задел кристалл) —
+        /// ими считается вынос из пика: партнёр уносит событие, куда бы он ни
+        /// попал, и его угловое распределение — распределение ε_T, а не ε_p.
+        /// Пусто (файл старого вида) — вынос берёт моменты пика.
+        /// </summary>
+        public double[] Q2T;
+        public double[] Q4T;
+        public double[] Q2TErr;
+        public double[] Q4TErr;
+        public double[] TotalEff;
+
+        /// <summary>Откуда загружена; пусто — посчитана в этом процессе.</summary>
+        public string FilePath;
+
+        public int Count
+        {
+            get { return this.Energies != null ? this.Energies.Length : 0; }
+        }
+
+        /// <summary>
+        /// Отпечаток геометрии — SHA-256 машинного текста сцены
+        /// (<c>GeometryWriter.Render</c>), без версии физики и настроек.
+        /// </summary>
+        public static string FingerprintOf(EfficiencyMaker.GeometryModel geometry)
+        {
+            if (geometry == null)
+            {
+                return "";
+            }
+
+            string text;
+            try
+            {
+                text = EfficiencyMaker.GeometryWriter.Render(geometry);
+            }
+            catch (Exception)
+            {
+                text = geometry.Describe();
+            }
+
+            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text));
+                var hex = new System.Text.StringBuilder(hash.Length * 2);
+                foreach (byte b in hash)
+                {
+                    hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+                }
+
+                return hex.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Q_k при энергии — линейная интерполяция по ln E между узлами,
+        /// за краями — крайний узел. k = 2 или 4; иное — ноль (член выпадает).
+        /// </summary>
+        public double Q(int k, double energyKev)
+        {
+            return this.Interpolate(k == 2 ? this.Q2 : (k == 4 ? this.Q4 : null), energyKev);
+        }
+
+        /// <summary>Момент ПОЛНОЙ эффективности; без своих столбцов — момент пика.</summary>
+        public double QT(int k, double energyKev)
+        {
+            double[] values = k == 2 ? this.Q2T : (k == 4 ? this.Q4T : null);
+            if (values == null || values.Length != this.Count)
+            {
+                return this.Q(k, energyKev);
+            }
+
+            return this.Interpolate(values, energyKev);
+        }
+
+        double Interpolate(double[] values, double energyKev)
+        {
+            if (values == null || this.Energies == null || this.Energies.Length == 0
+                || values.Length != this.Energies.Length || !(energyKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            int n = this.Energies.Length;
+            if (energyKev <= this.Energies[0])
+            {
+                return values[0];
+            }
+
+            if (energyKev >= this.Energies[n - 1])
+            {
+                return values[n - 1];
+            }
+
+            int i = 1;
+            while (i < n - 1 && this.Energies[i] < energyKev)
+            {
+                i++;
+            }
+
+            double x0 = Math.Log(this.Energies[i - 1]);
+            double x1 = Math.Log(this.Energies[i]);
+            double t = x1 > x0 ? (Math.Log(energyKev) - x0) / (x1 - x0) : 0.0;
+            return values[i - 1] + (values[i] - values[i - 1]) * t;
+        }
+
+        public void Save(string path)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("# BecqMoni angular attenuation Q_k (N14)\n");
+            sb.Append("format=").Append(Format.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            sb.Append("scene=").Append(this.Scene ?? "").Append('\n');
+            sb.Append("geomsha=").Append(this.GeometrySha ?? "").Append('\n');
+            sb.Append("matrix=").Append(this.MatrixStamp ?? "").Append('\n');
+            sb.Append("histories=").Append(this.Histories.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            sb.Append("seed=").Append(this.Seed.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            sb.Append("built=").Append(this.Built ?? "").Append('\n');
+            bool total = this.Q2T != null && this.Q4T != null && this.Q2T.Length == this.Count;
+            sb.Append(total
+                          ? "# E_keV Q2 Q4 dQ2 dQ4 eps_peak Q2T Q4T dQ2T dQ4T eps_total\n"
+                          : "# E_keV Q2 Q4 dQ2 dQ4 eps_peak\n");
+            for (int i = 0; i < this.Count; i++)
+            {
+                sb.Append(string.Format(CultureInfo.InvariantCulture,
+                                        "{0:R} {1:F6} {2:F6} {3:F6} {4:F6} {5:G6}",
+                                        this.Energies[i], this.Q2[i], this.Q4[i],
+                                        this.Q2Err != null ? this.Q2Err[i] : 0.0,
+                                        this.Q4Err != null ? this.Q4Err[i] : 0.0,
+                                        this.PeakEff != null ? this.PeakEff[i] : 0.0));
+                if (total)
+                {
+                    sb.Append(string.Format(CultureInfo.InvariantCulture,
+                                            " {0:F6} {1:F6} {2:F6} {3:F6} {4:G6}",
+                                            this.Q2T[i], this.Q4T[i],
+                                            this.Q2TErr != null ? this.Q2TErr[i] : 0.0,
+                                            this.Q4TErr != null ? this.Q4TErr[i] : 0.0,
+                                            this.TotalEff != null ? this.TotalEff[i] : 0.0));
+                }
+
+                sb.Append('\n');
+            }
+
+            File.WriteAllText(path, sb.ToString(), new System.Text.UTF8Encoding(false));
+        }
+
+        /// <summary>Разбор файла; null — файла нет, формат чужой или таблица пуста.</summary>
+        public static AngularAttenuation Load(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            var table = new AngularAttenuation { FilePath = path };
+            var e = new List<double>();
+            var q2 = new List<double>();
+            var q4 = new List<double>();
+            var d2 = new List<double>();
+            var d4 = new List<double>();
+            var eff = new List<double>();
+            var q2t = new List<double>();
+            var q4t = new List<double>();
+            var d2t = new List<double>();
+            var d4t = new List<double>();
+            var efft = new List<double>();
+            bool formatSeen = false;
+            foreach (string raw in File.ReadAllLines(path, System.Text.Encoding.UTF8))
+            {
+                string line = raw.Trim();
+                if (line.Length == 0 || line[0] == '#')
+                {
+                    continue;
+                }
+
+                int eq = line.IndexOf('=');
+                if (eq > 0 && !char.IsDigit(line[0]))
+                {
+                    string key = line.Substring(0, eq);
+                    string value = line.Substring(eq + 1);
+                    switch (key)
+                    {
+                        case "format":
+                            int format;
+                            formatSeen = int.TryParse(value, NumberStyles.Integer,
+                                                      CultureInfo.InvariantCulture, out format)
+                                         && format == Format;
+                            break;
+                        case "scene": table.Scene = value; break;
+                        case "geomsha": table.GeometrySha = value; break;
+                        case "matrix": table.MatrixStamp = value; break;
+                        case "histories":
+                            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                         out table.Histories);
+                            break;
+                        case "seed":
+                            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                         out table.Seed);
+                            break;
+                        case "built": table.Built = value; break;
+                    }
+
+                    continue;
+                }
+
+                string[] parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 3)
+                {
+                    continue;
+                }
+
+                double energy, a, b;
+                if (!double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out energy)
+                    || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out a)
+                    || !double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b))
+                {
+                    continue;
+                }
+
+                double x;
+                e.Add(energy);
+                q2.Add(a);
+                q4.Add(b);
+                d2.Add(parts.Length > 3 && double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                d4.Add(parts.Length > 4 && double.TryParse(parts[4], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                eff.Add(parts.Length > 5 && double.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                if (parts.Length > 10)
+                {
+                    q2t.Add(double.TryParse(parts[6], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                    q4t.Add(double.TryParse(parts[7], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                    d2t.Add(double.TryParse(parts[8], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                    d4t.Add(double.TryParse(parts[9], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                    efft.Add(double.TryParse(parts[10], NumberStyles.Float, CultureInfo.InvariantCulture, out x) ? x : 0.0);
+                }
+            }
+
+            if (!formatSeen || e.Count == 0)
+            {
+                return null;
+            }
+
+            table.Energies = e.ToArray();
+            table.Q2 = q2.ToArray();
+            table.Q4 = q4.ToArray();
+            table.Q2Err = d2.ToArray();
+            table.Q4Err = d4.ToArray();
+            table.PeakEff = eff.ToArray();
+            if (q2t.Count == e.Count)
+            {
+                table.Q2T = q2t.ToArray();
+                table.Q4T = q4t.ToArray();
+                table.Q2TErr = d2t.ToArray();
+                table.Q4TErr = d4t.ToArray();
+                table.TotalEff = efft.ToArray();
+            }
+
+            return table;
+        }
+
+        static readonly object Gate = new object();
+        static readonly Dictionary<string, KeyValuePair<DateTime, AngularAttenuation>> Cache =
+            new Dictionary<string, KeyValuePair<DateTime, AngularAttenuation>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Таблица ЭТОЙ геометрии среди `*.qk` каталога — по отпечатку; null —
+        /// каталога нет или ни один файл не подошёл. Файлы кэшируются по
+        /// времени записи: сайдкаров десятки, спектров сотни.
+        /// </summary>
+        public static AngularAttenuation Find(string directory, EfficiencyMaker.GeometryModel geometry)
+        {
+            if (string.IsNullOrEmpty(directory) || geometry == null || !Directory.Exists(directory))
+            {
+                return null;
+            }
+
+            string sha = FingerprintOf(geometry);
+            if (sha.Length == 0)
+            {
+                return null;
+            }
+
+            foreach (string file in Directory.GetFiles(directory, "*" + Extension))
+            {
+                AngularAttenuation table = Cached(file);
+                if (table != null && string.Equals(table.GeometrySha, sha, StringComparison.OrdinalIgnoreCase))
+                {
+                    return table;
+                }
+            }
+
+            return null;
+        }
+
+        static AngularAttenuation Cached(string file)
+        {
+            DateTime stamp = File.GetLastWriteTimeUtc(file);
+            lock (Gate)
+            {
+                KeyValuePair<DateTime, AngularAttenuation> have;
+                if (Cache.TryGetValue(file, out have) && have.Key == stamp)
+                {
+                    return have.Value;
+                }
+
+                AngularAttenuation loaded = Load(file);
+                Cache[file] = new KeyValuePair<DateTime, AngularAttenuation>(stamp, loaded);
+                return loaded;
+            }
         }
     }
 }

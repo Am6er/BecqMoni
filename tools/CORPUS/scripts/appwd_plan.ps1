@@ -591,6 +591,13 @@ function Get-AppWdPlan {
         Get-ChildItem (Join-Path $response '*.rmx') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
             $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $rspDir $_.Name); Why = 'матрица отклика' })
         }
+        # (`N14`, П49 13.09.2026) Сайдкары угловых корреляций `<ключ>.qk` лежат
+        # В САМОМ складе (`geometries/`, в git — текст на килобайт) и едут в тот
+        # же `response` рабочего каталога: разбор ищет их там же, где матрицу
+        # (`FsaMatrixBinding`), по отпечатку геометрии, а не по имени файла.
+        Get-ChildItem (Join-Path $storeDir '*.qk') -File -Force -ErrorAction SilentlyContinue | ForEach-Object {
+            $pairs.Add([pscustomobject]@{ Src = $_.FullName; Dst = (Join-Path $rspDir $_.Name); Why = 'угловые корреляции Q_k' })
+        }
     }
 
     # ⛔ ОДНО МЕСТО — ОДИН ИСТОЧНИК (`T225`). План с двумя разными источниками на

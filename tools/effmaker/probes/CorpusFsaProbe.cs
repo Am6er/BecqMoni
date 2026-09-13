@@ -923,6 +923,52 @@ namespace CorpusFsaProbe
     /// (`%AppData%\BecqMoni`) при этом не задействован: приложение считает себя
     /// standalone всегда, кроме ClickOnce, и пути идут от рабочего каталога.
     /// </summary>
+    /// <summary>
+    /// (`N14`, П49 13.09.2026) ПЕРЕПИСЬ УГЛОВЫХ КОРРЕЛЯЦИЙ — отражением с
+    /// живого анализатора после каждого спектра, сводкой в конце. Ключ
+    /// сам по себе не доказательство: без таблицы Q_k сцены он ничего не
+    /// меняет, а таблица находится по отпечатку геометрии и может не найтись
+    /// молча. Поэтому печатаются ОБА: у скольких спектров таблица была и
+    /// сколько пар с A_kk ≠ 0 реально прошло через сумматор.
+    /// </summary>
+    static class AngularCensus
+    {
+        static int spectra, withKey, withTable, withPairs, pairs;
+        static double factorMin = double.NaN, factorMax = double.NaN;
+
+        public static void Note(FsaAnalyzer analyzer)
+        {
+            spectra++;
+            if (analyzer.CascadeSumAngular) withKey++;
+            if (analyzer.AngularQk != null) withTable++;
+            int n = analyzer.CascadeAngularPairs;
+            if (n > 0)
+            {
+                withPairs++;
+                pairs += n;
+                double lo = analyzer.CascadeAngularFactorMin, hi = analyzer.CascadeAngularFactorMax;
+                if (double.IsNaN(factorMin) || lo < factorMin) factorMin = lo;
+                if (double.IsNaN(factorMax) || hi > factorMax) factorMax = hi;
+            }
+        }
+
+        public static void Print()
+        {
+            if (spectra == 0)
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("УГЛОВЫЕ КОРРЕЛЯЦИИ В ПАРАХ (N14): ключ ВКЛ у {0} из {1} спектров; таблица Q_k сцены нашлась у {2}; "
+                              + "спектров с парами A_kk≠0 {3}, пар {4}{5}",
+                              withKey, spectra, withTable, withPairs, pairs,
+                              pairs > 0
+                                  ? string.Format(CultureInfo.InvariantCulture, "; множитель {0:F4}…{1:F4}", factorMin, factorMax)
+                                  : "");
+        }
+    }
+
     static class Program
     {
         [STAThread]
@@ -1000,6 +1046,21 @@ namespace CorpusFsaProbe
                     }
 
                     o.LossJoint = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`N14`, П49 13.09.2026) Угловая корреляция квантов каскада в
+                // парах: `1` — вкл, `0` — выкл. Читатель — `SETUP` отражением
+                // (`CascadeSumAngular`) и сводка «УГЛОВЫЕ КОРРЕЛЯЦИИ» в конце.
+                if (a.StartsWith("--angcorr=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--angcorr= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.AngCorr = v == "1" ? 1 : 0;
                     continue;
                 }
                 // (`A30`, П21 12.09.2026) Заслон сведения рентгена кристалла:
@@ -2325,6 +2386,13 @@ namespace CorpusFsaProbe
                 analyzer.CascadeLossJointFactor = o.LossJoint == 1;
             }
 
+            // (`N14`, П49) угловая корреляция в парах; ключ обязан ДОЕХАТЬ до
+            // анализатора, читатель — `SETUP` отражением (`CascadeSumAngular`)
+            if (o.AngCorr >= 0)
+            {
+                analyzer.CascadeSumAngular = o.AngCorr == 1;
+            }
+
             // (`A310`, П47) веса решателя; ключ обязан ДОЕХАТЬ до анализатора,
             // читатель — `SETUP` отражением (`ModelWeights`)
             if (o.Weights != null)
@@ -3184,6 +3252,10 @@ namespace CorpusFsaProbe
                 row.MatrixApplied = result.ResponseMatrixUsed;
                 row.MatrixImages = MatrixEligibleInReport(result, library);
                 row.CascadeUsed = result.CascadeSummingUsed;
+                // (`N14`, П49) Угловые корреляции — отражением с живого
+                // анализатора: ключ, нашлась ли таблица Q_k сцены, сколько пар
+                // с A_kk ≠ 0 прошло через сумматор и в каких пределах множитель.
+                AngularCensus.Note(analyzer);
                 row.EfficiencyUsed = result.EfficiencyUsed;
 
                 // Карта невязки: где измерение выше модели. Правило общее с
@@ -4816,6 +4888,7 @@ namespace CorpusFsaProbe
 
             PrintRefitZCensus(rows);
             PrintCascadeDatabaseVoice();
+            AngularCensus.Print();
 
             Console.WriteLine();
             Console.WriteLine("⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;");
@@ -5675,6 +5748,7 @@ namespace CorpusFsaProbe
             public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
             public string SumLight = null;       // (S167, П18) кривая света каскадной суммы: "electron" | "photon"; null — умолчание анализатора
             public int LossJoint = -1;           // (S166, П18) вынос из пика с κ: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public int AngCorr = -1;             // (N14, П49) угловая корреляция в парах: 1 вкл, 0 выкл; -1 — умолчание анализатора
             public string Weights = null;        // (A310, П47) веса решателя: "data" | "model"; null — умолчание анализатора
 
             // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,

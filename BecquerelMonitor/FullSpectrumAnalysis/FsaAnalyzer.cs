@@ -3929,6 +3929,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CascadeLossJointFactor { get; set; }
 
         /// <summary>
+        /// (`N14`, полоса П49 13.09.2026) УГЛОВАЯ КОРРЕЛЯЦИЯ КВАНТОВ КАСКАДА в
+        /// парах: с этим ключом площадь сумм-события пары домножается на
+        /// `1 + Σ_k A_kk·Q_k(E₁)·Q_k(E₂)` — ядерная половина A_kk из спинов и
+        /// мультипольностей схемы уровней (<see cref="AngularCorrelation"/>),
+        /// геометрическая Q_k(E) — из таблицы сцены (<see cref="AngularQk"/>,
+        /// сайдкар `*.qk` рядом с матрицей); без таблицы ключ ничего не меняет.
+        /// Без ключа пара идёт произведением эффективностей, то есть изотропно,
+        /// как считалось до этого дня (<see cref="FsaCascadeSummer.AngularCorrelations"/>).
+        /// Полярность умолчания и числа A/B — у присваивания в конструкторе;
+        /// рычаг проб — `--angcorr=0|1` у `CorpusFsaProbe`; читатель — `SETUP`
+        /// отражением.
+        /// </summary>
+        public bool CascadeSumAngular { get; set; }
+
+        /// <summary>
+        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара нет. Приходит с
+        /// матрицей тем же путём, что <see cref="ScintillatorMaterial"/>
+        /// (<c>FsaMatrixBinding.Bind</c>), и уходит в сумматор до первого
+        /// расчёта поправок.
+        /// </summary>
+        public AngularAttenuation AngularQk { get; set; }
+
+        /// <summary>Пар с A_kk ≠ 0, прошедших через сумматор в последнем разборе (`N14`); ноль — сумматора не было.</summary>
+        public int CascadeAngularPairs
+        {
+            get { return this.cascade != null ? this.cascade.AngularPairs : 0; }
+        }
+
+        /// <summary>Наименьший множитель корреляции последнего разбора (`N14`).</summary>
+        public double CascadeAngularFactorMin
+        {
+            get { return this.cascade != null ? this.cascade.AngularFactorMin : 1.0; }
+        }
+
+        /// <summary>Наибольший множитель корреляции последнего разбора (`N14`).</summary>
+        public double CascadeAngularFactorMax
+        {
+            get { return this.cascade != null ? this.cascade.AngularFactorMax : 1.0; }
+        }
+
+        /// <summary>
         /// Считать ли аннигиляционные кванты партнёром совпадения (S27).
         /// ⛔ Пара 511 + 511 не заводится ни при каком значении — кванты летят
         /// спина к спине, см. <see cref="CascadeAtomicData.AnnihilationQuanta"/>.
@@ -4234,6 +4275,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `handover/handover-2026-09-12-p24-out-rev19.md`). Обратное плечо —
             // `--loss-joint=0` у `CorpusFsaProbe`.
             this.CascadeLossJointFactor = true;
+            // (`N14`, П49 13.09.2026) Угловая корреляция в парах — ВЫКЛ до
+            // полного корпуса: ключ заведён полосой П49 с замером на малой
+            // базе; переворот умолчания — решение Amber по полному корпусу
+            // (журнал `handover/handover-2026-09-13-p49-n14-angular-cf.md`).
+            // Полярность стоит ЗДЕСЬ, у присваивания (`T82`). Обратное плечо
+            // — `--angcorr=1` у `CorpusFsaProbe`.
+            this.CascadeSumAngular = false;
             this.PileUp = true;
             // (`S107`, П10/П13 12.09.2026) Форма образа наложений по свету —
             // ВКЛ умолчанием. Решение Amber 12.09.2026, вопросником, дословно:
@@ -4428,6 +4476,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (this.cascade != null)
             {
                 this.cascade.LossJointFactor = this.CascadeLossJointFactor;
+                // (`N14`, П49) угловая корреляция пар — ключ и таблица сцены,
+                // тоже до первого `For`
+                this.cascade.AngularCorrelations = this.CascadeSumAngular;
+                this.cascade.AngularQk = this.AngularQk;
             }
 
             this.cascadeApplied = false;

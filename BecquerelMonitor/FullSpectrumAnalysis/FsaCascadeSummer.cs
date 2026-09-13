@@ -238,6 +238,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Пары и выходы одного нуклида, как они лежат в базе.</summary>
         sealed class NuclideData
         {
+            /// <summary>Ключ нуклида, каким его звали (`N14`): им берутся переходы и спины.</summary>
+            public string Key;
+
             public Dictionary<double, double> Intensity;                        // E → I, %
             public List<double[]> Pairs;                                        // {E, Ecoinc, P(Ecoinc|E)}
             public Dictionary<double, Dictionary<double, double>> Partners;     // P(m|a), обе стороны
@@ -642,6 +645,123 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
         /// </summary>
         public bool LossJointFactor { get; set; }
+
+        /// <summary>
+        /// (`N14`, П49 13.09.2026) УГЛОВАЯ КОРРЕЛЯЦИЯ В ПАРАХ: площадь
+        /// сумм-события пары (<see cref="PairBase"/> — то есть сумм-пики, влёт,
+        /// тройные суммы и сумм-континуум) домножается на
+        /// `1 + A₂₂·Q₂(1)·Q₂(2) + A₄₄·Q₄(1)·Q₄(2)`, где A_kk — ядерная
+        /// половина (<see cref="AngularCorrelation.ForPair"/>), Q_k(E) —
+        /// геометрическая (<see cref="AngularQk"/>). Без таблицы Q_k ключ
+        /// ничего не меняет — сцене нечем ослабить корреляцию, и это не отказ:
+        /// счёт идёт изотропно, как прежде, а состояние видно снаружи
+        /// (<see cref="AngularPairs"/>). Умолчание — у анализатора
+        /// (<c>FsaAnalyzer.CascadeSumAngular</c>), рычаг проб —
+        /// `--angcorr=0|1` у `CorpusFsaProbe`. Ставится до первого
+        /// <see cref="For"/>, как и <see cref="PhotonLightCurve"/>.
+        /// </summary>
+        public bool AngularCorrelations { get; set; }
+
+        /// <summary>
+        /// Таблица Q_k(E) сцены (`N14`); null — сайдкара рядом с матрицей нет.
+        /// Приходит снаружи тем же путём, что вещество кристалла (`S20`):
+        /// <c>FsaMatrixBinding.Bind</c> → анализатор → сюда.
+        /// </summary>
+        public AngularAttenuation AngularQk { get; set; }
+
+        /// <summary>Сколько пар с A_kk ≠ 0 получили множитель при включённом ключе — в <see cref="PairBase"/> и в выносе (<see cref="SurviveAll"/>).</summary>
+        public int AngularPairs { get; private set; }
+
+        /// <summary>Наименьший и наибольший множитель корреляции среди <see cref="AngularPairs"/>; 1 — не было.</summary>
+        public double AngularFactorMin { get; private set; }
+        public double AngularFactorMax { get; private set; }
+
+        /// <summary>
+        /// Множитель корреляции пары: `1 + Σ_k A_kk·Q_k(E₁)·Q_k(E₂)`; единица,
+        /// когда ключ выключен, таблицы нет или пара изотропна. Коэффициенты
+        /// кэшируются по нуклиду и энергиям на экземпляре.
+        /// </summary>
+        double AngularFactor(NuclideData data, double[] pair)
+        {
+            if (!this.AngularCorrelations || this.AngularQk == null
+                || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return 1.0;
+            }
+
+            AngularCorrelation.Coefficients w = this.CoefficientsOf(data.Key, pair[0], pair[1]);
+            if (w == null || w.IsIsotropic)
+            {
+                return 1.0;
+            }
+
+            double factor = 1.0
+                            + w.A22 * this.AngularQk.Q(2, pair[0]) * this.AngularQk.Q(2, pair[1])
+                            + w.A44 * this.AngularQk.Q(4, pair[0]) * this.AngularQk.Q(4, pair[1]);
+            this.NoteAngular(factor);
+            return factor;
+        }
+
+        readonly Dictionary<string, AngularCorrelation.Coefficients> angular =
+            new Dictionary<string, AngularCorrelation.Coefficients>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Множитель корреляции для ВЫНОСА линии k партнёром j:
+        /// `1 + Σ_k A_kk·Q_k^p(E_k)·Q_k^T(E_j)`; единица — ключ выключен,
+        /// таблицы нет или пара изотропна. Коэффициенты — из того же кэша.
+        /// </summary>
+        double AngularLossFactor(NuclideData data, double lineKev, double partnerKev)
+        {
+            if (!this.AngularCorrelations || this.AngularQk == null
+                || data == null || data.Key == null || data.Key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
+            {
+                return 1.0;
+            }
+
+            AngularCorrelation.Coefficients w = this.CoefficientsOf(data.Key, lineKev, partnerKev);
+            if (w == null || w.IsIsotropic)
+            {
+                return 1.0;
+            }
+
+            double factor = 1.0
+                            + w.A22 * this.AngularQk.Q(2, lineKev) * this.AngularQk.QT(2, partnerKev)
+                            + w.A44 * this.AngularQk.Q(4, lineKev) * this.AngularQk.QT(4, partnerKev);
+            this.NoteAngular(factor);
+            return factor;
+        }
+
+        AngularCorrelation.Coefficients CoefficientsOf(string key, double firstKev, double secondKev)
+        {
+            // Ключ кэша — упорядоченная пара энергий: `ForPair` симметрична.
+            double lo = Math.Min(firstKev, secondKev), hi = Math.Max(firstKev, secondKev);
+            string cacheKey = key + "|" + lo.ToString("R", CultureInfo.InvariantCulture)
+                              + "|" + hi.ToString("R", CultureInfo.InvariantCulture);
+            AngularCorrelation.Coefficients w;
+            if (!this.angular.TryGetValue(cacheKey, out w))
+            {
+                w = AngularCorrelation.ForPair(key, lo, hi);
+                this.angular[cacheKey] = w;
+            }
+
+            return w;
+        }
+
+        void NoteAngular(double factor)
+        {
+            if (this.AngularPairs == 0)
+            {
+                this.AngularFactorMin = factor;
+                this.AngularFactorMax = factor;
+            }
+            else
+            {
+                if (factor < this.AngularFactorMin) this.AngularFactorMin = factor;
+                if (factor > this.AngularFactorMax) this.AngularFactorMax = factor;
+            }
+
+            this.AngularPairs++;
+        }
 
         /// <summary>
         /// Имя фотонной таблицы по веществу кристалла («NaI:Tl», «CsI:Tl»);
@@ -1088,7 +1208,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // уносит событие из пика. Нужна вероятность ОБЪЕДИНЕНИЯ «хоть один
             // зарегистрирован», и считается она через выживание.
             loss = 1.0 - this.SurviveAll(data, Partners(data, energy), SupplyOf(data, energy),
-                                         this.LossJointFactor ? energy : 0.0);
+                                         this.LossJointFactor ? energy : 0.0, energy);
 
             // Влёт: пары, сумма которых попадает в окно этой линии. Сравнивается
             // ВИДИМАЯ сумма (по свету, S20) — окно задано на шкале прибора, а
@@ -1431,9 +1551,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`N14`) Угловая корреляция — ЗДЕСЬ ЖЕ, где κ: через `PairBase`
+            // проходят все места, где перемножаются пиковые эффективности двух
+            // квантов одного распада, и множитель, поставленный только у
+            // сумм-пика, спорил бы сам с собой во влёте (`S112`).
             return intensity / 100.0 * joint
                    * this.PeakEfficiency(pair[0]) * this.PeakEfficiency(pair[1])
-                   * this.JointFactor(pair[0], pair[1]);
+                   * this.JointFactor(pair[0], pair[1])
+                   * this.AngularFactor(data, pair);
         }
 
         /// <summary>
@@ -1447,7 +1572,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`S166`, П18) Условие «оба кванта пары в пике» — тройная
             // совместность, таблицы под неё нет; третий квант считается
             // по-прежнему, без множителя.
-            return this.SurviveAll(data, third, supply, 0.0);
+            return this.SurviveAll(data, third, supply, 0.0, 0.0);
         }
 
         /// <summary>
@@ -1473,7 +1598,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// вероятности поставки не несут признака ветви. Родня: `S145`.
         /// </summary>
         double SurviveAll(NuclideData data, Dictionary<double, double> partners,
-                          HashSet<double> supply, double referenceKev)
+                          HashSet<double> supply, double referenceKev, double angularKev)
         {
             double survive = 1.0;
             foreach (KeyValuePair<double, double> partner in partners)
@@ -1482,6 +1607,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (!(efficiency > 0.0) || !(partner.Value > 0.0))
                 {
                     continue;
+                }
+
+                // (`N14`) Угловая корреляция В ВЫНОСЕ: партнёр уносит событие,
+                // куда бы он ни попал, поэтому условная вероятность его задеть
+                // при опорном кванте в пике — ε_T(j)·(1 + Σ A_kk·Q_k^p(k)·Q_k^T(j))
+                // с моментами ПОЛНОЙ эффективности партнёра. Именно здесь живёт
+                // цена из строки (Cs-134 1365: CF 0.807 против 0.854 у ЛСРМ) —
+                // сумм-пик её только показывает. Ноль опорной энергии — не
+                // считается (третий квант пары, тройная совместность).
+                if (angularKev > 0.0)
+                {
+                    efficiency = Math.Min(1.0, efficiency * this.AngularLossFactor(data, angularKev, partner.Key));
                 }
 
                 // (`S166`, П18 12.09.2026) Полная эффективность партнёра —
@@ -1918,6 +2055,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             NuclideData data = new NuclideData
             {
+                Key = key,
                 Intensity = new Dictionary<double, double>(),
                 Pairs = new List<double[]>(),
                 Partners = new Dictionary<double, Dictionary<double, double>>(),
@@ -3041,6 +3179,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             NuclideData data = new NuclideData
             {
+                Key = source != null ? source.Key : null,
                 Intensity = new Dictionary<double, double>(),
                 Pairs = new List<double[]>(),
                 Partners = new Dictionary<double, Dictionary<double, double>>(),
