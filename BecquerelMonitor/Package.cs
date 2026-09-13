@@ -189,6 +189,27 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Свои шаблоны детекторов редактора геометрий (`AMBER24`, решение
+        /// Amber 13.09.2026 «Рядом с GeometryMaterials.xml в config/»). Одним
+        /// файлом, как и вещества.
+        ///
+        /// ⛔ НЕ в <c>config\device</c>: <c>DeviceConfigManager</c> читает там
+        /// КАЖДЫЙ <c>*.xml</c> как прибор, и чужой файл давал бы окно ошибки при
+        /// каждом старте — ровно так родилось это решение.
+        /// </summary>
+        public string GeometryTemplates
+        {
+            get
+            {
+                if (!IsStandAlone)
+                {
+                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\GeometryTemplates.xml";
+                }
+                return Local("config\\GeometryTemplates.xml");
+            }
+        }
+
         public string ROI
         {
             get

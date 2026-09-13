@@ -1010,8 +1010,11 @@ namespace BecquerelMonitor
         /// Однострочный ввод. Своё окошко, а не InputBox из VisualBasic: тянуть
         /// в проект целую сборку ради одного поля незачем, а её здесь нет.
         /// Пустая строка означает отказ.
+        ///
+        /// Открыто редактору геометрии (`AMBER24`): имя своего шаблона детектора
+        /// спрашивается тем же окошком, а второго такого окошка заводить незачем.
         /// </summary>
-        static string AskName(IWin32Window owner, string title, string current)
+        internal static string AskName(IWin32Window owner, string title, string current)
         {
             using (Form dialog = new Form())
             {

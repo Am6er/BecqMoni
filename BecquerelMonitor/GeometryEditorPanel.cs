@@ -80,6 +80,27 @@ namespace BecquerelMonitor
         // поехать за ним: они стоят по абсолютной координате, а не стыковкой.
         Panel wrappingPanel, materialsPanel;
         ComboBox presetCombo;
+
+        /// <summary>
+        /// Кнопки своих шаблонов детектора (`AMBER24`, задача Amber 13.09.2026):
+        /// «Сохранить» переписывает выбранный СВОЙ шаблон текущими полями,
+        /// «Клонировать» заводит новый свой из текущих полей (и от вшитого
+        /// тоже — так свой и рождается), «Удалить» снимает свой выбранный.
+        /// На вшитом и на подсказке первая и третья неактивны: вшитый список
+        /// не меняется (слово Amber).
+        /// </summary>
+        Button templateSaveButton, templateCloneButton, templateDeleteButton;
+
+        /// <summary>
+        /// Точки подмены диалогов шаблонов — для ПРОБ. Имя нового шаблона:
+        /// на входе предложенное, на выходе набранное; пустое — отказ.
+        /// Подтверждение удаления: на входе имя, true — удалять. Пусто —
+        /// штатные окна; без окон и без подмены — исключение, как у
+        /// <see cref="AppUi.AskYesNo"/>: отвечать за человека некому.
+        /// </summary>
+        public Func<string, string> TemplateNamePrompt;
+        public Func<string, bool> TemplateDeleteConfirm;
+
         Label sceneLabel;
 
         /// <summary>
@@ -190,6 +211,10 @@ namespace BecquerelMonitor
             {
                 this.model = source == null ? Blank() : source.Clone();
                 this.LoadFromModel();
+                // Список шаблонов помнит выбранный (`AMBER24`), но помнит его
+                // про ТУ геометрию, из которой его выбрали: чужая геометрия
+                // приезжает без имени шаблона, и оставленное имя лгало бы.
+                this.SelectPresetRow(0);
             }
             finally
             {
@@ -394,20 +419,34 @@ namespace BecquerelMonitor
                 Size = new Size(300, 21),
                 DropDownStyle = ComboBoxStyle.DropDownList,
             };
-            this.presetCombo.Items.Add(Resources.GeometryEditorPresetPrompt);
-            foreach (GeometryPresets.Preset preset in GeometryPresets.Items)
-            {
-                this.presetCombo.Items.Add(preset);
-            }
-
-            this.presetCombo.SelectedIndex = 0;
             this.presetCombo.SelectedIndexChanged += this.PresetChanged;
             page.Controls.Add(this.presetCombo);
+
+            // (`AMBER24`) Кнопки своих шаблонов — РЯДОМ со списком, строкой под
+            // ним: в одну строку с ним три подписи по-русски («Клонировать...»)
+            // не помещаются в 620 точек колонки. Ширина — по подписи
+            // (AutoSize), а не числом: панель детей обрезает МОЛЧА, и подпись
+            // длиннее кнопки просто исчезла бы (`GeometryTemplateProbe` мерит).
+            ToolTip tips = new ToolTip();
+            int buttonsLeft = 160;
+            this.templateSaveButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateSave, Resources.GeometryEditorTemplateSaveTip, tips);
+            this.templateCloneButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateClone, Resources.GeometryEditorTemplateCloneTip, tips);
+            this.templateDeleteButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateDelete, Resources.GeometryEditorTemplateDeleteTip, tips);
+            this.templateSaveButton.Click += (s, e) => this.SaveTemplate();
+            this.templateCloneButton.Click += (s, e) => this.CloneTemplate();
+            this.templateDeleteButton.Click += (s, e) => this.DeleteTemplate();
+
+            // Список заполняется ПОСЛЕ кнопок: выбор строки правит их
+            // доступность, и правит он уже существующие кнопки.
+            this.RefreshPresetList(null);
 
             this.cylinderRadio = new RadioButton
             {
                 AutoSize = true,
-                Location = new Point(14, 46),
+                Location = new Point(14, ShapeRowTop),
                 Text = Resources.GeometryEditorShapeCylinder,
                 Checked = true,
             };
@@ -415,7 +454,7 @@ namespace BecquerelMonitor
             this.boxRadio = new RadioButton
             {
                 AutoSize = true,
-                Location = new Point(190, 46),
+                Location = new Point(190, ShapeRowTop),
                 Text = Resources.GeometryEditorShapeBox,
             };
 
@@ -431,11 +470,17 @@ namespace BecquerelMonitor
             // Цена ошибки здесь измерена: у спектра Lu₂O₃ на Nano 16 Pro
             // разница между «с торца» и «сбоку» — втрое по каскадной сумме, и
             // разбор списывал её на несуществующую линию 511 (S46, §13и).
+            // Левый край — за переключателем бруска, а не числом: по-русски
+            // «Кристалл – параллелепипед» шире 146 точек, и список налезал на
+            // подпись (снимок `GeometryTemplateProbe` 13.09.2026, П53; по-
+            // английски сходилось). Правый край прежний, 604.
+            int facingLeft = Math.Max(336, this.boxRadio.Left
+                                           + this.boxRadio.GetPreferredSize(Size.Empty).Width + 8);
             this.facingCombo = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(336, 44),
-                Size = new Size(268, 21),
+                Location = new Point(facingLeft, ShapeRowTop - 2),
+                Size = new Size(604 - facingLeft, 21),
             };
             this.facingCombo.Items.Add(Resources.GeometryEditorFacingFront);
             this.facingCombo.Items.Add(Resources.GeometryEditorFacingSide);
@@ -540,11 +585,27 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Верх первой панели вкладки детектора: под готовым детектором, формой
-        /// кристалла и стороной, обращённой к пробе. Всё, что ниже, стоит друг
-        /// за другом и своей координаты не имеет.
+        /// Верх строки кнопок шаблонов (`AMBER24`) — под списком готовых
+        /// детекторов (11 + 21 + просвет).
         /// </summary>
-        const int ShapeTop = 70;
+        const int TemplateButtonsTop = 37;
+
+        /// <summary>Высота кнопки шаблона; ширина — по подписи.</summary>
+        const int TemplateButtonHeight = 23;
+
+        /// <summary>
+        /// Верх строки формы кристалла и стороны к пробе. Стояла на 46, под
+        /// одним списком; строка кнопок шаблонов (`AMBER24`) сдвинула её на
+        /// свою высоту с просветом.
+        /// </summary>
+        const int ShapeRowTop = TemplateButtonsTop + TemplateButtonHeight + 14;
+
+        /// <summary>
+        /// Верх первой панели вкладки детектора: под готовым детектором, его
+        /// кнопками, формой кристалла и стороной, обращённой к пробе. Всё, что
+        /// ниже, стоит друг за другом и своей координаты не имеет.
+        /// </summary>
+        const int ShapeTop = ShapeRowTop + 24;
 
         /// <summary>Просвет между соседними панелями столбика.</summary>
         const int PanelGap = 6;
@@ -1802,37 +1863,468 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Подставить готовый детектор. Меняется ТОЛЬКО детектор: источник
-        /// остаётся тот, что выбран на своей вкладке — один и тот же кристалл
-        /// меряют и в маринелли, и точечным источником.
+        /// Подставить готовый детектор — вшитый или свой шаблон. Меняется
+        /// ТОЛЬКО детектор: источник остаётся тот, что выбран на своей вкладке
+        /// — один и тот же кристалл меряют и в маринелли, и точечным
+        /// источником.
         ///
-        /// Список возвращается к приглашению: это действие, а не состояние.
-        /// Оставленное имя лгало бы, как только тронут любое поле.
+        /// ⛔ Список ПОМНИТ выбранный (`AMBER24`, решение Amber 13.09.2026
+        /// вопросником: «Список помнит выбранный»). До этого он возвращался к
+        /// приглашению («это действие, а не состояние»); теперь выбранная
+        /// строка — то, что перепишет «Сохранить» и снимет «Удалить», и
+        /// стоять она обязана. Что имя «лжёт», как только тронуто поле, —
+        /// цена решения, и она названа.
         /// </summary>
         void PresetChanged(object sender, EventArgs e)
         {
-            if (this.loading || this.presetCombo.SelectedIndex <= 0)
+            if (this.loading)
             {
                 return;
             }
 
-            GeometryPresets.Preset preset =
-                this.presetCombo.SelectedItem as GeometryPresets.Preset;
-            if (preset == null)
+            this.UpdateTemplateButtons();
+            if (this.presetCombo.SelectedIndex <= 0)
+            {
+                return;
+            }
+
+            GeometryPresets.Preset preset = this.presetCombo.SelectedItem as GeometryPresets.Preset;
+            GeometryTemplate own = this.SelectedOwnTemplate;
+            if (preset == null && own == null)
             {
                 return;
             }
 
             GeometryModel g = this.BuildModel();
-            preset.Apply(g);
+            if (preset != null)
+            {
+                preset.Apply(g);
+            }
+            else
+            {
+                own.Apply(g);
+            }
+
             this.model = g;
             this.LoadFromModel();
-            this.presetCombo.SelectedIndex = 0;
 
             // Сцена считается ИЗ ДЕТЕКТОРА, а пресет его целиком и подменяет
             // (E32): без пересчёта в полях остались бы размеры от прежнего
             // прибора — молча, и это худший вид ошибки.
             this.RecomputeScene();
+        }
+
+        // ------------------------------------------------------------------
+        // Свои шаблоны детектора (`AMBER24`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Строка списка со СВОИМ шаблоном. Своя обёртка, а не сам шаблон:
+        /// в одном списке со вшитыми свой обязан быть отличим на глаз (решение
+        /// Amber 13.09.2026), и пометка «(свой)» ставится здесь, а не в имени
+        /// файла — имя в файле остаётся тем, что набрал человек.
+        /// </summary>
+        sealed class OwnTemplateRow
+        {
+            public GeometryTemplate Template;
+
+            public override string ToString()
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                                     Resources.GeometryEditorTemplateOwn, this.Template.Name);
+            }
+        }
+
+        Button TemplateButton(Control parent, ref int left, string text, string tip, ToolTip tips)
+        {
+            Button button = new Button
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                MinimumSize = new Size(72, TemplateButtonHeight),
+                Location = new Point(left, TemplateButtonsTop),
+                Text = text,
+                UseVisualStyleBackColor = true,
+            };
+            // Ширину меряем сами, той же меркой, что и AutoSize: кнопка
+            // ставится ДО разметки, а следующая встаёт от её правого края.
+            Size want = button.GetPreferredSize(Size.Empty);
+            button.Size = new Size(Math.Max(button.MinimumSize.Width, want.Width), TemplateButtonHeight);
+            tips.SetToolTip(button, tip);
+            parent.Controls.Add(button);
+            left = button.Right + 6;
+            return button;
+        }
+
+        /// <summary>
+        /// Свой шаблон, выбранный в списке; null — выбрана подсказка или
+        /// вшитый.
+        /// </summary>
+        public GeometryTemplate SelectedOwnTemplate
+        {
+            get
+            {
+                OwnTemplateRow row = this.presetCombo != null
+                    ? this.presetCombo.SelectedItem as OwnTemplateRow : null;
+                return row != null ? row.Template : null;
+            }
+        }
+
+        /// <summary>
+        /// Вшитый детектор, выбранный в списке; null — подсказка или свой.
+        /// </summary>
+        public GeometryPresets.Preset SelectedBuiltinPreset
+        {
+            get
+            {
+                return this.presetCombo != null
+                    ? this.presetCombo.SelectedItem as GeometryPresets.Preset : null;
+            }
+        }
+
+        /// <summary>
+        /// Имена строк списка по порядку — как их видит человек (для проб).
+        /// </summary>
+        public List<string> PresetRowTexts()
+        {
+            List<string> list = new List<string>();
+            foreach (object item in this.presetCombo.Items)
+            {
+                list.Add(item.ToString());
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Пересобрать список: подсказка, вшитые, потом свои (в порядке файла).
+        /// <paramref name="select"/> — что оставить выбранным (свой шаблон);
+        /// null — подсказку. Смена строки здесь — не действие: шаблон не
+        /// накладывается, только кнопки обновляются.
+        /// </summary>
+        void RefreshPresetList(GeometryTemplate select)
+        {
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                this.presetCombo.Items.Clear();
+                this.presetCombo.Items.Add(Resources.GeometryEditorPresetPrompt);
+                foreach (GeometryPresets.Preset preset in GeometryPresets.Items)
+                {
+                    this.presetCombo.Items.Add(preset);
+                }
+
+                int selected = 0;
+                foreach (GeometryTemplate t in GeometryTemplateStore.Items)
+                {
+                    int i = this.presetCombo.Items.Add(new OwnTemplateRow { Template = t });
+                    if (ReferenceEquals(t, select))
+                    {
+                        selected = i;
+                    }
+                }
+
+                this.presetCombo.SelectedIndex = selected;
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            this.UpdateTemplateButtons();
+        }
+
+        /// <summary>Встать на строку списка, ничего не накладывая.</summary>
+        void SelectPresetRow(int index)
+        {
+            if (this.presetCombo == null || index < 0 || index >= this.presetCombo.Items.Count)
+            {
+                return;
+            }
+
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                this.presetCombo.SelectedIndex = index;
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            this.UpdateTemplateButtons();
+        }
+
+        /// <summary>
+        /// Выбрать строку списка ПО ИМЕНИ шаблона (свой или вшитый) — и
+        /// наложить его, как выбором руками. false — такой строки нет.
+        /// Для проб: щелчок по списку без окна не послать.
+        /// </summary>
+        public bool SelectPresetByName(string name)
+        {
+            for (int i = 1; i < this.presetCombo.Items.Count; i++)
+            {
+                object item = this.presetCombo.Items[i];
+                GeometryPresets.Preset preset = item as GeometryPresets.Preset;
+                OwnTemplateRow row = item as OwnTemplateRow;
+                string itemName = preset != null ? preset.Name : row != null ? row.Template.Name : null;
+                if (string.Equals(itemName, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (this.presetCombo.SelectedIndex == i)
+                    {
+                        // Та же строка второй раз события не даёт — наложить
+                        // руками, как сделал бы выбор.
+                        this.PresetChanged(this.presetCombo, EventArgs.Empty);
+                    }
+                    else
+                    {
+                        this.presetCombo.SelectedIndex = i;
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// «Сохранить» и «Удалить» живут только на СВОЁМ шаблоне; «Клонировать»
+        /// — всегда: она берёт текущие поля, и от чего они — от вшитого, от
+        /// своего или набраны руками — ей всё равно.
+        /// </summary>
+        void UpdateTemplateButtons()
+        {
+            if (this.templateSaveButton == null)
+            {
+                return;
+            }
+
+            bool own = this.SelectedOwnTemplate != null;
+            this.templateSaveButton.Enabled = own;
+            this.templateDeleteButton.Enabled = own;
+            this.templateCloneButton.Enabled = true;
+        }
+
+        /// <summary>Причина отказа шаблонов — окном в приложении, строкой без окон.</summary>
+        static void RefuseTemplate(string text)
+        {
+            AppUi.Report(text, Resources.GeometryEditorTitle, MessageBoxIcon.Warning);
+        }
+
+        /// <summary>
+        /// Текущие поля детектора — годной моделью, или null с уже названной
+        /// причиной: шаблон из нечитаемого числа сохранял бы ноль на месте
+        /// опечатки, как когда-то расчёт.
+        /// </summary>
+        GeometryModel CurrentForTemplate()
+        {
+            if (!this.MarkBadValues())
+            {
+                RefuseTemplate(Resources.GeometryEditorErrorNumber);
+                return null;
+            }
+
+            return this.BuildModel();
+        }
+
+        /// <summary>
+        /// Файл шаблонов не прочитан — писать поверх него нельзя: человек
+        /// потерял бы то, что там лежит, а он его даже не видел.
+        /// </summary>
+        bool TemplateFileReadable()
+        {
+            string error = GeometryTemplateStore.LoadError;
+            if (string.IsNullOrEmpty(error))
+            {
+                return true;
+            }
+
+            RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                         Resources.GeometryEditorTemplateLoadError, error));
+            return false;
+        }
+
+        /// <summary>Имя не годится — назвать почему; true — годится.</summary>
+        static bool TemplateNameFree(string name, GeometryTemplate except)
+        {
+            switch (GeometryTemplateStore.NameConflict(name, except))
+            {
+                case GeometryTemplateStore.NameProblem.Empty:
+                    RefuseTemplate(Resources.GeometryEditorTemplateNameEmpty);
+                    return false;
+                case GeometryTemplateStore.NameProblem.Builtin:
+                    RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                                 Resources.GeometryEditorTemplateNameBuiltin, name));
+                    return false;
+                case GeometryTemplateStore.NameProblem.Taken:
+                    RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                                 Resources.GeometryEditorTemplateNameTaken, name));
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
+        /// <summary>
+        /// «Сохранить»: переписать выбранный СВОЙ шаблон текущими полями
+        /// детектора. false — отказ, причина уже названа. На вшитом и на
+        /// подсказке — отказ без окна: кнопка там неактивна, а прямой вызов
+        /// (проба) получает false.
+        /// </summary>
+        public bool SaveTemplate()
+        {
+            GeometryTemplate own = this.SelectedOwnTemplate;
+            if (own == null || !this.TemplateFileReadable())
+            {
+                return false;
+            }
+
+            GeometryModel g = this.CurrentForTemplate();
+            if (g == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                GeometryTemplateStore.Replace(own, g);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorTemplateWriteError, e.Message));
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// «Клонировать»: новый свой шаблон из ТЕКУЩИХ полей детектора с
+        /// именем из диалога; работает и от вшитого, и от подсказки. Новый
+        /// становится выбранным — его и перепишет следующее «Сохранить».
+        /// false — отказ (пустое имя, имя вшитого или своего, не записалось),
+        /// причина названа.
+        /// </summary>
+        public bool CloneTemplate()
+        {
+            if (!this.TemplateFileReadable())
+            {
+                return false;
+            }
+
+            GeometryModel g = this.CurrentForTemplate();
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Подсказка имени — свободная: от выбранной строки, чтобы
+            // «Клонировать» на RadiaCode-101 предложил «RadiaCode-101 2», а не
+            // имя, которое тут же отвергнется как вшитое.
+            GeometryPresets.Preset preset = this.SelectedBuiltinPreset;
+            GeometryTemplate own = this.SelectedOwnTemplate;
+            string sample = preset != null ? preset.Name : own != null ? own.Name : "";
+            string name = this.AskTemplateName(GeometryTemplateStore.FreeName(sample));
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;                         // отказ человека — не беда
+            }
+
+            name = name.Trim();
+            if (!TemplateNameFree(name, null))
+            {
+                return false;
+            }
+
+            GeometryTemplate added;
+            try
+            {
+                added = GeometryTemplateStore.Add(name, g);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorTemplateWriteError, e.Message));
+                return false;
+            }
+
+            this.RefreshPresetList(added);
+            return true;
+        }
+
+        /// <summary>
+        /// «Удалить»: снять выбранный СВОЙ шаблон, с подтверждением; после —
+        /// подсказка. Поля детектора не трогаются: удалён шаблон, а не
+        /// геометрия. false — не свой, отказ человека или не записалось.
+        /// </summary>
+        public bool DeleteTemplate()
+        {
+            GeometryTemplate own = this.SelectedOwnTemplate;
+            if (own == null || !this.TemplateFileReadable())
+            {
+                return false;
+            }
+
+            if (!this.ConfirmTemplateDelete(own.Name))
+            {
+                return false;
+            }
+
+            try
+            {
+                GeometryTemplateStore.Remove(own);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorTemplateWriteError, e.Message));
+                return false;
+            }
+
+            this.RefreshPresetList(null);
+            return true;
+        }
+
+        string AskTemplateName(string proposed)
+        {
+            if (this.TemplateNamePrompt != null)
+            {
+                return this.TemplateNamePrompt(proposed);
+            }
+
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: " + Resources.GeometryEditorTemplateNameTitle
+                    + " — спросить имя шаблона без окон некому; проба обязана подменить TemplateNamePrompt.");
+            }
+
+            return DeviceConfigForm.AskName(this, Resources.GeometryEditorTemplateNameTitle, proposed);
+        }
+
+        bool ConfirmTemplateDelete(string name)
+        {
+            string question = string.Format(CultureInfo.InvariantCulture,
+                                            Resources.GeometryEditorTemplateDeleteConfirm, name);
+            if (this.TemplateDeleteConfirm != null)
+            {
+                return this.TemplateDeleteConfirm(name);
+            }
+
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: " + question
+                    + " — ответить без окон некому; проба обязана подменить TemplateDeleteConfirm.");
+            }
+
+            return MessageBox.Show(this, question, Resources.ConfirmationDialogTitle,
+                                   MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation)
+                   == DialogResult.OK;
         }
 
         /// <summary>
