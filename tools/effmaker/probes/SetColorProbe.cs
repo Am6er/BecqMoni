@@ -26,8 +26,8 @@ namespace SetColorProbe
     ///
     ///   setcolorprobe [куда.png]
     ///
-    /// Конфиг читается из ТЕКУЩЕГО каталога (`config\NuclideDefinition.xml`),
-    /// как и у SetProbe: запускать из копии, чужой конфиг пробой не трогать.
+    /// Конфиг читается из ТЕКУЩЕГО каталога (`config\NuclideDefinition.xml`):
+    /// запускать из копии, чужой конфиг пробой не трогать.
     /// </summary>
     static class Program
     {

@@ -24,10 +24,10 @@ namespace ChainProbe
     /// 2. ХРАНЕНИЕ. Поле обязано пережить запись в файл; файл, записанный БЕЗ
     ///    поля (а таковы все конфиги до сегодня), обязан читаться, и цепочка в
     ///    нём обязана восстановиться из подписи.
-    /// 3. СОГЛАСИЕ ПОТРЕБИТЕЛЕЙ. Оба места, разбиравшие подпись сами, теперь
-    ///    зовут общий разбор — сверяется, что они дают ровно его ответ. Это и
-    ///    была причина заводить поле: два разбора могли разойтись, и никто бы
-    ///    не заметил.
+    /// 3. СОГЛАСИЕ ПОТРЕБИТЕЛЕЙ. Библиотека образов зовёт общий разбор —
+    ///    сверяется, что она даёт ровно его ответ. До 13.09.2026 таких мест
+    ///    было два (второе — конструктор кривой, `EfficiencyLibrary`); фит по
+    ///    спектрам снят (`AMBER25`), и второго потребителя больше нет.
     /// 4. ФОРМА. Поле показывается и сохраняется. Признак, заведённый без
     ///    читателя на форме, — ошибка, на которой здесь уже попадались.
     ///
@@ -267,28 +267,10 @@ namespace ChainProbe
                             (string)token.Invoke(null, new object[] { name }));
             }
 
-            // Конструктор кривой: имя нуклида в строке цепочки берётся у того
-            // же разбора. Идёт через настоящий набор — иначе проверялась бы
-            // копия кода, а не то, что выполняется.
+            // Второй потребитель разбора — конструктор кривой (`EfficiencyLibrary
+            // .BuildChains`, цепочки из наборов) — снят 13.09.2026 вместе с фитом
+            // по спектрам (`AMBER25`, решение Amber); остался один читатель.
             NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
-            Dictionary<string, List<EfficiencyLine>> chains = EfficiencyLibrary.BuildChains();
-            int checkedLines = 0;
-            foreach (KeyValuePair<string, List<EfficiencyLine>> chain in chains)
-            {
-                foreach (EfficiencyLine line in chain.Value)
-                {
-                    if (line.Nuclide.IndexOf('(') >= 0 || line.Nuclide.IndexOf(' ') >= 0)
-                    {
-                        Console.WriteLine("  !! в цепочке «{0}» имя нуклида не разобрано: «{1}»",
-                                          chain.Key, line.Nuclide);
-                        bad++;
-                    }
-
-                    checkedLines++;
-                }
-            }
-
-            Console.WriteLine("  конструктор кривой: цепочек {0}, линий {1}", chains.Count, checkedLines);
             Console.WriteLine("  нуклидов в конфиге: {0}", manager.NuclideDefinitions.Count);
             return bad;
         }

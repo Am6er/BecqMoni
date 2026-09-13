@@ -1,0 +1,61 @@
+== кривая из геометрии умолчаниями приложения ==
+  геометрия: AS80_point0: crystal Sodium iodide cylinder 80.00x80.00 mm, rho 3.667; source - point, 0.0 mm, Air, dry
+  умолчания: 5-3000 кэВ, Standard, узлов 34, историй 200000
+  счёт: 13.0 с
+  узлов: 38, клеймо: phys=17; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1
+  sha256 узлов: 7e031b8ab6445e97da2657db29a41ff6508d0425289e490570a079fd6391e6a8
+  записано: D:\BqMoni_Claude\p54\before\curve_AS80_point0.txt
+== окно конструктора отражением ==
+BecqMoni: nuclide library: D:\BqMoni_Claude\p54\accept_before\config\NuclideDefinition.xml: 152 entries
+  вкладок: 3
+    - «Geometry editor» ()
+    - «Calculate from geometry» (tabPageCalculate)
+    - «Fit to measured spectra» (tabPageFit)
+  ⛔ вкладок должно быть ДВЕ (геометрия, расчёт)
+  поле tabPageFit: ЕСТЬ
+  поле spectraGrid: ЕСТЬ
+  поле spectrumFiles: ЕСТЬ
+  поле runButton: ЕСТЬ
+  поле optionsGroupBox: ЕСТЬ
+  поле orderNumericUpDown: ЕСТЬ
+  поле minIntensityNumericUpDown: ЕСТЬ
+  поле minSignificanceNumericUpDown: ЕСТЬ
+  поле backgroundCheckBox: ЕСТЬ
+  поле anchorEnergyTextBox: ЕСТЬ
+  поле anchorEfficiencyTextBox: ЕСТЬ
+  поле chainNames: ЕСТЬ
+  метод BuildInput: ЕСТЬ
+  метод AskFallbackDevice: ЕСТЬ
+  метод PackGeometryComplaints: ЕСТЬ
+  метод runButton_Click: ЕСТЬ
+  метод LoadChains: ЕСТЬ
+  метод ReloadNuclideSets: ЕСТЬ
+  метод GuessChain: ЕСТЬ
+  метод UpdateGraphMode: ЕСТЬ
+  кнопка «Save» (): Click есть
+  кнопка «Clone...» (): Click есть
+  кнопка «Delete» (): Click есть
+  кнопка «From device calibration» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «…» (): Click есть
+  кнопка «Import from LSRM...» (): Click есть
+  кнопка «Calculate from geometry» (calculateButton): Click есть
+  кнопка «Add spectra...» (spectraAddButton): Click есть
+  кнопка «Remove selected» (spectraRemoveButton): Click есть
+  кнопка «Clear list» (spectraClearButton): Click есть
+  кнопка «Build curve» (runButton): Click есть
+  кнопка «Save curve» (saveButton): Click есть
+  кнопка «Export CSV...» (exportButton): Click есть
+  EfficiencyCurveGraph.ShowDifference: ЕСТЬ
+  тип EfficiencyFitter в сборке: ЕСТЬ
+  тип EfficiencyFitInput: ЕСТЬ
+  тип EfficiencyObservation: ЕСТЬ
+  тип EfficiencyLibrary: ЕСТЬ
+  тип EfficiencyLine: ЕСТЬ
+  EfficiencyLevelSource: None, Reference, Anchor, ShapeOnly, Simulation
+НЕ СОШЛОСЬ: 27
+AcceptP54 exit=1

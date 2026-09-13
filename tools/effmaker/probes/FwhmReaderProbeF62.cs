@@ -36,7 +36,7 @@ namespace FwhmReaderProbeF62
     ///                      документа, запись, открытие его же дверью
     ///                      <c>OpenDocument</c>) — РОВНО ОДНА строка «BecqMoni:».
     ///                      Молчаливое плечо: та же запись с годными числами.
-    ///   --mode=effmaker    <c>EfficiencyFitter.LoadResultData</c> кладёт
+    ///   --mode=effmaker    <c>EfficiencyCurveIo.LoadResultData</c> кладёт
     ///                      причину в текст броска, который показывает
     ///                      вызывающий; на годной настройке броска нет вовсе.
     ///   --mode=unreachable конструктор <c>FWHMPeakDetectionMethodConfig()</c>
@@ -481,7 +481,7 @@ namespace FwhmReaderProbeF62
                 string message = null;
                 try
                 {
-                    EfficiencyFitter.LoadResultData(path, 0, null);
+                    EfficiencyCurveIo.LoadResultData(path, 0, null);
                 }
                 catch (Exception ex) { message = ex.Message; }
                 Console.WriteLine("  ОТКАЗ  → " + Flat(message));
@@ -496,7 +496,7 @@ namespace FwhmReaderProbeF62
                 deviceCfg.FwhmCalibration = null;
                 ResultData loaded = null;
                 string failure = null;
-                try { loaded = EfficiencyFitter.LoadResultData(path, 0, null); }
+                try { loaded = EfficiencyCurveIo.LoadResultData(path, 0, null); }
                 catch (Exception ex) { failure = ex.Message; }
                 Console.WriteLine("  ГОДНАЯ → " + (failure == null ? "броска нет" : Flat(failure)));
                 Check("на годной настройке броска НЕТ", failure == null);

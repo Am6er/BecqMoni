@@ -3220,33 +3220,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The pack mixes {0} devices: {1}. One curve belongs to one device and one geometry..
-        /// </summary>
-        public static string EfficiencyMakerPackDevices {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerPackDevices", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The pack mixes {0} geometries: {1}. Averaging them gives a curve that fits none..
-        /// </summary>
-        public static string EfficiencyMakerPackGeometries {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerPackGeometries", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The pack mixes {0} sample amounts: {1}. Self-absorption differs, so the curve does too..
-        /// </summary>
-        public static string EfficiencyMakerPackAmounts {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerPackAmounts", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to model residual.
         /// </summary>
         public static string FSAModelResidualRow {
@@ -3490,24 +3463,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerNoSpectra {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerNoSpectra", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerNoChains {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerNoChains", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerNoChainsChecked {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerNoChainsChecked", resourceCulture);
-            }
-        }
-
         public static string EfficiencyMakerNoGeometry {
             get {
                 return ResourceManager.GetString("EfficiencyMakerNoGeometry", resourceCulture);
@@ -3673,36 +3628,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerTooFewLines {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTooFewLines", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerNoLiveTime {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerNoLiveTime", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSpectrumDone {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSpectrumDone", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerFitDone {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerFitDone", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSingular {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSingular", resourceCulture);
-            }
-        }
-
         public static string EfficiencyMakerNoDeviceConfig {
             get {
                 return ResourceManager.GetString("EfficiencyMakerNoDeviceConfig", resourceCulture);
@@ -3715,75 +3640,9 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerReasonBlend {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonBlend", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonWindow {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonWindow", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonNoPeak {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonNoPeak", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonWeak {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonWeak", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonLoneLine {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonLoneLine", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerRun {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerRun", resourceCulture);
-            }
-        }
-
         public static string EfficiencyMakerStop {
             get {
                 return ResourceManager.GetString("EfficiencyMakerStop", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerRunning {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerRunning", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerStatus {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerStatus", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerLevelReference {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerLevelReference", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerLevelAnchor {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerLevelAnchor", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerLevelShapeOnly {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerLevelShapeOnly", resourceCulture);
             }
         }
 
@@ -3794,12 +3653,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-
-        public static string EfficiencyMakerSpectrumFilter {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSpectrumFilter", resourceCulture);
-            }
-        }
 
         public static string EfficiencyMakerCsvFilter {
             get {
@@ -3822,12 +3675,6 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyMakerTabCalculate {
             get {
                 return ResourceManager.GetString("EfficiencyMakerTabCalculate", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTabFit {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTabFit", resourceCulture);
             }
         }
 
@@ -3906,57 +3753,6 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencyMakerHistoriesLabel {
             get {
                 return ResourceManager.GetString("EfficiencyMakerHistoriesLabel", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerGraphDiffAxis {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerGraphDiffAxis", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerGraphDiffNoReference {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerGraphDiffNoReference", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonSeriesScatter {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonSeriesScatter", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonOutlier {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonOutlier", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSeriesDropped {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSeriesDropped", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonImpossible {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonImpossible", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerReasonImpossibleLog {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReasonImpossibleLog", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Reference curve: {0:F1} keV dropped, eps={1:G3} - efficiency is the fraction of the emitted photons registered and cannot exceed 1..
-        /// </summary>
-        public static string EfficiencyMakerReferenceImpossibleLog {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerReferenceImpossibleLog", resourceCulture);
             }
         }
 
@@ -4355,42 +4151,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerGraphDiffNoResult {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerGraphDiffNoResult", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerColumnSpectrum {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerColumnSpectrum", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerColumnNuclideSet {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerColumnNuclideSet", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerNoSetForSpectrum {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerNoSetForSpectrum", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerImpossibleCurve {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerImpossibleCurve", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerWholeLibrary {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerWholeLibrary", resourceCulture);
-            }
-        }
-
         public static string GeometryEditorPreset {
             get {
                 return ResourceManager.GetString("GeometryEditorPreset", resourceCulture);
@@ -4503,18 +4263,6 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencySketchIso {
             get {
                 return ResourceManager.GetString("EfficiencySketchIso", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSetSkipped {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetSkipped", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSetNoIntensity {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetNoIntensity", resourceCulture);
             }
         }
 
@@ -4638,53 +4386,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerSetTooFewLines {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetTooFewLines", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSetDuplicateName {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetDuplicateName", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerSetGone {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetGone", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTipOrder {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTipOrder", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTipMinIntensity {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTipMinIntensity", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTipMinSignificance {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTipMinSignificance", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTipAnchorEnergy {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTipAnchorEnergy", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerTipAnchorEfficiency {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerTipAnchorEfficiency", resourceCulture);
-            }
-        }
         public static string EfficiencySketchCylinder {
             get {
                 return ResourceManager.GetString("EfficiencySketchCylinder", resourceCulture);
@@ -5061,18 +4762,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerDeviceGoneTitle {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerDeviceGoneTitle", resourceCulture);
-            }
-        }
-
-        public static string EfficiencyMakerDeviceGoneQuestion {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerDeviceGoneQuestion", resourceCulture);
-            }
-        }
-
         public static string NucBase_Fluorescence {
             get {
                 return ResourceManager.GetString("NucBase.Fluorescence", resourceCulture);
@@ -5086,12 +4775,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        public static string EfficiencyMakerSetElementXray {
-            get {
-                return ResourceManager.GetString("EfficiencyMakerSetElementXray", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to EfficiencyTabImportLsrm.
         /// </summary>

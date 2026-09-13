@@ -312,7 +312,7 @@
     <Compile Include="EfficiencyMaker\ElectronTransport.cs" />
     <Compile Include="EfficiencyMaker\EstarCalculator.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
-    <Compile Include="EfficiencyMaker\EfficiencyFitter.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencyCurveIo.cs" />
     <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
     <Compile Include="ResponseMatrixForm.cs">
       <SubType>Form</SubType>
@@ -488,7 +488,6 @@
     <Compile Include="PickOneForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Utils\SpectrumScout.cs" />
     <Compile Include="Peak.cs" />
     <Compile Include="PeakDetectionMethodConfig.cs" />
     <Compile Include="PeakDetector.cs" />

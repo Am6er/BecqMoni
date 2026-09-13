@@ -538,9 +538,12 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // Кривую в конструкторе даёт только расчёт из геометрии
+            // (`AMBER25`, 13.09.2026): прежнее `Measurement` здесь было
+            // заделом под фит по спектрам, которого больше нет.
             EfficiencyConfigData config = new EfficiencyConfigData(name)
             {
-                Origin = EfficiencyOrigin.Measurement,
+                Origin = EfficiencyOrigin.Simulation,
             };
 
             this.activeDeviceConfig.EfficiencyConfigs.Add(config);
