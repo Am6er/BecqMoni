@@ -1166,6 +1166,12 @@
   <data name="EfficiencyMakerSampleIsAir" xml:space="preserve">
     <value>ВНИМАНИЕ: вещество пробы осталось воздухом («{0}», {1:F6} г/см³) при высоте пробы {2:F1} мм — самопоглощение НЕ учтено, и кривая может расходиться в разы</value>
   </data>
+  <data name="EfficiencyMakerNodeSpread" xml:space="preserve">
+    <value>разброс на точку: медиана {0:F2} %, худшая {1:F2} % на {2:F1} кэВ (действующая выборка {3:F0} из {4:F0} историй)</value>
+  </data>
+  <data name="EfficiencyMakerNodeSpreadWarning" xml:space="preserve">
+    <value>ВНИМАНИЕ: кривая ШУМНАЯ — типичная точка несёт {0:F1} % разброса при пороге {1:F0} % ({2:F0} историй обещают около процента; точек выше порога {3} из {4}). На большой пробе (прибор на земле, в лунке) истории уходят в дальний грунт, который ничего не даёт; увеличьте число историй на точку или сузьте пробу</value>
+  </data>
   <data name="EfficiencyMakerPoints" xml:space="preserve">
     <value>Точек:</value>
   </data>

@@ -46,7 +46,24 @@ using System.Xml.Serialization;
 //
 //   corpuseffprobe [--dir=tools\CORPUS\corpus\geometries]
 //                  [--spectra=tools\CORPUS\corpus\spectra] [--n=200000]
-//                  [--only=<ключ геометрии>] [--dry]
+//                  [--only=<ключ геометрии>] [--dry] [--imp=0|1] [--allow-noisy] [--log]
+//
+// ⛔ ПРИЗНАК РАЗБРОСА НА УЗЕЛ (`E29`, П41 13.09.2026). Кривая — Монте-Карло, и
+// её узлы шумят; на полевой сцене («детектор на земле») при штатных 200 000
+// историй узел нёс 26…56 % разброса и отдавался МОЛЧА (П18 §3.3). Проба
+// печатает по каждой кривой сводку `EfficiencyCalculation.NodeSpread` (та же
+// мерка, что в журнале расчёта приложения) и ШУМНУЮ кривую — медиана узлов
+// выше `NodeSpreadWarnPercent` — в спектры НЕ ПИШЕТ, а прогон кончает кодом 1.
+// `--allow-noisy` снимает отказ (только для замера, не для склада). `--log`
+// печатает журнал расчёта приложения (`EfficiencyCalculation.Run` → `log`)
+// как есть — те самые строки, что видит человек в окне «Посчитать из
+// геометрии», включая сводку разброса и предупреждение о шумной кривой.
+//
+// `--imp=1` (`E29`, решение Amber 10.09.2026 «Ключом, ВЫКЛ по умолчанию,
+// только полевым») — важностный розыгрыш точки вылета на пути КРИВОЙ: ключ
+// склада (`ResponseMatrixOptions.ImportanceSampling`) передаётся в
+// `EfficiencyCalculation.Run` явной физикой, клеймо кривой получает `imp=1`.
+// Умолчанием ВЫКЛ — то, чем считает приложение.
 class CorpusEffProbe
 {
     // Порядок свойств ResultData, по которому XmlSerializer читает файл:
@@ -65,7 +82,12 @@ class CorpusEffProbe
         string only = null;
         bool dry = false;
         bool force = false;
+        bool allowNoisy = false;
+        bool echoLog = false;
         var options = new EfficiencyCalculationOptions();
+        // Физика кривой — умолчания склада, как в приложении; `--imp=` двигает
+        // единственный ключ, который здесь есть чем двигать (`E29`).
+        var physics = new ResponseMatrixOptions();
         foreach (string a in args)
         {
             if (a.StartsWith("--dir=", StringComparison.Ordinal)) dir = a.Substring(6);
@@ -73,6 +95,21 @@ class CorpusEffProbe
             else if (a.StartsWith("--n=", StringComparison.Ordinal))
                 options.Histories = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--only=", StringComparison.Ordinal)) only = a.Substring(7);
+            else if (a.StartsWith("--imp=", StringComparison.Ordinal))
+            {
+                // Разбор строгий, как у `CorpusMatrixProbe.Flag` (`A77`): ровно
+                // 0 и 1, всё прочее — отказ, а не «истина».
+                string v = a.Substring(6);
+                if (v != "0" && v != "1")
+                {
+                    Console.Error.WriteLine("⛔ ключ --imp= понимает только 0 и 1, а получил «" + v + "»");
+                    return 2;
+                }
+
+                physics.ImportanceSampling = v == "1";
+            }
+            else if (a == "--allow-noisy") allowNoisy = true;
+            else if (a == "--log") echoLog = true;
             else if (a == "--force") force = true;
             else if (a == "--dry") dry = true;
             else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -110,9 +147,13 @@ class CorpusEffProbe
         int skippedCurves = 0;
 
         Console.WriteLine("Привязка кривой и матрицы к спектрам понятной части (B1)");
-        Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел",
-                          options.MinEnergyKev, options.MaxEnergyKev, options.Histories);
+        Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел; розыгрыш точки вылета: {3};"
+                          + " порог шумной кривой (медиана узлов) {4:F0} %",
+                          options.MinEnergyKev, options.MaxEnergyKev, options.Histories,
+                          physics.ImportanceSampling ? "ВАЖНОСТНЫЙ (--imp=1, клеймо imp=1)" : "равномерный",
+                          EfficiencyCalculation.NodeSpreadWarnPercent);
         Console.WriteLine();
+        int noisyCurves = 0;
 
         // ⛔ Взятых В РАБОТУ, а не всех из описи. До 08.09.2026 итог считал
         // `order.Count - skippedCurves`, а `--only` отсекал соседей ДО
@@ -157,7 +198,8 @@ class CorpusEffProbe
             // физики — не сойдётся сразу у всех, и пересчёт станет глобальным
             // сам, без ключа: ровно тот случай, ради которого глобальный и
             // нужен.
-            if (!force && CurveIsCurrent(spectraDir, byGeometry[key], geometry, guid, options))
+            if (!force && CurveIsCurrent(spectraDir, byGeometry[key], geometry, guid, options,
+                                         physics.ImportanceSampling))
             {
                 Console.WriteLine("   пропущена: клеймо и геометрия сошлись у всех её спектров");
                 Console.WriteLine();
@@ -165,12 +207,39 @@ class CorpusEffProbe
                 continue;
             }
 
-            EfficiencyFitResult result = EfficiencyCalculation.Run(geometry, options, null, null);
+            Action<string> log = null;
+            if (echoLog)
+            {
+                log = line => Console.WriteLine("   | " + line);
+            }
+            EfficiencyFitResult result = EfficiencyCalculation.Run(geometry, options, log, null, physics);
             if (!string.IsNullOrEmpty(result.Error))
             {
                 Console.WriteLine("   РАСЧЁТ КРИВОЙ НЕ ПОШЁЛ: {0}", result.Error);
                 ok = false;
                 continue;
+            }
+
+            // (`E29`, П41) Разброс по узлам — той же меркой, что журнал
+            // приложения; шумная кривая в спектры не пишется.
+            EfficiencyNodeSpread spread = EfficiencyCalculation.NodeSpread(result.Curve, options.Histories);
+            Console.WriteLine("   разброс  : медиана {0:F2} %, худший узел {1:F2} % на {2:F1} кэВ"
+                              + " (ESS {3:F0} из {4} историй), узлов выше {5:F0} %: {6} из {7}",
+                              spread.MedianPercent, spread.WorstPercent, spread.WorstEnergy,
+                              spread.WorstEss, options.Histories,
+                              EfficiencyCalculation.NodeSpreadWarnPercent, spread.NoisyNodes, spread.Nodes);
+            if (spread.Noisy)
+            {
+                noisyCurves++;
+                Console.WriteLine("   ⛔ КРИВАЯ ШУМНАЯ: типичный узел {0:F1} % при пороге {1:F0} %{2}",
+                                  spread.MedianPercent, EfficiencyCalculation.NodeSpreadWarnPercent,
+                                  allowNoisy ? " — записана по --allow-noisy" : " — НЕ ЗАПИСАНА");
+                if (!allowNoisy)
+                {
+                    ok = false;
+                    Console.WriteLine();
+                    continue;
+                }
             }
 
             var config = new EfficiencyConfigData(key)
@@ -243,6 +312,13 @@ class CorpusEffProbe
         {
             Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
         }
+        if (noisyCurves > 0)
+        {
+            Console.WriteLine("шумных кривых (медиана узлов выше {0:F0} %): {1}{2}",
+                              EfficiencyCalculation.NodeSpreadWarnPercent, noisyCurves,
+                              allowNoisy ? " (записаны по --allow-noisy)" : " — не записаны, код 1");
+        }
+
         Console.WriteLine(ok ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ НЕСОШЕДШИЕСЯ");
         return ok ? 0 : 1;
     }
@@ -273,7 +349,7 @@ class CorpusEffProbe
     /// </summary>
     static bool CurveIsCurrent(string spectraDir, List<string> spectra,
                                GeometryModel geometry, string guid,
-                               EfficiencyCalculationOptions options)
+                               EfficiencyCalculationOptions options, bool importance)
     {
         string want;
         try
@@ -310,6 +386,13 @@ class CorpusEffProbe
             string stamp = have.ComputeStamp ?? "";
             if (stamp.IndexOf(physWant, StringComparison.Ordinal) < 0
                 || stamp.IndexOf(histWant, StringComparison.Ordinal) < 0)
+            {
+                return false;
+            }
+
+            // (`E29`) Розыгрыш точки вылета — в клейме `imp=1` только
+            // включённым; кривая с другим розыгрышем — другая кривая.
+            if ((stamp.IndexOf("imp=1", StringComparison.Ordinal) >= 0) != importance)
             {
                 return false;
             }

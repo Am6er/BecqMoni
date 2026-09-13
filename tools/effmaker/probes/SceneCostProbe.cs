@@ -43,12 +43,41 @@ using System.Threading;
 //
 //   scenecostprobe [--geom=<файл .in>] [--energy=662] [--top=3000]
 //                  [--n=20000] [--seed=20260910] [--nr=1200] [--nd=300]
-//                  [--skip-run] [--frac=0.5]
+//                  [--skip-run] [--frac=0.5] [--imp=0|1] [--ab] [--nab=200000]
+//                  [--save-ground=<файл .in>] [--scene=ground|borehole] [--skip-shape]
+//
+// ⛔ П41 (13.09.2026): розыгрыш РЕАЛИЗОВАН ключом `ImportanceSampling`
+// (решение Amber 10.09.2026 «Ключом, ВЫКЛ по умолчанию, только полевым»).
+// `--imp=1` гонит весь прогон важностным розыгрышем; `--ab` — приёмка (б):
+// на ОБЕИХ сценах плечо ВКЛ против плеча ВЫКЛ при тех же историях (ε, разброс,
+// ESS/n, выигрыш), несмещённость — ВКЛ обязан лечь в 3σ ДЛИННОГО аналогового
+// эталона (плечо ВЫКЛ пункта 1: nBig историй у большой сцены), и положительный
+// контроль с зубами — плечо «ВКЛ БЕЗ ВЕСА» (рычаг порчи
+// `ImportanceSamplingNoWeight`) обязано из 3σ ВЫПАСТЬ, иначе несмещённость
+// проверяет пустоту. `--nab=` — историй у плеч ВКЛ (умолчание nSmall); плечи
+// ВЫКЛ пункта 1 идут своими nSmall/nBig. Любой отказ — код 1.
+// `--save-ground=` — записать собранную полевую сцену файлом `.in` (тем же
+// `GeometryWriter`, что приложение): нужна пути КРИВОЙ (`CorpusEffProbe`
+// читает сцены с диска) для положительного контроля признака разброса.
+// `--scene=borehole` — большая сцена «детектор в лунке» (`GeometryScenes.Borehole`,
+// маринелли без стенок): гонятся пункт 1 и A/B, квадратура и контроль формы
+// (они про цилиндр) пропускаются. `--skip-shape` — не гнать контроль формы
+// (он стоит 2·nBig историй): для прогонов, где мерится только сосудное плечо
+// A/B и nBig взят малым.
+//
+// ⚠ «ВКЛ не хуже ВЫКЛ по ESS/n» судится С ДОПУСКОМ: оценка ESS сама шумит,
+// её относительный разброс ≈ √(2/ESS), и отказ ставится только ниже 3σ этого
+// шума — иначе на сосудной сцене, где розыгрыш ничего не выигрывает (шум
+// целиком в отклике кристалла), плечо отказывало бы по своему же шуму.
 class SceneCostProbe
 {
     // Последний замер `Measure`: нужен пункту 3, чтобы перевести выигрыш ESS в
     // секунды той же сцены, а не оставить его отвлечённым числом.
-    static double LastNeeded, LastPerHistoryUs, LastEss, LastEssSmall;
+    static double LastNeeded, LastPerHistoryUs, LastEss, LastEssSmall, LastErr;
+
+    // Розыгрыш точки вылета для всего прогона (`--imp=`) и рычаг порчи плеча
+    // A/B (только внутри `--ab`).
+    static bool Importance, NoWeight;
 
     static int Main(string[] args)
     {
@@ -69,10 +98,43 @@ class SceneCostProbe
         // сцену в семь тонн лютеция, то есть не ту задачу. Ключ `--sample=`
         // подменяет вещество ТОЛЬКО большой сцены; малая идёт как в файле.
         string sample = "Soil";
+        bool ab = false;
+        int nAb = 0;
+        string saveGround = null;
+        bool borehole = false;
+        bool skipShape = false;
 
         foreach (string a in args)
         {
             if (a.StartsWith("--geom=", StringComparison.Ordinal)) geom = a.Substring(7);
+            else if (a.StartsWith("--imp=", StringComparison.Ordinal))
+            {
+                string v = a.Substring(6);
+                if (v != "0" && v != "1")
+                {
+                    Console.Error.WriteLine("⛔ ключ --imp= понимает только 0 и 1, а получил «" + v + "»");
+                    return 2;
+                }
+
+                Importance = v == "1";
+            }
+            else if (a == "--ab") ab = true;
+            else if (a == "--skip-shape") skipShape = true;
+            else if (a.StartsWith("--nab=", StringComparison.Ordinal))
+                nAb = int.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--save-ground=", StringComparison.Ordinal))
+                saveGround = a.Substring(14);
+            else if (a.StartsWith("--scene=", StringComparison.Ordinal))
+            {
+                string v = a.Substring(8);
+                if (v != "ground" && v != "borehole")
+                {
+                    Console.Error.WriteLine("⛔ ключ --scene= понимает только ground и borehole, а получил «" + v + "»");
+                    return 2;
+                }
+
+                borehole = v == "borehole";
+            }
             else if (a.StartsWith("--energy=", StringComparison.Ordinal))
                 energy = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--top=", StringComparison.Ordinal))
@@ -122,7 +184,14 @@ class SceneCostProbe
             ground.Source = GeometryMaterialLibrary.Make(entry, entry.Density);
         }
 
-        string substituted = GeometryScenes.Ground(ground, top);
+        string substituted = borehole
+            ? GeometryScenes.Borehole(ground, top)
+            : GeometryScenes.Ground(ground, top);
+        if (saveGround != null && saveGround.Length > 0)
+        {
+            GeometryWriter.Save(ground, saveGround);
+            Console.WriteLine("полевая сцена записана: {0}", saveGround);
+        }
 
         double mfpTop = GeometryScenes.MeanFreePathMm(ground.Source, top);
         double mfpE = GeometryScenes.MeanFreePathMm(ground.Source, energy);
@@ -133,6 +202,8 @@ class SceneCostProbe
         Console.WriteLine("геометрия: {0}", Path.GetFileName(geom));
         Console.WriteLine("энергия разбора {0:F1} кэВ, верхняя энергия сцены {1:F0} кэВ",
                           energy, top);
+        Console.WriteLine("розыгрыш точки вылета: {0}",
+                          Importance ? "ВАЖНОСТНЫЙ (--imp=1, ключ ImportanceSampling)" : "равномерный (умолчание)");
         Console.WriteLine();
         Console.WriteLine("== СЦЕНА МАЛАЯ (как в файле) ==");
         Console.WriteLine("  источник {0}, объём {1:F2} см3, вещество {2} {3:F3} г/см3",
@@ -140,20 +211,36 @@ class SceneCostProbe
                           small.Source != null ? small.Source.Name : "?",
                           small.Source != null ? small.Source.Density : 0.0);
         Console.WriteLine();
-        Console.WriteLine("== СЦЕНА БОЛЬШАЯ (Детектор на земле, тот же прибор) ==");
+        Console.WriteLine(borehole
+                              ? "== СЦЕНА БОЛЬШАЯ (Детектор в лунке, тот же прибор) =="
+                              : "== СЦЕНА БОЛЬШАЯ (Детектор на земле, тот же прибор) ==");
         if (substituted.Length > 0) Console.WriteLine("  " + substituted);
         Console.WriteLine("  проба {0} {1:F3} г/см3; пробег {2:F1} мм на {3:F0} кэВ,"
                           + " {4:F1} мм на {5:F0} кэВ",
                           ground.Source.Name, ground.Source.Density, mfpTop, top, mfpE, energy);
-        Console.WriteLine("  радиус {0:F0} мм ({1:F2} пробега), глубина {2:F0} мм,"
-                          + " середина кристалла над грунтом {3:F1} мм",
-                          R, R / mfpTop, H, h);
+        if (borehole)
+        {
+            Console.WriteLine("  лунка Ø{0:F0} мм глубиной {1:F0} мм, грунт Ø{2:F0} мм высотой {3:F0} мм,"
+                              + " нос прибора над дном {4:F0} мм",
+                              ground.MarinelliHoleDiameter, ground.MarinelliHoleHeight,
+                              ground.MarinelliBeakerDiameter, ground.MarinelliSourceHeight,
+                              ground.MarinelliToDetectorDistance);
+        }
+        else
+        {
+            Console.WriteLine("  радиус {0:F0} мм ({1:F2} пробега), глубина {2:F0} мм,"
+                              + " середина кристалла над грунтом {3:F1} мм",
+                              R, R / mfpTop, H, h);
+        }
+
         double volCm3 = GeometryScenes.SampleVolumeCm3(ground);
         Console.WriteLine("  объём {0:F0} л, масса {1:F0} кг",
                           volCm3 / 1000.0, volCm3 * ground.Source.Density / 1000.0);
         Console.WriteLine();
 
         double neededBig = 0.0, perHistoryBig = 0.0, essBigRun = 0.0;
+        double effSmallRef = 0.0, errSmallRef = 0.0, effBigRef = 0.0, errBigRef = 0.0;
+        double essSmallRef = 0.0;
 
         // ------------------------------------------------------------------
         // 1. ВРЕМЯ: тот же прибор, две сцены, один поток, одно зерно.
@@ -166,16 +253,31 @@ class SceneCostProbe
                               "сцена", "eps", "разброс,%", "мкс/ист", "историй на 1%", "секунд", "ESS/n");
             double effSmall = Measure("малая (сосуд)", small, energy, nSmall, seed);
             LastEssSmall = LastEss;
-            double effGround = Measure("большая (земля)", ground, energy, nBig, seed);
+            effSmallRef = effSmall;
+            errSmallRef = LastErr;
+            essSmallRef = LastEss;
+            double effGround = Measure(borehole ? "большая (лунка)" : "большая (земля)",
+                                       ground, energy, nBig, seed);
             neededBig = LastNeeded;
             perHistoryBig = LastPerHistoryUs;
             essBigRun = LastEss;
+            effBigRef = effGround;
+            errBigRef = LastErr;
             Console.WriteLine();
             Console.WriteLine("  ε большой к малой: {0:E4}",
                               effSmall > 0.0 ? effGround / effSmall : 0.0);
             Console.WriteLine();
         }
 
+        int rc = 0;
+        if (borehole)
+        {
+            Console.WriteLine("== 2-3 и КОНТРОЛЬ ФОРМЫ: пропущены — квадратура писана про цилиндр,"
+                              + " у лунки её нет ==");
+            Console.WriteLine();
+        }
+        else
+        {
         // ------------------------------------------------------------------
         // 2-3. КВАДРАТУРА по нерассеянному потоку.
         // ------------------------------------------------------------------
@@ -300,7 +402,6 @@ class SceneCostProbe
             Console.WriteLine();
         }
 
-        int rc = 0;
         if (Math.Abs(essIdeal - 1.0) > 1e-9)
         {
             Console.WriteLine("⛔ самопроверка ESS не прошла");
@@ -316,7 +417,7 @@ class SceneCostProbe
         // ------------------------------------------------------------------
         // Контроль формы: усечённая сцена прогоном против квадратуры.
         // ------------------------------------------------------------------
-        if (!skipRun)
+        if (!skipRun && !skipShape)
         {
             Console.WriteLine("== КОНТРОЛЬ ФОРМЫ: сцена радиусом {0:F0} % против полной ==",
                               100.0 * frac);
@@ -358,6 +459,119 @@ class SceneCostProbe
                 rc = 1;
             }
         }
+        }   // !borehole
+
+        // ------------------------------------------------------------------
+        // 4. A/B РОЗЫГРЫША (П41): важностный ВКЛ против равномерного ВЫКЛ.
+        // ------------------------------------------------------------------
+        if (ab && !skipRun)
+        {
+            if (Importance)
+            {
+                Console.WriteLine("⛔ --ab гонится при --imp=0: плечи ВЫКЛ пункта 1 служат эталоном");
+                return 2;
+            }
+
+            string bigName = borehole ? "большая (лунка)" : "большая (земля)";
+            Console.WriteLine("== 4. A/B РОЗЫГРЫША ТОЧКИ ВЫЛЕТА (E29): ВКЛ против ВЫКЛ ==");
+            Console.WriteLine("  {0,-16} {1,-14} {2,10} {3,12} {4,10} {5,10} {6,9} {7,-28}",
+                              "сцена", "плечо", "историй", "eps", "разброс,%", "ESS/n", "секунд",
+                              "к эталону (3 сигма)");
+            // Эталон — плечо ВЫКЛ пункта 1 (у большой сцены nBig историй, то
+            // есть длинный аналоговый прогон). Разность плеч сверяется с 3σ
+            // суммы их разбросов.
+            int nOn = nAb > 0 ? nAb : nSmall;
+            rc |= Arm("малая (сосуд)", small, energy, nSmall, seed, false, false,
+                      effSmallRef, errSmallRef, essSmallRef, nSmall, true);
+            rc |= Arm("малая (сосуд)", small, energy, nOn, seed, true, false,
+                      effSmallRef, errSmallRef, essSmallRef, nSmall, true);
+            rc |= Arm(bigName, ground, energy, nBig, seed, false, false,
+                      effBigRef, errBigRef, essBigRun, nBig, true);
+            rc |= Arm(bigName, ground, energy, nOn, seed, true, false,
+                      effBigRef, errBigRef, essBigRun, nBig, true);
+            // Положительный контроль с зубами: тот же розыгрыш БЕЗ веса обязан
+            // из 3σ выпасть. Если не выпал — несмещённость выше мерила пустоту.
+            rc |= Arm(bigName, ground, energy, nOn, seed, true, true,
+                      effBigRef, errBigRef, essBigRun, nBig, false);
+            Console.WriteLine();
+        }
+
+        return rc;
+    }
+
+    /// <summary>
+    /// Одно плечо A/B: считает ε при заданном розыгрыше, сверяет с эталоном
+    /// по 3σ и с его ESS/n. Возвращает 1 при отказе: плечо, обязанное
+    /// сойтись, разошлось; плечо-порча, обязанное разойтись, сошлось (у
+    /// контроля нет зубов); ВКЛ хуже ВЫКЛ по ESS/n.
+    /// </summary>
+    static int Arm(string scene, GeometryModel g, double energy, int n, int seed,
+                   bool importance, bool noWeight,
+                   double effRef, double errRef, double essRef, int nRef, bool mustAgree)
+    {
+        bool keepImp = Importance, keepNo = NoWeight;
+        Importance = importance;
+        NoWeight = noWeight;
+        double err;
+        Stopwatch sw = Stopwatch.StartNew();
+        double eff;
+        try
+        {
+            eff = Efficiency(g, energy, n, seed, out err);
+        }
+        finally
+        {
+            Importance = keepImp;
+            NoWeight = keepNo;
+        }
+
+        sw.Stop();
+        double ess = 1.0 / (1.0 + n * (err / 100.0) * (err / 100.0));
+        double sigma = Math.Sqrt(Math.Pow(err / 100.0 * eff, 2.0) + Math.Pow(errRef / 100.0 * effRef, 2.0));
+        double diff = Math.Abs(eff - effRef);
+        bool agrees = sigma > 0.0 && diff <= 3.0 * sigma;
+        string arm = noWeight ? "ВКЛ БЕЗ ВЕСА (порча)" : (importance ? "ВКЛ" : "ВЫКЛ");
+        string verdict;
+        int rc = 0;
+        if (mustAgree)
+        {
+            verdict = agrees
+                ? string.Format(CultureInfo.InvariantCulture, "сошлось ({0:F2} сигма)", sigma > 0.0 ? diff / sigma : 0.0)
+                : string.Format(CultureInfo.InvariantCulture, "⛔ РАЗОШЛОСЬ ({0:F2} сигма)", sigma > 0.0 ? diff / sigma : 0.0);
+            if (!agrees) rc = 1;
+            // ВКЛ обязан быть НЕ ХУЖЕ ВЫКЛ по действующей выборке — иначе
+            // розыгрыш вредит, а не помогает; у равномерного плеча сравнивать
+            // не с чем (оно и есть эталон при равных n). Допуск — 3σ шума
+            // самой оценки ESS обоих плеч (≈ √(2/ESS) у каждого).
+            if (importance && essRef > 0.0)
+            {
+                double noise = Math.Sqrt(2.0 / Math.Max(1.0, ess * n) + 2.0 / Math.Max(1.0, essRef * nRef));
+                if (ess < essRef * (1.0 - 3.0 * noise))
+                {
+                    verdict += string.Format(CultureInfo.InvariantCulture,
+                                             "; ⛔ ESS/n ХУЖЕ эталона (за 3 сигма = {0:F1} %)", 300.0 * noise);
+                    rc = 1;
+                }
+            }
+        }
+        else
+        {
+            verdict = agrees
+                ? string.Format(CultureInfo.InvariantCulture, "⛔ СОШЛОСЬ ({0:F2} сигма) — У КОНТРОЛЯ НЕТ ЗУБОВ", sigma > 0.0 ? diff / sigma : 0.0)
+                : string.Format(CultureInfo.InvariantCulture, "выпало ({0:F1} сигма) — как и должно", sigma > 0.0 ? diff / sigma : 0.0);
+            if (agrees) rc = 1;
+        }
+
+        Console.WriteLine("  {0,-16} {1,-14} {2,10} {3,12:E4} {4,10:F3} {5,10:E2} {6,9:F1} {7}",
+                          scene, arm, n, eff, err, ess, sw.Elapsed.TotalSeconds, verdict);
+        if (importance && !noWeight && essRef > 0.0)
+        {
+            Console.WriteLine("  {0,-16} {1,-14} выигрыш ESS/n к эталону {2:F1}x; разброс на 200 000 историй:"
+                              + " {3:F2} % (эталон {4:F2} %)",
+                              "", "", ess / essRef,
+                              100.0 * Math.Sqrt((1.0 / ess - 1.0) / 200000.0),
+                              100.0 * Math.Sqrt((1.0 / essRef - 1.0) / 200000.0));
+        }
 
         return rc;
     }
@@ -376,6 +590,7 @@ class SceneCostProbe
         LastNeeded = needed;
         LastPerHistoryUs = perHistory;
         LastEss = ess;
+        LastErr = err;
         Console.WriteLine("  {0,-22} {1,12:E4} {2,10:F3} {3,9:F1} {4,13:F0} {5,10:F1} {6,10:E2}",
                           title, eff, err, perHistory, needed, needed * perHistory / 1e6, ess);
         return eff;
@@ -387,6 +602,8 @@ class SceneCostProbe
         {
             Histories = n,
             Seed = seed,
+            ImportanceSampling = Importance,
+            ImportanceSamplingNoWeight = NoWeight,
         };
         sim.PeakHalfWidthKev = g.PeakHalfWidthKev(energy);
         return sim.Efficiency(energy, out err);

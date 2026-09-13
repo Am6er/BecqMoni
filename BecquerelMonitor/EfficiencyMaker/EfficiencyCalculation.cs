@@ -443,10 +443,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// каждой точкой: одна точка — это десятки тысяч историй, и прервать
         /// счёт внутри неё нельзя. Точки считаются одновременно, в журнал они
         /// всё равно идут по возрастанию энергии.
+        ///
+        /// <paramref name="physics"/> (`E29`, П41) — настройки склада, от
+        /// которых кривая берёт свои ключи физики; null — умолчания класса,
+        /// то есть ровно то, чем считает приложение. Нужно ТОЛЬКО пробам
+        /// (`CorpusEffProbe --imp=1`): у кривой в UI рычагов физики нет
+        /// намеренно, и этот вход их не заводит — он даёт пробе включить ключ
+        /// склада на пути кривой, не заводя второй копии правил (`S37`).
         /// </summary>
         public static EfficiencyFitResult Run(GeometryModel geometry,
                                               EfficiencyCalculationOptions options,
-                                              Action<string> log, Func<bool> cancelled)
+                                              Action<string> log, Func<bool> cancelled,
+                                              ResponseMatrixOptions physics = null)
         {
             if (options == null)
             {
@@ -509,10 +517,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // кривой отсутствует (реестр `tools/check_matrix_keys.py`, `SIM`).
             // Число и уровень — в клеймо кривой (`kdip=N` ниже), иначе кривая
             // с провалом была бы неотличима от кривой без него (`T42`).
-            ResponseMatrixOptions storePhysics = new ResponseMatrixOptions();
+            ResponseMatrixOptions storePhysics = physics ?? new ResponseMatrixOptions();
             EfficiencySimulator simulator = new EfficiencySimulator(geometry)
             {
                 Histories = Math.Max(1000, options.Histories),
+                // (`E29`, П41 13.09.2026) Важностный розыгрыш точки вылета —
+                // тем же путём, от умолчания настроек склада (ВЫКЛ по решению
+                // Amber 10.09.2026): у кривой полевой сцены ровно тот же
+                // разброс, что у матрицы, и включать его кривой и складу можно
+                // только одним решением. Пока ВЫКЛ — признак разброса ниже
+                // говорит об этом вслух (`NodeSpread`).
+                ImportanceSampling = storePhysics.ImportanceSampling,
                 LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(storePhysics.KDipLight),
                 LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(storePhysics.KDipLight),
                 // (`M9`, П23 12.09.2026) Источник ω_L и переходы Костера—Кронига
@@ -665,6 +680,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         PositronTransport = simulator.PositronTransport,
                         PositronOffset = simulator.PositronOffset,
                         RayleighToCrystal = simulator.RayleighToCrystal,
+                        ImportanceSampling = simulator.ImportanceSampling,
                     };
                 },
                 (range, loop, worker) =>
@@ -746,6 +762,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             result.MaxEnergy = result.Curve[result.Curve.Count - 1].Energy;
             result.LevelSource = EfficiencyLevelSource.Simulation;
 
+            // ⛔ (`E29`, П41 13.09.2026) ПРИЗНАК РАЗБРОСА НА УЗЕЛ — вслух, а не
+            // строкой среди тридцати четырёх. До того полевая кривая
+            // («детектор на земле») отдавалась с 26…56 % разброса на узел при
+            // штатных 200 000 историй МОЛЧА, хотя описание умолчания обещает
+            // «около процента» (П18 §3.3, ESS = 14 историй из 200 тысяч). Ниже
+            // — сводка по всем узлам и, если типичный узел шумит выше порога,
+            // предупреждение: счёт разрешается (решение Amber 01.09.2026 по
+            // `E19` — «предупреждать, счёт разрешать»), но кривая названа
+            // шумной здесь же, где напечатаны её узлы.
+            EfficiencyNodeSpread spread = NodeSpread(result.Curve, simulator.Histories);
+            log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpread,
+                              spread.MedianPercent, spread.WorstPercent, spread.WorstEnergy,
+                              spread.WorstEss, simulator.Histories));
+            if (spread.Noisy)
+            {
+                log(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNodeSpreadWarning,
+                                  spread.MedianPercent, NodeSpreadWarnPercent, simulator.Histories,
+                                  spread.NoisyNodes, spread.Nodes));
+            }
+
             // Клеймо «чем посчитана» (E12): без него кривая в конфигурации
             // прибора неотличима от посчитанной другой физикой. Версия физики
             // переноса — та же константа, что у матрицы отклика: перенос один.
@@ -779,8 +815,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`ResponseMatrix.ComputeStamp`), и по тому же правилу: пара —
             // только при включённом переносе позитрона, и тогда с обеими
             // половинами; когерентное в проводке — только включённое.
+            // `; imp=1` (`E29`, П41 13.09.2026) — тем же именем, что у клейма
+            // матрицы, и по тому же правилу: только при включённом важностном
+            // розыгрыше точки вылета; ВЫКЛ по решению Amber — клеймо
+            // посимвольно прежнее.
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -797,8 +837,94 @@ namespace BecquerelMonitor.EfficiencyMaker
                     : "",
                 storePhysics.RayleighToCrystal ? "; rayl2=1" : "",
                 ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence
-                    ? "; norm=fluence" : "");
+                    ? "; norm=fluence" : "",
+                storePhysics.ImportanceSampling ? "; imp=1" : "");
             return result;
         }
+
+        /// <summary>
+        /// Порог разброса ТИПИЧНОГО узла (медианы по кривой), выше которого
+        /// кривая называется шумной (`E29`, П41). Пять процентов — тот же
+        /// порог, что у предупреждения формы матрицы о шуме континуума
+        /// (`T15`): описание умолчания <see cref="EfficiencyCalculationOptions.Histories"/>
+        /// обещает «около процента в середине шкалы», сосудная сцена корпуса
+        /// даёт на 200 000 историй 1.5 % (П18), полевая — 26…56 %. Медиана,
+        /// а не худший узел, нарочно: верх шкалы у мелкого кристалла шумит
+        /// на десятки процентов по одной статистике (ε ~ 1e-4 на 3 МэВ), и
+        /// это описание обещает («несколько процентов на её верху»);
+        /// шумная КРИВАЯ — та, у которой шумит середина.
+        /// </summary>
+        public const double NodeSpreadWarnPercent = 5.0;
+
+        /// <summary>
+        /// Разброс кривой по узлам (`E29`, П41): медиана и худший узел по
+        /// `ErrorPercent`, действующая выборка худшего
+        /// (`ESS = n / (1 + n·δ²)` — та же формула, что у `SceneCostProbe`),
+        /// число узлов выше порога и приговор «шумная» по медиане. Правило
+        /// ОДНО — им пользуются и журнал расчёта, и `CorpusEffProbe`: второе
+        /// правило для одной величины разъехалось бы молча (`S37`).
+        /// </summary>
+        public static EfficiencyNodeSpread NodeSpread(IList<ROIEfficiencyData> curve, int histories)
+        {
+            var spread = new EfficiencyNodeSpread();
+            if (curve == null || curve.Count == 0)
+            {
+                return spread;
+            }
+
+            var errors = new List<double>();
+            foreach (ROIEfficiencyData point in curve)
+            {
+                double e = point.ErrorPercent;
+                if (double.IsNaN(e) || double.IsInfinity(e))
+                {
+                    continue;
+                }
+
+                errors.Add(e);
+                if (e > NodeSpreadWarnPercent)
+                {
+                    spread.NoisyNodes++;
+                }
+
+                if (e > spread.WorstPercent)
+                {
+                    spread.WorstPercent = e;
+                    spread.WorstEnergy = point.Energy;
+                }
+            }
+
+            spread.Nodes = errors.Count;
+            if (errors.Count == 0)
+            {
+                return spread;
+            }
+
+            errors.Sort();
+            spread.MedianPercent = errors.Count % 2 == 1
+                ? errors[errors.Count / 2]
+                : 0.5 * (errors[errors.Count / 2 - 1] + errors[errors.Count / 2]);
+            double n = Math.Max(1, histories);
+            double delta = spread.WorstPercent / 100.0;
+            spread.WorstEss = n / (1.0 + n * delta * delta);
+            spread.Noisy = spread.MedianPercent > NodeSpreadWarnPercent;
+            return spread;
+        }
+    }
+
+    /// <summary>Разброс кривой по узлам — выход <see cref="EfficiencyCalculation.NodeSpread"/>.</summary>
+    public sealed class EfficiencyNodeSpread
+    {
+        /// <summary>Медиана `ErrorPercent` по узлам, %.</summary>
+        public double MedianPercent;
+
+        /// <summary>Худший узел: его разброс, %, энергия, кэВ, и действующая выборка, историй.</summary>
+        public double WorstPercent, WorstEnergy, WorstEss;
+
+        /// <summary>Узлов выше порога <see cref="EfficiencyCalculation.NodeSpreadWarnPercent"/> и всего.</summary>
+        public int NoisyNodes, Nodes;
+
+        /// <summary>Кривая шумная: медиана выше порога.</summary>
+        public bool Noisy;
     }
 }

@@ -871,6 +871,49 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool AnalogConeSampling = false;
 
         /// <summary>
+        /// ⛔ (`E29`, решение Amber 10.09.2026, вопросником, дословно: «Ключом,
+        /// ВЫКЛ по умолчанию, только полевым») ВАЖНОСТНЫЙ РОЗЫГРЫШ ТОЧКИ
+        /// ВЫЛЕТА у объёмной пробы — цилиндра и маринелли (полевые сцены
+        /// `Ground` / `Borehole` строятся ими же), с компенсацией веса.
+        ///
+        /// Зачем. Равномерный розыгрыш по объёму на полевой сцене разоряет
+        /// счёт разбросом, а не ценой истории: у «детектора на земле» (грунт
+        /// 3742 л, радиус 1366 мм) 97.6 % сигнала приходит с ближней трети
+        /// радиуса, действующая выборка ESS/n = 1.57e-5, и 1 % на узел стоит
+        /// ≈5400 с против 3.8 с у сосудной сцены того же прибора (П18
+        /// 10.09.2026, `SceneCostProbe`). При штатных 200 000 историй узел
+        /// полевой кривой несёт 26…56 % разброса — молча.
+        ///
+        /// Как. Точка берётся из плотности `p ∝ exp(−μ·d)/s²` (глубина от
+        /// свободной поверхности пробы, расстояние до центра детектора),
+        /// табличной по ячейкам тела вращения (<see cref="ImportanceSampler"/>),
+        /// а история получает вес `(1/V)/p` — ожидание любого счёта
+        /// (пик, континуум, каналы, свет, полная, совместная κ) остаётся
+        /// прежним, меняется только дисперсия. Квадратура П18 обещает
+        /// ESS/n 0.474 против 0.00045 — выигрыш ~1057×.
+        ///
+        /// Умолчание ВЫКЛЮЧЕНО и берётся у склада (правило I сторожа
+        /// `tools/check_matrix_keys.py`): выключенный ключ не трогает ни
+        /// одного розыгрыша — прежние сэмплеры остаются на месте, умножение
+        /// веса на 1.0 точное, и склад 45 матриц сходится побитно. Входит в
+        /// клеймо матрицы (`imp=1`) и кривой ТОЛЬКО включённым (`T42`).
+        /// </summary>
+        public bool ImportanceSampling = new ResponseMatrixOptions().ImportanceSampling;
+
+        /// <summary>
+        /// РЫЧАГ ПОРЧИ для приёмки важностного розыгрыша (`E29`, П41,
+        /// `SceneCostProbe --ab`): точка берётся важностно, а вес-компенсация
+        /// ВЫБРОШЕН (история весит единицу). Это ровно та ошибка, что
+        /// получилась бы, если бы розыгрыш подменили, а вес забыли; ε
+        /// уходит от аналоговой в разы, и сверка с длинным аналоговым
+        /// эталоном ОБЯЗАНА отказать — иначе она мерит пустоту. На все
+        /// прочие сцены и без <see cref="ImportanceSampling"/> не действует.
+        /// Не настройка расчёта — режим замера, как
+        /// <see cref="IsoFieldNoCosineWeight"/>.
+        /// </summary>
+        public bool ImportanceSamplingNoWeight;
+
+        /// <summary>
         /// ⛔ (`S120`) Вести электрон и позитрон пары ПОРОЗНЬ, а два кванта
         /// аннигиляции запускать не из вершины конверсии, а с конца
         /// эффективного пробега позитрона.
@@ -1848,6 +1891,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             // кристалл кладётся первым, чтобы точка внутри него доставалась ему,
             // а не объемлющему слою.
             double transverse;
+            // (`E29`) Площадь грани детектора, обращённой к пробе, с обвязкой —
+            // смягчение направляющей важностного розыгрыша (см. ImportanceSampler).
+            double faceArea;
             if (g.Shape == CrystalShape.Box)
             {
                 // E21: при боковой постановке брусок разворачивается — к пробе
@@ -1878,6 +1924,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double bx = wx, by = wy;
                 transverse = Math.Sqrt(bx * bx + by * by);
+                faceArea = 4.0 * wx * wy;
             }
             else
             {
@@ -1906,6 +1953,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 transverse = rDet;
+                faceArea = Math.PI * rDet * rDet;
             }
 
             this.sphereZ = 0.5 * hc;
@@ -1983,7 +2031,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
                     this.Add(rIn, rOut, zSrcBottom, zSrcTop, beakerWall, false);
                     this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
-                    this.source = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
+                    Sampler cylinder = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
+                    // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
+                    // глубина у цилиндра — от верхней грани, обращённой к
+                    // детектору; полевая сцена `Ground` строится этой же веткой.
+                    this.source = this.ImportanceSampling && rIn > 0.0 && zSrcTop > zSrcBottom
+                        ? (Sampler)new ImportanceSampler(cylinder, sample, this.sphereZ, faceArea,
+                                                         rIn, zSrcBottom, zSrcTop, null, null,
+                                                         (r, z) => true,
+                                                         (r, z) => zSrcTop - z)
+                        : cylinder;
                     break;
                 }
 
@@ -2009,8 +2066,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.Add(rSrcOut, rOut, zSrc0, zSrc0 + hs, beakerWall, false);
                     this.Add(0.0, rh + ths, zSrc0, zCeiling - the, sample, false);
                     this.Add(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, sample, false);
-                    this.source = new MarinelliSampler(rh + ths, rSrcOut, zSrc0, zSrc0 + hs,
-                                                       zCeiling - the);
+                    double mrIn = rh + ths, mz0 = zSrc0, mz1 = zSrc0 + hs, mzCap = zCeiling - the;
+                    Sampler marinelli = new MarinelliSampler(mrIn, rSrcOut, mz0, mz1, mzCap);
+                    // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
+                    // свободные поверхности пробы — стенка колодца (r = mrIn
+                    // при z >= mzCap) и его дно (z = mzCap при r <= mrIn), обе
+                    // ложатся на сетку; глубина — до ближайшей из них, у
+                    // «подколодезного» угла — до ребра. Полевая сцена
+                    // `Borehole` строится этой же веткой.
+                    this.source = this.ImportanceSampling && rSrcOut > 0.0 && mz1 > mz0
+                        ? (Sampler)new ImportanceSampler(marinelli, sample, this.sphereZ, faceArea,
+                                                         rSrcOut, mz0, mz1,
+                                                         new[] { mrIn }, new[] { mzCap },
+                                                         (r, z) => r >= mrIn || z <= mzCap,
+                                                         (r, z) => z >= mzCap
+                                                             ? r - mrIn
+                                                             : (r <= mrIn
+                                                                ? mzCap - z
+                                                                : Math.Sqrt((r - mrIn) * (r - mrIn)
+                                                                            + (mzCap - z) * (mzCap - z))))
+                        : marinelli;
                     break;
                 }
             }
@@ -2023,6 +2098,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         abstract class Sampler
         {
             public abstract void Next(EfficiencySimulator s, out double x, out double y, out double z);
+
+            /// <summary>
+            /// Точка вылета С ВЕСОМ (`E29`). Вес — отношение равномерной по
+            /// объёму плотности к той, из которой точка на деле разыграна;
+            /// у всех розыгрышей, кроме важностного
+            /// (<see cref="ImportanceSampler"/>), он равен единице —
+            /// умножение на 1.0 точное, и прежние сцены остаются побитово
+            /// прежними. Обходы берут точку ЗДЕСЬ, а не у <see cref="Next"/>,
+            /// чтобы вес не потерялся ни в одном из четырёх мест, где
+            /// история входит в счёт.
+            /// </summary>
+            public virtual double NextWeighted(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                this.Next(s, out x, out y, out z);
+                return 1.0;
+            }
+
+            /// <summary>
+            /// Перестроить розыгрыш под энергию узла (`E29`): важностная
+            /// плотность зависит от ослабления пробы. У прочих — ничего:
+            /// ни одного обращения к ГСЧ, поток прежний.
+            /// </summary>
+            public virtual void Retune(EfficiencySimulator s, double energyKev)
+            {
+            }
 
             /// <summary>Машинная строка для дампа сцены (см, ось сцены).</summary>
             public abstract string Describe();
@@ -2270,6 +2370,302 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return string.Format(System.Globalization.CultureInfo.InvariantCulture,
                                      "source marinelli {0:R} {1:R} {2:R} {3:R} {4:R}",
                                      this.rIn, this.rOut, this.z0, this.z1, this.zCap);
+            }
+        }
+
+        /// <summary>
+        /// ВАЖНОСТНЫЙ РОЗЫГРЫШ ТОЧКИ ВЫЛЕТА ПО ТЕЛУ ВРАЩЕНИЯ (`E29`, ключ
+        /// <see cref="ImportanceSampling"/>). Обёртка над прежним равномерным
+        /// розыгрышем той же формы: форму и дамп сцены (<see cref="Describe"/>)
+        /// даёт он, а точку — таблица.
+        ///
+        /// Плотность. Проба режется сеткой ячеек (r, z): по радиусу
+        /// квадратной (`r_k = R·(k/n)²` — у оси, где до детектора близко,
+        /// ячейки мелкие), по высоте равномерной; границы свободных
+        /// поверхностей (стенка и дно колодца маринелли) вставляются в сетку
+        /// нарочно, чтобы каждая ячейка лежала ЦЕЛИКОМ в пробе либо целиком
+        /// вне её. Ячейке приписывается вероятность
+        ///
+        ///     P_k ∝ V_k · exp(−μ·d_k) / (s_k² + A/2π)
+        ///
+        /// по её середине: d — глубина от ближайшей свободной поверхности
+        /// (у цилиндра — от верхней грани, у маринелли — от стенки или дна
+        /// колодца), s — расстояние до центра детектора, μ — ослабление пробы
+        /// на энергии узла (<see cref="Retune"/>), A — площадь грани
+        /// детектора с обвязкой, обращённой к пробе. Слагаемое `A/2π` —
+        /// телесный угол ПРОТЯЖЁННОГО детектора: `Ω ≈ A/(s² + A/2π)` точно и
+        /// вдали (A/s²), и вплотную (2π); голый `1/s²` вплотную к грани
+        /// сгущал точки у оси втрое гуще, чем даёт сигнал, и на сосудной
+        /// сцене (проба у самой грани) ДЕЛАЛ ХУЖЕ равномерного: ESS/n 0.86×
+        /// на 100 кэВ, 0.95× на 662 (замер П41 §3, сборка без смягчения).
+        /// Внутри ячейки точка
+        /// равномерна по объёму (радиус по корню, высота и азимут прямо).
+        /// Нулевых ячеек внутри пробы нет: направляющая снизу ограничена
+        /// 1e-12 от своего максимума — иначе глубокая ячейка, не выпавшая ни
+        /// разу, унесла бы свой вклад молча.
+        ///
+        /// Вес. Плотность розыгрыша на единицу объёма в ячейке равна `P_k/V_k`,
+        /// а равномерная — `1/V`; история получает `w = V_k / (V·P_k)`, и
+        /// ⟨w·счёт⟩ = равномерному ожиданию для ЛЮБОЙ направляющей —
+        /// направляющая двигает только дисперсию. Это и есть несмещённость,
+        /// и её приёмка — длинный аналоговый прогон (П41).
+        ///
+        /// Цена: четыре обращения к ГСЧ на точку (ячейка, радиус, высота,
+        /// азимут) против трёх у цилиндра; таблица перестраивается на смене
+        /// энергии узла (~1e5 экспонент) — пренебрежимо против историй узла.
+        /// </summary>
+        sealed class ImportanceSampler : Sampler
+        {
+            /// <summary>Ячеек по радиусу и по высоте до вставки границ.</summary>
+            const int CellsR = 256, CellsZ = 512;
+
+            /// <summary>Нижняя граница направляющей, долей от её максимума.</summary>
+            const double GuideFloor = 1e-12;
+
+            readonly Sampler analog;
+            readonly GeometryMaterial sample;
+            readonly double detZ;
+            readonly double soft2;            // A/2π, см²
+            readonly Func<double, double, bool> inside;
+            readonly Func<double, double, double> depth;
+            readonly double[] rEdge, zEdge;
+            readonly double[] cellVolume;     // 0 у ячеек вне пробы
+            readonly double[] cum;            // накопленная вероятность, длина ячеек + 1
+            readonly double volume;           // объём пробы = сумма её ячеек, см³
+            double tunedFor = double.NaN;
+
+            /// <param name="analog">Прежний равномерный розыгрыш той же формы.</param>
+            /// <param name="sample">Вещество пробы — ослабление направляющей.</param>
+            /// <param name="detZ">z центра детектора, см.</param>
+            /// <param name="faceArea">Площадь грани детектора к пробе, см²; смягчение направляющей A/2π.</param>
+            /// <param name="rMax">Внешний радиус тела, см.</param>
+            /// <param name="zMin">Низ тела, см.</param>
+            /// <param name="zMax">Верх тела, см.</param>
+            /// <param name="extraR">Радиусы свободных поверхностей, которые обязаны лечь на сетку.</param>
+            /// <param name="extraZ">Высоты свободных поверхностей, которые обязаны лечь на сетку.</param>
+            /// <param name="inside">Лежит ли точка (r, z) в пробе.</param>
+            /// <param name="depth">Глубина точки (r, z) от ближайшей свободной поверхности, см.</param>
+            public ImportanceSampler(Sampler analog, GeometryMaterial sample, double detZ,
+                                     double faceArea, double rMax, double zMin, double zMax,
+                                     double[] extraR, double[] extraZ,
+                                     Func<double, double, bool> inside,
+                                     Func<double, double, double> depth)
+            {
+                this.analog = analog;
+                this.sample = sample;
+                this.detZ = detZ;
+                this.soft2 = Math.Max(0.0, faceArea) / (2.0 * Math.PI);
+                this.inside = inside;
+                this.depth = depth;
+
+                var re = new List<double>();
+                for (int k = 0; k <= CellsR; k++)
+                {
+                    double t = (double)k / CellsR;
+                    re.Add(rMax * t * t);
+                }
+
+                foreach (double r in extraR ?? new double[0])
+                {
+                    if (r > 0.0 && r < rMax)
+                    {
+                        re.Add(r);
+                    }
+                }
+
+                var ze = new List<double>();
+                for (int k = 0; k <= CellsZ; k++)
+                {
+                    ze.Add(zMin + (zMax - zMin) * k / CellsZ);
+                }
+
+                foreach (double z in extraZ ?? new double[0])
+                {
+                    if (z > zMin && z < zMax)
+                    {
+                        ze.Add(z);
+                    }
+                }
+
+                this.rEdge = Dedup(re);
+                this.zEdge = Dedup(ze);
+                int nr = this.rEdge.Length - 1, nz = this.zEdge.Length - 1;
+                this.cellVolume = new double[nr * nz];
+                this.cum = new double[nr * nz + 1];
+                double total = 0.0;
+                for (int i = 0; i < nr; i++)
+                {
+                    double r0 = this.rEdge[i], r1 = this.rEdge[i + 1];
+                    // Середина ячейки по ПЛОЩАДИ, а не по радиусу: точка внутри
+                    // ячейки равномерна по объёму, и середина по площади —
+                    // её матожидание r².
+                    double rMid = Math.Sqrt(0.5 * (r0 * r0 + r1 * r1));
+                    for (int j = 0; j < nz; j++)
+                    {
+                        double z0 = this.zEdge[j], z1 = this.zEdge[j + 1];
+                        double zMid = 0.5 * (z0 + z1);
+                        if (!inside(rMid, zMid))
+                        {
+                            continue;
+                        }
+
+                        double v = Math.PI * (r1 * r1 - r0 * r0) * (z1 - z0);
+                        this.cellVolume[i * nz + j] = v;
+                        total += v;
+                    }
+                }
+
+                this.volume = total;
+                if (!(total > 0.0))
+                {
+                    throw new InvalidOperationException("importance sampling: the sample has no volume");
+                }
+            }
+
+            static double[] Dedup(List<double> edges)
+            {
+                edges.Sort();
+                var kept = new List<double>();
+                foreach (double e in edges)
+                {
+                    if (kept.Count == 0 || e - kept[kept.Count - 1] > 1e-9)
+                    {
+                        kept.Add(e);
+                    }
+                }
+
+                return kept.ToArray();
+            }
+
+            /// <summary>Объём пробы по сетке, см³ (сумма ячеек внутри).</summary>
+            public double VolumeCm3
+            {
+                get { return this.volume; }
+            }
+
+            public override void Retune(EfficiencySimulator s, double energyKev)
+            {
+                if (energyKev == this.tunedFor)
+                {
+                    return;
+                }
+
+                double mu = this.sample != null ? this.sample.LinearAttenuation(energyKev) : 0.0;
+                if (!(mu >= 0.0))
+                {
+                    mu = 0.0;
+                }
+
+                int nr = this.rEdge.Length - 1, nz = this.zEdge.Length - 1;
+                double[] guide = new double[nr * nz];
+                double top = 0.0;
+                for (int i = 0; i < nr; i++)
+                {
+                    double r0 = this.rEdge[i], r1 = this.rEdge[i + 1];
+                    double rMid = Math.Sqrt(0.5 * (r0 * r0 + r1 * r1));
+                    for (int j = 0; j < nz; j++)
+                    {
+                        int k = i * nz + j;
+                        if (!(this.cellVolume[k] > 0.0))
+                        {
+                            continue;
+                        }
+
+                        double zMid = 0.5 * (this.zEdge[j] + this.zEdge[j + 1]);
+                        double dz = this.detZ - zMid;
+                        double s2 = rMid * rMid + dz * dz;
+                        double d = Math.Max(0.0, this.depth(rMid, zMid));
+                        double q = Math.Exp(-mu * d) / Math.Max(s2 + this.soft2, 1e-6);
+                        guide[k] = q;
+                        if (q > top)
+                        {
+                            top = q;
+                        }
+                    }
+                }
+
+                double floor = top * GuideFloor;
+                double run = 0.0;
+                this.cum[0] = 0.0;
+                for (int k = 0; k < guide.Length; k++)
+                {
+                    if (this.cellVolume[k] > 0.0)
+                    {
+                        run += Math.Max(guide[k], floor) * this.cellVolume[k];
+                    }
+
+                    this.cum[k + 1] = run;
+                }
+
+                for (int k = 1; k < this.cum.Length; k++)
+                {
+                    this.cum[k] /= run;
+                }
+
+                this.cum[this.cum.Length - 1] = 1.0;
+                this.tunedFor = energyKev;
+            }
+
+            public override void Next(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                // Геометрический опрос (<see cref="SourceOutsideScene"/>) — веса
+                // ему не нужны, и таблица к этому моменту может быть не построена.
+                this.analog.Next(s, out x, out y, out z);
+            }
+
+            public override double NextWeighted(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                if (double.IsNaN(this.tunedFor))
+                {
+                    throw new InvalidOperationException("importance sampling: Retune was not called before the walk");
+                }
+
+                double u = s.Uniform();
+                int k = Array.BinarySearch(this.cum, u);
+                if (k < 0)
+                {
+                    k = ~k - 1;
+                }
+
+                int last = this.cum.Length - 2;
+                if (k > last)
+                {
+                    k = last;
+                }
+
+                if (k < 0)
+                {
+                    k = 0;
+                }
+
+                // На ровной границе нулевой ячейки (u == cum[k] == cum[k+1])
+                // двоичный поиск может встать на пустую: шагнуть к первой
+                // непустой, у неё та же нижняя граница.
+                while (k < last && !(this.cum[k + 1] - this.cum[k] > 0.0))
+                {
+                    k++;
+                }
+
+                int nz = this.zEdge.Length - 1;
+                int i = k / nz, j = k % nz;
+                double r0 = this.rEdge[i], r1 = this.rEdge[i + 1];
+                double rr = Math.Sqrt(r0 * r0 + (r1 * r1 - r0 * r0) * s.Uniform());
+                double zz = this.zEdge[j] + (this.zEdge[j + 1] - this.zEdge[j]) * s.Uniform();
+                double phi = 2.0 * Math.PI * s.Uniform();
+                x = rr * Math.Cos(phi);
+                y = rr * Math.Sin(phi);
+                z = zz;
+                double pk = this.cum[k + 1] - this.cum[k];
+                // Рычаг порчи (`ImportanceSamplingNoWeight`): вес выброшен —
+                // приёмка обязана это поймать.
+                return s.ImportanceSamplingNoWeight ? 1.0 : this.cellVolume[k] / (this.volume * pk);
+            }
+
+            public override string Describe()
+            {
+                // Форма источника та же, что у равномерного розыгрыша, — внешнему
+                // арбитру (`tools/g4cf --scene`) розыгрыш безразличен.
+                return this.analog.Describe();
             }
         }
 
@@ -5359,19 +5755,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
             double limit = 40.0 * this.sphereR + 200.0;
+            this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
-                this.source.Next(this, out x, out y, out z);
+                // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
+                // важностного, — умножение точное.
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
                 double dz = this.sphereZ - z;
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
-                double weight = 1.0;
                 double ux, uy, uz;
                 // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
                 if ((!this.TotalFullSphere || this.source.PreferCone) && dist > this.sphereR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
-                    weight = 0.5 * (1.0 - cosMax);
+                    weight *= 0.5 * (1.0 - cosMax);
                     this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
                 }
                 else
@@ -6425,11 +6823,16 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double sum = 0.0, sum2 = 0.0;
             int n = Math.Max(1000, this.Histories);
+            this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
-                this.source.Next(this, out x, out y, out z);
-                double score = this.OneHistory(energyKev, x, y, z, histogram, binKev);
+                // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
+                // важностного. Вес входит в счёт истории целиком — и в
+                // возвращаемую эффективность, и в сумму квадратов (то есть в
+                // разброс узла), и в гистограмму с каналами и светом.
+                double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
+                double score = this.OneHistory(energyKev, x, y, z, histogram, binKev, pointWeight);
                 sum += score;
                 sum2 += score * score;
             }
@@ -6531,10 +6934,27 @@ namespace BecquerelMonitor.EfficiencyMaker
             int m = energies.Length;
             var sums = new JointSums(m);
             double[] a = new double[m], b = new double[m];
+            // (`E29`) Направляющая важностного розыгрыша — по НИЖНЕЙ энергии
+            // набора: у неё самое сильное ослабление, то есть самая узкая
+            // область сигнала; для верхних квантов из той же точки плотность
+            // лишь уже нужной — несмещённость от направляющей не зависит.
+            double lowest = energies[0];
+            for (int e = 1; e < m; e++)
+            {
+                if (energies[e] > 0.0 && (!(lowest > 0.0) || energies[e] < lowest))
+                {
+                    lowest = energies[e];
+                }
+            }
+
+            this.source.Retune(this, lowest);
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
-                this.source.Next(this, out x, out y, out z);
+                // (`E29`) Вес точки — ОДИН на все кванты из неё: он входит в
+                // накопители ОДНИМ множителем (`Accumulate`), а не в каждую
+                // историю, — иначе совместное произведение несло бы w².
+                double pointWeight = this.source.NextWeighted(this, out x, out y, out z);
 
                 // ⛔ ВСЕ кванты — из ОДНОЙ точки: в этом весь смысл замера.
                 // Направления разыгрываются независимо, как и в природе.
@@ -6558,7 +6978,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     b[e] = energies[e] > 0.0 ? this.OneHistory(energies[e], x, y, z, null, 0.0) : 0.0;
                 }
 
-                sums.Accumulate(a, b);
+                sums.Accumulate(a, b, pointWeight);
             }
 
             return sums;
@@ -6576,18 +6996,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         double OneHistory(double energyKev, double x, double y, double z,
                           double[] histogram, double binKev)
         {
+            return this.OneHistory(energyKev, x, y, z, histogram, binKev, 1.0);
+        }
+
+        /// <summary>
+        /// То же С ВЕСОМ ТОЧКИ ВЫЛЕТА (`E29`): вес важностного розыгрыша
+        /// входит в историю тем же множителем, что вес конуса и вес
+        /// направления, — в счёт, в гистограмму, в каналы и в свет. У
+        /// равномерного розыгрыша он равен единице, и умножение точное.
+        /// </summary>
+        double OneHistory(double energyKev, double x, double y, double z,
+                          double[] histogram, double binKev, double pointWeight)
+        {
             {
                 // Направление разыгрывается не по всей сфере, а в конусе,
                 // накрывающем детектор: иначе на дальней геометрии почти все
                 // истории уходят мимо и статистика набирается впустую.
                 double dz = this.sphereZ - z;
                 double dist = Math.Sqrt(x * x + y * y + dz * dz);
-                double weight = 1.0;
+                double weight = pointWeight;
                 double ux, uy, uz;
                 if (dist > this.sphereR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
-                    weight = 0.5 * (1.0 - cosMax);
+                    weight *= 0.5 * (1.0 - cosMax);
                     this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
                 }
                 else
@@ -6740,15 +7172,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] light = this.lightSum != null ? new double[histogram.Length] : null;
             double limit = 40.0 * this.sphereR + 200.0;
             int scored = 0;
+            this.source.Retune(this, energyKev);
             for (int i = 0; i < n; i++)
             {
                 double x, y, z;
-                this.source.Next(this, out x, out y, out z);
+                // (`E29`) Точка с весом розыгрыша: единица у всех, кроме
+                // важностного. Вес идёт в `hist` и в `hist2` — то есть и в
+                // отклик, и в его шум после свёртки (`A39`).
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
                 double ux, uy, uz;
 
                 // Наведение конусом на габарит сцены (`A57`) — сужение ради
                 // дисперсии, не ради скорости: вес возвращает несмещённость.
-                double weight = 1.0;
                 double coneZ, coneR;
                 double coneDist = 0.0;
                 // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
@@ -6757,7 +7192,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
                 {
                     double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
-                    weight = 0.5 * (1.0 - cosMax);
+                    weight *= 0.5 * (1.0 - cosMax);
                     this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
                                 out ux, out uy, out uz);
                 }
@@ -7461,13 +7896,24 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public void Accumulate(double[] a, double[] b)
         {
+            this.Accumulate(a, b, 1.0);
+        }
+
+        /// <summary>
+        /// То же С ВЕСОМ ТОЧКИ (`E29`): важностный розыгрыш точки вылета даёт
+        /// ей вес `w`, и он входит ОДНИМ множителем и в одиночные суммы, и в
+        /// совместные — `⟨ε₁ε₂⟩ = E[w·ε₁ε₂]`, а не `E[w²·ε₁ε₂]`. При `w = 1`
+        /// умножение точное, накопители прежние побитово.
+        /// </summary>
+        public void Accumulate(double[] a, double[] b, double pointWeight)
+        {
             this.Points++;
             for (int i = 0; i < this.Size; i++)
             {
-                this.Single[i] += a[i] + b[i];
+                this.Single[i] += pointWeight * (a[i] + b[i]);
                 for (int j = i; j < this.Size; j++)
                 {
-                    double c = 0.5 * (a[i] * b[j] + a[j] * b[i]);
+                    double c = pointWeight * (0.5 * (a[i] * b[j] + a[j] * b[i]));
                     this.Joint[i][j] += c;
                     this.JointSquares[i][j] += c * c;
                 }
