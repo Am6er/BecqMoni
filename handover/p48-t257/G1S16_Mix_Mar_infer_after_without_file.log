@@ -1,0 +1,7 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p48\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p48\config\device: 24 loaded
+BecqMoni: Ошибка: Не удалось загрузить библиотеку изотопов.
+
+Необработанное исключение: System.InvalidOperationException: BecqMoni: nuclide library could not be loaded and there is no UI to report it to: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p48\config\NuclideDefinition.xml. The 4-nuclide starter library is a windowed-first-run fallback only: it drives both peak search and FSA, so a headless run on it would print plausible nonsense. Run from a directory that has config\NuclideDefinition.xml.
+   в BecquerelMonitor.NuclideDefinitionManager.GetInstance() в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\NuclideDefinitionManager.cs:строка 175
+   в FsaStackShot.Program.Main(String[] args)
