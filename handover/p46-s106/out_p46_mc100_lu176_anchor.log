@@ -1,0 +1,61 @@
+=== МАЛАЯ БАЗА ===
+  спектров 59 (понятных 43, непонятных 16), сцен 6: AS80_lu_front, AS80_point0, AS80_th_disk, ASN16_lu_side, G1S_point25, G1S_point5
+  ⛔ числа частей НЕ складывать; с полным корпусом НЕ сравнивать
+
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p46
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p46
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p46
+  собрана  : 2026-09-13 16:34:44 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p46
+  наборы   : приложение 1c2046931ba2 (549 файлов), пробы 957d8d23c369 (190)
+  сверено  : 478 файлов по sha256 за 2.46 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 478 файлов сошлись
+
+запуск: CorpusFsaProbe.exe --corpus=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus --out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p46_mc100_lu176_anchor --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5 --only=ASN16_Lu176_P0 --limits-mc=100 --refit-z=0 --mc-component=Lu-176
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p46\config\NuclideDefinition.xml
+оснастка (T68): 478 файлов из .appwd.json сошлись с манифестом sha256(содержимое)/v1 по sha256 за 0.16 с
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p46\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p46\config\device: 24 loaded
+корпус: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus
+спектров под отбор: 1 (часть: all, режим: spline)
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+суммирование вкл, наложения вкл, рассеяние вкл, вылеты вкл
+KEYS	ключи пробы против умолчаний (T115, отражением по Options; настройки анализатора — строка SETUP): LimitsMc 0 → 100; McComponent нет → Lu-176; Only нет → {1: ASN16_Lu176_P0}; RefitZ -1 → 0
+библиотека: ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)
+⚠ мерки сменили смысл: recall и фантомы считаются относительно ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать
+изомеры по sandia_symbol: вкл
+время жизни уровня: ВЕРОЯТНОСТНО (A289, умолчание)
+атомные партнёры каскада: рентген вкл, аннигиляция вкл; окно совпадения 1.000E-006 с (умолчание)
+сетка дрейфа: ноль ±8.00 кэВ, узлов 1 (один узел, дрейф не ищется); усиление ±2.00 %, узлов 1 (один узел, дрейф не ищется)
+полоса ОБОИХ концов: анализатор LibraryToFitByCurve/10.00 кэВ, библиотека LibraryToFitByCurve/10.00 кэВ — СОШЛИСЬ
+доля пола по кривой: 1.000 % (поставочная)
+пол ПОЛОСЫ ФИТА: ПОРОГ ПО РАМПЕ обоих спектров (проба и фон, пол = больший; доля уровня 0.70, окно 3.0 кэВ, рампа не шире 5 кэВ) (поставочный)
+SETUP	против поставочного разбора изменено: RefitZ 3 → 0
+
+полоса ПЕРВОГО разбора (ASN16_Lu176_P0): полоса сведена ПОЛОМ ПО КРИВОЙ 30.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); пол ПОЛОСЫ ФИТА — порог по рампе обоих спектров, доля уровня 0.70: проба рампа 0.32→3.01 кэВ (каналы 24→31; подошва 0.32, середина в канале 29 при уровне 18, хвост 2); фон рампа 0.32→4.55 кэВ (каналы 24→35; подошва 0.32, середина в канале 32 при уровне 329, хвост 3) → пол 4.55 кэВ (умолчание); фит 35…8190 (4.6…3144.6 кэВ)
+  ASN16_Lu176_P0: Lu-176 — сдвиг оценки от весов по данным (−Σφ/μ, П46): ≈ 401 отсч. = 1.33 × МДА = 2.70 × a*; ⚠ привязка ВКЛ: копия без пиков теряет опоры, образ копии не на шкале впрыска — поверять формулу с --no-anchor
+  ASN16_Lu176_P0: Lu-176         a*=1.847E+000 МДА=3.746E+000 имп/с; ложных 0/100 (ждём ~5 %), пропусков 100/100 (ждём ~5 %); σ0: формула 1.123E+000, розыгрыш 0.000E+000 (сред. 0.000E+000); впрыск: нулевых 92, медиана 0.000E+000
+ASN16_Lu176_P0         ASN16      known    chi2/ndf    0.426  σ× 1.000  пиков   5  комп.  4  матрица: НАЙДЕНА, применена                                      691 мс
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+APPLIED	применено по свидетельствам точек применения (T115): Atomic=True ×1; Background=True ×1; CrystalShield=False ×1; Equilibrium=True ×1; Matrix=True ×1
+
+записано групп: 1 -> C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p46_mc100_lu176_anchor
+
+=== итог по частям корпуса (34 с на часах, 1 с ЦП) ===
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+known             1        1         1        0.4       0.43        0        0        0
+           привязка шкалы (AMBER17): с опорами 1, без опор 0; крупнейшие сдвиги: ASN16_Lu176_P0 (2 оп., усил. -0.35 %, ноль +0.00 кэВ)
+           положение по свету (F11 в): ключ (умолчание анализатора), форма line; со светом CsI:Tl 1; без кривой 0
+           нуль шкалы образа (S169): ключ (умолчание анализатора); карта adc включилась у 1 из 1 (нуль по съёмке 0, по прибору 1; заказана и не включилась 0)
+           образ наложений по свету (S107): ключ (умолчание анализатора); формой по свету CsI:Tl 1 из 1
+
+⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;
+  «понятная» считана с матрицей отклика, «непонятная» — из одних пиков.
+Фантомы и recall — C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p46_mc100_lu176_anchor\..\score.py по этим же файлам:
+  python tools/pie/score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p46_mc100_lu176_anchor --part=all
+клеймо прогона: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p46_mc100_lu176_anchor\.run.json (corpus 41207672a684, sources fe28b9858ccd, HEAD ffadbe54, ГРЯЗНОЕ дерево: tools/effmaker/probes/CorpusFsaProbe.cs)
+
+ПРОГОН МАЛОЙ БАЗЫ: 38.0 с

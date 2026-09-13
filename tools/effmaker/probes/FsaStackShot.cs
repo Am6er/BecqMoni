@@ -32,12 +32,13 @@ namespace FsaStackShot
     /// таблица на одной картинке, как их видит человек.
     ///
     ///   fsastackshot --spectrum=X.xml [--efficiency=Цилиндр] [--out=stack.png]
-    ///                [--infer] [--no-equilibrium] [--no-matrix] [--lib-dump]
+    ///                [--infer | --sample=241AM,44TI,152EU,137CS]
+    ///                [--no-equilibrium] [--no-matrix] [--lib-dump]
     ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
     ///                [--refit-z-rel=0.1]
     ///                [--no-drift] [--no-anchor] [--gain-steps=N] [--offset-steps=N]
-    ///                [--knots=4]
+    ///                [--knots=4] [--huber=3]
     ///                [--calculating]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
@@ -72,6 +73,18 @@ namespace FsaStackShot
     /// `--lines=` — линии ОДНОГО образа с весами и нуклидом-родителем. Заведён
     /// под `S80`: по картинке видно, что лента образа стоит не там, где ей
     /// положено, а чем именно она набрана — по картинке не видно.
+    ///
+    /// `--sample=` — ОБЪЯВЛЕННЫЙ состав пробы, нуклиды `nucid` через запятую
+    /// («241AM,44TI,152EU,137CS», как в графе `nuclides` манифеста корпуса).
+    /// Образы собирает `FsaSampleLibrary` ИЗ БАЗЫ, тем же правилом, что у
+    /// корпусного прогона (`CorpusFsaProbe.SpecOf`, `--lib=sample`); поставочная
+    /// `NuclideDefinition.xml` в состав не входит вовсе. Заведён 12.09.2026 по
+    /// слову Amber («НЕ СМОТРЕТЬ в поставочную! Возьми нуклиды из базы! Нужен
+    /// FSA Stack!»): на корпусной смеси AmTiCsEu путь `--infer` вывел из
+    /// подписей Pb-210 / U-235 / Th-232 — в поставочной библиотеке Ti-44 нет, и
+    /// вывод из подписей его не увидит никогда, — а путь `--set=` есть
+    /// поставочная библиотека на корпусе, что запрещено (`S56`). Снимок при этом
+    /// остаётся снимком ПРИЛОЖЕНИЯ: отрисовка, анализатор, матрица и отчёт — те же.
     /// </summary>
     static class Program
     {
@@ -106,10 +119,16 @@ namespace FsaStackShot
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
             bool infer = false, equilibrium = true, needMatrix = true, libDump = false;
+            // Объявленный состав (`--sample=`): null — ключа не было. Пустой
+            // список — отказ ниже, а не молчаливый разбор без единого образа.
+            List<string> sampleNuclides = null;
             int gainSteps = 0, offsetSteps = 0;
             // (`AMBER17`) Плечо A/B: привязка шкалы по пикам выключена.
             bool anchor = true;
             double knots = double.NaN;
+            // (`AMBER22`, П29) Порог Хубера в сигмах, как `CorpusFsaProbe --huber=`:
+            // 0 выключает перевзвешивание; NaN — не трогать умолчание анализатора.
+            double huberM = double.NaN;
             bool showCalculating = false;
             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
             int width = 1400, height = 700;
@@ -124,6 +143,14 @@ namespace FsaStackShot
                 else if (a.StartsWith("--to=", StringComparison.Ordinal)) toKev = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--ceiling=", StringComparison.Ordinal)) ceiling = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a == "--infer") infer = true;
+                else if (a.StartsWith("--sample=", StringComparison.Ordinal))
+                {
+                    sampleNuclides = new List<string>();
+                    foreach (string nucid in a.Substring(9).Split(','))
+                    {
+                        if (nucid.Trim().Length > 0) sampleNuclides.Add(nucid.Trim().ToUpperInvariant());
+                    }
+                }
                 else if (a == "--no-matrix") needMatrix = false;
                 else if (a == "--lib-dump") libDump = true;
                 else if (a.StartsWith("--set=", StringComparison.Ordinal)) setName = a.Substring(6);
@@ -148,6 +175,8 @@ namespace FsaStackShot
                 else if (a == "--calculating") showCalculating = true;
                 else if (a.StartsWith("--knots=", StringComparison.Ordinal))
                     knots = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--huber=", StringComparison.Ordinal))
+                    huberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--width=", StringComparison.Ordinal)) width = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--height=", StringComparison.Ordinal)) height = int.Parse(a.Substring(9), CultureInfo.InvariantCulture);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -156,6 +185,20 @@ namespace FsaStackShot
             if (spectrumPath == null)
             {
                 Console.Error.WriteLine("нужен --spectrum=<файл>");
+                return 2;
+            }
+
+            if (sampleNuclides != null && sampleNuclides.Count == 0)
+            {
+                Console.Error.WriteLine("--sample= пуст: нужны nucid через запятую, например --sample=241AM,137CS");
+                return 2;
+            }
+
+            // Два источника состава разом — не «объединить», а отказ: иначе не
+            // сказать, чей состав на снимке.
+            if (sampleNuclides != null && (infer || setName != null))
+            {
+                Console.Error.WriteLine("--sample= не сочетается с --infer и --set=: состав берётся из одного места");
                 return 2;
             }
 
@@ -204,6 +247,21 @@ namespace FsaStackShot
                 spec.AtomicXray = atomic;
                 library = FsaSampleLibrary.Build(spec);
                 Console.WriteLine("состав: " + report);
+                peaks = new PeakDetector().DetectPeak(
+                    rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                    null, FsaSampleLibrary.AsDefinitions(library));
+            }
+            else if (sampleNuclides != null)
+            {
+                // Объявленный состав — порядок тот же, что у корпусного прогона
+                // (`S56`, первый постулат): сперва библиотека ИЗ БАЗЫ, потом
+                // поиск пиков с подписями из неё же. Подписи задают то, что
+                // человек прочтёт над пиками, и брать их из поставочной, когда
+                // состав объявлен, значило бы подписать Ti-44 чужим именем.
+                FsaSampleLibrary.Report built;
+                FsaSampleSpec spec = DeclaredSpec(rd, sampleNuclides, equilibrium, atomic);
+                library = FsaSampleLibrary.Build(spec, out built);
+                Console.WriteLine("состав объявлен: {0}; {1}", string.Join(", ", sampleNuclides), built);
                 peaks = new PeakDetector().DetectPeak(
                     rd, BackgroundMode.Invisible, SmoothingMethod.None,
                     null, FsaSampleLibrary.AsDefinitions(library));
@@ -356,6 +414,13 @@ namespace FsaStackShot
             if (!double.IsNaN(knots))
             {
                 analyzer.ContinuumKnotFwhm = knots;
+            }
+
+            // (`AMBER22`, П29) Ключ обязан доехать до анализатора (как `--refit-z-rel=`
+            // выше); читатель — строка «HuberM 3 → …» у `FsaTuningReport.Print`.
+            if (!double.IsNaN(huberM))
+            {
+                analyzer.HuberM = huberM;
             }
 
             analyzer.AnchorScale = anchor;
@@ -972,6 +1037,54 @@ namespace FsaStackShot
 
             Console.Error.WriteLine("набора «{0}» нет; есть: {1}", name, string.Join(", ", have.ToArray()));
             return false;
+        }
+
+        /// <summary>
+        /// Спецификация пробы по ОБЪЯВЛЕННОМУ составу — те же поля и те же
+        /// пороги, что у <c>CorpusFsaProbe.SpecOf</c> для строки манифеста без
+        /// рядов и без `materials.csv`: кривая и порог АЦП ради пола полосы
+        /// (`S98`, `A73`), окно — рабочий диапазон поиска пиков, кристалл и
+        /// тяжёлые элементы пробы — из геометрии спектра (`S84`), вещество
+        /// кристалла прибора — запасной источник долей (`A276`).
+        /// ⚠ Это ТРЕТЬЯ копия этой сборки (первые две — `SpecOf` пробы корпуса и
+        /// `FsaCompositionInference.Infer`); заведена нарочно ровно тем же
+        /// текстом, чтобы снимок разбирал спектр тем же образом, что прогон.
+        /// </summary>
+        static FsaSampleSpec DeclaredSpec(ResultData rd, List<string> nuclides,
+                                          bool equilibrium, bool atomic)
+        {
+            var spec = new FsaSampleSpec
+            {
+                AtomicXray = atomic,
+                Equilibrium = equilibrium,
+                Efficiency = FsaEfficiency.FromConfig(rd.Efficiency),
+                AdcFloorKev = FsaBand.AdcFloorOf(rd.EnergySpectrum)
+            };
+            spec.Nuclides.AddRange(nuclides);
+
+            if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig
+                && peakConfig.Max_Range > peakConfig.Min_Range)
+            {
+                spec.MinEnergyKev = peakConfig.Min_Range;
+                spec.MaxEnergyKev = peakConfig.Max_Range;
+            }
+
+            if (rd.DeviceConfig != null)
+            {
+                spec.CrystalMaterialName = rd.DeviceConfig.CrystalMaterialName;
+            }
+
+            GeometryModel geometry = rd.Efficiency != null && rd.Efficiency.HasGeometry
+                ? rd.Efficiency.Geometry : null;
+            if (geometry != null)
+            {
+                FsaSampleLibrary.DescribeCrystal(spec, geometry.Crystal, 0.01,
+                    EfficiencySimulator.ScintillatorNameOf(geometry));
+                spec.SampleElements.AddRange(FsaSampleLibrary.HeavyElementsOf(
+                    geometry.Source, 0.01, spec.MinEnergyKev, spec.MaxEnergyKev));
+            }
+
+            return spec;
         }
 
         static bool AttachEfficiency(ResultData rd, string name)
