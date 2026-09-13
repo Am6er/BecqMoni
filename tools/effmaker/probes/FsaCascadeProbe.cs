@@ -58,6 +58,8 @@ namespace FsaCascadeProbe
             var chains = new List<string>();
             var nuclides = new List<string>();
             bool rebuild = false, force = false, describe = false, sumLayerContinuum = false;
+            // (`N14`, П49) угловая корреляция в парах: -1 — умолчание анализатора, 0/1 — плечо
+            int angcorr = -1;
             int maxLines = 12;
             double scanFrom = 0.0, scanTo = 0.0;
             foreach (string a in args)
@@ -65,6 +67,8 @@ namespace FsaCascadeProbe
                 if (a == "--rebuild") { rebuild = true; continue; }
                 if (a == "--force") { force = true; continue; }
                 if (a == "--describe") { describe = true; continue; }
+                if (a == "--angcorr=0") { angcorr = 0; continue; }
+                if (a == "--angcorr=1") { angcorr = 1; continue; }
                 if (a == "--sum-layer-continuum") { sumLayerContinuum = true; continue; }
                 if (a.StartsWith("--joint=", StringComparison.Ordinal))
                 {
@@ -190,6 +194,20 @@ namespace FsaCascadeProbe
             FsaCascadeSummer.TripleLog.Clear();
             FsaCascadeSummer.CarrierKeyMerges = 0;
             FsaCascadeSummer summer = FsaCascadeSummer.Create(matrix, scintillator);
+            // (`N14`, П49) Плечо угловых корреляций — ДО первого `For`: поправки
+            // кэшируются на экземпляре. Таблица Q_k — как у приложения
+            // (`FsaMatrixBinding`): сайдкар в каталоге склада по отпечатку геометрии.
+            if (summer != null && angcorr >= 0)
+            {
+                summer.AngularCorrelations = angcorr == 1;
+                summer.AngularQk = AngularAttenuation.Find(ResponseMatrixStore.Directory,
+                                                           rd.Efficiency != null ? rd.Efficiency.Geometry : null);
+                Console.WriteLine("угловые корреляции (N14): ключ {0}; таблица Q_k сцены {1}",
+                                  angcorr == 1 ? "ВКЛ" : "ВЫКЛ",
+                                  summer.AngularQk != null
+                                      ? "НАЙДЕНА (" + summer.AngularQk.Scene + ", узлов " + summer.AngularQk.Count.ToString(CultureInfo.InvariantCulture) + ")"
+                                      : "НЕТ — счёт изотропный");
+            }
             Console.WriteLine("кривая света: {0}",
                               summer != null && summer.LightYieldName.Length > 0
                               ? summer.LightYieldName : "НЕТ — суммы по энергии");
@@ -258,6 +276,15 @@ namespace FsaCascadeProbe
             Console.WriteLine();
             Console.WriteLine("компонентов поправлено {0} из {1}, сумм-пиков всего {2}",
                               corrected, library.Count, sumPeaks);
+            // (`N14`, П49) Сколько пар с A_kk ≠ 0 прошло через сумматор и в каких
+            // пределах множитель; ноль при включённом ключе — таблицы Q_k нет
+            // либо у состава нет коррелированных каскадов.
+            Console.WriteLine("угловые корреляции (N14): пар с A_kk≠0 {0}{1}",
+                              summer.AngularPairs,
+                              summer.AngularPairs > 0
+                                  ? string.Format(CultureInfo.InvariantCulture, ", множитель {0:F4}…{1:F4}",
+                                                  summer.AngularFactorMin, summer.AngularFactorMax)
+                                  : "");
 
             // (`S165`) СЛИЯНИЙ НОСИТЕЛЕЙ — сколько раз два носителя попали в
             // один ключ и их вероятности сложены. Ноль здесь значит, что на
@@ -341,6 +368,12 @@ namespace FsaCascadeProbe
 
             analyzer.ResponseMatrix = matrix;
             analyzer.ScintillatorMaterial = scintillator;
+            // (`N14`, П49) то же плечо — и анализатору, тем же путём, что у приложения
+            if (angcorr >= 0)
+            {
+                analyzer.CascadeSumAngular = angcorr == 1;
+                analyzer.AngularQk = summer.AngularQk;
+            }
             analyzer.CascadeSumming = false;
             clock.Restart();
             FsaResult withMatrix = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration,
