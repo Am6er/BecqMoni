@@ -68,7 +68,8 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// ✅ `N4` (П44, 13.09.2026): ПРОИЗВОЛЬНЫЙ СОСТАВ считается тем же
     /// <see cref="EstarCalculator"/> по вызову <see cref="ForComposition"/> —
     /// под ключом <see cref="EfficiencySimulator.ElectronAnyMaterial"/>
-    /// (клеймо `ecomp=1`, ВЫКЛ до единого счёта физики 18). Список
+    /// (клеймо `ecomp=1`; ВЫКЛ до единого счёта, умолчанием ВКЛ с 14.09.2026 —
+    /// физика 18, П50). Список
     /// <see cref="Compositions"/> при этом по-прежнему закрыт: тринадцать
     /// вшитых опознаются <see cref="Match"/> первыми (их плотности —
     /// калиброванные, а не из геометрии), а всё, что `Match` не узнал —

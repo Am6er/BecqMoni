@@ -38,7 +38,8 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// <see cref="Stopping"/> даёт тормозную способность соединениям, которых
     /// нет в `estar_collision_stopping` (кривая света LaBr₃:Ce / CeBr₃, `F11` (г)).
     /// Оба хода — под ключом <see cref="EfficiencySimulator.ElectronAnyMaterial"/>,
-    /// ВЫКЛ до единого счёта физики 18; склад матриц ключом не тронут.
+    /// ВЫКЛ до единого счёта, умолчанием ВКЛ с 14.09.2026 — физика 18, единым
+    /// счётом склада (П50).
     /// </summary>
     public static class EstarCalculator
     {
