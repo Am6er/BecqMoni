@@ -1,0 +1,23 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "41207672a68481fa7288d714231ba1815eb1f6efcbe9c0f5d512dac6be2ada61",
+ "corpus_dir": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus",
+ "corpus_files": 206,
+ "dirty": [
+  "BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs",
+  "tools/effmaker/probes/CorpusFsaProbe.cs"
+ ],
+ "fields": {
+  "app_sha": "2c70acccfadc24474b412f69bae64299b6617e4641b659edda6baec2e5d5d430",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Release_p47",
+  "keys": "--only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5",
+  "probe_sha": "e7e95bc4eef2d3dcdb8c6ce8160581f64728d379a65cc2df933a14023c3d95af",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p47",
+  "store": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_p47"
+ },
+ "head": "a06823bd65fd0f9896346b9ba1bb5f85a281d5e7",
+ "sources": "ff9a19cb1f82096da51a9da93bca0227c036f95eff2db0e29a0ae9e1ad95d23f",
+ "sources_files": 558,
+ "written": "2026-09-13 17:12:30"
+}

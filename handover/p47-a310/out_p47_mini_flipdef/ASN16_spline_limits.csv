@@ -1,0 +1,4 @@
+﻿spectrum,det,part,component,kind,detected,decay_s,dt_decay_s,mda_decay_s,degenerate,collinearity,mda_peak_counts,total_yield_pct
+ASN16_Cs137,ASN16,unknown,Cs-137,single,1,6.7287E+003,2.2799E+000,4.5751E+000,0,0.0458,59984.8,93.0229
+ASN16_Lu176,ASN16,known,Lu-176,single,1,9.0727E+002,1.0711E+000,2.1477E+000,0,0.4443,8789.6,242.7079
+ASN16_Lu176_P0,ASN16,known,Lu-176,single,1,3.9267E+002,1.4589E+000,2.9674E+000,0,0.2229,238.0,242.7079

@@ -16,12 +16,13 @@ namespace FsaP42ArmProbe
     /// что видит человек. Ключи ставятся хуком <see cref="FsaAnalyzer.ProbeSetup"/>
     /// на каждый свежесозданный анализатор; после — хук снимается.
     ///
-    ///     fsap42armprobe [--cascade=off] [--channels=peak|<битовая маска>] -- <ключи FsaStackShot>
+    ///     fsap42armprobe [--cascade=off] [--channels=peak|<битовая маска>] [--weights=data|model] -- <ключи FsaStackShot>
     ///
     /// `--cascade=off` — `CascadeSumming = CascadeSumPeaks = false` (как `--no-cascade`
     /// у `CorpusFsaProbe`); `--channels=peak` — в образы кладётся только канал
     /// полного поглощения матрицы (континуум, вылеты сняты; пиковая эффективность
-    /// матрицы и суммирование остаются). Без ключей — умолчания анализатора, и
+    /// матрицы и суммирование остаются); `--weights=data|model` — веса решателя
+    /// по данным или по модели (`A310`, П47: `FsaAnalyzer.ModelWeights`). Без ключей — умолчания анализатора, и
     /// дамп обязан выйти побитово равным прямому запуску `FsaStackShot` (контроль).
     /// Печатает, сколько анализаторов создано и что им поставлено.
     /// </summary>
@@ -35,6 +36,7 @@ namespace FsaP42ArmProbe
 
             bool cascade = true;
             int mask = -1;
+            string weights = null;
             var rest = new List<string>();
             bool passthrough = false;
             foreach (string a in args)
@@ -54,6 +56,15 @@ namespace FsaP42ArmProbe
                 else if (a == "--cascade=on")
                 {
                     cascade = true;
+                }
+                else if (a.StartsWith("--weights=", StringComparison.Ordinal))
+                {
+                    weights = a.Substring(10);
+                    if (weights != "data" && weights != "model")
+                    {
+                        Console.Error.WriteLine("--weights= знает data и model; дано: " + weights);
+                        return 2;
+                    }
                 }
                 else if (a.StartsWith("--channels=", StringComparison.Ordinal))
                 {
@@ -107,6 +118,10 @@ namespace FsaP42ArmProbe
                 }
 
                 analyzer.MatrixChannelMask = mask;
+                if (weights != null)
+                {
+                    analyzer.ModelWeights = weights == "model";
+                }
             };
 
             int code;
@@ -126,8 +141,9 @@ namespace FsaP42ArmProbe
                 FsaAnalyzer.ProbeSetup = null;
             }
 
-            Console.WriteLine("p42-arm: анализаторов создано {0}, суммирование {1}, маска каналов {2}, код снимка {3}",
-                              created, cascade ? "вкл" : "ВЫКЛ", mask == -1 ? "все" : mask.ToString(CultureInfo.InvariantCulture), code);
+            Console.WriteLine("p42-arm: анализаторов создано {0}, суммирование {1}, маска каналов {2}, веса {3}, код снимка {4}",
+                              created, cascade ? "вкл" : "ВЫКЛ", mask == -1 ? "все" : mask.ToString(CultureInfo.InvariantCulture),
+                              weights ?? "умолчание анализатора", code);
             return code;
         }
     }
