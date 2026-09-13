@@ -1,0 +1,21 @@
+build start 2026-09-13 09:56:56
+app code=0 09:57:00
+probes code=0 09:58:05
+app exe sha256 0967539ca5442adcd5271b99a97ef074de17a8aaf900539b853f94308642e9cd
+probes exe sha256 0967539ca5442adcd5271b99a97ef074de17a8aaf900539b853f94308642e9cd
+build end 09:58:05
+ctrl_a start 2026-09-13 09:59:28
+ctrl_a sha256 store BEFORE cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_b start 2026-09-13 10:00:01
+ctrl_b anchor p38 plain code=0 10:00:13
+ctrl_b anchor p38 store code=0 10:00:28
+ctrl_b anchor p40 plain code=0 10:00:43
+ctrl_b anchor p40 store code=0 10:00:58
+ctrl_b scale p40 nokey code=0 10:01:09
+ctrl_b scale p40 kdip0 code=0 10:01:22
+ctrl_b scale p40 kdip1 code=0 10:01:39
+ctrl_b end 10:01:39
+ctrl_a matrix code=0 10:04:58
+ctrl_a diff code=0 10:04:58
+ctrl_a sha256 store AFTER  cf2dec48ace92ae665709fc7fc2d489eda1e8013161994b27cd69ad686fe68d6
+ctrl_a sha256 ctrl         16916ecbf64a3f887b212c5df13f3b4b8c6565c0685491a492ea6888e8623dd5

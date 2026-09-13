@@ -57,11 +57,18 @@ u"""Сторож СОСТАВА КЛЮЧЕЙ ОБОИХ ПУТЕЙ РАСЧЁТ�
      «намеренно», «забыто», «неприменимо». Слово «забыто» -- отказ: забытое
      чинится, а не описывается.
   I. ОДНО МЕСТО ИСТИНЫ У УМОЛЧАНИЙ ФИЗИКИ (решение Amber 13.09.2026,
-     вопросником, дословно: «Перевернуть -- одна физика для всех», П38):
-     умолчание ПОЛЯ `EfficiencySimulator` у семи ключей физики 17 берётся у
-     `new ResponseMatrixOptions().<Имя>` дословно, а не литералом. Литерал у
-     поля симулятора -- отказ: так 35 проб, зовущих симулятор напрямую, снова
-     мерили бы не ту физику, что склад и кривая (П27 платила этим у `kdip`).
+     вопросником, дословно: «Перевернуть -- одна физика для всех», П38; тем же
+     днём о трёх ключах физики 16, дословно: «Да, все три поля -- одна физика
+     целиком», П40): умолчание ПОЛЯ `EfficiencySimulator` у десяти ключей
+     берётся у `new ResponseMatrixOptions().<Имя>` дословно, а не литералом;
+     у двух половин K-провала (`LightSubKevCurve`/`LightCascadeSplit`) -- той же
+     раскладкой уровня `KDipLight`, что у построителя и у кривой:
+     `ResponseMatrixOptions.KDipCurveHalf(new ResponseMatrixOptions().KDipLight)`
+     (соответственно `KDipCascadeHalf`), и оба штатных пути обязаны звать ту же
+     раскладку -- второе правило для одной величины разъехалось бы молча (S37).
+     Литерал у поля симулятора -- отказ: так 35 проб, зовущих симулятор
+     напрямую, снова мерили бы не ту физику, что склад и кривая (П27 платила
+     этим у `kdip`).
 
   python tools/check_matrix_keys.py [--selftest] [--table]
 
@@ -294,7 +301,9 @@ SIM = [
     (u'LXrayEscape', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
     (u'SplitXrayShells', True, False, u'намеренно',
      u'AMBER16 п. 1: раскладка по каналам — свойство МАТРИЦЫ, у кривой каналов нет '
-     u'вовсе (она отдаёт число на узел, а не гистограмму по исходам)'),
+     u'вовсе (она отдаёт число на узел, а не гистограмму по исходам). Умолчание поля '
+     u'симулятора с 13.09.2026 -- умолчание склада (правило I, П40, решение Amber «Да, все '
+     u'три поля -- одна физика целиком»), то есть и у кривой xrkl=1, невидимый'),
     (u'KLCascade', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
     (u'CoherentPassesThrough', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
     (u'Bremsstrahlung', True, False, u'намеренно', u'кривая берёт умолчание симулятора'),
@@ -307,10 +316,12 @@ SIM = [
      u'F11 (а), П17: половина ключа KDipLight (уровни 1 и 2). Решение Amber 12.09.2026 «Да — '
      u'одна физика для кривой и матрицы»: оба пути берут её ОДНИМ выражением '
      u'ResponseMatrixOptions.KDipCurveHalf — матрица от своих настроек, кривая от их '
-     u'умолчания; до 12.09.2026 кривая брала умолчание симулятора (ВЫКЛ)'),
+     u'умолчания; до 12.09.2026 кривая брала умолчание симулятора (ВЫКЛ). Умолчание поля '
+     u'симулятора с 13.09.2026 -- та же раскладка от умолчания склада (правило I, П40)'),
     (u'LightCascadeSplit', True, True, u'общая',
      u'F11 (а), П17: половина ключа KDipLight (уровни 1 и 3); тем же путём, что '
-     u'LightSubKevCurve (ResponseMatrixOptions.KDipCascadeHalf)'),
+     u'LightSubKevCurve (ResponseMatrixOptions.KDipCascadeHalf); умолчание поля симулятора '
+     u'с 13.09.2026 -- та же раскладка от умолчания склада (правило I, П40)'),
     (u'LightEtaEh', True, False, u'намеренно',
      u'F11, решение Amber 11.09.2026: η ключом матрицы; кривая берёт умолчание симулятора (табличное)'),
     (u'LightBinUnified', True, False, u'намеренно',
@@ -406,16 +417,40 @@ REASONS = (u'общая', u'намеренно', u'забыто', u'неприм
 
 # ---------------------------------------------------------------------------
 # РЕЕСТР 4 (правило I). Поля `EfficiencySimulator`, чьё умолчание ОБЯЗАНО быть
-# умолчанием склада -- дословно `new ResponseMatrixOptions().<Имя>` в
-# инициализаторе поля. Семь ключей физики 17 (П37: A267, A306, M9, A72, S126 x2,
-# S127); решение Amber 13.09.2026 «Перевернуть -- одна физика для всех» (П38).
-# Ключи физики 16 и старше (KDipLight -> LightSubKevCurve/LightCascadeSplit,
-# SplitXrayShells) сюда НЕ входят: решения о них не было, и у них умолчание
-# поля симулятора по-прежнему своё (ВЫКЛ) -- факт, а не отказ.
+# умолчанием склада. Кортеж: (поле симулятора, поле ResponseMatrixOptions,
+# раскладка). Раскладка None -- инициализатор дословно
+# `new ResponseMatrixOptions().<поле склада>`; раскладка `KDipCurveHalf` --
+# дословно `ResponseMatrixOptions.KDipCurveHalf(new ResponseMatrixOptions().KDipLight)`,
+# и ту же раскладку обязаны звать построитель (`MakeSimulator`) и кривая
+# (`Run`) -- один уровень `KDipLight` раскладывается на две половины в ОДНОМ
+# месте (S37: второе правило для одной величины разъехалось бы молча).
+#
+# Семь ключей физики 17 (П37: A267, A306, M9, A72, S126 x2, S127) -- решение
+# Amber 13.09.2026 «Перевернуть -- одна физика для всех» (П38). Три ключа
+# физики 16 (KDipLight -> LightSubKevCurve/LightCascadeSplit, SplitXrayShells)
+# -- решение Amber того же дня, дословно: «Да, все три поля -- одна физика
+# целиком» (П40); до того у них умолчание поля симулятора было своё (ВЫКЛ), и
+# 32 пробы прямого вызова считали свет без K-провала, а L-вылет клали в канал K.
 # ---------------------------------------------------------------------------
-ONE_TRUTH = (u'LightBinUnified', u'PeakChannelByTolerance', u'LYieldSupply',
-             u'ElectronTransport', u'PositronTransport', u'PositronOffset',
-             u'RayleighToCrystal')
+ONE_TRUTH = (
+    (u'LightBinUnified', u'LightBinUnified', None),
+    (u'PeakChannelByTolerance', u'PeakChannelByTolerance', None),
+    (u'LYieldSupply', u'LYieldSupply', None),
+    (u'ElectronTransport', u'ElectronTransport', None),
+    (u'PositronTransport', u'PositronTransport', None),
+    (u'PositronOffset', u'PositronOffset', None),
+    (u'RayleighToCrystal', u'RayleighToCrystal', None),
+    (u'LightSubKevCurve', u'KDipLight', u'KDipCurveHalf'),
+    (u'LightCascadeSplit', u'KDipLight', u'KDipCascadeHalf'),
+    (u'SplitXrayShells', u'SplitXrayShells', None),
+)
+
+
+def one_truth_text(store, layout):
+    u"""Инициализатор, которого правило I ждёт у поля симулятора, дословно
+    (пробелы свёрнуты)."""
+    seed = u'new ResponseMatrixOptions().' + store
+    return seed if layout is None else u'ResponseMatrixOptions.%s(%s)' % (layout, seed)
 
 
 def read(root, rel):
@@ -691,24 +726,47 @@ def judge(src):
                        % (name, u'ставит' if want_c else u'не ставит',
                           u'ставит' if name in by_curve else u'не ставит'))
 
-    # --- правило I: одно место истины у умолчаний физики 17 ----------------
+    # --- правило I: одно место истины у умолчаний физики -------------------
     sim_defaults = dict(class_fields(es, u'EfficiencySimulator'))
-    for name in ONE_TRUTH:
-        if name not in have:
+    options_body = block(rm, r'class\s+ResponseMatrixOptions\b')
+    for name, store, layout in ONE_TRUTH:
+        if store not in have:
             bad.append(u'I: %s назван в ONE_TRUTH, а поля ResponseMatrixOptions.%s нет -- '
-                       u'умолчанию симулятора не у кого браться.' % (name, name))
+                       u'умолчанию симулятора не у кого браться.' % (name, store))
             continue
         if name not in sim_defaults:
             bad.append(u'I: поля EfficiencySimulator.%s нет, а реестр ONE_TRUTH его ждёт.' % name)
             continue
-        want_text = u'new ResponseMatrixOptions().' + name
+        if layout is not None and not re.search(
+                r'public\s+static\s+bool\s+' + layout + r'\s*\(\s*int\s+\w+\s*\)', options_body):
+            bad.append(u'I: раскладка ResponseMatrixOptions.%s(int), которой реестр ждёт у '
+                       u'EfficiencySimulator.%s, в исходнике не найдена.' % (layout, name))
+            continue
+        want_text = one_truth_text(store, layout)
         got = u' '.join(sim_defaults[name].split())
         if got != want_text:
             bad.append(u'I: умолчание поля EfficiencySimulator.%s -- «%s», а обязано быть '
-                       u'«%s» (одно место истины, решение Amber 13.09.2026 «Перевернуть -- '
-                       u'одна физика для всех»): литерал у поля симулятора снова разведёт '
-                       u'пробы прямого вызова со складом и кривой.'
+                       u'«%s» (одно место истины, решения Amber 13.09.2026 «Перевернуть -- '
+                       u'одна физика для всех» и «Да, все три поля -- одна физика целиком»): '
+                       u'литерал или своя раскладка у поля симулятора снова разведёт пробы '
+                       u'прямого вызова со складом и кривой.'
                        % (name, sim_defaults[name] or u'(пусто)', want_text))
+        if layout is None:
+            continue
+        # Обе половины K-провала оба штатных пути обязаны брать ТОЙ ЖЕ
+        # раскладкой, что и умолчание поля: правило G видит лишь «ставит /
+        # не ставит», а своя формула `options.KDipLight == 1 || ...` в
+        # построителе прошла бы у него как «ставит».
+        for label, body in ((u'ResponseMatrixBuilder.MakeSimulator', make),
+                            (u'EfficiencyCalculation.Run', run)):
+            # Присваиваний может быть несколько (у кривой поле ещё и копируется
+            # в клеймо: `LightSubKevCurve = simulator.LightSubKevCurve`), судится
+            # ИСТОЧНИК: хотя бы одно обязано звать раскладку.
+            rhs = re.findall(r'(?:^|[\s,{(.])' + name + r'\s*=\s*([^,;]+)', body)
+            if rhs and not any((layout + u'(') in r for r in rhs):
+                bad.append(u'I: %s ставит %s не раскладкой ResponseMatrixOptions.%s, а «%s» -- '
+                           u'второе правило для одной величины (S37).'
+                           % (label, name, layout, u' '.join(rhs[0].split())))
 
     # --- правило H: причина названа, «забыто» -- отказ ---------------------
     for row in MATRIX:
@@ -732,10 +790,14 @@ def judge(src):
 # ---------------------------------------------------------------------------
 
 
+SPOILS = 10   # сколько порч подставляет selftest(); печать сверяется с этим числом
+
+
 def selftest(src):
     u"""Подставить порчу и убедиться, что сторож её видит. Слепой сторож хуже
     отсутствующего: он выдаёт приёмку за проверку."""
     missed = []
+    planted = []
 
     def spoiled(rel, old, new, what, count=1):
         # `count` -- сколько вхождений подменить. Единица по умолчанию, но у
@@ -743,6 +805,7 @@ def selftest(src):
         # вхождения правила D не касается (оно спрашивает «есть ли имя в файле
         # вообще»), и самопроверка тогда мерит пустоту.
         copy = dict(src)
+        planted.append(what)
         if old not in copy[rel]:
             missed.append(u'самопроверка не смогла подставить порчу «%s»: якорь не найден'
                           % what)
@@ -775,6 +838,23 @@ def selftest(src):
     spoiled(ES, u'public bool ElectronTransport = new ResponseMatrixOptions().ElectronTransport;',
             u'public bool ElectronTransport = false;',
             u'умолчание EfficiencySimulator.ElectronTransport стало литералом false')
+    # I (П40): половина K-провала снова литералом -- ровно так поле стояло до 13.09.2026.
+    spoiled(ES, u'public bool LightCascadeSplit = '
+                u'ResponseMatrixOptions.KDipCascadeHalf(new ResponseMatrixOptions().KDipLight);',
+            u'public bool LightCascadeSplit = false;',
+            u'умолчание EfficiencySimulator.LightCascadeSplit стало литералом false')
+    # I (П40): раскладка продублирована своей формулой у построителя -- уровень тот же,
+    # правило G молчит («ставит»), а второе правило для одной величины уже есть (S37).
+    spoiled(RMB, u'LightSubKevCurve = ResponseMatrixOptions.KDipCurveHalf(options.KDipLight),',
+            u'LightSubKevCurve = options.KDipLight == 1 || options.KDipLight == 2,',
+            u'построитель раскладывает KDipLight своей формулой мимо KDipCurveHalf')
+    # I (П40): SplitXrayShells без инициализатора -- как до 13.09.2026 (ВЫКЛ молча).
+    spoiled(ES, u'public bool SplitXrayShells = new ResponseMatrixOptions().SplitXrayShells;',
+            u'public bool SplitXrayShells;',
+            u'умолчание EfficiencySimulator.SplitXrayShells снова пустое (false)')
+    if len(planted) != SPOILS:
+        missed.append(u'самопроверка подставила %d порч, а печать обещает %d -- поправить SPOILS'
+                      % (len(planted), SPOILS))
     return missed
 
 
@@ -829,7 +909,7 @@ def main(argv):
         for m in missed:
             print(u'   ' + m)
         return 2
-    print(u'  самопроверка: семь подставленных порч пойманы, целое дерево чисто')
+    print(u'  самопроверка: %d подставленных порч пойманы, целое дерево чисто' % SPOILS)
 
     if u'--selftest' in argv:
         return 0
@@ -844,7 +924,8 @@ def main(argv):
           u'остальное -- умолчания симулятора'
           % (len(CURVE), len(curve_sets), u', '.join(curve_sets)))
     print(u'  одно место истины (правило I): %d полей симулятора берут умолчание склада (%s)'
-          % (len(ONE_TRUTH), u', '.join(ONE_TRUTH)))
+          % (len(ONE_TRUTH),
+             u', '.join(n if l is None else u'%s <- %s(%s)' % (n, l, s) for n, s, l in ONE_TRUTH)))
     print(u'  односторонних ключей: намеренно %d, неприменимо %d, забыто %d'
           % (len([r for r in MATRIX + [(c[0], 0, 0, 0, c[3], 0) for c in CURVE]
                   + [(s[0], 0, 0, 0, s[3], 0) for s in SIM] if r[4] == u'намеренно']),

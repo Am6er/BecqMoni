@@ -1,0 +1,41 @@
+файл                                                       kdip     xrkl     отклик   каналы   в git
+BecquerelMonitor/EfficiencyMaker/EfficiencyCalculation.cs  ставит   --       да       --       да
+BecquerelMonitor/EfficiencyMaker/ResponseMatrixBuilder.cs  ставит   ставит   да       да       да
+tools/effmaker/probes/BoundScatterProbe.cs                 --       --       --       --       да
+tools/effmaker/probes/BoxCylStampProbeF64.cs               --       --       --       --       да
+tools/effmaker/probes/BoxDeadFieldsProbe.cs                --       --       --       --       да
+tools/effmaker/probes/BoxSourceProbe.cs                    --       --       да       --       да
+tools/effmaker/probes/CascadeJointProbe.cs                 --       --       --       --       да
+tools/effmaker/probes/CoincCfProbe.cs                      --       --       да       --       да
+tools/effmaker/probes/CorpusMatrixProbe.cs                 --       ставит   да       --       да
+tools/effmaker/probes/FacingProbe.cs                       --       --       --       --       да
+tools/effmaker/probes/G4RawProbe.cs                        ставит   --       да       --       да
+tools/effmaker/probes/GadrasProbe.cs                       --       --       да       --       да
+tools/effmaker/probes/GapProbeAmber1.cs                    --       --       да       --       да
+tools/effmaker/probes/IncidenceResponseProbe.cs            --       --       да       да       да
+tools/effmaker/probes/IsoFieldProbe.cs                     --       --       да       --       да
+tools/effmaker/probes/KappaPeakTotalProbe.cs               --       --       да       --       да
+tools/effmaker/probes/LayerProbe.cs                        --       --       да       --       да
+tools/effmaker/probes/LightAnchorProbe.cs                  ставит   ставит   да       --       да
+tools/effmaker/probes/LightScaleProbe.cs                   ставит   --       да       --       да
+tools/effmaker/probes/MarinelliSelfAbsProbeE10.cs          --       --       да       --       да
+tools/effmaker/probes/MaterialNameProbeF67.cs              --       --       да       --       да
+tools/effmaker/probes/MaterialOrderProbe.cs                --       --       да       --       да
+tools/effmaker/probes/MineProbe.cs                         --       --       да       --       да
+tools/effmaker/probes/OmegaProbe.cs                        --       --       да       --       да
+tools/effmaker/probes/PeakAgreeProbe.cs                    --       --       да       --       да
+tools/effmaker/probes/RawCarryProbe.cs                     --       --       --       --       да
+tools/effmaker/probes/ResponseChannelProbe.cs              --       ставит   да       да       да
+tools/effmaker/probes/ResponseInterpProbe.cs               --       --       да       --       да
+tools/effmaker/probes/ResponseMatrixProbe.cs               --       --       да       --       да
+tools/effmaker/probes/ResponseNoiseProbe.cs                --       --       да       --       да
+tools/effmaker/probes/ResponseProbe.cs                     --       --       да       --       да
+tools/effmaker/probes/ResponseShapeProbe.cs                --       --       да       --       да
+tools/effmaker/probes/RoundTrip.cs                         --       --       да       --       да
+tools/effmaker/probes/SbKeysProbe.cs                       --       --       --       --       да
+tools/effmaker/probes/SceneCostProbe.cs                    --       --       да       --       да
+tools/effmaker/probes/SceneOfSpectrumProbe.cs              --       --       --       --       да
+tools/effmaker/MeasuredPoint.cs                            --       --       да       --       да
+tools/effmaker/Simulate.cs                                 --       --       да       --       да
+
+всего файлов с new EfficiencySimulator(: 38; не ставят половин kdip: 33; не ставят SplitXrayShells: 34; из не ставящих kdip считают отклик: 25; из не ставящих xrkl читают каналы: 1
