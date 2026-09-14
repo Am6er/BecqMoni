@@ -54,3 +54,8 @@ tools/CORPUS/scripts/*.log
 # рабочие таблицы сторожа перекладки и приёмки (A79, A84)
 tools/CORPUS/scripts/store_vs_wd_*.csv
 tools/CORPUS/scripts/wd_key_guid.csv
+# Витрина FSA (`T260`): склад матриц сцен витрины (двоичные, пересчёт
+# `tools/fsa_showcase/rebuild_store.ps1`) и рабочий каталог сторожа
+# `check_fsa_showcase.py` (копия каталога проб + конфиг витрины + выходы прогона).
+tools/fsa_showcase/store/
+tools/fsa_showcase/wd/

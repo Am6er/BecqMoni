@@ -1,0 +1,103 @@
+{
+  "_": "Витрина FSA (T260): спектры, которые Amber видит каждый день, × режимы разбора. Сторож — tools/check_fsa_showcase.py; эталон — reference/; склад матриц — store/ (rebuild_store.ps1); что и откуда — заметки note у членов и журнал handover/handover-2026-09-14-p74-t260-showcase.md.",
+  "bands_kev": [
+    [
+      0,
+      30
+    ],
+    [
+      30,
+      100
+    ],
+    [
+      100,
+      300
+    ],
+    [
+      300,
+      700
+    ],
+    [
+      700,
+      1500
+    ],
+    [
+      1500,
+      3000
+    ]
+  ],
+  "common_args": [
+    "--screen",
+    "--scale=pow",
+    "--width=1600"
+  ],
+  "members": [
+    {
+      "key": "ASN16_Cs137_house",
+      "spectrum": "spectra/ASN16_Cs137_house.xml",
+      "matrix": "store:ASN16_point_house",
+      "modes": {
+        "infer_eq": [
+          "--infer",
+          "--set=Cs-137 + K-40"
+        ]
+      },
+      "note": "Cs 137 в домике 24.11.2022 (ASN16, 250 М отсч.), файл Amber байт в байт: фон встроен, геометрия «Точка в защите» из файла; состав из подписей поиска пиков, набор «Cs-137 + K-40» (AMBER30)"
+    },
+    {
+      "key": "AS80_Th232_disk",
+      "spectrum": "spectra/AS80_Th232_disk.xml",
+      "matrix": "corpus:AS80_th_disk",
+      "modes": {
+        "infer_eq": [
+          "--infer",
+          "--set=Th-232"
+        ]
+      },
+      "note": "Th-232.xml, ториевый диск Ø40×5 мм на AS80 (калибровка 08.09.2026), фон встроен; узел Efficiency — корпусной сцены AS80_th_disk (ториевое стекло, AMBER3); матрица — живой склад корпуса по guid"
+    },
+    {
+      "key": "ASN16_Radon_filter2",
+      "spectrum": "spectra/ASN16_Radon_filter2.xml",
+      "matrix": "store:ASN16_rn_side",
+      "modes": {
+        "chain_eq": [
+          "--chain=Ra-226,Th-232"
+        ],
+        "chain_noeq": [
+          "--chain=Ra-226,Th-232",
+          "--no-equilibrium"
+        ]
+      },
+      "note": "Радон деревня 11 часов спустя (ASN16, ватный фильтр, спектр 2, AMBER27); сцена ASN16_rn_side (широкая грань, вата 0.15) — кривая и guid вписаны CorpusEffProbe; состав ОБЪЯВЛЕН рядами Ra-226 и Th-232, как на стенде AMBER27/П59/П70: путь --infer на этом спектре состава не даёт (при SNR 10 прибора Amber найдено 3 пика, Ra-226 1/7 линий — ниже порога 30 %), и плечи «равновесие ВКЛ/ВЫКЛ» были бы одной картинкой из Xray-Pb и континуума; плечи: равновесие ВКЛ (умолчание) и ВЫКЛ"
+    },
+    {
+      "key": "G1S24_Rn222Coal_eq01",
+      "spectrum": "../CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_eq01.xml",
+      "matrix": "corpus:G1S_mar1l_coal_046_p24",
+      "modes": {
+        "sample_eq": [
+          "--chain=Ra-226,Th-228"
+        ],
+        "sample_noeq": [
+          "--chain=Ra-226,Th-228",
+          "--no-equilibrium"
+        ]
+      },
+      "note": "уголь с радоном «дпр_01» (G1S24, маринелли ОМАСН, AMBER29) — корпусный спектр по пути, состав объявлен как в manifest.csv (Ra-226;Th-228), матрица — живой склад корпуса; плечи: равновесие ВКЛ и ВЫКЛ"
+    },
+    {
+      "key": "ASN16_Cs137_10cm",
+      "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
+      "matrix": "none",
+      "modes": {
+        "sample_nomatrix": [
+          "--sample=137CS",
+          "--efficiency=Точка",
+          "--no-matrix"
+        ]
+      },
+      "note": "опорный паспортный Cs-137 на 10 см (ASN16, корпус) — БЕЗ МАТРИЦЫ: своей кривой у спектра нет, берётся кривая «Точка» прибора Amber (как выбор в списке кривых), в оснастке нет .rmx, ключ --no-matrix снимает отказ пробы; повседневный случай спектра без геометрии"
+    }
+  ]
+}
