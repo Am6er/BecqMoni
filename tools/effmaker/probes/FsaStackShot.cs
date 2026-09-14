@@ -42,6 +42,34 @@ namespace FsaStackShot
     ///                [--calculating] [--spoil=manager]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
+    ///                [--rates=rates.csv] [--screen] [--shield=82,74]
+    ///
+    /// `--shield=` (П59) — Z элементов ЗАЩИТЫ И ОБВЯЗКИ при объявленном составе
+    /// (`FsaSampleSpec.ShieldElements`, как `materials.csv` корпуса у
+    /// `CorpusFsaProbe`): образ флуоресценции защиты («Xray-Pb»). В приложении
+    /// этот образ появляется только по подписи «X-ray Pb» найденного пика
+    /// (`FsaCompositionInference.Candidates`); при `--sample=`/`--chain=` его
+    /// иначе не задать. Заведён, чтобы проверить, чей рентген 72…88 кэВ в
+    /// спектре радонового фильтра.
+    ///
+    /// `--rates=` (П59, `AMBER27`) — ЧИСЛА разбора по компонентам в csv: скорость
+    /// счёта `CountRate` (амплитуда / живое время — распадов в секунду, поскольку
+    /// эффективность сидит в отклике), значимость z, порог решения и предел
+    /// обнаружения (1/с), пиковые отсчёты, доля слоя, ряд связки и ряд
+    /// происхождения — по `FsaResult.Components`; и то же по КАЖДОМУ кандидату
+    /// `CharacteristicLimits` (обнаружен / предел). Заведено для проверки
+    /// неравновесного разбора отношениями активностей членов ряда: доля слоя в
+    /// процентах на экране про активность не говорит, а без чисел вердикт
+    /// «корректен» — слово. ⚠ У члена ряда, объявленного через `--chain=` без
+    /// равновесия, линии образа взвешены накопленной долей ветвления
+    /// (`FsaSampleLibrary`, `line[1] * member.Value`), то есть `CountRate` — в
+    /// единицах распадов РОДИТЕЛЯ ряда: у Tl-208 это A(Tl-208)/0.3594.
+    ///
+    /// `--screen` — строки окна отчёта КАК ОНИ ПОКАЗАНЫ (текст ячеек XPTable и
+    /// подсказка), `SCREEN\t<имя>\t<значение>\t<подсказка>`; читается с того же
+    /// окна, что снято на PNG. Заведён под ~~`AMBER6`~~: свёрнутая строка
+    /// «не определяются (N)» обязана называть свёрнутых в подсказке, а по
+    /// картинке подсказки не видно.
     ///
     /// `--select=<от>..<до>` — выделенная область в кэВ, ровно то, что человек
     /// тянет мышью. Заведён `A27`: заливка выделения бралась у ПОЛНОГО спектра,
@@ -153,6 +181,11 @@ namespace FsaStackShot
             double fromKev = 0.0, toKev = 0.0, ceiling = 0.0;
             int width = 1400, height = 700;
             string scale = "lin", dumpPath = null;
+            // (П59, `AMBER27`) Числа разбора по компонентам и строки окна отчёта
+            // как показаны — см. шапку.
+            string ratesPath = null;
+            bool screenRows = false;
+            var shieldZ = new List<int>();
             double pownum = 4.0;
             foreach (string a in args)
             {
@@ -195,6 +228,15 @@ namespace FsaStackShot
                 else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
                 else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
+                else if (a.StartsWith("--rates=", StringComparison.Ordinal)) ratesPath = a.Substring(8);
+                else if (a == "--screen") screenRows = true;
+                else if (a.StartsWith("--shield=", StringComparison.Ordinal))
+                {
+                    foreach (string z in a.Substring(9).Split(','))
+                    {
+                        if (z.Trim().Length > 0) shieldZ.Add(int.Parse(z.Trim(), CultureInfo.InvariantCulture));
+                    }
+                }
                 else if (a.StartsWith("--select=", StringComparison.Ordinal)) selectKev = a.Substring(9);
                 else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
                     gainSteps = int.Parse(a.Substring(13), CultureInfo.InvariantCulture);
@@ -347,6 +389,13 @@ namespace FsaStackShot
                 // их было пять, и они уже расходились.
                 FsaSampleLibrary.Report built;
                 FsaSampleSpec spec = FsaSampleSpec.Declared(rd, chainSpecs, sampleNuclides, equilibrium, atomic);
+                // (П59) Защита — ключом `--shield=`, как из `materials.csv` у
+                // корпусной пробы; без ключа список пуст, как и было.
+                foreach (int z in shieldZ)
+                {
+                    if (!spec.ShieldElements.Contains(z)) spec.ShieldElements.Add(z);
+                }
+
                 library = FsaSampleLibrary.Build(spec, out built);
                 Console.WriteLine("состав объявлен: {0}; ряды: {1}; {2}", string.Join(", ", sampleNuclides),
                                   sampleChains == null ? "нет" : string.Join(", ", sampleChains), built);
@@ -613,6 +662,14 @@ namespace FsaStackShot
                                   cut.Z.ToString("F2", CultureInfo.InvariantCulture));
             }
 
+            if (ratesPath != null)
+            {
+                DumpRates(ratesPath, result);
+                Console.WriteLine("{0}: компонентов {1}, кандидатов {2}", ratesPath,
+                                  result.Components != null ? result.Components.Count : 0,
+                                  result.CharacteristicLimits != null ? result.CharacteristicLimits.Count : 0);
+            }
+
             EnergySpectrum spectrum = rd.EnergySpectrum;
             EnergyCalibration calibration = spectrum.EnergyCalibration;
             if (toKev <= fromKev)
@@ -799,7 +856,8 @@ namespace FsaStackShot
 
                 // Отчёт — настоящим окном на том же сеансе, справа от стека;
                 // надпись пробы (если есть) — полосой ПОД обоими.
-                using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer, caption))
+                using (Bitmap combined = WithReport(image, (FsaAnalysisSession)overlay, rd, infer, caption,
+                                                    screenRows, equilibrium, atomic))
                 {
                     combined.Save(outPath, ImageFormat.Png);
                 }
@@ -1055,7 +1113,7 @@ namespace FsaStackShot
         /// приложения.
         /// </summary>
         static Bitmap WithReport(Bitmap stack, FsaAnalysisSession session, ResultData rd, bool infer,
-                                 string caption)
+                                 string caption, bool screenRows, bool equilibrium, bool atomic)
         {
             const int reportWidth = 320;
             string[] captionLines = caption != null ? caption.Split('\n') : new string[0];
@@ -1071,6 +1129,13 @@ namespace FsaStackShot
             if (cfg != null)
             {
                 cfg.DbLookupsForFsa = infer;
+                // (П59) Галки «Равновесие ряда» и «Атомный рентген» окна — тоже
+                // из конфигурации спектра, и до 14.09.2026 снимок плеча
+                // `--no-equilibrium` показывал галку ВКЛЮЧЁННОЙ: конфигурация
+                // прибора ключа не знала. Ставятся те же значения, что ушли в
+                // `FsaSampleSpec`, — окно обязано говорить то же, что разбор.
+                cfg.ChainEquilibrium = equilibrium;
+                cfg.AtomicXrayForFsa = atomic;
             }
 
             Field(session.GetType(), "stamp").SetValue(session,
@@ -1123,9 +1188,91 @@ namespace FsaStackShot
                 }
 
                 Console.WriteLine("отчёт: строк в таблице {0}", report.ReportTable.TableModel.Rows.Count);
+                if (screenRows)
+                {
+                    // (П59) Строки — С ТОГО ЖЕ окна, что снято на PNG: текст
+                    // ячеек «Компонент» и «Значение» и подсказка ячейки имени.
+                    // Своей сборки представления здесь нет нарочно — иначе
+                    // строки могли бы разойтись с картинкой.
+                    foreach (XPTable.Models.Row row in report.ReportTable.TableModel.Rows)
+                    {
+                        string name = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
+                        string value = row.Cells.Count > 2 && row.Cells[2] != null ? row.Cells[2].Text : "";
+                        string hint = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].ToolTipText : "";
+                        Console.WriteLine("SCREEN\t{0}\t{1}\t{2}", name ?? "", value ?? "",
+                                          string.Equals(hint, name, StringComparison.Ordinal) ? "" : (hint ?? ""));
+                    }
+                }
+
                 host.Hide();
                 return combined;
             }
+        }
+
+        /// <summary>
+        /// (П59, `AMBER27`) Числа разбора по компонентам и кандидатам — csv,
+        /// разделитель дробной части точка (инвариант). Строки `meta` — живое
+        /// время, χ²/ndf, невязка, шкала; `component` — вошедшие в состав
+        /// (`FsaResult.Components`); `limit` — все кандидаты с пределами
+        /// (`FsaResult.CharacteristicLimits`). Пустое поле — величины у строки
+        /// нет.
+        /// </summary>
+        static void DumpRates(string path, FsaResult result)
+        {
+            using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine("section,name,kind,detected,count_rate,z,decision_threshold_rate,detection_limit_rate,"
+                            + "peak_counts,share_pct,chain_root,decay_chain_root,total_yield_pct,limit_peak_counts,degenerate,collinearity");
+                w.WriteLine("meta,live_time,,,{0},,,,,,,,,,,", R(result.LiveTime));
+                w.WriteLine("meta,chi2ndf,,,{0},,,,,,,,,,,", R(result.Chi2Ndf));
+                w.WriteLine("meta,chi2ndf_pois,,,{0},,,,,,,,,,,", R(result.Chi2NdfPoisson));
+                w.WriteLine("meta,model_residual,,,{0},,,,,,,,,,,", R(result.ModelResidual));
+                w.WriteLine("meta,gain,,,{0},,,,,,,,,,,", R(result.Gain));
+                w.WriteLine("meta,offset_channels,,,{0},,,,,,,,,,,", R(result.OffsetChannels));
+                w.WriteLine("meta,cascade_summing,,,{0},,,,,,,,,,,", result.CascadeSummingUsed ? "1" : "0");
+                w.WriteLine("meta,response_matrix,,,{0},,,,,,,,,,,", result.ResponseMatrixUsed ? "1" : "0");
+                if (result.Components != null)
+                {
+                    foreach (FsaComponentResult c in result.Components)
+                    {
+                        w.WriteLine("component,{0},{1},1,{2},{3},{4},{5},{6},{7},{8},{9},,,,",
+                                    Q(c.Name), c.Kind, R(c.CountRate), R(c.Z),
+                                    R(c.DecisionThresholdRate), R(c.DetectionLimitRate),
+                                    R(c.PeakCounts), R(c.SharePercent),
+                                    Q(c.ChainRoot), Q(c.DecayChainRoot));
+                    }
+                }
+
+                if (result.CharacteristicLimits != null)
+                {
+                    foreach (FsaCharacteristicLimit L in result.CharacteristicLimits)
+                    {
+                        w.WriteLine("limit,{0},{1},{2},{3},,{4},{5},,,,{6},{7},{8},{9},{10}",
+                                    Q(L.Name), L.Kind, L.Detected ? "1" : "0", R(L.CountRate),
+                                    R(L.DecisionThresholdRate), R(L.DetectionLimitRate),
+                                    Q(L.DecayChainRoot), R(L.TotalYieldPercent),
+                                    R(L.DetectionLimitPeakCounts), L.Degenerate ? "1" : "0",
+                                    R(L.Collinearity));
+                    }
+                }
+            }
+        }
+
+        static string R(double v)
+        {
+            return double.IsNaN(v) ? "" : v.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        static string Q(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return "";
+            }
+
+            return s.IndexOf(',') >= 0 || s.IndexOf('"') >= 0
+                ? "\"" + s.Replace("\"", "\"\"") + "\""
+                : s;
         }
 
         static FieldInfo Field(Type type, string name)
