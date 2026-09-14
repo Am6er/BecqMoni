@@ -1,0 +1,12 @@
+== rates_cs_a.csv rates_cs_b.csv
+строк A 15, B 17; расхождений (кроме share_pct): 0
+== rates_cs_a.csv ../a6f2b227/rates.csv
+строк A 15, B 15; расхождений (кроме share_pct): 0
+== rates_cs_b.csv ../025a65a9/rates.csv
+строк A 17, B 17; расхождений (кроме share_pct): 0
+== rates_as80_a.csv rates_as80_b.csv
+строк A 19, B 19; расхождений (кроме share_pct): 0
+== rates_as80_a.csv ../a6f2b227_as80/rates.csv
+строк A 19, B 19; расхождений (кроме share_pct): 0
+== rates_as80_b.csv ../025a65a9_as80/rates.csv
+строк A 19, B 19; расхождений (кроме share_pct): 0

@@ -1,0 +1,193 @@
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+index 8e39c481..058aae0d 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+@@ -8232,7 +8232,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     // невязки и долей «не описано». Фит этим не тронут:
+                     // амплитуды, z, пределы и χ²/ndf считаны выше и здесь только
+                     // читаются. Кто хочет модель фита целиком — `FsaResult.FitModel()`.
+-                    if (column.TailOf != null)
++                    //
++                    // ⛔ (`AMBER30`, П70 14.09.2026) ПРАВИЛО ВЫШЕ ОТОЗВАНО ДО РЕШЕНИЯ
++                    // Amber: мера П68 (хвост 1008…16012 отсч. на пороге АЦП) снята
++                    // на радоновом фильтре, где ниже 100 кэВ у образов почти нет
++                    // континуума; на точечном Cs-137 в домике (250 М отсч.) хвост —
++                    // комптоновское плато самого цезия вне окна Ba-K, 13 984 949
++                    // отсч. (5.6 % спектра), и лентой невязки он вынимал из
++                    // картинки 72 % данных в 56–100 кэВ и 37 % в 5–20 кэВ (яма с
++                    // одиноким горбом `Xray-Pb` — снимок Amber). Хвост снова идёт
++                    // в подложку `Continuum`, как до П68: с `S174` (серый слой ниже
++                    // порога доверия) он ляжет в серый слой, а не в долю нуклида —
++                    // чего и хотело `S173`. `UntiedTail`/`UntiedTails` при этом НЕ
++                    // заполняются нарочно: `FsaResult.FitModel()` = `Model` +
++                    // `UntiedTail`, и хвост, лежащий в обоих, считался бы дважды
++                    // (кросс-сверка линий, розыгрыш пределов). Пробы `S173`
++                    // (`FsaStackShot --plant-tail`, `FsaDoubleCountProbe` §6) идут
++                    // веткой «хвостов нет» — то есть ничего не меряют, и это
++                    // сказано в их выводе. Ключ `UntiedTailAsResidual` — только
++                    // для плеча А/Б пробы.
++                    if (column.TailOf != null && this.UntiedTailAsResidual)
+                     {
+                         if (result.UntiedTail == null)
+                         {
+@@ -10427,6 +10446,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// </summary>
+         public double ResponseContinuumTrustFloorKev = 100.0;
+ 
++        /// <summary>
++        /// (`AMBER30`, П70 14.09.2026) Куда в РЕЗУЛЬТАТЕ идёт отвязанный хвост
++        /// матричного образа (колонка `FitColumn.TailOf`): при поднятом ключе —
++        /// в <see cref="FsaResult.UntiedTail"/> и мимо верха стека, то есть
++        /// лентой невязки (правило `S173`, П68); иначе — в подложку
++        /// <see cref="FsaResult.Continuum"/>, как до П68 (с `S174` — серый слой
++        /// ниже порога доверия). Фит от ключа не зависит ни в одном бите:
++        /// читается он только в <see cref="BuildResult"/>. Умолчание — у
++        /// объявления поля; поднимать его вправе только проба, для плеча А/Б
++        /// и положительного контроля (`FsaStackShot --tail-as-residual`). В UI и
++        /// конфигурацию не выводится: это не настройка человека, а рычаг замера,
++        /// пока решение Amber по `AMBER30` не принято.
++        /// </summary>
++        public bool UntiedTailAsResidual;
++
+         /// <summary>
+         /// Вынуть из гистограммы поглощения бины ниже порога доверия, кроме
+         /// пиковых окон линий компонента (см. <see cref="ResponseContinuumTrustFloorKev"/>).
+diff --git a/tools/effmaker/probes/FsaDoubleCountProbe.cs b/tools/effmaker/probes/FsaDoubleCountProbe.cs
+index 9244cbcf..95142040 100644
+--- a/tools/effmaker/probes/FsaDoubleCountProbe.cs
++++ b/tools/effmaker/probes/FsaDoubleCountProbe.cs
+@@ -784,9 +784,34 @@ namespace FsaDoubleCountProbe
+         static void CheckUntiedTail(ResultData rd, ResponseMatrix matrix, string material,
+                                     List<FsaComponent> sample, FsaEfficiency efficiency)
+         {
++            // (`AMBER30`, П70 14.09.2026) Правило `S173` по умолчанию ОТОЗВАНО
++            // (`FsaAnalyzer.UntiedTailAsResidual`): хвост снова в подложке, как до
++            // П68. Договор `S173` ниже меряется на плече Б — с поднятым ключом, —
++            // а плечо А (умолчание) обязано дать: хвостов у результата нет,
++            // `Model`(А) = `Model`(Б) + `UntiedTail`(Б) и то же для `Continuum`
++            // по каналам, фит тот же. Иначе ключ — не отображение.
++            FsaAnalyzer analyzerA = NewAnalyzer(rd, matrix, material);
++            new FsaCalculationOptions().ApplyTo(analyzerA);
++            FsaTuningReport.Print(analyzerA, "AMBER30, плечо А: хвост в подложке (умолчание)");
++            FsaResult resultA = analyzerA.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
++                                                  rd.FwhmCalibration, sample, efficiency);
++            if (resultA == null)
++            {
++                Console.WriteLine("AMBER30, плечо А: разложение не получилось");
++                bad++;
++                return;
++            }
++
++            Same("AMBER30, плечо А (умолчание): UntiedTail пуст", true, resultA.UntiedTail == null);
++            Same("AMBER30, плечо А (умолчание): UntiedTails пуст", 0,
++                 resultA.UntiedTails != null ? resultA.UntiedTails.Count : 0);
++            Same("AMBER30, плечо А (умолчание): Model = Continuum + Σ кривых (тождество стека)", 0,
++                 TailContract(resultA, analyzerA.ResponseContinuumTrustFloorKev, rd, true).Count);
++
+             FsaAnalyzer analyzer = NewAnalyzer(rd, matrix, material);
+             new FsaCalculationOptions().ApplyTo(analyzer);
+-            FsaTuningReport.Print(analyzer, "S173, матрица есть");
++            analyzer.UntiedTailAsResidual = true;
++            FsaTuningReport.Print(analyzer, "S173, матрица есть (плечо Б: --tail-as-residual)");
+             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                 rd.FwhmCalibration, sample, efficiency);
+             if (result == null)
+@@ -797,6 +822,24 @@ namespace FsaDoubleCountProbe
+             }
+ 
+             Same("S173: матрица применена", true, result.ResponseMatrixUsed);
++            Same("AMBER30, А/Б: фит один (χ²/ndf)", resultA.Chi2Ndf, result.Chi2Ndf);
++            Same("AMBER30, А/Б: фит один (усиление)", resultA.Gain, result.Gain);
++            Same("AMBER30, А/Б: фит один (сдвиг)", resultA.OffsetChannels, result.OffsetChannels);
++            double gapModel = 0.0, gapContinuum = 0.0, scale = 1.0;
++            for (int i = 0; i < resultA.Model.Length && i < result.Model.Length; i++)
++            {
++                double tail = result.UntiedTail != null && i < result.UntiedTail.Length ? result.UntiedTail[i] : 0.0;
++                gapModel = Math.Max(gapModel, Math.Abs(resultA.Model[i] - (result.Model[i] + tail)));
++                gapContinuum = Math.Max(gapContinuum, Math.Abs(resultA.Continuum[i] - (result.Continuum[i] + tail)));
++                scale = Math.Max(scale, Math.Abs(resultA.Model[i]));
++            }
++
++            Console.WriteLine("TAIL\tА/Б\tзазор Model(А) − (Model(Б) + хвост) {0}, Continuum {1}, шкала {2}",
++                              gapModel.ToString("E2", CultureInfo.InvariantCulture),
++                              gapContinuum.ToString("E2", CultureInfo.InvariantCulture),
++                              scale.ToString("E2", CultureInfo.InvariantCulture));
++            Same("AMBER30, А/Б: Model(А) = Model(Б) + UntiedTail(Б) по каналам", true, gapModel <= 1e-9 * scale);
++            Same("AMBER30, А/Б: Continuum(А) = Continuum(Б) + UntiedTail(Б) по каналам", true, gapContinuum <= 1e-9 * scale);
+             double tailTotal = 0.0;
+             foreach (FsaUntiedTail tail in result.UntiedTails)
+             {
+diff --git a/tools/effmaker/probes/FsaStackShot.cs b/tools/effmaker/probes/FsaStackShot.cs
+index f25988d2..690de91a 100644
+--- a/tools/effmaker/probes/FsaStackShot.cs
++++ b/tools/effmaker/probes/FsaStackShot.cs
+@@ -43,7 +43,7 @@ namespace FsaStackShot
+     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
+     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
+     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
+-    ///                [--plant-tail]
++    ///                [--plant-tail] [--tail-as-residual]
+     ///                [--no-limit] [--limit-z=1000]
+     ///
+     /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
+@@ -95,6 +95,16 @@ namespace FsaStackShot
+     /// хвост рисовать как невязку». Положительный контроль: плечо с подсадкой
+     /// обязано совпасть с HEAD по долям и невязке, а без неё — отличаться ровно
+     /// на хвост. Числа с ключом в журнал не годятся, о чём проба говорит вслух.
++    /// ⚠ (`AMBER30`, П70) С 14.09.2026 хвост по умолчанию СНОВА В ПОДЛОЖКЕ
++    /// (`FsaAnalyzer.UntiedTailAsResidual`), `UntiedTail` пуст, и подсадка —
++    /// пустое действие; о чём строка `отвязанный хвост` и говорит.
++    ///
++    /// `--tail-as-residual` (`AMBER30`, П70) — плечо Б: правило `S173` как в П68
++    /// (`FsaAnalyzer.UntiedTailAsResidual = true`) — хвост в `UntiedTail`, мимо
++    /// верха стека, лентой невязки. Положительный контроль правки: с ключом
++    /// числа обязаны совпасть с `025a65a9` (яма 56–100 кэВ на цезии в домике),
++    /// без ключа — с `a6f2b227`; фит (`--rates=`, кроме `share_pct`) — побитово
++    /// в обоих плечах.
+     ///
+     /// `--screen` — строки окна отчёта КАК ОНИ ПОКАЗАНЫ (текст ячеек XPTable и
+     /// подсказка), `SCREEN\t<имя>\t<значение>\t<подсказка>`; читается с того же
+@@ -226,6 +236,8 @@ namespace FsaStackShot
+             // как показаны — см. шапку.
+             string ratesPath = null;
+             bool plantTail = false;
++            // (`AMBER30`, П70) Плечо Б: хвост лентой невязки, как в П68.
++            bool tailAsResidual = false;
+             bool screenRows = false;
+             var shieldZ = new List<int>();
+             double pownum = 4.0;
+@@ -279,6 +291,7 @@ namespace FsaStackShot
+                 else if (a.StartsWith("--rates=", StringComparison.Ordinal)) ratesPath = a.Substring(8);
+                 else if (a == "--screen") screenRows = true;
+                 else if (a == "--plant-tail") plantTail = true;
++                else if (a == "--tail-as-residual") tailAsResidual = true;
+                 else if (a.StartsWith("--shield=", StringComparison.Ordinal))
+                 {
+                     foreach (string z in a.Substring(9).Split(','))
+@@ -691,6 +704,14 @@ namespace FsaStackShot
+             // после разбора у анализатора появляется состояние прогона
+             // (`RefitZState`), и эталон `new FsaAnalyzer()` разошёлся бы с ним
+             // не по настройкам, а по исходу.
++            // (`AMBER30`, П70) Ключ обязан доехать до анализатора; читатель — строка
++            // `FsaTuningReport.Print` («UntiedTailAsResidual False → True») и строка
++            // `отвязанный хвост` ниже.
++            if (tailAsResidual)
++            {
++                analyzer.UntiedTailAsResidual = true;
++            }
++
+             FsaTuningReport.Print(analyzer);
+             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                 rd.FwhmCalibration,
+@@ -784,7 +805,10 @@ namespace FsaStackShot
+             // образов — чей и сколько отсчётов: на экране они лежат НЕВЯЗКОЙ, а
+             // не слоем нуклида, и без этой строки «невязка внизу шкалы выросла»
+             // и «слой Pb-212 похудел» читатель связал бы только по картинке.
+-            Console.WriteLine("отвязанный хвост (в невязке, не в слоях): {0}", TailNote(result));
++            Console.WriteLine(analyzer.UntiedTailAsResidual
++                                  ? "отвязанный хвост (в невязке, не в слоях — --tail-as-residual): {0}"
++                                  : "отвязанный хвост (в подложке, AMBER30; UntiedTail пуст по построению): {0}",
++                              TailNote(result));
+ 
+             foreach (FsaSuppressedImage cut in result.SuppressedImages)
+             {
