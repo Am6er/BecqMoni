@@ -1,0 +1,26 @@
+=== a6f2b227 ===
+restore код 0
+build код 0
+exe sha256 F3BC9EFBEB909F574A060F1CF0EAA8A69E251606996D3F951FB8211922A7CBA2  20:18:10
+csc FsaStackShot код 0 (довесков 5)
+=== 4851f51f ===
+restore код 0
+build код 0
+exe sha256 FCDB866C72FCCF7E19448F37DBE2795757C78A475FF85B89D3C55081BA1DB1B4  20:18:42
+csc FsaStackShot код 0 (довесков 5)
+=== 32eaeb09 ===
+restore код 0
+build код 0
+exe sha256 ECC07DEC424AB0D8F1C31222614C813099C76C988958AA7A84067744D9604F71  20:19:08
+csc FsaStackShot код 0 (довесков 5)
+=== 27ba5c4b ===
+HEAD is now at 27ba5c4b П58 (вторая половина): check_registry — проверка 3 за 1.7 с вместо 226 (слова кода множеством, запасной путь подстрокой, .sqlite сняты), положительный контроль подсадкой; сторож в умолчании check_all (38/38, 25 с), KNOWN_RED пуст; две ссылки S64 в DONE.md — KNOWN_UNTRACKED со сроком 2026-09-18, ждут Amber
+restore код 0
+build код 0
+exe sha256 EE151F27DA064272D7680759C5B87BD19EB1D750BD9EF25CDEE07B2B94E93FED  20:19:40
+csc FsaStackShot код 0 (довесков 5)
+=== 025a65a9 ===
+restore код 0
+build код 0
+exe sha256 B6300136A4012AAFCF4D56D66FB94CFB08DC123F4C67DCC6D9C072902378CC5A  20:15:44
+csc FsaStackShot код 0 (довесков 5)

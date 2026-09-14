@@ -1,0 +1,30 @@
+BecqMoni: main config: D:\BqMoni_Claude\p70\wd_27ba5c4b\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p70\wd_27ba5c4b\config\device: 9 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\p70\wd_27ba5c4b\config\NuclideDefinition.xml: 33 entries
+SETUP	прибор: 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+набор: Cs-137 + K-40
+SETUP	SNR=10	допуск=11	диапазон=5…2800 кэВ	мёртвое=0 с
+SETUP	найдено пиков: 3
+состав: выведено из пиков: 3 из 3 подписаны, родителей 2 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Cs-137 50 % (1/2, пиков 1) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов
+линии образа Xray-Pb (Nuisance, всего 3):
+LINE	74.969	4.9019E+001	Xray-Pb
+LINE	72.805	2.9167E+001	Xray-Pb
+LINE	86.022	2.1814E+001	Xray-Pb
+SETUP	против поставочного разбора изменено: BackscatterWithMatrix False → True; MinEnergy 40 → 5; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → CsI:Tl
+шкала: усиление 0.995490, сдвиг -3.624 канала
+chi2/ndf 12.846, невязка модели 7.8 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 8 (отсеяно 3), наибольшая значимость 1200.38
+ROW	Cs-137	Single	95.093	-
+ROW	Backscatter	Nuisance	3.568	-
+ROW	Xray-Pb-L	Nuisance	0.502	-
+ROW	Xray-Pb	Nuisance	0.490	-
+ROW	pile-up	Nuisance	0.347	-
+CUT	Ann-511	Nuisance	z=0.00
+CUT	Esc-CsI	Nuisance	z=0.00
+CUT	K-40	Single	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 17
+D:\BqMoni_Claude\p70\out\27ba5c4b\shot.png: 0–3311 кэВ, потолок 1090072, шкала pow
+D:\BqMoni_Claude\p70\out\27ba5c4b\curves.csv: 8192 каналов, колонок слоёв 5
+NuclideDefinitionManager за прогон: обращений 3 (состав от подписей — поставочный список нужен по праву)
