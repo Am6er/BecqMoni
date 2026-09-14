@@ -1,0 +1,17 @@
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct
+AS80_Cs137_0cm,AS80x80,known,Cs-137,85288.1,5.144,2.360
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct
+ASN16_Lu176,ASN16,known,Xray-Lu,135548.0,6.451,5.292
+ASN16_Lu176_P0,ASN16,known,Lu-176,1053.9,13.325,13.362
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct
+G1S16_Eu152_P25,G1S16,known,Eu-152,1.2,4.696,4.761
+G1S16_Mn54_P25,G1S16,known,Mn-54,92.8,3.312,3.391
+G1S16_Co57_P5,G1S16,known,Co-57,330.0,23.235,17.939
+G1S16_Co60_P5,G1S16,known,Co-60,4809.4,5.367,3.093
+G1S16_Cs137_P5,G1S16,known,Cs-137,1.7,3.990,3.077
+G1S16_Eu152_P5,G1S16,known,Eu-152,0.5,7.093,5.615
+G1S16_Mn54_P5,G1S16,known,Mn-54,30750.5,5.952,3.314
+G1S16_Y88_P5,G1S16,known,Y-88,348.1,6.726,5.991
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct
+G1S24_Y88_P5,G1S24,known,Y-88,33357.9,3.782,2.770
+G1S24_Zn65_P5,G1S24,known,Zn-65,34.7,7.641,7.583
