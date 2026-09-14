@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -2875,7 +2875,33 @@ namespace XPTable.Models
                 }
             }
 
-            if (this.RowRect(row).Bottom > this.CellDataRect.Bottom)
+            if (this.EnableWordWrap && this.VScroll && row >= 0 && row < this.RowCount)
+            {
+                // (AMBER26, 14.09.2026) Variable row heights: how many whole rows fit
+                // depends on WHICH rows they are, so `GetVisibleRowCount()` (counted from
+                // the CURRENT top row) and the single `vscrollVal++` below could leave a
+                // tall target row partly below the viewport. Walk back from the target
+                // row, summing heights, until the viewport is full: that is the top row.
+                // Scrolling UP (row < vscrollVal) is already exact above.
+                int available = this.CellDataRect.Height;
+                int top = row;
+                int used = this.ShownRowHeight(row);
+                while (top > 0)
+                {
+                    int h = this.ShownRowHeight(top - 1);
+                    if (used + h > available)
+                    {
+                        break;
+                    }
+                    used += h;
+                    top--;
+                }
+                if (top > vscrollVal)
+                {
+                    vscrollVal = top;
+                }
+            }
+            else if (this.RowRect(row).Bottom > this.CellDataRect.Bottom)
             {
                 vscrollVal++;
             }
@@ -2890,6 +2916,20 @@ namespace XPTable.Models
             }
 
             return moved;
+        }
+
+        /// <summary>
+        /// Height the row takes on screen: its own height, or 0 for a hidden sub-row
+        /// (same rule as <see cref="RowYDifference"/>).
+        /// </summary>
+        private int ShownRowHeight(int index)
+        {
+            Row r = this.tableModel.Rows[index];
+            if (r == null || (r.Parent != null && !r.Parent.ExpandSubRows))
+            {
+                return 0;
+            }
+            return r.Height;
         }
 
         private static bool SetScrollValue(ScrollBar scrollbar, int value)
