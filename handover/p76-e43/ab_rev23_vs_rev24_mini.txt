@@ -1,0 +1,7 @@
+спектры, у которых B отличается от A (маска ms/cpu_ms): A=out_rev23_mini B=out_rev24_mini
+спектр                   часть     χ²ndf A        B        Δ |    χ²p A        B |  нев A      B
+Traceback (most recent call last):
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p76-e43\per_spectrum.py", line 33, in <module>
+    d = float(rb['chi2ndf']) - float(ra['chi2ndf'])
+        ~~~~~^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: 'ERROR'

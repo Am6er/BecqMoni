@@ -16,8 +16,9 @@ namespace GapProbeAmber1
     ///
     /// Что проверяется и ПОЧЕМУ именно это:
     ///
-    /// 1. **Пресеты.** 21.7 мм стоит у `Atom Spectra Pro 80x80` и НИ У КОГО
-    ///    больше, а наполнитель у всех воздух. Контроль обязателен: пресет
+    /// 1. **Пресеты.** 21.7 мм стоит у `Atom Spectra Pro 80x80`, 3.5 мм — у
+    ///    `RadiaCode-103` (`E43`, приказ Amber 14.09.2026) и НИ У КОГО больше,
+    ///    а наполнитель у всех воздух. Контроль обязателен: пресет
     ///    накладывается на уже набранные поля, и «поставил всем» здесь ошибка
     ///    того же разряда, что «не поставил никому».
     /// 2. **Сцена переноса.** Зазор обязан стать НАСТОЯЩИМ слоем, а не числом
@@ -141,9 +142,16 @@ namespace GapProbeAmber1
                     preset.Name, g.FrontGapThickness, g.SideGapThickness,
                     g.Gap.Name, g.Gap.Density);
 
-                bool as80 = preset.Name == "Atom Spectra Pro 80x80";
-                Check(preset.Name + ": торец",
-                      as80 ? 21.7 : 0.0, g.FrontGapThickness, 1e-9);
+                // Зазор у торца измерен у ДВУХ приборов, у остальных — ноль:
+                // 21.7 мм `Atom Spectra Pro 80x80` (`AMBER1`, 07.09.2026) и
+                // 3.5 мм `RadiaCode-103` (`E43`, приказ Amber 14.09.2026 по
+                // измерению П73). «RadiaCode-101» — тот же кристалл, но зазор
+                // ему НЕ ставился: отдельное решение Amber (`B30`), и проба
+                // ждёт у него ноль нарочно.
+                double wantFront = preset.Name == "Atom Spectra Pro 80x80" ? 21.7
+                                 : preset.Name == "RadiaCode-103" ? 3.5
+                                 : 0.0;
+                Check(preset.Name + ": торец", wantFront, g.FrontGapThickness, 1e-9);
                 Check(preset.Name + ": бок", 0.0, g.SideGapThickness, 1e-9);
                 Check(preset.Name + ": наполнитель воздух",
                       "Air, dry", g.Gap.Name);
@@ -550,7 +558,7 @@ namespace GapProbeAmber1
         }
 
         // ------------------------------------------------------------------
-        // 8. Корпусные геометрии AS80
+        // 8. Корпусные геометрии AS80 и RC103
         // ------------------------------------------------------------------
 
         static void Corpus(string root)
@@ -577,6 +585,39 @@ namespace GapProbeAmber1
                 Check(Path.GetFileName(path) + ": торец 21.7", 21.7, g.FrontGapThickness, 1e-6);
                 Check(Path.GetFileName(path) + ": бок ноль", 0.0, g.SideGapThickness, 1e-12);
                 Check(Path.GetFileName(path) + ": наполнитель воздух", "Air, dry", g.Gap.Name);
+            }
+
+            // Корпусные геометрии RC103 (`E43`, 14.09.2026): зазор 3.5 мм у
+            // КОНТАКТНЫХ сцен (точка впритык, банка лютеция впритык), и ноль у
+            // маринелли — приказ Amber «маринелли не трогать» (зазор её и не
+            // двигает, П73). Три файла названы поимённо, а не маской: маска
+            // прошла бы и на корпусе, где одна из сцен потерялась.
+            Head("Корпусные геометрии RC103");
+            string[][] rc103 =
+            {
+                new[] { "RC103_point0.in", "3.5" },
+                new[] { "RC103_lu_front.in", "3.5" },
+                new[] { "RC103_marinelli05_kcl.in", "0" },
+            };
+            foreach (string[] row in rc103)
+            {
+                string path = Path.Combine(dir, row[0]);
+                if (!File.Exists(path))
+                {
+                    Fail("нет файла " + path);
+                    continue;
+                }
+
+                GeometryModel g = GeometryModel.Load(path);
+                double want = double.Parse(row[1], CultureInfo.InvariantCulture);
+                Say("{0,-24} торец {1,7:F2} бок {2,7:F2}  наполнитель \"{3}\"",
+                    row[0], g.FrontGapThickness, g.SideGapThickness, g.Gap.Name);
+                Check(row[0] + ": торец " + row[1], want, g.FrontGapThickness, 1e-6);
+                Check(row[0] + ": бок ноль", 0.0, g.SideGapThickness, 1e-12);
+                if (want > 0.0)
+                {
+                    Check(row[0] + ": наполнитель воздух", "Air, dry", g.Gap.Name);
+                }
             }
         }
 

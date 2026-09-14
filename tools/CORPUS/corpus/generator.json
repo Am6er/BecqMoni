@@ -1,8 +1,6 @@
 {
  "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
- "dirty": [
-  "tools/CORPUS/scripts/corpus_def.py"
- ],
+ "dirty": [],
  "files": {
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "9e94a1a601f2896c63356e9c9680fcc4a7ac625a068516f37430c5cf400f6c34",
   "BecquerelMonitor/nucdb.sqlite": "238ca47cae7afae40f9312031ffb67382f67750cb776bb6b945779b72710f2ef",
@@ -16,7 +14,7 @@
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
  "fp": "40e8ddc107ea3405f33b242af1e4fb06f4e2ae7e525d13bc1de7d2e1a5286fe0",
- "head": "83093cb83879b7baafb7e30bb40875d3a8586ecb",
+ "head": "25a35adb17ac360f54607421947c8279834077f0",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
   "BecquerelMonitor/nucdb.sqlite"

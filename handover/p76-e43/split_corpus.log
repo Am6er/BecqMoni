@@ -1,0 +1,10 @@
+заметок человека в графе `why` СОХРАНЕНО: 2 (T164)
+    AS80_Th232Medal: стеклянный диск Ø40×5 мм (ториевое стекло 4.345 г/см³, 27.3 г), ВПРИТЫК к торцу — сцена диска Amber 08.09.2026 (П13), тот же образец: cps 637.4 против 642.8; известной стала 12.09.2026 (решение Amber по B17, П22)
+    ASN16_Lu176_P0: та же банка 50 мл Ø40×h15 сбоку, что у ASN16_Lu176 (исходный файл «Lu176 банка 50 мл d40-h15.xml»); отдельное измерение 04.12.2022, 573 с. Возвращён в known 02.09.2026 решением Amber по B19: у Lu-176 на ASN16 съёмка была ТОЛЬКО сбоку, значит геометрия та же
+спектров всего: 135
+  known      89
+  unknown    38
+  excluded    8
+геометрий: 46 — AS80_lu_front, AS80_point0, AS80_th_disk, ASN16_lu_side, G1S_denta100_oisn10_100_p16, G1S_denta100_risn379_100_p16, G1S_denta120_oisn06_057_p24, G1S_denta120_oisn06_062_p24, G1S_denta120_oisn06_064_p24, G1S_denta120_oisn06_066_p24, G1S_denta120_oisn16_155_p24, G1S_denta120_oisn16_160_p24, G1S_denta120_oisn16_166_p24, G1S_denta120_oisn16_167_p24, G1S_mar1l_coal_046_p24, G1S_mar1l_oisn06_055_p16, G1S_mar1l_oisn06_057_p16, G1S_mar1l_oisn06_057_p24, G1S_mar1l_oisn06_062_p16, G1S_mar1l_oisn06_062_p24, G1S_mar1l_oisn06_064_p24, G1S_mar1l_oisn06_066_p16, G1S_mar1l_oisn06_066_p24, G1S_mar1l_oisn16_155_p16, G1S_mar1l_oisn16_155_p24, G1S_mar1l_oisn16_160_p16, G1S_mar1l_oisn16_160_p24, G1S_mar1l_oisn16_166_p16, G1S_mar1l_oisn16_166_p24, G1S_mar1l_oisn16_167_p16, G1S_mar1l_oisn16_167_p24, G1S_mar1l_risn379_100_p16, G1S_petri60_oisn06_057_p24, G1S_petri60_oisn06_062_p24, G1S_petri60_oisn06_064_p24, G1S_petri60_oisn06_067_p24, G1S_petri60_oisn10_100_p16, G1S_petri60_oisn16_155_p24, G1S_petri60_oisn16_160_p24, G1S_petri60_oisn16_167_p24, G1S_petri60_risn379_100_p16, G1S_point25, G1S_point5, RC103_lu_front, RC103_marinelli05_kcl, RC103_point0
+записано: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\parts.csv
+СОШЛОСЬ
