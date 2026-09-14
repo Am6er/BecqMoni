@@ -1925,12 +1925,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// ⛔ На спектрах С МАТРИЦЕЙ этот образ спорит с ней за одни и те же
         /// отсчёты — то самое «второе счётоведение», ради прекращения которого
-        /// заведён гейт `S47` (<see cref="FsaAnalyzer.EscapeGate"/>). Гейт судит
-        /// по имени и снимает только приставки `SE-`/`DE-` (с 06.09.2026 их
-        /// строит и эта библиотека, `S141`), поэтому здешние `Esc-*` он не
-        /// тронет. Так решено 18.08.2026 (Amber, «клади везде»):
-        /// образ нужен как опора кросс-проверки матрицы (`S60`). Цена снимается
-        /// ключом `AtomicXray`, а не догадкой.
+        /// заведён гейт `S47` (<see cref="FsaAnalyzer.EscapeGate"/>). Строится
+        /// он ЗДЕСЬ всегда — библиотека не знает, пойдёт ли разбор через
+        /// матрицу, — а снимает его при живой матрице анализатор, тем же
+        /// гейтом и по флагу <see cref="FsaComponent.CrystalEscape"/> (`S172`,
+        /// решение Amber 14.09.2026 «При матрице вылет не класть»). До того
+        /// образ стоял при матрице решением 18.08.2026 «клади везде» как опора
+        /// кросс-проверки (`S60`), и цена измерена П63: на радоновом фильтре
+        /// ASN16 после снятия стоков-нуклидов `Esc-CsI` забрал 45.7 % экрана
+        /// при z 32 — вылет не может равняться родителю. Без матрицы образ
+        /// остаётся: там он единственное, чем вылет выражен. Цена самого
+        /// приближения снимается ключом `AtomicXray`, а не догадкой.
         /// </summary>
         static void AddEscape(FsaSampleSpec spec, List<FsaComponent> result,
                               HashSet<string> declared, Report report)
@@ -1989,6 +1994,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             var component = new FsaComponent("Esc-" + mix.Name, FsaComponentKind.Nuisance);
+
+            // (`S172`) Это образ САМОГО прибора — вылет из кристалла: при живой
+            // матрице отклика его снимает гейт `EscapeGate`, потому что матрица
+            // уже несёт K-вылет отдельным каналом (`ResponseChannel.EscapeXray`),
+            // как SE/DE у `S47` и рентген кристалла у `AMBER4`.
+            component.CrystalEscape = true;
             foreach (CrystalMix.Part part in mix.Parts)
             {
                 MaterialDatabase.Fluorescence fluorescence = part.Fluorescence;

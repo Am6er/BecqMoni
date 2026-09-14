@@ -751,6 +751,12 @@ namespace FsaStackShot
 
             Console.WriteLine("предел: {0}", analyzer.ChainLimitNote ?? "правило не судило");
 
+            // (`S172`) Приборные образы, снятые гейтами ДО фита (в `CUT` их
+            // нет — фиту они не предъявлялись): рентген кристалла (`AMBER4`) и
+            // K-вылет кристалла (`S172`). Без матрицы оба нуля — по построению.
+            Console.WriteLine("гейты при матрице: рентген кристалла снят {0}, вылет кристалла снят {1}",
+                              analyzer.CrystalXrayDropped, analyzer.CrystalEscapeDropped);
+
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
             {
                 Console.WriteLine("CUT\t{0}\t{1}\tz={2}", cut.Name, cut.Kind,

@@ -1974,6 +1974,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int CrystalXrayDropped { get; private set; }
 
         /// <summary>
+        /// (`S172`) Сколько образов K-вылета КРИСТАЛЛА (`Esc-<вещество>`,
+        /// флаг <see cref="FsaComponent.CrystalEscape"/>) снял гейт
+        /// <see cref="EscapeGate"/> при живой матрице на последнем
+        /// <see cref="Analyze"/>. Ноль — гейт не срабатывал и правка не
+        /// изменила ни одного бита; без матрицы ноль всегда.
+        /// </summary>
+        public int CrystalEscapeDropped { get; private set; }
+
+        /// <summary>
         /// (`AMBER8`) Сколько образов вылета снято ВМЕСТЕ С УШЕДШИМ РОДИТЕЛЕМ
         /// на последнем <see cref="Analyze"/>. Ноль — правило не срабатывало и
         /// правка не изменила ни одного бита.
@@ -2541,6 +2550,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// БЕЗ матрицы образ строится из одних пиков, вылетов в нём нет вовсе,
         /// и свободный столбец остаётся единственным способом их выразить —
         /// поэтому там он не трогается ни при каком значении этого ключа.
+        ///
+        /// ⛔ (`S172`) ТЕМ ЖЕ гейтом и по тому же доводу при матрице снимается
+        /// образ K-ВЫЛЕТА КРИСТАЛЛА `Esc-<вещество>` (флаг
+        /// <see cref="FsaComponent.CrystalEscape"/>): матрица несёт вылет
+        /// собственного рентгена отдельным каналом (`ResponseChannel.EscapeXray`,
+        /// замер `AMBER4`: вылет/фотопик 6.74 % на 88 кэВ … 0.34 % на 911),
+        /// и образы нуклидов через неё уже содержат свои пики на `E − Kα`.
+        /// Свободная гребёнка рядом — второй счёт того же и сток невязки:
+        /// измерено П63 14.09.2026 на радоновом фильтре ASN16 — после снятия
+        /// стоков-нуклидов `Esc-CsI` забрал 45.7 % экрана при z 32 (спектр
+        /// «11 часов спустя»), 6.1 % на первом; физически вылет не может
+        /// равняться родителю (Pb-212 47.9 %). Решение Amber 14.09.2026,
+        /// вопросником, дословно: «При матрице вылет не класть». Без матрицы
+        /// образ остаётся единственным выражением вылета и не трогается.
+        /// Счётчик — <see cref="CrystalEscapeDropped"/>.
         ///
         /// `Ann-511` под правило НЕ попадает: аннигиляционный квант рождается
         /// в защите и обвязке и ВЛЕТАЕТ в кристалл, а матрица описывает судьбу
@@ -5175,7 +5199,26 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запасного поэлементного — от символа (`Xray-I`).
             bool dropCrystalXray = this.CrystalXrayGate && this.ResponseMatrix != null;
             this.CrystalXrayDropped = 0;
-            if (dropEscapeImages || dropAnnihilation || dropCrystalXray)
+
+            // ⛔ (`S172`) K-ВЫЛЕТ КРИСТАЛЛА ПРИ ЖИВОЙ МАТРИЦЕ СВОБОДНОЙ КОЛОНКОЙ
+            // НЕ ИДЁТ — тем же гейтом `S47`, что снимает SE/DE, и по тому же
+            // признаку «матрица есть»: матрица несёт вылет собственного
+            // рентгена отдельным каналом (`ResponseChannel.EscapeXray`), и
+            // образы нуклидов уже содержат свои пики на `E − Kα`. Свободная
+            // гребёнка `Esc-<вещество>` рядом — второй счёт и сток невязки:
+            // на радоновом фильтре ASN16 она забрала 45.7 % экрана при z 32
+            // (П63, 14.09.2026). Решение Amber 14.09.2026: «При матрице вылет
+            // не класть».
+            //
+            // ⚠ Условие — ТОЛЬКО гейт с матрицей, без второй половины
+            // `dropEscapeImages` (`!EscapeAndAnnihilation`): пользовательский
+            // ключ «SE/DE и 511» к образу вылета кристалла не относится — тот
+            // живёт под ключом «атомный рентген», и без матрицы его судьбу
+            // решает только он. Признак — флаг, а не имя (`Esc-CsI`, `Esc-NaI`
+            // собираются из вещества), как у `FromCrystal`.
+            bool dropCrystalEscape = this.EscapeGate && this.ResponseMatrix != null;
+            this.CrystalEscapeDropped = 0;
+            if (dropEscapeImages || dropAnnihilation || dropCrystalXray || dropCrystalEscape)
             {
                 List<FsaComponent> kept = new List<FsaComponent>(library.Count);
                 foreach (FsaComponent component in library)
@@ -5193,6 +5236,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (dropCrystalXray && component.FromCrystal)
                     {
                         this.CrystalXrayDropped++;
+                        continue;
+                    }
+
+                    if (dropCrystalEscape && component.CrystalEscape)
+                    {
+                        this.CrystalEscapeDropped++;
                         continue;
                     }
 
@@ -7474,6 +7523,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             WeightsAreFinal = host.WeightsAreFinal,
                             Derived = host.Derived,
                             FromCrystal = host.FromCrystal,
+                            CrystalEscape = host.CrystalEscape,
                             EscapeParent = host.EscapeParent,
                             TotalYieldPercent = host.TotalYieldPercent,
                             DecayChainRoot = host.DecayChainRoot,
