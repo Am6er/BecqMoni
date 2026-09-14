@@ -968,6 +968,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaTie> Ties { get; set; }
 
         /// <summary>
+        /// (`S171`, второе правило) Приговоры правила предела неизмеримого
+        /// члена ряда в этом разборе (режим без связки равновесия): по
+        /// каждому судимому члену — опорный член, ожидаемая и фактическая
+        /// значимость, исход (<see cref="FsaChainLimit.Limited"/>). Пусто —
+        /// правило не судило (в том числе при связке равновесия); null не
+        /// бывает. Снятый член на экране — обычная строка предела «&lt;»
+        /// (как у отсутствующих членов); список здесь — для пробы и журнала.
+        /// </summary>
+        public List<FsaChainLimit> ChainLimits { get; set; }
+
+        /// <summary>
         /// Сколько нуклидов называется поимённо; остальные идут одной строкой
         /// «other». Мешающие образы (рентген, пики вылета) сюда НЕ считаются и
         /// показываются сверх лимита.
@@ -993,6 +1004,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.CharacteristicLimits = new List<FsaCharacteristicLimit>();
             this.SuppressedImages = new List<FsaSuppressedImage>();
             this.Ties = new List<FsaTie>();
+            this.ChainLimits = new List<FsaChainLimit>();
             this.ScaleAnchors = new List<FsaScaleAnchor>();
         }
 

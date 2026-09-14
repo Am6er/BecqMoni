@@ -45,6 +45,21 @@ namespace FsaTieProbe
     ///      «вырожденный привязан» ОБЯЗАНА отказать; заведомо низкий порог —
     ///      член с собственной линией привязывается, то есть приговор следует
     ///      мере, а не имени.
+    ///   5. ВТОРОЕ ПРАВИЛО (П63, решение Amber 14.09.2026 «Не измерим при
+    ///      активности сильнейшего — предел», <c>FsaAnalyzer.ChainLimitByExpectedZ</c>):
+    ///      в ряд добавлен СЛАБЫЙ член — одна линия с ничтожным выходом, при
+    ///      амплитуде хозяина невидимая, — а в спектр подсажен горб на её
+    ///      месте, которого не описывает никто. Без правила слабый член
+    ///      садится на горб с огромной значимостью и амплитудой в десятки
+    ///      хозяйских; с правилом он снят в предел (ожидаемая значимость при
+    ///      амплитуде хозяина ниже порога отсева), строки состава у него нет,
+    ///      строка предела есть, на экране он назван в подсказке свёрнутой
+    ///      строки; члены с собственной линией свободны. Положительный
+    ///      контроль обеими сторонами: правило ВЫКЛ — проверка «слабый —
+    ///      предел» ОБЯЗАНА отказать; заведомо высокий порог
+    ///      (<c>ChainLimitZ</c>) — пределом становятся и члены с собственной
+    ///      линией, то есть правило различает ожидаемой значимостью, а не
+    ///      именем; связка равновесия — судимых 0.
     ///
     ///     fsatieprobe
     ///
@@ -59,6 +74,12 @@ namespace FsaTieProbe
         const string Twin = "Испыт-двойник";
         const string Own = "Испыт-своя";
         const string Far = "Испыт-далёкая";
+        /// <summary>(П63) Слабый член: одна линия 900 кэВ с выходом 0.02 % — при амплитуде хозяина невидим.</summary>
+        const string Weak = "Испыт-слабая";
+        const double WeakKev = 900.0;
+        const double WeakIntensity = 0.02;
+        /// <summary>(П63) Подсаженный горб на месте линии слабого члена — отсчётов, никем не описанных.</summary>
+        const double SinkCounts = 3000.0;
 
         static int bad;
 
@@ -74,6 +95,7 @@ namespace FsaTieProbe
             Screen();
             Equilibrium();
             Control();
+            Unmeasurable();
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -319,6 +341,187 @@ namespace FsaTieProbe
         }
 
         // ------------------------------------------------------------------
+        // 5. ВТОРОЕ ПРАВИЛО: ПРЕДЕЛ НЕИЗМЕРИМОГО ЧЛЕНА (П63)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Слабый член на подсаженном горбе: без правила — состав с огромной
+        /// значимостью, с правилом — предел; члены с собственной линией
+        /// свободны. Сторож обязан уметь отказать (правило ВЫКЛ) и обязан
+        /// различать по ожидаемой значимости, а не по имени (заведомо высокий
+        /// порог снимает и членов с собственной линией).
+        /// </summary>
+        static void Unmeasurable()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 5. второе правило: слабый член на подсаженном горбе — предел ===");
+            FsaAnalyzer analyzer;
+            FsaResult result = Run(double.NaN, false, "слабый + горб", out analyzer, false, true);
+            if (result == null)
+            {
+                Console.WriteLine("  ⛔ разбор не получился");
+                bad++;
+                return;
+            }
+
+            Console.WriteLine("  {0}", analyzer.ChainLimitNote ?? "(правило не судило)");
+            Same("правило включено (умолчание конструктора)", true, analyzer.ChainLimitByExpectedZ);
+            Same("порог правила — у отсева (подмены нет, умолчание конструктора)", true, analyzer.ChainLimitZ <= 0.0);
+            Same("правило судило (кругов больше нуля)", true, analyzer.ChainLimitRounds > 0);
+            Same("снят в предел ровно один", 1, analyzer.ChainLimitSet);
+            Same("приговоров в результате столько же, сколько у анализатора", analyzer.ChainLimitJudged, result.ChainLimits.Count);
+            FsaChainLimit weakVerdict = null, ownVerdict = null, farVerdict = null;
+            foreach (FsaChainLimit verdict in result.ChainLimits)
+            {
+                Console.WriteLine("  приговор {0,-16} при {1,-16} ожид. z {2,8} (z {3,7}, порог {4}, круг {5}) {6}",
+                                  verdict.Member, verdict.Reference,
+                                  verdict.ExpectedZ.ToString("F2", CultureInfo.InvariantCulture),
+                                  verdict.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                  verdict.Threshold.ToString("F2", CultureInfo.InvariantCulture),
+                                  verdict.Round, verdict.Limited ? "ПРЕДЕЛ" : "свободен");
+                if (verdict.Member == Weak && weakVerdict == null) weakVerdict = verdict;
+                if (verdict.Member == Own) ownVerdict = verdict;
+                if (verdict.Member == Far) farVerdict = verdict;
+            }
+
+            Same("слабый член судим", true, weakVerdict != null);
+            if (weakVerdict != null)
+            {
+                Same("слабый: опорный член — хозяин (наименьшая σ)", Host, weakVerdict.Reference);
+                Same("слабый: ожидаемая значимость ниже порога", true, weakVerdict.ExpectedZ < weakVerdict.Threshold);
+                Same("слабый: фактическая значимость на горбе ВЫШЕ порога (отсев его не видит)", true,
+                     weakVerdict.Z > weakVerdict.Threshold);
+                Same("слабый: снят", true, weakVerdict.Limited);
+                Same("порог правила = порог отсева этого разбора", analyzer.RefitZUsed, weakVerdict.Threshold);
+            }
+
+            Same("своя линия судима и свободна", true, ownVerdict != null && !ownVerdict.Limited);
+            Same("далёкая линия судима и свободна", true, farVerdict != null && !farVerdict.Limited);
+            if (ownVerdict != null && farVerdict != null && weakVerdict != null)
+            {
+                Same("ожидаемая значимость своей линии — на порядок выше слабой", true,
+                     ownVerdict.ExpectedZ > 10.0 * weakVerdict.ExpectedZ);
+                Same("ожидаемая значимость далёкой — на порядок выше слабой", true,
+                     farVerdict.ExpectedZ > 10.0 * weakVerdict.ExpectedZ);
+            }
+
+            Same("строки состава у слабого нет", null, Row(result, Weak));
+            FsaCharacteristicLimit weakLimit = Limit(result, Weak);
+            Same("строка предела у слабого есть", true, weakLimit != null);
+            if (weakLimit != null)
+            {
+                Same("слабый: не обнаружен", false, weakLimit.Detected);
+                Same("слабый: предел обнаружения положителен", true, weakLimit.DetectionLimitRate > 0.0);
+                Same("слабый: происхождение в ряду сохранено", Root, weakLimit.DecayChainRoot);
+            }
+
+            bool suppressed = false;
+            foreach (FsaSuppressedImage cut in result.SuppressedImages)
+            {
+                if (cut.Name == Weak) suppressed = true;
+            }
+
+            Same("слабый — среди подавленных образов (предъявлен, до отчёта не дожил)", true, suppressed);
+            Same("своя линия в составе", true, Row(result, Own) != null);
+            Same("далёкая в составе", true, Row(result, Far) != null);
+            Same("хозяин в составе", true, Row(result, Host) != null);
+            Same("двойник по-прежнему по хозяину (порядок: сперва привязка, затем предел)", true,
+                 Row(result, Twin) != null && Row(result, Twin).TiedTo == Host);
+
+            // Экран: слабый — в подсказке свёрнутой строки (выход ниже порога
+            // именования, `S69`/`AMBER6`), отдельной строки предела у него нет.
+            foreach (string lang in new[] { "en-US", "ru-RU" })
+            {
+                Language(lang);
+                FsaPresentation presentation = FsaPresentationBuilder.Build(result, FsaGrouping.Daughters, false);
+                string foldedHint = null;
+                bool ownRow = false;
+                foreach (FsaReportRow row in presentation.Rows)
+                {
+                    if (row.Kind == FsaReportRowKind.UndetectedFolded) foldedHint = row.Hint;
+                    if (row.Kind == FsaReportRowKind.Undetected && row.Name != null && row.Name.Contains(Weak)) ownRow = true;
+                }
+
+                Console.WriteLine("  {0}: свёрнутая строка — подсказка «{1}»", lang, foldedHint);
+                Same(lang + ": свёрнутая строка пределов есть", true, foldedHint != null);
+                Same(lang + ": слабый назван в подсказке свёрнутой строки", true,
+                     foldedHint != null && foldedHint.Contains(Weak));
+                Same(lang + ": отдельной строки предела у слабого нет (выход ниже порога именования)", false, ownRow);
+            }
+
+            Language("en-US");
+
+            // ⛔ Положительный контроль, сторона первая: правило ВЫКЛ — слабый
+            // садится на горб, и проверка «слабый — предел» ОБЯЗАНА отказать.
+            FsaResult off = Run(double.NaN, false, "правило ВЫКЛ", out analyzer, false, true, false);
+            Same("разбор без правила получился", true, off != null);
+            if (off != null)
+            {
+                Same("правило ВЫКЛ — судимых 0", 0, analyzer.ChainLimitJudged);
+                Same("правило ВЫКЛ — служебной строки нет", null, analyzer.ChainLimitNote);
+                Same("правило ВЫКЛ — приговоров в результате 0", 0, off.ChainLimits.Count);
+                FsaComponentResult weakRow = Row(off, Weak);
+                FsaComponentResult hostRow = Row(off, Host);
+                Denies("правило ВЫКЛ — «слабый — предел» СТОРОЖ ОБЯЗАН ОТВЕРГНУТЬ", weakRow == null);
+                if (weakRow != null && hostRow != null)
+                {
+                    Console.WriteLine("  без правила: слабый z {0}, амплитуда ×{1} хозяйской",
+                                      weakRow.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                      (weakRow.CountRate / hostRow.CountRate).ToString("F1", CultureInfo.InvariantCulture));
+                    Same("без правила слабый на горбе значим (сток невязки)", true, weakRow.Z > 3.0);
+                    Same("без правила амплитуда слабого — в десятки хозяйских", true,
+                         weakRow.CountRate > 10.0 * hostRow.CountRate);
+                }
+            }
+
+            // ⛔ Сторона вторая: заведомо высокий порог — пределом становятся и
+            // члены с собственной линией: правило различает ожидаемой
+            // значимостью, а не именем. Порог берётся у самой меры (вдвое выше
+            // наибольшей ожидаемой значимости среди судимых), а не числом.
+            double top = 0.0;
+            foreach (FsaChainLimit verdict in result.ChainLimits)
+            {
+                if (verdict.ExpectedZ > top) top = verdict.ExpectedZ;
+            }
+
+            Same("наибольшая ожидаемая значимость среди судимых положительна", true, top > 0.0);
+            if (top > 0.0)
+            {
+                double high = 2.0 * top;
+                FsaResult strict = Run(double.NaN, false,
+                                       "порог " + high.ToString("G3", CultureInfo.InvariantCulture),
+                                       out analyzer, false, true, true, high);
+                Same("разбор с заведомо высоким порогом получился", true, strict != null);
+                if (strict != null)
+                {
+                    Console.WriteLine("  {0}", analyzer.ChainLimitNote ?? "(правило не судило)");
+                    var judgedNames = new HashSet<string>();
+                    foreach (FsaChainLimit verdict in strict.ChainLimits)
+                    {
+                        judgedNames.Add(verdict.Member);
+                    }
+
+                    Same("заведомо высокий порог — сняты ВСЕ судимые (все, кроме опорного)",
+                         judgedNames.Count, analyzer.ChainLimitSet);
+                    Same("заведомо высокий порог — по одному за круг: кругов = снятых", analyzer.ChainLimitSet,
+                         analyzer.ChainLimitRounds);
+                    Denies("заведомо высокий порог — член с собственной линией ОБЯЗАН стать пределом (иначе правило не по мере)",
+                           Row(strict, Own) != null);
+                    Denies("заведомо высокий порог — далёкая ОБЯЗАНА стать пределом",
+                           Row(strict, Far) != null);
+                    Same("заведомо высокий порог — хозяин (опорный) остаётся", true, Row(strict, Host) != null);
+                    Same("заведомо высокий порог — снято не меньше трёх", true, analyzer.ChainLimitSet >= 3);
+                }
+            }
+
+            // Связка равновесия: одна колонка ряда — судить некого.
+            FsaResult eq = Run(double.NaN, true, "равновесие + горб", out analyzer, false, true);
+            Same("связка: разбор получился", true, eq != null);
+            Same("связка: судимых 0", 0, analyzer.ChainLimitJudged);
+            Same("связка: служебной строки нет", null, analyzer.ChainLimitNote);
+        }
+
+        // ------------------------------------------------------------------
         // Сцена
         // ------------------------------------------------------------------
 
@@ -326,10 +529,14 @@ namespace FsaTieProbe
         /// Разбор сцены. <paramref name="tieShare"/> NaN — умолчание
         /// конструктора; <paramref name="equilibrium"/> — члены одной колонкой
         /// ряда; <paramref name="hostAbsent"/> — в спектре хозяина (и двойника)
-        /// нет, образы те же.
+        /// нет, образы те же; <paramref name="weak"/> (П63) — в ряду слабый
+        /// член и в спектре подсаженный горб; <paramref name="limitRule"/> —
+        /// второе правило; <paramref name="limitZ"/> — подменённый порог
+        /// правила (NaN — порог отсева).
         /// </summary>
         static FsaResult Run(double tieShare, bool equilibrium, string report, out FsaAnalyzer analyzer,
-                             bool hostAbsent = false)
+                             bool hostAbsent = false, bool weak = false, bool limitRule = true,
+                             double limitZ = double.NaN)
         {
             var spectrum = new EnergySpectrum(1.0, Channels)
             {
@@ -339,7 +546,7 @@ namespace FsaTieProbe
                 },
                 LiveTime = LiveTime
             };
-            Array.Copy(Spectrum(hostAbsent), spectrum.Spectrum, Channels);
+            Array.Copy(Spectrum(hostAbsent, weak), spectrum.Spectrum, Channels);
 
             analyzer = new FsaAnalyzer
             {
@@ -357,12 +564,22 @@ namespace FsaTieProbe
                 analyzer.ChainTieShare = tieShare;
             }
 
+            if (!limitRule)
+            {
+                analyzer.ChainLimitByExpectedZ = false;
+            }
+
+            if (!double.IsNaN(limitZ))
+            {
+                analyzer.ChainLimitZ = limitZ;
+            }
+
             if (report != null)
             {
                 FsaTuningReport.Print(analyzer, report);
             }
 
-            return analyzer.Analyze(spectrum, null, Fwhm(), Library(equilibrium), null);
+            return analyzer.Analyze(spectrum, null, Fwhm(), Library(equilibrium, weak), null);
         }
 
         /// <summary>
@@ -371,16 +588,23 @@ namespace FsaTieProbe
         /// хозяина — разрешена, но столбцы ещё соседствуют: мера не ноль, и
         /// заведомо низкий порог её ловит), далёкая 1400 кэВ 8 %.
         /// Веса — как у членов ряда без связки: уже с долей ветвления.
+        /// (П63) <paramref name="weak"/> — ещё слабый член: 900 кэВ с выходом
+        /// 0.02 % (при амплитуде ряда 2·10⁵ — 40 отсчётов на фоне 30 в канале
+        /// при ПШПВ 49 кэВ, ожидаемая значимость около единицы).
         /// </summary>
-        static List<FsaComponent> Library(bool equilibrium)
+        static List<FsaComponent> Library(bool equilibrium, bool weak = false)
         {
-            var lines = new[]
+            var lines = new List<SceneLine>
             {
-                new { Name = Host, Energy = 600.0, Intensity = 40.0 },
-                new { Name = Twin, Energy = 603.0, Intensity = 4.0 },
-                new { Name = Own, Energy = 690.0, Intensity = 25.0 },
-                new { Name = Far, Energy = 1400.0, Intensity = 8.0 }
+                new SceneLine(Host, 600.0, 40.0),
+                new SceneLine(Twin, 603.0, 4.0),
+                new SceneLine(Own, 690.0, 25.0),
+                new SceneLine(Far, 1400.0, 8.0)
             };
+            if (weak)
+            {
+                lines.Add(new SceneLine(Weak, WeakKev, WeakIntensity));
+            }
 
             var library = new List<FsaComponent>();
             if (equilibrium)
@@ -413,11 +637,11 @@ namespace FsaTieProbe
         /// Спектр: сумма линий в равновесном отношении (амплитуда ряда
         /// 2·10⁵ распадов), уширенная той же ПШПВ, плюс ровный фон 30.
         /// </summary>
-        static int[] Spectrum(bool hostAbsent)
+        static int[] Spectrum(bool hostAbsent, bool weak = false)
         {
             FwhmCalibration fwhm = Fwhm();
             double[] deposit = new double[Channels];
-            foreach (FsaComponent member in Library(false))
+            foreach (FsaComponent member in Library(false, weak))
             {
                 if (hostAbsent && (member.Name == Host || member.Name == Twin))
                 {
@@ -428,6 +652,15 @@ namespace FsaTieProbe
                 {
                     deposit[(int)Math.Round(line.Energy)] += 2.0E5 * line.Intensity / 100.0;
                 }
+            }
+
+            // (П63) Подсаженный горб на месте линии слабого члена — та же
+            // форма, что у линии, но отсчётов в десятки раз больше, чем даёт
+            // равновесная амплитуда ряда: сток невязки, которого не описывает
+            // ни один образ, кроме слабого.
+            if (weak)
+            {
+                deposit[(int)Math.Round(WeakKev)] += SinkCounts;
             }
 
             double[] broadened = Broaden(deposit, fwhm);
@@ -471,6 +704,21 @@ namespace FsaTieProbe
             }
 
             return value;
+        }
+
+        /// <summary>Линия сцены: член, энергия, выход на распад корня ряда (%).</summary>
+        sealed class SceneLine
+        {
+            public readonly string Name;
+            public readonly double Energy;
+            public readonly double Intensity;
+
+            public SceneLine(string name, double energy, double intensity)
+            {
+                this.Name = name;
+                this.Energy = energy;
+                this.Intensity = intensity;
+            }
         }
 
         /// <summary>ПШПВ² = 2.7·ch: 40 кэВ на 600.</summary>
