@@ -1,0 +1,25 @@
+
+  оснастка : D:\BqMoni_Claude\p75\wt_b\tools\CORPUS\scripts\wd_p75b
+  ОСНАСТКА СВЕЖАЯ: 481 файлов сошлись
+  ⛔ числа частей НЕ складывать; с полным корпусом НЕ сравнивать
+  ОСНАСТКА СВЕЖАЯ: 481 файлов сошлись
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: D:\BqMoni_Clau
+de\p75\wt_b\tools\CORPUS\scripts\wd_p75b\config\NuclideDefinition.xml
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗ
+БОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): 
+файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+           ⛔ БЕЗ ГЕОМЕТРИИ — РАЗБОРА НЕ БЫЛО (гейт A277): 14 из 16 — AS80_Charoite, AS80_K40, AS80_Onyx, AS80_Th232_v2,
+ AS80_UGlass, ASN16_Am241, ASN16_BrazilNuts, ASN16_Charoite, ASN16_Charoite_v2, ASN16_Cs137_10cm, ASN16_Granite, ASN16_
+Th232, ASN16_Th232_Am241, ASN16_UGlass
+           ⛔ БЕЗ МАТРИЦЫ (файла нет либо отпечаток не сошёлся): 2 — узел кривой у них ЕСТЬ, а матрицы под него нет, и с
+читались они из одних пиков
+  python tools/pie/score.py --mode=spline --out-dir=D:\BqMoni_Claude\p75\out_mini_p75b --part=all
+клеймо прогона: D:\BqMoni_Claude\p75\out_mini_p75b\.run.json (corpus 218ee6aa3609, sources 8322d62ebc38, HEAD 08030c57,
+ ГРЯЗНОЕ дерево: BecquerelMonitor/EnergySpectrumView.Fsa.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs, Becq
+uerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs, tools/
+effmaker/probes/CorpusFsaProbe.cs)
+ПРОГОН МАЛОЙ БАЗЫ: 9.6 с
+=== score.py --part=known ===
+коды: mk_appwd_b=0 run_mini_b=0

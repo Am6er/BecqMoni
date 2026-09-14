@@ -1,0 +1,15 @@
+main_build3: код 0, 106 с
+apply code 0
+ M BecquerelMonitor/EnergySpectrumView.Fsa.cs
+ M BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs
+ M BecquerelMonitor/FullSpectrumAnalysis/FsaPresentationBuilder.cs
+ M BecquerelMonitor/FullSpectrumAnalysis/FsaResult.cs
+ M tools/effmaker/probes/CorpusFsaProbe.cs
+ M tools/effmaker/probes/FsaChannelSplitProbe.cs
+ M tools/effmaker/probes/FsaDoubleCountProbe.cs
+ M tools/effmaker/probes/FsaStackShot.cs
+wt_build_b2: код 0, 113 с
+accept2: код 0, 151 с
+mini_b2: код 0, 21 с
+check_all2: код 1, 31 с
+ИТОГ: main_build3=0 (106 s); wt_build_b2=0 (113 s); accept2=0 (151 s); mini_b2=0 (21 s); check_all2=1 (31 s)

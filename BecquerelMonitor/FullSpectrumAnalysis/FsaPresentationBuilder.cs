@@ -320,6 +320,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         static void AddChannelsInto(FsaStackLayer target, FsaStackLayer source, int channels)
         {
+            // (`S175`) Хвост образа — тем же движением, что и лента, и ДО
+            // выхода по «каналов нет»: хвост есть у матричного образа и без
+            // раскладки по каналам, а тождество слоя «Σ каналов = лента −
+            // подложка − хвост» обязано пережить группировку.
+            if (source.TailCurve != null)
+            {
+                double[] tail = target.TailCurve;
+                AddInto(ref tail, source.TailCurve, channels);
+                target.TailCurve = tail;
+            }
+
             if (source.ChannelCurves == null)
             {
                 return;
