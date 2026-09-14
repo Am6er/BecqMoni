@@ -43,7 +43,7 @@ namespace FsaStackShot
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
-    ///                [--plant-tail] [--plant-spread]
+    ///                [--plant-tail] [--plant-spread] [--tail-as-residual]
     ///                [--no-limit] [--limit-z=1000]
     ///
     /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
@@ -95,6 +95,18 @@ namespace FsaStackShot
     /// хвост рисовать как невязку». Положительный контроль: плечо с подсадкой
     /// обязано совпасть с HEAD по долям и невязке, а без неё — отличаться ровно
     /// на хвост. Числа с ключом в журнал не годятся, о чём проба говорит вслух.
+    /// ⚠ (`AMBER30`, решение Amber 14.09.2026 «В серый слой «континуум»») С 14.09.2026
+    /// хвост по умолчанию СНОВА В ПОДЛОЖКЕ (`FsaAnalyzer.UntiedTailAsResidual`),
+    /// откуда `S174` кладёт его ниже порога доверия в серый слой; `UntiedTail`
+    /// пуст, и подсадка — пустое действие, о чём строка `отвязанный хвост` и
+    /// говорит. Подсадка «яма снова на экране» — `--tail-as-residual`.
+    ///
+    /// `--tail-as-residual` (`AMBER30`, П70) — плечо Б: правило `S173` как в П68
+    /// (`FsaAnalyzer.UntiedTailAsResidual = true`) — хвост в `UntiedTail`, мимо
+    /// верха стека, лентой невязки. Положительный контроль правки: с ключом
+    /// числа обязаны совпасть с `025a65a9` (яма 56–100 кэВ на цезии в домике),
+    /// без ключа — с `a6f2b227` по фиту; фит (`--rates=`, кроме `share_pct`) —
+    /// побитово в обоих плечах.
     ///
     /// `--plant-spread` (`S174`) — ПОДСАДКА только для пробы: оба пола
     /// отображения снимаются (`FsaResult.ContinuumSpreadFloorChannel` и
@@ -245,6 +257,8 @@ namespace FsaStackShot
             string ratesPath = null;
             bool plantTail = false;
             bool plantSpread = false;
+            // (`AMBER30`, П70) Плечо Б: хвост лентой невязки, как в П68.
+            bool tailAsResidual = false;
             bool screenRows = false;
             var shieldZ = new List<int>();
             double pownum = 4.0;
@@ -299,6 +313,7 @@ namespace FsaStackShot
                 else if (a == "--screen") screenRows = true;
                 else if (a == "--plant-tail") plantTail = true;
                 else if (a == "--plant-spread") plantSpread = true;
+                else if (a == "--tail-as-residual") tailAsResidual = true;
                 else if (a.StartsWith("--shield=", StringComparison.Ordinal))
                 {
                     foreach (string z in a.Substring(9).Split(','))
@@ -711,6 +726,14 @@ namespace FsaStackShot
             // после разбора у анализатора появляется состояние прогона
             // (`RefitZState`), и эталон `new FsaAnalyzer()` разошёлся бы с ним
             // не по настройкам, а по исходу.
+            // (`AMBER30`, П70) Ключ обязан доехать до анализатора; читатель — строка
+            // `FsaTuningReport.Print` («UntiedTailAsResidual False → True») и строка
+            // `отвязанный хвост` ниже.
+            if (tailAsResidual)
+            {
+                analyzer.UntiedTailAsResidual = true;
+            }
+
             FsaTuningReport.Print(analyzer);
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                 rd.FwhmCalibration,
@@ -842,7 +865,10 @@ namespace FsaStackShot
             // образов — чей и сколько отсчётов: на экране они лежат НЕВЯЗКОЙ, а
             // не слоем нуклида, и без этой строки «невязка внизу шкалы выросла»
             // и «слой Pb-212 похудел» читатель связал бы только по картинке.
-            Console.WriteLine("отвязанный хвост (в невязке, не в слоях): {0}", TailNote(result));
+            Console.WriteLine(analyzer.UntiedTailAsResidual
+                                  ? "отвязанный хвост (в невязке, не в слоях — --tail-as-residual): {0}"
+                                  : "отвязанный хвост (в подложке → серый слой S174, AMBER30; UntiedTail пуст по построению): {0}",
+                              TailNote(result));
 
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
             {

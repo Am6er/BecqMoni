@@ -1,0 +1,26 @@
+  AS80x80_spline_components.csv строка 30: ['AS80_Cs137_0cm', 'AS80x80', 'known', 'Cs-137'] | ['AS80_Cs137_0cm', 'AS80x80', 'known', 'Cs-137']
+  AS80x80_spline_grey.csv строка 4: ['AS80_Cs137_0cm', 'AS80x80', 'known', '1'] | ['AS80_Cs137_0cm', 'AS80x80', 'known', '1']
+  строк не поровну: AS80x80_spline_tails.csv 2
+  ASN16_spline_components.csv строка 6: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_components.csv строка 7: ['ASN16_Lu176', 'ASN16', 'known', 'Xray-Lu'] | ['ASN16_Lu176', 'ASN16', 'known', 'Xray-Lu']
+  ASN16_spline_components.csv строка 8: ['ASN16_Lu176', 'ASN16', 'known', 'pile-up'] | ['ASN16_Lu176', 'ASN16', 'known', 'pile-up']
+  ASN16_spline_components.csv строка 9: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_grey.csv строка 3: ['ASN16_Lu176', 'ASN16', 'known', '1'] | ['ASN16_Lu176', 'ASN16', 'known', '1']
+  ASN16_spline_grey.csv строка 4: ['ASN16_Lu176_P0', 'ASN16', 'known', '1'] | ['ASN16_Lu176_P0', 'ASN16', 'known', '1']
+  строк не поровну: ASN16_spline_tails.csv 2
+  строк не поровну: ASN16_spline_tails.csv 3
+  G1S16_spline_components.csv строка 9: ['G1S16_Mn54_P25', 'G1S16', 'known', 'Mn-54'] | ['G1S16_Mn54_P25', 'G1S16', 'known', 'Mn-54']
+  G1S16_spline_components.csv строка 24: ['G1S16_Co57_P5', 'G1S16', 'known', 'Co-57'] | ['G1S16_Co57_P5', 'G1S16', 'known', 'Co-57']
+  G1S16_spline_components.csv строка 25: ['G1S16_Co60_P5', 'G1S16', 'known', 'Co-60'] | ['G1S16_Co60_P5', 'G1S16', 'known', 'Co-60']
+  G1S16_spline_components.csv строка 29: ['G1S16_Mn54_P5', 'G1S16', 'known', 'Mn-54'] | ['G1S16_Mn54_P5', 'G1S16', 'known', 'Mn-54']
+  строк не поровну: G1S16_spline_tails.csv 2
+  строк не поровну: G1S16_spline_tails.csv 3
+  строк не поровну: G1S16_spline_tails.csv 4
+  строк не поровну: G1S16_spline_tails.csv 5
+  строк не поровну: G1S16_spline_tails.csv 6
+  строк не поровну: G1S16_spline_tails.csv 7
+  строк не поровну: G1S16_spline_tails.csv 8
+  строк не поровну: G1S16_spline_tails.csv 9
+  строк не поровну: G1S24_spline_tails.csv 2
+  строк не поровну: G1S24_spline_tails.csv 3
+csv 24, строк 515, расхождений вне времени 41, только во времени 50
