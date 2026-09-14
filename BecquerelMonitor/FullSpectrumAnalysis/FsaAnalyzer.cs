@@ -8206,13 +8206,59 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double amplitude = fit.Amplitude[k];
                 if (column.Component == null)
                 {
-                    // шапки континуума схлопываются в одну кривую
-                    if (amplitude > 0.0)
+                    if (amplitude <= 0.0)
                     {
+                        continue;
+                    }
+
+                    // ⛔ (`S173`, решение Amber 14.09.2026 «Отвязанный хвост
+                    // рисовать как невязку») ОТВЯЗАННЫЙ ХВОСТ ОБРАЗА — НЕ
+                    // ПОДЛОЖКА. Ниже порога доверия матрицы континуум образа
+                    // идёт в фит своей свободной колонкой (`S11`), и до
+                    // 14.09.2026 она складывалась сюда же, в `Continuum`, откуда
+                    // разнос подложки (`FsaResult.DistributeContinuum`) отдавал
+                    // её слоям нуклидов пропорционально их пиковому счёту выше
+                    // канала — свободная подгонка низа шкалы шла лентой и долей
+                    // нуклида. ⚠ Мера П65 §4.1 («5900 отсч. из 7174 в 40–64 кэВ
+                    // на фильтре ASN16 — отвязанный континуум») оказалась не про
+                    // хвост: П68 измерила хвост Pb-212 там в 569 отсч. (1008 на
+                    // весь спектр), остальное — сплайн подложки, и он разносится
+                    // по слоям по-прежнему (`S76`, другое решение).
+                    //
+                    // Теперь хвост копится ОТДЕЛЬНО (`UntiedTail`) и в модель
+                    // стека не входит: в слой нуклида идёт ровно образ × амплитуда
+                    // — та же привязанная часть, что выше порога, — а хвост
+                    // остаётся между верхом стека и измерением, то есть лентой
+                    // невязки и долей «не описано». Фит этим не тронут:
+                    // амплитуды, z, пределы и χ²/ndf считаны выше и здесь только
+                    // читаются. Кто хочет модель фита целиком — `FsaResult.FitModel()`.
+                    if (column.TailOf != null)
+                    {
+                        if (result.UntiedTail == null)
+                        {
+                            result.UntiedTail = new double[channels];
+                        }
+
+                        double tailCounts = 0.0;
                         for (int i = chLo; i <= chHi; i++)
                         {
-                            result.Continuum[i] += amplitude * column.Values[i];
+                            double value = amplitude * column.Values[i];
+                            result.UntiedTail[i] += value;
+                            tailCounts += value;
                         }
+
+                        result.UntiedTails.Add(new FsaUntiedTail
+                        {
+                            Component = column.TailOf.Name,
+                            Counts = tailCounts
+                        });
+                        continue;
+                    }
+
+                    // шапки континуума схлопываются в одну кривую
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        result.Continuum[i] += amplitude * column.Values[i];
                     }
 
                     continue;
@@ -8344,6 +8390,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // циклом: «спектр минус вычтенный фон» — правило одно на проект, и
             // третьей его копии рядом с показной и с фитом быть не должно.
             // Числа не меняются ни на знак: считалось ровно это.
+            //
+            // (`S173`) Модель здесь — БЕЗ отвязанных хвостов (`result.Model`,
+            // верх стека): их отсчёты входят в «не описано» — так решено Amber
+            // 14.09.2026, и ровно так лежит лента на экране.
             double missingCounts = 0.0, excessCounts = 0.0, measuredCounts = 0.0;
             int[] raw = spectrum.Spectrum;
             double[] measured = result.FitSpectrum(raw);
@@ -8919,6 +8969,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             public FsaComponent Component;   // null у колонок континуума
             public double[] Values;
+
+            /// <summary>
+            /// (`S173`) У колонки ОТВЯЗАННОГО ХВОСТА — компонент, чей это
+            /// подпороговый континуум (<see cref="ResponseContinuumTrustFloorKev"/>);
+            /// <see cref="Component"/> при этом остаётся null, потому что для
+            /// решателя, отсева и пределов она — свободная колонка без имени,
+            /// как шапки сплайна. Читатель — <see cref="BuildResult"/>: хвост
+            /// уходит в <see cref="FsaResult.UntiedTail"/>, а не в подложку.
+            /// </summary>
+            public FsaComponent TailOf;
         }
 
         sealed class FitResult
@@ -9507,13 +9567,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     columns.Add(new FitColumn { Component = component, Values = template });
 
                     // Подпороговый хвост матричного образа — своя колонка со
-                    // свободной амплитудой и БЕЗ компонента: в результате она
-                    // сливается с подложкой, в «пирог» и отсев по z не входит.
-                    // Живёт и умирает вместе с компонентом: при отсеве subset
-                    // выкидывает обоих ещё до этой ветки.
+                    // свободной амплитудой и БЕЗ компонента: в «пирог» и отсев
+                    // по z не входит. Живёт и умирает вместе с компонентом: при
+                    // отсеве subset выкидывает обоих ещё до этой ветки.
+                    // (`S173`) Чей хвост — помечено: в результате он идёт НЕ в
+                    // подложку, а в невязку (`FsaResult.UntiedTail`).
                     if (lowTail != null)
                     {
-                        columns.Add(new FitColumn { Component = null, Values = lowTail });
+                        columns.Add(new FitColumn { Component = null, TailOf = component, Values = lowTail });
                     }
                 }
             }
@@ -10338,8 +10399,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// континуум в окно, где модель не сходится, и штраф перевешивал.
         ///
         /// Ниже порога континуум образа не выбрасывается, а ОТВЯЗЫВАЕТСЯ:
-        /// уходит отдельной колонкой со свободной амплитудой (в отрисовке она
-        /// сливается с подложкой). Там, где матрица права (цезий: плато
+        /// уходит отдельной колонкой со свободной амплитудой. ⛔ (`S173`,
+        /// решение Amber 14.09.2026) В ОТРИСОВКЕ ЭТА КОЛОНКА — НЕВЯЗКА, а не
+        /// подложка и не слой нуклида: у неё своя амплитуда, и слоем нуклида
+        /// она врала бы о составе (находка П65 §4.1, мера П68: на фильтре ASN16
+        /// хвост живёт на пороге АЦП, 1008…16012 отсч.).
+        /// Читатель — <see cref="BuildResult"/> через <c>FitColumn.TailOf</c>,
+        /// сущность — <see cref="FsaResult.UntiedTail"/>. Фит от этого не
+        /// меняется. Там, где матрица права (цезий: плато
         /// комптона под порогом настоящее), NNLS берёт хвост почти с той же
         /// амплитудой и качество матрицы сохраняется — жёсткая отсечка стоила
         /// на цезиевом спектре χ²/ndf 35.9 → 42.6. Там, где окно занято чужим

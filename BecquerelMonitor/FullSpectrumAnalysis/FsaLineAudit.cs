@@ -26,9 +26,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// Поэтому итог печатается полосами энергии, а не одним числом.
     ///
     /// КАК СЧИТАЕТСЯ ПЛОЩАДЬ. Окно ±1 ПШПВ вокруг линии; подложка берётся У
-    /// САМОГО АНАЛИЗАТОРА (<see cref="FsaResult.Continuum"/>) и вычитается из
-    /// данных и из модели ОДНОЙ И ТОЙ ЖЕ величиной. Вычитаемый фон снимается с
-    /// данных заранее: модель его не содержит.
+    /// САМОГО АНАЛИЗАТОРА и вычитается из данных и из модели ОДНОЙ И ТОЙ ЖЕ
+    /// величиной. Вычитаемый фон снимается с данных заранее: модель его не
+    /// содержит.
+    ///
+    /// ⚠ (`S173`) Подложка здесь — КОНТИНУУМ ФИТА (<see cref="FsaResult.FitContinuum"/>:
+    /// сплайн ПЛЮС отвязанные хвосты матричных образов), а не
+    /// <see cref="FsaResult.Continuum"/> и не <see cref="FsaResult.Model"/>
+    /// стека. С 14.09.2026 хвосты на экране идут невязкой (решение Amber), но
+    /// эта сверка судит МАТРИЦУ по высотам линий, и то, что под окном линии
+    /// забрала свободная колонка, — описание подложки фитом, а не промах
+    /// матрицы; снимать только сплайн значило бы вменить матрице чужое, и
+    /// сверка внизу шкалы врала бы ровно на хвост. Модель для окна берётся тем
+    /// же движением (<see cref="FsaResult.FitModel"/>), так что разность
+    /// «модель − подложка» под окном — по-прежнему сумма образов, а числа
+    /// сверки при переносе хвоста в невязку не сдвинулись ни на знак.
     ///
     /// ⛔ **Оценивать подложку по боковым полосам НЕЛЬЗЯ, и это измерено, а не
     /// выведено.** Первая редакция брала её линейной по двум полосам 1.5…3 ПШПВ,
@@ -146,7 +158,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             int channels = spectrum.NumberOfChannels;
             int[] data = spectrum.Spectrum;
-            double[] model = result.Model;
+            // (`S173`) Модель и подложка — ФИТА, с отвязанными хвостами (см. шапку).
+            double[] model = result.FitModel();
+            double[] continuum = result.FitContinuum();
             double[] background = result.Background;
 
             // Амплитуды состава: по имени. Компонент, которого в разложении нет
@@ -181,7 +195,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                result.AnchorLightReferenceKev);
                 foreach (LineGroup group in groups)
                 {
-                    LineCheck check = Measure(group, data, model, result.Continuum, background,
+                    LineCheck check = Measure(group, data, model, continuum, background,
                                               fitted.Curve, result.FirstChannel,
                                               result.LastChannel, channels);
                     if (check != null)

@@ -75,9 +75,17 @@ namespace FsaDoubleCountProbe
     ///      проходит в разбор. Рядом числом — судьба образа рентгена кристалла
     ///      (`FromCrystal`, гейт `AMBER4`). ⛔ Положительный контроль: гейт
     ///      снят при матрице — образ обязан вернуться, счётчик — молчать.
+    ///   6. `S173` (решение Amber 14.09.2026 «Отвязанный хвост рисовать как
+    ///      невязку»), при живой матрице: отвязанные хвосты образов
+    ///      (`FsaResult.UntiedTail`) есть, лежат ниже порога доверия, в верх
+    ///      стека (`Model` = `Continuum` + Σ кривых) не входят, модель фита
+    ///      (`FitModel`) = верх + хвост, Σ слоёв = `Model` (стек + невязка =
+    ///      данные). ⛔ Положительный контроль: подсадка «хвост снова в слой»
+    ///      на том же результате — договор отказывает, доля носителя растёт,
+    ///      «не описано» падает, χ²/ndf тот же.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0. Всё, что мерится, печатается строками
-    /// `CELL`/`SDE`/`ESC`/`CHAIN`, чтобы числа можно было положить в журнал.
+    /// `CELL`/`SDE`/`ESC`/`CHAIN`/`TAIL`, чтобы числа можно было положить в журнал.
     /// </summary>
     static class Program
     {
@@ -575,6 +583,20 @@ namespace FsaDoubleCountProbe
             }
 
             // ------------------------------------------------------------------
+            // S173: отвязанный хвост матричного образа — невязка, не слой.
+            // ------------------------------------------------------------------
+            Console.WriteLine();
+            Console.WriteLine("=== S173: отвязанный хвост (ниже порога доверия матрицы) — невязка, не слой ===");
+            if (matrix == null)
+            {
+                Console.WriteLine("(матрицы нет — отвязки нет по построению; клетки S173 на этом спектре не меряются)");
+            }
+            else
+            {
+                CheckUntiedTail(rd, matrix, material, sample, efficiency);
+            }
+
+            // ------------------------------------------------------------------
             // A169: библиотека ИЗ БАЗ, равновесие вкл/выкл.
             // ------------------------------------------------------------------
             Console.WriteLine();
@@ -736,6 +758,309 @@ namespace FsaDoubleCountProbe
         static string Cell(bool withMatrix, bool escapeOn)
         {
             return "матрица " + (withMatrix ? "есть" : "нет") + ", вылеты " + (escapeOn ? "вкл" : "выкл");
+        }
+
+        /// <summary>
+        /// (`S173`, решение Amber 14.09.2026 «Отвязанный хвост рисовать как
+        /// невязку») Договор результата при живой матрице, числом:
+        ///
+        ///   * у результата есть отвязанные хвосты (`UntiedTail`, `UntiedTails`)
+        ///     с положительной суммой, и они лежат НИЖЕ порога доверия матрицы
+        ///     (выше `ResponseContinuumTrustFloorKev` + 3 ПШПВ хвоста нет вовсе —
+        ///     помечены именно колонки хвоста, а не шапки сплайна);
+        ///   * верх стека `Model` = `Continuum` + Σ кривых компонентов — хвоста в
+        ///     нём нет; модель фита `FitModel()` = `Model` + `UntiedTail`;
+        ///   * Σ слоёв стека (с неразнесённым остатком) = `Model` по каналам —
+        ///     тождество стека: слои + невязка = данные;
+        ///   * невязка «не описано» считана против `Model` — то есть хвост в ней.
+        ///
+        /// ⛔ Положительный контроль — ПОДСАДКА «хвост снова в слой»: тот же
+        /// результат, хвост сложен обратно в подложку и верх стека, доли
+        /// пересчитаны (`ComputeComponentShares`) — картинка ДО S173. Договор
+        /// на ней обязан ОТКАЗАТЬ, доля нуклида с хвостом — вырасти, «не
+        /// описано» — упасть; фит (амплитуды, z, χ²/ndf) — тот же.
+        /// Строки `TAIL` — числа в журнал.
+        /// </summary>
+        static void CheckUntiedTail(ResultData rd, ResponseMatrix matrix, string material,
+                                    List<FsaComponent> sample, FsaEfficiency efficiency)
+        {
+            FsaAnalyzer analyzer = NewAnalyzer(rd, matrix, material);
+            new FsaCalculationOptions().ApplyTo(analyzer);
+            FsaTuningReport.Print(analyzer, "S173, матрица есть");
+            FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                rd.FwhmCalibration, sample, efficiency);
+            if (result == null)
+            {
+                Console.WriteLine("S173: разложение не получилось");
+                bad++;
+                return;
+            }
+
+            Same("S173: матрица применена", true, result.ResponseMatrixUsed);
+            double tailTotal = 0.0;
+            foreach (FsaUntiedTail tail in result.UntiedTails)
+            {
+                tailTotal += tail.Counts;
+                Console.WriteLine("TAIL\tхвост\t{0}\t{1}", tail.Component,
+                                  tail.Counts.ToString("F1", CultureInfo.InvariantCulture));
+            }
+
+            Console.WriteLine("TAIL\tвсего\t{0}\tотсч.; χ²/ndf {1}; не описано {2} %, приписано {3} %",
+                              tailTotal.ToString("F1", CultureInfo.InvariantCulture),
+                              result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualExcessShare).ToString("F2", CultureInfo.InvariantCulture));
+            if (!(tailTotal > 0.0))
+            {
+                // Законный исход, а не отказ: колонки хвоста фиту предъявлены, но
+                // NNLS дал всем ноль (`AS80_Th232Medal`: сплайн и пики описали
+                // низ шкалы сами). Это и есть «спектр, где ниже порога всё
+                // привязано»: слои и доли обязаны быть побитово теми же, что до
+                // S173 — проверяется сверкой плеч, здесь мерить нечего.
+                Console.WriteLine("(отвязанных хвостов у результата нет — решатель дал им ноль; клетки S173 и подсадка на этом спектре не меряются, слои побитово прежние)");
+                Same("S173, хвостов нет: Model = Continuum + Σ кривых (хвоста в верхе стека нет)", 0,
+                     TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, true).Count);
+                return;
+            }
+
+            // Хвост-носитель: компонент с наибольшим хвостом — по нему и
+            // сверяется доля до/после подсадки.
+            string carrier = null;
+            double carrierTail = 0.0;
+            foreach (FsaUntiedTail tail in result.UntiedTails)
+            {
+                if (tail.Counts > carrierTail)
+                {
+                    carrier = tail.Component;
+                    carrierTail = tail.Counts;
+                }
+            }
+
+            double missingBefore = result.ResidualMissingShare;
+            double shareBefore = ShareOf(result, carrier);
+            double chi2Before = result.Chi2Ndf;
+            List<string> refusals = TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, false);
+            foreach (string refusal in refusals)
+            {
+                Console.WriteLine("  ⛔ договор S173: {0}", refusal);
+            }
+
+            Same("S173: договор результата (хвост есть, ниже порога, не в верхе стека, стек = модель) выполнен", 0, refusals.Count);
+
+            // Подсадка «хвост снова в слой» — картинка до S173.
+            for (int i = 0; i < result.UntiedTail.Length; i++)
+            {
+                double tail = result.UntiedTail[i];
+                if (i < result.Continuum.Length) result.Continuum[i] += tail;
+                if (i < result.Model.Length) result.Model[i] += tail;
+            }
+
+            double[] plantedTail = result.UntiedTail;
+            result.UntiedTail = null;
+            result.UntiedTails.Clear();
+            result.ComputeComponentShares();
+
+            // Невязка «не описано» после подсадки — тем же правилом, что у
+            // разбора (`FitSpectrum` минус `Model`, положительная половина).
+            double missingAfter = 0.0, measured = 0.0;
+            double[] net = result.FitSpectrum(rd.EnergySpectrum.Spectrum);
+            for (int i = result.FirstChannel; i <= result.LastChannel && i < net.Length; i++)
+            {
+                measured += net[i];
+                double d = net[i] - result.Model[i];
+                if (d > 0.0) missingAfter += d;
+            }
+
+            missingAfter = measured > 0.0 ? missingAfter / measured : 0.0;
+            double shareAfter = ShareOf(result, carrier);
+            Console.WriteLine("TAIL\tподсадка\t{0}\tдоля {1} → {2} %; не описано {3} → {4} %; хвост {5} отсч.",
+                              carrier,
+                              shareBefore.ToString("F2", CultureInfo.InvariantCulture),
+                              shareAfter.ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * missingBefore).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * missingAfter).ToString("F2", CultureInfo.InvariantCulture),
+                              carrierTail.ToString("F1", CultureInfo.InvariantCulture));
+
+            List<string> planted = TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, false);
+            Same("положительный контроль S173: подсадка «хвост снова в слой» — договор ОТКАЗЫВАЕТ (ловушка сработала)",
+                 true, planted.Count > 0);
+            Same("положительный контроль S173: с хвостом в слое доля носителя больше", true, shareAfter > shareBefore);
+            Same("положительный контроль S173: с хвостом в слое «не описано» меньше", true, missingAfter < missingBefore);
+            Same("положительный контроль S173: фит подсадкой не тронут (χ²/ndf)", chi2Before, result.Chi2Ndf);
+
+            // Хвост вернулся в верх стека целиком: Σ слоёв = Model и после.
+            double worst = StackGap(result);
+            Same("положительный контроль S173: тождество стека держится и с хвостом в слое (Σ слоёв = модель)",
+                 true, worst <= StackTolerance(result));
+            Console.WriteLine("  (подсажено {0} отсч. хвоста; худший зазор стека {1}, допуск {2})",
+                              Sum(plantedTail).ToString("F1", CultureInfo.InvariantCulture),
+                              worst.ToString("E2", CultureInfo.InvariantCulture),
+                              StackTolerance(result).ToString("E2", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Допуск тождества «Σ слоёв стека = Model». Слои с долей ниже
+        /// <see cref="FsaResult.MinShownSharePercent"/> из стека УБРАНЫ ПО
+        /// ПОСТРОЕНИЮ (`S87`, указание Amber 19.08.2026), и верх стека проседает
+        /// на их сумму — меньше 0.005 % знаменателя на слой; плюс отрицательная
+        /// часть кривых подрезана (`PositivePart`). Допуск — ровно эта величина
+        /// на число возможных слоёв, а не «машинный ноль».
+        /// </summary>
+        static double StackTolerance(FsaResult result)
+        {
+            int layers = result.Components != null ? result.Components.Count + 1 : 1;
+            return layers * FsaResult.MinShownSharePercent / 100.0 * Math.Max(1.0, result.StackTotal)
+                   + 1e-9 * Math.Max(1.0, MaxOf(result.Model));
+        }
+
+        /// <summary>
+        /// Список нарушений договора S173; пусто — договор выполнен.
+        /// <paramref name="allowEmpty"/> — хвостов может не быть (решатель дал
+        /// им ноль): тогда проверяется только верх стека.
+        /// </summary>
+        static List<string> TailContract(FsaResult result, double floorKev, ResultData rd, bool allowEmpty)
+        {
+            var refusals = new List<string>();
+            if (result.UntiedTail == null || result.UntiedTails == null || result.UntiedTails.Count == 0)
+            {
+                if (!allowEmpty)
+                {
+                    refusals.Add("хвостов нет (UntiedTail/UntiedTails пусты)");
+                    return refusals;
+                }
+
+                double topEmpty = MaxOf(result.Model);
+                double gapEmpty = 0.0;
+                for (int i = result.FirstChannel; i <= result.LastChannel; i++)
+                {
+                    double sum = result.Continuum[i];
+                    foreach (FsaComponentResult c in result.Components) sum += c.Curve[i];
+                    gapEmpty = Math.Max(gapEmpty, Math.Abs(sum - result.Model[i]));
+                }
+
+                if (gapEmpty > 1e-6 * Math.Max(1.0, topEmpty))
+                {
+                    refusals.Add("Model ≠ Continuum + Σ кривых, зазор " + gapEmpty.ToString("E2", CultureInfo.InvariantCulture));
+                }
+
+                return refusals;
+            }
+
+            double total = Sum(result.UntiedTail);
+            if (!(total > 0.0))
+            {
+                refusals.Add("сумма хвоста не положительна");
+            }
+
+            double listed = 0.0;
+            foreach (FsaUntiedTail tail in result.UntiedTails) listed += tail.Counts;
+            if (Math.Abs(listed - total) > 1e-6 * Math.Max(1.0, total))
+            {
+                refusals.Add("Σ по компонентам " + listed.ToString("F3", CultureInfo.InvariantCulture)
+                             + " ≠ Σ кривой " + total.ToString("F3", CultureInfo.InvariantCulture));
+            }
+
+            // Хвост — ниже порога доверия: выше порога + 3 ПШПВ его быть не может.
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            double above = 0.0;
+            for (int i = 0; i < result.UntiedTail.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                double fwhmCh = rd.FwhmCalibration.ChannelToFwhm(i);
+                double fwhmKev = calibration.ChannelToEnergy(i + fwhmCh / 2.0) - calibration.ChannelToEnergy(i - fwhmCh / 2.0);
+                if (e > floorKev + 3.0 * Math.Max(0.0, fwhmKev))
+                {
+                    above += result.UntiedTail[i];
+                }
+            }
+
+            if (above > 1e-6 * total)
+            {
+                refusals.Add("хвост выше порога доверия: " + above.ToString("F3", CultureInfo.InvariantCulture)
+                             + " отсч. из " + total.ToString("F1", CultureInfo.InvariantCulture));
+            }
+
+            // Верх стека — без хвоста: Model = Continuum + Σ кривых.
+            double top = MaxOf(result.Model);
+            double gap = 0.0;
+            for (int i = result.FirstChannel; i <= result.LastChannel; i++)
+            {
+                double sum = result.Continuum[i];
+                foreach (FsaComponentResult c in result.Components) sum += c.Curve[i];
+                gap = Math.Max(gap, Math.Abs(sum - result.Model[i]));
+            }
+
+            if (gap > 1e-6 * Math.Max(1.0, top))
+            {
+                refusals.Add("Model ≠ Continuum + Σ кривых, зазор " + gap.ToString("E2", CultureInfo.InvariantCulture));
+            }
+
+            // Модель фита — с хвостом.
+            double[] fit = result.FitModel();
+            double fitGap = 0.0;
+            for (int i = result.FirstChannel; i <= result.LastChannel; i++)
+            {
+                fitGap = Math.Max(fitGap, Math.Abs(fit[i] - result.Model[i] - result.UntiedTail[i]));
+            }
+
+            if (fitGap > 1e-9 * Math.Max(1.0, top))
+            {
+                refusals.Add("FitModel ≠ Model + UntiedTail, зазор " + fitGap.ToString("E2", CultureInfo.InvariantCulture));
+            }
+
+            // Тождество стека: Σ слоёв (с остатком подложки) = Model — с допуском
+            // на слои, убранные из стека по доле (`S87`), см. StackTolerance.
+            double stackGap = StackGap(result);
+            if (stackGap > StackTolerance(result))
+            {
+                refusals.Add("Σ слоёв ≠ Model, зазор " + stackGap.ToString("E2", CultureInfo.InvariantCulture)
+                             + " при допуске " + StackTolerance(result).ToString("E2", CultureInfo.InvariantCulture));
+            }
+
+            return refusals;
+        }
+
+        /// <summary>Худший по каналам |Σ слоёв стека − Model| (слои без отсева, лимит бесконечный).</summary>
+        static double StackGap(FsaResult result)
+        {
+            List<FsaStackLayer> layers = result.BuildStackedLayers(int.MaxValue);
+            double worst = 0.0;
+            for (int i = result.FirstChannel; i <= result.LastChannel; i++)
+            {
+                double sum = 0.0;
+                foreach (FsaStackLayer layer in layers)
+                {
+                    if (i < layer.Curve.Length) sum += layer.Curve[i];
+                }
+
+                worst = Math.Max(worst, Math.Abs(sum - result.Model[i]));
+            }
+
+            return worst;
+        }
+
+        static double ShareOf(FsaResult result, string name)
+        {
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (string.Equals(c.Name, name, StringComparison.Ordinal)) return c.SharePercent;
+            }
+
+            return 0.0;
+        }
+
+        static double Sum(double[] a)
+        {
+            double s = 0.0;
+            if (a != null) foreach (double v in a) s += v;
+            return s;
+        }
+
+        static double MaxOf(double[] a)
+        {
+            double m = 0.0;
+            if (a != null) foreach (double v in a) if (v > m) m = v;
+            return m;
         }
 
         static FsaAnalyzer NewAnalyzer(ResultData rd, ResponseMatrix matrix, string material)
