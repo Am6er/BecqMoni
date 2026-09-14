@@ -22,8 +22,26 @@ namespace BecquerelMonitor
             // документа — по образцу `FSAReportView` (`A246`).
             this.table1.SelectionChanged += this.Table1_SelectionChanged;
 
+            // (`AMBER26`) ПЕРЕМЕННАЯ ВЫСОТА СТРОК. У XPTable высота отдельной
+            // строки (`Row.Height`) учитывается отрисовкой, попаданием мыши
+            // (`TableModel.RowIndexAtExact`), прокруткой (`Table.RowYDifference`,
+            // `TotalRowHeight`) и рамкой выбора ТОЛЬКО под этим ключом; без него
+            // всё считается от общей `TableModel.RowHeight`, и строка ×N рисовалась
+            // бы высокой, а мышь и прокрутка жили бы по старой сетке. Сами ячейки
+            // переносить текст (`Cell.WordWrap`) не просят: имена кладутся с
+            // новой строки явно, высота — базовая × N, см. `RefreshTable`.
+            this.table1.EnableWordWrap = true;
+
             this.RefreshNuclideSets();
         }
+
+        /// <summary>
+        /// (`AMBER26`) Разделитель имён кандидатов В СПИСКЕ — перевод строки:
+        /// каждое имя на своей строке, строка таблицы высотой базовая × N.
+        /// Флажок на графике по-прежнему одной строкой через ресурс
+        /// `PeakLabelCandidateSeparator` (« / »).
+        /// </summary>
+        internal const string PeakListCandidateSeparator = "\n";
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
         public void ShowPeakDetectionResult()
@@ -341,13 +359,19 @@ namespace BecquerelMonitor
                     Row row = new Row();
                     string text = Resources.UnknownNuclide;
                     string text2 = "";
+                    int names = 1;
                     if (peak.Nuclide != null)
                     {
                         // (`S64`) Имена ВСЕХ кандидатов, победитель первым.
                         // Промах ниже считается по ПОБЕДИТЕЛЮ — он и есть та
                         // линия, которой пик подписан; у соперника свой промах,
                         // и складывать их в одну колонку нечего.
-                        text = PeakDetector.PeakLabel(peak);
+                        // (`AMBER26`) В списке имена — С НОВОЙ СТРОКИ, не через
+                        // « / »: графа «Nuclide» узкая (100 px в поставке), и
+                        // второе-третье имя за разделителем обрезалось
+                        // многоточием молча.
+                        names = peak.NuclideCandidates.Count;
+                        text = PeakDetector.PeakLabel(peak, PeakListCandidateSeparator);
                         if (peak.Nuclide.Energy > 0.0)
                         {
                             double num = peak.Energy - peak.Nuclide.Energy;
@@ -370,6 +394,17 @@ namespace BecquerelMonitor
                     // (`A255`) Строка несёт свой пик: по нему график рисует
                     // выделение, а не по разбору текста ячеек.
                     row.Tag = peak;
+                    if (names > 1)
+                    {
+                        // (`AMBER26`) Строка с N именами — высотой базовая × N
+                        // (постановка Amber 14.09.2026: «высоту одной строки
+                        // хN»), строки с одним именем — прежней. По верху, а
+                        // не по центру: числа пика (энергия, промах, канал,
+                        // SNR, ПШПВ) встают вровень с именем ПОБЕДИТЕЛЯ, по
+                        // которому они и считаны, а не между соперниками.
+                        row.Height = this.tableModel1.RowHeight * names;
+                        row.Alignment = RowAlignment.Top;
+                    }
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();

@@ -1171,6 +1171,10 @@ namespace BecquerelMonitor
         /// ломает по построению: первым в строке стоит имя ПОБЕДИТЕЛЯ целиком.
         /// Но и это здесь ни при чём — строка собирается ТОЛЬКО для показа, а
         /// разбор состава читает <c>Peak.Nuclide</c>, то есть саму запись.
+        ///
+        /// Это надпись ФЛАЖКА на графике — одной строкой, разделитель из
+        /// ресурса. Список пиков берёт перегрузку с разделителем-переводом
+        /// строки (`AMBER26`).
         /// </summary>
         public static string PeakLabel(Peak peak)
         {
@@ -1178,14 +1182,33 @@ namespace BecquerelMonitor
             {
                 return null;
             }
-            IList<NuclideDefinition> candidates = peak.NuclideCandidates;
-            if (candidates.Count <= 1)
+            if (peak.NuclideCandidates.Count <= 1)
             {
                 return peak.Nuclide.Name;
             }
-            string separator = Resources.ResourceManager.GetString(
-                "PeakLabelCandidateSeparator", LabelCulture());
-            if (string.IsNullOrEmpty(separator))
+            return PeakLabel(peak, Resources.ResourceManager.GetString(
+                "PeakLabelCandidateSeparator", LabelCulture()));
+        }
+
+        /// <summary>
+        /// (`AMBER26`, задача Amber 14.09.2026) Та же надпись, но разделитель
+        /// задаёт ВЫЗЫВАЮЩИЙ: список пиков (<c>DCPeakDetectionView</c>) кладёт
+        /// имена кандидатов с новой строки, потому что в узкой графе «Nuclide»
+        /// второе и третье имя за « / » не видны вовсе. Перевод строки — не
+        /// пунктуация и не переводится, поэтому ресурса у него нет; флажок на
+        /// графике по-прежнему идёт через <see cref="PeakLabel(Peak)"/>.
+        ///
+        /// Пустой разделитель — одно имя победителя (то же правило, что и у
+        /// пустого ресурса выше).
+        /// </summary>
+        public static string PeakLabel(Peak peak, string separator)
+        {
+            if (peak == null || peak.Nuclide == null)
+            {
+                return null;
+            }
+            IList<NuclideDefinition> candidates = peak.NuclideCandidates;
+            if (candidates.Count <= 1 || string.IsNullOrEmpty(separator))
             {
                 return peak.Nuclide.Name;
             }
