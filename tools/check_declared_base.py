@@ -233,6 +233,19 @@ def _git(*args, **kw):
     return proc.stdout if binary else proc.stdout.decode('utf-8', 'replace').rstrip('\r\n')
 
 
+def rel_path(path):
+    u"""Путь для ПЕЧАТИ: от корня дерева, а если это невозможно — как есть.
+
+    `os.path.relpath` на Windows бросает `ValueError`, когда путь и корень на
+    разных дисках (`--decl=D:\\…\\README.md` при дереве на `C:`), и сторож падал
+    трассировкой вместо приговора (П61, 14.09.2026). Путь на другом диске —
+    законный ключ положительного контроля, печатается абсолютным."""
+    try:
+        return os.path.relpath(path, ROOT)
+    except ValueError:
+        return os.path.abspath(path)
+
+
 def main_pattern():
     u"""Правило «что такое довесок» — ОДНО НА ВСЕХ: читается из appwd_plan.ps1
     (`$script:AppWdMainPattern`), а не переписывается здесь (`T57`, `T61`)."""
@@ -572,8 +585,20 @@ def _short(h):
 
 
 def declaration_commit(decl_path, fp):
-    u"""Коммит, которым строка отпечатка попала в объявление; None — не закоммичена."""
-    rel = os.path.relpath(decl_path, ROOT).replace('\\', '/')
+    u"""Коммит, которым строка отпечатка попала в объявление; None — не закоммичена.
+
+    Объявление ВНЕ дерева (`--decl=D:\\…` — копия для положительного контроля,
+    другой диск или путь выше корня) своего коммита не имеет; искать его в git
+    нечем — `relpath` на другом диске падает `ValueError`, а путь выше корня git
+    не примет. Тогда строка отпечатка ищется в объявлении ДЕРЕВА: если копия несёт
+    ту же строку — сверка идёт с тем же коммитом, что и для живого README; если
+    строка подложена — коммита нет, сверка идёт с рабочим деревом и отказывает."""
+    try:
+        rel = os.path.relpath(decl_path, ROOT).replace('\\', '/')
+    except ValueError:
+        rel = None
+    if rel is None or rel.startswith('..'):
+        rel = os.path.relpath(DECL, ROOT).replace('\\', '/')
     out = _git('log', '--format=%H', '--reverse', '-S', 'sources=' + fp['sources'], '--', rel)
     if not out:
         return None
@@ -685,7 +710,7 @@ def check_fingerprints(decl_path, fp, corpus_dir, catalogs):
     # 3. клеймо прогона в каждом объявленном каталоге
     for title, path in catalogs:
         st = read_run_stamp(path)
-        rel = os.path.relpath(path, ROOT)
+        rel = rel_path(path)
         if st is None:
             if fp.get('run') == 'none' and head and is_ancestor(head, RUN_STAMP_EPOCH):
                 print(u'  [ -- ] %s: клейма прогона нет, объявление говорит run=none (снят до клейма, head=%s)' % (title, head[:8]))
@@ -790,7 +815,7 @@ def main():
                 % (args.base, len(kinds)))
 
     print(u'ОБЪЯВЛЕНИЕ: %s, раздел «%s»'
-          % (os.path.relpath(args.decl, ROOT), SECTION))
+          % (rel_path(args.decl), SECTION))
     print(u'ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога')
     print(u'строк объявления взято: %d' % len(rows))
     print()
@@ -822,10 +847,10 @@ def main():
 
         if not os.path.isdir(path):
             die(u'%s: каталог %s (%s) не найден'
-                % (title, os.path.relpath(path, ROOT), source))
+                % (title, rel_path(path), source))
         mode, err = detect_mode(path)
         if mode is None:
-            die(u'%s: %s (%s)' % (title, err, os.path.relpath(path, ROOT)))
+            die(u'%s: %s (%s)' % (title, err, rel_path(path)))
         if path not in [p for _t, p in catalogs]:
             catalogs.append((row['base'].replace('*', '').strip(), path))
 
@@ -837,14 +862,14 @@ def main():
             print(u'[ОТКАЗ] %s' % title)
         else:
             print(u'[ ОК ] %s' % title)
-        print(u'      каталог: %s (%s)' % (os.path.relpath(path, ROOT), source))
+        print(u'      каталог: %s (%s)' % (rel_path(path), source))
         print(u'      счёт:    python %s' % cmd)
         if bad:
             print(u'      РАСХОЖДЕНИЯ (%d):' % len(bad))
             for title2, want, have, digits in bad:
                 print(u'        %-14s объявлено %s, измерено %s'
                       % (title2, fmt(want, digits), fmt(have, digits)))
-            verdicts.append((title, bad, os.path.relpath(path, ROOT)))
+            verdicts.append((title, bad, rel_path(path)))
         else:
             shown = u', '.join(
                 u'%s %s' % (t, fmt(got[k], d)) for k, t, d in FIELDS
