@@ -31,12 +31,32 @@ using System.Threading;
 //                «выведено». Это ДОПУЩЕНИЕ: самопоглощение зависит от формы, а
 //                не только от объёма, и при той же вместимости плоская чашка и
 //                высокая банка дают разные кривые.
-//   ПЛОТНОСТЬ  — ИЗМЕРЕНА: паспортная масса, делённая на объём пробы той сцены,
-//                которая построена. Масса при этом сохраняется точно.
+//   ПЛОТНОСТЬ  — ИЗМЕРЕНА: паспортная масса, делённая на объём пробы. Объём —
+//                паспортный, когда паспорт его называет (сцена ПОСТРОЕНА под
+//                него, см. `T258` ниже), иначе объём построенной сцены. Масса
+//                при этом сохраняется точно.
 //   МАРИНЕЛЛИ  — у RC-103 не восстанавливается вовсе: это тот самый сосуд, что
 //                лежит в поставке ЛСРМ (`RadiaCode_Marinelli0.5.in`), и его
 //                размеры слово в слово повторяет заготовка редактора. Берём
 //                заготовку.
+//   МАРИНЕЛЛИ 1 л G1S — ПО ЧЕРТЕЖУ ОМАСН (`T258`, решение Amber 14.09.2026
+//                «Сосуды сейчас, отдельно», П66): корпус Ø154 × 112, колодец
+//                Ø97 × 65, стенки 2 мм — все размеры НАЗВАНЫ чертежом, из
+//                объёма ВЫВЕДЕНА только высота засыпки (`MarinelliOmasn`).
+//                До 14.09.2026 сосуд «восстанавливался из объёма» (колодец по
+//                прибору плюс 1.5 мм, слой 100 мм, внешний Ø из объёма —
+//                Ø135.2 × 104, колодец Ø76 × 70) и давал кривую в 1.22…1.23
+//                раза выше (П64 §7). ⛔ Прежний сосуд из кода УБРАН, а не
+//                оставлен под ключом: генератор, умеющий строить сцену двумя
+//                способами, однажды построит её не тем (`A77`).
+//   ЗАКРЕПЛЁННЫЕ — сцены, которые НЕ строятся, а хранятся байт в байт
+//                (`Geom.PinnedFrom`, источник — `corpus/geometries/pinned/`):
+//                диск ториевого стекла `AS80_th_disk` выгружен П13/П22 из
+//                спектра Amber (`FsaCascadeProbe --dump-geometry=`) и несёт
+//                блоки, которых из модели не собрать (у маринелли-блока своё
+//                вещество). Генератор их только переносит и вписывает в опись:
+//                до 14.09.2026 сцена жила в корпусе мимо генератора, и полный
+//                прогон молча выкидывал её строку из `index.csv`.
 //
 // Объём пробы считается ТЕМИ ЖЕ формулами, по которым сцену строит
 // `EfficiencySimulator.Build` (цилиндр: π·r_вн²·h; маринелли: кольцо вокруг
@@ -56,15 +76,24 @@ using System.Threading;
 // отсутствие таблицы сосудов — отказ, а не «построим меньше». Заодно список
 // `Build()` сведён с корпусом: снятая решением Amber геометрия `ASN16_lu_front`
 // (`B19`) из него убрана — иначе полный прогон возвращал её в корпус молча.
-// Приёмка: `--out=<временный каталог>` даёт 44 файла `.in` и опись `index.csv`,
-// ПОБАЙТНО равные корпусным (`handover/f13-t164/geom_check.py`). До 05.09.2026
-// (`T164`) опись в корпусе была правлена руками — несла BOM и алфавитный порядок,
-// — и сверялась лишь по множеству строк; решением Amber 05.09.2026 проба
-// первична, опись перестроена ею, и с тех пор равенство побайтное.
+// Приёмка: `--out=<временный каталог>` даёт 46 файлов `.in` и опись `index.csv`,
+// равные корпусным (`handover/p72-t258-t259/geom_diff.py`, до 14.09.2026 —
+// `handover/f13-t164/geom_check.py`). До 05.09.2026 (`T164`) опись в корпусе была
+// правлена руками — несла BOM и алфавитный порядок, — и сверялась лишь по
+// множеству строк; решением Amber 05.09.2026 проба первична, опись перестроена
+// ею, и с тех пор равенство описи побайтное.
+//
+// ⚠ Равенство самих `.in` — С ТОЧНОСТЬЮ ДО КЛЕЙМА, а не до байта (`T258`,
+// 14.09.2026): с `AMBER1` (08.09.2026) `GeometryWriter` пишет блок зазора
+// («Gap between reflector and cladding», два размера и вещество), а 42 сцены
+// корпуса записаны до него и блока не несут. Клеймо матрицы от блока НЕ
+// зависит (`ResponseMatrix.StampView` снимает вещество нулевого зазора), и
+// переписывать 42 файла ради пятнадцати строк, ничего не меняющих в физике,
+// незачем. Приёмка — клеймом: `MatrixStampProbe --geometry=` на живом и на
+// построенном файле обязан печатать одно и то же (`handover/p72-t258-t259/
+// stamp_check.py`), а байтное равенство держится по модулю этого блока.
 class CorpusGeomProbe
 {
-    const double Eps = 1e-9;
-
     sealed class Geom
     {
         public string Key;              // имя файла без расширения
@@ -94,6 +123,14 @@ class CorpusGeomProbe
         public Action<GeometryModel> Shape;
         public string Assumed;          // что ПРИНЯТО, словами
         public GeometryDetectorFacing Facing = GeometryDetectorFacing.Front;
+
+        /// <summary>
+        /// ЗАКРЕПЛЁННАЯ сцена: путь источника от корня `tools/CORPUS`, файл
+        /// переносится в выход байт в байт, модель не строится, объём не
+        /// проверяется (его проверять не по чему — сцена не из паспорта).
+        /// Пусто — сцена строится <see cref="Shape"/>, как все.
+        /// </summary>
+        public string PinnedFrom;
     }
 
     static int Main(string[] args)
@@ -162,6 +199,38 @@ class CorpusGeomProbe
 
         foreach (Geom spec in all)
         {
+            if (!string.IsNullOrEmpty(spec.PinnedFrom))
+            {
+                // Закреплённая сцена: перенос байт в байт, без модели. Нет
+                // источника — ОТКАЗ всего прогона, а не «построим без неё»:
+                // опись пишется одним проходом, и сцена, выпавшая из него,
+                // выпадает и из описи, а с ней её спектры — в «непонятные».
+                string src = Path.Combine(corpus, spec.PinnedFrom.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(src))
+                {
+                    Console.Error.WriteLine("{0}: закреплённого источника нет — {1}", spec.Key, src);
+                    return 2;
+                }
+
+                Console.WriteLine("== {0} ==", spec.Key);
+                Console.WriteLine("   детектор : пресет «{0}»", spec.Preset);
+                Console.WriteLine("   сосуд    : {0}", spec.Vessel);
+                Console.WriteLine("   спектры  : {0}", string.Join(", ", spec.Spectra));
+                Console.WriteLine("   принято  : сцена ЗАКРЕПЛЕНА — {0} байт из {1}, объём не судится",
+                                  new FileInfo(src).Length, spec.PinnedFrom);
+                if (!dry)
+                {
+                    Directory.CreateDirectory(outDir);
+                    string dst = Path.Combine(outDir, spec.Key + ".in");
+                    File.Copy(src, dst, true);
+                    written++;
+                    Console.WriteLine("   файл     : {0}", dst);
+                }
+
+                Console.WriteLine();
+                continue;
+            }
+
             GeometryModel g = GeometryEditorPanel.Blank();
             GeometryPresets.Preset preset =
                 GeometryPresets.Items.FirstOrDefault(p => p.Name == spec.Preset);
@@ -187,8 +256,20 @@ class CorpusGeomProbe
 
             if (spec.PassportMassG > 0.0)
             {
-                // Плотность ИЗМЕРЕНА: масса паспорта на объём построенной сцены.
-                double density = spec.PassportMassG / volumeMl;
+                // Плотность ИЗМЕРЕНА: масса паспорта на объём пробы. Объём —
+                // ПАСПОРТНЫЙ, когда паспорт его называет: сцена построена под
+                // него, и объём сцены отличается от паспортного только тем,
+                // как записаны размеры в файле. ⛔ (`T258`) Брать здесь объём
+                // сцены нельзя: у маринелли по чертежу высота засыпки выведена
+                // из объёма и записана с точностью файла (0.0001 см,
+                // `MarinelliOmasn`), объём сцены от этого отходит от паспорта на
+                // 4·10⁻⁷, и плотность вместо `0.57` уезжала бы в файл как
+                // `0.5699998` — восемь цифр там, где паспорт даёт две, и другое
+                // клеймо у семнадцати посчитанных матриц. У сосудов «из объёма»
+                // объём сцены равен паспортному до последнего бита, и для них
+                // это то же самое число (проверено побайтно, П72).
+                double density = spec.PassportMassG
+                               / (spec.PassportVolumeMl > 0.0 ? spec.PassportVolumeMl : volumeMl);
                 if (spec.SourceFractions != null && spec.SourceFractions.Count > 0)
                 {
                     // Состав назван САМИМ спектром — библиотеку не спрашиваем
@@ -252,8 +333,9 @@ class CorpusGeomProbe
                 }
 
                 Console.WriteLine("   проба    : {0}, {1:F4} г/см3 (масса паспорта {2:F1} г"
-                                  + " на объём сцены — ИЗМЕРЕНО)",
-                                  g.Source.Name, g.Source.Density, spec.PassportMassG);
+                                  + " на объём {3} — ИЗМЕРЕНО)",
+                                  g.Source.Name, g.Source.Density, spec.PassportMassG,
+                                  spec.PassportVolumeMl > 0.0 ? "паспорта, под который сцена построена" : "сцены");
             }
             else
             {
@@ -340,19 +422,6 @@ class CorpusGeomProbe
         }
     }
 
-    /// <summary>
-    /// Внешний радиус собранного детектора: кристалл плюс всё, что на нём
-    /// надето сбоку. Нужен, чтобы колодец маринелли не оказался уже прибора —
-    /// число берётся у пресета, а не набирается здесь.
-    /// </summary>
-    static double DetectorOuterRadius(GeometryModel g)
-    {
-        double rCrystal = g.Shape == CrystalShape.Box
-            ? 0.5 * Math.Sqrt(g.CrystalBoxX * g.CrystalBoxX + g.CrystalBoxY * g.CrystalBoxY)
-            : 0.5 * g.CrystalDiameter;
-        return rCrystal + g.SideReflectorThickness + g.SideCladdingThickness + g.MountingThickness;
-    }
-
     // ----------------------------------------------------------------------
     // Сосуды
     // ----------------------------------------------------------------------
@@ -373,27 +442,64 @@ class CorpusGeomProbe
         g.BeakerToDetectorDistance = distanceMm;
     }
 
+    // Маринелли 1 л по чертежу ОМАСН (Радиевый институт; `YandexDisk\Спектры\G1S\
+    // ОМАСН.pdf`, разбор П64 §0.3), мм. Крышка Ø156.5 не моделируется.
+    // Семантика полей модели (`EfficiencySimulator`, ветка Marinelli;
+    // `SampleVolumeMm3`): `MarinelliBeakerDiameter` — НАРУЖНЫЙ Ø, `MarinelliHoleDiameter`
+    // — ВНУТРЕННИЙ Ø колодца (стенки снаружи от него), `MarinelliHoleHeight` —
+    // глубина колодца, `MarinelliSourceHeight` — полная высота пробы от дна.
+    const double OmasnOuterDiameterMm = 154.0;
+    const double OmasnHeightMm = 112.0;
+    const double OmasnWellDiameterMm = 97.0;
+    const double OmasnWellDepthMm = 65.0;
+    const double OmasnWallMm = 2.0;
+
     /// <summary>
-    /// Маринелли: ПРИНЯТЫ колодец (по внешнему размеру собранного детектора
-    /// плюс зазор) и высота слоя пробы, ВЫВЕДЕН внешний диаметр — из
-    /// паспортного объёма. Обратная задача к <see cref="SampleVolumeMm3"/>.
+    /// Маринелли 1 л G1S — ПО ЧЕРТЕЖУ ОМАСН (`T258`, решение Amber 14.09.2026
+    /// «Сосуды сейчас, отдельно», П66). НАЗВАНЫ чертежом корпус, колодец и
+    /// стенки; ВЫВЕДЕНА из паспортного объёма только высота засыпки — обратная
+    /// задача к <see cref="SampleVolumeMm3"/>: h = (V + π·r_кол²·h_кол)/(π·r_вн²),
+    /// r_кол = 48.5 + 2 = 50.5, r_вн = 77 − 2 = 75 (1 л → 86.058 мм: 21 мм над
+    /// потолком колодца, 3 мм воздуха под крышкой).
+    ///
+    /// ⚠ Высота засыпки ОКРУГЛЯЕТСЯ до 0.001 мм — до точности, с которой её
+    /// несёт файл (`GeometryWriter` пишет `G8` в сантиметрах: без округления в
+    /// файл уехало бы `8.605798 cm`, а сцены корпуса и клейма семнадцати их
+    /// матриц несут `8.6058 cm`, П66). Цена округления — 4·10⁻⁷ объёма; в
+    /// плотность оно не переносится (см. `Main`).
+    ///
+    /// До 14.09.2026 здесь стоял сосуд «из объёма» — колодец по наружному
+    /// размеру прибора плюс 1.5 мм, глубина 70, слой 100, внешний диаметр из
+    /// объёма (Ø135.2 × 104, колодец Ø76 × 70) — и давал кривую в 1.22…1.23 раза
+    /// выше чертёжной (П64 §7). Он убран, а не оставлен под ключом (`A77`).
     /// </summary>
-    static void Marinelli(GeometryModel g, double clearanceMm, double wellDepthMm,
-                          double sourceHeightMm, double volumeMl)
+    static void MarinelliOmasn(GeometryModel g, double volumeMl)
     {
         g.SourceType = GeometrySourceType.Marinelli;
-        g.MarinelliHoleDiameter = 2.0 * (DetectorOuterRadius(g) + clearanceMm);
-        g.MarinelliHoleHeight = wellDepthMm;
-        g.MarinelliSourceHeight = sourceHeightMm;
+        g.MarinelliBeakerDiameter = OmasnOuterDiameterMm;
+        g.MarinelliBeakerHeight = OmasnHeightMm;
+        g.MarinelliHoleDiameter = OmasnWellDiameterMm;
+        g.MarinelliHoleHeight = OmasnWellDepthMm;
+        g.MarinelliSideThickness = OmasnWallMm;
+        g.MarinelliEndWallThickness = OmasnWallMm;
+        g.MarinelliHoleSideThickness = OmasnWallMm;
+        g.MarinelliHoleEndWallThickness = OmasnWallMm;
 
-        double rHole = 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;
-        double cap = Math.Max(0.0, sourceHeightMm - wellDepthMm);
-        double rSrcOut2 = (volumeMl * 1000.0 / Math.PI - rHole * rHole * cap) / sourceHeightMm
-                        + rHole * rHole;
-        double rSrcOut = Math.Sqrt(Math.Max(rSrcOut2, rHole * rHole + Eps));
-        g.MarinelliBeakerDiameter = 2.0 * (rSrcOut + g.MarinelliSideThickness);
-        g.MarinelliBeakerHeight = sourceHeightMm + g.MarinelliEndWallThickness
-                                + g.MarinelliHoleEndWallThickness;
+        double rHole = 0.5 * OmasnWellDiameterMm + OmasnWallMm;
+        double rSrcOut = 0.5 * OmasnOuterDiameterMm - OmasnWallMm;
+        double h = (volumeMl * 1000.0 + Math.PI * rHole * rHole * OmasnWellDepthMm)
+                 / (Math.PI * rSrcOut * rSrcOut);
+        g.MarinelliSourceHeight = Math.Round(h, 3);
+        if (g.MarinelliSourceHeight <= OmasnWellDepthMm
+            || g.MarinelliSourceHeight > OmasnHeightMm - 2.0 * OmasnWallMm)
+        {
+            // Засыпка ниже потолка колодца или выше сосуда — не тот сосуд
+            // для такого объёма; отказ словами, а не сцена с невозможной пробой.
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.InvariantCulture,
+                "маринелли ОМАСН: объём {0} мл даёт засыпку {1} мм при колодце {2} и высоте {3}",
+                volumeMl, g.MarinelliSourceHeight, OmasnWellDepthMm, OmasnHeightMm));
+        }
     }
 
     // ----------------------------------------------------------------------
@@ -512,11 +618,12 @@ class CorpusGeomProbe
             double vol = volume;
             if (vessel.StartsWith("Маринелли", StringComparison.Ordinal))
             {
-                // Маринелли кольцевой: сцена та же, что у прежней
-                // `G1S_marinelli1l_th232` (колодец по внешнему размеру прибора
-                // плюс 1.5 мм, глубина 70 мм, слой 100 мм, внешний диаметр из
-                // объёма) — меняются только вещество и плотность.
-                g.Shape = m => Marinelli(m, 1.5, 70.0, 100.0, vol);
+                // Маринелли 1 л — по чертежу ОМАСН (`T258`); от объёма зависит
+                // только высота засыпки, меняются вещество и плотность.
+                g.Shape = m => MarinelliOmasn(m, vol);
+                g.Assumed = "ничего: сосуд по чертежу ОМАСН (Ø154 × 112, колодец Ø97 × 65, стенки 2 мм), "
+                          + "вещество, СОСТАВ, масса и объём взяты из заголовка `.spe`; "
+                          + "высота засыпки выведена из объёма";
             }
             else
             {
@@ -853,6 +960,65 @@ class CorpusGeomProbe
 
         // Сосудные сцены поверки — из таблицы, а не отсюда (`B12`).
         list.AddRange(VesselScenes(G1S, corpus));
+
+        // ⚠ Две сцены ниже стоят ПОСЛЕ табличных нарочно: порядок списка — это
+        // порядок описи `index.csv`, а обе сцены дописаны в корпус своими
+        // полосами в конец описи (П22 12.09.2026, П66 14.09.2026), и опись
+        // обязана воспроизводиться побайтно (`T164`).
+
+        // Диск ториевого стекла на AS80x80 (`AS80_th_disk`, П22 12.09.2026,
+        // понятным стал решением Amber по `B17`). ЗАКРЕПЛЁН, а не построен:
+        // сцена выгружена П13 из спектра Amber (`FsaCascadeProbe
+        // --dump-geometry=` по `!AS80x80\калибровка 08.09.2026\Th-232.xml`) с
+        // заменой вещества пробы на «Ториевое стекло» (4.345 г/см³ — 27.3 г на
+        // 6.283 см³; состав — модель П13 по семейству патента Morey, допущение
+        // П13), и несёт следы конфигурации Amber, которых из модели не
+        // собрать: в маринелли-блоке стоит `Glass, plate`, а `GeometryWriter`
+        // пишет в оба блока ОДНО вещество пробы. Пересобранная из пресета сцена
+        // дала бы другой текст — и другое клеймо у посчитанной матрицы.
+        // Источник — `corpus/geometries/pinned/AS80_th_disk.in` (sha256
+        // `850176dd…`, побайтно = `handover/p22-th-disk/geometries/`).
+        list.Add(new Geom
+        {
+            Key = "AS80_th_disk",
+            Preset = "Atom Spectra Pro 80x80",
+            Vessel = "стеклянный диск Ø40×5 мм (ториевое стекло 4.345 г/см³), ВПРИТЫК к торцу",
+            Spectra = new[] { "AS80_Th232Medal" },
+            PinnedFrom = "corpus/geometries/pinned/AS80_th_disk.in",
+        });
+
+        // Активированный уголь с радоном в маринелли 1 л ОМАСН (`AMBER29`,
+        // решение Amber 14.09.2026 «3 ранних + 1 равновесный», П64/П66): четыре
+        // съёмки одной засыпки — 461 г на паспортные 1000 мл (заголовок `.spe`:
+        // `SAMPLEMASS 461`, `SAMPLEVOLUME 1000`, `GEOMETRY Маринелли 1л`),
+        // прибор G1S24. Сцена НЕ из таблицы `lsrm_spectrum_geometry.csv`: там
+        // строки берутся из заголовка `.spe` вместе с составом, а у угля
+        // состава в заголовке нет и в `matdb` угля нет — состав задан здесь
+        // явно (углерод, П64), имя «Activated charcoal». Сосуд тот же, что у
+        // семнадцати эталонных маринелли (`MarinelliOmasn`), высота засыпки —
+        // из тех же 1000 мл. Ключ — по образцу табличных: сосуд, вещество,
+        // ρ·100, эпоха.
+        const double CoalMassG = 461.0, CoalVolumeMl = 1000.0;
+        list.Add(new Geom
+        {
+            Key = "G1S_mar1l_coal_046_p24",
+            Preset = G1S,
+            Vessel = string.Format(CultureInfo.InvariantCulture,
+                                   "Маринелли, набивка активированный уголь {0:0.###} г/см³, вплотную",
+                                   CoalMassG / CoalVolumeMl),
+            Spectra = new[]
+            {
+                "G1S24_Rn222Coal_Mar_20m", "G1S24_Rn222Coal_Mar_2h",
+                "G1S24_Rn222Coal_Mar_3h", "G1S24_Rn222Coal_Mar_eq01"
+            },
+            PassportVolumeMl = CoalVolumeMl,
+            PassportMassG = CoalMassG,
+            SourceMaterial = "Activated charcoal",
+            SourceFractions = new Dictionary<int, double> { { 6, 1.0 } },
+            Assumed = "состав пробы — чистый углерод (в заголовке `.spe` состава нет, в matdb угля нет; П64); "
+                      + "сосуд по чертежу ОМАСН, масса и объём из заголовка `.spe`",
+            Shape = g => MarinelliOmasn(g, CoalVolumeMl),
+        });
 
         return list;
     }

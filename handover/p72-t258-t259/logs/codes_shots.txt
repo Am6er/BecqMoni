@@ -1,0 +1,8 @@
+head_ra226=0
+new_ra226=0
+new_rn222=0
+new_xx999=2
+head_xx999=2
+head_coal_ra=0
+new_coal_ra=0
+new_coal_rn=0
