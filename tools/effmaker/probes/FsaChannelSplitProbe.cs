@@ -34,8 +34,9 @@ namespace FsaChannelSplitProbe
     ///   6. после родительской группировки     — `BuildParentLayers`.
     ///
     /// В точках 5 и 6 подложка РАЗНЕСЕНА по слоям, а в каналы она не идёт
-    /// (решение Amber 10.09.2026, «Подложка вне каналов»), поэтому тождество
-    /// там читается как Σ каналов = `Curve` − `ContinuumCurve`.
+    /// (решение Amber 10.09.2026, «Подложка вне каналов»), и (`S175`) хвост
+    /// образа лежит в ленте, но не в каналах, поэтому тождество там читается
+    /// как Σ каналов = `Curve` − `ContinuumCurve` − `TailCurve`.
     ///
     /// Точки 1 и 2 живут внутри разбора и наружу не выходят — они читаются
     /// ОТРАЖЕНИЕМ из кэша гистограмм (`FsaAnalyzer.deposits`). Это не обход
@@ -511,6 +512,20 @@ namespace FsaChannelSplitProbe
         }
 
         /// <summary>Тождество и неотрицательность на одной ленте.</summary>
+        /// <summary>(`S175`) Сумма двух кривых, любая из которых может быть null; null — обе пусты.</summary>
+        static double[] Plus(double[] a, double[] b)
+        {
+            if (a == null) return b;
+            if (b == null) return a;
+            double[] sum = new double[Math.Max(a.Length, b.Length)];
+            for (int i = 0; i < sum.Length; i++)
+            {
+                sum[i] = (i < a.Length ? a[i] : 0.0) + (i < b.Length ? b[i] : 0.0);
+            }
+
+            return sum;
+        }
+
         static void CheckIdentity(string title, double[] curve, double[] spread,
                                   double[][] channels, double[] sumPeaks)
         {
@@ -600,7 +615,9 @@ namespace FsaChannelSplitProbe
                 }
 
                 withChannels++;
-                CheckIdentity("слой " + layer.Name, layer.Curve, layer.ContinuumCurve,
+                // (`S175`) Отвязанный хвост образа — в ленте слоя, но не в
+                // каналах (нож один): снимается с ленты вместе с подложкой.
+                CheckIdentity("слой " + layer.Name, layer.Curve, Plus(layer.ContinuumCurve, layer.TailCurve),
                               layer.ChannelCurves, layer.SumPeakCurve);
             }
 

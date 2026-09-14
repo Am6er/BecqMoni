@@ -43,7 +43,7 @@ namespace FsaStackShot
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
-    ///                [--plant-tail] [--plant-spread] [--tail-as-residual]
+    ///                [--plant-tail] [--plant-spread] [--tail-as-residual] [--tail-to-continuum] [--plant-grey-floor]
     ///                [--no-limit] [--limit-z=1000]
     ///
     /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
@@ -89,39 +89,50 @@ namespace FsaStackShot
     /// (`FsaSampleLibrary`, `line[1] * member.Value`), то есть `CountRate` — в
     /// единицах распадов РОДИТЕЛЯ ряда: у Tl-208 это A(Tl-208)/0.3594.
     ///
-    /// `--plant-tail` (`S173`) — ПОДСАДКА только для пробы: отвязанные хвосты
-    /// матричных образов (`FsaResult.UntiedTail`) возвращаются в подложку и
-    /// разносятся по слоям, как было до решения Amber 14.09.2026 «Отвязанный
-    /// хвост рисовать как невязку». Положительный контроль: плечо с подсадкой
-    /// обязано совпасть с HEAD по долям и невязке, а без неё — отличаться ровно
-    /// на хвост. Числа с ключом в журнал не годятся, о чём проба говорит вслух.
-    /// ⚠ (`AMBER30`, решение Amber 14.09.2026 «В серый слой «континуум»») С 14.09.2026
-    /// хвост по умолчанию СНОВА В ПОДЛОЖКЕ (`FsaAnalyzer.UntiedTailAsResidual`),
-    /// откуда `S174` кладёт его ниже порога доверия в серый слой; `UntiedTail`
+    /// `--plant-tail` (`S173`) — ПОДСАДКА только для пробы, действует вместе с
+    /// `--tail-as-residual`: отвязанные хвосты матричных образов из невязки
+    /// (`FsaResult.UntiedTail`) возвращаются в подложку и разносятся по
+    /// слоям, как было до 14.09.2026. Без `--tail-as-residual` `UntiedTail`
     /// пуст, и подсадка — пустое действие, о чём строка `отвязанный хвост` и
-    /// говорит. Подсадка «яма снова на экране» — `--tail-as-residual`.
+    /// говорит. Числа с ключом в журнал не годятся, о чём проба говорит вслух.
     ///
     /// `--tail-as-residual` (`AMBER30`, П70) — плечо Б: правило `S173` как в П68
     /// (`FsaAnalyzer.UntiedTailAsResidual = true`) — хвост в `UntiedTail`, мимо
-    /// верха стека, лентой невязки. Положительный контроль правки: с ключом
-    /// числа обязаны совпасть с `025a65a9` (яма 56–100 кэВ на цезии в домике),
-    /// без ключа — с `a6f2b227` по фиту; фит (`--rates=`, кроме `share_pct`) —
-    /// побитово в обоих плечах.
+    /// верха стека, лентой невязки. Положительный контроль: с ключом числа
+    /// обязаны совпасть с `025a65a9` (яма 56–100 кэВ на цезии в домике); фит
+    /// (`--rates=`, кроме `share_pct`) — побитово в обоих плечах.
     ///
-    /// `--plant-spread` (`S174`) — ПОДСАДКА только для пробы: оба пола
-    /// отображения снимаются (`FsaResult.ContinuumSpreadFloorChannel` и
-    /// `ResidualFloorChannel` = 0) — сплайн подложки снова разносится по слоям
-    /// нуклидов и ниже порога доверия матрицы, а невязка считается по всей
-    /// полосе фита, как было до решений Amber 14.09.2026 «Ниже порога не
-    /// разносить — серый слой «континуум»» и «Только в диапазоне прибора».
-    /// Положительный контроль: плечо с подсадкой обязано совпасть с HEAD по
-    /// долям и невязке, без неё — отличаться ровно на серый слой ниже порога и
-    /// на невязку ниже `Min_Range`. Числа с ключом в журнал не годятся.
+    /// `--tail-to-continuum` (`S175`, П75) — ПОДСАДКА только для пробы:
+    /// отвязанные хвосты, лежащие у своих образов (`FsaComponentResult.TailCurve`,
+    /// решение Amber 14.09.2026 «Чини S174 так, чтобы выглядело физически
+    /// корректным»), перекладываются в подложку `Continuum` и разносятся по
+    /// слоям правилом `S76` — картинка `a6f2b227` (до П68: хвост в подложке,
+    /// пола разноса нет). Вместе с `--plant-grey-floor` — картинка П70
+    /// (`d5c94425`: провал в слое Cs-137, серый бугор 14.2 М отсч.). Верх стека
+    /// тот же, доли пересчитаны правилами результата. Положительный контроль:
+    /// плечо с подсадкой обязано совпасть с тем HEAD по долям и невязке до
+    /// знака, а договор `FsaDoubleCountProbe` §6 на такой подсадке — отказать.
+    /// ⚠ Не бит в бит: хвост складывается в подложку после шапок сплайна, а не
+    /// до, — последние разряды double, F3 их не видит.
     ///
-    /// Строка `пороги отображения (S174)` печатает оба пола каналом и кэВ, а
-    /// `серый слой (S174)` — сколько отсчётов серого слоя лежит ниже порога
-    /// доверия и сколько выше последней линии; в `--rates=` то же — разделом
-    /// `grey` (ПОСЛЕ прежних строк, шапка та же).
+    /// `--plant-grey-floor` (`S175`, второе решение Amber 14.09.2026 «В слои
+    /// образов по S76 везде») — ПОДСАДКА только для пробы: пол разноса подложки
+    /// ставится на порог доверия матрицы (`FsaResult.ContinuumSpreadFloorChannel`
+    /// тем же `FsaAnalyzer.FloorChannel`), и сплайн ниже порога уходит в серый
+    /// слой — п. 1 `S174` (П69), отменённый этим решением. Положительный
+    /// контроль: серый слой ниже порога появляется, доля носителя падает,
+    /// договор `FsaDoubleCountProbe` §7 отказывает; фит тот же.
+    ///
+    /// `--plant-spread` (`S174` п. 2) — ПОДСАДКА только для пробы: пол невязки
+    /// снимается (`ResidualFloorChannel` = 0; пол разноса в приложении и так
+    /// 0) — невязка считается по всей полосе фита, как было до решения Amber
+    /// 14.09.2026 «Только в диапазоне прибора». Числа с ключом в журнал не
+    /// годятся.
+    ///
+    /// Строка `пороги отображения` печатает оба пола каналом и кэВ, а
+    /// `серый слой` — сколько отсчётов серого слоя лежит ниже пола разноса (в
+    /// приложении 0) и сколько выше последней линии; в `--rates=` то же —
+    /// разделом `grey` (ПОСЛЕ прежних строк, шапка та же).
     ///
     /// `--screen` — строки окна отчёта КАК ОНИ ПОКАЗАНЫ (текст ячеек XPTable и
     /// подсказка), `SCREEN\t<имя>\t<значение>\t<подсказка>`; читается с того же
@@ -257,6 +268,8 @@ namespace FsaStackShot
             string ratesPath = null;
             bool plantTail = false;
             bool plantSpread = false;
+            bool tailToContinuum = false;
+            bool plantGreyFloor = false;
             // (`AMBER30`, П70) Плечо Б: хвост лентой невязки, как в П68.
             bool tailAsResidual = false;
             bool screenRows = false;
@@ -314,6 +327,8 @@ namespace FsaStackShot
                 else if (a == "--plant-tail") plantTail = true;
                 else if (a == "--plant-spread") plantSpread = true;
                 else if (a == "--tail-as-residual") tailAsResidual = true;
+                else if (a == "--tail-to-continuum") tailToContinuum = true;
+                else if (a == "--plant-grey-floor") plantGreyFloor = true;
                 else if (a.StartsWith("--shield=", StringComparison.Ordinal))
                 {
                     foreach (string z in a.Substring(9).Split(','))
@@ -755,6 +770,24 @@ namespace FsaStackShot
                                   + " картинка ДО S173, числа этого прогона в журнал НЕ ГОДЯТСЯ");
             }
 
+            // (`S175`) ПОДСАДКИ — положительный контроль приёмки; фит не
+            // трогается, только адресат хвоста / пол разноса и доли, теми же
+            // правилами результата. Порядок: сперва хвост в подложку, потом пол
+            // — так их сумма даёт ровно картинку П70.
+            if (tailToContinuum)
+            {
+                PlantTailToContinuum(result);
+                Console.WriteLine("⛔ ПОДСАДКА --tail-to-continuum (S175): хвосты образов переложены в подложку и разнесены по S76 —"
+                                  + " картинка a6f2b227 (до П68), числа этого прогона в журнал НЕ ГОДЯТСЯ");
+            }
+
+            if (plantGreyFloor)
+            {
+                PlantGreyFloor(result, analyzer.ResponseContinuumTrustFloorKev, rd.EnergySpectrum.EnergyCalibration);
+                Console.WriteLine("⛔ ПОДСАДКА --plant-grey-floor (S175): пол разноса на пороге доверия, сплайн ниже порога серым (п. 1 S174, П69) —"
+                                  + " картинка {0}, числа этого прогона в журнал НЕ ГОДЯТСЯ", tailToContinuum ? "П70 (d5c94425)" : "П75 до второго решения");
+            }
+
             // (`S174`) ПОДСАДКА «разнести подложку по слоям как прежде и считать
             // невязку по всей полосе» — положительный контроль приёмки: оба пола
             // отображения сняты, доли и невязка пересчитаны ТЕМИ ЖЕ правилами
@@ -768,10 +801,10 @@ namespace FsaStackShot
 
             // (`S174`) Оба пола отображения — каналом и кэВ, чтобы плечи
             // сверялись числом, а не картинкой.
-            Console.WriteLine("пороги отображения (S174): разнос подложки от канала {0} ({1} кэВ{2}), невязка от канала {3} ({4} кэВ) при полосе фита {5}..{6}",
+            Console.WriteLine("пороги отображения (S174/S175): разнос подложки от канала {0} ({1} кэВ{2}), невязка от канала {3} ({4} кэВ) при полосе фита {5}..{6}",
                               result.ContinuumSpreadFloorChannel,
                               result.ContinuumSpreadFloorKev.ToString("G", CultureInfo.InvariantCulture),
-                              result.ContinuumSpreadFloorKev > 0.0 ? "" : " — порога нет, разносится всё",
+                              result.ContinuumSpreadFloorKev > 0.0 ? " — ПОДСАДКА" : " — пола нет, S76 по всей шкале (S175)",
                               result.ResidualFloorChannel,
                               result.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture),
                               result.FirstChannel, result.LastChannel);
@@ -811,7 +844,7 @@ namespace FsaStackShot
             // (`S174`) Серый слой — двух родов, и оба названы числом.
             double greyBelow, greyAbove;
             GreySplit(result, shot, out greyBelow, out greyAbove);
-            Console.WriteLine("серый слой (S174): ниже порога доверия {0} отсч., выше последней линии {1} отсч.; всего {2} отсч. ({3} % стека)",
+            Console.WriteLine("серый слой: ниже пола разноса {0} отсч. (в приложении пола нет — S175), выше последней линии {1} отсч.; всего {2} отсч. ({3} % стека)",
                               greyBelow.ToString("F1", CultureInfo.InvariantCulture),
                               greyAbove.ToString("F1", CultureInfo.InvariantCulture),
                               (greyBelow + greyAbove).ToString("F1", CultureInfo.InvariantCulture),
@@ -861,14 +894,26 @@ namespace FsaStackShot
             Console.WriteLine("гейты при матрице: рентген кристалла снят {0}, вылет кристалла снят {1}",
                               analyzer.CrystalXrayDropped, analyzer.CrystalEscapeDropped);
 
-            // (`S173`, решение Amber 14.09.2026) Отвязанные хвосты матричных
-            // образов — чей и сколько отсчётов: на экране они лежат НЕВЯЗКОЙ, а
-            // не слоем нуклида, и без этой строки «невязка внизу шкалы выросла»
-            // и «слой Pb-212 похудел» читатель связал бы только по картинке.
-            Console.WriteLine(analyzer.UntiedTailAsResidual
-                                  ? "отвязанный хвост (в невязке, не в слоях — --tail-as-residual): {0}"
-                                  : "отвязанный хвост (в подложке → серый слой S174, AMBER30; UntiedTail пуст по построению): {0}",
+            // (`S173`, `S175`) Отвязанные хвосты матричных образов — чей,
+            // сколько отсчётов и ГДЕ (в слое своего образа — умолчание S175; в
+            // подложке — образа в составе нет; в невязке — --tail-as-residual):
+            // без этой строки «доля Cs-137 выросла на 6 %» и «серый бугор
+            // исчез» читатель связал бы только по картинке.
+            Console.WriteLine("отвязанный хвост (S175; layer = в слое и доле своего образа, continuum = в подложке → серый слой, residual = в невязке): {0}",
                               TailNote(result));
+            Console.WriteLine("хвост в слоях (S175): {0}", TailInLayersNote(result));
+
+            // (`S175`, мера п. 7 — не правка) СКОЛЬКО СПЛАЙНА ДОСТАЛОСЬ КАЖДОМУ
+            // СЛОЮ правилом `S76` ниже и выше порога доверия матрицы: лента
+            // слоя минус положительная часть образа минус хвост — то, что
+            // добавил разнос. Число для решения Amber, физичен ли `S76` при
+            // матрице выше порога (там подложка — сплайн, а образы уже несут
+            // свой комптон); ниже порога — мера второго решения «В слои образов
+            // по S76 везде».
+            PrintSpreadByFloor(result, FsaAnalyzer.FloorChannel(rd.EnergySpectrum.EnergyCalibration,
+                                                               analyzer.ResponseContinuumTrustFloorKev,
+                                                               result.FirstChannel, result.LastChannel),
+                               analyzer.ResponseContinuumTrustFloorKev);
 
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
             {
@@ -1278,8 +1323,13 @@ namespace FsaStackShot
             // невязки — хвост. Нули — хвостов нет.
             // (`S174`) `fit` — кривая ФИТА (`FsaResult.FitSpectrum`, без
             // подрезки): число невязки и χ² считаны по ней, а `net` — показная.
-            var head = new StringBuilder("ch,keV,net,model,continuum_raw,untied_tail,fit");
+            // (`S175`) `tail` — сумма отвязанных хвостов, лежащих У ОБРАЗОВ
+            // (`FsaResult.TailCurveSum`): входит в `model` и в слои своих
+            // образов; нули — хвостов в слоях нет. `continuum_raw` — ТОЛЬКО
+            // сплайн (хвоста в нём нет, кроме хвоста без образа в составе).
+            var head = new StringBuilder("ch,keV,net,model,continuum_raw,untied_tail,fit,tail");
             double[] fitCurve = result.FitSpectrum(spectrum.Spectrum);
+            double[] tailSum = result.TailCurveSum();
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
@@ -1307,7 +1357,8 @@ namespace FsaStackShot
                         .Append(At(result.Model, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(result.Continuum, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(result.UntiedTail, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
-                        .Append(At(fitCurve, i).ToString("F3", CultureInfo.InvariantCulture));
+                        .Append(At(fitCurve, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(At(tailSum, i).ToString("F3", CultureInfo.InvariantCulture));
                     foreach (FsaStackLayer layer in layers)
                     {
                         line.Append(',').Append(At(layer.Curve, i).ToString("F3", CultureInfo.InvariantCulture));
@@ -1498,16 +1549,31 @@ namespace FsaStackShot
                     }
                 }
 
-                // (`S173`) Отвязанные хвосты — своим разделом, ПОСЛЕ прежних
-                // строк: отсчёты хвоста в столбце `peak_counts` (это отсчёты, а
-                // не скорость), компонент — в `name`. Строки состава и
+                // (`S173`, `S175`) Отвязанные хвосты — своим разделом, ПОСЛЕ
+                // прежних строк: отсчёты хвоста в столбце `peak_counts` (это
+                // отсчёты, а не скорость), компонент — в `name`, адресат
+                // (`layer`/`continuum`/`residual`) — в `kind`. Строки состава и
                 // кандидатов выше не сдвинуты ни на столбец: сверка «до/после»
                 // по ним остаётся построчной.
                 if (result.UntiedTails != null)
                 {
                     foreach (FsaUntiedTail tail in result.UntiedTails)
                     {
-                        w.WriteLine("untied_tail,{0},,,,,,,{1},,,,,,,,,", Q(tail.Component), R(tail.Counts));
+                        w.WriteLine("untied_tail,{0},{1},,,,,,{2},,,,,,,,,", Q(tail.Component),
+                                    tail.Placement.ToString().ToLowerInvariant(), R(tail.Counts));
+                    }
+                }
+
+                // (`S175`) Хвост в слоях — по компонентам, у кого он есть:
+                // отсчёты в `peak_counts`.
+                if (result.Components != null)
+                {
+                    foreach (FsaComponentResult c in result.Components)
+                    {
+                        if (c.TailCurve != null)
+                        {
+                            w.WriteLine("tail_in_layer,{0},{1},,,,,,{2},,,,,,,,,", Q(c.Name), c.Kind, R(c.TailCounts));
+                        }
                     }
                 }
 
@@ -1652,8 +1718,8 @@ namespace FsaStackShot
         }
 
         /// <summary>
-        /// (`S173`) Отвязанные хвосты результата одной строкой: «Pb-212 1008.0,
-        /// Bi-214 12.3; всего 1020.3 отсч.» либо «нет».
+        /// (`S173`, `S175`) Отвязанные хвосты результата одной строкой: «Pb-212
+        /// 1008.0 (layer), Bi-214 12.3 (layer); всего 1020.3 отсч.» либо «нет».
         /// </summary>
         static string TailNote(FsaResult result)
         {
@@ -1666,12 +1732,173 @@ namespace FsaStackShot
             double total = 0.0;
             foreach (FsaUntiedTail tail in result.UntiedTails)
             {
-                parts.Add(tail.Component + " " + tail.Counts.ToString("F1", CultureInfo.InvariantCulture));
+                parts.Add(tail.Component + " " + tail.Counts.ToString("F1", CultureInfo.InvariantCulture)
+                          + " (" + tail.Placement.ToString().ToLowerInvariant() + ")");
                 total += tail.Counts;
             }
 
             return string.Join(", ", parts.ToArray()) + "; всего "
                    + total.ToString("F1", CultureInfo.InvariantCulture) + " отсч.";
+        }
+
+        /// <summary>
+        /// (`S175`) Хвосты, лежащие в слоях, по компонентам: «Cs-137 13984949.0,
+        /// Xray-Pb 433210.1; всего … отсч., из них ниже пола разноса …» либо «нет».
+        /// У члена ряда — его доля хвоста колонки.
+        /// </summary>
+        static string TailInLayersNote(FsaResult result)
+        {
+            var parts = new List<string>();
+            double total = 0.0, below = 0.0;
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.TailCurve == null)
+                {
+                    continue;
+                }
+
+                parts.Add(c.Name + " " + c.TailCounts.ToString("F1", CultureInfo.InvariantCulture));
+                total += c.TailCounts;
+                for (int i = 0; i < c.TailCurve.Length && i < result.ContinuumSpreadFloorChannel; i++)
+                {
+                    below += c.TailCurve[i];
+                }
+            }
+
+            if (parts.Count == 0)
+            {
+                return "нет";
+            }
+
+            return string.Join(", ", parts.ToArray()) + "; всего "
+                   + total.ToString("F1", CultureInfo.InvariantCulture) + " отсч., из них ниже пола разноса "
+                   + below.ToString("F1", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// (`S175`, мера п. 7) Разнос сплайна по слоям (`S76`) ниже и выше
+        /// канала <paramref name="floor"/> (порог доверия матрицы,
+        /// <paramref name="floorKev"/>): у каждого слоя, за которым стоит
+        /// компонент, — отсчёты, добавленные разносом (лента − образ⁺ − хвост),
+        /// в двух полосах, и доля разнесённого в ленте слоя целиком; итог — Σ по
+        /// слоям против сплайна в полосе (разность — серый слой). Слои — полный
+        /// стек, без свёртки «прочего». Строки `SPREAD`: слой, ниже порога,
+        /// выше порога, лента целиком, доля разнесённого в ленте (%).
+        /// </summary>
+        static void PrintSpreadByFloor(FsaResult result, int floor, double floorKev)
+        {
+            var byName = new Dictionary<string, FsaComponentResult>(StringComparer.Ordinal);
+            foreach (FsaComponentResult c in result.Components)
+            {
+                byName[c.Name] = c;
+            }
+
+            double splineBelow = 0.0, splineAbove = 0.0;
+            for (int i = 0; result.Continuum != null && i < result.Continuum.Length; i++)
+            {
+                if (!(result.Continuum[i] > 0.0)) continue;
+                if (i < floor) splineBelow += result.Continuum[i]; else splineAbove += result.Continuum[i];
+            }
+
+            double totalBelow = 0.0, totalAbove = 0.0;
+            var parts = new List<string>();
+            foreach (FsaStackLayer layer in result.BuildStackedLayers(int.MaxValue))
+            {
+                FsaComponentResult c;
+                if (!byName.TryGetValue(layer.Name, out c))
+                {
+                    continue;
+                }
+
+                double below = 0.0, above = 0.0, whole = 0.0;
+                for (int i = 0; i < layer.Curve.Length; i++)
+                {
+                    whole += layer.Curve[i];
+                    double own = i < c.Curve.Length && c.Curve[i] > 0.0 ? c.Curve[i] : 0.0;
+                    double tail = c.TailCurve != null && i < c.TailCurve.Length ? c.TailCurve[i] : 0.0;
+                    double spread = layer.Curve[i] - own - tail;
+                    if (i < floor) below += spread; else above += spread;
+                }
+
+                totalBelow += below;
+                totalAbove += above;
+                parts.Add(string.Format(CultureInfo.InvariantCulture, "{0} ниже {1:F1} / выше {2:F1} ({3:F2} % ленты)",
+                                        layer.Name, below, above, whole > 0.0 ? 100.0 * (below + above) / whole : 0.0));
+                Console.WriteLine("SPREAD\t{0}\t{1}\t{2}\t{3}\t{4}", layer.Name,
+                                  below.ToString("F1", CultureInfo.InvariantCulture),
+                                  above.ToString("F1", CultureInfo.InvariantCulture),
+                                  whole.ToString("F1", CultureInfo.InvariantCulture),
+                                  (whole > 0.0 ? 100.0 * (below + above) / whole : 0.0).ToString("F3", CultureInfo.InvariantCulture));
+            }
+
+            Console.WriteLine("разнос сплайна (S76, мера S175 п. 7) относительно порога доверия {0} кэВ (канал {1}): сплайн ниже {2} / выше {3} отсч., разнесено по слоям ниже {4} / выше {5} отсч.: {6}",
+                              floorKev.ToString("G", CultureInfo.InvariantCulture), floor,
+                              splineBelow.ToString("F1", CultureInfo.InvariantCulture),
+                              splineAbove.ToString("F1", CultureInfo.InvariantCulture),
+                              totalBelow.ToString("F1", CultureInfo.InvariantCulture),
+                              totalAbove.ToString("F1", CultureInfo.InvariantCulture),
+                              parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "нет");
+        }
+
+        /// <summary>
+        /// (`S175`, второе решение) ПОДСАДКА ТОЛЬКО ДЛЯ ПРОБЫ: пол разноса
+        /// подложки — на порог доверия матрицы тем же правилом, что ставил
+        /// П69 (`FsaAnalyzer.FloorChannel`); сплайн ниже порога уходит в серый
+        /// слой, доли пересчитываются правилами результата. Фит не трогается.
+        /// </summary>
+        static void PlantGreyFloor(FsaResult result, double floorKev, EnergyCalibration calibration)
+        {
+            result.ContinuumSpreadFloorKev = floorKev;
+            result.ContinuumSpreadFloorChannel = FsaAnalyzer.FloorChannel(calibration, floorKev, result.FirstChannel, result.LastChannel);
+            result.ComputeComponentShares();
+        }
+
+        /// <summary>
+        /// (`S175`) ПОДСАДКА ТОЛЬКО ДЛЯ ПРОБЫ: переложить хвосты образов из их
+        /// слоёв в подложку — ровно так они лежали до П68 (`a6f2b227`) и у П70
+        /// (`d5c94425`), когда колонка хвоста складывалась в `Continuum`.
+        /// Верх стека не меняется (хвост в нём был и есть), доли
+        /// пересчитываются тем же <see cref="FsaResult.ComputeComponentShares"/>,
+        /// что у разбора; невязка та же. Фит (амплитуды, z, χ²/ndf, пределы) не
+        /// трогается. Адресат в `UntiedTails` переписывается на `continuum`,
+        /// чтобы строка пробы не врала. ⚠ Не бит в бит: там хвосты
+        /// складывались в подложку ДО шапок сплайна, здесь — после;
+        /// расхождение — в последних разрядах double, F3 на экране его не видит.
+        /// </summary>
+        static void PlantTailToContinuum(FsaResult result)
+        {
+            bool moved = false;
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.TailCurve == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < c.TailCurve.Length && i < result.Continuum.Length; i++)
+                {
+                    result.Continuum[i] += c.TailCurve[i];
+                }
+
+                c.TailCurve = null;
+                c.TailCounts = 0.0;
+                moved = true;
+            }
+
+            if (!moved)
+            {
+                return;
+            }
+
+            foreach (FsaUntiedTail tail in result.UntiedTails)
+            {
+                if (tail.Placement == FsaTailPlacement.Layer)
+                {
+                    tail.Placement = FsaTailPlacement.Continuum;
+                }
+            }
+
+            result.ComputeComponentShares();
         }
 
         static string Q(string s)

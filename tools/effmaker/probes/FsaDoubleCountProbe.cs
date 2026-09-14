@@ -75,36 +75,45 @@ namespace FsaDoubleCountProbe
     ///      проходит в разбор. Рядом числом — судьба образа рентгена кристалла
     ///      (`FromCrystal`, гейт `AMBER4`). ⛔ Положительный контроль: гейт
     ///      снят при матрице — образ обязан вернуться, счётчик — молчать.
-    ///   6. `S173` → `AMBER30` (решение Amber 14.09.2026 «В серый слой
-    ///      «континуум»»), при живой матрице. Умолчание (плечо А,
-    ///      `FsaAnalyzer.UntiedTailAsResidual` опущен): отвязанный хвост образа
-    ///      идёт в подложку, оттуда `S174` кладёт его ниже пола разноса в
-    ///      СЕРЫЙ слой; `UntiedTail`/`UntiedTails` пусты, Σ слоёв = `Model`.
-    ///      Плечо Б (ключ поднят — правило `S173` как в П68): хвост в
-    ///      `UntiedTail`, ниже порога доверия, в верх стека не входит,
-    ///      `FitModel` = верх + хвост. Договор умолчания меряется ПАРОЙ плеч:
-    ///      фит один (χ²/ndf, усиление, сдвиг), `Model`(А) = `Model`(Б) +
-    ///      хвост(Б) и то же для `Continuum` по каналам; серый слой ниже пола
-    ///      разноса в А больше, чем в Б, ровно на хвост ниже пола; слой
-    ///      носителя ниже пола в А = в Б (образ × амплитуда, хвост не в доле
-    ///      нуклида); «не описано» в А не больше, чем в Б (хвост не в невязке).
-    ///      ⛔ Положительный контроль: плечо Б, выданное за умолчание (яма
-    ///      снова на экране), — договор отказывает; и прежняя подсадка «хвост
-    ///      снова в подложку» на плече Б — договор `S173` отказывает, χ²/ndf
-    ///      тот же, серый слой растёт ровно на хвост ниже пола разноса.
-    ///   7. `S174` (два решения Amber 14.09.2026 «Ниже порога не разносить —
-    ///      серый слой «континуум»» и «Только в диапазоне прибора»), при живой
-    ///      матрице: пол разноса подложки стоит на пороге доверия матрицы
-    ///      (канал по калибровке файла), ниже него сплайн лежит серым слоем
-    ///      `continuum` целиком, а слои нуклидов там — ровно образ ×
-    ///      амплитуда; пол невязки стоит на `Min_Range` прибора, и число
-    ///      «не описано»/«лишнее» равно независимому счёту пробы от этого
-    ///      пола; Σ слоёв (с серым) = `Model`. ⛔ Положительный контроль:
-    ///      подсадка «разнести как прежде и считать невязку по всей полосе»
-    ///      (оба пола = 0, доли и невязка пересчитаны правилами результата) —
-    ///      договор отказывает, серый слой ниже порога исчезает, доля
-    ///      носителя растёт, невязка равна независимому счёту по всей полосе,
-    ///      χ²/ndf тот же.
+    ///   6. `S173` → `AMBER30` → `S175` (решение Amber 14.09.2026 «Чини S174
+    ///      так, чтобы выглядело физически корректным»), при живой матрице.
+    ///      Умолчание (плечо А, `FsaAnalyzer.UntiedTailAsResidual` опущен):
+    ///      отвязанный хвост образа лежит В ЛЕНТЕ И ДОЛЕ СВОЕГО ОБРАЗА
+    ///      (`FsaComponentResult.TailCurve`; у ряда со связкой — у членов),
+    ///      серым ниже пола разноса остаётся один сплайн; `UntiedTail` пуст,
+    ///      `UntiedTails` называет хвосты с адресатом `Layer`. Плечо Б (ключ
+    ///      поднят — правило `S173` как в П68): хвост в `UntiedTail`, ниже
+    ///      порога доверия, в верх стека не входит, `FitModel` = верх + хвост.
+    ///      Договор умолчания меряется ПАРОЙ плеч: фит один (χ²/ndf, усиление,
+    ///      сдвиг); `Continuum`(А) = `Continuum`(Б) по каналам (хвост не в
+    ///      подложке); Σ `TailCurve`(А) = `UntiedTail`(Б) по каналам (весь
+    ///      хвост в слоях); `Model`(А) = `Model`(Б) + хвост(Б); лента каждого
+    ///      слоя А = образ⁺ + хвост + доля сплайна ≥ 0, и Σ долей по слоям =
+    ///      сплайн − серый канал в канал (второе решение Amber «В слои
+    ///      образов по S76 везде»: хвост входит в веса разноса, слои двух
+    ///      плеч расходятся и на перераспределённый сплайн — потому
+    ///      проверяется разбиение, а не «А = Б + хвост»); «не описано» в А не
+    ///      больше, чем в Б; Σ слоёв = `Model`.
+    ///      ⛔ Положительный контроль двойной: плечо Б, выданное за умолчание
+    ///      (яма снова на экране), — договор отказывает; подсадка «хвост в
+    ///      подложку» на плече А (картинка до П68 / П70) — договор отказывает,
+    ///      хвост уходит из слоёв в подложку, χ²/ndf тот же. И прежняя
+    ///      подсадка «хвост снова в подложку» на плече Б — договор `S173`
+    ///      отказывает.
+    ///   7. `S174` п. 2 («Только в диапазоне прибора») и `S175`, второе
+    ///      решение Amber 14.09.2026 («В слои образов по S76 везде»; п. 1
+    ///      `S174` отменён), при живой матрице: пол разноса подложки = 0 —
+    ///      сплайн разносится по слоям по всей шкале, серый слой есть только
+    ///      там, где от канала и выше нет ни одного слоя образов (хвост
+    ///      подложки выше последней линии), и там равен сплайну; пол невязки
+    ///      стоит на `Min_Range` прибора, и число «не описано»/«лишнее» равно
+    ///      независимому счёту пробы от этого пола; Σ слоёв (с серым) =
+    ///      `Model`. ⛔ Положительные контроли: подсадка «сплайн ниже порога
+    ///      серым» (пол разноса на пороге доверия тем же `FloorChannel` —
+    ///      картинка П69/П70) — договор отказывает, серый слой ниже порога =
+    ///      сплайну там, доля носителя падает, χ²/ndf тот же; подсадка
+    ///      «невязка по всей полосе» (пол невязки 0) — договор отказывает,
+    ///      невязка равна независимому счёту по всей полосе.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0. Всё, что мерится, печатается строками
     /// `CELL`/`SDE`/`ESC`/`CHAIN`/`TAIL`/`GREY`, чтобы числа можно было положить в журнал.
@@ -608,7 +617,7 @@ namespace FsaDoubleCountProbe
             // S173: отвязанный хвост матричного образа — невязка, не слой.
             // ------------------------------------------------------------------
             Console.WriteLine();
-            Console.WriteLine("=== S173 → AMBER30: отвязанный хвост (ниже порога доверия матрицы) — серый слой; плечо Б (--tail-as-residual) — невязка ===");
+            Console.WriteLine("=== S173 → AMBER30 → S175: отвязанный хвост (ниже порога доверия матрицы) — в слое и доле своего образа; плечо Б (--tail-as-residual) — невязка ===");
             if (matrix == null)
             {
                 Console.WriteLine("(матрицы нет — отвязки нет по построению; клетки S173 на этом спектре не меряются)");
@@ -622,7 +631,7 @@ namespace FsaDoubleCountProbe
             // S174: серый слой ниже порога доверия, невязка от Min_Range.
             // ------------------------------------------------------------------
             Console.WriteLine();
-            Console.WriteLine("=== S174: сплайн ниже порога доверия — серый слой; невязка — от Min_Range ===");
+            Console.WriteLine("=== S174 п. 2 / S175: сплайн — в слои образов по S76 везде (пола разноса нет), серый только где нет образов; невязка — от Min_Range ===");
             if (matrix == null)
             {
                 Console.WriteLine("(матрицы нет — порога доверия нет по построению; клетки S174 на этом спектре не меряются)");
@@ -797,61 +806,38 @@ namespace FsaDoubleCountProbe
         }
 
         /// <summary>
-        /// (`S173`, решение Amber 14.09.2026 «Отвязанный хвост рисовать как
-        /// невязку»; с `AMBER30` того же дня — «В серый слой «континуум»» —
-        /// правило `S173` живёт только на плече Б, ключом
-        /// <c>FsaAnalyzer.UntiedTailAsResidual</c>, а умолчание меряется парой
-        /// плеч — см. пункт 6 шапки) Договор результата ПЛЕЧА Б при живой
-        /// матрице, числом:
+        /// (`S173` → `AMBER30` → `S175`, решение Amber 14.09.2026 «Чини S174
+        /// так, чтобы выглядело физически корректным») ДОГОВОР УМОЛЧАНИЯ парой
+        /// плеч и договор правила `S173` на плече Б — см. пункт 6 шапки.
         ///
-        ///   * у результата есть отвязанные хвосты (`UntiedTail`, `UntiedTails`)
-        ///     с положительной суммой, и они лежат НИЖЕ порога доверия матрицы
-        ///     (выше `ResponseContinuumTrustFloorKev` + 3 ПШПВ хвоста нет вовсе —
-        ///     помечены именно колонки хвоста, а не шапки сплайна);
-        ///   * верх стека `Model` = `Continuum` + Σ кривых компонентов — хвоста в
-        ///     нём нет; модель фита `FitModel()` = `Model` + `UntiedTail`;
-        ///   * Σ слоёв стека (с неразнесённым остатком) = `Model` по каналам —
-        ///     тождество стека: слои + невязка = данные;
-        ///   * невязка «не описано» считана против `Model` — то есть хвост в ней.
+        /// Плечо А (умолчание): хвост в ленте и доле своего образа. Плечо Б
+        /// (ключ <c>FsaAnalyzer.UntiedTailAsResidual</c>): правило `S173`
+        /// целиком — у результата есть `UntiedTail`/`UntiedTails` с
+        /// положительной суммой, ниже порога доверия, `Model` без хвоста,
+        /// `FitModel` = `Model` + `UntiedTail`, Σ слоёв = `Model`, «не
+        /// описано» считано против `Model` (хвост в ней).
         ///
-        /// ⛔ Положительный контроль — ПОДСАДКА «хвост снова в подложку»: тот
-        /// же результат, хвост сложен обратно в подложку и верх стека, доли
-        /// пересчитаны (`ComputeComponentShares`) — картинка ДО S173. Договор
-        /// на ней обязан ОТКАЗАТЬ; фит (амплитуды, z, χ²/ndf) — тот же.
-        /// ⚠ (`S174`) До 14.09.2026 вечера ожидалось ещё «доля носителя
-        /// растёт, «не описано» падает» — с `S174` это не так ПО ПОСТРОЕНИЮ:
-        /// хвост лежит ниже порога доверия, а подложка там разносится не по
-        /// слоям, а в серый слой, и ниже `Min_Range` невязка в процент не
-        /// входит. Поэтому меряется то, что теперь и происходит: серый слой
-        /// вырос ровно на хвост ниже пола разноса, «не описано» не выросло.
-        /// Строки `TAIL` — числа в журнал.
+        /// ⛔ Положительные контроли: (1) пара (Б, Б), выданная за умолчание, —
+        /// договор `S175` отказывает (яма); (2) подсадка «хвост в серый слой»
+        /// на плече А — договор `S175` отказывает (провал П70); (3) подсадка
+        /// «хвост снова в подложку» на плече Б — договор `S173` отказывает.
+        /// Фит (амплитуды, z, χ²/ndf) везде тот же. Строки `TAIL` — числа в
+        /// журнал.
         /// </summary>
         static void CheckUntiedTail(ResultData rd, ResponseMatrix matrix, string material,
                                     List<FsaComponent> sample, FsaEfficiency efficiency)
         {
-            // (`AMBER30`, П70 14.09.2026) Правило `S173` по умолчанию ОТОЗВАНО
-            // (`FsaAnalyzer.UntiedTailAsResidual`): хвост снова в подложке, как до
-            // П68. Договор `S173` ниже меряется на плече Б — с поднятым ключом, —
-            // а плечо А (умолчание) обязано дать: хвостов у результата нет,
-            // `Model`(А) = `Model`(Б) + `UntiedTail`(Б) и то же для `Continuum`
-            // по каналам, фит тот же. Иначе ключ — не отображение.
             FsaAnalyzer analyzerA = NewAnalyzer(rd, matrix, material);
             new FsaCalculationOptions().ApplyTo(analyzerA);
-            FsaTuningReport.Print(analyzerA, "AMBER30, плечо А: хвост в подложке (умолчание)");
+            FsaTuningReport.Print(analyzerA, "S175, плечо А: хвост в слое своего образа (умолчание)");
             FsaResult resultA = analyzerA.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
                                                   rd.FwhmCalibration, sample, efficiency);
             if (resultA == null)
             {
-                Console.WriteLine("AMBER30, плечо А: разложение не получилось");
+                Console.WriteLine("S175, плечо А: разложение не получилось");
                 bad++;
                 return;
             }
-
-            Same("AMBER30, плечо А (умолчание): UntiedTail пуст", true, resultA.UntiedTail == null);
-            Same("AMBER30, плечо А (умолчание): UntiedTails пуст", 0,
-                 resultA.UntiedTails != null ? resultA.UntiedTails.Count : 0);
-            Same("AMBER30, плечо А (умолчание): Model = Continuum + Σ кривых (тождество стека)", 0,
-                 TailContract(resultA, analyzerA.ResponseContinuumTrustFloorKev, rd, true).Count);
 
             FsaAnalyzer analyzer = NewAnalyzer(rd, matrix, material);
             new FsaCalculationOptions().ApplyTo(analyzer);
@@ -867,114 +853,129 @@ namespace FsaDoubleCountProbe
             }
 
             Same("S173: матрица применена", true, result.ResponseMatrixUsed);
-            Same("AMBER30, А/Б: фит один (χ²/ndf)", resultA.Chi2Ndf, result.Chi2Ndf);
-            Same("AMBER30, А/Б: фит один (усиление)", resultA.Gain, result.Gain);
-            Same("AMBER30, А/Б: фит один (сдвиг)", resultA.OffsetChannels, result.OffsetChannels);
-            double gapModel = 0.0, gapContinuum = 0.0, scale = 1.0;
-            for (int i = 0; i < resultA.Model.Length && i < result.Model.Length; i++)
-            {
-                double tail = result.UntiedTail != null && i < result.UntiedTail.Length ? result.UntiedTail[i] : 0.0;
-                gapModel = Math.Max(gapModel, Math.Abs(resultA.Model[i] - (result.Model[i] + tail)));
-                gapContinuum = Math.Max(gapContinuum, Math.Abs(resultA.Continuum[i] - (result.Continuum[i] + tail)));
-                scale = Math.Max(scale, Math.Abs(resultA.Model[i]));
-            }
+            Same("S175, А/Б: фит один (χ²/ndf)", resultA.Chi2Ndf, result.Chi2Ndf);
+            Same("S175, А/Б: фит один (усиление)", resultA.Gain, result.Gain);
+            Same("S175, А/Б: фит один (сдвиг)", resultA.OffsetChannels, result.OffsetChannels);
+            Same("S175, плечо А (умолчание): UntiedTail пуст", true, resultA.UntiedTail == null);
 
-            Console.WriteLine("TAIL\tА/Б\tзазор Model(А) − (Model(Б) + хвост) {0}, Continuum {1}, шкала {2}",
-                              gapModel.ToString("E2", CultureInfo.InvariantCulture),
-                              gapContinuum.ToString("E2", CultureInfo.InvariantCulture),
-                              scale.ToString("E2", CultureInfo.InvariantCulture));
-            Same("AMBER30, А/Б: Model(А) = Model(Б) + UntiedTail(Б) по каналам", true, gapModel <= 1e-9 * scale);
-            Same("AMBER30, А/Б: Continuum(А) = Continuum(Б) + UntiedTail(Б) по каналам", true, gapContinuum <= 1e-9 * scale);
             double tailTotal = 0.0;
             foreach (FsaUntiedTail tail in result.UntiedTails)
             {
                 tailTotal += tail.Counts;
-                Console.WriteLine("TAIL\tхвост\t{0}\t{1}", tail.Component,
+                Console.WriteLine("TAIL\tхвост (Б)\t{0}\t{1}", tail.Component,
                                   tail.Counts.ToString("F1", CultureInfo.InvariantCulture));
             }
 
-            Console.WriteLine("TAIL\tвсего\t{0}\tотсч.; χ²/ndf {1}; не описано {2} %, приписано {3} %",
+            foreach (FsaUntiedTail tail in resultA.UntiedTails)
+            {
+                Console.WriteLine("TAIL\tхвост (А)\t{0}\t{1}\t{2}", tail.Component,
+                                  tail.Counts.ToString("F1", CultureInfo.InvariantCulture),
+                                  tail.Placement.ToString().ToLowerInvariant());
+            }
+
+            foreach (FsaComponentResult c in resultA.Components)
+            {
+                if (c.TailCurve != null)
+                {
+                    Console.WriteLine("TAIL\tв слое (А)\t{0}\t{1}", c.Name,
+                                      c.TailCounts.ToString("F1", CultureInfo.InvariantCulture));
+                }
+            }
+
+            Console.WriteLine("TAIL\tвсего\t{0}\tотсч.; χ²/ndf {1}; не описано А {2} %, Б {3} %",
                               tailTotal.ToString("F1", CultureInfo.InvariantCulture),
                               result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture),
-                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * result.ResidualExcessShare).ToString("F2", CultureInfo.InvariantCulture));
+                              (100.0 * resultA.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture));
             if (!(tailTotal > 0.0))
             {
                 // Законный исход, а не отказ: колонки хвоста фиту предъявлены, но
                 // NNLS дал всем ноль (`AS80_Th232Medal`: сплайн и пики описали
                 // низ шкалы сами). Это и есть «спектр, где ниже порога всё
-                // привязано»: слои и доли обязаны быть побитово теми же, что до
-                // S173 — проверяется сверкой плеч, здесь мерить нечего.
-                Console.WriteLine("(отвязанных хвостов у результата нет — решатель дал им ноль; клетки S173 и подсадка на этом спектре не меряются, слои побитово прежние)");
+                // привязано»: слои и доли обязаны быть побитово теми же в обоих
+                // плечах — здесь мерится только это.
+                Console.WriteLine("(отвязанных хвостов у результата нет — решатель дал им ноль; клетки S173/S175 и подсадки на этом спектре не меряются, слои побитово прежние)");
                 Same("S173, хвостов нет: Model = Continuum + Σ кривых (хвоста в верхе стека нет)", 0,
                      TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, true).Count);
+                Same("S175, хвостов нет: у компонентов TailCurve пуст", 0, TailCarriers(resultA).Count);
+                Same("S175, хвостов нет: слои А = слоям Б по каналам", true,
+                     LayersGap(resultA, result, null) <= 1e-9 * Math.Max(1.0, MaxOf(resultA.Model)));
                 return;
             }
 
-            // Хвост-носитель: компонент с наибольшим хвостом — по нему и
-            // сверяется доля до/после подсадки.
-            string carrier = null;
-            double carrierTail = 0.0;
-            foreach (FsaUntiedTail tail in result.UntiedTails)
+            // Договор `S175` — парой плеч.
+            List<string> carriers = TailCarriers(resultA);
+            Console.WriteLine("TAIL\tносители (А)\t{0}", string.Join(", ", carriers.ToArray()));
+            List<string> refusalsA = TailInLayerContract(resultA, result, rd, analyzerA.ResponseContinuumTrustFloorKev);
+            foreach (string refusal in refusalsA)
             {
-                if (tail.Counts > carrierTail)
-                {
-                    carrier = tail.Component;
-                    carrierTail = tail.Counts;
-                }
+                Console.WriteLine("  ⛔ договор S175: {0}", refusal);
             }
 
+            Same("S175: договор умолчания (хвост в слое и доле своего образа, серый = сплайн, Σ слоёв = Model, «не описано» не больше плеча Б) выполнен",
+                 0, refusalsA.Count);
+            double greyBelowA, greyAboveA, greyBelowB, greyAboveB;
+            GreySplit(resultA, out greyBelowA, out greyAboveA);
+            GreySplit(result, out greyBelowB, out greyAboveB);
+            string carrier = carriers.Count > 0 ? carriers[0] : "-";
+            Console.WriteLine("TAIL\tA/B\tсерый слой ниже пола разноса: А {0}, Б {1} отсч.; «не описано» А {2} %, Б {3} %; доля носителя {4}: А {5} %, Б {6} %",
+                              greyBelowA.ToString("F1", CultureInfo.InvariantCulture),
+                              greyBelowB.ToString("F1", CultureInfo.InvariantCulture),
+                              (100.0 * resultA.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
+                              carrier,
+                              ShareOf(resultA, carrier).ToString("F3", CultureInfo.InvariantCulture),
+                              ShareOf(result, carrier).ToString("F3", CultureInfo.InvariantCulture));
+
+            // Положительный контроль 1: плечо Б, выданное за умолчание, — яма
+            // на экране (хвост в невязке) — договор ОБЯЗАН отказать.
+            List<string> hole = TailInLayerContract(result, result, rd, analyzer.ResponseContinuumTrustFloorKev);
+            Same("положительный контроль S175: --tail-as-residual (яма AMBER30, хвост в невязке) — договор ОТКАЗЫВАЕТ",
+                 true, hole.Count > 0);
+
+            // Положительный контроль 2: подсадка «хвост в подложку» (картинка
+            // до П68 / П70) на копии плеча А — договор ОБЯЗАН отказать: хвост
+            // ушёл из слоёв, подложка выросла на хвост, фит тот же.
+            FsaResult planted = analyzerA.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                  rd.FwhmCalibration, sample, efficiency);
+            double[] tailSumA = resultA.TailCurveSum();
+            double tailTotalA = tailSumA != null ? Sum(tailSumA) : 0.0;
+            double shareBefore = ShareOf(planted, carrier);
+            double chi2Before = planted.Chi2Ndf;
+            double continuumBefore = Sum(planted.Continuum);
+            PlantTailToContinuum(planted);
+            Console.WriteLine("TAIL\tподсадка «в подложку»\t{0}\tдоля {1} → {2} %; подложка {3} → {4} отсч. (хвост {5})",
+                              carrier,
+                              shareBefore.ToString("F3", CultureInfo.InvariantCulture),
+                              ShareOf(planted, carrier).ToString("F3", CultureInfo.InvariantCulture),
+                              continuumBefore.ToString("F1", CultureInfo.InvariantCulture),
+                              Sum(planted.Continuum).ToString("F1", CultureInfo.InvariantCulture),
+                              tailTotalA.ToString("F1", CultureInfo.InvariantCulture));
+            List<string> grey = TailInLayerContract(planted, result, rd, analyzerA.ResponseContinuumTrustFloorKev);
+            Same("положительный контроль S175: подсадка «хвост в подложку» (картинка до П68 / П70) — договор ОТКАЗЫВАЕТ",
+                 true, grey.Count > 0);
+            Same("положительный контроль S175: с подсадкой подложка выросла ровно на хвост",
+                 true, Math.Abs((Sum(planted.Continuum) - continuumBefore) - tailTotalA) <= 1e-6 * Math.Max(1.0, tailTotalA));
+            Same("положительный контроль S175: с подсадкой у компонентов хвостов нет", 0, TailCarriers(planted).Count);
+            Same("положительный контроль S175: фит подсадкой не тронут (χ²/ndf)", chi2Before, planted.Chi2Ndf);
+            Same("положительный контроль S175: тождество стека держится и с подсадкой (Σ слоёв = модель)",
+                 true, StackGap(planted) <= StackTolerance(planted));
+
+            // Плечо Б — договор `S173` целиком, и прежняя подсадка на нём.
             double missingBefore = result.ResidualMissingShare;
-            double shareBefore = ShareOf(result, carrier);
-            double chi2Before = result.Chi2Ndf;
+            double shareBeforeB = ShareOf(result, carrier);
+            double chi2BeforeB = result.Chi2Ndf;
             double greyBelowBefore, greyAboveBefore;
             GreySplit(result, out greyBelowBefore, out greyAboveBefore);
-            double tailBelowSpread = 0.0;
-            for (int i = 0; i < result.UntiedTail.Length && i < result.ContinuumSpreadFloorChannel; i++)
-            {
-                tailBelowSpread += result.UntiedTail[i];
-            }
-
             List<string> refusals = TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, false);
             foreach (string refusal in refusals)
             {
                 Console.WriteLine("  ⛔ договор S173: {0}", refusal);
             }
 
-            Same("S173: договор результата (хвост есть, ниже порога, не в верхе стека, стек = модель) выполнен", 0, refusals.Count);
+            Same("S173 (плечо Б): договор результата (хвост есть, ниже порога, не в верхе стека, стек = модель) выполнен", 0, refusals.Count);
 
-            // (`AMBER30`, решение Amber 14.09.2026 «В серый слой «континуум»»)
-            // ДОГОВОР УМОЛЧАНИЯ — парой плеч: у плеча А хвост лежит в сером
-            // слое ниже пола разноса (серый слой А − серый слой Б = хвост ниже
-            // пола), слой носителя ниже пола тот же, что у Б (образ ×
-            // амплитуда — хвост не в доле нуклида), «не описано» не больше,
-            // чем у Б (хвост не в невязке). Читатель — строки `TAIL\tA/B`.
-            double greyBelowA, greyAboveA;
-            GreySplit(resultA, out greyBelowA, out greyAboveA);
-            Console.WriteLine("TAIL\tA/B\tсерый слой ниже пола разноса: А {0}, Б {1} отсч. (хвост ниже пола {2}); «не описано» А {3} %, Б {4} %; доля носителя {5}: А {6} %, Б {7} %",
-                              greyBelowA.ToString("F1", CultureInfo.InvariantCulture),
-                              greyBelowBefore.ToString("F1", CultureInfo.InvariantCulture),
-                              tailBelowSpread.ToString("F1", CultureInfo.InvariantCulture),
-                              (100.0 * resultA.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * missingBefore).ToString("F2", CultureInfo.InvariantCulture),
-                              carrier,
-                              ShareOf(resultA, carrier).ToString("F2", CultureInfo.InvariantCulture),
-                              shareBefore.ToString("F2", CultureInfo.InvariantCulture));
-            List<string> greyRefusals = TailInGreyContract(resultA, result, tailBelowSpread, carrier);
-            foreach (string refusal in greyRefusals)
-            {
-                Console.WriteLine("  ⛔ договор AMBER30: {0}", refusal);
-            }
-
-            Same("AMBER30: договор умолчания (хвост в сером слое ниже пола, слой носителя ниже пола = образ × амплитуда, «не описано» не больше плеча Б) выполнен",
-                 0, greyRefusals.Count);
-            // Положительный контроль: плечо Б, выданное за умолчание, — яма на
-            // экране (хвост в невязке, серый слой без него) — договор ОБЯЗАН отказать.
-            List<string> hole = TailInGreyContract(result, result, tailBelowSpread, carrier);
-            Same("положительный контроль AMBER30: --tail-as-residual возвращает яму (хвост в невязке, не в сером слое) — договор ОТКАЗЫВАЕТ",
-                 true, hole.Count > 0);
-
-            // Подсадка «хвост снова в слой» — картинка до S173.
+            // Подсадка «хвост снова в подложку» на плече Б — картинка П70.
             for (int i = 0; i < result.UntiedTail.Length; i++)
             {
                 double tail = result.UntiedTail[i];
@@ -986,71 +987,310 @@ namespace FsaDoubleCountProbe
             result.UntiedTail = null;
             result.UntiedTails.Clear();
             result.ComputeComponentShares();
-
-            // Невязка «не описано» после подсадки — ТЕМ ЖЕ правилом результата
-            // (`S174`: `FsaResult.ComputeResidualShares`, от пола `Min_Range`);
-            // своей копии правила у пробы больше нет.
             result.ComputeResidualShares(rd.EnergySpectrum.Spectrum);
             double missingAfter = result.ResidualMissingShare;
-            double shareAfter = ShareOf(result, carrier);
-            Console.WriteLine("TAIL\tподсадка\t{0}\tдоля {1} → {2} %; не описано {3} → {4} %; хвост {5} отсч.",
+            Console.WriteLine("TAIL\tподсадка (Б → подложка)\t{0}\tдоля {1} → {2} %; не описано {3} → {4} %; хвост {5} отсч.",
                               carrier,
-                              shareBefore.ToString("F2", CultureInfo.InvariantCulture),
-                              shareAfter.ToString("F2", CultureInfo.InvariantCulture),
+                              shareBeforeB.ToString("F2", CultureInfo.InvariantCulture),
+                              ShareOf(result, carrier).ToString("F2", CultureInfo.InvariantCulture),
                               (100.0 * missingBefore).ToString("F2", CultureInfo.InvariantCulture),
                               (100.0 * missingAfter).ToString("F2", CultureInfo.InvariantCulture),
-                              carrierTail.ToString("F1", CultureInfo.InvariantCulture));
-
-            List<string> planted = TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, false);
+                              Sum(plantedTail).ToString("F1", CultureInfo.InvariantCulture));
+            List<string> plantedB = TailContract(result, analyzer.ResponseContinuumTrustFloorKev, rd, false);
             Same("положительный контроль S173: подсадка «хвост снова в подложку» — договор ОТКАЗЫВАЕТ (ловушка сработала)",
-                 true, planted.Count > 0);
-
-            // (`S174`) Куда ушёл подсаженный хвост: ниже пола разноса — в серый
-            // слой (ровно на его величину), и только его часть от пола и выше
-            // (обычно ноль) — в слои нуклидов.
+                 true, plantedB.Count > 0);
+            // (`S175`, второе решение) Пола разноса нет: подсаженный хвост из
+            // подложки разносится по слоям (`S76`), серый слой не растёт.
             double greyBelowAfter, greyAboveAfter;
             GreySplit(result, out greyBelowAfter, out greyAboveAfter);
-            Console.WriteLine("TAIL\tподсадка\tсерый слой ниже порога {0} → {1} отсч. (хвост ниже пола разноса {2} отсч.)",
-                              greyBelowBefore.ToString("F1", CultureInfo.InvariantCulture),
-                              greyBelowAfter.ToString("F1", CultureInfo.InvariantCulture),
-                              tailBelowSpread.ToString("F1", CultureInfo.InvariantCulture));
-            Same("положительный контроль S173 (с S174): хвост ниже порога ушёл в серый слой — вырос ровно на хвост ниже пола разноса",
-                 true, Math.Abs((greyBelowAfter - greyBelowBefore) - tailBelowSpread) <= StackTolerance(result));
-            Same("положительный контроль S173 (с S174): с хвостом в подложке «не описано» не выросло", true, missingAfter <= missingBefore);
-            Same("положительный контроль S173: фит подсадкой не тронут (χ²/ndf)", chi2Before, result.Chi2Ndf);
+            Same("положительный контроль S173 (с S175): хвост из подложки разнесён по слоям — серый слой не вырос",
+                 true, Math.Abs(greyBelowAfter + greyAboveAfter - greyBelowBefore - greyAboveBefore) <= StackTolerance(result));
+            Same("положительный контроль S173 (с S175): с хвостом в подложке «не описано» не выросло", true, missingAfter <= missingBefore);
+            Same("положительный контроль S173: фит подсадкой не тронут (χ²/ndf)", chi2BeforeB, result.Chi2Ndf);
+            Same("положительный контроль S173: тождество стека держится и с хвостом в подложке (Σ слоёв = модель)",
+                 true, StackGap(result) <= StackTolerance(result));
+        }
 
-            // Хвост вернулся в верх стека целиком: Σ слоёв = Model и после.
-            double worst = StackGap(result);
-            Same("положительный контроль S173: тождество стека держится и с хвостом в слое (Σ слоёв = модель)",
-                 true, worst <= StackTolerance(result));
-            Console.WriteLine("  (подсажено {0} отсч. хвоста; худший зазор стека {1}, допуск {2})",
-                              Sum(plantedTail).ToString("F1", CultureInfo.InvariantCulture),
-                              worst.ToString("E2", CultureInfo.InvariantCulture),
-                              StackTolerance(result).ToString("E2", CultureInfo.InvariantCulture));
+        /// <summary>(`S175`) Имена компонентов, у которых есть хвост в слое (`TailCurve`), в порядке состава.</summary>
+        static List<string> TailCarriers(FsaResult result)
+        {
+            var names = new List<string>();
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.TailCurve != null && c.TailCounts > 0.0)
+                {
+                    names.Add(c.Name);
+                }
+            }
+
+            return names;
         }
 
         /// <summary>
-        /// (`S174`, два решения Amber 14.09.2026) Договор результата при живой
-        /// матрице, числом:
+        /// (`S175`) ПОДСАДКА ТОЛЬКО ДЛЯ ПРОБЫ (та же, что `FsaStackShot
+        /// --tail-to-continuum`): хвосты образов из их слоёв — в подложку,
+        /// откуда разнос `S76` раздаёт их по слоям (картинка до П68); верх
+        /// стека тот же, доли пересчитаны правилами результата.
+        /// </summary>
+        static void PlantTailToContinuum(FsaResult result)
+        {
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.TailCurve == null) continue;
+                for (int i = 0; i < c.TailCurve.Length && i < result.Continuum.Length; i++)
+                {
+                    result.Continuum[i] += c.TailCurve[i];
+                }
+
+                c.TailCurve = null;
+                c.TailCounts = 0.0;
+            }
+
+            foreach (FsaUntiedTail tail in result.UntiedTails)
+            {
+                if (tail.Placement == FsaTailPlacement.Layer) tail.Placement = FsaTailPlacement.Continuum;
+            }
+
+            result.ComputeComponentShares();
+        }
+
+        /// <summary>
+        /// (`S175`) Наибольший по каналам зазор между слоями двух плеч по
+        /// именам: у слоёв из <paramref name="carriers"/> ожидается
+        /// А = Б + <paramref name="tail"/> (сумма по носителям), у прочих — А = Б;
+        /// слой, которого нет в одном плече (убран по доле, `S87`), считается
+        /// нулём. <paramref name="carriers"/> null — все слои сравниваются как
+        /// «А = Б».
+        /// </summary>
+        static double LayersGap(FsaResult a, FsaResult b, List<string> carriers)
+        {
+            return LayersGap(a, b, carriers, null);
+        }
+
+        static double LayersGap(FsaResult a, FsaResult b, List<string> carriers, double[] tail)
+        {
+            var la = new Dictionary<string, double[]>(StringComparer.Ordinal);
+            var lb = new Dictionary<string, double[]>(StringComparer.Ordinal);
+            foreach (FsaStackLayer layer in a.BuildStackedLayers(int.MaxValue)) la[layer.Name] = layer.Curve;
+            foreach (FsaStackLayer layer in b.BuildStackedLayers(int.MaxValue)) lb[layer.Name] = layer.Curve;
+            int channels = a.Model.Length;
+            double[] carrierA = new double[channels], carrierB = new double[channels];
+            double gap = 0.0;
+            var names = new HashSet<string>(la.Keys, StringComparer.Ordinal);
+            names.UnionWith(lb.Keys);
+            foreach (string name in names)
+            {
+                double[] ca, cb;
+                la.TryGetValue(name, out ca);
+                lb.TryGetValue(name, out cb);
+                bool carrier = carriers != null && carriers.Contains(name);
+                for (int i = 0; i < channels; i++)
+                {
+                    double va = ca != null && i < ca.Length ? ca[i] : 0.0;
+                    double vb = cb != null && i < cb.Length ? cb[i] : 0.0;
+                    if (carrier)
+                    {
+                        carrierA[i] += va;
+                        carrierB[i] += vb;
+                    }
+                    else
+                    {
+                        gap = Math.Max(gap, Math.Abs(va - vb));
+                    }
+                }
+            }
+
+            if (carriers != null)
+            {
+                for (int i = 0; i < channels; i++)
+                {
+                    double t = tail != null && i < tail.Length ? tail[i] : 0.0;
+                    gap = Math.Max(gap, Math.Abs(carrierA[i] - (carrierB[i] + t)));
+                }
+            }
+
+            return gap;
+        }
+
+        /// <summary>
+        /// (`S175`) Список нарушений договора умолчания «хвост в слое и доле
+        /// своего образа» для пары плеч: <paramref name="a"/> — умолчание,
+        /// <paramref name="b"/> — плечо Б (хвост в `UntiedTail`). Пусто —
+        /// выполнен. Вызванный на паре (Б, Б) обязан отказать (яма); на паре
+        /// (А с подсадкой «хвост в подложку», Б) — тоже.
         ///
-        ///   * пол разноса подложки <c>ContinuumSpreadFloorChannel</c> стоит на
-        ///     пороге доверия матрицы: энергия канала по калибровке файла не
-        ///     ниже порога, предыдущего — ниже; <c>ContinuumSpreadFloorKev</c>
-        ///     = <c>ResponseContinuumTrustFloorKev</c>;
-        ///   * ниже пола серый слой `continuum` = сплайн `Continuum` канал в
-        ///     канал, а Σ слоёв нуклидов и образов = Σ положительных частей
-        ///     кривых компонентов — то есть разнесённого сплайна там нет;
+        /// Лента слоя у умолчания — образ⁺ + хвост + доля сплайна
+        /// (<see cref="FsaResult.SpreadContinuum"/>): доля неотрицательна у
+        /// каждого слоя, и Σ долей по слоям = сплайн − серый слой канал в
+        /// канал (разнос — разбиение, ничего не потеряно и не удвоено). Это и
+        /// проверяется, а не «слой А = слой Б + хвост»: со вторым решением
+        /// Amber («В слои образов по S76 везде») хвост входит в веса разноса,
+        /// и слои двух плеч расходятся ещё и на перераспределённый сплайн.
+        /// </summary>
+        static List<string> TailInLayerContract(FsaResult a, FsaResult b, ResultData rd, double floorKev)
+        {
+            var refusals = new List<string>();
+            int channels = Math.Min(a.Model.Length, b.Model.Length);
+            double scale = Math.Max(1.0, MaxOf(a.Model));
+            double[] tailB = b.UntiedTail;
+            double[] tailA = a.TailCurveSum();
+            if (tailB == null || !(Sum(tailB) > 0.0))
+            {
+                refusals.Add("у плеча Б хвоста в невязке нет — договор мерить нечем");
+                return refusals;
+            }
+
+            if (a.UntiedTail != null)
+            {
+                refusals.Add("у умолчания хвост лежит в невязке (UntiedTail не пуст) — яма на экране");
+            }
+
+            if (tailA == null || !(Sum(tailA) > 0.0))
+            {
+                refusals.Add("у компонентов умолчания хвоста нет (TailCurve пуст) — хвост не в слое своего образа");
+            }
+
+            foreach (FsaUntiedTail tail in a.UntiedTails)
+            {
+                if (tail.Placement != FsaTailPlacement.Layer)
+                {
+                    refusals.Add("хвост " + tail.Component + " положен не в слой: " + tail.Placement);
+                }
+            }
+
+            double listedA = 0.0, listedB = 0.0;
+            foreach (FsaUntiedTail tail in a.UntiedTails) listedA += tail.Counts;
+            foreach (FsaUntiedTail tail in b.UntiedTails) listedB += tail.Counts;
+            if (Math.Abs(listedA - listedB) > 1e-6 * Math.Max(1.0, listedB))
+            {
+                refusals.Add("Σ хвостов по колонкам А " + listedA.ToString("F3", CultureInfo.InvariantCulture)
+                             + " ≠ Б " + listedB.ToString("F3", CultureInfo.InvariantCulture));
+            }
+
+            // Хвост целиком в слоях: Σ TailCurve(А) = UntiedTail(Б) по каналам;
+            // подложка та же: Continuum(А) = Continuum(Б); верх стека: Model(А)
+            // = Model(Б) + хвост(Б); Model(А) = Continuum + Σ(Curve + TailCurve).
+            double gapTail = 0.0, gapContinuum = 0.0, gapModel = 0.0, gapSum = 0.0;
+            for (int i = 0; i < channels; i++)
+            {
+                double ta = tailA != null && i < tailA.Length ? tailA[i] : 0.0;
+                double tb = i < tailB.Length ? tailB[i] : 0.0;
+                gapTail = Math.Max(gapTail, Math.Abs(ta - tb));
+                gapContinuum = Math.Max(gapContinuum, Math.Abs(a.Continuum[i] - b.Continuum[i]));
+                gapModel = Math.Max(gapModel, Math.Abs(a.Model[i] - (b.Model[i] + tb)));
+                double sum = a.Continuum[i];
+                foreach (FsaComponentResult c in a.Components)
+                {
+                    sum += c.Curve[i];
+                    if (c.TailCurve != null) sum += c.TailCurve[i];
+                }
+
+                gapSum = Math.Max(gapSum, Math.Abs(sum - a.Model[i]));
+            }
+
+            if (gapTail > 1e-9 * scale) refusals.Add("Σ TailCurve(А) ≠ UntiedTail(Б) по каналам, зазор " + gapTail.ToString("E2", CultureInfo.InvariantCulture));
+            if (gapContinuum > 1e-9 * scale) refusals.Add("Continuum(А) ≠ Continuum(Б): хвост попал в подложку, зазор " + gapContinuum.ToString("E2", CultureInfo.InvariantCulture));
+            if (gapModel > 1e-9 * scale) refusals.Add("Model(А) ≠ Model(Б) + хвост(Б), зазор " + gapModel.ToString("E2", CultureInfo.InvariantCulture));
+            if (gapSum > 1e-6 * scale) refusals.Add("Model(А) ≠ Continuum + Σ (Curve + TailCurve), зазор " + gapSum.ToString("E2", CultureInfo.InvariantCulture));
+
+            // Хвост — ниже порога доверия (плечо уширения не выше порога + 3 ПШПВ).
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            double above = 0.0, total = tailA != null ? Sum(tailA) : 0.0;
+            for (int i = 0; tailA != null && i < tailA.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                double fwhmCh = rd.FwhmCalibration.ChannelToFwhm(i);
+                double fwhmKev = calibration.ChannelToEnergy(i + fwhmCh / 2.0) - calibration.ChannelToEnergy(i - fwhmCh / 2.0);
+                if (e > floorKev + 3.0 * Math.Max(0.0, fwhmKev)) above += tailA[i];
+            }
+
+            if (above > 1e-6 * Math.Max(1.0, total))
+            {
+                refusals.Add("хвост в слоях выше порога доверия: " + above.ToString("F3", CultureInfo.InvariantCulture) + " отсч. из " + total.ToString("F1", CultureInfo.InvariantCulture));
+            }
+
+            // Слои умолчания: лента = образ⁺ + хвост + доля сплайна ≥ 0; Σ долей
+            // по слоям = сплайн − серый слой канал в канал; у носителя хвост
+            // лежит в его ленте, а не в чужой (TailCurve слоя = TailCurve
+            // компонента).
+            var byName = new Dictionary<string, FsaComponentResult>(StringComparer.Ordinal);
+            foreach (FsaComponentResult c in a.Components) byName[c.Name] = c;
+            double[] spreadSum = new double[channels];
+            double[] grey = new double[channels];
+            double negative = 0.0, tailGap = 0.0;
+            foreach (FsaStackLayer layer in a.BuildStackedLayers(int.MaxValue))
+            {
+                if (string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal))
+                {
+                    for (int i = 0; i < channels && i < layer.Curve.Length; i++) grey[i] += layer.Curve[i];
+                    continue;
+                }
+
+                FsaComponentResult c;
+                if (!byName.TryGetValue(layer.Name, out c)) continue;
+                for (int i = 0; i < channels && i < layer.Curve.Length; i++)
+                {
+                    double own = i < c.Curve.Length && c.Curve[i] > 0.0 ? c.Curve[i] : 0.0;
+                    double tail = c.TailCurve != null && i < c.TailCurve.Length ? c.TailCurve[i] : 0.0;
+                    double layerTail = layer.TailCurve != null && i < layer.TailCurve.Length ? layer.TailCurve[i] : 0.0;
+                    tailGap = Math.Max(tailGap, Math.Abs(layerTail - tail));
+                    double spread = layer.Curve[i] - own - tail;
+                    if (spread < negative) negative = spread;
+                    spreadSum[i] += spread;
+                }
+            }
+
+            double partition = 0.0;
+            for (int i = 0; i < channels; i++)
+            {
+                double spline = a.Continuum[i] > 0.0 ? a.Continuum[i] : 0.0;
+                partition = Math.Max(partition, Math.Abs(spreadSum[i] - (spline - grey[i])));
+            }
+
+            if (tailGap > 1e-9 * scale) refusals.Add("хвост слоя ≠ хвосту его компонента, зазор " + tailGap.ToString("E2", CultureInfo.InvariantCulture));
+            if (-negative > 1e-9 * scale) refusals.Add("доля сплайна у слоя отрицательна: " + negative.ToString("E2", CultureInfo.InvariantCulture) + " — лента меньше образа с хвостом");
+            if (partition > StackTolerance(a)) refusals.Add("Σ долей сплайна по слоям ≠ сплайн − серый, зазор " + partition.ToString("E2", CultureInfo.InvariantCulture) + " при допуске " + StackTolerance(a).ToString("E2", CultureInfo.InvariantCulture));
+
+            if (a.ResidualMissingShare > b.ResidualMissingShare + 1e-12)
+            {
+                refusals.Add("«не описано» умолчания больше, чем у плеча Б: "
+                             + (100.0 * a.ResidualMissingShare).ToString("F3", CultureInfo.InvariantCulture) + " против "
+                             + (100.0 * b.ResidualMissingShare).ToString("F3", CultureInfo.InvariantCulture) + " %");
+            }
+
+            double stackGap = StackGap(a);
+            if (stackGap > StackTolerance(a))
+            {
+                refusals.Add("Σ слоёв ≠ Model, зазор " + stackGap.ToString("E2", CultureInfo.InvariantCulture));
+            }
+
+            return refusals;
+        }
+
+        /// <summary>
+        /// (`S174` п. 2 и `S175`, второе решение Amber 14.09.2026 «В слои
+        /// образов по S76 везде») Договор результата при живой матрице, числом:
+        ///
+        ///   * пол разноса подложки <c>ContinuumSpreadFloorChannel</c> = 0 и
+        ///     <c>ContinuumSpreadFloorKev</c> = 0: сплайн разносится по слоям
+        ///     (`S76`) по всей шкале, п. 1 `S174` отменён;
+        ///   * серый слой `continuum` не нуль только там, где нет ни одного
+        ///     слоя образов от этого канала и выше (хвост подложки выше
+        ///     последней линии), и там он равен сплайну канал в канал; где слои
+        ///     образов есть — серый слой нуль;
         ///   * пол невязки <c>ResidualFloorChannel</c> — канал `Min_Range`
         ///     (энергия не ниже, предыдущего — ниже); «не описано»/«лишнее»
         ///     равны независимому счёту пробы от этого пола до конца полосы;
         ///   * Σ слоёв стека (с серым) = `Model`.
         ///
-        /// ⛔ Положительный контроль — ПОДСАДКА «разнести как прежде и считать
-        /// по всей полосе»: оба пола = 0, доли и невязка пересчитаны правилами
-        /// результата. Договор обязан ОТКАЗАТЬ, серый слой ниже порога —
-        /// исчезнуть, доля носителя (нуклид с наибольшей долей) — вырасти,
-        /// невязка — совпасть с независимым счётом по всей полосе, χ²/ndf —
-        /// тот же. Строки `GREY` — числа в журнал.
+        /// ⛔ Положительные контроли: (1) ПОДСАДКА «сплайн ниже порога доверия
+        /// серым» — пол разноса на пороге доверия тем же `FsaAnalyzer.FloorChannel`
+        /// (п. 1 `S174`, П69; картинка П70/П75 до второго решения) — договор
+        /// обязан ОТКАЗАТЬ, серый слой ниже порога — появиться и равняться
+        /// сплайну ниже порога, доля носителя — упасть, χ²/ndf — тот же;
+        /// (2) ПОДСАДКА «невязка по всей полосе» (пол невязки 0) — договор
+        /// отказывает, невязка совпадает с независимым счётом по всей полосе.
+        /// Строки `GREY` — числа в журнал.
         /// </summary>
         static void CheckGreyFloor(ResultData rd, ResponseMatrix matrix, string material,
                                    List<FsaComponent> sample, FsaEfficiency efficiency)
@@ -1061,23 +1301,34 @@ namespace FsaDoubleCountProbe
                                                 rd.FwhmCalibration, sample, efficiency);
             if (result == null)
             {
-                Console.WriteLine("S174: разложение не получилось");
+                Console.WriteLine("S174/S175: разложение не получилось");
                 bad++;
                 return;
             }
 
-            Same("S174: матрица применена", true, result.ResponseMatrixUsed);
+            Same("S174/S175: матрица применена", true, result.ResponseMatrixUsed);
             int[] raw = rd.EnergySpectrum.Spectrum;
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            int trustFloor = FsaAnalyzer.FloorChannel(calibration, analyzer.ResponseContinuumTrustFloorKev,
+                                                      result.FirstChannel, result.LastChannel);
             double greyBelow, greyAbove;
-            GreySplit(result, out greyBelow, out greyAbove);
-            Console.WriteLine("GREY	полы	разнос от канала {0} ({1} кэВ), невязка от канала {2} ({3} кэВ), полоса фита {4}..{5}",
+            GreySplitAt(result, trustFloor, out greyBelow, out greyAbove);
+            double splineBelow = 0.0;
+            for (int i = result.FirstChannel; i < trustFloor && i <= result.LastChannel && i < result.Continuum.Length; i++)
+            {
+                if (result.Continuum[i] > 0.0) splineBelow += result.Continuum[i];
+            }
+
+            Console.WriteLine("GREY\tполы\tразнос от канала {0} ({1} кэВ; порог доверия — канал {2}), невязка от канала {3} ({4} кэВ), полоса фита {5}..{6}",
                               result.ContinuumSpreadFloorChannel,
                               result.ContinuumSpreadFloorKev.ToString("G", CultureInfo.InvariantCulture),
+                              trustFloor,
                               result.ResidualFloorChannel,
                               result.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture),
                               result.FirstChannel, result.LastChannel);
-            Console.WriteLine("GREY	слой	ниже порога {0} отсч., выше последней линии {1} отсч.; χ²/ndf {2}; не описано {3} %, приписано {4} %",
+            Console.WriteLine("GREY\tслой\tниже порога доверия {0} отсч. (сплайн там {1}), выше {2} отсч.; χ²/ndf {3}; не описано {4} %, приписано {5} %",
                               greyBelow.ToString("F1", CultureInfo.InvariantCulture),
+                              splineBelow.ToString("F1", CultureInfo.InvariantCulture),
                               greyAbove.ToString("F1", CultureInfo.InvariantCulture),
                               result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture),
                               (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
@@ -1086,14 +1337,14 @@ namespace FsaDoubleCountProbe
             List<string> refusals = GreyContract(result, analyzer, rd);
             foreach (string refusal in refusals)
             {
-                Console.WriteLine("  ⛔ договор S174: {0}", refusal);
+                Console.WriteLine("  ⛔ договор S174/S175: {0}", refusal);
             }
 
-            Same("S174: договор результата (полы на порогах, сплайн ниже порога — серый слой, невязка от Min_Range, стек = модель) выполнен",
+            Same("S175: договор результата (пол разноса 0 — S76 везде; серый только где нет образов; невязка от Min_Range; стек = модель) выполнен",
                  0, refusals.Count);
 
             // Носитель — нуклид с наибольшей долей: ему разнос ниже порога
-            // отдаст больше всех.
+            // отдаёт больше всех, и подсадка «серым» у него же отнимет.
             string carrier = null;
             double carrierShare = -1.0;
             foreach (FsaComponentResult c in result.Components)
@@ -1109,82 +1360,80 @@ namespace FsaDoubleCountProbe
             double missingBefore = result.ResidualMissingShare;
             double excessBefore = result.ResidualExcessShare;
             bool floorCuts = result.ResidualFloorChannel > result.FirstChannel;
-            bool spreadCuts = greyBelow > 0.0;
 
-            // Подсадка: оба пола сняты, доли и невязка — правилами результата.
-            result.ContinuumSpreadFloorChannel = 0;
-            result.ContinuumSpreadFloorKev = 0.0;
-            result.ResidualFloorChannel = 0;
+            // Подсадка 1: сплайн ниже порога доверия серым (п. 1 S174).
+            result.ContinuumSpreadFloorKev = analyzer.ResponseContinuumTrustFloorKev;
+            result.ContinuumSpreadFloorChannel = trustFloor;
             result.ComputeComponentShares();
-            result.ComputeResidualShares(raw);
-            double greyBelowAfter, greyAboveAfter;
-            GreySplit(result, out greyBelowAfter, out greyAboveAfter);
+            double greyBelowPlanted, greyAbovePlanted;
+            GreySplitAt(result, trustFloor, out greyBelowPlanted, out greyAbovePlanted);
             double shareAfter = carrier != null ? ShareOf(result, carrier) : 0.0;
-            Console.WriteLine("GREY	подсадка	{0}	доля {1} → {2} %; не описано {3} → {4} %; приписано {5} → {6} %; серый слой ниже порога {7} → {8} отсч.",
+            Console.WriteLine("GREY\tподсадка «серым»\t{0}\tдоля {1} → {2} %; серый слой ниже порога {3} → {4} отсч. (сплайн ниже порога {5})",
                               carrier ?? "-",
                               carrierShare.ToString("F2", CultureInfo.InvariantCulture),
                               shareAfter.ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * missingBefore).ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * excessBefore).ToString("F2", CultureInfo.InvariantCulture),
-                              (100.0 * result.ResidualExcessShare).ToString("F2", CultureInfo.InvariantCulture),
                               greyBelow.ToString("F1", CultureInfo.InvariantCulture),
-                              greyBelowAfter.ToString("F1", CultureInfo.InvariantCulture));
-
+                              greyBelowPlanted.ToString("F1", CultureInfo.InvariantCulture),
+                              splineBelow.ToString("F1", CultureInfo.InvariantCulture));
             List<string> planted = GreyContract(result, analyzer, rd);
-            Same("положительный контроль S174: подсадка «разнести как прежде, невязка по всей полосе» — договор ОТКАЗЫВАЕТ (ловушка сработала)",
+            Same("положительный контроль S175: подсадка «сплайн ниже порога серым» (п. 1 S174) — договор ОТКАЗЫВАЕТ (ловушка сработала)",
                  true, planted.Count > 0);
-            Same("положительный контроль S174: с подсадкой серого слоя ниже порога нет", 0.0, greyBelowAfter);
-            if (spreadCuts)
+            Same("положительный контроль S175: с подсадкой серый слой ниже порога = сплайну ниже порога",
+                 true, Math.Abs(greyBelowPlanted - splineBelow) <= 1e-9 * Math.Max(1.0, MaxOf(result.Model)));
+            if (splineBelow > 0.0)
             {
-                Same("положительный контроль S174: с подсадкой доля носителя больше", true, shareAfter > carrierShare);
+                Same("положительный контроль S175: с подсадкой доля носителя меньше", true, shareAfter < carrierShare);
             }
             else
             {
-                Console.WriteLine("(серого слоя ниже порога у этого спектра нет — сдвиг доли носителя не меряется)");
+                Console.WriteLine("(сплайна ниже порога доверия у этого спектра нет — сдвиг доли носителя не меряется)");
             }
 
+            Same("положительный контроль S175: фит подсадкой не тронут (χ²/ndf)", chi2Before, result.Chi2Ndf);
+            Same("положительный контроль S175: тождество стека держится и с подсадкой (Σ слоёв = модель)",
+                 true, StackGap(result) <= StackTolerance(result));
+
+            // Подсадка 2: невязка по всей полосе (пол невязки 0) — п. 2 S174.
+            result.ContinuumSpreadFloorKev = 0.0;
+            result.ContinuumSpreadFloorChannel = 0;
+            result.ResidualFloorChannel = 0;
+            result.ComputeComponentShares();
+            result.ComputeResidualShares(raw);
+            Console.WriteLine("GREY\tподсадка «невязка по всей полосе»\tне описано {0} → {1} %; приписано {2} → {3} %",
+                              (100.0 * missingBefore).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualMissingShare).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * excessBefore).ToString("F2", CultureInfo.InvariantCulture),
+                              (100.0 * result.ResidualExcessShare).ToString("F2", CultureInfo.InvariantCulture));
             double missingWhole, excessWhole;
             ResidualByProbe(result, raw, result.FirstChannel, out missingWhole, out excessWhole);
-            Same("положительный контроль S174: с подсадкой невязка = независимому счёту по всей полосе (не описано)",
+            Same("положительный контроль S174 п. 2: с подсадкой невязка = независимому счёту по всей полосе (не описано)",
                  true, Math.Abs(result.ResidualMissingShare - missingWhole) <= 1e-12);
-            Same("положительный контроль S174: с подсадкой невязка = независимому счёту по всей полосе (лишнее)",
+            Same("положительный контроль S174 п. 2: с подсадкой невязка = независимому счёту по всей полосе (лишнее)",
                  true, Math.Abs(result.ResidualExcessShare - excessWhole) <= 1e-12);
-            if (!floorCuts)
+            if (floorCuts)
+            {
+                List<string> plantedResidual = GreyContract(result, analyzer, rd);
+                Same("положительный контроль S174 п. 2: подсадка «невязка по всей полосе» — договор ОТКАЗЫВАЕТ",
+                     true, plantedResidual.Count > 0);
+            }
+            else
             {
                 Console.WriteLine("(пол Min_Range не режет полосу фита у этого спектра — сдвиг невязки не меряется)");
             }
 
-            Same("положительный контроль S174: фит подсадкой не тронут (χ²/ndf)", chi2Before, result.Chi2Ndf);
-            double worst = StackGap(result);
-            Same("положительный контроль S174: тождество стека держится и с подсадкой (Σ слоёв = модель)",
-                 true, worst <= StackTolerance(result));
+            Same("положительный контроль S174 п. 2: фит подсадкой не тронут (χ²/ndf)", chi2Before, result.Chi2Ndf);
         }
 
-        /// <summary>Список нарушений договора S174; пусто — договор выполнен.</summary>
+        /// <summary>Список нарушений договора S174 п. 2 / S175; пусто — договор выполнен.</summary>
         static List<string> GreyContract(FsaResult result, FsaAnalyzer analyzer, ResultData rd)
         {
             var refusals = new List<string>();
             EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
             int[] raw = rd.EnergySpectrum.Spectrum;
-            double floorKev = analyzer.ResponseContinuumTrustFloorKev;
-            int spread = result.ContinuumSpreadFloorChannel;
-            if (Math.Abs(result.ContinuumSpreadFloorKev - floorKev) > 1e-9)
+            if (result.ContinuumSpreadFloorChannel != 0 || result.ContinuumSpreadFloorKev != 0.0)
             {
-                refusals.Add("порог разноса " + result.ContinuumSpreadFloorKev.ToString("G", CultureInfo.InvariantCulture)
-                             + " кэВ ≠ порог доверия " + floorKev.ToString("G", CultureInfo.InvariantCulture));
-            }
-
-            // (П70) Пол — ПЕРВЫЙ КАНАЛ ПОЛОСЫ ФИТА, чья энергия не ниже порога
-            // (`FsaAnalyzer.FloorChannel`: счёт от `chLo`): порог ниже полосы
-            // даёт пол = первый канал полосы, и «канал − 1 ещё ниже порога» там
-            // неверно по построению (Cs-137 в домике у Amber: Min_Range 5 кэВ при
-            // полосе от канала 35 ≈ 7 кэВ). Договор: энергия пола ≥ порога, и
-            // либо канал − 1 ниже порога, либо пол — первый канал полосы.
-            if (spread <= 0 || calibration.ChannelToEnergy(spread) < floorKev
-                || (spread > result.FirstChannel && calibration.ChannelToEnergy(spread - 1) >= floorKev))
-            {
-                refusals.Add("канал пола разноса " + spread + " не на пороге доверия " + floorKev.ToString("G", CultureInfo.InvariantCulture) + " кэВ");
+                refusals.Add("пол разноса подложки " + result.ContinuumSpreadFloorChannel + " (" + result.ContinuumSpreadFloorKev.ToString("G", CultureInfo.InvariantCulture)
+                             + " кэВ) ≠ 0 — сплайн ниже него серым, а не в слоях образов (п. 1 S174 отменён S175)");
             }
 
             int rfloor = result.ResidualFloorChannel;
@@ -1195,44 +1444,60 @@ namespace FsaDoubleCountProbe
                              + " кэВ ≠ Min_Range " + minRange.ToString("G", CultureInfo.InvariantCulture));
             }
 
+            // (П70) Пол — ПЕРВЫЙ КАНАЛ ПОЛОСЫ ФИТА, чья энергия не ниже порога
+            // (`FsaAnalyzer.FloorChannel`: счёт от `chLo`): порог ниже полосы
+            // даёт пол = первый канал полосы, и «канал − 1 ещё ниже порога» там
+            // неверно по построению (Cs-137 в домике у Amber: Min_Range 5 кэВ при
+            // полосе от канала 35 ≈ 7 кэВ). Договор: энергия пола ≥ порога, и
+            // либо канал − 1 ниже порога, либо пол — первый канал полосы.
             if (minRange > 0.0 && (rfloor <= 0 || calibration.ChannelToEnergy(rfloor) < minRange
                                    || (rfloor > result.FirstChannel && calibration.ChannelToEnergy(rfloor - 1) >= minRange)))
             {
                 refusals.Add("канал пола невязки " + rfloor + " не на Min_Range " + minRange.ToString("G", CultureInfo.InvariantCulture) + " кэВ (и не первый канал полосы " + result.FirstChannel + ")");
             }
 
-            // Ниже пола: серый слой = сплайн, слои компонентов = образы.
+            // Серый слой — только там, где от канала и выше нет ни одного слоя
+            // образов; там он равен сплайну; где образы есть — нуль.
             List<FsaStackLayer> layers = result.BuildStackedLayers(int.MaxValue);
-            double greyGap = 0.0, layerGap = 0.0, top = Math.Max(1.0, MaxOf(result.Model));
-            for (int i = result.FirstChannel; i < spread && i <= result.LastChannel; i++)
+            int channels = result.Model.Length;
+            double[] grey = new double[channels];
+            double[] imagesAbove = new double[channels];
+            double running = 0.0;
+            for (int i = channels - 1; i >= 0; i--)
             {
-                double grey = 0.0, others = 0.0, images = 0.0;
                 foreach (FsaStackLayer layer in layers)
                 {
                     double v = i < layer.Curve.Length ? layer.Curve[i] : 0.0;
-                    if (string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)) grey += v;
-                    else others += v;
+                    if (string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)) grey[i] += v;
+                    else running += v;
                 }
 
-                foreach (FsaComponentResult c in result.Components)
+                imagesAbove[i] = running;
+            }
+
+            double top = Math.Max(1.0, MaxOf(result.Model));
+            double greyWhereImages = 0.0, greyGap = 0.0;
+            for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+            {
+                if (imagesAbove[i] > 0.0)
                 {
-                    double v = i < c.Curve.Length ? c.Curve[i] : 0.0;
-                    if (v > 0.0) images += v;
+                    greyWhereImages = Math.Max(greyWhereImages, grey[i]);
                 }
+                else
+                {
+                    double spline = i < result.Continuum.Length && result.Continuum[i] > 0.0 ? result.Continuum[i] : 0.0;
+                    greyGap = Math.Max(greyGap, Math.Abs(grey[i] - spline));
+                }
+            }
 
-                double continuum = i < result.Continuum.Length && result.Continuum[i] > 0.0 ? result.Continuum[i] : 0.0;
-                greyGap = Math.Max(greyGap, Math.Abs(grey - continuum));
-                layerGap = Math.Max(layerGap, Math.Abs(others - images));
+            if (greyWhereImages > 1e-9 * top)
+            {
+                refusals.Add("серый слой там, где есть слои образов: до " + greyWhereImages.ToString("E2", CultureInfo.InvariantCulture) + " отсч./канал — сплайн не разнесён по S76");
             }
 
             if (greyGap > 1e-9 * top)
             {
-                refusals.Add("ниже порога серый слой ≠ сплайн, зазор " + greyGap.ToString("E2", CultureInfo.InvariantCulture));
-            }
-
-            if (layerGap > StackTolerance(result))
-            {
-                refusals.Add("ниже порога слои компонентов ≠ образы (в них разнесён сплайн), зазор " + layerGap.ToString("E2", CultureInfo.InvariantCulture));
+                refusals.Add("выше последней линии серый слой ≠ сплайн, зазор " + greyGap.ToString("E2", CultureInfo.InvariantCulture));
             }
 
             double missing, excess;
@@ -1253,6 +1518,22 @@ namespace FsaDoubleCountProbe
             }
 
             return refusals;
+        }
+
+        /// <summary>(`S175`) Серый слой стека надвое относительно канала <paramref name="floor"/>: ниже и от него и выше.</summary>
+        static void GreySplitAt(FsaResult result, int floor, out double below, out double above)
+        {
+            below = 0.0;
+            above = 0.0;
+            foreach (FsaStackLayer layer in result.BuildStackedLayers(int.MaxValue))
+            {
+                if (!string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)) continue;
+                for (int i = 0; i < layer.Curve.Length; i++)
+                {
+                    if (i < floor) below += layer.Curve[i];
+                    else above += layer.Curve[i];
+                }
+            }
         }
 
         /// <summary>
@@ -1308,68 +1589,6 @@ namespace FsaDoubleCountProbe
                    + 1e-9 * Math.Max(1.0, MaxOf(result.Model));
         }
 
-        /// <summary>
-        /// (`AMBER30`) Список нарушений договора умолчания «хвост в сером
-        /// слое» для пары плеч: <paramref name="a"/> — умолчание (хвост в
-        /// подложке), <paramref name="b"/> — плечо Б (хвост в `UntiedTail`);
-        /// <paramref name="tailBelow"/> — хвост плеча Б ниже пола разноса,
-        /// <paramref name="carrier"/> — носитель хвоста. Пусто — выполнен.
-        /// Вызванный на паре (Б, Б) обязан отказать — это положительный
-        /// контроль: серый слой без хвоста и есть яма на экране.
-        /// </summary>
-        static List<string> TailInGreyContract(FsaResult a, FsaResult b, double tailBelow, string carrier)
-        {
-            var refusals = new List<string>();
-            double greyBelowA, greyAboveA, greyBelowB, greyAboveB;
-            GreySplit(a, out greyBelowA, out greyAboveA);
-            GreySplit(b, out greyBelowB, out greyAboveB);
-            double tolerance = StackTolerance(a);
-            if (!(tailBelow > 0.0))
-            {
-                refusals.Add("хвоста ниже пола разноса нет — договор мерить нечем");
-            }
-
-            if (Math.Abs((greyBelowA - greyBelowB) - tailBelow) > tolerance)
-            {
-                refusals.Add("серый слой ниже пола разноса вырос не на хвост: А " + greyBelowA.ToString("F1", CultureInfo.InvariantCulture)
-                             + ", Б " + greyBelowB.ToString("F1", CultureInfo.InvariantCulture)
-                             + ", хвост " + tailBelow.ToString("F1", CultureInfo.InvariantCulture)
-                             + ", допуск " + tolerance.ToString("E2", CultureInfo.InvariantCulture));
-            }
-
-            double[] layerA = LayerCurve(a, carrier), layerB = LayerCurve(b, carrier);
-            if (layerA == null || layerB == null)
-            {
-                refusals.Add("слоя носителя «" + carrier + "» нет в одном из плеч");
-            }
-            else
-            {
-                double gap = 0.0, scale = 1.0;
-                int floor = Math.Min(a.ContinuumSpreadFloorChannel, Math.Min(layerA.Length, layerB.Length));
-                for (int i = 0; i < floor; i++)
-                {
-                    gap = Math.Max(gap, Math.Abs(layerA[i] - layerB[i]));
-                    scale = Math.Max(scale, Math.Abs(layerB[i]));
-                }
-
-                if (gap > 1e-9 * scale)
-                {
-                    refusals.Add("слой носителя ниже пола разноса разошёлся между плечами: зазор "
-                                 + gap.ToString("E2", CultureInfo.InvariantCulture) + " при шкале "
-                                 + scale.ToString("E2", CultureInfo.InvariantCulture) + " — хвост попал в долю нуклида");
-                }
-            }
-
-            if (a.ResidualMissingShare > b.ResidualMissingShare + 1e-12)
-            {
-                refusals.Add("«не описано» умолчания больше, чем у плеча Б: "
-                             + (100.0 * a.ResidualMissingShare).ToString("F3", CultureInfo.InvariantCulture) + " против "
-                             + (100.0 * b.ResidualMissingShare).ToString("F3", CultureInfo.InvariantCulture) + " %");
-            }
-
-            return refusals;
-        }
-
         /// <summary>Кривая слоя стека по имени (полный стек, без свёртки мелких); null — слоя нет.</summary>
         static double[] LayerCurve(FsaResult result, string name)
         {
@@ -1405,7 +1624,11 @@ namespace FsaDoubleCountProbe
                 for (int i = result.FirstChannel; i <= result.LastChannel; i++)
                 {
                     double sum = result.Continuum[i];
-                    foreach (FsaComponentResult c in result.Components) sum += c.Curve[i];
+                    foreach (FsaComponentResult c in result.Components)
+                    {
+                        sum += c.Curve[i] + (c.TailCurve != null ? c.TailCurve[i] : 0.0);
+                    }
+
                     gapEmpty = Math.Max(gapEmpty, Math.Abs(sum - result.Model[i]));
                 }
 
@@ -1451,7 +1674,16 @@ namespace FsaDoubleCountProbe
                              + " отсч. из " + total.ToString("F1", CultureInfo.InvariantCulture));
             }
 
-            // Верх стека — без хвоста: Model = Continuum + Σ кривых.
+            // Верх стека — без хвоста: Model = Continuum + Σ кривых; хвостов у
+            // образов (`S175`) на плече Б быть не должно.
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.TailCurve != null)
+                {
+                    refusals.Add("у компонента " + c.Name + " хвост лежит в слое (TailCurve) при ключе «хвост в невязке»");
+                }
+            }
+
             double top = MaxOf(result.Model);
             double gap = 0.0;
             for (int i = result.FirstChannel; i <= result.LastChannel; i++)
@@ -1747,13 +1979,15 @@ namespace FsaDoubleCountProbe
                     double members = 0.0, others = result.Continuum[i];
                     foreach (FsaComponentResult c in result.Components)
                     {
+                        // (`S175`) Хвост члена — в его ленте: Σ (Curve + TailCurve).
+                        double v = c.Curve[i] + (c.TailCurve != null ? c.TailCurve[i] : 0.0);
                         if (string.Equals(c.ChainRoot, root, StringComparison.OrdinalIgnoreCase))
                         {
-                            members += c.Curve[i];
+                            members += v;
                         }
                         else
                         {
-                            others += c.Curve[i];
+                            others += v;
                         }
                     }
 

@@ -885,7 +885,8 @@ namespace CorpusFsaProbe
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
     /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
     /// `&lt;группа&gt;_&lt;режим&gt;_tails.csv` — отвязанные хвосты матричных
-    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах),
+    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах; `S175`:
+    /// где лежит — `layer`/`continuum`/`residual`),
     /// `&lt;группа&gt;_&lt;режим&gt;_grey.csv` — серый слой подложки (`S174`: ниже
     /// порога доверия и выше последней линии, отсчёты и доля стека, оба пола
     /// отображения каналом и кэВ, невязка в отсчётах от `Min_Range`) по
@@ -1985,14 +1986,18 @@ namespace CorpusFsaProbe
             // в том же заголовке, и `csv.DictReader` молча брал ВТОРОЙ — «сплайн 0»
             // там, где он 223.9 (`S103`). На складе 05.09.2026 таких дампов 115 из 329.
             // (`S173`) `untied_tail` — отвязанные хвосты матричных образов по
-            // каналам: в `model` (верх стека) и слои не входят, лежат в невязке.
-            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw,untied_tail");
+            // каналам В НЕВЯЗКЕ (только по ключу `UntiedTailAsResidual`): в
+            // `model` (верх стека) и слои не входят. (`S175`) `tail` — хвосты,
+            // лежащие У ОБРАЗОВ (`FsaResult.TailCurveSum`, умолчание): входят в
+            // `model` и в слои своих образов; `continuum_raw` — только сплайн.
+            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw,untied_tail,tail");
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
             }
 
             RejectDuplicateColumns(head.ToString(), "--dump-curves");
+            double[] tailSum = result.TailCurveSum();
             string path = Path.Combine(dir, key + "_curves.csv");
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
@@ -2006,7 +2011,8 @@ namespace CorpusFsaProbe
                         .Append(Cell(fit, i)).Append(',')
                         .Append(Cell(result.Model, i)).Append(',')
                         .Append(Cell(result.Continuum, i)).Append(',')
-                        .Append(Cell(result.UntiedTail, i));
+                        .Append(Cell(result.UntiedTail, i)).Append(',')
+                        .Append(Cell(tailSum, i));
                     foreach (FsaStackLayer layer in layers)
                     {
                         line.Append(',').Append(Cell(layer.Curve, i));
@@ -5121,7 +5127,10 @@ namespace CorpusFsaProbe
                 // спектру, СВОЙ файл по тому же доводу, что у хвостов.
                 using (var grey = new StreamWriter(prefix + "_grey.csv", false, new UTF8Encoding(true)))
                 {
-                    tails.WriteLine("spectrum,det,part,component,tail_counts,missing_pct,excess_pct");
+                    // (`S175`) `placement` — В КОНЕЦ: где хвост лежит
+                    // (`layer` — в слое и доле своего образа, умолчание;
+                    // `continuum` — образа в составе нет; `residual` — ключ).
+                    tails.WriteLine("spectrum,det,part,component,tail_counts,missing_pct,excess_pct,placement");
                     grey.WriteLine("spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,"
                                    + "spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,"
                                    + "first_ch,last_ch,stack_total,missing_pct,excess_pct");
@@ -5294,7 +5303,8 @@ namespace CorpusFsaProbe
                                     Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(tail.Component),
                                     F(tail.Counts, "F1"),
                                     F(100.0 * r.Result.ResidualMissingShare, "F3"),
-                                    F(100.0 * r.Result.ResidualExcessShare, "F3")));
+                                    F(100.0 * r.Result.ResidualExcessShare, "F3"),
+                                    tail.Placement.ToString().ToLowerInvariant()));
                             }
                         }
 

@@ -6734,8 +6734,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (!hostLimit.Degenerate && !double.IsNaN(hostLimit.DetectionLimitRate)
                         && part.Lines.Count > 0)
                     {
+                        double[] memberTail;
                         double[] image = this.MemberTemplate(part, calibration, fwhmCalibration, efficiency,
-                                                             gain, offset, chLo, chHi, channels);
+                                                             gain, offset, chLo, chHi, channels, out memberTail);
                         if (image != null)
                         {
                             peakCounts = hostLimit.DetectionLimitRate * liveTime
@@ -8200,6 +8201,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double totalPeakCounts = 0.0;
             double allPeakCounts = 0.0;
+
+            // (`S175`) Кто чей: строки результата по компоненту колонки (у ряда
+            // со связкой — все члены) и хвосты образов членов — по ним после
+            // обхода раздаются колонки хвостов (`AttachTails`).
+            var ownersOf = new Dictionary<FsaComponent, List<FsaComponentResult>>();
+            var memberTails = new Dictionary<FsaComponentResult, double[]>();
+            var tailColumns = new List<KeyValuePair<FitColumn, double>>();
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 FitColumn column = fit.Columns[k];
@@ -8211,69 +8219,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    // ⛔ (`S173`, решение Amber 14.09.2026 «Отвязанный хвост
-                    // рисовать как невязку») ОТВЯЗАННЫЙ ХВОСТ ОБРАЗА — НЕ
-                    // ПОДЛОЖКА. Ниже порога доверия матрицы континуум образа
-                    // идёт в фит своей свободной колонкой (`S11`), и до
-                    // 14.09.2026 она складывалась сюда же, в `Continuum`, откуда
-                    // разнос подложки (`FsaResult.DistributeContinuum`) отдавал
-                    // её слоям нуклидов пропорционально их пиковому счёту выше
-                    // канала — свободная подгонка низа шкалы шла лентой и долей
-                    // нуклида. ⚠ Мера П65 §4.1 («5900 отсч. из 7174 в 40–64 кэВ
-                    // на фильтре ASN16 — отвязанный континуум») оказалась не про
-                    // хвост: П68 измерила хвост Pb-212 там в 569 отсч. (1008 на
-                    // весь спектр), остальное — сплайн подложки, и он разносится
-                    // по слоям по-прежнему (`S76`, другое решение).
+                    // ⛔ (`S175`, решение Amber 14.09.2026 «Чини S174 так, чтобы
+                    // выглядело физически корректным») ОТВЯЗАННЫЙ ХВОСТ ОБРАЗА —
+                    // НЕ ПОДЛОЖКА И НЕ НЕВЯЗКА, А ЧАСТЬ СВОЕГО ОБРАЗА. Ниже порога
+                    // доверия матрицы континуум образа идёт в фит своей свободной
+                    // колонкой (`S11`, `TailOf` — чей). Форма его предсказана
+                    // матрицей для ЭТОГО образа — то же комптоновское плато, что
+                    // и выше порога; свободна только амплитуда. Три адресата за
+                    // один день 14.09.2026: до П68 — в `Continuum`, и разнос
+                    // подложки (`S76`) отдавал его слоям по пиковому счёту выше
+                    // канала; П68 (`S173`) — в невязку `UntiedTail`, и на цезии в
+                    // домике (хвост Cs-137 13 984 949 отсч., 5.6 % спектра) это
+                    // была яма 56–100 кэВ (`AMBER30`); П70 — снова в `Continuum`,
+                    // откуда `S174` рисовал его серым слоем ниже порога, и это
+                    // был провал в слое Cs-137 с серым бугром на его месте
+                    // (снимок Amber: «Это же проблема!»). Здесь колонка хвоста
+                    // откладывается и после обхода кладётся В СЛОЙ И ДОЛЮ СВОЕГО
+                    // ОБРАЗА (`FsaComponentResult.TailCurve`; у ряда со связкой —
+                    // членам по весу их хвостов в канале), см. `AttachTails`.
+                    // Фит этим не тронут: амплитуды, z, пределы и χ²/ndf считаны
+                    // выше и здесь только читаются.
                     //
-                    // Теперь хвост копится ОТДЕЛЬНО (`UntiedTail`) и в модель
-                    // стека не входит: в слой нуклида идёт ровно образ × амплитуда
-                    // — та же привязанная часть, что выше порога, — а хвост
-                    // остаётся между верхом стека и измерением, то есть лентой
-                    // невязки и долей «не описано». Фит этим не тронут:
-                    // амплитуды, z, пределы и χ²/ndf считаны выше и здесь только
-                    // читаются. Кто хочет модель фита целиком — `FsaResult.FitModel()`.
-                    //
-                    // ⛔ (`AMBER30`, решение Amber 14.09.2026 «В серый слой
-                    // «континуум»», П70) ПРАВИЛО ВЫШЕ — ТОЛЬКО ПО КЛЮЧУ
-                    // <see cref="UntiedTailAsResidual"/>, для проб. Мера П68 (хвост
-                    // 1008…16012 отсч. на пороге АЦП) снята на радоновом фильтре,
-                    // где ниже 100 кэВ у образов почти нет континуума; на точечном
-                    // Cs-137 в домике (250 М отсч.) хвост — комптоновское плато
-                    // самого цезия вне окна Ba-K, 13 984 949 отсч. (5.6 % спектра),
-                    // и лентой невязки он вынимал из картинки 72 % данных в
-                    // 56–100 кэВ и 37 % в 5–20 кэВ (яма с одиноким горбом `Xray-Pb`
-                    // — снимок Amber). По умолчанию хвост идёт в подложку
-                    // `Continuum`, как до П68, и оттуда `S174`
-                    // (`FsaResult.DistributeContinuum`) кладёт его ниже пола
-                    // разноса в СЕРЫЙ слой «континуум» — не в долю нуклида (чего
-                    // хотело `S173`) и не в невязку (чего не хотел никто).
-                    // `UntiedTail`/`UntiedTails` при умолчании НЕ заполняются
-                    // нарочно: `FsaResult.FitModel()` = `Model` + `UntiedTail`, и
-                    // хвост, лежащий в обоих, считался бы дважды (кросс-сверка
-                    // линий, розыгрыш пределов). Механика `S173` (колонка
-                    // `TailOf`, сущность `UntiedTail`, договор `FsaDoubleCountProbe`
-                    // §6) живёт на плече Б — ключ поднят, — а умолчание меряется
-                    // парой плеч: серый слой А − серый слой Б = хвост ниже пола.
-                    if (column.TailOf != null && this.UntiedTailAsResidual)
+                    // Правило `S173` (хвост лентой невязки, мимо верха стека)
+                    // живёт только по ключу <see cref="UntiedTailAsResidual"/> —
+                    // пробы, плечо Б, положительный контроль «яма».
+                    if (column.TailOf != null)
                     {
-                        if (result.UntiedTail == null)
-                        {
-                            result.UntiedTail = new double[channels];
-                        }
-
-                        double tailCounts = 0.0;
-                        for (int i = chLo; i <= chHi; i++)
-                        {
-                            double value = amplitude * column.Values[i];
-                            result.UntiedTail[i] += value;
-                            tailCounts += value;
-                        }
-
-                        result.UntiedTails.Add(new FsaUntiedTail
-                        {
-                            Component = column.TailOf.Name,
-                            Counts = tailCounts
-                        });
+                        tailColumns.Add(new KeyValuePair<FitColumn, double>(column, amplitude));
                         continue;
                     }
 
@@ -8297,6 +8269,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     curve[i] = amplitude * column.Values[i];
                 }
 
+                int firstRow = result.Components.Count;
+
                 // ⛔ РЯД, СВЯЗАННЫЙ РАВНОВЕСИЕМ, ОСТАЁТСЯ В ОТЧЁТЕ ПОЧЛЕННО
                 // (указание Amber 18.08.2026, поправка к `S70`). Связка меняет
                 // ЧИСЛО СВОБОДНЫХ АМПЛИТУД, а не список компонентов: у ряда одна
@@ -8310,8 +8284,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (this.SplitChainMembers(column.Component, curve, amplitude, calibration,
                                            fwhmCalibration, efficiency, gain, offset,
                                            chLo, chHi, channels, liveTime, fit.Z[k],
-                                           result, ref totalPeakCounts, ref allPeakCounts))
+                                           result, ref totalPeakCounts, ref allPeakCounts,
+                                           memberTails))
                 {
+                    ownersOf[column.Component] = result.Components.GetRange(firstRow, result.Components.Count - firstRow);
                     continue;
                 }
 
@@ -8362,6 +8338,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 };
 
                 result.Components.Add(component);
+                ownersOf[column.Component] = new List<FsaComponentResult> { component };
                 if (component.Kind != FsaComponentKind.Nuisance)
                 {
                     totalPeakCounts += component.PeakCounts;
@@ -8375,6 +8352,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 allPeakCounts += component.PeakCounts;
             }
 
+            // (`S175`) Колонки хвостов — по адресатам: в слой своего образа
+            // (умолчание), в подложку (образа в составе нет), в невязку (ключ).
+            this.AttachTails(result, tailColumns, ownersOf, memberTails, chLo, chHi, channels);
+
             foreach (FsaComponentResult component in result.Components)
             {
                 component.PeakSharePercent = allPeakCounts > 0.0
@@ -8382,43 +8363,60 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : 0.0;
             }
 
+            // Верх стека: подложка + образы + (`S175`) их хвосты. Хвосты в
+            // невязке (`UntiedTail`, только по ключу) сюда не входят.
             for (int i = chLo; i <= chHi; i++)
             {
                 double sum = result.Continuum[i];
                 foreach (FsaComponentResult component in result.Components)
                 {
                     sum += component.Curve[i];
+                    if (component.TailCurve != null)
+                    {
+                        sum += component.TailCurve[i];
+                    }
                 }
 
                 result.Model[i] = sum;
             }
 
-            // (`S174`, два решения Amber 14.09.2026) ДВА ПОЛА ОТОБРАЖЕНИЯ, оба —
-            // каналом по калибровке файла (первый канал, чья энергия не ниже
-            // порога; правило то же, что у пола полосы фита выше — `A309`):
+            // (`S174` → `S175`) ПОЛЫ ОТОБРАЖЕНИЯ — каналом по калибровке файла
+            // (первый канал, чья энергия не ниже порога; правило то же, что у
+            // пола полосы фита выше — `A309`):
             //
-            //   * «Ниже порога не разносить — серый слой «континуум»»: сплайн
-            //     подложки разносится по слоям нуклидов (`S76`) только от
-            //     порога доверия матрицы (`ResponseContinuumTrustFloorKev`,
-            //     ~~`S11`~~) и выше; ниже — свой серый слой. Порог есть только у
-            //     разбора С МАТРИЦЕЙ: без неё образ — голые пики, подложка —
-            //     комптон целиком, и `S76` действует по всей шкале (0).
-            //   * «Только в диапазоне прибора»: невязка в отсчётах считается от
-            //     `Min_Range` прибора (`MinEnergy`, ~~`S108`~~) и выше.
+            //   * ⛔ ПОЛ РАЗНОСА ПОДЛОЖКИ — ВСЕГДА 0 (решение Amber 14.09.2026,
+            //     вопросником, дословно: «В слои образов по S76 везде»; п. 1
+            //     `S174` «Ниже порога не разносить — серый слой «континуум»»
+            //     ОТМЕНЁН). Ниже порога доверия матрицы континуум описывают
+            //     ДВЕ свободные вещи — хвост образа и узлы сплайна, — и на
+            //     ровном плато решатель делит их между собой произвольно (на
+            //     цезии в домике: 14.2 М хвосту, 2.1 М сплайну); физика — в
+            //     их сумме. Серый холмик сплайна под пиком Pb K на 56–100 кэВ
+            //     Amber отвергла: «Здесь нет внезапного континуума! Здесь
+            //     хрестоматийная ровная кривая от Cs-137 и сверху пик от X-ray
+            //     Pb!» Поэтому сплайн разносится по слоям (`S76`) по всей
+            //     шкале, как до П69, а хвосты уже лежат в слоях своих образов
+            //     и получают свою долю сплайна; серым остаётся только канал,
+            //     где нет ни одного слоя образов (выше последней линии).
+            //     Поле остаётся рычагом ПРОБ: положительный контроль «сплайн
+            //     ниже порога серым» ставит его на порог доверия.
+            //   * «Только в диапазоне прибора» (п. 2 `S174`, остаётся): невязка
+            //     в отсчётах считается от `Min_Range` прибора (`MinEnergy`,
+            //     ~~`S108`~~) и выше.
             //
             // Это ОТОБРАЖЕНИЕ: фит, амплитуды, z, пределы и χ²/ndf посчитаны
-            // выше и от этих двух чисел не зависят.
-            result.ContinuumSpreadFloorKev = fit.FromResponseMatrix && this.ResponseContinuumTrustFloorKev > 0.0
-                ? this.ResponseContinuumTrustFloorKev : 0.0;
-            result.ContinuumSpreadFloorChannel = FloorChannel(calibration, result.ContinuumSpreadFloorKev, chLo, chHi);
+            // выше и от этих чисел не зависят.
+            result.ContinuumSpreadFloorKev = 0.0;
+            result.ContinuumSpreadFloorChannel = 0;
             result.ResidualFloorKev = this.MinEnergy > 0.0 ? this.MinEnergy : 0.0;
             result.ResidualFloorChannel = FloorChannel(calibration, result.ResidualFloorKev, chLo, chHi);
 
             // (`S111`, решение Amber 01.09.2026) НЕВЯЗКА В ОТСЧЁТАХ — обе
             // половины, ровно те, что рисует лента на экране. Правило одно на
             // проект и живёт у результата (`FsaResult.ComputeResidualShares`):
-            // то же число нужно пробам и корпусу. Модель — БЕЗ отвязанных
-            // хвостов (`S173`), полоса — от `Min_Range` (`S174`).
+            // то же число нужно пробам и корпусу. Модель — верх стека, С
+            // хвостами образов (`S175`; без них — только по ключу проб,
+            // `S173`), полоса — от `Min_Range` (`S174`).
             result.ComputeResidualShares(spectrum.Spectrum);
 
             // ДОЛЯ — ОДНА МЕРА НА ВЕСЬ ПРОЕКТ, доля СЛОЯ (`S76`, решение Amber
@@ -8438,6 +8436,169 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`S175`, решение Amber 14.09.2026) РАЗДАТЬ КОЛОНКИ ОТВЯЗАННЫХ ХВОСТОВ
+        /// ПО АДРЕСАТАМ. Хвост колонки — амплитуда × её образ по полосе фита.
+        ///
+        ///   * умолчание — В СЛОЙ И ДОЛЮ СВОЕГО ОБРАЗА
+        ///     (<see cref="FsaComponentResult.TailCurve"/>,
+        ///     <see cref="FsaTailPlacement.Layer"/>). У одиночного компонента —
+        ///     целиком; у ряда со связкой или привязанной колонки (`S171`) —
+        ///     членам по весу ХВОСТОВ их образов в канале (тем же движением,
+        ///     что лента раздаётся по весу образов, <see cref="SplitChainMembers"/>):
+        ///     Σ по членам = хвост колонки точно. Окна ряда — объединение окон
+        ///     членов, поэтому там, где хвост колонки не нуль, не нуль и сумма
+        ///     хвостов членов; на тот случай, если уширение оставит канал с
+        ///     хвостом колонки и нулём у членов, остаток делится поровну —
+        ///     тождество стека дороже деталей раздачи (о таком канале говорит
+        ///     проба, не приложение);
+        ///   * образа в составе нет (решатель дал компоненту ноль, а колонке
+        ///     хвоста — нет) — В ПОДЛОЖКУ <see cref="FsaResult.Continuum"/>
+        ///     (<see cref="FsaTailPlacement.Continuum"/>): отдавать некому, без
+        ///     образа хвост — описание неописанного, то есть подложка, и разнос
+        ///     `S76` раздаёт его слоям как сплайн;
+        ///   * по ключу <see cref="UntiedTailAsResidual"/> (пробы) — В НЕВЯЗКУ
+        ///     <see cref="FsaResult.UntiedTail"/> (<see cref="FsaTailPlacement.Residual"/>),
+        ///     правило `S173`/П68; верх стека без хвоста, `FitModel()` = верх + хвост.
+        ///
+        /// <see cref="FsaResult.UntiedTails"/> (чей, сколько, где) заполняется при
+        /// любом адресате — это бухгалтерия фита, а не отображения. Фит не
+        /// тронут: амплитуды здесь только читаются.
+        /// </summary>
+        void AttachTails(FsaResult result, List<KeyValuePair<FitColumn, double>> tailColumns,
+                         Dictionary<FsaComponent, List<FsaComponentResult>> ownersOf,
+                         Dictionary<FsaComponentResult, double[]> memberTails,
+                         int chLo, int chHi, int channels)
+        {
+            foreach (KeyValuePair<FitColumn, double> pair in tailColumns)
+            {
+                FitColumn column = pair.Key;
+                double amplitude = pair.Value;
+                double[] tail = new double[channels];
+                double tailCounts = 0.0;
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    tail[i] = amplitude * column.Values[i];
+                    tailCounts += tail[i];
+                }
+
+                FsaTailPlacement placement;
+                List<FsaComponentResult> owners;
+                if (this.UntiedTailAsResidual)
+                {
+                    placement = FsaTailPlacement.Residual;
+                    if (result.UntiedTail == null)
+                    {
+                        result.UntiedTail = new double[channels];
+                    }
+
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        result.UntiedTail[i] += tail[i];
+                    }
+                }
+                else if (!ownersOf.TryGetValue(column.TailOf, out owners) || owners.Count == 0)
+                {
+                    placement = FsaTailPlacement.Continuum;
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        result.Continuum[i] += tail[i];
+                    }
+                }
+                else
+                {
+                    placement = FsaTailPlacement.Layer;
+                    if (owners.Count == 1)
+                    {
+                        AddTail(owners[0], tail, chLo, chHi, channels);
+                    }
+                    else
+                    {
+                        // Ряд со связкой / привязанная колонка: по весу хвостов
+                        // образов членов в канале; канал без веса — поровну.
+                        int n = owners.Count;
+                        double[][] weights = new double[n][];
+                        for (int m = 0; m < n; m++)
+                        {
+                            double[] w;
+                            weights[m] = memberTails != null && memberTails.TryGetValue(owners[m], out w) ? w : null;
+                        }
+
+                        double[][] parts = new double[n][];
+                        for (int m = 0; m < n; m++)
+                        {
+                            parts[m] = new double[channels];
+                        }
+
+                        for (int i = chLo; i <= chHi; i++)
+                        {
+                            if (!(tail[i] > 0.0))
+                            {
+                                continue;
+                            }
+
+                            double sum = 0.0;
+                            for (int m = 0; m < n; m++)
+                            {
+                                double[] w = weights[m];
+                                if (w != null && i < w.Length && w[i] > 0.0)
+                                {
+                                    sum += w[i];
+                                }
+                            }
+
+                            for (int m = 0; m < n; m++)
+                            {
+                                double[] w = weights[m];
+                                parts[m][i] = sum > 0.0
+                                    ? (w != null && i < w.Length && w[i] > 0.0 ? tail[i] * w[i] / sum : 0.0)
+                                    : tail[i] / n;
+                            }
+                        }
+
+                        for (int m = 0; m < n; m++)
+                        {
+                            AddTail(owners[m], parts[m], chLo, chHi, channels);
+                        }
+                    }
+                }
+
+                result.UntiedTails.Add(new FsaUntiedTail
+                {
+                    Component = column.TailOf.Name,
+                    Counts = tailCounts,
+                    Placement = placement
+                });
+            }
+        }
+
+        /// <summary>(`S175`) Прибавить хвост компоненту — кривой и суммой; пустой (все нули) не заводится.</summary>
+        static void AddTail(FsaComponentResult owner, double[] tail, int chLo, int chHi, int channels)
+        {
+            double counts = 0.0;
+            for (int i = chLo; i <= chHi; i++)
+            {
+                counts += tail[i];
+            }
+
+            if (!(counts > 0.0))
+            {
+                return;
+            }
+
+            if (owner.TailCurve == null)
+            {
+                owner.TailCurve = new double[channels];
+            }
+
+            for (int i = chLo; i <= chHi; i++)
+            {
+                owner.TailCurve[i] += tail[i];
+            }
+
+            owner.TailCounts += counts;
+        }
+
+        /// <summary>
         /// (`S174`) КАНАЛ ПОЛА ОТОБРАЖЕНИЯ: первый канал полосы
         /// [<paramref name="chLo"/>, <paramref name="chHi"/>], чья энергия по
         /// калибровке файла не ниже <paramref name="kev"/>. Ноль или
@@ -8448,8 +8609,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⛔ ПО ЭНЕРГИИ КАНАЛА, а не пересчётом энергии в номер канала — тем
         /// же доводом, что у пола полосы фита (`A309`): `EnergyToChannelSafe`
         /// округляет, и канал чуть ниже порога оказался бы выше него.
+        /// Открыт (`S175`) ради проб: положительный контроль «сплайн ниже
+        /// порога серым» ставит пол разноса ТЕМ ЖЕ правилом, а не своей копией.
         /// </summary>
-        static int FloorChannel(EnergyCalibration calibration, double kev, int chLo, int chHi)
+        public static int FloorChannel(EnergyCalibration calibration, double kev, int chLo, int chHi)
         {
             if (!(kev > 0.0) || calibration == null)
             {
@@ -8487,7 +8650,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                FsaEfficiency efficiency, double gain, double offset,
                                int chLo, int chHi, int channels, double liveTime, double z,
-                               FsaResult result, ref double totalPeakCounts, ref double allPeakCounts)
+                               FsaResult result, ref double totalPeakCounts, ref double allPeakCounts,
+                               Dictionary<FsaComponentResult, double[]> memberTails)
         {
             // (`S171`) Колонка с ПРИВЯЗАННЫМИ членами раскладывается тем же
             // движением: у неё, как у ряда при связке, одна амплитуда на
@@ -8525,14 +8689,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            // Образ каждого члена и их сумма по каналам.
+            // Образ каждого члена и их сумма по каналам. (`S175`) Рядом — хвост
+            // образа каждого члена: по нему хвост КОЛОНКИ ряда раздаётся членам
+            // (см. `AttachTails`).
             List<double[]> images = new List<double[]>(order.Count);
+            List<double[]> tails = new List<double[]>(order.Count);
             double[] sum = new double[channels];
             foreach (string name in order)
             {
+                double[] memberTail;
                 double[] image = this.MemberTemplate(parts[name], calibration, fwhmCalibration,
-                                                     efficiency, gain, offset, chLo, chHi, channels);
+                                                     efficiency, gain, offset, chLo, chHi, channels,
+                                                     out memberTail);
                 images.Add(image);
+                tails.Add(memberTail);
                 if (image == null)
                 {
                     continue;
@@ -8674,6 +8844,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 };
 
                 result.Components.Add(member);
+                if (memberTails != null && tails[m] != null)
+                {
+                    memberTails[member] = tails[m];
+                }
+
                 totalPeakCounts += member.PeakCounts;
                 allPeakCounts += member.PeakCounts;
             }
@@ -8684,14 +8859,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>
         /// Образ ОДНОГО члена связанного ряда — тем же построителем, что и
         /// целая колонка, чтобы форма линий и уширение совпадали.
+        /// (`S175`) <paramref name="lowTail"/> — подпороговый хвост образа
+        /// члена (тем же ножом и тем же уширением, что у колонки); null — без
+        /// матрицы либо ниже порога у члена ничего. Нужен, чтобы раздать
+        /// хвост КОЛОНКИ ряда по членам тем же движением, что и ленту.
         /// </summary>
         double[] MemberTemplate(FsaComponent part, EnergyCalibration calibration,
                                 FwhmCalibration fwhmCalibration, FsaEfficiency efficiency,
-                                double gain, double offset, int chLo, int chHi, int channels)
+                                double gain, double offset, int chLo, int chHi, int channels,
+                                out double[] lowTail)
         {
+            lowTail = null;
             if (this.ResponseMatrix != null && !part.WeightsAreFinal)
             {
-                double[] lowTail;
                 return this.BuildTemplateFromResponse(part, calibration, fwhmCalibration,
                                                       gain, offset, chLo, chHi, channels, out lowTail);
             }
@@ -9009,8 +9189,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// подпороговый континуум (<see cref="ResponseContinuumTrustFloorKev"/>);
             /// <see cref="Component"/> при этом остаётся null, потому что для
             /// решателя, отсева и пределов она — свободная колонка без имени,
-            /// как шапки сплайна. Читатель — <see cref="BuildResult"/>: хвост
-            /// уходит в <see cref="FsaResult.UntiedTail"/>, а не в подложку.
+            /// как шапки сплайна. Читатель — <see cref="BuildResult"/> /
+            /// <see cref="AttachTails"/>: хвост уходит в слой и долю своего
+            /// образа (`S175`, <see cref="FsaComponentResult.TailCurve"/>), а
+            /// по ключу проб — в <see cref="FsaResult.UntiedTail"/>.
             /// </summary>
             public FsaComponent TailOf;
         }
@@ -9604,8 +9786,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // свободной амплитудой и БЕЗ компонента: в «пирог» и отсев
                     // по z не входит. Живёт и умирает вместе с компонентом: при
                     // отсеве subset выкидывает обоих ещё до этой ветки.
-                    // (`S173`) Чей хвост — помечено: в результате он идёт НЕ в
-                    // подложку, а в невязку (`FsaResult.UntiedTail`).
+                    // (`S173`, `S175`) Чей хвост — помечено: в результате он
+                    // идёт в слой и долю своего образа (`AttachTails`).
                     if (lowTail != null)
                     {
                         columns.Add(new FitColumn { Component = null, TailOf = component, Values = lowTail });
@@ -10433,14 +10615,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// континуум в окно, где модель не сходится, и штраф перевешивал.
         ///
         /// Ниже порога континуум образа не выбрасывается, а ОТВЯЗЫВАЕТСЯ:
-        /// уходит отдельной колонкой со свободной амплитудой. ⛔ (`S173`,
-        /// решение Amber 14.09.2026) В ОТРИСОВКЕ ЭТА КОЛОНКА — НЕВЯЗКА, а не
-        /// подложка и не слой нуклида: у неё своя амплитуда, и слоем нуклида
-        /// она врала бы о составе (находка П65 §4.1, мера П68: на фильтре ASN16
-        /// хвост живёт на пороге АЦП, 1008…16012 отсч.).
-        /// Читатель — <see cref="BuildResult"/> через <c>FitColumn.TailOf</c>,
-        /// сущность — <see cref="FsaResult.UntiedTail"/>. Фит от этого не
-        /// меняется. Там, где матрица права (цезий: плато
+        /// уходит отдельной колонкой со свободной амплитудой. ⛔ (`S175`,
+        /// решение Amber 14.09.2026 «Чини S174 так, чтобы выглядело физически
+        /// корректным») В ОТРИСОВКЕ ЭТА КОЛОНКА — ЧАСТЬ СВОЕГО ОБРАЗА: форма
+        /// её предсказана матрицей для этого образа, и в ленту и долю образа
+        /// она входит так же, как его комптон выше порога
+        /// (<see cref="FsaResult"/>, `FsaComponentResult.TailCurve`). Правило
+        /// `S173` (колонка — невязка, П68: на фильтре ASN16 хвост 1008…16012
+        /// отсч. на пороге АЦП) на цезии в домике было ямой между окном Ba-K
+        /// и порогом (хвост 14.0 М отсч., `AMBER30`), а серый слой П70 — провалом в
+        /// слое Cs-137; оба сняты. Читатель — <see cref="BuildResult"/> /
+        /// <see cref="AttachTails"/> через <c>FitColumn.TailOf</c>. Фит от
+        /// этого не меняется. Там, где матрица права (цезий: плато
         /// комптона под порогом настоящее), NNLS берёт хвост почти с той же
         /// амплитудой и качество матрицы сохраняется — жёсткая отсечка стоила
         /// на цезиевом спектре χ²/ndf 35.9 → 42.6. Там, где окно занято чужим
@@ -10462,15 +10648,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double ResponseContinuumTrustFloorKev = 100.0;
 
         /// <summary>
-        /// (`AMBER30`, решение Amber 14.09.2026 «В серый слой «континуум»», П70)
-        /// Куда в РЕЗУЛЬТАТЕ идёт отвязанный хвост матричного образа (колонка
-        /// `FitColumn.TailOf`): при поднятом ключе — в
-        /// <see cref="FsaResult.UntiedTail"/> и мимо верха стека, то есть лентой
-        /// невязки (правило `S173`, П68 — яма 56–100 кэВ на цезии в домике);
-        /// иначе — в подложку <see cref="FsaResult.Continuum"/>, откуда `S174`
-        /// кладёт его ниже пола разноса в серый слой «континуум». Фит от ключа
-        /// не зависит ни в одном бите: читается он только в
-        /// <see cref="BuildResult"/>. Умолчание — у объявления поля; поднимать
+        /// (`AMBER30`, П70; `S175`) Куда в РЕЗУЛЬТАТЕ идёт отвязанный хвост
+        /// матричного образа (колонка `FitColumn.TailOf`): при поднятом ключе —
+        /// в <see cref="FsaResult.UntiedTail"/> и мимо верха стека, то есть
+        /// лентой невязки (правило `S173`, П68 — яма 56–100 кэВ на цезии в
+        /// домике); иначе (умолчание, решение Amber 14.09.2026 «Чини S174 так,
+        /// чтобы выглядело физически корректным») — в слой и долю своего
+        /// образа (<see cref="AttachTails"/>). Фит от ключа не зависит ни в
+        /// одном бите: читается он только в <see cref="BuildResult"/>.
+        /// Умолчание — у объявления поля; поднимать
         /// его вправе только проба, для плеча Б и положительного контроля
         /// (`FsaStackShot --tail-as-residual`, `FsaDoubleCountProbe` §6). В UI и
         /// конфигурацию не выводится: это не настройка человека, а рычаг замера.

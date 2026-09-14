@@ -1,0 +1,22 @@
+# П75 (S175): малая база корпуса, плечи А (wt_a = HEAD 08030c57) и Б (wt_b = HEAD + s175.patch) — из чистых
+# worktree, матрицы — из живого склада корпуса основного дерева (`.rmx` вне git; только чтение). По образцу П69/П70.
+#   pwsh -File D:\BqMoni_Claude\p75\mini.ps1 -Arm a|b
+param([Parameter(Mandatory)][ValidateSet('a','b')][string]$Arm)
+$ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:OS = 'Windows_NT'
+$d = 'D:\BqMoni_Claude\p75'
+$wt = "$d\wt_$Arm"
+$rel = "Release_p75$Arm"
+$pb = "build_p75$Arm"
+$store = 'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries'
+$codes = @()
+Set-Location $wt
+& "$wt\tools\CORPUS\scripts\mk_appwd.ps1" -Bin "$wt\BecquerelMonitor\bin\$rel" -Wd "$wt\tools\CORPUS\scripts\wd_p75$Arm" -ProbeBuild "$wt\tools\effmaker\probes\$pb" -Store $store *> "$d\logs\mk_appwd_$Arm.log"; $codes += "mk_appwd_$Arm=$LASTEXITCODE"
+Get-Content "$d\logs\mk_appwd_$Arm.log" -Encoding UTF8 | Select-String 'ОСНАСТКА|⛔|ПРОТУХ' | Select-Object -First 3
+& "$wt\tools\CORPUS\scripts\run_mini.ps1" -Out "$d\out_mini_p75$Arm" -Wd "$wt\tools\CORPUS\scripts\wd_p75$Arm" -Bin "$wt\BecquerelMonitor\bin\$rel" -ProbeBuild "$wt\tools\effmaker\probes\$pb" -Store $store *> "$d\logs\run_mini_$Arm.log"; $codes += "run_mini_$Arm=$LASTEXITCODE"
+Get-Content "$d\logs\run_mini_$Arm.log" -Encoding UTF8 | Select-String 'ОСНАСТКА СВЕЖАЯ|ПРОГОН|итого|sum chi2|⛔|part=' | Select-Object -First 12
+"коды: " + ($codes -join ' ')
+$bad = @($codes | Where-Object { $_ -notlike '*=0' })
+if ($bad.Count -gt 0) { "⚠ НЕ НУЛЕВЫЕ: $($bad -join ' ')"; exit 1 }
+exit 0
