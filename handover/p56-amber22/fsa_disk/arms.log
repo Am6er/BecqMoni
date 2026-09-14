@@ -1,0 +1,15 @@
+th code=0 10:41:52 (5 s) keys=[--chain=Th-232] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+done 10:41:52
+th code=0 10:42:08 (5 s) keys=[--chain=Th-232] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thk code=0 10:42:13 (5 s) keys=[--chain=Th-232 --sample=40K] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thra code=0 10:42:19 (6 s) keys=[--chain=Th-232,Ra-226] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thrak code=0 10:42:26 (7 s) keys=[--chain=Th-232,Ra-226 --sample=40K] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thu code=0 10:42:31 (6 s) keys=[--chain=Th-232,U-238u,U-235] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thrau code=0 10:42:39 (7 s) keys=[--chain=Th-232,Ra-226,U-238u,U-235] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thrauk code=0 10:42:46 (7 s) keys=[--chain=Th-232,Ra-226,U-238u,U-235 --sample=40K] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thu8 code=0 10:42:53 (7 s) keys=[--chain=Th-232,U-238] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thu8k code=0 10:43:00 (7 s) keys=[--chain=Th-232,U-238 --sample=40K] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thra_kf2 code=0 10:43:06 (6 s) keys=[--chain=Th-232,Ra-226 --knots=2] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+th_kf2 code=0 10:43:12 (5 s) keys=[--chain=Th-232 --knots=2] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+thrauk_kf2 code=0 10:43:19 (7 s) keys=[--chain=Th-232,Ra-226,U-238u,U-235 --sample=40K --knots=2] spectrum=D:\BqMoni_Claude\p56\wt\tools\CORPUS\corpus\spectra\AS80_Th232Medal.xml
+done 10:43:19

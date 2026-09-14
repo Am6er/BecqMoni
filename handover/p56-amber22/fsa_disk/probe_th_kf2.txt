@@ -1,0 +1,31 @@
+BecqMoni: main config: D:\BqMoni_Claude\p56\wt\tools\CORPUS\scripts\wd_p56\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p56\wt\tools\CORPUS\scripts\wd_p56\config\device: 24 loaded
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=4	допуск=10	диапазон=30…2800 кэВ	мёртвое=0.0003628 с
+состав объявлен: ; ряды: Th-232; распад 1, атомных 5, линий 120; полоса сведена ПОЛОМ ПО КРИВОЙ 30.0 кэВ (1.0 % от максимума, Min_Range 30.0), фит на всём спектре (умолчание); вылет от линий состава: SE-2615, DE-2615, SE-1588, DE-1588, SE-1631, DE-1631
+SETUP	найдено пиков: 21 (подписи из базы)
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.FullSpectrumAnalysis.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; ContinuumKnotFwhm 4 → 2; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.028437, сдвиг 0.000 канала
+chi2/ndf 11.450, невязка модели 17.7 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 6 (отсеяно 5), наибольшая значимость 229.84
+ROW	Ac-228	Single	41.328	Th-232
+ROW	Tl-208	Single	32.898	Th-232
+ROW	Pb-212	Single	18.564	Th-232
+ROW	Bi-212	Single	5.456	Th-232
+ROW	Ra-224	Single	1.493	Th-232
+ROW	Th-228	Single	0.205	Th-232
+ROW	Rn-220	Single	0.045	Th-232
+ROW	Th-232	Single	0.011	Th-232
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	Xray-Ba	Nuisance	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Th	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 23
+D:\BqMoni_Claude\p56\fsa_disk\th_kf2\stack.png: 15–2800 кэВ, потолок 49002, шкала pow
+НАДПИСЬ	Состав ОБЪЯВЛЕН ключом --sample= (nucdb: ; ряды --chain= Th-232 → Th-232); поставочная библиотека не читалась.
+НАДПИСЬ	Переключатель «Источник состава» в окне отчёта — состояние приложения, положения «объявлен» у него нет; к этому снимку он не относится.
+D:\BqMoni_Claude\p56\fsa_disk\th_kf2\dump.csv: 8192 каналов, колонок слоёв 8
+NuclideDefinitionManager за прогон: обращений 2 (код показа приложения); список у одиночки: определений 0, наборов 0 — пустышка пробы, поставочный файл не читался

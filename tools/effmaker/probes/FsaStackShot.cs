@@ -32,7 +32,7 @@ namespace FsaStackShot
     /// таблица на одной картинке, как их видит человек.
     ///
     ///   fsastackshot --spectrum=X.xml [--efficiency=Цилиндр] [--out=stack.png]
-    ///                [--infer | --sample=241AM,44TI,152EU,137CS]
+    ///                [--infer | --sample=241AM,44TI,152EU,137CS [--chain=Th-232,U-238u]]
     ///                [--no-equilibrium] [--no-matrix] [--lib-dump]
     ///                [--set=Ra-226] [--lines=Esc-I] [--select=320..380]
     ///                [--no-atomic] [--no-backscatter] [--refit-z=0]
@@ -130,6 +130,12 @@ namespace FsaStackShot
             // Объявленный состав (`--sample=`): null — ключа не было. Пустой
             // список — отказ ниже, а не молчаливый разбор без единого образа.
             List<string> sampleNuclides = null;
+            // (`AMBER22`, П56 14.09.2026) Ряды ОБЪЯВЛЕННОГО состава метками манифеста
+            // (`Th-232`, `U-238u`, `Ra-226`, `U-235`…, как `FsaCascadeProbe --chain=`):
+            // одними nucid ряд не задать — члены пошли бы порознь, без связки
+            // равновесия, и разложение вырождалось бы (П42 `noeq`). Метка,
+            // которой `FsaSampleChain.FromLabel` не знает, — отказ, не пропуск.
+            List<string> sampleChains = null;
             // Порча для положительного контроля гейта `AMBER19` (как
             // `CorpusFsaProbe --spoil=manager`): пустышку одиночке НЕ
             // подкладывать. При поставочном файле рядом список поднимется
@@ -164,6 +170,15 @@ namespace FsaStackShot
                     {
                         if (nucid.Trim().Length > 0) sampleNuclides.Add(nucid.Trim().ToUpperInvariant());
                     }
+                }
+                else if (a.StartsWith("--chain=", StringComparison.Ordinal))
+                {
+                    sampleChains = new List<string>();
+                    foreach (string label in a.Substring(8).Split(','))
+                    {
+                        if (label.Trim().Length > 0) sampleChains.Add(label.Trim());
+                    }
+                    if (sampleNuclides == null) sampleNuclides = new List<string>();
                 }
                 else if (a == "--spoil=manager") spoilManager = true;
                 else if (a == "--no-matrix") needMatrix = false;
@@ -203,10 +218,27 @@ namespace FsaStackShot
                 return 2;
             }
 
-            if (sampleNuclides != null && sampleNuclides.Count == 0)
+            if (sampleNuclides != null && sampleNuclides.Count == 0 && (sampleChains == null || sampleChains.Count == 0))
             {
-                Console.Error.WriteLine("--sample= пуст: нужны nucid через запятую, например --sample=241AM,137CS");
+                Console.Error.WriteLine("--sample= пуст: нужны nucid через запятую, например --sample=241AM,137CS (и/или --chain=Th-232)");
                 return 2;
+            }
+
+            var chainSpecs = new List<FsaSampleChain>();
+            if (sampleChains != null)
+            {
+                foreach (string label in sampleChains)
+                {
+                    FsaSampleChain chain = FsaSampleChain.FromLabel(label);
+                    if (chain == null)
+                    {
+                        Console.Error.WriteLine("--chain={0}: неизвестный ряд; известные: {1}", label,
+                                                string.Join(", ", FsaSampleChain.KnownLabels));
+                        return 2;
+                    }
+
+                    chainSpecs.Add(chain);
+                }
             }
 
             // Два источника состава разом — не «объединить», а отказ: иначе не
@@ -314,9 +346,10 @@ namespace FsaStackShot
                 // (`FsaSampleSpec.Declared`, П11 12.09.2026), а не своей копией:
                 // их было пять, и они уже расходились.
                 FsaSampleLibrary.Report built;
-                FsaSampleSpec spec = FsaSampleSpec.Declared(rd, null, sampleNuclides, equilibrium, atomic);
+                FsaSampleSpec spec = FsaSampleSpec.Declared(rd, chainSpecs, sampleNuclides, equilibrium, atomic);
                 library = FsaSampleLibrary.Build(spec, out built);
-                Console.WriteLine("состав объявлен: {0}; {1}", string.Join(", ", sampleNuclides), built);
+                Console.WriteLine("состав объявлен: {0}; ряды: {1}; {2}", string.Join(", ", sampleNuclides),
+                                  sampleChains == null ? "нет" : string.Join(", ", sampleChains), built);
                 peaks = new PeakDetector().DetectPeak(
                     rd, BackgroundMode.Invisible, SmoothingMethod.None,
                     null, FsaSampleLibrary.AsDefinitions(library));
@@ -337,6 +370,7 @@ namespace FsaStackShot
                 }
 
                 caption = "Состав ОБЪЯВЛЕН ключом --sample= (nucdb: " + string.Join(", ", sampleNuclides)
+                          + (sampleChains == null ? "" : "; ряды --chain= " + string.Join(", ", sampleChains))
                           + " → " + string.Join(", ", decays) + "); поставочная библиотека не читалась.\n"
                           + "Переключатель «Источник состава» в окне отчёта — состояние приложения, "
                           + "положения «объявлен» у него нет; к этому снимку он не относится.";
