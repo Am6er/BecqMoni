@@ -1,0 +1,43 @@
+плечо Б: exe 09/14/2026 16:46:54 sha256 1058B93C89F0951A
+  exe sha256: 1058B93C89F0951A
+  exe sha256: 1058B93C89F0951A
+exe: 14.09.2026 16:46:54  sha256 1058B93C89F0951A
+as80_free    код 0  chi2/ndf 12.596, невязка модели 18.6 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+as80_eq      код 0  chi2/ndf 14.115, невязка модели 21.3 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+as80_nomx    код 0  chi2/ndf 11.975, невязка модели 17.2 %, суммирование нет  | CUT Esc-NaI Nuisance z=0.00 | рентген кристалла снят 0, вылет кристалла снят 0 | meta,response_matrix,,,0,,,,,,,,,,,,,
+radon1_free  код 0  chi2/ndf 1.158, невязка модели 58.3 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon1_eq    код 0  chi2/ndf 1.264, невязка модели 56.8 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon1_nomx  код 0  chi2/ndf 1.143, невязка модели 57.0 %, суммирование нет  | ROW Esc-CsI Nuisance 8.189 - - | рентген кристалла снят 0, вылет кристалла снят 0 | meta,response_matrix,,,0,,,,,,,,,,,,,
+radon2_free  код 0  chi2/ndf 1.316, невязка модели 81.1 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon2_eq    код 0  chi2/ndf 1.190, невязка модели 77.6 %, суммирование да  |  | рентген кристалла снят 1, вылет кристалла снят 1 | meta,response_matrix,,,1,,,,,,,,,,,,,
+radon2_nomx  код 0  chi2/ndf 1.283, невязка модели 80.3 %, суммирование нет  | ROW Esc-CsI Nuisance 33.839 - - | рентген кристалла снят 0, вылет кристалла снят 0 | meta,response_matrix,,,0,,,,,,,,,,,,,
+коды: as80_free=0 as80_eq=0 as80_nomx=0 radon1_free=0 radon1_eq=0 radon1_nomx=0 radon2_free=0 radon2_eq=0 radon2_nomx=0
+
+  ОСНАСТКА СВЕЖАЯ: 480 файлов сошлись
+гейт библиотеки (AMBER19): поставочного config\NuclideDefinition.xml в каталоге прогона НЕТ — проверено: C:\Users\moroz
+\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p65b\config\NuclideDefinition.xml
+библиотека: --lib=sample — состав из manifest.csv, линии из nucdb/matdb; поставочный config\NuclideDefinition.xml в РАЗ
+БОРЕ НЕ УЧАСТВУЕТ: проба его не читает и спектру не предъявляет (правило Amber 01.09.2026); гейт AMBER19 (12.09.2026): 
+файл в каталоге прогона или подъём NuclideDefinitionManager — отказ кодом 12
+гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)
+часть      спектров  найдена   примен.   sum chi2    медиана   ошибок  кр.усил  кр.ноль
+клеймо прогона: D:\BqMoni_Claude\p65\out_mini_p65b\.run.json (corpus b4a0fac339f1, sources 0bba96b717af, HEAD ccb8cb72,
+ ГРЯЗНОЕ дерево: BecquerelMonitor/FullSpectrumAnalysis/FsaAnalyzer.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaCalcula
+tionOptions.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaComponent.cs, BecquerelMonitor/FullSpectrumAnalysis/FsaSampleL
+ibrary.cs, tools/CORPUS/corpus/geometries/G1S_mar1l_coal_046_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_05
+5_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_057_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_0
+57_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_062_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_
+062_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_064_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06
+_066_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn06_066_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn1
+6_155_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn16_155_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn
+16_160_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn16_160_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_ois
+n16_166_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn16_166_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oi
+sn16_167_p16.in, tools/CORPUS/corpus/geometries/G1S_mar1l_oisn16_167_p24.in, tools/CORPUS/corpus/geometries/G1S_mar1l_r
+isn379_100_p16.in, tools/CORPUS/corpus/geometries/index.csv)
+ПРОГОН МАЛОЙ БАЗЫ: 19.1 с
+итого            43       100%          0          0  (+0 комнатных)  часть: known
+                 43  sum chi2/ndf 310.2   медиана 3.58
+итого            16         7%          0          0  (+0 комнатных)  часть: unknown
+                  2  sum chi2/ndf 49.1   медиана 24.57
+коды: mk_wd_b=0 mk_wd_b_nomx=0 sweep_b=0 zoom=0 dump_radon1=0 dump_radon2=0 dc_as80=0 dc_radon1=0 dc_radon2=1 cx_as80=0 cx_radon2=0 tie=0 qrow=0 mk_appwd_b=0 run_mini_b=0
+⚠ НЕ НУЛЕВЫЕ: dc_radon2=1

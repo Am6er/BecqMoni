@@ -1,0 +1,11 @@
+BecqMoni: main config: D:\BqMoni_Claude\p65\wd_a\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\p65\wd_a\config\device: 2 loaded
+спектр  : radon2_side.xml
+прибор  : 1.Atom Spectra Nano 16 Pro RadiaScan 701A
+матрица : есть, CsI:Tl
+
+Необработанное исключение: System.NullReferenceException: Ссылка на объект не указывает на экземпляр объекта.
+   в BecquerelMonitor.FWHMPeakDetector.PeakFilter..ctor(FwhmCalibration fwhmCalibration) в D:\BqMoni_Claude\p65\wt\BecquerelMonitor\FWHMPeakDetector\PeakFilter.cs:строка 55
+   в BecquerelMonitor.PeakDetector.PeakFinder(EnergySpectrum energySpectrum, FWHMPeakDetectionMethodConfig peakConfig, FwhmCalibration fwhmCalibration) в D:\BqMoni_Claude\p65\wt\BecquerelMonitor\PeakDetector.cs:строка 1238
+   в BecquerelMonitor.PeakDetector.DetectPeak(ResultData resultData, BackgroundMode bgMode, SmoothingMethod smoothMethod, NuclideSet nuclideSet, List`1 nuclideDefinitions) в D:\BqMoni_Claude\p65\wt\BecquerelMonitor\PeakDetector.cs:строка 64
+   в FsaDoubleCountProbe.Program.Main(String[] args)

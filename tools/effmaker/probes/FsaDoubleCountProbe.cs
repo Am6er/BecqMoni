@@ -68,9 +68,16 @@ namespace FsaDoubleCountProbe
     ///      (на сборке без правки `S141` эта проверка ОТКАЗЫВАЕТ, и клетка «с
     ///      матрицей 0» перестаёт быть доказательством), потом снятый гейт при
     ///      живой матрице — двойной образ обязан вернуться.
+    ///   5. `S172` (решение Amber 14.09.2026 «При матрице вылет не класть»),
+    ///      библиотека ИЗ БАЗ: образ K-вылета КРИСТАЛЛА `Esc-<вещество>` (флаг
+    ///      `CrystalEscape`) при живой матрице снят тем же гейтом `EscapeGate`
+    ///      (счётчик `CrystalEscapeDropped` = числу образов), без матрицы
+    ///      проходит в разбор. Рядом числом — судьба образа рентгена кристалла
+    ///      (`FromCrystal`, гейт `AMBER4`). ⛔ Положительный контроль: гейт
+    ///      снят при матрице — образ обязан вернуться, счётчик — молчать.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0. Всё, что мерится, печатается строками
-    /// `CELL`/`CHAIN`, чтобы числа можно было положить в журнал.
+    /// `CELL`/`SDE`/`ESC`/`CHAIN`, чтобы числа можно было положить в журнал.
     /// </summary>
     static class Program
     {
@@ -138,6 +145,35 @@ namespace FsaDoubleCountProbe
 
             Console.WriteLine("спектр  : {0}", Path.GetFileName(spectrumPath));
             Console.WriteLine("прибор  : {0}", ProbeDeviceConfig.Attach(rd));
+
+            // (П65, 14.09.2026) Калибровка ПШПВ — как у приложения и `FsaStackShot`:
+            // у спектра без своей кривой берётся умолчание прибора
+            // (`FwhmCalibration.DefaultCalibration`, тот же путь, что
+            // `DocumentManager` при открытии файла). Без этого поиск пиков
+            // (`PeakFilter`) падал `NullReferenceException` на полевом спектре
+            // ASN16 «Радон деревня» — молчаливый отказ без причины, и плечо
+            // HEAD падало так же.
+            if (rd.FwhmCalibration == null
+                && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmConfig)
+            {
+                if (fwhmConfig.FwhmCalibration == null && rd.EnergySpectrum != null)
+                {
+                    fwhmConfig.FwhmCalibration = FwhmCalibration.DefaultCalibration(
+                        fwhmConfig, rd.EnergySpectrum.EnergyCalibration);
+                }
+
+                if (fwhmConfig.FwhmCalibration != null)
+                {
+                    rd.FwhmCalibration = fwhmConfig.FwhmCalibration.Clone();
+                    Console.WriteLine("ПШПВ    : у спектра своей калибровки нет — взято умолчание прибора");
+                }
+            }
+
+            if (rd.FwhmCalibration == null)
+            {
+                Console.Error.WriteLine("у спектра нет калибровки ПШПВ и прибор её не даёт — поиск пиков невозможен");
+                return 2;
+            }
 
             // Матрица — тем же путём, что приложение и корпусная проба.
             ResponseMatrix matrix = null;
@@ -434,6 +470,111 @@ namespace FsaDoubleCountProbe
             }
 
             // ------------------------------------------------------------------
+            // S172: K-вылет КРИСТАЛЛА (`Esc-<вещество>`, флаг `CrystalEscape`)
+            // при живой матрице — тем же гейтом `EscapeGate`, что SE/DE.
+            // Решение Amber 14.09.2026: «При матрице вылет не класть».
+            //
+            // Образ узнаётся по ФЛАГУ библиотеки, а не по приставке имени:
+            // имена берутся у флагованных компонентов и ищутся в результате
+            // (состав ∪ подавленные — `PassedNamed`). Рядом — судьба образа
+            // собственного РЕНТГЕНА кристалла (`FromCrystal`, гейт `AMBER4`):
+            // числом, чтобы вопрос «не второй ли счёт и он» отвечался
+            // замером, а не памятью.
+            //
+            // ⛔ Положительный контроль двойной: (1) образ вылета в библиотеке
+            // ЕСТЬ и без матрицы проходит в разбор (иначе «при матрице нет» —
+            // пустая клетка); (2) гейт снят при живой матрице — образ обязан
+            // вернуться в разбор, счётчик обязан молчать.
+            // ------------------------------------------------------------------
+            Console.WriteLine();
+            Console.WriteLine("=== S172: K-вылет кристалла (Esc-*) при матрице ===");
+            var crystalEscapeNames = new List<string>();
+            var crystalXrayNames = new List<string>();
+            foreach (FsaComponent component in sample)
+            {
+                if (component.CrystalEscape) crystalEscapeNames.Add(component.Name);
+                if (component.FromCrystal) crystalXrayNames.Add(component.Name);
+            }
+
+            Console.WriteLine("библиотека из баз: образов вылета кристалла {0} ({1}), рентгена кристалла {2} ({3})",
+                              crystalEscapeNames.Count, string.Join(", ", crystalEscapeNames),
+                              crystalXrayNames.Count, string.Join(", ", crystalXrayNames));
+            if (crystalEscapeNames.Count == 0)
+            {
+                Console.WriteLine("⛔ образа вылета кристалла в библиотеке нет — кристалл не назван или родительских линий ниже {0} кэВ нет; клетки S172 мерить нечем",
+                                  spec.EscapeParentMaxKev.ToString("F0", CultureInfo.InvariantCulture));
+                bad++;
+            }
+            else
+            {
+                Console.WriteLine("ESC\tматрица\tгейт\tEsc_в_разборе\tснято_гейтом\tEsc_доля_%\tEsc_z\tXray_в_разборе\tXray_доля_%\tXray_z\tchi2/ndf");
+                var escapeCells = new List<bool[]>();
+                if (matrix != null)
+                {
+                    escapeCells.Add(new[] { true, true });
+                    escapeCells.Add(new[] { true, false });
+                }
+
+                escapeCells.Add(new[] { false, true });
+                foreach (bool[] cell in escapeCells)
+                {
+                    bool withMatrix = cell[0], gateOn = cell[1];
+                    FsaAnalyzer analyzer = NewAnalyzer(rd, withMatrix ? matrix : null, material);
+                    new FsaCalculationOptions().ApplyTo(analyzer);
+                    analyzer.EscapeGate = gateOn;
+                    string arm = "матрица " + (withMatrix ? "есть" : "нет") + ", гейт " + (gateOn ? "вкл" : "СНЯТ");
+                    FsaTuningReport.Print(analyzer, arm);
+                    FsaResult result = analyzer.Analyze(rd.EnergySpectrum, rd.BackgroundEnergySpectrum,
+                                                        rd.FwhmCalibration, sample, efficiency);
+                    if (result == null)
+                    {
+                        Console.WriteLine("ESC\t{0}\t{1}\tразложение не получилось", withMatrix, gateOn);
+                        bad++;
+                        continue;
+                    }
+
+                    double escShare, escZ, xrayShare, xrayZ;
+                    int escPassed = PassedNamed(result, crystalEscapeNames, out escShare, out escZ);
+                    int xrayPassed = PassedNamed(result, crystalXrayNames, out xrayShare, out xrayZ);
+                    Console.WriteLine("ESC\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}",
+                                      withMatrix ? "есть" : "нет", gateOn ? "вкл" : "СНЯТ",
+                                      escPassed, analyzer.CrystalEscapeDropped,
+                                      escShare.ToString("F3", CultureInfo.InvariantCulture),
+                                      escZ.ToString("F2", CultureInfo.InvariantCulture),
+                                      xrayPassed,
+                                      xrayShare.ToString("F3", CultureInfo.InvariantCulture),
+                                      xrayZ.ToString("F2", CultureInfo.InvariantCulture),
+                                      result.Chi2Ndf.ToString("F3", CultureInfo.InvariantCulture));
+
+                    if (withMatrix && gateOn)
+                    {
+                        Same("S172, матрица есть, гейт вкл: матрица применена", true, result.ResponseMatrixUsed);
+                        Same("S172, матрица есть, гейт вкл: образа вылета кристалла в разборе нет", 0, escPassed);
+                        Same("S172, матрица есть, гейт вкл: счётчик снятых = числу образов",
+                             crystalEscapeNames.Count, analyzer.CrystalEscapeDropped);
+                    }
+                    else if (withMatrix)
+                    {
+                        // Подсадка «правило ВЫКЛ»: образ обязан ВЕРНУТЬСЯ.
+                        Same("положительный контроль S172: гейт снят при матрице — образ вылета кристалла в разборе ЕСТЬ (ловушка сработала)",
+                             true, escPassed > 0);
+                        Same("положительный контроль S172: гейт снят — счётчик молчит", 0, analyzer.CrystalEscapeDropped);
+                    }
+                    else
+                    {
+                        Same("S172, матрицы нет: образ вылета кристалла в разборе есть (единственное выражение вылета)",
+                             true, escPassed > 0);
+                        Same("S172, матрицы нет: гейт не срабатывал", 0, analyzer.CrystalEscapeDropped);
+                    }
+                }
+
+                if (matrix == null)
+                {
+                    Console.WriteLine("(матрицы нет — клетки «есть» и положительный контроль S172 на этом спектре не меряются)");
+                }
+            }
+
+            // ------------------------------------------------------------------
             // A169: библиотека ИЗ БАЗ, равновесие вкл/выкл.
             // ------------------------------------------------------------------
             Console.WriteLine();
@@ -689,6 +830,48 @@ namespace FsaDoubleCountProbe
             foreach (FsaSuppressedImage c in result.SuppressedImages)
             {
                 if (FsaLibrary.IsEscapeImage(c.Name)) n++;
+            }
+
+            return n;
+        }
+
+        /// <summary>
+        /// (`S172`) Сколько образов из списка имён ПРОШЛО в разбор (состав ∪
+        /// подавленные), и доля/z первого вошедшего в СОСТАВ (у подавленного
+        /// доли нет — печатается 0 и его z). Имена — у флагованных компонентов
+        /// библиотеки, чтобы проба читала флаг, а не приставку.
+        /// </summary>
+        static int PassedNamed(FsaResult result, List<string> names, out double share, out double z)
+        {
+            int n = 0;
+            share = 0.0;
+            z = 0.0;
+            var wanted = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (wanted.Contains(c.Name))
+                {
+                    if (n == 0)
+                    {
+                        share = c.SharePercent;
+                        z = c.Z;
+                    }
+
+                    n++;
+                }
+            }
+
+            foreach (FsaSuppressedImage c in result.SuppressedImages)
+            {
+                if (wanted.Contains(c.Name))
+                {
+                    if (n == 0 && !double.IsNaN(c.Z))
+                    {
+                        z = c.Z;
+                    }
+
+                    n++;
+                }
             }
 
             return n;
