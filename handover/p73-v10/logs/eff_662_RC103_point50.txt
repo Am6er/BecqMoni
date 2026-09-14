@@ -1,0 +1,6 @@
+D:/BqMoni_Claude/p73/spectra/RC103_Cs137_50mm.xml: сцена RC103_point50, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2, узлов 38
+   ε(661.7) = 1.726662e-04 (±1.77 % МК)
+D:/BqMoni_Claude/p73/spectra/ASN16_Cs137_10cm.xml: сцена ASN16_point10, клеймо phys=18; hist=200000; grid=10-3000 keV/39 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2, узлов 39
+   ε(661.7) = 4.577453e-04 (±1.40 % МК)
+D:/BqMoni_Claude/p73/spectra/RC103_Cs137_0cm.xml: сцена RC103_point0, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2, узлов 38
+   ε(661.7) = 1.259704e-02 (±1.93 % МК)
