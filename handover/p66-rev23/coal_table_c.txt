@@ -1,0 +1,41 @@
+== out_rev23_full ==
+  G1S24_Rn222Coal_Mar_20m    χ²/ndf 1.1143  χ²п 1.2815  нев 13.100 %  матрица 1 (НАЙДЕНА, применена)  компонент 11
+      Bi-214         single  доля 48.557 %  z   29.71  decay_s 6.0679E+001
+      Pb-214         single  доля 36.673 %  z   29.71  decay_s 6.0679E+001
+      Pb-212         single  доля  5.038 %  z    6.49  decay_s 8.7206E+000
+      Tl-208         single  доля  5.018 %  z    6.49  decay_s 8.7206E+000
+      Ra-226         single  доля  1.930 %  z   29.71  decay_s 6.0679E+001
+      Pb-210         single  доля  1.430 %  z   29.71  decay_s 6.0679E+001
+      Bi-212         single  доля  0.922 %  z    6.49  decay_s 8.7206E+000
+      Ra-224         single  доля  0.293 %  z    6.49  decay_s 8.7206E+000
+      Th-228         single  доля  0.095 %  z    6.49  decay_s 8.7206E+000
+  G1S24_Rn222Coal_Mar_2h     χ²/ndf 1.3659  χ²п 1.7407  нев 14.773 %  матрица 1 (НАЙДЕНА, применена)  компонент 11
+      Bi-214         single  доля 48.512 %  z   47.66  decay_s 6.0477E+001
+      Pb-214         single  доля 38.156 %  z   47.66  decay_s 6.0477E+001
+      Pb-212         single  доля  4.326 %  z    8.16  decay_s 7.0775E+000
+      Tl-208         single  доля  4.253 %  z    8.16  decay_s 7.0775E+000
+      Ra-226         single  доля  2.040 %  z   47.66  decay_s 6.0477E+001
+      Pb-210         single  доля  1.560 %  z   47.66  decay_s 6.0477E+001
+      Bi-212         single  доля  0.777 %  z    8.16  decay_s 7.0775E+000
+      Ra-224         single  доля  0.250 %  z    8.16  decay_s 7.0775E+000
+      Th-228         single  доля  0.083 %  z    8.16  decay_s 7.0775E+000
+  G1S24_Rn222Coal_Mar_3h     χ²/ndf 1.3113  χ²п 1.7595  нев 15.096 %  матрица 1 (НАЙДЕНА, применена)  компонент 11
+      Bi-214         single  доля 49.275 %  z   41.10  decay_s 5.5177E+001
+      Pb-214         single  доля 37.821 %  z   41.10  decay_s 5.5177E+001
+      Pb-212         single  доля  4.226 %  z    7.33  decay_s 6.4418E+000
+      Tl-208         single  доля  4.151 %  z    7.33  decay_s 6.4418E+000
+      Ra-226         single  доля  1.986 %  z   41.10  decay_s 5.5177E+001
+      Pb-210         single  доля  1.413 %  z   41.10  decay_s 5.5177E+001
+      Bi-212         single  доля  0.761 %  z    7.33  decay_s 6.4418E+000
+      Ra-224         single  доля  0.245 %  z    7.33  decay_s 6.4418E+000
+      Th-228         single  доля  0.081 %  z    7.33  decay_s 6.4418E+000
+  G1S24_Rn222Coal_Mar_eq01   χ²/ndf 1.9083  χ²п 3.6538  нев 14.440 %  матрица 1 (НАЙДЕНА, применена)  компонент 11
+      Bi-214         single  доля 48.294 %  z   66.14  decay_s 5.5398E+001
+      Pb-214         single  доля 37.581 %  z   66.14  decay_s 5.5398E+001
+      Pb-212         single  доля  4.725 %  z   12.36  decay_s 7.2012E+000
+      Tl-208         single  доля  4.633 %  z   12.36  decay_s 7.2012E+000
+      Ra-226         single  доля  1.997 %  z   66.14  decay_s 5.5398E+001
+      Pb-210         single  доля  1.520 %  z   66.14  decay_s 5.5398E+001
+      Bi-212         single  доля  0.845 %  z   12.36  decay_s 7.2012E+000
+      Ra-224         single  доля  0.272 %  z   12.36  decay_s 7.2012E+000
+      Th-228         single  доля  0.091 %  z   12.36  decay_s 7.2012E+000

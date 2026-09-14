@@ -1,0 +1,12 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : D:\BqMoni_Claude\p66\wt\tools\CORPUS\scripts\wd_p66a
+  сборка   : D:\BqMoni_Claude\p66\wt\BecquerelMonitor\bin\Release_p66
+  пробы    : D:\BqMoni_Claude\p66\wt\tools\effmaker\probes\build_p66
+  собрана  : 2026-09-14 20:22:52 из D:\BqMoni_Claude\p66\wt\BecquerelMonitor\bin\Release_p66
+  наборы   : приложение 16b95346e6a1 (549 файлов), пробы 8107e5277184 (188)
+  сверено  : 480 файлов по sha256 за 1.54 с
+  библиотека: в оснастке корпуса НЕТ по правилу AMBER19 — состав из manifest.csv, линии из nucdb/matdb
+  перекладка: клейма склада и оснастки сошлись
+  ОСНАСТКА СВЕЖАЯ: 480 файлов сошлись
+

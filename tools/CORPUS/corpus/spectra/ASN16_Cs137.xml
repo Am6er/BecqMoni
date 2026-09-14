@@ -545,6 +545,7 @@
           <SideCladdingThickness>2</SideCladdingThickness>
           <MountingThickness>2</MountingThickness>
           <PointDistance>0</PointDistance>
+          <FieldRadius>0</FieldRadius>
           <BeakerToDetectorDistance>5</BeakerToDetectorDistance>
           <BeakerDiameter>40</BeakerDiameter>
           <BeakerHeight>20</BeakerHeight>
