@@ -1,0 +1,4 @@
+ours RC103_point50_661.657 code=0 18 s
+ours RC103_point0_661.657 code=0 19 s
+g4 RC103_point50_661.657_vacuum code=0 123 s
+g4 RC103_point0_661.657_vacuum code=0 23 s

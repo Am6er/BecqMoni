@@ -1,0 +1,217 @@
+BecqMoni: main config: D:\BqMoni_Claude\p73\wt\tools\effmaker\probes\build_p73\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 200000 историй на узел; розыгрыш точки вылета: автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный); порог шумной кривой (медиана узлов) 5 %
+
+== RC103_g00_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.74 %, худший узел 45.53 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 8 из 38
+   guid     : e7d6f350-b78f-ed4a-ad30-81fe56d95abc
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g00_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g00_d00 (1 записей ResultData)
+
+== RC103_g00_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.47 %, худший узел 83.46 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 6 из 38
+   guid     : 24306d93-f0cd-1e74-5bdb-cff80c840eda
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g00_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g00_d50 (1 записей ResultData)
+
+== RC103_g01_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.00 %, худший узел 45.54 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 9 из 38
+   guid     : cbdbf012-5c19-2710-4474-5477ac462585
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g01_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g01_d00 (1 записей ResultData)
+
+== RC103_g01_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.54 %, худший узел 84.20 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 6 из 38
+   guid     : 61a27219-97b4-a236-1437-d9811b6a2e46
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g01_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g01_d50 (1 записей ResultData)
+
+== RC103_g02_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.28 %, худший узел 45.55 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 11 из 38
+   guid     : a773ca7c-f9ad-cd2c-e3e7-24d8dfaaf753
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g02_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g02_d00 (1 записей ResultData)
+
+== RC103_g02_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.62 %, худший узел 85.65 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 7 из 38
+   guid     : bfcf6675-7a0a-2dcb-7b75-0a8b8049d374
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g02_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g02_d50 (1 записей ResultData)
+
+== RC103_g03_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.55 %, худший узел 45.64 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 11 из 38
+   guid     : 556ee4a7-c634-5fd9-a989-9bab485f383f
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g03_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g03_d00 (1 записей ResultData)
+
+== RC103_g03_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.71 %, худший узел 82.40 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 7 из 38
+   guid     : 4b24178c-3561-e6cc-79e8-2c9fddd58ac6
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g03_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g03_d50 (1 записей ResultData)
+
+== RC103_g04_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.75 %, худший узел 45.97 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 13 из 38
+   guid     : c87fd8b1-b3b4-ad7b-4284-2ef93080bef4
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g04_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g04_d00 (1 записей ResultData)
+
+== RC103_g04_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.80 %, худший узел 78.42 % на 5.0 кэВ (ESS 2 из 200000 историй), узлов выше 5 %: 8 из 38
+   guid     : e5a4eb3f-e5a9-f4a9-9178-bc5666f7baca
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g04_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g04_d50 (1 записей ResultData)
+
+== RC103_g05_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.99 %, худший узел 46.38 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 13 из 38
+   guid     : 8a1f33ec-817d-a237-e61c-d865faf7b1f4
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g05_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g05_d00 (1 записей ResultData)
+
+== RC103_g05_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.91 %, худший узел 94.53 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 9 из 38
+   guid     : 78d700d4-b843-322b-e931-ab511d3f1193
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g05_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g05_d50 (1 записей ResultData)
+
+== RC103_g06_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 3.25 %, худший узел 47.08 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 14 из 38
+   guid     : 17e5f38a-1c96-f32a-b982-3a6f08a087dc
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g06_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g06_d00 (1 записей ResultData)
+
+== RC103_g06_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.05 %, худший узел 85.08 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 9 из 38
+   guid     : ebcddeb4-72a2-8b98-0a1a-dc4230c1ccc2
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g06_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g06_d50 (1 записей ResultData)
+
+== RC103_g07_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 3.52 %, худший узел 47.09 % на 5.0 кэВ (ESS 5 из 200000 историй), узлов выше 5 %: 15 из 38
+   guid     : 3d5c9a1c-acb7-10ca-fb91-b10bc86ed490
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g07_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g07_d00 (1 записей ResultData)
+
+== RC103_g07_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.12 %, худший узел 84.50 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 10 из 38
+   guid     : 40cfab77-9e9a-a451-ecb3-46573de029b9
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g07_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g07_d50 (1 записей ResultData)
+
+== RC103_g08_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 3.80 %, худший узел 52.01 % на 5.0 кэВ (ESS 4 из 200000 историй), узлов выше 5 %: 16 из 38
+   guid     : e2e94f4f-1074-fefa-ff04-d552a2158089
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g08_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g08_d00 (1 записей ResultData)
+
+== RC103_g08_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.22 %, худший узел 81.09 % на 5.0 кэВ (ESS 2 из 200000 историй), узлов выше 5 %: 10 из 38
+   guid     : 49822374-0e8d-1380-04f6-37191ebaeb58
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g08_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g08_d50 (1 записей ResultData)
+
+== RC103_g10_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 4.26 %, худший узел 52.01 % на 5.0 кэВ (ESS 4 из 200000 историй), узлов выше 5 %: 17 из 38
+   guid     : 9b840c40-ddb2-45e4-dcd7-55a1cb872f5a
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g10_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g10_d00 (1 записей ResultData)
+
+== RC103_g10_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.40 %, худший узел 33.38 % на 5.0 кэВ (ESS 9 из 200000 историй), узлов выше 5 %: 11 из 38
+   guid     : 694970b0-e283-c285-e548-3ca921453dab
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g10_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g10_d50 (1 записей ResultData)
+
+== RC103_g12_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 4.78 %, худший узел 52.01 % на 5.0 кэВ (ESS 4 из 200000 историй), узлов выше 5 %: 18 из 38
+   guid     : e4d992d3-6821-42c9-e016-5ca48b17cdfc
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g12_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g12_d00 (1 записей ResultData)
+
+== RC103_g12_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 2.65 %, худший узел 37.12 % на 5.0 кэВ (ESS 7 из 200000 историй), узлов выше 5 %: 12 из 38
+   guid     : c80f530b-ac2b-2b5c-c9ef-f1348e79fe83
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g12_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g12_d50 (1 записей ResultData)
+
+== RC103_g15_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 5.54 %, худший узел 59.68 % на 5.0 кэВ (ESS 3 из 200000 историй), узлов выше 5 %: 20 из 38
+   ⛔ КРИВАЯ ШУМНАЯ: типичный узел 5.5 % при пороге 5 % — записана по --allow-noisy
+   guid     : db1d8bd6-b27c-f4c9-9eef-a9a36436eca5
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g15_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g15_d00 (1 записей ResultData)
+
+== RC103_g15_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 3.04 %, худший узел 53.66 % на 5.0 кэВ (ESS 3 из 200000 историй), узлов выше 5 %: 13 из 38
+   guid     : c30f1b67-a9f1-cdb8-ea95-3fe776ce1cbf
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g15_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g15_d50 (1 записей ResultData)
+
+== RC103_g20_d00 ==
+   розыгрыш : равномерный
+   разброс  : медиана 6.99 %, худший узел 100.00 % на 5.0 кэВ (ESS 1 из 200000 историй), узлов выше 5 %: 22 из 38
+   ⛔ КРИВАЯ ШУМНАЯ: типичный узел 7.0 % при пороге 5 % — записана по --allow-noisy
+   guid     : a3dafcb7-1ca4-30a7-f191-6cfcf63889b6
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g20_d00.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g20_d00 (1 записей ResultData)
+
+== RC103_g20_d50 ==
+   розыгрыш : равномерный
+   разброс  : медиана 3.88 %, худший узел 59.45 % на 5.0 кэВ (ESS 3 из 200000 историй), узлов выше 5 %: 15 из 38
+   guid     : 71f2d174-9ed0-b41d-d3ad-187d86b341a9
+   кривая   : 38 точек, клеймо phys=18; hist=200000; grid=5-3000 keV/38 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p73\store_sweep\RC103_g20_d50.rmx) — сначала corpusmatrixprobe
+   спектр   : RC103_g20_d50 (1 записей ResultData)
+
+геометрий в описи: 26 — посчитано 26, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 26
+шумных кривых (медиана узлов выше 5 %): 2 (записаны по --allow-noisy)
+ЕСТЬ НЕСОШЕДШИЕСЯ
