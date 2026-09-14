@@ -8562,6 +8562,9 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSAChainRow" xml:space="preserve">
     <value>{0} — chain</value>
   </data>
+  <data name="FSATiedMemberRow" xml:space="preserve">
+    <value>{0} — by {1}</value>
+  </data>
   <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
     <value>Equilibrium works only when the composition comes from the databases: turn on "Enable DB lookups for FSA". The other path builds components from peak labels and knows nothing about decay chains.</value>
   </data>

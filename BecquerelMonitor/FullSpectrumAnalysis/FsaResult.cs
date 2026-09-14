@@ -107,6 +107,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string DecayChainRoot { get; set; }
 
         /// <summary>
+        /// (`S171`) Имя ЧЛЕНА РЯДА, с амплитудой которого идёт эта строка, —
+        /// у члена, чья колонка в режиме без связки оказалась вырожденной с
+        /// колонками прочих членов ряда и привязана к партнёру в равновесном
+        /// отношении (решение Amber 14.09.2026 «Привязать к члену, с которым
+        /// вырожден, пометить»); null — амплитуда своя либо закреплена связкой
+        /// всего ряда (<see cref="ChainRoot"/>).
+        ///
+        /// ⛔ Третье утверждение о строке, и оно не сводится к двум другим:
+        /// «своя амплитуда» (оба поля пусты), «одна амплитуда на весь ряд»
+        /// (<see cref="ChainRoot"/>) и «амплитуда ПАРТНЁРА, потому что своей
+        /// данные дать не могут» (это поле). На экране помечается текстом
+        /// «по Pb-212» тем же путём, что и связка (<c>FsaPresentationBuilder.RowName</c>).
+        /// </summary>
+        public string TiedTo { get; set; }
+
+        /// <summary>
         /// ДОЛЯ СЛОЯ: вклад компонента в ПОЛНЫЙ счёт модели с разнесённой на
         /// него подложкой, %. ТА ЖЕ величина, что печатает легенда
         /// (<see cref="FsaStackLayer.SharePercent"/>), — по построению, а не по
@@ -201,6 +217,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// откуда он.
         /// </summary>
         public string DecayChainRoot { get; set; }
+
+        /// <summary>
+        /// (`S171`) Партнёр привязки — как у
+        /// <see cref="FsaComponentResult.TiedTo"/>; null — колонка своя.
+        /// У привязанного члена своей колонки в фите нет, и его строка
+        /// предела — копия строки хозяина (обнаружен / порог / предел те же,
+        /// в тех же единицах распадов корня ряда), а пиковые отсчёты на
+        /// пределе — по ЕГО образу, и выход (`S69`) — его собственный.
+        /// </summary>
+        public string TiedTo { get; set; }
 
         /// <summary>Компонент вошёл в состав (амплитуда фита больше нуля).</summary>
         public bool Detected { get; set; }
@@ -371,6 +397,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ряда. По нему строится родительская группировка слоёв (`A145`).
         /// </summary>
         public string DecayChainRoot { get; set; }
+
+        /// <summary>
+        /// (`S171`) Партнёр привязки — копия
+        /// <see cref="FsaComponentResult.TiedTo"/>; null — амплитуда слоя не
+        /// привязана. В легенде и таблице отчёта пометка «по партнёру» обязана
+        /// быть видна ровно так же, как пометка связки ряда.
+        /// </summary>
+        public string TiedTo { get; set; }
 
         /// <summary>Вклад слоя по каналам с разнесённой на него подложкой.</summary>
         public double[] Curve { get; set; }
@@ -923,6 +957,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaSuppressedImage> SuppressedImages { get; set; }
 
         /// <summary>
+        /// (`S171`) Привязки вырожденных членов рядов, сделанные гейтом
+        /// анализатора в этом разборе (режим без связки равновесия): кто, к
+        /// кому и с какой мерой. Пусто — привязок нет (в том числе при связке
+        /// равновесия, где гейт не судит вовсе); null не бывает. Строки
+        /// состава и пределов несут то же партнёром
+        /// (<see cref="FsaComponentResult.TiedTo"/>); список здесь — для
+        /// пробы и журнала, где нужны и меры.
+        /// </summary>
+        public List<FsaTie> Ties { get; set; }
+
+        /// <summary>
         /// Сколько нуклидов называется поимённо; остальные идут одной строкой
         /// «other». Мешающие образы (рентген, пики вылета) сюда НЕ считаются и
         /// показываются сверх лимита.
@@ -947,6 +992,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Components = new List<FsaComponentResult>();
             this.CharacteristicLimits = new List<FsaCharacteristicLimit>();
             this.SuppressedImages = new List<FsaSuppressedImage>();
+            this.Ties = new List<FsaTie>();
             this.ScaleAnchors = new List<FsaScaleAnchor>();
         }
 
@@ -1037,6 +1083,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Kind = component.Kind,
                     ChainRoot = component.ChainRoot,
                     DecayChainRoot = component.DecayChainRoot,
+                    TiedTo = component.TiedTo,
                     Curve = PositivePart(component.Curve),
                     SumPeakCurve = component.SumPeakCurve != null
                         ? (double[])component.SumPeakCurve.Clone()

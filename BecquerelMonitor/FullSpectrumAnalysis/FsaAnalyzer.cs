@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 
@@ -1734,6 +1735,75 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Само значение ставит конструктор, второй копии тут нет (`T82`).
         /// </summary>
         public double GateZCeiling { get; set; }
+
+        /// <summary>
+        /// ⛔ (`S171`) ПОРОГ ПРИВЯЗКИ ВЫРОЖДЕННОГО ЧЛЕНА РЯДА в режиме БЕЗ
+        /// связки равновесия — решение Amber 14.09.2026 (вопросником),
+        /// дословно: **«Привязать к члену, с которым вырожден, пометить»**.
+        ///
+        /// Что лечится. Без связки (~~`S70`~~ выключена) каждый член ряда
+        /// получает свою свободную амплитуду — и член, чьи линии неотличимы
+        /// от линий ДРУГОГО члена того же ряда, забирает произвольную долю
+        /// общего бугра. Измерено П59 14.09.2026 на равновесном эталоне
+        /// `AS80_Th232Medal` (33.6 М отсчётов, NaI 80×80): Ra-224 (241.0 под
+        /// Pb-212 238.6) ×9.9 от равновесного, Th-228 (84 под K-рентгеном)
+        /// ×21, Rn-220 (550 под 583/511) ×70 — все при z 31–37, вместе 22 %
+        /// модели на экране; отсев по значимости <see cref="RefitZ"/> их не
+        /// видит по построению.
+        ///
+        /// Правило (<see cref="TieDegenerateMembers"/>): члены одного ряда
+        /// судятся от слабейшего к сильнейшему по информации образа; у
+        /// каждого берётся ДОЛЯ его образа (за вычетом того, что представим
+        /// континуумом сплайна), представимая образами прочих ещё свободных
+        /// членов ряда вместе, — дополнение Шура во взвешенной метрике фита,
+        /// 0…1. Достигла порога — член привязывается к партнёру с наибольшим
+        /// парным квадратом косинуса: его линии сливаются в колонку партнёра
+        /// (веса линий уже несут накопленную долю ветвления, то есть слитая
+        /// колонка и есть равновесное отношение пары), своей амплитуды у него
+        /// нет, на экране он помечен «по партнёру»
+        /// (<see cref="FsaComponentResult.TiedTo"/>). Живые члены с
+        /// собственной разрешимой линией порога не достигают и остаются
+        /// свободными.
+        ///
+        /// ⚠ Правило общее — по коллинеарности и по ряду, имён нуклидов в нём
+        /// нет (правило Amber). При связке равновесия гейт не судит вовсе:
+        /// там у ряда одна колонка, судить некого.
+        ///
+        /// Неположительное значение — привязки нет (плечо А, прежний разбор).
+        /// Само значение ставит конструктор, второй копии тут нет (`T82`);
+        /// выбрано развёрткой по порогу на эталоне (журнал П60).
+        /// </summary>
+        public double ChainTieShare { get; set; }
+
+        /// <summary>
+        /// (`S171`) МЕРА гейта привязки: false — остаток члена против ОСТАТКОВ
+        /// ПРОЧИХ ЧЛЕНОВ ряда целиком (отношения линий закреплены, как в
+        /// фите; ловит только истинную вырожденность); true — против остатков
+        /// КАЖДОЙ ЛИНИИ прочих членов своей колонкой (отношения свободны;
+        /// «нет линии, не лежащей под чужой»). Обе измерены на эталоне, выбор
+        /// — журнал П60; полярность ставит конструктор (`T82`).
+        /// </summary>
+        public bool ChainTieByLines { get; set; }
+
+        /// <summary>
+        /// (`S171`) Сколько членов рядов гейт привязки СУДИЛ в этом разборе
+        /// (только режим без связки, только ряды из двух и более членов).
+        /// Ноль при положительном пороге — судить было некого, и правка не
+        /// изменила ни одного бита.
+        /// </summary>
+        public int ChainTieJudged { get; private set; }
+
+        /// <summary>(`S171`) Сколько членов ПРИВЯЗАНО к партнёру в этом разборе.</summary>
+        public int ChainTieTied { get; private set; }
+
+        /// <summary>
+        /// (`S171`) Служебная строка гейта привязки: по каждому судимому члену
+        /// — доля по Шуру, парная доля и партнёр, исход; null — гейт не
+        /// судил. Для пробы и журнала: развёртка по порогу читается из неё
+        /// без второго прогона (меры от порога не зависят, зависит лишь
+        /// приговор).
+        /// </summary>
+        public string ChainTieNote { get; private set; }
 
         /// <summary>
         /// (`AMBER3`) Сколько нуклидных колонок гейт НЕ СУДИЛ, потому что их
@@ -4305,6 +4375,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // нечего; выше — второй случай остаётся снаружи.
             this.GateZCeiling = 10.0;
 
+            // (`S171`) Порог привязки вырожденного члена ряда — решение Amber
+            // 14.09.2026 «Привязать к члену, с которым вырожден, пометить».
+            // Значение стоит ЗДЕСЬ, а не в описании (`T82`); выбрано
+            // развёрткой по порогу (П60, `handover/p60-s171/sweep_col.txt`):
+            // доля вырожденного Ra-224 (241.0 под Pb-212 238.6) — 0.907 на
+            // `AS80_Th232Medal` (NaI 80×80), 0.739 / 0.761 на двух спектрах
+            // радонового фильтра ASN16 (CsI 15×18×60); члены с собственной
+            // линией (Ac-228, Bi-212, Tl-208, Pb-214, Bi-214) — не выше 0.06;
+            // невырожденные слабые (Th-228 84 кэВ, Th-232, Po-216, Rn-220) —
+            // не выше 0.40. Полоса пуста между 0.40 и 0.74, середина — здесь:
+            // «больше половины образа члена представимо сильнейшими членами
+            // ряда». Мера по линиям (`ChainTieByLines`) отвергнута тем же
+            // замером: она привязывает Bi-212 (727 кэВ) к Ac-228 при любом
+            // пороге (0.995) — у Ac-228 своя линия 726.9 кэВ с выходом 0.6 %.
+            this.ChainTieShare = 0.5;
+            this.ChainTieByLines = false;
+
             // (`A277`) Гейт геометрии ВКЛЮЧЁН — решение Amber 10.09.2026 «нет
             // геометрии — нет FSA разбора». Полярность стоит здесь, у
             // присваивания, а не в описании (`T82`).
@@ -4725,6 +4812,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.GateNuclidesSpared = 0;
             this.EscapeOrphansDropped = 0;
             this.AnnihilationCollides = null;
+            // (`S171`) гейт привязки — состояние ЭТОГО разбора
+            this.ChainTieJudged = 0;
+            this.ChainTieTied = 0;
+            this.ChainTieNote = null;
+            this.chainTies = null;
 
             int[] raw = spectrum.Spectrum;
             double[] y = new double[channels];
@@ -5076,6 +5168,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (library.Count == 0)
             {
                 return null;
+            }
+
+            // ⛔ (`S171`) ГЕЙТ ВЫРОЖДЕННОСТИ ЧЛЕНОВ РЯДА — здесь, на готовой
+            // библиотеке и ДО сетки дрейфа: слитая колонка идёт через все
+            // проходы (дрейф, привязка шкалы, отсев по z, гейт формы) как
+            // одна, ровно как колонка связанного ряда. Веса — отчётные
+            // (пуассон плюс шум фона, без составного шума `S43`: он ниже
+            // добавляется в дисперсию решателя, а мера гейта — свойство
+            // образов, не решателя), полоса — та же, что у фита; шапки
+            // континуума — те, что пойдут в фит (`fixedColumns`). Список
+            // кандидатов пределов берётся УЖЕ слитый: у привязанного своей
+            // колонки нет, строка предела у него — копия строки хозяина (см.
+            // пределы `S9`).
+            if (this.ChainTieShare > 0.0)
+            {
+                double[] tieWeights = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    tieWeights[i] = 1.0 / variance[i];
+                }
+
+                library = this.TieDegenerateMembers(library, fixedColumns, calibration, fwhmCalibration,
+                                                    efficiency, chLo, chHi, channels, tieWeights);
             }
 
             // Список КАНДИДАТОВ — то, что предъявлено фиту, без служебной
@@ -5971,6 +6086,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     DecayChainRoot = offeredOrigin.TryGetValue(pair.Key, out origin) ? origin : null,
                     Z = pair.Value
                 });
+
+                // (`S171`) Привязанные к выброшенной колонке выброшены вместе
+                // с ней — под своими именами, с той же значимостью: у них
+                // своей колонки не было, и молчать о них нельзя так же, как
+                // о хозяине.
+                if (this.chainTies != null)
+                {
+                    foreach (FsaTie tie in this.chainTies)
+                    {
+                        if (string.Equals(this.TieHost(tie.Member), pair.Key, StringComparison.Ordinal)
+                            && !reported.Contains(tie.Member))
+                        {
+                            result.SuppressedImages.Add(new FsaSuppressedImage
+                            {
+                                Name = tie.Member,
+                                Kind = FsaComponentKind.Single,
+                                DecayChainRoot = offeredOrigin.TryGetValue(pair.Key, out origin) ? origin : null,
+                                Z = pair.Value
+                            });
+                        }
+                    }
+                }
+            }
+
+            // (`S171`) Привязки — в результат, для пробы и журнала.
+            if (this.chainTies != null)
+            {
+                result.Ties.AddRange(this.chainTies);
             }
 
             result.SuppressedImages.Sort(
@@ -6288,6 +6431,78 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 limit.DetectionLimitPeakCounts = detection
                     * this.PeakWindowCounts(component, phi, calibration, fwhmCalibration,
                                             gain, offset, chLo, chHi, channels);
+            }
+
+            // (`S171`) ПРИВЯЗАННЫЕ ЧЛЕНЫ — своей строкой предела каждый, копией
+            // строки хозяина: обнаружен / порог / предел те же (амплитуда у
+            // колонки одна, единицы — распады корня ряда), а пиковые отсчёты
+            // на пределе — по ЕГО образу, и выход (`S69`) — его собственный.
+            // Без этого привязанный, чей хозяин в состав не вошёл, пропадал бы
+            // с экрана вовсе: ни строки состава, ни строки предела.
+            int given = result.CharacteristicLimits.Count;
+            for (int n = 0; n < given; n++)
+            {
+                FsaCharacteristicLimit hostLimit = result.CharacteristicLimits[n];
+                FsaComponent host = null;
+                foreach (FsaComponent component in library)
+                {
+                    if (component != null && component.Ties != null && component.Ties.Count > 0
+                        && string.Equals(component.Name, hostLimit.Name, StringComparison.Ordinal))
+                    {
+                        host = component;
+                        break;
+                    }
+                }
+
+                if (host == null)
+                {
+                    continue;
+                }
+
+                foreach (FsaTie tie in host.Ties)
+                {
+                    FsaComponent part = new FsaComponent(tie.Member, FsaComponentKind.Single)
+                    {
+                        WeightsAreFinal = host.WeightsAreFinal
+                    };
+                    foreach (FsaLine line in host.Lines)
+                    {
+                        if (string.Equals(line.Nuclide, tie.Member, StringComparison.OrdinalIgnoreCase))
+                        {
+                            part.Lines.Add(line);
+                        }
+                    }
+
+                    double peakCounts = Double.NaN;
+                    if (!hostLimit.Degenerate && !double.IsNaN(hostLimit.DetectionLimitRate)
+                        && part.Lines.Count > 0)
+                    {
+                        double[] image = this.MemberTemplate(part, calibration, fwhmCalibration, efficiency,
+                                                             gain, offset, chLo, chHi, channels);
+                        if (image != null)
+                        {
+                            peakCounts = hostLimit.DetectionLimitRate * liveTime
+                                * this.PeakWindowCounts(part, image, calibration, fwhmCalibration,
+                                                        gain, offset, chLo, chHi, channels);
+                        }
+                    }
+
+                    result.CharacteristicLimits.Add(new FsaCharacteristicLimit
+                    {
+                        Name = tie.Member,
+                        Kind = FsaComponentKind.Single,
+                        DecayChainRoot = hostLimit.DecayChainRoot,
+                        TiedTo = tie.Partner,
+                        Detected = hostLimit.Detected,
+                        CountRate = hostLimit.CountRate,
+                        DecisionThresholdRate = hostLimit.DecisionThresholdRate,
+                        DetectionLimitRate = hostLimit.DetectionLimitRate,
+                        Degenerate = hostLimit.Degenerate,
+                        Collinearity = hostLimit.Collinearity,
+                        DetectionLimitPeakCounts = peakCounts,
+                        TotalYieldPercent = tie.TotalYieldPercent
+                    });
+                }
             }
 
             // Те же числа — на строках состава, чтобы читателю не соединять два
@@ -6681,6 +6896,573 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Обратная подматрица Gram по набору колонок; null — набор пуст или
         /// вырожден. Тот же <see cref="InvertSymmetric"/>, что у пределов S9.
         /// </summary>
+        /// <summary>
+        /// (`S171`) Привязки этого разбора — копия уходит в
+        /// <see cref="FsaResult.Ties"/>; null — гейт не судил или не привязал.
+        /// </summary>
+        List<FsaTie> chainTies;
+
+        /// <summary>
+        /// (`S171`) Приговоры гейта привязки по КАЖДОМУ судимому члену — и
+        /// привязанным, и свободным (<see cref="FsaTie.Tied"/>). Для пробы и
+        /// журнала: развёртка по порогу читается из мер без второго прогона.
+        /// null — гейт не судил.
+        /// </summary>
+        public List<FsaTie> ChainTieJudgements { get; private set; }
+
+        /// <summary>
+        /// ⛔ (`S171`) ГЕЙТ ВЫРОЖДЕННОСТИ ЧЛЕНОВ РЯДА в режиме без связки
+        /// равновесия — решение Amber 14.09.2026 «Привязать к члену, с которым
+        /// вырожден, пометить». Порог — <see cref="ChainTieShare"/>, мера —
+        /// <see cref="ChainTieByLines"/>.
+        ///
+        /// ЧТО СУДИТСЯ. Свободные члены (<see cref="FsaComponentKind.Single"/>
+        /// с <see cref="FsaComponent.DecayChainRoot"/>) — по рядам, ряды из
+        /// двух и более таких членов. Образ каждого строится на номинальной
+        /// шкале тем же построителем, что и колонка фита, и из него вычитается
+        /// проекция на шапки континуума (<paramref name="fixedColumns"/>) во
+        /// взвешенной метрике фита: гладкую часть образа (комптоновский хвост
+        /// матрицы) свободный сплайн берёт на себя и без члена, и считать её
+        /// «общей с партнёром» значило бы привязывать по континууму, а не по
+        /// линиям. Остаток — то, чем член ОТЛИЧИМ от подложки.
+        ///
+        /// МЕРА. Доля остатка члена, представимая остатками прочих членов ряда
+        /// вместе, — дополнение Шура: 1 − (g_mm − gᵀ·G⁻¹·g) / g_mm, 0…1
+        /// (та же мера, что у пределов `S9`, но ТОЛЬКО по членам своего ряда:
+        /// против всей модели она не различает — на эталоне Rn-220 давала
+        /// 0.27, Ac-228 0.73). Чем представлять — две меры, и обе измерены
+        /// на эталоне (журнал П60):
+        ///   * по КОЛОНКАМ (<see cref="ChainTieByLines"/> = false): остаток
+        ///     каждого прочего члена целиком, с закреплёнными отношениями его
+        ///     линий — ровно то, что может фит; строго, ловит только истинную
+        ///     вырожденность (Ra-224 241 под Pb-212 238.6);
+        ///   * по ЛИНИЯМ (true): остаток КАЖДОЙ линии прочих членов своей
+        ///     колонкой, отношения свободны — «у члена нет линии, которая не
+        ///     лежала бы под чужой» (слова решения: «линии неотличимы от
+        ///     линий другого члена»); шире, ловит и член под чужим рентгеном.
+        /// Партнёр — член с наибольшей долей своими колонками.
+        ///
+        /// ПОРЯДОК. От слабейшего к сильнейшему по информации остатка
+        /// (‖r‖²_W — ожидаемый вклад члена в χ² при единичной активности
+        /// ряда), и судится член ТОЛЬКО против членов сильнее себя: пара
+        /// вырожденных членов симметрична, и привязывать надо того, чьи
+        /// данные слабее, к тому, чьи сильнее. Привязанный сливается
+        /// в колонку партнёра — линии под своими именами, веса уже несут
+        /// накопленную долю ветвления (`FsaSampleLibrary`), то есть слитая
+        /// колонка и есть равновесное отношение пары, — и следующие члены
+        /// судятся уже против слитых колонок. Партнёр, привязанный позже сам,
+        /// уносит своих привязанных с собой (цепочка «по … по …»).
+        ///
+        /// ⚠ Имён нуклидов здесь нет и быть не должно (правило Amber): правило
+        /// — по коллинеарности и по ряду.
+        ///
+        /// Возвращает ту же библиотеку, если не привязано никого, иначе новую
+        /// (порядок прежний, хозяин на своём месте, привязанные сняты).
+        /// </summary>
+        List<FsaComponent> TieDegenerateMembers(List<FsaComponent> library, List<double[]> fixedColumns,
+                                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                                FsaEfficiency efficiency, int chLo, int chHi, int channels,
+                                                double[] weights)
+        {
+            double threshold = this.ChainTieShare;
+            if (!(threshold > 0.0) || library == null || library.Count < 2)
+            {
+                return library;
+            }
+
+            // Ряды: корень -> номера членов в библиотеке.
+            var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var roots = new List<string>();
+            for (int i = 0; i < library.Count; i++)
+            {
+                FsaComponent c = library[i];
+                if (c == null || c.Kind != FsaComponentKind.Single || string.IsNullOrEmpty(c.DecayChainRoot)
+                    || c.Derived || c.FixedTemplate != null || c.WeightsAreFinal
+                    || c.Lines == null || c.Lines.Count == 0)
+                {
+                    continue;
+                }
+
+                List<int> members;
+                if (!groups.TryGetValue(c.DecayChainRoot, out members))
+                {
+                    members = new List<int>();
+                    groups[c.DecayChainRoot] = members;
+                    roots.Add(c.DecayChainRoot);
+                }
+
+                members.Add(i);
+            }
+
+            bool any = false;
+            foreach (string root in roots)
+            {
+                if (groups[root].Count >= 2)
+                {
+                    any = true;
+                }
+            }
+
+            if (!any)
+            {
+                return library;
+            }
+
+            // Обратная Грама шапок континуума — для проекции остатка.
+            int hats = fixedColumns != null ? fixedColumns.Count : 0;
+            double[,] hatInverse = null;
+            if (hats > 0)
+            {
+                double[,] hatGram = new double[hats, hats];
+                for (int a = 0; a < hats; a++)
+                {
+                    for (int b = a; b < hats; b++)
+                    {
+                        double v = DotWeighted(fixedColumns[a], fixedColumns[b], weights, chLo, chHi);
+                        hatGram[a, b] = v;
+                        hatGram[b, a] = v;
+                    }
+                }
+
+                hatInverse = InvertSymmetric(hatGram, hats);
+            }
+
+            bool byLines = this.ChainTieByLines;
+            var judgements = new List<FsaTie>();
+            var ties = new List<FsaTie>();
+            // Слитые колонки и их записи — по номеру хозяина в библиотеке.
+            var merged = new Dictionary<int, FsaComponent>();
+            var tiedAway = new HashSet<int>();
+            var note = new StringBuilder();
+            int judged = 0;
+            int tiedCount = 0;
+
+            foreach (string root in roots)
+            {
+                List<int> members = groups[root];
+                if (members.Count < 2)
+                {
+                    continue;
+                }
+
+                // Остатки образов после континуума и их информация; по линиям
+                // — ещё и остатки каждой линии.
+                var column = new Dictionary<int, double[]>();
+                var norm = new Dictionary<int, double>();
+                var lineColumns = new Dictionary<int, List<double[]>>();
+                foreach (int m in members)
+                {
+                    double[] phi;
+                    if (this.ResponseMatrix != null)
+                    {
+                        double[] lowTail;
+                        phi = this.BuildTemplateFromResponse(library[m], calibration, fwhmCalibration,
+                                                             1.0, 0.0, chLo, chHi, channels, out lowTail);
+                    }
+                    else
+                    {
+                        phi = BuildTemplate(library[m], calibration, fwhmCalibration, efficiency,
+                                            1.0, 0.0, chLo, chHi, channels);
+                    }
+
+                    if (phi == null)
+                    {
+                        continue;
+                    }
+
+                    double[] r = this.ResidualAfterHats(phi, fixedColumns, hatInverse, weights, chLo, chHi, channels);
+                    double n2 = DotWeighted(r, r, weights, chLo, chHi);
+                    if (!(n2 > 0.0))
+                    {
+                        continue;
+                    }
+
+                    column[m] = r;
+                    norm[m] = n2;
+
+                    if (byLines)
+                    {
+                        var lines = new List<double[]>();
+                        for (int l = 0; l < library[m].Lines.Count; l++)
+                        {
+                            double[] one = this.BuildLineColumn(library[m], l, calibration, fwhmCalibration,
+                                                                efficiency, 1.0, 0.0, chLo, chHi, channels);
+                            if (one == null)
+                            {
+                                continue;
+                            }
+
+                            double[] rl = this.ResidualAfterHats(one, fixedColumns, hatInverse, weights,
+                                                                 chLo, chHi, channels);
+                            if (DotWeighted(rl, rl, weights, chLo, chHi) > 0.0)
+                            {
+                                lines.Add(rl);
+                            }
+                        }
+
+                        lineColumns[m] = lines;
+                    }
+                }
+
+                if (column.Count < 2)
+                {
+                    continue;
+                }
+
+                List<int> order = new List<int>(column.Keys);
+                order.Sort((x, y) => norm[x].CompareTo(norm[y]));
+
+                foreach (int m in order)
+                {
+                    // Прочие ещё свободные члены ряда — со слитыми колонками —
+                    // и ТОЛЬКО СИЛЬНЕЕ судимого: привязка идёт от слабого к
+                    // сильному, и представимость слабыми (уже судимыми и
+                    // оставленными свободными) привязкой не является. Без
+                    // этого у симметричной пары при пороге между их долями
+                    // сильный привязывался бы к слабому (измерено на
+                    // радоновом фильтре: Ra-224 0.853, Pb-212 0.869).
+                    List<int> others = new List<int>();
+                    foreach (int o in order)
+                    {
+                        if (o != m && !tiedAway.Contains(o) && norm[o] > norm[m])
+                        {
+                            others.Add(o);
+                        }
+                    }
+
+                    if (others.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    // Базис: по колонкам — остаток каждого прочего члена; по
+                    // линиям — остаток каждой линии прочих членов, с хозяином.
+                    List<double[]> basis = new List<double[]>();
+                    List<int> owner = new List<int>();
+                    foreach (int o in others)
+                    {
+                        if (byLines)
+                        {
+                            List<double[]> lines;
+                            if (lineColumns.TryGetValue(o, out lines))
+                            {
+                                foreach (double[] rl in lines)
+                                {
+                                    basis.Add(rl);
+                                    owner.Add(o);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            basis.Add(column[o]);
+                            owner.Add(o);
+                        }
+                    }
+
+                    if (basis.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    double[] rm = column[m];
+                    double gmm = DotWeighted(rm, rm, weights, chLo, chHi);
+                    int k = basis.Count;
+                    double[,] gram = new double[k, k];
+                    double[] g = new double[k];
+                    for (int a = 0; a < k; a++)
+                    {
+                        g[a] = DotWeighted(basis[a], rm, weights, chLo, chHi);
+                        for (int b = a; b < k; b++)
+                        {
+                            double v = DotWeighted(basis[a], basis[b], weights, chLo, chHi);
+                            gram[a, b] = v;
+                            gram[b, a] = v;
+                        }
+                    }
+
+                    double share = SchurShareOf(gram, g, gmm, null);
+
+                    // Партнёр — прочий член с наибольшей долей СВОИМИ колонками.
+                    int partner = -1;
+                    double pair = 0.0;
+                    foreach (int o in others)
+                    {
+                        List<int> own = new List<int>();
+                        for (int a = 0; a < k; a++)
+                        {
+                            if (owner[a] == o)
+                            {
+                                own.Add(a);
+                            }
+                        }
+
+                        if (own.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        double p = SchurShareOf(gram, g, gmm, own);
+                        if (partner < 0 || p > pair)
+                        {
+                            partner = o;
+                            pair = p;
+                        }
+                    }
+
+                    judged++;
+                    bool tie = share >= threshold && partner >= 0;
+                    FsaComponent self = library[m];
+                    FsaComponent host = library[partner];
+                    FsaTie verdict = new FsaTie
+                    {
+                        Member = self.Name,
+                        Partner = host.Name,
+                        Share = share,
+                        PairShare = pair,
+                        TotalYieldPercent = self.TotalYieldPercent,
+                        Tied = tie
+                    };
+                    judgements.Add(verdict);
+                    if (note.Length > 0)
+                    {
+                        note.Append("; ");
+                    }
+
+                    note.Append(self.Name).Append(tie ? " → " : " ≠ ").Append(host.Name)
+                        .Append(" шур ").Append(share.ToString("F3", CultureInfo.InvariantCulture))
+                        .Append(" пара ").Append(pair.ToString("F3", CultureInfo.InvariantCulture));
+
+                    if (!tie)
+                    {
+                        continue;
+                    }
+
+                    // Слить m в партнёра: колонка, линии, записи привязок.
+                    tiedCount++;
+                    tiedAway.Add(m);
+                    ties.Add(verdict);
+                    double[] hostColumn = column[partner];
+                    for (int i = chLo; i <= chHi; i++)
+                    {
+                        hostColumn[i] += rm[i];
+                    }
+
+                    if (byLines)
+                    {
+                        List<double[]> mine;
+                        List<double[]> his;
+                        if (lineColumns.TryGetValue(m, out mine) && lineColumns.TryGetValue(partner, out his))
+                        {
+                            his.AddRange(mine);
+                        }
+                    }
+
+                    FsaComponent hostMerged;
+                    if (!merged.TryGetValue(partner, out hostMerged))
+                    {
+                        hostMerged = new FsaComponent(host.Name, host.Kind)
+                        {
+                            WeightsAreFinal = host.WeightsAreFinal,
+                            Derived = host.Derived,
+                            FromCrystal = host.FromCrystal,
+                            EscapeParent = host.EscapeParent,
+                            TotalYieldPercent = host.TotalYieldPercent,
+                            DecayChainRoot = host.DecayChainRoot,
+                            Ties = new List<FsaTie>()
+                        };
+                        hostMerged.Lines.AddRange(host.Lines);
+                        merged[partner] = hostMerged;
+                    }
+
+                    FsaComponent selfMerged;
+                    FsaComponent source = merged.TryGetValue(m, out selfMerged) ? selfMerged : self;
+                    hostMerged.Lines.AddRange(source.Lines);
+                    if (selfMerged != null)
+                    {
+                        // Привязанные к m уходят вместе с ним: их записи
+                        // остаются «по m», а m теперь «по партнёру».
+                        hostMerged.Ties.AddRange(selfMerged.Ties);
+                        merged.Remove(m);
+                    }
+
+                    hostMerged.Ties.Add(verdict);
+                    if (double.IsNaN(hostMerged.TotalYieldPercent)
+                        || (!double.IsNaN(source.TotalYieldPercent)
+                            && source.TotalYieldPercent > hostMerged.TotalYieldPercent))
+                    {
+                        hostMerged.TotalYieldPercent = source.TotalYieldPercent;
+                    }
+                }
+            }
+
+            this.ChainTieJudged = judged;
+            this.ChainTieTied = tiedCount;
+            this.ChainTieJudgements = judgements.Count > 0 ? judgements : null;
+            this.ChainTieNote = judged > 0
+                ? string.Format(CultureInfo.InvariantCulture,
+                                "привязка (порог {0:G4}, по {1}): судимых {2}, привязано {3}: {4}",
+                                threshold, byLines ? "линиям" : "колонкам", judged, tiedCount, note.ToString())
+                : null;
+            if (tiedCount == 0)
+            {
+                return library;
+            }
+
+            this.chainTies = ties;
+            List<FsaComponent> result = new List<FsaComponent>(library.Count - tiedCount);
+            for (int i = 0; i < library.Count; i++)
+            {
+                if (tiedAway.Contains(i))
+                {
+                    continue;
+                }
+
+                FsaComponent m;
+                result.Add(merged.TryGetValue(i, out m) ? m : library[i]);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// (`S171`) Остаток столбца после проекции на шапки континуума во
+        /// взвешенной метрике: φ − Σ β_k·hat_k, β = G_h⁻¹·(Hᵀ·W·φ). Без
+        /// обратной Грама шапок (вырождена, шапок нет) — копия столбца.
+        /// </summary>
+        double[] ResidualAfterHats(double[] phi, List<double[]> fixedColumns, double[,] hatInverse,
+                                   double[] weights, int chLo, int chHi, int channels)
+        {
+            double[] r = new double[channels];
+            Array.Copy(phi, chLo, r, chLo, chHi - chLo + 1);
+            if (hatInverse == null)
+            {
+                return r;
+            }
+
+            int hats = fixedColumns.Count;
+            double[] g = new double[hats];
+            for (int a = 0; a < hats; a++)
+            {
+                g[a] = DotWeighted(fixedColumns[a], phi, weights, chLo, chHi);
+            }
+
+            for (int a = 0; a < hats; a++)
+            {
+                double beta = 0.0;
+                for (int b = 0; b < hats; b++)
+                {
+                    beta += hatInverse[a, b] * g[b];
+                }
+
+                if (beta == 0.0)
+                {
+                    continue;
+                }
+
+                double[] hat = fixedColumns[a];
+                for (int i = chLo; i <= chHi; i++)
+                {
+                    r[i] -= beta * hat[i];
+                }
+            }
+
+            return r;
+        }
+
+        /// <summary>
+        /// (`S171`) Доля столбца с нормой <paramref name="gmm"/> и
+        /// произведениями <paramref name="g"/> на базис с Грамом
+        /// <paramref name="gram"/>, представимая базисом (всем — <paramref name="subset"/>
+        /// null — либо его частью), 0…1. Вырожденный Грам — по наибольшему
+        /// парному квадрату косинуса, а не молчание.
+        /// </summary>
+        static double SchurShareOf(double[,] gram, double[] g, double gmm, List<int> subset)
+        {
+            if (!(gmm > 0.0))
+            {
+                return 0.0;
+            }
+
+            int n = subset != null ? subset.Count : g.Length;
+            double[,] sub = new double[n, n];
+            double[] gs = new double[n];
+            for (int a = 0; a < n; a++)
+            {
+                int ia = subset != null ? subset[a] : a;
+                gs[a] = g[ia];
+                for (int b = 0; b < n; b++)
+                {
+                    int ib = subset != null ? subset[b] : b;
+                    sub[a, b] = gram[ia, ib];
+                }
+            }
+
+            double[,] inverse = InvertSymmetric(sub, n);
+            double share;
+            if (inverse != null)
+            {
+                double cross = 0.0;
+                for (int a = 0; a < n; a++)
+                {
+                    double s = 0.0;
+                    for (int b = 0; b < n; b++)
+                    {
+                        s += inverse[a, b] * gs[b];
+                    }
+
+                    cross += gs[a] * s;
+                }
+
+                share = 1.0 - (gmm - cross) / gmm;
+            }
+            else
+            {
+                share = 0.0;
+                for (int a = 0; a < n; a++)
+                {
+                    double p = sub[a, a] > 0.0 ? gs[a] * gs[a] / (gmm * sub[a, a]) : 0.0;
+                    if (p > share)
+                    {
+                        share = p;
+                    }
+                }
+            }
+
+            return share < 0.0 ? 0.0 : (share > 1.0 ? 1.0 : share);
+        }
+
+        /// <summary>
+        /// (`S171`) Имя КОЛОНКИ, в которой в итоге живёт привязанный член:
+        /// по цепочке партнёров до члена, который сам ни к кому не привязан.
+        /// Своё имя — у свободного.
+        /// </summary>
+        string TieHost(string member)
+        {
+            string host = member;
+            for (int guard = 0; this.chainTies != null && guard < this.chainTies.Count; guard++)
+            {
+                string next = null;
+                foreach (FsaTie tie in this.chainTies)
+                {
+                    if (string.Equals(tie.Member, host, StringComparison.Ordinal))
+                    {
+                        next = tie.Partner;
+                        break;
+                    }
+                }
+
+                if (next == null)
+                {
+                    break;
+                }
+
+                host = next;
+            }
+
+            return host;
+        }
+
         static double[,] InvertGramSubset(double[,] gram, List<int> set)
         {
             if (gram == null || set == null || set.Count == 0)
@@ -7084,7 +7866,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                int chLo, int chHi, int channels, double liveTime, double z,
                                FsaResult result, ref double totalPeakCounts, ref double allPeakCounts)
         {
-            if (component.Kind != FsaComponentKind.Chain || component.Lines.Count == 0)
+            // (`S171`) Колонка с ПРИВЯЗАННЫМИ членами раскладывается тем же
+            // движением: у неё, как у ряда при связке, одна амплитуда на
+            // несколько нуклидов и линии подписаны своим членом.
+            bool tied = component.Ties != null && component.Ties.Count > 0;
+            if ((component.Kind != FsaComponentKind.Chain && !tied) || component.Lines.Count == 0)
             {
                 return false;
             }
@@ -7215,6 +8001,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
+                // (`S171`) У колонки с привязанными членами связки ряда нет:
+                // хозяин — своя свободная строка, привязанный — «по хозяину»
+                // (либо по тому, к кому привязан, если цепочкой).
+                string tiedTo = null;
+                if (tied && !string.Equals(source.Name, component.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    tiedTo = component.Name;
+                    foreach (FsaTie tie in component.Ties)
+                    {
+                        if (string.Equals(tie.Member, source.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            tiedTo = tie.Partner;
+                            break;
+                        }
+                    }
+                }
+
                 FsaComponentResult member = new FsaComponentResult
                 {
                     Name = source.Name,
@@ -7225,7 +8028,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // Связанность амплитуды несёт ОТДЕЛЬНОЕ поле — иначе она
                     // либо потерялась бы вовсе, либо утащила бы строку в другую
                     // группу порядка.
-                    ChainRoot = component.Name,
+                    ChainRoot = component.Kind == FsaComponentKind.Chain ? component.Name : null,
+                    TiedTo = tiedTo,
 
                     // (`A169`) Происхождение члена — корень той же колонки: в
                     // связанном ряду оба поля совпадают, различаются они у
