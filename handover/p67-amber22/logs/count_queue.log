@@ -1,0 +1,22 @@
+queue start 17:35:59
+AS80_p67_edge93_r33 code=0 887 s 17:50:47
+queue 3M stopped after edge93_r33; contact_r33 partial removed 17:51:39
+queue1m start 17:51:44
+AS80_p67_contact_r33 n=1M code=0 354 s 17:57:38
+AS80_p67_face81_r33 n=1M code=0 272 s 18:02:10
+AS80_p67_edge93_r28 n=1M code=0 264 s 18:06:34
+AS80_p67_edge93_r42 n=1M code=0 277 s 18:11:10
+AS80_p67_contact_r28 n=1M code=0 294 s 18:16:04
+AS80_p67_contact_r42 n=1M code=0 278 s 18:20:42
+AS80_p67_face81_r28 n=1M code=0 267 s 18:25:09
+AS80_p67_face81_r42 n=1M code=0 292 s 18:30:01
+AS80_p67_edge93_r38 n=1M code=0 256 s 18:34:18
+AS80_p67_contact_r38 n=1M code=0 274 s 18:38:51
+AS80_p67_face81_r38 n=1M code=0 317 s 18:44:09
+AS80_p67_edge93_p13 n=1M code=0 238 s 18:48:06
+AS80_p67_contact_p13 n=1M code=0 246 s 18:52:12
+AS80_p67_edge93_r33_ring05 n=1M code=0 264 s 18:56:36
+AS80_p67_edge93_r33_ring20 n=1M code=0 291 s 19:01:27
+AS80_p67_face81_p13 n=1M code=0 252 s 19:05:40
+AS80_p67_edge93_r33 (store_1m) n=1M code=0 286 s 19:10:25
+queue1m done 19:10:25
