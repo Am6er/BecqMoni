@@ -3155,6 +3155,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSAChainRow", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — by {1}.
+        /// </summary>
+        public static string FSATiedMemberRow {
+            get {
+                return ResourceManager.GetString("FSATiedMemberRow", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to Calculation parameters restored from the existing curve: {0}.

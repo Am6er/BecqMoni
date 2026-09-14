@@ -42,7 +42,15 @@ namespace FsaStackShot
     ///                [--calculating] [--spoil=manager]
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
-    ///                [--rates=rates.csv] [--screen] [--shield=82,74]
+    ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
+    ///
+    /// `--tie=` (П60, `S171`) — порог привязки вырожденного члена ряда в режиме
+    /// без связки (`FsaAnalyzer.ChainTieShare`; 0 — гейт выключен, плечо А).
+    /// После разбора печатаются приговоры гейта по КАЖДОМУ судимому члену:
+    /// `TIE\t<член>\t<партнёр>\t<доля по Шуру>\t<парная доля>\t<tied|free>` —
+    /// меры от порога не зависят, зависит лишь приговор, так что развёртка по
+    /// порогу читается из одного прогона; строки `ROW` несут шестым полем
+    /// партнёра привязки («-» — своя амплитуда), у `--rates=` столбец `tied_to`.
     ///
     /// `--shield=` (П59) — Z элементов ЗАЩИТЫ И ОБВЯЗКИ при объявленном составе
     /// (`FsaSampleSpec.ShieldElements`, как `materials.csv` корпуса у
@@ -151,6 +159,10 @@ namespace FsaStackShot
             // не подменой умолчания: иначе её эффект не отделить от прочих
             // правок того же дня. NaN — не трогать умолчание анализатора.
             double refitZRel = double.NaN;
+            // (`S171`) Порог привязки вырожденного члена; NaN — умолчание анализатора.
+            double tieShare = double.NaN;
+            // (`S171`) Мера гейта привязки по линиям (`--tie-lines`); умолчание анализатора — по колонкам.
+            bool tieLines = false;
             // (S69/S70) Ветка галки «состав из баз»: библиотеку собирает
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
@@ -225,6 +237,9 @@ namespace FsaStackShot
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                     refitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a == "--no-equilibrium") equilibrium = false;
+                else if (a.StartsWith("--tie=", StringComparison.Ordinal))
+                    tieShare = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
+                else if (a == "--tie-lines") tieLines = true;
                 else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
                 else if (a.StartsWith("--pow=", StringComparison.Ordinal)) pownum = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dumpPath = a.Substring(7);
@@ -609,6 +624,18 @@ namespace FsaStackShot
                 analyzer.RefitZRelative = refitZRel;
             }
 
+            // (`S171`) Ключ обязан доехать до анализатора; читатель — строка
+            // `FsaTuningReport.Print` («ChainTieShare … → …») и строки `TIE` ниже.
+            if (!double.IsNaN(tieShare))
+            {
+                analyzer.ChainTieShare = tieShare;
+            }
+
+            if (tieLines)
+            {
+                analyzer.ChainTieByLines = true;
+            }
+
             // (`T101`) ЧЕМ СНЯТ СНИМОК — ДО СЧЁТА И ВСЛУХ. Это ровно та проба,
             // которой ловят расхождение стенда с экраном (~~`S82`~~), и до
             // 06.09.2026 она о своих настройках не говорила НИ СТРОКИ: прогоны
@@ -646,15 +673,32 @@ namespace FsaStackShot
             List<FsaStackLayer> shot = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
             foreach (FsaStackLayer layer in shot)
             {
-                Console.WriteLine("ROW\t{0}\t{1}\t{2}\t{3}", layer.Name, layer.Kind,
+                Console.WriteLine("ROW\t{0}\t{1}\t{2}\t{3}\t{4}", layer.Name, layer.Kind,
                                   layer.SharePercent.ToString("F3", CultureInfo.InvariantCulture),
                                   // (`S72`) Ряд, связкой которого закреплена
                                   // амплитуда строки; «-» — амплитуда своя.
                                   // Мерка строки — сравнение СПИСКА строк с
                                   // галкой и без, и различать связанное от
                                   // свободного надо машинно, а не по картинке.
-                                  string.IsNullOrEmpty(layer.ChainRoot) ? "-" : layer.ChainRoot);
+                                  string.IsNullOrEmpty(layer.ChainRoot) ? "-" : layer.ChainRoot,
+                                  // (`S171`) Партнёр привязки вырожденного
+                                  // члена; «-» — не привязан.
+                                  string.IsNullOrEmpty(layer.TiedTo) ? "-" : layer.TiedTo);
             }
+
+            // (`S171`) Приговоры гейта привязки — по каждому судимому члену.
+            if (analyzer.ChainTieJudgements != null)
+            {
+                foreach (FsaTie tie in analyzer.ChainTieJudgements)
+                {
+                    Console.WriteLine("TIE\t{0}\t{1}\t{2}\t{3}\t{4}", tie.Member, tie.Partner,
+                                      tie.Share.ToString("F4", CultureInfo.InvariantCulture),
+                                      tie.PairShare.ToString("F4", CultureInfo.InvariantCulture),
+                                      tie.Tied ? "tied" : "free");
+                }
+            }
+
+            Console.WriteLine("привязка: {0}", analyzer.ChainTieNote ?? "гейт не судил");
 
             foreach (FsaSuppressedImage cut in result.SuppressedImages)
             {
@@ -1221,25 +1265,28 @@ namespace FsaStackShot
         {
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
+                // (`S171`) Последний столбец `tied_to` — партнёр привязки
+                // вырожденного члена (пусто — своя амплитуда); у строк `meta`
+                // пуст всегда.
                 w.WriteLine("section,name,kind,detected,count_rate,z,decision_threshold_rate,detection_limit_rate,"
-                            + "peak_counts,share_pct,chain_root,decay_chain_root,total_yield_pct,limit_peak_counts,degenerate,collinearity");
-                w.WriteLine("meta,live_time,,,{0},,,,,,,,,,,", R(result.LiveTime));
-                w.WriteLine("meta,chi2ndf,,,{0},,,,,,,,,,,", R(result.Chi2Ndf));
-                w.WriteLine("meta,chi2ndf_pois,,,{0},,,,,,,,,,,", R(result.Chi2NdfPoisson));
-                w.WriteLine("meta,model_residual,,,{0},,,,,,,,,,,", R(result.ModelResidual));
-                w.WriteLine("meta,gain,,,{0},,,,,,,,,,,", R(result.Gain));
-                w.WriteLine("meta,offset_channels,,,{0},,,,,,,,,,,", R(result.OffsetChannels));
-                w.WriteLine("meta,cascade_summing,,,{0},,,,,,,,,,,", result.CascadeSummingUsed ? "1" : "0");
-                w.WriteLine("meta,response_matrix,,,{0},,,,,,,,,,,", result.ResponseMatrixUsed ? "1" : "0");
+                            + "peak_counts,share_pct,chain_root,decay_chain_root,total_yield_pct,limit_peak_counts,degenerate,collinearity,tied_to");
+                w.WriteLine("meta,live_time,,,{0},,,,,,,,,,,,", R(result.LiveTime));
+                w.WriteLine("meta,chi2ndf,,,{0},,,,,,,,,,,,", R(result.Chi2Ndf));
+                w.WriteLine("meta,chi2ndf_pois,,,{0},,,,,,,,,,,,", R(result.Chi2NdfPoisson));
+                w.WriteLine("meta,model_residual,,,{0},,,,,,,,,,,,", R(result.ModelResidual));
+                w.WriteLine("meta,gain,,,{0},,,,,,,,,,,,", R(result.Gain));
+                w.WriteLine("meta,offset_channels,,,{0},,,,,,,,,,,,", R(result.OffsetChannels));
+                w.WriteLine("meta,cascade_summing,,,{0},,,,,,,,,,,,", result.CascadeSummingUsed ? "1" : "0");
+                w.WriteLine("meta,response_matrix,,,{0},,,,,,,,,,,,", result.ResponseMatrixUsed ? "1" : "0");
                 if (result.Components != null)
                 {
                     foreach (FsaComponentResult c in result.Components)
                     {
-                        w.WriteLine("component,{0},{1},1,{2},{3},{4},{5},{6},{7},{8},{9},,,,",
+                        w.WriteLine("component,{0},{1},1,{2},{3},{4},{5},{6},{7},{8},{9},,,,,{10}",
                                     Q(c.Name), c.Kind, R(c.CountRate), R(c.Z),
                                     R(c.DecisionThresholdRate), R(c.DetectionLimitRate),
                                     R(c.PeakCounts), R(c.SharePercent),
-                                    Q(c.ChainRoot), Q(c.DecayChainRoot));
+                                    Q(c.ChainRoot), Q(c.DecayChainRoot), Q(c.TiedTo));
                     }
                 }
 
@@ -1247,12 +1294,12 @@ namespace FsaStackShot
                 {
                     foreach (FsaCharacteristicLimit L in result.CharacteristicLimits)
                     {
-                        w.WriteLine("limit,{0},{1},{2},{3},,{4},{5},,,,{6},{7},{8},{9},{10}",
+                        w.WriteLine("limit,{0},{1},{2},{3},,{4},{5},,,,{6},{7},{8},{9},{10},{11}",
                                     Q(L.Name), L.Kind, L.Detected ? "1" : "0", R(L.CountRate),
                                     R(L.DecisionThresholdRate), R(L.DetectionLimitRate),
                                     Q(L.DecayChainRoot), R(L.TotalYieldPercent),
                                     R(L.DetectionLimitPeakCounts), L.Degenerate ? "1" : "0",
-                                    R(L.Collinearity));
+                                    R(L.Collinearity), Q(L.TiedTo));
                     }
                 }
             }

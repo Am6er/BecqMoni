@@ -378,7 +378,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 rows.Add(new FsaReportRow
                 {
                     Kind = FsaReportRowKind.Layer,
-                    Name = RowName(layer.Name, layer.ChainRoot),
+                    Name = RowName(layer.Name, layer.ChainRoot, layer.TiedTo),
                     Value = ShareText(layer),
                     Swatch = FsaSwatchKind.Solid,
                     Color = presentation.ColorOf(layer.Name),
@@ -424,7 +424,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     Kind = FsaReportRowKind.Undetected,
                     Name = RowName(limit.Name,
-                                   limit.Kind == FsaComponentKind.Chain ? limit.Name : null),
+                                   limit.Kind == FsaComponentKind.Chain ? limit.Name : null,
+                                   limit.TiedTo),
                     Value = LimitText(LimitSharePercent(result, limit.DetectionLimitPeakCounts)),
                     Muted = true
                 });
@@ -663,7 +664,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string RowName(string name, string chainRoot)
         {
+            return RowName(name, chainRoot, null);
+        }
+
+        /// <summary>
+        /// (`S171`) То же — с пометкой ПРИВЯЗКИ вырожденного члена: «Ra-224 —
+        /// по Pb-212» / «Ra-224 — by Pb-212» (решение Amber 14.09.2026
+        /// «Привязать к члену, с которым вырожден, пометить»). Третье
+        /// утверждение о строке рядом с «своя амплитуда» и «ряд»: у
+        /// привязанного связки ряда нет, и пометки не складываются.
+        /// </summary>
+        public static string RowName(string name, string chainRoot, string tiedTo)
+        {
             string shown = FsaPalette.DisplayName(name);
+            if (!string.IsNullOrEmpty(tiedTo))
+            {
+                return string.Format(CultureInfo.InvariantCulture, Resources.FSATiedMemberRow,
+                                     shown, FsaPalette.DisplayName(tiedTo));
+            }
+
             if (string.IsNullOrEmpty(chainRoot))
             {
                 return shown;
