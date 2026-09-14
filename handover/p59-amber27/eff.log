@@ -1,0 +1,60 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p59\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 200000 историй на узел; розыгрыш точки вылета: автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный); порог шумной кривой (медиана узлов) 5 %
+
+== ASN16_rn_front ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.27 %, худший узел 3.97 % на 2800.0 кэВ (ESS 632 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : 9764606f-c6d0-8b98-5667-c40fa6fff0dc
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_front.rmx -> response\9764606f-c6d0-8b98-5667-c40fa6fff0dc.rmx
+   спектр   : radon1_front (1 записей ResultData)
+   спектр   : radon2_front (1 записей ResultData)
+
+== ASN16_rn_front_r010 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.28 %, худший узел 3.89 % на 3000.0 кэВ (ESS 659 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : d1e436ee-0426-4cbc-b13a-3a43bbbb4e2c
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_front_r010.rmx -> response\d1e436ee-0426-4cbc-b13a-3a43bbbb4e2c.rmx
+   спектр   : radon1_front_r010 (1 записей ResultData)
+   спектр   : radon2_front_r010 (1 записей ResultData)
+
+== ASN16_rn_front_r025 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.28 %, худший узел 3.96 % на 3000.0 кэВ (ESS 636 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : af323b96-7255-fba6-383e-bbe9081a615b
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_front_r025.rmx -> response\af323b96-7255-fba6-383e-bbe9081a615b.rmx
+   спектр   : radon1_front_r025 (1 записей ResultData)
+   спектр   : radon2_front_r025 (1 записей ResultData)
+
+== ASN16_rn_side ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.48 %, худший узел 4.86 % на 10.0 кэВ (ESS 423 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : b8a158da-14a3-b2e3-2511-9b3315c75da2
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_side.rmx -> response\b8a158da-14a3-b2e3-2511-9b3315c75da2.rmx
+   спектр   : radon1_side (1 записей ResultData)
+   спектр   : radon2_side (1 записей ResultData)
+
+== ASN16_rn_side_r010 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.46 %, худший узел 4.97 % на 10.0 кэВ (ESS 404 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : 4311e339-3ec7-876f-3fcc-67508ba93452
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_side_r010.rmx -> response\4311e339-3ec7-876f-3fcc-67508ba93452.rmx
+   спектр   : radon1_side_r010 (1 записей ResultData)
+   спектр   : radon2_side_r010 (1 записей ResultData)
+
+== ASN16_rn_side_r025 ==
+   розыгрыш : равномерный
+   разброс  : медиана 1.46 %, худший узел 4.64 % на 2800.0 кэВ (ESS 464 из 200000 историй), узлов выше 5 %: 0 из 37
+   guid     : 122fe35f-eea8-4045-59c6-7c6cbaa927bb
+   кривая   : 37 точек, клеймо phys=18; hist=200000; grid=10-3000 keV/37 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2
+   матрица  : ASN16_rn_side_r025.rmx -> response\122fe35f-eea8-4045-59c6-7c6cbaa927bb.rmx
+   спектр   : radon1_side_r025 (1 записей ResultData)
+   спектр   : radon2_side_r025 (1 записей ResultData)
+
+геометрий в описи: 6 — посчитано 6, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 12
+ВСЕ СОШЛИСЬ
