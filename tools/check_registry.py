@@ -29,7 +29,13 @@ u"""Машинная проверка реестра задач: `TODO.md` и `D
 **3. Имена из кода.** Каждое имя в обратных кавычках, похожее на символ
 (класс, метод, поле, ключ), должно где-то в дереве встречаться. Имя, которого
 нет, — признак либо закрытия без правки, либо переименования, за которым
-реестр не пошёл.
+реестр не пошёл. ⚡ С 14.09.2026 (П58) ищется словом во множестве слов кода
+(`TreeNames`), подстрокой по всему тексту — только запасным путём; было 194 с
+из 200 всего прогона, стало ~1 с при том же приговоре (контроль в `--selftest`).
+
+Ссылка «только на диске», которую чинит чужая рука (`DONE.md` — Amber), может
+стоять в `KNOWN_UNTRACKED` С ПРИЧИНОЙ И СРОКОМ: до срока она печатается своим
+списком и в счёт не идёт, после срока возвращается сама (П58).
 
 **4. Две копии `config/`.** В дереве отслеживаются ДВЕ копии поставочной
 конфигурации: `config/` в корне и `BecquerelMonitor/config/`. В поставку и в
@@ -131,6 +137,7 @@ CR с лишней `|` в описании, — и контроль требуе
 """
 import argparse
 import collections
+import datetime
 import glob
 import hashlib
 import io
@@ -373,7 +380,36 @@ def file_targets(text):
     return targets
 
 
-def check_file_refs(root, out, files, index=None, tracked=None):
+#: Ссылки «только на диске», о которых ЗНАЮТ и которые ждут решения Amber, —
+#: (файл реестра, номер строки, цель) -> (срок ГГГГ-ММ-ДД, причина).
+#:
+#: ⛔ Это НЕ `OUTSIDE_ON_PURPOSE`: те файлы вне репозитория нарочно и навсегда,
+#: а эти — недоделка, которую чинят ЧУЖОЙ рукой (`DONE.md` правит только
+#: Amber). Запись без срока через неделю неотличима от забытой (та же беда,
+#: против которой заведена вся проверка), поэтому срок обязателен и запись
+#: ПЕРЕСТАЁТ ДЕЙСТВОВАТЬ САМА: назавтра после срока находка возвращается в
+#: счёт с пометкой «СРОК ВЫШЕЛ» — сторож в умолчании `check_all.py` краснеет и
+#: напоминает. Так сторож сегодня же возвращён в умолчание (П58, 14.09.2026:
+#: вне умолчания он был красен 3,5 дня, и этого никто не видел), а находка не
+#: спрятана: она печатается своим списком при каждом прогоне.
+#:
+#: Правило CLAUDE.md «красный сторож, который держится ОТКРЫТОЙ строкой
+#: реестра, обходить исключением нельзя» не нарушено: `S64` закрыта и лежит в
+#: `DONE.md`, держит не строка, а ожидание правки, которую полоса сделать не
+#: вправе. Положительный контроль — `--selftest`: с датой ПОСЛЕ срока обе
+#: ссылки обязаны вернуться в счёт.
+KNOWN_UNTRACKED = {
+    (u"DONE.md", u"S64", u"tools/pie/out_c1_s134/rivals_before.csv"):
+        (u"2026-09-18", u"выгрузка прогона в gitignored tools/pie/out_*/ (N8): "
+                        u"скопировать в handover/registry-artefacts/ и переписать "
+                        u"ссылку в DONE.md — правит Amber, спрошена 14.09.2026"),
+    (u"DONE.md", u"S64", u"rivals_after.csv"):
+        (u"2026-09-18", u"то же, второй файл той же строки"),
+}
+
+
+def check_file_refs(root, out, files, index=None, tracked=None, today=None,
+                    silenced=None):
     u"""Проверка 2: ссылки на файлы. Возвращает число НАХОДОК В СЧЁТ.
 
     Два списка, и в счёт входит только второй (`T223`, 06.09.2026 — разбор
@@ -387,6 +423,9 @@ def check_file_refs(root, out, files, index=None, tracked=None):
 
     `OUTSIDE_ON_PURPOSE` сверяется по имени файла (basename, нижний регистр)
     и снимает цель с обоих списков; у каждой записи обязана быть причина.
+    `KNOWN_UNTRACKED` снимает цель со второго списка ТОЛЬКО до своего срока
+    (`today` — дата «сегодня», подменяется контролем); снятые копятся в
+    `silenced`, если он передан.
     `index` и `tracked` можно передать готовыми, чтобы не строить их дважды
     (`--selftest` зовёт проверку на чистой и на подделанной копии).
     """
@@ -394,9 +433,12 @@ def check_file_refs(root, out, files, index=None, tracked=None):
         index = build_index(root)
     if tracked is None:
         tracked = tracked_set(root)
+    if today is None:
+        today = datetime.date.today()
     tracked_paths, tracked_names = tracked
     bad = 0
     untracked = collections.defaultdict(set)
+    waiting, expired = [], []
     out.write(u"# Ссылки на файлы, которых нет в дереве\n\n")
     missing_any = False
     for name, rows in files.items():
@@ -411,6 +453,15 @@ def check_file_refs(root, out, files, index=None, tracked=None):
                 if known_to_git or base in OUTSIDE_ON_PURPOSE:
                     continue
                 if on_disk:
+                    known = KNOWN_UNTRACKED.get((name, num, t))
+                    if known is not None:
+                        until = datetime.date(*[int(x) for x in known[0].split(u"-")])
+                        if today <= until:
+                            waiting.append((name, num, line, t, known))
+                            if silenced is not None:
+                                silenced.append((name, num, t))
+                            continue
+                        expired.append((name, num, line, t, known))
                     untracked[name].add((num, line, t))
                     continue
                 lost.append(t)
@@ -428,9 +479,18 @@ def check_file_refs(root, out, files, index=None, tracked=None):
         for name in sorted(untracked):
             for num, line, t in sorted(untracked[name], key=lambda r: r[1]):
                 out.write(u"  %-8s %-5s строка %-4d %s\n" % (name, num, line, t))
+        for name, num, line, t, known in expired:
+            out.write(u"  ⛔ СРОК ВЫШЕЛ (%s): %s %s строка %d %s — %s\n"
+                      % (known[0], name, num, line, t, known[1]))
         bad += sum(len(v) for v in untracked.values())
     else:
         out.write(u"  нет\n")
+    if waiting:
+        out.write(u"\n  Известны, ждут решения Amber — НЕ в счёте до срока "
+                  u"(KNOWN_UNTRACKED; сегодня %s):\n" % today.isoformat())
+        for name, num, line, t, known in waiting:
+            out.write(u"  ⏳ до %s: %-8s %-5s строка %-4d %s\n      %s\n"
+                      % (known[0], name, num, line, t, known[1]))
 
     out.write(u"\n# Вне репозитория НАРОЧНО\n\n")
     for name in sorted(OUTSIDE_ON_PURPOSE):
@@ -530,6 +590,41 @@ def selftest_file_refs(root, out):
                             % planted_line)
         if excl_seen:
             failures.append(u"проверка 2: исключение `%s` всплыло находкой" % excluded)
+
+        # Срок KNOWN_UNTRACKED (П58): на ПОДЛИННЫХ реестрах — сегодня снятые
+        # обязаны вернуться в счёт назавтра после самого позднего срока, и
+        # каждая — с пометкой «СРОК ВЫШЕЛ». Запись, которая ничего не сняла,
+        # печатается к глазам: либо ссылка уже починена (запись снять), либо
+        # ключ не совпал с тем, что печатает сторож.
+        real = collections.OrderedDict(
+            [(n, read_rows(os.path.join(root, n))) for n in (u"TODO.md", u"DONE.md")
+             if os.path.exists(os.path.join(root, n))])
+        silenced = []
+        now = check_file_refs(root, io.StringIO(), real, index, tracked, silenced=silenced)
+        if KNOWN_UNTRACKED:
+            latest = max(datetime.date(*[int(x) for x in v[0].split(u"-")])
+                         for v in KNOWN_UNTRACKED.values())
+            later = io.StringIO()
+            after = check_file_refs(root, later, real, index, tracked,
+                                    today=latest + datetime.timedelta(days=1))
+            out.write(u"  KNOWN_UNTRACKED: записей %d, сегодня снято из счёта %d; "
+                      u"с датой %s находок %d (ожидалось %d)\n"
+                      % (len(KNOWN_UNTRACKED), len(silenced),
+                         (latest + datetime.timedelta(days=1)).isoformat(),
+                         after, now + len(silenced)))
+            if after != now + len(silenced):
+                failures.append(u"KNOWN_UNTRACKED: после срока находок %d вместо %d"
+                                % (after, now + len(silenced)))
+            for name, num, t in silenced:
+                if not re.search(u"СРОК ВЫШЕЛ.*%s\\s+%s\\s+строка \\d+ %s"
+                                 % (re.escape(name), re.escape(num), re.escape(t)),
+                                 later.getvalue()):
+                    failures.append(u"KNOWN_UNTRACKED: %s %s %s после срока не названа"
+                                    % (name, num, t))
+            for key in sorted(KNOWN_UNTRACKED):
+                if key not in silenced:
+                    out.write(u"  ⚠ запись KNOWN_UNTRACKED %s %s %s ничего не сняла — "
+                              u"ссылка починена (снять запись) либо ключ не тот\n" % key)
         out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ ПРОВЕРКИ 2 СОШЁЛСЯ"
                                   if not failures else
                                   u"⛔ КОНТРОЛЬ ПРОВЕРКИ 2 ПРОВАЛЕН: " + u"; ".join(failures)))
@@ -601,21 +696,212 @@ def tracked_set(root):
     return paths, names
 
 
-def tracked_text(root):
-    """Содержимое отслеживаемых текстовых файлов одной строкой на поиск имён."""
-    out = subprocess.check_output(["git", "ls-files"], cwd=root)
-    blob = []
-    for name in out.decode("utf-8", "replace").split("\n"):
-        name = name.strip()
-        if not name or FILEY.search(name) is None:
-            continue
-        path = os.path.join(root, name.replace("/", os.sep))
+#: Где живут ИМЕНА (проверка 3): код, оснастка, журналы, ресурсы, проект. Их
+#: текст режется на слова один раз (`IDENT`), и проба ищется во множестве —
+#: O(1). Данные (`DATA_TEXT`) в слова не режутся: 213 МБ `.csv`/`.xml`/`.json`
+#: дали бы миллионы токенов ради проб, которых там не бывает, — они судятся
+#: ПОДСТРОКОЙ и только ЗАПАСНЫМ путём, для проб, не нашедшихся словом.
+#: `.sqlite` (59 МБ, двоичные) прежде читались как текст — сняты; файл с NUL в
+#: начале пропускается как двоичный, какое бы расширение он ни носил.
+CODE_TEXT = re.compile(r"\.(cs|py|ps1|md|resx|csproj)$")
+DATA_TEXT = re.compile(r"\.(xml|tsv|csv|json)$")
+IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+class TreeNames(object):
+    u"""Имена дерева для проверки 3: слова из кода — быстрый путь, подстрока
+    по всему тексту — запасной; ответ по каждой пробе запоминается.
+
+    ⛔ Приговор ТОТ ЖЕ, что у прежнего `probe in blob` (П58, 14.09.2026):
+    проба, найденная словом, была бы найдена и подстрокой; проба, не найденная
+    словом, идёт в подстроку по тому же тексту, что и прежде (минус двоичные
+    `.sqlite`, где имён нет). Было: 13 168 проб × подстрока по 311 МБ — 194 с
+    из 200 всего прогона; стало: 3 838 уникальных проб × O(1) — сбор слов ~1 с.
+    Положительный контроль — `--selftest`: имя, которого нет в дереве, →
+    находка; имя, которое есть ТОЛЬКО как часть длинного слова, → не находка
+    (запасной путь жив).
+    """
+
+    def __init__(self, root):
+        self.root = root
+        self.words = set()
+        self.memo = {}
+        self.files = self.binary = 0
+        self._code = []
+        self._data = []
+        self._blob = None
+        out = subprocess.check_output(["git", "ls-files"], cwd=root)
+        for name in out.decode("utf-8", "replace").split("\n"):
+            name = name.strip()
+            if not name:
+                continue
+            is_code = CODE_TEXT.search(name) is not None
+            if not is_code and DATA_TEXT.search(name) is None:
+                continue
+            path = os.path.join(root, name.replace("/", os.sep))
+            if is_code:
+                text = self._read(path)
+                if text is None:
+                    continue
+                self.words.update(IDENT.findall(text))
+                self._code.append(text)
+            else:
+                self._data.append(path)
+            self.files += 1
+
+    def _read(self, path):
         try:
-            with io.open(path, encoding="utf-8", errors="replace") as f:
-                blob.append(f.read())
+            with open(path, "rb") as f:
+                data = f.read()
         except (IOError, OSError):
-            continue
-    return "\n".join(blob)
+            return None
+        if b"\0" in data[:8000]:
+            self.binary += 1
+            return None
+        return data.decode("utf-8", "replace")
+
+    def blob(self):
+        u"""Весь текст одной строкой — строится ЛЕНИВО, при первой пробе,
+        которой не нашлось словом (сегодня таких нет ни одной)."""
+        if self._blob is None:
+            parts = list(self._code)
+            for path in self._data:
+                text = self._read(path)
+                if text is not None:
+                    parts.append(text)
+            self._blob = u"\n".join(parts)
+            self._code = self._data = []
+        return self._blob
+
+    def has(self, probe):
+        if probe in self.words:
+            return True
+        if probe not in self.memo:
+            self.memo[probe] = probe in self.blob()
+        return self.memo[probe]
+
+
+def check_code_names(out, files, names):
+    u"""Проверка 3 — имена из кода, которых нет в дереве. Возвращает число находок.
+
+    Вынесена из `main` (П58), чтобы положительный контроль звал её на КОПИИ
+    реестра с подсаженными именами и тем же `TreeNames`.
+    """
+    out.write(u"# Имена из кода, которых нет в дереве\n\n")
+    bad = 0
+    probes = set()
+    for name, rows in files.items():
+        for num, text, line in rows:
+            for c in CODE.findall(text):
+                c = c.strip()
+                if FILEY.search(c) or u" " in c or len(c) < 4:
+                    continue
+                head = c.split(u"(")[0].split(u"=")[0].strip()
+                if not SYMBOL.match(head):
+                    continue
+                probe = head.split(u".")[-1]
+                if len(probe) < 4 or probe in FOREIGN or head in FOREIGN:
+                    continue
+                probes.add(probe)
+                if not names.has(probe):
+                    bad += 1
+                    out.write(u"  %-8s %-5s строка %-4d %s\n"
+                              % (name, num, line, head))
+    if not bad:
+        out.write(u"  нет\n")
+    out.write(u"  (проб %d уникальных, слов в коде %d из %d файлов, двоичных "
+              u"пропущено %d, запасным путём подстрокой %d)\n\n"
+              % (len(probes), len(names.words), names.files, names.binary,
+                 len(names.memo)))
+    return bad
+
+
+def selftest_code_names(root, out):
+    u"""Положительный контроль проверки 3 (П58). Возвращает список провалов.
+
+    В описание одной строки ВРЕМЕННОЙ копии `TODO.md` подсаживаются два имени:
+      * которого в дереве нет нигде — обязано стать находкой ровно в этой
+        строке, и счёт обязан вырасти ровно на единицу;
+      * которое есть ТОЛЬКО как часть длинного слова дерева (берётся самое
+        длинное слово множества без первой и последней буквы) — находкой
+        стать НЕ должно: так доказывается, что запасной путь подстрокой жив
+        и приговор остался прежним, а не сузился до «точное слово».
+    """
+    failures = []
+    out.write(u"# Положительный контроль проверки 3 (П58)\n\n")
+    src = os.path.join(root, u"TODO.md")
+    if not os.path.exists(src):
+        return [u"TODO.md не найден — контроль проверки 3 не проведён"]
+    names = TreeNames(root)
+    # ⛔ Имя собирается из частей: записанное буквально оно стало бы словом
+    # ДЕРЕВА — этот файл сам лежит в git и режется на слова (поймано первым
+    # же прогоном контроля, 14.09.2026).
+    absent = u"".join((u"NoSuchName", u"P58", u"Zz"))
+    inner = None
+    for w in sorted(names.words, key=len, reverse=True):
+        cand = w[1:-1]
+        if (len(cand) >= 4 and SYMBOL.match(cand) and cand not in names.words
+                and cand not in FOREIGN):
+            inner = cand
+            break
+    if names.has(absent):
+        return [u"контроль проверки 3: имя `%s` нашлось в дереве — подсадить нечего" % absent]
+    if inner is None:
+        return [u"контроль проверки 3: не нашлось слова, чья середина — не слово"]
+
+    tmp = tempfile.mkdtemp(prefix=u"check_registry_selftest3_")
+    try:
+        dst = os.path.join(tmp, u"TODO.md")
+        shutil.copyfile(src, dst)
+        clean = check_code_names(io.StringIO(), collections.OrderedDict(
+            [(u"копия", read_rows(dst))]), names)
+        lines = read_lines(dst)
+        planted_line = planted_num = None
+        for i, line in enumerate(lines):
+            m = ROW.match(line.rstrip(u"\r\n"))
+            if not m:
+                continue
+            cells = line.rstrip(u"\n").split(u"|")
+            if len(cells) < 5:
+                continue
+            cells[-2] = cells[-2] + u" подсадка: `%s`, `%s` " % (absent, inner)
+            lines[i] = u"|".join(cells)
+            planted_line, planted_num = i + 1, m.group(1)
+            break
+        if planted_line is None:
+            return [u"не нашлось строки для подсадки проверки 3"]
+        with io.open(dst, "w", encoding="utf-8", newline=u"") as f:
+            f.write(u"\n".join(lines))
+        loud = io.StringIO()
+        dirty = check_code_names(loud, collections.OrderedDict(
+            [(u"копия", read_rows(dst))]), names)
+        text = loud.getvalue()
+        row_re = u"копия\\s+%s\\s+строка %d\\s+%s" % (planted_num, planted_line, u"%s")
+        named = re.search(row_re % re.escape(absent), text) is not None
+        inner_seen = re.search(row_re % re.escape(inner), text) is not None
+        out.write(u"  чистая копия: находок %d\n" % clean)
+        out.write(u"  подсажено в строку %s (строка %d): нет в дереве `%s`, "
+                  u"только внутри слова `%s`\n" % (planted_num, planted_line, absent, inner))
+        out.write(u"  подделанная копия: находок %d (ожидалось %d)\n" % (dirty, clean + 1))
+        out.write(u"    имя, которого нет, названо: %s\n" % (u"да" if named else u"НЕТ"))
+        out.write(u"    имя внутри слова всплыло: %s (запасной путь подстрокой: %s)\n"
+                  % (u"ДА" if inner_seen else u"нет",
+                     u"жив" if names.memo.get(inner) else u"НЕ СРАБОТАЛ"))
+        if dirty != clean + 1:
+            failures.append(u"проверка 3: находок %d вместо %d" % (dirty, clean + 1))
+        if not named:
+            failures.append(u"проверка 3: имя `%s` не названо в строке %d" % (absent, planted_line))
+        if inner_seen or not names.memo.get(inner):
+            failures.append(u"проверка 3: имя `%s` внутри слова стало находкой — "
+                            u"приговор сузился" % inner)
+        out.write(u"\n  %s\n\n" % (u"КОНТРОЛЬ ПРОВЕРКИ 3 СОШЁЛСЯ"
+                                  if not failures else
+                                  u"⛔ КОНТРОЛЬ ПРОВЕРКИ 3 ПРОВАЛЕН: " + u"; ".join(failures)))
+        if failures:
+            out.write(text)
+        return failures
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def sha256_of(path):
@@ -1626,10 +1912,15 @@ def main():
         out = io.open(1, "w", encoding="utf-8", closefd=False)
         rc = selftest_registry(a.root, out)
         failures2 = selftest_file_refs(a.root, out)
+        failures3 = selftest_code_names(a.root, out)
         rc3 = selftest_projection_and_base(a.root, out)
         rc4 = selftest_declaration_forms(a.root, out)
+        # Контроль, оборвавшийся ДО своей печати (подсадить нечего), обязан
+        # быть назван здесь — иначе код 1 без единой красной строки.
+        for f in failures2 + failures3:
+            out.write(u"⛔ %s\n" % f)
         out.flush()
-        return 1 if (rc or failures2 or rc3 or rc4) else 0
+        return 1 if (rc or failures2 or failures3 or rc3 or rc4) else 0
 
     root = a.root
     out = io.open(1, "w", encoding="utf-8", closefd=False)
@@ -1646,28 +1937,7 @@ def main():
     bad += check_file_refs(root, out, files)
 
     # --- 3. имена из кода -----------------------------------------------
-    blob = tracked_text(root)
-    out.write(u"# Имена из кода, которых нет в дереве\n\n")
-    lost_any = False
-    for name, rows in files.items():
-        for num, text, line in rows:
-            for c in CODE.findall(text):
-                c = c.strip()
-                if FILEY.search(c) or u" " in c or len(c) < 4:
-                    continue
-                head = c.split(u"(")[0].split(u"=")[0].strip()
-                if not SYMBOL.match(head):
-                    continue
-                probe = head.split(u".")[-1]
-                if len(probe) < 4 or probe in FOREIGN or head in FOREIGN:
-                    continue
-                if probe not in blob:
-                    lost_any = True
-                    bad += 1
-                    out.write(u"  %-8s %-5s строка %-4d %s\n"
-                              % (name, num, line, head))
-    if not lost_any:
-        out.write(u"  нет\n")
+    bad += check_code_names(out, files, TreeNames(root))
 
     # --- 4. две копии config/ -------------------------------------------
     bad += check_config_copies(root, out)
