@@ -3280,7 +3280,25 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSANotResolvedHint", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Model baseline that belongs to no nuclide: above the highest line of the composition there is nothing to attribute it to..
+        /// </summary>
+        public static string FSAContinuumLayerHint {
+            get {
+                return ResourceManager.GetString("FSAContinuumLayerHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Model baseline that belongs to no nuclide: below {0} keV the response matrix is not trusted (ADC threshold, shielding X-rays, room return), and above the highest line of the composition there is nothing to attribute it to. Above {0} keV the baseline is spread over the nuclide layers..
+        /// </summary>
+        public static string FSAContinuumLayerHintFloor {
+            get {
+                return ResourceManager.GetString("FSAContinuumLayerHintFloor", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to &lt; {0} %.
         /// </summary>

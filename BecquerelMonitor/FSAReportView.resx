@@ -5091,6 +5091,12 @@
   <data name="FSAReport_ResidualClampedTip" xml:space="preserve">
     <value>The number is measured on the fit curve, without clipping. The band on the chart is drawn against the displayed curve, where negative counts are clipped to zero on {0} channels, so the band covers less area than the number states.</value>
   </data>
+  <data name="FSAReport_ResidualFloor" xml:space="preserve">
+    <value>from {0} keV</value>
+  </data>
+  <data name="FSAReport_ResidualFloorTip" xml:space="preserve">
+    <value>The number counts channels from the detector's lower range {0} keV upwards, where the fit is judged. Below it the band is still drawn on the chart, but it is not included in the percentage.</value>
+  </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
     <value>χ²/ndf, goodness of fit</value>
   </data>

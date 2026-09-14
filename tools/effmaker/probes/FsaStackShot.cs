@@ -43,7 +43,7 @@ namespace FsaStackShot
     ///                [--from=200] [--to=700] [--ceiling=2000] [--width=1400]
     ///                [--scale=pow] [--pow=4] [--dump=curves.csv]
     ///                [--rates=rates.csv] [--screen] [--shield=82,74] [--tie=0.9] [--tie-lines]
-    ///                [--plant-tail]
+    ///                [--plant-tail] [--plant-spread]
     ///                [--no-limit] [--limit-z=1000]
     ///
     /// `--no-limit` / `--limit-z=` (П63, `S171`, второе правило) — предел
@@ -96,6 +96,21 @@ namespace FsaStackShot
     /// обязано совпасть с HEAD по долям и невязке, а без неё — отличаться ровно
     /// на хвост. Числа с ключом в журнал не годятся, о чём проба говорит вслух.
     ///
+    /// `--plant-spread` (`S174`) — ПОДСАДКА только для пробы: оба пола
+    /// отображения снимаются (`FsaResult.ContinuumSpreadFloorChannel` и
+    /// `ResidualFloorChannel` = 0) — сплайн подложки снова разносится по слоям
+    /// нуклидов и ниже порога доверия матрицы, а невязка считается по всей
+    /// полосе фита, как было до решений Amber 14.09.2026 «Ниже порога не
+    /// разносить — серый слой «континуум»» и «Только в диапазоне прибора».
+    /// Положительный контроль: плечо с подсадкой обязано совпасть с HEAD по
+    /// долям и невязке, без неё — отличаться ровно на серый слой ниже порога и
+    /// на невязку ниже `Min_Range`. Числа с ключом в журнал не годятся.
+    ///
+    /// Строка `пороги отображения (S174)` печатает оба пола каналом и кэВ, а
+    /// `серый слой (S174)` — сколько отсчётов серого слоя лежит ниже порога
+    /// доверия и сколько выше последней линии; в `--rates=` то же — разделом
+    /// `grey` (ПОСЛЕ прежних строк, шапка та же).
+    ///
     /// `--screen` — строки окна отчёта КАК ОНИ ПОКАЗАНЫ (текст ячеек XPTable и
     /// подсказка), `SCREEN\t<имя>\t<значение>\t<подсказка>`; читается с того же
     /// окна, что снято на PNG. Заведён под ~~`AMBER6`~~: свёрнутая строка
@@ -119,11 +134,14 @@ namespace FsaStackShot
     ///
     /// `--dump=` — кривые ПО КАНАЛАМ в csv: измерение за вычетом фона, модель,
     /// сырой сплайн (`continuum_raw`, `T103`), отвязанный хвост (`untied_tail`,
-    /// `S173` — в модель и слои не входит, лежит в невязке) и по колонке на
-    /// каждый слой стека. Спор «модель кривая или спектр такой»
-    /// картинкой не решается: на ней обе кривые в пикселе друг от друга.
-    /// Измерение берётся у ВИДА (`fsaNetSpectrum`), а не считается заново, —
-    /// выгружено то же, что нарисовано.
+    /// `S173` — в модель и слои не входит, лежит в невязке), кривая ФИТА
+    /// (`fit`, `S174` — то же измерение БЕЗ подрезки отрицательного, по ней
+    /// считаны χ² и число невязки; имя столбца — как у `CorpusFsaProbe
+    /// --dump-curves`, `T254`) и по колонке на каждый слой стека. Спор
+    /// «модель кривая или спектр такой» картинкой не решается: на ней обе
+    /// кривые в пикселе друг от друга. Показное измерение берётся у ВИДА
+    /// (`fsaNetSpectrum`), а не считается заново, — выгружено то же, что
+    /// нарисовано; кривая фита — у результата (`FitSpectrum`).
     ///
     /// `--set=` — тот самый выбор «Use set:» из панели поиска пиков. Без него
     /// проба берёт `ActiveSet` = null, то есть ВСЕ нуклиды, и подписи пиков
@@ -226,6 +244,7 @@ namespace FsaStackShot
             // как показаны — см. шапку.
             string ratesPath = null;
             bool plantTail = false;
+            bool plantSpread = false;
             bool screenRows = false;
             var shieldZ = new List<int>();
             double pownum = 4.0;
@@ -279,6 +298,7 @@ namespace FsaStackShot
                 else if (a.StartsWith("--rates=", StringComparison.Ordinal)) ratesPath = a.Substring(8);
                 else if (a == "--screen") screenRows = true;
                 else if (a == "--plant-tail") plantTail = true;
+                else if (a == "--plant-spread") plantSpread = true;
                 else if (a.StartsWith("--shield=", StringComparison.Ordinal))
                 {
                     foreach (string z in a.Substring(9).Split(','))
@@ -712,6 +732,27 @@ namespace FsaStackShot
                                   + " картинка ДО S173, числа этого прогона в журнал НЕ ГОДЯТСЯ");
             }
 
+            // (`S174`) ПОДСАДКА «разнести подложку по слоям как прежде и считать
+            // невязку по всей полосе» — положительный контроль приёмки: оба пола
+            // отображения сняты, доли и невязка пересчитаны ТЕМИ ЖЕ правилами
+            // результата. Фит не трогается.
+            if (plantSpread)
+            {
+                PlantSpreadBack(result, rd.EnergySpectrum.Spectrum);
+                Console.WriteLine("⛔ ПОДСАДКА --plant-spread (S174): полы отображения сняты — сплайн разнесён по слоям и ниже"
+                                  + " порога доверия, невязка по всей полосе фита; картинка ДО S174, числа в журнал НЕ ГОДЯТСЯ");
+            }
+
+            // (`S174`) Оба пола отображения — каналом и кэВ, чтобы плечи
+            // сверялись числом, а не картинкой.
+            Console.WriteLine("пороги отображения (S174): разнос подложки от канала {0} ({1} кэВ{2}), невязка от канала {3} ({4} кэВ) при полосе фита {5}..{6}",
+                              result.ContinuumSpreadFloorChannel,
+                              result.ContinuumSpreadFloorKev.ToString("G", CultureInfo.InvariantCulture),
+                              result.ContinuumSpreadFloorKev > 0.0 ? "" : " — порога нет, разносится всё",
+                              result.ResidualFloorChannel,
+                              result.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture),
+                              result.FirstChannel, result.LastChannel);
+
             // (`A36`) ДРЕЙФ ШКАЛЫ — числом, а не догадкой по картинке: подгонка
             // усиления и сдвига двигает МОДЕЛЬ относительно измерения, и на
             // дальнем конце шкалы это видно глазами, а величину сдвига видно
@@ -743,6 +784,23 @@ namespace FsaStackShot
                                   // члена; «-» — не привязан.
                                   string.IsNullOrEmpty(layer.TiedTo) ? "-" : layer.TiedTo);
             }
+
+            // (`S174`) Серый слой — двух родов, и оба названы числом.
+            double greyBelow, greyAbove;
+            GreySplit(result, shot, out greyBelow, out greyAbove);
+            Console.WriteLine("серый слой (S174): ниже порога доверия {0} отсч., выше последней линии {1} отсч.; всего {2} отсч. ({3} % стека)",
+                              greyBelow.ToString("F1", CultureInfo.InvariantCulture),
+                              greyAbove.ToString("F1", CultureInfo.InvariantCulture),
+                              (greyBelow + greyAbove).ToString("F1", CultureInfo.InvariantCulture),
+                              (result.StackTotal > 0.0 ? 100.0 * (greyBelow + greyAbove) / result.StackTotal : 0.0)
+                                  .ToString("F3", CultureInfo.InvariantCulture));
+
+            // (`S174`) Невязка в отсчётах ПО ПОЛОСАМ — на кривой фита, по тому же
+            // правилу, что у результата, но раздельно: полоса фита ниже
+            // `Min_Range` (лента есть, в проценте нет) и от `Min_Range` (то,
+            // что печатает строка отчёта). Число строки обязано равняться
+            // второй полосе — это и есть проверка «от Min_Range».
+            PrintResidualBands(result, rd.EnergySpectrum.Spectrum);
 
             // (`S171`) Приговоры гейта привязки — по каждому судимому члену.
             if (analyzer.ChainTieJudgements != null)
@@ -1192,7 +1250,10 @@ namespace FsaStackShot
             // образов по каналам: в `model` (верх стека) и в слои НЕ входит,
             // лежит в невязке `net − model`; столбец даёт увидеть, какая часть
             // невязки — хвост. Нули — хвостов нет.
-            var head = new StringBuilder("ch,keV,net,model,continuum_raw,untied_tail");
+            // (`S174`) `fit` — кривая ФИТА (`FsaResult.FitSpectrum`, без
+            // подрезки): число невязки и χ² считаны по ней, а `net` — показная.
+            var head = new StringBuilder("ch,keV,net,model,continuum_raw,untied_tail,fit");
+            double[] fitCurve = result.FitSpectrum(spectrum.Spectrum);
             foreach (FsaStackLayer layer in layers)
             {
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
@@ -1219,7 +1280,8 @@ namespace FsaStackShot
                         .Append(At(net, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(result.Model, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                         .Append(At(result.Continuum, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
-                        .Append(At(result.UntiedTail, i).ToString("F3", CultureInfo.InvariantCulture));
+                        .Append(At(result.UntiedTail, i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(At(fitCurve, i).ToString("F3", CultureInfo.InvariantCulture));
                     foreach (FsaStackLayer layer in layers)
                     {
                         line.Append(',').Append(At(layer.Curve, i).ToString("F3", CultureInfo.InvariantCulture));
@@ -1422,7 +1484,103 @@ namespace FsaStackShot
                         w.WriteLine("untied_tail,{0},,,,,,,{1},,,,,,,,,", Q(tail.Component), R(tail.Counts));
                     }
                 }
+
+                // (`S174`) Серый слой и полы отображения — своим разделом ПОСЛЕ
+                // прежних строк: отсчёты серого слоя в `peak_counts`, доля в
+                // `share_pct`; у полов кэВ в `count_rate`, канал в `peak_counts`;
+                // невязка экрана (доли) в `count_rate`.
+                double greyBelow, greyAbove;
+                GreySplit(result, result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers), out greyBelow, out greyAbove);
+                double total = result.StackTotal;
+                w.WriteLine("grey,below_floor,,,,,,,{0},{1},,,,,,,,", R(greyBelow), R(total > 0.0 ? 100.0 * greyBelow / total : 0.0));
+                w.WriteLine("grey,above_lines,,,,,,,{0},{1},,,,,,,,", R(greyAbove), R(total > 0.0 ? 100.0 * greyAbove / total : 0.0));
+                w.WriteLine("grey,spread_floor,,,{0},,,,{1},,,,,,,,,", R(result.ContinuumSpreadFloorKev), result.ContinuumSpreadFloorChannel);
+                w.WriteLine("grey,residual_floor,,,{0},,,,{1},,,,,,,,,", R(result.ResidualFloorKev), result.ResidualFloorChannel);
+                w.WriteLine("grey,residual_missing,,,{0},,,,,,,,,,,,,", R(result.ResidualMissingShare));
+                w.WriteLine("grey,residual_excess,,,{0},,,,,,,,,,,,,", R(result.ResidualExcessShare));
             }
+        }
+
+        /// <summary>
+        /// (`S174`) Серый слой стека надвое: отсчёты ниже
+        /// <see cref="FsaResult.ContinuumSpreadFloorChannel"/> (подложка ниже
+        /// порога доверия матрицы) и от него и выше (хвост выше последней
+        /// линии). Слоя нет — оба нуля.
+        /// </summary>
+        static void GreySplit(FsaResult result, List<FsaStackLayer> layers, out double below, out double above)
+        {
+            below = 0.0;
+            above = 0.0;
+            foreach (FsaStackLayer layer in layers)
+            {
+                if (!string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal) || layer.Curve == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < layer.Curve.Length; i++)
+                {
+                    if (i < result.ContinuumSpreadFloorChannel) below += layer.Curve[i];
+                    else above += layer.Curve[i];
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`S174`) Невязка в отсчётах по двум полосам — ниже пола `Min_Range`
+        /// и от него: измерение фита, верх стека, «не описано» (измерение выше
+        /// модели), «лишнее» (модель выше измерения) — в отсчётах, и доли от
+        /// измеренных отсчётов той же полосы, как считает результат.
+        /// </summary>
+        static void PrintResidualBands(FsaResult result, int[] raw)
+        {
+            double[] fit = result.FitSpectrum(raw);
+            int split = Math.Max(result.FirstChannel, Math.Min(result.ResidualFloorChannel, result.LastChannel + 1));
+            var bands = new[]
+            {
+                new { Name = "ниже Min_Range (лента, не в проценте)", Lo = result.FirstChannel, Hi = split - 1 },
+                new { Name = "от Min_Range (число строки отчёта)", Lo = split, Hi = result.LastChannel }
+            };
+            foreach (var band in bands)
+            {
+                double measured = 0.0, model = 0.0, missing = 0.0, excess = 0.0;
+                int channels = 0;
+                for (int i = band.Lo; i <= band.Hi && i < fit.Length; i++)
+                {
+                    double m = At(result.Model, i);
+                    measured += fit[i];
+                    model += m;
+                    double d = fit[i] - m;
+                    if (d > 0.0) missing += d; else excess -= d;
+                    channels++;
+                }
+
+                Console.WriteLine("невязка (S174) {0}: каналы {1}..{2} ({3}), измерение фита {4}, модель {5}, не описано {6} ({7} %), лишнее {8} ({9} %)",
+                                  band.Name, band.Lo, band.Hi, channels,
+                                  measured.ToString("F1", CultureInfo.InvariantCulture),
+                                  model.ToString("F1", CultureInfo.InvariantCulture),
+                                  missing.ToString("F1", CultureInfo.InvariantCulture),
+                                  (measured > 0.0 ? 100.0 * missing / measured : 0.0).ToString("F2", CultureInfo.InvariantCulture),
+                                  excess.ToString("F1", CultureInfo.InvariantCulture),
+                                  (measured > 0.0 ? 100.0 * excess / measured : 0.0).ToString("F2", CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
+        /// (`S174`) ПОДСАДКА ТОЛЬКО ДЛЯ ПРОБЫ: снять оба пола отображения —
+        /// сплайн подложки разносится по слоям и ниже порога доверия, невязка
+        /// считается по всей полосе фита, — ровно так лежало до 14.09.2026.
+        /// Доли и невязка пересчитываются ТЕМИ ЖЕ правилами результата
+        /// (<see cref="FsaResult.ComputeComponentShares"/>,
+        /// <see cref="FsaResult.ComputeResidualShares"/>); фит не трогается.
+        /// </summary>
+        static void PlantSpreadBack(FsaResult result, int[] raw)
+        {
+            result.ContinuumSpreadFloorChannel = 0;
+            result.ContinuumSpreadFloorKev = 0.0;
+            result.ResidualFloorChannel = 0;
+            result.ComputeComponentShares();
+            result.ComputeResidualShares(raw);
         }
 
         static string R(double v)

@@ -8553,6 +8553,12 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSANotResolvedHint" xml:space="preserve">
     <value>The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry.</value>
   </data>
+  <data name="FSAContinuumLayerHint" xml:space="preserve">
+    <value>Model baseline that belongs to no nuclide: above the highest line of the composition there is nothing to attribute it to.</value>
+  </data>
+  <data name="FSAContinuumLayerHintFloor" xml:space="preserve">
+    <value>Model baseline that belongs to no nuclide: below {0} keV the response matrix is not trusted (ADC threshold, shielding X-rays, room return), and above the highest line of the composition there is nothing to attribute it to. Above {0} keV the baseline is spread over the nuclide layers.</value>
+  </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
     <value>not determined ({0})</value>
   </data>

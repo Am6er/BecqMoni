@@ -382,7 +382,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Value = ShareText(layer),
                     Swatch = FsaSwatchKind.Solid,
                     Color = presentation.ColorOf(layer.Name),
-                    Layer = layer
+                    Layer = layer,
+                    // (`S174`, решение Amber 14.09.2026) Серый слой «континуум» —
+                    // не компонент: у него нет нуклида и амплитуды, и человек,
+                    // прочитавший «континуум 41 %», обязан узнать, ЧТО это.
+                    // Подсказка называет оба его рода: подложка ниже порога
+                    // доверия матрицы (число — из результата) и хвост выше
+                    // последней линии; без матрицы — только хвост.
+                    Hint = string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)
+                        ? (result.ContinuumSpreadFloorKev > 0.0
+                            ? string.Format(CultureInfo.InvariantCulture, Resources.FSAContinuumLayerHintFloor,
+                                            result.ContinuumSpreadFloorKev.ToString("f0", CultureInfo.InvariantCulture))
+                            : Resources.FSAContinuumLayerHint)
+                        : null
                 });
             }
 

@@ -885,7 +885,11 @@ namespace CorpusFsaProbe
     /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
     /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
     /// `&lt;группа&gt;_&lt;режим&gt;_tails.csv` — отвязанные хвосты матричных
-    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах) и
+    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах),
+    /// `&lt;группа&gt;_&lt;режим&gt;_grey.csv` — серый слой подложки (`S174`: ниже
+    /// порога доверия и выше последней линии, отсчёты и доля стека, оба пола
+    /// отображения каналом и кэВ, невязка в отсчётах от `Min_Range`) по
+    /// каждому разобранному спектру, и
     /// `&lt;группа&gt;_&lt;режим&gt;_limits.csv` — характеристические пределы S9
     /// по ВСЕМ кандидатам библиотеки, включая не вошедших в состав.
     ///
@@ -5113,8 +5117,14 @@ namespace CorpusFsaProbe
                 // читает чужой разбор, и новый столбец сдвинул бы сверку
                 // плеч по всем спектрам, а хвост есть лишь у части.
                 using (var tails = new StreamWriter(prefix + "_tails.csv", false, new UTF8Encoding(true)))
+                // (`S174`) Серый слой подложки и полы отображения — по каждому
+                // спектру, СВОЙ файл по тому же доводу, что у хвостов.
+                using (var grey = new StreamWriter(prefix + "_grey.csv", false, new UTF8Encoding(true)))
                 {
                     tails.WriteLine("spectrum,det,part,component,tail_counts,missing_pct,excess_pct");
+                    grey.WriteLine("spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,"
+                                   + "spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,"
+                                   + "first_ch,last_ch,stack_total,missing_pct,excess_pct");
                     anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
                                       + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal,"
                                       // (П18) сдвиг опоры по свету, кэВ — В КОНЕЦ строки
@@ -5245,6 +5255,35 @@ namespace CorpusFsaProbe
                                     an.Used ? "1" : "0", Csv(an.Refusal ?? ""),
                                     F(an.LightShiftKev, "F3")));
                             }
+                        }
+
+                        {
+                            double greyBelow = 0.0, greyAbove = 0.0;
+                            foreach (FsaStackLayer layer in r.Result.BuildStackedLayers(int.MaxValue))
+                            {
+                                if (!string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)) continue;
+                                for (int i = 0; i < layer.Curve.Length; i++)
+                                {
+                                    if (i < r.Result.ContinuumSpreadFloorChannel) greyBelow += layer.Curve[i];
+                                    else greyAbove += layer.Curve[i];
+                                }
+                            }
+
+                            double stackTotal = r.Result.StackTotal;
+                            grey.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part),
+                                r.Result.ResponseMatrixUsed ? "1" : "0",
+                                F(greyBelow, "F1"), F(greyAbove, "F1"),
+                                F(stackTotal > 0.0 ? 100.0 * (greyBelow + greyAbove) / stackTotal : 0.0, "F3"),
+                                F(r.Result.ContinuumSpreadFloorKev, "F1"),
+                                r.Result.ContinuumSpreadFloorChannel.ToString(CultureInfo.InvariantCulture),
+                                F(r.Result.ResidualFloorKev, "F1"),
+                                r.Result.ResidualFloorChannel.ToString(CultureInfo.InvariantCulture),
+                                r.Result.FirstChannel.ToString(CultureInfo.InvariantCulture),
+                                r.Result.LastChannel.ToString(CultureInfo.InvariantCulture),
+                                F(stackTotal, "F1"),
+                                F(100.0 * r.Result.ResidualMissingShare, "F3"),
+                                F(100.0 * r.Result.ResidualExcessShare, "F3")));
                         }
 
                         if (r.Result.UntiedTails != null)
