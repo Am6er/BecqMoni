@@ -1,0 +1,20 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "218ee6aa3609c5c549aaa16941af3fe42ae1ac3130601762cd6c15f69c628cb5",
+ "corpus_dir": "D:\\BqMoni_Claude\\p75\\wt_a\\tools\\CORPUS\\corpus",
+ "corpus_files": 211,
+ "dirty": [],
+ "fields": {
+  "app_sha": "59f5ce1be39fe77599c264f6a137f3816d88fa7e972418ecad43cf76d69a5e77",
+  "bin": "D:\\BqMoni_Claude\\p75\\wt_a\\BecquerelMonitor\\bin\\Release_p75a",
+  "keys": "--only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5",
+  "probe_sha": "19c5a7bcd9425ad0a28f80303f22d6626b4bfca1342789edba5d6ae801ff542b",
+  "probes": "D:\\BqMoni_Claude\\p75\\wt_a\\tools\\effmaker\\probes\\build_p75a",
+  "store": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus\\geometries",
+  "wd": "D:\\BqMoni_Claude\\p75\\wt_a\\tools\\CORPUS\\scripts\\wd_p75a"
+ },
+ "head": "08030c57d4d03bf28f2efc3e2158fc41d7353c6e",
+ "sources": "8c4d788c6f06c016aca621cd03260811212620d76d8f6af34da7dc63534ee3d5",
+ "sources_files": 558,
+ "written": "2026-09-14 22:11:50"
+}

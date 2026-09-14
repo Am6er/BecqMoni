@@ -1,5 +1,5 @@
 /*
- * Copyright © 2005, Mathew Hall
+ * Copyright ï¿½ 2005, Mathew Hall
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, 
@@ -75,11 +75,13 @@ namespace XPTable.Renderers
         {
             this.format = string.Empty;
 
-            // this.formatProvider was initialised using System.Globalization.CultureInfo.CurrentUICulture,
-            // but this means formatProvider can be set to a Neutral Culture which does not cantain Numberic 
-            // and DateTime formatting information.  System.Globalization.CultureInfo.CurrentCulture is 
-            // guaranteed to include this formatting information and thus avoids crashes during formatting.
-            this.formatProvider = System.Globalization.CultureInfo.CurrentCulture;
+            // History: this.formatProvider was once CultureInfo.CurrentUICulture, which can be
+            // a Neutral Culture carrying neither numeric nor DateTime formatting information;
+            // it was then changed to CultureInfo.CurrentCulture, which always carries both.
+            // (A244) The decimal separator is ALWAYS a dot: every number a table cell
+            // shows is printed through this provider, so it is the invariant culture
+            // and not the thread culture. The editors read the text back the same way.
+            this.formatProvider = System.Globalization.CultureInfo.InvariantCulture;
 
             this.grayTextBrush = new SolidBrush(SystemColors.GrayText);
             this.padding = CellPadding.Empty;
@@ -166,9 +168,15 @@ namespace XPTable.Renderers
             catch (Exception e)
             {
                 e.Data.Add("s", s);
-                e.Data.Add("Font", font.ToString());
-                e.Data.Add("Brush", brush.ToString());
-                e.Data.Add("Rectangle", layoutRectangle.ToString());
+                // (A244) Font.ToString() and RectangleF.ToString() print their sizes
+                // with the thread culture; spelled out here with the invariant one.
+                e.Data.Add("Font", string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{0} {1}pt {2}", font.Name, font.SizeInPoints, font.Style));
+                e.Data.Add("Brush", brush.GetType().FullName);
+                e.Data.Add("Rectangle", string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{{X={0},Y={1},Width={2},Height={3}}}",
+                    layoutRectangle.X, layoutRectangle.Y,
+                    layoutRectangle.Width, layoutRectangle.Height));
                 e.Data.Add("canWrap", canWrap);
                 throw;
             }

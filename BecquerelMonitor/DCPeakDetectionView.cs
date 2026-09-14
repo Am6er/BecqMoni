@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -16,32 +17,61 @@ namespace BecquerelMonitor
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
-            this.columnModel1.Columns[0].Renderer = new PeakOriginCellRenderer();
+
+            // (`A255`) Выбор строки таблицы уходит на график активного
+            // документа — по образцу `FSAReportView` (`A246`).
+            this.table1.SelectionChanged += this.Table1_SelectionChanged;
+
+            // (`AMBER26`) ПЕРЕМЕННАЯ ВЫСОТА СТРОК. У XPTable высота отдельной
+            // строки (`Row.Height`) учитывается отрисовкой, попаданием мыши
+            // (`TableModel.RowIndexAtExact`), прокруткой (`Table.RowYDifference`,
+            // `TotalRowHeight`) и рамкой выбора ТОЛЬКО под этим ключом; без него
+            // всё считается от общей `TableModel.RowHeight`, и строка ×N рисовалась
+            // бы высокой, а мышь и прокрутка жили бы по старой сетке. Сами ячейки
+            // переносить текст (`Cell.WordWrap`) не просят: имена кладутся с
+            // новой строки явно, высота — базовая × N, см. `RefreshTable`.
+            this.table1.EnableWordWrap = true;
 
             this.RefreshNuclideSets();
-            this.UpdateDeconvolutionInfoButtonState();
         }
+
+        /// <summary>
+        /// (`AMBER26`) Разделитель имён кандидатов В СПИСКЕ — перевод строки:
+        /// каждое имя на своей строке, строка таблицы высотой базовая × N.
+        /// Флажок на графике по-прежнему одной строкой через ресурс
+        /// `PeakLabelCandidateSeparator` (« / »).
+        /// </summary>
+        internal const string PeakListCandidateSeparator = "\n";
 
         // Token: 0x0600043E RID: 1086 RVA: 0x0001423C File Offset: 0x0001243C
         public void ShowPeakDetectionResult()
         {
             this.FormLoading = true;
-            this.checkBoxDeconvolution.Checked = false;
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            // (`A255`) Сменился документ — выделение снимается у ПРЕЖНЕГО, пока
+            // ссылка на него ещё здесь: панель на него больше не смотрит, и
+            // снять полосу с метки было бы некому.
+            if (!ReferenceEquals(activeDocument, this.highlightedDocument))
+            {
+                this.ClearHighlight();
+            }
+            // Набор нуклидов этого документа встаёт в список ПЕРВЫМ делом:
+            // ниже метод не раз выходит досрочно — нет результата, нет
+            // конфигурации прибора, нет калибровки ПШПВ, — а список наборов
+            // виден всегда, и чужой выбор в нём читался бы как свой (R9).
+            this.ShowNuclideSetOf(activeDocument);
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             DeviceConfigInfo deviceConfigInfo = activeResultData.DeviceConfig;
             if (deviceConfigInfo == null)
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
             if (deviceConfigInfo.Guid == null)
@@ -82,13 +112,10 @@ namespace BecquerelMonitor
             }
             if (!(activeResultData.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
             {
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 this.FormLoading = false;
-                this.UpdateDeconvolutionInfoButtonState();
                 return;
             }
-            this.checkBoxDeconvolution.Checked = fwhmPeakDetectionMethodConfig.UseDeconvolution;
-
             this.numericUpDown1.Minimum = 1;
             this.numericUpDown1.Maximum = 10000;
             this.numericUpDown1.Increment = 1;
@@ -131,17 +158,24 @@ namespace BecquerelMonitor
             }
             isProcessing = true;
 
+            // Документ и его данные объявлены ДО try, и это не косметика (`A4`):
+            // при отказе чистить пики надо у ТОГО САМОГО спектра, на котором
+            // поиск сорвался, а не у того, что окажется активным потом.
+            DocEnergySpectrum activeDocument = null;
+            ResultData activeResultData = null;
             try
             {
-                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+                activeDocument = this.mainForm.ActiveDocument;
                 if (activeDocument == null)
                 {
+                    this.ShowDetectionFailure(null);
                     return;
                 }
-                ResultData activeResultData = activeDocument.ActiveResultData;
+                activeResultData = activeDocument.ActiveResultData;
                 FWHMPeakDetectionMethodConfig fWHMConfig = (FWHMPeakDetectionMethodConfig)activeResultData.PeakDetectionMethodConfig;
                 if (activeResultData.FwhmCalibration == null)
                 {
+                    this.ShowDetectionFailure(null);
                     // No calibration - nothing to detect. This used to throw
                     // NotImplementedException, silently swallowed by the catch below.
                     return;
@@ -188,13 +222,50 @@ namespace BecquerelMonitor
                 // spectrum after switching documents mid-detection.
                 if (this.mainForm.ActiveDocument == activeDocument)
                 {
+                    this.ShowDetectionFailure(null);
                     RefreshTable();
                 }
             }
             catch (Exception ex)
             {
-                // Don't swallow silently - at least leave a trace.
-                System.Diagnostics.Trace.WriteLine("Peak detection failed: " + ex.Message);
+                // ⛔ У ОТКАЗА ПОЯВИЛСЯ ЧИТАТЕЛЬ (`A4`). Прежде здесь стоял один
+                // `Trace.WriteLine`, и читать его было НЕКОМУ: в `App.config`
+                // нет раздела `system.diagnostics`, во всём дереве нет ни одного
+                // `Trace.Listeners`, и строка уходит в `OutputDebugString` —
+                // видимый только под отладчиком. Хуже молчания было другое:
+                // таблица и `DetectedPeaks` обновляются ТОЛЬКО по успеху, то
+                // есть на новом спектре оставались пики СТАРОГО, и отличить это
+                // от «так и есть» человек не мог ничем.
+                //
+                // Сделано как в соседнем пути разбора (`FsaAnalysisSession.FailureText`):
+                // отказ становится СТРОКОЙ НА ЭКРАНЕ. Trace оставлен вторым, для
+                // отладчика, и несёт теперь исключение целиком, а не одну строку
+                // сообщения — по `ex.Message` от `NullReferenceException` не
+                // найти ничего.
+                System.Diagnostics.Trace.WriteLine("Peak detection failed: " + ex);
+
+                // ⛔ ЧУЖИЕ ПИКИ СО СТОЛА. Пустой список, а НЕ null: два
+                // потребителя в `EnergySpectrumView` (строки 725 и 3722) читают
+                // `DetectedPeaks` без проверки на null — `foreach` по нему и
+                // `new List<Peak>(...)` от него, — и null уронил бы отрисовку
+                // спектра там, куда отказ поиска вообще не должен доставать.
+                if (activeResultData != null)
+                {
+                    activeResultData.DetectedPeaks = new List<Peak>();
+                }
+                // Тот же сторож, что и на успешном пути: пока считали, человек
+                // мог уйти на другой документ. Чужую таблицу чистить нечего, и
+                // сообщение о чужой беде ему тоже не нужно — пики сорвавшегося
+                // спектра сняты выше, и вернувшись, он увидит пустую таблицу.
+                if (this.mainForm.ActiveDocument == activeDocument)
+                {
+                    // Строки снимаются напрямую, а не через RefreshTable():
+                    // исключение, брошенное ИЗ catch в методе `async void`,
+                    // некому поймать — оно валит процесс. Чистка списка строк
+                    // ничего не читает и бросить не может.
+                    this.ClearRows();
+                    this.ShowDetectionFailure(ex);
+                }
             }
             finally
             {
@@ -207,20 +278,68 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Отказ поиска пиков — НА ЭКРАН (`A4`).
+        ///
+        /// Единственное место, где заводится и гасится эта надпись: у отказа
+        /// обязан быть один читатель, а не два расходящихся. Зовётся с
+        /// <c>null</c> всюду, где исход известен и он не отказ, — по успеху и на
+        /// досрочных выходах (нет документа, нет калибровки ПШПВ), — иначе
+        /// сообщение о прошлой беде пережило бы переход на другой спектр.
+        ///
+        /// ⚠ Окна здесь быть не может, и это не вкус: <see cref="UpdatePeakDetectionResult"/>
+        /// зовут при каждой смене документа и спектра и КАЖДЫЕ ДВЕ СЕКУНДЫ по
+        /// таймеру записи (<c>MainForm</c>). Модальное окно на этом пути
+        /// означало бы поток окон, который нечем остановить. Соседний путь
+        /// разбора (<c>FsaAnalysisSession</c>) при том же отказе тоже пишет строку, а не
+        /// поднимает окно.
+        ///
+        /// Подсказка несёт разбор — тип исключения и его сообщение: надпись
+        /// говорит ЧТО случилось, подсказка — почему, и человеку не нужен для
+        /// этого отладчик.
+        /// </summary>
+        void ShowDetectionFailure(Exception ex)
+        {
+            if (ex == null)
+            {
+                // ⛔ БЕЗ ПРОВЕРКИ «а видна ли она сейчас», и это измерено, а не
+                // из осторожности: `Control.Visible` НА ЧТЕНИЕ отвечает за всю
+                // цепочку родителей, и у панели, которую человек свернул или
+                // накрыл соседней вкладкой, он false при взведённом собственном
+                // признаке. Проба `A2A4Probe` на плече A4-3 поймала ровно это:
+                // сообщение о прошлом отказе пережило успешный пересчёт.
+                this.labelDetectionFailed.Visible = false;
+                return;
+            }
+
+            this.labelDetectionFailed.Text = Resources.PeakDetectionFailed;
+            this.labelDetectionFailed.Visible = true;
+            if (this.detectionToolTip == null)
+            {
+                this.detectionToolTip = new ToolTip();
+            }
+            this.detectionToolTip.SetToolTip(this.labelDetectionFailed,
+                                             ex.GetType().Name + ": " + ex.Message);
+        }
+
+        /// <summary>
+        /// Подсказка с разбором отказа. Заводится кодом по первой нужде, а не
+        /// конструктором формы (`W21` — про то, чем это кончается).
+        /// </summary>
+        ToolTip detectionToolTip;
+
         public void RefreshTable()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
-                this.tableModel1.Rows.Clear();
-                this.UpdateDeconvolutionInfoButtonState();
+                this.ClearRows();
                 return;
             }
             ResultData activeResultData = activeDocument.ActiveResultData;
             if (activeResultData.DetectedPeaks == null)
             {
-                this.tableModel1.Rows.Clear();
-                this.UpdateDeconvolutionInfoButtonState();
+                this.ClearRows();
                 return;
             }
             List<Peak> peaks = new List<Peak>(activeResultData.DetectedPeaks);
@@ -230,56 +349,167 @@ namespace BecquerelMonitor
                 EnergyCalibration energyCalibration = activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration;
                 if (energyCalibration == null)
                 {
-                    this.tableModel1.Rows.Clear();
-                    this.UpdateDeconvolutionInfoButtonState();
+                    this.ClearRows();
                     return;
                 }
 
-                this.tableModel1.Rows.Clear();
+                this.ClearRows();
                 foreach (Peak peak in peaks)
                 {
                     Row row = new Row();
                     string text = Resources.UnknownNuclide;
                     string text2 = "";
+                    int names = 1;
                     if (peak.Nuclide != null)
                     {
-                        text = peak.Nuclide.Name;
+                        // (`S64`) Имена ВСЕХ кандидатов, победитель первым.
+                        // Промах ниже считается по ПОБЕДИТЕЛЮ — он и есть та
+                        // линия, которой пик подписан; у соперника свой промах,
+                        // и складывать их в одну колонку нечего.
+                        // (`AMBER26`) В списке имена — С НОВОЙ СТРОКИ, не через
+                        // « / »: графа «Nuclide» узкая (100 px в поставке), и
+                        // второе-третье имя за разделителем обрезалось
+                        // многоточием молча.
+                        names = peak.NuclideCandidates.Count;
+                        text = PeakDetector.PeakLabel(peak, PeakListCandidateSeparator);
                         if (peak.Nuclide.Energy > 0.0)
                         {
                             double num = peak.Energy - peak.Nuclide.Energy;
                             double num2 = (peak.Energy - peak.Nuclide.Energy) / peak.Nuclide.Energy * 100.0;
-                            text2 = num.ToString("f2") + " (" + num2.ToString("f2") + "%)";
+                            text2 = num.ToString("f2", CultureInfo.InvariantCulture) + " (" + num2.ToString("f2", CultureInfo.InvariantCulture) + "%)";
                         }
                     }
                     int snr = (int)peak.SNR;
-                    Cell nuclideCell = new Cell(text);
-                    // Весь Peak, а не только origin: рендереру нужен и
-                    // Nuclide.IsAnchor (красный якорь), и origin (синий LIB).
-                    nuclideCell.Tag = peak;
-                    row.Cells.Add(nuclideCell);
-                    row.Cells.Add(new Cell(peak.Energy.ToString("f2"), Math.Round(peak.Energy, 2)));
+                    row.Cells.Add(new Cell(text));
+                    row.Cells.Add(new Cell(peak.Energy.ToString("f2", CultureInfo.InvariantCulture), Math.Round(peak.Energy, 2)));
                     row.Cells.Add(new Cell(text2));
-                    row.Cells.Add(new Cell(peak.Channel.ToString(), peak.Channel));
-                    row.Cells.Add(new Cell(snr.ToString(), snr));
+                    row.Cells.Add(new Cell(peak.Channel.ToString(CultureInfo.InvariantCulture), peak.Channel));
+                    row.Cells.Add(new Cell(snr.ToString(CultureInfo.InvariantCulture), snr));
 
                     double leftEnergy = energyCalibration.ChannelToEnergy(peak.Channel - peak.FWHM / 2.0);
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0") + ", " + resolution.ToString("f1") + "% ±" + peak.FWHM_DELTA.ToString("f1")));
+                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0", CultureInfo.InvariantCulture) + ", " + resolution.ToString("f1", CultureInfo.InvariantCulture) + "% ±" + peak.FWHM_DELTA.ToString("f1", CultureInfo.InvariantCulture)));
+                    // (`A255`) Строка несёт свой пик: по нему график рисует
+                    // выделение, а не по разбору текста ячеек.
+                    row.Tag = peak;
+                    if (names > 1)
+                    {
+                        // (`AMBER26`) Строка с N именами — высотой базовая × N
+                        // (постановка Amber 14.09.2026: «высоту одной строки
+                        // хN»), строки с одним именем — прежней. По верху, а
+                        // не по центру: числа пика (энергия, промах, канал,
+                        // SNR, ПШПВ) встают вровень с именем ПОБЕДИТЕЛЯ, по
+                        // которому они и считаны, а не между соперниками.
+                        row.Height = this.tableModel1.RowHeight * names;
+                        row.Alignment = RowAlignment.Top;
+                    }
                     this.tableModel1.Rows.Add(row);
                 }
                 activeDocument.RefreshView();
                 //this.table1.AutoResizeColumnWidths();
             }
 
-            this.UpdateDeconvolutionInfoButtonState();
         }
 
         public void RefreshNuclideSets()
         {
+            // Выбор запоминается ДО очистки списка: Items.Clear() сбрасывает
+            // SelectedIndex в -1 и поднимает SelectedIndexChanged. Список
+            // обновляют по закрытии редактора наборов, и набор для поиска молча
+            // слетал на «все нуклиды» после каждого захода туда.
+            NuclideSet wanted = this.selectedNuclideSet;
+
+            // Перестройка списка — не выбор человека, и обработчик её больше не
+            // видит вовсе. Одного восстановления в конце теперь мало: тот же
+            // обработчик пишет выбор в активный ДОКУМЕНТ, и стёртую там память
+            // никакая строка ниже не вернула бы (R9).
+            this.updatingNuclideSets = true;
+            try
+            {
+                this.FillNuclideSets(wanted);
+            }
+            finally
+            {
+                this.updatingNuclideSets = false;
+            }
+
+            // Удалённый набор обязан забыть и ДОКУМЕНТ. Иначе он держит ссылку
+            // на то, чего больше нет, до ближайшего обновления панели — а
+            // список к этому времени уже показывает «все нуклиды».
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument != null)
+            {
+                activeDocument.SelectedNuclideSet = this.selectedNuclideSet;
+            }
+        }
+
+        /// <summary>
+        /// Поставить в список набор ЭТОГО документа и сделать его текущим.
+        /// Зовётся из <see cref="ShowPeakDetectionResult"/>, то есть на каждой
+        /// смене активного документа и на каждом обновлении панели по таймеру,
+        /// — поэтому молчит: подстановка выбора кодом не считается выбором
+        /// человека и не запускает ни поиска пиков, ни перерисовки.
+        ///
+        /// Набор могли удалить, пока документ лежал в фоне. Тогда выбор честно
+        /// возвращается к «всем нуклидам» — и в самом документе тоже, а не
+        /// только в списке.
+        /// </summary>
+        void ShowNuclideSetOf(DocEnergySpectrum document)
+        {
+            if (document == null)
+            {
+                return;
+            }
+
+            // Выбор документа снимается ПЕРВЫМ: перестройка списка ниже
+            // приводит документ в согласие со списком, то есть кладёт в это
+            // поле выбор ПРЕДЫДУЩЕГО документа. Восстанавливать надо снятое, а
+            // не то, что осталось после неё.
+            NuclideSet wanted = document.SelectedNuclideSet;
+
+            // Список мог отстать от самих наборов: правят их в соседнем окне, а
+            // перечитывается он по его закрытии. Строка «все нуклиды» делает
+            // список на единицу длиннее — расхождение видно по счёту.
+            if (this.comboBoxNuclSet.Items.Count != this.nuclideManager.NuclideSets.Count + 1)
+            {
+                this.RefreshNuclideSets();
+            }
+
+            int index = wanted == null ? -1 : this.nuclideManager.NuclideSets.IndexOf(wanted);
+            document.SelectedNuclideSet = index >= 0 ? wanted : null;
+
+            this.updatingNuclideSets = true;
+            try
+            {
+                this.comboBoxNuclSet.SelectedIndex = index >= 0 ? index + 1 : 0;
+            }
+            finally
+            {
+                this.updatingNuclideSets = false;
+            }
+
+            // Текущий набор — набор активного документа: по нему ищет пики
+            // панель и рисует линии интенсивностей график.
+            this.selectedNuclideSet = document.SelectedNuclideSet;
+        }
+
+        /// <summary>
+        /// Собственно перестройка списка. Вынесена отдельным методом, чтобы
+        /// флаг «список меняет код» снимался ровно на выходе, каким бы он ни
+        /// был, — и чтобы у <c>try</c> было одно тело, а не половина метода.
+        /// </summary>
+        void FillNuclideSets(NuclideSet wanted)
+        {
             this.comboBoxNuclSet.Items.Clear();
-            string allNuclidesText = this.comboBoxNuclSetAllNuclidesText;
+            // Строка берётся из ресурсов: русский перевод для неё лежал в
+            // `DCPeakDetectionView.ru.resx` с 2024 года, но читателя у него не
+            // было — поле ниже объявлялось и НИКОГДА не присваивалось, и в
+            // русском окне всегда стояло английское «--- All Nuclides ---»
+            // (W18, 12.08.2026). Ключ переехал в `Properties/Resources`, где
+            // лежат все строки, нужные коду.
+            string allNuclidesText = Properties.Resources.NuclideSetAllNuclides;
             if (string.IsNullOrEmpty(allNuclidesText))
             {
                 allNuclidesText = "--- All Nuclides ---";
@@ -290,14 +520,15 @@ namespace BecquerelMonitor
             {
                 this.comboBoxNuclSet.Items.Add(set.Name);
             }
-            if (this.selectedNuclideSet != null)
-            {
-                this.comboBoxNuclSet.SelectedIndex = this.nuclideManager.NuclideSets.IndexOf(this.selectedNuclideSet) + 1;
-            }
-            else
-            {
-                this.comboBoxNuclSet.SelectedIndex = 0;
-            }
+
+            // Набор мог быть удалён в редакторе — тогда IndexOf даёт -1, и
+            // выбор честно возвращается к «всем нуклидам», а не остаётся
+            // указывать на то, чего больше нет.
+            int index = wanted == null ? -1 : this.nuclideManager.NuclideSets.IndexOf(wanted);
+            this.comboBoxNuclSet.SelectedIndex = index >= 0 ? index + 1 : 0;
+            // Обработчик выбора сюда не доходит (список меняет код), поэтому
+            // поле выставляется руками — и заодно чистится, если набор удалили.
+            this.selectedNuclideSet = index >= 0 ? wanted : null;
         }
 
         // Token: 0x06000440 RID: 1088 RVA: 0x00014468 File Offset: 0x00012668
@@ -311,46 +542,6 @@ namespace BecquerelMonitor
                 fwhmPeakDetectionMethodConfig.Min_SNR = (double)((int)this.numericUpDown1.Value);
                 this.UpdatePeakDetectionResult();
                 activeDocument.EnergySpectrumView.Invalidate();
-            }
-        }
-
-        // Token: 0x06000441 RID: 1089 RVA: 0x00014500 File Offset: 0x00012700
-        void checkBoxDeconvolution_CheckedChanged(object sender, EventArgs e)
-        {
-            if (this.FormLoading == false)
-            {
-                DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-                ResultData activeResultData = activeDocument?.ActiveResultData;
-                // Mutate the per-document clone only. Taking the object from
-                // DeviceConfig.PeakDetectionMethodConfig, mutating it and assigning that same
-                // reference back into activeResultData.PeakDetectionMethodConfig used to alias
-                // the shared global device config into the ResultData, breaking the clone made
-                // in DocumentManager.PrepareDeviceConfig.
-                if (!(activeResultData?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmPeakDetectionMethodConfig))
-                {
-                    return;
-                }
-
-                fwhmPeakDetectionMethodConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-
-                // Persist the preference to the shared device config separately, without
-                // aliasing it into the ResultData clone.
-                DeviceConfigInfo deviceConfig = activeResultData.DeviceConfig;
-                if (deviceConfig?.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig deviceFwhmConfig)
-                {
-                    deviceFwhmConfig.UseDeconvolution = this.checkBoxDeconvolution.Checked;
-                    DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-                    if (!string.IsNullOrEmpty(deviceConfig.Guid) && deviceConfigManager.DeviceConfigMap.ContainsKey(deviceConfig.Guid))
-                    {
-                        deviceConfigManager.SaveConfig(deviceConfig);
-                    }
-                }
-
-                this.UpdatePeakDetectionResult();
-                if (activeDocument != null && activeDocument.EnergySpectrumView != null)
-                {
-                    activeDocument.EnergySpectrumView.Invalidate();
-                }
             }
         }
 
@@ -368,6 +559,11 @@ namespace BecquerelMonitor
             }
         }
 
+        // (`A145`, этап 3) Две галки полноспектрального разложения — «состав
+        // из баз» и «равновесие» — с этой панели сняты: вместе с пятью новыми
+        // флажками модели они живут в окне отчёта `FSAReportView`, а запись в
+        // копию спектра и умолчание прибора — там же (`SaveOptionsToDevice`).
+
         void ToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             int channel = 0;
@@ -377,15 +573,15 @@ namespace BecquerelMonitor
             {
                 try
                 {
-                    channel = Convert.ToInt32(row.Cells[3].Text);
+                    channel = Convert.ToInt32(row.Cells[3].Text, CultureInfo.InvariantCulture);
                     if (row.Cells[2].Text.Length > 1)
                     {
-                        diff = Convert.ToDecimal(row.Cells[2].Text.Split(new string[] { " " }, StringSplitOptions.None)[0]);
+                        diff = Convert.ToDecimal(row.Cells[2].Text.Split(new string[] { " " }, StringSplitOptions.None)[0], CultureInfo.InvariantCulture);
                     } else
                     {
                         diff = 0;
                     }
-                    energy = Convert.ToDecimal(row.Cells[1].Text) - diff;
+                    energy = Convert.ToDecimal(row.Cells[1].Text, CultureInfo.InvariantCulture) - diff;
                     if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > channel)
                     {
                         this.mainForm.addCalibration(channel, energy, this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[channel]);
@@ -396,14 +592,14 @@ namespace BecquerelMonitor
                     
                 } catch (Exception ex)
                 {
-                    MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(String.Format(Resources.ERRAddCalibrationPoints, channel.ToString(CultureInfo.InvariantCulture), ex.Message), Resources.ErrorExclamation, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
         void ToolStripMenuItem2_Click(object sender, EventArgs e)
         {
-            decimal energy = Convert.ToDecimal(this.table1.SelectedItems[0].Cells[1].Text);
+            decimal energy = Convert.ToDecimal(this.table1.SelectedItems[0].Cells[1].Text, CultureInfo.InvariantCulture);
             this.mainForm.CallNucBaseSearch(energy);
         }
 
@@ -429,6 +625,15 @@ namespace BecquerelMonitor
 
         private void comboBoxNuclSet_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // Список перестраивает или подставляет КОД — при перечитывании
+            // наборов и при переходе на другой документ. Выбором человека это
+            // не является: ни пересчёта, ни записи в документ за собой не
+            // тянет, а поля выставит тот, кто эту подстановку затеял.
+            if (this.updatingNuclideSets)
+            {
+                return;
+            }
+
             if (this.comboBoxNuclSet.SelectedIndex > 0)
             {
                 this.selectedNuclideSet = this.nuclideManager.NuclideSets[this.comboBoxNuclSet.SelectedIndex - 1];
@@ -438,43 +643,153 @@ namespace BecquerelMonitor
                 this.selectedNuclideSet = null;
             }
 
+            // Выбор принадлежит ДОКУМЕНТУ и запоминается за ним: вернувшись к
+            // этому спектру, человек застанет свой набор, а не тот, что выбран
+            // для соседнего (R9).
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument != null)
+            {
+                activeDocument.SelectedNuclideSet = this.selectedNuclideSet;
+            }
+
             this.UpdatePeakDetectionResult();
+
+            // От выбора зависит не только таблица пиков, но и картинка: линии
+            // интенсивностей рисуются по выбранному набору. Поиск пиков идёт в
+            // фоне и перерисует график когда-нибудь потом (а при пустом
+            // документе не перерисует вовсе), линиям же ждать нечего.
+            if (activeDocument != null)
+            {
+                activeDocument.EnergySpectrumView.Invalidate();
+            }
         }
 
-        void buttonDeconvolutionInfo_Click(object sender, EventArgs e)
+        // ------------------------------------------------------------------
+        // (`A255`) Выделение выбранного пика на графике
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Документ, графику которого отдано выделение; null — выделения нет.
+        /// Хранится отдельно от <c>mainForm.ActiveDocument</c>: снимать
+        /// выделение надо у ТОГО документа, которому оно было отдано, а
+        /// активным к этому времени может быть уже другой.
+        /// </summary>
+        DocEnergySpectrum highlightedDocument;
+
+        /// <summary>
+        /// Таблицу сейчас перестраивает код — событие выбора в этот момент не
+        /// значит выбора человека (по образцу `FSAReportView.suspendSelection`).
+        /// </summary>
+        bool suspendSelection;
+
+        void Table1_SelectionChanged(object sender, XPTable.Events.SelectionEventArgs e)
+        {
+            if (this.suspendSelection)
+            {
+                return;
+            }
+            this.PushHighlight();
+        }
+
+        /// <summary>
+        /// Сказать графику активного документа, какие пики выбраны. ⛔ Ничего,
+        /// кроме краски, это не меняет: ни поиска, ни таблицы, ни чисел.
+        /// Строки выбрано несколько — уходят все; строк без пика (нет `Tag`)
+        /// или выбора вовсе — выделение снимается.
+        /// </summary>
+        void PushHighlight()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            List<Peak> deconvolvedPeaks = this.GetDetectedDeconvolutionPeaks();
-            if (activeDocument == null || deconvolvedPeaks.Count == 0)
+            if (!ReferenceEquals(activeDocument, this.highlightedDocument))
+            {
+                this.ClearHighlight();
+            }
+            if (activeDocument == null || activeDocument.IsDisposed || activeDocument.EnergySpectrumView == null)
             {
                 return;
             }
 
-            using (PeakDeconvolutionInfoForm dialog = new PeakDeconvolutionInfoForm(activeDocument, deconvolvedPeaks, this.selectedNuclideSet))
+            List<Peak> picked = null;
+            foreach (Row row in this.table1.SelectedItems)
             {
-                dialog.ShowDialog(this);
+                Peak peak = row.Tag as Peak;
+                if (peak != null)
+                {
+                    if (picked == null)
+                    {
+                        picked = new List<Peak>();
+                    }
+                    picked.Add(peak);
+                }
+            }
+
+            activeDocument.EnergySpectrumView.HighlightedPeaks = picked;
+            this.highlightedDocument = picked != null ? activeDocument : null;
+        }
+
+        /// <summary>Снять выделение у документа, которому оно было отдано.</summary>
+        void ClearHighlight()
+        {
+            DocEnergySpectrum document = this.highlightedDocument;
+            this.highlightedDocument = null;
+            if (document != null && !document.IsDisposed && document.EnergySpectrumView != null)
+            {
+                document.EnergySpectrumView.HighlightedPeaks = null;
             }
         }
 
-        List<Peak> GetDetectedDeconvolutionPeaks()
+        /// <summary>
+        /// Очистить таблицу — вместе с выбором и выделением на графике. Пики
+        /// перечитываются заново (смена документа, повторный поиск, отказ), и
+        /// прежний выбор указывал бы на строки, которых больше нет.
+        /// `Rows.Clear()` сам выбор не снимает — снимается явно.
+        /// </summary>
+        void ClearRows()
         {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            ResultData activeResultData = activeDocument != null ? activeDocument.ActiveResultData : null;
-            if (activeResultData == null || activeResultData.DetectedPeaks == null)
+            this.suspendSelection = true;
+            try
             {
-                return new List<Peak>();
+                this.tableModel1.Selections.Clear();
+                this.tableModel1.Rows.Clear();
             }
-
-            return activeResultData.DetectedPeaks
-                .Where(peak => peak != null &&
-                    peak.PeakSearchOrigin == PeakSearchOrigin.RJMCMC &&
-                    peak.DeconvolutionInfo != null)
-                .ToList();
+            finally
+            {
+                this.suspendSelection = false;
+            }
+            this.ClearHighlight();
         }
 
-        void UpdateDeconvolutionInfoButtonState()
+        /// <summary>Документ, на графике которого сейчас выделены пики; null — нет (пробы).</summary>
+        public DocEnergySpectrum HighlightedDocument
         {
-            this.buttonDeconvolutionInfo.Enabled = this.checkBoxDeconvolution.Checked && this.GetDetectedDeconvolutionPeaks().Count > 0;
+            get { return this.highlightedDocument; }
+        }
+
+        /// <summary>
+        /// Выбрать строки таблицы по номерам — ТЕМ ЖЕ путём, каким их выбирает
+        /// мышь, через <c>Selections</c> (пробы). Пусто — снять выбор.
+        /// false — хотя бы одного номера в таблице нет; выбор тогда не трогается.
+        /// </summary>
+        public bool SelectPeakRows(params int[] rows)
+        {
+            if (rows == null || rows.Length == 0)
+            {
+                this.tableModel1.Selections.Clear();
+                return true;
+            }
+            foreach (int row in rows)
+            {
+                if (row < 0 || row >= this.tableModel1.Rows.Count)
+                {
+                    return false;
+                }
+            }
+            this.tableModel1.Selections.SelectCell(rows[0], 0);
+            for (int i = 1; i < rows.Length; i++)
+            {
+                this.tableModel1.Selections.AddCell(rows[i], 0);
+            }
+            return true;
         }
 
         // Token: 0x040001B3 RID: 435
@@ -487,9 +802,29 @@ namespace BecquerelMonitor
 
         bool FormLoading = false;
 
-        string comboBoxNuclSetAllNuclidesText = null;
+        /// <summary>
+        /// Набор для поиска пиков — АКТИВНОГО документа. Своего поля у панели
+        /// больше нет: тот же выбор решает, чьи линии интенсивностей рисовать
+        /// на графике, а график до панели не дотягивается. Второе поле рядом
+        /// рано или поздно разошлось бы с этим, поэтому оно одно —
+        /// <see cref="NuclideDefinitionManager.ActiveSet"/>.
+        ///
+        /// Хранится выбор при этом у документа
+        /// (<see cref="DocEnergySpectrum.SelectedNuclideSet"/>), а здесь стоит
+        /// выбор того из них, который сейчас на экране: панель одна, документов
+        /// много (R9). Держит их в согласии <see cref="ShowNuclideSetOf"/>.
+        /// </summary>
+        private NuclideSet selectedNuclideSet
+        {
+            get { return this.nuclideManager.ActiveSet; }
+            set { this.nuclideManager.ActiveSet = value; }
+        }
 
-        private NuclideSet selectedNuclideSet = null;
+        /// <summary>
+        /// Список наборов сейчас перестраивает или подставляет код — событие
+        /// <c>SelectedIndexChanged</c> в этот момент не значит выбора человека.
+        /// </summary>
+        private bool updatingNuclideSets;
 
         private bool isProcessing = false;
 

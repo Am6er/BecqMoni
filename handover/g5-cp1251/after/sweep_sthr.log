@@ -1,0 +1,10 @@
+usage: sweep_sthr.py [-h] --out-dir OUT_DIR [--mode MODE] [--zthr ZTHR]
+                     [--members] [--parts PARTS]
+
+options:
+  -h, --help         show this help message and exit
+  --out-dir OUT_DIR
+  --mode MODE
+  --zthr ZTHR
+  --members
+  --parts PARTS

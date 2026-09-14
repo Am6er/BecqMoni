@@ -1,0 +1,275 @@
+##### cs_a vs cs_b
+строк A 21, B 25; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Backscatter    A 3.337148828  B 3.362612147   <- +0.0255
+  Cs-137         A 88.74546021  B 95.15572472   <- +6.4103
+  Xray-Pb        A 0.466403150  B 0.645691756   <- +0.1793
+  Xray-Pb-L      A 0.499436949  B 0.499436991 
+  pile-up        A 0.335263195  B 0.336534375   <- +0.0013
+  долей сдвинулось больше допуска: 4
+  grey above_lines      A 0  B 0
+  grey below_floor      A 16347497.473638987  B 0
+  grey residual_excess  A 0.023279344189357266  B 0.023279344189357266
+  grey residual_floor   A 35  B 35
+  grey residual_missing A 0.030101520261640809  B 0.030101520261640809
+  grey spread_floor     A 282  B 0
+  tail_in_layer  Cs-137     A - (-)  B 13984949.03371587 (Single)
+  tail_in_layer  Xray-Pb    A - (-)  B 433210.06034835929 (Nuisance)
+  untied_tail    Cs-137     A - (-)  B 13984949.03371587 (layer)
+  untied_tail    Xray-Pb    A - (-)  B 433210.06034835929 (layer)
+code 0
+##### cs_a vs cs_g
+строк A 21, B 23; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Backscatter    A 3.337148828  B 3.337148828 
+  Cs-137         A 88.74546021  B 88.74546021 
+  Xray-Pb        A 0.466403150  B 0.466403150 
+  Xray-Pb-L      A 0.499436949  B 0.499436949 
+  pile-up        A 0.335263195  B 0.335263195 
+  долей сдвинулось больше допуска: 0
+  grey above_lines      A 0  B 0
+  grey below_floor      A 16347497.473638987  B 16347497.473638989
+  grey residual_excess  A 0.023279344189357266  B 0.023279344189357266
+  grey residual_floor   A 35  B 35
+  grey residual_missing A 0.030101520261640809  B 0.030101520261640809
+  grey spread_floor     A 282  B 282
+  untied_tail    Cs-137     A - (-)  B 13984949.03371587 (continuum)
+  untied_tail    Xray-Pb    A - (-)  B 433210.06034835929 (continuum)
+code 0
+##### cs_c vs cs_b
+строк A 23, B 25; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Backscatter    A 3.568032719  B 3.362612147   <- -0.2054
+  Cs-137         A 95.09305763  B 95.15572472   <- +0.0627
+  Xray-Pb        A 0.490464639  B 0.645691756   <- +0.1552
+  Xray-Pb-L      A 0.501844618  B 0.499436991   <- -0.0024
+  pile-up        A 0.346600385  B 0.336534375   <- -0.0101
+  долей сдвинулось больше допуска: 5
+  grey above_lines      A 0  B 0
+  grey below_floor      A 0  B 0
+  grey residual_excess  A 0.023279344189357266  B 0.023279344189357266
+  grey residual_floor   A 35  B 35
+  grey residual_missing A 0.030101520261640809  B 0.030101520261640809
+  grey spread_floor     A 0  B 0
+  tail_in_layer  Cs-137     A - (-)  B 13984949.03371587 (Single)
+  tail_in_layer  Xray-Pb    A - (-)  B 433210.06034835929 (Nuisance)
+  untied_tail    Cs-137     A 13984949.03371587 (continuum)  B 13984949.03371587 (layer)
+  untied_tail    Xray-Pb    A 433210.06034835929 (continuum)  B 433210.06034835929 (layer)
+code 0
+##### cs_f vs cs_b
+строк A 25, B 25; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Backscatter    A 3.334061120  B 3.362612147   <- +0.0286
+  Cs-137         A 94.32168029  B 95.15572472   <- +0.8340
+  Xray-Pb        A 0.641734781  B 0.645691756   <- +0.0040
+  Xray-Pb-L      A 0.499436949  B 0.499436991 
+  pile-up        A 0.335107787  B 0.336534375   <- +0.0014
+  долей сдвинулось больше допуска: 4
+  grey above_lines      A 0  B 0
+  grey below_floor      A 2144599.2565538143  B 0
+  grey residual_excess  A 0.023279344189357266  B 0.023279344189357266
+  grey residual_floor   A 35  B 35
+  grey residual_missing A 0.030101520261640809  B 0.030101520261640809
+  grey spread_floor     A 282  B 0
+  tail_in_layer  Cs-137     A 13984949.03371587 (Single)  B 13984949.03371587 (Single)
+  tail_in_layer  Xray-Pb    A 433210.06034835929 (Nuisance)  B 433210.06034835929 (Nuisance)
+  untied_tail    Cs-137     A 13984949.03371587 (layer)  B 13984949.03371587 (layer)
+  untied_tail    Xray-Pb    A 433210.06034835929 (layer)  B 433210.06034835929 (layer)
+code 0
+##### cs_r vs cs_b
+строк A 23, B 25; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Backscatter    A 3.572400063  B 3.362612147   <- -0.2098
+  Cs-137         A 95.04040376  B 95.15572472   <- +0.1153
+  Xray-Pb        A 0.499349135  B 0.645691756   <- +0.1463
+  Xray-Pb-L      A 0.530387381  B 0.499436991   <- -0.0310
+  pile-up        A 0.357459655  B 0.336534375   <- -0.0209
+  долей сдвинулось больше допуска: 5
+  grey above_lines      A 0  B 0
+  grey below_floor      A 0  B 0
+  grey residual_excess  A 0.021244803452783394  B 0.023279344189357266
+  grey residual_floor   A 35  B 35
+  grey residual_missing A 0.086097656766957159  B 0.030101520261640809
+  grey spread_floor     A 0  B 0
+  tail_in_layer  Cs-137     A - (-)  B 13984949.03371587 (Single)
+  tail_in_layer  Xray-Pb    A - (-)  B 433210.06034835929 (Nuisance)
+  untied_tail    Cs-137     A 13984949.03371587 (residual)  B 13984949.03371587 (layer)
+  untied_tail    Xray-Pb    A 433210.06034835929 (residual)  B 433210.06034835929 (layer)
+code 0
+##### radon2_free_a vs radon2_free_b
+строк A 32, B 35; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Pb-212         A 24.82519084  B 91.10699609   <- +66.2818
+  Ra-224         A 1.522739229  B 5.288297149   <- +3.7656
+  долей сдвинулось больше допуска: 2
+  grey above_lines      A 1819.8749923454632  B 1819.8749923454632
+  grey below_floor      A 35364.164997564745  B 0
+  grey residual_excess  A 1.3394312552067433  B 1.3394312552067433
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.58652447201424485  B 0.58652447201424485
+  grey spread_floor     A 281  B 0
+  tail_in_layer  Pb-212     A - (-)  B 965.89931840277 (Single)
+  tail_in_layer  Ra-224     A - (-)  B 42.10869385462388 (Single)
+  untied_tail    Pb-212     A - (-)  B 1008.0080122573938 (layer)
+code 0
+##### radon2_free_a vs radon2_free_g
+строк A 32, B 33; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Pb-212         A 24.82519084  B 24.82519084 
+  Ra-224         A 1.522739229  B 1.522739229 
+  долей сдвинулось больше допуска: 0
+  grey above_lines      A 1819.8749923454632  B 1819.8749923454632
+  grey below_floor      A 35364.164997564745  B 35364.164997564745
+  grey residual_excess  A 1.3394312552067433  B 1.3394312552067433
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.58652447201424485  B 0.58652447201424485
+  grey spread_floor     A 281  B 281
+  untied_tail    Pb-212     A - (-)  B 1008.0080122573938 (continuum)
+code 0
+##### radon2_free_c vs radon2_free_b
+строк A 33, B 35; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Pb-212         A 91.05713443  B 91.10699609   <- +0.0499
+  Ra-224         A 5.338158807  B 5.288297149   <- -0.0499
+  долей сдвинулось больше допуска: 2
+  grey above_lines      A 1819.8749923454632  B 1819.8749923454632
+  grey below_floor      A 0  B 0
+  grey residual_excess  A 1.3394312552067433  B 1.3394312552067433
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.58652447201424485  B 0.58652447201424485
+  grey spread_floor     A 0  B 0
+  tail_in_layer  Pb-212     A - (-)  B 965.89931840277 (Single)
+  tail_in_layer  Ra-224     A - (-)  B 42.10869385462388 (Single)
+  untied_tail    Pb-212     A 1008.0080122573938 (continuum)  B 1008.0080122573938 (layer)
+code 0
+##### radon2_eq_a vs radon2_eq_b
+строк A 25, B 35; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Ac-228         A 7.038062236  B 34.55367720   <- +27.5156
+  Bi-212         A 0.807617250  B 4.780318309   <- +3.9727
+  Pb-212         A 5.200983143  B 35.11206587   <- +29.9111
+  Po-216         A 0.000110936  B 0.000476375   <- +0.0004
+  Ra-224         A 0.384565965  B 2.289071145   <- +1.9045
+  Rn-220         A 0.006719692  B 0.036195875   <- +0.0295
+  Th-228         A 0.078016724  B 0.644131334   <- +0.5661
+  Th-232         A 0.008892744  B 0.081588950   <- +0.0727
+  Tl-208         A 6.617258703  B 22.50247493   <- +15.8852
+  долей сдвинулось больше допуска: 9
+  grey above_lines      A 0  B 0
+  grey below_floor      A 42239.050338680339  B 0
+  grey residual_excess  A 1.2831284987513554  B 1.2831284987513554
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.65349791736716523  B 0.65349791736716523
+  grey spread_floor     A 281  B 0
+  tail_in_layer  Ac-228     A - (-)  B 5431.897615617072 (Single)
+  tail_in_layer  Bi-212     A - (-)  B 1280.8715699311322 (Single)
+  tail_in_layer  Pb-212     A - (-)  B 5554.2133106390884 (Single)
+  tail_in_layer  Po-216     A - (-)  B 0.072495214251426146 (Single)
+  tail_in_layer  Ra-224     A - (-)  B 403.14949361103908 (Single)
+  tail_in_layer  Rn-220     A - (-)  B 7.5607926515460928 (Single)
+  tail_in_layer  Th-228     A - (-)  B 68.167909265540317 (Single)
+  tail_in_layer  Th-232     A - (-)  B 15.178902791233041 (Single)
+  tail_in_layer  Tl-208     A - (-)  B 3251.1700205830807 (Single)
+  untied_tail    Th-232     A - (-)  B 16012.282110303979 (layer)
+code 0
+##### radon2_eq_a vs radon2_eq_g
+строк A 25, B 26; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Ac-228         A 7.038062236  B 7.038062236 
+  Bi-212         A 0.807617250  B 0.807617250 
+  Pb-212         A 5.200983143  B 5.200983143 
+  Po-216         A 0.000110936  B 0.000110936 
+  Ra-224         A 0.384565965  B 0.384565965 
+  Rn-220         A 0.006719692  B 0.006719692 
+  Th-228         A 0.078016724  B 0.078016724 
+  Th-232         A 0.008892744  B 0.008892744 
+  Tl-208         A 6.617258703  B 6.617258703 
+  долей сдвинулось больше допуска: 0
+  grey above_lines      A 0  B 0
+  grey below_floor      A 42239.050338680339  B 42239.050338680339
+  grey residual_excess  A 1.2831284987513554  B 1.2831284987513554
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.65349791736716523  B 0.65349791736716523
+  grey spread_floor     A 281  B 281
+  untied_tail    Th-232     A - (-)  B 16012.282110303979 (continuum)
+code 0
+##### radon2_eq_c vs radon2_eq_b
+строк A 26, B 35; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Ac-228         A 34.28552426  B 34.55367720   <- +0.2682
+  Bi-212         A 3.916828577  B 4.780318309   <- +0.8635
+  Pb-212         A 36.92907315  B 35.11206587   <- -1.8170
+  Po-216         A 0.000464527  B 0.000476375   <- +0.0000
+  Ra-224         A 2.151461125  B 2.289071145   <- +0.1376
+  Rn-220         A 0.029686894  B 0.036195875   <- +0.0065
+  Th-228         A 0.796646557  B 0.644131334   <- -0.1525
+  Th-232         A 0.099758897  B 0.081588950   <- -0.0182
+  Tl-208         A 21.79055600  B 22.50247493   <- +0.7119
+  долей сдвинулось больше допуска: 9
+  grey above_lines      A 0  B 0
+  grey below_floor      A 0  B 0
+  grey residual_excess  A 1.2831284987513554  B 1.2831284987513554
+  grey residual_floor   A 96  B 96
+  grey residual_missing A 0.65349791736716523  B 0.65349791736716523
+  grey spread_floor     A 0  B 0
+  tail_in_layer  Ac-228     A - (-)  B 5431.897615617072 (Single)
+  tail_in_layer  Bi-212     A - (-)  B 1280.8715699311322 (Single)
+  tail_in_layer  Pb-212     A - (-)  B 5554.2133106390884 (Single)
+  tail_in_layer  Po-216     A - (-)  B 0.072495214251426146 (Single)
+  tail_in_layer  Ra-224     A - (-)  B 403.14949361103908 (Single)
+  tail_in_layer  Rn-220     A - (-)  B 7.5607926515460928 (Single)
+  tail_in_layer  Th-228     A - (-)  B 68.167909265540317 (Single)
+  tail_in_layer  Th-232     A - (-)  B 15.178902791233041 (Single)
+  tail_in_layer  Tl-208     A - (-)  B 3251.1700205830807 (Single)
+  untied_tail    Th-232     A 16012.282110303979 (continuum)  B 16012.282110303979 (layer)
+code 0
+##### as80_a vs as80_b
+строк A 24, B 24; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Ac-228         A 36.26951581  B 41.19540157   <- +4.9259
+  Bi-212         A 4.922142468  B 5.453802313   <- +0.5317
+  Pb-212         A 16.16480783  B 18.88424470   <- +2.7194
+  Po-216         A 0.000675581  B 0.000765289   <- +0.0001
+  Ra-224         A 1.291820854  B 1.517962783   <- +0.2261
+  Rn-220         A 0.039544233  B 0.045227621   <- +0.0057
+  Th-228         A 0.178588711  B 0.208585727   <- +0.0300
+  Th-232         A 0.009996896  B 0.010921340   <- +0.0009
+  Tl-208         A 29.16380060  B 32.68308864   <- +3.5193
+  долей сдвинулось больше допуска: 9
+  grey above_lines      A 0  B 0
+  grey below_floor      A 2933410.4056837447  B 0
+  grey residual_excess  A 0.05496932760565762  B 0.05496932760565762
+  grey residual_floor   A 117  B 117
+  grey residual_missing A 0.08697499497689147  B 0.08697499497689147
+  grey spread_floor     A 301  B 0
+code 0
+##### as80amb_a vs as80amb_b
+строк A 25, B 25; расхождений (кроме share_pct): 0
+share_pct (допуск 1e-06 п.п.):
+  Ac-228         A 36.37038238  B 41.31864636   <- +4.9483
+  Bi-212         A 4.905719814  B 5.439794865   <- +0.5341
+  Pb-212         A 16.04100078  B 18.77275079   <- +2.7318
+  Po-216         A 0.000674347  B 0.000764462   <- +0.0001
+  Ra-224         A 1.282381766  B 1.509551287   <- +0.2272
+  Ra-228         A 5.536089543  B 5.536089543 
+  Rn-220         A 0.039423673  B 0.045132905   <- +0.0057
+  Th-228         A 0.176793484  B 0.206925304   <- +0.0301
+  Th-232         A 0.009880142  B 0.010808568   <- +0.0009
+  Tl-208         A 29.16035136  B 32.69562489   <- +3.5353
+  долей сдвинулось больше допуска: 9
+  grey above_lines      A 0  B 0
+  grey below_floor      A 2949134.8694950137  B 0
+  grey residual_excess  A 0.063005477978157476  B 0.063005477978157476
+  grey residual_floor   A 78  B 78
+  grey residual_missing A 0.088051574759219722  B 0.088051574759219722
+  grey spread_floor     A 301  B 0
+code 0
+##### P70 rates_cs_a (HEAD df1b0ff4) vs cs_a (HEAD 08030c57, wt_a)
+строк A 21, B 21; расхождений (кроме share_pct): 0
+  долей сдвинулось больше допуска: 0
+##### P70 rates_cs_a (HEAD) vs cs_g (подсадки --tail-to-continuum --plant-grey-floor)
+строк A 21, B 23; расхождений (кроме share_pct): 0
+  долей сдвинулось больше допуска: 0
+##### P69 rates_as80_eq_a (HEAD 6c2833cf, до S174) vs as80_b
+строк A 18, B 24; расхождений (кроме share_pct): 0
+  долей сдвинулось больше допуска: 0

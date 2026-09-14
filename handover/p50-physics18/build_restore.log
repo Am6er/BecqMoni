@@ -1,0 +1,4 @@
+
+  Определение проектов для восстановления...
+D:\BqMoni_Claude\p50\wt\BecquerelMonitor\BecquerelMonitor.csproj : warning NU1900: Произошла ошибка при получении данных уязвимости пакета: Время ожидания завершения скачивания "https://api.nuget.org/v3-vulnerabilities/2026.09.09.23.26.42/vulnerability.base.json" истекло, так как за 60000 мс не получено никаких данных.
+  Восстановлен D:\BqMoni_Claude\p50\wt\BecquerelMonitor\BecquerelMonitor.csproj (за 1,04 мин).

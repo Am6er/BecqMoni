@@ -194,7 +194,10 @@ namespace XPTable.Renderers
                 }
             }
 
-            return dateTime.ToString(format, this.FormatProvider);
+            // (A244) Same shape as DoubleCellRenderer/NumberCellRenderer: the provider
+            // is taken once into a local and handed to ToString explicitly.
+            IFormatProvider formatProvider = this.FormatProvider;
+            return dateTime.ToString(format, formatProvider);
         }
         #endregion
 

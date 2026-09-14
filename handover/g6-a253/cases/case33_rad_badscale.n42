@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadiologicalInstrumentData xmlns="http://physics.nist.gov/N42/2006/N42">
+  <MeasurementGroup>
+    <Measurement>
+      <Spectrum>
+        <InstrumentInformation>
+          <Manufacturer>PROBE</Manufacturer>
+          <Model>F54</Model>
+          <SerialNumber>64</SerialNumber>
+        </InstrumentInformation>
+        <EnergyCalibration>
+          <CalibrationEquation>List</CalibrationEquation>
+          <ChannelEnergies>5000 4999.5 4999 4998.5 4998 4997.5 4997 4996.5 4996 4995.5 4995 4994.5 4994 4993.5 4993 4992.5 4992 4991.5 4991 4990.5 4990 4989.5 4989 4988.5 4988 4987.5 4987 4986.5 4986 4985.5 4985 4984.5 4984 4983.5 4983 4982.5 4982 4981.5 4981 4980.5 4980 4979.5 4979 4978.5 4978 4977.5 4977 4976.5 4976 4975.5 4975 4974.5 4974 4973.5 4973 4972.5 4972 4971.5 4971 4970.5 4970 4969.5 4969 4968.5</ChannelEnergies>
+        </EnergyCalibration>
+        <ChannelData NumberOfChannels="64">1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1</ChannelData>
+        <LiveTime>295</LiveTime>
+        <SpectrumType>Item</SpectrumType>
+      </Spectrum>
+    </Measurement>
+  </MeasurementGroup>
+</RadiologicalInstrumentData>

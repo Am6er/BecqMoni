@@ -1,0 +1,846 @@
+﻿using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace BecquerelMonitor.EfficiencyMaker
+{
+    /// <summary>
+    /// Дифференциальные сечения тормозного излучения Зельцера — Бергера из
+    /// `matdb.sqlite` (таблицы `seltzer_berger`, `seltzer_berger_grid`,
+    /// `database/scheme.md` §5б).
+    ///
+    /// Хранится безразмерная χ(Z, T, κ) = (β²/Z²)·k·dσ/dk в миллибарнах, где
+    /// T — кинетическая энергия электрона, k — энергия кванта, κ = k/T.
+    /// Отсюда сечение: dσ/dk = χ·Z²/(β²·k).
+    /// </summary>
+    public static class SeltzerBergerData
+    {
+        /// <summary>Таблица одного элемента: сетки общие, значения свои.</summary>
+        public sealed class Element
+        {
+            public int Z;
+            internal double[][] chi;      // [e_idx][kappa_idx], мб
+
+            /// <summary>
+            /// χ(T, κ), интерполяция логарифмическая по энергии и линейная по
+            /// κ — как в `G4SeltzerBergerModel`. За краями сетки берутся
+            /// крайние значения: снизу это 1 кэВ (ниже электрон уже не
+            /// излучает наружу), сверху 10 ГэВ.
+            /// </summary>
+            public double Chi(double teKev, double kappa)
+            {
+                double[] grid = energyKev;
+                int n = grid.Length;
+                int lo;
+                double f;
+                if (teKev <= grid[0])
+                {
+                    lo = 0;
+                    f = 0.0;
+                }
+                else if (teKev >= grid[n - 1])
+                {
+                    lo = n - 2;
+                    f = 1.0;
+                }
+                else
+                {
+                    lo = 0;
+                    int hi = n - 1;
+                    while (hi - lo > 1)
+                    {
+                        int mid = (lo + hi) / 2;
+                        if (grid[mid] <= teKev)
+                        {
+                            lo = mid;
+                        }
+                        else
+                        {
+                            hi = mid;
+                        }
+                    }
+
+                    f = (Math.Log(teKev) - Math.Log(grid[lo]))
+                        / (Math.Log(grid[lo + 1]) - Math.Log(grid[lo]));
+                }
+
+                double a = AtKappa(this.chi[lo], kappa);
+                double b = AtKappa(this.chi[lo + 1], kappa);
+                return a + f * (b - a);
+            }
+
+            static double AtKappa(double[] row, double kappa)
+            {
+                double[] k = kappaGrid;
+                int n = k.Length;
+                if (kappa <= k[0])
+                {
+                    return row[0];
+                }
+
+                if (kappa >= k[n - 1])
+                {
+                    return row[n - 1];
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (k[mid] <= kappa)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double f = (kappa - k[lo]) / (k[hi] - k[lo]);
+                return row[lo] + f * (row[hi] - row[lo]);
+            }
+        }
+
+        static double[] energyKev;
+        static double[] kappaGrid;
+        static readonly object Gate = new object();
+        static readonly Dictionary<int, Element> cache = new Dictionary<int, Element>();
+
+        /// <summary>Таблица элемента; null — этого Z в поставке нет (взяты 1…92).</summary>
+        public static Element Of(int z)
+        {
+            lock (Gate)
+            {
+                Element found;
+                if (cache.TryGetValue(z, out found))
+                {
+                    return found;
+                }
+
+                Element loaded = Load(z);
+                cache[z] = loaded;
+                return loaded;
+            }
+        }
+
+        // Вещество лежит в `matdb.sqlite` — своём файле с 08.08.2026
+        // (`tools/nucdb/split_db.py`).
+        static string DatabasePath()
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
+        }
+
+        static Element Load(int z)
+        {
+            string path = DatabasePath();
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "matdb.sqlite не найдена рядом с программой: " + path, path);
+            }
+
+            using (SqliteConnection connection = new SqliteConnection(
+                "Data Source=" + path + ";Mode=ReadOnly;Cache=Shared;"))
+            {
+                connection.Open();
+                LoadGrids(connection);
+                if (energyKev == null || kappaGrid == null)
+                {
+                    return null;
+                }
+
+                double[][] chi = new double[energyKev.Length][];
+                for (int i = 0; i < chi.Length; i++)
+                {
+                    chi[i] = new double[kappaGrid.Length];
+                }
+
+                bool any = false;
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select e_idx, kappa_idx, chi_mb from seltzer_berger where z=" + z;
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int e = reader.GetInt32(0);
+                            int k = reader.GetInt32(1);
+                            if (e >= 0 && e < chi.Length && k >= 0 && k < kappaGrid.Length)
+                            {
+                                chi[e][k] = reader.GetDouble(2);
+                                any = true;
+                            }
+                        }
+                    }
+                }
+
+                return any ? new Element { Z = z, chi = chi } : null;
+            }
+        }
+
+        static void LoadGrids(SqliteConnection connection)
+        {
+            if (energyKev != null && kappaGrid != null)
+            {
+                return;
+            }
+
+            List<double> e = new List<double>();
+            List<double> k = new List<double>();
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "select kind, value from seltzer_berger_grid order by kind, idx";
+                using (SqliteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (reader.GetString(0) == "energy")
+                        {
+                            e.Add(reader.GetDouble(1) / 1000.0);      // эВ → кэВ
+                        }
+                        else
+                        {
+                            k.Add(reader.GetDouble(1));
+                        }
+                    }
+                }
+            }
+
+            if (e.Count > 1 && k.Count > 1)
+            {
+                energyKev = e.ToArray();
+                kappaGrid = k.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Спектр тормозного излучения ТОЛСТОЙ МИШЕНИ для конкретного вещества:
+    /// сколько квантов какой энергии рождает электрон, тормозящийся в этом
+    /// веществе от начальной энергии T до нуля.
+    ///
+    /// ЗАЧЕМ. До сих пор спектр брался приближением Крамерса dN/dk = C/k с
+    /// нормировкой на радиационный выход ESTAR (TODO M3). Приближение
+    /// разумное — χ(κ) и правда почти плоская, — но оно ни разу не проверялось
+    /// данными, а форма спектра решает, вылетит квант или сядет на месте.
+    /// У ЛСРМ на этом месте готовые таблицы толстой мишени на девять веществ
+    /// (`Lib\Ttb`), и иодистого цезия среди них нет; здесь спектр СЧИТАЕТСЯ из
+    /// сечений для ЛЮБОГО состава.
+    ///
+    /// КАК СЧИТАЕТСЯ. Электрон рождает квант энергии k на каждом участке пути,
+    /// пока его энергия T' выше k:
+    ///
+    ///     dN/dk = Σᵢ wᵢ·(N_A/Aᵢ) ∫ from k to T  (dσᵢ/dk)(T', k) · dR/dT' · dT'
+    ///
+    /// где wᵢ — массовая доля элемента, dR/dT' = 1/S(T') — обратная тормозная
+    /// способность, то есть пробег ESTAR, продифференцированный по энергии.
+    /// Сечение — Зельцера — Бергера: dσ/dk = χ(Z,T',k/T')·Z²/(β'²·k).
+    ///
+    /// ЧТО ЭТО ПРИБЛИЖЕНИЕ. Пробег ESTAR — это CSDA, то есть путь без учёта
+    /// того, что электрон уже вылетел; для кванта, рождённого в глубине
+    /// кристалла, это верно, у границы — завышает. Точка рождения кванта
+    /// по-прежнему совпадает с точкой рождения электрона (остаток M3). Ниже
+    /// 10 кэВ таблица пробега ESTAR кончается, и интеграл там обрезан: на
+    /// энергию квантов выше 5 кэВ это не влияет.
+    ///
+    /// ✅ ОСТАТОК `M3` (П44, 13.09.2026) — ключом
+    /// <see cref="EfficiencySimulator.BremAlongPath"/> (клеймо `bpath=N`; ВЫКЛ
+    /// до единого счёта, умолчанием уровень 2 с 14.09.2026 — физика 18, П50):
+    /// с переносом электрона (`etr=1`) кванты
+    /// рождаются НА ШАГАХ переноса, там, где электрон реально теряет энергию,
+    /// — тонкой мишенью при текущей энергии (<see cref="StepPhotons"/>,
+    /// <see cref="SampleStepKev"/>); толстая мишень остаётся у ветки без
+    /// переноса и у ключа ВЫКЛ. Уровень 2 — квант ещё и летит по электрону
+    /// (модифицированный Цай), а не изотропно.
+    ///
+    /// ✅ `N4` (П44): та же таблица строится для ЛЮБОГО вещества сцены —
+    /// электрон, рождённый в оправе, стенке или пробе, излучает по своему
+    /// составу (<see cref="EfficiencySimulator.ElectronAnyMaterial"/>,
+    /// клеймо `ecomp=1`); до П44 тормозное вне кристалла не считалось вовсе.
+    /// </summary>
+    public sealed class ThickTargetBrem
+    {
+        /// <summary>Ниже этой энергии кванты не разыгрываются: не выйдут ниоткуда.</summary>
+        public double MinKev { get; private set; }
+
+        double[] node;            // сетка, кэВ: и по T, и по k — одна и та же
+        // ⚡ (`A43`, П45) Логарифмы узлов сетки — один раз при сборке таблицы:
+        // `Interpolate` и `SampleFrom` брали по два логарифма от узлов на
+        // каждый вызов. Числа те же: `Math.Log` от того же узла.
+        double[] logNode;
+        double[][] cumulative;    // [T][k]: доля квантов ВЫШЕ node[k], от 1 до 0
+        double[] photons;         // среднее число квантов выше MinKev
+        double[] radiatedKev;     // средняя энергия этих квантов
+        double[] anchorFactor;    // во сколько раз уровень подтянут к ESTAR
+
+        // (`M3`, П44) ТОНКАЯ МИШЕНЬ — тормозное на ШАГЕ переноса при текущей
+        // энергии электрона, без интеграла по пути: [T][k] — квантов ВЫШЕ
+        // node[k] на 1 г/см² пути у электрона энергии node[T] (Σ wᵢ N_A/Aᵢ ∫ dσᵢ/dk).
+        double[][] thinAbove;
+        double[] thinPhotons;     // то же выше MinKev — thinAbove[T][0]
+        double[] thinRadiated;    // излучённая энергия на 1 г/см² выше MinKev
+
+        static readonly object Gate = new object();
+        static readonly Dictionary<string, ThickTargetBrem> cache =
+            new Dictionary<string, ThickTargetBrem>();
+
+        /// <summary>
+        /// Таблица для вещества; null — сечений нет ни у одного элемента или
+        /// нет пробега. Кэш общий по имени вещества и веществу электрона:
+        /// таблица строится долго (двойной интеграл), а веществ в сцене мало.
+        /// </summary>
+        public static ThickTargetBrem For(GeometryMaterial material,
+                                          ElectronData.Material electron,
+                                          double minKev)
+        {
+            if (material == null || electron == null || !(minKev > 0.0))
+            {
+                return null;
+            }
+
+            // Ключ — по СОСТАВУ, а не по имени: имена веществ в библиотеке
+            // повторяются, а таблица зависит от Z и долей. Совпадение имён при
+            // разном составе дало бы чужой спектр молча. Текст состава — общий
+            // с кэшем пробегов (`ElectronData.CompositionKey`, П44); имя
+            // таблицы электрона у вещества по составу — тот же текст.
+            string cacheKey = electron.Name + "|"
+                + minKev.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + ElectronData.CompositionKey(material);
+            lock (Gate)
+            {
+                ThickTargetBrem found;
+                if (cache.TryGetValue(cacheKey, out found))
+                {
+                    return found;
+                }
+
+                ThickTargetBrem built = Build(material, electron, minKev);
+                cache[cacheKey] = built;
+                return built;
+            }
+        }
+
+        /// <summary>Среднее число квантов выше <see cref="MinKev"/> у электрона T.</summary>
+        public double Photons(double teKev)
+        {
+            return Interpolate(this.photons, teKev);
+        }
+
+        /// <summary>Средняя энергия этих квантов, кэВ — для сверки с выходом ESTAR.</summary>
+        public double Radiated(double teKev)
+        {
+            return Interpolate(this.radiatedKev, teKev);
+        }
+
+        /// <summary>
+        /// Во сколько раз уровень спектра подтянут к радиационному выходу
+        /// ESTAR (см. <see cref="Build"/>). Единица — интеграл сечений сошёлся
+        /// с выходом сам; отличие от единицы — размер невязки, которую
+        /// подтяжка закрывает. Читается пробой `BremSpectrumProbe`.
+        /// </summary>
+        public double Anchor(double teKev)
+        {
+            double v = Interpolate(this.anchorFactor, teKev);
+            return v > 0.0 ? v : 1.0;
+        }
+
+        /// <summary>
+        /// Энергия одного кванта по равномерному числу. Форма берётся с
+        /// ближайшего снизу узла сетки T (шаг сетки 7 % по энергии, а спектр
+        /// по T меняется гладко); число квантов и излучённая энергия при этом
+        /// интерполируются, потому что от них зависит баланс.
+        /// </summary>
+        public double SampleKev(double teKev, double u)
+        {
+            return this.SampleFrom(this.cumulative, teKev, u);
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Среднее число квантов выше <see cref="MinKev"/>,
+        /// рождённых НА ШАГЕ переноса длиной <paramref name="stepGCm2"/> г/см²
+        /// при энергии электрона <paramref name="teKev"/> — тонкая мишень:
+        /// сечение Зельцера — Бергера при текущей энергии, без интеграла по
+        /// пути. Уровень подтянут к ESTAR тем же множителем, что толстая
+        /// мишень (<see cref="Anchor"/> по НАЧАЛЬНОЙ энергии электрона —
+        /// передаётся вызывающим, потому что здесь начальная энергия
+        /// неизвестна): интеграл шагов по всему пути торможения обязан дать
+        /// то же число квантов, что <see cref="Photons"/> (поверка
+        /// `BremPathProbe`).
+        /// </summary>
+        public double StepPhotons(double teKev, double stepGCm2, double anchor)
+        {
+            double perGram = Interpolate(this.thinPhotons, teKev);
+            return perGram > 0.0 && stepGCm2 > 0.0 ? perGram * stepGCm2 * anchor : 0.0;
+        }
+
+        /// <summary>Энергия, излучённая на 1 г/см² выше <see cref="MinKev"/>, кэВ — для поверки баланса.</summary>
+        public double StepRadiatedPerGram(double teKev)
+        {
+            return Interpolate(this.thinRadiated, teKev);
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Энергия кванта, рождённого на шаге при энергии
+        /// электрона <paramref name="teKev"/>, по равномерному числу — форма
+        /// тонкой мишени с ближайшего снизу узла, как у <see cref="SampleKev"/>.
+        /// </summary>
+        public double SampleStepKev(double teKev, double u)
+        {
+            return this.SampleFrom(this.thinAbove, teKev, u);
+        }
+
+        double SampleFrom(double[][] table, double teKev, double u)
+        {
+            int j = IndexBelow(teKev);
+            double[] cum = table[j];
+            // cum убывает от 1 (на MinKev) до 0 (на node[j]) — ищем, где u
+            int lo = 0, hi = j;
+            if (hi <= lo)
+            {
+                return this.node[0];
+            }
+
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (cum[mid] >= u)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            double c0 = cum[lo], c1 = cum[hi];
+            double f = c0 > c1 ? (c0 - u) / (c0 - c1) : 0.0;
+            double[] ln = this.logNode;
+            double e0 = ln[lo], e1 = ln[hi];
+            return Math.Exp(e0 + f * (e1 - e0));
+        }
+
+        // ------------------------------------------------------------------
+        // Построение
+        // ------------------------------------------------------------------
+
+        const double ElectronMassKev = 510.99895;
+        const double Avogadro = 6.02214076e23;
+        const double MilliBarnCm2 = 1e-27;
+
+        static ThickTargetBrem Build(GeometryMaterial material,
+                                     ElectronData.Material electron,
+                                     double minKev)
+        {
+            List<int> zs = new List<int>();
+            List<double> weights = new List<double>();
+            List<SeltzerBergerData.Element> tables = new List<SeltzerBergerData.Element>();
+            foreach (KeyValuePair<int, double> pair in material.Fractions)
+            {
+                double mass;
+                if (!(pair.Value > 0.0)
+                    || !MaterialDatabase.AtomicMass.TryGetValue(pair.Key, out mass)
+                    || !(mass > 0.0))
+                {
+                    continue;
+                }
+
+                SeltzerBergerData.Element table = SeltzerBergerData.Of(pair.Key);
+                if (table == null)
+                {
+                    continue;
+                }
+
+                zs.Add(pair.Key);
+                // атомов на грамм вещества, с массовой долей элемента
+                weights.Add(pair.Value * Avogadro / mass);
+                tables.Add(table);
+            }
+
+            if (tables.Count == 0)
+            {
+                return null;
+            }
+
+            double topKev = electron.Energy[electron.Energy.Length - 1] * 1000.0;
+            if (!(topKev > minKev * 2.0))
+            {
+                return null;
+            }
+
+            const int Nodes = 96;
+            double[] node = new double[Nodes];
+            double logLo = Math.Log(minKev), logHi = Math.Log(topKev);
+            for (int i = 0; i < Nodes; i++)
+            {
+                node[i] = Math.Exp(logLo + (logHi - logLo) * i / (Nodes - 1));
+            }
+
+            // Дифференциальный спектр dN/dk в узлах: [T][k], нули при k >= T.
+            double[][] diff = new double[Nodes][];
+            for (int j = 0; j < Nodes; j++)
+            {
+                diff[j] = new double[Nodes];
+                for (int i = 0; i < j; i++)
+                {
+                    diff[j][i] = Differential(zs, weights, tables, electron,
+                                              node[i], node[j]);
+                }
+            }
+
+            double[][] cumulative = new double[Nodes][];
+            double[] photons = new double[Nodes];
+            double[] radiated = new double[Nodes];
+            for (int j = 0; j < Nodes; j++)
+            {
+                double[] cum = new double[Nodes];
+                cumulative[j] = cum;
+                if (j < 2)
+                {
+                    continue;
+                }
+
+                // интегрируем dN/dk от узла к узлу, трапеция по k
+                double total = 0.0, energy = 0.0;
+                double[] above = new double[Nodes];
+                for (int i = j - 1; i >= 0; i--)
+                {
+                    double dk = node[i + 1] - node[i];
+                    double d0 = diff[j][i];
+                    double d1 = i + 1 < j ? diff[j][i + 1] : 0.0;
+                    total += 0.5 * (d0 + d1) * dk;
+                    energy += 0.5 * (d0 * node[i] + d1 * node[i + 1]) * dk;
+                    above[i] = total;
+                }
+
+                photons[j] = total;
+                radiated[j] = energy;
+                if (total > 0.0)
+                {
+                    for (int i = 0; i < j; i++)
+                    {
+                        cum[i] = above[i] / total;
+                    }
+                }
+            }
+
+            // УРОВЕНЬ подтягивается к радиационному выходу ESTAR, форма
+            // остаётся от Зельцера — Бергера. Интеграл сечений по пути
+            // торможения обязан дать ровно Y(T)·T — это одно и то же число,
+            // посчитанное с двух концов, — и подтяжка есть размер невязки, а
+            // не спрятанный коэффициент. Она хранится и печатается пробой.
+            //
+            // Невязка была 1.089 (100 кэВ) … 1.010 (2614) и разобрана
+            // 09.08.2026 (M7). Два кандидата, оба проверены измерением:
+            //
+            //  * обрез пути ниже 10 кэВ — стоил 0.4 % из 8.9 %. Таблица ESTAR
+            //    продлена до 1 кэВ, граница взята у неё же, а не константой;
+            //  * ОЦЕНКА энергии квантов ниже отсечки — и она виновата.
+            //    Считалась формулой при dN/dk ~ 1/k, а настоящий спектр много
+            //    мягче. Теперь считается тем же интегралом
+            //    (<see cref="EnergyBelowCutoff"/>), и невязка стала
+            //    1.030 / 1.015 / 1.010 / 1.005.
+            //
+            // Остаток ~3 % на 100 кэВ — это энергия, излучённая НИЖЕ 1 кэВ,
+            // где кончается таблица пробега ESTAR: интегрировать её не из
+            // чего, и подтяжка честно её и показывает.
+            double[] anchor = new double[Nodes];
+            for (int j = 0; j < Nodes; j++)
+            {
+                anchor[j] = 1.0;
+                if (!(radiated[j] > 0.0))
+                {
+                    continue;
+                }
+
+                double yieldKev = ElectronData.YieldOf(electron, node[j]) * node[j];
+                double below = EnergyBelowCutoff(zs, weights, tables, electron,
+                                                 minKev, node[j]);
+                double whole = radiated[j] + below;
+                if (!(whole > 0.0) || !(yieldKev > 0.0))
+                {
+                    continue;
+                }
+
+                anchor[j] = yieldKev / whole;
+                photons[j] *= anchor[j];
+                radiated[j] *= anchor[j];
+            }
+
+            double[][] thinAbove;
+            double[] thinPhotons, thinRadiated;
+            BuildThin(zs, weights, tables, node, out thinAbove, out thinPhotons, out thinRadiated);
+
+            double[] logNode = new double[node.Length];
+            for (int i = 0; i < node.Length; i++)
+            {
+                logNode[i] = Math.Log(node[i]);
+            }
+
+            return new ThickTargetBrem
+            {
+                MinKev = minKev,
+                node = node,
+                logNode = logNode,
+                cumulative = cumulative,
+                photons = photons,
+                radiatedKev = radiated,
+                anchorFactor = anchor,
+                thinAbove = thinAbove,
+                thinPhotons = thinPhotons,
+                thinRadiated = thinRadiated,
+            };
+        }
+
+        /// <summary>
+        /// Энергия квантов НИЖЕ отсечки — тем же интегралом Зельцера — Бергера,
+        /// каким считается всё остальное, а не формулой.
+        ///
+        /// Раньше здесь стояло `radiated · minKev / (T − minKev)` — оценка при
+        /// k·dN/dk ≈ const, то есть при спектре Крамерса dN/dk ~ 1/k. Именно
+        /// она и была причиной M7: настоящий толстомишенный спектр НАМНОГО
+        /// мягче 1/k (M3 это и измерил — 34.7 % квантов в полосе 5–10 кэВ
+        /// против 23.1 % у Крамерса), поэтому ниже отсечки энергии лежит
+        /// заметно больше, чем давала формула, и подтяжка уровня к ESTAR не
+        /// сходилась к единице: 1.087 на 100 кэВ.
+        ///
+        /// Что это именно она, проверено сканом отсечки: при 5 кэВ подтяжка
+        /// 1.087 / 1.041 / 1.026 / 1.010 (100 / 300 / 662 / 2614 кэВ), при
+        /// 0.2 кэВ — 1.007 / 1.005 / 1.005 / 1.003. То есть с отсечкой уходит
+        /// и невязка, а значит она вся сидела в неучтённом низе.
+        ///
+        /// Нижняя граница — ТА ЖЕ, что у пути интегрирования (нижняя точка
+        /// таблицы пробега): ниже неё считать не из чего.
+        /// </summary>
+        static double EnergyBelowCutoff(List<int> zs, List<double> weights,
+                                        List<SeltzerBergerData.Element> tables,
+                                        ElectronData.Material electron,
+                                        double minKev, double teKev)
+        {
+            double floor = electron.Energy[0] * 1000.0;
+            if (!(minKev > floor) || !(teKev > minKev))
+            {
+                return 0.0;
+            }
+
+            const int Steps = 32;
+            double logLo = Math.Log(floor), logHi = Math.Log(minKev);
+            double energy = 0.0;
+            for (int s = 0; s < Steps; s++)
+            {
+                double f = (s + 0.5) / Steps;
+                double k = Math.Exp(logLo + (logHi - logLo) * f);
+                double dk = k * (logHi - logLo) / Steps;
+                energy += k * Differential(zs, weights, tables, electron, k, teKev) * dk;
+            }
+
+            return energy;
+        }
+
+        /// <summary>
+        /// dN/dk на единицу энергии кванта: интеграл по пути торможения от k
+        /// до T. Сетка интегрирования логарифмическая — сечение и обратная
+        /// тормозная способность меняются по энергии степенным образом.
+        /// </summary>
+        static double Differential(List<int> zs, List<double> weights,
+                                   List<SeltzerBergerData.Element> tables,
+                                   ElectronData.Material electron,
+                                   double kKev, double teKev)
+        {
+            const int Steps = 24;
+            // Нижняя граница пути интегрирования — НИЖНЯЯ ТОЧКА САМОЙ ТАБЛИЦЫ, а
+            // не число в коде. Здесь стояло 10.0 с пояснением «ниже 10 кэВ
+            // пробега ESTAR нет»; с 09.08.2026 он есть — таблица продлена до
+            // 1 кэВ (M7). Константа пережила данные, под которые была написана,
+            // и молча продолжала обрезать интеграл: это и есть вся разница
+            // между «поправили таблицу» и «поправили расчёт».
+            double lo = Math.Max(kKev, electron.Energy[0] * 1000.0);
+            if (!(teKev > lo))
+            {
+                return 0.0;
+            }
+
+            double logLo = Math.Log(lo), logHi = Math.Log(teKev);
+            double sum = 0.0;
+            for (int s = 0; s < Steps; s++)
+            {
+                // середина логарифмического шага
+                double f = (s + 0.5) / Steps;
+                double t = Math.Exp(logLo + (logHi - logLo) * f);
+                double width = t * (logHi - logLo) / Steps;      // dT'
+
+                double gamma = 1.0 + t / ElectronMassKev;
+                double beta2 = 1.0 - 1.0 / (gamma * gamma);
+                if (!(beta2 > 0.0))
+                {
+                    continue;
+                }
+
+                double inverseStopping = InverseStopping(electron, t);
+                if (!(inverseStopping > 0.0))
+                {
+                    continue;
+                }
+
+                double perGram = PerGram(zs, weights, tables, kKev, t, beta2);
+                sum += perGram * inverseStopping * width;
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// dσ/dk на грамм вещества, см²/(г·кэВ), при энергии электрона
+        /// <paramref name="tKev"/> и кванта <paramref name="kKev"/>: Σᵢ wᵢ·(N_A/Aᵢ)·χᵢ·Z²/(β²·k).
+        /// Одно выражение на толстую мишень (<see cref="Differential"/>) и на
+        /// шаг тонкой (<see cref="StepPhotons"/>, `M3`), иначе две формулы
+        /// одной величины разошлись бы молча (`S37`).
+        /// </summary>
+        static double PerGram(List<int> zs, List<double> weights,
+                              List<SeltzerBergerData.Element> tables,
+                              double kKev, double tKev, double beta2)
+        {
+            double kappa = kKev / tKev;
+            double perGram = 0.0;
+            for (int i = 0; i < tables.Count; i++)
+            {
+                double z = zs[i];
+                double chi = tables[i].Chi(tKev, kappa);
+                perGram += weights[i] * chi * MilliBarnCm2 * z * z / (beta2 * kKev);
+            }
+
+            return perGram;
+        }
+
+        /// <summary>
+        /// (`M3`, П44) Таблицы тонкой мишени: у электрона энергии node[j] на
+        /// 1 г/см² пути — квантов выше node[i] и излучённая энергия выше
+        /// MinKev. Трапеция по той же логарифмической сетке k, что у толстой
+        /// мишени; нули при k ≥ T.
+        /// </summary>
+        static void BuildThin(List<int> zs, List<double> weights,
+                              List<SeltzerBergerData.Element> tables,
+                              double[] node, out double[][] thinAbove,
+                              out double[] thinPhotons, out double[] thinRadiated)
+        {
+            int n = node.Length;
+            thinAbove = new double[n][];
+            thinPhotons = new double[n];
+            thinRadiated = new double[n];
+            for (int j = 0; j < n; j++)
+            {
+                double[] cum = new double[n];
+                thinAbove[j] = cum;
+                if (j < 2)
+                {
+                    continue;
+                }
+
+                double t = node[j];
+                double gamma = 1.0 + t / ElectronMassKev;
+                double beta2 = 1.0 - 1.0 / (gamma * gamma);
+                if (!(beta2 > 0.0))
+                {
+                    continue;
+                }
+
+                double total = 0.0, energy = 0.0;
+                double[] above = new double[n];
+                for (int i = j - 1; i >= 0; i--)
+                {
+                    double dk = node[i + 1] - node[i];
+                    double d0 = PerGram(zs, weights, tables, node[i], t, beta2);
+                    double d1 = i + 1 < j ? PerGram(zs, weights, tables, node[i + 1], t, beta2) : 0.0;
+                    total += 0.5 * (d0 + d1) * dk;
+                    energy += 0.5 * (d0 * node[i] + d1 * node[i + 1]) * dk;
+                    above[i] = total;
+                }
+
+                thinPhotons[j] = total;
+                thinRadiated[j] = energy;
+                if (total > 0.0)
+                {
+                    for (int i = 0; i < j; i++)
+                    {
+                        cum[i] = above[i] / total;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// dR/dT — обратная тормозная способность, г/(см²·кэВ), из пробега
+        /// CSDA ESTAR численным дифференцированием по логарифмической
+        /// полуразности.
+        /// </summary>
+        static double InverseStopping(ElectronData.Material electron, double teKev)
+        {
+            double h = 0.02;
+            double up = ElectronData.RangeOf(electron, teKev * Math.Exp(h));
+            double down = ElectronData.RangeOf(electron, teKev * Math.Exp(-h));
+            double dt = teKev * (Math.Exp(h) - Math.Exp(-h));
+            return dt > 0.0 ? (up - down) / dt : 0.0;
+        }
+
+        int IndexBelow(double teKev)
+        {
+            double[] g = this.node;
+            int n = g.Length;
+            if (teKev <= g[1])
+            {
+                return 1;
+            }
+
+            if (teKev >= g[n - 1])
+            {
+                return n - 1;
+            }
+
+            int lo = 0, hi = n - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (g[mid] <= teKev)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            return lo;
+        }
+
+        double Interpolate(double[] values, double teKev)
+        {
+            double[] g = this.node;
+            int n = g.Length;
+            if (teKev <= g[0])
+            {
+                return 0.0;
+            }
+
+            if (teKev >= g[n - 1])
+            {
+                return values[n - 1];
+            }
+
+            int lo = IndexBelow(teKev);
+            int hi = Math.Min(n - 1, lo + 1);
+            if (hi == lo)
+            {
+                return values[lo];
+            }
+
+            double[] ln = this.logNode;
+            double f = (Math.Log(teKev) - ln[lo]) / (ln[hi] - ln[lo]);
+            return values[lo] + f * (values[hi] - values[lo]);
+        }
+    }
+}

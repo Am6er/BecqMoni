@@ -1,0 +1,135 @@
+diff --git a/tools/CORPUS/scripts/check_appwd.ps1 b/tools/CORPUS/scripts/check_appwd.ps1
+index 50346d86..f35a6b82 100644
+--- a/tools/CORPUS/scripts/check_appwd.ps1
++++ b/tools/CORPUS/scripts/check_appwd.ps1
+@@ -1,6 +1,8 @@
+ # Сторож оснастки корпусного прогона отдельной командой (`T63`).
+ #
+-#   pwsh tools/CORPUS/scripts/check_appwd.ps1 [-Bin <сборка>] [-Wd <оснастка>] [-ProbeBuild <пробы>]
++#   & 'tools\CORPUS\scripts\check_appwd.ps1' [-Bin <сборка>] [-Wd <оснастка>] [-ProbeBuild <пробы>]
++#   & 'tools\CORPUS\scripts\check_appwd.ps1' -Callers    # кто зовёт пробу мимо сторожа (T68/T91)
++#   & 'tools\CORPUS\scripts\check_appwd.ps1' -SelfTest   # доезжают ли ключи -Extra (T84)
+ #
+ # Коды возврата: 0 — оснастка сошлась с источниками по sha256, по временам
+ # сборок, по числу записей библиотеки нуклидов, не несёт постороннего
+@@ -11,16 +13,112 @@
+ #
+ # Весь разбор — в `appwd_plan.ps1`: там же лежит и список «что откуда кладётся»,
+ # по которому оснастку СОБИРАЮТ. Двух списков нет нарочно (урок `T61`).
++#
++# ⛔ ДВА РЕЖИМА СВЕРХ ОСНАСТКИ, ЗАВЕДЕНЫ 05.09.2026.
++#   `-Callers` (`T68`, `T91`) — сторож ПУТИ ЗАПУСКА. Сторож оснастки стережёт
++#     каталог, а щель `T68` в другом: документированная команда `cd wd_app;
++#     .\CorpusFsaProbe.exe …` идёт мимо него, и по ней же написан
++#     автоматический потребитель `sweep_s57.ps1`. Правило, записанное словами,
++#     словами и осталось; здесь оно спрашивается машинно и возвращает ЧИСЛО.
++#   `-SelfTest` (`T84`) — приёмка передачи ключей: сколько ключей доезжает до
++#     потребителя при трёх способах запуска (один ключ, два, три) и отказывает
++#     ли мерка склейки на заведомо плохом входе. Приёмка, которая проходит
++#     всегда, ничего не меряет, — поэтому плохие входы подбрасываются тут же.
+ param(
+     [string]$Bin = '',
+     [string]$Wd  = '',
+-    [string]$ProbeBuild = ''
++    [string]$ProbeBuild = '',
++    # ⛔ `S138`: склад матриц ПЛЕЧА. Без этого ключа сторож сверял клейма только
++    #    со штатным складом корпуса — и на оснастке малой базы (`wd_mini16`,
++    #    склад `tools\effmaker\out\mini16`) выдавал 44 «НЕТ В ОСНАСТКЕ [матрица
++    #    отклика]» и «перекладка: РАСХОЖДЕНИЕ» на ровном месте. Измерено
++    #    05.09.2026. У `mk_appwd.ps1` и `run_appwd.ps1` ключ был, у сторожа
++    #    отдельной командой — нет: то есть проверить плечо отдельно было нечем.
++    [string]$Store = '',
++    [switch]$Callers,
++    [switch]$SelfTest
+ )
+ $ErrorActionPreference = 'Stop'
+ . (Join-Path $PSScriptRoot 'appwd_plan.ps1')
+ 
+ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
++
++if ($Callers) {
++    $all   = @(Test-AppWdCallers -Repo $repo)
++    $found = @($all | Where-Object { $_.Deny })
++    $notes = @($all | Where-Object { -not $_.Deny })
++    Write-Host ""
++    Write-Host "=== СТОРОЖ ПУТИ ЗАПУСКА (T68/T91) ===" -ForegroundColor Cyan
++    Write-Host "  дерево   : $repo\tools (журналы не в счёт: они пишут о прошлом, а не учат)"
++    foreach ($x in $notes) {
++        Write-Host ("  ⚠ {0}:{1}  {2}" -f $x.File, $x.Line, $x.Why) -ForegroundColor Yellow
++    }
++    if ($found.Count -eq 0) {
++        Write-Host "  ЧИСТО: пробу зовут только через run_appwd.ps1, обёртки — оператором вызова" -ForegroundColor Green
++        Write-Host ""
++        exit 0
++    }
++    Write-Host ""
++    Write-Host ("⛔⛔ ОТКАЗ: ПРОБУ ЗОВУТ МИМО СТОРОЖА — находок {0}" -f $found.Count) -ForegroundColor Red
++    foreach ($x in $found) {
++        Write-Host ("  {0}:{1}" -f $x.File, $x.Line) -ForegroundColor Red
++        Write-Host ("      {0}" -f $x.Text) -ForegroundColor Red
++        Write-Host ("      {0}" -f $x.Why) -ForegroundColor Red
++    }
++    Write-Host ""
++    Write-Host "  Чинится так: прогон — & 'tools\CORPUS\scripts\run_appwd.ps1' -Out <каталог> [-Extra …]," -ForegroundColor Red
++    Write-Host "  а строка, которой правило не писано, метится словом appwd-ok прямо в ней." -ForegroundColor Red
++    Write-Host ""
++    exit $found.Count
++}
++
++if ($SelfTest) {
++    $rows = @(Test-AppWdExtraPassing)
++    $bad = @($rows | Where-Object { $_.Got -ne $_.Want })
++    Write-Host ""
++    Write-Host "=== ПРИЁМКА ПЕРЕДАЧИ КЛЮЧЕЙ -Extra (T84) ===" -ForegroundColor Cyan
++    foreach ($r in $rows) {
++        $mark = if ($r.Got -eq $r.Want) { 'ok  ' } else { '⛔ ' }
++        Write-Host ("  {0} ключ(ей) {1}, {2,-38} доехало {3} (ждали {4})" -f $mark, $r.Keys, $r.How, $r.Got, $r.Want)
++    }
++    # ⛔ ПОДБРОШЕННЫЕ ВХОДЫ. Без них приёмка проходила бы и с выброшенной меркой.
++    $mustDeny = @(
++        @("'--band=whole','--only=x'"),           # склеенный токен целиком
++        @('--only=ASN16 Cs137'),                  # пробел внутри
++        @('--band=whole --only=x'),               # два ключа в одном
++        @('band=whole')                           # без --
++    )
++    $mustPass = @(
++        @('--band=whole'),
++        @('--band=whole', '--only=ASN16_Cs137'),
++        @('--band=whole', '--only=ASN16_Cs137', '--share-thr=0.30'),
++        @('--groups=G1S,ASN16')                   # запятая сама по себе законна
++    )
++    foreach ($x in $mustDeny) {
++        $g = @(Get-AppWdGluedExtra -Extra $x)
++        $ok = $g.Count -gt 0
++        Write-Host ("  {0} плохой вход {1} -> находок {2}" -f $(if ($ok) { 'ok  ' } else { '⛔ ' }), ($x -join ' '), $g.Count)
++        if (-not $ok) { $bad += "плохой вход прошёл: $($x -join ' ')" }
++    }
++    foreach ($x in $mustPass) {
++        $g = @(Get-AppWdGluedExtra -Extra $x)
++        $ok = $g.Count -eq 0
++        Write-Host ("  {0} хороший вход {1} -> находок {2}" -f $(if ($ok) { 'ok  ' } else { '⛔ ' }), ($x -join ' '), $g.Count)
++        if (-not $ok) { $bad += "хороший вход отвергнут: $($x -join ' ')" }
++    }
++    Write-Host ""
++    if ($bad.Count -eq 0) {
++        Write-Host "  ПРИЁМКА ПРОШЛА: ключи доезжают, склейка ловится, законные ключи не трогаются" -ForegroundColor Green
++        Write-Host ""
++        exit 0
++    }
++    Write-Host ("⛔⛔ ПРИЁМКА НЕ ПРОШЛА: {0}" -f $bad.Count) -ForegroundColor Red
++    Write-Host ""
++    exit $bad.Count
++}
++
+ if (-not $Wd) { $Wd = Join-Path $PSScriptRoot 'wd_app' }
++$Wd = Resolve-AppWdPath $Wd
+ # Из какой сборки оснастку собирали, знает её собственная отметка: иначе
+ # оснастку из `bin\Release_Codex` сторож сверял бы с `bin\Debug_Codex`
+ # и отказывал бы на ровном месте. Отметки нет — оснастка либо не собиралась,
+@@ -34,5 +132,5 @@ if (-not $Bin) {
+ }
+ if (-not $ProbeBuild -and $st -and $st.probes) { $ProbeBuild = [string]$st.probes }
+ 
+-$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild
++$plan = New-AppWdPlanOrDie -Repo $repo -Bin $Bin -Wd $Wd -ProbeBuild $ProbeBuild -Store $Store
+ exit (Invoke-AppWdGuard -Plan $plan)

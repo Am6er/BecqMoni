@@ -2,7 +2,7 @@ using System;
 
 namespace BecquerelMonitor.Utils
 {
-    internal struct PseudoVoigtParameters
+    public struct PseudoVoigtParameters
     {
         public double GaussianSigma;
         public double LorentzGamma;
@@ -12,7 +12,7 @@ namespace BecquerelMonitor.Utils
         public double CenterValue;
     }
 
-    internal static class PseudoVoigtProfile
+    public static class PseudoVoigtProfile
     {
         public const double FwhmToSigma = 2.3548200450309493;
         const double SqrtTwoPi = 2.5066282746310005;

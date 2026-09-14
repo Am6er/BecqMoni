@@ -1,0 +1,22 @@
+  AS80x80_spline_anchors.csv строка 24: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_anchors.csv строка 25: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_anchors.csv строка 26: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_anchors.csv строка 27: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_components.csv строка 31: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_limits.csv строка 5: ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176'] | ['AS80_Lu176', 'AS80x80', 'known', 'Lu-176']
+  AS80x80_spline_runs.csv строка 10: ['AS80_Lu176', 'AS80x80', 'known', '1.9489'] | ['AS80_Lu176', 'AS80x80', 'known', '1.9489']
+  ASN16_spline_anchors.csv строка 2: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 3: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 4: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 5: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 6: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 7: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 8: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_anchors.csv строка 9: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  строк не поровну: ASN16_spline_components.csv 10
+  строк не поровну: G1S16_spline_components.csv 41
+  строк не поровну: G1S16_spline_components.csv 42
+  строк не поровну: G1S16_spline_components.csv 43
+  строк не поровну: G1S24_spline_components.csv 37
+  строк не поровну: G1S24_spline_components.csv 38
+csv 16, строк 455, расхождений вне времени 265, только во времени 38

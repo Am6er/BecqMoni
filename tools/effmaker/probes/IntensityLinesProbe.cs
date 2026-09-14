@@ -1,0 +1,356 @@
+using BecquerelMonitor;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+
+namespace IntensityLinesProbe
+{
+    /// <summary>
+    /// Вертикальные линии интенсивностей на графике спектра после переезда из
+    /// наборов зон в наборы нуклидов.
+    ///
+    /// Рисуются они по ВЫБРАННОМУ НАБОРУ: энергия даёт положение, выход —
+    /// высоту, цвет нуклида — цвет. Проверять это глазами дорого и ненадёжно:
+    /// линия, уехавшая на десяток пикселей, на глаз неотличима от правильной, а
+    /// пропавшая — от «в наборе её нет». Поэтому чертёж рисуется в картинку и
+    /// разбирается по пикселям.
+    ///
+    ///     intensityprobe [куда положить png]
+    ///
+    /// Проверяется:
+    ///
+    /// 1. ПОЛОЖЕНИЕ И ВЫСОТА каждой линии против независимо посчитанных чисел;
+    /// 2. ЦВЕТ — свой у каждого нуклида, а не общий на набор;
+    /// 3. ОТБОР: погашенный нуклид, нуклид без выхода и нуклид чужого набора не
+    ///    рисуются;
+    /// 4. РЕШАЮТ ДВОЕ — галка набора и выбор набора в панели поиска пиков:
+    ///    * галки сняты — не рисуется ничего, что бы ни было выбрано;
+    ///    * выбраны «все нуклиды» — рисуются все наборы с галкой, каждый со
+    ///      своей нормировкой (иначе линии не появлялись бы в самом обычном
+    ///      положении списка);
+    ///    * выбран конкретный набор — рисуется ТОЛЬКО он, даже если галки
+    ///      стоят у нескольких (в спектре тория линии лютеция и радия только
+    ///      мешают);
+    /// 5. ЛИНИЯ ЗА КРАЕМ КАРТИНКИ не мешает следующим за ней.
+    ///
+    /// Ожидание: «ВСЕ СОШЛИСЬ».
+    /// </summary>
+    static class Program
+    {
+        const int Width = 700;
+        const int Height = 200;
+
+        [STAThread]
+        static int Main(string[] args)
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+            // ⛔ Культура ЦЕЛИКОМ инвариантная, а не клон системной с подменённым
+            //    разделителем (`T245`): клон чинил ПЕЧАТЬ и оставлял РАЗБОР
+            //    системным — обе стороны чинятся вместе (приказ Amber 05.09.2026).
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
+            int bad = 0;
+            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
+
+            // Набор заводится СВОЙ, а не берётся из конфига: проба обязана
+            // знать ожидаемые числа наперёд, а чужой набор меняется без неё.
+            // В файл ничего не пишется — SaveDefinitionFile не зовётся.
+            NuclideSet set = new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "~проба", ShowIntensityLines = true
+            };
+            NuclideSet other = new NuclideSet { Id = Guid.NewGuid(), Name = "~проба-чужой" };
+            manager.NuclideSets.Add(set);
+            manager.NuclideSets.Add(other);
+
+            NuclideDefinition strong = Line(manager, set, "Pr-100", 300.0, 100.0, Color.Red);
+            NuclideDefinition half = Line(manager, set, "Pr-101", 100.0, 50.0, Color.Lime);
+            NuclideDefinition weak = Line(manager, set, "Pr-102", 600.0, 25.0, Color.Blue);
+            NuclideDefinition hidden = Line(manager, set, "Pr-103", 200.0, 80.0, Color.Magenta);
+            hidden.Visible = false;
+            Line(manager, set, "Pr-104", 400.0, 0.0, Color.Cyan);
+            NuclideDefinition stranger = Line(manager, other, "Pr-105", 500.0, 90.0, Color.Yellow);
+            // Чужой набор с галкой рисуется ТОЖЕ и со своей нормировкой: 20 %
+            // при максимуме 40 % в своём наборе дают половину, а не пятую
+            // часть, как было бы при общем максимуме в 100 %.
+            NuclideSet second = new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "~проба-второй", ShowIntensityLines = true
+            };
+            manager.NuclideSets.Add(second);
+            NuclideDefinition secondTop = Line(manager, second, "Pr-108", 200.0, 40.0, Color.Orange);
+            NuclideDefinition secondHalf = Line(manager, second, "Pr-109", 250.0, 20.0, Color.Aqua);
+            // За правым краем картинки: раньше такая линия гасила все следующие.
+            Line(manager, set, "Pr-106", 5000.0, 70.0, Color.Gray);
+            NuclideDefinition afterFar = Line(manager, set, "Pr-107", 650.0, 10.0, Color.White);
+
+            // «Все нуклиды» — обычное положение списка в панели поиска пиков.
+            // Ставится явно: менеджер один на приложение, и чужой выбор,
+            // оставшийся от конфига, тихо погасил бы половину проверок ниже.
+            manager.ActiveSet = null;
+
+            using (EnergySpectrumView view = Chart())
+            using (Bitmap image = new Bitmap(Width, Height))
+            {
+                Draw(view, image);
+
+                // Высота: 0.8 от поля на самом сильном выходе набора, дальше
+                // пропорционально. Числа считаются здесь заново, а не берутся у
+                // отрисовки, — иначе сверялась бы формула сама с собой.
+                bad += Line(image, "Pr-100 300 кэВ, выход 100 %", 300, strong.NuclideColor.Color, 0.8);
+                bad += Line(image, "Pr-101 100 кэВ, выход 50 %", 100, half.NuclideColor.Color, 0.4);
+                bad += Line(image, "Pr-102 600 кэВ, выход 25 %", 600, weak.NuclideColor.Color, 0.2);
+                bad += Line(image, "Pr-107 650 кэВ, после ушедшей за край", 650, afterFar.NuclideColor.Color, 0.08);
+
+                // Второй набор с галкой рисуется тоже, и нормировка у него
+                // СВОЯ: 40 % — его максимум, значит полный рост, а 20 % —
+                // половина. При общем максимуме в 100 % вышло бы 0.32 и 0.16.
+                bad += Line(image, "второй набор: 40 % — его максимум", 200, secondTop.NuclideColor.Color, 0.8);
+                bad += Line(image, "второй набор: 20 % — его половина", 250, secondHalf.NuclideColor.Color, 0.4);
+
+                bad += Missing(image, "погашенный нуклид не рисуется", 200, hidden.NuclideColor.Color);
+                bad += Missing(image, "нуклид без выхода не рисуется", 400, Color.Cyan);
+                bad += Missing(image, "набор без галки не рисуется", 500, stranger.NuclideColor.Color);
+
+                if (args.Length > 0)
+                {
+                    image.Save(args[0], System.Drawing.Imaging.ImageFormat.Png);
+                    Console.WriteLine("  чертёж: {0}", args[0]);
+                }
+            }
+
+            // Те же наборы с теми же галками, но в панели поиска пиков выбран
+            // ОДИН из них. Ровно то, на чём это поймал Amber: галки стояли у
+            // трёх наборов, выбран был Th-232, а на спектре рисовались все три.
+            manager.ActiveSet = second;
+            using (EnergySpectrumView view = Chart())
+            using (Bitmap image = new Bitmap(Width, Height))
+            {
+                Draw(view, image);
+                Console.WriteLine();
+                Console.WriteLine("=== выбран один набор ===");
+                bad += Line(image, "выбранный набор рисуется", 200, secondTop.NuclideColor.Color, 0.8);
+                bad += Line(image, "и вторая его линия", 250, secondHalf.NuclideColor.Color, 0.4);
+                bad += Missing(image, "чужой набор с галкой не рисуется", 300, strong.NuclideColor.Color);
+                bad += Missing(image, "и вторая его линия", 100, half.NuclideColor.Color);
+            }
+
+            // Выбран набор БЕЗ галки — линий нет вовсе. Галка остаётся
+            // выключателем: выбор набора её не подменяет.
+            manager.ActiveSet = other;
+            using (EnergySpectrumView view = Chart())
+            using (Bitmap image = new Bitmap(Width, Height))
+            {
+                Draw(view, image);
+                bad += Same("выбран набор без галки: линий нет", 0, Painted(image));
+            }
+
+            // Те же наборы с той же начинкой, но галки сняты. Выбор при этом
+            // возвращён на «все нуклиды»: проверяется, что одной галки
+            // достаточно, чтобы погасить всё.
+            manager.ActiveSet = null;
+            set.ShowIntensityLines = false;
+            second.ShowIntensityLines = false;
+            using (EnergySpectrumView view = Chart())
+            using (Bitmap image = new Bitmap(Width, Height))
+            {
+                Draw(view, image);
+                bad += Same("галки сняты: линий нет", 0, Painted(image));
+            }
+
+            bad += CheckPersistence();
+
+            Console.WriteLine();
+            Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
+            return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Галка живёт у набора и обязана пережить файл. Отдельно — файл БЕЗ
+        /// неё: такие у всех, кто заводил наборы раньше, и читаться они должны
+        /// как «линии не показывать», а не отказом.
+        /// </summary>
+        static int CheckPersistence()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== хранение галки ===");
+            int bad = 0;
+
+            NuclideDefinitionFile file = new NuclideDefinitionFile();
+            file.NuclideSets.Add(new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "с линиями", ShowIntensityLines = true
+            });
+            file.NuclideSets.Add(new NuclideSet
+            {
+                Id = Guid.NewGuid(), Name = "без линий", ShowIntensityLines = false
+            });
+
+            System.Xml.Serialization.XmlSerializer serializer =
+                new System.Xml.Serialization.XmlSerializer(typeof(NuclideDefinitionFile));
+            System.Text.StringBuilder text = new System.Text.StringBuilder();
+            using (System.IO.StringWriter writer = new System.IO.StringWriter(text))
+            {
+                serializer.Serialize(writer, file);
+            }
+
+            NuclideDefinitionFile back;
+            using (System.IO.StringReader reader = new System.IO.StringReader(text.ToString()))
+            {
+                back = (NuclideDefinitionFile)serializer.Deserialize(reader);
+            }
+
+            bad += Same("включённая пережила запись", true, back.NuclideSets[0].ShowIntensityLines);
+            bad += Same("снятая пережила запись", false, back.NuclideSets[1].ShowIntensityLines);
+
+            string legacy = text.ToString()
+                .Replace("<ShowIntensityLines>true</ShowIntensityLines>", "")
+                .Replace("<ShowIntensityLines>false</ShowIntensityLines>", "");
+            NuclideDefinitionFile old;
+            using (System.IO.StringReader reader = new System.IO.StringReader(legacy))
+            {
+                old = (NuclideDefinitionFile)serializer.Deserialize(reader);
+            }
+
+            bad += Same("старый файл: наборов", 2, old.NuclideSets.Count);
+            bad += Same("старый файл: линии не показываются", false, old.NuclideSets[0].ShowIntensityLines);
+            return bad;
+        }
+
+        static NuclideDefinition Line(NuclideDefinitionManager manager, NuclideSet set,
+                                      string name, double energy, double intensity, Color color)
+        {
+            NuclideDefinition definition = new NuclideDefinition
+            {
+                Name = name,
+                Energy = energy,
+                Intencity = intensity,
+                Visible = true,
+                NuclideColor = new SerializableColor(color)
+            };
+            definition.Sets.Add(set.Id);
+            manager.NuclideDefinitions.Add(definition);
+            return definition;
+        }
+
+        /// <summary>
+        /// График с плоской шкалой: энергия равна пикселю, поля нет, масштаб
+        /// линейный. Так ожидаемые числа считаются в уме, и проба меряет
+        /// отрисовку, а не арифметику прокрутки.
+        /// </summary>
+        static EnergySpectrumView Chart()
+        {
+            EnergySpectrumView view = new EnergySpectrumView();
+            Set(view, "height", Height);
+            Set(view, "left", 0);
+            Set(view, "scrollX", 0);
+            Set(view, "horizontalScale", 1.0);
+            Set(view, "pixelPerEnergy", 1.0);
+            Set(view, "energyViewOffset", 0.0);
+            Set(view, "horizontalUnit", HorizontalUnit.Energy);
+            Set(view, "verticalScaleType", VerticalScaleType.LinearScale);
+            return view;
+        }
+
+        static void Draw(EnergySpectrumView view, Bitmap image)
+        {
+            using (Graphics g = Graphics.FromImage(image))
+            {
+                g.Clear(Color.Black);
+                MethodInfo method = typeof(EnergySpectrumView).GetMethod("ShowNuclideSetIntensities",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                if (method == null)
+                {
+                    throw new InvalidOperationException("нет EnergySpectrumView.ShowNuclideSetIntensities");
+                }
+
+                method.Invoke(view, new object[] { g });
+            }
+        }
+
+        /// <summary>Верх линии в столбце: пикселей у пера два, ищем в трёх.</summary>
+        static int Top(Bitmap image, int x, Color color)
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int column = x + dx;
+                    if (column < 0 || column >= image.Width)
+                    {
+                        continue;
+                    }
+
+                    Color pixel = image.GetPixel(column, y);
+                    if (pixel.R == color.R && pixel.G == color.G && pixel.B == color.B)
+                    {
+                        return y;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        static int Line(Bitmap image, string what, int x, Color color, double share)
+        {
+            int top = Top(image, x, color);
+            int expected = (int)((1.0 - share) * (Height - 1));
+            bool ok = top >= 0 && Math.Abs(top - expected) <= 2;
+            Console.WriteLine("  {0,-46} {1} верх {2}{3}", what, ok ? "=" : "!!", top,
+                              ok ? "" : string.Format(" вместо {0}", expected));
+            return ok ? 0 : 1;
+        }
+
+        static int Missing(Bitmap image, string what, int x, Color color)
+        {
+            int top = Top(image, x, color);
+            bool ok = top < 0;
+            Console.WriteLine("  {0,-46} {1}{2}", what, ok ? "=" : "!!",
+                              ok ? "" : string.Format(" нарисован, верх {0}", top));
+            return ok ? 0 : 1;
+        }
+
+        static int Painted(Bitmap image)
+        {
+            int count = 0;
+            for (int x = 0; x < image.Width; x++)
+            {
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Color pixel = image.GetPixel(x, y);
+                    if (pixel.R != 0 || pixel.G != 0 || pixel.B != 0)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        static void Set(object target, string name, object value)
+        {
+            FieldInfo field = target.GetType().GetField(name,
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (field == null)
+            {
+                throw new InvalidOperationException("нет поля " + name);
+            }
+
+            field.SetValue(target, value);
+        }
+
+        static int Same(string what, object expected, object got)
+        {
+            bool ok = Equals(expected, got);
+            Console.WriteLine("  {0,-46} {1} {2}{3}", what, ok ? "=" : "!!", got,
+                              ok ? "" : string.Format(" вместо {0}", expected));
+            return ok ? 0 : 1;
+        }
+    }
+}

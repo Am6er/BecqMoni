@@ -2,6 +2,7 @@
 using MathNet.Numerics;
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -77,10 +78,57 @@ namespace BecquerelMonitor
             return true;
         }
 
+        /// <summary>
+        /// Годна ли шкала: степень, длина набора коэффициентов, монотонность и
+        /// разумность энергий по всем каналам. Ответ читают ВСЕ 23 места
+        /// дерева, где шкала берётся из файла или из подгонки, — ввоз N42,
+        /// открытие документа, сохранение конфигурации прибора, вычитание фона,
+        /// стабилизатор пиков, график калибровки.
+        ///
+        /// ⛔ ЗАСЛОН ОТ НЕ-ЧИСЕЛ СТОИТ ЗДЕСЬ, А НЕ У ВЫЗЫВАЮЩИХ (полоса F48,
+        /// 06.09.2026; найдено полосой F44). Измерено на собранном коде:
+        /// <c>[NaN, NaN]</c> и <c>[NaN, +∞]</c> эта проверка объявляла ГОДНЫМИ.
+        /// Причина в самом языке: любое сравнение с <c>NaN</c> ложно, поэтому
+        /// ни <c>Coefficients[1] == 0</c>, ни <c>prevEnrg &gt;= 100000.0</c>,
+        /// ни <c>prevEnrg &gt; ChannelToEnergy(i)</c> не срабатывают, и цикл
+        /// проходит насквозь. Человек получал это двумя точками калибровки на
+        /// ОДНОМ канале: решатель отдаёт вырожденной матрице <c>NaN</c>,
+        /// «Рассчитать» молча принимало шкалу, конфигурация метилась
+        /// изменённой и <c>NaN</c> уезжал в файл прибора.
+        ///
+        /// Место выбрано счётом, а не вкусом: коэффициенты приходят из файла
+        /// или из подгонки у ВСЕХ 23 вызывающих, то есть заслон у вызывающих
+        /// пришлось бы ставить 23 раза и держать в согласии; и ни одному из
+        /// них шкала, отображающая каждый канал в <c>NaN</c>, не годна — стало
+        /// быть неверен ОТВЕТ, а не места, где его спрашивают.
+        ///
+        /// ⚠ Заслон стоит ПОСЛЕ строк, считающих <c>maxChannels</c> и
+        /// <c>maxEnergy</c>: их побочное действие нужно тем вызывающим, кто
+        /// зовёт проверку ради него и ответ отбрасывает
+        /// (<c>EfficiencyCurveIo.LoadResultData</c>, пробы), и на годном входе
+        /// поведение обязано остаться прежним до бита.
+        /// </summary>
         public bool CheckCalibration(int channels = 8192)
         {
             this.maxChannels = channels;
             if (this.maxEnergy == -1 || this.dirty) { this.maxEnergy = this.ChannelToEnergy(this.maxChannels); }
+
+            // Проверяются ВСЕ коэффициенты набора, а не только участвующие в
+            // текущей степени: длина набора у степеней 1..4 закреплена ниже
+            // (`Coefficients.Length != order + 1` — отказ), так что разницы
+            // нет, а набор, пришедший из файла с лишним `NaN` в хвосте,
+            // остаётся отвергнутым и после `Downgrade`.
+            if (this.coefficients != null)
+            {
+                for (int i = 0; i < this.coefficients.Length; i++)
+                {
+                    if (double.IsNaN(this.coefficients[i]) || double.IsInfinity(this.coefficients[i]))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             if (this.polynomialOrder == 1)
             {
                 if (this.Coefficients.Length != 2 || this.Coefficients[1] == 0)
@@ -162,6 +210,23 @@ namespace BecquerelMonitor
             {
                 return this.coefficients[2] * Math.Pow(n, 2) + this.coefficients[1] * n + this.coefficients[0];
             }
+            // Степени выше четвёртой: раньше они молча проваливались в линейную
+            // ветку ниже. Спектр с калибровкой 5-й степени (их пишет SpectraLine
+            // ЛСРМ) открывался с неверной шкалой по всему диапазону и без единого
+            // сообщения. Отбрасывание старшего члена не спасает: на канале 8192
+            // ошибка 53 кэВ на германии и более 14 000 кэВ на изогнутой
+            // NaI-калибровке. Считаем схемой Горнера по всем коэффициентам,
+            // которые реально есть.
+            if (this.polynomialOrder > 4)
+            {
+                int top = Math.Min(this.polynomialOrder, this.coefficients.Length - 1);
+                double value = 0.0;
+                for (int i = top; i >= 0; i--)
+                {
+                    value = value * n + this.coefficients[i];
+                }
+                return value;
+            }
             return this.coefficients[1] * n + this.coefficients[0];
         }
 
@@ -217,6 +282,45 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ Калибровка непригодна: обратного отображения энергии в канал у
+        /// неё НЕТ. Здесь стояли два голых <c>MessageBox.Show</c>, и они
+        /// ВЕШАЛИ БЕЗОКОННЫЙ ПРОГОН (`S100`) — измерено 27.08.2026 на
+        /// собранном коде, плечи <c>poly-degenerate</c> и
+        /// <c>poly-discriminant</c>: процесс убит по сроку 20 с, класс окна
+        /// <c>#32770</c>, заголовок пуст.
+        ///
+        /// ⛔ Без окон это ОТКАЗ, а не строка в поток ошибок, и вот почему.
+        /// Оба места кончаются <c>return 0</c>, то есть «канал ноль» — и
+        /// вызывающий не отличает его от честного нуля: сюда ходят и разметка
+        /// линий библиотеки, и поиск пиков, и полноспектральное разложение.
+        /// Молча продолжив, прогон сложит всю библиотеку в нулевой канал и
+        /// выдаст ЧИСЛА, а числа с непригодной калибровкой — не «хуже», а
+        /// чужие. Читатель у отказа — код возврата пробы.
+        ///
+        /// ⚠ Ухудшения по сравнению с прежним поведением тут быть не может:
+        /// любой вход, который сегодня бросает, вчера ВИСЕЛ НАСМЕРТЬ. В окнах
+        /// всё как было — то же модальное окно и тот же <c>return 0</c>.
+        ///
+        /// ⚠ Заголовок окна: прежде его не было вовсе (<c>MessageBox.Show</c>
+        /// об одном доводе), теперь общий <c>ErrorDialogTitle</c> — как у
+        /// прочих сообщений, идущих через <see cref="AppUi"/>.
+        /// </summary>
+        void UnusableCalibration(string why, double enrg)
+        {
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: the energy calibration cannot be inverted and there is no UI to report it to: "
+                    + why + "; requested energy " + enrg.ToString("R", CultureInfo.InvariantCulture) + " keV, coefficients ["
+                    + string.Join(", ", Array.ConvertAll(this.coefficients, v => v.ToString("R", CultureInfo.InvariantCulture)))
+                    + "]. Continuing would return channel 0, which is indistinguishable from an honest zero. "
+                    + Resources.CalibrationFunctionError);
+            }
+            AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle,
+                System.Windows.Forms.MessageBoxIcon.Hand);
+        }
+
         double EnrgToChannel(double enrg, int maxCh = 8192)
         {
             if (enrg < 0 || enrg < this.coefficients[0])
@@ -241,7 +345,8 @@ namespace BecquerelMonitor
                 {
                     if (b == 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        this.UnusableCalibration("polynomial order 2 with both the quadratic and the linear "
+                            + "coefficient equal to zero: energy does not depend on the channel at all", enrg);
                         return 0;
                     }
                     return - c / b;
@@ -251,7 +356,8 @@ namespace BecquerelMonitor
                     double discriminant = Math.Pow(b, 2.0) - 4.0 * a * c;
                     if (discriminant < 0.0)
                     {
-                        System.Windows.Forms.MessageBox.Show(Resources.CalibrationFunctionError);
+                        this.UnusableCalibration("polynomial order 2, negative discriminant (" + discriminant.ToString("R", CultureInfo.InvariantCulture)
+                            + "): NO channel of this calibration carries the requested energy", enrg);
                         return 0;
                     }
                     double sqrtD = Math.Sqrt(discriminant);
@@ -301,7 +407,34 @@ namespace BecquerelMonitor
                 }
             }
 
-            throw new NotImplementedException(String.Format(Resources.ERRUnsupportedCalibrationMethod, this.polynomialOrder));
+            // Обратное преобразование для степеней выше четвёртой. Раньше здесь
+            // летело исключение, а DetectPeak вызывается под catch-all в
+            // DCPeakDetectionView — то есть на спектре с калибровкой 5-й степени
+            // поиск пиков молча не работал вовсе. Корень ищем тем же способом,
+            // что для 3-й и 4-й степени.
+            if (this.polynomialOrder > 4)
+            {
+                int top = Math.Min(this.polynomialOrder, this.coefficients.Length - 1);
+                Func<double, double> poly = x =>
+                {
+                    double value = 0.0;
+                    for (int i = top; i >= 0; i--)
+                    {
+                        value = value * x + this.coefficients[i];
+                    }
+                    return value - enrg;
+                };
+                try
+                {
+                    return FindRoots.OfFunction(poly, 0, maxCh);
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+
+            throw new NotImplementedException(String.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedCalibrationMethod, this.polynomialOrder));
         }
 
         // Token: 0x06000735 RID: 1845 RVA: 0x00029EF8 File Offset: 0x000280F8
@@ -345,7 +478,7 @@ namespace BecquerelMonitor
                     }
                     if (i > 1)
                     {
-                        xpow = "*x^" + i.ToString();
+                        xpow = "*x^" + i.ToString(CultureInfo.InvariantCulture);
                         if (this.coefficients[i] > 0 && i != this.coefficients.Length - 1)
                         {
                             sign = "+";
@@ -356,7 +489,7 @@ namespace BecquerelMonitor
                         }
                     }
 
-                    result = sign + this.coefficients[i].ToString() + xpow + result;
+                    result = sign + this.coefficients[i].ToString(CultureInfo.InvariantCulture) + xpow + result;
                 }
             }
             return "y = " + result;

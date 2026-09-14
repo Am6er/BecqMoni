@@ -1,5 +1,8 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using XPTable.Events;
 using XPTable.Models;
@@ -39,13 +42,13 @@ namespace BecquerelMonitor
                 visibilitycellStyle.BackColor = System.Drawing.Color.LightGray;
                 if (nuclideDefinition.Visible) {
                     row.Cells.Add(new Cell(nuclideDefinition.Name));
-                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy));
-                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(CultureInfo.InvariantCulture), nuclideDefinition.HalfLife));
                 } else
                 {
                     row.Cells.Add(new Cell(nuclideDefinition.Name, visibilitycellStyle));
-                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(), nuclideDefinition.Energy, visibilitycellStyle));
-                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(), nuclideDefinition.HalfLife, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy, visibilitycellStyle));
+                    row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(CultureInfo.InvariantCulture), nuclideDefinition.HalfLife, visibilitycellStyle));
                 }
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
@@ -63,9 +66,10 @@ namespace BecquerelMonitor
         {
             this.contentsLoading = true;
             this.textBox1.Text = nuclide.Name;
-            this.doubleTextBox1.Text = nuclide.Energy.ToString();
-            this.doubleTextBox2.Text = nuclide.HalfLife.ToString();
-            this.intensityTextBox.Text = nuclide.Intencity.ToString();
+            this.chainTextBox.Text = nuclide.Chain;
+            this.doubleTextBox1.Text = nuclide.Energy.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox2.Text = nuclide.HalfLife.ToString(CultureInfo.InvariantCulture);
+            this.intensityTextBox.Text = nuclide.Intencity.ToString(CultureInfo.InvariantCulture);
             this.textBox2.Text = nuclide.Note;
             this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
             this.checkBox1.Checked = nuclide.Visible;
@@ -79,6 +83,7 @@ namespace BecquerelMonitor
             try
             {
                 nuclide.Name = this.textBox1.Text;
+                nuclide.Chain = this.chainTextBox.Text.Trim();
                 nuclide.Energy = this.doubleTextBox1.GetValue();
                 nuclide.HalfLife = this.doubleTextBox2.GetValue();
                 nuclide.Intencity = this.intensityTextBox.GetValue();
@@ -97,11 +102,49 @@ namespace BecquerelMonitor
         void button3_Click(object sender, EventArgs e)
         {
             NuclideDefinition item = new NuclideDefinition();
-            this.manager.NuclideDefinitions.Add(item);
-            this.manager.SaveDefinitionFile();
+            if (!CommitDefinitions(this.manager, () => this.manager.NuclideDefinitions.Add(item)))
+            {
+                // Записи не вышло — значит нуклид не заведён, и в списке его быть
+                // не должно: иначе он выглядит заведённым до перезапуска, а после
+                // него исчезает. Окно об отказе показал сам менеджер.
+                this.ListupNuclideDefinitions();
+                return;
+            }
             this.activeNuclide = item;
             this.ListupNuclideDefinitions();
             this.UpdatePeakDetectionResult();
+        }
+
+        /// <summary>
+        /// Изменить библиотеку нуклидов и записать её на диск. Отказ записи
+        /// ОТМЕНЯЕТ изменение: список в памяти обязан сходиться с файлом.
+        ///
+        /// ⛔ `A9`: прежде обе правки списка — заведение (<c>button3_Click</c>) и
+        /// удаление (<c>button4_Click</c>) — меняли
+        /// <see cref="NuclideDefinitionManager.NuclideDefinitions"/> и выбрасывали
+        /// <c>bool</c> от <c>SaveDefinitionFile</c>. При отказе записи человек
+        /// видел окно об ошибке И одновременно видел, что нуклид удалён из списка;
+        /// после перезапуска нуклид возвращался на место.
+        ///
+        /// Измерено 31.08.2026 пробой на настоящем менеджере при захваченном
+        /// <c>NuclideDefinition.xml</c>: прежним кодом — «SaveDefinitionFile=False,
+        /// нуклид в списке НЕТ, нуклид в файле да»; этим — «вернул False, нуклид в
+        /// списке да, нуклид в файле да».
+        ///
+        /// Метод статический нарочно: он не трогает ни одного поля формы, поэтому
+        /// проверяется отражением, не поднимая окон.
+        /// </summary>
+        static bool CommitDefinitions(NuclideDefinitionManager manager, Action change)
+        {
+            List<NuclideDefinition> before = new List<NuclideDefinition>(manager.NuclideDefinitions);
+            change();
+            if (manager.SaveDefinitionFile())
+            {
+                return true;
+            }
+            manager.NuclideDefinitions.Clear();
+            manager.NuclideDefinitions.AddRange(before);
+            return false;
         }
 
         void checkBox1_CheckStateChanged(object sender, EventArgs e)
@@ -116,24 +159,73 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x060000C8 RID: 200 RVA: 0x0000406C File Offset: 0x0000226C
+        /// <summary>
+        /// Удалить выделенное. Строк может быть несколько (Ctrl/Shift), и тогда
+        /// спрашивается один раз на все: подтверждение на каждый нуклид из
+        /// тридцати — это не защита, а препятствие, его прощёлкивают не глядя.
+        /// </summary>
         void button4_Click(object sender, EventArgs e)
         {
-            if (this.activeNuclide == null)
+            List<NuclideDefinition> doomed = this.SelectedNuclides();
+            if (doomed.Count == 0)
             {
                 return;
             }
-            DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MSGDeleteNuclideDefinition, this.activeNuclide.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
+
+            string question = doomed.Count == 1
+                ? string.Format(Resources.MSGDeleteNuclideDefinition, doomed[0].Name)
+                : string.Format(CultureInfo.InvariantCulture, Resources.MSGDeleteNuclideDefinitions, doomed.Count,
+                                string.Join(", ", doomed.Take(5).Select(n => n.Name)),
+                                doomed.Count > 5 ? "…" : "");
+            DialogResult dialogResult = MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.NuclideDefinitions.Remove(this.activeNuclide);
-                this.manager.SaveDefinitionFile();
-                if (this.manager.NuclideDefinitions.Count > 0)
+                if (!CommitDefinitions(this.manager, delegate
+                    {
+                        foreach (NuclideDefinition nuclide in doomed)
+                        {
+                            this.manager.NuclideDefinitions.Remove(nuclide);
+                        }
+                    }))
                 {
-                    this.activeNuclide = this.manager.NuclideDefinitions[0];
+                    // Файл не записан — удаления НЕ БЫЛО, и строки возвращены на
+                    // место (`A9`). Окно об отказе показал менеджер; список надо
+                    // перечитать, чтобы человек увидел то же, что лежит на диске.
+                    this.ListupNuclideDefinitions();
+                    return;
                 }
+
+                this.activeNuclide = this.manager.NuclideDefinitions.Count > 0
+                    ? this.manager.NuclideDefinitions[0]
+                    : null;
                 this.ListupNuclideDefinitions();
                 this.UpdatePeakDetectionResult();
             }
+        }
+
+        /// <summary>
+        /// Нуклиды выделенных строк, по одному на строку. SelectedItems при
+        /// FullRowSelect отдаёт строку на каждую выделенную ячейку, так что
+        /// повторы отсеиваются.
+        /// </summary>
+        List<NuclideDefinition> SelectedNuclides()
+        {
+            List<NuclideDefinition> list = new List<NuclideDefinition>();
+            foreach (Row row in this.table1.SelectedItems)
+            {
+                NuclideDefinition nuclide = row.Tag as NuclideDefinition;
+                if (nuclide != null && !list.Contains(nuclide))
+                {
+                    list.Add(nuclide);
+                }
+            }
+
+            if (list.Count == 0 && this.activeNuclide != null)
+            {
+                list.Add(this.activeNuclide);
+            }
+
+            return list;
         }
 
         // Token: 0x060000C9 RID: 201 RVA: 0x00004110 File Offset: 0x00002310
@@ -188,9 +280,12 @@ namespace BecquerelMonitor
             }
             if (nuclideDefinition != null)
             {
+                // Выделение НЕ сводится обратно к одной ячейке: раньше здесь
+                // стояли Selections.Clear() + AddCell, и Ctrl/Shift не работали
+                // — таблица сама умеет несколько строк, а форма их гасила.
+                // В полях правки по-прежнему один нуклид, первый выделенный:
+                // редактировать два разом нечем.
                 this.activeNuclide = nuclideDefinition;
-                this.tableModel1.Selections.Clear();
-                this.tableModel1.Selections.AddCell(row.Index, 0);
                 this.LoadFormContents(this.activeNuclide);
                 this.button4.Enabled = true;
                 this.EnableForm();
@@ -211,7 +306,14 @@ namespace BecquerelMonitor
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGSavingNuclideDefinition, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.Yes)
                 {
-                    this.SaveNuclideDefinitions();
+                    if (!this.SaveNuclideDefinitions())
+                    {
+                        // Человек ответил «сохранить», а записи не вышло. Уводить
+                        // его дальше нельзя: пометка «есть несохранённое» остаётся,
+                        // сохранение можно повторить, а отказаться от правок —
+                        // ответив «нет» на тот же вопрос.
+                        return false;
+                    }
                 }
                 this.ResetActiveNuclideDirty();
                 this.ListupNuclideDefinitions();
@@ -221,7 +323,13 @@ namespace BecquerelMonitor
 
         void NuclideDefinitionForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            this.ConfirmSaveNuclide();
+            // Отказ записи держит форму открытой: закрыться, потеряв правки, о
+            // которых человек только что сказал «сохранить», — это и есть тихая
+            // потеря (`A9`).
+            if (!this.ConfirmSaveNuclide())
+            {
+                e.Cancel = true;
+            }
         }
 
         // Token: 0x060000CD RID: 205 RVA: 0x00004280 File Offset: 0x00002480
@@ -231,22 +339,48 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            this.SaveNuclideDefinitions();
+            if (!this.SaveNuclideDefinitions())
+            {
+                // Пометка «есть несохранённое» остаётся стоять: кнопка сохранения
+                // не гаснет, и повторить можно, освободив файл.
+                return;
+            }
             this.ResetActiveNuclideDirty();
             this.ListupNuclideDefinitions();
         }
 
         // Token: 0x060000CE RID: 206 RVA: 0x000042A0 File Offset: 0x000024A0
-        void SaveNuclideDefinitions()
+        /// <summary>
+        /// ⛔ `A9`: <c>bool</c> от <c>SaveDefinitionFile</c> здесь ВЫБРАСЫВАЛСЯ, и
+        /// отказ записи ничем не отличался от успеха — вызывающие снимали пометку
+        /// «есть несохранённое» и закрывали форму. Человек видел окно об ошибке, а
+        /// программа тут же объявляла правки сохранёнными: кнопка сохранения
+        /// гасла, при закрытии больше не спрашивали, и правки уходили молча.
+        ///
+        /// ⚠ Список НЕ откатывается, и это не забывчивость: правки лежат в полях
+        /// формы, откат стёр бы набранное человеком. Расхождение с диском здесь
+        /// названо обычным способом — пометкой «есть несохранённое», которая
+        /// остаётся стоять, плюс окно менеджера об отказе.
+        ///
+        /// ⚠ <c>definitionsDirty</c> снимается ДО записи по-прежнему, нарочно: по
+        /// нему <c>ListupNuclideDefinitions</c> перечитывает файл с диска, а такое
+        /// перечитывание после отказа выбросило бы набранное — и, если файл занят,
+        /// оставило бы менеджер с <c>NuclideDefinitionFile = null</c>.
+        /// </summary>
+        bool SaveNuclideDefinitions()
         {
             if (!this.SaveFormContents(this.activeNuclide))
             {
                 MessageBox.Show(Resources.ERRInvalidInputForm);
-                return;
+                return false;
             }
             this.definitionsDirty = false;
-            this.manager.SaveDefinitionFile();
+            if (!this.manager.SaveDefinitionFile())
+            {
+                return false;
+            }
             this.UpdatePeakDetectionResult();
+            return true;
         }
 
         // Token: 0x060000CF RID: 207 RVA: 0x000042D4 File Offset: 0x000024D4
@@ -303,6 +437,11 @@ namespace BecquerelMonitor
 
         // Token: 0x060000D3 RID: 211 RVA: 0x00004380 File Offset: 0x00002580
         void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            this.SetActiveNuclideDirty();
+        }
+
+        void chainTextBox_TextChanged(object sender, EventArgs e)
         {
             this.SetActiveNuclideDirty();
         }

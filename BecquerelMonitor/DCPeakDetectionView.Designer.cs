@@ -1,4 +1,4 @@
-namespace BecquerelMonitor
+﻿namespace BecquerelMonitor
 {
     partial class DCPeakDetectionView
     {
@@ -42,19 +42,18 @@ namespace BecquerelMonitor
             this.textColumn5 = new XPTable.Models.NumberColumn();
             this.textColumn6 = new XPTable.Models.TextColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.checkBoxDeconvolution = new System.Windows.Forms.CheckBox();
+            this.numericUpDown1 = new InvariantNumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown3 = new InvariantNumericUpDown();
             this.button1 = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
             this.labelSetName = new System.Windows.Forms.Label();
-            this.buttonDeconvolutionInfo = new System.Windows.Forms.Button();
+            this.labelDetectionFailed = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -133,14 +132,7 @@ namespace BecquerelMonitor
             resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.Name = "numericUpDown1";
             this.numericUpDown1.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
-            // 
-            // checkBoxDeconvolution
-            // 
-            resources.ApplyResources(this.checkBoxDeconvolution, "checkBoxDeconvolution");
-            this.checkBoxDeconvolution.Name = "checkBoxDeconvolution";
-            this.checkBoxDeconvolution.UseVisualStyleBackColor = true;
-            this.checkBoxDeconvolution.CheckedChanged += new System.EventHandler(this.checkBoxDeconvolution_CheckedChanged);
-            // 
+            //
             // label1
             // 
             resources.ApplyResources(this.label1, "label1");
@@ -208,27 +200,45 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.labelSetName, "labelSetName");
             this.labelSetName.Name = "labelSetName";
-            // 
-            // buttonDeconvolutionInfo
-            // 
-            resources.ApplyResources(this.buttonDeconvolutionInfo, "buttonDeconvolutionInfo");
-            this.buttonDeconvolutionInfo.Name = "buttonDeconvolutionInfo";
-            this.buttonDeconvolutionInfo.UseVisualStyleBackColor = true;
-            this.buttonDeconvolutionInfo.Click += new System.EventHandler(this.buttonDeconvolutionInfo_Click);
-            // 
+            //
+            // labelDetectionFailed
+            //
+            // ⛔ Надпись об отказе поиска пиков (`A4`). РАСКЛАДКА ПЕРЕЕХАЛА В
+            // ПАРУ `.resx` (`A166`): прежний довод «ширина и место от культуры
+            // не зависят» опровергнут — текст берётся из `Properties.Resources`
+            // и ПЕРЕВОДИТСЯ (`Resources.PeakDetectionFailed`), а ширина у
+            // надписи закреплена, и при `AutoEllipsis` перевод, который в неё
+            // не влез, просто обрывается многоточием. То есть от культуры
+            // зависит РОВНО ТО, чего в resx не было. Теперь ширину можно
+            // перекрыть в `.ru.resx`, как перекрывают подпись.
+            //
+            // Стоит она в пустой полосе справа от «Detected Peaks» (label4:
+            // 7,60 и ширина 84) и тянется до правого края панели, не задевая
+            // таблицу (та ниже, с 75-й точки). Значения те же, что были в коде:
+            // `Location` 97,60, `Size` 332,13, `Anchor` Top|Left|Right,
+            // `ForeColor` Firebrick — они ушли в `DCPeakDetectionView.resx`.
+            //
+            // ⚠ `AutoSize` снимается ДО `ApplyResources`: при поднятом
+            // `AutoSize` надпись меряет себя сама и `Size` из ресурсов
+            // пропадает молча.
+            this.labelDetectionFailed.AutoSize = false;
+            this.labelDetectionFailed.AutoEllipsis = true;
+            resources.ApplyResources(this.labelDetectionFailed, "labelDetectionFailed");
+            this.labelDetectionFailed.Name = "labelDetectionFailed";
+            this.labelDetectionFailed.Visible = false;
+            //
             // DCPeakDetectionView
-            // 
+            //
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ContextMenuStrip = this.contextMenuStrip1;
-            this.Controls.Add(this.buttonDeconvolutionInfo);
+            this.Controls.Add(this.labelDetectionFailed);
             this.Controls.Add(this.comboBoxNuclSet);
             this.Controls.Add(this.labelSetName);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.numericUpDown3);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.checkBoxDeconvolution);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
@@ -253,11 +263,10 @@ namespace BecquerelMonitor
         private XPTable.Models.NumberColumn textColumn2;
         private XPTable.Models.NumberColumn textColumn5;
         private XPTable.Models.TextColumn textColumn6;
-        private System.Windows.Forms.NumericUpDown numericUpDown1;
-        private System.Windows.Forms.CheckBox checkBoxDeconvolution;
+        private InvariantNumericUpDown numericUpDown1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.NumericUpDown numericUpDown3;
+        private InvariantNumericUpDown numericUpDown3;
         private XPTable.Models.TextColumn textColumn4;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Label label4;
@@ -266,6 +275,6 @@ namespace BecquerelMonitor
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ComboBox comboBoxNuclSet;
         private System.Windows.Forms.Label labelSetName;
-        private System.Windows.Forms.Button buttonDeconvolutionInfo;
+        private System.Windows.Forms.Label labelDetectionFailed;
     }
 }

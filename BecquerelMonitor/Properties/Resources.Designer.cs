@@ -486,6 +486,16 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap FSA {
+            get {
+                object obj = ResourceManager.GetObject("FSA", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap CONT {
             get {
                 object obj = ResourceManager.GetObject("CONT", resourceCulture);
@@ -569,7 +579,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Dead Time: {0} μs.
+        ///   Looks up a localized string similar to Dead Time: {0} µs.
         /// </summary>
         public static string DeadTimeLblText {
             get {
@@ -780,11 +790,11 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to BecqMoni allready running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
+        ///   Looks up a localized string similar to BecqMoni already running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!.
         /// </summary>
-        public static string ERRAppAllreadyRunning {
+        public static string ERRAppAlreadyRunning {
             get {
-                return ResourceManager.GetString("ERRAppAllreadyRunning", resourceCulture);
+                return ResourceManager.GetString("ERRAppAlreadyRunning", resourceCulture);
             }
         }
         
@@ -798,7 +808,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Messsage: {1}..
+        ///   Looks up a localized string similar to Failed to load background spectrum &quot;{0}&quot; Message: {1}..
         /// </summary>
         public static string ERRBackgroundLoadFailure {
             get {
@@ -879,16 +889,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unable to retreive device data. (prohibited while measurement processing)
-        ///.
-        /// </summary>
-        public static string ERRCannotRetreiveDeviceData {
-            get {
-                return ResourceManager.GetString("ERRCannotRetreiveDeviceData", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Incorrect number of channels or energy..
         /// </summary>
         public static string ERRChanNumber {
@@ -926,6 +926,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The calibration was NOT written to the device configuration. The device keeps its previous calibration and the spectrum is left unchanged - correct the cause and save again..
+        /// </summary>
+        public static string ERRCalibrationNotSavedToDevice {
+            get {
+                return ResourceManager.GetString("ERRCalibrationNotSavedToDevice", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Device configuration is not selected..
         /// </summary>
         public static string ERRDeviceConfigNotSelected {
@@ -935,7 +944,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Missmatched device configuration: to solve this create new file and use Audio Input device..
+        ///   Looks up a localized string similar to Mismatched device configuration: to solve this create new file and use Audio Input device..
         /// </summary>
         public static string ERRDeviceMismatchConfiguration {
             get {
@@ -953,7 +962,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicate GUID for deivce configuration &quot;{0}&quot;.
+        ///   Looks up a localized string similar to Duplicate GUID for device configuration &quot;{0}&quot;.
         /// </summary>
         public static string ERRDuplicateDeviceConfigGUID {
             get {
@@ -1082,7 +1091,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Incrorrect Crc32 checksum! Possible borken coefficients. Try to upload them again..
+        ///   Looks up a localized string similar to Incorrect Crc32 checksum! Possible broken coefficients. Try to upload them again..
         /// </summary>
         public static string ERRIncorrectCRC {
             get {
@@ -1179,7 +1188,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRLoadingDeviceConfigFailed", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot open the nuclide database. Nothing was read from it, so every nuclide card and line search will come back empty.
+        /// </summary>
+        public static string ERRNucBaseOpenDatabase {
+            get {
+                return ResourceManager.GetString("ERRNucBaseOpenDatabase", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Failed to load application configuration file..
         /// </summary>
@@ -1206,7 +1224,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRLoadingROIConfigFailed", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reason: {0}.
+        /// </summary>
+        public static string ERRFailureReason {
+            get {
+                return ResourceManager.GetString("ERRFailureReason", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Specified WAV format is not supported by the audio device..
         /// </summary>
@@ -1262,7 +1289,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Selected peak FWHM allready exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
+        ///   Looks up a localized string similar to Selected peak FWHM already exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch.
         /// </summary>
         public static string ERRPeakExist {
             get {
@@ -1294,6 +1321,24 @@ namespace BecquerelMonitor.Properties {
         public static string ERRSavingDeviceConfigFailed {
             get {
                 return ResourceManager.GetString("ERRSavingDeviceConfigFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration was not renamed and not saved: the previous file &quot;{0}&quot; could not be deleted..
+        /// </summary>
+        public static string ERRConfigFileRenameFailed {
+            get {
+                return ResourceManager.GetString("ERRConfigFileRenameFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration file &quot;{0}&quot; could not be deleted, so the configuration has not been removed and is still in the list..
+        /// </summary>
+        public static string ERRConfigFileDeleteFailed {
+            get {
+                return ResourceManager.GetString("ERRConfigFileDeleteFailed", resourceCulture);
             }
         }
         
@@ -1334,11 +1379,83 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to N42 EnergyBoundaryValues not supported. Using current calibration..
+        ///   Looks up a localized string similar to channel energy boundaries in the file are invalid ({0}); they were not used, and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {1}).
         /// </summary>
-        public static string ERRUnsuportedEnergyBoundaryN42 {
+        public static string ERRChannelEdgesInvalidSpecUtils {
             get {
-                return ResourceManager.GetString("ERRUnsuportedEnergyBoundaryN42", resourceCulture);
+                return ResourceManager.GetString("ERRChannelEdgesInvalidSpecUtils", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to boundary #{0} is not a finite number: {1}.
+        /// </summary>
+        public static string ERRChannelEdgeNotFinite {
+            get {
+                return ResourceManager.GetString("ERRChannelEdgeNotFinite", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to boundaries do not increase: #{0} = {1}, #{2} = {3}.
+        /// </summary>
+        public static string ERRChannelEdgesNotIncreasing {
+            get {
+                return ResourceManager.GetString("ERRChannelEdgesNotIncreasing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy..
+        /// </summary>
+        public static string ERRNoEnergyCalibrationN42 {
+            get {
+                return ResourceManager.GetString("ERRNoEnergyCalibrationN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 file has fewer than five calibration points, so no polynomial is fitted. Using the default calibration y=x: the channel number is taken as the energy..
+        /// </summary>
+        public static string ERRTooFewCalibrationPointsN42 {
+            get {
+                return ResourceManager.GetString("ERRTooFewCalibrationPointsN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 file contains measurements of class {0}; they are skipped, because the application imports foreground and background spectra only. Spectra imported: {1}..
+        /// </summary>
+        public static string ERRSkippedMeasurementClassN42 {
+            get {
+                return ResourceManager.GetString("ERRSkippedMeasurementClassN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file carries no start time for {0} measurement(s); the start time is set to 1970-01-01 to mark it as unknown, so that a made-up date is not taken for a measured one. Everything else in the spectrum is imported..
+        /// </summary>
+        public static string ERRMissingStartDateTime {
+            get {
+                return ResourceManager.GetString("ERRMissingStartDateTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The start time of the measurement could not be read in {0} measurement(s) of the N42 file (first one: {1}); the start time is set to 1970-01-01 to mark it as unknown. Everything else in the spectrum is imported..
+        /// </summary>
+        public static string ERRUnreadableStartDateTimeN42 {
+            get {
+                return ResourceManager.GetString("ERRUnreadableStartDateTimeN42", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4..
+        /// </summary>
+        public static string ERRUnsupportedPolynomialOrderN42 {
+            get {
+                return ResourceManager.GetString("ERRUnsupportedPolynomialOrderN42", resourceCulture);
             }
         }
         
@@ -1370,7 +1487,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cann&apos;t install the latest version. Error happens.
+        ///   Looks up a localized string similar to Can&apos;t install the latest version. Error happens.
         ///{0}.
         /// </summary>
         public static string ERRUpdateExc {
@@ -1380,16 +1497,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error! Сoefficients uploaded with error! Check connection and reupload it again..
+        ///   Looks up a localized string similar to Error! Coefficients uploaded with error! Check connection and reupload it again..
         /// </summary>
-        public static string ERRUploadCoefficeintsToDevice {
+        public static string ERRUploadCoefficientsToDevice {
             get {
-                return ResourceManager.GetString("ERRUploadCoefficeintsToDevice", resourceCulture);
+                return ResourceManager.GetString("ERRUploadCoefficientsToDevice", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns emtpy list. Now program sets port from device config file, but you shuld check what&apos;s happend with your USB system hub..
+        ///   Looks up a localized string similar to Error while look ANY COM port in OS. OS returns empty list. Now program sets port from device config file, but you should check what&apos;s happened with your USB system hub..
         /// </summary>
         public static string ERRVCPComPortsNumeration {
             get {
@@ -1720,9 +1837,9 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Coefficients uploaded to device successfully..
         /// </summary>
-        public static string MSGCoefficientsUploadedSuccesfull {
+        public static string MSGCoefficientsUploadedSuccessful {
             get {
-                return ResourceManager.GetString("MSGCoefficientsUploadedSuccesfull", resourceCulture);
+                return ResourceManager.GetString("MSGCoefficientsUploadedSuccessful", resourceCulture);
             }
         }
         
@@ -1750,6 +1867,12 @@ namespace BecquerelMonitor.Properties {
         public static string MSGDeleteNuclideDefinition {
             get {
                 return ResourceManager.GetString("MSGDeleteNuclideDefinition", resourceCulture);
+            }
+        }
+
+        public static string MSGDeleteNuclideDefinitions {
+            get {
+                return ResourceManager.GetString("MSGDeleteNuclideDefinitions", resourceCulture);
             }
         }
         
@@ -1835,7 +1958,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No new version avalable. Current version: {0}.
+        ///   Looks up a localized string similar to No new version available. Current version: {0}.
         /// </summary>
         public static string MSGNoNewVersion {
             get {
@@ -1907,7 +2030,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Save energy calibration parmeters to current device configuration?.
+        ///   Looks up a localized string similar to Save energy calibration parameters to current device configuration?.
         /// </summary>
         public static string MSGSaveEnergyCalibration {
             get {
@@ -1941,7 +2064,43 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGSavingNuclideSet", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to --- All Nuclides ---.
+        /// </summary>
+        public static string NuclideSetAllNuclides {
+            get {
+                return ResourceManager.GetString("NuclideSetAllNuclides", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Assign peak color:.
+        /// </summary>
+        public static string NuclideSetAssignColor {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Assign.
+        /// </summary>
+        public static string NuclideSetAssignColorButton {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColorButton", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The set contains no nuclides - there is nothing to paint.
+        /// </summary>
+        public static string NuclideSetAssignColorEmpty {
+            get {
+                return ResourceManager.GetString("NuclideSetAssignColorEmpty", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Changing thermometer type causes initialization of input fields. OK?.
         /// </summary>
@@ -1963,7 +2122,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update avalable.
+        ///   Looks up a localized string similar to Update available.
         /// </summary>
         public static string MSGUpdateShort {
             get {
@@ -1986,6 +2145,15 @@ namespace BecquerelMonitor.Properties {
         public static string N42ExportDialogTitle {
             get {
                 return ResourceManager.GetString("N42ExportDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The N42 format does not carry the efficiency curve. The efficiency curve, the detector geometry and the link to the response matrix are NOT written to the file; spectra with a curve in this document: {0} of {1}. A file re-imported into a NEW document therefore gets no activity of the selection, no activity of the ROIs, no full-spectrum analysis (FSA) and no normalization by efficiency. The spectra themselves, the energy calibration and the measurement times are exported in full..
+        /// </summary>
+        public static string MSGN42ExportLosesEfficiency {
+            get {
+                return ResourceManager.GetString("MSGN42ExportLosesEfficiency", resourceCulture);
             }
         }
         
@@ -2112,23 +2280,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to decay_rads.
-        /// </summary>
-        public static string NucBase_API_Data_Method {
-            get {
-                return ResourceManager.GetString("NucBase.API.Data.Method", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   Looks up a localized string similar to https://www-nds.iaea.org/relnsd/v0/data?fields={0}&amp;nuclides={1}&amp;rad_types={2}.
-        /// </summary>
-        public static string NucBase_API_IAEA {
-            get {
-                return ResourceManager.GetString("NucBase.API.IAEA", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to β-.
@@ -2157,14 +2309,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to fetch decay radiation. SQL string: {0}. Message: {1}.
-        /// </summary>
-        public static string NucBase_DecayRadsFetchError {
-            get {
-                return ResourceManager.GetString("NucBase.DecayRadsFetchError", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to EC.
@@ -2175,14 +2319,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to g.
-        /// </summary>
-        public static string NucBase_Gamma {
-            get {
-                return ResourceManager.GetString("NucBase.Gamma", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to γ.
@@ -2220,23 +2356,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
-        /// <summary>
-        ///   Looks up a localized string similar to Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0.
-        /// </summary>
-        public static string NucBase_User_Agent {
-            get {
-                return ResourceManager.GetString("NucBase.User-Agent", resourceCulture);
-            }
-        }
         
-        /// <summary>
-        ///   Looks up a localized string similar to x.
-        /// </summary>
-        public static string NucBase_X_Ray {
-            get {
-                return ResourceManager.GetString("NucBase.X-Ray", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to Import failed - {0}.
@@ -2257,6 +2377,78 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This line duplicates its neighbours in the same K-beta series: KB is the total, KpB1 + KpB2 is the same total split in two. Take one or the other, never both — adding them counts K-beta twice (Lu-176: 40.53 % instead of 33.49 %)..
+        /// </summary>
+        public static string NucBase_KSeriesRedundantHint {
+            get {
+                return ResourceManager.GetString("NucBase_KSeriesRedundantHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to K-beta lines skipped as duplicates: {0}. The total (KB) and its split (KpB1 + KpB2) were both selected; only one of them is imported..
+        /// </summary>
+        public static string NucBase_KSeriesRedundantSkipped {
+            get {
+                return ResourceManager.GetString("NucBase_KSeriesRedundantSkipped", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Lines found: {0}..
+        /// </summary>
+        public static string NucBase_SearchFound {
+            get {
+                return ResourceManager.GetString("NucBase_SearchFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing found: the query ran, but no line matches the search conditions..
+        /// </summary>
+        public static string NucBase_SearchEmpty {
+            get {
+                return ResourceManager.GetString("NucBase_SearchEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SEARCH FAILED for {0}. The table is empty because the query did not run — not because there are no lines. {1}.
+        /// </summary>
+        public static string NucBase_LinesFetchError {
+            get {
+                return ResourceManager.GetString("NucBase_LinesFetchError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to THE ELEMENT DATABASE (matdb.sqlite) COULD NOT BE READ, ....
+        /// </summary>
+        public static string NucBase_ElementDataFetchError {
+            get {
+                return ResourceManager.GetString("NucBase_ElementDataFetchError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SEARCH FAILED for {0} chain member(s): their lines did not make it into the table, so what is shown is incomplete. {1}.
+        /// </summary>
+        public static string NucBase_ChainLinesRefused {
+            get {
+                return ResourceManager.GetString("NucBase_ChainLinesRefused", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No card for {0}: the nuclide table has no such row, or its half-life is not measured..
+        /// </summary>
+        public static string NucBase_CardEmpty {
+            get {
+                return ResourceManager.GetString("NucBase_CardEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Open Spectrum File.
         /// </summary>
         public static string OpenFileDialogTitle {
@@ -2275,6 +2467,15 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Peak detection failed - the peak list is cleared.
+        /// </summary>
+        public static string PeakDetectionFailed {
+            get {
+                return ResourceManager.GetString("PeakDetectionFailed", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Best.
         /// </summary>
@@ -2344,6 +2545,15 @@ namespace BecquerelMonitor.Properties {
         public static string PeakFitChiTablePeakSummary {
             get {
                 return ResourceManager.GetString("PeakFitChiTablePeakSummary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AIC (chi2 + parameter penalty).
+        /// </summary>
+        public static string PeakFitChiTableScoreColumn {
+            get {
+                return ResourceManager.GetString("PeakFitChiTableScoreColumn", resourceCulture);
             }
         }
         
@@ -2683,6 +2893,449 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to FSA completed.
+        /// </summary>
+        public static string FSAStatusCompleted {
+            get {
+                return ResourceManager.GetString("FSAStatusCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA error.
+        /// </summary>
+        public static string FSAStatusError {
+            get {
+                return ResourceManager.GetString("FSAStatusError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA idle.
+        /// </summary>
+        public static string FSAStatusIdle {
+            get {
+                return ResourceManager.GetString("FSAStatusIdle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA in progress.
+        /// </summary>
+        public static string FSAStatusRunning {
+            get {
+                return ResourceManager.GetString("FSAStatusRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: calculating….
+        /// </summary>
+        public static string FSACalculating {
+            get {
+                return ResourceManager.GetString("FSACalculating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: no components to fit with.
+        /// </summary>
+        public static string FSANoComponents {
+            get {
+                return ResourceManager.GetString("FSANoComponents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve.
+        /// </summary>
+        public static string FSANoGeometry {
+            get {
+                return ResourceManager.GetString("FSANoGeometry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition is not possible for this spectrum.
+        /// </summary>
+        public static string FSANotPossible {
+            get {
+                return ResourceManager.GetString("FSANotPossible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition failed..
+        /// </summary>
+        public static string FSAFailed {
+            get {
+                return ResourceManager.GetString("FSAFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to model.
+        /// </summary>
+        public static string FSALegendModel {
+            get {
+                return ResourceManager.GetString("FSALegendModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to continuum.
+        /// </summary>
+        public static string FSALegendContinuum {
+            get {
+                return ResourceManager.GetString("FSALegendContinuum", resourceCulture);
+            }
+        }
+
+
+
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (no eff).
+        /// </summary>
+        public static string FSANoEfficiencyMark {
+            get {
+                return ResourceManager.GetString("FSANoEfficiencyMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to !.
+        /// </summary>
+        public static string FSADriftEdgeMark {
+            get {
+                return ResourceManager.GetString("FSADriftEdgeMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · matrix.
+        /// </summary>
+        public static string FSAMatrixMark {
+            get {
+                return ResourceManager.GetString("FSAMatrixMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · no matrix.
+        /// </summary>
+        public static string FSANoMatrixMark {
+            get {
+                return ResourceManager.GetString("FSANoMatrixMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to · old matrix.
+        /// </summary>
+        public static string FSAOldMatrixMark {
+            get {
+                return ResourceManager.GetString("FSAOldMatrixMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The response matrix of efficiency curve “{0}” was computed with file format {1} [rest of string was truncated]&quot;;..
+        /// </summary>
+        public static string FSAMatrixOldFormat {
+            get {
+                return ResourceManager.GetString("FSAMatrixOldFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to · NO BACKGROUND.
+        /// </summary>
+        public static string FSANoBackgroundMark {
+            get {
+                return ResourceManager.GetString("FSANoBackgroundMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to  (bg rejected).
+        /// </summary>
+        public static string FSABackgroundRejectedMark {
+            get {
+                return ResourceManager.GetString("FSABackgroundRejectedMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background spectrum carries no counts.
+        /// </summary>
+        public static string FSABackgroundNoCounts {
+            get {
+                return ResourceManager.GetString("FSABackgroundNoCounts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background has {0} channels, the spectrum {1}.
+        /// </summary>
+        public static string FSABackgroundChannelMismatch {
+            get {
+                return ResourceManager.GetString("FSABackgroundChannelMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the background has no measurement time.
+        /// </summary>
+        public static string FSABackgroundNoLiveTime {
+            get {
+                return ResourceManager.GetString("FSABackgroundNoLiveTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to · summing.
+        /// </summary>
+        public static string FSACascadeMark {
+            get {
+                return ResourceManager.GetString("FSACascadeMark", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to · suppressed.
+        /// </summary>
+        public static string FSASuppressedMark {
+            get {
+                return ResourceManager.GetString("FSASuppressedMark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to X-ray {0}.
+        /// </summary>
+        public static string FSAXrayName {
+            get {
+                return ResourceManager.GetString("FSAXrayName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Escape {0}.
+        /// </summary>
+        public static string FSAEscapeName {
+            get {
+                return ResourceManager.GetString("FSAEscapeName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — sum peak.
+        /// </summary>
+        public static string FSASumPeakRow {
+            get {
+                return ResourceManager.GetString("FSASumPeakRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — {1} chain.
+        /// </summary>
+        public static string FSAChainMemberRow {
+            get {
+                return ResourceManager.GetString("FSAChainMemberRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — chain.
+        /// </summary>
+        public static string FSAChainRow {
+            get {
+                return ResourceManager.GetString("FSAChainRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} — by {1}.
+        /// </summary>
+        public static string FSATiedMemberRow {
+            get {
+                return ResourceManager.GetString("FSATiedMemberRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Calculation parameters restored from the existing curve: {0}.
+        /// </summary>
+        public static string EfficiencyMakerCalcRestored {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcRestored", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Energy range taken from the existing curve: {0}-{1} keV.
+        /// </summary>
+        public static string EfficiencyMakerRangeFromCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerRangeFromCurve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to From composition.
+        /// </summary>
+        public static string GeometryMaterialsDensityFromParts {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityFromParts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Density can only be derived for a mixture whose parts have known densities. A formula gives the composition, not the packing..
+        /// </summary>
+        public static string GeometryMaterialsDensityNeedsMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityNeedsMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No density known for the part «{0}»..
+        /// </summary>
+        public static string GeometryMaterialsDensityNoPart {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityNoPart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to «{0}» is given a gas density ({1:0.####} g/cm³) inside a dense mixture: it would take almost the whole volume and the result would be {2:0.###} g/cm³. The element is bound in a compound - name that compound as the part..
+        /// </summary>
+        public static string GeometryMaterialsDensityGasInSolid {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityGasInSolid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Density from composition: {0:0.###} g/cm³..
+        /// </summary>
+        public static string GeometryMaterialsDensityDone {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensityDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to model residual.
+        /// </summary>
+        public static string FSAModelResidualRow {
+            get {
+                return ResourceManager.GetString("FSAModelResidualRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} %.
+        /// </summary>
+        public static string FSAModelResidualValue {
+            get {
+                return ResourceManager.GetString("FSAModelResidualValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to +{0} / −{1} %.
+        /// </summary>
+        public static string FSAResidualCountsValue {
+            get {
+                return ResourceManager.GetString("FSAResidualCountsValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to present.
+        /// </summary>
+        public static string FSAPresentNoShare {
+            get {
+                return ResourceManager.GetString("FSAPresentNoShare", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to not resolved.
+        /// </summary>
+        public static string FSANotResolvedNoShare {
+            get {
+                return ResourceManager.GetString("FSANotResolvedNoShare", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry..
+        /// </summary>
+        public static string FSANotResolvedHint {
+            get {
+                return ResourceManager.GetString("FSANotResolvedHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Model baseline that belongs to no nuclide: above the highest line of the composition there is nothing to attribute it to..
+        /// </summary>
+        public static string FSAContinuumLayerHint {
+            get {
+                return ResourceManager.GetString("FSAContinuumLayerHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Model baseline that belongs to no nuclide: below {0} keV the response matrix is not trusted (ADC threshold, shielding X-rays, room return), and above the highest line of the composition there is nothing to attribute it to. Above {0} keV the baseline is spread over the nuclide layers..
+        /// </summary>
+        public static string FSAContinuumLayerHintFloor {
+            get {
+                return ResourceManager.GetString("FSAContinuumLayerHintFloor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to &lt; {0} %.
+        /// </summary>
+        public static string FSAMdaValue {
+            get {
+                return ResourceManager.GetString("FSAMdaValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSAUndetectedFoldedRow.
+        /// </summary>
+        public static string FSAUndetectedFoldedRow {
+            get {
+                return ResourceManager.GetString("FSAUndetectedFoldedRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Equilibrium works only when the composition comes from the databases: turn on &quot;Enable DB lookups for FSA&quot;. The other path builds components from peak labels and knows nothing about decay chains.
+        /// </summary>
+        public static string FSAEquilibriumNeedsDbLookups {
+            get {
+                return ResourceManager.GetString("FSAEquilibriumNeedsDbLookups", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Pile-up.
+        /// </summary>
+        public static string FSAPileUpName {
+            get {
+                return ResourceManager.GetString("FSAPileUpName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (unknown).
         /// </summary>
         public static string UnknownNuclide {
@@ -2830,5 +3483,2752 @@ namespace BecquerelMonitor.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+    
+        public static string EfficiencyMakerMenu {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerMenu", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoGeometry", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryNotScintillator {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryNotScintillator", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryUnknownElement {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryUnknownElement", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryNoCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryNoCurve", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryLoaded {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryLoaded", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerGeometryFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGeometryFilter", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCalculating {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalculating", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSections {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSections", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSectionsPartial {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSectionsPartial", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCrossSectionsApprox {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCrossSectionsApprox", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerBremsstrahlung {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerBremsstrahlung", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerBremsstrahlungNoData {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerBremsstrahlungNoData", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerHistories {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerHistories", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerLevelSimulation {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerLevelSimulation", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencyMakerCalcStatus {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcStatus", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourcePoint {
+            get {
+                return ResourceManager.GetString("GeometrySourcePoint", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourceCylinder {
+            get {
+                return ResourceManager.GetString("GeometrySourceCylinder", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourceBox {
+            get {
+                return ResourceManager.GetString("GeometrySourceBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSourceBox {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorBoxSourceX {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxSourceX", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorBoxSourceY {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxSourceY", resourceCulture);
+            }
+        }
+        
+        public static string GeometrySourceMarinelli {
+            get {
+                return ResourceManager.GetString("GeometrySourceMarinelli", resourceCulture);
+            }
+        }
+        
+        public static string GeometryCrystalBox {
+            get {
+                return ResourceManager.GetString("GeometryCrystalBox", resourceCulture);
+            }
+        }
+        
+        public static string GeometryCrystalCylinder {
+            get {
+                return ResourceManager.GetString("GeometryCrystalCylinder", resourceCulture);
+            }
+        }
+        
+        public static string GeometryDescription {
+            get {
+                return ResourceManager.GetString("GeometryDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: the character "{1}" (U+{2:X4}) does not fit code page 1251, and the geometry file is written in that page only - line {3}: {4}.
+        /// </summary>
+        public static string GeometryWriterUnrepresentable {
+            get {
+                return ResourceManager.GetString("GeometryWriterUnrepresentable", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerCancelled {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCancelled", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoDeviceConfig {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoDeviceConfig", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNoFwhm {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNoFwhm", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerStop {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerStop", resourceCulture);
+            }
+        }
+
+
+        public static string EfficiencyMakerSaved {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSaved", resourceCulture);
+            }
+        }
+
+
+        public static string EfficiencyMakerCsvFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCsvFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGraphXAxis {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGraphXAxis", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTabCalculate {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTabCalculate", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerCalcHint {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerCalcHint", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGrid {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGrid", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridStandard {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridStandard", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridLogarithmic {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridLogarithmic", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridSummary {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridSummary", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridWidened {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridWidened", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridFallback {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridFallback", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSampleIsAir {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSampleIsAir", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNodeSpread {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpread", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerNodeSpreadWarning {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerNodeSpreadWarning", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerImportanceAuto {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerImportanceAuto", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerPoints {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerPoints", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerHistoriesLabel {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerHistoriesLabel", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorTitle {
+            get {
+                return ResourceManager.GetString("GeometryEditorTitle", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorTabDetector {
+            get {
+                return ResourceManager.GetString("GeometryEditorTabDetector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorTabSource {
+            get {
+                return ResourceManager.GetString("GeometryEditorTabSource", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFile {
+            get {
+                return ResourceManager.GetString("GeometryEditorFile", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBrowse {
+            get {
+                return ResourceManager.GetString("GeometryEditorBrowse", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSave {
+            get {
+                return ResourceManager.GetString("GeometryEditorSave", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCancel {
+            get {
+                return ResourceManager.GetString("GeometryEditorCancel", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorNew {
+            get {
+                return ResourceManager.GetString("GeometryEditorNew", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorEdit {
+            get {
+                return ResourceManager.GetString("GeometryEditorEdit", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorShapeCylinder {
+            get {
+                return ResourceManager.GetString("GeometryEditorShapeCylinder", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorShapeBox {
+            get {
+                return ResourceManager.GetString("GeometryEditorShapeBox", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxX {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxX", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxY {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxY", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBoxZ {
+            get {
+                return ResourceManager.GetString("GeometryEditorBoxZ", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorEquivalent {
+            get {
+                return ResourceManager.GetString("GeometryEditorEquivalent", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFrontGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorGapMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorGapMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFrontReflector {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontReflector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideReflector {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideReflector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFrontCladding {
+            get {
+                return ResourceManager.GetString("GeometryEditorFrontCladding", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSideCladding {
+            get {
+                return ResourceManager.GetString("GeometryEditorSideCladding", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorMounting {
+            get {
+                return ResourceManager.GetString("GeometryEditorMounting", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCrystalMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorCrystalMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorReflectorMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorReflectorMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorCladdingMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorCladdingMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceType {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceType", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourcePoint {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourcePoint", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceCylinder {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceCylinder", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceMarinelli {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceMarinelli", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPointDistance {
+            get {
+                return ResourceManager.GetString("GeometryEditorPointDistance", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerSideWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerSideWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerEndWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerEndWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorBeakerToDetector {
+            get {
+                return ResourceManager.GetString("GeometryEditorBeakerToDetector", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleHeight", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleSideWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleSideWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorHoleEndWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleEndWall", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorWallMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorWallMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitMm {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitMm", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitPercent {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitPercent", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFwhm662 {
+            get {
+                return ResourceManager.GetString("GeometryEditorFwhm662", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFwhmFromDevice {
+            get {
+                return ResourceManager.GetString("GeometryEditorFwhmFromDevice", resourceCulture);
+            }
+        }
+        public static string GeometryEditorInShield {
+            get {
+                return ResourceManager.GetString("GeometryEditorInShield", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorInShieldHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorInShieldHint", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorUnitDensity {
+            get {
+                return ResourceManager.GetString("GeometryEditorUnitDensity", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorCrystal {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorCrystal", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorDensity {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorDensity", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorMarinelliHole {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorMarinelliHole", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorLinked {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorLinked", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorHoleNarrow {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorHoleNarrow", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorRingGone {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorRingGone", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorHoleDeeper {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorHoleDeeper", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorSampleTaller {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorSampleTaller", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorWallEatsSample {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorWallEatsSample", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorSourceSize {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorSourceSize", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorNumber {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorNumber", resourceCulture);
+            }
+        }
+
+        public static string GeometryWarningNoMaterial {
+            get {
+                return ResourceManager.GetString("GeometryWarningNoMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryWarningAtomFractions {
+            get {
+                return ResourceManager.GetString("GeometryWarningAtomFractions", resourceCulture);
+            }
+        }
+
+        public static string GeometryWarningFractionType {
+            get {
+                return ResourceManager.GetString("GeometryWarningFractionType", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPreset {
+            get {
+                return ResourceManager.GetString("GeometryEditorPreset", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorPresetPrompt {
+            get {
+                return ResourceManager.GetString("GeometryEditorPresetPrompt", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerGridEdge {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerGridEdge", resourceCulture);
+            }
+        }
+
+
+        public static string GeometryEditorSceneDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneDepth {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneDepth", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneGap", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneHoleDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneHoleDiameter", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneHoleDepth {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneHoleDepth", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneStandoff {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneStandoff", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceGround {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceGround", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceBorehole {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceBorehole", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorScene {
+            get {
+                return ResourceManager.GetString("GeometryEditorScene", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSourceIso {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceIso", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorFieldRadius {
+            get {
+                return ResourceManager.GetString("GeometryEditorFieldRadius", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorSceneIso {
+            get {
+                return ResourceManager.GetString("GeometryEditorSceneIso", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorErrorFieldRadiusSmall {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorFieldRadiusSmall", resourceCulture);
+            }
+        }
+
+        public static string GeometrySourceIso {
+            get {
+                return ResourceManager.GetString("GeometrySourceIso", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchIso {
+            get {
+                return ResourceManager.GetString("EfficiencySketchIso", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffAuto {
+            get {
+                return ResourceManager.GetString("BqCoeffAuto", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoIntensity {
+            get {
+                return ResourceManager.GetString("BqCoeffNoIntensity", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoEnergy {
+            get {
+                return ResourceManager.GetString("BqCoeffNoEnergy", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffNoCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffNoCurve", resourceCulture);
+            }
+        }
+
+        public static string ResultNoCoefficient {
+            get {
+                return ResourceManager.GetString("ResultNoCoefficient", resourceCulture);
+            }
+        }
+
+        public static string ResultNoWeight {
+            get {
+                return ResourceManager.GetString("ResultNoWeight", resourceCulture);
+            }
+        }
+
+        public static string ResultNoVolume {
+            get {
+                return ResourceManager.GetString("ResultNoVolume", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffOutOfRange {
+            get {
+                return ResourceManager.GetString("BqCoeffOutOfRange", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffFromCurve {
+            get {
+                return ResourceManager.GetString("BqCoeffFromCurve", resourceCulture);
+            }
+        }
+
+        public static string ActivityFromLine {
+            get {
+                return ResourceManager.GetString("ActivityFromLine", resourceCulture);
+            }
+        }
+
+        public static string ActivityLabelDisputed {
+            get {
+                return ResourceManager.GetString("ActivityLabelDisputed", resourceCulture);
+            }
+        }
+
+        public static string ActivityXrayRefused {
+            get {
+                return ResourceManager.GetString("ActivityXrayRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityLowYieldRefused {
+            get {
+                return ResourceManager.GetString("ActivityLowYieldRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityOutOfCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityOutOfCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoEpsilonRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoEpsilonRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoBackgroundRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoBackgroundRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNoCurveRefused {
+            get {
+                return ResourceManager.GetString("ActivityNoCurveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityNetNotPositiveRefused {
+            get {
+                return ResourceManager.GetString("ActivityNetNotPositiveRefused", resourceCulture);
+            }
+        }
+
+        public static string ActivityLcZeroRefused {
+            get {
+                return ResourceManager.GetString("ActivityLcZeroRefused", resourceCulture);
+            }
+        }
+
+        public static string BqCoeffTipAuto {
+            get {
+                return ResourceManager.GetString("BqCoeffTipAuto", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchCylinder {
+            get {
+                return ResourceManager.GetString("EfficiencySketchCylinder", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchBox {
+            get {
+                return ResourceManager.GetString("EfficiencySketchBox", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchPoint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchPoint", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchBeaker {
+            get {
+                return ResourceManager.GetString("EfficiencySketchBeaker", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateSave {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateSave", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateClone {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateClone", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDelete {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDelete", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateOwn {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateOwn", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateSaveTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateSaveTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateCloneTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateCloneTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDeleteTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDeleteTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameTitle {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameTitle", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateDeleteConfirm {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateDeleteConfirm", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameEmpty {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameEmpty", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameBuiltin {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameBuiltin", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateNameTaken {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateNameTaken", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateWriteError {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateWriteError", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorTemplateLoadError {
+            get {
+                return ResourceManager.GetString("GeometryEditorTemplateLoadError", resourceCulture);
+            }
+        }
+        
+        public static string EfficiencySketchDetector {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDetector", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchDistance {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDistance", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchMarinelli {
+            get {
+                return ResourceManager.GetString("EfficiencySketchMarinelli", resourceCulture);
+            }
+        }
+
+        public static string DeviceConfigEfficiencyTab {
+            get {
+                return ResourceManager.GetString("DeviceConfigEfficiencyTab", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabList {
+            get {
+                return ResourceManager.GetString("EfficiencyTabList", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNew {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNew", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabEdit {
+            get {
+                return ResourceManager.GetString("EfficiencyTabEdit", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabRename {
+            get {
+                return ResourceManager.GetString("EfficiencyTabRename", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDuplicate {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDuplicate", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDelete {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDelete", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabImport {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImport", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNone {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} - from the spectrum file.
+        /// </summary>
+        public static string EfficiencyFromFile {
+            get {
+                return ResourceManager.GetString("EfficiencyFromFile", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyTabEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNoGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNoGeometry", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabComputeStamp {
+            get {
+                return ResourceManager.GetString("EfficiencyTabComputeStamp", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCurveOldPhysics {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCurveOldPhysics", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCurveVsMatrix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCurveVsMatrix", resourceCulture);
+            }
+        }
+
+        public static string ResponseMatrixUseInFsa {
+            get {
+                return ResourceManager.GetString("ResponseMatrixUseInFsa", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabSummary {
+            get {
+                return ResourceManager.GetString("EfficiencyTabSummary", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabRenameTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyTabRenameTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabDeleteConfirm {
+            get {
+                return ResourceManager.GetString("EfficiencyTabDeleteConfirm", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabCopySuffix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabCopySuffix", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyTabNewName {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNewName", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportGeometryTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyImportGeometryTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportCurveTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyImportCurveTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportGeometryFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyImportGeometryFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportCurveFilter {
+            get {
+                return ResourceManager.GetString("EfficiencyImportCurveFilter", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportEmpty {
+            get {
+                return ResourceManager.GetString("EfficiencyImportEmpty", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDone {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDone", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDropped {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDropped", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportDroppedItem {
+            get {
+                return ResourceManager.GetString("EfficiencyImportDroppedItem", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyImportFailed {
+            get {
+                return ResourceManager.GetString("EfficiencyImportFailed", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTabGeometry {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTabGeometry", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerDirtyMark {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerDirtyMark", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerTitle", resourceCulture);
+            }
+        }
+
+        public static string EfficiencyMakerSavedToConfig {
+            get {
+                return ResourceManager.GetString("EfficiencyMakerSavedToConfig", resourceCulture);
+            }
+        }
+
+
+        public static string PickOneAccept {
+            get {
+                return ResourceManager.GetString("PickOneAccept", resourceCulture);
+            }
+        }
+
+        public static string PickOneCancel {
+            get {
+                return ResourceManager.GetString("PickOneCancel", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmTitle {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmTitle", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmQuestion {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmQuestion", resourceCulture);
+            }
+        }
+
+        public static string FsaNoEfficiencyTitle {
+            get {
+                return ResourceManager.GetString("FsaNoEfficiencyTitle", resourceCulture);
+            }
+        }
+
+        public static string FsaNoEfficiencyQuestion {
+            get {
+                return ResourceManager.GetString("FsaNoEfficiencyQuestion", resourceCulture);
+            }
+        }
+
+        public static string FsaNoFwhmSource {
+            get {
+                return ResourceManager.GetString("FsaNoFwhmSource", resourceCulture);
+            }
+        }
+
+        public static string NucBase_Fluorescence {
+            get {
+                return ResourceManager.GetString("NucBase.Fluorescence", resourceCulture);
+            }
+        }
+
+
+        public static string NucBase_NoFluorescence {
+            get {
+                return ResourceManager.GetString("NucBase.NoFluorescence", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabImportLsrm.
+        /// </summary>
+        public static string EfficiencyTabImportLsrm {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImportLsrm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabImportLsrmTitle.
+        /// </summary>
+        public static string EfficiencyTabImportLsrmTitle {
+            get {
+                return ResourceManager.GetString("EfficiencyTabImportLsrmTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencyTabResponseMatrix.
+        /// </summary>
+        public static string EfficiencyTabResponseMatrix {
+            get {
+                return ResourceManager.GetString("EfficiencyTabResponseMatrix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixTitle.
+        /// </summary>
+        public static string ResponseMatrixTitle {
+            get {
+                return ResourceManager.GetString("ResponseMatrixTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateMissing.
+        /// </summary>
+        public static string ResponseMatrixStateMissing {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateStale.
+        /// </summary>
+        public static string ResponseMatrixStateStale {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateStale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateStaleVersions.
+        /// </summary>
+        public static string ResponseMatrixStateStaleVersions {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateStaleVersions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateOldFormat.
+        /// </summary>
+        public static string ResponseMatrixStateOldFormat {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateOldFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateUnreadable.
+        /// </summary>
+        public static string ResponseMatrixStateUnreadable {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateUnreadable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateNotOurs.
+        /// </summary>
+        public static string ResponseMatrixStateNotOurs {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateNotOurs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixVersionsCurrent.
+        /// </summary>
+        public static string ResponseMatrixVersionsCurrent {
+            get {
+                return ResourceManager.GetString("ResponseMatrixVersionsCurrent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixVersionsBoth.
+        /// </summary>
+        public static string ResponseMatrixVersionsBoth {
+            get {
+                return ResourceManager.GetString("ResponseMatrixVersionsBoth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRangeFromCurve.
+        /// </summary>
+        public static string ResponseMatrixRangeFromCurve {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRangeFromCurve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRangeDiffers.
+        /// </summary>
+        public static string ResponseMatrixRangeDiffers {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRangeDiffers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorFacingFront.
+        /// </summary>
+        public static string GeometryEditorFacingFront {
+            get {
+                return ResourceManager.GetString("GeometryEditorFacingFront", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorFacingSide.
+        /// </summary>
+        public static string GeometryEditorFacingSide {
+            get {
+                return ResourceManager.GetString("GeometryEditorFacingSide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to EfficiencySketchFacingSide.
+        /// </summary>
+        public static string EfficiencySketchFacingSide {
+            get {
+                return ResourceManager.GetString("EfficiencySketchFacingSide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixStateValid.
+        /// </summary>
+        public static string ResponseMatrixStateValid {
+            get {
+                return ResourceManager.GetString("ResponseMatrixStateValid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixNoGeometry.
+        /// </summary>
+        public static string ResponseMatrixNoGeometry {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNoGeometry", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixDetails.
+        /// </summary>
+        public static string ResponseMatrixDetails {
+            get {
+                return ResourceManager.GetString("ResponseMatrixDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ({1} requested).
+        /// </summary>
+        public static string ResponseMatrixNodesRequested {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNodesRequested", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixParameters.
+        /// </summary>
+        public static string ResponseMatrixParameters {
+            get {
+                return ResourceManager.GetString("ResponseMatrixParameters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixMinEnergy.
+        /// </summary>
+        public static string ResponseMatrixMinEnergy {
+            get {
+                return ResourceManager.GetString("ResponseMatrixMinEnergy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixMaxEnergy.
+        /// </summary>
+        public static string ResponseMatrixMaxEnergy {
+            get {
+                return ResourceManager.GetString("ResponseMatrixMaxEnergy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixNodes.
+        /// </summary>
+        public static string ResponseMatrixNodes {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNodes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixBin.
+        /// </summary>
+        public static string ResponseMatrixBin {
+            get {
+                return ResourceManager.GetString("ResponseMatrixBin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixHistories.
+        /// </summary>
+        public static string ResponseMatrixHistories {
+            get {
+                return ResourceManager.GetString("ResponseMatrixHistories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixThreads.
+        /// </summary>
+        public static string ResponseMatrixThreads {
+            get {
+                return ResourceManager.GetString("ResponseMatrixThreads", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCompute.
+        /// </summary>
+        public static string ResponseMatrixCompute {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCompute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixRecompute.
+        /// </summary>
+        public static string ResponseMatrixRecompute {
+            get {
+                return ResourceManager.GetString("ResponseMatrixRecompute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCancel.
+        /// </summary>
+        public static string ResponseMatrixCancel {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixSave.
+        /// </summary>
+        public static string ResponseMatrixSave {
+            get {
+                return ResourceManager.GetString("ResponseMatrixSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixClose.
+        /// </summary>
+        public static string ResponseMatrixClose {
+            get {
+                return ResourceManager.GetString("ResponseMatrixClose", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixProgress.
+        /// </summary>
+        public static string ResponseMatrixProgress {
+            get {
+                return ResourceManager.GetString("ResponseMatrixProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixDone.
+        /// </summary>
+        public static string ResponseMatrixDone {
+            get {
+                return ResourceManager.GetString("ResponseMatrixDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixContinuumNoise.
+        /// </summary>
+        public static string ResponseMatrixContinuumNoise {
+            get {
+                return ResourceManager.GetString("ResponseMatrixContinuumNoise", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixCancelled.
+        /// </summary>
+        public static string ResponseMatrixCancelled {
+            get {
+                return ResourceManager.GetString("ResponseMatrixCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixSaved.
+        /// </summary>
+        public static string ResponseMatrixSaved {
+            get {
+                return ResourceManager.GetString("ResponseMatrixSaved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixFailed.
+        /// </summary>
+        public static string ResponseMatrixFailed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixWhatFor.
+        /// </summary>
+        public static string ResponseMatrixWhatFor {
+            get {
+                return ResourceManager.GetString("ResponseMatrixWhatFor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal.
+        /// </summary>
+        public static string ResponseMatrixInheritedHistories {
+            get {
+                return ResourceManager.GetString("ResponseMatrixInheritedHistories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Body fingerprint: {0}.
+        /// </summary>
+        public static string ResponseMatrixFingerprint {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to none (taken from the file).
+        /// </summary>
+        public static string ResponseMatrixFingerprintNone {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (not stored in the file).
+        /// </summary>
+        public static string ResponseMatrixFingerprintNotStored {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintNotStored", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ⚠ DOES NOT MATCH the one stored in the file.
+        /// </summary>
+        public static string ResponseMatrixFingerprintMismatch {
+            get {
+                return ResourceManager.GetString("ResponseMatrixFingerprintMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorMaterialsEdit.
+        /// </summary>
+        public static string GeometryEditorMaterialsEdit {
+            get {
+                return ResourceManager.GetString("GeometryEditorMaterialsEdit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryEditorMaterialsEditHint.
+        /// </summary>
+        public static string GeometryEditorMaterialsEditHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorMaterialsEditHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsTitle.
+        /// </summary>
+        public static string GeometryMaterialsTitle {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindAll.
+        /// </summary>
+        public static string GeometryMaterialsKindAll {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindCrystal.
+        /// </summary>
+        public static string GeometryMaterialsKindCrystal {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindCrystal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindReflector.
+        /// </summary>
+        public static string GeometryMaterialsKindReflector {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindReflector", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindCladding.
+        /// </summary>
+        public static string GeometryMaterialsKindCladding {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindCladding", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindBeakerWall.
+        /// </summary>
+        public static string GeometryMaterialsKindBeakerWall {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindBeakerWall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindSource.
+        /// </summary>
+        public static string GeometryMaterialsKindSource {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKind.
+        /// </summary>
+        public static string GeometryMaterialsKind {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsAbbr.
+        /// </summary>
+        public static string GeometryMaterialsAbbr {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsAbbr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsName.
+        /// </summary>
+        public static string GeometryMaterialsName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsNameHint.
+        /// </summary>
+        public static string GeometryMaterialsNameHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsNameHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsDensity.
+        /// </summary>
+        public static string GeometryMaterialsDensity {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsDensity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByFormula.
+        /// </summary>
+        public static string GeometryMaterialsByFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByMixture.
+        /// </summary>
+        public static string GeometryMaterialsByMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsFormula.
+        /// </summary>
+        public static string GeometryMaterialsFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsFormulaHint.
+        /// </summary>
+        public static string GeometryMaterialsFormulaHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsFormulaHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsMixtureHint.
+        /// </summary>
+        public static string GeometryMaterialsMixtureHint {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsMixtureHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsComponent.
+        /// </summary>
+        public static string GeometryMaterialsComponent {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsComponent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsWeight.
+        /// </summary>
+        public static string GeometryMaterialsWeight {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsWeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsComposition.
+        /// </summary>
+        public static string GeometryMaterialsComposition {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsComposition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsAdd.
+        /// </summary>
+        public static string GeometryMaterialsAdd {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsAdd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsRemove.
+        /// </summary>
+        public static string GeometryMaterialsRemove {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsRemove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsSave.
+        /// </summary>
+        public static string GeometryMaterialsSave {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsCancel.
+        /// </summary>
+        public static string GeometryMaterialsCancel {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsNewName.
+        /// </summary>
+        public static string GeometryMaterialsNewName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsNewName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsRemoveAsk.
+        /// </summary>
+        public static string GeometryMaterialsRemoveAsk {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsRemoveAsk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorNoName.
+        /// </summary>
+        public static string GeometryMaterialsErrorNoName {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorNoName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorDuplicate.
+        /// </summary>
+        public static string GeometryMaterialsErrorDuplicate {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorDuplicate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorDensity.
+        /// </summary>
+        public static string GeometryMaterialsErrorDensity {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorDensity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorFormula.
+        /// </summary>
+        public static string GeometryMaterialsErrorFormula {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorFormula", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorEmptyMixture.
+        /// </summary>
+        public static string GeometryMaterialsErrorEmptyMixture {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorEmptyMixture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorNoComponent.
+        /// </summary>
+        public static string GeometryMaterialsErrorNoComponent {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorNoComponent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorCycle.
+        /// </summary>
+        public static string GeometryMaterialsErrorCycle {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorCycle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorInUse.
+        /// </summary>
+        public static string GeometryMaterialsErrorInUse {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsErrorAt.
+        /// </summary>
+        public static string GeometryMaterialsErrorAt {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsErrorAt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsLoadFailed.
+        /// </summary>
+        public static string GeometryMaterialsLoadFailed {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsLoadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsSaveFailed.
+        /// </summary>
+        public static string GeometryMaterialsSaveFailed {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsSaveFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsKindOther.
+        /// </summary>
+        public static string GeometryMaterialsKindOther {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsKindOther", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GeometryMaterialsByTable.
+        /// </summary>
+        public static string GeometryMaterialsByTable {
+            get {
+                return ResourceManager.GetString("GeometryMaterialsByTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Importing spectra.
+        /// </summary>
+        public static string ImportSpectrumLimitTitle {
+            get {
+                return ResourceManager.GetString("ImportSpectrumLimitTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Imported spectra: {0}.
+        /// </summary>
+        public static string ImportSpectrumLimitReached {
+            get {
+                return ResourceManager.GetString("ImportSpectrumLimitReached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Panel layout.
+        /// </summary>
+        public static string LayoutSaveFailedTitle {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The panel layout could not be saved to {0}.
+        /// </summary>
+        public static string LayoutSaveFailed {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When the application was closing on {0}, the panel layout could not be saved to {1}.
+        /// </summary>
+        public static string LayoutSaveFailedOnExit {
+            get {
+                return ResourceManager.GetString("LayoutSaveFailedOnExit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The arrangement was written to {0} instead.
+        /// </summary>
+        public static string LayoutSaveRescued {
+            get {
+                return ResourceManager.GetString("LayoutSaveRescued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The arrangement could not be preserved and is lost.
+        /// </summary>
+        public static string LayoutSaveNotRescued {
+            get {
+                return ResourceManager.GetString("LayoutSaveNotRescued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Version {0}.
+        /// </summary>
+        public static string AboutVersionFormat {
+            get {
+                return ResourceManager.GetString("AboutVersionFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to kg.
+        /// </summary>
+        public static string UnitKilogram {
+            get {
+                return ResourceManager.GetString("UnitKilogram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to g.
+        /// </summary>
+        public static string UnitGram {
+            get {
+                return ResourceManager.GetString("UnitGram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to l.
+        /// </summary>
+        public static string UnitLiter {
+            get {
+                return ResourceManager.GetString("UnitLiter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ml.
+        /// </summary>
+        public static string UnitMilliliter {
+            get {
+                return ResourceManager.GetString("UnitMilliliter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to µSv/h.
+        /// </summary>
+        public static string UnitMicroSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitMicroSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to mSv/h.
+        /// </summary>
+        public static string UnitMilliSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitMilliSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sv/h.
+        /// </summary>
+        public static string UnitSievertPerHour {
+            get {
+                return ResourceManager.GetString("UnitSievertPerHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Wave height: .
+        /// </summary>
+        public static string PulseViewWaveHeight {
+            get {
+                return ResourceManager.GetString("PulseViewWaveHeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Wave height: .
+        /// </summary>
+        public static string PulseViewMaxWaveHeight {
+            get {
+                return ResourceManager.GetString("PulseViewMaxWaveHeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Screenshot.
+        /// </summary>
+        public static string ScreenshotDialogTitle {
+            get {
+                return ResourceManager.GetString("ScreenshotDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to png file (*.png)|*.png.
+        /// </summary>
+        public static string PNGFileFilter {
+            get {
+                return ResourceManager.GetString("PNGFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to WAV Files (*.wav)|*.wav|All Files (*.*)|*.*.
+        /// </summary>
+        public static string WAVFileFilter {
+            get {
+                return ResourceManager.GetString("WAVFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please select a sound file..
+        /// </summary>
+        public static string SelectSoundFileTitle {
+            get {
+                return ResourceManager.GetString("SelectSoundFileTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Background spectrum is not available for the active spectrum..
+        /// </summary>
+        public static string ERRNoBackgroundSpectrum {
+            get {
+                return ResourceManager.GetString("ERRNoBackgroundSpectrum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device disconnected from audio port!.
+        /// </summary>
+        public static string ERRAudioDeviceDisconnected {
+            get {
+                return ResourceManager.GetString("ERRAudioDeviceDisconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Link "{0}" couldn't be opened. ({1}).
+        /// </summary>
+        public static string ERROpenLinkFailure {
+            get {
+                return ResourceManager.GetString("ERROpenLinkFailure", resourceCulture);
+            }
+        }
+
+        public static string MenuShowLog {
+            get {
+                return ResourceManager.GetString("MenuShowLog", resourceCulture);
+            }
+        }
+
+        public static string ERROpenLogFailure {
+            get {
+                return ResourceManager.GetString("ERROpenLogFailure", resourceCulture);
+            }
+        }
+
+        public static string ERRBTEnableFailed {
+            get {
+                return ResourceManager.GetString("ERRBTEnableFailed", resourceCulture);
+            }
+        }
+
+        public static string VCPDeviceStatusReason {
+            get {
+                return ResourceManager.GetString("VCPDeviceStatusReason", resourceCulture);
+            }
+        }
+
+        public static string ERRTroubleshootDeviceBusy {
+            get {
+                return ResourceManager.GetString("ERRTroubleshootDeviceBusy", resourceCulture);
+            }
+        }
+
+        public static string ERRDeviceNoData {
+            get {
+                return ResourceManager.GetString("ERRDeviceNoData", resourceCulture);
+            }
+        }
+
+        public static string ERRBTUnavailable {
+            get {
+                return ResourceManager.GetString("ERRBTUnavailable", resourceCulture);
+            }
+        }
+
+        public static string ERRBTNotAllowed {
+            get {
+                return ResourceManager.GetString("ERRBTNotAllowed", resourceCulture);
+            }
+        }
+
+        public static string ERRBTNoAdapter {
+            get {
+                return ResourceManager.GetString("ERRBTNoAdapter", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoAddress {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoAddress", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoDevice {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoDevice", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoService {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoService", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalNoCharacteristics {
+            get {
+                return ResourceManager.GetString("ERRObsCalNoCharacteristics", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalBadCalibration {
+            get {
+                return ResourceManager.GetString("ERRObsCalBadCalibration", resourceCulture);
+            }
+        }
+
+        public static string ERRObsCalWriteRejected {
+            get {
+                return ResourceManager.GetString("ERRObsCalWriteRejected", resourceCulture);
+            }
+        }
+
+        public static string FSAReportNoSpectrum {
+            get {
+                return ResourceManager.GetString("FSAReportNoSpectrum", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipCalculation {
+            get {
+                return ResourceManager.GetString("FSAReportTipCalculation", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipGrouping {
+            get {
+                return ResourceManager.GetString("FSAReportTipGrouping", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipParentsNeedNucBase {
+            get {
+                return ResourceManager.GetString("FSAReportTipParentsNeedNucBase", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipParentsRefused {
+            get {
+                return ResourceManager.GetString("FSAReportTipParentsRefused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to chain members have free amplitudes, the parent detection limit is undefined.
+        /// </summary>
+        public static string FSAReportRefusalFreeChainMembers {
+            get {
+                return ResourceManager.GetString("FSAReportRefusalFreeChainMembers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to there is no decay chain in the composition.
+        /// </summary>
+        public static string FSAReportRefusalNoDecayChain {
+            get {
+                return ResourceManager.GetString("FSAReportRefusalNoDecayChain", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipEquilibriumNeedsNucBase {
+            get {
+                return ResourceManager.GetString("FSAReportTipEquilibriumNeedsNucBase", resourceCulture);
+            }
+        }
+
+        public static string FSAReportTipMatrixExtra {
+            get {
+                return ResourceManager.GetString("FSAReportTipMatrixExtra", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (sum 511+511).
+        /// </summary>
+        public static string PeakLabelAnnihilationSum {
+            get {
+                return ResourceManager.GetString("PeakLabelAnnihilationSum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to  / .
+        /// </summary>
+        public static string PeakLabelCandidateSeparator {
+            get {
+                return ResourceManager.GetString("PeakLabelCandidateSeparator", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f0} keV — division by it is meaningless..
+        /// </summary>
+        public static string DoseRateBadEfficiency {
+            get {
+                return ResourceManager.GetString("DoseRateBadEfficiency", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the energy scale is degenerate ({0}...{1} keV over {2} channels)..
+        /// </summary>
+        public static string DoseRateBadScale {
+            get {
+                return ResourceManager.GetString("DoseRateBadScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f1} keV. Efficiency is the fraction of the emitted photons registered and cannot exceed 1..
+        /// </summary>
+        public static string DoseRateCurveAboveOne {
+            get {
+                return ResourceManager.GetString("DoseRateCurveAboveOne", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve has a point at {0} keV..
+        /// </summary>
+        public static string DoseRateCurveBadEnergy {
+            get {
+                return ResourceManager.GetString("DoseRateCurveBadEnergy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve gives {0} at {1:f1} keV..
+        /// </summary>
+        public static string DoseRateCurveBadValue {
+            get {
+                return ResourceManager.GetString("DoseRateCurveBadValue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the efficiency curve has {0} point(s), at least two are needed..
+        /// </summary>
+        public static string DoseRateCurveTooShort {
+            get {
+                return ResourceManager.GetString("DoseRateCurveTooShort", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the device scale ({0:f0}...{1:f0} keV) does not overlap the range where the coefficients are defined ({2:f0}...{3:f0} keV)..
+        /// </summary>
+        public static string DoseRateEmptyRange {
+            get {
+                return ResourceManager.GetString("DoseRateEmptyRange", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no channels..
+        /// </summary>
+        public static string DoseRateEmptySpectrum {
+            get {
+                return ResourceManager.GetString("DoseRateEmptySpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: energy {0} keV is not positive..
+        /// </summary>
+        public static string DoseRateEnergyNotPositive {
+            get {
+                return ResourceManager.GetString("DoseRateEnergyNotPositive", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no counts inside the ranges — there is nothing to calibrate against..
+        /// </summary>
+        public static string DoseRateEtalonEmpty {
+            get {
+                return ResourceManager.GetString("DoseRateEtalonEmpty", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} has no spectrum with an energy calibration, channels and a non-zero measurement time..
+        /// </summary>
+        public static string DoseRateFileUnusable {
+            get {
+                return ResourceManager.GetString("DoseRateFileUnusable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} does not start with the LSRM header "Energy, keV / Efficiency / Uncertainty, %" — the first line reads "{1}"..
+        /// </summary>
+        public static string DoseRateLsrmNoHeader {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmNoHeader", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed ({3} more were dropped as declared to more than {4:f0} % uncertainty)..
+        /// </summary>
+        public static string DoseRateLsrmNoPoints {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmNoPoints", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} (line {1}) has {2} column(s) instead of three (energy, efficiency, uncertainty): "{3}"..
+        /// </summary>
+        public static string DoseRateLsrmShortLine {
+            get {
+                return ResourceManager.GetString("DoseRateLsrmShortLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has no energy calibration — the channels cannot be turned into keV..
+        /// </summary>
+        public static string DoseRateNoCalibration {
+            get {
+                return ResourceManager.GetString("DoseRateNoCalibration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: no efficiency curve is selected..
+        /// </summary>
+        public static string DoseRateNoEfficiency {
+            get {
+                return ResourceManager.GetString("DoseRateNoEfficiency", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: element Z={0} is missing from the material database..
+        /// </summary>
+        public static string DoseRateNoElement {
+            get {
+                return ResourceManager.GetString("DoseRateNoElement", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the declared dose rate of the source must be positive..
+        /// </summary>
+        public static string DoseRateNoExpected {
+            get {
+                return ResourceManager.GetString("DoseRateNoExpected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the energy grid is empty..
+        /// </summary>
+        public static string DoseRateNoGrid {
+            get {
+                return ResourceManager.GetString("DoseRateNoGrid", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: neither the device configuration nor the spectrum has an energy scale — there is nothing to build the ranges on..
+        /// </summary>
+        public static string DoseRateNoScale {
+            get {
+                return ResourceManager.GetString("DoseRateNoScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: no reference spectrum is selected..
+        /// </summary>
+        public static string DoseRateNoSpectrum {
+            get {
+                return ResourceManager.GetString("DoseRateNoSpectrum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the reference spectrum has zero measurement time..
+        /// </summary>
+        public static string DoseRateNoTime {
+            get {
+                return ResourceManager.GetString("DoseRateNoTime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: the sum over the ranges is not a finite number — the calibration points are unusable..
+        /// </summary>
+        public static string DoseRateNotFinite {
+            get {
+                return ResourceManager.GetString("DoseRateNotFinite", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0:f1} keV is outside the efficiency curve ({1:f1}...{2:f1} keV)..
+        /// </summary>
+        public static string DoseRateOutsideCurve {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideCurve", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} keV is outside the ICRP 74 h*(10)/Ka table ({1}...{2} keV)..
+        /// </summary>
+        public static string DoseRateOutsideIcrp {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideIcrp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dose rate: {0} keV is outside the XCOM table for Z={1} ({2}...{3} keV)..
+        /// </summary>
+        public static string DoseRateOutsideXcom {
+            get {
+                return ResourceManager.GetString("DoseRateOutsideXcom", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to (covers {0:f0} % of counts).
+        /// </summary>
+        public static string DoseRatePartialCoverage {
+            get {
+                return ResourceManager.GetString("DoseRatePartialCoverage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: {1} of {2} imported spectra have no resolution model (FWHM calibration). Peak search cannot run on them. Reason: {3}.
+        /// </summary>
+        public static string ERRNoFwhmCalibrationImport {
+            get {
+                return ResourceManager.GetString("ERRNoFwhmCalibrationImport", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the default cannot be built from the device settings — the straight line through (channel 0, FWHM {0}) and (channel {1}, FWHM {2}) does not grow, while the width must not decrease along the scale..
+        /// </summary>
+        public static string ERRFwhmDefaultNotMonotonic {
+            get {
+                return ResourceManager.GetString("ERRFwhmDefaultNotMonotonic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the spectrum carries no FWHM calibration and none was built for it..
+        /// </summary>
+        public static string ERRFwhmCalibrationUnset {
+            get {
+                return ResourceManager.GetString("ERRFwhmCalibrationUnset", resourceCulture);
+            }
+        }
+
     }
 }

@@ -1,0 +1,1054 @@
+НЕТ У ГЕНЕРАТОРА  AS80_th_disk.in
+РАЗОШЁЛСЯ        ASN16_lu_side.in: живой 296 строк / 8175 байт, генератор 311 строк / 8637 байт
+      --- live/ASN16_lu_side.in
+      +++ gen/ASN16_lu_side.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+РАЗОШЁЛСЯ        G1S_denta100_oisn10_100_p16.in: живой 297 строк / 7994 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_denta100_oisn10_100_p16.in
+      +++ gen/G1S_denta100_oisn10_100_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta100_risn379_100_p16.in: живой 305 строк / 8242 байт, генератор 320 строк / 8704 байт
+      --- live/G1S_denta100_risn379_100_p16.in
+      +++ gen/G1S_denta100_risn379_100_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn06_057_p24.in: живой 297 строк / 8012 байт, генератор 312 строк / 8474 байт
+      --- live/G1S_denta120_oisn06_057_p24.in
+      +++ gen/G1S_denta120_oisn06_057_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn06_062_p24.in: живой 297 строк / 8012 байт, генератор 312 строк / 8474 байт
+      --- live/G1S_denta120_oisn06_062_p24.in
+      +++ gen/G1S_denta120_oisn06_062_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn06_064_p24.in: живой 297 строк / 8000 байт, генератор 312 строк / 8462 байт
+      --- live/G1S_denta120_oisn06_064_p24.in
+      +++ gen/G1S_denta120_oisn06_064_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn06_066_p24.in: живой 297 строк / 8012 байт, генератор 312 строк / 8474 байт
+      --- live/G1S_denta120_oisn06_066_p24.in
+      +++ gen/G1S_denta120_oisn06_066_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn16_155_p24.in: живой 297 строк / 8000 байт, генератор 312 строк / 8462 байт
+      --- live/G1S_denta120_oisn16_155_p24.in
+      +++ gen/G1S_denta120_oisn16_155_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn16_160_p24.in: живой 297 строк / 7998 байт, генератор 312 строк / 8460 байт
+      --- live/G1S_denta120_oisn16_160_p24.in
+      +++ gen/G1S_denta120_oisn16_160_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn16_166_p24.in: живой 297 строк / 8010 байт, генератор 312 строк / 8472 байт
+      --- live/G1S_denta120_oisn16_166_p24.in
+      +++ gen/G1S_denta120_oisn16_166_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_denta120_oisn16_167_p24.in: живой 297 строк / 8010 байт, генератор 312 строк / 8472 байт
+      --- live/G1S_denta120_oisn16_167_p24.in
+      +++ gen/G1S_denta120_oisn16_167_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+НЕТ У ГЕНЕРАТОРА  G1S_mar1l_coal_046_p24.in
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_055_p16.in: живой 293 строк / 7921 байт, генератор 308 строк / 8382 байт
+      --- live/G1S_mar1l_oisn06_055_p16.in
+      +++ gen/G1S_mar1l_oisn06_055_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_057_p16.in: живой 293 строк / 7921 байт, генератор 308 строк / 8382 байт
+      --- live/G1S_mar1l_oisn06_057_p16.in
+      +++ gen/G1S_mar1l_oisn06_057_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_057_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn06_057_p24.in
+      +++ gen/G1S_mar1l_oisn06_057_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_062_p16.in: живой 293 строк / 7921 байт, генератор 308 строк / 8382 байт
+      --- live/G1S_mar1l_oisn06_062_p16.in
+      +++ gen/G1S_mar1l_oisn06_062_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_062_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn06_062_p24.in
+      +++ gen/G1S_mar1l_oisn06_062_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_064_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn06_064_p24.in
+      +++ gen/G1S_mar1l_oisn06_064_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_066_p16.in: живой 293 строк / 7921 байт, генератор 308 строк / 8382 байт
+      --- live/G1S_mar1l_oisn06_066_p16.in
+      +++ gen/G1S_mar1l_oisn06_066_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn06_066_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn06_066_p24.in
+      +++ gen/G1S_mar1l_oisn06_066_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_155_p16.in: живой 297 строк / 8031 байт, генератор 312 строк / 8492 байт
+      --- live/G1S_mar1l_oisn16_155_p16.in
+      +++ gen/G1S_mar1l_oisn16_155_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_155_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn16_155_p24.in
+      +++ gen/G1S_mar1l_oisn16_155_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_160_p16.in: живой 297 строк / 8029 байт, генератор 312 строк / 8490 байт
+      --- live/G1S_mar1l_oisn16_160_p16.in
+      +++ gen/G1S_mar1l_oisn16_160_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_160_p24.in: живой 297 строк / 7993 байт, генератор 312 строк / 8454 байт
+      --- live/G1S_mar1l_oisn16_160_p24.in
+      +++ gen/G1S_mar1l_oisn16_160_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_166_p16.in: живой 297 строк / 8031 байт, генератор 312 строк / 8492 байт
+      --- live/G1S_mar1l_oisn16_166_p16.in
+      +++ gen/G1S_mar1l_oisn16_166_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_166_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn16_166_p24.in
+      +++ gen/G1S_mar1l_oisn16_166_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_167_p16.in: живой 297 строк / 8031 байт, генератор 312 строк / 8492 байт
+      --- live/G1S_mar1l_oisn16_167_p16.in
+      +++ gen/G1S_mar1l_oisn16_167_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_oisn16_167_p24.in: живой 297 строк / 7995 байт, генератор 312 строк / 8456 байт
+      --- live/G1S_mar1l_oisn16_167_p24.in
+      +++ gen/G1S_mar1l_oisn16_167_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_mar1l_risn379_100_p16.in: живой 305 строк / 8235 байт, генератор 320 строк / 8696 байт
+      --- live/G1S_mar1l_risn379_100_p16.in
+      +++ gen/G1S_mar1l_risn379_100_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -58,4 +60,4 @@
+      -SM_BeakerDiameter = 15.4 cm
+      -SM_BeakerHeight = 11.2 cm
+      -SM_BeakerHoleDiameter = 9.7 cm
+      -SM_BeakerHoleHeight = 6.5 cm
+      +SM_BeakerDiameter = 13.519602 cm
+      +SM_BeakerHeight = 10.4 cm
+      +SM_BeakerHoleDiameter = 7.6 cm
+      +SM_BeakerHoleHeight = 7 cm
+      @@ -66 +68 @@
+      -SM_SourceHeight = 8.6058 cm
+      +SM_SourceHeight = 10 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn06_057_p24.in: живой 297 строк / 8010 байт, генератор 312 строк / 8472 байт
+      --- live/G1S_petri60_oisn06_057_p24.in
+      +++ gen/G1S_petri60_oisn06_057_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn06_062_p24.in: живой 297 строк / 8010 байт, генератор 312 строк / 8472 байт
+      --- live/G1S_petri60_oisn06_062_p24.in
+      +++ gen/G1S_petri60_oisn06_062_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn06_064_p24.in: живой 297 строк / 7998 байт, генератор 312 строк / 8460 байт
+      --- live/G1S_petri60_oisn06_064_p24.in
+      +++ gen/G1S_petri60_oisn06_064_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn06_067_p24.in: живой 297 строк / 8010 байт, генератор 312 строк / 8472 байт
+      --- live/G1S_petri60_oisn06_067_p24.in
+      +++ gen/G1S_petri60_oisn06_067_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn10_100_p16.in: живой 297 строк / 7990 байт, генератор 312 строк / 8452 байт
+      --- live/G1S_petri60_oisn10_100_p16.in
+      +++ gen/G1S_petri60_oisn10_100_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn16_155_p24.in: живой 297 строк / 7998 байт, генератор 312 строк / 8460 байт
+      --- live/G1S_petri60_oisn16_155_p24.in
+      +++ gen/G1S_petri60_oisn16_155_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn16_160_p24.in: живой 297 строк / 7996 байт, генератор 312 строк / 8458 байт
+      --- live/G1S_petri60_oisn16_160_p24.in
+      +++ gen/G1S_petri60_oisn16_160_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_oisn16_167_p24.in: живой 297 строк / 8008 байт, генератор 312 строк / 8470 байт
+      --- live/G1S_petri60_oisn16_167_p24.in
+      +++ gen/G1S_petri60_oisn16_167_p24.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_petri60_risn379_100_p16.in: живой 305 строк / 8238 байт, генератор 320 строк / 8700 байт
+      --- live/G1S_petri60_risn379_100_p16.in
+      +++ gen/G1S_petri60_risn379_100_p16.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -185,0 +188,13 @@
+      +
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+РАЗОШЁЛСЯ        G1S_point25.in: живой 285 строк / 7707 байт, генератор 300 строк / 8169 байт
+      --- live/G1S_point25.in
+      +++ gen/G1S_point25.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+РАЗОШЁЛСЯ        G1S_point5.in: живой 285 строк / 7706 байт, генератор 300 строк / 8168 байт
+      --- live/G1S_point5.in
+      +++ gen/G1S_point5.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+РАЗОШЁЛСЯ        RC103_lu_front.in: живой 291 строк / 7943 байт, генератор 306 строк / 8405 байт
+      --- live/RC103_lu_front.in
+      +++ gen/RC103_lu_front.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+РАЗОШЁЛСЯ        RC103_marinelli05_kcl.in: живой 291 строк / 7940 байт, генератор 306 строк / 8402 байт
+      --- live/RC103_marinelli05_kcl.in
+      +++ gen/RC103_marinelli05_kcl.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+РАЗОШЁЛСЯ        RC103_point0.in: живой 291 строк / 7909 байт, генератор 306 строк / 8371 байт
+      --- live/RC103_point0.in
+      +++ gen/RC103_point0.in
+      @@ -31,0 +32,2 @@
+      +DS_CrystalFrontGapThickness = 0 cm
+      +DS_CrystalSideGapThickness = 0 cm
+      @@ -186,0 +189,13 @@
+      +// Gap between reflector and cladding 
+      +DS_nCrystalGapElements = 2
+      +DS_RoCrystalGap = 0.001205
+      +DS_ZCrystalGap[0] = 7
+      +DS_FractionsCrystalGap[0] = 0.636483
+      +DS_ZCrystalGap[1] = 8
+      +DS_FractionsCrystalGap[1] = 0.363517
+      +DS_FractionTypeGap = MASS
+      +M_DS_Gap.MName = Air, dry
+      +M_DS_Gap.Nmaterials = 1
+      +M_DS_Gap.Name[0] = Air, dry                                 
+      +M_DS_Gap.MatRelWeight[0] = 1
+      +
+index.csv РАЗОШЁЛСЯ: живой 90 строк, генератор 85
+      только живой:     AS80_th_disk,AS80_Th232Medal,Atom Spectra Pro 80x80,"стеклянный диск Ø40×5 мм (ториевое стекло 4.345 г/см³), ВПРИТЫК к т
+      только живой:     G1S_mar1l_coal_046_p24,G1S24_Rn222Coal_Mar_20m,Gamma-1S UDS-GC 63x63,"Маринелли, набивка активированный уголь 0.461 г/см
+      только живой:     G1S_mar1l_coal_046_p24,G1S24_Rn222Coal_Mar_2h,Gamma-1S UDS-GC 63x63,"Маринелли, набивка активированный уголь 0.461 г/см³
+      только живой:     G1S_mar1l_coal_046_p24,G1S24_Rn222Coal_Mar_3h,Gamma-1S UDS-GC 63x63,"Маринелли, набивка активированный уголь 0.461 г/см³
+      только живой:     G1S_mar1l_coal_046_p24,G1S24_Rn222Coal_Mar_eq01,Gamma-1S UDS-GC 63x63,"Маринелли, набивка активированный уголь 0.461 г/с
+
+живых .in 46: РАВНЫ 2, РАЗОШЛИСЬ 42, НЕТ У ГЕНЕРАТОРА 2; лишних у генератора 0; index.csv РАЗОШЁЛСЯ

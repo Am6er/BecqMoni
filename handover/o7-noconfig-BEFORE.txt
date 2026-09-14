@@ -1,0 +1,179 @@
+=== СБОРКА ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o7\BecquerelMonitor.exe
+  собрана 2026-09-05 11:47:08
+  окна у приложения: False
+  культура прогона: ru-RU (разделитель дробной части «,»)  [без подпорки MainForm]
+
+BecqMoni: device configs: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_o7\config\device: 10 loaded
+=== ПУСТОЙ СПИСОК КОНФИГУРАЦИЙ ПРИБОРОВ, ОБЕ ДВЕРИ (`A212`) ===
+  каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42
+  файлов: 12
+  конфигураций приборов загружено: 10
+  конфигураций ROI загружено: 12  (не трогаются: разрез идёт по ОДНОЙ величине)
+
+=== СПИСОК ПОЛОН | документ пробы | дверь SpecUtils ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПОЛОН | документ пробы | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+=== СПИСОК ПОЛОН | документ пробы | дверь N42 ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПОЛОН | документ пробы | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+=== СПИСОК ПОЛОН | документ приложения | дверь SpecUtils ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПОЛОН | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+=== СПИСОК ПОЛОН | документ приложения | дверь N42 ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПОЛОН | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+--- список конфигураций приборов ОПУСТОШЁН: 0 ---
+
+=== СПИСОК ПУСТ | документ пробы | дверь SpecUtils ===
+  AS80_Th232_v2.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\AS80_Th232_v2.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN16_Cs137.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN16_Cs137.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN3_Tile.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN3_Tile.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN8_Th232_2048.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN8_Th232_2048.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN8_Th232_4096.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN8_Th232_4096.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S16_Cs137_Mar_2.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S16_Cs137_Mar_2.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S16_Eu152_P25.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S16_Eu152_P25.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S24_Cs137_P5.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S24_Cs137_P5.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  GS4000_Th232.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\GS4000_Th232.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  HPGE_Uranium.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\HPGE_Uranium.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  OBS_UGlass.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\OBS_UGlass.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  RC103_K40.n42 | ОТКАЗ | спектр:null, поиск пиков:есть | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\RC103_K40.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ИТОГ: СПИСОК ПУСТ | документ пробы | дверь SpecUtils -> ВВЕЗЕНО 0 / ОТКАЗ 12 (из 12), без ПШПВ у документа: 12   |   12× InvalidOperationException <- NullReferenceException DocumentManager.cs:строка 611
+
+=== СПИСОК ПУСТ | документ пробы | дверь N42 ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:null, поиск пиков:есть
+  ИТОГ: СПИСОК ПУСТ | документ пробы | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 12
+
+=== СПИСОК ПУСТ | документ приложения | дверь SpecUtils ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПУСТ | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+=== СПИСОК ПУСТ | документ приложения | дверь N42 ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  RC103_K40.n42 | ВВЕЗЁН | спектр:есть, поиск пиков:есть
+  ИТОГ: СПИСОК ПУСТ | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+
+--- у конфигурации «RC-103» ПШПВ у нуля 40 > ПШПВ на канале 266 (1): умолчание не строится ---
+    проверка: FwhmCalibration.DefaultCalibration -> null (кривая не растёт)
+
+=== УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь SpecUtils ===
+  AS80_Th232_v2.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\AS80_Th232_v2.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN16_Cs137.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN16_Cs137.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN3_Tile.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN3_Tile.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN8_Th232_2048.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN8_Th232_2048.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ASN8_Th232_4096.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\ASN8_Th232_4096.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S16_Cs137_Mar_2.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S16_Cs137_Mar_2.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S16_Eu152_P25.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S16_Eu152_P25.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  G1S24_Cs137_P5.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\G1S24_Cs137_P5.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  GS4000_Th232.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\GS4000_Th232.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  HPGE_Uranium.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\HPGE_Uranium.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  OBS_UGlass.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\OBS_UGlass.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  RC103_K40.n42 | ОТКАЗ | спектр:null, поиск пиков:null | InvalidOperationException: BecqMoni: ввоз через SpecUtils оборвался (C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\n42\RC103_K40.n42): Ссылка на объект не указывает на экземпляр объекта.. Документ остался разобранным наполовину.   [NullReferenceException DocumentManager.cs:строка 611]
+  ИТОГ: УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 0 / ОТКАЗ 12 (из 12), без ПШПВ у документа: 12   |   12× InvalidOperationException <- NullReferenceException DocumentManager.cs:строка 611
+
+=== УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь N42 ===
+  AS80_Th232_v2.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  ASN16_Cs137.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  ASN3_Tile.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  ASN8_Th232_2048.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  ASN8_Th232_4096.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  G1S16_Cs137_Mar_2.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  G1S16_Eu152_P25.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  G1S24_Cs137_P5.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  GS4000_Th232.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  HPGE_Uranium.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  OBS_UGlass.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  RC103_K40.n42 | ВВЕЗЁН | спектр:null, поиск пиков:null
+  ИТОГ: УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 12
+
+=== ИТОГ ===
+  СПИСОК ПОЛОН | документ пробы | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  СПИСОК ПОЛОН | документ пробы | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  СПИСОК ПОЛОН | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  СПИСОК ПОЛОН | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  СПИСОК ПУСТ | документ пробы | дверь SpecUtils -> ВВЕЗЕНО 0 / ОТКАЗ 12 (из 12), без ПШПВ у документа: 12   |   12× InvalidOperationException <- NullReferenceException DocumentManager.cs:строка 611
+  СПИСОК ПУСТ | документ пробы | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 12
+  СПИСОК ПУСТ | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  СПИСОК ПУСТ | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 0
+  УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь SpecUtils -> ВВЕЗЕНО 0 / ОТКАЗ 12 (из 12), без ПШПВ у документа: 12   |   12× InvalidOperationException <- NullReferenceException DocumentManager.cs:строка 611
+  УМОЛЧАНИЕ НЕ СТРОИТСЯ | документ приложения | дверь N42 -> ВВЕЗЕНО 12 / ОТКАЗ 0 (из 12), без ПШПВ у документа: 12

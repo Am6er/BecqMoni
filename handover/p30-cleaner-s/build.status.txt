@@ -1,0 +1,4 @@
+21:22:31 restore  exit=0 (2 s)
+21:22:36 msbuild  exit=0 (4 s)
+21:23:51 probes   exit=0 (75 s)
+21:23:59 mkwd     exit=0 (8 s)

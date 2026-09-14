@@ -48,6 +48,7 @@ namespace BecquerelMonitor.NucBase
             this.IsotopeTextBox = new System.Windows.Forms.TextBox();
             this.SearchButton = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.SearchStatusLabel = new System.Windows.Forms.Label();
             this.comboBoxNameFormat = new System.Windows.Forms.ComboBox();
             this.labelNameFormat = new System.Windows.Forms.Label();
             this.checkBoxAppendRootName = new System.Windows.Forms.CheckBox();
@@ -224,6 +225,7 @@ namespace BecquerelMonitor.NucBase
             // panel1
             // 
             resources.ApplyResources(this.panel1, "panel1");
+            this.panel1.Controls.Add(this.SearchStatusLabel);
             this.panel1.Controls.Add(this.comboBoxNameFormat);
             this.panel1.Controls.Add(this.labelNameFormat);
             this.panel1.Controls.Add(this.checkBoxAppendRootName);
@@ -237,9 +239,35 @@ namespace BecquerelMonitor.NucBase
             this.panel1.Controls.Add(this.ResultDataGridView);
             this.panel1.Name = "panel1";
             this.toolTip1.SetToolTip(this.panel1, resources.GetString("panel1.ToolTip"));
-            // 
+            //
+            // SearchStatusLabel
+            //
+            // ⚠ Подписи у метки НЕТ: весь её текст приходит во время работы
+            // из `Properties.Resources` (`T92`, `NucBase.SetSearchStatus`), а ключ
+            // `SearchStatusLabel.Text` в обеих культурах пуст СОЗНАТЕЛЬНО:
+            // пустая метка при открытии формы — правильное состояние,
+            // сказать ещё нечего.
+            //
+            // ⚠ РАЗМЕЩЕНИЕ БЕРЁТСЯ ИЗ ПАРЫ `NucBase.resx` / `NucBase.ru.resx`
+            // (`A24`, 03.09.2026). До этого координаты стояли жёстко в коде,
+            // а самой метки в паре не было вовсе — значит локализация
+            // подвинуть её НЕ МОГЛА. Значения в обеих культурах пока
+            // ОДИНАКОВЫ — (495, 384) и 469×70, то есть вид формы правка не
+            // меняет; место выбрано свободным в ОБЕИХ раскладках.
+            // По-английски `comboBoxNameFormat` стоит на 325 и кончается на 442,
+            // по-русски — на 364 и кончается на 481; `labelNameFormat` по-русски
+            // шире (128 против 112) и кончается на 485. Первая редакция
+            // стояла на x = 448 и на русской форме накрывала правые 33 px
+            // списка вместе со стрелкой: `panel1.GetChildAtPoint(472,444)` на
+            // показанной форме отдавал метку, а не список, — щелчок по
+            // стрелке уходил в никуда. Поймано встречной проверкой 27.08.2026.
+            // Отсюда 495: правее обоих концов с запасом, до правого края
+            // `panel1` (976) остаётся 481 px.
+            resources.ApplyResources(this.SearchStatusLabel, "SearchStatusLabel");
+            this.SearchStatusLabel.Name = "SearchStatusLabel";
+            //
             // comboBoxNameFormat
-            // 
+            //
             resources.ApplyResources(this.comboBoxNameFormat, "comboBoxNameFormat");
             this.comboBoxNameFormat.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxNameFormat.FormattingEnabled = true;
@@ -608,6 +636,7 @@ namespace BecquerelMonitor.NucBase
         private System.Windows.Forms.CheckBox checkBoxAppendRootName;
         private System.Windows.Forms.CheckBox checkBoxOverwriteDef;
         private System.Windows.Forms.ComboBox comboBoxNameFormat;
+        private System.Windows.Forms.Label SearchStatusLabel;
         private System.Windows.Forms.DataGridViewCheckBoxColumn CheckBoxColumn;
         private System.Windows.Forms.DataGridViewTextBoxColumn NameColumn2;
         private System.Windows.Forms.DataGridViewTextBoxColumn EnTypeColumn;

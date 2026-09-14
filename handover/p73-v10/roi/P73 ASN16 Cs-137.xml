@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FormatVersion>120920</FormatVersion>
+  <Guid>a7300000-0000-4000-8000-000000000016</Guid>
+  <Name>P73 ASN16 Cs-137</Name>
+  <LastUpdated>2026-09-14T21:00:00+03:00</LastUpdated>
+  <ROIDefinitions>
+    <ROIDefinitionData>
+      <Name>Cs-137 598-726 BG difference</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>661.657</PeakEnergy>
+      <LowerLimit>598</LowerLimit>
+      <UpperLimit>726</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30.08</HalfLife>
+      <Intencity>85.1</Intencity>
+      <Note><![CDATA[П73 V10: Cs-137 661.657 кэВ, зона ±1.5 ПШПВ]]></Note>
+      <ROIPrimitives>
+        <ROISimpleDifferenceData>
+          <PrimitiveType>BG difference</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>598</LowerLimit>
+          <UpperLimit>726</UpperLimit>
+        </ROISimpleDifferenceData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+    <ROIDefinitionData>
+      <Name>Cs-137 598-726 Covell side 30</Name>
+      <Enabled>true</Enabled>
+      <PeakEnergy>661.657</PeakEnergy>
+      <LowerLimit>598</LowerLimit>
+      <UpperLimit>726</UpperLimit>
+      <Color>#FF0000</Color>
+      <BecquerelCoefficient>0</BecquerelCoefficient>
+      <BecquerelCoefficientError>0</BecquerelCoefficientError>
+      <HalfLife>30.08</HalfLife>
+      <Intencity>85.1</Intencity>
+      <Note><![CDATA[П73 V10: Cs-137 661.657 кэВ, зона ±1.5 ПШПВ]]></Note>
+      <ROIPrimitives>
+        <ROICovellMethodData>
+          <PrimitiveType>Covell Method</PrimitiveType>
+          <OperationType>Addition</OperationType>
+          <Coefficient>1</Coefficient>
+          <CoefficientError>0</CoefficientError>
+          <Note />
+          <LowerLimit>598</LowerLimit>
+          <UpperLimit>726</UpperLimit>
+          <LeftRegionCenter>583.0</LeftRegionCenter>
+          <LeftRegionWidth>30</LeftRegionWidth>
+          <RightRegionCenter>741.0</RightRegionCenter>
+          <RightRegionWidth>30</RightRegionWidth>
+        </ROICovellMethodData>
+      </ROIPrimitives>
+    </ROIDefinitionData>
+  </ROIDefinitions>
+</ROIConfigData>

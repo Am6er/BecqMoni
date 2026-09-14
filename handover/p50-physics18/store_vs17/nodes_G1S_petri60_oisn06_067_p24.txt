@@ -1,0 +1,6 @@
+A: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries\G1S_petri60_oisn06_067_p24.rmx  phys=17;617acdefa699d934b599556d9b409f8f08867e1a403083b540994a253d348921
+B: D:\BqMoni_Claude\p50\wt\tools\CORPUS\corpus\geometries\G1S_petri60_oisn06_067_p24.rmx  phys=18;4a59c39c4413721dfa5fe70e27cf2befad035d87235514fd43c3e60133df4ed5
+      кэВ  узел        пик A        пик B   Δпик,%      сумма A      сумма B   Δсум,%    доляA    доляB
+  656.992   108 5.070947e-02 5.085091e-02   +0.279 1.246918e-01 1.247546e-01   +0.050   0.4067   0.4076
+ 1436.594   125 2.450041e-02 2.457378e-02   +0.299 9.743475e-02 9.815031e-02   +0.734   0.2515   0.2504
+ 2613.131   138 1.390674e-02 1.386457e-02   -0.303 8.509193e-02 8.574139e-02   +0.763   0.1634   0.1617

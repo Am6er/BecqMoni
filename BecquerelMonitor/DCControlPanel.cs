@@ -1,7 +1,9 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -19,7 +21,7 @@ namespace BecquerelMonitor
             get
             {
                 int result;
-                if (!int.TryParse(this.realTimeLimitTextBox.Text, out result))
+                if (!UserNumber.TryParseInt(this.realTimeLimitTextBox.Text, out result))
                 {
                     return -1;
                 }
@@ -27,7 +29,7 @@ namespace BecquerelMonitor
             }
             set
             {
-                this.realTimeLimitTextBox.Text = value.ToString();
+                this.realTimeLimitTextBox.Text = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -310,8 +312,9 @@ namespace BecquerelMonitor
             {
                 this.roiConfigComboBox.SelectedIndex = -1;
             }
+            this.UpdateEfficiencyList(activeResultData);
             this.textBox1.Text = Path.GetFileName(activeResultData.BackgroundSpectrumFile);
-            this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString();
+            this.realTimeLimitTextBox.Text = resultDataStatus.PresetTime.ToString(CultureInfo.InvariantCulture);
             if (resultDataStatus.Recording)
             {
                 this.startBtn.Enabled = false;
@@ -357,11 +360,11 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             this.ShowMeasurementProgressBar();
             double totalSeconds = resultDataStatus.ElapsedTime.TotalSeconds;
-            this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString();
-            this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString();
+            this.totalCntTextBox.Text = activeResultData.EnergySpectrum.TotalPulseCount.ToString(CultureInfo.InvariantCulture);
+            this.validCntTextBox.Text = activeResultData.EnergySpectrum.ValidPulseCount.ToString(CultureInfo.InvariantCulture);
             long invalidPulseCount = activeResultData.EnergySpectrum.TotalPulseCount - activeResultData.EnergySpectrum.ValidPulseCount;
-            this.invalidCountsTextBox.Text = invalidPulseCount.ToString(); //invalid pulses
-            this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2");
+            this.invalidCountsTextBox.Text = invalidPulseCount.ToString(CultureInfo.InvariantCulture); //invalid pulses
+            this.liveTimetextBox.Text = activeResultData.EnergySpectrum.LiveTime.ToString("f2", CultureInfo.InvariantCulture);
             double cps = 0.0;
             double deadTime = 0.0;
             if (totalSeconds != 0.0)
@@ -375,7 +378,7 @@ namespace BecquerelMonitor
                     deadTime = 0;
                 }
             }
-            this.countRateTextBox.Text = cps.ToString("f2");
+            this.countRateTextBox.Text = cps.ToString("f2", CultureInfo.InvariantCulture);
             if (deadTime <= 20.0)
             {
                 this.deadTimetextBox.ForeColor = Color.Black;
@@ -387,7 +390,7 @@ namespace BecquerelMonitor
                 this.deadTimetextBox.ForeColor = Color.DarkRed;
             }
             this.deadTimetextBox.BackColor = this.deadTimetextBox.BackColor;
-            this.deadTimetextBox.Text = deadTime.ToString("f4");
+            this.deadTimetextBox.Text = deadTime.ToString("f4", CultureInfo.InvariantCulture);
         }
 
         // Token: 0x06000297 RID: 663 RVA: 0x0000BAD8 File Offset: 0x00009CD8
@@ -407,7 +410,7 @@ namespace BecquerelMonitor
                 progress = 100.0;
             }
             this.percentageProgressBar1.DoubleValue = progress;
-            this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString();
+            this.percentageProgressBar1.PriorText = ((int)totalSeconds).ToString(CultureInfo.InvariantCulture);
             this.percentageProgressBar1.Invalidate();
         }
 
@@ -485,6 +488,240 @@ namespace BecquerelMonitor
                 activeDocument.UpdateEnergySpectrum();
                 this.mainForm.ShowMeasurementResult(true);
             }
+        }
+
+        /// <summary>
+        /// Наполнить список кривых эффективности и показать в нём ту, по
+        /// которой считается активность этого спектра.
+        ///
+        /// Список берётся у АКТИВНОЙ конфигурации прибора: кривая привязана к
+        /// прибору и геометрии, и предлагать чужие значило бы предлагать
+        /// заведомо неверную активность.
+        ///
+        /// Кривая самого спектра добавляется в список, даже если у прибора её
+        /// нет. Файл спектра несёт СВОЮ копию и приходит от человека, у
+        /// которого этой конфигурации прибора нет вовсе; выбросить её молча
+        /// значило бы потерять единственное, по чему активность в этом файле
+        /// вообще считается.
+        /// </summary>
+        void UpdateEfficiencyList(ResultData activeResultData)
+        {
+            int selected;
+            List<object> items = BuildEfficiencyItems(
+                activeResultData.Efficiency, activeResultData.FileEfficiency,
+                this.CurrentDeviceConfig(activeResultData), out selected);
+
+            this.efficiencyComboBox.Items.Clear();
+            foreach (object item in items)
+            {
+                this.efficiencyComboBox.Items.Add(item);
+            }
+
+            this.efficiencyComboBox.SelectedIndex = selected;
+            this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
+        }
+
+        /// <summary>
+        /// Что показать в списке и что в нём выбрать. Вынесено из
+        /// <see cref="UpdateEfficiencyList"/> и сделано статическим, потому что
+        /// здесь вся логика, а там осталось одно присвоение: панель без
+        /// MainForm не собрать, и проверить составление списка иначе нечем.
+        ///
+        /// Порядок: «нет кривой», родная кривая спектра, кривые прибора,
+        /// и последней — та, что не нашлась нигде.
+        /// </summary>
+        public static List<object> BuildEfficiencyItems(EfficiencyConfigData current,
+                                                        EfficiencyConfigData own,
+                                                        DeviceConfigInfo device,
+                                                        out int selected)
+        {
+            List<object> items = new List<object> { Resources.EfficiencyTabNone };
+            selected = 0;
+
+            // Родная кривая спектра идёт своей строкой — даже когда её Guid
+            // совпадает с кривой прибора. Совпадение Guid ничего не обещает: у
+            // прибора кривую с тех пор могли переименовать и пересчитать, а в
+            // файле лежит та, по которой активность этого спектра и посчитана.
+            if (own != null)
+            {
+                items.Add(new SpectrumEfficiencyItem(own));
+                if (object.ReferenceEquals(current, own))
+                {
+                    selected = items.Count - 1;
+                }
+            }
+
+            bool foreign = current != null && !object.ReferenceEquals(current, own);
+            bool found = false;
+            if (device != null && device.EfficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData item in device.EfficiencyConfigs)
+                {
+                    items.Add(item);
+                    if (foreign && item.Guid == current.Guid)
+                    {
+                        selected = items.Count - 1;
+                        found = true;
+                    }
+                }
+            }
+
+            // Кривая, которой нет ни в файле, ни у прибора: так бывает после
+            // смены конфигурации прибора на форме. Показать её всё равно надо —
+            // по ней сейчас считается активность.
+            if (foreign && !found)
+            {
+                items.Add(current);
+                selected = items.Count - 1;
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// Что положить в спектр по выбранной строке списка.
+        ///
+        /// Вынесено потому, что кривую выбирают в двух местах — здесь и в
+        /// диалоге разложения (<c>DocEnergySpectrum.EnsureFsaEfficiency</c>), —
+        /// а вся разница между «родной» и «кривой прибора» держится на СПОСОБЕ
+        /// присвоения, и разойтись этим двум местам нельзя.
+        ///
+        /// Родная кривая спектра кладётся ТЕМ ЖЕ объектом: тождество ссылок и
+        /// есть признак «выбрана родная» (см. <c>ResultData.FileEfficiency</c>).
+        /// Кривая прибора — КОПИЕЙ (см. <c>ResultData.Efficiency</c>): спектр
+        /// уносит её с собой, и правка её у прибора задним числом менять
+        /// измеренную активность не должна. Строка «нет кривой» — null.
+        /// </summary>
+        public static EfficiencyConfigData EfficiencyFromItem(object item)
+        {
+            SpectrumEfficiencyItem own = item as SpectrumEfficiencyItem;
+            if (own != null)
+            {
+                return own.Config;
+            }
+
+            EfficiencyConfigData chosen = item as EfficiencyConfigData;
+            return chosen == null ? null : chosen.Copy();
+        }
+
+        /// <summary>
+        /// Конфигурация прибора этого спектра, взятая из менеджера по Guid.
+        ///
+        /// Именно из менеджера, а не из самого спектра: сохранение конфигурации
+        /// прибора заменяет её объект целиком (DeviceConfigManager.SaveConfig
+        /// кладёт в список клон), и копия, на которую ссылается спектр,
+        /// остаётся той, что была на момент открытия документа. Только что
+        /// созданной кривой в ней нет, и в списке она не появлялась до
+        /// перезапуска.
+        ///
+        /// Не нашлась — остаётся копия из самого спектра: файл пришёл от
+        /// человека, у которого этот прибор есть, а у нас его нет.
+        /// </summary>
+        public static DeviceConfigInfo CurrentDeviceConfig(DeviceConfigInfo own,
+                                                          List<DeviceConfigInfo> known)
+        {
+            if (own == null)
+            {
+                return null;
+            }
+
+            if (known != null)
+            {
+                foreach (DeviceConfigInfo config in known)
+                {
+                    if (config.Guid == own.Guid)
+                    {
+                        return config;
+                    }
+                }
+            }
+
+            return own;
+        }
+
+        DeviceConfigInfo CurrentDeviceConfig(ResultData activeResultData)
+        {
+            return CurrentDeviceConfig(activeResultData.DeviceConfig,
+                                       this.deviceConfigManager.DeviceConfigList);
+        }
+
+        /// <summary>
+        /// Строка списка для РОДНОЙ кривой спектра. Отдельный тип нужен только
+        /// ради подписи: без пометки две строки с одинаковым именем ничем не
+        /// отличались бы, а выбор между ними меняет посчитанную активность.
+        /// </summary>
+        public sealed class SpectrumEfficiencyItem
+        {
+            public readonly EfficiencyConfigData Config;
+
+            public SpectrumEfficiencyItem(EfficiencyConfigData config)
+            {
+                this.Config = config;
+            }
+
+            public override string ToString()
+            {
+                return string.Format(Resources.EfficiencyFromFile, this.Config.Name);
+            }
+        }
+
+        void efficiencyComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.formUpdating)
+            {
+                return;
+            }
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null || this.efficiencyComboBox.SelectedIndex == -1)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            activeResultData.Efficiency = EfficiencyFromItem(this.efficiencyComboBox.SelectedItem);
+
+            this.clearEfficiencyBtn.Enabled = activeResultData.Efficiency != null;
+            // Спектр помечается изменённым, только если выбрана НЕ родная
+            // кривая: в файл она попадёт лишь при сохранении, и отказ от
+            // сохранения оставляет спектр с той, что в нём лежит. Возврат к
+            // родной изменением не является — файл от него не меняется.
+            if (!object.ReferenceEquals(activeResultData.Efficiency, activeResultData.FileEfficiency))
+            {
+                activeDocument.Dirty = true;
+            }
+
+            this.mainForm.ShowMeasurementResult(true);
+            // Мощность дозы считается ОТ ЭТОЙ ЖЕ кривой (`AMBER18`): смена
+            // кривой — смена показания в строке состояния, сразу, а не при
+            // следующем наборе.
+            this.mainForm.ShowDoseRate();
+            // От кривой зависит и сам график: нормировка по эффективности
+            // делится на неё, разложение FSA берёт её в образ. Без перерисовки
+            // на экране оставался спектр, посчитанный по прежней кривой.
+            activeDocument.RefreshView();
+        }
+
+        void clearEfficiencyBtn_Click(object sender, EventArgs e)
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            if (activeResultData.Efficiency == null)
+            {
+                return;
+            }
+            activeResultData.Efficiency = null;
+            activeDocument.Dirty = true;
+            this.ShowDocumentStatus();
+            this.mainForm.ShowMeasurementResult(true);
+            // Кривой нет — нет и мощности дозы (`AMBER18`): строка состояния
+            // очищается тем же движением.
+            this.mainForm.ShowDoseRate();
+            // Снятая кривая обязана уйти и с графика: режим нормировки по
+            // эффективности возвращается к обычному виду внутри RefreshView.
+            activeDocument.RefreshView();
         }
 
         // Token: 0x0600029C RID: 668 RVA: 0x0000BD6C File Offset: 0x00009F6C
@@ -637,7 +874,8 @@ namespace BecquerelMonitor
             FwhmCalibration fwhmCalibration = FWHMPeakDetectionMethodConfig.FwhmCalibration;
             if (fwhmCalibration == null)
             {
-                activeResultData.FwhmCalibration = FwhmCalibration.DefaultCalibration(FWHMPeakDetectionMethodConfig, activeResultData.EnergySpectrum.EnergyCalibration);
+                activeResultData.FwhmCalibration =
+                    this.DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig, activeResultData);
             } else
             {
                 activeResultData.FwhmCalibration = fwhmCalibration.Clone();
@@ -667,11 +905,108 @@ namespace BecquerelMonitor
             return true;
         }
 
+        /// <summary>
+        /// УМОЛЧАНИЕ МОДЕЛИ РАЗРЕШЕНИЯ ДЛЯ СПЕКТРА — А НЕ ВЫШЛО, ТАК СКАЗАТЬ
+        /// ПОЧЕМУ (`A240`, полоса F62, 06.09.2026).
+        ///
+        /// ⛔ ЧЕЛОВЕК ЗДЕСЬ ЕСТЬ, И ОН ТОЛЬКО ЧТО НАЖАЛ. Зовущий один —
+        /// <see cref="ApplyDeviceConfigChange"/>, а в него приходят ровно двумя
+        /// движениями: кнопкой «Применить» (<c>button5_Click</c>) и сменой
+        /// прибора в выпадающем списке панели
+        /// (<c>comboBox1_SelectedIndexChanged</c>, и то лишь при ДРУГОМ Guid и
+        /// вне <c>formUpdating</c>). То есть это не служебный проход, а ответ
+        /// на действие — и до этой правки ответом было МОЛЧАНИЕ: кривая
+        /// разрешения спектра становилась <c>null</c>, вкладка ПШПВ пустела,
+        /// поиск пиков и полноспектральный разбор на этом спектре работать
+        /// переставали, а причины не называл никто.
+        ///
+        /// ⚠ ДВОЙНОГО ГОЛОСА НЕТ, и это проверено путями, а не на глаз: голос
+        /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~)
+        /// звучит при ОТКРЫТИИ и СОЗДАНИИ документа, а сюда попадают только
+        /// сменой конфигурации у УЖЕ открытого. Событие разное — значит и голос
+        /// не второй, а первый. Мерит <c>FwhmReaderProbeF62 --mode=apply</c>.
+        ///
+        /// ⛔ ПОЧЕМУ ЭТО ОТДЕЛЬНЫЙ МЕТОД, А НЕ ТРИ СТРОКИ НА МЕСТЕ. Чтобы голос
+        /// БЫЛО ЧЕМ ИЗМЕРИТЬ. Внутри <see cref="ApplyDeviceConfigChange"/>
+        /// стоит модальное окно (<c>MSGInitializingSpectrum</c>, OK/Отмена — у
+        /// спектра не сходятся число каналов и шаг), и проба, дёрнувшая тот
+        /// метод отражением, делает окно достижимым БЕЗ ОКОН: сторож
+        /// <c>tools\check_headless.py</c> краснеет, а безоконный прогон рискует
+        /// повиснуть (`S100`). Голос, вынесенный сюда, меряется обоими плечами
+        /// и модального окна на своём пути не имеет вовсе. ⚠ Само окно НЕ
+        /// тронуто нарочно: перевести его на <c>AppUi.AskYesNo</c> значит
+        /// сменить кнопки OK/Отмена на Да/Нет у сообщения, написанного
+        /// утверждением, — это решение Amber, а не полосы.
+        ///
+        /// ⚠ Текст СОБРАН ИЗ ГОТОВОГО РЕСУРСА, новой строки не заведено:
+        /// причина уже переведена (<c>ERRFwhmDefaultNotMonotonic</c>) и уже
+        /// назвала три числа настроек, а имя конфигурации — данные, не текст;
+        /// оправа «имя: причина» переводу не подлежит. Когда ресурсы
+        /// освободятся, готовая пара ключей для полной фразы —
+        /// <c>ERRFwhmDeviceApplyNoCurve</c> в <c>Resources.resx</c> и в
+        /// <c>Resources.ru.resx</c>, подстановки {0} имя прибора, {1} причина.
+        /// </summary>
+        FwhmCalibration DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig cfg, ResultData data)
+        {
+            string refusal;
+            FwhmCalibration curve = FwhmCalibration.DefaultCalibration(
+                cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
+            if (curve == null && !string.IsNullOrEmpty(refusal))
+            {
+                // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`): три числа
+                //    внутри `refusal` напечатаны точкой, и оправа обязана
+                //    держать то же соглашение, иначе две половины одной строки
+                //    разойдутся разделителем.
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, "{0}: {1}",
+                                           data.DeviceConfig == null ? "" : data.DeviceConfig.Name,
+                                           refusal),
+                             "", MessageBoxIcon.None);
+            }
+            return curve;
+        }
+
         // Token: 0x060002A2 RID: 674 RVA: 0x0000C1E8 File Offset: 0x0000A3E8
+        /// <summary>
+        /// Пересобрать спектр из сырых импульсов под сетку каналов прибора.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `A111`. Прежде калибровку здесь НЕ СТАВИЛИ ВОВСЕ, и чинил это
+        /// единственный вызывающий — двумя операторами позже. Дефектом это не
+        /// было ровно до тех пор, пока вызывающий один: метод <c>public</c>, а
+        /// после `A95` спектр без калибровки ОТКАЗЫВАЕТСЯ сниматься копией
+        /// (<see cref="EnergySpectrum.Clone"/> бросает названный
+        /// <c>InvalidOperationException</c>). Второй вызывающий получил бы
+        /// спектр, негодный ни для разложения, ни для поиска пиков, и узнал бы
+        /// об этом не здесь, а где-то вглубине.
+        ///
+        /// ⚠ Числа от этого не меняются: калибровка берётся у ТОГО ЖЕ прибора и
+        /// тем же <c>Clone()</c>, каким её ставит вызывающий, — то есть
+        /// конечное состояние прежнее, а промежуточное перестало быть битым.
+        /// Строку у вызывающего не убрать: она стоит ВНЕ той ветки, из которой
+        /// зовут пересборку, и нужна остальным.
+        ///
+        /// ⛔ Подставить калибровку «по умолчанию» здесь нельзя — это то же
+        /// самое, о чём говорит `A95`: <c>new PolynomialEnergyCalibration()</c>
+        /// объявляет номер канала энергией. Поэтому взять её неоткуда — значит
+        /// названный отказ.
+        /// </remarks>
         public void RebuildSpectrum(ResultData resultData)
         {
+            if (resultData.DeviceConfig == null || resultData.DeviceConfig.EnergyCalibration == null)
+            {
+                throw new InvalidOperationException(
+                    "DCControlPanel.RebuildSpectrum: у прибора «"
+                    + (resultData.DeviceConfig == null ? "<прибора нет>" : resultData.DeviceConfig.Name)
+                    + "» нет энергетической калибровки (DeviceConfig.EnergyCalibration == null)."
+                    + " Пересобранный спектр остался бы без шкалы энергии: такой не"
+                    + " снимается копией (EnergySpectrum.Clone), не разбирается и не"
+                    + " годится для поиска пиков, а подставить калибровку значило бы"
+                    + " объявить номер канала энергией.");
+            }
+
             EnergySpectrum energySpectrum = resultData.EnergySpectrum;
             resultData.EnergySpectrum = new EnergySpectrum(resultData.DeviceConfig.ChannelPitch, resultData.DeviceConfig.NumberOfChannels);
+            resultData.EnergySpectrum.EnergyCalibration = resultData.DeviceConfig.EnergyCalibration.Clone();
             resultData.EnergySpectrum.MeasurementTime = energySpectrum.MeasurementTime;
             resultData.EnergySpectrum.TotalPulseCount = energySpectrum.TotalPulseCount;
             resultData.EnergySpectrum.NumberOfSamples = energySpectrum.NumberOfSamples;
@@ -712,7 +1047,7 @@ namespace BecquerelMonitor
             ResultData activeResultData = activeDocument.ActiveResultData;
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             int presetTime = 0;
-            if (!int.TryParse(this.realTimeLimitTextBox.Text, out presetTime))
+            if (!UserNumber.TryParseInt(this.realTimeLimitTextBox.Text, out presetTime))
             {
                 this.realTimeLimitTextBox.Text = "0";
             }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 
 namespace BecquerelMonitor
@@ -81,6 +82,17 @@ namespace BecquerelMonitor
             {
                 this.name = value;
             }
+        }
+
+        /// <summary>
+        /// Имя прибора. Конфигурация попадает в списки выбора как есть
+        /// (PickOneForm при недостающей ПШПВ-калибровке, выбор запасной
+        /// конфигурации в конструкторе кривой), и без этого там стояло бы имя
+        /// типа на каждой строке.
+        /// </summary>
+        public override string ToString()
+        {
+            return this.name ?? "";
         }
 
         // Token: 0x1700032C RID: 812
@@ -272,21 +284,15 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000338 RID: 824
-        // (get) Token: 0x06000C1B RID: 3099 RVA: 0x000481E8 File Offset: 0x000463E8
-        // (set) Token: 0x06000C1C RID: 3100 RVA: 0x000481F0 File Offset: 0x000463F0
-        [XmlElement(typeof(DoseRateConfig))]
-        public DoseRateConfig DoseRateConfig
-        {
-            get
-            {
-                return this.doseRateConfig;
-            }
-            set
-            {
-                this.doseRateConfig = value;
-            }
-        }
+        // ⛔ `DoseRateConfig` СНЯТ ЦЕЛИКОМ (`AMBER18`, решение (4) Amber
+        // 11.09.2026: «Снять целиком»). Здесь стояло свойство с ручными
+        // точками калибровки мощности дозы; доза теперь считается от кривой
+        // эффективности, выбранной на панели (`DoseRateManager`). Старые
+        // файлы с элементом `<DoseRateConfig>` читаются как прежде: незнакомый
+        // элемент `XmlSerializer` пропускает молча, а при пересохранении он не
+        // пишется — «рудимент исчезнет» дословно. Поставочные
+        // `config/device/*.xml` не трогаются (приказ 05.09.2026): 36 точек
+        // `RC-103.xml` остаются на месте, их просто перестают читать.
 
         // Token: 0x17000339 RID: 825
         // (get) Token: 0x06000C1D RID: 3101 RVA: 0x000481FC File Offset: 0x000463FC
@@ -331,6 +337,118 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ВЕЩЕСТВО КРИСТАЛЛА — ссылка на вещество библиотеки по его имени
+        /// (`A276`, решение Amber 06.09.2026: «поле в конфигурации прибора,
+        /// выбор вещества из библиотеки»).
+        ///
+        /// Зачем оно тут, а не в сцене. Кристалл — свойство ПРИБОРА, а не
+        /// съёмки: один и тот же NaI меряют и в маринелли, и точечным
+        /// источником, и вещество от этого не меняется. Человек знает его
+        /// всегда, даже когда геометрии нет вовсе, и заполняет один раз.
+        ///
+        /// Чем оно кормится. Массовые доли элементов кристалла нужны отбору
+        /// родителей образов вылета (<c>FsaLibrary.EscapeImages</c>): вес
+        /// образа считается по доле рождения пар, а она — по составу. До
+        /// сегодня доли брались ТОЛЬКО из геометрии
+        /// (<c>FsaCompositionInference</c> заполнял состав из неё же), и у
+        /// прибора без геометрии от починки ~~`A271`~~ работала одна половина —
+        /// запас над порогом пар. Это поле и есть вторая.
+        ///
+        /// ⛔ ГЕОМЕТРИЯ ПЕРВИЧНА. Поле — ЗАПАСНОЙ источник: пока у сцены есть
+        /// геометрия, доли берутся из неё, и поле не меняет ничего (сверено
+        /// поячеечно на малой базе корпуса). Порядок держит одно место —
+        /// <c>FsaSampleLibrary.CrystalFractionsOf</c>.
+        ///
+        /// ⚠ Хранится ИМЯ вещества библиотеки (<c>Entry.Name</c>: «Sodium
+        /// iodide»), а не состав и не сокращение. Имя — ссылка: состав правится
+        /// в редакторе веществ, и прибор едет за ним. Пусто — вещество не
+        /// названо, и это ЗАКОННОЕ состояние: старые конфигурации, где элемента
+        /// нет вовсе, читаются им же и ведут себя ровно как прежде.
+        /// </summary>
+        public string CrystalMaterialName
+        {
+            get
+            {
+                return this.crystalMaterialName;
+            }
+            set
+            {
+                this.crystalMaterialName = value;
+            }
+        }
+
+        /// <summary>
+        /// Кривые эффективности этого прибора. Их может быть много: один и тот
+        /// же кристалл меряют и в маринелли, и точечным источником, и на пяти
+        /// сантиметрах — это разные геометрии и разные кривые, а прибор один.
+        ///
+        /// Раньше кривая лежала секцией в ROI-конфиге, а прибор ссылался на неё
+        /// через <see cref="EfficencyROIGuid"/> — одной штукой на прибор и в
+        /// чужой сущности.
+        /// </summary>
+        public List<EfficiencyConfigData> EfficiencyConfigs
+        {
+            get
+            {
+                return this.efficiencyConfigs;
+            }
+            set
+            {
+                this.efficiencyConfigs = value;
+            }
+        }
+
+        /// <summary>
+        /// Какая из них сейчас действует. Пусто — ни одна: тогда активность не
+        /// считается, и об этом говорится, а не подставляется что попало.
+        /// </summary>
+        public string ActiveEfficiencyGuid
+        {
+            get
+            {
+                return this.activeEfficiencyGuid;
+            }
+            set
+            {
+                this.activeEfficiencyGuid = value;
+            }
+        }
+
+        /// <summary>Конфигурация по идентификатору, или null.</summary>
+        public EfficiencyConfigData FindEfficiency(string guid)
+        {
+            if (string.IsNullOrEmpty(guid) || this.efficiencyConfigs == null)
+            {
+                return null;
+            }
+
+            foreach (EfficiencyConfigData config in this.efficiencyConfigs)
+            {
+                if (config != null && config.Guid == guid)
+                {
+                    return config;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Действующая конфигурация. Молчаливой подстановки «первой попавшейся»
+        /// здесь нет нарочно: именно так вела себя привязка через ROI —
+        /// <c>ROIConfigList[0]</c> при непроставленном Guid, — и активность
+        /// считалась по чужой кривой, ничем это не обозначая.
+        /// </summary>
+        [XmlIgnore]
+        public EfficiencyConfigData ActiveEfficiency
+        {
+            get
+            {
+                return this.FindEfficiency(this.activeEfficiencyGuid);
+            }
+        }
+
         // Token: 0x1700033B RID: 827
         // (get) Token: 0x06000C21 RID: 3105 RVA: 0x00048224 File Offset: 0x00046424
         // (set) Token: 0x06000C22 RID: 3106 RVA: 0x0004822C File Offset: 0x0004642C
@@ -352,7 +470,6 @@ namespace BecquerelMonitor
         {
             this.inputDeviceConfig = new AudioInputDeviceConfig();
             this.energyCalibration = new PolynomialEnergyCalibration();
-            this.doseRateConfig = new DoseRateConfig();
             this.stabilizerConfig = new StabilizerConfig();
             this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
         }
@@ -385,10 +502,6 @@ namespace BecquerelMonitor
                 this.thermometerConfig = info.thermometerConfig.Clone();
             }
             this.energyCalibration = info.energyCalibration.Clone();
-            if (info.doseRateConfig != null)
-            {
-                this.doseRateConfig = info.doseRateConfig.Clone();
-            }
             if (info.stabilizerConfig != null)
             {
                 this.stabilizerConfig = info.stabilizerConfig.Clone();
@@ -398,6 +511,22 @@ namespace BecquerelMonitor
             {
                 if (fwhmConfig.FwhmCalibration == null)
                 {
+                    // ⛔ ПРИЧИНА ОТКАЗА ЗДЕСЬ НЕ НУЖНА, И ЭТО РЕШЕНИЕ (`A240`,
+                    //    полоса F62, 06.09.2026). Это конструктор ГЛУБОКОЙ
+                    //    КОПИИ: человека в нём нет вовсе, окна поднимать
+                    //    неоткуда и некому, а копий снимается много (список
+                    //    конфигураций, каждая строка формы конфигураций) — то
+                    //    есть голос отсюда был бы не читателем, а очередью
+                    //    одинаковых окон на ровном месте.
+                    //    ⚠ Причина при этом не теряется: `DefaultCalibration`
+                    //    ничего не меняет и зависит ТОЛЬКО от трёх чисел
+                    //    настроек и энергетической кривой, поэтому спросить её
+                    //    заново может любой читатель, у которого человек есть, —
+                    //    так и устроен `DocumentManager.WhyNoFwhmCalibration`.
+                    //    Отсутствие кривой у копии — законное состояние
+                    //    (~~`A212`~~), о нём говорят двери открытия и ввоза
+                    //    (~~`A234`~~) и показывает вкладка ПШПВ
+                    //    (`DCFwhmCalibrationView.ApplyFwhmRefusalHint`).
                     fwhmConfig.FwhmCalibration = FwhmCalibration.DefaultCalibration(fwhmConfig, energyCalibration);
                 }
             }
@@ -406,6 +535,25 @@ namespace BecquerelMonitor
             {
                 this.efficencyROIGuid = string.Copy(info.efficencyROIGuid);
             }
+            // Копия ГЛУБОКАЯ, как и всё выше. Форма конфигураций правит не
+            // объект менеджера, а его копию (ListupConfigFiles кладёт Clone() в
+            // строку таблицы), и общий список означал бы, что правка кривой
+            // переживает «Отмена». Пропуск же этих двух полей означал обратное
+            // и худшее: список кривых пуст уже при открытии формы, а сохранение
+            // уносит пустоту на диск.
+            this.efficiencyConfigs = new List<EfficiencyConfigData>();
+            if (info.efficiencyConfigs != null)
+            {
+                foreach (EfficiencyConfigData config in info.efficiencyConfigs)
+                {
+                    this.efficiencyConfigs.Add(config == null ? null : config.Copy());
+                }
+            }
+            this.activeEfficiencyGuid = info.activeEfficiencyGuid;
+            // Строка неизменяема — копировать её нечем и незачем; `string.Copy`
+            // выше стоит у полей, которые декомпилятор так и оставил, и заводить
+            // его у нового поля значило бы копировать привычку, а не смысл.
+            this.crystalMaterialName = info.crystalMaterialName;
         }
 
         // Token: 0x06000C26 RID: 3110 RVA: 0x0004854C File Offset: 0x0004674C
@@ -526,9 +674,6 @@ namespace BecquerelMonitor
         // Token: 0x0400079F RID: 1951
         StabilizerConfig stabilizerConfig;
 
-        // Token: 0x040007A0 RID: 1952
-        DoseRateConfig doseRateConfig;
-
         // Token: 0x040007A1 RID: 1953
         PeakDetectionMethodConfig peakDetectionMethodConfig;
 
@@ -536,5 +681,15 @@ namespace BecquerelMonitor
         string backgroundSpectrumPathname = "";
 
         string efficencyROIGuid;
+
+        List<EfficiencyConfigData> efficiencyConfigs = new List<EfficiencyConfigData>();
+
+        string activeEfficiencyGuid;
+
+        // Умолчание — ПУСТО, и это то же значение, какое получает старая
+        // конфигурация без этого элемента: `XmlSerializer` отсутствующий
+        // элемент не трогает вовсе, поле остаётся с инициализатором. Замерено
+        // пробой `CrystalMaterialProbe` (плечо «старый конфиг»).
+        string crystalMaterialName = "";
     }
 }

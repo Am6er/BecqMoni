@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -288,33 +288,6 @@
   <data name="&gt;&gt;button6.ZOrder" xml:space="preserve">
     <value>7</value>
   </data>
-  <data name="buttonEfficiency.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="buttonEfficiency.Location" type="System.Drawing.Point, System.Drawing">
-    <value>700, 5</value>
-  </data>
-  <data name="buttonEfficiency.Size" type="System.Drawing.Size, System.Drawing">
-    <value>90, 25</value>
-  </data>
-  <data name="buttonEfficiency.TabIndex" type="System.Int32, mscorlib">
-    <value>30</value>
-  </data>
-  <data name="buttonEfficiency.Text" xml:space="preserve">
-    <value>Eff. Curve</value>
-  </data>
-  <data name="&gt;&gt;buttonEfficiency.Name" xml:space="preserve">
-    <value>buttonEfficiency</value>
-  </data>
-  <data name="&gt;&gt;buttonEfficiency.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;buttonEfficiency.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;buttonEfficiency.ZOrder" xml:space="preserve">
-    <value>19</value>
-  </data>
   <data name="tabControl1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Bottom, Right</value>
   </data>
@@ -388,7 +361,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>15</value>
   </data>
   <data name="label2.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -415,7 +388,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>15</value>
+    <value>16</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -907,11 +880,41 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;doubleTextBox4.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>7</value>
   </data>
   <data name="doubleTextBox3.Location" type="System.Drawing.Point, System.Drawing">
     <value>99, 72</value>
   </data>
+  <data name="autoBqCheckBox.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="autoBqCheckBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>99, 50</value>
+  </data>
+  <data name="autoBqCheckBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>133, 17</value>
+  </data>
+  <data name="autoBqCheckBox.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="autoBqCheckBox.Text" xml:space="preserve">
+    <value>Auto from efficiency</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Name" xml:space="preserve">
+    <value>autoBqCheckBox</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;autoBqCheckBox.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <metadata name="hints.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
   <data name="doubleTextBox3.Size" type="System.Drawing.Size, System.Drawing">
     <value>55, 20</value>
   </data>
@@ -931,7 +934,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;doubleTextBox3.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>8</value>
   </data>
   <data name="checkBox1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -958,7 +961,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;checkBox1.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>9</value>
   </data>
   <data name="label12.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -985,7 +988,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label12.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>10</value>
   </data>
   <data name="label10.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1012,7 +1015,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label10.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>11</value>
   </data>
   <data name="label9.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1039,7 +1042,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label9.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>12</value>
   </data>
   <data name="textBox2.Location" type="System.Drawing.Point, System.Drawing">
     <value>99, 155</value>
@@ -1066,7 +1069,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;textBox2.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>13</value>
   </data>
   <data name="label8.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -1093,7 +1096,7 @@
     <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label8.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>14</value>
   </data>
   <data name="groupBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>276, 40</value>
@@ -1841,12 +1844,6 @@
   </data>
   <data name="textColumn12.Width" type="System.Int32, mscorlib">
     <value>120</value>
-  </data>
-  <data name="checkBoxColumnEff.Text" xml:space="preserve">
-    <value>Eff. ROI</value>
-  </data>
-  <data name="checkBoxColumnEff.Width" type="System.Int32, mscorlib">
-    <value>60</value>
   </data>
   <data name="table3.Location" type="System.Drawing.Point, System.Drawing">
     <value>6, 38</value>
@@ -6278,12 +6275,6 @@
   </data>
   <data name="&gt;&gt;textColumn12.Type" xml:space="preserve">
     <value>XPTable.Models.TextColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumnEff.Name" xml:space="preserve">
-    <value>checkBoxColumnEff</value>
-  </data>
-  <data name="&gt;&gt;checkBoxColumnEff.Type" xml:space="preserve">
-    <value>XPTable.Models.CheckBoxColumn, BecquerelMonitor, Version=2026.6.15.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;tableModel3.Name" xml:space="preserve">
     <value>tableModel3</value>

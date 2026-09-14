@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -44,6 +45,7 @@ namespace BecquerelMonitor
             base.Icon = Resources.becqmoni;
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
+            this.BuildEfficiencyTab();
             this.HideTempcoTabPage();
             this.button4.Enabled = false;
             this.DisableForm();
@@ -70,7 +72,6 @@ namespace BecquerelMonitor
             }
             this.groupBox2.Top = 24;
             this.peakSpecgroupBox.Top = this.groupBox2.Bottom + 6;
-            this.deconvolutionGroupBox.Top = this.peakSpecgroupBox.Bottom + 6;
         }
 
         void HideTempcoTabPage()
@@ -202,11 +203,28 @@ namespace BecquerelMonitor
             this.textBox1.SelectAll();
             this.textBox1.Focus();
         }
-        private void tabControl1_Selecting(object sender, EventArgs e)
+        /// <summary>
+        /// Смена вкладки: сперва предложить сохранить набранное.
+        /// </summary>
+        /// <remarks>
+        /// ⛔ `A18`. Прежде обработчик был объявлен с `EventArgs`, а не с
+        /// `TabControlCancelEventArgs`. Это КОМПИЛИРУЕТСЯ (у делегата
+        /// параметр можно принимать базовым типом) и обработчик
+        /// вызывался — но `e.Cancel` он не видел, поэтому его `return`
+        /// при отказе не отменял НИЧЕГО и вкладка переключалась всё
+        /// равно: человек уходил со страницы, чьи правки сохранить не
+        /// удалось.
+        ///
+        /// Запереть человека на вкладке это не может: отказ наступает
+        /// только после его же ответа «да, сохранить», а ответ «нет»
+        /// возвращает конфигурацию с диска и переход пропускает — тот же
+        /// порядок, что у `*_FormClosing` в этой форме.
+        /// </remarks>
+        private void tabControl1_Selecting(object sender, TabControlCancelEventArgs e)
         {
             if (!this.ConfirmSaveDeviceConfig())
             {
-                return;
+                e.Cancel = true;
             }
         }
 
@@ -220,7 +238,15 @@ namespace BecquerelMonitor
             DialogResult dialogResult = MessageBox.Show(string.Format(Resources.MessageRemoveDeviceConfig, this.activeDeviceConfig.Name), Resources.ConfirmationDialogTitle, MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation);
             if (dialogResult == DialogResult.OK)
             {
-                this.manager.DeleteConfig(this.activeDeviceConfig);
+                // ⛔ `A19`. Форма гасится ТОЛЬКО при удавшемся удалении.
+                // Прежде это делалось безусловно, и после отказа (файл
+                // занят, нет прав) строка возвращалась в список — но
+                // форма пустела и выбор слетал: человеку надо было
+                // заново ткнуть в строку, которую он и не терял.
+                if (!this.manager.DeleteConfig(this.activeDeviceConfig))
+                {
+                    return;
+                }
                 this.activeDeviceConfig = null;
                 this.DisableForm();
                 this.ListupConfigFiles();
@@ -265,7 +291,7 @@ namespace BecquerelMonitor
         {
             for (int i = 1; i < 999; i++)
             {
-                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString() + ").xml";
+                string text = Resources.NewDeviceConfigPrefix + "(" + i.ToString(CultureInfo.InvariantCulture) + ").xml";
                 bool flag = false;
                 foreach (DeviceConfigInfo deviceConfigInfo in this.manager.DeviceConfigList)
                 {
@@ -422,10 +448,12 @@ namespace BecquerelMonitor
         void LoadFormContents(DeviceConfigInfo config)
         {
             this.contentsLoading = true;
+            this.LoadEfficiencyTab(config);
+            this.LoadCrystalMaterial(config);
             this.textBox1.Text = config.Name;
-            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString();
-            this.integerTextBox1.Text = config.NumberOfChannels.ToString();
-            this.doubleTextBox6.Text = config.ChannelPitch.ToString();
+            this.doubleTextBox5.Text = config.DefaultMeasurementTime.ToString(CultureInfo.InvariantCulture);
+            this.integerTextBox1.Text = config.NumberOfChannels.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox6.Text = config.ChannelPitch.ToString(CultureInfo.InvariantCulture);
             this.textBox19.Text = config.Note;
             this.deviceFormLoading = true;
             DeviceType type = null;
@@ -436,7 +464,12 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRBTNotSupportedByOS);
+                // ⛔ `T106`. Метод зовут отражением из пробы, то есть это
+                // безоконный путь (`S100`): модальное окно здесь вешало бы
+                // прогон насмерть. Сторож этого не видел, пока не научился
+                // разбирать вызовы через отражение.
+                AppUi.Report(Resources.ERRBTNotSupportedByOS,
+                             Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.PrepareDeviceForm(null);
                 this.DisableForm();
             }
@@ -453,7 +486,7 @@ namespace BecquerelMonitor
             PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
             if (polynomialEnergyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
+                this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
             }
             else
             {
@@ -461,7 +494,7 @@ namespace BecquerelMonitor
             }
             if (polynomialEnergyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
+                this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
             else
             {
@@ -470,14 +503,14 @@ namespace BecquerelMonitor
             }
             if (polynomialEnergyCalibration.PolynomialOrder >= 2)
             {
-                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
             }
             else
             {
                 this.numericUpDown1.Text = "0";
             }
-            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
-            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
+            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
             this.ShowCalibrationPoints();
             this.UpdateMultipointButtonState();
             this.tableModel3.Rows.Clear();
@@ -526,20 +559,10 @@ namespace BecquerelMonitor
                     this.tableModel3.Rows.Add(row);
                 }
             }
-            DoseRateConfig doseRateConfig = config.DoseRateConfig;
-            this.tableModel4.Rows.Clear();
-            if (doseRateConfig != null && doseRateConfig.DoseRateCalibrationPoints != null)
-            {
-                foreach(DoseRateCalibrationPoint point in doseRateConfig.DoseRateCalibrationPoints)
-                {
-                    Row row = new Row();
-                    row.Cells.Add(new Cell(point.LowerBound));
-                    row.Cells.Add(new Cell(point.UpperBound));
-                    row.Cells.Add(new Cell(point.CPS));
-                    row.Cells.Add(new Cell(point.EtalonDoseRateValue));
-                    this.tableModel4.Rows.Add(row);
-                }
-            }
+            // ⛔ `AMBER13`, решение Amber 10.09.2026 («Убрать в коде работу с
+            // этими точками. При пересохранении конфига этот рудимент
+            // исчезнет. Это legacy.»): ручной таблицы точек калибровки дозы на
+            // вкладке больше нет, и читать их в форму больше некуда.
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
             this.numericUpDown4.Minimum = 1;
             this.numericUpDown4.Maximum = 10000;
@@ -593,7 +616,6 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
 
-            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
 
 
@@ -602,29 +624,6 @@ namespace BecquerelMonitor
             List<ROIConfigData> rOIConfigDatas = ROIConfigManager.GetInstance().ROIConfigList;
             if (rOIConfigDatas != null || rOIConfigDatas.Count > 0) 
             {
-                effROIdic.Clear();
-                selectEffROI.Items.Clear();
-                selectEffROI.SelectedIndex = -1;
-
-                string roiGuid = null;
-                if (config.EfficencyROIGuid != null && ROIConfigManager.GetInstance().ROIConfigMap.ContainsKey(config.EfficencyROIGuid))
-                {
-                    roiGuid = ROIConfigManager.GetInstance().ROIConfigMap[config.EfficencyROIGuid].Guid;
-                }
-
-                for (int i = 0; i < rOIConfigDatas.Count; i++)
-                {
-                    if (rOIConfigDatas[i].HasEfficiency)
-                    {
-                        selectEffROI.Items.Add(rOIConfigDatas[i].Name);
-                        effROIdic.Add(selectEffROI.Items.Count - 1, rOIConfigDatas[i].Guid);
-                        if (roiGuid != null && rOIConfigDatas[i].Guid == roiGuid)
-                        {
-                            selectEffROI.SelectedIndex = selectEffROI.Items.Count - 1;
-                        }
-                    }
-                }
-
             }
 
             this.contentsLoading = false;
@@ -640,43 +639,8 @@ namespace BecquerelMonitor
             this.numericUpDownWidenFactor.Value = ClampNumericValue(this.numericUpDownWidenFactor, (decimal)FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor);
             this.centroidComCheckBox.Checked = FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid;
             this.numericUpDown12.Value = (decimal)FWHMPeakDetectionMethodConfig.Min_Range;
-            LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig);
             LoadPeakShapeControls(FWHMPeakDetectionMethodConfig.FwhmCalibration);
             this.contentsLoading = false;
-        }
-
-        void LoadDeconvolutionControls(FWHMPeakDetectionMethodConfig config)
-        {
-            ConfigureDeconvolutionControls();
-            this.deconvolutionEnabledCheckBox.Checked = config.UseDeconvolution;
-            this.deconvolutionBurnInNumericUpDown.Value = ClampNumericValue(this.deconvolutionBurnInNumericUpDown, config.BurnIn);
-            this.deconvolutionSamplesNumericUpDown.Value = ClampNumericValue(this.deconvolutionSamplesNumericUpDown, config.Samples);
-            this.deconvolutionMaxRoisNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxRoisNumericUpDown, config.MaxRois);
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value = ClampNumericValue(this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown, config.MaxExtraPeaksPerRoi);
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Value = ClampNumericValue(this.deconvolutionRoiRadiusFwhmNumericUpDown, (decimal)config.RoiRadiusFwhm);
-        }
-
-        void ConfigureDeconvolutionControls()
-        {
-            this.deconvolutionBurnInNumericUpDown.Minimum = 0;
-            this.deconvolutionBurnInNumericUpDown.Maximum = 100000;
-            this.deconvolutionBurnInNumericUpDown.Increment = 100;
-
-            this.deconvolutionSamplesNumericUpDown.Minimum = 1;
-            this.deconvolutionSamplesNumericUpDown.Maximum = 100000;
-            this.deconvolutionSamplesNumericUpDown.Increment = 100;
-
-            this.deconvolutionMaxRoisNumericUpDown.Minimum = 1;
-            this.deconvolutionMaxRoisNumericUpDown.Maximum = 1000;
-            this.deconvolutionMaxRoisNumericUpDown.Increment = 1;
-
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Minimum = 0;
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Maximum = 100;
-            this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Increment = 1;
-
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Minimum = 1;
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Maximum = 100;
-            this.deconvolutionRoiRadiusFwhmNumericUpDown.Increment = 0.5m;
         }
 
         static decimal ClampNumericValue(NumericUpDown numericUpDown, decimal value)
@@ -774,6 +738,16 @@ namespace BecquerelMonitor
         {
             try
             {
+                // ⛔ Три числа с шапки окна разбираются ДО первой записи (`A6`):
+                //    прежде имя, файл и тип прибора были уже переписаны, когда
+                //    разбор спотыкался на времени измерения или числе каналов, —
+                //    и конфигурация, одна на всех, оставалась смесью нового со
+                //    старым. Остаток известен и НЕ закрыт здесь: ниже по методу
+                //    разбор коэффициентов калибровки стоит уже после записей и
+                //    после двух вложенных форм.
+                int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
+                int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
+                double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
                 if (config.Guid == null || config.Guid == "")
                 {
                     config.Guid = Guid.NewGuid().ToString();
@@ -784,10 +758,15 @@ namespace BecquerelMonitor
                 ThermometerType thermometerType = (ThermometerType)this.comboBox1.SelectedItem;
                 config.DeviceType = ((deviceType != null) ? deviceType.Id : "");
                 config.ThermometerType = ((thermometerType != null) ? thermometerType.Id : "None");
-                config.DefaultMeasurementTime = int.Parse(this.doubleTextBox5.Text);
-                config.NumberOfChannels = int.Parse(this.integerTextBox1.Text);
-                config.ChannelPitch = double.Parse(this.doubleTextBox6.Text);
+                config.DefaultMeasurementTime = defaultMeasurementTime;
+                config.NumberOfChannels = numberOfChannels;
+                config.ChannelPitch = channelPitch;
                 config.Note = this.textBox19.Text;
+                // `A276`: вещество кристалла — ссылка на строку библиотеки, и
+                // писать её надо ровно так же, как читаются имя и заметка:
+                // разбора здесь нет, значит и спотыкаться нечему.
+                config.CrystalMaterialName = this.CrystalMaterialFromForm();
+                this.SaveEfficiencyTab(config);
                 if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
                 {
                     PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
@@ -820,18 +799,18 @@ namespace BecquerelMonitor
                 PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
                 if (polynomialEnergyCalibration.PolynomialOrder >= 2)
                 {
-                    polynomialEnergyCalibration.Coefficients[2] = double.Parse(this.numericUpDown1.Text);
+                    polynomialEnergyCalibration.Coefficients[2] = UserNumber.ParseDouble(this.numericUpDown1.Text);
                 }
                 if (polynomialEnergyCalibration.PolynomialOrder >= 3)
                 {
-                    polynomialEnergyCalibration.Coefficients[3] = double.Parse(this.numericUpDown9.Text);
+                    polynomialEnergyCalibration.Coefficients[3] = UserNumber.ParseDouble(this.numericUpDown9.Text);
                 }
                 if (polynomialEnergyCalibration.PolynomialOrder == 4)
                 {
-                    polynomialEnergyCalibration.Coefficients[4] = double.Parse(this.numericUpDown8.Text);
+                    polynomialEnergyCalibration.Coefficients[4] = UserNumber.ParseDouble(this.numericUpDown8.Text);
                 }
-                polynomialEnergyCalibration.Coefficients[1] = double.Parse(this.numericUpDown2.Text);
-                polynomialEnergyCalibration.Coefficients[0] = double.Parse(this.numericUpDown7.Text);
+                polynomialEnergyCalibration.Coefficients[1] = UserNumber.ParseDouble(this.numericUpDown2.Text);
+                polynomialEnergyCalibration.Coefficients[0] = UserNumber.ParseDouble(this.numericUpDown7.Text);
                 // Element writes bypass the property setter - drop the stale
                 // EnergyToChannel cache explicitly.
                 polynomialEnergyCalibration.InvalidateCache();
@@ -848,17 +827,12 @@ namespace BecquerelMonitor
                     targetPeak.Error = (decimal)row.Cells[2].Data;
                     config.StabilizerConfig.TargetPeaks.Add(targetPeak);
                 }
-                DoseRateConfig doseRateConfig = config.DoseRateConfig;
-                config.DoseRateConfig.DoseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
-                foreach(Row row in this.tableModel4.Rows)
-                {
-                    DoseRateCalibrationPoint point = new DoseRateCalibrationPoint();
-                    point.LowerBound = getDouble(row.Cells[0].Data);
-                    point.UpperBound = getDouble(row.Cells[1].Data);
-                    point.CPS = getDouble(row.Cells[2].Data);
-                    point.EtalonDoseRateValue = getDouble(row.Cells[3].Data);
-                    config.DoseRateConfig.DoseRateCalibrationPoints.Add(point);
-                }
+                // ⛔ `AMBER13`/`AMBER18`: точек калибровки дозы у конфигурации
+                // больше нет вовсе — `DeviceConfigInfo.DoseRateConfig` снят
+                // целиком 12.09.2026 (решение (4) Amber 11.09.2026). Старый
+                // элемент `<DoseRateConfig>` при чтении пропускается молча и
+                // при пересохранении не пишется — рудимент исчезает, как
+                // сказала Amber 10.09.2026; поставочные файлы не трогаются.
                 FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)config.PeakDetectionMethodConfig;
                 FWHMPeakDetectionMethodConfig.Min_SNR = (double)this.numericUpDown4.Value;
                 FWHMPeakDetectionMethodConfig.Max_Items = (int)this.numericUpDown3.Value;
@@ -870,12 +844,6 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig.Ch_Concat = (int)this.numericUpDown16.Value;
                 FWHMPeakDetectionMethodConfig.PeakWidthWidenFactor = (double)this.numericUpDownWidenFactor.Value;
                 FWHMPeakDetectionMethodConfig.UseCenterOfMassCentroid = this.centroidComCheckBox.Checked;
-                FWHMPeakDetectionMethodConfig.UseDeconvolution = this.deconvolutionEnabledCheckBox.Checked;
-                FWHMPeakDetectionMethodConfig.BurnIn = (int)this.deconvolutionBurnInNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.Samples = (int)this.deconvolutionSamplesNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MaxRois = (int)this.deconvolutionMaxRoisNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.MaxExtraPeaksPerRoi = (int)this.deconvolutionMaxExtraPeaksPerRoiNumericUpDown.Value;
-                FWHMPeakDetectionMethodConfig.RoiRadiusFwhm = (double)this.deconvolutionRoiRadiusFwhmNumericUpDown.Value;
                 StoreCurrentPeakShapeParameters();
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.PeakType = peakTypecomboBox.SelectedIndex;
                 FWHMPeakDetectionMethodConfig.FwhmCalibration.ExpGaussExpLeftTail = (double)expGaussExpLeftValue;
@@ -891,22 +859,9 @@ namespace BecquerelMonitor
             return true;
         }
 
-        double getDouble(object Data)
-        {
-            if (Data.GetType() == typeof(int))
-            {
-                return (double)(int)Data;
-            }
-            if (Data.GetType() == typeof(double))
-            {
-                return (double)Data;
-            }
-            if(Data.GetType() == typeof(decimal))
-            {
-                return (double)(decimal)Data;
-            }
-            return (double)Data;
-        }
+        // ⛔ `getDouble` снят вместе с таблицей точек дозы (`AMBER13`,
+        // 10.09.2026): единственными его читателями были четыре ячейки
+        // `tableModel4`.
 
         // Token: 0x06000524 RID: 1316 RVA: 0x00021668 File Offset: 0x0001F868
         void EnableForm()
@@ -938,6 +893,10 @@ namespace BecquerelMonitor
             if (deviceConfigInfo != this.activeDeviceConfig)
             {
                 this.calibrationPoints.Clear();
+                // Конструкторы кривой привязаны к прежнему клону конфигурации:
+                // вместе с ним они и уходят, иначе их «Сохранить» писало бы в
+                // объект, который больше ниоткуда не достижим.
+                this.CloseEfficiencyMakers();
             }
             if (!this.ConfirmSaveDeviceConfig())
             {
@@ -976,6 +935,22 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000527 RID: 1319 RVA: 0x000217AC File Offset: 0x0001F9AC
+        /// <summary>
+        /// Вторая дверь к сохранению конфигурации прибора — вопрос «сохранить
+        /// изменения?» при закрытии окна, при заведении и копировании
+        /// конфигурации и при переходе на другую строку списка.
+        ///
+        /// ⛔ Прежде она звала <see cref="SaveFormContents"/> и ВЫБРАСЫВАЛА его
+        /// ответ (`A6`), тогда как кнопка «Сохранить» тот же ответ читала и
+        /// ругалась <c>ERRInvalidInputForm</c>. Одна и та же введённая ерунда по
+        /// кнопке отвергалась, а по вопросу проглатывалась — и уезжала на диск.
+        ///
+        /// ⚠ Почему при отказе окно ОСТАЁТСЯ ОТКРЫТЫМ: человек ответил «да,
+        /// сохранить», сохранить нельзя, и превращать его «да» в «нет» молча
+        /// нельзя — отказ от правок у него уже есть отдельной кнопкой «Нет».
+        /// Обе соседние беды этого же метода (<c>CalibrationFunctionError</c>,
+        /// <c>ERRDuplicateConfigName</c>) поступают так же.
+        /// </summary>
         bool ConfirmSaveDeviceConfig()
         {
             if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty)
@@ -989,7 +964,11 @@ namespace BecquerelMonitor
                         MessageBox.Show(Resources.CalibrationFunctionError);
                         return false;
                     }
-                    this.SaveFormContents(this.activeDeviceConfig);
+                    if (!this.SaveFormContents(this.activeDeviceConfig))
+                    {
+                        MessageBox.Show(Resources.ERRInvalidInputForm);
+                        return false;
+                    }
                     if (!this.manager.SaveConfig(this.activeDeviceConfig))
                     {
                         MessageBox.Show(Resources.ERRDuplicateConfigName);
@@ -998,6 +977,9 @@ namespace BecquerelMonitor
                 }
                 else
                 {
+                    // Правки отвергнуты, клон заменяется свежим — открытые на
+                    // прежнем клоне конструкторы кривой закрываются вместе с ним.
+                    this.CloseEfficiencyMakers();
                     this.activeDeviceConfig = this.manager.DeviceConfigMap[this.activeDeviceConfig.Guid].Clone();
                 }
                 this.ResetActiveDeviceConfigDirty();
@@ -1034,6 +1016,145 @@ namespace BecquerelMonitor
         // Token: 0x0600052C RID: 1324 RVA: 0x00021894 File Offset: 0x0001FA94
         void textBox19_TextChanged(object sender, EventArgs e)
         {
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        // ------------------------------------------------------------------
+        // ВЕЩЕСТВО КРИСТАЛЛА (`A276`, решение Amber 06.09.2026: «поле в
+        // конфигурации прибора, выбор вещества из библиотеки»).
+        //
+        // Почему список, а не ввод имени руками. Имя здесь — ССЫЛКА на строку
+        // библиотеки веществ, и по опечатке состава не найти: `CrystalFractionsOf`
+        // вернула бы пусто, отбор родителей образов вылета остался бы при одном
+        // запасе по энергии, и человек об этом никак бы не узнал. Список
+        // опечатку исключает по устройству.
+        //
+        // ⛔ Имён веществ в коде при этом НЕ ПОЯВЛЯЕТСЯ (решение Amber
+        // 01.09.2026): список берётся у библиотеки целиком, а в конфигурацию
+        // уезжает `Entry.Name` той строки, которую человек выбрал.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// «Вещество не названо» — своим ТИПОМ, а не пустой строкой.
+        ///
+        /// ⚠ Отличать пункт «не задано» от имени вещества по ТЕКСТУ нельзя:
+        /// текст переводится, а сравнение с переводом молча разошлось бы с
+        /// русским сателлитом. По ссылке на строку — тоже: интернирование строк
+        /// делает <c>ReferenceEquals</c> непредсказуемым. Отдельный тип
+        /// отвечает на вопрос «это пункт „не задано“?» однозначно и без текста.
+        /// </summary>
+        sealed class CrystalMaterialNone
+        {
+            readonly string caption;
+
+            public CrystalMaterialNone(string caption)
+            {
+                this.caption = caption ?? "";
+            }
+
+            public override string ToString()
+            {
+                return this.caption;
+            }
+        }
+
+        /// <summary>
+        /// Наполнить список веществ кристалла и выбрать в нём то, что названо у
+        /// прибора.
+        ///
+        /// Список строится ПРИ КАЖДОЙ ЗАГРУЗКЕ конфигурации, а не один раз в
+        /// конструкторе: библиотеку веществ правит человек (редактор веществ
+        /// открывается из того же окна, `E20`), и список, собранный при
+        /// открытии формы, показывал бы вчерашнюю библиотеку.
+        ///
+        /// ⛔ ВЕЩЕСТВО, КОТОРОГО В СПИСКЕ НЕТ, ДОБАВЛЯЕТСЯ ОТДЕЛЬНОЙ СТРОКОЙ, и
+        /// это не украшение. Имя в конфигурации могло пережить правку
+        /// библиотеки (вещество переименовали, сменили ему вид, удалили).
+        /// Молча показать «не задано» значило бы стереть настройку человека
+        /// первым же сохранением — и стереть незаметно, потому что окно
+        /// выглядело бы так, будто её и не было.
+        /// </summary>
+        void LoadCrystalMaterial(DeviceConfigInfo config)
+        {
+            ComboBox combo = this.crystalMaterialCombo;
+            combo.Items.Clear();
+
+            var none = new CrystalMaterialNone(this.CrystalMaterialNotSetCaption());
+            combo.Items.Add(none);
+            object chosen = none;
+
+            string wanted = config != null ? config.CrystalMaterialName : null;
+            bool found = false;
+            foreach (BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry entry
+                     in BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Of(
+                         BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.MaterialKind.Crystal))
+            {
+                combo.Items.Add(entry);
+                if (!found && !string.IsNullOrEmpty(wanted)
+                    && string.Equals(entry.Name, wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    chosen = entry;
+                    found = true;
+                }
+            }
+
+            if (!found && !string.IsNullOrEmpty(wanted))
+            {
+                // Вещество с таким именем в библиотеке ещё есть, но лежит уже не
+                // среди кристаллов, — берём его как есть; нет вовсе — остаётся
+                // само имя, чтобы сохранение его не потеряло.
+                BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry aside =
+                    BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.ByName(wanted);
+                object item = aside != null ? (object)aside : wanted;
+                combo.Items.Add(item);
+                chosen = item;
+            }
+
+            combo.SelectedItem = chosen;
+        }
+
+        /// <summary>
+        /// Имя вещества, выбранного в списке, для записи в конфигурацию. Пункт
+        /// «не задано» даёт пустую строку — то же самое, что у конфигурации, где
+        /// этого поля нет вовсе.
+        /// </summary>
+        string CrystalMaterialFromForm()
+        {
+            object item = this.crystalMaterialCombo.SelectedItem;
+            var entry = item as BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry;
+            if (entry != null)
+            {
+                return entry.Name ?? "";
+            }
+
+            // Строкой в списке лежит только имя, пережившее пропажу вещества из
+            // библиотеки (см. LoadCrystalMaterial): его надо вернуть в файл, а
+            // не потерять.
+            string lost = item as string;
+            return lost ?? "";
+        }
+
+        /// <summary>
+        /// Подпись пункта «не задано». Берётся из ресурсов САМОЙ ФОРМЫ (пара
+        /// <c>DeviceConfigForm.resx</c> / <c>DeviceConfigForm.ru.resx</c>), там
+        /// же, где лежат подпись поля и раскладка, — а не из общих
+        /// <c>Properties.Resources</c>: строка нужна ровно этому списку и
+        /// нигде больше.
+        /// </summary>
+        string CrystalMaterialNotSetCaption()
+        {
+            string caption = new ComponentResourceManager(typeof(DeviceConfigForm))
+                .GetString("crystalMaterialNotSet");
+            return caption ?? "";
+        }
+
+        void crystalMaterialCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (this.contentsLoading)
+            {
+                return;
+            }
+
             this.SetActiveDeviceConfigDirty();
         }
 
@@ -1218,7 +1339,7 @@ namespace BecquerelMonitor
                         byte[] bytes = Encoding.ASCII.GetBytes(result_str);
                         uint crc32 = Crc32.Compute(bytes);
 
-                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier) != crc32)
+                        if (uint.Parse(result_arr[10], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture) != crc32)
                         {
                             MessageBox.Show(Resources.ERRIncorrectCRC);
                             return;
@@ -1230,7 +1351,7 @@ namespace BecquerelMonitor
                         {
                             if (CalibrationCoefficients[i] != "FFFFFFFFFFFFFFFF")
                             {
-                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier));
+                                byte[] floatVals = BitConverter.GetBytes(ulong.Parse(CalibrationCoefficients[i], System.Globalization.NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture));
                                 coeff_list.Add(BitConverter.ToDouble(floatVals, 0));
                             }
                         }
@@ -1262,20 +1383,20 @@ namespace BecquerelMonitor
                         polynomialEnergyCalibration.Coefficients = coeff_list.ToArray();
                         if (polynomialEnergyCalibration.PolynomialOrder >= 1)
                         {
-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
+                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
                         }
                         if (polynomialEnergyCalibration.PolynomialOrder >= 2)
                         {
-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
                         }
                         if (polynomialEnergyCalibration.PolynomialOrder >= 3)
                         {
-                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString();
+                            this.numericUpDown9.Text = polynomialEnergyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
                         }
                         if (polynomialEnergyCalibration.PolynomialOrder == 4)
                         {
-                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString();
+                            this.numericUpDown8.Text = polynomialEnergyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
                         }
                     }
                     else
@@ -1334,9 +1455,9 @@ namespace BecquerelMonitor
                             this.numericUpDown8.Text = "0";
                             this.numericUpDown9.Text = "0";
 
-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
                             SetActiveDeviceConfigDirty();
                             return;
                         }
@@ -1383,9 +1504,9 @@ namespace BecquerelMonitor
                             this.numericUpDown8.Text = "0";
                             this.numericUpDown9.Text = "0";
 
-                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString();
-                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString();
-                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString();
+                            this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+                            this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+                            this.numericUpDown1.Text = polynomialEnergyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
                             this.textBox16.Text = deviceconfig.OBS_EnergyCalibration.ToString();
                             this.button14.Enabled = true;
                             SetActiveDeviceConfigDirty();
@@ -1432,7 +1553,7 @@ namespace BecquerelMonitor
                         List<string> result_list = new List<string>();
                         for (int i = 0; i < polynomialEnergyCalibration.Coefficients.Length; i++)
                         {
-                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X");
+                            string result_str = BitConverter.DoubleToInt64Bits(polynomialEnergyCalibration.Coefficients[i]).ToString("X", CultureInfo.InvariantCulture);
                             if (result_str == "0")
                             {
                                 result_list.Add("00000000");
@@ -1462,7 +1583,7 @@ namespace BecquerelMonitor
                         byte[] bytes = Encoding.ASCII.GetBytes(result_string);
                         uint crc32 = Crc32.Compute(bytes);
 
-                        result_list.Add(crc32.ToString("X"));
+                        result_list.Add(crc32.ToString("X", CultureInfo.InvariantCulture));
 
                         bool commands_accepted = true;
                         System.Diagnostics.Trace.WriteLine("commands_accepted = " + commands_accepted);
@@ -1480,16 +1601,16 @@ namespace BecquerelMonitor
                         {
                             int percent = (int)(100*i)/(result_list.Count - 1);
                             b.ReportProgress(percent);
-                            device.sendCommand("-cal " + i + " " + result_list[i]);
+                            device.sendCommand("-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i]);
                             bool result = device.waitForAnswer("ok", 2000);
                             commands_accepted &= result;
                             System.Diagnostics.Trace.WriteLine("result = " + result);
-                            status_msg = status_msg + "-cal " + i + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
+                            status_msg = status_msg + "-cal " + i.ToString(CultureInfo.InvariantCulture) + " " + result_list[i] + " -- result: " + result + Environment.NewLine;
                         }
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
@@ -1502,7 +1623,7 @@ namespace BecquerelMonitor
                             {
                                 if (result_list[i] != result_arr[i])
                                 {
-                                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                                    ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + status_msg);
                                     if (createdInstance)
                                     {
                                         AtomSpectraVCPIn.cleanUp(guid);
@@ -1510,7 +1631,7 @@ namespace BecquerelMonitor
                                     return;
                                 }
                             }
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         if (createdInstance)
                         {
@@ -1519,7 +1640,7 @@ namespace BecquerelMonitor
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 } else if (this.activeDeviceConfig.DeviceType == "RadiaCode")
                 {
@@ -1536,7 +1657,7 @@ namespace BecquerelMonitor
                         PolynomialEnergyCalibration polynomialEnergyCalibration = rc_config.RC_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + "Empty calibration");
                             return;
                         }
 
@@ -1561,8 +1682,6 @@ namespace BecquerelMonitor
                             device = new RadiaCodeIn(this.activeDeviceConfig.Guid);
                             device.setDeviceSerial(rc_config.DeviceSerial, rc_config.AddressBLE);
                         }
-                        string status_msg = "";
-
                         try
                         {
                             device.setCalibration(polynomialEnergyCalibration);
@@ -1601,16 +1720,22 @@ namespace BecquerelMonitor
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + status_msg);
+                            // ⛔ `A15`. Здесь стояла склейка с `status_msg`,
+                            //    которая в ЭТОЙ ветви заводилась пустой и не
+                            //    заполнялась ничем: человек получал «Ошибка
+                            //    записи коэффициентов» и пустую строку под ней.
+                            //    Причину знает сам прибор — разбор у
+                            //    `RadiaCodeIn.CalibrationFailureText`.
+                            ShowOwnedMessageBox(RadiaCodeIn.CalibrationFailureText(device));
                         }
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
                 else if (this.activeDeviceConfig.DeviceType == "Obsidian")
@@ -1628,30 +1753,38 @@ namespace BecquerelMonitor
                         PolynomialEnergyCalibration polynomialEnergyCalibration = obs_config.OBS_EnergyCalibration;
                         if (polynomialEnergyCalibration == null)
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + "Empty calibration");
+                            ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + "Empty calibration");
                             return;
                         }
 
                         bool commands_accepted;
+                        // ⛔ `A20`. Причина отказа теперь СОХРАНЯЕТСЯ прибором
+                        // и читается здесь: прежде окно показывало одно
+                        // «не удалось записать» без единого слова о том,
+                        // что случилось.
+                        string obsFailure = "";
                         using (ObsidianCalibrationIO device = new ObsidianCalibrationIO())
                         {
                             commands_accepted = device.Connect(obs_config.AddressBLE) && device.WriteCalibration(polynomialEnergyCalibration);
+                            obsFailure = device.LastFailure;
                         }
 
                         b.ReportProgress(100);
                         Cursor.Current = Cursors.Default;
                         if (commands_accepted)
                         {
-                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccesfull);
+                            ShowOwnedMessageBox(Resources.MSGCoefficientsUploadedSuccessful);
                         }
                         else
                         {
-                            ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice);
+                            ShowOwnedMessageBox(string.IsNullOrEmpty(obsFailure)
+                                ? Resources.ERRUploadCoefficientsToDevice
+                                : Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + obsFailure);
                         }
                     }
                     catch (Exception ex)
                     {
-                        ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + ex.Message);
+                        ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + ex.Message);
                     }
                 }
 
@@ -1664,7 +1797,7 @@ namespace BecquerelMonitor
             {
                 if (mainForm != null)
                 {
-                    mainForm.SetStatusTextLeft(string.Format(Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
+                    mainForm.SetStatusTextLeft(string.Format(CultureInfo.InvariantCulture, Resources.WriteCalibrationToAtomProProgress, args.ProgressPercentage));
                 }
             });
 
@@ -1675,7 +1808,7 @@ namespace BecquerelMonitor
                 // Errors from DoWork used to be silently swallowed.
                 if (args.Error != null)
                 {
-                    ShowOwnedMessageBox(Resources.ERRUploadCoefficeintsToDevice + Environment.NewLine + args.Error.Message);
+                    ShowOwnedMessageBox(Resources.ERRUploadCoefficientsToDevice + Environment.NewLine + args.Error.Message);
                 }
             });
 
@@ -1708,22 +1841,6 @@ namespace BecquerelMonitor
             }
             this.textBox17.Text = openFileDialog.FileName;
             this.SetActiveDeviceConfigDirty();
-        }
-
-        void clearEffROI_Click(object sender, EventArgs e)
-        {
-            this.activeDeviceConfig.EfficencyROIGuid = null;
-            this.selectEffROI.SelectedIndex = -1;
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        void selectEffROI_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (this.selectEffROI.SelectedIndex < 0 || this.contentsLoading) return;
-            if (this.effROIdic.TryGetValue(this.selectEffROI.SelectedIndex, out string roiGuid)) {
-                this.activeDeviceConfig.EfficencyROIGuid = roiGuid;
-                this.SetActiveDeviceConfigDirty();
-            }
         }
 
         // Token: 0x06000532 RID: 1330 RVA: 0x00021958 File Offset: 0x0001FB58
@@ -1857,7 +1974,7 @@ namespace BecquerelMonitor
             foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
             {
                 Row row = new Row();
-                row.Cells.Add(new Cell(num.ToString()));
+                row.Cells.Add(new Cell(num.ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(calibrationPoint.Channel));
                 row.Cells.Add(new Cell(calibrationPoint.Energy));
                 this.tableModel2.Rows.Add(row);
@@ -1882,7 +1999,7 @@ namespace BecquerelMonitor
                 if (e.Column == 1)
                 {
                     string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Channel = (int)decimal.Parse(text);
+                    this.calibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -1890,14 +2007,14 @@ namespace BecquerelMonitor
                 else if (e.Column == 2)
                 {
                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
                     this.multipointModified = true;
                     this.UpdateMultipointButtonState();
                 }
                 else if (e.Column == 4)
                 {
                     string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = decimal.Parse(text2);
+                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
                     this.multipointModified = true;
                     this.calibrationDone = false;
                     this.UpdateMultipointButtonState();
@@ -1924,21 +2041,47 @@ namespace BecquerelMonitor
                 CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
                 points.Add(zero);
             }
+            int deviceChannels = this.activeDeviceConfig.NumberOfChannels > 1
+                               ? this.activeDeviceConfig.NumberOfChannels : 8192;
             try
             {
-                if (this.calibrationPoints.Count >= 5)
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, 4);
-                }
-                else
-                {
-                    matrix = Utils.CalibrationSolver.Solve(points, points.Count - 1);
-                }
+                // ⛔ `S42` (полоса F77, 06.09.2026): степень запрашивается прежняя,
+                //    но принимается только та, чья кривая не гнётся сверх меры за
+                //    своими опорами (`CalibrationSolver.SolveGuarded`, перенос
+                //    сторожа `bend_ok` из конвейера корпуса). Здесь это заметнее
+                //    всего в дереве: пять точек и БОЛЬШЕ означали четвёртую
+                //    степень ВСЕГДА, то есть интерполяцию через все опоры без
+                //    единой свободной степени — ровно та кривая, что проходит
+                //    через все точки и врёт между ними и за ними.
+                //    ⚠ Судить сторожу НАДО по числу каналов ПРИБОРА, а не по
+                //    умолчанию 8192: измерено на корпусе (полоса F77) — тот же
+                //    сторож, судящий 1024-канальные шкалы до канала 8191,
+                //    понижает степень у 86 спектров из 118 вместо 37, и у 65 из
+                //    них внешняя мерка становится хуже. Число каналов у формы
+                //    ЕСТЬ (`activeDeviceConfig.NumberOfChannels`) — им же судит
+                //    соседний обработчик (`:987`) и менеджер настроек при
+                //    сохранении (`DeviceConfigManager.cs:237`).
+                int usedOrder;
+                matrix = Utils.CalibrationSolver.SolveGuarded(
+                    points, this.calibrationPoints.Count >= 5 ? 4 : points.Count - 1,
+                    deviceChannels, false, out usedOrder);
                 if (matrix == null) throw new Exception("Error");
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRInvalidChannelOrEnergyValues);
+                // ⛔ `A245`, полоса F44 05.09.2026. Голое модальное окно на
+                //    БЕЗОКОННОМ пути. Окно тут было всегда, а достижимым из
+                //    безоконного прогона место стало 05.09.2026, когда проба
+                //    `RestCultureProbeF28` завела литерал `"button1_Click"` и
+                //    сторож `check_headless.py` признал метод достижимым по
+                //    правилу `REFLECT_OVERRIDE`. Нажать «ОК» здесь некому:
+                //    проба, дойдя сюда, виснет насмерть до убийства процесса.
+                //    Дверь маршалит показ на поток окон сама (~~`A241`~~), а
+                //    на потоке окон вызов остаётся синхронным — в приложении
+                //    вид сообщения ПРЕЖНИЙ: `MessageBox.Show(text)` это тот же
+                //    пустой заголовок, та же единственная «ОК» и тот же
+                //    отсутствующий знак (`MessageBoxIcon.None`).
+                AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, "", MessageBoxIcon.None);
                 return;
             }
 
@@ -1946,9 +2089,19 @@ namespace BecquerelMonitor
             energyCalibration.PolynomialOrder = matrix.Length - 1;
             energyCalibration.Coefficients = matrix;
 
-            if (!energyCalibration.CheckCalibration())
+            // ⚠ Число каналов ПРИБОРА, а не умолчание 8192 (полоса F77,
+            //   06.09.2026): по нему судит и соседний обработчик (`:987`), и
+            //   менеджер настроек при сохранении (`DeviceConfigManager.cs:237`).
+            //   Прежде форма отвергала шкалу за поведение на каналах, которых у
+            //   прибора нет.
+            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
             {
-                MessageBox.Show(Resources.CalibrationFunctionError);
+                // ⛔ `A245`, полоса F44 05.09.2026 — то же, что соседом выше:
+                //    голое модальное окно на безоконном пути. Тот же ресурс
+                //    уже ходит через дверь с пустым заголовком в
+                //    `DocumentManager.cs:1171` и `N42/Util.cs:510` — вид
+                //    сообщения в приложении не меняется.
+                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                 return;
             }
             this.numericUpDown1.Text = "0";
@@ -1958,21 +2111,26 @@ namespace BecquerelMonitor
             this.numericUpDown9.Text = "0";
             if (energyCalibration.PolynomialOrder >= 2)
             {
-                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString();
+                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
             }
             if (energyCalibration.PolynomialOrder >= 3)
             {
-                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString();
+                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
             }
             if (energyCalibration.PolynomialOrder == 4)
             {
-                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString();
+                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
             }
-            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString();
-            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString();
-            if (!energyCalibration.CheckCalibration())
+            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
             {
-                MessageBox.Show(Resources.CalibrationFunctionError);
+                // ⛔ `A245`, полоса F44 05.09.2026. Третье голое окно того же
+                //    обработчика: проверка повторяется после того, как
+                //    коэффициенты прошли через поля ввода, и отказать может
+                //    именно она. Чинится вместе с двумя соседями — оставить
+                //    одно из трёх значило бы оставить безоконный путь висящим.
+                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
                 return;
             }
             if (activeDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && energyCalibration.PolynomialOrder >= 2)
@@ -2013,7 +2171,7 @@ namespace BecquerelMonitor
             TextBox lowerThresholdTextBox = this.inputDeviceForm.LowerThresholdTextBox;
             if (lowerThresholdTextBox != null)
             {
-                lowerThresholdTextBox.Text = threshold.ToString();
+                lowerThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
                 lowerThresholdTextBox.SelectAll();
                 lowerThresholdTextBox.Focus();
             }
@@ -2043,7 +2201,7 @@ namespace BecquerelMonitor
             TextBox upperThresholdTextBox = this.inputDeviceForm.UpperThresholdTextBox;
             if (upperThresholdTextBox != null)
             {
-                upperThresholdTextBox.Text = threshold.ToString();
+                upperThresholdTextBox.Text = threshold.ToString(CultureInfo.InvariantCulture);
                 upperThresholdTextBox.SelectAll();
                 upperThresholdTextBox.Focus();
             }
@@ -2129,11 +2287,6 @@ namespace BecquerelMonitor
         }
 
         void centroidComCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        void deconvolutionConfig_ValueChanged(object sender, EventArgs e)
         {
             this.SetActiveDeviceConfigDirty();
         }
@@ -2297,53 +2450,13 @@ namespace BecquerelMonitor
             }
         }
 
-        void table4_EditingStopped(object sender, CellEditEventArgs e)
-        {
-            Cell cell = e.Cell;
-            Row row = cell.Row;
-            try
-            {
-                string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                this.SetActiveDeviceConfigDirty();
-            }
-            catch (Exception)
-            {
-                e.Cancel = true;
-            }
-        }
-
-        void button15_Click(object sender, EventArgs e)
-        {
-            Row row1 = new Row();
-            if (this.table4.RowCount == 0)
-            {
-                row1.Cells.Add(new Cell(0));
-                row1.Cells.Add(new Cell(3000));
-                row1.Cells.Add(new Cell(1));
-                row1.Cells.Add(new Cell(0.001));
-            } else
-            {
-                row1.Cells.Add(this.tableModel4[this.tableModel4.Rows.Count - 1,1]);
-                row1.Cells.Add(new Cell(3000));
-                row1.Cells.Add(new Cell(1));
-                row1.Cells.Add(new Cell(0.001));
-            }
-            this.tableModel4.Rows.Add(row1);
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
-
-        void button16_Click(object sender, EventArgs e)
-        {
-            if (this.table4.SelectedItems.Length <= 0)
-            {
-                return;
-            }
-            Row row = this.table4.SelectedItems[0];
-            this.tableModel4.Rows.RemoveAt(row.Index);
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
+        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять целиком»: обработчики
+        // ручной таблицы точек дозы (`table4_EditingStopped`, `button15_Click`
+        // — «Создать», `button16_Click` — «Удалить») сняты вместе с таблицей.
+        // Полей «поправка к показанию» на их место не заводится — довод в
+        // строке реестра: 0 из 4 существующих наборов построены расчётом, у
+        // поставочного RC-103 CPS = 100 у всех 36 точек, а две живые ASN16
+        // задают форму, расходящуюся в 3.370 / 2.367 / 0.684 раза.
 
         // Token: 0x040002BB RID: 699
         DeviceConfigManager manager = DeviceConfigManager.GetInstance();
@@ -2403,185 +2516,233 @@ namespace BecquerelMonitor
 
         PolynomialEnergyCalibration rc_EnergyCalibration;
 
-        Dictionary<int, string> effROIdic = new Dictionary<int, string>();
 
-        private EnergySpectrum doseRateSpectrum;
-        private IInterpolation efficiencyCurve;
+        // --- `AMBER13` (10.09.2026) и `AMBER18` (11–12.09.2026), решения Amber ---
+        //
+        // ⛔ Вкладки `Dose Rate` (`tabPage7`) В ФОРМЕ БОЛЬШЕ НЕТ. 10.09.2026 с
+        // неё сняты ручная таблица точек, эталонный спектр с объявленной дозой,
+        // кнопка оценки и ввоз ЛСРМ (уехал на вкладку Efficiency —
+        // `ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`); остался
+        // один список `comboDoseRateEfficiency`, и 11.09.2026 по снимку с ним
+        // Amber сказала дословно: «Привязаться к текущей выбранной
+        // эффективности на ControlPanel. Этот Combobox удалить, вся привязка
+        // уже должна быть на Control Panel саму вкладку - удалить.»
+        //
+        // Сняты 12.09.2026: `tabPage7`, `comboDoseRateEfficiency`,
+        // `LoadDoseRateTab`, `FillDoseRateEfficiencyCombo`,
+        // `comboDoseRateEfficiency_SelectedIndexChanged`, поле `efficiencyCurve`
+        // (три записи, ноль чтений), обе пары ресурсов в `.resx`/`.ru.resx`.
+        // Мощность дозы считается от кривой, выбранной на панели, —
+        // `DoseRateManager.Calculate(ResultData)`.
 
-        private void buttonLoadDoseRateSpectrum_Click(object sender, EventArgs e)
+        // ⛔ `AMBER13`, решение Amber 10.09.2026 «Чистить сразу»: ввоз
+        // эталонного спектра (`buttonLoadDoseRateSpectrum_Click`) снят вместе
+        // с самим эталоном — он был входом расчёта точек, а не параметром
+        // прибора, и в конфигурации не хранился.
+
+        /// <summary>
+        /// Общий разбор текстового экспорта ЛСРМ (собственное `TODO: create
+        /// shared method for LSRM file read`). Статический и без формы нарочно:
+        /// так его можно проверить пробой, не поднимая окна.
+        ///
+        /// Что проверяется, чего раньше не проверялось вовсе: файл читается, в
+        /// нём есть строки, числа разбираются, и точек набралось хотя бы две.
+        /// Прежде разбор молча глотал исключение, отдавал пустой список и
+        /// строил по нему сплайн.
+        /// </summary>
+        /// <summary>
+        /// Число из файла ЛСРМ. Пробуются ОБА разделителя дробной части.
+        ///
+        /// ⛔ Найдено 05.09.2026 (`C4(а)`). Прежде здесь стоял
+        /// `Convert.ToDouble(string)` — он разбирает по ТЕКУЩЕЙ культуре, а
+        /// файл приходит с той, в которой его записали. На русской системе
+        /// «0.0386379» ловит `FormatException`, старый разбор его глотал,
+        /// отдавал пустой список и строил по нему сплайн; на английской то же
+        /// самое случалось с «0,0386379». Читатель файла обязан быть безразличен
+        /// к культуре машины, на которой файл открывают.
+        /// </summary>
+        static double ParseLsrmDouble(string text)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.OpenFileDialogTitle;
-            openFileDialog.Filter = Resources.SpectrumFileFilter;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            text = text == null ? "" : text.Trim();
+            double value;
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
             {
-                return;
+                return value;
             }
 
-            this.textBoxDoseRateSpectrumFile.Text = openFileDialog.FileName;
-
-            using (FileStream fileStream = new FileStream(openFileDialog.FileName, FileMode.Open))
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
             {
-                XmlSerializer xmlSerializer = new XmlSerializer(typeof(ResultDataFile));
-                ResultDataFile result = (ResultDataFile)xmlSerializer.Deserialize(fileStream);
-                // TODO: add input data validation
-                doseRateSpectrum = result.ResultDataList[0].EnergySpectrum;
+                return value;
             }
 
-            EvaluateButtonEstimateDRState();
+            // Последняя попытка: запятая как дробная часть на любой системе.
+            if (text.IndexOf(',') >= 0
+                && double.TryParse(text.Replace(',', '.'), NumberStyles.Float,
+                                   CultureInfo.InvariantCulture, out value))
+            {
+                return value;
+            }
+
+            throw new FormatException(string.Format(CultureInfo.CurrentCulture,
+                "«{0}» — не число ни с точкой, ни с запятой", text));
         }
 
-        private void buttonLoadEff_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.EffCalcMCImportDialogTitle;
-            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
-            openFileDialog.FilterIndex = 2;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
+        /// <summary>
+        /// ⛔ ПРАВИЛО «ТОЧКЕ С ПОГРЕШНОСТЬЮ ВЫШЕ 100 % НЕ ВЕРИТЬ» — решение
+        /// Amber 05.09.2026 (`T174`). Экспорт ЛСРМ несёт третьей колонкой
+        /// ЗАЯВЛЕННУЮ САМИМ ЛСРМ погрешность точки в процентах, и первая точка
+        /// каждого из восьми настоящих экспортов в дереве заявлена с
+        /// погрешностью от 554 до 3830 % — то есть значение известно хуже, чем
+        /// «неизвестно вовсе». Такая точка не мнение о кривой, а шум, и в
+        /// кривую она не берётся. Правило одинаково для всех файлов, порога «по
+        /// вкусу» здесь нет.
+        ///
+        /// ⚠ Что этим действительно выбрасывается (замер 05.09.2026 по восьми
+        /// файлам): РОВНО ПО ОДНОЙ точке из каждого — первая, 20.0 кэВ (у
+        /// `Nano 16 - marinelli` — 10.0 кэВ). Ни в одном файле второй такой
+        /// точки нет: следующая по счёту (40 кэВ) заявлена с 30.5…65.9 %. Заодно
+        /// это снимает единственное физически невозможное значение во всём
+        /// наборе — `Obsidian - marinelli 0.5`, 20 кэВ, эффективность
+        /// 1.47185E+03, то есть 147 тысяч процентов.
+        /// </summary>
+        internal const double LsrmMaxErrorPercent = 100.0;
 
-            this.textBoxEffFile.Text = openFileDialog.FileName;
-            // TODO: create shared method for LSRM file read
-            List<ROIEfficiencyData> points = new List<ROIEfficiencyData>();
+        /// <summary>
+        /// ⛔ Сколько точек обязано ОСТАТЬСЯ после отсечения (моё решение,
+        /// названо вслух — решением Amber этот случай не покрыт). Двух хватает
+        /// ровно потому, что двух требует потребитель: <c>DoseRateCurve</c>
+        /// строится сплайном по строго растущим узлам, и на одном узле сплайна
+        /// нет. Меньше двух — ОТКАЗ, и отказ называет ОБА числа: сколько точек
+        /// файл нёс и сколько отсечено, — иначе «в файле мало точек» неотличимо
+        /// от «правило съело файл».
+        ///
+        /// ⚠ На восьми настоящих экспортах этот случай не наступает ни разу:
+        /// после отсечения остаётся 149…150 точек (у `Nano 16 - marinelli` —
+        /// 59). Ветка проверена подставным файлом в `DoseRateProbe`.
+        /// </summary>
+        internal const int LsrmMinPoints = 2;
+
+        internal static List<ROIEfficiencyData> ReadLsrmEfficiencyExport(string path, out string problem)
+        {
+            problem = null;
+            var points = new List<ROIEfficiencyData>();
+            int dropped = 0;
+            int lineNumber = 0;
             try
             {
-                // read file
-                using (StreamReader streamReader = new StreamReader(openFileDialog.FileName, Encoding.GetEncoding(65001)))
+                using (StreamReader streamReader = new StreamReader(path, Encoding.GetEncoding(65001)))
                 {
-                    // skip first line like "Energy, keV	Efficiency	Uncertainty, %"
-                    streamReader.ReadLine();
+                    // ⛔ Шапка ПРОВЕРЯЕТСЯ, а не проглатывается (`T174`). Прежде
+                    // первая строка отбрасывалась безусловно: файл без шапки
+                    // молча терял первую точку, а файл с переставленными
+                    // колонками читался как ЛСРМ-овский и давал числа не о том.
+                    // Шапка — единственное, что закрепляет порядок колонок
+                    // (энергия, эффективность, погрешность в процентах), и без
+                    // неё разбор был бы догадкой.
+                    string header = streamReader.ReadLine();
+                    lineNumber = 1;
+                    string headerText = (header ?? "").ToLowerInvariant();
+                    if (headerText.IndexOf("energy", StringComparison.Ordinal) < 0
+                        || headerText.IndexOf("efficiency", StringComparison.Ordinal) < 0
+                        || headerText.IndexOf("uncertainty", StringComparison.Ordinal) < 0)
+                    {
+                        problem = string.Format(CultureInfo.CurrentCulture,
+                            DoseRateCoefficients.Text("DoseRateLsrmNoHeader",
+                                "Dose rate: {0} does not start with the LSRM header"
+                                + " \"Energy, keV / Efficiency / Uncertainty, %\" — the first line reads \"{1}\"."),
+                            path, header ?? "");
+                        return new List<ROIEfficiencyData>();
+                    }
+
                     while (streamReader.Peek() != -1)
                     {
-                        List<string> lineList = streamReader.ReadLine().Split(new char[] { '\t' }).ToList<string>();
-                        if (lineList.Count > 5)
+                        lineNumber++;
+                        string line = streamReader.ReadLine();
+                        if (string.IsNullOrEmpty(line) || line.Trim().Length == 0)
                         {
-                            for (int i = 0; i < lineList.Count; i++)
-                            {
-                                if (lineList[i] == "")
-                                {
-                                    lineList.RemoveAt(i);
-                                    i--;
-                                    if (i > lineList.Count - 1) break;
-                                }
-                            }
-                            points.Add(new ROIEfficiencyData()
-                            {
-                                Energy = Convert.ToDouble(lineList[0]),
-                                Efficiency = Convert.ToDouble(lineList[1]),
-                                ErrorPercent = Convert.ToDouble(lineList[2])
-                            });
+                            continue;
                         }
+
+                        // ⛔ Пустые поля выбрасываются, КРАТНОСТЬ табуляций
+                        // ничего не значит. Настоящий экспорт разделяет колонки
+                        // двумя-тремя табуляциями подряд (шесть полей на строку),
+                        // и прежний разбор именно на этом и держался: строка
+                        // короче шести полей ПРОПУСКАЛАСЬ МОЛЧА. Тот же файл с
+                        // одиночными табуляциями — а это ровно то, что делает с
+                        // ним любой текстовый редактор, — читался как пустой.
+                        List<string> cells = line.Split('\t')
+                                                 .Select(c => c.Trim())
+                                                 .Where(c => c.Length > 0)
+                                                 .ToList();
+                        if (cells.Count < 3)
+                        {
+                            // ⛔ ОТКАЗ, а не `continue`. Строка, не давшая точки,
+                            // — это потерянная точка; молча прочитанная половина
+                            // файла хуже непрочитанного файла, потому что по ней
+                            // строится кривая.
+                            problem = string.Format(CultureInfo.InvariantCulture,
+                                DoseRateCoefficients.Text("DoseRateLsrmShortLine",
+                                    "Dose rate: {0} (line {1}) has {2} column(s) instead of three"
+                                    + " (energy, efficiency, uncertainty): \"{3}\"."),
+                                path, lineNumber, cells.Count, line);
+                            return new List<ROIEfficiencyData>();
+                        }
+
+                        double error = ParseLsrmDouble(cells[2]);
+                        if (!(error <= LsrmMaxErrorPercent))
+                        {
+                            // Точка, которой сам ЛСРМ не верит. Отбрасывается
+                            // ЧИСЛОМ, а не молча: счётчик уходит в отказ ниже.
+                            dropped++;
+                            continue;
+                        }
+
+                        points.Add(new ROIEfficiencyData()
+                        {
+                            Energy = ParseLsrmDouble(cells[0]),
+                            Efficiency = ParseLsrmDouble(cells[1]),
+                            ErrorPercent = error
+                        });
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, ex.Message));
+                problem = string.Format(CultureInfo.InvariantCulture, "{0} (line {1}): {2}",
+                                        path, lineNumber, ex.Message);
+                return new List<ROIEfficiencyData>();
             }
 
-            // TODO: add input data validation
-            efficiencyCurve = Interpolate.CubicSplineMonotone(points.Select(p => p.Energy), points.Select(p => p.Efficiency));
-
-            EvaluateButtonEstimateDRState();
-        }
-
-        private void buttonEstimateDRConf_Click(object sender, EventArgs e)
-        {
-            if (doseRateSpectrum == null || efficiencyCurve == null || this.upDownDoseRateValue.Value <= 0)
+            if (points.Count < LsrmMinPoints)
             {
-                return;
+                problem = string.Format(CultureInfo.InvariantCulture,
+                    DoseRateCoefficients.Text("DoseRateLsrmNoPoints",
+                        "Dose rate: {0} yielded {1} curve point(s) — at least {2} are needed"
+                        + " ({3} more were dropped as declared to more than {4:f0} % uncertainty)."),
+                    path, points.Count, LsrmMinPoints, dropped, LsrmMaxErrorPercent);
+                return new List<ROIEfficiencyData>();
             }
 
-            double expectedDoseRate = (double)this.upDownDoseRateValue.Value;
-            List<DoseRateCalibrationPoint> doseConfig = CalculateDoseRateConfig(doseRateSpectrum, efficiencyCurve, expectedDoseRate);
-            tableModel4.Rows.AddRange(doseConfig.Select(dc =>
-            {
-                Row row = new Row();
-                row.Cells.Add(new Cell(dc.LowerBound));
-                row.Cells.Add(new Cell(dc.UpperBound));
-                row.Cells.Add(new Cell(dc.CPS));
-                row.Cells.Add(new Cell(dc.EtalonDoseRateValue));
-
-                return row;
-            }).ToArray());
-
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
+            return points;
         }
 
-        private void EvaluateButtonEstimateDRState()
-        {
-            buttonEstimateDRConf.Enabled = doseRateSpectrum != null && efficiencyCurve != null && table4.RowCount == 0;
-        }
-
-        private List<DoseRateCalibrationPoint> CalculateDoseRateConfig(EnergySpectrum spectrum, IInterpolation efficiency, double expectedDoseRate)
-        {
-            double[] energies = { 40, 50, 60, 80, 100, 150, 200, 300, 400, 500, 600, 800, 1000, 1500, 2000, 3000 };
-            double[] muValues = { 0.006694, 0.004031, 0.003004, 0.002393, 0.002318, 0.002494, 0.002672, 0.002872, 0.002949, 0.002966, 0.002953, 0.002882, 0.002787, 0.002545, 0.002342, 0.002054 };
-            double[] RToSv = { 1.29, 1.46, 1.52, 1.51, 1.44, 1.31, 1.22, 1.15, 1.10, 1.07, 1.04, 1.02, 1.01, 0.99, 0.99, 0.98 };
-            IInterpolation muCurve = Interpolate.CubicSplineMonotone(energies, muValues);
-            IInterpolation RToSvCurve = Interpolate.CubicSplineMonotone(energies, RToSv);
-
-            // calculate dose rate for spectrum as is
-            double doseRate = 0;
-            List<double> rangeCpsList = new List<double>();
-            List<double> rangeEffList = new List<double>();
-            List<double> rangeDoseRateFactorList = new List<double>();
-            for (int i = 0; i < energies.Length - 1; i++)
-            {
-                double fromE = energies[i];
-                double toE = energies[i + 1];
-                int fromChannel = Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(fromE, maxChannels: spectrum.NumberOfChannels));
-                int toChannel = Math.Min(Convert.ToInt32(spectrum.EnergyCalibration.EnergyToChannel(toE, maxChannels: spectrum.NumberOfChannels)), spectrum.NumberOfChannels - 1);
-                double centerE = (fromE + toE) / 2;
-
-                double doseRateFactor = muCurve.Interpolate(centerE) * RToSvCurve.Interpolate(centerE) * centerE;
-                rangeDoseRateFactorList.Add(doseRateFactor);
-
-                double rangeEff = efficiency.Interpolate(centerE);
-                rangeEffList.Add(rangeEff);
-                
-                double rangeCounts = 0;
-                for (int j = fromChannel; j < toChannel; j++)
-                {
-                    rangeCounts += spectrum.Spectrum[j];
-                }
-                double rangeCps = rangeCounts / spectrum.MeasurementTime;
-                rangeCpsList.Add(rangeCps);
-
-                double rangeDoseRate = rangeCps * doseRateFactor / rangeEff;
-                doseRate += rangeDoseRate;
-            }
-
-            // adjust rates according to expected value
-            double doseRateCoeff = expectedDoseRate / doseRate;
-            List<DoseRateCalibrationPoint> doseRateCalibrationPoints = new List<DoseRateCalibrationPoint>();
-            for (int i = 0; i < energies.Length - 1; i++)
-            {
-                DoseRateCalibrationPoint point = new DoseRateCalibrationPoint()
-                {
-                    LowerBound = energies[i],
-                    UpperBound = energies[i + 1],
-                    CPS = 1,
-                    EtalonDoseRateValue = doseRateCoeff * rangeDoseRateFactorList[i] / rangeEffList[i],
-                };
-                doseRateCalibrationPoints.Add(point);
-            }
-
-            return doseRateCalibrationPoints;
-        }
-
-        private void buttonClearDoseRate_Click(object sender, EventArgs e)
-        {
-            tableModel4.Rows.Clear();
-            this.SetActiveDeviceConfigDirty();
-            this.EvaluateButtonEstimateDRState();
-        }
+        // ⛔ `AMBER13`, решения Amber 10.09.2026. Сняты вместе со своими
+        // контролами:
+        //
+        //  * `buttonLoadEff_Click` — решение «Снять и завести ввоз на
+        //    Efficiency»: ввоз экспорта ЛСРМ переехал на вкладку Efficiency
+        //    (`ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`), где
+        //    ввезённая кривая СОХРАНЯЕТСЯ в конфигурации прибора. Здесь она
+        //    жила в поле формы и пропадала с закрытием окна;
+        //  * `buttonEstimateDRConf_Click` и `CalculateDoseRateConfig` — оценка
+        //    точек по эталону, решение «Чистить сразу»;
+        //  * `EvaluateButtonEstimateDRState` — состояние снятой кнопки;
+        //  * `buttonClearDoseRate_Click` — очистка снятой таблицы.
+        //
+        // ⛔ 12.09.2026 (`AMBER18`): генератор точек `DoseRateEstimator.Estimate`
+        // снят вместе с самими точками — расчёт идёт от кривой панели одним
+        // проходом в `DoseRateManager`. `ReadLsrmEfficiencyExport` ниже
+        // остаётся: её зовёт ввоз на вкладке Efficiency.
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {

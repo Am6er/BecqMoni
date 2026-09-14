@@ -1,0 +1,22 @@
+usage: score.py [-h] [--sthr STHR] [--zthr ZTHR] [--mode {snip,spline}]
+                [--out-dir OUT_DIR] [--verbose] [--min-fwhm MIN_FWHM]
+                [--part {all,known,unknown}] [--members] [--only ONLY]
+
+options:
+  -h, --help            show this help message and exit
+  --sthr STHR           порог доли, %
+  --zthr ZTHR           порог z
+  --mode {snip,spline}
+  --out-dir OUT_DIR     каталог с <группа>_<режим>_{components,runs}.csv
+  --verbose
+  --min-fwhm MIN_FWHM   нижн€€ граница ѕЎѕ¬ на 662 кэ¬, % (3 Ч только
+                        сцинтилл€торы)
+  --part {all,known,unknown}
+                        часть корпуса по corpus/parts.csv; германий (excluded)
+                        не считаетс€ никогда
+  --members             состав назван ƒќ„≈–Ќ»ћ» нуклидами (разбор приложени€),
+                        а не цепочками: развернуть цепочки манифеста в их
+                        членов
+  --only ONLY           ограничить объ€вленным списком: имена через зап€тую
+                        либо путь к csv/txt, где ключ Ч первый столбец (строки
+                        с # и заголовок пропускаютс€)

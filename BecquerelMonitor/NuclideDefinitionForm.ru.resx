@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -138,6 +138,9 @@
   <data name="label2.Text" xml:space="preserve">
     <value>Энергия</value>
   </data>
+  <data name="chainLabel.Text" xml:space="preserve">
+    <value>Цепочка</value>
+  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Полураспад</value>
   </data>
@@ -173,5 +176,8 @@
   </data>
     <data name="intensityLabel.Text" xml:space="preserve">
     <value>Интенсивность</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>кэВ</value>
   </data>
 </root>

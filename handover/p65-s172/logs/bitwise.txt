@@ -1,0 +1,9 @@
+D:/BqMoni_Claude/p65/out_a/rates_as80_nomx.csv vs D:/BqMoni_Claude/p65/out_b/rates_as80_nomx.csv: строк 29, расхождений 0
+D:/BqMoni_Claude/p65/out_a/rates_radon1_nomx.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon1_nomx.csv: строк 33, расхождений 0
+D:/BqMoni_Claude/p65/out_a/rates_radon2_nomx.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon2_nomx.csv: строк 31, расхождений 0
+D:/BqMoni_Claude/p65/out_a/rates_as80_free.csv vs D:/BqMoni_Claude/p65/out_b/rates_as80_free.csv: строк 23, расхождений 0
+D:/BqMoni_Claude/p65/out_a/rates_as80_eq.csv vs D:/BqMoni_Claude/p65/out_b/rates_as80_eq.csv: строк 19, расхождений 0
+D:/BqMoni_Claude/p65/out_a/rates_radon1_free.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon1_free.csv: строк 31, расхождений 27
+D:/BqMoni_Claude/p65/out_a/rates_radon1_eq.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon1_eq.csv: строк 27, расхождений 23
+D:/BqMoni_Claude/p65/out_a/rates_radon2_free.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon2_free.csv: строк 28, расхождений 22
+D:/BqMoni_Claude/p65/out_a/rates_radon2_eq.csv vs D:/BqMoni_Claude/p65/out_b/rates_radon2_eq.csv: строк 21, расхождений 15

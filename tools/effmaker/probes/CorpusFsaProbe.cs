@@ -1,0 +1,6298 @@
+﻿using BecquerelMonitor;
+using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.FullSpectrumAnalysis;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Xml.Serialization;
+
+namespace CorpusFsaProbe
+{
+    /// <summary>
+    /// ⛔⛔ ВОРОТА: поставочный `config\NuclideDefinition.xml` НА КОРПУСЕ НЕ
+    /// ИСПОЛЬЗУЕТСЯ НИКОГДА — глобальное правило Amber 01.09.2026.
+    ///
+    /// Корпус гоняется только по УКАЗАННЫМ нуклидам, привязанным к конкретному
+    /// спектру: состав берётся из `manifest.csv`, линии — из `nucdb`/`matdb`
+    /// (<see cref="FsaSampleLibrary"/>), подписи пиков — из той же своей базы.
+    /// Общий поставочный список — дело человека и графика; предъявив его
+    /// спектру, отдаёшь необъяснённую структуру первому подходящему кандидату.
+    ///
+    /// ЦЕНА НАРУШЕНИЯ ИЗМЕРЕНА И НОСИТ ИМЯ (`N18`): одна запись поставочного
+    /// списка — `Pu-238`, 152 кэВ, выход 0.0009 %, — дала на `ASN16_Lu176`
+    /// состав с плутонием долей 1.7 % при z = 31.77, сев в полосу обратного
+    /// рассеяния линии 306.78 самого лютеция. Плутония не объявлял ни один из
+    /// 129 спектров манифеста.
+    ///
+    /// ⚠ ЧТО ЭТИМИ ВОРОТАМИ ПОТЕРЯНО, названо честно: ключи `--lib=peaks`
+    /// (состав по подписям поиска) и `--lib=infer` (`S57`, состав выводится из
+    /// пиков) предъявляли спектру ровно этот список, поэтому на корпусе они
+    /// больше не работают. A/B «подписи против объявленной пробы» на корпусе
+    /// заново не поставить, пока у вывода состава не появится свой источник
+    /// кандидатов, не поставочный.
+    ///
+    /// Ворота двусторонние: <see cref="Allow"/> пускает только `sample`, а
+    /// недостижимая ветвь разбора бросает <see cref="Rule"/> — правка, вернувшая
+    /// другой режим, упадёт, а не посчитает корпус чужим списком. Механическая
+    /// проверка тех же ворот — `tools/check_corpus_library.py`.
+    ///
+    /// ⛔⛔ ГЕЙТ СТРОГИЙ С 12.09.2026 (`AMBER19`, задача Amber, дословно:
+    /// «берётся список известных нуклидов в этом спектре и дёргается всё из
+    /// базы. Никаких поставочных конфигов из приложения. Если надо — сделай это
+    /// правило гейтом прогонки»). Ворота по ключу ловили только РЕЖИМ; ДЫРА,
+    /// которой они не видели: `new PeakDetector()` поднимал
+    /// `NuclideDefinitionManager` инициализатором поля, тот читал поставочный
+    /// `config\NuclideDefinition.xml` из каталога прогона, оснастка клала файл
+    /// туда нарочно, а сторож оснастки без него ОТКАЗЫВАЛ. Содержимое файла в
+    /// числа не попадало (список подаётся явно), но «не поднимается вовсе»
+    /// было ложью. Теперь две двери, обе кодом 12:
+    ///
+    ///  * <see cref="RefuseIfSuppliedFile"/> — НА СТАРТЕ: файл лежит там, откуда
+    ///    его прочёл бы менеджер (каталог сборки, `Package.NuclideDefinition`),
+    ///    или в текущем каталоге — отказ ДО чтения корпуса, ни одного файла в
+    ///    `--out=`;
+    ///  * <see cref="RefuseIfManagerRaised"/> — В КОНЦЕ, до записи результата:
+    ///    менеджер поднимали хоть раз (<c>NuclideDefinitionManager.RaiseCount</c>)
+    ///    — отказ, результат не пишется. Счётчик, а не `isLoaded`: безоконный
+    ///    подъём без файла БРОСАЕТ (`S100`), исключение уходит в `row.Error`,
+    ///    и по одному «загрузился ли» подъём был бы невидим.
+    ///
+    /// Положительный контроль второй двери — ключ `--spoil=manager`: поднимает
+    /// менеджер ОТРАЖЕНИЕМ нарочно (текстовый сторож `check_corpus_library.py`
+    /// не должен видеть в контроле нарушения — его ловит гейт времени
+    /// исполнения) и обязан кончиться кодом 12.
+    /// </summary>
+    static class SuppliedLibraryGuard
+    {
+        /// <summary>
+        /// Пути, по которым поставочная библиотека ДОСТУПНА прогону: тот, что
+        /// откроет менеджер (от каталога сборки — `Package`, `S102`), и тот же
+        /// относительный от текущего каталога (в штатной оснастке они совпадают:
+        /// `run_appwd.ps1` зовёт `wd_app\CorpusFsaProbe.exe` из `wd_app`).
+        /// </summary>
+        public static List<string> SuppliedFilePaths()
+        {
+            var paths = new List<string>();
+            string managers = Package.GetInstance().NuclideDefinition;
+            paths.Add(Path.GetFullPath(managers));
+            string cwd = Path.GetFullPath(Path.Combine(
+                Directory.GetCurrentDirectory(), "config", "NuclideDefinition.xml"));
+            if (!string.Equals(cwd, paths[0], StringComparison.OrdinalIgnoreCase))
+            {
+                paths.Add(cwd);
+            }
+            return paths;
+        }
+
+        /// <summary>Первая дверь: поставочный файл в каталоге прогона — отказ.</summary>
+        public static int RefuseIfSuppliedFile()
+        {
+            List<string> paths = SuppliedFilePaths();
+            var present = new List<string>();
+            foreach (string p in paths)
+            {
+                if (File.Exists(p))
+                {
+                    present.Add(p);
+                }
+            }
+
+            if (present.Count == 0)
+            {
+                Console.WriteLine("гейт библиотеки (AMBER19): поставочного config\\NuclideDefinition.xml "
+                                  + "в каталоге прогона НЕТ — проверено: " + string.Join("; ", paths));
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine("   В каталоге прогона ЛЕЖИТ поставочная библиотека — гейт AMBER19 (12.09.2026):");
+            foreach (string p in present)
+            {
+                Console.Error.WriteLine("   " + p);
+            }
+            Console.Error.WriteLine("   Корпус считается по нуклидам из nucdb по manifest.csv; файл из каталога "
+                                    + "прогона убрать (mk_appwd.ps1 с 12.09.2026 его не кладёт).");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Вторая дверь: менеджер поднимали — отказ. Зовётся ДО записи
+        /// результата, чтобы прогон-нарушитель не оставил в `--out=` ни файла.
+        /// </summary>
+        public static int RefuseIfManagerRaised()
+        {
+            int raised = NuclideDefinitionManager.RaiseCount;
+            if (raised == 0)
+            {
+                Console.WriteLine("гейт библиотеки (AMBER19): NuclideDefinitionManager за прогон не поднимался (обращений 0)");
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine("   За прогон NuclideDefinitionManager поднимали {0} раз(а) — гейт AMBER19 (12.09.2026).",
+                                    raised.ToString(CultureInfo.InvariantCulture));
+            Console.Error.WriteLine("   Результат в --out= НЕ ЗАПИСАН: числа прогона, коснувшегося поставочной библиотеки, корпусными не считаются.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Порча для положительного контроля второй двери (`--spoil=manager`):
+        /// поднять менеджер отражением, исключение (безоконный запуск без файла
+        /// бросает, `S100`) — проглотить, как глотает его `RunOne`. Ровно так
+        /// выглядел бы чужой подъём менеджера посреди прогона.
+        /// </summary>
+        public static void SpoilRaiseManager()
+        {
+            try
+            {
+                typeof(NuclideDefinitionManager)
+                    .GetMethod("GetInstance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .Invoke(null, null);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("--spoil=manager: подъём менеджера кончился {0} — проглочено, как в RunOne",
+                                        (ex.InnerException ?? ex).GetType().Name);
+            }
+        }
+
+        /// <summary>Само правило одной строкой — им же говорит отказ.</summary>
+        public const string Rule =
+            "поставочный config\\NuclideDefinition.xml на корпусе НЕ используется " +
+            "(глобальное правило Amber 01.09.2026): корпус гоняется только по " +
+            "указанным нуклидам, привязанным к спектру";
+
+        /// <summary>Код возврата отказа — свой, чтобы не путать с разбором ключей.</summary>
+        public const int ExitCode = 12;
+
+        public static bool Allow(string library)
+        {
+            return library == "sample";
+        }
+
+        public static int Refuse(string library)
+        {
+            Console.Error.WriteLine("⛔ ОТКАЗ: " + Rule + ".");
+            Console.Error.WriteLine(
+                "   --lib=" + (library ?? "") + " предъявил бы спектру ОБЩИЙ поставочный список.");
+            Console.Error.WriteLine(
+                "   Разрешено единственное: --lib=sample (умолчание) — состав из manifest.csv, линии из nucdb.");
+            Console.Error.WriteLine(
+                "   Цена нарушения измерена: фантом Pu-238 на ASN16_Lu176 (N18).");
+            return ExitCode;
+        }
+    }
+
+    /// <summary>
+    /// ⛔ ОСНАСТКА СВЕРЯЕТСЯ САМОЙ ПРОБОЙ (`T68` (2), 13.09.2026, полоса П39).
+    ///
+    /// Внешний сторож `run_appwd.ps1` (`T63`) держит только тех, кто идёт через
+    /// него. Документированный обходной путь — `cd wd_app; .\CorpusFsaProbe.exe …`
+    /// — шёл мимо, и внешний сторож его не видел по построению (25.08.2026,
+    /// встречная проверка `T63`). Поэтому читатель стоит ЗДЕСЬ, у самой пробы:
+    /// `mk_appwd.ps1` пишет в `.appwd.json` манифест `files_sha` — sha256 КАЖДОГО
+    /// положенного файла по тому же плану `Get-AppWdPlan`, которым и клали
+    /// (второго списка нет, урок `T61`), — а проба на старте, ДО чтения корпуса
+    /// и баз, считает sha256 тех же файлов в своём каталоге и ОТКАЗЫВАЕТ кодом
+    /// <see cref="ExitCode"/>, называя каждый файл, которого нет, который не
+    /// сошёлся или который не удалось прочесть. Нет отметки или манифеста в ней
+    /// (оснастка старше 13.09.2026) — тоже отказ: собрать заново `mk_appwd.ps1`.
+    ///
+    /// ⛔ Ключа «пропустить сверку» НЕТ и заводить его нельзя: именно такой ключ
+    /// и становится новым обходным путём. Осознанный прогон старой оснасткой
+    /// делается через `run_appwd.ps1 -Force` — а он всё равно свежую отметку
+    /// требует, то есть «старая» там значит «протухшая сборка», а не «подменённый
+    /// файл».
+    ///
+    /// Каталог — <see cref="AppDomain.BaseDirectory"/>, а не текущий: грузится
+    /// то, что лежит рядом с exe. Манифест читается своим разбором JSON
+    /// (<see cref="Json"/>): у проб нет ссылок ни на `System.Web.Extensions`, ни
+    /// на `System.Runtime.Serialization`, а `ConvertTo-Json` пишет ровно то
+    /// подмножество формата, что разбирается здесь.
+    ///
+    /// Положительный контроль (П39, 13.09.2026): в копии оснастки подменён один
+    /// файл при сохранённом времени — прямой запуск пробы из неё кончился кодом 3
+    /// с именем файла; отметка без `files_sha` — код 3; честная оснастка — дверь
+    /// пройдена, прогон идёт.
+    /// </summary>
+    static class AppWdGuard
+    {
+        public const int ExitCode = 3;
+        public const string StampName = ".appwd.json";
+
+        /// <summary>Алгоритм манифеста — тот же текст, что пишет `Write-AppWdStamp`.</summary>
+        public const string Algo = "sha256(содержимое)/v1";
+
+        /// <summary>Сколько расхождений печатать поимённо; остальные — числом.</summary>
+        const int PrintLimit = 20;
+
+        public static int Refuse()
+        {
+            string dir = AppDomain.CurrentDomain.BaseDirectory;
+            string stamp = Path.Combine(dir, StampName);
+            if (!File.Exists(stamp))
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): нет {0} в {1}", StampName, dir);
+                Console.Error.WriteLine("   Каталог не собран mk_appwd.ps1 либо его сборка не прошла самопроверку —");
+                Console.Error.WriteLine("   чем и из чего он собран, проверить нечем. Прогон отменён, в --out= ни файла.");
+                return ExitCode;
+            }
+
+            object root;
+            try
+            {
+                root = Json.Parse(File.ReadAllText(stamp, Encoding.UTF8));
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): {0} не разбирается как JSON: {1}", stamp, e.Message);
+                return ExitCode;
+            }
+
+            var top = root as Dictionary<string, object>;
+            object manifestObj;
+            var manifest = top != null && top.TryGetValue("files_sha", out manifestObj)
+                ? manifestObj as Dictionary<string, object>
+                : null;
+            object mapObj;
+            var map = manifest != null && manifest.TryGetValue("sha", out mapObj)
+                ? mapObj as Dictionary<string, object>
+                : null;
+            if (manifest == null || map == null)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): в {0} нет манифеста files_sha — отметка старше 13.09.2026", stamp);
+                Console.Error.WriteLine("   (mk_appwd.ps1 до T68 (2) манифеста не писал). Пересоберите оснастку: mk_appwd.ps1 -Wd <оснастка>.");
+                return ExitCode;
+            }
+
+            object algoObj;
+            string algo = manifest.TryGetValue("algo", out algoObj) ? algoObj as string : null;
+            if (!string.Equals(algo, Algo, StringComparison.Ordinal))
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): манифест files_sha посчитан алгоритмом «{0}», проба знает «{1}» — сверять нечем",
+                                        algo ?? "нет", Algo);
+                return ExitCode;
+            }
+
+            if (map.Count == 0)
+            {
+                Console.Error.WriteLine("⛔ ОТКАЗ (T68): манифест files_sha ПУСТ — оснастка «собрана» из нуля файлов");
+                return ExitCode;
+            }
+
+            var bad = new List<string>();
+            int ok = 0;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                foreach (KeyValuePair<string, object> kv in map)
+                {
+                    string rel = kv.Key;
+                    string want = kv.Value as string;
+                    string full = Path.Combine(dir, rel);
+                    if (want == null || want.Length != 64)
+                    {
+                        bad.Add("МАНИФЕСТ ИСПОРЧЕН: " + rel + " — отпечаток не sha256");
+                        continue;
+                    }
+
+                    if (!File.Exists(full))
+                    {
+                        bad.Add("НЕТ В КАТАЛОГЕ: " + rel);
+                        continue;
+                    }
+
+                    string got;
+                    try
+                    {
+                        // Поток, а не `ReadAllBytes`: матрицы и базы — десятки
+                        // мегабайт, и держать их все в памяти незачем.
+                        using (FileStream f = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            got = BitConverter.ToString(sha.ComputeHash(f)).Replace("-", "").ToLowerInvariant();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        bad.Add("НЕ СМОГ ПОСЧИТАТЬ ОТПЕЧАТОК: " + rel + " — " + e.GetType().Name + ": " + e.Message);
+                        continue;
+                    }
+
+                    if (!string.Equals(got, want.ToLowerInvariant(), StringComparison.Ordinal))
+                    {
+                        bad.Add("ПОДМЕНЁН: " + rel + " — в манифесте " + want.Substring(0, 12)
+                                + ", в каталоге " + got.Substring(0, 12)
+                                + " (" + File.GetLastWriteTime(full).ToString("dd.MM HH:mm:ss", CultureInfo.InvariantCulture) + ")");
+                    }
+                    else
+                    {
+                        ok++;
+                    }
+                }
+            }
+
+            clock.Stop();
+            if (bad.Count == 0)
+            {
+                Console.WriteLine("оснастка (T68): {0} файлов из {1} сошлись с манифестом {2} по sha256 за {3} с",
+                                  ok.ToString(CultureInfo.InvariantCulture), StampName, Algo,
+                                  clock.Elapsed.TotalSeconds.ToString("F2", CultureInfo.InvariantCulture));
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ (T68): КАТАЛОГ ПРОБЫ НЕ СООТВЕТСТВУЕТ МАНИФЕСТУ {0} — расхождений {1}, сошлось {2}",
+                                    StampName, bad.Count.ToString(CultureInfo.InvariantCulture),
+                                    ok.ToString(CultureInfo.InvariantCulture));
+            int i = 0;
+            foreach (string b in bad)
+            {
+                i++;
+                if (i > PrintLimit)
+                {
+                    Console.Error.WriteLine("   … и ещё {0}", (bad.Count - PrintLimit).ToString(CultureInfo.InvariantCulture));
+                    break;
+                }
+
+                Console.Error.WriteLine("   {0,2}. {1}", i.ToString(CultureInfo.InvariantCulture), b);
+            }
+
+            Console.Error.WriteLine("   Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21). В --out= ни файла.");
+            Console.Error.WriteLine("   Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1 -> run_appwd.ps1.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Разбор JSON ровно того подмножества, что пишет `ConvertTo-Json`:
+        /// объекты, массивы, строки с экранированием (включая `\uXXXX`), числа,
+        /// `true`/`false`/`null`. Возвращает `Dictionary&lt;string, object&gt;`,
+        /// `List&lt;object&gt;`, `string`, `double`, `bool` или `null`.
+        /// Ошибка формата — исключение с позицией.
+        /// </summary>
+        internal static class Json
+        {
+            public static object Parse(string text)
+            {
+                int i = 0;
+                object v = ReadValue(text, ref i);
+                SkipWs(text, ref i);
+                if (i != text.Length)
+                {
+                    throw new FormatException("лишний текст после значения, позиция " + i.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return v;
+            }
+
+            static void SkipWs(string s, ref int i)
+            {
+                // `\uFEFF` — BOM: `Set-Content -Encoding utf8` в Windows PowerShell 5.1 его пишет.
+                while (i < s.Length && (s[i] == ' ' || s[i] == '\t' || s[i] == '\r' || s[i] == '\n' || s[i] == '\uFEFF'))
+                {
+                    i++;
+                }
+            }
+
+            static object ReadValue(string s, ref int i)
+            {
+                SkipWs(s, ref i);
+                if (i >= s.Length)
+                {
+                    throw new FormatException("обрыв текста");
+                }
+
+                char c = s[i];
+                if (c == '{')
+                {
+                    return ReadObject(s, ref i);
+                }
+
+                if (c == '[')
+                {
+                    return ReadArray(s, ref i);
+                }
+
+                if (c == '"')
+                {
+                    return ReadString(s, ref i);
+                }
+
+                if (Match(s, ref i, "true"))
+                {
+                    return true;
+                }
+
+                if (Match(s, ref i, "false"))
+                {
+                    return false;
+                }
+
+                if (Match(s, ref i, "null"))
+                {
+                    return null;
+                }
+
+                int start = i;
+                while (i < s.Length && "+-0123456789.eE".IndexOf(s[i]) >= 0)
+                {
+                    i++;
+                }
+
+                if (i == start)
+                {
+                    throw new FormatException("неожиданный символ '" + c + "' в позиции " + start.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return double.Parse(s.Substring(start, i - start), NumberStyles.Float, CultureInfo.InvariantCulture);
+            }
+
+            static bool Match(string s, ref int i, string word)
+            {
+                if (i + word.Length <= s.Length && string.CompareOrdinal(s, i, word, 0, word.Length) == 0)
+                {
+                    i += word.Length;
+                    return true;
+                }
+
+                return false;
+            }
+
+            static Dictionary<string, object> ReadObject(string s, ref int i)
+            {
+                var o = new Dictionary<string, object>(StringComparer.Ordinal);
+                i++; // {
+                SkipWs(s, ref i);
+                if (i < s.Length && s[i] == '}')
+                {
+                    i++;
+                    return o;
+                }
+
+                while (true)
+                {
+                    SkipWs(s, ref i);
+                    if (i >= s.Length || s[i] != '"')
+                    {
+                        throw new FormatException("ожидался ключ в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    string key = ReadString(s, ref i);
+                    SkipWs(s, ref i);
+                    if (i >= s.Length || s[i] != ':')
+                    {
+                        throw new FormatException("ожидалось ':' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    i++;
+                    o[key] = ReadValue(s, ref i);
+                    SkipWs(s, ref i);
+                    if (i < s.Length && s[i] == ',')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    if (i < s.Length && s[i] == '}')
+                    {
+                        i++;
+                        return o;
+                    }
+
+                    throw new FormatException("ожидалось ',' или '}' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            static List<object> ReadArray(string s, ref int i)
+            {
+                var a = new List<object>();
+                i++; // [
+                SkipWs(s, ref i);
+                if (i < s.Length && s[i] == ']')
+                {
+                    i++;
+                    return a;
+                }
+
+                while (true)
+                {
+                    a.Add(ReadValue(s, ref i));
+                    SkipWs(s, ref i);
+                    if (i < s.Length && s[i] == ',')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    if (i < s.Length && s[i] == ']')
+                    {
+                        i++;
+                        return a;
+                    }
+
+                    throw new FormatException("ожидалось ',' или ']' в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+
+            static string ReadString(string s, ref int i)
+            {
+                var b = new StringBuilder();
+                i++; // "
+                while (i < s.Length)
+                {
+                    char c = s[i++];
+                    if (c == '"')
+                    {
+                        return b.ToString();
+                    }
+
+                    if (c != '\\')
+                    {
+                        b.Append(c);
+                        continue;
+                    }
+
+                    if (i >= s.Length)
+                    {
+                        break;
+                    }
+
+                    char e = s[i++];
+                    switch (e)
+                    {
+                        case '"': b.Append('"'); break;
+                        case '\\': b.Append('\\'); break;
+                        case '/': b.Append('/'); break;
+                        case 'b': b.Append('\b'); break;
+                        case 'f': b.Append('\f'); break;
+                        case 'n': b.Append('\n'); break;
+                        case 'r': b.Append('\r'); break;
+                        case 't': b.Append('\t'); break;
+                        case 'u':
+                            if (i + 4 > s.Length)
+                            {
+                                throw new FormatException("обрыв \\u в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                            }
+
+                            b.Append((char)int.Parse(s.Substring(i, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+                            i += 4;
+                            break;
+                        default:
+                            throw new FormatException("неизвестное экранирование \\" + e + " в позиции " + i.ToString(CultureInfo.InvariantCulture));
+                    }
+                }
+
+                throw new FormatException("незакрытая строка");
+            }
+        }
+    }
+
+    /// <summary>
+    /// ⛔ ПРОБА ГОВОРИТ ПРАВДУ О СВОИХ КЛЮЧАХ ОДНИМ МЕХАНИЗМОМ, А НЕ СТРОКАМИ,
+    /// НАПИСАННЫМИ РУКАМИ (`T115`, остаток `T65`; 13.09.2026, полоса П39).
+    ///
+    /// Сличение `FsaTuningReport` (`T65`, `T243`) накрывает ключи, доехавшие до
+    /// `FsaAnalyzer`: отражением по полям настроенного анализатора против чистого.
+    /// Ключи, которые до анализатора НЕ ДОХОДЯТ, применяет сама проба:
+    /// `--no-matrix` (матрицу подбирает и подаёт она), `--no-background` (фон
+    /// подаёт или не подаёт она), `--no-atomic`, `--no-equilibrium`,
+    /// `--crystal-shield=` (уходят в `FsaSampleSpec`, по спектру за раз). В строке
+    /// `T115` назван ещё `--no-room` — поле вездесущих рядов снято 01.09.2026
+    /// вместе с механизмом (`S110`), ключа больше нет; `--crystal-shield=` заведён
+    /// позже строки (`A30`, П21) и того же рода. До 13.09.2026 шапка печатала их
+    /// фразами вида `o.Matrix ? "по спектру" : "ВЫКЛЮЧЕНА"` — то есть читала
+    /// ПОЛЕ `Options`, а не точку применения: ключ, который перестал бы
+    /// применяться, шапка продолжала бы объявлять, а ключ, заведённый без строки
+    /// в шапке, не печатался бы вовсе.
+    ///
+    /// Два конца, оба механические, ни одной строки про конкретный ключ:
+    ///   * ЗАКАЗАНО — <see cref="Asked"/>: отражением по public-полям
+    ///     <c>Options</c> против <c>new Options()</c>. Ключ, заведённый в поле,
+    ///     попадает в строку `KEYS` сам; забыть напечатать его нельзя.
+    ///   * ПРИМЕНЕНО — <see cref="Witness"/>: ТОЧКА ПРИМЕНЕНИЯ свидетельствует,
+    ///     что она применила, и значение читается у ПОТРЕБИТЕЛЯ (у
+    ///     `FsaSampleSpec` перед сборкой библиотеки, у ветки выбора матрицы, у
+    ///     поданного фона), а не у `Options`. Имя свидетеля обязано быть именем
+    ///     поля `Options` — по нему <see cref="Verdict"/> находит заказанное
+    ///     отражением; свидетель с именем, которого у `Options` нет, — отказ.
+    ///
+    /// <see cref="Verdict"/> — после прогона, ДО записи результата: каждое
+    /// свидетельство сверяется с заказанным, строка `APPLIED` печатается всегда;
+    /// расхождение — код <see cref="ExitCode"/>, в `--out=` ни файла.
+    /// Положительный контроль — `--spoil=key`: точка применения атомных образов
+    /// нарочно применяет умолчание вместо ключа; прогон с `--no-atomic --spoil=key`
+    /// ОБЯЗАН кончиться кодом 13.
+    /// </summary>
+    static class ProbeSwitches
+    {
+        public const int ExitCode = 13;
+
+        /// <summary>
+        /// Поля `Options`, которые НЕ ключи, а адреса: печатаются своими строками
+        /// шапки («корпус:», каталог `--out=`) и в сличение не идут.
+        /// </summary>
+        static readonly HashSet<string> Addresses = new HashSet<string>(StringComparer.Ordinal) { "Corpus", "Out" };
+
+        /// <summary>имя поля -> (значение словами -> сколько раз засвидетельствовано)</summary>
+        static readonly SortedDictionary<string, SortedDictionary<string, int>> seen =
+            new SortedDictionary<string, SortedDictionary<string, int>>(StringComparer.Ordinal);
+
+        /// <summary>Заказано ключами: расхождения `Options` с умолчаниями, отражением.</summary>
+        public static string Asked(object options)
+        {
+            Type t = options.GetType();
+            object stock = Activator.CreateInstance(t, true);
+            var changed = new List<string>();
+            foreach (System.Reflection.FieldInfo f in t.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                if (Addresses.Contains(f.Name))
+                {
+                    continue;
+                }
+
+                string a = Value(f.GetValue(options));
+                string b = Value(f.GetValue(stock));
+                if (!string.Equals(a, b, StringComparison.Ordinal))
+                {
+                    changed.Add(f.Name + " " + b + " → " + a);
+                }
+            }
+
+            changed.Sort(StringComparer.Ordinal);
+            return changed.Count == 0
+                ? "НИЧЕГО (все ключи пробы — умолчания)"
+                : string.Join("; ", changed.ToArray());
+        }
+
+        /// <summary>Точка применения свидетельствует: поле <paramref name="field"/> применено как <paramref name="value"/>.</summary>
+        public static void Witness(string field, object value)
+        {
+            SortedDictionary<string, int> values;
+            if (!seen.TryGetValue(field, out values))
+            {
+                values = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                seen[field] = values;
+            }
+
+            string v = Value(value);
+            int n;
+            values.TryGetValue(v, out n);
+            values[v] = n + 1;
+        }
+
+        /// <summary>
+        /// Сверить свидетельства с заказанным. Печатает `APPLIED` всегда;
+        /// расхождение — отказ кодом <see cref="ExitCode"/>.
+        /// </summary>
+        public static int Verdict(object options)
+        {
+            Type t = options.GetType();
+            var applied = new List<string>();
+            var bad = new List<string>();
+            foreach (KeyValuePair<string, SortedDictionary<string, int>> kv in seen)
+            {
+                System.Reflection.FieldInfo f = t.GetField(kv.Key, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                var parts = new List<string>();
+                foreach (KeyValuePair<string, int> vc in kv.Value)
+                {
+                    parts.Add(vc.Key + " ×" + vc.Value.ToString(CultureInfo.InvariantCulture));
+                }
+
+                applied.Add(kv.Key + "=" + string.Join("|", parts.ToArray()));
+                if (f == null)
+                {
+                    bad.Add(kv.Key + ": свидетель называет поле, которого у Options НЕТ — применено то, чего никто не заказывал");
+                    continue;
+                }
+
+                string asked = Value(f.GetValue(options));
+                foreach (KeyValuePair<string, int> vc in kv.Value)
+                {
+                    if (!string.Equals(vc.Key, asked, StringComparison.Ordinal))
+                    {
+                        bad.Add(kv.Key + ": заказано " + asked + ", применено " + vc.Key
+                                + " (" + vc.Value.ToString(CultureInfo.InvariantCulture) + " спектр(ов))");
+                    }
+                }
+            }
+
+            Console.WriteLine("APPLIED\tприменено по свидетельствам точек применения (T115): {0}",
+                              applied.Count == 0 ? "свидетельств нет (ни один спектр до точек применения не дошёл)"
+                                                 : string.Join("; ", applied.ToArray()));
+            if (bad.Count == 0)
+            {
+                return 0;
+            }
+
+            Console.Error.WriteLine("⛔ ОТКАЗ (T115): ПРОБА ПРИМЕНИЛА НЕ ТО, ЧТО ЗАКАЗАНО КЛЮЧАМИ — расхождений {0}:",
+                                    bad.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (string b in bad)
+            {
+                Console.Error.WriteLine("   " + b);
+            }
+
+            Console.Error.WriteLine("   Результат в --out= НЕ ЗАПИСАН: шапка такого прогона назвала бы не то, чем считали.");
+            return ExitCode;
+        }
+
+        /// <summary>
+        /// Значение словами, инвариантной культурой. Перечисления (списки,
+        /// массивы, словари) — числом элементов и первыми тремя, чтобы `--only=`
+        /// на 59 спектров не превращал строку в простыню: полный список и так
+        /// уходит в клеймо прогона `.run.json` (`keys=`).
+        /// </summary>
+        static string Value(object v)
+        {
+            if (v == null)
+            {
+                return "нет";
+            }
+
+            string s = v as string;
+            if (s != null)
+            {
+                return s.Length == 0 ? "пусто" : s;
+            }
+
+            var e = v as System.Collections.IEnumerable;
+            if (e != null)
+            {
+                var items = new List<string>();
+                int n = 0;
+                foreach (object x in e)
+                {
+                    n++;
+                    if (items.Count < 3)
+                    {
+                        items.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
+                    }
+                }
+
+                return "{" + n.ToString(CultureInfo.InvariantCulture) + ": " + string.Join(", ", items.ToArray())
+                       + (n > 3 ? ", …" : "") + "}";
+            }
+
+            return Convert.ToString(v, CultureInfo.InvariantCulture);
+        }
+    }
+
+    /// <summary>
+    /// Полноспектральный разбор ВСЕГО корпуса кодом ПРИЛОЖЕНИЯ (TODO S1).
+    ///
+    /// Зачем ещё один обход, когда есть `tools/pie/run_corpus.ps1`: у того
+    /// разложение своё, доматричное — `ResponseMatrix` в нём не упоминается ни
+    /// разу, и «понятную часть с матрицей» им не измерить. Здесь считает тот же
+    /// `FsaAnalyzer`, что работает в окне программы, матрица берётся тем же
+    /// `ResponseMatrixStore.Load` по Guid кривой спектра, а библиотека — тем же
+    /// `FsaLibrary.BuildFromPeaks` от найденных пиков. Числа этого обхода
+    /// относятся к продукту, а не к его копии.
+    ///
+    /// ⚠ Части корпуса НЕ СМЕШИВАЮТСЯ. `corpus/parts.csv` делит его на
+    /// «понятную» часть (геометрия восстановлена, матрица есть) и «непонятную»
+    /// (ни того, ни другого); германий помечен `excluded` и не считается вовсе
+    /// (приказ Amber 08.08.2026). Это две разные модели, и общее число по ним
+    /// было бы средним двух разных вещей. Поэтому итог печатается ПО ЧАСТЯМ, и
+    /// имя части идёт в каждую строку `runs.csv`.
+    ///
+    /// ⛔ **Состав библиотеки с 18.08.2026 задаёт ОБЪЯВЛЕННАЯ ПРОБА** (`S56`,
+    /// первый постулат Amber): `--lib=sample` — умолчание, линии собираются
+    /// `FsaSampleLibrary` из `nucdb`/`matdb` по `manifest.csv` и
+    /// `materials.csv`.
+    ///
+    /// ⛔⛔ **С 01.09.2026 это ЕДИНСТВЕННЫЙ разрешённый режим** (глобальное
+    /// правило Amber): поставочный `config\NuclideDefinition.xml` на корпусе не
+    /// используется НИКОГДА, и прежние ключи `--lib=peaks` / `--lib=infer`
+    /// ОТКАЗЫВАЮТ кодом 12 — см. <see cref="SuppliedLibraryGuard"/>.
+    /// ⛔ С 12.09.2026 (`AMBER19`) это ДОКАЗЫВАЕТСЯ, а не обещается: проба
+    /// отказывает кодом 12 на старте, если поставочный файл лежит в каталоге
+    /// прогона, и в конце, если `NuclideDefinitionManager` за прогон поднимали
+    /// хоть раз (до 12.09.2026 его поднимал сам `new PeakDetector()`, и фраза
+    /// «не поднимается вовсе» здесь была неверна) — см. <see cref="SuppliedLibraryGuard"/>.
+    /// ⚠ Мерки при этом сменили смысл ещё в августе: recall и число фантомов
+    /// считаются относительно ПРЕДЪЯВЛЕННОГО списка, и сужение списка улучшает
+    /// их само по себе; числа прежних режимов корпусными не считать.
+    ///
+    ///   corpusfsaprobe --corpus=&lt;…\CORPUS\corpus&gt; [--out=out] [--part=all]
+    ///                  [--lib=sample]   (peaks/infer ЗАПРЕЩЕНЫ, отказ кодом 12)
+    ///                  [--infer-head] [--infer-head-only]
+    ///                  [--no-atomic] [--no-equilibrium] [--audit] [--lib-dump]
+    ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
+    ///                  [--band-audit=&lt;файл.csv&gt;]
+    ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
+    ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
+    ///                  [--spoil=manager|key]  (порча: поднять менеджер — ОБЯЗАН кончиться кодом 12;
+    ///                                          применить умолчание вместо ключа `--no-atomic` — кодом 13, `T115`)
+    ///                  [--nocurve-floor=minrange|adc|&lt;кэВ&gt;]
+    ///                  [--fit-floor=threshold[:&lt;доля&gt;]|off|adc|&lt;кэВ&gt;]   (`A302`/`A309`, пол полосы ФИТА)
+    ///                  [--roughness=&lt;вес&gt;]
+    ///                  [--groups=G1S,ASN16] [--only=G1S24_Th232_Denta120_2]
+    ///                  [--mode=spline|snip] [--no-matrix] [--no-cascade]
+    ///                  [--no-pileup] [--no-escape] [--no-background] [--limit=N] [--quiet]
+    ///                  [--pileup-light=0|1|energy|NaI:Tl|CsI:Tl]   (`S107`, форма наложений по свету)
+    ///                  [--sum-light=electron|photon]   (`S167`, П18: кривая света каскадной суммы)
+    ///                  [--loss-joint=0|1]   (`S166`, П18: вынос из пика с совместной эффективностью κ)
+    ///                  [--crystal-shield=0|1]   (`A30`, П21: заслон сведения рентгена кристалла — как до 12.09.2026)
+    ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
+    ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
+    ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
+    ///                  [--window=<секунды>]
+    ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
+    ///                  [--weights=data|model]   (`A310`, П47: веса решателя по данным 1/max(N,1) или по модели, Пирсон)
+    ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
+    ///                  [--no-escape-gate]
+    ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B] [--gamma-map=<каталог прогона>]
+    ///                  [--bg-rebin]
+    ///                  [--offset-range=&lt;кэВ&gt;] [--offset-steps=N]
+    ///                  [--gain-range=&lt;ДОЛЯ: 0.02 = ±2 %&gt;] [--gain-steps=N]
+    ///                  [--print-settings]
+    ///
+    /// ⚠ (`T109`) У соседних ключей сетки дрейфа РАЗНЫЕ единицы: `--offset-range=`
+    /// в кэВ, `--gain-range=` — ДОЛЯ. `--gain-range=5` значило бы ±500 %, и проба
+    /// на таком значении ОТКАЗЫВАЕТ (кодом 2), а не строит сетку 0.75 / 1.00 / 1.25.
+    ///
+    /// (`T94`) `--print-settings` — печатает настройки анализатора (шапку прогона,
+    /// полосу и сличение с поставочным разбором) и выходит кодом 0, НЕ читая корпуса:
+    /// так читается поставочное значение любой настройки без единого спектра.
+    ///
+    /// ⛔ (`T68` (2), 13.09.2026) КАТАЛОГ ПРОБЫ СВЕРЯЕТСЯ С МАНИФЕСТОМ `.appwd.json`
+    /// САМОЙ ПРОБОЙ, до чтения корпуса — <see cref="AppWdGuard"/>: нет отметки,
+    /// нет в ней `files_sha`, подменён или пропал хоть один положенный файл —
+    /// код 3, в `--out=` ни файла. Внешний сторож `run_appwd.ps1` остаётся, но
+    /// прямой запуск `.\CorpusFsaProbe.exe …` из оснастки теперь тоже под сторожем.
+    ///
+    /// ⛔ (`T115`, 13.09.2026) ЧЕМ СЧИТАЛИ — ДВУМЯ МЕХАНИЧЕСКИМИ СТРОКАМИ, а не
+    /// фразами руками: `KEYS` в шапке (отражением по `Options` против умолчаний)
+    /// и `APPLIED` в конце (свидетельства точек применения); расхождение —
+    /// код 13 — <see cref="ProbeSwitches"/>. Настройки анализатора — по-прежнему
+    /// `SETUP` (`FsaTuningReport`).
+    ///
+    /// ⛔ **«НАЙДЕНА» и «ПРИМЕНЕНА» — РАЗНЫЕ слова с 27.08.2026** (`T85`).
+    /// `matrix_found` = матрица прочитана и отпечаток сошёлся с геометрией;
+    /// `matrix_applied` (прежняя `matrix`, на своём месте) = хоть один образ
+    /// ОТЧЁТНОГО фита построен ею. Второе слабее первого: образ строит матрицей
+    /// только компонент со своими линиями, а производные (обратное рассеяние) и
+    /// готовые (наложения) — нет; фит, из которого отсев по значимости и гейт
+    /// ΔD выбросили всех нуклидных кандидатов, вернёт `matrix_applied = 0` при
+    /// живой матрице. Измерено на снятых файлах: `out_v6` найдена 81 / применена
+    /// 80 (`G1S16_Cd109_P25`), `out_fz_lib` 81 / 78 (все три кадмия), причём
+    /// `out_fz_whole` с ТОЙ ЖЕ полосой и той же библиотекой даёт 81 / 81 —
+    /// значит дело не в полосе, а в том, кто дожил до отчёта. Итог по частям
+    /// печатает ОБА числа и называет разошедшиеся спектры поимённо.
+    ///
+    /// Файлы на выходе — того же вида, что у `tools/pie`, чтобы считал их тот же
+    /// `tools/pie/score.py`: `&lt;группа&gt;_&lt;режим&gt;_components.csv` и
+    /// `&lt;группа&gt;_&lt;режим&gt;_runs.csv`; плюс свой
+    /// `&lt;группа&gt;_&lt;режим&gt;_tails.csv` — отвязанные хвосты матричных
+    /// образов (`S173`: чей, сколько отсчётов, невязка в отсчётах; `S175`:
+    /// где лежит — `layer`/`continuum`/`residual`),
+    /// `&lt;группа&gt;_&lt;режим&gt;_grey.csv` — серый слой подложки (`S174`: ниже
+    /// порога доверия и выше последней линии, отсчёты и доля стека, оба пола
+    /// отображения каналом и кэВ, невязка в отсчётах от `Min_Range`) по
+    /// каждому разобранному спектру, и
+    /// `&lt;группа&gt;_&lt;режим&gt;_limits.csv` — характеристические пределы S9
+    /// по ВСЕМ кандидатам библиотеки, включая не вошедших в состав.
+    ///
+    /// `--limits-mc=N` — Монте-Карло-поверка пределов (S9): для каждого
+    /// нуклида состава спектр пересобирается N раз пуассоновским розыгрышем
+    /// модели БЕЗ этого нуклида (проверка ложных срабатываний против α) и N раз
+    /// с ним на уровне МДА (проверка пропусков против β); библиотека и настройки
+    /// не меняются, поиск пиков не перезапускается. Дорого — 2·N разборов на
+    /// нуклид: запускать с `--only=` и, при нужде, `--mc-component=`.
+    /// ⛔ Для ЧЛЕНА РЯДА (`DecayChainRoot` не пуст) «без нуклида» значит без
+    /// ВСЕГО ряда, и впрыскивается тоже весь ряд в масштабе МДА/a члена (П30
+    /// 12.09.2026, `S106`): снятый в одиночку член связка равновесия
+    /// восстанавливала из дочерних, и `G1S16_Th228_P25` давал «ложных 100/100».
+    /// ⛔ Две причины нулевой оценки на уровне МДА названы П46 13.09.2026
+    /// (журнал `handover/handover-2026-09-13-p46-s106-mc-chain.md`): веса
+    /// решателя по данным (сдвиг −Σφ/μ ≈ число каналов образа, в отсчётах) и
+    /// привязка шкалы, которую копия без пиков теряет. Сводка печатает сдвиг
+    /// по каждому компоненту; поверку формулы гнать с `--no-anchor`.
+    /// `--mc-level=F` (П46 13.09.2026) — множитель уровня впрыска: 0 —
+    /// положительный контроль (пропусков обязано быть ~100/100), больше 1 —
+    /// развёртка уровня, на котором компонент находится.
+    /// `--mc-dump=K` (П46 13.09.2026) — печатать первые K розыгрышей каждой
+    /// серии: оценки членов семьи, подавленные образы, счётчики гейта и отсева,
+    /// состав копии, шкалу и χ²/ndf — инструмент, которым названа причина нулей.
+    ///
+    /// `--gamma-map=<каталог>` (`S43`, остаток ~~`S51`~~; П30 12.09.2026) — γ
+    /// составного шума КАЖДОМУ спектру равным его же невязке ε
+    /// (`model_residual_pct`/100) из `*_spline_runs.csv` прежнего прогона —
+    /// прямая проверка «ε и есть γ, оценённый по фиту»; печатается по спектру.
+    ///
+    /// Запускать ТОЛЬКО через `tools/CORPUS/scripts/run_appwd.ps1` из оснастки,
+    /// которую собирает `mk_appwd.ps1`: рядом с exe лежат `config\BecquerelMonitor.xml`,
+    /// `config\device\*.xml` корпуса и `config\device\response\*.rmx`, а
+    /// `config\NuclideDefinition.xml` там быть НЕ ДОЛЖНО (`AMBER19`, отказ кодом 12;
+    /// до 13.09.2026 этот абзац звал класть его рядом). Оснастка заверена
+    /// `.appwd.json`, и проба сверяет с ним свой каталог сама (`T68`). Конфиг Amber
+    /// (`%AppData%\BecqMoni`) при этом не задействован: приложение считает себя
+    /// standalone всегда, кроме ClickOnce, и пути идут от рабочего каталога.
+    /// </summary>
+    /// <summary>
+    /// (`N14`, П49 13.09.2026) ПЕРЕПИСЬ УГЛОВЫХ КОРРЕЛЯЦИЙ — отражением с
+    /// живого анализатора после каждого спектра, сводкой в конце. Ключ
+    /// сам по себе не доказательство: без таблицы Q_k сцены он ничего не
+    /// меняет, а таблица находится по отпечатку геометрии и может не найтись
+    /// молча. Поэтому печатаются ОБА: у скольких спектров таблица была и
+    /// сколько пар с A_kk ≠ 0 реально прошло через сумматор.
+    /// </summary>
+    static class AngularCensus
+    {
+        static int spectra, withKey, withTable, withPairs, pairs;
+        static double factorMin = double.NaN, factorMax = double.NaN;
+
+        public static void Note(FsaAnalyzer analyzer)
+        {
+            spectra++;
+            if (analyzer.CascadeSumAngular) withKey++;
+            if (analyzer.AngularQk != null) withTable++;
+            int n = analyzer.CascadeAngularPairs;
+            if (n > 0)
+            {
+                withPairs++;
+                pairs += n;
+                double lo = analyzer.CascadeAngularFactorMin, hi = analyzer.CascadeAngularFactorMax;
+                if (double.IsNaN(factorMin) || lo < factorMin) factorMin = lo;
+                if (double.IsNaN(factorMax) || hi > factorMax) factorMax = hi;
+            }
+        }
+
+        public static void Print()
+        {
+            if (spectra == 0)
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("УГЛОВЫЕ КОРРЕЛЯЦИИ В ПАРАХ (N14): ключ ВКЛ у {0} из {1} спектров; таблица Q_k сцены нашлась у {2}; "
+                              + "спектров с парами A_kk≠0 {3}, пар {4}{5}",
+                              withKey, spectra, withTable, withPairs, pairs,
+                              pairs > 0
+                                  ? string.Format(CultureInfo.InvariantCulture, "; множитель {0:F4}…{1:F4}", factorMin, factorMax)
+                                  : "");
+        }
+    }
+
+    static class Program
+    {
+        [STAThread]
+        static int Main(string[] args)
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            // ⛔ ПОСТАВОЧНУЮ ПОЛОСУ ЗАПОМИНАЕМ ДО РАЗБОРА КЛЮЧЕЙ. Ключ `--band=`
+            // двигает СТАТИКУ (иначе он двигает один конец из двух, `S101`), а
+            // эталон для строки «ключами изменено» строится позже — и, читая уже
+            // сдвинутую статику, показал бы «НИЧЕГО» на абляционном прогоне.
+            // Это ровно дефект, который чинила `T65`: абляция, неотличимая в
+            // журнале от умолчания. Поймано на себе 26.08.2026, первым же
+            // прогоном `--band=whole`.
+            // (`T243`) Само правило живёт ОДНИМ местом — довеском
+            // `FsaTuningReport.cs`; здесь только два вызова.
+            FsaTuningReport.Snapshot();
+
+            var o = new Options();
+            foreach (string a in args)
+            {
+                if (a == "--no-matrix") { o.Matrix = false; continue; }
+                if (a == "--no-cascade") { o.Cascade = false; continue; }
+                if (a.StartsWith("--joint=", StringComparison.Ordinal))
+                {
+                    // (`S19`) ЗАМЕРНЫЙ множитель совместной эффективности пары:
+                    // площадь сумм-события домножается на него. Нужен, чтобы
+                    // измерить цену поправки до того, как считать её таблицей в
+                    // матрице; настоящая поправка зависит от энергий пары.
+                    FsaCascadeSummer.JointFactorOverride =
+                        double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a == "--no-pileup") { o.PileUp = false; continue; }
+                // (`S107`, П10 12.09.2026) Форма образа наложений по свету:
+                // `0` — выкл (умолчание анализатора), `1` — кривая по веществу
+                // кристалла, `energy` — той же формой, но координата
+                // тождественна энергии (плечо порчи), `NaI:Tl`/`CsI:Tl` —
+                // кривая поимённо на всех. Читатель — `SETUP` отражением и
+                // строка сводки «образ наложений по свету».
+                if (a.StartsWith("--pileup-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    o.PileUpLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
+                // (`S167`, П18 12.09.2026) Кривая света, которой ставится
+                // каскадная сумма: `electron` — из `matdb` (умолчание
+                // анализатора), `photon` — фотонная таблица `FsaLightScale`
+                // по веществу кристалла. Читатель — `SETUP` отражением
+                // (`CascadeSumPhotonLight`).
+                if (a.StartsWith("--sum-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "electron" && v != "photon")
+                    {
+                        Console.Error.WriteLine("--sum-light= знает electron и photon; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.SumLight = v;
+                    continue;
+                }
+                // (`S166`, П18 12.09.2026) Вынос из пика с совместной
+                // эффективностью κ(k,j) из таблицы матрицы: `1` — вкл, `0` —
+                // выкл. Читатель — `SETUP` отражением (`CascadeLossJointFactor`).
+                if (a.StartsWith("--loss-joint=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(13);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--loss-joint= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.LossJoint = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`N14`, П49 13.09.2026) Угловая корреляция квантов каскада в
+                // парах: `1` — вкл, `0` — выкл. Читатель — `SETUP` отражением
+                // (`CascadeSumAngular`) и сводка «УГЛОВЫЕ КОРРЕЛЯЦИИ» в конце.
+                if (a.StartsWith("--angcorr=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--angcorr= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.AngCorr = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`A30`, П21 12.09.2026) Заслон сведения рентгена кристалла:
+                // `1` — прежний порядок «проба, защита, кристалл» с заслоном по
+                // занятому элементу; `0` — кристалл сводится всегда. Уходит в
+                // `FsaSampleSpec.CrystalShield` (см. <c>SpecOf</c>), анализатор
+                // его не видит — потому и печатается в шапке прогона рукой.
+                if (a.StartsWith("--crystal-shield=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(17);
+                    if (v != "0" && v != "1")
+                    {
+                        Console.Error.WriteLine("--crystal-shield= знает 0 и 1; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.CrystalShield = v == "1";
+                    continue;
+                }
+                // S27: атомные партнёры каскада. Ключи РАЗДЕЛЯЮЩИЕ — цена
+                // правки снимается одним двоичным файлом, «было/стало» при
+                // одной версии физики. Матрицу они не трогают вовсе (слой
+                // стоит поверх неё), поэтому в клеймо не идут и идти не
+                // должны — правило T42 сюда не относится.
+                if (a == "--no-xray") { o.Xray = false; continue; }
+                if (a == "--no-ann") { o.Annihilation = false; continue; }
+                if (a == "--no-isomer") { o.Isomers = false; continue; }
+                // `A289`: вероятностный гейт времени — УМОЛЧАНИЕ с 07.09.2026
+                // (решение Amber, цена на полном корпусе нулевая). Оба ключа
+                // живы нарочно: `--no-decay-time-prob` возвращает прежнюю
+                // ступеньку и нужен ОБРАТНЫМ ПЛЕЧОМ замера, а явный
+                // `--decay-time-prob` оставлен, чтобы прежние командные строки
+                // в журналах не начали значить другое.
+                if (a == "--decay-time-prob") { o.DecayTimeProbability = true; continue; }
+                if (a == "--no-decay-time-prob") { o.DecayTimeProbability = false; continue; }
+                if (a == "--no-backscatter") { o.Backscatter = false; continue; }
+                // (`AMBER17`) Привязка шкалы по пикам полного поглощения —
+                // ВКЛ умолчанием (решение Amber 11.09.2026); ключ — плечо A/B.
+                // `--anchor-share=` — порог доли синего канала для развёртки,
+                // `--anchor-passes=` и `--anchor-offset-min=` — рычаги замера.
+                if (a == "--no-anchor") { o.Anchor = false; continue; }
+                // (`AMBER16` п. 4) Перенос строки узла: `channel` (умолчание
+                // разбора) или `stretch` (прежний общий масштаб) — обратное
+                // плечо A/B; читатель ключа — строка `SETUP` отражением.
+                if (a.StartsWith("--matrix-transfer=", StringComparison.Ordinal))
+                {
+                    string rule = a.Substring(18);
+                    if (rule != "channel" && rule != "stretch")
+                    {
+                        Console.Error.WriteLine("--matrix-transfer= знает channel и stretch; дано: {0}", rule);
+                        return 2;
+                    }
+
+                    o.MatrixTransfer = rule == "channel" ? 1 : 0;
+                    continue;
+                }
+
+                if (a.StartsWith("--anchor-share=", StringComparison.Ordinal))
+                {
+                    o.AnchorShare = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-passes=", StringComparison.Ordinal))
+                {
+                    o.AnchorPasses = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-offset-min=", StringComparison.Ordinal))
+                {
+                    o.AnchorOffsetMin = int.Parse(a.Substring(20), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-z=", StringComparison.Ordinal))
+                {
+                    o.AnchorZ = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-window=", StringComparison.Ordinal))
+                {
+                    o.AnchorWindow = double.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-floor=", StringComparison.Ordinal))
+                {
+                    o.AnchorFloor = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-minfwhm=", StringComparison.Ordinal))
+                {
+                    o.AnchorMinFwhm = double.Parse(a.Substring(17), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // (`F11` (в), П18 11.09.2026) положение пика линии ПО СВЕТУ —
+                // третья координата привязки: 0 — выкл (обратное плечо; с
+                // 12.09.2026 умолчание анализатора — ВКЛ, форма `line`, П21б),
+                // 1 — кривая по веществу кристалла, `NaI:Tl`/`CsI:Tl` — кривая
+                // поимённо на всех (контроль «копия П17 = дерево»).
+                // (П19) `bin`/`line`/`peak`/`anchor` — включить С ЭТОЙ ФОРМОЙ
+                // применения, кривая по веществу; `--anchor-form=` — форма
+                // отдельно (к кривой поимённо).
+                if (a.StartsWith("--anchor-light=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    if (v == "bin" || v == "line" || v == "peak" || v == "anchor")
+                    {
+                        o.AnchorLight = "1";
+                        o.AnchorForm = v;
+                        continue;
+                    }
+
+                    o.AnchorLight = v == "0" || v == "off" ? "0" : v;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-form=", StringComparison.Ordinal))
+                {
+                    o.AnchorForm = a.Substring(14);
+                    continue;
+                }
+                // (П18, рычаг замера) верхняя граница световой координаты, кэВ
+                if (a.StartsWith("--anchor-light-max=", StringComparison.Ordinal))
+                {
+                    o.AnchorLightMax = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // (П16/П18) выброс узла: линии, которым запрещено быть опорами
+                if (a.StartsWith("--anchor-skip=", StringComparison.Ordinal))
+                {
+                    var list = new List<double>();
+                    foreach (string part in a.Substring(14).Split(','))
+                    {
+                        if (part.Trim().Length > 0)
+                        {
+                            list.Add(double.Parse(part.Trim(), CultureInfo.InvariantCulture));
+                        }
+                    }
+                    o.AnchorSkip = list.ToArray();
+                    continue;
+                }
+                // (`S169`, П8/П13 12.09.2026) нуль шкалы образа: `calib`
+                // (калибровкой файла, карты нет), `adc` (нуль света ПО СЪЁМКЕ
+                // из опор разведочного прохода, П13; умолчание анализатора
+                // стоит в его конструкторе) или `adc-fixed` (нуль
+                // прибора с начала разбора, форма П8 — плечо контроля против
+                // П12); плечо A/B, читатель — `SETUP` отражением и строка
+                // сводки «нуль шкалы образа». `--anchor-zero-kev=` — свет в
+                // нулевом канале (нуль прибора; у `adc` — запасной путь; рычаг
+                // порчи: ±5 обязаны ухудшить числа); `--anchor-zero-share=` и
+                // `--anchor-zero-max=` — ножи кандидата нуля съёмки.
+                if (a.StartsWith("--anchor-zero=", StringComparison.Ordinal))
+                {
+                    string zero = a.Substring(14);
+                    if (zero != "calib" && zero != "adc" && zero != "adc-fixed")
+                    {
+                        Console.Error.WriteLine("--anchor-zero= знает calib, adc и adc-fixed; дано: {0}", zero);
+                        return 2;
+                    }
+
+                    o.AnchorZero = zero;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-kev=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroKev = double.Parse(a.Substring(18), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-share=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroShare = double.Parse(a.Substring(20), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-zero-max=", StringComparison.Ordinal))
+                {
+                    o.AnchorZeroMax = double.Parse(a.Substring(18), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                // `A83`, АБЛЯЦИЯ: строить образ обратного рассеяния ДАЖЕ при
+                // живой матрице — то есть вернуть поведение до правки 03.09.2026.
+                // Нужен, чтобы двойной счёт можно было померить, а не обсуждать.
+                if (a == "--backscatter-with-matrix") { o.BackscatterWithMatrix = true; continue; }
+                if (a == "--no-background") { o.Background = false; continue; }
+                // S56: чем задаётся состав библиотеки. `sample` — объявленным
+                // составом пробы (первый постулат), `peaks` — подписями поиска
+                // пиков, как было до 18.08.2026. Ключ, а не пересборка: A/B
+                // считается ОДНИМ двоичным файлом.
+                if (a.StartsWith("--residual-peaks=")) { o.ResidualPeaks = a.Substring(17); continue; }
+                if (a == "--lib=sample") { o.Library = "sample"; continue; }
+                if (a == "--lib=peaks") { o.Library = "peaks"; continue; }
+                if (a == "--lib=infer") { o.Library = "infer"; continue; }
+                // ⛔ Ключи `--no-infer-anchor` и `--no-infer-novel` СНЯТЫ 13.09.2026
+                //    (П39, находка П35): якорь снят из приложения решением Amber
+                //    (`S66`, `c4d94c5a`), а новизну проба не звала никогда —
+                //    `FsaCompositionInference.Infer` из неё не зовётся вовсе, и
+                //    оба поля жили только в печати «библиотека:». Режим
+                //    `--lib=infer` отвергается кодом 12 с 01.09.2026.
+                // S65: ОБОРВАННЫЙ ряд. Два ключа, а не один, потому что это два
+                // РАЗНЫХ утверждения: `--infer-head` меняет один знаменатель
+                // доли (в состав, как велит правило Amber, идёт весь ряд),
+                // `--infer-head-only` предъявляет фиту ОДНУ голову.
+                if (a == "--infer-head") { o.InferCut = FsaChainCut.Criterion; continue; }
+                if (a == "--infer-head-only") { o.InferCut = FsaChainCut.Only; continue; }
+                if (a.StartsWith("--infer-theta=", StringComparison.Ordinal))
+                {
+                    o.InferTheta = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                // S56: атомные образы (рентген пробы, кристалла, защиты и пики
+                // вылета кристалла) и вездесущие ряды комнаты — обе половины
+                // разводятся ключами, потому что цена у них разная и на разных
+                // частях корпуса.
+                if (a == "--no-atomic") { o.Atomic = false; continue; }
+                // S60: кросс-проверка по линиям, которые ОБЯЗАНЫ быть.
+                // Ключ, а не умолчание: она стоит прохода по всем линиям
+                // состава и пишет свой файл, а нужна не каждому прогону.
+                if (a == "--audit") { o.Audit = true; continue; }
+                if (a == "--no-equilibrium") { o.Equilibrium = false; continue; }
+                if (a == "--lib-dump") { o.LibDump = true; continue; }
+                if (a.StartsWith("--dump-curves=", StringComparison.Ordinal))
+                {
+                    o.DumpCurves = a.Substring(14);
+                    continue;
+                }
+                if (a == "--print-settings") { o.PrintSettings = true; continue; }
+                if (a == "--quiet") { o.Quiet = true; continue; }
+                if (a == "--peaks") { o.Peaks = true; continue; }
+                if (a == "--partial") { o.Partial = true; continue; }
+                if (a == "--pr-gate") { o.PartialGate = true; continue; }
+                if (a == "--no-pr-gate") { o.PartialGate = false; continue; }
+                if (a == "--bg-rebin") { o.RebinBackground = true; continue; }
+                if (a == "--no-bg-rebin") { o.RebinBackground = false; continue; }
+                if (a.StartsWith("--window=", StringComparison.Ordinal))
+                {
+                    // S27: окно совпадения, секунды. У корпусных конфигураций
+                    // мёртвого времени нет (они заглушки нарочно), поэтому
+                    // задать его можно только отсюда. Ноль — умолчание
+                    // суммирователя.
+                    o.WindowSec = double.Parse(a.Substring(9), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                if (a.StartsWith("--knots=", StringComparison.Ordinal))
+                {
+                    // `B17`: делитель диапазона, задающий самый редкий шаг узлов
+                    // континуума. Больше — гуще узлы ВНИЗУ шкалы (наверху правит
+                    // 4·ПШПВ и ничего не меняется). Заведён ключом, а не правкой
+                    // умолчания, нарочно: A/B считается ОДНИМ двоичным файлом, и
+                    // разница тогда принадлежит только узлам.
+                    o.Knots = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                if (a.StartsWith("--roughness=", StringComparison.Ordinal))
+                {
+                    // (`S85`) Вес штрафа на излом континуума; 0 — без штрафа.
+                    o.Roughness = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                // (`S98`) Полоса разбора: `whole` — как было до 25.08.2026,
+                // `fit-to-library` — сузить фит, `library-to-fit` — опустить пол
+                // библиотеки (поставочное умолчание).
+                // ⛔ ЗАЧЕМ КЛЮЧ, если умолчание «меняется здесь и только здесь»:
+                // без него развести вклад `V13` и вклад `S98` НЕЧЕМ — обе правки
+                // лежат в дереве разом, и прогон меряет их сумму. Решение Amber
+                // 26.08.2026 по `B26` требует ровно обратного: одна причина на
+                // один сдвиг базы. Ключ не заводит ВТОРУЮ копию умолчания — он
+                // ничего не подставляет, когда не задан, и печатается шапкой.
+                // ⛔ ДВИГАТЬ НАДО СТАТИКУ, А НЕ ПОЛЕ АНАЛИЗАТОРА. Измерено
+                // 26.08.2026: `FsaSampleLibrary` держит СВОИ `Band` и
+                // `LibraryFloorKev` и берёт их у `FsaBand.DefaultMode` /
+                // `DefaultFloor` В МОМЕНТ СОЗДАНИЯ — то есть присваивание
+                // `analyzer.Band` двигает ОДИН конец из двух, и корпусный
+                // прогон (библиотека по объявленной пробе, `S56`) остаётся
+                // на поставочной полосе. Первый заход так и вышел: плечи
+                // `whole` и `library-to-fit` дали ПОБИТОВО одинаковые
+                // `components` и `limits`, разошлись только `ms`/`cpu_ms`.
+                if (a.StartsWith("--band=", StringComparison.Ordinal))
+                {
+                    o.BandName = a.Substring(7);
+                    FsaBandMode band;
+                    if (!FsaBand.TryParse(o.BandName, out band))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестная полоса: {0}"
+                            + " (whole | fit-to-library | library-to-fit | curve | share)",
+                            o.BandName);
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultMode = band;
+                    continue;
+                }
+
+                if (a.StartsWith("--band-floor=", StringComparison.Ordinal))
+                {
+                    o.BandFloor = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    FsaBand.DefaultFloor = o.BandFloor;
+                    continue;
+                }
+
+                // (`S98`, `S101`) РАЗВЁРТКА ПО ДОЛЕ ПОЛА ПО КРИВОЙ. Пол при
+                // поставочном режиме назначает не число, а сама кривая: линии
+                // впускаются не ниже той энергии, где эффективность набирает
+                // эту долю от своего максимума. Доля взята из наблюдения
+                // (`FsaBand.DefaultFloorFraction`), а не выведена, — развёртка
+                // по ней и есть способ это исправить.
+                //
+                // ⛔ СТАВИТСЯ СТАТИКА, и только она: её читают ОБА конца — и
+                // `FsaSampleSpec.CurveFloorKev`, который режет линии, и
+                // заверение анализатора. Ставить долю одному концу значило бы
+                // повторить `S101`.
+                // ⛔ Ключ разбирается ПОСЛЕ снятия эталона
+                // (`FsaTuningReport.Snapshot()` выше): эталон, снятый уже
+                // сдвинутым, показал бы «НИЧЕГО» (`T65`).
+                if (a.StartsWith("--floor-frac=", StringComparison.Ordinal))
+                {
+                    o.FloorFraction = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    if (!(o.FloorFraction > 0.0) || o.FloorFraction > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "доля пола по кривой обязана лежать в (0…1]: {0}", a.Substring(13));
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultFloorFraction = o.FloorFraction;
+                    continue;
+                }
+
+                // (`A73`) ЧЕМ НАЗНАЧАЕТСЯ ПОЛ У СПЕКТРА БЕЗ КРИВОЙ.
+                //
+                // ⛔ Плечо действует ТОЛЬКО на непонятной части: у спектра с
+                // кривой пол назначает кривая, и её приоритет первый. Понятная
+                // часть поэтому — ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ развёртки: её числа
+                // обязаны совпасть с базой ПОБИТОВО на всех плечах, а
+                // разошедшись — назвать не плечо, а дефект правки.
+                //
+                // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
+                // `FsaSampleSpec.NoCurveFloorKev` (что режет линии) и заверение
+                // анализатора (что печатается). Ставить одному концу значило бы
+                // повторить `S101`.
+                if (a.StartsWith("--nocurve-floor=", StringComparison.Ordinal))
+                {
+                    o.NoCurveFloorName = a.Substring(16);
+                    FsaNoCurveFloor source;
+                    double kev;
+                    if (!FsaBand.TryParseNoCurveFloor(o.NoCurveFloorName, out source, out kev))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестное значение --nocurve-floor=: {0}"
+                            + " (minrange | adc | <кэВ>)", o.NoCurveFloorName);
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultNoCurveFloor = source;
+                    FsaBand.DefaultNoCurveFloorKev = kev;
+                    continue;
+                }
+
+                // (`A302`) ПОЛ ПОЛОСЫ **ФИТА** — не библиотеки.
+                //
+                // ⛔ Не путать с `--nocurve-floor=` выше: тот решает, какие
+                // ЛИНИИ впускаются в образы, а фит при всех его значениях
+                // по-прежнему идёт от нулевого канала. Здесь режется САМА
+                // ПОЛОСА СЧЁТА, то есть меняются и χ², и невязка, и ndf.
+                //
+                // ⛔ (`A309`) Поставка — ПРАВИЛО `threshold` (порог по рампе
+                // обоих спектров, решение Amber 12.09.2026); обратный ключ
+                // `off` не отнимает ни одного канала и воспроизводит базу до
+                // `A309` побитово. `threshold:<доля>` двигает долю уровня
+                // правила — рычаг A/B.
+                //
+                // ⛔ Ставится СТАТИКА, и только она: её читают оба конца —
+                // сам разбор (что режет) и заверение анализатора (что
+                // печатается), — а вторая копия была бы `S101` заново.
+                if (a.StartsWith("--fit-floor=", StringComparison.Ordinal))
+                {
+                    o.FitFloorName = a.Substring(12);
+                    FsaFitFloor fitSource;
+                    double fitKev;
+                    double fitFraction;
+                    if (!FsaBand.TryParseFitFloor(o.FitFloorName, out fitSource, out fitKev,
+                                                  out fitFraction))
+                    {
+                        Console.Error.WriteLine(
+                            "неизвестное значение --fit-floor=: {0}"
+                            + " (threshold | threshold:<доля> | off | adc | <кэВ>)", o.FitFloorName);
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultFitFloor = fitSource;
+                    FsaBand.DefaultFitFloorKev = fitKev;
+                    FsaBand.DefaultThresholdLevelFraction = fitFraction;
+                    continue;
+                }
+
+                // (`S103`) РАЗВЁРТКА ПО ОПОРЕ ПОЛОСЫ ПО СТОЛБЦУ. Порог доли
+                // континуума: подпороговая линия выбрасывается, если сплайн и
+                // так представляет её столбец лучше, чем на эту долю, — и
+                // разбор идёт ВТОРЫМ проходом по сужённой библиотеке.
+                //
+                // ⛔ Оба крайних значения — контроли, и они даровые:
+                //   * 1.0 не выбрасывает НИЧЕГО (условие строгое, доля ≤ 1) и
+                //     обязано воспроизвести поставочный прогон ПОБИТОВО;
+                //   * 0.0 выбрасывает всякую подпороговую линию, у которой
+                //     континуум забирает хоть что-то, — это плечо `--band=whole`.
+                // Плечо, которое не воспроизводит свой контроль, означает, что
+                // режим сделан неверно, и числа развёртки недействительны.
+                //
+                // ⛔ СТАВИТСЯ СТАТИКА, как и у доли пола: её читают разбор и
+                // заверение, а вторая копия — это `S101` заново.
+                if (a.StartsWith("--share-thr=", StringComparison.Ordinal))
+                {
+                    o.ShareThreshold = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    if (o.ShareThreshold < 0.0 || o.ShareThreshold > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "порог доли континуума обязан лежать в [0…1]: {0}", a.Substring(12));
+                        Environment.Exit(64);
+                    }
+
+                    FsaBand.DefaultShareThreshold = o.ShareThreshold;
+                    continue;
+                }
+
+                // (`S101`) Положительный контроль сторожа обоих концов полосы.
+                // Не корпусный прогон: считает три опыта над `FsaBand` и
+                // выходит. Заведён потому, что сторож, у которого нет опыта с
+                // ЗАВЕДОМЫМ рассинхроном, ничем не отличается от сторожа,
+                // который всегда молчит.
+                if (a == "--band-selftest") { o.BandSelfTest = true; continue; }
+                // (`AMBER19`) Порча для положительного контроля гейта библиотеки —
+                // `manager`; (`T115`) порча для контроля свидетелей ключей — `key`
+                // (точка применения атомных образов применяет умолчание вместо
+                // ключа). Иное значение — отказ разбора ключей.
+                if (a.StartsWith("--spoil=", StringComparison.Ordinal))
+                {
+                    o.Spoil = a.Substring(8);
+                    if (o.Spoil != "manager" && o.Spoil != "key")
+                    {
+                        Console.Error.WriteLine("--spoil= знает только manager и key; дано: {0}", o.Spoil);
+                        return 2;
+                    }
+                    continue;
+                }
+
+                if (a.StartsWith("--knot-fwhm=", StringComparison.Ordinal))
+                {
+                    // (`S88`) Густой край шага узлов в ПШПВ; умолчание 4.
+                    // ⚠ АБЛЯЦИЯ: меньше 4 ломает состав, читать после этого
+                    // можно форму невязки, а не разложение.
+                    o.KnotFwhm = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
+                if (a.StartsWith("--residuals=", StringComparison.Ordinal))
+                {
+                    o.Residuals = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--band-audit=", StringComparison.Ordinal))
+                {
+                    o.BandAudit = a.Substring(13);
+                    continue;
+                }
+                if (a.StartsWith("--limits-mc=", StringComparison.Ordinal))
+                {
+                    o.LimitsMc = int.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--mc-component=", StringComparison.Ordinal))
+                {
+                    o.McComponent = a.Substring(15);
+                    continue;
+                }
+                if (a.StartsWith("--mc-dump=", StringComparison.Ordinal))
+                {
+                    o.McDump = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--mc-level=", StringComparison.Ordinal))
+                {
+                    o.McLevel = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    continue;
+                }
+                if (a.StartsWith("--near=", StringComparison.Ordinal))
+                {
+                    string[] parts = a.Substring(7).Split(':');
+                    if (parts.Length == 2)
+                    {
+                        o.NearFrom = double.Parse(parts[0], CultureInfo.InvariantCulture);
+                        o.NearTo = double.Parse(parts[1], CultureInfo.InvariantCulture);
+                    }
+                    continue;
+                }
+                if (a.StartsWith("--corpus=", StringComparison.Ordinal)) o.Corpus = a.Substring(9);
+                else if (a.StartsWith("--out=", StringComparison.Ordinal)) o.Out = a.Substring(6);
+                else if (a.StartsWith("--part=", StringComparison.Ordinal)) o.Part = a.Substring(7);
+                else if (a.StartsWith("--mode=", StringComparison.Ordinal)) o.Mode = a.Substring(7);
+                else if (a.StartsWith("--groups=", StringComparison.Ordinal))
+                {
+                    o.Groups = new List<string>(a.Substring(9).Split(','));
+                }
+                else if (a.StartsWith("--only=", StringComparison.Ordinal))
+                {
+                    o.Only = new List<string>(a.Substring(7).Split(','));
+                }
+                else if (a.StartsWith("--limit=", StringComparison.Ordinal))
+                {
+                    o.Limit = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--offset-range=", StringComparison.Ordinal))
+                {
+                    o.OffsetRangeKev = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--offset-steps=", StringComparison.Ordinal))
+                {
+                    o.OffsetSteps = int.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gain-range=", StringComparison.Ordinal))
+                {
+                    o.GainRange = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                    // (`T109`) Ключ принимает ДОЛЮ, сосед `--offset-range=` — кэВ; на
+                    // `--gain-range=5` сетка выходила ±500 % с шагом 25 % и абляция
+                    // отрабатывала как ни в чём не бывало. Больше единицы доля не бывает.
+                    if (o.GainRange > 1.0)
+                    {
+                        Console.Error.WriteLine(
+                            "--gain-range={0}: похоже, задан процент; ключ принимает ДОЛЮ, ±5 % пишется как 0.05",
+                            a.Substring(13));
+                        return 2;
+                    }
+                }
+                else if (a.StartsWith("--gain-steps=", StringComparison.Ordinal))
+                {
+                    o.GainSteps = int.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--huber=", StringComparison.Ordinal))
+                {
+                    o.HuberM = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--weights=", StringComparison.Ordinal))
+                {
+                    // (`A310`, П47 13.09.2026) Веса решателя: `data` — по
+                    // отсчёту, `model` — по модели (Пирсон). Уходит в
+                    // `FsaAnalyzer.ModelWeights`; читатель — `SETUP`
+                    // отражением.
+                    string v = a.Substring(10);
+                    if (v != "data" && v != "model")
+                    {
+                        Console.Error.WriteLine("--weights= знает data и model; дано: {0}", v);
+                        return 2;
+                    }
+
+                    o.Weights = v;
+                }
+                else if (a == "--no-escape-gate")
+                {
+                    // S47: вернуть свободные `SE-2614`/`DE-2614` при матрице —
+                    // A-сторона A/B. Гейт с 16.08.2026 включён умолчанием,
+                    // поэтому мерится его ОТКЛЮЧЕНИЕ, как у Хубера (S41).
+                    o.EscapeGate = false;
+                }
+                else if (a == "--no-escape")
+                {
+                    // `A168`: пользовательский флажок «вылеты и аннигиляция»
+                    // выключен — снимаются отдельные SE/DE (без матрицы) и
+                    // `Ann-511`. Гейт `EscapeGate` этим ключом НЕ трогается.
+                    o.Escape = false;
+                }
+                else if (a.StartsWith("--refit-z-rel=", StringComparison.Ordinal))
+                {
+                    // (`A268`) Доля вершины в пороге отсева: сравнивается
+                    // ПЕРЕД `--refit-z=`, чтобы более длинное имя ключа не
+                    // осталось за более коротким. Сегодня порядок не решает
+                    // (у `--refit-z=` на десятом знаке требуется `=`, а здесь
+                    // стоит `-`), но пара «длинный/короткий» тем и опасна,
+                    // что молчит: разбор просто взял бы не тот кусок строки.
+                    o.RefitZRelative = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
+                {
+                    // S9 «б»: которая из двух ступеней занижает МДА слабого
+                    // компонента — первый NNLS или отсев по значимости. Ноль
+                    // снимает отсев целиком, и разница между прогонами и есть
+                    // ответ. Ключ, а не пересборка: A/B на одном коде.
+                    o.RefitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gamma=", StringComparison.Ordinal))
+                {
+                    o.NoiseGamma = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--beta=", StringComparison.Ordinal))
+                {
+                    o.NoiseBeta = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--gamma-map=", StringComparison.Ordinal))
+                {
+                    // (`S43`, остаток ~~`S51`~~; полоса П30 12.09.2026) γ КАЖДОМУ
+                    // спектру — его же измеренная невязка ε прежнего прогона
+                    // (`model_residual_pct` из `*_spline_runs.csv` каталога);
+                    // прямая проверка гипотезы «ε — это и есть γ, оценённый по
+                    // фиту». Спектр без строки в каталоге идёт с `--gamma=`.
+                    o.GammaMap = ReadGammaMap(a.Substring(12));
+                    if (o.GammaMap == null)
+                    {
+                        return 2;
+                    }
+                }
+                else
+                {
+                    Console.Error.WriteLine("неизвестный ключ: " + a);
+                    return 2;
+                }
+            }
+
+            // (`S101`) Положительный контроль сторожа полосы — ДО всякого
+            // чтения корпуса: он не про спектры, а про то, один ли у полосы
+            // рычаг. Корпуса и конфигов ему не нужно.
+            if (o.BandSelfTest)
+            {
+                return BandSelfTest();
+            }
+
+            if (o.Mode != "spline" && o.Mode != "snip")
+            {
+                Console.Error.WriteLine("--mode= только spline или snip");
+                return 2;
+            }
+
+            if (!SuppliedLibraryGuard.Allow(o.Library))
+            {
+                return SuppliedLibraryGuard.Refuse(o.Library);
+            }
+
+            if (o.Part != "all" && o.Part != "known" && o.Part != "unknown")
+            {
+                Console.Error.WriteLine("--part= только all, known или unknown");
+                return 2;
+            }
+
+            // (`T94`) Прочесть поставочные настройки МОЖНО без корпуса: описания в
+            // `FsaAnalyzer` чисел не называют и отсылают «прочесть прогоном», а прогон
+            // до сих пор стоил разобранного спектра — корпуса, конфигурации, матрицы.
+            if (o.PrintSettings)
+            {
+                PrintHead(NewAnalyzer(o), o, -1);
+                return 0;
+            }
+
+            // ⛔ (`AMBER19`) ПЕРВАЯ ДВЕРЬ гейта библиотеки — ДО чтения корпуса:
+            // поставочный файл в каталоге прогона — отказ кодом 12, и в `--out=`
+            // не появляется ни файла. Стоит ПОСЛЕ `--print-settings` и
+            // `--band-selftest` нарочно: те корпуса не считают, а зовутся из
+            // каталога проб, где поставочные конфиги лежат по праву (`T149`).
+            int suppliedFile = SuppliedLibraryGuard.RefuseIfSuppliedFile();
+            if (suppliedFile != 0)
+            {
+                return suppliedFile;
+            }
+
+            // ⛔ (`T68` (2), 13.09.2026) ДВЕРЬ ОСНАСТКИ — тоже ДО чтения корпуса и
+            // до первого обращения к базам: каталог рядом с exe сверяется с
+            // манифестом `files_sha` его же `.appwd.json` по sha256. Стоит здесь,
+            // а не первым действием `Main`, по той же причине, что и дверь выше:
+            // `--print-settings` и `--band-selftest` корпуса не считают и зовутся
+            // из каталога проб ДО того, как `build_all.ps1` его заверит.
+            int appwd = AppWdGuard.Refuse();
+            if (appwd != 0)
+            {
+                return appwd;
+            }
+
+            string partsPath = Path.Combine(o.Corpus, "parts.csv");
+            if (!File.Exists(partsPath))
+            {
+                Console.Error.WriteLine("нет " + partsPath + " — укажите --corpus=<…\\CORPUS\\corpus>");
+                return 2;
+            }
+
+            List<Sample> samples = ReadParts(partsPath, o);
+            if (samples.Count == 0)
+            {
+                Console.Error.WriteLine("под отбор не попал ни один спектр");
+                return 2;
+            }
+
+            // S56: объявленный состав и вещества вокруг кванта. Читается ДО
+            // прогона и падает, если чего-то нет: молча посчитать «свою базу»
+            // без манифеста значит посчитать не то и не сказать об этом. Ровно
+            // так прожили `E31` и `B14`.
+            if (o.Library == "sample" && !ReadTruth(o, samples))
+            {
+                return 2;
+            }
+
+            if (o.Library == "infer" && !ReadMatter(o, samples))
+            {
+                return 2;
+            }
+
+            Directory.CreateDirectory(o.Out);
+
+            GlobalConfigManager.GetInstance();
+            DeviceConfigManager.GetInstance();
+
+            // ⛔ `NuclideDefinitionManager` здесь БОЛЬШЕ НЕ ПОДНИМАЕТСЯ (приказ
+            // Amber 01.09.2026). Он читает поставочный `config\NuclideDefinition.xml`,
+            // а корпус работает только по УКАЗАННЫМ нуклидам, привязанным к
+            // спектру. Прежде менеджер создавался на каждом прогоне, даже когда
+            // состав брался из `nucdb`, — то есть корпусный путь держал за руку
+            // файл, которым ему пользоваться нельзя. Цена нарушения измерена и
+            // носит имя: фантом `Pu-238` (`N18`).
+            // ⛔ (`AMBER19`, 12.09.2026) И это больше не обещание: до 12.09.2026
+            // менеджера поднимал САМ `new PeakDetector()` инициализатором поля —
+            // строка выше была ложью с первого дня. Теперь подъём ловит счётчик
+            // `NuclideDefinitionManager.RaiseCount`, спрашивается он в конце
+            // прогона (`RefuseIfManagerRaised`), и любой подъём — код 12.
+
+            // (`T65`) Настройки прогона печатаются У АНАЛИЗАТОРА — у того
+            // самого объекта, каким потом считается каждый спектр. Шапка,
+            // собранная из второго списка констант, однажды уже разошлась
+            // со счётом и врала молча.
+            FsaAnalyzer head = NewAnalyzer(o);
+
+            PrintHead(head, o, samples.Count);
+
+            var rows = new List<Row>();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            foreach (Sample sample in samples)
+            {
+                // (`AMBER19`) Порча: чужой подъём менеджера посреди прогона.
+                if (o.Spoil == "manager" && rows.Count == 0)
+                {
+                    SuppliedLibraryGuard.SpoilRaiseManager();
+                }
+
+                rows.Add(RunOne(sample, o));
+            }
+
+            // ⛔ (`AMBER19`) ВТОРАЯ ДВЕРЬ гейта библиотеки — ДО записи результата:
+            // менеджер за прогон поднимали — код 12, в `--out=` ни файла.
+            int managerRaised = SuppliedLibraryGuard.RefuseIfManagerRaised();
+            if (managerRaised != 0)
+            {
+                return managerRaised;
+            }
+
+            // ⛔ (`T115`) ПРИМЕНЕНО ПРОТИВ ЗАКАЗАННОГО — ДО записи результата:
+            // свидетельства точек применения (`ProbeSwitches.Witness` в `RunOne`)
+            // сверяются с полями `Options` по имени; расхождение — код 13, в
+            // `--out=` ни файла. Строка `APPLIED` печатается и при согласии.
+            int switches = ProbeSwitches.Verdict(o);
+            if (switches != 0)
+            {
+                return switches;
+            }
+
+            Write(rows, o);
+            DumpBandAudit(rows, o);
+            Summary(rows, o, clock.Elapsed.TotalSeconds);
+            return 0;
+        }
+
+        /// <summary>
+        /// (`S103`) ДВА ФАЙЛА, и порознь они не отвечают.
+        ///
+        /// `<имя>` — по строке на линию ниже `Min_Range`: норма её столбца во
+        /// взвешенной метрике фита, амплитуда компонента-владельца, площадь,
+        /// которую линия кладёт в модель, и доля столбца, представимая ОДНИМ
+        /// сплайном континуума. Отвечает на «чего стоит столбец».
+        ///
+        /// `<имя>_spectra.csv` — по строке на спектр: сколько отсчётов лежит
+        /// ниже `Min_Range` и чем они в модели описаны (континуум против
+        /// образов). Отвечает на «а кто тогда держит эти отсчёты». Без второго
+        /// файла первый читается неверно: маленькая площадь линии значит либо
+        /// «модель там ничего не предсказывает», либо «предсказывает, но всё
+        /// забрал континуум», и различает их только сравнение с данными.
+        /// </summary>
+        static void DumpBandAudit(List<Row> rows, Options o)
+        {
+            if (string.IsNullOrEmpty(o.BandAudit))
+            {
+                return;
+            }
+
+            string dir = Path.GetDirectoryName(Path.GetFullPath(o.BandAudit));
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            int lines = 0;
+            using (var w = new StreamWriter(o.BandAudit, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine("key,det,part,component,kind,keV,intensity_pct,min_range_keV,"
+                            + "curve_floor_keV,col_norm,col_sum,col_sum_below,amplitude,area,"
+                            + "area_below,continuum_share,model_share,degenerate");
+                foreach (Row r in rows)
+                {
+                    if (r.LineColumns == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLineColumn c in r.LineColumns)
+                    {
+                        lines++;
+                        w.WriteLine(string.Join(",",
+                            r.Key, r.Det, r.Part, c.Component.Replace(',', ';'), c.Kind.ToString(),
+                            F(c.EnergyKev, "F3"), F(c.IntensityPct, "G6"),
+                            F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
+                            F(c.ColumnNorm, "G6"), F(c.ColumnSum, "G6"), F(c.ColumnSumBelow, "G6"),
+                            F(c.Amplitude, "G6"), F(c.Area, "G6"), F(c.AreaBelow, "G6"),
+                            F(c.ContinuumShare, "F6"), F(c.ModelShare, "F6"),
+                            c.Degenerate ? "1" : "0"));
+                    }
+                }
+            }
+
+            string spectra = Path.Combine(dir ?? "",
+                Path.GetFileNameWithoutExtension(o.BandAudit) + "_spectra.csv");
+            int kept = 0;
+            using (var w = new StreamWriter(spectra, false, new UTF8Encoding(false)))
+            {
+                // (`A302`) `fit_lo_ch` / `fit_lo_keV` — нижний конец полосы
+                // ФИТА, взятый разбором НА ДЕЛЕ. Стоят рядом с `adc_floor_keV`
+                // нарочно: вопрос строки — «насколько ниже порога АЦП считает
+                // фит», и оба числа читаются только вместе.
+                w.WriteLine("key,det,part,min_range_keV,curve_floor_keV,adc_floor_keV,"
+                            + "fit_lo_ch,fit_lo_keV,"
+                            + "line_floor_keV,lines_below,"
+                            + "audited_lines,chi2ndf,model_residual_pct,data_total,data_below,"
+                            + "model_below,continuum_below,images_below,area_lines_below");
+                foreach (Row r in rows)
+                {
+                    if (double.IsNaN(r.MinRangeKev) || r.Result == null)
+                    {
+                        continue;
+                    }
+
+                    kept++;
+                    double areaLines = 0.0;
+                    if (r.LineColumns != null)
+                    {
+                        foreach (FsaLineColumn c in r.LineColumns)
+                        {
+                            areaLines += c.AreaBelow;
+                        }
+                    }
+
+                    w.WriteLine(string.Join(",",
+                        r.Key, r.Det, r.Part, F(r.MinRangeKev, "F2"), F(r.CurveFloorKev, "F2"),
+                        F(r.AdcFloorKev, "F2"),
+                        r.FitLoCh < 0 ? "" : r.FitLoCh.ToString(CultureInfo.InvariantCulture),
+                        F(r.FitLoKev, "F2"),
+                        F(r.LineFloorKev, "F2"),
+                        r.LinesBelowMinRange < 0
+                            ? ""
+                            : r.LinesBelowMinRange.ToString(CultureInfo.InvariantCulture),
+                        (r.LineColumns == null ? 0 : r.LineColumns.Count).ToString(CultureInfo.InvariantCulture),
+                        F(r.Chi2Ndf, "F4"), F(r.ModelResidual * 100.0, "F2"),
+                        F(r.DataTotal, "F1"), F(r.DataBelow, "F1"), F(r.ModelBelow, "F1"),
+                        F(r.ContinuumBelow, "F1"), F(r.ModelBelow - r.ContinuumBelow, "F1"),
+                        F(areaLines, "F1")));
+                }
+            }
+
+            Console.WriteLine("поверка столбцов (`S103`): линий {0} -> {1}; спектров {2} -> {3}",
+                              lines, o.BandAudit, kept, spectra);
+        }
+
+        /// <summary>
+        /// (`S88`) Кривые ОДНОГО спектра по каналам в csv — тем же форматом, что
+        /// у `FsaStackShot --dump=`, чтобы разбирал их один и тот же читатель
+        /// (`tools/CORPUS/scripts/wave_shape.py`).
+        ///
+        /// Измерение берётся у РЕЗУЛЬТАТА, а не считается здесь заново: правило
+        /// «спектр минус вычтенный фон» одно на вид и на пробы, и вторая его
+        /// копия рядом разъехалась бы молча.
+        ///
+        /// ⛔ (`A284`) КРИВЫХ ИЗМЕРЕНИЯ ДВЕ, И В ДАМПЕ ОНИ НАЗВАНЫ ПОРОЗНЬ.
+        /// `net` — ПОКАЗНАЯ (<c>FsaResult.NetSpectrum</c>, отрицательное
+        /// подрезано нулём), ею вид рисует линию; `fit` — та, ПО КОТОРОЙ СЧИТАН
+        /// ФИТ (<c>FsaResult.FitSpectrum</c>, без подрезки), и в паре со
+        /// столбцом `model` стоит именно она. Кто меряет модель — берёт `fit`.
+        ///
+        /// ⚠ Столбец `net` оставлен на прежнем месте и с прежним смыслом
+        /// НАРОЧНО: тот же формат пишет `FsaStackShot --dump=`, и одно имя,
+        /// значащее в двух дампах разное, — это `T103` заново. Читателю, которому
+        /// нужна кривая фита, старый дамп отказывает громко (`KeyError` на `fit`),
+        /// а не отдаёт молча другое число.
+        ///
+        /// Расхождение НЕ МОЛЧАЛИВОЕ: число подрезанных каналов печатается тут же
+        /// (`AS80_Onyx` — 2672 из 8192, 07.09.2026), иначе признак остался бы без
+        /// читателя.
+        /// </summary>
+        static void DumpCurves(string dir, string key, EnergySpectrum spectrum, FsaResult result)
+        {
+            Directory.CreateDirectory(dir);
+            List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
+            double[] net = result.NetSpectrum(spectrum.Spectrum);
+            double[] fit = result.FitSpectrum(spectrum.Spectrum);
+            int clamped = result.ClampedChannels(spectrum.Spectrum);
+            EnergyCalibration calibration = spectrum.EnergyCalibration;
+            if (clamped > 0)
+            {
+                Console.WriteLine(
+                    "  {0}: показная кривая подрезана в {1} из {2} каналов — "
+                    + "модель мерить столбцом `fit`, не `net` (`A284`)",
+                    key, clamped.ToString(CultureInfo.InvariantCulture),
+                    spectrum.NumberOfChannels.ToString(CultureInfo.InvariantCulture));
+            }
+
+            // (`T103`) Сырой сплайн зовётся `continuum_raw`, а не `continuum`: слой
+            // стека с именем `FsaResult.ContinuumLayerName` («continuum») идёт следом
+            // в том же заголовке, и `csv.DictReader` молча брал ВТОРОЙ — «сплайн 0»
+            // там, где он 223.9 (`S103`). На складе 05.09.2026 таких дампов 115 из 329.
+            // (`S173`) `untied_tail` — отвязанные хвосты матричных образов по
+            // каналам В НЕВЯЗКЕ (только по ключу `UntiedTailAsResidual`): в
+            // `model` (верх стека) и слои не входят. (`S175`) `tail` — хвосты,
+            // лежащие У ОБРАЗОВ (`FsaResult.TailCurveSum`, умолчание): входят в
+            // `model` и в слои своих образов; `continuum_raw` — только сплайн.
+            var head = new StringBuilder("ch,keV,net,fit,model,continuum_raw,untied_tail,tail");
+            foreach (FsaStackLayer layer in layers)
+            {
+                head.Append(',').Append(layer.Name.Replace(',', ';'));
+            }
+
+            RejectDuplicateColumns(head.ToString(), "--dump-curves");
+            double[] tailSum = result.TailCurveSum();
+            string path = Path.Combine(dir, key + "_curves.csv");
+            using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
+            {
+                w.WriteLine(head.ToString());
+                for (int i = 0; i < spectrum.NumberOfChannels; i++)
+                {
+                    var line = new StringBuilder();
+                    line.Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
+                        .Append(calibration.ChannelToEnergy(i).ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                        .Append(Cell(net, i)).Append(',')
+                        .Append(Cell(fit, i)).Append(',')
+                        .Append(Cell(result.Model, i)).Append(',')
+                        .Append(Cell(result.Continuum, i)).Append(',')
+                        .Append(Cell(result.UntiedTail, i)).Append(',')
+                        .Append(Cell(tailSum, i));
+                    foreach (FsaStackLayer layer in layers)
+                    {
+                        line.Append(',').Append(Cell(layer.Curve, i));
+                    }
+
+                    w.WriteLine(line.ToString());
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`T103`) Отказ, который ОТКАЗЫВАЕТ: повтор имени столбца в заголовке csv —
+        /// это число, которое придёт читателю чужим и без ошибки. Дешевле запретить
+        /// повтор при записи, чем искать его в каждом читателе.
+        /// </summary>
+        static void RejectDuplicateColumns(string header, string what)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string name in header.Split(','))
+            {
+                if (!seen.Add(name))
+                {
+                    throw new InvalidOperationException(
+                        what + ": имя столбца «" + name + "» повторяется в заголовке — "
+                        + "читатель через DictReader взял бы последнее (T103)");
+                }
+            }
+        }
+
+        static string Cell(double[] a, int i)
+        {
+            double v = a != null && i < a.Length ? a[i] : 0.0;
+            return v.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Шапка прогона: настройки У АНАЛИЗАТОРА (`T65`), полоса обоими концами
+        /// (`S101`) и сличение с поставочным разбором. Вынесена из <c>Main</c>
+        /// ради `--print-settings` (`T94`): та же печать, тем же кодом, без корпуса —
+        /// <paramref name="sampleCount"/> отрицательный, когда спектры не читались.
+        /// </summary>
+        static void PrintHead(FsaAnalyzer head, Options o, int sampleCount)
+        {
+            Console.WriteLine("корпус: {0}", Path.GetFullPath(o.Corpus));
+            Console.WriteLine("спектров под отбор: {0} (часть: {1}, режим: {2})",
+                              sampleCount < 0 ? "корпус не читался (--print-settings)"
+                                              : sampleCount.ToString(CultureInfo.InvariantCulture),
+                              o.Part, o.Mode);
+            // Заверение с читателем: у ворот `SuppliedLibraryGuard` должно быть
+            // видно, что они стояли, — иначе правило живёт только в комментарии.
+            Console.WriteLine("библиотека: --lib={0} — состав из manifest.csv, линии из nucdb/matdb; "
+                              + "поставочный config\\NuclideDefinition.xml в РАЗБОРЕ НЕ УЧАСТВУЕТ: проба его "
+                              + "не читает и спектру не предъявляет (правило Amber 01.09.2026); "
+                              + "гейт AMBER19 (12.09.2026): файл в каталоге прогона или подъём "
+                              + "NuclideDefinitionManager — отказ кодом 12",
+                              o.Library);
+            // Настройки, которые живут У АНАЛИЗАТОРА, печатаются с него — с того
+            // самого объекта, каким считается каждый спектр (`T65`).
+            Console.WriteLine("суммирование {0}, наложения {1}, рассеяние {2}, вылеты {3}",
+                              head.CascadeSumming ? "вкл" : "выкл",
+                              head.PileUp ? "вкл" : "выкл",
+                              head.Backscatter ? "вкл" : "выкл",
+                              head.EscapeAndAnnihilation ? "вкл" : "выкл");
+            // ⛔ (`T115`, 13.09.2026) КЛЮЧИ, КОТОРЫЕ ДО АНАЛИЗАТОРА НЕ ДОХОДЯТ, —
+            // матрица, фон, атомные образы, равновесие ряда, заслон кристалла —
+            // здесь БОЛЬШЕ НЕ ПЕЧАТАЮТСЯ фразами руками (`o.Matrix ? "по спектру"
+            // : "ВЫКЛЮЧЕНА"` и т. п.): такая фраза читала поле, а не точку
+            // применения, и ключ, заведённый без своей фразы, в шапку не попадал
+            // вовсе. Вместо них — ОДНА механическая строка `KEYS` (всё, что
+            // отличается от умолчаний `Options`, отражением) здесь и строка
+            // `APPLIED` (свидетельства точек применения) в конце прогона; их
+            // сличение — `ProbeSwitches.Verdict`, расхождение — код 13.
+            Console.WriteLine("KEYS\tключи пробы против умолчаний (T115, отражением по Options; настройки анализатора — строка SETUP): {0}",
+                              ProbeSwitches.Asked(o));
+            // S56: чем задан состав. Печатается ПЕРВЫМ среди настроек нарочно —
+            // это единица измерения всего прогона: recall и число фантомов
+            // считаются ОТНОСИТЕЛЬНО предъявленного списка, и сужение списка
+            // улучшает обе мерки само по себе. Прогон, у которого эта строка не
+            // записана, с прежней базой сравнивать нельзя.
+            // (П39, 13.09.2026) Слова «якоря вкл/ВЫКЛ» и «новизна вкл/ВЫКЛ» сняты
+            // вместе с ключами: якорь снят из приложения (`S66`), новизну проба
+            // не звала никогда. Ветка `infer` мертва кодом 12 с 01.09.2026 и
+            // печатается здесь только как след прежних замеров `S57`.
+            Console.WriteLine("библиотека: {0}",
+                              o.Library == "sample"
+                                  ? "ПО ОБЪЯВЛЕННОЙ ПРОБЕ (S56, manifest.csv + materials.csv)"
+                                  : o.Library == "infer"
+                                      ? "ВЫВЕДЕНА ИЗ ПОИСКА ПИКОВ по цепочке родителя (S57), порог доли "
+                                        // (`T247`) Знак процента ТЕКСТОМ, множитель у аргумента:
+                                        // формат `P` ставит разделитель разрядов выше 1000 %.
+                                        + (100.0 * InferTheta(o)).ToString("F0", CultureInfo.InvariantCulture)
+                                        + " %"
+                                        + ", оборванный ряд: "
+                                        + (o.InferCut == FsaChainCut.Whole ? "не ищется"
+                                           : o.InferCut == FsaChainCut.Criterion
+                                               ? "ГОЛОВА СУДИТ, состав весь"
+                                               : "ГОЛОВА СУДИТ И ИДЁТ В СОСТАВ")
+                                      : "по подписям поиска пиков (как до 18.08.2026)");
+            if (o.Library != "peaks")
+            {
+                Console.WriteLine("⚠ мерки сменили смысл: recall и фантомы считаются относительно"
+                                  + " ПРЕДЪЯВЛЕННОГО списка — с прежней базой напрямую не сравнивать");
+            }
+
+            Console.WriteLine("изомеры по sandia_symbol: {0}",
+                              head.CascadeIsomerPartners ? "вкл" : "ВЫКЛ");
+            Console.WriteLine("время жизни уровня: {0}",
+                              head.CascadeDecayTimeProbability
+                                  ? "ВЕРОЯТНОСТНО (A289, умолчание)"
+                                  : "СТУПЕНЬКОЙ — прежняя модель, обратное плечо");
+            Console.WriteLine("атомные партнёры каскада: рентген {0}, аннигиляция {1};"
+                              + " окно совпадения {2:E3} с{3}",
+                              head.CascadeXrayPartners ? "вкл" : "ВЫКЛ",
+                              head.CascadeAnnihilationPartners ? "вкл" : "ВЫКЛ",
+                              head.CoincidenceWindowSec > 0.0
+                                  ? head.CoincidenceWindowSec
+                                  : FsaCascadeSummer.DefaultCoincidenceWindowSec,
+                              head.CoincidenceWindowSec > 0.0 ? "" : " (умолчание)");
+            // (`T65`) Сетка дрейфа — У АНАЛИЗАТОРА. Здесь стояла ВТОРАЯ
+            // копия её умолчаний, и 24.08.2026 она разошлась со счётом
+            // молча: печаталось «±3.00 кэВ, 9 узлов», считалось ±8.00 кэВ по
+            // 17 (`S93`). Поймано на `G1S16_Cd109_P5`, который возвращал
+            // усиление 0.980000 с пометкой «КРАЙ» — за объявленными шапкой
+            // ±0.80 %. См. <c>NewAnalyzer</c>.
+            // (`T247`) Усиление — в процентах ТЕКСТОМ, множитель 100.0 у аргумента
+            // и у полосы, которую считает `GridStep`: формат `P` ставит
+            // разделитель разрядов выше 1000 %, и группировки в дереве нет вовсе.
+            Console.WriteLine("сетка дрейфа: ноль ±{0:F2} кэВ, узлов {1} ({2});"
+                              + " усиление ±{3:F2} %, узлов {4} ({5})",
+                              head.OffsetRangeKev, head.OffsetSteps,
+                              GridStep(head.OffsetRangeKev, head.OffsetSteps, "F3", " кэВ"),
+                              100.0 * head.GainRange, head.GainSteps,
+                              GridStep(100.0 * head.GainRange, head.GainSteps, "F3", " %"));
+            // (`S101`) ПОЛОСА — ОБОИМИ КОНЦАМИ И ВСЛУХ. Печатается не «что
+            // заказано ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ:
+            // анализатор (полоса фита и заверение) и спецификация библиотеки
+            // (то, что режет линии). Пока концов было два со своими копиями,
+            // прогон `--band=whole` давал побитово поставочный результат и в
+            // журнале был неотличим от него.
+            PrintBand(head, o);
+            FsaTuningReport.Print(head);
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Анализатор, настроенный КЛЮЧАМИ ПРОГОНА и только ими; всё, что
+        /// зависит от конкретного спектра (окно фита, матрица отклика),
+        /// добавляет <c>RunOne</c>.
+        ///
+        /// (`T65`) Отдельный метод заведён ради ОДНОГО источника истины:
+        /// шапка прогона печатает настройки У ЭТОГО ЖЕ объекта, а не по
+        /// второму списку констант рядом. Прежде запасные умолчания сетки
+        /// дрейфа лежали в печати СВОЕЙ копией (±3.00 кэВ / 9 узлов);
+        /// 24.08.2026 анализатор сменил их на ±8.00 кэВ / 17 узлов (`S93`) —
+        /// и шапка стала врать ВСЯКИЙ раз, когда ключ не задан руками, а по
+        /// ней читали абляции дрейфа (`B17`).
+        ///
+        /// ⚠ Правило, чтобы это не вернулось: ключ, не заданный в командной
+        /// строке, СЮДА НЕ ДОХОДИТ вовсе — поле остаётся с умолчанием
+        /// <see cref="FsaAnalyzer"/>. Своих умолчаний у пробы нет, кроме тех,
+        /// что названы в <c>Options</c> поимённо и с доводом, почему они
+        /// держатся здесь (таков <c>RebinBackground</c>).
+        ///
+        /// ⚠ Двоичные ключи (каскад, наложения, рассеяние, рентген,
+        /// аннигиляция, изомеры, гейт вылета, гейт ΔD) выставляются
+        /// БЕЗУСЛОВНО — у них есть только сторона «A» и сторона «B», и
+        /// умолчание поля <c>Options</c> повторяет умолчание анализатора.
+        /// Сегодня все восемь совпадают (сверено 25.08.2026), но это та же
+        /// вторая копия, только пока верная.
+        /// </summary>
+        static FsaAnalyzer NewAnalyzer(Options o)
+        {
+            var analyzer = new FsaAnalyzer();
+            analyzer.Mode = o.Mode == "snip"
+                ? FsaAnalyzer.ContinuumMode.Snip
+                : FsaAnalyzer.ContinuumMode.Spline;
+            // (`A170`) Пользовательские смыслы — ТЕМ ЖЕ фасадом, что и в
+            // приложении: «суммирование» пишет обе половины, «рассеяние» не
+            // поднимает `BackscatterWithMatrix`, «вылеты» не трогают гейт.
+            // Второй копии правила «какой флажок какие ключи пишет» у пробы
+            // нет — она была бы ровно тем двойником, что расходится молча.
+            new FsaCalculationOptions
+            {
+                DbLookups = true,
+                ChainEquilibrium = o.Equilibrium,
+                AtomicXray = o.Atomic,
+                CascadeSumming = o.Cascade,
+                Backscatter = o.Backscatter,
+                EscapeAndAnnihilation = o.Escape,
+                PileUp = o.PileUp
+            }.ApplyTo(analyzer);
+            analyzer.CascadeXrayPartners = o.Xray;
+            analyzer.CascadeDecayTimeProbability = o.DecayTimeProbability;
+            analyzer.CascadeAnnihilationPartners = o.Annihilation;
+            analyzer.CascadeIsomerPartners = o.Isomers;
+            analyzer.CoincidenceWindowSec = o.WindowSec;
+
+            // ⛔ АБЛЯЦИОННЫЕ ключи — ПОСЛЕ фасада и только здесь: фасад их
+            // нарочно не поднимает (`A83`, `S47`), а пробе они нужны, чтобы
+            // двойной счёт можно было померить, а не обсуждать.
+            analyzer.BackscatterWithMatrix = o.BackscatterWithMatrix;
+            if (o.RefitZ >= 0.0)
+            {
+                analyzer.RefitZ = o.RefitZ;
+            }
+
+            // (`A268`) Ключ обязан ДОЕХАТЬ до анализатора: заведённый в разборе
+            // и не применённый здесь, он дал бы плечо, побитово совпадающее с
+            // поставочным, и правка выглядела бы «ничего не меняющей». Читатель
+            // у него один — строка `FsaTuningReport.Print` («RefitZRelative 0 → 0.3»,
+            // ~~`T101`~~/`T65`, отражением), и она видит ИМЕННО это поле.
+            if (o.RefitZRelative >= 0.0)
+            {
+                analyzer.RefitZRelative = o.RefitZRelative;
+            }
+
+            analyzer.EscapeGate = o.EscapeGate;
+
+            if (o.HuberM >= 0.0)
+            {
+                analyzer.HuberM = o.HuberM;
+            }
+
+            // (`S98`) Полосу здесь НЕ трогаем: она уже выставлена статикой при
+            // разборе ключей, и конструктор `FsaAnalyzer` её оттуда взял — как
+            // и `FsaSampleLibrary`. Двигать поле анализатора отдельно значило бы
+            // развести два конца, а именно это и было дефектом.
+            analyzer.NoiseGamma = o.NoiseGamma;
+            analyzer.NoiseBeta = o.NoiseBeta;
+            analyzer.PartialResiduals = o.Partial;
+            if (o.Knots > 0)
+            {
+                analyzer.ContinuumKnotDivisor = o.Knots;
+            }
+
+            // (`S88`) A/B-ручка густоты узлов: сплайн со штатным порогом
+            // 4·ПШПВ волну 50…130 кэВ повторить не может, и надо знать —
+            // это потому, что волны там нет, или потому, что её нечем
+            // взять. ⚠ Значение меньше 4 ломает состав, читать после него
+            // можно форму невязки, а не разложение.
+            if (o.KnotFwhm > 0.0)
+            {
+                analyzer.ContinuumKnotFwhm = o.KnotFwhm;
+            }
+
+            // (`S85`) Ноль — ЗНАЧАЩЕЕ значение («штрафа нет»), поэтому
+            // ключ отличается от умолчания отрицательным, а не нулём.
+            if (o.Roughness >= 0.0)
+            {
+                analyzer.ContinuumRoughness = o.Roughness;
+            }
+            analyzer.PartialResidualGate = o.PartialGate;
+            analyzer.RebinBackgroundToSpectrum = o.RebinBackground;
+
+            // Сетка дрейфа — ключами, а не пересборкой (S6): расширять её
+            // вслепую нельзя, потому что при том же числе узлов вдвое более
+            // широкая сетка вдвое грубее, и цену обеих половин надо мерить
+            // вместе.
+            if (o.OffsetRangeKev > 0.0)
+            {
+                analyzer.OffsetRangeKev = o.OffsetRangeKev;
+            }
+
+            if (o.OffsetSteps > 0)
+            {
+                analyzer.OffsetSteps = o.OffsetSteps;
+            }
+
+            if (o.GainRange > 0.0)
+            {
+                analyzer.GainRange = o.GainRange;
+            }
+
+            if (o.GainSteps > 0)
+            {
+                analyzer.GainSteps = o.GainSteps;
+            }
+
+            // (`AMBER17`) Ключ обязан ДОЕХАТЬ до анализатора (`A268`): читатель —
+            // строка `FsaTuningReport.Print` отражением.
+            analyzer.AnchorScale = o.Anchor;
+            if (o.MatrixTransfer >= 0)
+            {
+                analyzer.MatrixTransferByChannel = o.MatrixTransfer == 1;
+            }
+
+            if (o.AnchorShare >= 0.0)
+            {
+                analyzer.AnchorShareThreshold = o.AnchorShare;
+            }
+
+            if (o.AnchorPasses > 0)
+            {
+                analyzer.AnchorPasses = o.AnchorPasses;
+            }
+
+            if (o.AnchorOffsetMin > 0)
+            {
+                analyzer.AnchorOffsetMinAnchors = o.AnchorOffsetMin;
+            }
+
+            if (o.AnchorZ >= 0.0)
+            {
+                analyzer.AnchorMinZ = o.AnchorZ;
+            }
+
+            if (o.AnchorWindow > 0.0)
+            {
+                analyzer.AnchorWindowFwhm = o.AnchorWindow;
+            }
+
+            if (o.AnchorFloor >= 0.0)
+            {
+                analyzer.AnchorSigmaFloorFwhm = o.AnchorFloor;
+            }
+
+            if (o.AnchorMinFwhm >= 0.0)
+            {
+                analyzer.AnchorMinFwhmChannels = o.AnchorMinFwhm;
+            }
+
+            // (П18) положение по свету: "0" — выкл, "1" — по веществу, имя — кривая на всех
+            if (o.AnchorLight != null)
+            {
+                analyzer.AnchorLightPosition = o.AnchorLight != "0";
+                analyzer.AnchorLightCurve = o.AnchorLight == "0" || o.AnchorLight == "1" ? null : o.AnchorLight;
+            }
+
+            // (П19) форма применения; null — умолчание анализатора
+            if (o.AnchorForm != null)
+            {
+                analyzer.AnchorLightForm = o.AnchorForm;
+            }
+
+            if (o.AnchorLightMax >= 0.0)
+            {
+                analyzer.AnchorLightMaxKev = o.AnchorLightMax;
+            }
+
+            if (o.AnchorSkip != null && o.AnchorSkip.Length > 0)
+            {
+                analyzer.AnchorSkipKev = o.AnchorSkip;
+            }
+
+            // (`S169`) нуль шкалы образа; ключ обязан ДОЕХАТЬ до анализатора
+            // (`A268`), читатель — строка `SETUP` отражением
+            if (o.AnchorZero != null)
+            {
+                analyzer.AnchorZero = o.AnchorZero;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroKev))
+            {
+                analyzer.AnchorZeroKev = o.AnchorZeroKev;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroShare))
+            {
+                analyzer.AnchorZeroShareThreshold = o.AnchorZeroShare;
+            }
+
+            if (!double.IsNaN(o.AnchorZeroMax))
+            {
+                analyzer.AnchorZeroMaxKev = o.AnchorZeroMax;
+            }
+
+            // (`S107`, П10) форма наложений по свету: "0" — выкл, "1" — по
+            // веществу, иначе — имя кривой ("energy" — плечо порчи) на всех;
+            // ключ обязан ДОЕХАТЬ до анализатора, читатель — `SETUP` отражением
+            if (o.PileUpLight != null)
+            {
+                analyzer.PileUpLightForm = o.PileUpLight != "0";
+                analyzer.PileUpLightCurve = o.PileUpLight == "0" || o.PileUpLight == "1" ? null : o.PileUpLight;
+            }
+
+            // (`S167`, П18) кривая каскадной суммы; ключ обязан ДОЕХАТЬ до
+            // анализатора, читатель — `SETUP` отражением
+            if (o.SumLight != null)
+            {
+                analyzer.CascadeSumPhotonLight = o.SumLight == "photon";
+            }
+
+            // (`S166`, П18) совместная эффективность в выносе из пика
+            if (o.LossJoint >= 0)
+            {
+                analyzer.CascadeLossJointFactor = o.LossJoint == 1;
+            }
+
+            // (`N14`, П49) угловая корреляция в парах; ключ обязан ДОЕХАТЬ до
+            // анализатора, читатель — `SETUP` отражением (`CascadeSumAngular`)
+            if (o.AngCorr >= 0)
+            {
+                analyzer.CascadeSumAngular = o.AngCorr == 1;
+            }
+
+            // (`A310`, П47) веса решателя; ключ обязан ДОЕХАТЬ до анализатора,
+            // читатель — `SETUP` отражением (`ModelWeights`)
+            if (o.Weights != null)
+            {
+                analyzer.ModelWeights = o.Weights == "model";
+            }
+
+            return analyzer;
+        }
+
+        /// <summary>
+        /// Шаг сетки дрейфа словами. ОДИН УЗЕЛ — шага нет вовсе:
+        /// <c>FsaAnalyzer</c> берёт <c>Math.Max(1, …)</c> и считает без
+        /// дрейфа, а деление на <c>steps - 1</c> дало бы в шапке «∞», то
+        /// есть опять не то, что происходит.
+        /// </summary>
+        static string GridStep(double range, int steps, string format, string unit)
+        {
+            return steps > 1
+                ? "шаг " + (2.0 * range / (steps - 1)).ToString(format, CultureInfo.InvariantCulture) + unit
+                : "один узел, дрейф не ищется";
+        }
+
+        /// <summary>
+        /// ⛔ ПОЛОСА ОБОИМИ КОНЦАМИ И ВСЛУХ (`S101`). Печатается не «что заказано
+        /// ключом», а что каждый конец отдаёт НА САМОМ ДЕЛЕ: анализатор (полоса
+        /// фита и заверение) и спецификация библиотеки (то, что режет линии).
+        /// Пока у концов были свои копии, `--band=whole` давал побитово
+        /// поставочный результат и в журнале был от него неотличим.
+        ///
+        /// Доля печатается вместе с тем, что поставляется, — умолчание, которого
+        /// не видно в выводе, ничем не отличается от случайного.
+        /// </summary>
+        static void PrintBand(FsaAnalyzer head, Options o)
+        {
+            Console.WriteLine(FsaBand.EndsLine(head, new FsaSampleSpec()));
+
+            double frac = FsaBand.DefaultFloorFraction;
+            // (`T247`) Проценты — `F` со знаком текстом и множителем у аргумента.
+            Console.WriteLine("доля пола по кривой: {0:F3} %{1}",
+                              100.0 * frac,
+                              Math.Abs(frac - FsaBand.ShippedFloorFraction) <= 1e-12
+                                  ? " (поставочная)"
+                                  : string.Format(CultureInfo.InvariantCulture,
+                                                  " — СДВИНУТА ключом --floor-frac=, поставляется {0:F3} %",
+                                                  100.0 * FsaBand.ShippedFloorFraction));
+
+            // (`S103`) Порог опоры по столбцу печатается ВСЕГДА, когда режим
+            // включён, — в том числе нейтральный 1.0: контрольное плечо обязано
+            // быть узнаваемым в журнале, иначе его не отличить от поставки.
+            if (FsaBand.DefaultMode == FsaBandMode.LibraryToFitByShare)
+            {
+                double thr = FsaBand.DefaultShareThreshold;
+                Console.WriteLine("порог доли континуума (опора по столбцу): {0:F3}{1}",
+                                  thr,
+                                  Math.Abs(thr - FsaBand.ShippedShareThreshold) <= 1e-12
+                                      ? " — НЕЙТРАЛЬНЫЙ: не выбрасывает ничего,"
+                                        + " плечо обязано совпасть с поставкой побитово"
+                                      : "");
+            }
+
+            // (`A302`/`A309`) ПОЛ ПОЛОСЫ ФИТА — вслух и ВСЕГДА, в том числе
+            // поставочный: плечо, которого не видно в шапке журнала, ничем не
+            // отличается от поставочного прогона. Поставка — правило порога
+            // по рампе ОБОИХ спектров; чем взят порог у каждого спектра,
+            // печатает заверение `BandNote` первого разбора.
+            bool shippedFloor = FsaBand.DefaultFitFloor == FsaBand.ShippedFitFloor
+                && Math.Abs(FsaBand.DefaultThresholdLevelFraction
+                            - FsaBand.ShippedThresholdLevelFraction) <= 1e-12;
+            Console.WriteLine("пол ПОЛОСЫ ФИТА: {0}{1}",
+                              FsaBand.DefaultFitFloor == FsaFitFloor.Threshold
+                                  ? string.Format(CultureInfo.InvariantCulture,
+                                                  "ПОРОГ ПО РАМПЕ обоих спектров (проба и фон, пол = больший;"
+                                                  + " доля уровня {0:F2}, окно {1:F1} кэВ, рампа не шире {2:F0} кэВ)",
+                                                  FsaBand.DefaultThresholdLevelFraction,
+                                                  FsaBand.ThresholdLevelWindowKev,
+                                                  FsaBand.ThresholdRampMaxKev)
+                                  : FsaBand.DefaultFitFloor == FsaFitFloor.Off
+                                      ? "выключен — фит от нулевого канала, как было до `A309`"
+                                      : FsaBand.DefaultFitFloor == FsaFitFloor.Adc
+                                          ? "ПОРОГ АЦП спектра (первый ненулевой канал)"
+                                          : string.Format(CultureInfo.InvariantCulture,
+                                                          "{0:F2} кэВ числом",
+                                                          FsaBand.DefaultFitFloorKev),
+                              shippedFloor ? " (поставочный)" : " (НЕ умолчание, A/B)");
+        }
+
+        /// <summary>
+        /// ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ СТОРОЖА ПОЛОСЫ (`S101`), ключ
+        /// `--band-selftest`. Корпус при нём не читается вовсе.
+        ///
+        /// Сторож <see cref="FsaBand.EndsNote(FsaAnalyzer, FsaSampleSpec)"/>
+        /// сличает то, что концы отдают на самом деле. Сторож, который никогда
+        /// не срабатывал, ничем не отличается от сторожа, который не работает,
+        /// — поэтому здесь он проверяется В ОБЕ СТОРОНЫ:
+        ///   * на живых объектах при сдвинутой статике концы обязаны СОЙТИСЬ
+        ///     (один рычаг двигает оба);
+        ///   * на подставленном рассинхроне сторож обязан ОТКАЗАТЬ.
+        /// Код возврата 0 — сошлось, 4 — сторож слеп.
+        /// </summary>
+        static int BandSelfTest()
+        {
+            var bad = new List<string>();
+
+            FsaBandMode liveMode = FsaBand.DefaultMode;
+            double liveFloor = FsaBand.DefaultFloor;
+            double liveFrac = FsaBand.DefaultFloorFraction;
+            double liveThr = FsaBand.DefaultShareThreshold;
+            try
+            {
+                // 1. ОДИН РЫЧАГ ДВИГАЕТ ОБА КОНЦА. Двигаем СТАТИКУ и спрашиваем
+                //    у каждого конца, что он отдаёт читателю.
+                foreach (FsaBandMode mode in new[] { FsaBandMode.Whole,
+                                                     FsaBandMode.LibraryToFit,
+                                                     FsaBandMode.LibraryToFitByCurve,
+                                                     FsaBandMode.LibraryToFitByShare })
+                {
+                    FsaBand.DefaultMode = mode;
+                    FsaBand.DefaultFloor = liveFloor + 7.0;
+
+                    var analyzer = new FsaAnalyzer();
+                    var spec = new FsaSampleSpec();
+                    string note = FsaBand.EndsNote(analyzer, spec);
+                    if (note.Length != 0)
+                    {
+                        bad.Add("рычаг НЕ ОДИН при " + mode + ": " + note);
+                    }
+
+                    if (analyzer.Band != mode || spec.Band != mode)
+                    {
+                        bad.Add(string.Format(CultureInfo.InvariantCulture,
+                            "статика {0} не доехала до концов: анализатор {1}, библиотека {2}",
+                            mode, analyzer.Band, spec.Band));
+                    }
+                }
+
+                // 2. ОТРИЦАТЕЛЬНЫЙ КОНТРОЛЬ: подставленный рассинхрон обязан
+                //    быть НАЗВАН. Без него «пусто» ничего не доказывает.
+                string caught = FsaBand.EndsNote(FsaBandMode.Whole, 0.0,
+                                                 FsaBandMode.LibraryToFit, 30.0);
+                if (caught.Length == 0)
+                {
+                    bad.Add("сторож СЛЕП: подставленный рассинхрон (Whole/0 против LibraryToFit/30) не назван");
+                }
+
+                string same = FsaBand.EndsNote(FsaBandMode.LibraryToFitByCurve, 20.0,
+                                               FsaBandMode.LibraryToFitByCurve, 20.0);
+                if (same.Length != 0)
+                {
+                    bad.Add("сторож ложно тревожит на согласных концах: " + same);
+                }
+            }
+            finally
+            {
+                FsaBand.DefaultMode = liveMode;
+                FsaBand.DefaultFloor = liveFloor;
+                FsaBand.DefaultFloorFraction = liveFrac;
+                FsaBand.DefaultShareThreshold = liveThr;
+            }
+
+            if (bad.Count != 0)
+            {
+                Console.Error.WriteLine("⛔ СТОРОЖ ПОЛОСЫ НЕ ПРОШЁЛ САМОПРОВЕРКУ (`S101`):");
+                foreach (string b in bad)
+                {
+                    Console.Error.WriteLine("   " + b);
+                }
+
+                return 4;
+            }
+
+            Console.WriteLine("сторож полосы (`S101`): один рычаг двигает ОБА конца"
+                              + " на всех ЧЕТЫРЁХ режимах; подставленный рассинхрон НАЗВАН,"
+                              + " согласные концы не тревожат. СОШЛОСЬ.");
+            return 0;
+        }
+
+        /// <summary>
+        /// (`T85`) Что стало с матрицей отклика у ОДНОГО спектра — до разбора.
+        ///
+        /// ⛔ Это ПОЛОВИНА ответа, и вторая половина —
+        /// <see cref="Row.MatrixApplied"/>. «Матрица НАЙДЕНА» и «матрица
+        /// ПРИМЕНЕНА» суть разные утверждения, и до 27.08.2026 отчёт называл их
+        /// одним словом: колонка `matrix` печатала ПРИМЕНЕНИЕ, а колонка
+        /// `matrix_note` рядом писала «есть» про НАХОДКУ, и человек читал одно,
+        /// а итог по частям считал другое. Расхождение измерено на снятых
+        /// файлах: `G1S16_Cd109_P25` в `out_v6`, три спектра кадмия в
+        /// `out_fz_lib` — всюду «есть» при нуле.
+        /// </summary>
+        enum MatrixState
+        {
+            /// <summary>До выбора матрицы не дошло: спектр не прочитан.</summary>
+            Unknown,
+
+            /// <summary>`--no-matrix`.</summary>
+            OffByKey,
+
+            /// <summary>У спектра нет кривой эффективности вовсе.</summary>
+            NoCurve,
+
+            /// <summary>У кривой нет геометрии — норма непонятной части.</summary>
+            NoGeometry,
+
+            /// <summary>Геометрия есть, матрица выключена в самой кривой.</summary>
+            OffInCurve,
+
+            /// <summary>⛔ ОТКАЗ: узел кривой есть, файла матрицы под него нет.</summary>
+            NoFile,
+
+            /// <summary>⛔ ОТКАЗ: файл есть, отпечаток не сошёлся с геометрией (`B20`).</summary>
+            StampMismatch,
+
+            /// <summary>Найдена, проверена и подана анализатору.</summary>
+            Found
+        }
+
+        /// <summary>
+        /// (`T85`) СКОЛЬКО ОБРАЗОВ ОТЧЁТНОГО ФИТА МАТРИЦА ИМЕЛА ПРАВО СТРОИТЬ.
+        ///
+        /// ⛔ Заведено потому, что на расхождении «найдена, но не применена»
+        /// отчёт ПЕЧАТАЛ УТВЕРЖДЕНИЕ, которого не проверял: «матрица исправна и
+        /// работала на проходах до отсева». Оно успокаивает ровно там, где надо
+        /// кричать, — а один раз за этим расхождением уже стояла настоящая
+        /// поломка. Теперь на месте утверждения стоит ЧИСЛО.
+        ///
+        /// Правило то же, по которому судит `FsaAnalyzer.FitOnce`
+        /// (`FixedTemplate != null` — готовый образ; `WeightsAreFinal` — образ
+        /// матрицей не строится): у кого нет ни того, ни другого, того матрица
+        /// строит, и `fromMatrix` поднимается.
+        ///
+        /// ⚠ Считаются ТОЛЬКО компоненты предъявленной библиотеки. Того, кого
+        /// анализатор завёл сам (наложения, обратное рассеяние), тут нет и быть
+        /// не должно: он матрицу не трогает по построению, и записать его сюда
+        /// значило бы объявить отказом законное состояние.
+        /// </summary>
+        static int MatrixEligibleInReport(FsaResult result, List<FsaComponent> library)
+        {
+            if (result == null || result.Components == null || library == null)
+            {
+                return -1;
+            }
+
+            var known = new Dictionary<string, FsaComponent>(StringComparer.Ordinal);
+            foreach (FsaComponent c in library)
+            {
+                if (c != null && c.Name != null)
+                {
+                    known[c.Name] = c;
+                }
+            }
+
+            int n = 0;
+            foreach (FsaComponentResult r in result.Components)
+            {
+                FsaComponent c;
+                if (r == null || r.Name == null || !known.TryGetValue(r.Name, out c))
+                {
+                    continue;
+                }
+
+                if (c.FixedTemplate == null && !c.WeightsAreFinal)
+                {
+                    n++;
+                }
+            }
+
+            return n;
+        }
+
+        /// <summary>Матрица НАЙДЕНА и подана анализатору.</summary>
+        static bool MatrixFound(Row row)
+        {
+            return row.Matrix == MatrixState.Found;
+        }
+
+        /// <summary>(П19) Форма применения световой координаты у первой строки, где она есть; null — ни у одной.</summary>
+        static string FirstAnchorForm(List<Row> rows)
+        {
+            foreach (Row r in rows)
+            {
+                if (r.Error == null && !string.IsNullOrEmpty(r.AnchorForm))
+                {
+                    return r.AnchorForm;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// ⛔ ОТКАЗ, а не норма: узел кривой у спектра есть, а матрицы под него
+        /// нет. Судится ПРИЗНАКОМ, а не сличением печатной строки — прежде итог
+        /// сравнивал <c>MatrixNote</c> с двумя строковыми литералами, то есть
+        /// держал вторую копию словаря состояний и молча разошёлся бы с ним от
+        /// любой правки текста.
+        /// </summary>
+        static bool MatrixFailed(Row row)
+        {
+            return row.Matrix == MatrixState.NoFile || row.Matrix == MatrixState.StampMismatch;
+        }
+
+        /// <summary>
+        /// Состояние матрицы словами — ЕДИНСТВЕННОЕ место, где оно называется.
+        /// Читают его и экран, и `runs.csv`, и итог по частям.
+        ///
+        /// ⚠ «НАЙДЕНА» и «применена» стоят в строке порознь нарочно: находка
+        /// матрицы применения не обещает. Образ строится матрицей только у
+        /// компонента, у которого есть свои линии и не выставлен
+        /// `WeightsAreFinal`; если отсев по значимости и гейт ΔD оставили в
+        /// отчётном фите одни производные образы (обратное рассеяние,
+        /// наложения), <c>FsaAnalyzer</c> вернёт `ResponseMatrixUsed = false`
+        /// при живой и совершенно исправной матрице.
+        /// </summary>
+        static string MatrixNote(Row row)
+        {
+            switch (row.Matrix)
+            {
+                case MatrixState.OffByKey: return "выключена ключом";
+                case MatrixState.NoCurve: return "кривой нет";
+                case MatrixState.NoGeometry: return "геометрии нет";
+                case MatrixState.OffInCurve: return "выключена в кривой";
+                case MatrixState.NoFile: return "файла нет";
+                case MatrixState.StampMismatch: return "отпечаток НЕ сошёлся";
+                case MatrixState.Found:
+                    // ⚠ Упавший спектр про ПРИМЕНЕНИЕ не говорит ничего: до
+                    // результата разбор не дошёл, и «не применена» тут было бы
+                    // утверждением, которого никто не проверял.
+                    if (row.Error != null)
+                    {
+                        return "НАЙДЕНА (разбор не дошёл)";
+                    }
+
+                    if (row.MatrixApplied)
+                    {
+                        return "НАЙДЕНА, применена";
+                    }
+
+                    // ⛔ (`T85`) ПОМЕТКА БОЛЬШЕ НЕ УТВЕРЖДАЕТ ПРИЧИНУ, А НАЗЫВАЕТ
+                    // ИЗМЕРЕННОЕ. Прежде здесь всегда стояло «в отчёте одни
+                    // производные образы» — объяснение, которое никто не
+                    // проверял и которое ЛОЖНО ровно в том случае, ради
+                    // которого колонка и заведена: когда в отчёте есть образ,
+                    // который матрица имела право строить.
+                    return row.MatrixImages > 0
+                        ? "НАЙДЕНА, НЕ ПРИМЕНЕНА ⛔ а образов под неё в отчёте "
+                          + row.MatrixImages.ToString(CultureInfo.InvariantCulture)
+                        : "НАЙДЕНА, НЕ ПРИМЕНЕНА (образов под неё в отчёте нет)";
+                default: return "";
+            }
+        }
+
+        /// <summary>
+        /// (`S111`) ВТОРОЙ ПРОХОД ПОИСКА ПИКОВ — ПО ОСТАТКУ. Гипотеза Amber
+        /// 01.09.2026: если у спектра велика невязка формы, надо вычесть
+        /// найденное и заново прогнать финдер по тому, что осталось.
+        ///
+        /// Остаток считается ровно так, как сказано: **(спектр − фон) − модель**.
+        /// Фон здесь тот же, что вычла подгонка (`FsaResult.Background` — её
+        /// пиковая часть; континуум фона забрал сплайн), а модель — сумма
+        /// континуума и всех образов (`FsaResult.Model`). Иначе говоря, это та
+        /// же величина, что стоит в невязке разбора, только поканально.
+        ///
+        /// ⛔ **ФИНДЕРУ ПРЕДЪЯВЛЯЕТСЯ ПУСТАЯ БИБЛИОТЕКА** (не `null`!): второй
+        /// проход ищет ПИКИ, а не подписи, и поставочный список сюда не приходит
+        /// ни при каких условиях — правило Amber 01.09.2026.
+        ///
+        /// ⚠ **ДВЕ ЗНАЧИМОСТИ, И ПУТАТЬ ИХ НЕЛЬЗЯ.** Финдер считает свою `z` по
+        /// тому спектру, который ему дали, — а у остатка дисперсия НЕ его
+        /// собственная: шум остался пуассоновским от ИЗМЕРЕНИЯ, модель его не
+        /// уменьшила. Поэтому рядом печатается `z_data` = площадь остатка,
+        /// делённая на √(отсчёты ИЗМЕРЕНИЯ в том же окне). Первая величина
+        /// говорит «финдер это увидел», вторая — «это выше шума данных», и
+        /// читать надо вторую.
+        ///
+        /// ⚠ Отрицательная часть остатка финдеру не подаётся (там модель ВЫШЕ
+        /// измерения — это тоже находка, но другого рода: её видно по `Σ−`
+        /// в шапке строки).
+        /// </summary>
+        static List<string> ResidualPeaks(ResultData rd, FsaResult result, Sample sample)
+        {
+            var rows = new List<string>();
+            if (rd == null || rd.EnergySpectrum == null || result == null || result.Model == null)
+            {
+                return rows;
+            }
+
+            int[] raw = rd.EnergySpectrum.Spectrum;
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            if (raw == null || calibration == null)
+            {
+                return rows;
+            }
+
+            int lo = Math.Max(0, result.FirstChannel);
+            int hi = Math.Min(raw.Length - 1, result.LastChannel);
+            var residual = new int[raw.Length];
+            double negative = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double background = result.Background != null && i < result.Background.Length
+                    ? result.Background[i] : 0.0;
+                double value = raw[i] - background - result.Model[i];
+                if (value < 0.0)
+                {
+                    negative += value;
+                    continue;
+                }
+
+                residual[i] = (int)Math.Round(value);
+            }
+
+            // Копия измерения, у которой ОТСЧЁТЫ подменены остатком: калибровки,
+            // конфигурация поиска и живое время — те же, иначе финдер мерил бы
+            // другой прибор.
+            ResultData probe = rd.Clone();
+            probe.EnergySpectrum.Spectrum = residual;
+
+            List<Peak> peaks = new PeakDetector().DetectPeak(
+                probe, BackgroundMode.Invisible, SmoothingMethod.None,
+                null, new List<NuclideDefinition>());
+
+            foreach (Peak peak in peaks)
+            {
+                // Окно ±1 ПШПВ вокруг вершины — по нему берётся шум ИЗМЕРЕНИЯ.
+                double fwhm = peak.FWHM > 0.0 ? peak.FWHM : 1.0;
+                int from = Math.Max(lo, (int)Math.Floor(peak.Channel - fwhm));
+                int to = Math.Min(hi, (int)Math.Ceiling(peak.Channel + fwhm));
+                double measured = 0.0;
+                for (int i = from; i <= to; i++)
+                {
+                    measured += raw[i];
+                }
+
+                double zData = measured > 0.0 ? peak.Count / Math.Sqrt(measured) : double.NaN;
+                rows.Add(string.Join(",", new[]
+                {
+                    sample.Key,
+                    sample.Det,
+                    sample.Part,
+                    peak.Energy.ToString("0.###", CultureInfo.InvariantCulture),
+                    peak.Channel.ToString("0.##", CultureInfo.InvariantCulture),
+                    (fwhm * calibration.ChannelToEnergy(peak.Channel + 1.0)
+                     - fwhm * calibration.ChannelToEnergy(peak.Channel)).ToString("0.##", CultureInfo.InvariantCulture),
+                    peak.Count.ToString("0.#", CultureInfo.InvariantCulture),
+                    peak.SNR.ToString("0.##", CultureInfo.InvariantCulture),
+                    zData.ToString("0.##", CultureInfo.InvariantCulture),
+                    negative.ToString("0", CultureInfo.InvariantCulture),
+                }));
+            }
+
+            return rows;
+        }
+
+        /// <summary>Один спектр: пики, библиотека, матрица, разложение.</summary>
+        static Row RunOne(Sample sample, Options o)
+        {
+            var row = new Row { Key = sample.Key, Det = sample.Det, Part = sample.Part };
+            string path = Path.Combine(o.Corpus, "spectra", sample.Key + ".xml");
+            if (!File.Exists(path))
+            {
+                row.Error = "нет файла спектра";
+                Report(row, o);
+                return row;
+            }
+
+            // Часы и ЦП-время порознь. Разбор однопоточный, поэтому в норме они
+            // почти совпадают — и ровно поэтому расхождение говорит о том, что
+            // машину делили, а не о том, что разбор подорожал. Сравнивать
+            // прогоны между собой надо по ЦП: T28 трое суток числилась
+            // «матрица подорожала вдвое», а подорожало ожидание, и той же
+            // ошибкой здесь не заметили вчетверо подорожавший разбор (S39).
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            TimeSpan cpuBefore = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
+            try
+            {
+                ResultData rd = Load(path);
+                EnergySpectrum background = o.Background ? rd.BackgroundEnergySpectrum : null;
+                row.HasBackground = background != null;
+                // (`T115`) Свидетель точки применения `--no-background`: что
+                // ПОДАНО анализатору, а не что стоит в поле. Судится только там,
+                // где у спектра фон есть, — без фона ключ ненаблюдаем.
+                if (rd.BackgroundEnergySpectrum != null)
+                {
+                    ProbeSwitches.Witness("Background", background != null);
+                }
+
+                // ⛔ S56, первый постулат (Amber 17.08.2026). Состав библиотеки
+                // задаёт ОБЪЯВЛЕННАЯ проба, а не подписи поиска пиков: корпус
+                // знает, что снято (`manifest.csv`), и предъявлять спектру всю
+                // поставочную библиотеку значит отдавать необъяснённую структуру
+                // первому подходящему кандидату (`N18`: Pu-238 долей 1.7 % на
+                // одной линии 152 кэВ в 0.0009 %).
+                //
+                // Порядок при этом ПЕРЕВЁРНУТ против прежнего: сперва
+                // библиотека, потом поиск пиков — потому что подписывать пики
+                // он обязан из той же своей базы. Счёт найденных пиков от этого
+                // не меняется (финдер работает до всякой подписи, а вычёркивать
+                // неподписанные некому: `nuclideSet` подаётся пустым), так что
+                // колонка `peaks` остаётся неподвижным контролем.
+                List<FsaComponent> library;
+                List<Peak> peaks;
+                if (o.Library == "sample")
+                {
+                    FsaSampleLibrary.Report built;
+                    // (`S103`) Спецификация поднята в переменную: у неё же
+                    // спрашиваются `Min_Range` и ФАКТИЧЕСКИЙ пол по кривой —
+                    // второй копии этих двух чисел в пробе быть не должно.
+                    FsaSampleSpec spec = SpecOf(rd, sample, o);
+                    // (`T115`) Свидетели точек применения `--no-atomic`,
+                    // `--no-equilibrium`, `--crystal-shield=`: читаются у
+                    // ПОТРЕБИТЕЛЯ — у спецификации, которую сейчас съест
+                    // `FsaSampleLibrary.Build`, — а не у `Options`. Имена — имена
+                    // полей `Options`, по ним `Verdict` находит заказанное.
+                    ProbeSwitches.Witness("Atomic", spec.AtomicXray);
+                    ProbeSwitches.Witness("Equilibrium", spec.Equilibrium);
+                    ProbeSwitches.Witness("CrystalShield", spec.CrystalShield);
+                    library = FsaSampleLibrary.Build(spec, out built);
+                    row.LibraryNote = built.ToString();
+                    row.MinRangeKev = spec.MinEnergyKev;
+                    row.CurveFloorKev = spec.CurveFloorKev;
+                    // (`A73`) Пол, который РЕАЛЬНО режет линии, и порог АЦП, из
+                    // которого его может назначить запасная ветвь. Без первого
+                    // доказательство «пол не сдвинулся» читалось бы по двум
+                    // числам в уме, без второго — не видно, было ли чем назначать.
+                    row.LineFloorKev = spec.LineFloorKev;
+                    row.AdcFloorKev = spec.AdcFloorKev;
+                    row.LinesBelowMinRange = built.LinesBelowMinRange;
+                    peaks = new PeakDetector().DetectPeak(
+                        rd, BackgroundMode.Invisible, SmoothingMethod.None,
+                        null, FsaSampleLibrary.AsDefinitions(library));
+                }
+                else
+                {
+                    // ⛔ Сюда попасть нельзя: ворота у разбора ключей
+                    // (`SuppliedLibraryGuard`) не пускают ничего, кроме
+                    // `--lib=sample`. Ветка оставлена БРОСКОМ, а не удалена
+                    // молча, чтобы правка, вернувшая другой режим, упала здесь,
+                    // а не посчитала корпус чужим списком.
+                    throw new InvalidOperationException(SuppliedLibraryGuard.Rule);
+                }
+
+                row.Peaks = peaks.Count;
+                row.LibrarySize = library.Count;
+
+                // (S70) Состав библиотеки построчно — мерка приёмки связки
+                // равновесия. Печатается ДО разбора: сравнивать надо то, что
+                // предъявлено фиту, а не то, что из фита вышло, — иначе
+                // разница отсева по значимости выдаёт себя за разницу состава.
+                if (o.LibDump)
+                {
+                    foreach (FsaComponent c in library)
+                    {
+                        Console.WriteLine("LIB	{0}	{1}	{2}	{3}",
+                                          row.Key, c.Name, c.Kind, c.Lines.Count);
+                    }
+                }
+
+                // (S78) И кто из построенного до отчёта не дожил, с той
+                // значимостью, с которой его видели живым в последний раз.
+                // Печатается ПОСЛЕ разбора, поэтому строка идёт ниже; здесь
+                // только оговорка, чтобы её искали рядом.
+
+                // Состав ДО фита: без него «компонента нет в разложении» значит
+                // разом три разных случая — финдер не нашёл пика, финдер нашёл
+                // и подписал ЧУЖИМ именем, гейт выбросил после фита. Числа
+                // прогона различить их не позволяют, а разбор S36 упёрся ровно
+                // в это.
+                if (o.Peaks)
+                {
+                    Console.WriteLine("  {0}: пиков {1}, компонентов {2} ({3})",
+                                      sample.Key, peaks.Count, library.Count, row.LibraryNote);
+                    foreach (Peak peak in peaks)
+                    {
+                        Console.WriteLine("      пик {0,9:F2} кэВ  {1}", peak.Energy,
+                                          peak.Nuclide != null ? peak.Nuclide.Name : "(без подписи)");
+                    }
+
+                    foreach (FsaComponent component in library)
+                    {
+                        Console.WriteLine("      образ {0,-14} {1,-9} линий {2}",
+                                          component.Name, component.Kind, component.Lines.Count);
+                    }
+                }
+                if (library.Count == 0)
+                {
+                    // Пустая библиотека — не «ошибка счёта», а результат: финдер
+                    // не подписал ни одного пика. Молчаливый ноль уже принимали
+                    // за «пиков нет» (см. hpge-peak-search-finds-nothing), потому
+                    // причина пишется отдельным словом.
+                    row.Error = o.Library == "sample"
+                        ? "библиотека пуста (объявленный состав не дал линий в диапазоне)"
+                        : o.Library == "infer"
+                            ? "библиотека пуста (вывод состава не дал ни одного родителя)"
+                            : "библиотека пуста (пиков подписано 0)";
+                    row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
+                    Report(row, o);
+                    return row;
+                }
+
+                // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
+                // которого их берёт на печать шапка.
+                FsaAnalyzer analyzer = NewAnalyzer(o);
+                double gammaMapped;
+                if (o.GammaMap != null && o.GammaMap.TryGetValue(sample.Key, out gammaMapped))
+                {
+                    // (`S43`) γ = ε этого же спектра; печатается, чтобы плечо
+                    // нельзя было спутать с глобальным `--gamma=`.
+                    analyzer.NoiseGamma = gammaMapped;
+                    Console.WriteLine("  {0}: γ по невязке прежнего прогона = {1}",
+                                      sample.Key, gammaMapped.ToString("F4", CultureInfo.InvariantCulture));
+                }
+                if (rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig peakConfig)
+                {
+                    analyzer.MinEnergy = peakConfig.Min_Range;
+                    analyzer.MaxEnergy = peakConfig.Max_Range;
+
+                    // (`S103`) Порог поверки столбцов — РОВНО `Min_Range`: это
+                    // та граница, ниже которой линии впускает пол полосы, и
+                    // спор идёт про них. Без ключа поле остаётся нулём, и
+                    // анализатор поверку не считает вовсе.
+                    if (!string.IsNullOrEmpty(o.BandAudit))
+                    {
+                        analyzer.LineColumnAuditBelowKev = peakConfig.Min_Range;
+                        if (double.IsNaN(row.MinRangeKev))
+                        {
+                            row.MinRangeKev = peakConfig.Min_Range;
+                        }
+                    }
+                }
+
+                // Матрица — ровно тем же путём, каким её берёт приложение
+                // (`FsaAnalysisSession.Capture`): по Guid кривой спектра и только если
+                // отпечаток сошёлся с её геометрией. Разница ОДНА: приложение
+                // молча работает без матрицы, а здесь причина запоминается —
+                // «понятный» спектр, посчитанный без матрицы, обязан быть виден,
+                // иначе он смешает две модели внутри одной части.
+                //
+                // ⛔ ЗДЕСЬ РЕШАЕТСЯ ТОЛЬКО «НАЙДЕНА» (`T85`). Применена она или
+                // нет, скажет уже результат разбора (<c>MatrixApplied</c>): образ
+                // строит матрицей лишь компонент со своими линиями, и отчётный
+                // фит может не сохранить ни одного такого.
+                if (o.Matrix && rd.Efficiency != null && rd.Efficiency.HasGeometry
+                    && rd.Efficiency.UseResponseMatrix)
+                {
+                    ResponseMatrix matrix = ResponseMatrixStore.Load(rd.Efficiency.Guid);
+                    if (matrix == null)
+                    {
+                        row.Matrix = MatrixState.NoFile;
+                    }
+                    else if (!matrix.IsValidFor(rd.Efficiency.Geometry))
+                    {
+                        row.Matrix = MatrixState.StampMismatch;
+                    }
+                    else
+                    {
+                        // ⛔ ТЕМ ЖЕ кодом, что и приложение (`FsaMatrixBinding`,
+                        // `AMBER12`): с матрицей едут вещество кристалла (`S20`)
+                        // и признак защиты. Корпусных геометрий с защитой нет, и
+                        // чисел базы это не двигает, — но расходиться с экраном
+                        // проба, которая объявляет базу, не вправе.
+                        FsaMatrixBinding.Bind(analyzer, rd.Efficiency.Geometry, matrix);
+                        // Абляционный ключ выставляется в NewAnalyzer ДО того,
+                        // как сюда приезжает матрица. Bind закономерно ставит
+                        // штатное значение из геометрии, поэтому явное плечо
+                        // «строить образ и при матрице» возвращаем ПОСЛЕ него.
+                        if (o.BackscatterWithMatrix)
+                        {
+                            analyzer.BackscatterWithMatrix = true;
+                        }
+                        row.Matrix = MatrixState.Found;
+                    }
+                }
+                else if (o.Matrix)
+                {
+                    row.Matrix = rd.Efficiency == null ? MatrixState.NoCurve
+                        : (rd.Efficiency.HasGeometry ? MatrixState.OffInCurve : MatrixState.NoGeometry);
+                }
+                else
+                {
+                    row.Matrix = MatrixState.OffByKey;
+                }
+
+                // (`T115`) Свидетель точки применения `--no-matrix`: какой веткой
+                // ПОШЛИ — матрицу искали (любое состояние, кроме `OffByKey`) или
+                // отключили ключом. Читается исход ветки, а не поле.
+                ProbeSwitches.Witness("Matrix", row.Matrix != MatrixState.OffByKey);
+
+                FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
+                row.EfficiencyName = rd.Efficiency != null ? rd.Efficiency.Name : "";
+
+                FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background,
+                                                    rd.FwhmCalibration, library, efficiency);
+                row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
+
+                // (`A268`, разряд ~~`T240`~~) ИСХОД ОТСЕВА снимается здесь и
+                // сводится одной строкой в конце прогона. Затем, что ~~`T240`~~
+                // закрыта «состояние названо вслух» ТОЛЬКО у `FsaStackShot`, а
+                // молчал и корпусный прогон: `AllBelow` (порог выше значимости
+                // ВСЕХ судимых) отключает отсев целиком, и по корпусному отчёту
+                // этого не видно НИ ОДНОЙ цифрой — при том что решать, брать ли
+                // относительный порог умолчанием, будут именно по корпусу.
+                // Читатель признака заводится вместе с признаком, иначе это
+                // опять «сигнал без читателя».
+                row.RefitZState = analyzer.RefitZState;
+                row.RefitZUsed = analyzer.RefitZUsed;
+                row.RefitZTopZ = analyzer.RefitZTopZ;
+                row.RefitZAbs = analyzer.RefitZ;
+                // ⛔ `T105`. `FsaAnalyzer.BandNote` — заверение анализатора о
+                // полосе, которую фит взял НА ДЕЛЕ (режим, каналы, кэВ), — до
+                // сих пор не имело во всём дереве НИ ОДНОГО читателя. Шапка
+                // прогона печатает `FsaBand.EndsLine`, то есть НАСТРОЕННЫЕ
+                // концы, а это другое: настроенное и взятое расходятся, когда
+                // пол считается по кривой спектра.
+                //
+                // Печатается ОДИН раз за прогон, с первого разобравшегося
+                // спектра, и называет его: строка про полосу без имени
+                // спектра непроверяема — у разных приборов она разная.
+                if (result != null && !string.IsNullOrEmpty(analyzer.BandNote)
+                    && Interlocked.CompareExchange(ref bandNoteShown, 1, 0) == 0)
+                {
+                    Console.WriteLine("полоса ПЕРВОГО разбора ({0}): {1}",
+                                      row.Key, analyzer.BandNote);
+                }
+
+                if (result == null)
+                {
+                    // ⛔ (`T256`) ОТКАЗ ПО ГЕОМЕТРИИ НАЗЫВАЕТ СЕБЯ И В КОРПУСЕ.
+                    // Гейт `A277` («нет геометрии — нет FSA разбора») отказывает
+                    // до единого расчёта, а `Analyze` отвечает `null` ещё на
+                    // пяти причинах, и одно слово «разложение не получилось»
+                    // стояло на шести разных бедах. Экран причину назвал в тот
+                    // же день (`FsaAnalysisSession`, строка `FSANoGeometry`), а
+                    // корпус — нет: признак `GeometryRefused` был заведён и
+                    // читателя здесь не имел, то есть ровно «признак без
+                    // читателя». На малой базе так выглядели 15 спектров из 59.
+                    //
+                    // Решение о самом отказе принимает ОДНО место
+                    // (`FsaAnalyzer.RequireGeometry`), здесь только слова.
+                    row.GeometryRefused = analyzer.GeometryRefused;
+                    row.Error = analyzer.GeometryRefused
+                        ? "нет геометрии — разбора не было (A277: кристалл описывается"
+                          + " в редакторе геометрии у кривой эффективности)"
+                        : "разложение не получилось (нет калибровок или вырожденный диапазон)";
+                    Report(row, o);
+                    return row;
+                }
+
+                row.Result = result;
+
+                // (`S103`) Что сдвинул рычаг опоры по столбцу — берётся у
+                // результата, а не пересчитывается здесь: считает выброс
+                // анализатор, и вторая копия правила разошлась бы с первой.
+                row.ShareDropped = result.ShareDroppedLines;
+                row.ShareOffered = result.ShareOfferedLines;
+
+                // (`S88`) Кривые по каналам — до всех сводок: спор о форме
+                // модели решается ими, а не числом в таблице.
+                if (!string.IsNullOrEmpty(o.DumpCurves))
+                {
+                    DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result);
+                }
+
+                // (`S103`) Чем описана полоса НИЖЕ `Min_Range`: сколько там
+                // отсчётов и сколько из них взял континуум. Считается по тем же
+                // кривым, что выгружает `--dump-curves=`, и тем же правилом
+                // «спектр минус фон» у результата: второй копии здесь не
+                // заводится.
+                //
+                // ⛔ (`A284`) Берётся кривая ФИТА, а не показная: ниже `Min_Range`
+                // живут самые бедные каналы, ровно те, где вычтенный фон
+                // превышает счёт, и подрезка нулём завышала бы `DataTotal` и
+                // `DataBelow` — то есть меру сравнивали бы с моделью, построенной
+                // по ДРУГОЙ кривой.
+                if (!string.IsNullOrEmpty(o.BandAudit))
+                {
+                    row.LineColumns = result.LineColumns;
+                    double[] net = result.FitSpectrum(rd.EnergySpectrum.Spectrum);
+                    EnergyCalibration cal = rd.EnergySpectrum.EnergyCalibration;
+                    for (int ch = result.FirstChannel; ch <= result.LastChannel; ch++)
+                    {
+                        row.DataTotal += net[ch];
+                        if (double.IsNaN(row.MinRangeKev) || cal.ChannelToEnergy(ch) >= row.MinRangeKev)
+                        {
+                            continue;
+                        }
+
+                        row.DataBelow += net[ch];
+                        row.ContinuumBelow += result.Continuum != null ? result.Continuum[ch] : 0.0;
+                        row.ModelBelow += result.Model != null ? result.Model[ch] : 0.0;
+                    }
+                }
+
+                // (S78) Кто был построен и предъявлен фиту, но до отчёта не
+                // дожил — с той значимостью, с которой его видели живым в
+                // последний раз. Без этой строки «образ не строился» и
+                // «образ признан незначимым» в сводке неразличимы.
+                if (o.LibDump && result.SuppressedImages != null)
+                {
+                    foreach (FsaSuppressedImage s in result.SuppressedImages)
+                    {
+                        Console.WriteLine("CUT	{0}	{1}	{2}	{3}",
+                                          row.Key, s.Name, s.Kind,
+                                          s.Z.ToString("F2", CultureInfo.InvariantCulture));
+                    }
+                }
+                // ⛔ (`A302`) НИЖНИЙ КОНЕЦ ПОЛОСЫ ФИТА — ПОИМЁННО, У КАЖДОГО
+                // спектра. Заверение `BandNote` печатается один раз за прогон,
+                // с первого разобравшегося спектра, и доказать им, что ключ
+                // `--fit-floor=` доехал до РЕШЕНИЯ на остальных, нечем: ключ,
+                // доехавший до печати и не доехавший до счёта, выглядел бы
+                // ровно так же (`A77`).
+                row.FitLoCh = result.FirstChannel;
+                row.FitLoKev = rd.EnergySpectrum.EnergyCalibration != null
+                    ? rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(result.FirstChannel)
+                    : double.NaN;
+                row.Chi2Ndf = result.Chi2Ndf;
+                row.SigmaInflation = result.SigmaInflation;
+                row.Chi2NdfPoisson = result.Chi2NdfPoisson;
+                row.ModelResidual = result.ModelResidual;
+
+                // Фон подан и НЕ взят — печатаем причину и снимаем признак
+                // «фон есть» (S44). Прежде колонка `background` мерила наличие
+                // узла в файле, и одиннадцать спектров G1S годами числились с
+                // фоном, который анализатор молча отбрасывал.
+                if (result.BackgroundRejected != null)
+                {
+                    row.HasBackground = false;
+                    row.BackgroundNote = result.BackgroundRejected;
+                    if (!o.Quiet)
+                    {
+                        Console.WriteLine("  {0}: ФОН НЕ ВЗЯТ — {1}", row.Key, result.BackgroundRejected);
+                    }
+                }
+                row.Gain = result.Gain;
+                row.OffsetChannels = result.OffsetChannels;
+                row.GainOnGridEdge = result.GainOnGridEdge;
+                row.OffsetOnGridEdge = result.OffsetOnGridEdge;
+                row.AnchorsUsed = result.ScaleAnchorsUsed;
+                row.AnchorLight = result.AnchorLightCurve ?? "";
+                row.AnchorBeta = result.AnchorLightBeta;
+                row.AnchorForm = result.AnchorLightForm ?? "";
+                row.AnchorOffsetKev = result.AnchorOffsetKev;
+                row.AnchorNote = result.AnchorNote ?? "";
+                row.Anchors = result.ScaleAnchors;
+                row.PileUpCurve = analyzer.PileUpCurveUsed;    // (`S107`) null — старая форма
+                // (`T85`) ПРИМЕНЕНИЕ, а не находка: у `FsaAnalyzer` признак
+                // поднимается тогда и только тогда, когда хоть один образ
+                // ОТЧЁТНОГО фита построен матрицей (`FitOnce`,
+                // `fromMatrix |= template != null`). Производные образы
+                // (обратное рассеяние) и готовые (наложения) её не трогают по
+                // построению, поэтому фит, где уцелели только они, вернёт здесь
+                // ложь при живой матрице.
+                row.MatrixApplied = result.ResponseMatrixUsed;
+                row.MatrixImages = MatrixEligibleInReport(result, library);
+                row.CascadeUsed = result.CascadeSummingUsed;
+                // (`N14`, П49) Угловые корреляции — отражением с живого
+                // анализатора: ключ, нашлась ли таблица Q_k сцены, сколько пар
+                // с A_kk ≠ 0 прошло через сумматор и в каких пределах множитель.
+                AngularCensus.Note(analyzer);
+                row.EfficiencyUsed = result.EfficiencyUsed;
+
+                // Карта невязки: где измерение выше модели. Правило общее с
+                // `FsaCascadeProbe` (`ResidualScan`), чтобы числа одного и того
+                // же спектра в двух пробах совпадали.
+                // S60: сверка по линиям, которые обязаны быть. Считается
+                // ПОСЛЕ разбора и его не трогает — это поверка результата, а
+                // не часть модели.
+                if (o.Audit)
+                {
+                    row.Audit = FsaLineAudit.Run(rd.EnergySpectrum, result,
+                                                 rd.FwhmCalibration, library);
+                }
+
+                if (o.Residuals > 0)
+                {
+                    Console.WriteLine("  {0}: крупнейшие невязки", sample.Key);
+                    ResidualScan.Print(rd.EnergySpectrum, result, o.Residuals, "      ",
+                                       rd.FwhmCalibration);
+                }
+
+                if (o.NearTo > o.NearFrom)
+                {
+                    ResidualScan.Excess near;
+                    row.NearExcess = ResidualScan.Near(rd.EnergySpectrum, result,
+                                                       o.NearFrom, o.NearTo,
+                                                       rd.FwhmCalibration, out near)
+                        ? near.Sigmas : double.NaN;
+                    row.NearCounts = double.IsNaN(row.NearExcess) ? 0.0 : near.Counts;
+                }
+
+                if (o.LimitsMc > 0)
+                {
+                    ValidateLimits(rd, background, library, analyzer, result, efficiency, o, sample.Key);
+                }
+
+                if (!string.IsNullOrEmpty(o.ResidualPeaks))
+                {
+                    row.ResidualPeaks = ResidualPeaks(rd, result, sample);
+                }
+            }
+            catch (Exception ex)
+            {
+                row.Ms = clock.Elapsed.TotalMilliseconds;
+                row.CpuMs = (System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime
+                             - cpuBefore).TotalMilliseconds;
+                row.Error = ex.GetType().Name + ": " + ex.Message;
+            }
+
+            Report(row, o);
+            return row;
+        }
+
+        // ------------------------------------------------------------------
+        // S56: объявленный состав спектра -> вход сборщика библиотеки
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Объявленный состав спектра плюс вещества вокруг кванта.
+        ///
+        /// ⛔ Сборка — ОБЩИМ ВХОДОМ приложения `FsaSampleSpec.FromManifest`
+        /// (`T257`, хвост (2), 12.09.2026): метки рядов манифеста переводит
+        /// `FsaSampleChain.FromLabel` (там же живёт особый случай `U-238u`),
+        /// кривая, порог АЦП, окно поиска пиков, кристалл и элементы пробы из
+        /// геометрии кладутся `FsaSampleSpec.OfSpectrum`. До того здесь лежала
+        /// первая из пяти копий этой сборки. Кристалл и проба берутся ИЗ
+        /// ГЕОМЕТРИИ, если она есть: там они записаны веществом, а не догадкой,
+        /// и второй источник правды завёл бы расхождение, которое двигает линии
+        /// (энергия пика вылета — разность с Kα кристалла). `materials.csv`
+        /// добирает то, чего геометрия не знает вовсе: защиту — у всех,
+        /// кристалл и пробу — у сорока семи спектров без геометрии; это данные
+        /// корпуса, и добираются они ЗДЕСЬ, а не в приложении.
+        /// </summary>
+        static FsaSampleSpec SpecOf(ResultData rd, Sample sample, Options o)
+        {
+            // Неизвестной метки сюда не доходит: `ReadTruth` отказал бы на ней
+            // до прогона тем же `FromLabel`.
+            FsaSampleSpec spec = FsaSampleSpec.FromManifest(
+                rd, sample.Chains, sample.Nuclides, o.Equilibrium, o.Atomic);
+            // (`A30`, П21) Ключ библиотеки, а не анализатора: заслон живёт в
+            // `FsaSampleLibrary.AddAtomic`, и ключ обязан доехать до неё.
+            spec.CrystalShield = o.CrystalShield;
+            // (`T115`) Порча `--spoil=key` — положительный контроль свидетелей:
+            // точка применения атомных образов ПРИМЕНЯЕТ УМОЛЧАНИЕ вместо ключа.
+            // Ровно так выглядела бы правка, оборвавшая путь ключа до потребителя;
+            // `ProbeSwitches.Verdict` обязан назвать её и кончить прогон кодом 13.
+            if (o.Spoil == "key")
+            {
+                spec.AtomicXray = new FsaSampleSpec().AtomicXray;
+            }
+
+            AddElements(spec.CrystalElements, sample.Crystal);
+            AddElements(spec.SampleElements, sample.SampleMatter);
+            AddElements(spec.ShieldElements, sample.Shield);
+            return spec;
+        }
+
+        /// <summary>Порог доли прогона: свой или умолчание вывода.</summary>
+        static double InferTheta(Options o)
+        {
+            return o.InferTheta >= 0.0
+                ? o.InferTheta
+                : FsaCompositionInference.DefaultCoverage;
+        }
+
+        /// <summary>
+        /// Вещества ПРИБОРА в выведенный состав — кристалл и защита, и только
+        /// они.
+        ///
+        /// ⛔ Проба сюда НЕ ДОБИРАЕТСЯ, и это существо замера. В поле неизвестен
+        /// СОСТАВ ОБРАЗЦА — прибор же свой, и из чего сделан его кристалл и его
+        /// домик, знает всякий, кто его держит. `materials.csv` для этих двух
+        /// колонок есть законный источник, `manifest.csv` не читается вовсе.
+        ///
+        /// ⚠ Без этого сравнение с `--lib=sample` было бы нечестным в другую
+        /// сторону: у сорока семи спектров корпуса геометрии нет, кристалл и
+        /// защиту им даёт только эта таблица, и выведенный состав проиграл бы
+        /// им атомными образами, а не составом. Разводить надо то, что мерим.
+        /// </summary>
+        static void SpecMatter(FsaSampleSpec spec, ResultData rd, Sample sample)
+        {
+            AddElements(spec.CrystalElements, sample.Crystal);
+            AddElements(spec.ShieldElements, sample.Shield);
+        }
+
+        static void AddElements(List<int> into, List<string> symbols)
+        {
+            foreach (string symbol in symbols)
+            {
+                int z = MaterialDatabase.ZOf(symbol);
+                if (z > 0 && !into.Contains(z))
+                {
+                    into.Add(z);
+                }
+            }
+        }
+
+        /// <summary>
+        /// `manifest.csv` (что снято) и `materials.csv` (чем снято и что вокруг)
+        /// в отобранные спектры.
+        ///
+        /// ⛔ Отсутствие любой из таблиц — ОТКАЗ, а не «поработаем без неё».
+        /// Спектр без объявленного состава получил бы пустую библиотеку и
+        /// строку «библиотека пуста», а спектр без веществ — молча потерял бы
+        /// атомные образы; и то и другое выглядит как результат.
+        /// </summary>
+        static bool ReadTruth(Options o, List<Sample> samples)
+        {
+            string manifest = Path.Combine(o.Corpus, "manifest.csv");
+            string materials = Path.Combine(o.Corpus, "materials.csv");
+            if (!File.Exists(manifest))
+            {
+                Console.Error.WriteLine("нет " + manifest + " — с --lib=sample он обязателен");
+                return false;
+            }
+
+            if (!File.Exists(materials))
+            {
+                Console.Error.WriteLine("нет " + materials
+                    + " — соберите его: python tools/CORPUS/scripts/mk_materials.py");
+                return false;
+            }
+
+            var byKey = new Dictionary<string, Sample>(StringComparer.Ordinal);
+            foreach (Sample s in samples)
+            {
+                byKey[s.Key] = s;
+            }
+
+            var declared = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Dictionary<string, string> row in ReadTable(manifest))
+            {
+                Sample s;
+                string key = Value(row, "key");
+                if (!byKey.TryGetValue(key, out s))
+                {
+                    continue;
+                }
+
+                declared.Add(key);
+                foreach (string label in Split(Value(row, "chains")))
+                {
+                    // Словарь меток — в приложении (`FsaSampleChain.FromLabel`,
+                    // `T257`); проверка ДО прогона, чтобы опечатка в манифесте
+                    // остановила его, а не всплыла броском посреди спектров.
+                    if (FsaSampleChain.FromLabel(label) == null)
+                    {
+                        Console.Error.WriteLine("манифест: неизвестный ряд '" + label
+                                                + "' у " + key + "; известные: "
+                                                + string.Join(", ", FsaSampleChain.KnownLabels));
+                        return false;
+                    }
+
+                    s.Chains.Add(label);
+                }
+
+                foreach (string nucid in Split(Value(row, "nuclides")))
+                {
+                    s.Nuclides.Add(nucid);
+                }
+            }
+
+            foreach (Dictionary<string, string> row in ReadTable(materials))
+            {
+                Sample s;
+                if (!byKey.TryGetValue(Value(row, "spectrum"), out s))
+                {
+                    continue;
+                }
+
+                s.Crystal.AddRange(Split(Value(row, "crystal")));
+                s.SampleMatter.AddRange(Split(Value(row, "sample")));
+                s.Shield.AddRange(Split(Value(row, "shield")));
+            }
+
+            var silent = new List<string>();
+            foreach (Sample s in samples)
+            {
+                if (!declared.Contains(s.Key))
+                {
+                    silent.Add(s.Key);
+                }
+                else if (s.Chains.Count == 0 && s.Nuclides.Count == 0)
+                {
+                    silent.Add(s.Key + " (состав пуст)");
+                }
+            }
+
+            if (silent.Count > 0)
+            {
+                Console.Error.WriteLine("в манифесте нет состава для: "
+                                        + string.Join(", ", silent.ToArray()));
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`S43`) Карта «спектр → ε» из `*_spline_runs.csv` каталога прежнего
+        /// прогона: `model_residual_pct` (проценты) → доля. Строки `ERROR` и
+        /// пустые пропускаются. null — каталога нет или строк не нашлось.
+        /// </summary>
+        static Dictionary<string, double> ReadGammaMap(string dir)
+        {
+            if (!Directory.Exists(dir))
+            {
+                Console.Error.WriteLine("--gamma-map: каталога нет: " + dir);
+                return null;
+            }
+
+            var map = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (string file in Directory.GetFiles(dir, "*_spline_runs.csv"))
+            {
+                string[] lines = File.ReadAllLines(file);
+                if (lines.Length < 2)
+                {
+                    continue;
+                }
+
+                string[] header = lines[0].TrimStart('﻿').Split(',');
+                int iSpec = Array.IndexOf(header, "spectrum");
+                int iEps = Array.IndexOf(header, "model_residual_pct");
+                if (iSpec < 0 || iEps < 0)
+                {
+                    continue;
+                }
+
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    List<string> cells = SplitCsv(lines[i]);
+                    if (cells.Count <= Math.Max(iSpec, iEps))
+                    {
+                        continue;
+                    }
+
+                    double eps;
+                    if (double.TryParse(cells[iEps], NumberStyles.Float, CultureInfo.InvariantCulture, out eps)
+                        && eps > 0.0)
+                    {
+                        map[cells[iSpec]] = eps / 100.0;
+                    }
+                }
+            }
+
+            if (map.Count == 0)
+            {
+                Console.Error.WriteLine("--gamma-map: в каталоге нет строк с невязкой: " + dir);
+                return null;
+            }
+
+            Console.WriteLine("γ по невязке прежнего прогона (--gamma-map): спектров {0}, каталог {1}", map.Count, dir);
+            return map;
+        }
+
+        /// <summary>
+        /// Только `materials.csv`, и только колонки прибора, — для `--lib=infer`.
+        ///
+        /// Отдельный читатель, а не флаг у <see cref="ReadTruth"/>, нарочно:
+        /// тот обязан ОТКАЗАТЬ без манифеста, а этому манифест не нужен и
+        /// брать его нельзя. Один метод с двумя такими режимами рано или поздно
+        /// прочитал бы истину там, где её знать не полагается.
+        /// </summary>
+        static bool ReadMatter(Options o, List<Sample> samples)
+        {
+            string materials = Path.Combine(o.Corpus, "materials.csv");
+            if (!File.Exists(materials))
+            {
+                Console.Error.WriteLine("нет " + materials
+                    + " — соберите его: python tools/CORPUS/scripts/mk_materials.py");
+                return false;
+            }
+
+            var byKey = new Dictionary<string, Sample>(StringComparer.Ordinal);
+            foreach (Sample s in samples)
+            {
+                byKey[s.Key] = s;
+            }
+
+            foreach (Dictionary<string, string> row in ReadTable(materials))
+            {
+                Sample s;
+                if (!byKey.TryGetValue(Value(row, "spectrum"), out s))
+                {
+                    continue;
+                }
+
+                s.Crystal.AddRange(Split(Value(row, "crystal")));
+                s.Shield.AddRange(Split(Value(row, "shield")));
+            }
+
+            return true;
+        }
+
+        /// <summary>Строки CSV словарями по шапке.</summary>
+        static List<Dictionary<string, string>> ReadTable(string path)
+        {
+            var rows = new List<Dictionary<string, string>>();
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            if (lines.Length == 0)
+            {
+                return rows;
+            }
+
+            List<string> head = SplitCsv(lines[0].TrimStart('﻿'));
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (lines[i].Length == 0)
+                {
+                    continue;
+                }
+
+                List<string> cells = SplitCsv(lines[i]);
+                var row = new Dictionary<string, string>(StringComparer.Ordinal);
+                for (int c = 0; c < head.Count && c < cells.Count; c++)
+                {
+                    row[head[c]] = cells[c];
+                }
+
+                rows.Add(row);
+            }
+
+            return rows;
+        }
+
+        static string Value(Dictionary<string, string> row, string column)
+        {
+            string value;
+            return row.TryGetValue(column, out value) ? value.Trim() : "";
+        }
+
+        static List<string> Split(string cell)
+        {
+            var parts = new List<string>();
+            foreach (string piece in cell.Split(';'))
+            {
+                string trimmed = piece.Trim();
+                if (trimmed.Length > 0)
+                {
+                    parts.Add(trimmed);
+                }
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// Монте-Карло-поверка характеристических пределов (S9) на живом
+        /// спектре корпуса — тем же способом, каким Xu-2022 поверяли формулы:
+        /// для каждого нуклида состава спектр разыгрывается заново пуассоном
+        ///
+        ///   * из модели БЕЗ нуклида — доля срабатываний «есть» обязана быть
+        ///     около α = 5 % (ложные срабатывания);
+        ///   * из модели С нуклидом на уровне его МДА — доля пропусков обязана
+        ///     быть около β = 5 %.
+        ///
+        /// Библиотека, настройки и дрейф-сетка не меняются, поиск пиков не
+        /// перезапускается: поверяется формула пределов, а не весь конвейер.
+        /// Вне окна фита в розыгрыш идут сами данные — фит их не трогает.
+        /// Только режим spline: в snip средние каналов не равны модели.
+        /// </summary>
+        static void ValidateLimits(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                   FsaAnalyzer analyzer, FsaResult result, FsaEfficiency efficiency,
+                                   Options o, string key)
+        {
+            if (o.Mode != "spline")
+            {
+                Console.WriteLine("  {0}: --limits-mc работает только с --mode=spline", key);
+                return;
+            }
+
+            // Зерно фиксировано: прогон обязан воспроизводиться до последней
+            // цифры, иначе два запуска дадут «разные» доли на одном коде.
+            var rng = new Random(20260814);
+            int channels = rd.EnergySpectrum.NumberOfChannels;
+            int[] raw = rd.EnergySpectrum.Spectrum;
+            double liveTime = result.LiveTime;
+            double k1 = analyzer.LimitQuantileK;
+
+            // НЕ вошедшие кандидаты поверяются одной серией: модель их не
+            // содержит, то есть сама и есть их нулевая гипотеза, и N розыгрышей
+            // полной модели проверяют ложные срабатывания у всех разом.
+            var absent = new List<FsaCharacteristicLimit>();
+            foreach (FsaCharacteristicLimit limit in result.CharacteristicLimits)
+            {
+                if (!limit.Detected && !limit.Degenerate
+                    && !double.IsNaN(limit.DecisionThresholdRate)
+                    && (o.McComponent == null
+                        || string.Equals(limit.Name, o.McComponent, StringComparison.Ordinal)))
+                {
+                    absent.Add(limit);
+                }
+            }
+
+            // (`S173`) Среднее пуассона — МОДЕЛЬ ФИТА, с отвязанными хвостами
+            // матричных образов (`FsaResult.FitModel`): на экране хвост с
+            // 14.09.2026 идёт невязкой, но решатель его подгонял, и копия
+            // спектра без него потеряла бы низ шкалы, которого у измерения не
+            // убавилось.
+            double[] fitModel = result.FitModel();
+            if (absent.Count > 0)
+            {
+                double[] muFull = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    muFull[i] = i < result.FirstChannel || i > result.LastChannel
+                        ? raw[i]
+                        : Math.Max(0.0, fitModel[i])
+                          + (result.Background != null ? result.Background[i] : 0.0);
+                }
+
+                var falseByName = new Dictionary<string, int>(StringComparer.Ordinal);
+                int failedRuns = 0;
+                for (int run = 0; run < o.LimitsMc; run++)
+                {
+                    FsaResult replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                                    muFull, rng);
+                    if (replay == null)
+                    {
+                        failedRuns++;
+                        continue;
+                    }
+
+                    foreach (FsaCharacteristicLimit limit in absent)
+                    {
+                        double estimate;
+                        if (Exceeded(replay, limit.Name, out estimate))
+                        {
+                            int have;
+                            falseByName.TryGetValue(limit.Name, out have);
+                            falseByName[limit.Name] = have + 1;
+                        }
+                    }
+                }
+
+                foreach (FsaCharacteristicLimit limit in absent)
+                {
+                    int fp;
+                    falseByName.TryGetValue(limit.Name, out fp);
+                    Console.WriteLine("  {0}: {1,-14} НЕ в составе; a*={2:E3} МДА={3:E3} имп/с;"
+                                      + " ложных {4}/{5} (ждём ~5 %){6}",
+                                      key, limit.Name, limit.DecisionThresholdRate,
+                                      limit.DetectionLimitRate, fp, o.LimitsMc - failedRuns,
+                                      failedRuns > 0 ? "; отказов " + failedRuns : "");
+                }
+            }
+
+            foreach (FsaComponentResult c in result.Components)
+            {
+                if (c.Kind == FsaComponentKind.Nuisance)
+                {
+                    continue;
+                }
+
+                if (o.McComponent != null
+                    && !string.Equals(c.Name, o.McComponent, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                double amplitude = c.CountRate * liveTime;
+                if (!(amplitude > 0.0) || double.IsNaN(c.DecisionThresholdRate)
+                    || double.IsNaN(c.DetectionLimitRate))
+                {
+                    Console.WriteLine("  {0}: {1} — пределов нет (вырождено или не в составе), пропуск",
+                                      key, c.Name);
+                    continue;
+                }
+
+                double mdaAmplitude = c.DetectionLimitRate * liveTime * o.McLevel;
+                if (o.McLevel != 1.0)
+                {
+                    Console.WriteLine("  {0}: {1} — уровень впрыска {2:F3} × МДА (ключ --mc-level)",
+                                      key, c.Name, o.McLevel);
+                }
+
+                // (`S106`, полоса П30 12.09.2026) Нулевая гипотеза ЧЛЕНА РЯДА —
+                // ряд целиком. Снятый из модели один член связка равновесия
+                // восстанавливает из его же дочерних (Th-228 из Pb-212/Tl-208),
+                // и «ложных 100/100» мерило связку, а не порог. Поэтому из
+                // модели вынимаются ВСЕ компоненты с тем же корнем ряда, и
+                // впрыскиваются они же — в масштабе МДА/a самого члена.
+                var family = new List<FsaComponentResult> { c };
+                if (!string.IsNullOrEmpty(c.DecayChainRoot))
+                {
+                    foreach (FsaComponentResult other in result.Components)
+                    {
+                        if (!ReferenceEquals(other, c) && other.Curve != null
+                            && string.Equals(other.DecayChainRoot, c.DecayChainRoot, StringComparison.Ordinal))
+                        {
+                            family.Add(other);
+                        }
+                    }
+                }
+
+                if (family.Count > 1)
+                {
+                    Console.WriteLine("  {0}: {1} — член ряда {2}: нулевая гипотеза и впрыск — ряд целиком ({3} компонентов)",
+                                      key, c.Name, c.DecayChainRoot, family.Count);
+                }
+
+                double[] mu0 = new double[channels];
+                double[] mu1 = new double[channels];
+                for (int i = 0; i < channels; i++)
+                {
+                    if (i < result.FirstChannel || i > result.LastChannel)
+                    {
+                        // Вне окна фита модель молчит — туда идут сами данные.
+                        mu0[i] = raw[i];
+                        mu1[i] = raw[i];
+                        continue;
+                    }
+
+                    double familyCurve = 0.0;
+                    foreach (FsaComponentResult member in family)
+                    {
+                        familyCurve += member.Curve[i];
+                    }
+
+                    double without = fitModel[i] - familyCurve;
+                    if (without < 0.0)
+                    {
+                        without = 0.0;
+                    }
+
+                    double bg = result.Background != null ? result.Background[i] : 0.0;
+                    mu0[i] = without + bg;
+                    mu1[i] = mu0[i] + mdaAmplitude * (familyCurve / amplitude);
+                }
+
+                // (`S106`, П46 13.09.2026) ДВЕ ПРИЧИНЫ, по которым впрыск на
+                // уровне МДА даёт нулевую оценку, — обе названы дампом
+                // (`--mc-dump`) и обе печатаются здесь, чтобы читатель сводки
+                // видел их без дампа.
+                //
+                // 1. Веса решателя — по ДАННЫМ (1/max(y,1), FsaAnalyzer.Analyze):
+                //    E[(y−μ)/y] ≈ −1/μ, и градиент по колонке φ несёт сдвиг
+                //    −Σφ/μ, не зависящий от амплитуды. В отсчётах он равен
+                //    примерно числу каналов, по которым размазан образ: ряд
+                //    Th-228 на G1S16 — ~1000 отсчётов при впрыске 1127, Lu-176
+                //    на ASN16 — 426 при впрыске 308, Cs-137 — 51 при 935.
+                //    Формула пределов описывает несмещённый линейный оценщик и
+                //    этого сдвига не знает; NNLS обрезает смещённую оценку
+                //    нулём. Отсюда же «ложных 0/100» П28 и «σ0 розыгрыша в
+                //    2.4…7.4 раза меньше» — нулевая оценка сидит на −3σ.
+                // 2. Привязка шкалы ВКЛ: копия без пиков опор не находит, и
+                //    усиление/ноль/свет/нуль adc уходят к умолчаниям прибора —
+                //    образ копии стоит не там, где впрыск (у Th-228 на G1S16:
+                //    β 1 → 0, усиление 1.0082 → 1, нуль −0.93 → 0 кан). Для
+                //    поверки ФОРМУЛЫ обе стороны обязаны быть на одной шкале:
+                //    ключ `--no-anchor`.
+                double biasGradient = 0.0, biasGram = 0.0, familySum = 0.0;
+                for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                {
+                    double phi = 0.0;
+                    foreach (FsaComponentResult member in family)
+                    {
+                        phi += member.Curve[i];
+                    }
+
+                    phi /= amplitude;
+                    double v = Math.Max(1.0, mu0[i]);
+                    biasGradient += phi / v;
+                    biasGram += phi * phi / v;
+                    familySum += phi;
+                }
+
+                double biasAmplitude = biasGram > 0.0 ? biasGradient / biasGram : double.NaN;
+                // (`A310`, П47) При весах по МОДЕЛИ (`ModelWeights`) сдвиг
+                // −Σφ/μ не действует — печатается как справка «был бы при
+                // весах по данным», чтобы читатель плеча ВКЛ не принял его за
+                // ожидание.
+                Console.WriteLine("  {0}: {1} — сдвиг оценки от весов по данным (−Σφ/μ, П46){6}: ≈ {2:F0} отсч. = {3:F2} × МДА = {4:F2} × a*{5}",
+                                  key, c.Name, biasAmplitude * familySum,
+                                  mdaAmplitude > 0.0 ? biasAmplitude / mdaAmplitude : double.NaN,
+                                  c.DecisionThresholdRate > 0.0 ? biasAmplitude / (c.DecisionThresholdRate * liveTime) : double.NaN,
+                                  analyzer.AnchorScale
+                                      ? "; ⚠ привязка ВКЛ: копия без пиков теряет опоры, образ копии не на шкале впрыска — поверять формулу с --no-anchor"
+                                      : "",
+                                  analyzer.ModelWeights
+                                      ? " — НЕ ДЕЙСТВУЕТ: веса решателя по МОДЕЛИ (A310), справочно"
+                                      : "");
+
+                if (o.McDump > 0)
+                {
+                    double injected = 0.0, familyTotal = 0.0, modelTotal = 0.0;
+                    for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                    {
+                        injected += mu1[i] - mu0[i];
+                        modelTotal += Math.Max(0.0, fitModel[i]);
+                        foreach (FsaComponentResult member in family)
+                        {
+                            familyTotal += member.Curve[i];
+                        }
+                    }
+
+                    Console.WriteLine("  МК-дамп {0} {1}: живое {2:F1} с; окно фита {3}..{4}; модель в окне {5:E3} отсч.,"
+                                      + " семья {6:E3} отсч. ({7} комп.), амплитуда члена {8:E3} (= {9:E3} имп/с);"
+                                      + " впрыск Σ(mu1−mu0) = {10:E3} отсч. = {11:F3} × семья; МДА/a* = {12:F3};"
+                                      + " исходный: χ²/ndf {13:F3}, σ× {14:F3}, усил. {15:F4}, ноль {16:F2} кан., опор {17}",
+                                      key, c.Name, liveTime, result.FirstChannel, result.LastChannel,
+                                      modelTotal, familyTotal, family.Count, amplitude, c.CountRate,
+                                      injected, familyTotal > 0.0 ? injected / familyTotal : double.NaN,
+                                      c.DecisionThresholdRate > 0.0 ? c.DetectionLimitRate / c.DecisionThresholdRate : double.NaN,
+                                      result.Chi2Ndf, result.SigmaInflation, result.Gain, result.OffsetChannels,
+                                      result.ScaleAnchorsUsed);
+                    foreach (FsaComponentResult member in family)
+                    {
+                        double memberTotal = 0.0;
+                        for (int i = result.FirstChannel; i <= result.LastChannel && i < channels; i++)
+                        {
+                            memberTotal += member.Curve[i];
+                        }
+
+                        Console.WriteLine("    семья: {0,-10} кол.{1,-8} имп/с {2:E3} z {3:F2} a* {4:E3} МДА {5:E3} лента {6:E3} отсч. ΔD {7:F1}",
+                                          member.Name, member.ChainRoot ?? "-", member.CountRate, member.Z,
+                                          member.DecisionThresholdRate, member.DetectionLimitRate,
+                                          memberTotal, member.ZoneDeltaD);
+                    }
+
+                    DumpReplay(result, analyzer, family, "исходный", -1, key);
+                }
+
+                int falsePositives = 0, detections = 0, failed = 0;
+                var nullEstimates = new List<double>();
+                var injectedEstimates = new List<double>();
+                for (int run = 0; run < o.LimitsMc; run++)
+                {
+                    FsaResult replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                                    mu0, rng);
+                    if (replay != null)
+                    {
+                        double estimate;
+                        bool exceeded = Exceeded(replay, c.Name, out estimate);
+                        nullEstimates.Add(estimate);
+                        if (exceeded)
+                        {
+                            falsePositives++;
+                        }
+
+                        if (run < o.McDump)
+                        {
+                            DumpReplay(replay, analyzer, family, "нуль", run, key);
+                        }
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+
+                    int[] drawn;
+                    FsaAnalyzer.NnlsTrace lastTrace = null;
+                    int traceCalls = 0;
+                    if (run < o.McDump)
+                    {
+                        FsaAnalyzer.NnlsTraceSink = t => { lastTrace = t; traceCalls++; };
+                    }
+
+                    try
+                    {
+                        replay = RunSynthetic(rd, background, library, analyzer, efficiency,
+                                              mu1, rng, out drawn);
+                    }
+                    finally
+                    {
+                        FsaAnalyzer.NnlsTraceSink = null;
+                    }
+
+                    if (replay != null)
+                    {
+                        double estimate;
+                        if (Exceeded(replay, c.Name, out estimate))
+                        {
+                            detections++;
+                        }
+
+                        injectedEstimates.Add(estimate);
+                        if (run < o.McDump)
+                        {
+                            DumpReplay(replay, analyzer, family, "впрыск", run, key);
+                            DumpResidual(replay, drawn, mu0, mu1, rd, "впрыск", run, mdaAmplitude);
+                            DumpShape(replay, result, family, mu0, mu1, rd, run);
+                            DumpTrace(lastTrace, traceCalls, library, run);
+                        }
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+                }
+
+                // Пропуск пропуску рознь: нулевая оценка значит «отсев убил или
+                // NNLS отдал коллинеарным соседям», ненулевая ниже порога —
+                // «увидел, но мало». Формула пределов различий не знает, а
+                // чинить их пришлось бы по-разному.
+                int injectedZeros = 0;
+                foreach (double v in injectedEstimates)
+                {
+                    if (!(v > 0.0))
+                    {
+                        injectedZeros++;
+                    }
+                }
+
+                injectedEstimates.Sort();
+                double injectedMedian = injectedEstimates.Count == 0 ? 0.0
+                    : injectedEstimates[injectedEstimates.Count / 2];
+
+                double meanNull = 0.0, sdNull = 0.0;
+                foreach (double v in nullEstimates)
+                {
+                    meanNull += v;
+                }
+
+                if (nullEstimates.Count > 1)
+                {
+                    meanNull /= nullEstimates.Count;
+                    foreach (double v in nullEstimates)
+                    {
+                        sdNull += (v - meanNull) * (v - meanNull);
+                    }
+
+                    sdNull = Math.Sqrt(sdNull / (nullEstimates.Count - 1));
+                }
+
+                // Предсказание формулы: σ0 = a*/k. Сравнение с измеренным
+                // разбросом нулевых оценок — проверка самой σ0, отдельная от
+                // доли срабатываний (порог может быть верен и при перекошенной
+                // сигме, если перекос съел квантиль).
+                double predictedSigma = c.DecisionThresholdRate / k1;
+                Console.WriteLine("  {0}: {1,-14} a*={2:E3} МДА={3:E3} имп/с; ложных {4}/{5} (ждём ~5 %),"
+                                  + " пропусков {6}/{7} (ждём ~5 %); σ0: формула {8:E3}, розыгрыш"
+                                  + " {9:E3} (сред. {10:E3}); впрыск: нулевых {11}, медиана {12:E3}{13}",
+                                  key, c.Name, c.DecisionThresholdRate, c.DetectionLimitRate,
+                                  falsePositives, o.LimitsMc,
+                                  o.LimitsMc - detections, o.LimitsMc,
+                                  predictedSigma, sdNull, meanNull,
+                                  injectedZeros, injectedMedian,
+                                  failed > 0 ? "; отказов разбора " + failed : "");
+            }
+        }
+
+        /// <summary>
+        /// (`S106`, П46 13.09.2026) Один розыгрыш МК-поверки словами: оценка
+        /// и порог каждого члена семьи по строкам пределов копии, подавленные
+        /// образы копии (кто был предъявлен и до отчёта не дожил, с z), счётчики
+        /// гейта по парциальной невязке и отсева по значимости у анализатора,
+        /// состав копии (имя = имп/с, z), шкала и χ²/ndf. Печатается для первых
+        /// `--mc-dump=K` розыгрышей каждой серии.
+        /// </summary>
+        static void DumpReplay(FsaResult replay, FsaAnalyzer analyzer, List<FsaComponentResult> family,
+                               string label, int run, string key)
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture, "    {0} #{1}:", label, run);
+            foreach (FsaComponentResult member in family)
+            {
+                FsaCharacteristicLimit found = null;
+                foreach (FsaCharacteristicLimit limit in replay.CharacteristicLimits)
+                {
+                    if (string.Equals(limit.Name, member.Name, StringComparison.Ordinal))
+                    {
+                        found = limit;
+                        break;
+                    }
+                }
+
+                if (found == null)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " {0}=НЕТ СТРОКИ;", member.Name);
+                    continue;
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}={1:E3} a*={2:E3}{3}{4};",
+                                member.Name, found.CountRate, found.DecisionThresholdRate,
+                                found.Detected ? " вошёл" : " НЕ вошёл",
+                                found.Degenerate ? " ВЫРОЖДЕН" : "");
+            }
+
+            sb.Append(" | подавлены:");
+            if (replay.SuppressedImages == null || replay.SuppressedImages.Count == 0)
+            {
+                sb.Append(" нет");
+            }
+            else
+            {
+                foreach (FsaSuppressedImage image in replay.SuppressedImages)
+                {
+                    sb.AppendFormat(CultureInfo.InvariantCulture, " {0}(z {1:F2})", image.Name, image.Z);
+                }
+            }
+
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            " | гейт: судил {0}, пощадил {1}, вернул {2}; отсев: {3}, судил {4}, оставил {5}",
+                            analyzer.GateNuclidesJudged, analyzer.GateNuclidesSpared, analyzer.GateNuclidesRescued,
+                            analyzer.RefitZState, analyzer.RefitZJudged, analyzer.RefitZKept);
+            sb.Append(" | состав:");
+            foreach (FsaComponentResult component in replay.Components)
+            {
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}={1:E2}(z {2:F1}{3})",
+                                component.Name, component.CountRate, component.Z,
+                                double.IsNaN(component.ZoneDeltaD) ? "" : string.Format(CultureInfo.InvariantCulture, ", ΔD {0:F1}", component.ZoneDeltaD));
+            }
+
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            " | χ²/ndf {0:F3}, σ× {1:F3}, усил. {2:F4}, ноль {3:F2} кан., опор {4}, окно {5}..{6}; свет: {7} β={8:F4} форма {9}; привязка: {10}",
+                            replay.Chi2Ndf, replay.SigmaInflation, replay.Gain, replay.OffsetChannels,
+                            replay.ScaleAnchorsUsed, replay.FirstChannel, replay.LastChannel,
+                            replay.AnchorLightCurve, replay.AnchorLightBeta, replay.AnchorLightForm,
+                            replay.AnchorNote ?? "-");
+            Console.WriteLine(sb.ToString());
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Форма образа компонента в КОПИИ против формы, которой
+        /// он впрыснут (лента исходного разбора): обе нормируются на единицу
+        /// амплитуды, печатается коэффициент корреляции по окну фита, а по трём
+        /// самым сильным пикам впрыска — положение вершины у обеих (канал) и
+        /// отношение высот. Печатается только когда компонент в копию вошёл
+        /// (иначе его ленты в результате нет).
+        /// </summary>
+        static void DumpShape(FsaResult replay, FsaResult original, List<FsaComponentResult> family,
+                              double[] mu0, double[] mu1, ResultData rd, int run)
+        {
+            int channels = replay.Model.Length;
+            double[] replayCurve = new double[channels];
+            double replayRate = 0.0;
+            foreach (FsaComponentResult member in family)
+            {
+                foreach (FsaComponentResult rc in replay.Components)
+                {
+                    if (string.Equals(rc.Name, member.Name, StringComparison.Ordinal) && rc.Curve != null)
+                    {
+                        replayRate = rc.CountRate;
+                        for (int i = 0; i < channels; i++)
+                        {
+                            replayCurve[i] += rc.Curve[i];
+                        }
+                    }
+                }
+            }
+
+            if (!(replayRate > 0.0))
+            {
+                Console.WriteLine("      форма #{0}: компонент в копию не вошёл — ленты нет, сравнивать нечего", run);
+                return;
+            }
+
+            int lo = Math.Max(0, replay.FirstChannel), hi = Math.Min(channels - 1, replay.LastChannel);
+            double sxy = 0.0, sxx = 0.0, syy = 0.0, sumA = 0.0, sumB = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double a = mu1[i] - mu0[i];
+                double b = replayCurve[i];
+                sxy += a * b; sxx += a * a; syy += b * b; sumA += a; sumB += b;
+            }
+
+            double corr = sxx > 0.0 && syy > 0.0 ? sxy / Math.Sqrt(sxx * syy) : double.NaN;
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      форма #{0}: корреляция впрыска с лентой копии {1:F4}; Σ впрыска {2:E3}, Σ ленты копии {3:E3} (имп/с копии {4:E3})",
+                            run, corr, sumA, sumB, replayRate);
+
+            var taken = new List<int>();
+            for (int pick = 0; pick < 3; pick++)
+            {
+                int best = -1;
+                for (int i = lo; i <= hi; i++)
+                {
+                    double d = mu1[i] - mu0[i];
+                    if (!(d > 0.0)) continue;
+                    bool near = false;
+                    foreach (int t in taken)
+                    {
+                        double f = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(t));
+                        if (Math.Abs(i - t) <= 2.0 * f) { near = true; break; }
+                    }
+
+                    if (near) continue;
+                    if (best < 0 || d > mu1[best] - mu0[best]) best = i;
+                }
+
+                if (best < 0) break;
+                taken.Add(best);
+                double fwhm = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(best));
+                int a0 = Math.Max(lo, (int)Math.Floor(best - 1.5 * fwhm)), b0 = Math.Min(hi, (int)Math.Ceiling(best + 1.5 * fwhm));
+                int bestReplay = a0;
+                double injWin = 0.0, repWin = 0.0;
+                for (int i = a0; i <= b0; i++)
+                {
+                    if (replayCurve[i] > replayCurve[bestReplay]) bestReplay = i;
+                    injWin += mu1[i] - mu0[i];
+                    repWin += replayCurve[i];
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                                "; пик {0:F0} кэВ: вершина впрыска кан. {1}, копии кан. {2} (Δ {3:+0;-0} кан., ПШПВ {4:F1}); площадь ±1.5 ПШПВ: впрыск {5:F0}, копия {6:F0} (доля от Σ: {7:F4} / {8:F4})",
+                                rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(best), best, bestReplay, bestReplay - best, fwhm,
+                                injWin, repWin, sumA > 0 ? injWin / sumA : double.NaN, sumB > 0 ? repWin / sumB : double.NaN);
+            }
+
+            Console.WriteLine(sb.ToString());
+        }
+
+        /// <summary>
+        /// Один синтетический разбор: розыгрыш каналов пуассоном вокруг
+        /// заданных средних, тот же анализатор, та же библиотека. null —
+        /// разбор не удался.
+        /// </summary>
+        static FsaResult RunSynthetic(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                      FsaAnalyzer analyzer, FsaEfficiency efficiency,
+                                      double[] mean, Random rng)
+        {
+            int[] drawn;
+            return RunSynthetic(rd, background, library, analyzer, efficiency, mean, rng, out drawn);
+        }
+
+        /// <summary>То же, но с разыгранными отсчётами наружу — для дампа невязки (`--mc-dump`).</summary>
+        static FsaResult RunSynthetic(ResultData rd, EnergySpectrum background, List<FsaComponent> library,
+                                      FsaAnalyzer analyzer, FsaEfficiency efficiency,
+                                      double[] mean, Random rng, out int[] drawn)
+        {
+            EnergySpectrum synthetic = rd.EnergySpectrum.Clone();
+            int[] counts = synthetic.Spectrum;
+            for (int i = 0; i < counts.Length; i++)
+            {
+                counts[i] = SamplePoisson(rng, mean[i]);
+            }
+
+            drawn = counts;
+            return analyzer.Analyze(synthetic, background, rd.FwhmCalibration, library, efficiency);
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Последний вызов решателя копии (финальный фит): по
+        /// каждой колонке — решение x, активна / забанена, градиент
+        /// w = c − G·x при решении, диагональ Грама и правая часть. Первые
+        /// колонки идут в порядке библиотеки (после матричного образа — его
+        /// подпороговый хвост без компонента), дальше — шапки континуума и
+        /// прочие готовые колонки; имена печатаются по порядку библиотеки как
+        /// ПОДСКАЗКА, не как факт (колонки без образа пропущены решателем).
+        /// </summary>
+        static void DumpTrace(FsaAnalyzer.NnlsTrace t, int calls, List<FsaComponent> library, int run)
+        {
+            if (t == null)
+            {
+                Console.WriteLine("      трасса #{0}: решатель не звался", run);
+                return;
+            }
+
+            int m = t.X.Length;
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      трасса #{0}: вызовов решателя {1}; последний: колонок {2}, итераций {3}/{4}, сходов {5}, порог {6:E2}; библиотека:",
+                            run, calls, m, t.Iterations, t.Budget, t.Drops, t.Tol);
+            foreach (FsaComponent component in library)
+            {
+                sb.AppendFormat(CultureInfo.InvariantCulture, " {0}[{1}{2}]", component.Name, component.Kind,
+                                component.Derived ? ",произв." : "");
+            }
+
+            Console.WriteLine(sb.ToString());
+            int active = 0, banned = 0;
+            for (int k = 0; k < m; k++)
+            {
+                if (t.Active[k]) active++;
+                if (t.Banned[k]) banned++;
+            }
+
+            Console.WriteLine("        активных {0}, забанено {1}; первые 12 колонок (индекс: x, состояние, w=c−Gx, G_kk, c_k):", active, banned);
+            for (int k = 0; k < Math.Min(12, m); k++)
+            {
+                double gx = 0.0;
+                for (int b = 0; b < m; b++)
+                {
+                    if (t.X[b] != 0.0)
+                    {
+                        gx += t.Gram[k, b] * t.X[b];
+                    }
+                }
+
+                Console.WriteLine("        {0,3}: x={1:E3} {2}{3} w={4:E3} G={5:E3} c={6:E3}",
+                                  k, t.X[k], t.Active[k] ? "АКТ" : "нет", t.Banned[k] ? " БАН" : "",
+                                  t.C[k] - gx, t.Gram[k, k], t.C[k]);
+            }
+        }
+
+        /// <summary>
+        /// (`S106`, П46) Куда делся впрыск — по невязке копии. Печатает
+        /// согласованный отклик остатка на форму впрыска (1 — весь впрыск
+        /// остался в остатке, 0 — фит его целиком куда-то забрал) и по трём
+        /// самым сильным пикам формы впрыска (окно ±1 ПШПВ): впрыснуто отсчётов,
+        /// остаток фита, на сколько подложка копии поднялась над нулевой
+        /// моделью, на сколько поднялась вся модель копии.
+        /// </summary>
+        static void DumpResidual(FsaResult replay, int[] drawn, double[] mu0, double[] mu1,
+                                 ResultData rd, string label, int run, double injectedAmplitude)
+        {
+            int channels = replay.Model.Length;
+            int lo = Math.Max(0, replay.FirstChannel), hi = Math.Min(channels - 1, replay.LastChannel);
+            double[] r = new double[channels];
+            double num = 0.0, den = 0.0, injectedTotal = 0.0, w0 = 0.0, c0 = 0.0, g0 = 0.0;
+            double w0True = 0.0, g0True = 0.0, biasPred = 0.0;
+            for (int i = lo; i <= hi; i++)
+            {
+                double bg = replay.Background != null ? replay.Background[i] : 0.0;
+                r[i] = drawn[i] - bg - replay.Model[i];
+                double d = mu1[i] - mu0[i];
+                double v = Math.Max(1.0, mu1[i]);
+                num += r[i] * d / v;
+                den += d * d / v;
+                injectedTotal += d;
+                // Те же величины в весах решателя (1/max(raw,1)) и в масштабе
+                // колонки φ = d / a_inj — чтобы сравнить с трассой решателя.
+                double wi = 1.0 / Math.Max(1.0, drawn[i]);
+                double phi = injectedAmplitude > 0.0 ? d / injectedAmplitude : 0.0;
+                w0 += wi * phi * r[i];
+                c0 += wi * phi * (drawn[i] - bg);
+                g0 += wi * phi * phi;
+                // Те же суммы с весами по ОЖИДАНИЮ (1/μ) и предсказанный сдвиг
+                // градиента от весов по данным: E[(y−μ)/y] ≈ −1/μ ⇒ −Σ φ/μ.
+                w0True += phi * r[i] / v;
+                g0True += phi * phi / v;
+                biasPred += phi / v;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendFormat(CultureInfo.InvariantCulture,
+                            "      невязка {0} #{1}: впрыснуто {2:E3} отсч.; в остатке осталось {3:F3} впрыска (согласованный отклик); в весах решателя по форме впрыска: w0={4:E3} c0={5:E3} G00={6:E3} (w0/G00 = {7:E3} = {8:F3} впрыска); веса 1/μ: w0={9:E3} G00={10:E3} ({11:F3} впрыска); предсказанный сдвиг весов по данным −Σφ/μ = {12:E3} (измерено w0(1/y) − w0(1/μ) = {13:E3}), в отсчётах впрыска {14:F0}",
+                            label, run, injectedTotal, den > 0.0 ? num / den : double.NaN,
+                            w0, c0, g0, g0 > 0.0 ? w0 / g0 : double.NaN,
+                            g0 > 0.0 && injectedAmplitude > 0.0 ? w0 / g0 / injectedAmplitude : double.NaN,
+                            w0True, g0True, g0True > 0.0 && injectedAmplitude > 0.0 ? w0True / g0True / injectedAmplitude : double.NaN,
+                            -biasPred, w0 - w0True,
+                            g0True > 0.0 && injectedAmplitude > 0.0 ? biasPred / g0True / injectedAmplitude * injectedTotal : double.NaN);
+
+            // Три самых сильных пика формы впрыска: локальные максимумы d по окну ±1 ПШПВ.
+            double[] d2 = new double[channels];
+            for (int i = lo; i <= hi; i++)
+            {
+                d2[i] = mu1[i] - mu0[i];
+            }
+
+            var taken = new List<int>();
+            for (int pick = 0; pick < 3; pick++)
+            {
+                int best = -1;
+                for (int i = lo; i <= hi; i++)
+                {
+                    if (!(d2[i] > 0.0))
+                    {
+                        continue;
+                    }
+
+                    bool near = false;
+                    foreach (int t in taken)
+                    {
+                        double f = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(t));
+                        if (Math.Abs(i - t) <= 2.0 * f)
+                        {
+                            near = true;
+                            break;
+                        }
+                    }
+
+                    if (near)
+                    {
+                        continue;
+                    }
+
+                    if (best < 0 || d2[i] > d2[best])
+                    {
+                        best = i;
+                    }
+                }
+
+                if (best < 0)
+                {
+                    break;
+                }
+
+                taken.Add(best);
+                double fwhm = Math.Max(2.0, rd.FwhmCalibration.ChannelToFwhm(best));
+                int a = Math.Max(lo, (int)Math.Floor(best - fwhm)), b = Math.Min(hi, (int)Math.Ceiling(best + fwhm));
+                double inj = 0.0, res = 0.0, contRise = 0.0, modelRise = 0.0;
+                for (int i = a; i <= b; i++)
+                {
+                    double bg = replay.Background != null ? replay.Background[i] : 0.0;
+                    inj += d2[i];
+                    res += r[i];
+                    contRise += replay.Continuum[i] + bg - mu0[i];
+                    modelRise += replay.Model[i] + bg - mu0[i];
+                }
+
+                sb.AppendFormat(CultureInfo.InvariantCulture,
+                                "; пик {0:F0} кэВ (кан. {1}..{2}): впрыск {3:F0}, остаток {4:F0}, подложка +{5:F0}, модель +{6:F0}",
+                                rd.EnergySpectrum.EnergyCalibration.ChannelToEnergy(best), a, b, inj, res, contRise, modelRise);
+            }
+
+            Console.WriteLine(sb.ToString());
+        }
+
+        /// <summary>
+        /// Решение теста по строке пределов названного компонента: оценка выше
+        /// её же порога решения. Кандидат без строки — «не обнаружен» с нулевой
+        /// оценкой: образ не построился, и это честное решение теста.
+        /// </summary>
+        static bool Exceeded(FsaResult replay, string name, out double estimate)
+        {
+            estimate = 0.0;
+            foreach (FsaCharacteristicLimit limit in replay.CharacteristicLimits)
+            {
+                if (string.Equals(limit.Name, name, StringComparison.Ordinal))
+                {
+                    estimate = limit.CountRate;
+                    return !double.IsNaN(limit.DecisionThresholdRate)
+                           && limit.CountRate > limit.DecisionThresholdRate;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Пуассонов розыгрыш: точный (Кнут) до среднего 50, дальше нормальное
+        /// приближение с округлением — на счетах корпуса (до миллионов в
+        /// канале) точный метод стоил бы дороже самого разбора.
+        /// </summary>
+        static int SamplePoisson(Random rng, double mean)
+        {
+            if (!(mean > 0.0))
+            {
+                return 0;
+            }
+
+            if (mean > 50.0)
+            {
+                double u1 = 1.0 - rng.NextDouble();
+                double u2 = rng.NextDouble();
+                double gauss = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+                double value = Math.Round(mean + gauss * Math.Sqrt(mean));
+                return value < 0.0 ? 0 : (int)value;
+            }
+
+            double limit = Math.Exp(-mean);
+            double p = 1.0;
+            int k = 0;
+            do
+            {
+                k++;
+                p *= rng.NextDouble();
+            }
+            while (p > limit);
+
+            return k - 1;
+        }
+
+        static void Report(Row row, Options o)
+        {
+            if (o.Quiet)
+            {
+                return;
+            }
+
+            if (row.Error != null)
+            {
+                Console.WriteLine("{0,-22} {1,-10} {2,-8} ОШИБКА: {3}",
+                                  row.Key, row.Det, row.Part, row.Error);
+                return;
+            }
+
+            // ⛔ (`A281`, решение Amber 10.09.2026 «печатать рядом с z») МНОЖИТЕЛЬ
+            // ПОГРЕШНОСТЕЙ — В СТРОКЕ РАЗБОРА. Значимости всех компонентов уже
+            // поделены на него, поэтому порог 3 на этой сцене значит 3·inflate
+            // СЫРЫХ сигм. Без числа рядом «едва дотянул» и «дотянул с
+            // восьмикратным запасом» на экране одно и то же.
+            Console.WriteLine("{0,-22} {1,-10} {2,-8} chi2/ndf {3,8:F3}  σ×{9,6:F3}  пиков {4,3}  комп. {5,2}"
+                              + "  матрица: {6,-52} {7,6:F0} мс{8}",
+                              row.Key, row.Det, row.Part, row.Chi2Ndf, row.Peaks, row.LibrarySize,
+                              MatrixNote(row), row.Ms,
+                              row.GainOnGridEdge && row.OffsetOnGridEdge ? "  КРАЙ: усиление И ноль"
+                              : row.GainOnGridEdge ? "  КРАЙ: усиление"
+                              : row.OffsetOnGridEdge ? "  КРАЙ: ноль шкалы" : "",
+                              row.SigmaInflation);
+        }
+
+        /// <summary>
+        /// Итог ПО ЧАСТЯМ. Общей строки по всему корпусу здесь нет нарочно:
+        /// понятная часть считается с матрицей (образ полный), непонятная — из
+        /// одних пиков, и одно число на обе означало бы среднее двух разных
+        /// моделей.
+        /// </summary>
+        /// <summary>
+        /// (`S111`) Пики второго прохода — одним файлом на прогон.
+        ///
+        /// Один файл, а не по группам: вопрос, ради которого он заведён, —
+        /// «что осталось ПО ВСЕМУ корпусу», и сводить его руками из шестнадцати
+        /// кусков значило бы заводить работу там, где её нет.
+        /// </summary>
+        static void WriteResidualPeaks(List<Row> rows, Options o)
+        {
+            if (string.IsNullOrEmpty(o.ResidualPeaks))
+            {
+                return;
+            }
+
+            int found = 0;
+            using (var writer = new StreamWriter(o.ResidualPeaks, false, new UTF8Encoding(true)))
+            {
+                writer.WriteLine("spectrum,detector,part,energy_kev,channel,fwhm_kev,"
+                                 + "net_counts,z_finder,z_data,negative_sum");
+                foreach (Row row in rows)
+                {
+                    if (row.ResidualPeaks == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (string line in row.ResidualPeaks)
+                    {
+                        writer.WriteLine(line);
+                        found++;
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("второй проход по остатку (`S111`): пиков {0} в {1} спектрах -> {2}",
+                              found,
+                              rows.Count(r => r.ResidualPeaks != null && r.ResidualPeaks.Count > 0),
+                              Path.GetFullPath(o.ResidualPeaks));
+        }
+
+        static void Summary(List<Row> rows, Options o, double seconds)
+        {
+            WriteResidualPeaks(rows, o);
+            Console.WriteLine();
+            // Часы — про машину, ЦП — про код. Печатаются рядом нарочно: этот
+            // прогон уже дорожал вчетверо незамеченным (50 -> 236 с, S39),
+            // потому что «дольше» списывали на загрузку, а списать было не на
+            // чем — числа-то не менялись. Сравнивать прогоны между собой надо
+            // по ЦП-времени (T28).
+            double cpuSeconds = 0.0;
+            foreach (Row r in rows)
+            {
+                cpuSeconds += r.CpuMs / 1000.0;
+            }
+
+            Console.WriteLine("=== итог по частям корпуса ({0:f0} с на часах, {1:f0} с ЦП) ===",
+                              seconds, cpuSeconds);
+            // (`T85`) ДВЕ колонки вместо одной «с матр.»: она называлась так,
+            // будто считает найденные матрицы, а считала ПРИМЕНЁННЫЕ. Числа
+            // расходятся: `out_v6` — найдена 81, применена 80; `out_fz_lib` —
+            // 81 и 78.
+            Console.WriteLine("{0,-10} {1,8} {2,8} {3,9} {4,10} {5,10} {6,8} {7,8} {8,8}",
+                              "часть", "спектров", "найдена", "примен.", "sum chi2", "медиана",
+                              "ошибок", "кр.усил", "кр.ноль");
+            foreach (string part in new[] { "known", "unknown" })
+            {
+                var of = new List<Row>();
+                foreach (Row r in rows)
+                {
+                    if (r.Part == part)
+                    {
+                        of.Add(r);
+                    }
+                }
+
+                if (of.Count == 0)
+                {
+                    continue;
+                }
+
+                int errors = 0, found = 0, applied = 0, gainEdge = 0, offsetEdge = 0;
+                // `T38`: «нет матрицы» и «матрица есть, но образа ею не
+                // построено» — РАЗНЫЕ состояния, и одно число их складывало.
+                // Первое — тяжёлый отказ (`B14`: 37 спектров понятной части
+                // считались из одних пиков, назвавшись понятными), второе —
+                // норма (у спектра уцелели только производные компоненты,
+                // матрицу они не трогают по построению). Пока их печатали
+                // вместе, отказ можно было принять за норму — так `B14` и
+                // прожила.
+                //
+                // ⛔ `T85`: половины `T38` было мало. Разведены были ОТКАЗ и
+                // «недостача», а два состояния под колонкой так и остались
+                // одним числом — колонка «с матр.» считала ПРИМЕНЕНИЕ, а
+                // соседняя `matrix_note` писала про НАХОДКУ. Теперь каждая
+                // колонка считает ровно то, чем подписана, и третья строка
+                // называет спектры, у которых они разошлись.
+                int noFile = 0;
+                // (`T256`) Отказ гейта геометрии — своим счётом и поимённо.
+                var noGeometry = new List<string>();
+                var foundNotApplied = new List<string>();
+                // (`T85`) Те из них, у кого матрице БЫЛО ЧТО строить в отчётном
+                // фите: это уже не «уцелели одни производные образы», а отказ.
+                var foundNotAppliedRed = new List<string>();
+                var chi = new List<double>();
+                foreach (Row r in of)
+                {
+                    if (r.Error != null)
+                    {
+                        errors++;
+                        if (r.GeometryRefused)
+                        {
+                            noGeometry.Add(r.Key);
+                        }
+
+                        continue;
+                    }
+
+                    if (MatrixFound(r))
+                    {
+                        found++;
+                        if (r.MatrixApplied)
+                        {
+                            applied++;
+                        }
+                        else
+                        {
+                            foundNotApplied.Add(r.Key);
+                            if (r.MatrixImages > 0)
+                            {
+                                foundNotAppliedRed.Add(r.Key + " (образов "
+                                    + r.MatrixImages.ToString(CultureInfo.InvariantCulture) + ")");
+                            }
+                        }
+                    }
+                    else if (MatrixFailed(r))
+                    {
+                        // Только эти два — отказ. «Кривой нет» и «геометрии
+                        // нет» — НОРМАЛЬНОЕ состояние непонятной части, и
+                        // считать его отказом значит кричать на все 36 её
+                        // спектров каждый прогон. Признак, который кричит
+                        // всегда, читать перестают на второй день.
+                        noFile++;
+                    }
+                    else if (r.MatrixApplied)
+                    {
+                        // ⛔ НЕВОЗМОЖНОЕ состояние: применить можно только
+                        // найденное. Молчать о нём нельзя — это значило бы, что
+                        // один из двух признаков считается не там, где кажется.
+                        Console.WriteLine("{0,-10} ⛔ {1}: применена НЕНАЙДЕННАЯ матрица ({2})",
+                                          "", r.Key, MatrixNote(r));
+                    }
+
+                    if (r.GainOnGridEdge)
+                    {
+                        gainEdge++;
+                    }
+
+                    if (r.OffsetOnGridEdge)
+                    {
+                        offsetEdge++;
+                    }
+
+                    chi.Add(r.Chi2Ndf);
+                }
+
+                chi.Sort();
+                double sum = 0.0;
+                foreach (double v in chi)
+                {
+                    sum += v;
+                }
+
+                double median = chi.Count == 0 ? 0.0
+                    : (chi.Count % 2 == 1 ? chi[chi.Count / 2]
+                       : 0.5 * (chi[chi.Count / 2 - 1] + chi[chi.Count / 2]));
+                Console.WriteLine("{0,-10} {1,8} {2,8} {3,9} {4,10:F1} {5,10:F2} {6,8} {7,8} {8,8}",
+                                  part, of.Count, found, applied, sum, median, errors,
+                                  gainEdge, offsetEdge);
+                if (noGeometry.Count > 0)
+                {
+                    // ⛔ (`T256`) ЧИТАТЕЛЬ ГЕЙТА ГЕОМЕТРИИ. Колонка «ошибок» в
+                    // строке выше говорит, СКОЛЬКО спектров разбора не
+                    // получили, и молчит о том, ПОЧЕМУ; с `A277` это перестало
+                    // быть мелочью — на малой базе так выпадают 15 спектров из
+                    // 59, и без этой строки прогон выглядит поломанным.
+                    // Спектры называются поимённо: список короток, а «у кого
+                    // именно нет геометрии» — это готовый список работы.
+                    noGeometry.Sort(StringComparer.Ordinal);
+                    Console.WriteLine("{0,-10} ⛔ БЕЗ ГЕОМЕТРИИ — РАЗБОРА НЕ БЫЛО (гейт A277): {1} из"
+                                      + " {2} — {3}", "", noGeometry.Count, of.Count,
+                                      string.Join(", ", noGeometry.ToArray()));
+                }
+
+                if (noFile > 0)
+                {
+                    // ⛔ Печатается ОТДЕЛЬНОЙ строкой и только когда есть что
+                    // печатать: это отказ, а не статистика. Разница с колонкой
+                    // «найдена» в том, что там недостача может быть нормой.
+                    Console.WriteLine("{0,-10} ⛔ БЕЗ МАТРИЦЫ (файла нет либо отпечаток не"
+                                      + " сошёлся): {1} — узел кривой у них ЕСТЬ, а матрицы под"
+                                      + " него нет, и считались они из одних пиков", "", noFile);
+                }
+
+                if (foundNotApplied.Count > 0)
+                {
+                    // (`T85`) ЧИТАТЕЛЬ расхождения двух колонок. Без него разница
+                    // «найдена 81, применена 80» не объяснена в отчёте ни словом,
+                    // и читающий волен принять её за отказ вроде `B20` — а это
+                    // законное состояние разбора. Спектры называются поимённо:
+                    // расхождение всегда касалось единиц, и список короток.
+                    foundNotApplied.Sort(StringComparer.Ordinal);
+                    Console.WriteLine("{0,-10} ⚠ НАЙДЕНА, НО НЕ ПРИМЕНЕНА: {1} — {2}", "",
+                                      foundNotApplied.Count,
+                                      string.Join(", ", foundNotApplied.ToArray()));
+                    // ⛔ ЗДЕСЬ СТОЯЛО УТВЕРЖДЕНИЕ, КОТОРОГО НИКТО НЕ ПРОВЕРЯЛ:
+                    // «матрица исправна и работала на проходах до отсева». Оно
+                    // переводило красный флаг в зелёный, и один раз за этим
+                    // расхождением стояла настоящая поломка. Теперь печатается
+                    // ИЗМЕРЕННОЕ число `matrix_images` — сколько образов
+                    // отчётного фита матрица имела право строить.
+                    if (foundNotAppliedRed.Count > 0)
+                    {
+                        foundNotAppliedRed.Sort(StringComparer.Ordinal);
+                        Console.WriteLine("{0,-10} ⛔⛔ И ЭТО ОТКАЗ, А НЕ НОРМА: у {1} из них в отчётном"
+                                          + " фите ЕСТЬ образ, который матрица имела право строить,"
+                                          + " — {2}", "", foundNotAppliedRed.Count,
+                                          string.Join(", ", foundNotAppliedRed.ToArray()));
+                        Console.WriteLine("{0,-10}    матрица найдена, кандидат уцелел, образа ею не"
+                                          + " построено. Числа этих спектров считаны БЕЗ матрицы.", "");
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0,-10}   измерено (matrix_images = 0 у всех): в отчётном фите"
+                                          + " уцелели одни производные образы (обратное рассеяние,"
+                                          + " наложения), строить матрице было нечего", "");
+                    }
+                }
+
+                // (`AMBER17`) ЧИТАТЕЛЬ ПРИВЯЗКИ ШКАЛЫ. Без него «привязка не
+                // важна» и «привязка не доехала» неразличимы (`S101`, `T65`):
+                // сколько спектров получили опоры, сколько остались на своей
+                // калибровке, и крупнейшие сдвиги поимённо.
+                int anchored = 0, unanchored = 0;
+                var biggest = new List<KeyValuePair<double, string>>();
+                foreach (Row r in of)
+                {
+                    if (r.Error != null)
+                    {
+                        continue;
+                    }
+
+                    if (r.AnchorsUsed > 0)
+                    {
+                        anchored++;
+                        double gainPct = 100.0 * (r.Gain - 1.0);
+                        biggest.Add(new KeyValuePair<double, string>(
+                            Math.Abs(gainPct) + Math.Abs(r.AnchorOffsetKev),
+                            string.Format(CultureInfo.InvariantCulture, "{0} ({1} оп., усил. {2:+0.00;-0.00} %, ноль {3:+0.00;-0.00} кэВ)",
+                                          r.Key, r.AnchorsUsed, gainPct, r.AnchorOffsetKev)));
+                    }
+                    else
+                    {
+                        unanchored++;
+                    }
+                }
+
+                if (anchored + unanchored > 0)
+                {
+                    biggest.Sort((x, z) => z.Key.CompareTo(x.Key));
+                    var top = new List<string>();
+                    for (int i = 0; i < biggest.Count && i < 5; i++)
+                    {
+                        top.Add(biggest[i].Value);
+                    }
+
+                    Console.WriteLine("{0,-10} привязка шкалы (AMBER17): с опорами {1}, без опор {2}{3}", "",
+                                      anchored, unanchored,
+                                      top.Count > 0 ? "; крупнейшие сдвиги: " + string.Join("; ", top.ToArray()) : "");
+
+                    // (`F11` (в), П18) ЧИТАТЕЛЬ ПОЛОЖЕНИЯ ПО СВЕТУ: сколько спектров
+                    // получили световую координату (β = 1), по каким кривым, и у
+                    // скольких ключ был, а кривой для вещества не нашлось.
+                    var byCurve = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                    int lightMissing = 0;
+                    foreach (Row r in of)
+                    {
+                        if (r.Error != null)
+                        {
+                            continue;
+                        }
+
+                        if (r.AnchorBeta != 0.0 && !string.IsNullOrEmpty(r.AnchorLight))
+                        {
+                            int n;
+                            byCurve.TryGetValue(r.AnchorLight, out n);
+                            byCurve[r.AnchorLight] = n + 1;
+                        }
+                        else if (r.AnchorNote != null && r.AnchorNote.Contains("положение по свету: кривой"))
+                        {
+                            lightMissing++;
+                        }
+                    }
+
+                    // (П21б 12.09.2026) Строка печатается и БЕЗ ключа, когда
+                    // свет применился хоть у одного спектра: умолчание
+                    // анализатора с этого дня ВКЛ, и разбор без ключа обязан
+                    // говорить, чем считал, — иначе умолчание было бы невидимо
+                    // в сводке (тот же разряд, что `A77`/«признак без читателя»).
+                    if ((o.AnchorLight != null && o.AnchorLight != "0") || byCurve.Count > 0 || lightMissing > 0)
+                    {
+                        var parts = new List<string>();
+                        foreach (KeyValuePair<string, int> kv in byCurve)
+                        {
+                            parts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
+                        }
+
+                        Console.WriteLine("{0,-10} положение по свету (F11 в): ключ {1}{5}; со светом {2}{3}; без кривой {4}", "",
+                                          o.AnchorLight ?? "(умолчание анализатора)",
+                                          parts.Count > 0 ? string.Join(", ", parts.ToArray()) : "0",
+                                          o.AnchorSkip != null && o.AnchorSkip.Length > 0
+                                              ? "; выброс узла: " + string.Join(",", Array.ConvertAll(o.AnchorSkip, x => x.ToString("F1", CultureInfo.InvariantCulture)))
+                                              : "",
+                                          lightMissing,
+                                          // (П19) форма применения — из ключа либо из первой строки со светом
+                                          ", форма " + (o.AnchorForm ?? FirstAnchorForm(of) ?? "(умолчание анализатора)"));
+                    }
+
+                    // (`S169`, П8) ЧИТАТЕЛЬ НУЛЯ ШКАЛЫ ОБРАЗА: у скольких спектров
+                    // карта "adc" включилась (служебная строка привязки несёт
+                    // «нуль adc: …» только тогда). Печатается, когда ключ задан
+                    // либо карта где-то включилась — умолчание невидимым быть
+                    // не должно (тот же разряд, что строка света выше).
+                    // (П13) …и у скольких из них нуль взят ПО СЪЁМКЕ, а у скольких
+                    // — по прибору (запасной путь: одна опора, нет плеча).
+                    int adcOn = 0, adcRun = 0, adcPrior = 0, adcOff = 0;
+                    foreach (Row r in of)
+                    {
+                        if (r.Error == null && r.AnchorNote != null && r.AnchorNote.Contains("нуль adc:"))
+                        {
+                            adcOn++;
+                            if (r.AnchorNote.Contains("(по съёмке:"))
+                            {
+                                adcRun++;
+                            }
+                            else if (r.AnchorNote.Contains("(по прибору:"))
+                            {
+                                adcPrior++;
+                            }
+                        }
+                        else if (r.Error == null && r.AnchorNote != null && r.AnchorNote.Contains("карта adc не включена:"))
+                        {
+                            adcOff++;
+                        }
+                    }
+
+                    if (o.AnchorZero != null || adcOn > 0 || adcOff > 0)
+                    {
+                        Console.WriteLine("{0,-10} нуль шкалы образа (S169): ключ {1}{2}; карта adc включилась у {3} из {4}{5}", "",
+                                          o.AnchorZero ?? "(умолчание анализатора)",
+                                          double.IsNaN(o.AnchorZeroKev)
+                                              ? ""
+                                              : ", свет в нулевом канале " + o.AnchorZeroKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ",
+                                          adcOn, anchored + unanchored,
+                                          adcRun + adcPrior + adcOff > 0
+                                              ? string.Format(CultureInfo.InvariantCulture,
+                                                              " (нуль по съёмке {0}, по прибору {1}; заказана и не включилась {2})",
+                                                              adcRun, adcPrior, adcOff)
+                                              : "");
+                    }
+
+                    // (`S107`, П10 12.09.2026) ЧИТАТЕЛЬ ФОРМЫ НАЛОЖЕНИЙ ПО СВЕТУ:
+                    // у скольких спектров образ построен формой по свету и по
+                    // какой кривой («energy» — координата энергии той же
+                    // формой: вещество без кривой либо плечо порчи). Печатается,
+                    // когда ключ задан либо форма где-то включилась — умолчание
+                    // невидимым быть не должно (тот же разряд, что строки выше).
+                    var pileByCurve = new SortedDictionary<string, int>(StringComparer.Ordinal);
+                    foreach (Row r in of)
+                    {
+                        if (r.Error == null && !string.IsNullOrEmpty(r.PileUpCurve))
+                        {
+                            int n;
+                            pileByCurve.TryGetValue(r.PileUpCurve, out n);
+                            pileByCurve[r.PileUpCurve] = n + 1;
+                        }
+                    }
+
+                    if ((o.PileUpLight != null && o.PileUpLight != "0") || pileByCurve.Count > 0)
+                    {
+                        var pileParts = new List<string>();
+                        foreach (KeyValuePair<string, int> kv in pileByCurve)
+                        {
+                            pileParts.Add(kv.Key + " " + kv.Value.ToString(CultureInfo.InvariantCulture));
+                        }
+
+                        Console.WriteLine("{0,-10} образ наложений по свету (S107): ключ {1}; формой по свету {2} из {3}", "",
+                                          o.PileUpLight ?? "(умолчание анализатора)",
+                                          pileParts.Count > 0 ? string.Join(", ", pileParts.ToArray()) : "0",
+                                          anchored + unanchored);
+                    }
+                }
+            }
+
+            PrintRefitZCensus(rows);
+            PrintCascadeDatabaseVoice();
+            AngularCensus.Print();
+
+            Console.WriteLine();
+            Console.WriteLine("⚠ числа каждой строки принадлежат ТОЛЬКО своей части корпуса;");
+            Console.WriteLine("  «понятная» считана с матрицей отклика, «непонятная» — из одних пиков.");
+            Console.WriteLine("Фантомы и recall — {0}\\..\\score.py по этим же файлам:", o.Out);
+            Console.WriteLine("  python tools/pie/score.py --mode={0} --out-dir={1} --part={2}",
+                              o.Mode, o.Out, o.Part);
+        }
+
+        /// <summary>
+        /// ⛔ ГОЛОС БАЗЫ КАСКАДОВ ЗА ВЕСЬ ПРОГОН: примечания отдельно, отказы
+        /// отдельно (10.09.2026).
+        ///
+        /// Заведено потому, что читателя у этих признаков в корпусном прогоне
+        /// не было вовсе — а сами признаки есть с самого начала. Пока их никто
+        /// не печатал, отказ базы на корпусе выглядел как «у нуклида нет
+        /// каскадов», то есть был неотличим от нормы.
+        ///
+        /// ⚠ И разведены они не ради красоты. До 10.09.2026 `FsaCascadeSummer`
+        /// клал в `Failure` ЛЮБУЮ записку базы, включая законные — «изомер:
+        /// набор питаний ENSDF уровня родителя не различает», «набора питаний
+        /// X→Y нет вовсе, пара 511 не строится». На корпусных родителях такие
+        /// записки получают `228AC` и `234PA`, ряды тория и урана, — и каждый
+        /// прогон докладывал отказ базы там, где база отработала. Признак
+        /// отказа, срабатывающий без отказа, перестают читать.
+        ///
+        /// Печатается сводкой на весь прогон, а не на спектр: записки копятся
+        /// по нуклидам, а нуклиды у спектров общие.
+        /// </summary>
+        static void PrintCascadeDatabaseVoice()
+        {
+            string notes = FsaCascadeSummer.Notes;
+            string failure = FsaCascadeSummer.Failure;
+            if (string.IsNullOrEmpty(notes) && string.IsNullOrEmpty(failure))
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            if (!string.IsNullOrEmpty(notes))
+            {
+                string[] said = notes.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries);
+                Console.WriteLine("ПРИМЕЧАНИЯ БАЗЫ КАСКАДОВ: {0} — работа при них ШЛА, это не отказ",
+                                  said.Length);
+                foreach (string one in said)
+                {
+                    Console.WriteLine("    {0}", one);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(failure))
+            {
+                Console.WriteLine("⛔ ОТКАЗ БАЗЫ КАСКАДОВ: {0}", failure);
+            }
+            else
+            {
+                Console.WriteLine("отказов базы каскадов НЕ БЫЛО");
+            }
+        }
+
+        /// <summary>
+        /// (`A268`, разряд ~~`T240`~~) ПЕРЕПИСЬ ИСХОДОВ ОТСЕВА ПО ЗНАЧИМОСТИ —
+        /// одной строкой на весь прогон.
+        ///
+        /// ⛔ Затем, что ~~`T240`~~ («порог выше значимости ВСЕХ судимых
+        /// ОТКЛЮЧАЕТ отсев, а не ужесточает его, и делает это молча») закрыта
+        /// названием состояния вслух ТОЛЬКО у `FsaStackShot`. Корпусный прогон
+        /// об этом молчал по-прежнему, а решение «брать ли относительный порог
+        /// умолчанием» (`A266`) принимается по КОРПУСУ: без переписи «доля
+        /// ничего не меняет» неотличимо от «доля не работала», и это ровно тот
+        /// разряд ошибки, которым `A268` и заведена.
+        ///
+        /// Печатается СВОДКОЙ, а не на каждый спектр: на 129 спектрах вторая
+        /// форма была бы шумом, а вопрос один — на скольких сценах отсев
+        /// отключился сам. Спектры разряда `AllBelow` называются поимённо
+        /// (до десяти), потому что «их семь» без имён не проверяемо.
+        ///
+        /// ⚠ Строка молчит целиком, когда отсев не заказан НИ НА ОДНОМ спектре
+        /// (`--refit-z=0`): переписи там нет предмета.
+        /// </summary>
+        static void PrintRefitZCensus(List<Row> rows)
+        {
+            int applied = 0, allBelow = 0, nothingBelow = 0, notRequested = 0;
+            double topMin = double.NaN, topMax = double.NaN;
+            var below = new List<string>();
+            // (`A266`, П24) спектры, где доля вершины СВЯЗАЛА порог: фактический
+            // порог ниже абсолютного. На корпусе под `--lib=sample` вершины
+            // высоки (П14: 8.29 и 164.98), и доля 0.3 связывает порог только при
+            // z_max < RefitZ / 0.3 — без этого счёта нулевой сдвиг чисел A/B
+            // нельзя отличить от «ключ не доехал».
+            var bound = new List<string>();
+            foreach (Row r in rows)
+            {
+                // Только там, где отсев заказан и судил: у неразобранных
+                // спектров поля стоят нулями анализатора, а не NaN.
+                if (r.RefitZState != FsaAnalyzer.RefitZOutcome.NotRequested
+                    && !double.IsNaN(r.RefitZUsed) && !double.IsNaN(r.RefitZAbs)
+                    && r.RefitZUsed < r.RefitZAbs)
+                {
+                    bound.Add(string.Format(CultureInfo.InvariantCulture, "{0} ({1:F2} при вершине {2:F2})",
+                                            r.Key, r.RefitZUsed, r.RefitZTopZ));
+                }
+
+                switch (r.RefitZState)
+                {
+                    case FsaAnalyzer.RefitZOutcome.Applied: applied++; break;
+                    case FsaAnalyzer.RefitZOutcome.NothingBelow: nothingBelow++; break;
+                    case FsaAnalyzer.RefitZOutcome.AllBelow:
+                        allBelow++;
+                        below.Add(r.Key);
+                        break;
+                    default: notRequested++; break;
+                }
+
+                if (!double.IsNaN(r.RefitZTopZ))
+                {
+                    if (double.IsNaN(topMin) || r.RefitZTopZ < topMin)
+                    {
+                        topMin = r.RefitZTopZ;
+                    }
+
+                    if (double.IsNaN(topMax) || r.RefitZTopZ > topMax)
+                    {
+                        topMax = r.RefitZTopZ;
+                    }
+                }
+            }
+
+            if (applied + allBelow + nothingBelow == 0)
+            {
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("отсев по значимости (~~`T240`~~): ПРИМЕНЁН у {0}, отключился сам"
+                              + " (порог выше значимости ВСЕХ судимых) у {1}, выбрасывать было"
+                              + " некого у {2}, не заказан у {3}",
+                              applied, allBelow, nothingBelow, notRequested);
+            if (!double.IsNaN(topMin))
+            {
+                Console.WriteLine("  наибольшая значимость первого прохода: от {0} до {1}"
+                                  + " — с ней и сличается доля `RefitZRelative`",
+                                  topMin.ToString("F2", CultureInfo.InvariantCulture),
+                                  topMax.ToString("F2", CultureInfo.InvariantCulture));
+            }
+
+            // Наименьшие вершины среди судимых — чтобы «связала у 0» читалось
+            // как «вершины выше RefitZ / доли», а не как молчание счётчика.
+            var judged = new List<Row>();
+            foreach (Row r in rows)
+            {
+                if (r.RefitZState != FsaAnalyzer.RefitZOutcome.NotRequested && !double.IsNaN(r.RefitZTopZ))
+                {
+                    judged.Add(r);
+                }
+            }
+
+            judged.Sort((x, y) => x.RefitZTopZ.CompareTo(y.RefitZTopZ));
+            var lowest = new List<string>();
+            for (int i = 0; i < Math.Min(5, judged.Count); i++)
+            {
+                lowest.Add(string.Format(CultureInfo.InvariantCulture, "{0} {1:F2}", judged[i].Key, judged[i].RefitZTopZ));
+            }
+
+            Console.WriteLine("  наименьшие вершины среди судимых: {0}", string.Join(", ", lowest.ToArray()));
+            Console.WriteLine("  доля вершины связала порог (ниже абсолютного) у {0}{1}",
+                              bound.Count,
+                              bound.Count == 0
+                                  ? ""
+                                  : ": " + string.Join(", ", bound.GetRange(0, Math.Min(10, bound.Count)).ToArray())
+                                    + (bound.Count > 10
+                                           ? string.Format(CultureInfo.InvariantCulture, " … и ещё {0}", bound.Count - 10)
+                                           : ""));
+
+            if (below.Count > 0)
+            {
+                below.Sort(StringComparer.Ordinal);
+                Console.WriteLine("  ⚠ отсев отключился сам у: {0}{1}",
+                                  string.Join(", ", below.GetRange(0, Math.Min(10, below.Count)).ToArray()),
+                                  below.Count > 10
+                                      ? string.Format(CultureInfo.InvariantCulture,
+                                                      " … и ещё {0}", below.Count - 10)
+                                      : "");
+            }
+        }
+
+        /// <summary>Файлы того же вида, что пишет `tools/pie`, — для `score.py`.</summary>
+        static void Write(List<Row> rows, Options o)
+        {
+            var groups = new List<string>();
+            foreach (Row r in rows)
+            {
+                if (!groups.Contains(r.Det))
+                {
+                    groups.Add(r.Det);
+                }
+            }
+
+            foreach (string group in groups)
+            {
+                string prefix = Path.Combine(o.Out, group + "_" + o.Mode);
+                using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
+                using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
+                using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
+                // (`AMBER17`) Все кандидаты в опоры привязки, принятые и
+                // отвергнутые, — сырьё развёртки порога доли синего канала.
+                using (var anchors = new StreamWriter(prefix + "_anchors.csv", false, new UTF8Encoding(true)))
+                // (`S173`) Отвязанные хвосты матричных образов — чей и сколько
+                // отсчётов, рядом невязка в отсчётах (обе половины, доли ×100).
+                // СВОЙ файл, а не колонка в `runs`/`components`: шапки тех
+                // читает чужой разбор, и новый столбец сдвинул бы сверку
+                // плеч по всем спектрам, а хвост есть лишь у части.
+                using (var tails = new StreamWriter(prefix + "_tails.csv", false, new UTF8Encoding(true)))
+                // (`S174`) Серый слой подложки и полы отображения — по каждому
+                // спектру, СВОЙ файл по тому же доводу, что у хвостов.
+                using (var grey = new StreamWriter(prefix + "_grey.csv", false, new UTF8Encoding(true)))
+                {
+                    // (`S175`) `placement` — В КОНЕЦ: где хвост лежит
+                    // (`layer` — в слое и доле своего образа, умолчание;
+                    // `continuum` — образа в составе нет; `residual` — ключ).
+                    tails.WriteLine("spectrum,det,part,component,tail_counts,missing_pct,excess_pct,placement");
+                    grey.WriteLine("spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,"
+                                   + "spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,"
+                                   + "first_ch,last_ch,stack_total,missing_pct,excess_pct");
+                    anchors.WriteLine("spectrum,det,part,component,line_kev,model_kev,measured_kev,"
+                                      + "shift_kev,sigma_kev,peak_share,z,ch_lo,ch_hi,used,refusal,"
+                                      // (П18) сдвиг опоры по свету, кэВ — В КОНЕЦ строки
+                                      + "light_shift_kev");
+                    // Новые колонки — только В КОНЕЦ строки: score.py читает
+                    // по именам (DictReader), но чужой разбор по номерам колонок
+                    // вставка в середину сломала бы молча.
+                    //
+                    // ⛔ `T85`: колонка на десятом месте ПЕРЕИМЕНОВАНА, `matrix`
+                    // -> `matrix_applied`. Место её не сдвинулось (разбор по
+                    // номерам цел), а называть она стала то, что и считала
+                    // всегда: применение матрицы, а не её наличие. Наличие —
+                    // новая `matrix_found` В КОНЦЕ строки. Разошлись они на
+                    // снятых файлах: `out_v6` 81/80, `out_fz_lib` 81/78.
+                    // `inflate` (`A281`) — множитель погрешностей √(max(1, χ²/ndf)):
+                    // колонка `z` в `components.csv` УЖЕ поделена на него.
+                    runs.WriteLine("spectrum,det,part,chi2ndf,inflate,gain,offset_ch,drift_edge,gain_edge,"
+                                   + "offset_edge,matrix_applied,"
+                                   + "matrix_note,cascade,efficiency,background,peaks,components,"
+                                   + "ms,cpu_ms,near_sigmas,near_counts,error,chi2ndf_pois,bg_rejected,"
+                                   + "model_residual_pct,library,library_note,matrix_found,"
+                                   + "share_dropped_lines,share_offered_lines,matrix_images,"
+                                   // (`AMBER17`) Привязка шкалы: опор в МНК, ноль в кэВ
+                                   // (усиление — колонка `gain` выше, она и есть
+                                   // найденное привязкой), служебная строка.
+                                   + "anchors_used,anchor_offset_kev,anchor_note,"
+                                   // (`F11` (в), П18) положение по свету: кривая и β — В КОНЕЦ
+                                   + "anchor_light,anchor_beta,"
+                                   // (П19) форма применения световой координаты — В КОНЕЦ
+                                   + "anchor_form");
+                    // ⛔ `share_pct` С 23.08.2026 — ДОЛЯ СЛОЯ (`S76`, решение
+                    // Amber): вклад компонента в ПОЛНЫЙ счёт модели с разнесённой
+                    // подложкой, ровно та же величина, что печатает легенда на
+                    // экране. Прежде это был «пирог» по ПИКОВЫМ отсчётам среди
+                    // нуклидных образов, у служебных ноль, — и про один и тот же
+                    // компонент экран и эта таблица говорили РАЗНЫЕ числа под
+                    // одним словом.
+                    //
+                    // ⛔ ЧИСЛА КОЛОНКИ СТАЛИ ДРУГИМИ, И ЗНАМЕНАТЕЛЬ У НИХ БОЛЬШЕ:
+                    // доли ниже прежних. `score.py` отбирает обнаруженное по
+                    // `--sthr` (умолчание 3 %), и порог этот выведен под СТАРУЮ
+                    // меру — под новую его надо выводить заново развёрткой по
+                    // корпусу, как выводился порог `S57`. Строка — `S90`; пока
+                    // она открыта, recall и фантомы этой базы несравнимы с
+                    // прежними даже при том же прогоне.
+                    //
+                    // `peak_share_pct` — доля пиковых отсчётов среди ВСЕХ образов
+                    // (`S49`), мера ДРУГОГО вопроса и остаётся как была.
+                    // ⛔ Колонки величины пределов подписаны НЕ «cps», и это не
+                    // косметика (`S68`): вес линии в образе равен I/100 × ε(E) при
+                    // профилях единичной площади, значит амплитуда выражена в
+                    // РАСПАДАХ, а `amplitude/liveTime` есть распадов в секунду В ШКАЛЕ
+                    // ПОДАННОЙ КРИВОЙ ЭФФЕКТИВНОСТИ — не зарегистрированные импульсы.
+                    // На `Th232_29.07.2022.xml` разница была видна прямо: полная
+                    // скорость счёта спектра 416.37, а у Th-232 предел 607.
+                    // ⚠ Беккерелями это НЕ называется по другой причине и она
+                    // остаётся в силе: абсолютный уровень кривой недостоверен
+                    // (`E1`, `V1`).
+                    // ⛔ `inflate` стоит ВПЛОТНУЮ к `z` (`A281`): значимость уже
+                    // поделена на него, и читать одну без другого нельзя —
+                    // z = 3.0 при inflate 1.0 и при 8.2 говорят о разном.
+                    comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,inflate,decay_s,peak_counts,"
+                                    + "dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
+                    // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
+                    // вошедших в состав: у «не обнаружен» без МДА нет смысла.
+                    // `mda_peak_counts` (`S68`) — отсчёты образа в его пиковых окнах
+                    // при амплитуде НА ПРЕДЕЛЕ: числитель той доли, которую легенда
+                    // теперь и печатает вместо величины в имп/с. `total_yield_pct`
+                    // (`S69`) — суммарный выход всех γ и X на СОБСТВЕННЫЙ распад
+                    // нуклида, по нему легенда решает, показывать ли кандидата
+                    // своей строкой; пусто — сборка библиотеки его не знает.
+                    limits.WriteLine("spectrum,det,part,component,kind,detected,decay_s,"
+                                     + "dt_decay_s,mda_decay_s,degenerate,collinearity,"
+                                     + "mda_peak_counts,total_yield_pct");
+                    foreach (Row r in rows)
+                    {
+                        if (r.Det != group)
+                        {
+                            continue;
+                        }
+
+                        runs.WriteLine(string.Join(",",
+                            Csv(r.Key), Csv(r.Det), Csv(r.Part),
+                            r.Error != null ? "ERROR" : F(r.Chi2Ndf, "F4"),
+                            r.Error != null ? "" : F(r.SigmaInflation, "F4"),
+                            F(r.Gain, "F6"), F(r.OffsetChannels, "F3"),
+                            r.DriftOnGridEdge ? "1" : "0",
+                            r.GainOnGridEdge ? "1" : "0", r.OffsetOnGridEdge ? "1" : "0",
+                            r.MatrixApplied ? "1" : "0", Csv(MatrixNote(r)),
+                            r.CascadeUsed ? "1" : "0", r.EfficiencyUsed ? "1" : "0",
+                            r.HasBackground ? "1" : "0",
+                            r.Peaks.ToString(CultureInfo.InvariantCulture),
+                            r.LibrarySize.ToString(CultureInfo.InvariantCulture),
+                            F(r.Ms, "F0"), F(r.CpuMs, "F0"),
+                            F(r.NearExcess, "F2"), F(r.NearCounts, "F0"),
+                            Csv(r.Error ?? ""),
+                            r.Error != null ? "" : F(r.Chi2NdfPoisson, "F4"),
+                            Csv(r.BackgroundNote),
+                            r.Error != null ? "" : F(100.0 * r.ModelResidual, "F3"),
+                            Csv(o.Library), Csv(r.LibraryNote),
+                            MatrixFound(r) ? "1" : "0",
+                            r.ShareDropped.ToString(CultureInfo.InvariantCulture),
+                            r.ShareOffered.ToString(CultureInfo.InvariantCulture),
+                            r.MatrixImages.ToString(CultureInfo.InvariantCulture),
+                            r.AnchorsUsed.ToString(CultureInfo.InvariantCulture),
+                            F(r.AnchorOffsetKev, "F3"),
+                            Csv(r.AnchorNote),
+                            Csv(r.AnchorLight ?? ""),
+                            F(r.AnchorBeta, "F4"),
+                            Csv(r.AnchorForm ?? "")));
+
+                        if (r.Result == null)
+                        {
+                            continue;
+                        }
+
+                        if (r.Anchors != null)
+                        {
+                            foreach (FsaScaleAnchor an in r.Anchors)
+                            {
+                                anchors.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(an.Component ?? ""),
+                                    F(an.LineKev, "F3"), F(an.ModelKev, "F3"), F(an.MeasuredKev, "F3"),
+                                    F(an.ShiftKev, "F3"), F(an.SigmaKev, "F3"),
+                                    F(an.PeakShare, "F4"), F(an.Z, "F2"),
+                                    an.FirstChannel.ToString(CultureInfo.InvariantCulture),
+                                    an.LastChannel.ToString(CultureInfo.InvariantCulture),
+                                    an.Used ? "1" : "0", Csv(an.Refusal ?? ""),
+                                    F(an.LightShiftKev, "F3")));
+                            }
+                        }
+
+                        {
+                            double greyBelow = 0.0, greyAbove = 0.0;
+                            foreach (FsaStackLayer layer in r.Result.BuildStackedLayers(int.MaxValue))
+                            {
+                                if (!string.Equals(layer.Name, FsaResult.ContinuumLayerName, StringComparison.Ordinal)) continue;
+                                for (int i = 0; i < layer.Curve.Length; i++)
+                                {
+                                    if (i < r.Result.ContinuumSpreadFloorChannel) greyBelow += layer.Curve[i];
+                                    else greyAbove += layer.Curve[i];
+                                }
+                            }
+
+                            double stackTotal = r.Result.StackTotal;
+                            grey.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part),
+                                r.Result.ResponseMatrixUsed ? "1" : "0",
+                                F(greyBelow, "F1"), F(greyAbove, "F1"),
+                                F(stackTotal > 0.0 ? 100.0 * (greyBelow + greyAbove) / stackTotal : 0.0, "F3"),
+                                F(r.Result.ContinuumSpreadFloorKev, "F1"),
+                                r.Result.ContinuumSpreadFloorChannel.ToString(CultureInfo.InvariantCulture),
+                                F(r.Result.ResidualFloorKev, "F1"),
+                                r.Result.ResidualFloorChannel.ToString(CultureInfo.InvariantCulture),
+                                r.Result.FirstChannel.ToString(CultureInfo.InvariantCulture),
+                                r.Result.LastChannel.ToString(CultureInfo.InvariantCulture),
+                                F(stackTotal, "F1"),
+                                F(100.0 * r.Result.ResidualMissingShare, "F3"),
+                                F(100.0 * r.Result.ResidualExcessShare, "F3")));
+                        }
+
+                        if (r.Result.UntiedTails != null)
+                        {
+                            foreach (FsaUntiedTail tail in r.Result.UntiedTails)
+                            {
+                                tails.WriteLine(string.Join(",",
+                                    Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(tail.Component),
+                                    F(tail.Counts, "F1"),
+                                    F(100.0 * r.Result.ResidualMissingShare, "F3"),
+                                    F(100.0 * r.Result.ResidualExcessShare, "F3"),
+                                    tail.Placement.ToString().ToLowerInvariant()));
+                            }
+                        }
+
+                        foreach (FsaComponentResult c in r.Result.Components)
+                        {
+                            comps.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(c.Name),
+                                c.Kind.ToString().ToLowerInvariant(),
+                                F(c.SharePercent, "F3"), F(c.Z, "F2"),
+                                F(r.SigmaInflation, "F4"),
+                                F(c.CountRate, "E4"), F(c.PeakCounts, "F1"),
+                                F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4"),
+                                F(c.ZoneChi2Ndf, "F3"), F(c.ZoneDeltaD, "F2"),
+                                c.ZoneChannels.ToString(CultureInfo.InvariantCulture),
+                                F(c.PeakSharePercent, "F3")));
+                        }
+
+                        foreach (FsaCharacteristicLimit L in r.Result.CharacteristicLimits)
+                        {
+                            limits.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part), Csv(L.Name),
+                                L.Kind.ToString().ToLowerInvariant(),
+                                L.Detected ? "1" : "0",
+                                F(L.CountRate, "E4"),
+                                F(L.DecisionThresholdRate, "E4"), F(L.DetectionLimitRate, "E4"),
+                                L.Degenerate ? "1" : "0", F(L.Collinearity, "F4"),
+                                F(L.DetectionLimitPeakCounts, "F1"),
+                                F(L.TotalYieldPercent, "F4")));
+                        }
+                    }
+                }
+            }
+
+            if (o.Audit)
+            {
+                WriteAudit(rows, o);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("записано групп: {0} -> {1}", groups.Count, Path.GetFullPath(o.Out));
+
+            // ⛔ (`S103`) ЧИТАТЕЛЬ РЫЧАГА. Развёртка, чьи корпусные числа не
+            // шелохнулись, обязана уметь сказать, ЧТО при этом двигалось, —
+            // иначе «рычаг не важен» и «рычаг не доехал» неразличимы, а на этом
+            // дереве уже дважды ловили второе (`S101`, `T65`). Печатается
+            // всегда, когда режим включён, в том числе на контрольном плече с
+            // нулём выброшенных: ноль при ненулевом знаменателе — это результат.
+            if (FsaBand.DefaultMode == FsaBandMode.LibraryToFitByShare)
+            {
+                int dropped = 0, offered = 0, touched = 0, seen = 0;
+                foreach (Row r in rows)
+                {
+                    if (r.Error != null)
+                    {
+                        continue;
+                    }
+
+                    seen++;
+                    dropped += r.ShareDropped;
+                    offered += r.ShareOffered;
+                    if (r.ShareDropped > 0)
+                    {
+                        touched++;
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("опора по столбцу (`S103`), порог {0:F3}: выброшено {1} линий"
+                                  + " из {2} подпороговых, тронуто {3} спектров из {4}",
+                                  FsaBand.DefaultShareThreshold, dropped, offered, touched, seen);
+            }
+        }
+
+        /// <summary>
+        /// (S60) Сверка по линиям, которые обязаны быть: файл со всеми строками
+        /// и итог ПОЛОСАМИ ЭНЕРГИИ.
+        ///
+        /// ⛔ Итог печатается медианой ОТНОШЕНИЯ (измерено/ожидание), а не
+        /// медианой Z, и это не косметика. Z растёт со статистикой: на спектре в
+        /// сто миллионов отсчётов он кричит там, где расхождение ничтожно, а на
+        /// слабом молчит при расхождении вдвое. Отношение сравнимо поперёк
+        /// корпуса, где счета разнятся в тысячи раз. Z печатается рядом — им
+        /// читается ЗНАЧИМОСТЬ расхождения, а не его величина.
+        ///
+        /// ⚠ В итог идут только линии с чистотой ≥ 0.5, то есть те, где больше
+        /// половины ожидаемой площади принадлежит своему компоненту. Иначе в
+        /// сводку попадёт чужое расхождение под чужим именем.
+        /// </summary>
+        static void WriteAudit(List<Row> rows, Options o)
+        {
+            string path = Path.Combine(o.Out, "lines_" + o.Mode + ".csv");
+            int bands = FsaLineAudit.Bands.Length - 1;
+            var ratioAll = new List<double>[bands];
+            var ratioMatrix = new List<double>[bands];
+            var ratioNoMatrix = new List<double>[bands];
+            var absZ = new List<double>[bands];
+            for (int i = 0; i < bands; i++)
+            {
+                ratioAll[i] = new List<double>();
+                ratioMatrix[i] = new List<double>();
+                ratioNoMatrix[i] = new List<double>();
+                absZ[i] = new List<double>();
+            }
+
+            int total = 0, obligatory = 0, agreed = 0, missing = 0;
+            using (var file = new StreamWriter(path, false, new UTF8Encoding(true)))
+            {
+                // (`T85`) Колонка называет ПРИМЕНЕНИЕ: сверка ниже делит линии
+                // на «с матрицей» и «без неё» по тому, чем построен образ, а не
+                // по тому, лежала ли матрица на диске.
+                file.WriteLine("spectrum,det,part,matrix_applied,component,energy_kev,lines,"
+                               + "intensity_pct,"
+                               + "expected,measured,sigma,z,ratio,purity,decision,obligatory");
+                foreach (Row r in rows)
+                {
+                    if (r.Audit == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaLineAudit.LineCheck c in r.Audit)
+                    {
+                        total++;
+                        file.WriteLine(string.Join(",",
+                            Csv(r.Key), Csv(r.Det), Csv(r.Part), r.MatrixApplied ? "1" : "0",
+                            Csv(c.Component), F(c.EnergyKev, "F2"),
+                            c.Lines.ToString(CultureInfo.InvariantCulture),
+                            F(c.IntensityPct, "F4"),
+                            F(c.Expected, "F1"), F(c.Measured, "F1"), F(c.Sigma, "F1"),
+                            F(c.Z, "F2"), F(c.Ratio, "F4"), F(c.Purity, "F3"),
+                            F(c.DecisionThreshold, "F1"), c.Obligatory ? "1" : "0"));
+
+                        if (!c.Obligatory)
+                        {
+                            continue;
+                        }
+
+                        obligatory++;
+                        if (Math.Abs(c.Z) <= 3.0)
+                        {
+                            agreed++;
+                        }
+
+                        // «Обязана быть, а её нет»: измеренная площадь ниже
+                        // порога решения. Это самый резкий сигнал сверки — он
+                        // означает, что предсказание не подтвердилось вовсе.
+                        if (c.Measured < c.DecisionThreshold)
+                        {
+                            missing++;
+                        }
+
+                        int band = FsaLineAudit.BandOf(c.EnergyKev);
+                        if (band < 0 || !(c.Purity >= 0.5) || double.IsNaN(c.Ratio))
+                        {
+                            continue;
+                        }
+
+                        ratioAll[band].Add(c.Ratio);
+                        absZ[band].Add(Math.Abs(c.Z));
+                        if (r.MatrixApplied)
+                        {
+                            ratioMatrix[band].Add(c.Ratio);
+                        }
+                        else
+                        {
+                            ratioNoMatrix[band].Add(c.Ratio);
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("=== S60: сверка по линиям, которые ОБЯЗАНЫ быть ===");
+            Console.WriteLine("строк всего {0}; обязательных {1} (порог решения Карри, k = {2});",
+                              total, obligatory, FsaLineAudit.DecisionK);
+            // (`T247`) Доли — `F` со знаком процента текстом и множителем 100.0
+            // у аргумента; формат `P` группировал бы разряды выше 1000 %.
+            Console.WriteLine("  из них |Z| <= 3: {0} ({1:F1} %); НЕ подтвердилось вовсе: {2} ({3:F1} %)",
+                              agreed, obligatory > 0 ? 100.0 * agreed / obligatory : 0.0,
+                              missing, obligatory > 0 ? 100.0 * missing / obligatory : 0.0);
+            Console.WriteLine();
+            Console.WriteLine("{0,-12} {1,7} {2,10} {3,10} {4,10} {5,9}",
+                              "полоса, кэВ", "линий", "изм/ожид", "с матрицей", "без неё", "мед.|Z|");
+            for (int i = 0; i < bands; i++)
+            {
+                if (ratioAll[i].Count == 0)
+                {
+                    continue;
+                }
+
+                Console.WriteLine("{0,-12} {1,7} {2,10:F3} {3,10} {4,10} {5,9:F1}",
+                                  FsaLineAudit.BandName(i), ratioAll[i].Count,
+                                  FsaLineAudit.Median(ratioAll[i]),
+                                  ratioMatrix[i].Count > 0
+                                      ? FsaLineAudit.Median(ratioMatrix[i]).ToString("F3", CultureInfo.InvariantCulture)
+                                      : "—",
+                                  ratioNoMatrix[i].Count > 0
+                                      ? FsaLineAudit.Median(ratioNoMatrix[i]).ToString("F3", CultureInfo.InvariantCulture)
+                                      : "—",
+                                  FsaLineAudit.Median(absZ[i]));
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("⚠ читать колонку «изм/ожид»: единица — модель предсказала площадь верно.");
+            Console.WriteLine("  ХОД этой колонки по энергии и есть проверка матрицы — доля пика падает");
+            Console.WriteLine("  с энергией, и ошибка в ней перекошена туда же. Одно число ничего не скажет.");
+            Console.WriteLine("построчно: {0}", Path.GetFullPath(path));
+        }
+
+        static string F(double value, string format)
+        {
+            return double.IsNaN(value) || double.IsInfinity(value)
+                ? "" : value.ToString(format, CultureInfo.InvariantCulture);
+        }
+
+        static string Csv(string value)
+        {
+            if (value == null)
+            {
+                return "";
+            }
+
+            return value.IndexOfAny(new[] { ',', '"', '\n' }) < 0
+                ? value : "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
+
+        /// <summary>Разбор `parts.csv` с отбором по ключам запуска.</summary>
+        static List<Sample> ReadParts(string path, Options o)
+        {
+            var samples = new List<Sample>();
+            string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+            for (int i = 1; i < lines.Length; i++)
+            {
+                List<string> cells = SplitCsv(lines[i]);
+                if (cells.Count < 3 || cells[0].Length == 0)
+                {
+                    continue;
+                }
+
+                var sample = new Sample { Key = cells[0], Det = cells[1], Part = cells[2] };
+
+                // Германий выброшен здесь, а не отбором вызывающего: приказ
+                // Amber 08.08.2026 — новых задач по нему не заводить и в счёт
+                // не брать. Ключа, который бы его вернул, нет нарочно.
+                if (sample.Part == "excluded")
+                {
+                    continue;
+                }
+
+                if (o.Part != "all" && sample.Part != o.Part)
+                {
+                    continue;
+                }
+
+                if (o.Groups != null && !o.Groups.Contains(sample.Det))
+                {
+                    continue;
+                }
+
+                if (o.Only != null && !o.Only.Contains(sample.Key))
+                {
+                    continue;
+                }
+
+                samples.Add(sample);
+                if (o.Limit > 0 && samples.Count >= o.Limit)
+                {
+                    break;
+                }
+            }
+
+            return samples;
+        }
+
+        static List<string> SplitCsv(string line)
+        {
+            var cells = new List<string>();
+            var sb = new StringBuilder();
+            bool quoted = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (quoted)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < line.Length && line[i + 1] == '"')
+                        {
+                            sb.Append('"');
+                            i++;
+                        }
+                        else
+                        {
+                            quoted = false;
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(c);
+                    }
+                }
+                else if (c == '"')
+                {
+                    quoted = true;
+                }
+                else if (c == ',')
+                {
+                    cells.Add(sb.ToString());
+                    sb.Length = 0;
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+
+            cells.Add(sb.ToString());
+            return cells;
+        }
+
+        /// <summary>
+        /// Спектр читается ровно так же, как его читают `FsaCascadeProbe` и
+        /// `FsaPaletteProbe`: с достройкой счёта и ПШПВ-калибровки умолчанием,
+        /// как это делает `DocEnergySpectrum`. Иначе числа проб на одном файле
+        /// не сойдутся, а разница будет не в том, что мерили.
+        /// </summary>
+        /// <summary>
+        /// Узлы, которые сборка законно не знает и о которых кричать НЕ НАДО.
+        ///
+        /// `Pulses` — узел АУДИО-спектрометров (решение Amber 18.08.2026: в
+        /// корпусе только Digital MCA, единственный аудио-прибор — ASN8).
+        /// Лежит в 44 спектрах из 129 и ВЕЗДЕ пуст (`&lt;Pulses /&gt;`), теряться
+        /// нечему. Держать его в крике значило бы ругаться на каждый третий
+        /// спектр и приучить не смотреть на предупреждение — ровно тот вред,
+        /// ради устранения которого читатель и заведён (родня `T47`).
+        /// </summary>
+        static readonly List<string> KnownHarmlessNodes = new List<string> { "Pulses" };
+
+        static ResultData Load(string path)
+        {
+            var serializer = new XmlSerializer(typeof(ResultDataFile));
+            ResultDataFile file;
+
+            // T41: НЕИЗВЕСТНЫЙ ЭЛЕМЕНТ XML-десериализатор пропускает МОЛЧА, и это
+            // уже стоило ложного вывода. 16.08.2026 в рабочем каталоге лежала
+            // сборка СТАРШЕ исходников: `PowerFwhmCalibration` ей был неизвестен,
+            // узел кривой ПШПВ выпал, `rd.FwhmCalibration` осталась null, проба
+            // законно откатилась на калибровку прибора — и прогон отработал без
+            // единой ошибки, выдав правдоподобные числа (понятная 1766.1 при
+            // невязке 53 %), из которых был сделан вывод «дефект в самом узле».
+            // На свежей сборке узел работает. Признак отказа теперь имеет
+            // читателя: каждый пропущенный узел называется вслух вместе с ИМЕНЕМ
+            // СПЕКТРА — этого и не хватало, чтобы увидеть причину, а не следствие.
+            // ⚠ Подписка на `UnknownNode`, а НЕ на `UnknownElement`: первое
+            // событие приходит на узел ЛЮБОГО вида, второе — только на элемент,
+            // и оба они на неизвестный элемент срабатывают вместе. Одной
+            // подписки хватает, а имена всё равно копятся без повторов.
+            var skipped = new List<string>();
+            XmlNodeEventHandler onUnknown = (sender, e) =>
+            {
+                if (e.NodeType == System.Xml.XmlNodeType.Element
+                    && !string.IsNullOrEmpty(e.Name)
+                    && !KnownHarmlessNodes.Contains(e.Name)
+                    && !skipped.Contains(e.Name))
+                {
+                    skipped.Add(e.Name);
+                }
+            };
+            serializer.UnknownNode += onUnknown;
+
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                file = (ResultDataFile)serializer.Deserialize(stream);
+            }
+
+            serializer.UnknownNode -= onUnknown;
+
+            if (skipped.Count > 0)
+            {
+                Console.Error.WriteLine("⚠ " + Path.GetFileNameWithoutExtension(path)
+                                        + ": сборка не знает узлов "
+                                        + string.Join(", ", skipped.ToArray())
+                                        + " — они ПРОПУЩЕНЫ молча (T41: сборка старше исходников?)");
+            }
+
+            ResultData rd = file.ResultDataList[0];
+            EnergySpectrum s = rd.EnergySpectrum;
+            if (s != null && s.Spectrum != null && s.TotalPulseCount == 0)
+            {
+                long total = 0;
+                for (int i = 0; i < s.Spectrum.Length; i++)
+                {
+                    total += s.Spectrum[i];
+                }
+
+                s.TotalPulseCount = total;
+                s.ValidPulseCount = total;
+            }
+
+            // ⛔ Прибор и его настройки поиска пиков — ОДНИМ правилом на все
+            // пробы (`ProbeDeviceConfig`, строка `S82`). Прежде здесь стояла
+            // своя копия, и она молча брала умолчания библиотеки: SNR 10 против
+            // корпусных 4, диапазон от 30 кэВ против 15 и 20 у половины групп.
+            // Отказ называется поимённо и НЕ глотается — иначе он выглядит как
+            // работающий прогон, чем `S82` и была.
+            string device = ProbeDeviceConfig.Attach(rd);
+            if (device.Contains("НЕТ") || device.Contains("нет"))
+            {
+                Console.Error.WriteLine("⚠ " + Path.GetFileNameWithoutExtension(path) + ": " + device);
+            }
+
+            if (rd.FwhmCalibration == null
+                && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
+            {
+                if (cfg.FwhmCalibration == null && rd.EnergySpectrum != null)
+                {
+                    cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(
+                        cfg, rd.EnergySpectrum.EnergyCalibration);
+                }
+
+                if (cfg.FwhmCalibration != null)
+                {
+                    rd.FwhmCalibration = cfg.FwhmCalibration.Clone();
+                }
+            }
+
+            return rd;
+        }
+
+        sealed class Options
+        {
+            public string Corpus = "corpus";
+            public string Out = "out";
+            public string Part = "all";
+            public string Mode = "spline";
+            public bool Matrix = true;
+            public bool Cascade = true;
+            public bool Xray = true;            // S27: K-рентген партнёром
+            public bool Annihilation = true;    // S27: кванты 511 партнёром
+            public bool Isomers = true;         // S27: изомеры по sandia_symbol
+            public bool DecayTimeProbability = true;  // A289: время жизни уровня вероятностно
+            public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
+            public bool PileUp = true;
+            public bool Backscatter = true;
+            public bool BackscatterWithMatrix = false;
+            public bool Background = true;
+            public bool Quiet;
+            public bool Peaks;
+
+            /// <summary>Сколько крупнейших невязок печатать на спектр (0 — не печатать).</summary>
+            public int Residuals;
+
+            /// <summary>(S111) Куда писать пики ВТОРОГО прохода — по остатку.</summary>
+            public string ResidualPeaks = "";
+
+            /// <summary>
+            /// (`B17`) Делитель диапазона, задающий самый редкий шаг узлов
+            /// континуума; 0 — ключ не задан, умолчание у анализатора.
+            /// ⚠ (`T65`) Здесь СТОЯЛО 128 — вторая копия
+            /// <c>FsaAnalyzer.ContinuumKnotDivisor</c>, то есть тот же заряд,
+            /// что рванул у сетки дрейфа: числа совпадали, пока не разошлись.
+            /// </summary>
+            public int Knots;
+
+            /// <summary>Розыгрышей Монте-Карло-поверки пределов S9 (0 — не поверять).</summary>
+            public int LimitsMc;
+
+            /// <summary>Поверять только этот компонент (`--limits-mc`); null — все.</summary>
+            public string McComponent;
+
+            /// <summary>
+            /// (`S106`, П46 13.09.2026) Дамп первых K розыгрышей каждой серии
+            /// МК-поверки: оценка и порог каждого члена семьи, кто подавлен и
+            /// чем (гейт по парциальной невязке / отсев), состав копии, шкала,
+            /// χ²/ndf. 0 — не печатать.
+            /// </summary>
+            public int McDump;
+
+            /// <summary>
+            /// (`S106`, П46) Множитель уровня впрыска: 1 — на уровне МДА (штатно);
+            /// 0 — положительный контроль мерки (впрыска нет, пропусков обязано
+            /// быть ~100/100); больше 1 — развёртка «на каком уровне компонент
+            /// вообще находится».
+            /// </summary>
+            public double McLevel = 1.0;
+
+            /// <summary>Окно энергий, про которое спрашивают отдельно (V4: ~460 кэВ).</summary>
+            public double NearFrom, NearTo;
+            public int Limit;
+            public double OffsetRangeKev;   // 0 — ключ не задан, умолчание у анализатора
+            public int OffsetSteps;         // 0 — ключ не задан, умолчание у анализатора
+            public double GainRange;        // 0 — ключ не задан, умолчание у анализатора
+            public int GainSteps;           // 0 — ключ не задан, умолчание у анализатора
+
+            // (`AMBER17`) Привязка шкалы по пикам полного поглощения: плечо A/B
+            // и рычаги развёртки. Отрицательное — ключ не задан, умолчание у
+            // анализатора (`T65`: числа здесь не повторяются).
+            public bool Anchor = true;
+            public double AnchorShare = -1.0;
+
+            // (`AMBER16` п. 4, остаток П8; П3 12.09.2026) Правило переноса
+            // строки узла на энергию линии: −1 — ключ не задан, умолчание у
+            // анализатора (по каналам с 11.09.2026, `f8dad9cf`); 0 — `stretch`,
+            // прежний общий масштаб (обратное плечо A/B); 1 — `channel`.
+            public int MatrixTransfer = -1;
+            public int AnchorPasses = -1;
+            public int AnchorOffsetMin = -1;
+            public double AnchorZ = -1.0;
+            public double AnchorWindow = -1.0;
+            public double AnchorFloor = -1.0;
+            public double AnchorMinFwhm = -1.0;
+            public string AnchorLight = null;    // (П18) "0" выкл, "1" по веществу, имя кривой; null — умолчание анализатора
+            public string AnchorForm = null;     // (П19) форма применения bin|line|peak|anchor; null — умолчание анализатора
+            public double[] AnchorSkip = null;   // (П16/П18) выброс узла
+            public double AnchorLightMax = -1.0; // (П18) граница световой координаты, кэВ; -1 — умолчание анализатора
+            public string AnchorZero = null;     // (S169) нуль шкалы образа calib|adc|adc-fixed; null — умолчание анализатора
+            public double AnchorZeroKev = double.NaN; // (S169) свет в нулевом канале — нуль прибора (у adc — запасной путь), кэВ; NaN — умолчание анализатора
+            public double AnchorZeroShare = double.NaN; // (S169, П13) порог доли синего у кандидата нуля съёмки; NaN — умолчание анализатора
+            public double AnchorZeroMax = double.NaN;   // (S169, П13) верхняя граница света кандидата нуля съёмки, кэВ; NaN — умолчание анализатора
+            public string PileUpLight = null;    // (S107) форма наложений по свету: "0" выкл, "1" по веществу, "energy" порча, имя кривой; null — умолчание анализатора
+            public string SumLight = null;       // (S167, П18) кривая света каскадной суммы: "electron" | "photon"; null — умолчание анализатора
+            public int LossJoint = -1;           // (S166, П18) вынос из пика с κ: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public int AngCorr = -1;             // (N14, П49) угловая корреляция в парах: 1 вкл, 0 выкл; -1 — умолчание анализатора
+            public string Weights = null;        // (A310, П47) веса решателя: "data" | "model"; null — умолчание анализатора
+
+            // (`T65`) ЧИСЛА УМОЛЧАНИЙ ЗДЕСЬ НЕ ПОВТОРЯЮТСЯ. Стояли «(3.0)»,
+            // «(9)», «(0.008)» — и устарели молча 24.08.2026, когда `S93`
+            // расширил сетку до ±8 кэВ / ±2 % по 17 узлов.
+
+            /// <summary>
+            /// Порог Хубера в сигмах; отрицательный — умолчание
+            /// анализатора (`T65`: число здесь не повторяется). Ноль
+            /// ВЫКЛЮЧАЕТ перевзвешивание — это A-сторона S41:
+            /// Хубер в решателе живёт с переноса из pie и входит в базу
+            /// корпуса, так что мерится его ОТКЛЮЧЕНИЕ, а не включение.
+            /// </summary>
+            public double HuberM = -1.0;
+
+            /// <summary>
+            /// (S9 «б») Порог значимости отсева перед вторым проходом;
+            /// отрицательный — умолчание анализатора (`T65`: число здесь
+            /// не повторяется), ноль ВЫКЛЮЧАЕТ отсев целиком. Заведён,
+            /// чтобы развести две ступени, каждая из
+            /// которых могла занизить МДА слабого компонента: первый NNLS
+            /// (сигнал уходит соседям) или «предварительный анализ состава»
+            /// (компонент выброшен и второй проход считается без него).
+            /// </summary>
+            public double RefitZ = -1.0;
+
+            /// <summary>
+            /// (`A268`, родитель `A266`) ДОЛЯ наибольшей значимости первого
+            /// прохода в пороге отсева: порог = min(RefitZ, доля · z_max).
+            /// Отрицательное — умолчание анализатора (`T65`: число здесь не
+            /// повторяется), НОЛЬ — чисто абсолютный порог.
+            ///
+            /// ⛔ Умолчание обязано быть именно отрицательным, а не нулём:
+            /// когда доля станет поставочной, `--refit-z-rel=0` — это
+            /// единственное плечо «без доли», которым цену правки на корпусе
+            /// и меряют. При умолчании 0 такое плечо было бы неотличимо от
+            /// «ключ не задан», и абляция замолчала бы (`A266` §6).
+            /// </summary>
+            public double RefitZRelative = -1.0;
+
+            /// <summary>(S47) Гейт образов вылета при матрице; A-сторона — `--no-escape-gate`.</summary>
+            public bool EscapeGate = true;
+
+            /// <summary>
+            /// (`A168`) Пользовательский флажок «вылеты SE/DE и аннигиляция
+            /// 511» — положительный ключ анализатора `EscapeAndAnnihilation`;
+            /// A-сторона — `--no-escape`. ⚠ На корпусе (`--lib=sample`) SE/DE не
+            /// строятся вовсе, и ключ снимает только `Ann-511`.
+            /// </summary>
+            public bool Escape = true;
+
+            /// <summary>(S43) γ составного шума D = F + γ²F²; 0 — выключено.</summary>
+            public double NoiseGamma;
+
+            /// <summary>(S43) β коррелированности вычитаемого фона; 0 — выключено.</summary>
+            public double NoiseBeta;
+
+            /// <summary>(S43) `--gamma-map=`: γ по спектру из невязки ε прежнего прогона; null — нет.</summary>
+            public Dictionary<string, double> GammaMap;
+
+            /// <summary>(P6) Считать парциальные невязки (дорого: рефит на компонент).</summary>
+            public bool Partial;
+
+            /// <summary>
+            /// (P6 «б») Гейт по ΔD&lt;0 с перефитом. С 14.08.2026 включён в
+            /// анализаторе умолчанием (решение Amber) — A/B-сторона теперь
+            /// `--no-pr-gate`.
+            /// </summary>
+            public bool PartialGate = true;
+
+            /// <summary>
+            /// (S45) Перекладывать фон на шкалу спектра перед вычитанием.
+            /// Умолчание — ДА с 16.08.2026, вслед за анализатором: после того
+            /// как фон той же настройки стал жить в шкале переднего плана
+            /// (`build_corpus.same_setting`), перекладка перестала вредить.
+            /// A/B-сторона — `--no-bg-rebin`; ключ `--bg-rebin` оставлен, чтобы
+            /// прежние замеры воспроизводились дословно.
+            ///
+            /// ⚠ Умолчание держится ЗДЕСЬ, а не наследуется от анализатора:
+            /// строка 16.08.2026 перекрывала `FsaAnalyzer` своим `false`, и
+            /// прогон «с новым умолчанием» тихо повторил старые числа.
+            /// </summary>
+            public bool RebinBackground = true;
+
+            /// <summary>
+            /// (S56, S57) Чем задан состав библиотеки: `sample` — объявленной
+            /// пробой (первый постулат Amber, умолчание с 18.08.2026), `peaks` —
+            /// подписями поиска пиков (как было), `infer` — ВЫВЕДЕН из поиска
+            /// пиков по цепочке родителя (`S57`, прибор в поле).
+            ///
+            /// ⛔ Три эти числа НЕ ОДНОГО СМЫСЛА и рядом не ставятся без оговорки.
+            /// `sample` знает истину из `manifest.csv` — это верхняя граница
+            /// того, что вывод может дать; `peaks` — нижняя, состав как есть.
+            /// `infer` меряется ПРОТИВ ОБЕИХ: он обязан подойти к первой и
+            /// заметно обойти вторую, иначе выводить нечего.
+            /// </summary>
+            public string Library = "sample";
+
+            /// <summary>
+            /// (S57) Порог доли ожидаемо-различимых линий; отрицательный —
+            /// умолчание <c>FsaCompositionInference.DefaultCoverage</c>. Ключ
+            /// заведён ради РАЗВЁРТКИ: величина порога обязана быть выведена
+            /// замером по корпусу, а не назначена.
+            /// </summary>
+            public double InferTheta = -1.0;
+
+            // ⛔ Поля `InferAnchors` (`--no-infer-anchor`) и `InferNovelty`
+            //    (`--no-infer-novel`) СНЯТЫ 13.09.2026 (П39, находка П35): якорь
+            //    снят из приложения решением Amber (`S66`), новизну проба не
+            //    звала никогда — оба поля жили только в печати «библиотека:»,
+            //    а строка `KEYS` (`T115`) печатает отражением всё, что есть.
+
+            /// <summary>
+            /// (S65) Что делать с ОБОРВАННЫМ рядом: `--infer-head` /
+            /// `--infer-head-only`. Умолчание — как было до 25.08.2026.
+            /// </summary>
+            public FsaChainCut InferCut = FsaChainCut.Whole;
+
+            /// <summary>(S56) Атомные образы: рентген и пики вылета. A/B — `--no-atomic`.</summary>
+            public bool Atomic = true;
+
+            // ⛔ Поле вездесущих рядов снято 01.09.2026 вместе с самим механизмом
+            // (решение Amber по `S110`): состав — ровно объявленное.
+
+            /// <summary>
+            /// (S70) Ряд связан равновесием: одна колонка, одна свободная
+            /// амплитуда, относительные веса от ветвления. A/B-сторона
+            /// `--no-equilibrium` возвращает свободную амплитуду каждому члену.
+            /// </summary>
+            public bool Equilibrium = true;
+
+            /// <summary>
+            /// (`A30`, П21) Заслон сведения рентгена кристалла — прежний
+            /// порядок сборки атомных образов. Уходит в
+            /// `FsaSampleSpec.CrystalShield`; A/B-сторона `--crystal-shield=1`.
+            /// </summary>
+            public bool CrystalShield;
+
+            /// <summary>
+            /// (S70) Печатать СОСТАВ БИБЛИОТЕКИ построчно — мерка приёмки
+            /// связки равновесия: она не смеет убирать ни одного компонента,
+            /// кроме слияния членов ряда, и проверяется это сравнением двух
+            /// таких распечаток, а не рассуждением. `--lib-dump`.
+            /// </summary>
+            public bool LibDump;
+
+            /// <summary>
+            /// (`S88`) Каталог, куда класть кривые ПО КАНАЛАМ на каждый
+            /// разобранный спектр: измерение за вычетом фона, модель, континуум
+            /// и по колонке на слой. Пусто — не выгружать.
+            ///
+            /// Заведено потому, что спор «модель кривая или спектр такой»
+            /// решается только счётом по каналам, а до сегодня такую выгрузку
+            /// умела ОДНА проба на ОДНОМ спектре (`FsaStackShot --dump=`), то
+            /// есть на корпусе вопрос было нечем задать. Формат тот же, что у
+            /// неё, — и разбирает обе `tools/CORPUS/scripts/wave_shape.py`.
+            /// </summary>
+            public string DumpCurves;
+
+            /// <summary>
+            /// (`S103`) Файл, куда выгрузить ПОВЕРКУ СТОЛБЦОВ ЛИНИЙ ниже
+            /// `Min_Range`: по строке на линию — норма её столбца во взвешенной
+            /// метрике фита, амплитуда владельца, площадь, которую линия кладёт
+            /// в модель, и доля столбца, представимая сплайном континуума.
+            /// Рядом кладётся `<имя>_spectra.csv` — по строке на спектр: сколько
+            /// отсчётов лежит ниже `Min_Range` и чем они в модели описаны.
+            /// Пусто — не считать вовсе (умолчание анализатора — ноль).
+            ///
+            /// ⚠ Ключ НИЧЕГО НЕ МЕНЯЕТ в разборе: поверка считается после
+            /// отчётного фита по его же столбцам. Проверено сличением
+            /// `components`/`limits` с прогоном без ключа.
+            /// </summary>
+            public string BandAudit;
+
+            /// <summary>
+            /// (`S88`) Густой край шага узлов континуума в ПШПВ; 0 — не трогать
+            /// умолчание анализатора (4). ⚠ Абляция, а не настройка.
+            /// </summary>
+            public double KnotFwhm;
+
+            /// <summary>
+            /// (`S85`) Вес штрафа на излом континуума; отрицательный — не
+            /// трогать умолчание анализатора.
+            /// </summary>
+            public double Roughness = -1.0;
+
+            /// <summary>
+            /// (`S98`) Полоса разбора, ключ `--band=`; `null` — не трогать
+            /// умолчание анализатора (`FsaBand.DefaultMode`).
+            /// </summary>
+            public string BandName;
+
+            /// <summary>
+            /// (`S98`) Пол полосы библиотеки, кэВ, ключ `--band-floor=`;
+            /// отрицательный — не трогать умолчание.
+            /// </summary>
+            public double BandFloor = -1.0;
+
+            /// <summary>
+            /// (`S98`/`S101`) Доля от максимума кривой, задающая пол полосы,
+            /// ключ `--floor-frac=`; отрицательная — не трогать умолчание
+            /// (<c>FsaBand.DefaultFloorFraction</c>).
+            /// </summary>
+            public double FloorFraction = -1.0;
+
+            /// <summary>
+            /// (`S103`) Порог доли континуума у опоры полосы по столбцу, ключ
+            /// `--share-thr=`; отрицательный — не трогать умолчание
+            /// (<c>FsaBand.DefaultShareThreshold</c> = 1.0, нейтральное).
+            /// </summary>
+            public double ShareThreshold = -1.0;
+
+            /// <summary>
+            /// (`A73`) Чем назначается пол у спектра БЕЗ кривой, ключ
+            /// `--nocurve-floor=` (`minrange` | `adc` | число в кэВ); пусто —
+            /// не трогать умолчание (<c>FsaBand.ShippedNoCurveFloor</c> =
+            /// `minrange`, то есть в точности поведение до 04.09.2026).
+            /// </summary>
+            public string NoCurveFloorName;
+
+            /// <summary>
+            /// (`A302`/`A309`) Чем назначается пол ПОЛОСЫ ФИТА, ключ `--fit-floor=`
+            /// (`threshold` | `threshold:&lt;доля&gt;` | `off` | `adc` | число в
+            /// кэВ); пусто — не трогать умолчание (<c>FsaBand.ShippedFitFloor</c>
+            /// = `threshold`, правило порога по рампе обоих спектров, решение
+            /// Amber 12.09.2026; `off` — поведение до `A309`, фит от нулевого
+            /// канала).
+            /// </summary>
+            public string FitFloorName;
+
+            /// <summary>(`S101`) Положительный контроль сторожа полосы,
+            /// ключ `--band-selftest`; корпус при нём не читается.</summary>
+            public bool BandSelfTest;
+
+            /// <summary>(`AMBER19`) Порча для положительного контроля гейта
+            /// библиотеки: `manager` — поднять менеджер посреди прогона;
+            /// (`T115`) `key` — применить умолчание вместо ключа `--no-atomic`
+            /// в точке применения (свидетели обязаны поймать, код 13). Пусто —
+            /// порчи нет.</summary>
+            public string Spoil = "";
+
+            /// <summary>(`T94`) Напечатать настройки и выйти кодом 0, не читая
+            /// корпуса, — ключ `--print-settings`.</summary>
+            public bool PrintSettings;
+
+            /// <summary>(S60) Сверять линии, которые обязаны быть, — `--audit`.</summary>
+            public bool Audit;
+            public List<string> Groups;
+            public List<string> Only;
+        }
+
+        sealed class Sample
+        {
+            public string Key;
+            public string Det;
+            public string Part;
+
+            /// <summary>(S56) Метки рядов из `manifest.csv`: «Th-232», «U-238u».</summary>
+            public readonly List<string> Chains = new List<string>();
+
+            /// <summary>(S56) Одиночные нуклиды из `manifest.csv`: «40K», «176LU».</summary>
+            public readonly List<string> Nuclides = new List<string>();
+
+            /// <summary>(S56) Символы элементов кристалла из `materials.csv`.</summary>
+            public readonly List<string> Crystal = new List<string>();
+
+            /// <summary>(S56) Символы элементов пробы из `materials.csv`.</summary>
+            public readonly List<string> SampleMatter = new List<string>();
+
+            /// <summary>(S56) Символы элементов защиты и обвязки из `materials.csv`.</summary>
+            public readonly List<string> Shield = new List<string>();
+        }
+
+        /// <summary>
+        /// Показана ли уже строка полосы: заверение печатается один раз за
+        /// прогон, а спектры разбираются в несколько потоков (`T105`).
+        /// </summary>
+        static int bandNoteShown;
+
+        sealed class Row
+        {
+            public string Key;
+            public string Det;
+            public string Part;
+            public string Error;
+
+            /// <summary>
+            /// (`T85`) Что стало с матрицей ДО разбора: найдена или почему нет.
+            /// Печатной строки здесь не лежит нарочно — её собирает
+            /// <see cref="Program.MatrixNote"/> из этого признака И из
+            /// <see cref="MatrixApplied"/>, чтобы «найдена» и «применена» не
+            /// могли снова разъехаться по двум разным словам.
+            /// </summary>
+            public MatrixState Matrix = MatrixState.Unknown;
+            public string EfficiencyName = "";
+
+            /// <summary>
+            /// (`T256`) Разбора не было ИМЕННО ПО ГЕОМЕТРИИ (гейт `A277`), а не
+            /// по вырожденному входу. Заводится вместе со своим читателем —
+            /// сводкой по частям: «сколько спектров разбора не получили» и
+            /// «почему» это разные утверждения, и первая цифра без второй
+            /// выглядит поломкой прогона.
+            /// </summary>
+            public bool GeometryRefused;
+
+            /// <summary>(S56) Чем задана библиотека и что в неё вошло.</summary>
+            public string LibraryNote = "";
+
+            /// <summary>(S60) Сверка по обязательным линиям; null — не считалась.</summary>
+            public List<FsaLineAudit.LineCheck> Audit;
+
+            /// <summary>
+            /// (`S103`) Поверка столбцов подпороговых линий; null — не заказана.
+            /// Рядом — то, чем полоса ниже `Min_Range` описана в модели: без
+            /// этих чисел таблица линий отвечает на «чего стоит столбец», но не
+            /// на «а кто же тогда держит отсчёты».
+            /// </summary>
+            public List<FsaLineColumn> LineColumns;
+
+            /// <summary>
+            /// (`S103`) ЧТО СДВИНУЛ РЫЧАГ ОПОРЫ ПО СТОЛБЦУ на этом спектре:
+            /// выброшено линий и сколько их было подпороговых. Идёт в
+            /// `runs.csv` отдельными колонками, а не в шапку прогона, потому
+            /// что развёртка, вышедшая плоской по корпусным числам, обязана
+            /// уметь ответить, сколько линий она при этом выбросила и у
+            /// скольких спектров, — иначе «рычаг не важен» неотличимо от
+            /// «рычаг не работал».
+            /// </summary>
+            public int ShareDropped;
+
+            public int ShareOffered;
+
+            /// <summary>
+            /// (`AMBER17`) Привязка шкалы на этом спектре: сколько опор вошло в
+            /// МНК, найденный ноль в кэВ, служебная строка анализатора и все
+            /// кандидаты — для развёртки порога доли синего канала.
+            /// </summary>
+            public int AnchorsUsed;
+
+            public double AnchorOffsetKev;
+            public string AnchorLight;     // (П18) кривая световой координаты
+            public string AnchorForm;      // (П19) форма применения световой координаты
+            public double AnchorBeta;      // (П18) итоговый β
+
+            public string AnchorNote = "";
+
+            /// <summary>
+            /// (`S107`, П10) Кривая, которой построен образ наложений формой по
+            /// свету: имя таблицы, «energy», либо null — старая форма или
+            /// образа нет. Читается у анализатора после разбора; в csv не
+            /// пишется — только в сводку прогона.
+            /// </summary>
+            public string PileUpCurve;
+
+            public List<FsaScaleAnchor> Anchors;
+
+            /// <summary>
+            /// (`A268`, разряд ~~`T240`~~) ЧТО СДЕЛАЛ ОТСЕВ ПО ЗНАЧИМОСТИ на
+            /// этом спектре: исход, фактический порог и наибольшая значимость
+            /// первого прохода. Сводятся ОДНОЙ строкой в конце прогона, а не
+            /// печатаются на каждый спектр: на 129 спектрах вторая была бы
+            /// шумом, а вопрос-то один — на скольких сценах порог оказался выше
+            /// значимости ВСЕХ судимых и отсев отключился молча.
+            /// </summary>
+            public FsaAnalyzer.RefitZOutcome RefitZState = FsaAnalyzer.RefitZOutcome.NotRequested;
+
+            public double RefitZUsed = double.NaN;
+            public double RefitZTopZ = double.NaN;
+
+            /// <summary>
+            /// (`A266`, П24 12.09.2026) Абсолютный порог отсева анализатора на
+            /// этом разборе — чтобы перепись могла сказать, у скольких спектров
+            /// доля вершины СВЯЗАЛА порог (<see cref="RefitZUsed"/> ниже него).
+            /// Без этого «доля ничего не изменила» неотличимо от «доле нечего
+            /// было менять» (`A266`, дописка П14).
+            /// </summary>
+            public double RefitZAbs = double.NaN;
+            public double MinRangeKev = double.NaN;
+            public double CurveFloorKev = double.NaN;
+
+            /// <summary>(`A73`) Пол, которым линии реально резаны, кэВ.</summary>
+            public double LineFloorKev = double.NaN;
+
+            /// <summary>(`A73`) Порог АЦП спектра, кэВ; 0 — назначить нечем.</summary>
+            public double AdcFloorKev = double.NaN;
+            public int LinesBelowMinRange = -1;
+            public double DataBelow;
+            public double ContinuumBelow;
+            public double ModelBelow;
+            public double DataTotal;
+            public int Peaks;
+            public int LibrarySize;
+            public double Chi2Ndf;
+
+            /// <summary>
+            /// (`A281`) Множитель погрешностей √(max(1, χ²/ndf)): во сколько раз
+            /// порог значимости жёстче сырого на ЭТОМ спектре. Единица — множителя
+            /// нет. Копия <see cref="FsaResult.SigmaInflation"/>.
+            /// </summary>
+            public double SigmaInflation = 1.0;
+
+            /// <summary>
+            /// (`A302`) Нижний конец полосы ФИТА, взятый разбором НА ДЕЛЕ:
+            /// номер канала и его энергия. −1 / NaN — разбора не было.
+            /// </summary>
+            public int FitLoCh = -1;
+            public double FitLoKev = double.NaN;
+
+            /// <summary>χ²/ndf прежними весами — общая метрика A/B (S41/S43).</summary>
+            public double Chi2NdfPoisson;
+
+            /// <summary>Невязка модели ε, доля (в csv печатается в процентах) — S51.</summary>
+            public double ModelResidual;
+            public double Gain;
+            public double OffsetChannels;
+            public double Ms;
+
+            /// <summary>
+            /// Процессорное время разбора. Разбор однопоточный, поэтому в норме
+            /// оно почти равно `Ms`; расхождение значит, что машину делили, а
+            /// не что разбор подорожал. Между прогонами сравнивать надо ЭТО
+            /// (T28, S39).
+            /// </summary>
+            public double CpuMs;
+
+            /// <summary>Невязка в запрошенном окне (`--near=`): сигмы и отсчёты.</summary>
+            public double NearExcess = double.NaN;
+            public double NearCounts;
+
+            /// <summary>(S111) Пики, найденные по остатку: готовые строки CSV.</summary>
+            public List<string> ResidualPeaks;
+            public bool GainOnGridEdge;
+            public bool OffsetOnGridEdge;
+
+            /// <summary>Любой из двух краёв — для итоговой таблицы.</summary>
+            public bool DriftOnGridEdge
+            {
+                get { return this.GainOnGridEdge || this.OffsetOnGridEdge; }
+            }
+            /// <summary>
+            /// (`T85`) Матрица ПРИМЕНЕНА: хоть один образ отчётного фита
+            /// построен ею. Ложь при <see cref="MatrixState.Found"/> — законное
+            /// состояние, а не отказ: см. <see cref="Program.MatrixNote"/>.
+            /// </summary>
+            public bool MatrixApplied;
+
+            /// <summary>
+            /// (`T85`) Сколько образов ОТЧЁТНОГО фита матрица имела право
+            /// строить: компонент предъявленной библиотеки, у которого нет
+            /// готового образа (`FixedTemplate`) и не выставлен
+            /// `WeightsAreFinal`. ⛔ Это не украшение колонки «применена», а её
+            /// РАЗЛИЧИТЕЛЬ: «применена = 0» законно ровно тогда, когда и это
+            /// число ноль (в отчёте уцелели одни производные образы), и есть
+            /// ОТКАЗ, когда оно больше нуля — матрица была, кандидат был,
+            /// образа матрицей не построено. −1 — не считалось (разбор до
+            /// результата не дошёл).
+            /// </summary>
+            public int MatrixImages = -1;
+            public bool CascadeUsed;
+            public bool EfficiencyUsed;
+            public bool HasBackground;
+
+            /// <summary>(S44) Причина, по которой поданный фон не взят; пусто — взят.</summary>
+            public string BackgroundNote = "";
+            public FsaResult Result;
+        }
+    }
+}

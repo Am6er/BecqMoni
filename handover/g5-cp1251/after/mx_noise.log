@@ -1,0 +1,7 @@
+usage: mx_noise.py [-h] --log LOG --base BASE --test TEST
+
+options:
+  -h, --help   show this help message and exit
+  --log LOG    журнал счёта дешёвых матриц
+  --base BASE  каталог прогона на базовых матрицах
+  --test TEST  каталог прогона на дешёвых

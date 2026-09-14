@@ -29,7 +29,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.secLbl = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.windowControl = new System.Windows.Forms.NumericUpDown();
+            this.windowControl = new InvariantNumericUpDown();
             this.LossCountsRatioLabel = new System.Windows.Forms.Label();
             this.LossCountsRatioValLbl = new System.Windows.Forms.Label();
             this.percentlbl = new System.Windows.Forms.Label();
@@ -159,7 +159,7 @@
 		System.Windows.Forms.Label label4;
 		System.Windows.Forms.Label secLbl;
 		System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.NumericUpDown windowControl;
+        private InvariantNumericUpDown windowControl;
         private System.Windows.Forms.Label LossCountsRatioLabel;
         private System.Windows.Forms.Label LossCountsRatioValLbl;
         private System.Windows.Forms.Label percentlbl;

@@ -1,0 +1,34 @@
+ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+строк объявления взято: 4
+
+[ ОК ] полная `out_rev24_full` / понятная
+      каталог: tools\pie\out_rev24_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev24_full --part=known --members
+      сошлось: спектров 89, sum chi2/ndf 465.4, медиана 2.46, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] полная `out_rev24_full` / непонятная
+      каталог: tools\pie\out_rev24_full (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev24_full --part=unknown --members
+      сошлось: sum chi2/ndf 77.1, медиана 27.96, recall, % 5, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev24_mini` / понятная
+      каталог: tools\pie\out_rev24_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev24_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: спектров 43, sum chi2/ndf 310.4, медиана 3.58, recall, % 100, фантомов 0, подавлен 0
+
+[ ОК ] малая `out_rev24_mini` / непонятная
+      каталог: tools\pie\out_rev24_mini (назван объявлением)
+      счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev24_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+      сошлось: sum chi2/ndf 49.1, медиана 24.57, recall, % 7, фантомов 0, подавлен 0
+
+ОТПЕЧАТОК ОБЪЯВЛЕНИЯ (T249):
+  [ ОК ] корпус: объявлено a7699cefe5c8 = a7699cefe5c8 (211 файлов, дерево)
+  [ ОК ] сборка: объявлено 8c4d788c6f06 = 8c4d788c6f06 (558 файлов, коммит head=97ccef9f)
+      к сведению: после head=97ccef9f набор разбора менялся 1 коммит(ами); воспроизводит ли
+      нынешнее дерево объявленные числа, сторож не судит — это A/B на полном корпусе.
+      Первые: 25a35adb П71 (S170 закрыта диагнозом): сумм-пик Co-60 2505 — мерка П49
+  [ ОК ] полная `out_rev24_full`: клеймо прогона сошлось (снято 2026-09-14 22:40:20, HEAD 97ccef9f, ГРЯЗНОЕ дерево: tools/CORPUS/corpus/geometries/RC103_lu_front.in, tools/CORPUS/corpus/geometries/RC103_point0.in, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_3.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_20m.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_2h.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_3h.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_eq01.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/RC103_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/RC103_Lu176.xml)
+  [ ОК ] малая `out_rev24_mini`: клеймо прогона сошлось (снято 2026-09-14 22:40:29, HEAD 97ccef9f, ключи: --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5, ГРЯЗНОЕ дерево: tools/CORPUS/corpus/geometries/RC103_lu_front.in, tools/CORPUS/corpus/geometries/RC103_point0.in, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Mix_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S16_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S16_Th232_Mar_3.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Cs137_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_K40_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Ra226_Mar_2.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_20m.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_2h.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_3h.xml, tools/CORPUS/corpus/spectra/G1S24_Rn222Coal_Mar_eq01.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar.xml, tools/CORPUS/corpus/spectra/G1S24_Th232_Mar_2.xml, tools/CORPUS/corpus/spectra/RC103_Cs137_0cm.xml, tools/CORPUS/corpus/spectra/RC103_Lu176.xml)
+
+ИТОГО: строк сверено 4, расхождений 0, без каталога 0; отпечатки: отказов 0

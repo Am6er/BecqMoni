@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -31,33 +32,40 @@ namespace BecquerelMonitor
         {
             ROIReferenceData roireferenceData = (ROIReferenceData)prim;
             this.comboBox1.SelectedIndex = ROIPrimitiveOperation.GetOperationIndex(prim.OperationType);
-            this.doubleTextBox3.Text = roireferenceData.Coefficient.ToString();
-            this.doubleTextBox4.Text = roireferenceData.CoefficientError.ToString();
+            this.doubleTextBox3.Text = roireferenceData.Coefficient.ToString(CultureInfo.InvariantCulture);
+            this.doubleTextBox4.Text = roireferenceData.CoefficientError.ToString(CultureInfo.InvariantCulture);
             this.comboBox2.SelectedItem = roireferenceData.Reference;
             this.textBox1.Text = roireferenceData.Note;
         }
 
+        /// <summary>
+        /// ⛔ СНАЧАЛА РАЗОБРАТЬ ВСЁ, ПОТОМ ПИСАТЬ — см. пояснение в
+        /// <see cref="ROISimpleDifferenceControl.SaveFormContents"/> (`A7`).
+        /// </summary>
         public override bool SaveFormContents(ROIPrimitiveData prim)
         {
             ROIReferenceData roireferenceData = (ROIReferenceData)prim;
+            ROIPrimitiveOperation roiprimitiveOperation;
+            double coefficient;
+            double coefficientError;
+            string reference;
             try
             {
-                ROIPrimitiveOperation roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
-                roireferenceData.Operation = roiprimitiveOperation;
-                roireferenceData.OperationType = roiprimitiveOperation.Name;
-                roireferenceData.Coefficient = double.Parse(this.doubleTextBox3.Text);
-                roireferenceData.CoefficientError = double.Parse(this.doubleTextBox4.Text);
-                roireferenceData.Reference = (string)this.comboBox2.SelectedItem;
-                if (roireferenceData.Reference == null)
-                {
-                    roireferenceData.Reference = "";
-                }
-                roireferenceData.Note = this.textBox1.Text;
+                roiprimitiveOperation = ROIPrimitiveOperation.Operations[this.comboBox1.SelectedIndex];
+                coefficient = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                coefficientError = UserNumber.ParseDouble(this.doubleTextBox4.Text);
+                reference = (string)this.comboBox2.SelectedItem;
             }
             catch (Exception)
             {
                 return false;
             }
+            roireferenceData.Operation = roiprimitiveOperation;
+            roireferenceData.OperationType = roiprimitiveOperation.Name;
+            roireferenceData.Coefficient = coefficient;
+            roireferenceData.CoefficientError = coefficientError;
+            roireferenceData.Reference = (reference == null) ? "" : reference;
+            roireferenceData.Note = this.textBox1.Text;
             return true;
         }
 

@@ -1,0 +1,82 @@
+=== плечи out_p24_sumlight, out_p24_lossjoint; понятная часть, общих спектров 85 (в плечах: out_p24_sumlight 85, out_p24_lossjoint 85) ===
+
+плечо                   Σχ²/ndf       Δ       Δ%    мед.     n  recall  фант подав     л/х/р
+out_p24_sumlight          436.4    +0.0    +0.0%    2.58    85    100%     0     0         —
+out_p24_lossjoint         436.5    +0.1    +0.0%    2.58    85    100%     0     0   13/5/67
+  непонятная out_p24_sumlight: разобрано 3, Σχ²/ndf 80.6, медиана 26.11; recall 5% / фантомов 0 / подавлен 0 (спектров 38)
+  непонятная out_p24_lossjoint: разобрано 3, Σχ²/ndf 80.6, медиана 26.11; recall 5% / фантомов 0 / подавлен 0 (спектров 38)
+  out_p24_sumlight: отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 85, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 3, не заказан у 35
+  out_p24_lossjoint: отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 85, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 3, не заказан у 35
+  невязка модели out_p24_sumlight: медиана 12.0 %
+  невязка модели out_p24_lossjoint: медиана 12.0 %
+
+группы (понятная; Σχ²/ndf, в скобках Δ к out_p24_sumlight, лучше/хуже/ровно):
+малая база (mini.csv)          n  43 |  306.34 |  306.39 ( +0.05,  +0.0%) 1/3/39
+вне малой базы                 n  42 |  130.06 |  130.08 ( +0.03,  +0.0%) 12/2/28
+  прибор AS80x80               n   5 |   36.02 |   36.33 ( +0.31,  +0.9%) 1/1/3
+  прибор ASN16                 n   2 |    4.16 |    4.21 ( +0.05,  +1.2%) 0/2/0
+  прибор G1S16                 n  36 |  157.93 |  157.81 ( -0.12,  -0.1%) 5/0/31
+  прибор G1S24                 n  39 |  233.39 |  233.23 ( -0.16,  -0.1%) 7/2/30
+  прибор RC103                 n   3 |    4.89 |    4.90 ( +0.00,  +0.1%) 0/0/3
+CsI (ASN16 + RC103)            n   5 |    9.05 |    9.11 ( +0.05,  +0.6%) 0/2/3
+NaI (G1S16 + G1S24 + AS80)     n  80 |  427.35 |  427.37 ( +0.02,  +0.0%) 13/3/64
+Am-241 ×4                      n   4 |   14.57 |   14.57 ( +0.00,  +0.0%) 0/0/4
+смеси G1S16_Mix ×3             n   3 |   39.93 |   39.84 ( -0.10,  -0.2%) 3/0/0
+Lu-176 ×5                      n   5 |   12.68 |   13.05 ( +0.37,  +2.9%) 0/3/2
+диск AS80_Th232Medal           n   1 |   16.04 |   16.03 ( -0.01,  -0.1%) 1/0/0
+без диска                      n  84 |  420.36 |  420.45 ( +0.09,  +0.0%) 12/5/67
+
+под надзором (χ²/ndf по плечам):
+  AS80_Th232Medal      sumlight  16.036  lossjoint  16.027  Δ(посл.) -0.010
+  G1S24_Y88_P5         sumlight   7.961  lossjoint   7.962  Δ(посл.) +0.001
+  G1S16_Cd109_P25      sumlight   1.433  lossjoint   1.433  Δ(посл.) +0.000
+  G1S16_Mn54_P25       sumlight   1.671  lossjoint   1.671  Δ(посл.) +0.000
+  G1S16_Y88_P25        sumlight   1.212  lossjoint   1.212  Δ(посл.) +0.000
+  G1S16_Co60_P5        sumlight   9.185  lossjoint   9.185  Δ(посл.) +0.000
+  G1S24_Co60_P5        sumlight  11.253  lossjoint  11.253  Δ(посл.) +0.000
+  G1S24_Bi207_P5       sumlight  20.199  lossjoint  20.198  Δ(посл.) -0.000
+  G1S16_Cs137_P5       sumlight   8.036  lossjoint   8.036  Δ(посл.) +0.000
+  G1S24_Eu152_P5       sumlight  28.975  lossjoint  28.974  Δ(посл.) -0.001
+  ASN16_Cs137          sumlight  33.100  lossjoint  33.100  Δ(посл.) +0.000
+  G1S16_Am241_P5       sumlight   2.291  lossjoint   2.291  Δ(посл.) +0.000
+  G1S16_Am241_P25      sumlight   1.651  lossjoint   1.651  Δ(посл.) +0.000
+  G1S24_Am241_P5       sumlight   6.771  lossjoint   6.771  Δ(посл.) +0.000
+  AS80_Am241           sumlight   3.859  lossjoint   3.859  Δ(посл.) +0.000
+  G1S16_Mix_Denta100   sumlight   8.820  lossjoint   8.779  Δ(посл.) -0.040
+  G1S16_Mix_Petri      sumlight   8.181  lossjoint   8.162  Δ(посл.) -0.020
+  G1S16_Mix_Mar        sumlight  22.933  lossjoint  22.894  Δ(посл.) -0.039
+  ASN16_Lu176          sumlight   3.818  lossjoint   3.847  Δ(посл.) +0.028
+  ASN16_Lu176_P0       sumlight   0.342  lossjoint   0.364  Δ(посл.) +0.022
+  AS80_Lu176           sumlight   5.710  lossjoint   5.714  Δ(посл.) +0.005
+  AS80_Lu176_v2        sumlight   1.920  lossjoint   2.232  Δ(посл.) +0.312
+  RC103_Lu176          sumlight   0.886  lossjoint   0.888  Δ(посл.) +0.002
+
+out_p24_lossjoint − out_p24_sumlight: лучшие пять: G1S24_Th232_Petri_2 4.44→4.37 (-0.06); G1S24_Ra226_Petri_2 2.92→2.87 (-0.05); G1S16_Mix_Denta100 8.82→8.78 (-0.04); G1S16_Mix_Mar 22.93→22.89 (-0.04); G1S16_Mix_Petri 8.18→8.16 (-0.02)
+      худшие пять: AS80_Lu176_v2 1.92→2.23 (+0.31); ASN16_Lu176 3.82→3.85 (+0.03); ASN16_Lu176_P0 0.34→0.36 (+0.02); G1S24_Th232_Petri 1.98→1.99 (+0.01); G1S24_Th228_P5 20.35→20.35 (+0.01)
+      |Δ| ≥ 0.5: —
+      |Δ| ≥ 0.1: AS80_Lu176_v2 +0.31
+      хуже на ≥ +0.05: 1, лучше на ≤ −0.05: 2
+S95 G1S16_Cd109_P5: Cd-109 доля sumlight 99.969, lossjoint 99.969; подавлен: sumlight 0, lossjoint 0
+S95 G1S24_Cd109_P5: Cd-109 доля sumlight 99.102, lossjoint 99.102; подавлен: sumlight 0, lossjoint 0
+S95 G1S16_Cd109_P25: Cd-109 доля sumlight 99.892, lossjoint 99.892; подавлен: sumlight 0, lossjoint 0
+
+состав смесей G1S16_Mix и диска (доля % / z по плечам):
+  G1S16_Mix_Denta100   Am-241  sumlight 18.687 / 23.56  lossjoint 18.554 / 23.16
+  G1S16_Mix_Denta100   Cs-137  sumlight 21.447 / 31.27  lossjoint 21.141 / 31.37
+  G1S16_Mix_Denta100   Eu-152  sumlight 45.439 / 21.00  lossjoint 45.807 / 21.39
+  G1S16_Mix_Denta100   Ti-44   sumlight 14.423 / 16.20  lossjoint 14.493 / 15.87
+  G1S16_Mix_Petri      Am-241  sumlight 22.742 / 22.94  lossjoint 22.612 / 22.89
+  G1S16_Mix_Petri      Cs-137  sumlight 23.047 / 27.78  lossjoint 22.753 / 27.83
+  G1S16_Mix_Petri      Eu-152  sumlight 43.163 / 15.65  lossjoint 43.489 / 15.89
+  G1S16_Mix_Petri      Ti-44   sumlight 11.048 / 16.81  lossjoint 11.146 / 16.93
+  G1S16_Mix_Mar        Am-241  sumlight 15.941 / 23.05  lossjoint 15.830 / 23.01
+  G1S16_Mix_Mar        Cs-137  sumlight 21.086 / 48.00  lossjoint 20.845 / 48.05
+  G1S16_Mix_Mar        Eu-152  sumlight 46.236 / 30.58  lossjoint 46.328 / 30.89
+  G1S16_Mix_Mar        Ti-44   sumlight 6.117 / 14.10  lossjoint 6.189 / 14.00
+  AS80_Th232Medal      Ac-228  sumlight 37.964 / 163.73  lossjoint 37.973 / 163.95
+  AS80_Th232Medal      Tl-208  sumlight 30.320 / 163.73  lossjoint 30.277 / 163.95
+  AS80_Th232Medal      Pb-212  sumlight 16.979 / 163.73  lossjoint 17.009 / 163.95
+  AS80_Th232Medal      Bi-212  sumlight 5.040 / 163.73  lossjoint 5.046 / 163.95
+  AS80_Th232Medal      Xray-Pb sumlight 6.193 / 57.49  lossjoint 6.186 / 57.46
+  AS80_Th232Medal      Xray-Th sumlight 1.904 / 10.72  lossjoint 1.906 / 10.76
+  AS80_Th232Medal      Th-228  sumlight 0.187 / 163.73  lossjoint 0.187 / 163.95

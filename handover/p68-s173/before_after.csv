@@ -1,0 +1,260 @@
+spectrum,arm,what,name,A,B,changed
+as80,free,chi2/ndf,,12.596,12.596,
+as80,free,tail,,"","хвост: нет",
+as80,free,residual,,"+4.9 / −7.9 %","+4.9 / −7.9 %",
+as80,free,layer,Tl-208,35.635,35.635,
+as80,free,layer,Ac-228,34.866,34.866,
+as80,free,layer,Pb-212,24.088,24.088,
+as80,free,layer,Bi-212,3.473,3.473,
+as80,free,layer,Ra-224,1.938,1.938,
+as80,free,member,Ac-228,"686 Бк z=108 доля=34.9%","686 Бк z=108 доля=34.9%",
+as80,free,member,Pb-212,"1076 Бк z=172 доля=24.1%","1076 Бк z=172 доля=24.1%",
+as80,free,member,Ra-224,"1076 Бк z=172 доля=1.94% по Pb-212","1076 Бк z=172 доля=1.94% по Pb-212",
+as80,free,member,Bi-212,"599.5 Бк z=25.1 доля=3.47%","599.5 Бк z=25.1 доля=3.47%",
+as80,free,member,Tl-208,"862.2 Бк z=126 доля=35.6%","862.2 Бк z=126 доля=35.6%",
+as80,free,member,Th-232,"< 1.25e+04","< 1.25e+04",
+as80,free,member,Th-228,"< 1.34e+03","< 1.34e+03",
+as80,free,member,Rn-220,"< 5.54e+03","< 5.54e+03",
+as80,free,member,Po-216,"< 4.1e+05","< 4.1e+05",
+as80,eq,chi2/ndf,,14.115,14.115,
+as80,eq,tail,,"","хвост: нет",
+as80,eq,residual,,"+6.4 / −8.7 %","+6.4 / −8.7 %",
+as80,eq,layer,Ac-228,41.195,41.195,
+as80,eq,layer,Tl-208,32.683,32.683,
+as80,eq,layer,Pb-212,18.884,18.884,
+as80,eq,layer,Bi-212,5.454,5.454,
+as80,eq,layer,Ra-224,1.518,1.518,
+as80,eq,layer,Th-228,0.209,0.209,
+as80,eq,layer,Rn-220,0.045,0.045,
+as80,eq,layer,Th-232,0.011,0.011,
+as80,eq,member,Th-232,"865.3 Бк z=183 доля=0.0109%","865.3 Бк z=183 доля=0.0109%",
+as80,eq,member,Ac-228,"865.3 Бк z=183 доля=41.2%","865.3 Бк z=183 доля=41.2%",
+as80,eq,member,Th-228,"865.3 Бк z=183 доля=0.209%","865.3 Бк z=183 доля=0.209%",
+as80,eq,member,Ra-224,"865.3 Бк z=183 доля=1.52%","865.3 Бк z=183 доля=1.52%",
+as80,eq,member,Rn-220,"865.3 Бк z=183 доля=0.0452%","865.3 Бк z=183 доля=0.0452%",
+as80,eq,member,Po-216,"865.3 Бк z=183 доля=0.000765%","865.3 Бк z=183 доля=0.000765%",
+as80,eq,member,Pb-212,"865.3 Бк z=183 доля=18.9%","865.3 Бк z=183 доля=18.9%",
+as80,eq,member,Bi-212,"865.3 Бк z=183 доля=5.45%","865.3 Бк z=183 доля=5.45%",
+as80,eq,member,Tl-208,"865.3 Бк z=183 доля=32.7%","865.3 Бк z=183 доля=32.7%",
+as80,plant,chi2/ndf,,,12.596,*
+as80,plant,tail,,"","хвост: нет",
+as80,plant,residual,,"","+4.9 / −7.9 %",*
+as80,plant,layer,Tl-208,—,35.635,*
+as80,plant,layer,Ac-228,—,34.866,*
+as80,plant,layer,Pb-212,—,24.088,*
+as80,plant,layer,Bi-212,—,3.473,*
+as80,plant,layer,Ra-224,—,1.938,*
+as80,plant,member,Ac-228,"—","686 Бк z=108 доля=34.9%",*
+as80,plant,member,Pb-212,"—","1076 Бк z=172 доля=24.1%",*
+as80,plant,member,Ra-224,"—","1076 Бк z=172 доля=1.94% по Pb-212",*
+as80,plant,member,Bi-212,"—","599.5 Бк z=25.1 доля=3.47%",*
+as80,plant,member,Tl-208,"—","862.2 Бк z=126 доля=35.6%",*
+as80,plant,member,Th-232,"—","< 1.25e+04",*
+as80,plant,member,Th-228,"—","< 1.34e+03",*
+as80,plant,member,Rn-220,"—","< 5.54e+03",*
+as80,plant,member,Po-216,"—","< 4.1e+05",*
+as80,zoom,chi2/ndf,,12.596,12.596,
+as80,zoom,tail,,"","хвост: нет",
+as80,zoom,residual,,"+4.9 / −7.9 %","+4.9 / −7.9 %",
+as80,zoom,layer,Tl-208,35.635,35.635,
+as80,zoom,layer,Ac-228,34.866,34.866,
+as80,zoom,layer,Pb-212,24.088,24.088,
+as80,zoom,layer,Bi-212,3.473,3.473,
+as80,zoom,layer,Ra-224,1.938,1.938,
+as80,zoom,member,Ac-228,"686 Бк z=108 доля=34.9%","686 Бк z=108 доля=34.9%",
+as80,zoom,member,Pb-212,"1076 Бк z=172 доля=24.1%","1076 Бк z=172 доля=24.1%",
+as80,zoom,member,Ra-224,"1076 Бк z=172 доля=1.94% по Pb-212","1076 Бк z=172 доля=1.94% по Pb-212",
+as80,zoom,member,Bi-212,"599.5 Бк z=25.1 доля=3.47%","599.5 Бк z=25.1 доля=3.47%",
+as80,zoom,member,Tl-208,"862.2 Бк z=126 доля=35.6%","862.2 Бк z=126 доля=35.6%",
+as80,zoom,member,Th-232,"< 1.25e+04","< 1.25e+04",
+as80,zoom,member,Th-228,"< 1.34e+03","< 1.34e+03",
+as80,zoom,member,Rn-220,"< 5.54e+03","< 5.54e+03",
+as80,zoom,member,Po-216,"< 4.1e+05","< 4.1e+05",
+radon1,free,chi2/ndf,,1.158,1.158,
+radon1,free,tail,,"","хвост: Pb-214 7764.2; всего 7764.2 отсч.",
+radon1,free,residual,,"+14.2 / −12.4 %","+13.3 / −15.2 %",*
+radon1,free,layer,Pb-214,48.570,48.418,*
+radon1,free,layer,Bi-214,43.320,43.471,*
+radon1,free,layer,Pb-212,4.674,4.656,*
+radon1,free,layer,Tl-208,3.186,3.204,*
+radon1,free,layer,Ra-224,0.251,0.250,*
+radon1,free,member,Pb-214,"136.6 Бк z=98.2 доля=48.6%","136.6 Бк z=98.2 доля=48.4%",*
+radon1,free,member,Bi-214,"143.4 Бк z=60.2 доля=43.3%","143.4 Бк z=60.2 доля=43.5%",*
+radon1,free,member,Pb-212,"11.25 Бк z=13.2 доля=4.67%","11.25 Бк z=13.2 доля=4.66%",*
+radon1,free,member,Ra-224,"11.25 Бк z=13.2 доля=0.251% по Pb-212","11.25 Бк z=13.2 доля=0.25% по Pb-212",*
+radon1,free,member,Tl-208,"13.41 Бк z=6.24 доля=3.19%","13.41 Бк z=6.24 доля=3.2%",*
+radon1,free,member,Ra-226,"< 30.3","< 30.3",
+radon1,free,member,Rn-222,"< 2.73e+03","< 2.73e+03",
+radon1,free,member,Pb-210,"< 37.3","< 37.3",
+radon1,free,member,Po-214,"< 2.75e+04","< 2.75e+04",
+radon1,free,member,Th-232,"< 583","< 583",
+radon1,free,member,Ac-228,"< 7.85","< 7.85",
+radon1,free,member,Th-228,"< 185","< 185",
+radon1,free,member,Rn-220,"< 2.19e+03","< 2.19e+03",
+radon1,free,member,Po-216,"< 1.63e+05","< 1.63e+05",
+radon1,free,member,Bi-212,"< 51.1","< 51.1",
+radon1,free,member,Po-210,"< 2.75e+04","< 2.75e+04",
+radon1,eq,chi2/ndf,,1.264,1.264,
+radon1,eq,tail,,"","хвост: Ra-226 4833.3; всего 4833.3 отсч.",
+radon1,eq,residual,,"+15.4 / −13.5 %","+14.9 / −15.3 %",*
+radon1,eq,layer,Pb-214,46.597,46.505,*
+radon1,eq,layer,Bi-214,39.860,39.969,*
+radon1,eq,layer,Ra-226,3.177,3.174,*
+radon1,eq,layer,Pb-212,3.099,3.092,*
+radon1,eq,layer,Ac-228,2.681,2.682,*
+radon1,eq,layer,Pb-210,2.096,2.080,*
+radon1,eq,layer,Tl-208,1.888,1.898,*
+radon1,eq,layer,Bi-212,0.322,0.322,
+radon1,eq,layer,Ra-224,0.165,0.165,
+radon1,eq,layer,other,0.114,0.114,
+radon1,eq,member,Ra-226,"134.5 Бк z=116 доля=3.18%","134.5 Бк z=116 доля=3.17%",*
+radon1,eq,member,Rn-222,"134.5 Бк z=116 доля=0.0291%","134.5 Бк z=116 доля=0.0291%",
+radon1,eq,member,Pb-214,"134.5 Бк z=116 доля=46.6%","134.5 Бк z=116 доля=46.5%",*
+radon1,eq,member,Bi-214,"134.5 Бк z=116 доля=39.9%","134.5 Бк z=116 доля=40%",*
+radon1,eq,member,Pb-210,"134.5 Бк z=116 доля=2.1%","134.5 Бк z=116 доля=2.08%",*
+radon1,eq,member,Po-214,"134.5 Бк z=116 доля=0.00315%","134.5 Бк z=116 доля=0.00316%",*
+radon1,eq,member,Po-210,"134.5 Бк z=116 доля=0.000336%","134.5 Бк z=116 доля=0.000337%",*
+radon1,eq,member,Th-232,"7.754 Бк z=10.1 доля=0.0102%","7.754 Бк z=10.1 доля=0.0102%",
+radon1,eq,member,Ac-228,"7.754 Бк z=10.1 доля=2.68%","7.754 Бк z=10.1 доля=2.68%",
+radon1,eq,member,Th-228,"7.754 Бк z=10.1 доля=0.0692%","7.754 Бк z=10.1 доля=0.069%",*
+radon1,eq,member,Ra-224,"7.754 Бк z=10.1 доля=0.165%","7.754 Бк z=10.1 доля=0.165%",
+radon1,eq,member,Rn-220,"7.754 Бк z=10.1 доля=0.00219%","7.754 Бк z=10.1 доля=0.00219%",
+radon1,eq,member,Po-216,"7.754 Бк z=10.1 доля=3.58e-05%","7.754 Бк z=10.1 доля=3.58e-05%",
+radon1,eq,member,Pb-212,"7.754 Бк z=10.1 доля=3.1%","7.754 Бк z=10.1 доля=3.09%",*
+radon1,eq,member,Bi-212,"7.754 Бк z=10.1 доля=0.322%","7.754 Бк z=10.1 доля=0.322%",
+radon1,eq,member,Tl-208,"7.754 Бк z=10.1 доля=1.89%","7.754 Бк z=10.1 доля=1.9%",*
+radon1,plant,chi2/ndf,,,1.158,*
+radon1,plant,tail,,"","хвост: нет",
+radon1,plant,residual,,"","+13.3 / −15.2 %",*
+radon1,plant,layer,Pb-214,—,48.570,*
+radon1,plant,layer,Bi-214,—,43.320,*
+radon1,plant,layer,Pb-212,—,4.674,*
+radon1,plant,layer,Tl-208,—,3.186,*
+radon1,plant,layer,Ra-224,—,0.251,*
+radon1,plant,member,Pb-214,"—","136.6 Бк z=98.2 доля=48.6%",*
+radon1,plant,member,Bi-214,"—","143.4 Бк z=60.2 доля=43.3%",*
+radon1,plant,member,Pb-212,"—","11.25 Бк z=13.2 доля=4.67%",*
+radon1,plant,member,Ra-224,"—","11.25 Бк z=13.2 доля=0.251% по Pb-212",*
+radon1,plant,member,Tl-208,"—","13.41 Бк z=6.24 доля=3.19%",*
+radon1,plant,member,Ra-226,"—","< 30.3",*
+radon1,plant,member,Rn-222,"—","< 2.73e+03",*
+radon1,plant,member,Pb-210,"—","< 37.3",*
+radon1,plant,member,Po-214,"—","< 2.75e+04",*
+radon1,plant,member,Th-232,"—","< 583",*
+radon1,plant,member,Ac-228,"—","< 7.85",*
+radon1,plant,member,Th-228,"—","< 185",*
+radon1,plant,member,Rn-220,"—","< 2.19e+03",*
+radon1,plant,member,Po-216,"—","< 1.63e+05",*
+radon1,plant,member,Bi-212,"—","< 51.1",*
+radon1,plant,member,Po-210,"—","< 2.75e+04",*
+radon1,zoom,chi2/ndf,,1.158,1.158,
+radon1,zoom,tail,,"","хвост: Pb-214 7764.2; всего 7764.2 отсч.",
+radon1,zoom,residual,,"+14.2 / −12.4 %","+13.3 / −15.2 %",*
+radon1,zoom,layer,Pb-214,48.570,48.418,*
+radon1,zoom,layer,Bi-214,43.320,43.471,*
+radon1,zoom,layer,Pb-212,4.674,4.656,*
+radon1,zoom,layer,Tl-208,3.186,3.204,*
+radon1,zoom,layer,Ra-224,0.251,0.250,*
+radon1,zoom,member,Pb-214,"136.6 Бк z=98.2 доля=48.6%","136.6 Бк z=98.2 доля=48.4%",*
+radon1,zoom,member,Bi-214,"143.4 Бк z=60.2 доля=43.3%","143.4 Бк z=60.2 доля=43.5%",*
+radon1,zoom,member,Pb-212,"11.25 Бк z=13.2 доля=4.67%","11.25 Бк z=13.2 доля=4.66%",*
+radon1,zoom,member,Ra-224,"11.25 Бк z=13.2 доля=0.251% по Pb-212","11.25 Бк z=13.2 доля=0.25% по Pb-212",*
+radon1,zoom,member,Tl-208,"13.41 Бк z=6.24 доля=3.19%","13.41 Бк z=6.24 доля=3.2%",*
+radon1,zoom,member,Ra-226,"< 30.3","< 30.3",
+radon1,zoom,member,Rn-222,"< 2.73e+03","< 2.73e+03",
+radon1,zoom,member,Pb-210,"< 37.3","< 37.3",
+radon1,zoom,member,Po-214,"< 2.75e+04","< 2.75e+04",
+radon1,zoom,member,Th-232,"< 583","< 583",
+radon1,zoom,member,Ac-228,"< 7.85","< 7.85",
+radon1,zoom,member,Th-228,"< 185","< 185",
+radon1,zoom,member,Rn-220,"< 2.19e+03","< 2.19e+03",
+radon1,zoom,member,Po-216,"< 1.63e+05","< 1.63e+05",
+radon1,zoom,member,Bi-212,"< 51.1","< 51.1",
+radon1,zoom,member,Po-210,"< 2.75e+04","< 2.75e+04",
+radon2,free,chi2/ndf,,1.316,1.316,
+radon2,free,tail,,"","хвост: Pb-212 1008.0; всего 1008.0 отсч.",
+radon2,free,residual,,"+89.8 / −53.0 %","+88.7 / −54.6 %",*
+radon2,free,layer,Pb-212,91.057,90.975,*
+radon2,free,layer,Ra-224,5.338,5.347,*
+radon2,free,layer,continuum,3.605,3.678,*
+radon2,free,member,Pb-212,"14.19 Бк z=22 доля=91.1%","14.19 Бк z=22 доля=91%",*
+radon2,free,member,Ra-224,"14.19 Бк z=22 доля=5.34% по Pb-212","14.19 Бк z=22 доля=5.35% по Pb-212",*
+radon2,free,member,Ra-226,"< 24.8","< 24.8",
+radon2,free,member,Rn-222,"< 1.65e+03","< 1.65e+03",
+radon2,free,member,Pb-214,"< 2.43","< 2.43",
+radon2,free,member,Bi-214,"< 3.17","< 3.17",
+radon2,free,member,Pb-210,"< 83.8","< 83.8",
+radon2,free,member,Po-214,"< 1.37e+04","< 1.37e+04",
+radon2,free,member,Th-232,"< 527","< 527",
+radon2,free,member,Ac-228,"< 3.31","< 3.31",
+radon2,free,member,Th-228,"< 134","< 134",
+radon2,free,member,Rn-220,"< 1.36e+03","< 1.36e+03",
+radon2,free,member,Po-216,"< 8.22e+04","< 8.22e+04",
+radon2,free,member,Bi-212,"< 19.7","< 19.7",
+radon2,free,member,Tl-208,"< 5.32","< 5.32",
+radon2,free,member,Po-210,"< 1.37e+04","< 1.37e+04",
+radon2,eq,chi2/ndf,,1.190,1.190,
+radon2,eq,tail,,"","хвост: Th-232 16012.3; всего 16012.3 отсч.",
+radon2,eq,residual,,"+89.7 / −46.3 %","+76.7 / −76.8 %",*
+radon2,eq,layer,Pb-212,36.929,35.371,*
+radon2,eq,layer,Ac-228,34.286,34.782,*
+radon2,eq,layer,Tl-208,21.791,23.412,*
+radon2,eq,layer,Bi-212,3.917,3.399,*
+radon2,eq,layer,Ra-224,2.151,2.185,*
+radon2,eq,layer,Th-228,0.797,0.745,*
+radon2,eq,layer,Th-232,0.100,0.075,*
+radon2,eq,layer,Rn-220,0.030,0.031,*
+radon2,eq,member,Th-232,"1.614 Бк z=2.91 доля=0.0998%","1.614 Бк z=2.91 доля=0.0747%",*
+radon2,eq,member,Ac-228,"1.614 Бк z=2.91 доля=34.3%","1.614 Бк z=2.91 доля=34.8%",*
+radon2,eq,member,Th-228,"1.614 Бк z=2.91 доля=0.797%","1.614 Бк z=2.91 доля=0.745%",*
+radon2,eq,member,Ra-224,"1.614 Бк z=2.91 доля=2.15%","1.614 Бк z=2.91 доля=2.18%",*
+radon2,eq,member,Rn-220,"1.614 Бк z=2.91 доля=0.0297%","1.614 Бк z=2.91 доля=0.0311%",*
+radon2,eq,member,Po-216,"1.614 Бк z=2.91 доля=0.000465%","1.614 Бк z=2.91 доля=0.000486%",*
+radon2,eq,member,Pb-212,"1.614 Бк z=2.91 доля=36.9%","1.614 Бк z=2.91 доля=35.4%",*
+radon2,eq,member,Bi-212,"1.614 Бк z=2.91 доля=3.92%","1.614 Бк z=2.91 доля=3.4%",*
+radon2,eq,member,Tl-208,"1.614 Бк z=2.91 доля=21.8%","1.614 Бк z=2.91 доля=23.4%",*
+radon2,eq,member,Ra-226,"< 1.82","< 1.82",
+radon2,plant,chi2/ndf,,,1.316,*
+radon2,plant,tail,,"","хвост: нет",
+radon2,plant,residual,,"","+88.7 / −54.6 %",*
+radon2,plant,layer,Pb-212,—,91.057,*
+radon2,plant,layer,Ra-224,—,5.338,*
+radon2,plant,layer,continuum,—,3.605,*
+radon2,plant,member,Pb-212,"—","14.19 Бк z=22 доля=91.1%",*
+radon2,plant,member,Ra-224,"—","14.19 Бк z=22 доля=5.34% по Pb-212",*
+radon2,plant,member,Ra-226,"—","< 24.8",*
+radon2,plant,member,Rn-222,"—","< 1.65e+03",*
+radon2,plant,member,Pb-214,"—","< 2.43",*
+radon2,plant,member,Bi-214,"—","< 3.17",*
+radon2,plant,member,Pb-210,"—","< 83.8",*
+radon2,plant,member,Po-214,"—","< 1.37e+04",*
+radon2,plant,member,Th-232,"—","< 527",*
+radon2,plant,member,Ac-228,"—","< 3.31",*
+radon2,plant,member,Th-228,"—","< 134",*
+radon2,plant,member,Rn-220,"—","< 1.36e+03",*
+radon2,plant,member,Po-216,"—","< 8.22e+04",*
+radon2,plant,member,Bi-212,"—","< 19.7",*
+radon2,plant,member,Tl-208,"—","< 5.32",*
+radon2,plant,member,Po-210,"—","< 1.37e+04",*
+radon2,zoom,chi2/ndf,,1.316,1.316,
+radon2,zoom,tail,,"","хвост: Pb-212 1008.0; всего 1008.0 отсч.",
+radon2,zoom,residual,,"+89.8 / −53.0 %","+88.7 / −54.6 %",*
+radon2,zoom,layer,Pb-212,91.057,90.975,*
+radon2,zoom,layer,Ra-224,5.338,5.347,*
+radon2,zoom,layer,continuum,3.605,3.678,*
+radon2,zoom,member,Pb-212,"14.19 Бк z=22 доля=91.1%","14.19 Бк z=22 доля=91%",*
+radon2,zoom,member,Ra-224,"14.19 Бк z=22 доля=5.34% по Pb-212","14.19 Бк z=22 доля=5.35% по Pb-212",*
+radon2,zoom,member,Ra-226,"< 24.8","< 24.8",
+radon2,zoom,member,Rn-222,"< 1.65e+03","< 1.65e+03",
+radon2,zoom,member,Pb-214,"< 2.43","< 2.43",
+radon2,zoom,member,Bi-214,"< 3.17","< 3.17",
+radon2,zoom,member,Pb-210,"< 83.8","< 83.8",
+radon2,zoom,member,Po-214,"< 1.37e+04","< 1.37e+04",
+radon2,zoom,member,Th-232,"< 527","< 527",
+radon2,zoom,member,Ac-228,"< 3.31","< 3.31",
+radon2,zoom,member,Th-228,"< 134","< 134",
+radon2,zoom,member,Rn-220,"< 1.36e+03","< 1.36e+03",
+radon2,zoom,member,Po-216,"< 8.22e+04","< 8.22e+04",
+radon2,zoom,member,Bi-212,"< 19.7","< 19.7",
+radon2,zoom,member,Tl-208,"< 5.32","< 5.32",
+radon2,zoom,member,Po-210,"< 1.37e+04","< 1.37e+04",

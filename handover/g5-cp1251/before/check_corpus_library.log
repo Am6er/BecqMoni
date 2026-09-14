@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\check_corpus_library.py", line 130, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\check_corpus_library.py", line 122, in main
+    print("\u26d4 поставочный NuclideDefinition.xml на корпусе не используется "
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          "(правило Amber 01.09.2026)")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moroz\AppData\Local\Python\pythoncore-3.14-64\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u26d4' in position 0: character maps to <undefined>

@@ -186,4 +186,19 @@
   <data name="$this.Text" xml:space="preserve">
     <value>О приложении BecqMoni Nuclear Edition</value>
   </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="label1.Text" xml:space="preserve">
+    <value>BecqMoni Nuclear Edition</value>
+  </data>
+  <data name="label7.Text" xml:space="preserve">
+    <value>Github: https://github.com/Am6er/BecqMoni</value>
+  </data>
+  <data name="label8.Text" xml:space="preserve">
+    <value>YouTube: https://www.youtube.com/@Am6er</value>
+  </data>
+  <data name="label9.Text" xml:space="preserve">
+    <value>RuTube: https://rutube.ru/channel/30585350/</value>
+  </data>
 </root>

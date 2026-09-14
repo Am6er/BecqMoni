@@ -1,0 +1,6 @@
+r1_head_ra226=0
+r1_new_ra226=0
+r1_new_rn222=0
+r1_head_ra226_th=0
+r1_new_ra226_th=0
+r1_new_rn222_th=0

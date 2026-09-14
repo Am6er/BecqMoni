@@ -1,0 +1,12 @@
+cleanup start 2026-09-14 01:47:44
+worktree remove code=0
+C:/Users/moroz/source/repos/BQ Eng res .NET 4.8 391f9b71 [pie]
+снят BecquerelMonitor\bin\Release_p51 (42 файлов, 82 МБ) — осталось: False
+снят BecquerelMonitor\obj\Release_p51 (88 файлов, 27 МБ) — осталось: False
+снят tools\effmaker\probes\build_p51 (413 файлов, 88 МБ) — осталось: False
+снят tools\effmaker\probes\build_p51b (413 файлов, 88 МБ) — осталось: False
+снят tools\CORPUS\scripts\wd_p51 (477 файлов, 115 МБ) — осталось: False
+снят D:\BqMoni_Claude\p50 (144 файлов, 2 МБ) — осталось: False
+снят D:\BqMoni_Claude\p51 (316 файлов, 86 МБ) — осталось: False
+ОСТАВЛЕН D:\BqMoni_Claude\store_phys17_backup: True (45 .rmx + 45 response)
+cleanup end 01:48:09

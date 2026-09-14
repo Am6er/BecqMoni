@@ -1,0 +1,3 @@
+start 20:05:24
+msbuild code=0 20:05:27
+build_all code=3 20:06:28

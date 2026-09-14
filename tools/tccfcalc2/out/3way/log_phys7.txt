@@ -1,0 +1,8 @@
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\tccfcalc2\three_way.py:49: SyntaxWarning: "\D" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\D"? A raw string is also an option.
+  работает параллельная сессия: собирать в общий `bin\Debug_Codex` — значит
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\tccfcalc2\three_way.py:200: SyntaxWarning: "\D" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\D"? A raw string is also an option.
+  help=u"каталог с effsim.exe (по умолчанию bin\Debug_Codex)")
+Nano16Pro_tube: наши 140 с
+Nano16Pro: наши 132 с
+Nano16Pro_Marinelli: наши 281 с
+RadiaCode_AuthorMarinelli0.5: наши 332 с

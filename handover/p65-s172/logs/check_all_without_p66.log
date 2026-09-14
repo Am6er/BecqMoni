@@ -1,0 +1,136 @@
+читатель сторожей: 33 к вызову (заведомо красных по строкам реестра пропущено 0 — см. --all)
+
+→ зову: python tools/check_registry_refs.py
+✅ tools/check_registry_refs.py: код 0, 3.0 с
+
+→ зову: python tools/check_resx.py
+✅ tools/check_resx.py: код 0, 0.8 с
+
+→ зову: python tools/check_resx_designer.py
+✅ tools/check_resx_designer.py: код 0, 6.7 с
+
+→ зову: python tools/check_resx_letters.py
+✅ tools/check_resx_letters.py: код 0, 1.0 с
+
+→ зову: python tools/check_resx_zorder.py
+✅ tools/check_resx_zorder.py: код 0, 0.8 с
+
+→ зову: python tools/check_headless.py
+✅ tools/check_headless.py: код 0, 8.7 с
+
+→ зову: python tools/check_menu_accelerators.py
+✅ tools/check_menu_accelerators.py: код 0, 0.5 с
+
+→ зову: python tools/check_numeric_updown.py
+✅ tools/check_numeric_updown.py: код 0, 0.8 с
+
+→ зову: python tools/check_fsa_docs.py
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.2 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+✅ tools/nucdb/check_db_marks.py: код 0, 0.2 с
+
+→ зову: python tools/nucdb/check_isomer_levels.py
+✅ tools/nucdb/check_isomer_levels.py: код 0, 2.6 с
+
+→ зову: python tools/check_decay_numeric.py
+✅ tools/check_decay_numeric.py: код 0, 3.4 с
+
+→ зову: python tools/check_parent_rule.py
+✅ tools/check_parent_rule.py: код 0, 13.8 с
+
+→ зову: python tools/check_corpus_readme.py
+✅ tools/check_corpus_readme.py: код 0, 0.2 с
+
+→ зову: python tools/check_scheme_gaps.py
+✅ tools/check_scheme_gaps.py: код 0, 0.3 с
+
+→ зову: python tools/check_corpus_library.py
+✅ tools/check_corpus_library.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+✅ tools/check_done_headers.py: код 0, 0.3 с
+
+→ зову: python tools/check_pending_runs.py
+✅ tools/check_pending_runs.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_tuning.py
+✅ tools/check_probe_tuning.py: код 0, 0.4 с
+
+→ зову: python tools/check_matrix_keys.py
+✅ tools/check_matrix_keys.py: код 0, 2.8 с
+
+→ зову: python tools/check_geometry_names.py
+✅ tools/check_geometry_names.py: код 0, 0.4 с
+
+→ зову: python tools/check_fsa_view_groups.py
+✅ tools/check_fsa_view_groups.py: код 0, 0.1 с
+
+→ зову: python tools/check_selection_panel_height.py
+✅ tools/check_selection_panel_height.py: код 0, 0.1 с
+
+→ зову: python tools/check_escape_parents.py
+✅ tools/check_escape_parents.py: код 0, 0.1 с
+
+→ зову: python tools/check_crystal_material.py
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+✅ tools/check_refit_z_class.py: код 0, 0.2 с
+
+→ зову: python tools/check_roi_listup.py
+✅ tools/check_roi_listup.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_edges.py
+✅ tools/nucdb/check_edges.py: код 0, 0.2 с
+
+→ зову: python tools/check_probe_numbers.py
+✅ tools/check_probe_numbers.py: код 0, 0.8 с
+
+→ зову: python tools/check_curve_generation.py
+✅ tools/check_curve_generation.py: код 0, 0.2 с
+
+→ зову: python tools/check_dump_readers.py
+✅ tools/check_dump_readers.py: код 0, 0.7 с
+
+→ зову: python tools/check_registry.py
+✅ tools/check_registry.py: код 0, 4.1 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 3.0 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_resx.py — код 0, 0.8 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 6.7 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 1.0 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.8 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 8.7 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.5 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.8 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.2 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.2 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 2.6 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 3.4 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 13.8 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.2 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.3 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_done_headers.py — код 0, 0.3 с — заголовок строки DONE.md против её тела
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.4 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 2.8 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.4 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_selection_panel_height.py — код 0, 0.1 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.2 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/check_roi_listup.py — код 0, 0.1 с — перестроение списка ROI не правит то, по чему идёт
+  ✅ tools/nucdb/check_edges.py — код 0, 0.2 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.8 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.2 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 0.7 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ✅ tools/check_registry.py — код 0, 4.1 с — реестр: номера, ссылки на файлы, имена из кода, копии config/, объявление базы в трёх местах, графа состояния, заголовки DONE.md
+ВСЕ ЗЕЛЕНЫ: 33 из 33 сторожей дали 0.

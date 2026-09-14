@@ -1,0 +1,120 @@
+
+=== BecquerelMonitor/RadiaCodeIn.cs ===
+    268  FormatProtocolError                ФОН: зовётся из connectBLE (readerThread)      return protocolError.HasValue ? FormattableString.Invariant($"0x{protocolError.Value:X2}")
+    384  TestBT                             ФОН: продолжение await (поток пула)            sendTroubleShoot(FormattableString.Invariant($"BT adapter: address={adapter.BluetoothAddre
+    449  doDiscovery                        ФОН: discoveryThread (new Thread) и цикл readerThread sendTroubleShoot(FormattableString.Invariant($"Discovery finished (watcher status={watcher
+    450  doDiscovery                        ФОН: discoveryThread (new Thread) и цикл readerThread (discoveryAdvCount > 0 ? FormattableString.Invariant($", last RSSI={discoveryLastRssi} dBm
+    466  Watcher_Recived                    ФОН: обратный вызов WinRT (поиск устройств)    if (addressble != null && ulong.TryParse(addressble, NumberStyles.Integer, CultureInfo.Inv
+    490  ConnectBLE                         ФОН: readerThread (цикл переподключения)       localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE, Cultur
+    493  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to create BLE device from address (F
+    504  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"BLE device resolved in {ElapsedMs(sw)} ms: 
+    510  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get GATT service after {ElapsedMs
+    513  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"GATT service acquired after {ElapsedMs(sw)}
+    519  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get write characteristic after {E
+    533  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get notify characteristic after {
+    550  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to enable notifications after {Elaps
+    553  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"BLE connected: notifications enabled after 
+    728  Characteristic_ValueChanged        ФОН: обратный вызов WinRT (уведомление GATT)   sendTroubleShoot(FormattableString.Invariant($"Drop packet because spectrum channels: {pac
+    729  Characteristic_ValueChanged        ФОН: обратный вызов WinRT (уведомление GATT)   Trace.WriteLine(FormattableString.Invariant($"Drop packet because spectrum channels: {pack
+    736  Characteristic_ValueChanged        ФОН: обратный вызов WinRT (уведомление GATT)   Trace.WriteLine(FormattableString.Invariant($"Drop packet because size: {packet.counter} >
+   1023  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(c
+   1197  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.cou
+   1226  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum real time: {elapsedTime}"));
+   1227  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum calibration: A0={packet.A0} A1={pa
+   1237  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum cps: {cps}"));
+   1238  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
+
+=== BecquerelMonitor/ObsidianIn.cs ===
+    290  FormatProtocolError                ФОН: зовётся из connectBLE (readerThread)      return protocolError.HasValue ? FormattableString.Invariant($"0x{protocolError.Value:X2}")
+    425  TestBT                             ФОН: продолжение await (поток пула)            sendTroubleShoot(FormattableString.Invariant($"BT adapter: address={adapter.BluetoothAddre
+    493  doDiscovery                        ФОН: discoveryThread (new Thread) и цикл readerThread sendTroubleShoot(FormattableString.Invariant($"Discovery finished (watcher status={watcher
+    494  doDiscovery                        ФОН: discoveryThread (new Thread) и цикл readerThread (discoveryAdvCount > 0 ? FormattableString.Invariant($", last RSSI={discoveryLastRssi} dBm
+    510  Watcher_Recived                    ФОН: обратный вызов WinRT (поиск устройств)    if (addressble != null && ulong.TryParse(addressble, NumberStyles.Integer, CultureInfo.Inv
+    534  ConnectBLE                         ФОН: readerThread (цикл переподключения)       localDevice = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addrBLE, Cultur
+    537  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to create BLE device from address (F
+    548  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"BLE device resolved in {ElapsedMs(sw)} ms: 
+    554  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get GATT service after {ElapsedMs
+    557  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"GATT history service acquired after {Elapse
+    563  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get write characteristic after {E
+    577  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to get notify characteristic after {
+    595  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"Failed to enable notifications after {Elaps
+    598  ConnectBLE                         ФОН: readerThread (цикл переподключения)       sendTroubleShoot(FormattableString.Invariant($"BLE connected: notifications enabled after 
+    692  Characteristic_ValueChanged        ФОН: обратный вызов WinRT (уведомление GATT)   string overflowMessage = FormattableString.Invariant($"Obsidian: chunk overflow past diagn
+    870  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Connect cycle: entryState={GetStateString(c
+    990  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum receive timeout. total={packet.Cou
+   1014  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Packet received. total={packet.Counter}, ex
+   1018  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum real time: {elapsedTime}"));
+   1028  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum cps: {cps}"));
+   1029  run                                ФОН: readerThread (new Thread в start())       sendTroubleShoot(FormattableString.Invariant($"Spectrum total counts: {sum}"));
+   1197  Decode                             ФОН: обратный вызов WinRT (разбор пакета спектра) Trace.WriteLine(FormattableString.Invariant($"Obsidian spectrum tail: counter={Counter}, T
+   1305  Connect                            ФОН и UI: ObsidianCalibrationIO из DeviceConfigForm — и с потока окна, и из BackgroundWorker.DoWork device = BluetoothLEDevice.FromBluetoothAddressAsync(Convert.ToUInt64(addressBle, CultureI
+
+=== BecquerelMonitor/AtomSpectraVCPDeviceForm.cs ===
+     33  Button1_Click                      UI: поток окна                                 TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedIt
+     43  deadTimeBtn_Click                  UI: поток окна                                 int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCultur
+     54  deadTimeBtn_Click                  UI: поток окна                                 int rise = int.Parse(output[3], CultureInfo.InvariantCulture);
+     55  deadTimeBtn_Click                  UI: поток окна                                 int fall = int.Parse(output[5], CultureInfo.InvariantCulture);
+     56  deadTimeBtn_Click                  UI: поток окна                                 double f = double.Parse(output[9], CultureInfo.InvariantCulture);
+     58  deadTimeBtn_Click                  UI: поток окна                                 this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblT
+    102  fillPorts                          UI: поток окна                                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo
+    120  fillPorts                          UI: поток окна                                 baudratesBox.SelectedIndex = baudratesBox.Items.IndexOf(this.BaudRate.ToString(CultureInfo
+    127  ComPortsBox_SelectedIndexChanged   UI: поток окна                                 TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedIt
+    136  BaudratesBox_SelectedIndexChanged  UI: поток окна                                 TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedIt
+    186  LoadFormContents                   UI: поток окна настройки прибора               this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblT
+    200  SaveFormContents                   UI: поток окна настройки прибора               atomSpectraVCPInputDevice.BaudRate = int.Parse(baudratesBox.SelectedItem.ToString(), Cultu
+    231  CommandLineIn_KeyDown              UI: поток окна                                 int baudRate = int.Parse(baudratesBox.SelectedItem.ToString(), CultureInfo.InvariantCultur
+    280  TestSerialNumber                   ФОН: BackgroundWorker.DoWork (поток пула)      returnvalue = device.BaudRate.ToString(CultureInfo.InvariantCulture);
+    293  TestSerialNumber                   ФОН: BackgroundWorker.DoWork (поток пула)      Trace.WriteLine("result -cal array, size: " + result_arr.Length.ToString(CultureInfo.Invar
+    361  TestConnection                     UI: тело окна и обработчик RunWorkerCompleted (он тоже на UI) Trace.WriteLine("Got status: " + status.ToString(CultureInfo.InvariantCulture));
+
+=== BecquerelMonitor/AudioInputDeviceForm.cs ===
+     87  OnTimer                            UI: поток окна                                 this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCultu
+    117  LoadFormContents                   UI: поток окна настройки прибора               this.comboBox2.Text = audioInputDeviceConfig.SamplesPerSecond.ToString(CultureInfo.Invaria
+    118  LoadFormContents                   UI: поток окна настройки прибора               this.comboBox3.Text = audioInputDeviceConfig.BitsPerSample.ToString(CultureInfo.InvariantC
+    120  LoadFormContents                   UI: поток окна настройки прибора               this.maskedTextBox1.Text = audioInputDeviceConfig.Volume.ToString(CultureInfo.InvariantCul
+    126  LoadFormContents                   UI: поток окна настройки прибора               this.doubleTextBox1.Text = prahomageMethodConfig.LowerThreshold.ToString(CultureInfo.Invar
+    127  LoadFormContents                   UI: поток окна настройки прибора               this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.Invar
+    130  LoadFormContents                   UI: поток окна настройки прибора               this.maskedTextBox2.Text = ((int)(pulseThreshold * 100.0)).ToString(CultureInfo.InvariantC
+    133  LoadFormContents                   UI: поток окна настройки прибора               this.doubleTextBox3.Text = prahomageMethodConfig.PulseLowerThreshold.ToString(CultureInfo.
+    134  LoadFormContents                   UI: поток окна настройки прибора               this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.
+    135  LoadFormContents                   UI: поток окна настройки прибора               this.textBox4.Text = prahomageMethodConfig.NumberOfPulses.ToString(CultureInfo.InvariantCu
+    156  SaveFormContents                   UI: поток окна настройки прибора               audioInputDeviceConfig.SamplesPerSecond = int.Parse(this.comboBox2.Text, CultureInfo.Invar
+    157  SaveFormContents                   UI: поток окна настройки прибора               audioInputDeviceConfig.BitsPerSample = int.Parse(this.comboBox3.Text, CultureInfo.Invarian
+    158  SaveFormContents                   UI: поток окна настройки прибора               audioInputDeviceConfig.Volume = int.Parse(this.maskedTextBox1.Text, CultureInfo.InvariantC
+    162  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text, CultureInfo.
+    163  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text, CultureInfo.
+    167  SaveFormContents                   UI: поток окна настройки прибора               this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.Invar
+    169  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text, CultureInfo.
+    172  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text, Culture
+    173  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text, Culture
+    177  SaveFormContents                   UI: поток окна настройки прибора               this.doubleTextBox4.Text = prahomageMethodConfig.PulseUpperThreshold.ToString(CultureInfo.
+    180  SaveFormContents                   UI: поток окна настройки прибора               prahomageMethodConfig.NumberOfPulses = int.Parse(this.textBox4.Text, CultureInfo.Invariant
+    239  StopPulseRecording                 UI: поток окна                                 this.textBox4.Text = this.pulseRecorder.NumberOfPulses.ToString(CultureInfo.InvariantCultu
+    269  trackBar1_Scroll                   UI: поток окна                                 this.maskedTextBox1.Text = this.trackBar1.Value.ToString(CultureInfo.InvariantCulture);
+    277  maskedTextBox1_TextChanged         UI: поток окна                                 int.TryParse(this.maskedTextBox1.Text, NumberStyles.Integer, CultureInfo.InvariantCulture,
+    340  trackBar2_Scroll                   UI: поток окна                                 this.maskedTextBox2.Text = this.trackBar2.Value.ToString(CultureInfo.InvariantCulture);
+    348  maskedTextBox2_TextChanged         UI: поток окна                                 int.TryParse(this.maskedTextBox2.Text, NumberStyles.Integer, CultureInfo.InvariantCulture,
+    357  maskedTextBox2_TextChanged         UI: поток окна                                 this.maskedTextBox2.Text = num.ToString(CultureInfo.InvariantCulture);
+
+=== BecquerelMonitor/ObsidianDeviceForm.cs ===
+    146  Watcher_Recived                    ФОН: обратный вызов WinRT (поиск устройств)    Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.Bluetooth
+    151  Action                             UI: тело `Control.Invoke` — переведено на поток окна addressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+    163  Action                             UI: тело `Control.Invoke` — переведено на поток окна TroubleshootText.AppendText(FormattableString.Invariant($"Found device {serial} with BLE a
+    308  troubleShootbtn_Click              UI: поток окна                                 tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian in
+    310  troubleShootbtn_Click              UI: поток окна                                 tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting ne
+    347  ObsidianIn_TroubleShoot            ФОН: зовётся ПРЯМО с потока прибора, без Post  tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) +
+
+=== BecquerelMonitor/RadiaCodeDeviceForm.cs ===
+    150  Watcher_Recived                    ФОН: обратный вызов WinRT (поиск устройств)    Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.Bluetooth
+    156  Watcher_Recived                    ФОН: обратный вызов WinRT (поиск устройств)    devicePreset[args.BluetoothAddress.ToString(CultureInfo.InvariantCulture)] = model;
+    160  Action                             UI: тело `Control.Invoke` — переведено на поток окна adressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
+    167  Action                             UI: тело `Control.Invoke` — переведено на поток окна TroubleshootText.AppendText(FormattableString.Invariant($"Found device {name} with BLE add
+    298  troubleShootbtn_Click              UI: поток окна                                 tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.Invariant
+    300  troubleShootbtn_Click              UI: поток окна                                 tshootText += $"{System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.Invariant
+    336  RadiaCodeIn_TroubleShoot           ФОН: зовётся ПРЯМО с потока прибора, без Post  tshootText += System.DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCul
+
+--- СВОДКА ---
+    52  ФОН
+    49  UI
+     1  ФОН и UI
+  всего правленых мест: 102

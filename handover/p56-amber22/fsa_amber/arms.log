@@ -1,0 +1,7 @@
+th code=0 10:51:08 (2 s) keys=[--chain=Th-232] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+thra code=0 10:51:11 (3 s) keys=[--chain=Th-232,Ra-226] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+thrauk code=0 10:51:14 (4 s) keys=[--chain=Th-232,Ra-226,U-238u,U-235 --sample=40K] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+th_kf2 code=0 10:51:17 (3 s) keys=[--chain=Th-232 --knots=2] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+thra_kf2 code=0 10:51:20 (3 s) keys=[--chain=Th-232,Ra-226 --knots=2] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+thrauk_kf2 code=0 10:51:24 (4 s) keys=[--chain=Th-232,Ra-226,U-238u,U-235 --sample=40K --knots=2] spectrum=D:\BqMoni_Claude\p56\spectra\Th-232_amber.xml
+done 10:51:24

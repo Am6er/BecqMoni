@@ -134,7 +134,8 @@ namespace XPTable.Models
         /// CellPos structure </returns>
         public override string ToString()
         {
-            return "CellPos: (" + this.Row + "," + this.Column + ")";
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "CellPos: ({0},{1})", this.Row, this.Column);
         }
 
         #endregion

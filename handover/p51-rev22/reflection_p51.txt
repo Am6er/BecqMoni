@@ -1,0 +1,14 @@
+PhysicsVersion=18
+  ElectronAnyMaterial=True
+  BremAlongPath=2
+  ImportanceSampling=False
+  LightBinUnified=True
+  PeakChannelByTolerance=True
+  LYieldSupply=2
+  ElectronTransport=True
+  PositronTransport=True
+  PositronOffset=True
+  RayleighToCrystal=True
+FsaAnalyzer found: True
+  ModelWeights member: Property
+  CascadeSumAngular member: Property

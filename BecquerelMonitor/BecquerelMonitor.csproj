@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -110,6 +110,7 @@
     <Compile Include="AboutForm.Designer.cs">
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="AppLog.cs" />
     <Compile Include="AddSpectrumToDocumentEventArgs.cs" />
     <Compile Include="AddSpectrumToDocumentEventHandler.cs" />
     <Compile Include="AtomSpectraDeviceConfig.cs" />
@@ -228,17 +229,17 @@
     <Compile Include="DCFwhmCalibrationView.Designer.cs">
       <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
     </Compile>
+    <Compile Include="FSAReportView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FSAReportView.Designer.cs">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
+    </Compile>
     <Compile Include="DCPeakDetectionView.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DCPeakDetectionView.Designer.cs">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
-    </Compile>
-    <Compile Include="PeakDeconvolutionInfoForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PeakDeconvolutionInfoForm.Designer.cs">
-      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
     </Compile>
     <Compile Include="DCPulseView.cs">
       <SubType>Form</SubType>
@@ -288,25 +289,93 @@
     </Compile>
     <Compile Include="DocumentManager.cs" />
     <Compile Include="DoseRate.cs" />
-    <Compile Include="DoseRateCalibrationPoint.cs" />
-    <Compile Include="DoseRateConfig.cs" />
     <Compile Include="DoseRateManager.cs" />
     <Compile Include="DoubleTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DrawingMode.cs" />
     <Compile Include="EasyControlConfig.cs" />
-    <Compile Include="EffCalcMCDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="EffCalcMCDialog.Designer.cs">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
-    </Compile>
     <Compile Include="EnergyCalibration.cs" />
     <Compile Include="EnergyCalibrationChangedEventArgs.cs" />
     <Compile Include="EnergyResolutionCalculator.cs" />
     <Compile Include="EnergyResolutionResult.cs" />
     <Compile Include="EnergySpectrum.cs" />
+    <Compile Include="EnergySpectrumView.Fsa.cs">
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMaker\EfficiencyCurveGraph.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMaker\AttenuationData.cs" />
+    <Compile Include="EfficiencyMaker\ElectronData.cs" />
+    <Compile Include="EfficiencyMaker\ElectronTransport.cs" />
+    <Compile Include="EfficiencyMaker\EstarCalculator.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencyCurveIo.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
+    <Compile Include="ResponseMatrixForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ResponseMatrixForm.Layout.cs">
+      <DependentUpon>ResponseMatrixForm.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMaker\ResponseMatrix.cs" />
+    <Compile Include="EfficiencyMaker\ResponseMatrixBuilder.cs" />
+    <Compile Include="EfficiencyMaker\ResponseMatrixStore.cs" />
+    <Compile Include="EfficiencyMaker\GeometryModel.cs" />
+    <Compile Include="EfficiencyMaker\MaterialDatabase.cs" />
+    <Compile Include="EfficiencyMaker\PartialCrossSections.cs" />
+    <Compile Include="EfficiencyMaker\ScatteringData.cs" />
+    <Compile Include="EfficiencyMaker\BremsstrahlungData.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
+    <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
+    <Compile Include="EfficiencyMaker\GeometryMaterialStore.cs" />
+    <Compile Include="EfficiencyMaker\GeometryMaterialSeed.cs" />
+    <Compile Include="EfficiencyMaker\GeometryTemplateStore.cs" />
+    <Compile Include="GeometryMaterialEditorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMaker\GeometryPresets.cs" />
+    <Compile Include="EfficiencyMaker\GeometryScenes.cs" />
+    <Compile Include="EfficiencyMaker\GeometrySketch.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMaker\GeometryWriter.cs" />
+    <Compile Include="EfficiencyConfigData.cs" />
+    <Compile Include="DeviceConfigForm.Efficiency.cs">
+      <DependentUpon>DeviceConfigForm.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GeometryEditorPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMakerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EfficiencyMakerForm.Designer.cs">
+      <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FullSpectrumAnalysis\FsaAnalyzer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaCalculationOptions.cs" />
+    <Compile Include="FullSpectrumAnalysis\AngularCorrelation.cs" />
+    <Compile Include="FullSpectrumAnalysis\CascadeAtomicData.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaCascadeSummer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaCompositionInference.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaComponent.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaEfficiency.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaLibrary.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaAnalysisSession.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaMatrixBinding.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPresentation.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPresentationBuilder.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaPalette.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaResult.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaLineAudit.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaSampleLibrary.cs" />
+    <Compile Include="FullSpectrumAnalysis\DecayParentRule.cs" />
+    <Compile Include="FullSpectrumAnalysis\KSeriesRule.cs" />
     <Compile Include="EnergySpectrumView.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -348,9 +417,11 @@
     <Compile Include="IntegerTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="InvariantNumericUpDown.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
-    <Compile Include="LibraryPeakFitter.cs" />
     <Compile Include="MagnificationReference.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -413,24 +484,19 @@
     <Compile Include="NuclideSetForm.Designer.cs">
       <DependentUpon>NuclideSetForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="OutofChannelException.cs" />
     <Compile Include="Package.cs" />
+    <Compile Include="PickOneForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Peak.cs" />
-    <Compile Include="PeakDeconvolutionInfo.cs" />
     <Compile Include="PeakDetectionMethodConfig.cs" />
     <Compile Include="PeakDetector.cs" />
-    <Compile Include="PeakOriginCellRenderer.cs" />
     <Compile Include="PeakMode.cs" />
     <Compile Include="PeakPickupedEventArgs.cs" />
     <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="RjmcmcDeconvolution\RjmcmcConfig.cs" />
-    <Compile Include="RjmcmcDeconvolution\RjmcmcPeakCandidate.cs" />
-    <Compile Include="RjmcmcDeconvolution\RjmcmcPeakDeconvolver.cs" />
-    <Compile Include="RjmcmcDeconvolution\RjmcmcResult.cs" />
-    <Compile Include="RjmcmcDeconvolution\RjmcmcRoi.cs" />
     <Compile Include="PolynomialEnergyCalibration.cs" />
     <Compile Include="PRAHomageMethodConfig.cs" />
     <Compile Include="Program.cs" />
@@ -502,12 +568,6 @@
       <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ROICovellMethodData.cs" />
-    <Compile Include="ROIEditEfficiencyDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ROIEditEfficiencyDialog.Designer.cs">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
-    </Compile>
     <Compile Include="ROIEfficiencyData.cs" />
     <Compile Include="ROIDefinitionData.cs" />
     <Compile Include="ROIPrimitiveControl.cs">
@@ -540,12 +600,6 @@
     <Compile Include="SelectDeviceDialog.Designer.cs">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="SelectROIDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="SelectROIDialog.Designer.cs">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
-    </Compile>
     <Compile Include="SerialInputDeviceConfig.cs" />
     <Compile Include="SerializableColor.cs" />
     <Compile Include="ShowEnergyCalibrationViewEventArgs.cs" />
@@ -560,6 +614,7 @@
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="SpecUtilsNative.cs" />
+    <Compile Include="PowerFwhmCalibration.cs" />
     <Compile Include="SqrtFwhmCalibration.cs" />
     <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
@@ -630,6 +685,7 @@
     </Compile>
     <Compile Include="Utils\LiveTime.cs" />
     <Compile Include="Utils\PeakShapeModel.cs" />
+    <Compile Include="Utils\BecquerelCoefficient.cs" />
     <Compile Include="Utils\ROIAriphmetics.cs" />
     <Compile Include="Utils\PseudoVoigtProfile.cs" />
     <Compile Include="Utils\SpectrumAriphmetics.cs" />
@@ -933,20 +989,19 @@
     <EmbeddedResource Include="DCFwhmCalibrationView.ru.resx">
       <DependentUpon>DCFwhmCalibrationView.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FSAReportView.resx">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FSAReportView.ru.resx">
+      <DependentUpon>FSAReportView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPeakDetectionView.ru.resx">
       <DependentUpon>DCPeakDetectionView.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PeakDeconvolutionInfoForm.resx">
-      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PeakDeconvolutionInfoForm.ru.resx">
-      <DependentUpon>PeakDeconvolutionInfoForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCPulseView.resx">
@@ -992,13 +1047,6 @@
     <EmbeddedResource Include="DocEnergySpectrum.ru.resx">
       <DependentUpon>DocEnergySpectrum.cs</DependentUpon>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="EffCalcMCDialog.resx">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="EffCalcMCDialog.ru.resx">
-      <DependentUpon>EffCalcMCDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="EnergySpectrumView.resx">
       <DependentUpon>EnergySpectrumView.cs</DependentUpon>
@@ -1085,12 +1133,12 @@
     <EmbeddedResource Include="ROICovellMethodControl.ru.resx">
       <DependentUpon>ROICovellMethodControl.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROIEditEfficiencyDialog.resx">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
+    <EmbeddedResource Include="EfficiencyMakerForm.resx">
+      <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="ROIEditEfficiencyDialog.ru.resx">
-      <DependentUpon>ROIEditEfficiencyDialog.cs</DependentUpon>
+    <EmbeddedResource Include="EfficiencyMakerForm.ru.resx">
+      <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ROIPrimitiveControl.resx">
       <DependentUpon>ROIPrimitiveControl.cs</DependentUpon>
@@ -1115,12 +1163,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SelectDeviceDialog.ru.resx">
       <DependentUpon>SelectDeviceDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SelectROIDialog.resx">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SelectROIDialog.ru.resx">
-      <DependentUpon>SelectROIDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="SpectrumCutOffDialog.resx">
       <DependentUpon>SpectrumCutOffDialog.cs</DependentUpon>
@@ -1175,6 +1217,7 @@
     <None Include="Resources\pow.bmp" />
     <None Include="Resources\scale.bmp" />
     <None Include="Resources\CONT.bmp" />
+    <None Include="Resources\FSA.bmp" />
     <None Include="Resources\SUB.bmp" />
     <None Include="Resources\attach.png" />
     <None Include="app.config" />
@@ -1190,18 +1233,28 @@
     <None Include="NucBaseDataSet.xss">
       <DependentUpon>NucBaseDataSet.xsd</DependentUpon>
     </None>
-    <Content Include="config\ROI\Obsidian Marinelli 0.5.xml" />
+    <Content Include="config\ROI\Obsidian Marinelli 0.5.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\ROI\Ra-226 Intensities.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="config\ROI\RadiaCode Cs-137.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="config\ROI\RadiaCode Marinelli 0.5.xml" />
+    <Content Include="config\ROI\RadiaCode Marinelli 0.5.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\ROI\Th-232 Intensities.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="logo_becqmoni.ico" />
+    <Content Include="matdb.sqlite">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="schemedb.sqlite">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="nucdb.sqlite">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -1222,14 +1275,18 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="BecquerelMonitor.ico" />
-    <Content Include="config\BecquerelMonitor.xml" />
+    <Content Include="config\BecquerelMonitor.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\device\AtomSpectraVCP.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="config\layout\ExpertMode.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="config\NuclideDefinition.xml" />
+    <Content Include="config\NuclideDefinition.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\ROI\Atom Nano 3.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

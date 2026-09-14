@@ -1,0 +1,772 @@
+[
+ {
+  "file": "BecquerelMonitor/AtomSpectraDeviceController.cs",
+  "line": 336,
+  "in_catch": false,
+  "catch": "",
+  "text": "System.Diagnostics.Trace.WriteLine(\"AtomSpectra: no -ok answer to -sto, stopping locally anyway\");"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPDeviceForm.cs",
+  "line": 280,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"result -cal array, size: \" + result_arr.Length);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPDeviceForm.cs",
+  "line": 285,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Serial number: \" + returnvalue);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPDeviceForm.cs",
+  "line": 294,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(ex.Message + \" \" + ex.StackTrace);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPDeviceForm.cs",
+  "line": 296,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Return value: \" + returnvalue);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPDeviceForm.cs",
+  "line": 320,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Got status: \" + status.ToString());"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 85,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Instance \" + guid + \" removed!\");"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 164,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"AtomSpectraVCPIn instance created \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 227,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Config changed: COM = \" + config.ComPortName);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 233,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Command sent: \" + command);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 460,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(ex);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 479,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Line received: \" + str);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 490,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"AtomSpectraVCPIn thread stopped \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 544,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Try to close port...\");"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 558,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"AtomSpectraVCPIn thread termination request\");"
+ },
+ {
+  "file": "BecquerelMonitor/AtomSpectraVCPIn.cs",
+  "line": 565,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"AtomSpectraVCPIn reader thread did not stop within 5s (background thread, will die with the process)\");"
+ },
+ {
+  "file": "BecquerelMonitor/AudioInputDeviceController.cs",
+  "line": 206,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"WaveIn stop failed (device removed?): \" + ex.Message);"
+ },
+ {
+  "file": "BecquerelMonitor/AudioInputDeviceController.cs",
+  "line": 225,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"WaveIn dispose failed (device removed?): \" + ex.Message);"
+ },
+ {
+  "file": "BecquerelMonitor/DCPeakDetectionView.cs",
+  "line": 224,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "System.Diagnostics.Trace.WriteLine(\"Peak detection failed: \" + ex);"
+ },
+ {
+  "file": "BecquerelMonitor/DeviceConfigForm.cs",
+  "line": 1031,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(ex.ToString());"
+ },
+ {
+  "file": "BecquerelMonitor/DeviceConfigForm.cs",
+  "line": 1412,
+  "in_catch": false,
+  "catch": "",
+  "text": "System.Diagnostics.Trace.WriteLine(\"commands_accepted = \" + commands_accepted);"
+ },
+ {
+  "file": "BecquerelMonitor/DeviceConfigForm.cs",
+  "line": 1430,
+  "in_catch": false,
+  "catch": "",
+  "text": "System.Diagnostics.Trace.WriteLine(\"result = \" + result);"
+ },
+ {
+  "file": "BecquerelMonitor/DeviceConfigForm.cs",
+  "line": 2513,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(string.Format("
+ },
+ {
+  "file": "BecquerelMonitor/DeviceConfigManager.cs",
+  "line": 350,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"device config quiet save failed: \" + ex);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceController.cs",
+  "line": 219,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Obsidian: histogram size {e.Hystogram.Length} > document channels {pulseDetector.EnergySpectrum.Spectrum.Length}, dropping update\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 55,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Check BT status\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 67,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"BT was disabled, enabling it\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 72,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"BT status: {btRadio.State}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 78,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception while enabling BT: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 133,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Found {deviceName} with addr {args.BluetoothAddress}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianDeviceForm.cs",
+  "line": 324,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"-->> Got event: \" + e.Text);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 95,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"ObsidianIn instance created \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 168,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Instance \" + guid + \" removed!\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 287,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Command sent: \" + command);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 310,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Check BT status\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 325,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"BT was disabled, enabling it\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 332,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"BT status: {btRadio.State}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 343,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception while enabling BT: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 351,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Run discovery, to awake device\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 376,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Error doing discovery: {ex.Message}: {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 423,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Try to connect BLE at addr: {addrBLE}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 501,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 543,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect device event\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 552,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect device event\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 585,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(overflowMessage);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 606,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 659,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Obsidian DataReady handler exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 807,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 833,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 934,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Spectrum polling exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 945,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"ObsidianIn thread stopped \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 953,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"ObsidianIn thread termination request\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 956,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Try to disconnect..\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 1008,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect BLE service\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 1029,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception during disconnect: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ObsidianIn.cs",
+  "line": 1081,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Obsidian spectrum tail: counter={Counter}, TIME_S={TIME_S}, bytes[{dumpFrom}..]={BitConverter.ToString(Buffer, dumpFrom, dumpLen)}\")"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceController.cs",
+  "line": 215,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"RadiaCode: histogram size {e.Hystogram.Length} > document channels {this.pulseDetector.EnergySpectrum.Spectrum.Length}, dropping upd"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 55,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Check BT status\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 67,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"BT was disabled, enabling it\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 72,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"BT status: {btRadio.State}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 79,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception while enabling BT: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 127,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Found {deviceName} with addr {args.BluetoothAddress}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeDeviceForm.cs",
+  "line": 295,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"-->> Got event: \" + e.Text);"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 88,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Instance \" + guid + \" removed!\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 219,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Check BT status\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 234,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"BT was disabled, enabling it\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 241,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"BT status: {btRadio.State}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 253,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception while enabling BT: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 261,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Run discovery, to awaiken device\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 283,
+  "in_catch": true,
+  "catch": "catch (Exception ex) {",
+  "text": "Trace.WriteLine($\"Error doing discovery: {ex.Message}: {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 329,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Try to connect BLE at addr: {addrBLE}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 410,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 452,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect device event\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 461,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect device event\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 479,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Exchange response: BLE_IF ready\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 483,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Exchange response: BLE_IF busy\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 493,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Calibration response - calibration done.\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 500,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Calibration response - calibration fail.\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 525,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Drop packet because it is not spectrum packet\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 534,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Drop packet because size > expected size.\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 544,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Drop packet because it is not spectrum packet\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 556,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 558,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Drop packet because it is not spectrum packet\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 570,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Drop packet because spectrum channels: {packet.SPECTRUM.Length}. Expected: 1024 channels.\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 577,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Drop packet because size: {packet.counter} > expected size: {packet.SIZE}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 588,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"Drop packet because EXCEPTION: {ex.Message} at {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 605,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"RadiaCodeIn instance created \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 638,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Command sent: \" + command);"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 759,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"RadiaCode DataReady handler exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 905,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 931,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 954,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Calibration sent\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 963,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Calibration write exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 972,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"State: CalibrationDone\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 977,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine($\"State: CalibrationFail\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1081,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Spectrum polling exception: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1092,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"RadiaCodeIn thread stopped \" + guid);"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1111,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"RadiaCodeIn thread termination request\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1114,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Try to disconnect..\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1166,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"Disconnect BLE service\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1189,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine($\"Exception during disconnect: {ex.Message} {ex.StackTrace}\");"
+ },
+ {
+  "file": "BecquerelMonitor/RadiaCodeIn.cs",
+  "line": 1344,
+  "in_catch": false,
+  "catch": "",
+  "text": "// Trace.WriteLine($\"position {position}, count_occurences {count_occurences}, var_length {var_length},  last_value {last_value}, size {SIZE - i}\");"
+ },
+ {
+  "file": "BecquerelMonitor/ROIConfigManager.cs",
+  "line": 320,
+  "in_catch": false,
+  "catch": "",
+  "text": "System.Diagnostics.Trace.WriteLine(string.Format("
+ },
+ {
+  "file": "BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs",
+  "line": 124,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"FSA start failed: \" + ex);"
+ },
+ {
+  "file": "BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs",
+  "line": 217,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"FSA composition: \" + inferred);"
+ },
+ {
+  "file": "BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs",
+  "line": 240,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"FSA failed: \" + ex);"
+ },
+ {
+  "file": "BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs",
+  "line": 449,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"FSA: мёртвое время недоступно, окно совпадения по умолчанию: \" + ex.Message);"
+ },
+ {
+  "file": "BecquerelMonitor/NucBase/NucBaseFramework.cs",
+  "line": 107,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"getNuclude(\" + nucname + \"): \" + ex.GetType().Name + \": \" + ex.Message);"
+ },
+ {
+  "file": "BecquerelMonitor/NucBase/NucBaseFramework.cs",
+  "line": 259,
+  "in_catch": false,
+  "catch": "",
+  "text": "Trace.WriteLine(\"getDecayRad: \" + ex.GetType().Name + \": \" + ex.Message"
+ },
+ {
+  "file": "BecquerelMonitor/NucBase/NucBaseFramework.cs",
+  "line": 578,
+  "in_catch": true,
+  "catch": "catch (Exception ex)",
+  "text": "Trace.WriteLine(\"GetChainBranches(\" + rootNucid + \"): \" + ex.GetType().Name + \": \" + ex.Message);"
+ }
+]

@@ -156,7 +156,7 @@
     <value>IsotopeNameLabel</value>
   </data>
   <data name="&gt;&gt;ResultDataGridView.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>11</value>
   </data>
   <data name="label3.ToolTip" xml:space="preserve">
     <value />
@@ -499,7 +499,7 @@
     <value>10, 46</value>
   </data>
   <data name="&gt;&gt;DaughtersDataGridView.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>7</value>
   </data>
   <data name="label12.Location" type="System.Drawing.Point, System.Drawing">
     <value>408, 23</value>
@@ -585,6 +585,30 @@
   <data name="labelNameFormat.Size" type="System.Drawing.Size, System.Drawing">
     <value>112, 13</value>
   </data>
+  <data name="SearchStatusLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="SearchStatusLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>495, 384</value>
+  </data>
+  <data name="SearchStatusLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>469, 70</value>
+  </data>
+  <data name="SearchStatusLabel.Text" xml:space="preserve">
+    <value />
+  </data>
+  <data name="&gt;&gt;SearchStatusLabel.Name" xml:space="preserve">
+    <value>SearchStatusLabel</value>
+  </data>
+  <data name="&gt;&gt;SearchStatusLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;SearchStatusLabel.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;SearchStatusLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="&gt;&gt;IsotopeZLabel.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
@@ -595,7 +619,7 @@
     <value>Name</value>
   </data>
   <data name="&gt;&gt;label6.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>8</value>
   </data>
   <data name="&gt;&gt;HalfLifeUOMComboBox.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -625,7 +649,7 @@
     <value>5</value>
   </data>
   <data name="&gt;&gt;comboBoxNameFormat.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>1</value>
   </data>
   <data name="IsotopeSpecActivity.TabIndex" type="System.Int32, mscorlib">
     <value>9</value>
@@ -685,7 +709,7 @@
     <value>724, 111</value>
   </data>
   <data name="&gt;&gt;labelNameFormat.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
     <value>7, 20</value>
@@ -709,7 +733,7 @@
     <value>N:</value>
   </data>
   <data name="&gt;&gt;groupBox2.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>10</value>
   </data>
   <data name="&gt;&gt;label9.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -826,7 +850,7 @@
     <value />
   </data>
   <data name="&gt;&gt;ParentsDataGridView.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>9</value>
   </data>
   <data name="&gt;&gt;label13.Parent" xml:space="preserve">
     <value>groupBox2</value>
@@ -838,7 +862,7 @@
     <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;checkBoxOverwriteDef.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="&gt;&gt;IsotopeHLLabel.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -1033,7 +1057,7 @@
     <value>h</value>
   </data>
   <data name="&gt;&gt;label7.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="&gt;&gt;XRayTypeColumn.Type" xml:space="preserve">
     <value>System.Windows.Forms.DataGridViewTextBoxColumn, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -1051,7 +1075,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;buttonImportDef.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="IsotopeZLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>0, 13</value>
@@ -5482,7 +5506,7 @@
     <value>IsotopeZLabel</value>
   </data>
   <data name="&gt;&gt;checkBoxAppendRootName.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="label1.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -5787,4 +5811,8 @@
   <metadata name="IntensityColumn.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
+  <data name="NucBase_NoCriteria" xml:space="preserve">
+    <value>Nothing to search for: no nuclide name, no energy range, no intensity or half-life threshold. The query was not run, so this is not "there is nothing in the database".</value>
+    <comment>D44: строка состояния редактора, а НЕ свойство контрола. Конструктору формы этот ключ неизвестен - при перезаписи resx его легко потерять; читает его NucBase.OwnText.</comment>
+  </data>
 </root>

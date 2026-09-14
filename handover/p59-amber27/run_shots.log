@@ -1,0 +1,23 @@
+radon1_front_noeq            код 0  chi2/ndf 1.088, невязка модели 59.5 %, суммирование да
+radon1_front_eq              код 0  chi2/ndf 1.259, невязка модели 57.3 %, суммирование да
+radon1_front_singles         код 0  chi2/ndf 1.159, невязка модели 58.8 %, суммирование да
+radon2_front_noeq            код 0  chi2/ndf 1.278, невязка модели 80.6 %, суммирование да
+radon2_front_eq              код 0  chi2/ndf 1.130, невязка модели 74.7 %, суммирование да
+radon2_front_singles         код 0  chi2/ndf 1.317, невязка модели 80.6 %, суммирование да
+radon1_side_noeq             код 0  chi2/ndf 1.080, невязка модели 59.4 %, суммирование да
+radon1_side_eq               код 0  chi2/ndf 1.260, невязка модели 56.9 %, суммирование да
+radon1_side_singles          код 0  chi2/ndf 1.160, невязка модели 58.6 %, суммирование да
+radon2_side_noeq             код 0  chi2/ndf 1.085, невязка модели 74.6 %, суммирование да
+radon2_side_eq               код 0  chi2/ndf 1.129, невязка модели 74.8 %, суммирование да
+radon2_side_singles          код 0  chi2/ndf 1.318, невязка модели 80.6 %, суммирование да
+radon1_front_r010_noeq       код 0  chi2/ndf 1.083, невязка модели 59.5 %, суммирование да
+radon2_front_r010_noeq       код 0  chi2/ndf 1.278, невязка модели 80.6 %, суммирование да
+radon1_front_r025_noeq       код 0  chi2/ndf 1.095, невязка модели 59.6 %, суммирование да
+radon2_front_r025_noeq       код 0  chi2/ndf 1.279, невязка модели 80.6 %, суммирование да
+radon1_side_r010_noeq        код 0  chi2/ndf 1.074, невязка модели 59.4 %, суммирование да
+radon2_side_r010_noeq        код 0  chi2/ndf 1.087, невязка модели 74.7 %, суммирование да
+radon1_side_r025_noeq        код 0  chi2/ndf 1.086, невязка модели 59.5 %, суммирование да
+radon2_side_r025_noeq        код 0  chi2/ndf 1.083, невязка модели 74.5 %, суммирование да
+as80_th_noeq                 код 0  chi2/ndf 11.911, невязка модели 17.9 %, суммирование да
+as80_th_eq                   код 0  chi2/ndf 14.115, невязка модели 21.3 %, суммирование да
+коды: radon1_front_noeq=0 radon1_front_eq=0 radon1_front_singles=0 radon2_front_noeq=0 radon2_front_eq=0 radon2_front_singles=0 radon1_side_noeq=0 radon1_side_eq=0 radon1_side_singles=0 radon2_side_noeq=0 radon2_side_eq=0 radon2_side_singles=0 radon1_front_r010_noeq=0 radon2_front_r010_noeq=0 radon1_front_r025_noeq=0 radon2_front_r025_noeq=0 radon1_side_r010_noeq=0 radon2_side_r010_noeq=0 radon1_side_r025_noeq=0 radon2_side_r025_noeq=0 as80_th_noeq=0 as80_th_eq=0

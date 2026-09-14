@@ -1,0 +1,4 @@
+﻿spectrum,det,part,matrix_applied,grey_below_floor,grey_above_lines,grey_pct,spread_floor_kev,spread_floor_ch,residual_floor_kev,residual_floor_ch,first_ch,last_ch,stack_total,missing_pct,excess_pct
+ASN16_Cs137,ASN16,unknown,0,0.0,0.0,0.000,0.0,0,30.0,96,35,8190,244750893.4,5.490,4.204
+ASN16_Lu176,ASN16,known,1,283605.5,0.0,6.590,100.0,284,30.0,95,15,8190,4303492.1,6.285,5.300
+ASN16_Lu176_P0,ASN16,known,1,2312.3,16.7,6.680,100.0,283,30.0,102,35,8190,34866.8,13.285,13.402

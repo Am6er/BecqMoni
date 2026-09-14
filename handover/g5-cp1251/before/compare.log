@@ -1,0 +1,15 @@
+usage: compare.py [-h] [--mode {snip,spline}] [--groups GROUPS]
+                  [--share-eps SHARE_EPS]
+                  a b
+
+positional arguments:
+  a
+  b
+
+options:
+  -h, --help            show this help message and exit
+  --mode {snip,spline}
+  --groups GROUPS
+  --share-eps SHARE_EPS
+                        печатать спектры, где доля компонента сдвинулась
+                        больше, %

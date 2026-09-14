@@ -1,0 +1,8 @@
+ours AS80_th_disk_2614.511_varposend0 code=0 n=8000000 09:16:16 dt=101s
+ours AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1 code=0 n=8000000 09:17:56 dt=100s
+ours ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0 code=0 n=8000000 09:19:39 dt=103s
+ours ASN16_lu_side_2614.511_ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0posend1 code=0 n=8000000 09:21:13 dt=94s
+ours RC103_point0_2614.511_ASN16_lu_side_2614.511_ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0posend1posend0 code=0 n=40000000 09:25:59 dt=286s
+ours RC103_point0_2614.511_RC103_point0_2614.511_ASN16_lu_side_2614.511_ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0posend1posend0posend1 code=0 n=40000000 09:30:23 dt=264s
+ours ASN16_lu_side_1460.82_RC103_point0_2614.511_RC103_point0_2614.511_ASN16_lu_side_2614.511_ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0posend1posend0posend1posend1 code=0 n=8000000 09:31:33 dt=70s
+done ours ASN16_lu_side_1460.82_RC103_point0_2614.511_RC103_point0_2614.511_ASN16_lu_side_2614.511_ASN16_lu_side_2614.511_AS80_th_disk_2614.511_AS80_th_disk_2614.511_varposend0posend1posend0posend1posend0posend1posend1 09:31:33

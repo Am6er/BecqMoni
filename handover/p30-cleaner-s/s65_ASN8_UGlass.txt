@@ -1,0 +1,10 @@
+BecqMoni: main config: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\device: 10 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp30\tools\effmaker\probes\build_p30\config\NuclideDefinition.xml: 152 entries
+
+Необработанное исключение: System.IO.FileNotFoundException: Файл 'C:\Users\moroz\bqp30\tools\CORPUS\corpus\spectra$k.xml' не найден.
+   в System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   в System.IO.FileStream.Init(String path, FileMode mode, FileAccess access, Int32 rights, Boolean useRights, FileShare share, Int32 bufferSize, FileOptions options, SECURITY_ATTRIBUTES secAttrs, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   в System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share)
+   в FsaInferProbeF51.Program.Load(String path)
+   в FsaInferProbeF51.Program.Main(String[] args)

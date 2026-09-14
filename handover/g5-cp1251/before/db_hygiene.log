@@ -1,0 +1,7 @@
+usage: db_hygiene.py [-h] [--nucdb NUCDB] [--schemedb SCHEMEDB] [--dry]
+
+options:
+  -h, --help           show this help message and exit
+  --nucdb NUCDB
+  --schemedb SCHEMEDB
+  --dry

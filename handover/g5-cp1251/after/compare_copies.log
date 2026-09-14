@@ -1,0 +1,12 @@
+usage: compare_copies.py [-h] [--matdb MATDB] [--nucdb NUCDB]
+                         [--schemedb SCHEMEDB] [--pair PAIR] [--worst WORST]
+                         [--level-tol LEVEL_TOL]
+
+options:
+  -h, --help            show this help message and exit
+  --matdb MATDB
+  --nucdb NUCDB
+  --schemedb SCHEMEDB
+  --pair PAIR
+  --worst WORST
+  --level-tol LEVEL_TOL

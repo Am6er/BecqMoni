@@ -3,6 +3,7 @@ using BecquerelMonitor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Text;
 using System.Windows.Forms;
 using XPTable.Editors;
@@ -30,6 +31,26 @@ namespace BecquerelMonitor
         string expGaussExpLeftParameterLabelText;
         string expGaussExpRightParameterLabelText;
 
+        /// <summary>
+        /// ПРИЧИНА, ПО КОТОРОЙ КРИВОЙ РАЗРЕШЕНИЯ У СПЕКТРА НЕТ (`A240`, полоса
+        /// F62, 06.09.2026), — словами и с тремя числами настроек. Заполняется
+        /// последней попыткой <see cref="EnsureFwhmCalibration"/>, читается
+        /// <see cref="ApplyFwhmRefusalHint"/>. <c>null</c> — причины нет, то
+        /// есть кривая построилась либо о ней не спрашивали.
+        /// </summary>
+        string fwhmRefusal;
+
+        /// <summary>
+        /// Подпись пустой таблицы, какой её положил конструктор форм. Хранится
+        /// затем, что причина отказа пишется НА ЕЁ МЕСТО, а по исчезновении
+        /// причины подпись обязана вернуться ПЕРЕВЕДЁННОЙ: она приходит из
+        /// `DCFwhmCalibrationView.resx` / `.ru.resx`
+        /// (<c>CollectedPeaksTable.NoItemsText</c>), и подставить вместо неё
+        /// строку из кода значило бы потерять перевод. Приём тот же, что двумя
+        /// полями выше у подписей формы пика.
+        /// </summary>
+        string collectedPeaksNoItemsText;
+
         public DCFwhmCalibrationView(MainForm mainForm)
         {
             this.mainForm = mainForm;
@@ -40,6 +61,10 @@ namespace BecquerelMonitor
             executeCalibrationButton.Enabled = false;
             expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;
             expGaussExpRightParameterLabelText = peakShapeSecondParameterLabel.Text;
+            // ⚠ Пустой строкой, а не null: сеттер `Table.NoItemsText` сравнивает
+            //    ЧЕРЕЗ СТАРОЕ значение (`this.noItemsText.Equals(value)`), и
+            //    однажды положенный туда null уронил бы следующее присваивание.
+            collectedPeaksNoItemsText = CollectedPeaksTable.NoItemsText ?? string.Empty;
         }
 
         public void UpdateFwhmCalibration(bool reset_state = false)
@@ -57,6 +82,7 @@ namespace BecquerelMonitor
                 ResultData activeResultData = mainForm.ActiveDocument.ActiveResultData;
                 EnsureFwhmCalibration(activeResultData);
                 fwhmCalibration = activeResultData != null ? activeResultData.FwhmCalibration : null;
+                ApplyFwhmRefusalHint();
                 if (fwhmCalibration == null)
                 {
                     tableModel1.Rows.Clear();
@@ -70,6 +96,12 @@ namespace BecquerelMonitor
 
         void EnsureFwhmCalibration(ResultData resultData)
         {
+            // ⛔ ПРИЧИНА ОТКАЗА НЕ ВЫБРАСЫВАЕТСЯ (`A240`, полоса F62,
+            //    06.09.2026). Сбрасывается она ЗДЕСЬ, а не у читателя: метод
+            //    зовут четыре места вида, и причина, оставшаяся от прошлого
+            //    спектра, была бы хуже молчания — она называет три числа ЧУЖИХ
+            //    настроек, и человек искал бы беду не там.
+            fwhmRefusal = null;
             if (resultData == null || resultData.FwhmCalibration != null)
             {
                 return;
@@ -84,13 +116,53 @@ namespace BecquerelMonitor
 
             if (cfg.FwhmCalibration == null)
             {
-                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration);
+                string refusal;
+                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration, out refusal);
+                if (cfg.FwhmCalibration == null)
+                {
+                    fwhmRefusal = refusal;
+                }
             }
 
             if (cfg.FwhmCalibration != null)
             {
                 resultData.FwhmCalibration = cfg.FwhmCalibration.Clone();
             }
+        }
+
+        /// <summary>
+        /// ЧИТАТЕЛЬ ПРИЧИНЫ — НА МЕСТЕ, А НЕ ОКНОМ (`A240`, полоса F62,
+        /// 06.09.2026).
+        ///
+        /// ⛔ ПОЧЕМУ НЕ <c>AppUi.Report</c>. Голос о том, что у спектра нет
+        /// модели разрешения, УЖЕ звучит — один раз на файл, у общей двери
+        /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~,
+        /// открытие, создание и оба ввоза). Этот же вид обновляется на КАЖДОЕ
+        /// событие: смену документа, смену спектра, правку калибровки, выбор
+        /// пика — <c>MainForm.UpdateFwhmCalibrationView</c> зовут девять мест.
+        /// Модальное окно отсюда значило бы не «ещё один читатель», а второй,
+        /// третий и десятый голос об ОДНОЙ беде, о которой человеку уже
+        /// сказали. Соглашение «ровно один голос на событие» тут соблюдается
+        /// тем, что вид не говорит вовсе, а ПОКАЗЫВАЕТ.
+        ///
+        /// ⛔ ПОЧЕМУ ИМЕННО ПУСТАЯ ТАБЛИЦА. Без кривой вид пустеет весь:
+        /// строки очищаются, панель подгонки прячется — и на месте таблицы
+        /// остаётся ровно то поле, куда <c>XPTable</c> сам рисует
+        /// <c>NoItemsText</c>. Человек, пришедший на вкладку ПШПВ за причиной,
+        /// читает её там, где он и смотрит, без наведения мыши и без нового
+        /// места на форме. Подсказка на таблице и на подписи — вдобавок, для
+        /// длинного текста, который в поле таблицы может не поместиться.
+        ///
+        /// ⚠ Новой строки ресурсов не заведено: причина приходит уже
+        /// переведённой (<c>ERRFwhmDefaultNotMonotonic</c>), а подпись пустой
+        /// таблицы возвращается СВОЯ, из resx вида.
+        /// </summary>
+        void ApplyFwhmRefusalHint()
+        {
+            bool refused = !string.IsNullOrEmpty(fwhmRefusal);
+            CollectedPeaksTable.NoItemsText = refused ? fwhmRefusal : collectedPeaksNoItemsText;
+            toolTip1.SetToolTip(CollectedPeaksTable, refused ? fwhmRefusal : string.Empty);
+            toolTip1.SetToolTip(label1, refused ? fwhmRefusal : string.Empty);
         }
 
         private void DCFwhmCalibrationView_FormLoad(object sender, EventArgs e)
@@ -126,7 +198,7 @@ namespace BecquerelMonitor
             foreach (CalibrationPeak calibrationPeak in fwhmCalibration.CalibrationPeaks)
             {
                 Row row = new Row();
-                row.Cells.Add(new Cell(position.ToString()));
+                row.Cells.Add(new Cell(position.ToString(CultureInfo.InvariantCulture)));
                 row.Cells.Add(new Cell(calibrationPeak.Channel));
                 row.Cells.Add(new Cell(calibrationPeak.Energy));
                 row.Cells.Add(new Cell(calibrationPeak.FWHM));
@@ -138,9 +210,12 @@ namespace BecquerelMonitor
 
         void UpdateSelectedCurveInfo()
         {
-            int targetSelectedIndex = fwhmCalibration is SimpleSqrtFwhmCalibration
-                ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
-                : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
+            int targetSelectedIndex =
+                fwhmCalibration is SimpleSqrtFwhmCalibration
+                    ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
+                : fwhmCalibration is PowerFwhmCalibration
+                    ? (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration
+                    : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
 
             if (selectCurveComboBox.SelectedIndex != targetSelectedIndex)
             {
@@ -157,7 +232,7 @@ namespace BecquerelMonitor
 
             curveFormulaLabel.Text = fwhmCalibration.GetFormula();
             minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
-            minPeaksRequirementLabel.Text = String.Format(Resources.MinPeaksRequirement, minPeaksRequirement);
+            minPeaksRequirementLabel.Text = String.Format(CultureInfo.InvariantCulture, Resources.MinPeaksRequirement, minPeaksRequirement);
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
             UpdatePeakShapeInfo();
         }
@@ -184,15 +259,15 @@ namespace BecquerelMonitor
             {
                 peakShapeFirstParameterLabel.Text = expGaussExpLeftParameterLabelText;
                 peakShapeSecondParameterLabel.Text = expGaussExpRightParameterLabelText;
-                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.ExpGaussExpLeftTail.ToString("0.0");
-                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.ExpGaussExpRightTail.ToString("0.0");
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.ExpGaussExpLeftTail.ToString("0.0", CultureInfo.InvariantCulture);
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.ExpGaussExpRightTail.ToString("0.0", CultureInfo.InvariantCulture);
             }
             else
             {
                 peakShapeFirstParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel");
                 peakShapeSecondParameterLabel.Text = Resources.ResourceManager.GetString("VoigtRelativeGammaLabel");
-                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.VoigtSigma.ToString("0.0");
-                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.VoigtGamma.ToString("0.0");
+                peakShapeFirstParameterValueLabel.Text = fwhmCalibration.VoigtSigma.ToString("0.0", CultureInfo.InvariantCulture);
+                peakShapeSecondParameterValueLabel.Text = fwhmCalibration.VoigtGamma.ToString("0.0", CultureInfo.InvariantCulture);
             }
         }
 
@@ -221,7 +296,13 @@ namespace BecquerelMonitor
             if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
             {
                 fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
-            } else
+            }
+            else if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration)
+            {
+                // V2: степенная FWHM = a * ch^p — см. PowerFwhmCalibration.
+                fwhmCalibration = new PowerFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+            }
+            else
             {
                 fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
             }
@@ -281,6 +362,14 @@ namespace BecquerelMonitor
 
         private void RemovePeakButton_Click(object sender, EventArgs e)
         {
+            // Кривая разрешения законно бывает пустой (`ResultData.cs:470`), а
+            // `UpdateCalibrateButtonState` эту кнопку не гасит — сторож по образцу
+            // `GetAllPeaksButton_Click`. См. `A236`.
+            if (fwhmCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
             int selectedItemIndex;
             if (CollectedPeaksTable.SelectedItems.Length >= 1)
             {
@@ -321,15 +410,44 @@ namespace BecquerelMonitor
                 MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
                 return;
             }
+            // ⛔ СНИМОК КАЛИБРОВКИ ДОКУМЕНТА (`A2`), и он не про запас.
+            // `PerformCalibration` ниже кладёт ответ решателя В ТОТ ЖЕ объект,
+            // на который смотрит документ: поле вида — ССЫЛКА на
+            // `ActiveResultData.FwhmCalibration` (`UpdateFwhmCalibration`, где
+            // оно присваивается без клона). То есть к моменту записи спектр уже
+            // пересчитан по новой кривой, и сорвись запись — человек остался бы
+            // с новой калибровкой в спектре при старой в приборе, ничем об этом
+            // не извещённый.
+            FwhmCalibration previousDocumentCalibration =
+                activeDocument.ActiveResultData.FwhmCalibration != null
+                    ? activeDocument.ActiveResultData.FwhmCalibration.Clone()
+                    : null;
             if (!fwhmCalibration.PerformCalibration(activeDocument.ActiveResultData.EnergySpectrum.Spectrum.Length))
             {
-                // TODO нужно будет добавить обработку плохой калибровки
+                // Подгонка не сошлась — вернуть документу прежнюю кривую:
+                // решатель успел записать в неё свой ответ ещё до проверки.
+                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
                 MessageBox.Show(Resources.CalibrationFunctionError);
                 return;
             }
             FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
+            FwhmCalibration previousDeviceCalibration = peakDetectionMethodConfig.FwhmCalibration;
             peakDetectionMethodConfig.FwhmCalibration = fwhmCalibration.Clone();
-            DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig);
+            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
+            // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
+            // же — что калибровка встала, хотя на диск не легло ничего. При
+            // отказе не применяется НИЧЕГО: ни в приборе (ни в памяти, ни в
+            // файле), ни в спектре. Довод тот же, что и у энергетической
+            // калибровки: обещание кнопки — запись, а половинный исход
+            // (спектр пересчитан, файл прежний) переживает перезапуск молча.
+            if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
+            {
+                peakDetectionMethodConfig.FwhmCalibration = previousDeviceCalibration;
+                activeDocument.ActiveResultData.FwhmCalibration = previousDocumentCalibration;
+                MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
+                                MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                return;
+            }
             activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration.Clone();
             mainForm.UpdateDeviceConfigForm();
         }
@@ -354,13 +472,34 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него
+            // подобранная точка падала `NullReferenceException` на пустой кривой.
+            ResultData pickupResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            EnsureFwhmCalibration(pickupResultData);
+            if (pickupResultData == null || pickupResultData.FwhmCalibration == null)
+            {
+                ClearPeakPickupState();
+                UpdateCalibrateButtonState();
+                return;
+            }
+
             CalibrationPeak newPeak = e.CalibrationPeak;
             foreach (CalibrationPeak peak in mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks)
             {
                 if (peak.Equals(newPeak))
                 {
-                    string PeakExistText = String.Format(Resources.ERRPeakExist, peak.FWHM, peak.Channel);
-                    MessageBox.Show(PeakExistText, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    string PeakExistText = String.Format(CultureInfo.InvariantCulture, Resources.ERRPeakExist, peak.FWHM, peak.Channel);
+                    // ⛔ `A245`, полоса F22 05.09.2026. Здесь стоял голый
+                    //    `MessageBox.Show`, а метод лежит на БЕЗОКОННОМ пути:
+                    //    `EnergySpectrumView_PeakPickuped` зовут отражением
+                    //    пробы (`FwhmViewReachProbeO13` называет его по имени),
+                    //    и безоконный прогон, дойдя сюда, вис насмерть до
+                    //    убийства процесса — на этом подряд встали две полосы
+                    //    по ~~`A236`~~. Дверь `AppUi.Report` показывает то же
+                    //    самое окно тем же значком и с тем же заголовком
+                    //    (`MessageBox.Show(text, caption, OK, icon)` внутри), а
+                    //    без окон печатает строку в поток ошибок и идёт дальше.
+                    AppUi.Report(PeakExistText, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                     return;
                 }
             }
@@ -653,6 +792,7 @@ namespace BecquerelMonitor
 
             StringBuilder messageBuilder = new StringBuilder();
             messageBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 GetResourceText("PeakFitChiTablePeakSummary", "Selected shape: {0}."),
                 GetPeakShapeName(selectedPeakType));
             messageBuilder.AppendLine();
@@ -661,6 +801,7 @@ namespace BecquerelMonitor
             foreach (PeakFitComparisonItem item in items)
             {
                 messageBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     "{0}: {1} = {2}; {3} = {4}; {5}: {6}",
                     item.CurveName,
                     GetResourceText("PeakFitChiTableScoreColumn", "Score"),
@@ -680,6 +821,7 @@ namespace BecquerelMonitor
         string GetExpGaussExpParametersText(int candidateIndex, int tailSteps)
         {
             return String.Format(
+                CultureInfo.InvariantCulture,
                 "{0}={1:0.0}; {2}={3:0.0}",
                 expGaussExpLeftParameterLabelText,
                 (candidateIndex / tailSteps + 1) * 0.1,
@@ -690,6 +832,7 @@ namespace BecquerelMonitor
         string GetVoigtParametersText(int candidateIndex, int tailSteps)
         {
             return String.Format(
+                CultureInfo.InvariantCulture,
                 "{0}={1:0.0}; {2}={3:0.0}",
                 Resources.ResourceManager.GetString("VoigtRelativeSigmaLabel"),
                 (candidateIndex / tailSteps + 1) * 0.1,
@@ -700,14 +843,14 @@ namespace BecquerelMonitor
         string FormatPeakFitRatio(double chi2, int ndp)
         {
             return IsValidFitStatistic(chi2, ndp)
-                ? (chi2 / ndp).ToString("0.#####")
+                ? (chi2 / ndp).ToString("0.#####", CultureInfo.InvariantCulture)
                 : GetResourceText("PeakFitChiTableUnavailable", "n/a");
         }
 
         string FormatPeakShapeScore(double score)
         {
             return !Double.IsNaN(score) && !Double.IsInfinity(score)
-                ? score.ToString("0.#####")
+                ? score.ToString("0.#####", CultureInfo.InvariantCulture)
                 : GetResourceText("PeakFitChiTableUnavailable", "n/a");
         }
 
@@ -797,21 +940,28 @@ namespace BecquerelMonitor
         {
             Cell cell = e.Cell;
             Row row = cell.Row;
-            List<CalibrationPeak> calibrationPeaks = mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks;
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`).
+            ResultData editResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            if (editResultData == null || editResultData.FwhmCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
+            List<CalibrationPeak> calibrationPeaks = editResultData.FwhmCalibration.CalibrationPeaks;
             NumberCellEditor editor = (NumberCellEditor)e.Editor;
             string textvalue = editor.TextBox.Text;
 
             if (e.Column == 1)
             {
-                calibrationPeaks[row.Index].Channel = int.Parse(textvalue);
+                calibrationPeaks[row.Index].Channel = UserNumber.ParseInt(textvalue);
             }
             else if (e.Column == 2)
             {
-                calibrationPeaks[row.Index].Energy = double.Parse(textvalue);
+                calibrationPeaks[row.Index].Energy = UserNumber.ParseDouble(textvalue);
             }
             else if (e.Column == 3)
             {
-                calibrationPeaks[row.Index].FWHM = double.Parse(textvalue);
+                calibrationPeaks[row.Index].FWHM = UserNumber.ParseDouble(textvalue);
             } else
             {
                 return;
@@ -905,6 +1055,31 @@ namespace BecquerelMonitor
 
         private void ViewCalibrationButton_Click(object sender, EventArgs e)
         {
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него пустая
+            // кривая уезжала в `FWHMCalibrationGraph.Init` и валила ЧУЖОЙ класс.
+            // ⛔ Поле `fwhmCalibration` здесь НЕ переприсваивается: между обновлениями
+            // вида оно законно держит ещё не сохранённый выбор типа кривой (см. 223-235).
+            // ⛔ ЭНЕРГОКАЛИБРОВКА — ЧЕТВЁРТОЕ ЗВЕНО, И ОНО ЗДЕСЬ НЕ ЛИШНЕЕ (`A243`,
+            // 05.09.2026). `Init` разыменовывает `ActiveResultData.EnergySpectrum
+            // .EnergyCalibration.Clone()` первой же строкой, а спектр без шкалы
+            // энергии приложение производит штатно (`A95`: `EnergySpectrum.Clone`
+            // ради этого отказывает СЛОВАМИ, `CheckDocument` без поправок судит
+            // такой документ негодным, а ввозные двери при ответе «Нет» уходят
+            // `return`-ом из void, оставляя документ ОТКРЫТЫМ). Измерено полосой
+            // О22: при кривой ПШПВ на месте и пустой энергокалибровке дверь
+            // доходила до `Init` и валила чужой класс —
+            // `NullReferenceException @ FWHMCalibrationGraph.cs:53`.
+            ResultData graphResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            EnsureFwhmCalibration(graphResultData);
+            if (fwhmCalibration == null || graphResultData == null
+                || graphResultData.FwhmCalibration == null
+                || graphResultData.EnergySpectrum == null
+                || graphResultData.EnergySpectrum.EnergyCalibration == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
+
             FWHMCalibrationGraph graph = new FWHMCalibrationGraph(this.mainForm);
             graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
             DialogResult result = graph.ShowDialog();

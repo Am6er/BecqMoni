@@ -1,0 +1,104 @@
+режим=spline, часть корпуса=known, состав по дочерним, критерий: share>=0.30% и z>=4.0, решение ОДНО НА ЦЕПОЧКУ (A280)
+
+спектр                 истина                       найдено (доля%/z)                  вердикт
+AS80_Am241             Am-241                       Am-241(98/281)                     ok
+AS80_Cs137_0cm         Cs-137                       Cs-137(100/538)                    ok
+AS80_Lu176             Lu-176                       Lu-176(99/334)                     ok
+AS80_Lu176_v2          Lu-176                       Lu-176(99/524)                     ok
+AS80_Th232Medal        Th-232                       thorium(92/189)                    ok
+ASN16_Lu176            Lu-176                       Lu-176(97/507)                     ok
+ASN16_Lu176_P0         Lu-176                       Lu-176(98/139)                     ok
+G1S16_Am241_P25        Am-241                       Am-241(100/142)                    ok
+G1S16_Am241_P5         Am-241                       Am-241(100/226)                    ok
+G1S16_Ba133_P25        Ba-133                       Ba-133(100/176)                    ok
+G1S16_Ba133_P5         Ba-133                       Ba-133(100/172)                    ok
+G1S16_Cd109_P25        Cd-109                       Cd-109(100/63)                     ok
+G1S16_Cd109_P5         Cd-109                       Cd-109(100/78)                     ok
+G1S16_Ce139_P25        Ce-139                       Ce-139(99/65)                      ok
+G1S16_Ce139_P5         Ce-139                       Ce-139(99/124)                     ok
+G1S16_Co57_P5          Co-57                        Co-57(98/61)                       ok
+G1S16_Co60_P25         Co-60                        Co-60(100/252)                     ok
+G1S16_Co60_P5          Co-60                        Co-60(100/293)                     ok
+G1S16_Cs137_Mar        Cs-137                       Cs-137(100/171)                    ok
+G1S16_Cs137_Mar_2      Cs-137                       Cs-137(100/235)                    ok
+G1S16_Cs137_P25        Cs-137                       Cs-137(100/281)                    ok
+G1S16_Cs137_P5         Cs-137                       Cs-137(100/391)                    ok
+G1S16_Eu152_P25        Eu-152                       Eu-152(100/188)                    ok
+G1S16_Eu152_P5         Eu-152                       Eu-152(99/192)                     ok
+G1S16_K40_Mar          K-40                         K-40(100/88)                       ok
+G1S16_K40_Mar_2        K-40                         K-40(100/111)                      ok
+G1S16_Mix_Denta100     Am-241+Cs-137+Eu-152+Ti-44   Eu-152(46/19), Cs-137(20/25), Ti-44(17/16), Am-241(17/16) ok
+G1S16_Mix_Mar          Am-241+Cs-137+Eu-152+Ti-44   Eu-152(42/23), Cs-137(19/38), Am-241(15/31), Ti-44(6/15) ok
+G1S16_Mix_Petri        Am-241+Cs-137+Eu-152+Ti-44   Eu-152(45/14), Cs-137(22/22), Am-241(21/17), Ti-44(12/14) ok
+G1S16_Mn54_P25         Mn-54                        Mn-54(100/191)                     ok
+G1S16_Mn54_P5          Mn-54                        Mn-54(100/249)                     ok
+G1S16_Na22_P25         Na-22                        Na-22(30/154)                      ok
+G1S16_Na22_P5          Na-22                        Na-22(27/118)                      ok
+G1S16_Ra226_Mar        Ra-226                       Ra-226(100/163)                    ok
+G1S16_Ra226_Mar_2      Ra-226                       Ra-226(100/154)                    ok
+G1S16_Th228_P25        Th-228                       thorium(100/91)                    ok
+G1S16_Th228_P5         Th-228                       thorium(100/119)                   ok
+G1S16_Th232_Denta100   Th-232                       thorium(100/94)                    ok
+G1S16_Th232_Mar_2      Th-232                       thorium(100/177)                   ok
+G1S16_Th232_Mar_3      Th-232                       thorium(100/192)                   ok
+G1S16_Th232_Petri      Th-232                       thorium(100/91)                    ok
+G1S16_Y88_P25          Y-88                         Y-88(100/48)                       ok
+G1S16_Y88_P5           Y-88                         Y-88(98/95)                        ok
+G1S24_Am241_P5         Am-241                       Am-241(100/205)                    ok
+G1S24_Ba133_P5         Ba-133                       Ba-133(100/136)                    ok
+G1S24_Bi207_P5         Bi-207                       Bi-207(98/313)                     ok
+G1S24_Cd109_P5         Cd-109                       Cd-109(98/46)                      ok
+G1S24_Co60_P5          Co-60                        Co-60(100/306)                     ok
+G1S24_Cs137_Denta120   Cs-137                       Cs-137(98/79)                      ok
+G1S24_Cs137_Denta120_2 Cs-137                       Cs-137(100/166)                    ok
+G1S24_Cs137_Mar        Cs-137                       Cs-137(100/187)                    ok
+G1S24_Cs137_Mar_2      Cs-137                       Cs-137(100/272)                    ok
+G1S24_Cs137_P25        Cs-137                       Cs-137(100/270)                    ok
+G1S24_Cs137_P5         Cs-137                       Cs-137(100/296)                    ok
+G1S24_Cs137_Petri      Cs-137                       Cs-137(98/84)                      ok
+G1S24_Cs137_Petri_2    Cs-137                       Cs-137(99/148)                     ok
+G1S24_Eu152_P5         Eu-152                       Eu-152(99/235)                     ok
+G1S24_K40_Denta120     K-40                         K-40(97/66)                        ok
+G1S24_K40_Denta120_2   K-40                         K-40(98/101)                       ok
+G1S24_K40_Mar          K-40                         K-40(100/99)                       ok
+G1S24_K40_Mar_2        K-40                         K-40(100/118)                      ok
+G1S24_K40_Petri        K-40                         K-40(93/55)                        ok
+G1S24_K40_Petri_2      K-40                         K-40(100/41)                       ok
+G1S24_Na22_P25         Na-22                        Na-22(30/228)                      ok
+G1S24_Na22_P5          Na-22                        Na-22(28/123)                      ok
+G1S24_Ra226_Denta120   Ra-226                       Ra-226(100/161)                    ok
+G1S24_Ra226_Denta120_2 Ra-226                       Ra-226(100/129)                    ok
+G1S24_Ra226_Mar        Ra-226                       Ra-226(100/186)                    ok
+G1S24_Ra226_Mar_2      Ra-226                       Ra-226(100/190)                    ok
+G1S24_Ra226_Petri      Ra-226                       Ra-226(100/107)                    ok
+G1S24_Ra226_Petri_2    Ra-226                       Ra-226(100/133)                    ok
+G1S24_Rn222Coal_Mar_20m Ra-226+Th-228                Ra-226(89/30), thorium(11/6)       ok
+G1S24_Rn222Coal_Mar_2h Ra-226+Th-228                Ra-226(90/48), thorium(10/8)       ok
+G1S24_Rn222Coal_Mar_3h Ra-226+Th-228                Ra-226(91/41), thorium(9/7)        ok
+G1S24_Rn222Coal_Mar_eq01 Ra-226+Th-228                Ra-226(89/66), thorium(11/12)      ok
+G1S24_Th228_P25        Th-228                       thorium(100/235)                   ok
+G1S24_Th228_P5         Th-228                       thorium(100/338)                   ok
+G1S24_Th232_Denta120   Th-232                       thorium(100/99)                    ok
+G1S24_Th232_Denta120_2 Th-232                       thorium(100/168)                   ok
+G1S24_Th232_Mar        Th-232                       thorium(100/128)                   ok
+G1S24_Th232_Mar_2      Th-232                       thorium(100/304)                   ok
+G1S24_Th232_Petri      Th-232                       thorium(100/162)                   ok
+G1S24_Th232_Petri_2    Th-232                       thorium(100/275)                   ok
+G1S24_Y88_P25          Y-88                         Y-88(98/216)                       ok
+G1S24_Y88_P5           Y-88                         Y-88(99/301)                       ok
+G1S24_Zn65_P5          Zn-65                        Zn-65(92/79)                       ok
+RC103_Cs137_0cm        Cs-137                       Cs-137(100/114)                    ok
+RC103_K40              K-40                         K-40(100/65)                       ok
+RC103_Lu176            Lu-176                       Lu-176(97/138)                     ok
+
+детектор   спектров     recall   фантомов   подавлен
+AS80x80           5       100%          0          0
+ASN16             2       100%          0          0
+G1S16            36       100%          0          0
+G1S24            43       100%          0          0
+RC103             3       100%          0          0
+итого            89       100%          0          0  (+0 комнатных)  часть: known
+       ПРОМАХОВ 0: не найдено 0, ниже предела обнаружения 0 (доля >= 0.30%, но z < 4.0) (A279)
+       СОСТАВА НЕТ ВОВСЕ у 0 из 89: сумма нуклидных долей ноль, спектр объяснён приборным образом (T118)
+                 89  sum chi2/ndf 463.8   медиана 2.51
+                 89  model residual медиана 13.8 %   кварт. 8.2 .. 19.0 %

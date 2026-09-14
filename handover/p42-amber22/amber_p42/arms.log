@@ -1,0 +1,42 @@
+def code=0 10:57:10 probe=[] keys=[--infer] spectrum=Th-232_amber.xml
+done 10:57:10
+nocasc code=4 10:57:51 wrap=p42 probe=[--cascade=off] keys=[--infer] spectrum=Th-232_amber.xml
+chpeak code=4 10:57:52 wrap=p42 probe=[--channels=peak] keys=[--infer] spectrum=Th-232_amber.xml
+chpeakeq code=4 10:57:52 wrap=p42 probe=[--channels=peak] keys=[--infer --no-equilibrium] spectrum=Th-232_amber.xml
+nomx2 code=0 10:57:54 wrap=nnls probe=[] keys=[--infer --no-matrix] spectrum=Th-232_amber.xml
+noeq code=0 10:57:56 wrap=nnls probe=[] keys=[--infer --no-equilibrium] spectrum=Th-232_amber.xml
+kf2 code=0 10:57:59 wrap=nnls probe=[] keys=[--infer --knots=2] spectrum=Th-232_amber.xml
+kf8 code=0 10:58:02 wrap=nnls probe=[] keys=[--infer --knots=8] spectrum=Th-232_amber.xml
+huber0 code=0 10:58:05 wrap=nnls probe=[] keys=[--infer --huber=0] spectrum=Th-232_amber.xml
+huber05 code=0 10:58:08 wrap=nnls probe=[] keys=[--infer --huber=0.5] spectrum=Th-232_amber.xml
+noanch code=0 10:58:10 wrap=nnls probe=[] keys=[--infer --no-anchor] spectrum=Th-232_amber.xml
+noatom code=0 10:58:13 wrap=nnls probe=[] keys=[--infer --no-atomic] spectrum=Th-232_amber.xml
+nobs code=0 10:58:16 wrap=nnls probe=[] keys=[--infer --no-backscatter] spectrum=Th-232_amber.xml
+nomx2eq code=0 10:58:17 wrap=nnls probe=[] keys=[--infer --no-matrix --no-equilibrium] spectrum=Th-232_amber.xml
+fw110 code=0 10:58:20 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_fw110.xml
+fw115 code=0 10:58:23 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_fw115.xml
+fw120 code=0 10:58:26 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_fw120.xml
+fw130 code=0 10:58:29 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_fw130.xml
+gauss code=0 10:58:31 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_gauss.xml
+recal code=0 10:58:34 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_recal.xml
+escale code=0 10:58:37 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_escale.xml
+sqrtfw code=0 10:58:40 wrap=nnls probe=[] keys=[--infer] spectrum=Th-232_amber_sqrtfw.xml
+recalh0 code=0 10:58:43 wrap=nnls probe=[] keys=[--infer --huber=0] spectrum=Th-232_amber_recal.xml
+recalkf2 code=0 10:58:46 wrap=nnls probe=[] keys=[--infer --knots=2] spectrum=Th-232_amber_recal.xml
+recalnomx code=0 10:58:47 wrap=nnls probe=[] keys=[--infer --no-matrix] spectrum=Th-232_amber_recal.xml
+escalekf2 code=0 10:58:50 wrap=nnls probe=[] keys=[--infer --knots=2] spectrum=Th-232_amber_escale.xml
+escalenocasc code=4 10:58:51 wrap=p42 probe=[--cascade=off] keys=[--infer] spectrum=Th-232_amber_escale.xml
+escalechpeak code=4 10:58:51 wrap=p42 probe=[--channels=peak] keys=[--infer] spectrum=Th-232_amber_escale.xml
+escalenoeq code=0 10:58:54 wrap=nnls probe=[] keys=[--infer --no-equilibrium] spectrum=Th-232_amber_escale.xml
+done 10:58:54
+nocasc code=0 10:59:22 wrap=p42 probe=[--cascade=off] keys=[--infer] spectrum=Th-232_amber.xml
+chpeak code=0 10:59:24 wrap=p42 probe=[--channels=peak] keys=[--infer] spectrum=Th-232_amber.xml
+chpeakeq code=0 10:59:26 wrap=p42 probe=[--channels=peak] keys=[--infer --no-equilibrium] spectrum=Th-232_amber.xml
+escalenocasc code=0 10:59:28 wrap=p42 probe=[--cascade=off] keys=[--infer] spectrum=Th-232_amber_escale.xml
+escalechpeak code=0 10:59:30 wrap=p42 probe=[--channels=peak] keys=[--infer] spectrum=Th-232_amber_escale.xml
+done 10:59:30
+escalekf2chpeak code=0 11:02:34 wrap=p42 probe=[--channels=peak] keys=[--infer --knots=2] spectrum=Th-232_amber_escale.xml
+escalekf2h0 code=0 11:02:37 wrap=nnls probe=[] keys=[--infer --knots=2 --huber=0] spectrum=Th-232_amber_escale.xml
+escalekf2nocasc code=0 11:02:39 wrap=p42 probe=[--cascade=off] keys=[--infer --knots=2] spectrum=Th-232_amber_escale.xml
+escalekf2noeq code=0 11:02:42 wrap=nnls probe=[] keys=[--infer --knots=2 --no-equilibrium] spectrum=Th-232_amber_escale.xml
+done 11:02:42

@@ -1,0 +1,40 @@
+
+=== СТОРОЖ ОСНАСТКИ (T63) ===
+  оснастка : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p66c
+  сборка   : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Debug_Codex
+  пробы    : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build
+  сверено  : 447 файлов по sha256 за 0.55 с
+  перекладка: пропущено, нет: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p66c\config\device\response
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: DosePointsProbeF9.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: EtlCheck.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: OrderProbe.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: PackGeometryProbe.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: Program.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: ScoutProbe.exe  11.09 17:53
+  ⚠ в каталоге проб exe без исходника, в оснастку не едет: SetProbe.exe  11.09 17:53
+  ⚠ исходников проб без собранного exe в каталоге: 17 (angularqkprobe, brempathprobe, doseratefromcurveprobe, fsaanchorglyphprobe) — каталог их не содержит, свежести не судят
+
+⛔⛔ ОТКАЗ: ОСНАСТКА НЕ СООТВЕТСТВУЕТ ИСХОДНИКАМ — ПРОГОН НЕ ЗАПУСКАЕТСЯ
+   1. НАБОР ИСХОДНИКОВ ПРИЛОЖЕНИЯ РАЗОШЁЛСЯ С ЗАВЕРЕННЫМ (T226/T41): изменено 50, добавлено 3, удалено 4
+           becquerelmonitor\becquerelmonitor.csproj
+           becquerelmonitor\dccontrolpanel.cs
+           becquerelmonitor\dcpeakdetectionview.cs
+           becquerelmonitor\deviceconfigform.cs
+           becquerelmonitor\deviceconfigform.designer.cs
+           becquerelmonitor\deviceconfigform.efficiency.cs
+           … и ещё 51
+           отпечаток набора: заверено b40fa3552c45 -> в дереве e5307f999bce
+           Пересоберите приложение и перегоните build_all.ps1.
+   2. ПРОБЫ СОБРАНЫ ИЗ ДРУГОГО НАБОРА ИСХОДНИКОВ (T226/T233): 37 шт.
+           FsaSumPeakAccountProbe.exe: заверено 5e92707eec7e -> в дереве dd678bb8b4c2
+           CorpusFsaProbe.exe: заверено 0b80665f1805 -> в дереве 63c0c5e60d35
+           GeometryLimitsProbe.exe: заверено e4566451254a -> в дереве f7530ad4ac3c
+           ChainProbe.exe: заверено af85b13634ec -> в дереве bf8aea712700
+           FsaCascadeProbe.exe: заверено 6df61dfbe8c5 -> в дереве e3cbcdf895a3
+           Содержимое разошлось с заверенным — по времени такое не всегда видно.
+   3. ОСНАСТКИ НЕТ ВОВСЕ: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\scripts\wd_p66c — сначала pwsh mk_appwd.ps1
+
+  Прогон на такой оснастке даёт правдоподобные, но ЧУЖИЕ числа (B20/B21).
+  Порядок: собрать приложение -> build_all.ps1 -> mk_appwd.ps1.
+
+код 1: находок 3

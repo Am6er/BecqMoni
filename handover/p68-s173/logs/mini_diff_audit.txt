@@ -1,0 +1,10 @@
+  AS80x80_spline_components.csv строка 30: ['AS80_Cs137_0cm', 'AS80x80', 'known', 'Cs-137'] | ['AS80_Cs137_0cm', 'AS80x80', 'known', 'Cs-137']
+  ASN16_spline_components.csv строка 6: ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176', 'ASN16', 'known', 'Lu-176']
+  ASN16_spline_components.csv строка 7: ['ASN16_Lu176', 'ASN16', 'known', 'Xray-Lu'] | ['ASN16_Lu176', 'ASN16', 'known', 'Xray-Lu']
+  ASN16_spline_components.csv строка 8: ['ASN16_Lu176', 'ASN16', 'known', 'pile-up'] | ['ASN16_Lu176', 'ASN16', 'known', 'pile-up']
+  ASN16_spline_components.csv строка 9: ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176'] | ['ASN16_Lu176_P0', 'ASN16', 'known', 'Lu-176']
+  G1S16_spline_components.csv строка 24: ['G1S16_Co57_P5', 'G1S16', 'known', 'Co-57'] | ['G1S16_Co57_P5', 'G1S16', 'known', 'Co-57']
+  G1S16_spline_components.csv строка 29: ['G1S16_Mn54_P5', 'G1S16', 'known', 'Mn-54'] | ['G1S16_Mn54_P5', 'G1S16', 'known', 'Mn-54']
+  G1S24_spline_components.csv строка 33: ['G1S24_Y88_P5', 'G1S24', 'known', 'Y-88'] | ['G1S24_Y88_P5', 'G1S24', 'known', 'Y-88']
+  G1S24_spline_components.csv строка 34: ['G1S24_Y88_P5', 'G1S24', 'known', 'Ann-511'] | ['G1S24_Y88_P5', 'G1S24', 'known', 'Ann-511']
+csv 17, строк 727, расхождений вне времени 9, только во времени 59

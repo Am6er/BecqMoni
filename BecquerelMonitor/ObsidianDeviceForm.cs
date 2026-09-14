@@ -2,6 +2,7 @@ using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,7 +77,19 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 Trace.WriteLine($"Exception while enabling BT: {ex.Message} {ex.StackTrace}");
+                ReportBtEnableFailure(ex);
             }
+        }
+
+        /// <summary>
+        /// Сказать человеку, что Bluetooth включить не вышло. Близнец
+        /// <c>RadiaCodeDeviceForm.ReportBtEnableFailure</c>, разбор там же
+        /// (строка `A15`, разряд 1).
+        /// </summary>
+        internal static void ReportBtEnableFailure(Exception ex)
+        {
+            AppUi.Report(string.Format(Resources.ERRBTEnableFailed, ex == null ? "" : ex.Message),
+                Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
         }
 
         private async void ScanBLEDevices()
@@ -130,12 +143,12 @@ namespace BecquerelMonitor
                     return;
                 }
 
-                Trace.WriteLine($"Found {deviceName} with addr {args.BluetoothAddress}");
+                Trace.WriteLine(FormattableString.Invariant($"Found {deviceName} with addr {args.BluetoothAddress}"));
                 devices.Add(args.BluetoothAddress);
                 string serial = ExtractSerial(deviceName);
                 comboBox1.Invoke(new Action(() =>
                 {
-                    addressBLE.Add(args.BluetoothAddress.ToString());
+                    addressBLE.Add(args.BluetoothAddress.ToString(CultureInfo.InvariantCulture));
                     if (comboBox1.Items.IndexOf(serial) == -1)
                     {
                         comboBox1.Items.Add(serial);
@@ -147,7 +160,7 @@ namespace BecquerelMonitor
                 }));
                 TroubleshootText.Invoke(new Action(() =>
                 {
-                    TroubleshootText.AppendText($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}");
+                    TroubleshootText.AppendText(FormattableString.Invariant($"Found device {serial} with BLE addr {args.BluetoothAddress}{Environment.NewLine}"));
                 }));
             }
             catch (Exception)
@@ -277,20 +290,24 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            // ⛔ `A17`. Разбор забирает связь с прибором себе; разбор беды и
+            //    довод — у близнеца в `RadiaCodeDeviceForm.troubleShootbtn_Click`.
+            string refusal;
+            bool wasRunning;
+            if (!ObsidianIn.TryClaimForTroubleshoot(deviceConfigForm.ActiveDeviceConfig.Guid,
+                    deviceConfigForm.ActiveDeviceConfig.Name, out refusal, out wasRunning))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+                return;
+            }
             troubleShootbtn.Enabled = false;
             TroubleshootText.Clear();
             tshootText = "";
-            List<ObsidianIn> instances = ObsidianIn.getAllInstances();
-            foreach (ObsidianIn instance in instances)
+            if (wasRunning)
             {
-                if (instance.GUID == deviceConfigForm.ActiveDeviceConfig.Guid)
-                {
-                    tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}";
-                    ObsidianIn.cleanUp(deviceConfigForm.ActiveDeviceConfig.Guid);
-                    break;
-                }
+                tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Obsidian instance with {deviceConfigForm.ActiveDeviceConfig.Guid} already running. Shutdown it first.{Environment.NewLine}");
             }
-            tshootText += $"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}";
+            tshootText += FormattableString.Invariant($"{DateTime.Now:dd-MM-yyyy HH:mm:ss} Starting new ObsidianIn instance for GUID {deviceConfigForm.ActiveDeviceConfig.Guid}{Environment.NewLine}");
             ObsidianIn obsidianIn = ObsidianIn.getInstance(deviceConfigForm.ActiveDeviceConfig.Guid, troubleshoot: true);
             obsidianIn.TroubleShoot += ObsidianIn_TroubleShoot;
             obsidianIn.setDeviceSerial(config.DeviceSerial, config.AddressBLE);
@@ -327,7 +344,7 @@ namespace BecquerelMonitor
                 isRunning = false;
                 return;
             }
-            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss") + " " + e.Text + Environment.NewLine;
+            tshootText += DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture) + " " + e.Text + Environment.NewLine;
         }
     }
 

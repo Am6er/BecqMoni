@@ -1,0 +1,9 @@
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct,placement
+G1S16_Eu152_P25,G1S16,known,Eu-152,1.2,4.696,4.761,layer
+G1S16_Mn54_P25,G1S16,known,Mn-54,92.8,3.291,3.405,layer
+G1S16_Co57_P5,G1S16,known,Co-57,330.0,20.875,18.912,layer
+G1S16_Co60_P5,G1S16,known,Co-60,4809.4,5.305,3.141,layer
+G1S16_Cs137_P5,G1S16,known,Cs-137,1.7,3.990,3.077,layer
+G1S16_Eu152_P5,G1S16,known,Eu-152,0.5,7.093,5.615,layer
+G1S16_Mn54_P5,G1S16,known,Mn-54,30750.5,3.471,3.378,layer
+G1S16_Y88_P5,G1S16,known,Y-88,348.1,6.445,6.168,layer

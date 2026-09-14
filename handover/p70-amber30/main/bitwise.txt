@@ -1,0 +1,79 @@
+== rates_cs_a.csv | rates_cs_b.csv
+строк A 21, B 23; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B 0
+  grey below_floor A 16347497.473638987 B 2144599.2565538143
+  grey residual_excess A 0.023279344189357266 B 0.021244803452783394
+  grey residual_floor A 35 B 35
+  grey residual_missing A 0.030101520261640809 B 0.086097656766957159
+  grey spread_floor A 282 B 282
+  хвост Cs-137 A - B 13984949.03371587
+  хвост Xray-Pb A - B 433210.06034835929
+== rates_cs_a.csv | /c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p70-amber30/a6f2b227/rates.csv
+строк A 21, B 15; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B -
+  grey below_floor A 16347497.473638987 B -
+  grey residual_excess A 0.023279344189357266 B -
+  grey residual_floor A 35 B -
+  grey residual_missing A 0.030101520261640809 B -
+  grey spread_floor A 282 B -
+== rates_cs_b.csv | /c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p70-amber30/025a65a9/rates.csv
+строк A 23, B 17; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B -
+  grey below_floor A 2144599.2565538143 B -
+  grey residual_excess A 0.021244803452783394 B -
+  grey residual_floor A 35 B -
+  grey residual_missing A 0.086097656766957159 B -
+  grey spread_floor A 282 B -
+  хвост Cs-137 A 13984949.03371587 B 13984949.03371587
+  хвост Xray-Pb A 433210.06034835929 B 433210.06034835929
+== rates_radon2_free_a.csv | rates_radon2_free_b.csv
+строк A 32, B 33; расхождений (кроме share_pct): 0
+  grey above_lines A 1819.8749923454632 B 1819.8749923454632
+  grey below_floor A 35364.164997564745 B 34356.156985307367
+  grey residual_excess A 1.3394312552067433 B 1.3271124698354639
+  grey residual_floor A 96 B 96
+  grey residual_missing A 0.58652447201424485 B 0.60642712858732917
+  grey spread_floor A 281 B 281
+  хвост Pb-212 A - B 1008.0080122573938
+== rates_radon2_free_a.csv | /c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p69-s174/rates/rates_radon2_free_b.csv
+строк A 32, B 33; расхождений (кроме share_pct): 0
+  grey above_lines A 1819.8749923454632 B 1819.8749923454632
+  grey below_floor A 35364.164997564745 B 34356.156985307367
+  grey residual_excess A 1.3394312552067433 B 1.3271124698354639
+  grey residual_floor A 96 B 96
+  grey residual_missing A 0.58652447201424485 B 0.60642712858732917
+  grey spread_floor A 281 B 281
+  хвост Pb-212 A - B 1008.0080122573938
+== rates_radon2_eq_a.csv | rates_radon2_eq_b.csv
+строк A 25, B 26; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B 0
+  grey below_floor A 42239.050338680339 B 26226.768228376375
+  grey residual_excess A 1.2831284987513554 B 1.2726284684515281
+  grey residual_floor A 96 B 96
+  grey residual_missing A 0.65349791736716523 B 0.6534992905895779
+  grey spread_floor A 281 B 281
+  хвост Th-232 A - B 16012.282110303979
+== rates_as80_a.csv | rates_as80_b.csv
+строк A 24, B 24; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B 0
+  grey below_floor A 2933410.4056837447 B 2933410.4056837447
+  grey residual_excess A 0.05496932760565762 B 0.05496932760565762
+  grey residual_floor A 117 B 117
+  grey residual_missing A 0.08697499497689147 B 0.08697499497689147
+  grey spread_floor A 301 B 301
+== rates_as80_a.csv | /c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p69-s174/rates/rates_as80_eq_b.csv
+строк A 24, B 24; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B 0
+  grey below_floor A 2933410.4056837447 B 2933410.4056837447
+  grey residual_excess A 0.05496932760565762 B 0.05496932760565762
+  grey residual_floor A 117 B 117
+  grey residual_missing A 0.08697499497689147 B 0.08697499497689147
+  grey spread_floor A 301 B 301
+== rates_as80amb_a.csv | /c/Users/moroz/source/repos/BQ Eng res .NET 4.8/handover/p70-amber30/a6f2b227/rates_as80.csv
+строк A 25, B 19; расхождений (кроме share_pct): 0
+  grey above_lines A 0 B -
+  grey below_floor A 2949134.8694950137 B -
+  grey residual_excess A 0.063005477978157476 B -
+  grey residual_floor A 78 B -
+  grey residual_missing A 0.088051574759219722 B -
+  grey spread_floor A 301 B -

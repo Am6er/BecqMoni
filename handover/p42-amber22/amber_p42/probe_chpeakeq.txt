@@ -1,0 +1,35 @@
+BecqMoni: main config: C:\Users\moroz\bqp42_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp42_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp42_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 16
+состав: выведено из пиков: 11 из 16 подписаны, родителей 1 из 3, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; Th-232 53 % (8/15, пиков 8) — доля выше порога; Ba-131 17 % (1/6, пиков 1) — доля ниже порога; K-40 0 % (0/0, пиков 1) — ни одна линия не подтверждена пиком; оборванный ряд: подцепочка разобрана у 0 кандидатов
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.006131, сдвиг -6.469 канала
+chi2/ndf 2.303, невязка модели 11.2 %, суммирование да
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 18 (отсеяно 10), наибольшая значимость 178.35
+ROW	Ac-228	Single	30.533	-
+ROW	Pb-212	Single	26.612	-
+ROW	Tl-208	Single	25.739	-
+ROW	Bi-212	Single	2.700	-
+ROW	Rn-220	Single	0.957	-
+ROW	Xray-Pb	Nuisance	10.400	-
+ROW	Xray-Th	Nuisance	2.739	-
+ROW	Xray-Ba	Nuisance	0.320	-
+CUT	Esc-NaI	Nuisance	z=0.00
+CUT	Po-216	Single	z=0.00
+CUT	Ra-224	Single	z=0.00
+CUT	Ra-228	Single	z=0.00
+CUT	Th-228	Single	z=0.00
+CUT	Th-232	Single	z=0.94
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Pb-L	Nuisance	z=0.00
+CUT	Xray-Th-L	Nuisance	z=0.00
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 28
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\chpeakeq\stack.png: 15–2800 кэВ, потолок 4266, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p42-amber22\amber_p42\chpeakeq\dump.csv: 8192 каналов, колонок слоёв 8
+p42-arm: анализаторов создано 2, суммирование вкл, маска каналов 1, код снимка 0

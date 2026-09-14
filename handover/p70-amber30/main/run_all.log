@@ -1,0 +1,9 @@
+main_build: код 0, 61 с
+wt_build_a: код 0, 61 с
+wt_build_b: код 0, 60 с
+radon_stand: код 0, 263 с
+accept_main: код 0, 78 с
+mini_a: код 0, 16 с
+mini_b: код 0, 17 с
+check_all: код 0, 28 с
+ИТОГ: main_build=0 (61 s); wt_build_a=0 (61 s); wt_build_b=0 (60 s); radon_stand=0 (263 s); accept_main=0 (78 s); mini_a=0 (16 s); mini_b=0 (17 s); check_all=0 (28 s)

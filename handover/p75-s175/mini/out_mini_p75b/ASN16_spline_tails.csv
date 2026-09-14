@@ -1,0 +1,3 @@
+﻿spectrum,det,part,component,tail_counts,missing_pct,excess_pct,placement
+ASN16_Lu176,ASN16,known,Xray-Lu,135548.0,6.285,5.300,layer
+ASN16_Lu176_P0,ASN16,known,Lu-176,1053.9,13.285,13.402,layer

@@ -1,5 +1,6 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
+using System.Globalization;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
@@ -122,24 +123,28 @@ namespace BecquerelMonitor
             {
                 if (this.dateFmt)
                 {
-                    return ToDateFmt(this.priorText) + string.Format(Resources.ProgressString, this.doubleValue.ToString("f1"));
+                    return ToDateFmt(this.priorText) + string.Format(CultureInfo.InvariantCulture, Resources.ProgressString, this.doubleValue.ToString("f1", CultureInfo.InvariantCulture));
                 } else
                 {
-                    return this.priorText + string.Format(Resources.ProgressString, this.doubleValue.ToString("f1"));
+                    return this.priorText + string.Format(CultureInfo.InvariantCulture, Resources.ProgressString, this.doubleValue.ToString("f1", CultureInfo.InvariantCulture));
                 }
             }
         }
 
         private string ToDateFmt(string seconds)
         {
-            if (double.TryParse(seconds, out double sec))
+            if (double.TryParse(seconds, NumberStyles.Float, CultureInfo.InvariantCulture, out double sec))
             {
                 TimeSpan fmt = TimeSpan.FromSeconds(sec);
+                // Печать — строго инвариантом (`A244`). Разделители в обеих
+                // раскладках заэкранированы (`d\д\ hh\:mm\:ss`), так что вид
+                // строки от культуры и так не зависел; культура названа явно,
+                // чтобы место было закрыто, а не «случайно правильным».
                 if (fmt.Days > 0)
                 {
-                    return fmt.ToString(Resources.ProgressDateFmt);
+                    return fmt.ToString(Resources.ProgressDateFmt, CultureInfo.InvariantCulture);
                 }
-                return fmt.ToString(@"hh\:mm\:ss");
+                return fmt.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture);
             } else
             {
                 return seconds;

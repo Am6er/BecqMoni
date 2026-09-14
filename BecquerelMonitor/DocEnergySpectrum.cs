@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
@@ -44,6 +46,19 @@ namespace BecquerelMonitor
         // (add) Token: 0x06000306 RID: 774 RVA: 0x0000F68C File Offset: 0x0000D88C
         // (remove) Token: 0x06000307 RID: 775 RVA: 0x0000F6C8 File Offset: 0x0000D8C8
         public event AddSpectrumToDocumentEventHandler AddSpectrumToDocument;
+
+        /// <summary>
+        /// Кривую эффективности спектра сменили ОТСЮДА, из документа, а не из
+        /// панели управления измерением.
+        ///
+        /// Панель показывает ту кривую, по которой сейчас считается активность,
+        /// и обновляет список только по <c>ShowDocumentStatus</c> — на своих же
+        /// событиях. Выбор в диалоге перед разложением она пропускала, и в ряду
+        /// «Efficiency» оставалось «(none)» при работающей кривой. Документ до
+        /// панели не дотягивается (у него нет ссылки на <c>MainForm</c>), так
+        /// что говорит он событием — как и обо всём остальном.
+        /// </summary>
+        public event EventHandler EfficiencyChanged;
 
         // Token: 0x1700013F RID: 319
         // (get) Token: 0x06000308 RID: 776 RVA: 0x0000F704 File Offset: 0x0000D904
@@ -204,6 +219,34 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Набор нуклидов, выбранный для ЭТОГО спектра в панели поиска пиков;
+        /// null — «все нуклиды». Такой же выбор на сеанс, как и прежде, только
+        /// теперь свой у каждого документа: наборов открыто несколько, спектров
+        /// тоже, и один общий выбор означал, что размеченный торием спектр
+        /// переносит торий на все соседние, а вернуться к прежнему выбору
+        /// нечем (R9).
+        ///
+        /// Живёт здесь, а не в панели: панель одна на все документы, а
+        /// закрытому документу его выбор больше не нужен — так он и уходит
+        /// вместе с ним, без отдельной уборки.
+        ///
+        /// Кто читает и держит в согласии с
+        /// <see cref="NuclideDefinitionManager.ActiveSet"/> — <see cref="DCPeakDetectionView"/>.
+        /// В файл не сохраняется: это выбор на сеанс, а не свойство спектра.
+        /// </summary>
+        public NuclideSet SelectedNuclideSet
+        {
+            get
+            {
+                return this.selectedNuclideSet;
+            }
+            set
+            {
+                this.selectedNuclideSet = value;
+            }
+        }
+
         // Token: 0x17000146 RID: 326
         // (get) Token: 0x06000316 RID: 790 RVA: 0x0000F7DC File Offset: 0x0000D9DC
         // (set) Token: 0x06000317 RID: 791 RVA: 0x0000F818 File Offset: 0x0000DA18
@@ -310,6 +353,30 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`A145`) Сеанс полноспектрального разбора активного спектра этого
+        /// документа: результат, отпечаток, кэш, фоновый счёт. Один на документ;
+        /// график и окно отчёта — его подписчики, а не владельцы.
+        /// </summary>
+        public FullSpectrumAnalysis.FsaAnalysisSession FsaSession
+        {
+            get
+            {
+                return this.fsaSession;
+            }
+        }
+
+        /// <summary>
+        /// Документ закрывается — идущий счёт по возвращении обязан промолчать
+        /// (поколение), а его результат никому больше не нужен.
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            this.fsaSession.Completed -= this.FsaSessionCompleted;
+            this.fsaSession.Reset();
+            base.OnFormClosed(e);
+        }
+
         // Token: 0x0600031F RID: 799 RVA: 0x0000F8A8 File Offset: 0x0000DAA8
         public DocEnergySpectrum()
         {
@@ -318,6 +385,11 @@ namespace BecquerelMonitor
             this.view.Dock = DockStyle.Fill;
             this.view.Margin = new Padding(0);
             this.view.Name = "energySpectrumViewRuntime";
+            // (`A145`, этап 2) Сеанс разбора принадлежит ДОКУМЕНТУ, а вид на
+            // него только подписан: окно отчёта (этап 3) возьмёт тот же сеанс
+            // у документа, и второго расчёта не будет (критерий 4).
+            this.view.FsaSession = this.fsaSession;
+            this.fsaSession.Completed += this.FsaSessionCompleted;
             this.toolTip1.SetToolTip(this.view, this.toolTip1.GetToolTip(this.energySpectrumView1));
             this.energySpectrumView1.Controls.Add(this.view);
             this.resultDataFile = new ResultDataFile();
@@ -425,6 +497,24 @@ namespace BecquerelMonitor
                 FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)resultData.PeakDetectionMethodConfig;
                 if (cfg.FwhmCalibration == null)
                 {
+                    // ⛔ ЗДЕСЬ ПРИЧИНА НЕ СПРАШИВАЕТСЯ, И ЭТО РЕШЕНИЕ, А НЕ
+                    //    НЕДОСМОТР (`A240`, полоса F62, 06.09.2026). Оба пути
+                    //    сюда УЖЕ имеют своего читателя, и второй был бы вторым
+                    //    голосом об одной беде:
+                    //    * из конструктора `DocEnergySpectrum` (строка 396) —
+                    //      то есть внутри `DocumentManager.CreateDocument` и
+                    //      `OpenDocument`, которые следом зовут общую дверь
+                    //      `ReportMissingFwhmCalibration` (~~`A234`~~, `A240`
+                    //      полоса F54). Голос там ОДИН НА ФАЙЛ и с числами;
+                    //    * из `MainForm.AddNewSpectrum` — человек добавил спектр
+                    //      в открытый документ, и тот же метод следом зовёт
+                    //      `UpdateFwhmCalibrationView`, а вид ПОКАЗЫВАЕТ причину
+                    //      на месте пустой таблицы (`ApplyFwhmRefusalHint`).
+                    //    ⚠ Причину при этом ничего не теряет: `DefaultCalibration`
+                    //    ничего не меняет и зависит только от трёх чисел
+                    //    настроек и энергетической кривой, поэтому читатель
+                    //    спрашивает её заново там, где он есть, — ровно так
+                    //    устроен `DocumentManager.WhyNoFwhmCalibration`.
                     cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, resultData.EnergySpectrum.EnergyCalibration);
                 }
                 if (resultData.FwhmCalibration == null)
@@ -566,6 +656,25 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x0600032F RID: 815 RVA: 0x0000FDF8 File Offset: 0x0000DFF8
+        /// <summary>
+        /// Вид документа обновлён — данные могли смениться (`A295`).
+        ///
+        /// ⛔ ЗАЧЕМ СОБЫТИЕ. Разбор до 07.09.2026 заказывал ОДИН потребитель —
+        /// график, и только в режиме `ShowFSA` (`PrepareViewData`). Окно отчёта
+        /// заказывало его лишь на смене документа, спектра, видимости и
+        /// настроек, а дальше держалось цепочкой «расчёт кончился → закажи
+        /// следующий». Цепочка самоподдерживается, только пока расчёты ИДУТ:
+        /// стоит отпечатку совпасть (данные не менялись), как она гаснет, и
+        /// разбудить её при новых отсчётах становится некому. Отсюда и жалоба:
+        /// на записи спектра пики находятся, а отчёт стоит с прежним отказом,
+        /// пока человек не включит `ShowFSA`.
+        ///
+        /// Событие поднимается на КАЖДОМ обновлении вида, потому что именно им
+        /// приходят новые отсчёты. Лишним оно не бывает: подписчик зовёт
+        /// `EnsureUpToDate`, а тот на совпавшем отпечатке возвращается молча.
+        /// </summary>
+        public event EventHandler ViewRefreshed;
+
         public void RefreshView()
         {
             this.EvaluateNormByEffMode();
@@ -575,6 +684,12 @@ namespace BecquerelMonitor
             this.DocumentTextWithDirtyFlag();
             this.view.RecalcScrollBar();
             this.view.Invalidate();
+
+            EventHandler handler = this.ViewRefreshed;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
         }
 
         // Token: 0x06000330 RID: 816 RVA: 0x0000FE1C File Offset: 0x0000E01C
@@ -594,6 +709,9 @@ namespace BecquerelMonitor
                     break;
                 case BackgroundMode.ShowContinuum:
                     image = Properties.Resources.CONT;
+                    break;
+                case BackgroundMode.ShowFSA:
+                    image = Properties.Resources.FSA;
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
                     image = Properties.Resources.NORM;
@@ -722,6 +840,32 @@ namespace BecquerelMonitor
                     image = Properties.Resources.CONT;
                     break;
                 case BackgroundMode.ShowContinuum:
+                    // FSA стоит в цикле СРАЗУ ЗА континуумом — рядом по смыслу:
+                    // обе строят подложку, только вторая раскладывает её на
+                    // нуклиды. Прежде режима в цикле не было вовсе, и кнопка
+                    // его перепрыгивала; попасть в него можно было только через
+                    // выпадающий список.
+                    if (this.CanShowFsa())
+                    {
+                        backgroundMode = BackgroundMode.ShowFSA;
+                        image = Properties.Resources.FSA;
+                    }
+                    else if (this.IsNormalizeByEfficiencyAvailable())
+                    {
+                        backgroundMode = BackgroundMode.NormalizeByEfficiency;
+                        image = Properties.Resources.NORM;
+                    }
+                    else
+                    {
+                        backgroundMode = BackgroundMode.Visible;
+                        image = Properties.Resources.BG;
+                    }
+
+                    break;
+                case BackgroundMode.ShowFSA:
+                    // Без этой ветки кнопка, нажатая В РЕЖИМЕ FSA, попадала не
+                    // в следующий режим, а в заготовку выше по функции —
+                    // «спрятать фон». То есть цикл рвался в обе стороны.
                     if (this.IsNormalizeByEfficiencyAvailable())
                     {
                         backgroundMode = BackgroundMode.NormalizeByEfficiency;
@@ -732,7 +876,7 @@ namespace BecquerelMonitor
                         backgroundMode = BackgroundMode.Visible;
                         image = Properties.Resources.BG;
                     }
-                    
+
                     break;
                 case BackgroundMode.NormalizeByEfficiency:
                     backgroundMode = BackgroundMode.Visible;
@@ -744,13 +888,25 @@ namespace BecquerelMonitor
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
+            if (backgroundMode == BackgroundMode.ShowFSA)
+            {
+                // Циклический вход: отчёт показывается, но фокус остаётся у
+                // графика — человек листает режимы кнопкой и ждёт следующий
+                // вид, а не переезд клавиатуры в другое окно.
+                this.OnFsaModeEntered(false);
+            }
         }
 
+        /// <summary>
+        /// Пункт включается по ТОЙ ЖЕ кривой, на которую спектр потом делится, —
+        /// по своей кривой спектра. Проверять здесь набор зон, а делить на
+        /// кривую прибора значило бы включать режим тогда, когда делить нечем,
+        /// и не включать, когда есть чем.
+        /// </summary>
         private bool IsNormalizeByEfficiencyAvailable()
         {
-            return this.ActiveResultData != null 
-                && this.ActiveResultData.ROIConfig != null 
-                && this.ActiveResultData.ROIConfig.HasEfficiency;
+            return this.ActiveResultData != null
+                && FullSpectrumAnalysis.FsaEfficiency.FromConfig(this.ActiveResultData.Efficiency) != null;
         }
 
         private bool IsBackgroundExists()
@@ -767,6 +923,7 @@ namespace BecquerelMonitor
             this.hideBackgroundToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Invisible);
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
             this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
+            this.ShowFsaToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowFSA);
             this.NormByEffToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency);
         }
 
@@ -806,6 +963,304 @@ namespace BecquerelMonitor
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
+        }
+
+        // Полноспектральное разложение: спектр целиком раскладывается на образы
+        // нуклидов и цепочек, поверх графика рисуется послойный стек. Счёт идёт
+        // в фоне (см. FsaAnalysisSession), поэтому нажатие не подвешивает окно.
+        void ShowFsaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!this.EnsureFsaInputs())
+            {
+                return;
+            }
+
+            this.view.BackgroundMode = BackgroundMode.ShowFSA;
+            // Своя иконка, а не CONT: с ней кнопка врала — «показан континуум»
+            // при разложенном спектре, и два разных режима выглядели одним.
+            this.toolStripSplitButtonBgMode.Image = Properties.Resources.FSA;
+            this.UpdateDetectedPeaks = true;
+            this.UpdateDoseRate = true;
+            this.RefreshView();
+            // Явная команда документа: отчёт показывается И активируется.
+            this.OnFsaModeEntered(true);
+        }
+
+        /// <summary>
+        /// (`A145`, этап 3) Документ вошёл в режим полноспектрального
+        /// разложения — главной форме пора показать окно отчёта. Документ до
+        /// формы не дотягивается (ссылки на <c>MainForm</c> у него нет), так
+        /// что говорит событием — как и обо всём остальном.
+        /// <see cref="FsaModeEnteredEventArgs.Explicit"/>: true — команда
+        /// меню (отчёт активировать), false — циклическая кнопка (показать,
+        /// фокус графику не отдавать).
+        /// </summary>
+        public event EventHandler<FsaModeEnteredEventArgs> FsaModeEntered;
+
+        void OnFsaModeEntered(bool explicitCommand)
+        {
+            EventHandler<FsaModeEnteredEventArgs> handler = this.FsaModeEntered;
+            if (handler != null)
+            {
+                handler(this, new FsaModeEnteredEventArgs(explicitCommand));
+            }
+        }
+
+        /// <summary>
+        /// Группировка строк отчёта и лент графика: родители/дочерние
+        /// (`A145`, «Семантика группировки»). ОДНО значение на документ —
+        /// окно отчёта пишет его сюда, график читает отсюда; отдельно
+        /// хранить у каждого нельзя, иначе цвет, имя или доля разошлись бы.
+        /// Настройка представления: в файл измерения, конфигурацию прибора и
+        /// отпечаток расчёта не входит.
+        /// </summary>
+        public FullSpectrumAnalysis.FsaGrouping FsaGrouping
+        {
+            get
+            {
+                return this.view.FsaGrouping;
+            }
+
+            set
+            {
+                this.view.FsaGrouping = value;
+            }
+        }
+
+        /// <summary>
+        /// (`A50`, `A145` этап 3) Отвергнутая матрица называет причину ЗДЕСЬ —
+        /// у владельца сеанса, вне отрисовки и независимо от того, в каком
+        /// режиме график и открыт ли отчёт. Событие приходит из фонового
+        /// потока; строка приходит один раз на файл — сеанс держит ключ
+        /// сказанного.
+        /// </summary>
+        void FsaSessionCompleted(object sender, EventArgs e)
+        {
+            try
+            {
+                if (this.IsHandleCreated && !this.IsDisposed)
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        string notice = this.fsaSession.TakeResponseMatrixNotice();
+                        if (!string.IsNullOrEmpty(notice))
+                        {
+                            AppUi.Report(notice, Properties.Resources.ResponseMatrixTitle,
+                                         MessageBoxIcon.Exclamation);
+                        }
+                    });
+                }
+            }
+            catch (Exception)
+            {
+                // окно успело закрыться — говорить уже некому
+            }
+        }
+
+        /// <summary>
+        /// Двух вещей разложению может не хватать, и обеим есть замена, но
+        /// назвать её должен человек.
+        ///
+        /// Калибровка ПШПВ задаёт форму линий; без неё считать нечего. Взять её
+        /// можно у любой конфигурации прибора — только у КАКОЙ, знает
+        /// пользователь: подставленная молча чужая ширина даёт правдоподобные и
+        /// неверные площади.
+        ///
+        /// Кривая эффективности задаёт относительные веса линий внутри образа;
+        /// без неё разложение считается, но низкоэнергетическая часть
+        /// перекашивается. Отказаться от кривой можно — но ОСОЗНАННО, отдельным
+        /// пунктом списка, а не потому, что её забыли выбрать.
+        ///
+        /// false — от выбора отказались, режим не включаем: молча включённое
+        /// разложение на чужих числах хуже невключённого.
+        /// </summary>
+        /// <summary>
+        /// Можно ли встать в режим FSA МОЛЧА — без единого вопроса.
+        ///
+        /// Кнопка листает режимы, и вопрос посреди листания читался бы как
+        /// сбой: человек нажал «следующий вид», а получил диалог про
+        /// калибровку. Поэтому в цикл FSA входит только когда всё нужное уже
+        /// есть, а недостающее по-прежнему спрашивает пункт МЕНЮ, где выбор
+        /// режима явный. Проверяется ровно то же, что требует
+        /// <see cref="EnsureFsaInputs"/>, — иначе цикл обещал бы режим,
+        /// который тут же откажется включаться.
+        /// </summary>
+        bool CanShowFsa()
+        {
+            ResultData active = this.ActiveResultData;
+            return active != null && active.FwhmCalibration != null && active.Efficiency != null;
+        }
+
+        bool EnsureFsaInputs()
+        {
+            ResultData active = this.ActiveResultData;
+            if (active == null)
+            {
+                return false;
+            }
+
+            return this.EnsureFsaFwhm(active) && this.EnsureFsaEfficiency(active);
+        }
+
+        bool EnsureFsaFwhm(ResultData active)
+        {
+            if (active.FwhmCalibration != null)
+            {
+                return true;
+            }
+
+            List<DeviceConfigInfo> devices = this.deviceConfigManager.DeviceConfigList;
+            // Предвыбор — по Guid: у документа лежит КЛОН конфигурации
+            // (DocumentManager.PrepareDeviceConfig), по ссылке он ни с одной
+            // строкой списка не совпадёт, и выбор молча падал на первую.
+            DeviceConfigInfo current = active.DeviceConfig;
+            DeviceConfigInfo preselect = current == null
+                ? null
+                : devices.Find(d => string.Equals(d.Guid, current.Guid, StringComparison.OrdinalIgnoreCase));
+            // ⛔ Вопрос человеку — тоже модальное окно, и висит оно ровно так
+            //    же, как `MessageBox` (измерено 27.08.2026: безоконная проба на
+            //    этом месте стояла до убийства, `reached` есть, `returned` нет).
+            //    Отказ, а не «взять первую попавшуюся конфигурацию»: подпись
+            //    метода говорит прямо — подставленная молча чужая ширина даёт
+            //    правдоподобные и неверные площади.
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: у спектра нет калибровки ПШПВ, а выбрать конфигурацию прибора "
+                    + "вместо неё некому: разложение спрашивает об этом окном. "
+                    + "Задайте FwhmCalibration спектру до включения FSA.");
+            }
+            DeviceConfigInfo chosen = (DeviceConfigInfo)PickOneForm.Ask(this,
+                Properties.Resources.FsaNoFwhmTitle,
+                Properties.Resources.FsaNoFwhmQuestion,
+                devices.ConvertAll<object>(d => d),
+                preselect);
+            if (chosen == null)
+            {
+                return false;
+            }
+
+            FWHMPeakDetectionMethodConfig peakConfig =
+                chosen.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            // ⛔ ПРИЧИНА ГОВОРИТСЯ ВМЕСТЕ С ОТКАЗОМ (`A240`, полоса F62,
+            //    06.09.2026). Голос тут стоял и раньше, но говорил ЧТО, не
+            //    говоря ПОЧЕМУ: «у конфигурации прибора „X“ калибровки ПШПВ
+            //    тоже нет». Человек только что выбрал эту конфигурацию из
+            //    списка своей рукой, и следующий его вопрос — «а почему её там
+            //    нет»; три числа настроек (`FWHM_AT_0`, `Ch_Fwhm`,
+            //    `Width_Fwhm`) отвечают на него, и взять их больше негде: ни на
+            //    одной форме их нет, они приходят из `config\device\*.xml`.
+            //    Голос при этом ОСТАЁТСЯ ОДИН — не добавлен, а дополнен.
+            string fwhmRefusal = null;
+            FwhmCalibration calibration = peakConfig == null
+                ? null
+                : (peakConfig.FwhmCalibration != null
+                    ? peakConfig.FwhmCalibration.Clone()
+                    : FwhmCalibration.DefaultCalibration(peakConfig,
+                        active.EnergySpectrum.EnergyCalibration, out fwhmRefusal));
+            if (calibration == null)
+            {
+                // Выбранная конфигурация не помогла — сказать об этом, а не
+                // включать режим и оставлять человека гадать.
+                //
+                // Без окон это УВЕДОМЛЕНИЕ, а не отказ, и вот почему: у беды
+                // здесь уже ЕСТЬ читатель — `false`, который возвращается
+                // следующей строкой, и вызывающий (`ShowFsaToolStripMenuItem_Click`)
+                // по нему режим не включает. Признак с читателем менять на
+                // бросок незачем; строка в поток ошибок лишь называет причину.
+                // ⚠ Дойти сюда без окон можно только мимо `PickOneForm.Ask`
+                // выше — то есть никогда; строка написана на случай, когда
+                // выбор станет возможен без окна.
+                // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`): причина
+                //    приходит из `DefaultCalibration` с тремя числами,
+                //    напечатанными ТОЧКОЙ, и оправа обязана держать то же
+                //    соглашение — иначе две половины одной строки разойдутся
+                //    разделителем. Прежде здесь стоял `string.Format` без
+                //    культуры вовсе.
+                string text = string.Format(CultureInfo.InvariantCulture,
+                                            Properties.Resources.FsaNoFwhmSource, chosen.Name);
+                if (!string.IsNullOrEmpty(fwhmRefusal))
+                {
+                    // Оправа «что: почему» переводу не подлежит — переведены
+                    // обе её половины по отдельности.
+                    text = text + " " + fwhmRefusal;
+                }
+                AppUi.Report(text,
+                    Properties.Resources.FsaNoFwhmTitle, MessageBoxIcon.Information);
+                return false;
+            }
+
+            active.FwhmCalibration = calibration;
+            this.Dirty = true;
+            return true;
+        }
+
+        bool EnsureFsaEfficiency(ResultData active)
+        {
+            if (active.Efficiency != null)
+            {
+                return true;
+            }
+
+            // Список — ТОТ ЖЕ, что в панели измерения, и составляется тем же
+            // кодом: кривая привязана к прибору и геометрии, чужие предлагать
+            // нельзя, но родная кривая самого спектра — своей строкой, и
+            // конфигурация прибора берётся живая, из менеджера, а не копия,
+            // лежащая в спектре (см. DCControlPanel.BuildEfficiencyItems и
+            // CurrentDeviceConfig). Свой список здесь не знал ни того, ни
+            // другого: у спектра с кривой из файла и прибором без кривых
+            // выбирать было не из чего вовсе. Первым пунктом — отказ от
+            // кривой, тот самый осознанный.
+            int selected;
+            List<object> items = DCControlPanel.BuildEfficiencyItems(
+                active.Efficiency, active.FileEfficiency,
+                DCControlPanel.CurrentDeviceConfig(active.DeviceConfig,
+                                                   this.deviceConfigManager.DeviceConfigList),
+                out selected);
+
+            // ⛔ То же окно и тот же отказ, что у калибровки ПШПВ выше. Отказ
+            //    от кривой разрешён, но ОСОЗНАННО — отдельным пунктом списка;
+            //    без окон выбрать этот пункт некому, а молча посчитать без
+            //    кривой значит перекосить низкоэнергетическую часть и об этом
+            //    не сказать.
+            if (!AppUi.HasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: у спектра нет кривой эффективности, а выбрать её вместо "
+                    + "человека некому: разложение спрашивает об этом окном. "
+                    + "Задайте Efficiency спектру до включения FSA.");
+            }
+            object chosen = PickOneForm.Ask(this,
+                Properties.Resources.FsaNoEfficiencyTitle,
+                Properties.Resources.FsaNoEfficiencyQuestion,
+                items, items[selected]);
+            if (chosen == null)
+            {
+                return false;
+            }
+
+            // Присвоение — тоже общее с панелью: родная кривая ложится тем же
+            // объектом, кривая прибора — копией.
+            active.Efficiency = DCControlPanel.EfficiencyFromItem(chosen);
+            // Изменённым спектр помечается, только если выбрана НЕ родная
+            // кривая: возврат к родной файла не меняет.
+            if (active.Efficiency != null
+                && !object.ReferenceEquals(active.Efficiency, active.FileEfficiency))
+            {
+                this.Dirty = true;
+            }
+
+            // Панель управления измерением показывает ту кривую, по которой
+            // сейчас считается активность, — а выбрали её здесь.
+            if (this.EfficiencyChanged != null)
+            {
+                this.EfficiencyChanged(this, EventArgs.Empty);
+            }
+
+            // Мощность дозы считается от той же кривой (`AMBER18`): выбор здесь
+            // — тоже смена показания, его подхватит таймер главного окна.
+            this.UpdateDoseRate = true;
+            return true;
         }
 
         void NormByEffToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1404,7 +1859,13 @@ namespace BecquerelMonitor
             DocumentManager.GetInstance().LoadBackgroundSpectrum(this.ActiveResultData);
             if (this.ActiveResultData.BackgroundEnergySpectrum != null && this.ActiveResultData.EnergySpectrum.NumberOfChannels != this.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
             {
-                MessageBox.Show(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                // УВЕДОМЛЕНИЕ, а не отказ: обработчик щелчка, у него нет
+                // вызывающего, которому вернуть код, — а несовпавший фон тут
+                // же снимается СО СЛЕДОМ в самом документе (путь и имя файла
+                // очищаются, `BackgroundEnergySpectrum` обнуляется), так что
+                // «фона нет» видно и без окна. Бросок отсюда в окнах поднял бы
+                // диалог необработанного исключения — хуже прежнего.
+                AppUi.Report(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.ActiveResultData.BackgroundEnergySpectrum = null;
                 this.ActiveResultData.BackgroundSpectrumFile = "";
                 this.ActiveResultData.BackgroundSpectrumPathname = "";
@@ -1531,6 +1992,9 @@ namespace BecquerelMonitor
         // Token: 0x04000150 RID: 336
         EnergySpectrumView view;
 
+        readonly FullSpectrumAnalysis.FsaAnalysisSession fsaSession =
+            new FullSpectrumAnalysis.FsaAnalysisSession();
+
         // Token: 0x04000151 RID: 337
         bool updateMeasurementResult;
 
@@ -1550,5 +2014,23 @@ namespace BecquerelMonitor
         bool isActivating;
 
         bool autosave = false;
+
+        // Новый документ наследует набор, выбранный сейчас: спектры одной пробы
+        // открывают пачкой, и размечать каждый заново значило бы делать руками
+        // то, что до сих пор получалось само. Дальше их выборы расходятся —
+        // каждый живёт своим.
+        NuclideSet selectedNuclideSet = NuclideDefinitionManager.GetInstance().ActiveSet;
+    }
+
+    /// <summary>Довод события <see cref="DocEnergySpectrum.FsaModeEntered"/>.</summary>
+    public sealed class FsaModeEnteredEventArgs : EventArgs
+    {
+        public FsaModeEnteredEventArgs(bool explicitCommand)
+        {
+            this.Explicit = explicitCommand;
+        }
+
+        /// <summary>true — явная команда меню документа; false — циклическая кнопка.</summary>
+        public bool Explicit { get; private set; }
     }
 }

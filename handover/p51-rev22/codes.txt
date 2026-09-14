@@ -1,0 +1,22 @@
+build start 2026-09-14 01:24:10 head=391f9b71
+app code=0 01:24:13
+probes code=0 01:25:06
+app exe sha256 6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045
+probes exe sha256 6387907f5951377880a97df60297591201b32e4c14aab382e2d2871a58ca2045
+build end 01:25:06
+arm a start 2026-09-14 01:26:54 extra=[--weights=data]
+arm a full code=0 01:27:20 (26 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_full_a
+arm a mini code=0 01:27:29 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p51_mini_a
+arm a score full known code=0
+arm a score mini known code=0
+arm a score full unknown code=0
+arm a score mini unknown code=0
+arm a end 01:27:29
+arm rev22 start 2026-09-14 01:27:51 extra=[]
+arm rev22 full code=0 01:28:17 (26 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev22_full
+arm rev22 mini code=0 01:28:26 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev22_mini
+arm rev22 score full known code=0
+arm rev22 score mini known code=0
+arm rev22 score full unknown code=0
+arm rev22 score mini unknown code=0
+arm rev22 end 01:28:26

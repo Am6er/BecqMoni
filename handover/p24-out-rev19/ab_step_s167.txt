@@ -1,0 +1,82 @@
+=== плечи out_p24_ctrl_curves, out_p24_sumlight; понятная часть, общих спектров 85 (в плечах: out_p24_ctrl_curves 85, out_p24_sumlight 85) ===
+
+плечо                   Σχ²/ndf       Δ       Δ%    мед.     n  recall  фант подав     л/х/р
+out_p24_ctrl_curves       438.0    +0.0    +0.0%    2.58    85    100%     0     0         —
+out_p24_sumlight          436.4    -1.6    -0.4%    2.58    85    100%     0     0   21/3/61
+  непонятная out_p24_ctrl_curves: разобрано 3, Σχ²/ndf 80.6, медиана 26.11; recall 5% / фантомов 0 / подавлен 0 (спектров 38)
+  непонятная out_p24_sumlight: разобрано 3, Σχ²/ndf 80.6, медиана 26.11; recall 5% / фантомов 0 / подавлен 0 (спектров 38)
+  out_p24_ctrl_curves: отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 85, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 3, не заказан у 35
+  out_p24_sumlight: отсев по значимости (~~`T240`~~): ПРИМЕНЁН у 85, отключился сам (порог выше значимости ВСЕХ судимых) у 0, выбрасывать было некого у 3, не заказан у 35
+  невязка модели out_p24_ctrl_curves: медиана 12.0 %
+  невязка модели out_p24_sumlight: медиана 12.0 %
+
+группы (понятная; Σχ²/ndf, в скобках Δ к out_p24_ctrl_curves, лучше/хуже/ровно):
+малая база (mini.csv)          n  43 |  307.73 |  306.34 ( -1.39,  -0.5%) 13/2/28
+вне малой базы                 n  42 |  130.27 |  130.06 ( -0.21,  -0.2%) 8/1/33
+  прибор AS80x80               n   5 |   36.10 |   36.02 ( -0.08,  -0.2%) 2/0/3
+  прибор ASN16                 n   2 |    4.17 |    4.16 ( -0.01,  -0.1%) 1/0/1
+  прибор G1S16                 n  36 |  158.49 |  157.93 ( -0.56,  -0.4%) 7/2/27
+  прибор G1S24                 n  39 |  234.34 |  233.39 ( -0.95,  -0.4%) 11/1/27
+  прибор RC103                 n   3 |    4.90 |    4.89 ( -0.00,  -0.1%) 0/0/3
+CsI (ASN16 + RC103)            n   5 |    9.06 |    9.05 ( -0.01,  -0.1%) 1/0/4
+NaI (G1S16 + G1S24 + AS80)     n  80 |  428.94 |  427.35 ( -1.60,  -0.4%) 20/3/57
+Am-241 ×4                      n   4 |   14.57 |   14.57 ( +0.00,  +0.0%) 0/0/4
+смеси G1S16_Mix ×3             n   3 |   39.95 |   39.93 ( -0.01,  -0.0%) 1/1/1
+Lu-176 ×5                      n   5 |   12.76 |   12.68 ( -0.08,  -0.7%) 3/0/2
+диск AS80_Th232Medal           n   1 |   16.04 |   16.04 ( -0.00,  -0.0%) 0/0/1
+без диска                      n  84 |  421.96 |  420.36 ( -1.60,  -0.4%) 21/3/60
+
+под надзором (χ²/ndf по плечам):
+  AS80_Th232Medal      ctrl_curves  16.041  sumlight  16.036  Δ(посл.) -0.004
+  G1S24_Y88_P5         ctrl_curves   7.980  sumlight   7.961  Δ(посл.) -0.019
+  G1S16_Cd109_P25      ctrl_curves   1.433  sumlight   1.433  Δ(посл.) +0.000
+  G1S16_Mn54_P25       ctrl_curves   1.671  sumlight   1.671  Δ(посл.) +0.000
+  G1S16_Y88_P25        ctrl_curves   1.212  sumlight   1.212  Δ(посл.) +0.000
+  G1S16_Co60_P5        ctrl_curves   9.320  sumlight   9.185  Δ(посл.) -0.135
+  G1S24_Co60_P5        ctrl_curves  11.364  sumlight  11.253  Δ(посл.) -0.111
+  G1S24_Bi207_P5       ctrl_curves  20.215  sumlight  20.199  Δ(посл.) -0.016
+  G1S16_Cs137_P5       ctrl_curves   8.036  sumlight   8.036  Δ(посл.) +0.000
+  G1S24_Eu152_P5       ctrl_curves  28.906  sumlight  28.975  Δ(посл.) +0.069
+  ASN16_Cs137          ctrl_curves  33.100  sumlight  33.100  Δ(посл.) +0.000
+  G1S16_Am241_P5       ctrl_curves   2.291  sumlight   2.291  Δ(посл.) +0.000
+  G1S16_Am241_P25      ctrl_curves   1.651  sumlight   1.651  Δ(посл.) +0.000
+  G1S24_Am241_P5       ctrl_curves   6.771  sumlight   6.771  Δ(посл.) +0.000
+  AS80_Am241           ctrl_curves   3.859  sumlight   3.859  Δ(посл.) +0.000
+  G1S16_Mix_Denta100   ctrl_curves   8.813  sumlight   8.820  Δ(посл.) +0.007
+  G1S16_Mix_Petri      ctrl_curves   8.182  sumlight   8.181  Δ(посл.) -0.001
+  G1S16_Mix_Mar        ctrl_curves  22.953  sumlight  22.933  Δ(посл.) -0.020
+  ASN16_Lu176          ctrl_curves   3.825  sumlight   3.818  Δ(посл.) -0.006
+  ASN16_Lu176_P0       ctrl_curves   0.341  sumlight   0.342  Δ(посл.) +0.000
+  AS80_Lu176           ctrl_curves   5.733  sumlight   5.710  Δ(посл.) -0.023
+  AS80_Lu176_v2        ctrl_curves   1.973  sumlight   1.920  Δ(посл.) -0.053
+  RC103_Lu176          ctrl_curves   0.889  sumlight   0.886  Δ(посл.) -0.003
+
+out_p24_sumlight − out_p24_ctrl_curves: лучшие пять: G1S24_Na22_P5 33.83→33.33 (-0.50); G1S16_Na22_P5 12.33→12.09 (-0.24); G1S16_Ba133_P5 11.02→10.88 (-0.14); G1S16_Co60_P5 9.32→9.18 (-0.14); G1S24_Ba133_P5 17.21→17.08 (-0.13)
+      худшие пять: G1S24_Eu152_P5 28.91→28.97 (+0.07); G1S16_Mix_Denta100 8.81→8.82 (+0.01); G1S16_Eu152_P5 12.21→12.21 (+0.01); ASN16_Lu176_P0 0.34→0.34 (+0.00); G1S16_Eu152_P25 3.39→3.39 (+0.00)
+      |Δ| ≥ 0.5: G1S24_Na22_P5 -0.50
+      |Δ| ≥ 0.1: G1S24_Na22_P5 -0.50; G1S16_Na22_P5 -0.24; G1S16_Ba133_P5 -0.14; G1S16_Co60_P5 -0.14; G1S24_Ba133_P5 -0.13; G1S24_Co60_P5 -0.11
+      хуже на ≥ +0.05: 1, лучше на ≤ −0.05: 9
+S95 G1S16_Cd109_P5: Cd-109 доля ctrl_curves 99.969, sumlight 99.969; подавлен: ctrl_curves 0, sumlight 0
+S95 G1S24_Cd109_P5: Cd-109 доля ctrl_curves 99.102, sumlight 99.102; подавлен: ctrl_curves 0, sumlight 0
+S95 G1S16_Cd109_P25: Cd-109 доля ctrl_curves 99.892, sumlight 99.892; подавлен: ctrl_curves 0, sumlight 0
+
+состав смесей G1S16_Mix и диска (доля % / z по плечам):
+  G1S16_Mix_Denta100   Am-241  ctrl_curves 18.685 / 23.56  sumlight 18.687 / 23.56
+  G1S16_Mix_Denta100   Cs-137  ctrl_curves 21.444 / 31.29  sumlight 21.447 / 31.27
+  G1S16_Mix_Denta100   Eu-152  ctrl_curves 45.434 / 21.05  sumlight 45.439 / 21.00
+  G1S16_Mix_Denta100   Ti-44   ctrl_curves 14.432 / 16.22  sumlight 14.423 / 16.20
+  G1S16_Mix_Petri      Am-241  ctrl_curves 22.744 / 22.94  sumlight 22.742 / 22.94
+  G1S16_Mix_Petri      Cs-137  ctrl_curves 23.060 / 27.77  sumlight 23.047 / 27.78
+  G1S16_Mix_Petri      Eu-152  ctrl_curves 43.146 / 15.64  sumlight 43.163 / 15.65
+  G1S16_Mix_Petri      Ti-44   ctrl_curves 11.051 / 16.81  sumlight 11.048 / 16.81
+  G1S16_Mix_Mar        Am-241  ctrl_curves 16.029 / 22.97  sumlight 15.941 / 23.05
+  G1S16_Mix_Mar        Cs-137  ctrl_curves 21.407 / 48.12  sumlight 21.086 / 48.00
+  G1S16_Mix_Mar        Eu-152  ctrl_curves 46.899 / 30.54  sumlight 46.236 / 30.58
+  G1S16_Mix_Mar        Ti-44   ctrl_curves 6.161 / 13.19  sumlight 6.117 / 14.10
+  AS80_Th232Medal      Ac-228  ctrl_curves 37.964 / 163.68  sumlight 37.964 / 163.73
+  AS80_Th232Medal      Tl-208  ctrl_curves 30.322 / 163.68  sumlight 30.320 / 163.73
+  AS80_Th232Medal      Pb-212  ctrl_curves 16.976 / 163.68  sumlight 16.979 / 163.73
+  AS80_Th232Medal      Bi-212  ctrl_curves 5.040 / 163.68  sumlight 5.040 / 163.73
+  AS80_Th232Medal      Xray-Pb ctrl_curves 6.193 / 57.49  sumlight 6.193 / 57.49
+  AS80_Th232Medal      Xray-Th ctrl_curves 1.905 / 10.73  sumlight 1.904 / 10.72
+  AS80_Th232Medal      Th-228  ctrl_curves 0.187 / 163.68  sumlight 0.187 / 163.73

@@ -90,12 +90,14 @@ namespace XPTable.Sorting
             if (cell1.Data != null && cell2.Data != null)
             {
                 // Compare using cell data.
-                return Convert.ToDateTime(cell1.Data).CompareTo(Convert.ToDateTime(cell2.Data));
+                return Convert.ToDateTime(cell1.Data, System.Globalization.CultureInfo.InvariantCulture)
+                    .CompareTo(Convert.ToDateTime(cell2.Data, System.Globalization.CultureInfo.InvariantCulture));
             }
             else
             {
                 // Compare using cell text.
-                return Convert.ToDateTime(cell1Text).CompareTo(Convert.ToDateTime(cell2Text));
+                return Convert.ToDateTime(cell1Text, System.Globalization.CultureInfo.InvariantCulture)
+                    .CompareTo(Convert.ToDateTime(cell2Text, System.Globalization.CultureInfo.InvariantCulture));
             }
         }
         #endregion

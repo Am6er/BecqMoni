@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor;
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -166,7 +167,7 @@ namespace WinMM
                 }
                 this.bufferMaintainerThread = new Thread(new ThreadStart(this.MaintainBuffers));
                 this.bufferMaintainerThread.IsBackground = true;
-                this.bufferMaintainerThread.Name = "WaveIn MaintainBuffers thread. (DeviceID = " + this.deviceId + ")";
+                this.bufferMaintainerThread.Name = "WaveIn MaintainBuffers thread. (DeviceID = " + this.deviceId.ToString(CultureInfo.InvariantCulture) + ")";
                 this.bufferMaintainerThread.Start();
                 NativeMethods.Throw(NativeMethods.waveInStart(this.handle), NativeMethods.ErrorSource.WaveIn);
             }
@@ -250,7 +251,7 @@ namespace WinMM
             }
             if (xmlElement == null)
             {
-                return "Unknown [" + manufacturerId + "]";
+                return "Unknown [" + manufacturerId.ToString(CultureInfo.InvariantCulture) + "]";
             }
             return xmlElement.GetAttribute("name");
         }
@@ -309,7 +310,17 @@ namespace WinMM
             catch (Exception)
             {
                 DCControlPanel.exept_flag = true;
-                MessageBox.Show("Device disconnected from audio port!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                // ⛔ ПОСРЕДИ НАБОРА, и бросок тут запрещён дважды (остаток `S100`).
+                //    Во-первых, это ТЕЛО ОТДЕЛЬНОГО ПОТОКА (`bufferMaintainerThread`,
+                //    заводится на :167): непойманное исключение на нём кладёт ВЕСЬ
+                //    процесс вместе с несохранённым спектром, а не возвращает код.
+                //    Во-вторых, отсчёты уже набраны, и признак беды с читателем тут
+                //    как раз есть — `DCControlPanel.exept_flag` строкой выше.
+                //    Значит без окон — строка в поток ошибок, и поток буферов
+                //    доходит до конца сам.
+                //    ⚠ `A12`: и текст, и заголовок были литералами. Заголовок
+                //    во всём дереве берут из `Resources.ErrorDialogTitle`.
+                AppUi.Report(Resources.ERRAudioDeviceDisconnected, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 Thread.Sleep(500);
             }
         }

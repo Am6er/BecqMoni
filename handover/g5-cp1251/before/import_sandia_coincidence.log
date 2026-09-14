@@ -1,0 +1,1 @@
+usage: import_sandia_coincidence.py <nucdb.sqlite> <sandia.decay.xml>

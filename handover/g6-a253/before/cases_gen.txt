@@ -1,0 +1,37 @@
+=== СБОРКА ===
+  C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_g6\BecquerelMonitor.exe
+  собрана 2026-09-06 05:47:34
+  окна у приложения: False
+  культура прогона: ru-RU (разделитель дробной части «,»)  [без подпорки MainForm]
+
+  case1_boundary.n42
+  case2_notanumber.n42
+  case3_order5.n42
+  case4_empty.n42
+  case5_healthy.n42
+  case6_nocalib.n42
+  case7_rad_few.n42
+  case8_rad_many.n42
+  case9_rad_over.n42
+  case10_calibclass.n42
+  case11_intrinsic.n42
+  case12_calibonly.n42
+  case13_bgfirst.n42
+  case14_bgonly.n42
+  case15_twobg.n42
+  case16_baddate.n42
+  case17_negcount.n42
+  case18_n42_2006.n42
+  case19_2006_baddate.n42
+  case20_2006_over.n42
+  case21_2006_1024.n42
+  case22_2006_16384.n42
+  case23_rad_declared.n42
+  case24_nostart.n42
+  case25_rad_realtime.n42
+  case26_rad_nolive.n42
+  case27_rad_realtime_iso.n42
+  case28_rad_shortener.n42
+  case29_2006_nocoeff.n42
+сочинённые входы положены в C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\g6-a253\cases
+⚠ Они СОЧИНЕНЫ и доказывают поведение РАЗБОРА, а не совместимость с приборами.

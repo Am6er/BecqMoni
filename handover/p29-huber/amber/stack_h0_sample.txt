@@ -1,0 +1,24 @@
+BecqMoni: main config: C:\Users\moroz\bqp29_amber\config\BecquerelMonitor.xml
+BecqMoni: device configs: C:\Users\moroz\bqp29_amber\config\device: 9 loaded
+BecqMoni: nuclide library: C:\Users\moroz\bqp29_amber\config\NuclideDefinition.xml: 34 entries
+SETUP	прибор: Atom Spectra 80x80
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ	мёртвое=1.357E-06 с
+SETUP	найдено пиков: 16
+состав объявлен: 232TH; распад 1, атомных 6, линий 40; полоса сведена ПОЛОМ ПО КРИВОЙ 30.0 кэВ (1.0 % от максимума, Min_Range 15.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ
+SETUP	против поставочного разбора изменено: CoincidenceWindowSec 0 → 1.35714285714286E-06; HuberM 3 → 0; MinEnergy 40 → 15; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; ScintillatorMaterial нет → NaI:Tl
+шкала: усиление 1.000000, сдвиг 0.000 канала
+chi2/ndf 22.107, невязка модели 38.5 %, суммирование нет
+отсев по значимости: ПРИМЕНЁН, порог 3.0000 = min(абс 3, доля 0.3 от вершины), судимых 7 (отсеяно 3), наибольшая значимость 16.50
+ROW	Xray-Th	Nuisance	31.407	-
+ROW	Xray-Ba	Nuisance	0.498	-
+ROW	Esc-NaI	Nuisance	0.492	-
+ROW	continuum	Nuisance	67.603	-
+CUT	Th-232	Single	z=0.00
+CUT	Xray-La	Nuisance	z=0.00
+CUT	Xray-Th-L	Nuisance	z=1.16
+CUT	pile-up	Nuisance	z=0.00
+отрисовано: True
+строка состояния на графике: «»
+отчёт: строк в таблице 15
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p29-huber\amber\stack_h0_sample.png: 15–2800 кэВ, потолок 2531, шкала pow
+C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\handover\p29-huber\amber\dump_h0_sample.csv: 8192 каналов, колонок слоёв 4

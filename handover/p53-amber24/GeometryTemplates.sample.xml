@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<GeometryTemplates xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Templates>
+    <Template Name="X">
+      <Shape>Box</Shape>
+      <CrystalDiameter>0</CrystalDiameter>
+      <CrystalHeight>0</CrystalHeight>
+      <CrystalBoxX>12.5</CrystalBoxX>
+      <CrystalBoxY>10</CrystalBoxY>
+      <CrystalBoxZ>10</CrystalBoxZ>
+      <FrontReflectorThickness>1</FrontReflectorThickness>
+      <SideReflectorThickness>1</SideReflectorThickness>
+      <FrontGapThickness>0</FrontGapThickness>
+      <SideGapThickness>0</SideGapThickness>
+      <FrontCladdingThickness>1</FrontCladdingThickness>
+      <SideCladdingThickness>1</SideCladdingThickness>
+      <MountingThickness>1</MountingThickness>
+      <FwhmAt662Percent>10.85</FwhmAt662Percent>
+      <Crystal>
+        <Name>Cesium iodide</Name>
+        <Density>4.51</Density>
+        <Fractions>
+          <Element Z="53" Fraction="0.48845137728951588" />
+          <Element Z="55" Fraction="0.51154862271048418" />
+        </Fractions>
+      </Crystal>
+      <Reflector>
+        <Name>Polytetrafluoroethylene</Name>
+        <Density>2.25</Density>
+        <Fractions>
+          <Element Z="6" Fraction="0.24018253152508207" />
+          <Element Z="9" Fraction="0.75981746847491782" />
+        </Fractions>
+      </Reflector>
+      <Gap>
+        <Name>Air, dry</Name>
+        <Density>0.001205</Density>
+        <Fractions>
+          <Element Z="7" Fraction="0.63648302312054683" />
+          <Element Z="8" Fraction="0.36351697687945328" />
+        </Fractions>
+      </Gap>
+      <Cladding>
+        <Name>Aluminum</Name>
+        <Density>2.7</Density>
+        <Fractions>
+          <Element Z="13" Fraction="1" />
+        </Fractions>
+      </Cladding>
+    </Template>
+  </Templates>
+</GeometryTemplates>

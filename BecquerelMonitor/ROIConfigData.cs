@@ -114,26 +114,8 @@ namespace BecquerelMonitor
             }
         }
 
-        public List<ROIEfficiencyData> ROIEfficiency
-        {
-            get
-            {
-                return this.roiEfficiency;
-            }
-            set
-            {
-                this.roiEfficiency = value;
-            }
-        }
 
         [XmlIgnore]
-        public bool HasEfficiency
-        {
-            get
-            {
-                return this.roiEfficiency != null && this.roiEfficiency.Count > 1;
-            }
-        }
 
         // Token: 0x17000205 RID: 517
         // (get) Token: 0x060006BE RID: 1726 RVA: 0x00028304 File Offset: 0x00026504
@@ -191,10 +173,6 @@ namespace BecquerelMonitor
             {
                 this.roiDefinitions.Add(config.roiDefinitions[i].Clone());
             }
-            for (int i = 0; i < config.roiEfficiency.Count; i++)
-            {
-                this.roiEfficiency.Add(config.roiEfficiency[i].Clone());
-            }
             this.note = new CDATA(config.note);
             this.dirty = config.dirty;
         }
@@ -246,7 +224,6 @@ namespace BecquerelMonitor
         // Token: 0x04000386 RID: 902
         List<ROIDefinitionData> roiDefinitions = new List<ROIDefinitionData>();
 
-        List<ROIEfficiencyData> roiEfficiency = new List<ROIEfficiencyData>();
 
         // Token: 0x04000387 RID: 903
         CDATA note = "";

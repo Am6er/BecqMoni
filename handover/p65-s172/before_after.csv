@@ -1,0 +1,220 @@
+spectrum,arm,what,name,A,B,changed
+as80,free,chi2/ndf,,12.596,12.596,
+as80,free,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+as80,free,layer,Tl-208,35.635,35.635,
+as80,free,layer,Ac-228,34.866,34.866,
+as80,free,layer,Pb-212,24.088,24.088,
+as80,free,layer,Bi-212,3.473,3.473,
+as80,free,layer,Ra-224,1.938,1.938,
+as80,free,member,Ac-228,"686 Бк z=108 доля=34.9%","686 Бк z=108 доля=34.9%",
+as80,free,member,Pb-212,"1076 Бк z=172 доля=24.1%","1076 Бк z=172 доля=24.1%",
+as80,free,member,Ra-224,"1076 Бк z=172 доля=1.94% по Pb-212","1076 Бк z=172 доля=1.94% по Pb-212",
+as80,free,member,Bi-212,"599.5 Бк z=25.1 доля=3.47%","599.5 Бк z=25.1 доля=3.47%",
+as80,free,member,Tl-208,"862.2 Бк z=126 доля=35.6%","862.2 Бк z=126 доля=35.6%",
+as80,free,member,Th-232,"< 1.25e+04","< 1.25e+04",
+as80,free,member,Th-228,"< 1.34e+03","< 1.34e+03",
+as80,free,member,Rn-220,"< 5.54e+03","< 5.54e+03",
+as80,free,member,Po-216,"< 4.1e+05","< 4.1e+05",
+as80,eq,chi2/ndf,,14.115,14.115,
+as80,eq,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+as80,eq,layer,Ac-228,41.195,41.195,
+as80,eq,layer,Tl-208,32.683,32.683,
+as80,eq,layer,Pb-212,18.884,18.884,
+as80,eq,layer,Bi-212,5.454,5.454,
+as80,eq,layer,Ra-224,1.518,1.518,
+as80,eq,layer,Th-228,0.209,0.209,
+as80,eq,layer,Rn-220,0.045,0.045,
+as80,eq,layer,Th-232,0.011,0.011,
+as80,eq,member,Th-232,"865.3 Бк z=183 доля=0.0109%","865.3 Бк z=183 доля=0.0109%",
+as80,eq,member,Ac-228,"865.3 Бк z=183 доля=41.2%","865.3 Бк z=183 доля=41.2%",
+as80,eq,member,Th-228,"865.3 Бк z=183 доля=0.209%","865.3 Бк z=183 доля=0.209%",
+as80,eq,member,Ra-224,"865.3 Бк z=183 доля=1.52%","865.3 Бк z=183 доля=1.52%",
+as80,eq,member,Rn-220,"865.3 Бк z=183 доля=0.0452%","865.3 Бк z=183 доля=0.0452%",
+as80,eq,member,Po-216,"865.3 Бк z=183 доля=0.000765%","865.3 Бк z=183 доля=0.000765%",
+as80,eq,member,Pb-212,"865.3 Бк z=183 доля=18.9%","865.3 Бк z=183 доля=18.9%",
+as80,eq,member,Bi-212,"865.3 Бк z=183 доля=5.45%","865.3 Бк z=183 доля=5.45%",
+as80,eq,member,Tl-208,"865.3 Бк z=183 доля=32.7%","865.3 Бк z=183 доля=32.7%",
+as80,nomx,chi2/ndf,,11.975,11.975,
+as80,nomx,gates,,"","рентген кристалла снят 0, вылет кристалла снят 0",
+as80,nomx,layer,Ac-228,32.884,32.884,
+as80,nomx,layer,Pb-212,22.305,22.305,
+as80,nomx,layer,Tl-208,21.048,21.048,
+as80,nomx,layer,Bi-212,3.946,3.946,
+as80,nomx,layer,Ra-224,1.790,1.790,
+as80,nomx,layer,Backscatter,11.505,11.505,
+as80,nomx,layer,DE-1588,2.615,2.615,
+as80,nomx,layer,DE-1631,1.827,1.827,
+as80,nomx,layer,SE-1631,1.407,1.407,
+as80,nomx,layer,SE-1588,0.621,0.621,
+as80,nomx,layer,Xray-La,0.042,0.042,
+as80,nomx,layer,continuum,0.009,0.009,
+as80,nomx,member,Ac-228,"815.5 Бк z=144 доля=32.9%","815.5 Бк z=144 доля=32.9%",
+as80,nomx,member,Pb-212,"1037 Бк z=191 доля=22.3%","1037 Бк z=191 доля=22.3%",
+as80,nomx,member,Ra-224,"1037 Бк z=191 доля=1.79% по Pb-212","1037 Бк z=191 доля=1.79% по Pb-212",
+as80,nomx,member,Bi-212,"891.6 Бк z=40.3 доля=3.95%","891.6 Бк z=40.3 доля=3.95%",
+as80,nomx,member,Tl-208,"651.9 Бк z=94.4 доля=21%","651.9 Бк z=94.4 доля=21%",
+as80,nomx,member,Xray-La,"59.39 Бк z=4.16 доля=0.0423%","59.39 Бк z=4.16 доля=0.0423%",
+as80,nomx,member,SE-1588,"17.63 Бк z=9.52 доля=0.621%","17.63 Бк z=9.52 доля=0.621%",
+as80,nomx,member,DE-1588,"61.8 Бк z=32.4 доля=2.61%","61.8 Бк z=32.4 доля=2.61%",
+as80,nomx,member,SE-1631,"40.24 Бк z=23.2 доля=1.41%","40.24 Бк z=23.2 доля=1.41%",
+as80,nomx,member,DE-1631,"43.92 Бк z=26.3 доля=1.83%","43.92 Бк z=26.3 доля=1.83%",
+as80,nomx,member,Backscatter,"0.4587 Бк z=37.4 доля=11.5%","0.4587 Бк z=37.4 доля=11.5%",
+as80,nomx,member,Th-232,"< 1.32e+04","< 1.32e+04",
+as80,nomx,member,Th-228,"< 1.38e+03","< 1.38e+03",
+as80,nomx,member,Rn-220,"< 6.74e+03","< 6.74e+03",
+as80,nomx,member,Po-216,"< 3.35e+05","< 3.35e+05",
+radon1,free,chi2/ndf,,1.132,1.158,*
+radon1,free,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+radon1,free,layer,Pb-214,45.733,48.570,*
+radon1,free,layer,Bi-214,40.917,43.320,*
+radon1,free,layer,Pb-212,4.249,4.674,*
+radon1,free,layer,Tl-208,2.790,3.186,*
+radon1,free,layer,Ra-224,0.228,0.251,*
+radon1,free,layer,Esc-CsI,6.083,—,*
+radon1,free,member,Pb-214,"136.1 Бк z=99 доля=45.7%","136.6 Бк z=98.2 доля=48.6%",*
+radon1,free,member,Bi-214,"141.5 Бк z=60 доля=40.9%","143.4 Бк z=60.2 доля=43.3%",*
+radon1,free,member,Pb-212,"10.83 Бк z=12.8 доля=4.25%","11.25 Бк z=13.2 доля=4.67%",*
+radon1,free,member,Ra-224,"10.83 Бк z=12.8 доля=0.228% по Pb-212","11.25 Бк z=13.2 доля=0.251% по Pb-212",*
+radon1,free,member,Tl-208,"12.12 Бк z=5.72 доля=2.79%","13.41 Бк z=6.24 доля=3.19%",*
+radon1,free,member,Esc-CsI,"774.9 Бк z=14.7 доля=6.08%","—",*
+radon1,free,member,Ra-226,"< 30.1","< 30.3",*
+radon1,free,member,Rn-222,"< 2.71e+03","< 2.73e+03",*
+radon1,free,member,Pb-210,"< 67.2","< 37.3",*
+radon1,free,member,Po-214,"< 2.72e+04","< 2.75e+04",*
+radon1,free,member,Th-232,"< 594","< 583",*
+radon1,free,member,Ac-228,"< 7.8","< 7.85",*
+radon1,free,member,Th-228,"< 184","< 185",*
+radon1,free,member,Rn-220,"< 2.17e+03","< 2.19e+03",*
+radon1,free,member,Po-216,"< 1.61e+05","< 1.63e+05",*
+radon1,free,member,Bi-212,"< 50.6","< 51.1",*
+radon1,free,member,Po-210,"< 2.72e+04","< 2.75e+04",*
+radon1,eq,chi2/ndf,,1.260,1.264,*
+radon1,eq,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+radon1,eq,layer,Pb-214,46.586,46.597,*
+radon1,eq,layer,Bi-214,39.832,39.860,*
+radon1,eq,layer,Ra-226,3.175,3.177,*
+radon1,eq,layer,Pb-212,3.115,3.099,*
+radon1,eq,layer,Ac-228,2.694,2.681,*
+radon1,eq,layer,Pb-210,2.097,2.096,*
+radon1,eq,layer,Tl-208,1.897,1.888,*
+radon1,eq,layer,Bi-212,0.324,0.322,*
+radon1,eq,layer,Ra-224,0.166,0.165,*
+radon1,eq,layer,other,0.115,0.114,*
+radon1,eq,member,Ra-226,"134.5 Бк z=116 доля=3.18%","134.5 Бк z=116 доля=3.18%",
+radon1,eq,member,Rn-222,"134.5 Бк z=116 доля=0.0291%","134.5 Бк z=116 доля=0.0291%",
+radon1,eq,member,Pb-214,"134.5 Бк z=116 доля=46.6%","134.5 Бк z=116 доля=46.6%",
+radon1,eq,member,Bi-214,"134.5 Бк z=116 доля=39.8%","134.5 Бк z=116 доля=39.9%",*
+radon1,eq,member,Pb-210,"134.5 Бк z=116 доля=2.1%","134.5 Бк z=116 доля=2.1%",
+radon1,eq,member,Po-214,"134.5 Бк z=116 доля=0.00315%","134.5 Бк z=116 доля=0.00315%",
+radon1,eq,member,Po-210,"134.5 Бк z=116 доля=0.000336%","134.5 Бк z=116 доля=0.000336%",
+radon1,eq,member,Th-232,"7.794 Бк z=10.1 доля=0.0103%","7.754 Бк z=10.1 доля=0.0102%",*
+radon1,eq,member,Ac-228,"7.794 Бк z=10.1 доля=2.69%","7.754 Бк z=10.1 доля=2.68%",*
+radon1,eq,member,Th-228,"7.794 Бк z=10.1 доля=0.0696%","7.754 Бк z=10.1 доля=0.0692%",*
+radon1,eq,member,Ra-224,"7.794 Бк z=10.1 доля=0.166%","7.754 Бк z=10.1 доля=0.165%",*
+radon1,eq,member,Rn-220,"7.794 Бк z=10.1 доля=0.0022%","7.754 Бк z=10.1 доля=0.00219%",*
+radon1,eq,member,Po-216,"7.794 Бк z=10.1 доля=3.59e-05%","7.754 Бк z=10.1 доля=3.58e-05%",*
+radon1,eq,member,Pb-212,"7.794 Бк z=10.1 доля=3.11%","7.754 Бк z=10.1 доля=3.1%",*
+radon1,eq,member,Bi-212,"7.794 Бк z=10.1 доля=0.324%","7.754 Бк z=10.1 доля=0.322%",*
+radon1,eq,member,Tl-208,"7.794 Бк z=10.1 доля=1.9%","7.754 Бк z=10.1 доля=1.89%",*
+radon1,nomx,chi2/ndf,,1.143,1.143,
+radon1,nomx,gates,,"","рентген кристалла снят 0, вылет кристалла снят 0",
+radon1,nomx,layer,Pb-214,41.214,41.214,
+radon1,nomx,layer,Bi-214,26.511,26.511,
+radon1,nomx,layer,Pb-212,7.446,7.446,
+radon1,nomx,layer,Tl-208,3.428,3.428,
+radon1,nomx,layer,Ra-226,1.539,1.539,
+radon1,nomx,layer,Ra-224,0.393,0.393,
+radon1,nomx,layer,Backscatter,11.256,11.256,
+radon1,nomx,layer,Esc-CsI,8.189,8.189,
+radon1,nomx,layer,continuum,0.024,0.024,
+radon1,nomx,member,Ra-226,"66.79 Бк z=6.58 доля=1.54%","66.79 Бк z=6.58 доля=1.54%",
+radon1,nomx,member,Pb-214,"141.2 Бк z=71.1 доля=41.2%","141.2 Бк z=71.1 доля=41.2%",
+radon1,nomx,member,Bi-214,"141 Бк z=57.8 доля=26.5%","141 Бк z=57.8 доля=26.5%",
+radon1,nomx,member,Pb-212,"19.76 Бк z=21.9 доля=7.45%","19.76 Бк z=21.9 доля=7.45%",
+radon1,nomx,member,Ra-224,"19.76 Бк z=21.9 доля=0.393% по Pb-212","19.76 Бк z=21.9 доля=0.393% по Pb-212",
+radon1,nomx,member,Tl-208,"25.88 Бк z=10.4 доля=3.43%","25.88 Бк z=10.4 доля=3.43%",
+radon1,nomx,member,Esc-CsI,"1168 Бк z=22.9 доля=8.19%","1168 Бк z=22.9 доля=8.19%",
+radon1,nomx,member,Backscatter,"0.09787 Бк z=20.5 доля=11.3%","0.09787 Бк z=20.5 доля=11.3%",
+radon1,nomx,member,Rn-222,"< 2.77e+03","< 2.77e+03",
+radon1,nomx,member,Pb-210,"< 94.2","< 94.2",
+radon1,nomx,member,Po-214,"< 2.89e+04","< 2.89e+04",
+radon1,nomx,member,Th-232,"< 724","< 724",
+radon1,nomx,member,Ac-228,"< 9.71","< 9.71",
+radon1,nomx,member,Th-228,"< 178","< 178",
+radon1,nomx,member,Rn-220,"< 2.36e+03","< 2.36e+03",
+radon1,nomx,member,Po-216,"< 1.7e+05","< 1.7e+05",
+radon1,nomx,member,Bi-212,"< 51.5","< 51.5",
+radon1,nomx,member,Po-210,"< 2.89e+04","< 2.89e+04",
+radon2,free,chi2/ndf,,1.287,1.316,*
+radon2,free,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+radon2,free,layer,Pb-212,47.948,91.057,*
+radon2,free,layer,Ra-224,2.893,5.338,*
+radon2,free,layer,Esc-CsI,45.663,—,*
+radon2,free,layer,continuum,3.496,3.605,*
+radon2,free,member,Pb-212,"14.17 Бк z=22.2 доля=47.9%","14.19 Бк z=22 доля=91.1%",*
+radon2,free,member,Ra-224,"14.17 Бк z=22.2 доля=2.89% по Pb-212","14.19 Бк z=22 доля=5.34% по Pb-212",*
+radon2,free,member,Esc-CsI,"861.5 Бк z=32.1 доля=45.7%","—",*
+radon2,free,member,Ra-226,"< 24.6","< 24.8",*
+radon2,free,member,Rn-222,"< 1.63e+03","< 1.65e+03",*
+radon2,free,member,Pb-214,"< 2.4","< 2.43",*
+radon2,free,member,Bi-214,"< 3.14","< 3.17",*
+radon2,free,member,Pb-210,"< 48","< 83.8",*
+radon2,free,member,Po-214,"< 1.36e+04","< 1.37e+04",*
+radon2,free,member,Th-232,"< 447","< 527",*
+radon2,free,member,Ac-228,"< 3.29","< 3.31",*
+radon2,free,member,Th-228,"< 129","< 134",*
+radon2,free,member,Rn-220,"< 1.35e+03","< 1.36e+03",*
+radon2,free,member,Po-216,"< 8.13e+04","< 8.22e+04",*
+radon2,free,member,Bi-212,"< 19.3","< 19.7",*
+radon2,free,member,Tl-208,"< 5.27","< 5.32",*
+radon2,free,member,Po-210,"< 1.36e+04","< 1.37e+04",*
+radon2,eq,chi2/ndf,,1.129,1.190,*
+radon2,eq,gates,,"","рентген кристалла снят 1, вылет кристалла снят 1",
+radon2,eq,layer,Pb-212,21.824,36.929,*
+radon2,eq,layer,Ac-228,21.253,34.286,*
+radon2,eq,layer,Tl-208,14.516,21.791,*
+radon2,eq,layer,Bi-212,2.332,3.917,*
+radon2,eq,layer,Ra-224,1.318,2.151,*
+radon2,eq,layer,Th-228,0.463,0.797,*
+radon2,eq,layer,Th-232,0.052,0.100,*
+radon2,eq,layer,Rn-220,0.019,0.030,*
+radon2,eq,layer,Esc-CsI,38.222,—,*
+radon2,eq,member,Th-232,"1.707 Бк z=3.16 доля=0.0517%","1.614 Бк z=2.91 доля=0.0998%",*
+radon2,eq,member,Ac-228,"1.707 Бк z=3.16 доля=21.3%","1.614 Бк z=2.91 доля=34.3%",*
+radon2,eq,member,Th-228,"1.707 Бк z=3.16 доля=0.463%","1.614 Бк z=2.91 доля=0.797%",*
+radon2,eq,member,Ra-224,"1.707 Бк z=3.16 доля=1.32%","1.614 Бк z=2.91 доля=2.15%",*
+radon2,eq,member,Rn-220,"1.707 Бк z=3.16 доля=0.0187%","1.614 Бк z=2.91 доля=0.0297%",*
+radon2,eq,member,Po-216,"1.707 Бк z=3.16 доля=0.000294%","1.614 Бк z=2.91 доля=0.000465%",*
+radon2,eq,member,Pb-212,"1.707 Бк z=3.16 доля=21.8%","1.614 Бк z=2.91 доля=36.9%",*
+radon2,eq,member,Bi-212,"1.707 Бк z=3.16 доля=2.33%","1.614 Бк z=2.91 доля=3.92%",*
+radon2,eq,member,Tl-208,"1.707 Бк z=3.16 доля=14.5%","1.614 Бк z=2.91 доля=21.8%",*
+radon2,eq,member,Esc-CsI,"222.9 Бк z=4.61 доля=38.2%","—",*
+radon2,eq,member,Ra-226,"< 1.77","< 1.82",*
+radon2,nomx,chi2/ndf,,1.283,1.283,
+radon2,nomx,gates,,"","рентген кристалла снят 0, вылет кристалла снят 0",
+radon2,nomx,layer,Pb-212,45.640,45.640,
+radon2,nomx,layer,Tl-208,9.486,9.486,
+radon2,nomx,layer,Ra-224,2.676,2.676,
+radon2,nomx,layer,Esc-CsI,33.839,33.839,
+radon2,nomx,layer,Backscatter,7.388,7.388,
+radon2,nomx,layer,DE-2615,0.855,0.855,
+radon2,nomx,layer,continuum,0.116,0.116,
+radon2,nomx,member,Pb-212,"15.84 Бк z=24.9 доля=45.6%","15.84 Бк z=24.9 доля=45.6%",
+radon2,nomx,member,Ra-224,"15.84 Бк z=24.9 доля=2.68% по Pb-212","15.84 Бк z=24.9 доля=2.68% по Pb-212",
+radon2,nomx,member,Tl-208,"12.21 Бк z=6.98 доля=9.49%","12.21 Бк z=6.98 доля=9.49%",
+radon2,nomx,member,Esc-CsI,"751.9 Бк z=26.4 доля=33.8%","751.9 Бк z=26.4 доля=33.8%",
+radon2,nomx,member,DE-2615,"2.697 Бк z=3.12 доля=0.855%","2.697 Бк z=3.12 доля=0.855%",
+radon2,nomx,member,Backscatter,"0.01447 Бк z=2.92 доля=7.39%","0.01447 Бк z=2.92 доля=7.39%",
+radon2,nomx,member,Ra-226,"< 24.9","< 24.9",
+radon2,nomx,member,Rn-222,"< 1.72e+03","< 1.72e+03",
+radon2,nomx,member,Pb-214,"< 2.46","< 2.46",
+radon2,nomx,member,Bi-214,"< 3.71","< 3.71",
+radon2,nomx,member,Pb-210,"< 66.7","< 66.7",
+radon2,nomx,member,Po-214,"< 1.44e+04","< 1.44e+04",
+radon2,nomx,member,Th-232,"< 618","< 618",
+radon2,nomx,member,Ac-228,"< 3.97","< 3.97",
+radon2,nomx,member,Th-228,"< 122","< 122",
+radon2,nomx,member,Rn-220,"< 1.46e+03","< 1.46e+03",
+radon2,nomx,member,Po-216,"< 8.57e+04","< 8.57e+04",
+radon2,nomx,member,Bi-212,"< 21.1","< 21.1",
+radon2,nomx,member,Po-210,"< 1.44e+04","< 1.44e+04",

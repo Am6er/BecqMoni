@@ -52,22 +52,144 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Набор, выбранный в панели поиска пиков («Use set») для АКТИВНОГО
+        /// документа, или null — «все нуклиды».
+        ///
+        /// Хранит выбор сам документ
+        /// (<see cref="DocEnergySpectrum.SelectedNuclideSet"/>): спектров
+        /// открыто несколько, и набор у каждого свой (R9). Здесь стоит выбор
+        /// того из них, который сейчас на экране, — и меняет его при смене
+        /// документа <see cref="DCPeakDetectionView.ShowPeakDetectionResult"/>.
+        ///
+        /// Живёт здесь, а не в самой панели, потому что читателей у него двое и
+        /// друг до друга они не дотягиваются: поиск пиков (панель) и график
+        /// (<see cref="EnergySpectrumView"/>, у него нет ссылки ни на панель, ни
+        /// на MainForm). Отражать выбор во второе поле нельзя — оно разошлось бы
+        /// с первым; поэтому поле ОДНО и лежит там, куда смотрят оба.
+        ///
+        /// Не сохраняется: это выбор на сеанс, а не настройка.
+        /// </summary>
+        public NuclideSet ActiveSet
+        {
+            get { return this.activeSet; }
+            set { this.activeSet = value; }
+        }
+
+        NuclideSet activeSet;
+
+        /// <summary>
+        /// Линии наборов — по списку на набор: высота считается от самой
+        /// сильной линии СВОЕГО набора, и мешать их в одну кучу нельзя.
+        ///
+        /// Набор рисует линии, когда выполнено ОБА условия:
+        ///
+        ///  * у него стоит галка «Линии интенс.» — это выключатель;
+        ///  * он выбран в панели поиска пиков, ЛИБО там выбраны «все нуклиды».
+        ///
+        /// Одной галки мало: галки стоят у нескольких наборов сразу, и выбрав
+        /// конкретный ряд человек ждёт увидеть его линии, а не все разом —
+        /// в спектре тория линии лютеция и радия только мешают. Одного выбора
+        /// тоже мало: «все нуклиды» — обычное положение списка, и линии тогда не
+        /// появлялись бы вовсе, хотя галка стоит.
+        ///
+        /// Пустой список — рисовать нечего, и это не ошибка.
+        /// </summary>
+        public List<List<NuclideDefinition>> IntensityLineSets()
+        {
+            List<List<NuclideDefinition>> groups = new List<List<NuclideDefinition>>();
+            if (this.nuclideDefinitionFile == null || this.NuclideSets == null)
+            {
+                return groups;
+            }
+
+            foreach (NuclideSet set in this.NuclideSets)
+            {
+                if (set == null || !set.ShowIntensityLines)
+                {
+                    continue;
+                }
+
+                if (this.activeSet != null && set.Id != this.activeSet.Id)
+                {
+                    continue;
+                }
+
+                List<NuclideDefinition> lines = new List<NuclideDefinition>();
+                foreach (NuclideDefinition definition in this.NuclideDefinitions)
+                {
+                    if (definition != null && definition.Visible
+                        && definition.Energy > 0.0 && definition.Intencity > 0.0
+                        && definition.Sets != null && definition.Sets.Contains(set.Id))
+                    {
+                        lines.Add(definition);
+                    }
+                }
+
+                if (lines.Count > 0)
+                {
+                    groups.Add(lines);
+                }
+            }
+
+            return groups;
+        }
+
         // Token: 0x06000932 RID: 2354 RVA: 0x00035750 File Offset: 0x00033950
+        /// <summary>
+        /// ⛔ Заготовка из четырёх записей допустима ТОЛЬКО в оконном режиме, и
+        /// это решение, а не недосмотр (<c>S100</c>, 27.08.2026).
+        ///
+        /// Живой человек, у которого библиотеки и правда нет (первый запуск,
+        /// снесённый <c>%AppData%\BecqMoni</c>), не должен упереться в тупик:
+        /// без библиотеки панель поиска пиков нерабочая, а завести её руками
+        /// негде — редактор нуклидов открывается ИЗ приложения. Поэтому в окнах
+        /// поведение прежнее: заготовка пишется на диск и о ней СООБЩАЮТ, а
+        /// дальше человек дополняет её из базы (<c>NucBase</c>) или подкладывает
+        /// поставочный файл.
+        ///
+        /// Безоконный запуск (проба, харнесс) ОТКАЗЫВАЕТ. Причина в цене:
+        /// состав библиотеки задаёт и поиск пиков, и разбор FSA, поэтому проба,
+        /// молча получившая четыре линии вместо поставочных полутора сотен,
+        /// печатает правдоподобные, но бессмысленные числа — а человека, который
+        /// заметил бы окно, там нет. Отказ читает код возврата пробы; молчаливый
+        /// признак вместо исключения был бы признаком без читателя.
+        ///
+        /// ⛔ И заготовка в безоконном запуске НЕ ПИШЕТСЯ НА ДИСК: именно так
+        /// в <c>tools/effmaker/probes/build/config/</c> завёлся четырёхзаписный
+        /// файл, неотличимый на вид от настоящего конфига (<c>T73</c>).
+        /// </summary>
         public static NuclideDefinitionManager GetInstance()
         {
+            // ⛔ Счёт обращений — ПЕРВЫМ действием, до попытки чтения (`AMBER19`):
+            // гейт корпусного прогона спрашивает «поднимали ли менеджер», а не
+            // «поднялся ли». Безоконный вызов без файла бросает выше по тексту,
+            // и `isLoaded` остаётся ложью; исключение же проба глотает в
+            // `row.Error` — по одному `isLoaded` подъём был бы невидим.
+            NuclideDefinitionManager.raiseCount++;
             if (!NuclideDefinitionManager.instance.LoadDefinitionFile())
             {
+                string filename = NuclideDefinitionManager.instance.nuclideDefinitionFilename;
+                if (!AppUi.HasWindows)
+                {
+                    throw new InvalidOperationException(
+                        "BecqMoni: nuclide library could not be loaded and there is no UI to report it to: "
+                        + AppUi.Where(filename)
+                        + ". The 4-nuclide starter library is a windowed-first-run fallback only: it drives both "
+                        + "peak search and FSA, so a headless run on it would print plausible nonsense. "
+                        + "Run from a directory that has config\\NuclideDefinition.xml.");
+                }
                 NuclideDefinitionManager.instance.NuclideDefinitionFile = new NuclideDefinitionFile();
                 NuclideDefinitionManager.instance.InitializeNuclideDefinitionFile();
                 // Only CREATE a default file when none exists. A transient read error
                 // (file locked by antivirus/cloud sync) used to trigger an immediate
                 // overwrite of the user's NuclideDefinition.xml with the 4-nuclide default.
-                if (!File.Exists(NuclideDefinitionManager.instance.nuclideDefinitionFilename))
+                if (!File.Exists(filename))
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(NuclideDefinitionManager.instance.nuclideDefinitionFilename));
+                    Directory.CreateDirectory(Path.GetDirectoryName(filename));
                     if (NuclideDefinitionManager.instance.SaveDefinitionFile())
                     {
-                        MessageBox.Show(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                        AppUi.Report(Resources.MSGNewNuclideDefinitionFileCreated, Resources.NotificationDialogTitle, MessageBoxIcon.Asterisk);
                     }
                 }
             }
@@ -91,12 +213,55 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.nuclideDefinitionFile = null;
                 return false;
             }
             this.isLoaded = true;
+            FillChainsFromNames(this.nuclideDefinitionFile);
+            // ⛔ `S102`: заверение о библиотеке обязано называть ОТКРЫТЫЙ файл.
+            // Прежде его писала оснастка — ДО запуска и про файл, который она
+            // положила («библиотека нуклидов: 152 записей»), а проба с другим
+            // рабочим каталогом открывала другой, на 143 записи, и расхождение
+            // не всплывало нигде. Строку теперь пишет тот, кто файл открыл, и
+            // пишет полный путь: сверить обещание с фактом стало возможно.
+            // Печатается только без окон и за безоконный прогон ровно один раз:
+            // повторный вызов уходит по `isLoaded` выше, а единственная
+            // перезагрузка по требованию (`forceReload`) зовётся из формы
+            // редактора — то есть в окнах, где строка молчит.
+            AppUi.Note("nuclide library: " + AppUi.Where(nuclideDefinitionFilename) + ": "
+                + (this.nuclideDefinitionFile.NuclideDefinitions == null
+                    ? 0 : this.nuclideDefinitionFile.NuclideDefinitions.Count)
+                + " entries");
             return true;
+        }
+
+        /// <summary>
+        /// Ряд у линий, заведённых до поля <c>Chain</c>: до сих пор родитель
+        /// жил только в хвосте имени, и разбирали этот хвост в двух местах
+        /// порознь. Разбирается один раз, здесь.
+        ///
+        /// Файл при этом НЕ переписывается: поле уедет на диск при первом
+        /// сохранении из формы. Молча переписать чужой конфиг на открытии —
+        /// цена, которой эта миграция не стоит, а пустое поле у линии без
+        /// скобок в имени и есть правильное значение.
+        /// </summary>
+        static void FillChainsFromNames(NuclideDefinitionFile file)
+        {
+            if (file == null || file.NuclideDefinitions == null)
+            {
+                return;
+            }
+
+            foreach (NuclideDefinition definition in file.NuclideDefinitions)
+            {
+                if (definition == null || !string.IsNullOrEmpty(definition.Chain))
+                {
+                    continue;
+                }
+
+                definition.Chain = NuclideDefinition.ChainOf(definition.Name);
+            }
         }
 
         // Token: 0x06000935 RID: 2357 RVA: 0x0003586C File Offset: 0x00033A6C
@@ -112,7 +277,7 @@ namespace BecquerelMonitor
             }
             catch (Exception)
             {
-                MessageBox.Show(Resources.ERRSavingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                AppUi.Report(Resources.ERRSavingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return false;
             }
             return true;
@@ -145,6 +310,22 @@ namespace BecquerelMonitor
         }
 
         string nuclideDefinitionFilename = Package.GetInstance().NuclideDefinition;
+
+        /// <summary>
+        /// Сколько раз звали <see cref="GetInstance"/> за время жизни процесса
+        /// — в том числе вызовы, кончившиеся броском (безоконный запуск без
+        /// файла, <c>S100</c>). Признак «поднимали ли поставочную библиотеку»
+        /// для гейта корпусного прогона (`AMBER19`): корпус считается только по
+        /// нуклидам из базы, и ни одно обращение к менеджеру там не законно.
+        /// Читатель — <c>CorpusFsaProbe</c>, в конце прогона; сбросить нельзя
+        /// нарочно.
+        /// </summary>
+        public static int RaiseCount
+        {
+            get { return NuclideDefinitionManager.raiseCount; }
+        }
+
+        static int raiseCount;
 
         // Token: 0x04000513 RID: 1299
         static NuclideDefinitionManager instance = new NuclideDefinitionManager();
