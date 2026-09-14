@@ -55,15 +55,15 @@ SC_SourceHeight = 2 cm
 
 //Marinelli beaker source
 SM_BeakerToDetectorFrontDistance = 0.1 cm
-SM_BeakerDiameter = 13.519602 cm
-SM_BeakerHeight = 10.4 cm
-SM_BeakerHoleDiameter = 7.6 cm
-SM_BeakerHoleHeight = 7 cm
+SM_BeakerDiameter = 15.4 cm
+SM_BeakerHeight = 11.2 cm
+SM_BeakerHoleDiameter = 9.7 cm
+SM_BeakerHoleHeight = 6.5 cm
 SM_BeakerSideThickness = 0.2 cm
 SM_BeakerEndWallThickness = 0.2 cm
 SM_BeakerHoleSideThickness = 0.2 cm
 SM_BeakerHoleEndWallThickness = 0.2 cm
-SM_SourceHeight = 10 cm
+SM_SourceHeight = 8.6058 cm
 
 //Box source (extension, not read by LSRM)
 SB_BoxToDetectorFrontDistance = 0 cm

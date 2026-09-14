@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResultDataFile>
   <FormatVersion>120920</FormatVersion>
   <ResultDataList>
@@ -22,7 +22,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.233401565073606</Coefficient><Coefficient>2.8564966851414177</Coefficient><Coefficient>0.0003856974343133035</Coefficient><Coefficient>-2.7886323470396223e-07</Coefficient></Coefficients>
+            <Coefficient>-8.233401565073681</Coefficient><Coefficient>2.8564966851414177</Coefficient><Coefficient>0.0003856974343133035</Coefficient><Coefficient>-2.7886323470396223e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>96036</ValidPulseCount>
         <TotalPulseCount>96036</TotalPulseCount>
@@ -1062,7 +1062,7 @@
         <EnergyCalibration>
           <PolynomialOrder>3</PolynomialOrder>
           <Coefficients>
-            <Coefficient>-8.233401565073606</Coefficient><Coefficient>2.8564966851414177</Coefficient><Coefficient>0.0003856974343133035</Coefficient><Coefficient>-2.7886323470396223e-07</Coefficient></Coefficients>
+            <Coefficient>-8.233401565073681</Coefficient><Coefficient>2.8564966851414177</Coefficient><Coefficient>0.0003856974343133035</Coefficient><Coefficient>-2.7886323470396223e-07</Coefficient></Coefficients>
         </EnergyCalibration>
         <ValidPulseCount>440398</ValidPulseCount>
         <TotalPulseCount>440398</TotalPulseCount>
@@ -2096,6 +2096,6 @@
           <DataPoint>6</DataPoint>
         </Spectrum>
       </BackgroundEnergySpectrum>
-    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.4682259895085374</Coefficient><Coefficient>0.6458844427054581</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
+    <BackgroundSpectrumFile>Фон закр кр вода_16.xml</BackgroundSpectrumFile><PowerFwhmCalibration><CalibrationPeaks /><Coefficients><Coefficient>0.46589930200999796</Coefficient><Coefficient>0.6469438536728632</Coefficient></Coefficients><PeakType>0</PeakType><ExpGaussExpLeftTail>1.0</ExpGaussExpLeftTail><ExpGaussExpRightTail>1.0</ExpGaussExpRightTail><Chi2pNdp>-1</Chi2pNdp></PowerFwhmCalibration></ResultData>
   </ResultDataList>
 </ResultDataFile>

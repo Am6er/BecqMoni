@@ -1,0 +1,80 @@
+build start 2026-09-14 16:49:44 head=16de7feb
+restore code=0 16:49:45
+app code=0 16:49:48
+probes code=0 16:50:45
+app exe sha256 61c9d65fc4f30fa2f8314c0ee7d352effb753405fccf46f9146aa5e8085a3d21
+probes exe sha256 61c9d65fc4f30fa2f8314c0ee7d352effb753405fccf46f9146aa5e8085a3d21
+build end 16:50:45
+count start 2026-09-14 16:54:49
+build C start 2026-09-14 17:29:35 head=a6f2b227
+C restore code=0 17:29:45
+C app code=0 17:30:02
+C probes code=0 17:35:30
+C app exe sha256 42babe75769fea899b2a2d793fceaefd9bca5fe31ebdd66743a9bb0d4bac8126
+C probes exe sha256 42babe75769fea899b2a2d793fceaefd9bca5fe31ebdd66743a9bb0d4bac8126
+build C end 17:35:30
+count code=0 20:16:57
+after_count start 2026-09-14 20:17:25
+audit store code=0
+eff code=0 20:20:00
+store swap code=0
+audit live code=1
+check_matrix_keys code=0
+check_geometry_names code=0
+check_curve_generation code=0
+corpus_summary code=0
+check_corpus final code=0
+check_corpus_generator code=0
+after_count end 20:21:08
+arm a start 2026-09-14 20:21:55 tree=D:\BqMoni_Claude\p66\wt bin=D:\BqMoni_Claude\p66\wt\BecquerelMonitor\bin\Release_p66
+arm a mk_appwd code=4
+arm a check_appwd code=6
+arm a full code=2 20:22:05 (2 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_full_a
+arm a mini code=2 20:22:07 (2 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_mini_a
+arm a score full known code=1
+arm a score mini known code=1
+arm a score full unknown code=1
+arm a score mini unknown code=1
+arm a end 20:22:08
+arm a: снят уголь из склада wt (плечо A без сцены угля), wd_p66a и out_p66_*_a первого захода сняты
+arm a start 2026-09-14 20:22:46 tree=D:\BqMoni_Claude\p66\wt bin=D:\BqMoni_Claude\p66\wt\BecquerelMonitor\bin\Release_p66
+arm a mk_appwd code=0
+arm a check_appwd code=0
+arm a full code=0 20:23:21 (27 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_full_a
+arm a mini code=0 20:23:31 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_mini_a
+arm a score full known code=0
+arm a score mini known code=0
+arm a score full unknown code=0
+arm a score mini unknown code=0
+arm a end 20:23:32
+arm b start 2026-09-14 20:23:59 tree=D:\BqMoni_Claude\p66\wt bin=D:\BqMoni_Claude\p66\wt\BecquerelMonitor\bin\Release_p66
+arm b mk_appwd code=0
+arm b check_appwd code=0
+arm b full code=0 20:24:38 (30 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_full_b
+arm b mini code=0 20:24:47 (10 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_p66_mini_b
+arm b score full known code=0
+arm b score mini known code=0
+arm b score full unknown code=0
+arm b score mini unknown code=0
+arm b end 20:24:48
+arm c start 2026-09-14 20:24:55 tree=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8 bin=D:\BqMoni_Claude\p66\wt2\BecquerelMonitor\bin\Release_p66c
+arm c mk_appwd code=3
+arm c check_appwd code=1
+arm c full code=2 20:25:00 (1 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev23_full
+arm c mini code=2 20:25:00 (1 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev23_mini
+arm c score full known code=1
+arm c score mini known code=1
+arm c score full unknown code=1
+arm c score mini unknown code=1
+arm c end 20:25:01
+arm c: первый заход из основного дерева отвергнут сторожем оснастки (LF/CRLF, mk_appwd_c_maintree.log); wd_p66c и out_rev23_* сняты, плечо C гонится из wt2 с копией корпуса
+arm c start 2026-09-14 20:25:48 tree=D:\BqMoni_Claude\p66\wt2 bin=D:\BqMoni_Claude\p66\wt2\BecquerelMonitor\bin\Release_p66c
+arm c mk_appwd code=0
+arm c check_appwd code=0
+arm c full code=0 20:26:29 (29 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev23_full
+arm c mini code=0 20:26:38 (9 s) out=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev23_mini
+arm c score full known code=0
+arm c score mini known code=0
+arm c score full unknown code=0
+arm c score mini unknown code=0
+arm c end 20:26:38
